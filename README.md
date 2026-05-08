@@ -1,5 +1,7 @@
 # Versorgungs-Kompass
 
+Das gematik-Hospitationsnetzwerk
+
 Privates Arbeits-Repository fuer den `Versorgungs-Kompass`, den Karten-Modus und die zugehoerige Datenbasis des `gematik-Hospitationsnetzwerks`.
 
 Der Projektordner enthaelt aktuell zwei Arbeitsstraenge:
