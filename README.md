@@ -112,3 +112,19 @@ Dieses Repo soll bewusst auch die statischen Daten des `Versorgungs-Kompass` ent
 ## Deployment
 
 Die bisherige Deploy-Notiz fuer den App-Prototyp liegt in [README.deploy.md](/Users/timofrank/Desktop/Versorgungs-CRM/README.deploy.md).
+
+## GitHub Pages
+
+Fuer eine einfache oeffentliche Web-Version des statischen `Versorgungs-Kompass` wird der Publish-Ordner `docs/` verwendet.
+
+- Einstieg fuer GitHub Pages: `docs/index.html`
+- Login-Seite: `docs/login.html`
+- Publish-Assets lassen sich mit `scripts/sync_github_pages.sh` aus dem aktuellen Projektstand aktualisieren
+
+Fuer GitHub Pages in GitHub:
+
+1. `Settings`
+2. `Pages`
+3. Source: `Deploy from a branch`
+4. Branch: `main`
+5. Folder: `/docs`

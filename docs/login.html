@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | Versorgungs-Kompass</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="%23f4f6ff"/><rect x="11" y="9" width="18" height="18" rx="6" transform="rotate(45 20 18)" fill="%232788f6"/><rect x="34" y="24" width="18" height="18" rx="6" transform="rotate(45 43 33)" fill="%23ff7f3f"/><rect x="11" y="39" width="18" height="18" rx="6" transform="rotate(45 20 48)" fill="%2310236e"/></svg>'
+    />
+    <script src="./auth-config.js"></script>
+    <script src="./auth-guard.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f4f6ff;
+        --page-2: #eaf0ff;
+        --text: #1a2559;
+        --muted: #667294;
+        --line: #d9def5;
+        --card: rgba(255, 255, 255, 0.94);
+        --blue: #2788f6;
+        --orange: #ff7f3f;
+        --deep: #10236e;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 12% 0%, rgba(39, 136, 246, 0.14), transparent 24%),
+          radial-gradient(circle at 100% 10%, rgba(255, 127, 63, 0.12), transparent 20%),
+          linear-gradient(180deg, var(--page) 0%, var(--page-2) 100%);
+      }
+
+      .login-shell {
+        width: min(100%, 520px);
+        padding: 30px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--card);
+        box-shadow: 0 28px 70px rgba(26, 37, 89, 0.14);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+
+      .login-stack {
+        display: grid;
+        gap: 18px;
+        margin-top: 26px;
+      }
+
+      .brand { display: flex; align-items: center; gap: 16px; }
+      .brand-mark { position: relative; width: 52px; height: 52px; flex: 0 0 auto; }
+      .brand-mark span { position: absolute; width: 18px; height: 18px; border-radius: 8px; transform: rotate(45deg); }
+      .brand-mark span:nth-child(1) { background: var(--blue); top: 2px; left: 7px; }
+      .brand-mark span:nth-child(2) { background: var(--orange); top: 17px; left: 21px; }
+      .brand-mark span:nth-child(3) { background: var(--deep); top: 31px; left: 7px; }
+      .brand-copy strong { display: block; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.04em; }
+      .brand-copy p { margin: 4px 0 0; color: var(--muted); font-size: 0.92rem; }
+
+      .login-card {
+        margin-top: 22px;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+      }
+
+      .login-card p { margin: 10px 0 0; color: var(--muted); line-height: 1.5; }
+
+      form { margin-top: 22px; display: grid; gap: 14px; }
+      label { font-size: 0.85rem; font-weight: 800; color: #3b4978; }
+
+      input {
+        width: 100%;
+        min-height: 52px;
+        padding: 0 16px;
+        border: 1px solid #cfd7fb;
+        border-radius: 16px;
+        background: #ffffff;
+        color: var(--text);
+        font: inherit;
+        box-shadow: 0 8px 24px rgba(49, 75, 153, 0.06);
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #8eb2ff;
+        box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
+      }
+
+      .login-button {
+        min-height: 50px;
+        border: 0;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #275ee6, #4d90ff);
+        color: #ffffff;
+        font-size: 0.96rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+      }
+
+      .login-button:disabled { cursor: wait; opacity: 0.82; }
+
+      .login-error {
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: #fff1ec;
+        color: #a14d3b;
+        font-size: 0.88rem;
+        font-weight: 700;
+      }
+
+      .teaser-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+        box-shadow: 0 10px 28px rgba(49, 75, 153, 0.08);
+      }
+
+      .teaser-frame {
+        display: block;
+        width: 100%;
+        height: 240px;
+        border: 0;
+        pointer-events: none;
+        background: #f3f5f7;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="login-shell">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="brand-copy">
+          <strong id="login-app-name">Versorgungs-Kompass</strong>
+          <p id="login-subtitle">Das gematik-Hospitationsnetzwerk</p>
+        </div>
+      </div>
+
+      <div class="login-stack">
+        <section class="teaser-card" aria-label="Karten-Vorschau">
+          <iframe
+            class="teaser-frame"
+            title="Mini-Vorschau des Karten-Modus"
+            src="./versorgungs-kompass-map-teaser.html"
+            loading="lazy"
+            tabindex="-1"
+          ></iframe>
+        </section>
+
+        <section class="login-card" aria-labelledby="login-title">
+          <p>Gib das gemeinsame Passwort ein, um den geschützten Bereich zu öffnen.</p>
+
+          <form id="login-form">
+            <div>
+              <label for="password">Passwort</label>
+              <input id="password" name="password" type="password" autocomplete="current-password" required />
+            </div>
+            <div class="login-error" id="login-error" hidden>Das Passwort ist nicht korrekt.</div>
+            <button class="login-button" id="login-submit" type="submit">Öffnen</button>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script src="./auth-login.js"></script>
+  </body>
+</html>
