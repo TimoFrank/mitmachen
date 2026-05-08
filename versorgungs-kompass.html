@@ -1,0 +1,3550 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Versorgungs-Kompass</title>
+    <script src="./auth-config.js"></script>
+    <script src="./auth-guard.js"></script>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="%23f4f6ff"/><rect x="11" y="9" width="18" height="18" rx="6" transform="rotate(45 20 18)" fill="%232788f6"/><rect x="34" y="24" width="18" height="18" rx="6" transform="rotate(45 43 33)" fill="%23ff7f3f"/><rect x="11" y="39" width="18" height="18" rx="6" transform="rotate(45 20 48)" fill="%2310236e"/></svg>'
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f4f6ff;
+        --page-2: #eef2ff;
+        --text: #1a2559;
+        --muted: #68708e;
+        --line: #d9def5;
+        --white: #ffffff;
+        --green: #09a63e;
+        --orange: #ffb727;
+        --purple: #9b46df;
+        --blue: #2788f6;
+        --yellow: #ffde72;
+        --soft-blue: #eef4ff;
+        --soft-green: #e8ffe5;
+        --soft-orange: #fff0d3;
+        --soft-red: #ffe3dc;
+        --shadow: 0 18px 50px rgba(38, 52, 105, 0.08);
+        --shadow-lg: 0 34px 70px rgba(26, 37, 89, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 12% 0%, rgba(39, 136, 246, 0.12), transparent 24%),
+          radial-gradient(circle at 100% 10%, rgba(155, 70, 223, 0.12), transparent 22%),
+          linear-gradient(180deg, var(--page) 0%, var(--page-2) 100%);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 80px;
+        padding: 0 26px;
+        border-bottom: 1px solid rgba(26, 37, 89, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        position: sticky;
+        top: 0;
+        z-index: 30;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .brand-mark {
+        position: relative;
+        width: 52px;
+        height: 52px;
+        flex: 0 0 auto;
+      }
+
+      .brand-mark span {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 8px;
+        transform: rotate(45deg);
+      }
+
+      .brand-mark span:nth-child(1) {
+        background: var(--blue);
+        top: 2px;
+        left: 7px;
+      }
+
+      .brand-mark span:nth-child(2) {
+        background: #ff7f3f;
+        top: 17px;
+        left: 21px;
+      }
+
+      .brand-mark span:nth-child(3) {
+        background: #10236e;
+        top: 31px;
+        left: 7px;
+      }
+
+      .brand-text strong {
+        font-size: clamp(1.55rem, 2vw, 2.5rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .wrap {
+        width: calc(100% - 24px);
+        margin: 18px auto 28px;
+      }
+
+      .accent-bar {
+        height: 16px;
+        margin-bottom: 12px;
+        border-radius: 24px 24px 12px 12px;
+        background: linear-gradient(90deg, #09a63e 0%, #31be61 55%, #5ac978 100%);
+        box-shadow: var(--shadow);
+      }
+
+      .crm-shell {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .welcome {
+        padding: 24px 300px 12px 28px;
+      }
+
+      .welcome h2 {
+        margin: 0;
+        font-size: clamp(1.9rem, 3vw, 3.2rem);
+        letter-spacing: -0.05em;
+      }
+
+      .welcome p {
+        max-width: none;
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.42;
+        font-size: 0.94rem;
+        white-space: nowrap;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.1fr);
+        gap: 14px;
+        padding: 10px 28px 20px;
+      }
+
+      .summary-card {
+        min-height: 108px;
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+      }
+
+      .summary-card:nth-child(1) {
+        background: linear-gradient(180deg, #ffffff 0%, #eef4ff 100%);
+      }
+
+      .summary-card:nth-child(2) {
+        background: linear-gradient(180deg, #ffffff 0%, #fff3de 100%);
+      }
+
+      .summary-label {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .summary-value {
+        margin-top: 10px;
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+      }
+
+      .summary-sub {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .controls {
+        padding: 0 28px 14px;
+        margin-top: 0;
+      }
+
+      .controls-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .filters-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+
+      .admin-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        position: absolute;
+        top: 28px;
+        right: 28px;
+        z-index: 4;
+      }
+
+      .admin-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-left: auto;
+      }
+
+      .action-button {
+        min-height: 42px;
+        padding: 0 14px;
+        border: 1px solid #d5defb;
+        border-radius: 14px;
+        background: #ffffff;
+        color: #2e427f;
+        font-size: 0.86rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
+      }
+
+      .action-button:hover {
+        transform: translateY(-1px);
+        border-color: #b6c8ff;
+        box-shadow: 0 10px 22px rgba(54, 94, 191, 0.12);
+      }
+
+      .action-button--primary {
+        background: linear-gradient(135deg, #275ee6, #4d90ff);
+        border-color: transparent;
+        color: white;
+      }
+
+      .action-button__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        font-size: 1rem;
+        line-height: 1;
+      }
+
+      .action-button--ghost {
+        background: #edf3ff;
+        color: #4160af;
+      }
+
+      .action-button--danger {
+        background: #fff1ec;
+        border-color: #f3cec1;
+        color: #b8563d;
+      }
+
+      .menu-shell {
+        position: relative;
+      }
+
+      .menu-button {
+        width: 42px;
+        min-width: 42px;
+        padding: 0;
+        display: inline-grid;
+        place-items: center;
+      }
+
+      .menu-button svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .menu-popover {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        min-width: 188px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 14px 28px rgba(26, 37, 89, 0.12);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        z-index: 40;
+      }
+
+      .menu-popover[hidden] {
+        display: none;
+      }
+
+      .menu-option {
+        width: 100%;
+        min-height: 38px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        background: transparent;
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .menu-option:hover {
+        background: #f3f6ff;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      .search-shell,
+      .select-shell {
+        display: flex;
+        align-items: center;
+        min-height: 54px;
+        border: 1px solid #cfd7fb;
+        border-radius: 18px;
+        background: white;
+        box-shadow: 0 8px 24px rgba(49, 75, 153, 0.06);
+      }
+
+      .search-shell {
+        padding: 0 12px 0 16px;
+        gap: 10px;
+        max-width: 100%;
+      }
+
+      .search-shell svg {
+        width: 22px;
+        height: 22px;
+        color: #7c86b1;
+        flex: 0 0 auto;
+      }
+
+      .search-input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text);
+        font-size: 0.96rem;
+      }
+
+      .search-input::placeholder {
+        color: #8a92b5;
+      }
+
+      .select-shell {
+        position: relative;
+      }
+
+      .select-shell select {
+        width: 100%;
+        height: 100%;
+        padding: 0 42px 0 16px;
+        border: 0;
+        outline: 0;
+        border-radius: 18px;
+        background: transparent;
+        color: var(--text);
+        appearance: none;
+      }
+
+      .select-shell::after {
+        content: "⌄";
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #7b85b0;
+        font-size: 1rem;
+        pointer-events: none;
+      }
+
+      .quick-filters {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        padding: 0;
+        justify-content: flex-start;
+      }
+
+      .quick-filters--column {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        padding-top: 2px;
+      }
+
+      .priority-chip,
+      .category-chip {
+        min-height: 38px;
+        padding: 0 14px;
+        border: 1px solid #d5ddfb;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #334170;
+        font-size: 0.86rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+      }
+
+      .priority-chip--dot {
+        width: 38px;
+        min-width: 38px;
+        min-height: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: 999px;
+        border-color: rgba(26, 37, 89, 0.14);
+        background: #dfe4f7;
+        box-shadow: none;
+        position: relative;
+        font-size: 0.95rem;
+      }
+
+      .priority-chip--dot[data-priority="high"] {
+        background: #ffe3dc;
+        border-color: #efc5b6;
+      }
+
+      .priority-chip--dot[data-priority="medium"] {
+        background: #fff0d3;
+        border-color: #efd59b;
+      }
+
+      .priority-chip--dot[data-priority="low"] {
+        background: #e8ffe5;
+        border-color: #abdcbb;
+      }
+
+      .priority-chip--dot::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 50%;
+        bottom: calc(100% + 10px);
+        transform: translateX(-50%) translateY(4px);
+        padding: 6px 9px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 140ms ease, transform 140ms ease;
+        box-shadow: 0 10px 22px rgba(26, 37, 89, 0.12);
+      }
+
+      .priority-chip--dot:hover::after,
+      .priority-chip--dot:focus-visible::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .priority-chip--dot[data-priority="high"]::after {
+        background: #fff4f0;
+        color: #af4f3f;
+      }
+
+      .priority-chip--dot[data-priority="medium"]::after {
+        background: #fff8e8;
+        color: #9a6a00;
+      }
+
+      .priority-chip--dot[data-priority="low"]::after {
+        background: #eefbf1;
+        color: #2e8557;
+      }
+
+      .priority-chip:hover,
+      .category-chip:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(39, 136, 246, 0.1);
+        border-color: #b7c7f8;
+      }
+
+      .priority-chip.is-active {
+        box-shadow: inset 0 0 0 1px rgba(26, 37, 89, 0.14), 0 8px 18px rgba(39, 136, 246, 0.12);
+        transform: translateY(-1px);
+        color: #1e2d63;
+      }
+
+      .priority-chip--dot.is-active {
+        box-shadow: 0 0 0 4px rgba(39, 136, 246, 0.14), inset 0 0 0 1px rgba(26, 37, 89, 0.1);
+      }
+
+      .priority-chip[data-priority="high"].is-active {
+        background: #fff4f0;
+        border-color: #efc5b6;
+      }
+
+      .priority-chip[data-priority="medium"].is-active {
+        background: #fff8e8;
+        border-color: #efd59b;
+      }
+
+      .priority-chip[data-priority="low"].is-active {
+        background: #eefbf1;
+        border-color: #abdcbb;
+      }
+
+      .category-chip.is-active {
+        background: #edf3ff;
+        border-color: #9cb7ff;
+        color: #28488f;
+        box-shadow: 0 8px 18px rgba(39, 136, 246, 0.12);
+      }
+
+      .category-chip--icon {
+        min-width: 38px;
+        width: 38px;
+        padding: 0;
+        justify-content: center;
+        font-size: 1rem;
+      }
+
+      .table-wrap {
+        border-top: 1px solid var(--line);
+        overflow: auto;
+        background:
+          linear-gradient(180deg, rgba(238, 242, 255, 0.7) 0%, rgba(255, 255, 255, 0.9) 100%);
+      }
+
+      .table {
+        min-width: 1120px;
+      }
+
+      .thead,
+      .row {
+        display: grid;
+        grid-template-columns: 56px minmax(330px, 1.45fr) minmax(240px, 0.95fr) minmax(170px, 0.7fr) minmax(260px, 0.95fr);
+        align-items: center;
+      }
+
+      .thead {
+        min-height: 58px;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        border-bottom: 1px solid var(--line);
+        background: #f4f6ff;
+        color: #243271;
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+
+      .thead > div,
+      .row > div {
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        padding: 9px 14px;
+        border-right: 1px solid #e4e8fb;
+      }
+
+      .thead > div:last-child,
+      .row > div:last-child {
+        border-right: 0;
+      }
+
+      .column-head {
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .column-head--stacked {
+        align-items: flex-start;
+      }
+
+      .column-head__stack {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .column-head__main {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .column-head__label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+
+      .mini-filters {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+      }
+
+      .mini-chip {
+        min-height: 22px;
+        padding: 0 8px;
+        border: 1px solid #d9def5;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #61709f;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .mini-chip.is-active {
+        background: #edf3ff;
+        border-color: #a9bcff;
+        color: #2d4f9d;
+      }
+
+      .header-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        z-index: 15;
+      }
+
+      .filter-icon-button {
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: #eaf0ff;
+        color: #5870b1;
+        cursor: pointer;
+        box-shadow: inset 0 0 0 1px rgba(81, 106, 188, 0.12);
+        transition: background-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+      }
+
+      .filter-icon-button:hover,
+      .filter-icon-button[aria-expanded="true"] {
+        background: #dde8ff;
+        box-shadow: inset 0 0 0 1px rgba(66, 97, 192, 0.2), 0 8px 18px rgba(72, 97, 177, 0.12);
+        transform: translateY(-1px);
+      }
+
+      .filter-icon-button svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .filter-selected {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 30px;
+        padding: 0 10px 0 12px;
+        border-radius: 999px;
+        background: #ebf1ff;
+        color: #3652a5;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+
+      .filter-selected[hidden] {
+        display: none;
+      }
+
+      .filter-clear {
+        width: 18px;
+        height: 18px;
+        border: 0;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: rgba(54, 82, 165, 0.12);
+        color: inherit;
+        cursor: pointer;
+        font-size: 0.82rem;
+        line-height: 1;
+      }
+
+      .filter-menu {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        min-width: 188px;
+        max-width: 220px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 14px 28px rgba(26, 37, 89, 0.12);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        z-index: 40;
+      }
+
+      .filter-menu[hidden] {
+        display: none;
+      }
+
+      .filter-menu__hint {
+        padding: 4px 6px 8px;
+        color: var(--muted);
+        font-size: 0.74rem;
+        line-height: 1.4;
+      }
+
+      .filter-menu__list {
+        display: grid;
+        gap: 6px;
+        grid-auto-flow: row;
+      }
+
+      .filter-option {
+        width: 100%;
+        min-height: 34px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+        background: transparent;
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .filter-option:hover {
+        background: #f3f6ff;
+      }
+
+      .filter-option.is-active {
+        background: #eaf1ff;
+        color: #3450a3;
+        font-weight: 800;
+      }
+
+      .filter-option small {
+        color: var(--muted);
+        margin-left: auto;
+      }
+
+      .row {
+        min-height: 52px;
+        background: rgba(255, 255, 255, 0.88);
+        border-bottom: 1px solid #e8ecfb;
+        font-size: 0.91rem;
+        transition: background-color 160ms ease, transform 160ms ease;
+        cursor: pointer;
+      }
+
+      .row:hover {
+        background: #f8fbff;
+      }
+
+      .row.is-active {
+        background: #edf5ff;
+        box-shadow: inset 0 0 0 1px #88bcff;
+      }
+
+      .index-cell {
+        justify-content: center;
+        color: #8790b7;
+        font-weight: 700;
+      }
+
+      .contact-cell {
+        gap: 10px;
+        justify-content: flex-start;
+      }
+
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: inline-grid;
+        place-items: center;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        flex: 0 0 auto;
+      }
+
+      .avatar--faculty {
+        background: linear-gradient(135deg, #2469ff, #7aa4ff);
+      }
+
+      .avatar--policy {
+        background: linear-gradient(135deg, #ff7f45, #ffb789);
+      }
+
+      .avatar--practice {
+        background: linear-gradient(135deg, #22a267, #6fd49d);
+      }
+
+      .avatar--network {
+        background: linear-gradient(135deg, #8b42e9, #bc8fff);
+      }
+
+      .avatar--study {
+        background: linear-gradient(135deg, #0e86a8, #68bfd7);
+      }
+
+      .contact-meta {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .contact-subline {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .row-editor {
+        width: 100%;
+        min-height: 38px;
+        padding: 8px 10px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text);
+        outline: 0;
+      }
+
+      .row-editor:hover {
+        background: #f6f9ff;
+      }
+
+      .row-editor:focus {
+        border-color: #8eb2ff;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
+      }
+
+      .row-select {
+        appearance: none;
+        cursor: pointer;
+        font-weight: 500;
+        color: #44517f;
+      }
+
+      .row-select--priority {
+        border-color: #dde4fb;
+        box-shadow: inset 3px 0 0 rgba(95, 117, 185, 0.2);
+      }
+
+      .row-select--priority.is-high {
+        background: #fff8f6;
+        box-shadow: inset 3px 0 0 rgba(175, 79, 63, 0.45);
+      }
+
+      .row-select--priority.is-medium {
+        background: #fffbf2;
+        box-shadow: inset 3px 0 0 rgba(154, 106, 0, 0.38);
+      }
+
+      .row-select--priority.is-low {
+        background: #f4fbf6;
+        box-shadow: inset 3px 0 0 rgba(46, 133, 87, 0.35);
+      }
+
+      .contact-thumb {
+        object-fit: cover;
+        object-position: center top;
+        background: #eef2ff;
+      }
+
+      .contact-name-button {
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .contact-name-button:hover {
+        color: #264aa6;
+      }
+
+      .name-edit-toggle {
+        width: 28px;
+        height: 28px;
+        margin-left: auto;
+        border: 0;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: #edf3ff;
+        color: #5870b1;
+        cursor: pointer;
+        flex: 0 0 auto;
+      }
+
+      .name-edit-toggle:hover {
+        background: #dde8ff;
+      }
+
+      .name-edit-toggle svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      .contact-name {
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+
+      .contact-name__line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+        justify-content: flex-start;
+      }
+
+      .favorite-star {
+        width: 28px;
+        height: 28px;
+        border: 0;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: transparent;
+        color: #b3b8cf;
+        cursor: pointer;
+        transition: transform 140ms ease, color 140ms ease, background-color 140ms ease;
+      }
+
+      .favorite-star:hover {
+        background: #f5f1d6;
+        color: #c89e00;
+        transform: scale(1.05);
+      }
+
+      .favorite-star.is-active {
+        color: #d6a300;
+        background: #fff6c7;
+      }
+
+      .favorite-star svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .badge--high {
+        background: var(--soft-red);
+        color: #af4f3f;
+      }
+
+      .badge--medium {
+        background: var(--soft-orange);
+        color: #9a6a00;
+      }
+
+      .badge--low {
+        background: var(--soft-green);
+        color: #2e8557;
+      }
+
+      .badge--active {
+        background: #dff0ff;
+        color: #2d6dc8;
+      }
+
+      .badge--pending {
+        background: #fff0d8;
+        color: #aa7a10;
+      }
+
+      .badge--quiet {
+        background: #f0ecff;
+        color: #7156c9;
+      }
+
+      .badge--new {
+        background: #e5ffe7;
+        color: #2f8650;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .empty {
+        padding: 34px 28px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .detail-drawer {
+        position: fixed;
+        inset: 0;
+        display: none;
+        z-index: 80;
+      }
+
+      .detail-drawer.is-open {
+        display: block;
+      }
+
+      .detail-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(18, 28, 64, 0.26);
+      }
+
+      .detail-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: min(620px, 100%);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #ffffff;
+        box-shadow: -24px 0 70px rgba(16, 27, 80, 0.16);
+        overflow: auto;
+      }
+
+      .detail-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+
+      .detail-counter {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .detail-close {
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: 14px;
+        background: #eaedff;
+        color: var(--text);
+        font-size: 1.35rem;
+        cursor: pointer;
+      }
+
+      .detail-content {
+        padding: 18px 20px 28px;
+      }
+
+      .detail-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+      }
+
+      .detail-hero {
+        padding: 28px;
+        border-radius: 22px;
+        background: #eaf3ff;
+      }
+
+      .detail-top {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .detail-top .avatar {
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        font-size: 0.98rem;
+      }
+
+      .detail-top img.avatar {
+        object-fit: cover;
+        object-position: center top;
+        background: #eef2ff;
+      }
+
+      .detail-hero h3 {
+        margin: 0;
+        font-size: 2rem;
+        letter-spacing: -0.04em;
+      }
+
+      .detail-hero p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+
+      .detail-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .role-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: auto;
+        padding: 0;
+        border-radius: 0;
+        font-weight: 600;
+        white-space: nowrap;
+        gap: 8px;
+        background: transparent;
+        color: #425189;
+      }
+
+      .role--betreuung {
+        color: #425189;
+      }
+
+      .role--institution {
+        color: #425189;
+      }
+
+      .role--versorgung {
+        color: #425189;
+      }
+
+      .role--methodik {
+        color: #425189;
+      }
+
+      .role--netzwerk {
+        color: #425189;
+      }
+
+      .role--freunde {
+        color: #425189;
+      }
+
+      .section-block {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(26, 37, 89, 0.1);
+      }
+
+      .section-title {
+        margin: 0 0 14px;
+        font-size: 0.86rem;
+        color: #5a4fcf;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .detail-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .detail-stack--duo {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .detail-card {
+        padding: 16px 18px;
+        border: 1px solid rgba(217, 222, 245, 0.9);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(246,249,255,0.92) 100%);
+      }
+
+      .detail-label {
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .detail-value {
+        margin-top: 10px;
+        line-height: 1.55;
+        font-size: 1rem;
+      }
+
+      .detail-value--split {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .detail-subvalue {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .detail-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .detail-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 999px;
+        background: #eff4ff;
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .detail-link--compact {
+        min-height: 30px;
+        padding: 0 10px;
+        font-size: 0.8rem;
+        background: #e8efff;
+      }
+
+      .detail-list {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .detail-list li + li {
+        margin-top: 6px;
+      }
+
+      .linkedin-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        display: inline-grid;
+        place-items: center;
+        background: #0a66c2;
+        color: white;
+        font-size: 0.72rem;
+        font-weight: 800;
+        flex: 0 0 auto;
+      }
+
+      .field-icon {
+        width: 22px;
+        height: 22px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 7px;
+        background: #eef3ff;
+        color: #4f63a6;
+        font-size: 0.78rem;
+        flex: 0 0 auto;
+      }
+
+      .field-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .detail-empty-note {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #fff4e7;
+        color: #8a6112;
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+
+      .editor-drawer {
+        position: fixed;
+        inset: 0;
+        display: none;
+        z-index: 90;
+      }
+
+      .editor-drawer.is-open {
+        display: block;
+      }
+
+      .map-mode-drawer {
+        position: fixed;
+        inset: 0;
+        display: none;
+        z-index: 95;
+      }
+
+      .map-mode-drawer.is-open {
+        display: block;
+      }
+
+      .map-mode-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(17, 25, 55, 0.42);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .map-mode-panel {
+        position: absolute;
+        inset: 18px;
+        border-radius: 30px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 36px 90px rgba(17, 27, 67, 0.28);
+        border: 1px solid rgba(217, 222, 245, 0.9);
+      }
+
+      .map-mode-frame {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: block;
+        background: #f3f5f7;
+      }
+
+      .map-mode-close {
+        position: absolute;
+        top: 22px;
+        right: 22px;
+        left: auto;
+        z-index: 3;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.94);
+        color: #28406f;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+      }
+
+      .dashboard-drawer {
+        position: fixed;
+        inset: 0;
+        display: none;
+        z-index: 94;
+      }
+
+      .dashboard-drawer.is-open {
+        display: block;
+      }
+
+      .dashboard-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(17, 25, 55, 0.42);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .dashboard-panel {
+        position: absolute;
+        inset: 26px;
+        border-radius: 30px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at top left, rgba(39, 136, 246, 0.08), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 248, 255, 0.98) 100%);
+        box-shadow: 0 36px 90px rgba(17, 27, 67, 0.28);
+        border: 1px solid rgba(217, 222, 245, 0.9);
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .dashboard-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 26px 18px;
+        border-bottom: 1px solid rgba(217, 222, 245, 0.88);
+      }
+
+      .dashboard-header h3 {
+        margin: 0;
+        font-size: clamp(1.35rem, 2vw, 2rem);
+        letter-spacing: -0.04em;
+      }
+
+      .dashboard-header p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .dashboard-close {
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.94);
+        color: #28406f;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+        flex: 0 0 auto;
+      }
+
+      .dashboard-body {
+        overflow: auto;
+        padding: 24px 26px 28px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .dashboard-kpis {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .dashboard-kpi {
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+      }
+
+      .dashboard-kpi:nth-child(2) {
+        background: linear-gradient(180deg, #ffffff 0%, #eef6ff 100%);
+      }
+
+      .dashboard-kpi:nth-child(3) {
+        background: linear-gradient(180deg, #ffffff 0%, #fff4e8 100%);
+      }
+
+      .dashboard-kpi-label {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .dashboard-kpi-value {
+        margin-top: 10px;
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+        gap: 18px;
+      }
+
+      .dashboard-card {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+
+      .dashboard-card h4 {
+        margin: 0;
+        font-size: 1rem;
+        letter-spacing: -0.02em;
+      }
+
+      .dashboard-card p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .category-chart {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+        gap: 18px;
+        align-items: center;
+      }
+
+      .category-donut {
+        width: min(100%, 220px);
+        aspect-ratio: 1;
+        display: block;
+        margin: 0 auto;
+      }
+
+      .category-legend {
+        display: grid;
+        gap: 12px;
+      }
+
+      .legend-row {
+        display: grid;
+        grid-template-columns: 16px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+      }
+
+      .legend-label {
+        min-width: 0;
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      .legend-meta {
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 700;
+      }
+
+      .state-bars {
+        margin-top: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .state-row {
+        display: grid;
+        grid-template-columns: minmax(140px, 180px) minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .state-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      .state-bar-track {
+        height: 12px;
+        border-radius: 999px;
+        background: #edf1ff;
+        overflow: hidden;
+      }
+
+      .state-bar-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2788f6 0%, #61a8ff 100%);
+      }
+
+      .state-value {
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 800;
+      }
+
+      .dashboard-empty {
+        margin-top: 18px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: #f4f7ff;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .dashboard-backlog {
+        margin-top: 4px;
+        border: 1px dashed rgba(112, 126, 172, 0.34);
+        border-radius: 18px;
+        background: rgba(249, 251, 255, 0.72);
+        overflow: hidden;
+      }
+
+      .dashboard-backlog summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 12px 16px;
+        color: #7280aa;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        user-select: none;
+      }
+
+      .dashboard-backlog summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .dashboard-backlog summary::after {
+        content: "Mehr";
+        float: right;
+        color: #8a95ba;
+        font-size: 0.74rem;
+        letter-spacing: 0.03em;
+        text-transform: none;
+      }
+
+      .dashboard-backlog[open] summary::after {
+        content: "Weniger";
+      }
+
+      .dashboard-backlog-body {
+        padding: 0 16px 16px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .dashboard-backlog-body ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .dashboard-backlog-body li + li {
+        margin-top: 8px;
+      }
+
+      .editor-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(17, 25, 55, 0.38);
+      }
+
+      .editor-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: min(760px, 100%);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #ffffff;
+        box-shadow: -24px 0 70px rgba(16, 27, 80, 0.2);
+      }
+
+      .editor-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.95);
+      }
+
+      .editor-toolbar h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        letter-spacing: -0.03em;
+      }
+
+      .editor-toolbar p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .editor-form {
+        flex: 1 1 auto;
+        overflow: auto;
+        padding: 20px;
+      }
+
+      .editor-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .editor-field {
+        display: grid;
+        gap: 7px;
+      }
+
+      .editor-field--full {
+        grid-column: 1 / -1;
+      }
+
+      .editor-label {
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: #53608f;
+      }
+
+      .editor-input,
+      .editor-select,
+      .editor-textarea {
+        width: 100%;
+        min-height: 48px;
+        padding: 12px 14px;
+        border: 1px solid #d6def9;
+        border-radius: 14px;
+        background: #fbfcff;
+        color: var(--text);
+        outline: 0;
+      }
+
+      .editor-textarea {
+        min-height: 118px;
+        resize: vertical;
+        line-height: 1.5;
+      }
+
+      .editor-input:focus,
+      .editor-select:focus,
+      .editor-textarea:focus {
+        border-color: #8eb2ff;
+        box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
+        background: #ffffff;
+      }
+
+      .editor-help {
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+
+      .editor-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 20px 20px;
+        border-top: 1px solid var(--line);
+        background: #ffffff;
+      }
+
+      .editor-footer__hint {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .editor-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .footer-note {
+        padding: 18px 0 10px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .footer-note span {
+        display: block;
+        margin-top: 6px;
+      }
+
+      @media (max-width: 1240px) {
+        .topbar {
+          padding: 16px;
+        }
+
+        .summary,
+        .controls {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .wrap {
+          width: min(100% - 12px, 1760px);
+        }
+
+        .summary,
+        .controls {
+          grid-template-columns: 1fr;
+        }
+
+        .controls {
+          margin-top: 0;
+        }
+
+        .admin-row {
+          position: static;
+        }
+
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .welcome,
+        .summary,
+        .controls {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .welcome {
+          padding-right: 16px;
+        }
+
+        .welcome p {
+          white-space: normal;
+        }
+
+        .detail-content {
+          padding: 14px 14px 22px;
+        }
+
+        .detail-stack--duo {
+          grid-template-columns: 1fr;
+        }
+
+        .admin-row,
+        .editor-footer {
+          align-items: stretch;
+        }
+
+        .admin-actions,
+        .editor-actions {
+          width: 100%;
+        }
+
+        .admin-actions,
+        .editor-actions {
+          justify-content: stretch;
+        }
+
+        .action-button {
+          width: 100%;
+        }
+
+        .editor-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .dashboard-panel {
+          inset: 12px;
+        }
+
+        .dashboard-kpis,
+        .dashboard-grid,
+        .category-chart {
+          grid-template-columns: 1fr;
+        }
+
+        .state-row {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="brand-text">
+          <strong>Versorgungs-Kompass</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="accent-bar" aria-hidden="true"></div>
+      <section class="crm-shell">
+        <div class="welcome">
+          <h2>Willkommen, Timo.</h2>
+        </div>
+
+        <div class="summary" id="summary-grid"></div>
+
+        <div class="controls">
+          <div class="controls-stack">
+            <div class="admin-row">
+              <div class="admin-actions">
+                <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+                <button class="action-button" type="button" id="dashboard-button">Dashboard</button>
+                <button class="action-button" type="button" id="map-mode-button">Karten-Modus</button>
+                <div class="menu-shell">
+                  <button class="action-button menu-button" type="button" id="more-actions-button" aria-label="Weitere Optionen öffnen" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M4 7h16"></path>
+                      <path d="M4 12h16"></path>
+                      <path d="M4 17h16"></path>
+                    </svg>
+                  </button>
+                  <div class="menu-popover" id="more-actions-menu" hidden>
+                    <button class="menu-option" type="button" id="import-csv-button">CSV importieren</button>
+                    <button class="menu-option" type="button" id="export-csv-button">CSV exportieren</button>
+                    <button class="menu-option" type="button" id="logout-button">Abmelden</button>
+                  </div>
+                </div>
+                <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,text/csv" />
+              </div>
+            </div>
+            <label class="search-shell" aria-label="Kontakte durchsuchen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.5-3.5"></path>
+              </svg>
+              <input
+                class="search-input"
+                id="search"
+                type="search"
+                placeholder="Nach Name, Organisation, Thema oder Standort suchen"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <section class="table" aria-labelledby="kontaktliste-title">
+            <div class="thead">
+              <div>#</div>
+              <div>Name</div>
+              <div class="column-head">
+                Organisation
+              </div>
+              <div class="column-head column-head--stacked">
+                <div class="column-head__stack">
+                  <div class="column-head__main">
+                    <span class="column-head__label">Priorit&auml;t</span>
+                    <div class="mini-filters" id="priority-mini-filters" aria-label="Mini-Schnellfilter Priorit&auml;t"></div>
+                  </div>
+                  <div class="quick-filters quick-filters--column" id="priority-quick-filters" aria-label="Schnellfilter Priorit&auml;t">
+                    <button class="priority-chip priority-chip--dot" type="button" data-priority="high" data-tooltip="Hoch" aria-label="Hoch">🔥</button>
+                    <button class="priority-chip priority-chip--dot" type="button" data-priority="medium" data-tooltip="Mittel" aria-label="Mittel">🟡</button>
+                    <button class="priority-chip priority-chip--dot" type="button" data-priority="low" data-tooltip="Niedrig" aria-label="Niedrig">🟢</button>
+                  </div>
+                </div>
+                <div class="header-filter">
+                  <button class="filter-icon-button" type="button" id="priority-filter-button" aria-label="Priorit&auml;tsfilter &ouml;ffnen" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M4 6h16"></path>
+                      <path d="M7 12h10"></path>
+                      <path d="M10 18h4"></path>
+                    </svg>
+                  </button>
+                  <div class="filter-selected" id="priority-filter-selected" hidden>
+                    <span></span>
+                    <button class="filter-clear" type="button" id="priority-filter-clear" aria-label="Priorit&auml;tsfilter entfernen">&times;</button>
+                  </div>
+                  <div class="filter-menu" id="priority-filter-menu" hidden></div>
+                </div>
+              </div>
+              <div class="column-head column-head--stacked">
+                <div class="column-head__stack">
+                  <div class="column-head__main">
+                    <span class="column-head__label">Kategorie</span>
+                    <div class="mini-filters" id="category-mini-filters" aria-label="Mini-Schnellfilter Kategorie"></div>
+                  </div>
+                  <div class="quick-filters quick-filters--column" id="category-quick-filters" aria-label="Schnellfilter Kategorie"></div>
+                </div>
+                <div class="header-filter">
+                  <button class="filter-icon-button" type="button" id="category-filter-button" aria-label="Kategoriefilter &ouml;ffnen" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M4 5h16"></path>
+                      <path d="M7 12h10"></path>
+                      <path d="M10 19h4"></path>
+                    </svg>
+                  </button>
+                  <div class="filter-selected" id="category-filter-selected" hidden>
+                    <span></span>
+                    <button class="filter-clear" type="button" id="category-filter-clear" aria-label="Kategoriefilter entfernen">&times;</button>
+                  </div>
+                  <div class="filter-menu" id="category-filter-menu" hidden></div>
+                </div>
+              </div>
+            </div>
+            <div id="contact-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <p class="footer-note">Made with &#10084;&#65039; in Berlin<span>www.timo-frank.de</span></p>
+    </main>
+
+    <aside class="detail-drawer" id="detail-drawer" aria-hidden="true">
+      <div class="detail-overlay" id="detail-overlay"></div>
+      <section class="detail-panel" id="detail-panel" aria-live="polite"></section>
+    </aside>
+
+    <aside class="editor-drawer" id="editor-drawer" aria-hidden="true">
+      <div class="editor-overlay" id="editor-overlay"></div>
+      <section class="editor-panel" aria-labelledby="editor-title">
+        <div class="editor-toolbar">
+          <div>
+            <h3 id="editor-title">Kontakt pflegen</h3>
+            <p id="editor-subtitle">Neue Kontakte werden lokal im Browser gespeichert.</p>
+          </div>
+          <button class="detail-close" type="button" id="editor-close" aria-label="Editor schlie&szlig;en">&times;</button>
+        </div>
+        <form class="editor-form" id="editor-form">
+          <div class="editor-grid">
+            <input type="hidden" name="id" />
+            <div class="editor-field">
+              <label class="editor-label" for="field-name">Name</label>
+              <input class="editor-input" id="field-name" name="name" required />
+            </div>
+            <div class="editor-field">
+              <label class="editor-label" for="field-title">Titel</label>
+              <input class="editor-input" id="field-title" name="title" />
+            </div>
+            <div class="editor-field">
+              <label class="editor-label" for="field-category">Kategorie</label>
+              <select class="editor-select" id="field-category" name="category"></select>
+            </div>
+            <div class="editor-field">
+              <label class="editor-label" for="field-priority">Priorität</label>
+              <select class="editor-select" id="field-priority" name="priority">
+                <option value="Hoch">Hoch</option>
+                <option value="Mittel">Mittel</option>
+                <option value="Niedrig">Niedrig</option>
+              </select>
+            </div>
+            <div class="editor-field editor-field--full">
+              <label class="editor-label" for="field-organization">Organisation</label>
+              <input class="editor-input" id="field-organization" name="organization" />
+            </div>
+            <div class="editor-field">
+              <label class="editor-label" for="field-email">E-Mail</label>
+              <input class="editor-input" id="field-email" name="email" type="email" />
+            </div>
+            <div class="editor-field">
+              <label class="editor-label" for="field-phone">Telefon</label>
+              <input class="editor-input" id="field-phone" name="phone" />
+            </div>
+            <div class="editor-field">
+              <label class="editor-label" for="field-linkedin">LinkedIn</label>
+              <input class="editor-input" id="field-linkedin" name="linkedin" type="url" />
+            </div>
+            <div class="editor-field">
+              <label class="editor-label" for="field-location">Standort</label>
+              <input class="editor-input" id="field-location" name="location" />
+            </div>
+            <div class="editor-field editor-field--full">
+              <label class="editor-label" for="field-topic">Themenfokus</label>
+              <textarea class="editor-textarea" id="field-topic" name="topic"></textarea>
+            </div>
+            <div class="editor-field editor-field--full">
+              <label class="editor-label" for="field-note">Einordnung</label>
+              <textarea class="editor-textarea" id="field-note" name="note"></textarea>
+            </div>
+            <div class="editor-field editor-field--full">
+              <label class="editor-label" for="field-next-step">Nächster Schritt</label>
+              <textarea class="editor-textarea" id="field-next-step" name="nextStep"></textarea>
+            </div>
+            <div class="editor-field editor-field--full">
+              <label class="editor-label" for="field-image">Bild-URL</label>
+              <input class="editor-input" id="field-image" name="image" type="url" />
+            </div>
+            <div class="editor-field editor-field--full">
+              <label class="editor-label" for="field-sources">Quellen</label>
+              <textarea class="editor-textarea" id="field-sources" name="sourcesText"></textarea>
+              <div class="editor-help">Eine Quelle pro Zeile. Beim CSV-Export werden die Quellen mit <code>|</code> verbunden.</div>
+            </div>
+          </div>
+        </form>
+        <div class="editor-footer">
+          <div class="editor-footer__hint" id="editor-hint">Änderungen werden lokal im Browser gespeichert.</div>
+          <div class="editor-actions">
+            <button class="action-button" type="button" id="editor-cancel">Abbrechen</button>
+            <button class="action-button action-button--primary" type="submit" form="editor-form" id="editor-save">Kontakt speichern</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <aside class="map-mode-drawer" id="map-mode-drawer" aria-hidden="true">
+      <div class="map-mode-overlay" id="map-mode-overlay"></div>
+      <section class="map-mode-panel" aria-label="Karten-Modus">
+        <button class="map-mode-close" type="button" id="map-mode-close" aria-label="Karten-Modus schließen">&times;</button>
+        <iframe
+          class="map-mode-frame"
+          id="map-mode-frame"
+          title="Karten-Modus des Versorgungs-Kompass"
+          src="./versorgungs-kompass-map.html"
+          loading="lazy"
+        ></iframe>
+      </section>
+    </aside>
+
+    <aside class="dashboard-drawer" id="dashboard-drawer" aria-hidden="true">
+      <div class="dashboard-overlay" id="dashboard-overlay"></div>
+      <section class="dashboard-panel" aria-labelledby="dashboard-title">
+        <div class="dashboard-header">
+          <div>
+            <h3 id="dashboard-title">Reporting-Dashboard</h3>
+            <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Kategorie und Bundesland.</p>
+          </div>
+          <button class="dashboard-close" type="button" id="dashboard-close" aria-label="Dashboard schließen">&times;</button>
+        </div>
+        <div class="dashboard-body">
+          <div class="dashboard-kpis" id="dashboard-kpis"></div>
+          <div class="dashboard-grid">
+            <article class="dashboard-card">
+              <h4>Kategorie-Verteilung</h4>
+              <p>Geeignet als schneller Überblick über den Mix im aktuellen Datensatz.</p>
+              <div id="category-chart"></div>
+            </article>
+            <article class="dashboard-card">
+              <h4>Verteilung nach Bundesland</h4>
+              <p>Zeigt, wo dein Netzwerk aktuell regional am stärksten vertreten ist.</p>
+              <div id="state-chart"></div>
+            </article>
+          </div>
+          <details class="dashboard-backlog">
+            <summary>Feature-Backlog</summary>
+            <div class="dashboard-backlog-body">
+              <ul>
+                <li>Priorität x Kategorie: Wo liegen die wichtigsten Lücken oder Schwerpunkte?</li>
+                <li>Priorität x Bundesland: In welchen Regionen fehlen hochpriorisierte Kontakte?</li>
+                <li>Datenvollständigkeit: fehlende E-Mail, Quelle, Koordinaten oder Bundesland.</li>
+                <li>Ambulant vs. stationär vs. Pflege: grobe Versorgungsstruktur im Netzwerk.</li>
+                <li>Ballungsräume vs. Fläche: regionale Konzentration und weiße Flecken.</li>
+                <li>Kontaktaktivität: Anteil der Datensätze mit gepflegtem nächsten Schritt.</li>
+                <li>Quellenqualität: belastbare Quellen versus schwach dokumentierte Kontakte.</li>
+                <li>Netzwerk-Reife: Anteil vollständiger Profile mit E-Mail und Follow-up.</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+      </section>
+    </aside>
+
+    <script src="./data/versorgungs-kompass-data.js"></script>
+    <script>
+      const avatarPalette = [
+        "avatar--faculty",
+        "avatar--policy",
+        "avatar--practice",
+        "avatar--network",
+        "avatar--study"
+      ];
+      const defaultCategories = [
+        "Praxis",
+        "Apotheke",
+        "Krankenhaus",
+        "Pflege"
+      ];
+      const defaultLocations = [
+        "10117 Berlin",
+        "35037 Marburg",
+        "80539 München",
+        "20457 Hamburg",
+        "50667 Köln",
+        "60311 Frankfurt am Main",
+        "69117 Heidelberg",
+        "72070 Tübingen",
+        "48143 Münster",
+        "79098 Freiburg"
+      ];
+      const defaultOrganizations = [
+        "Noch ergänzen",
+        "Hausarztpraxis / MVZ",
+        "Apotheke",
+        "Krankenhaus / Klinik",
+        "Pflegeeinrichtung",
+        "Facharztpraxis"
+      ];
+      const priorityCycle = ["Mittel", "Hoch", "Niedrig"];
+      const categoryEmoji = {
+        Praxis: "🩺",
+        Apotheke: "💊",
+        Krankenhaus: "🏥",
+        Pflege: "🧑‍⚕️"
+      };
+      const roleBadgeClasses = {
+        Praxis: "role-badge role--versorgung",
+        Apotheke: "role-badge role--betreuung",
+        Krankenhaus: "role-badge role--institution",
+        Pflege: "role-badge role--netzwerk"
+      };
+      const categoryChartColors = {
+        Praxis: "#2788f6",
+        Apotheke: "#09a63e",
+        Krankenhaus: "#ff7f3f",
+        Pflege: "#9b46df"
+      };
+      const priorityEmoji = {
+        Hoch: "🔥",
+        Mittel: "🟡",
+        Niedrig: "🟢"
+      };
+      const storageKey = "versorgungs-kompass-contacts-v7";
+
+      const searchInput = document.getElementById("search");
+      const list = document.getElementById("contact-list");
+      const summaryGrid = document.getElementById("summary-grid");
+      const detailDrawer = document.getElementById("detail-drawer");
+      const detailPanel = document.getElementById("detail-panel");
+      const detailOverlay = document.getElementById("detail-overlay");
+      const editorDrawer = document.getElementById("editor-drawer");
+      const editorOverlay = document.getElementById("editor-overlay");
+      const editorForm = document.getElementById("editor-form");
+      const editorTitle = document.getElementById("editor-title");
+      const editorSubtitle = document.getElementById("editor-subtitle");
+      const editorHint = document.getElementById("editor-hint");
+      const editorClose = document.getElementById("editor-close");
+      const editorCancel = document.getElementById("editor-cancel");
+      const newContactButton = document.getElementById("new-contact-button");
+      const dashboardButton = document.getElementById("dashboard-button");
+      const dashboardDrawer = document.getElementById("dashboard-drawer");
+      const dashboardOverlay = document.getElementById("dashboard-overlay");
+      const dashboardClose = document.getElementById("dashboard-close");
+      const dashboardSubtitle = document.getElementById("dashboard-subtitle");
+      const dashboardKpis = document.getElementById("dashboard-kpis");
+      const categoryChart = document.getElementById("category-chart");
+      const stateChart = document.getElementById("state-chart");
+      const mapModeButton = document.getElementById("map-mode-button");
+      const mapModeDrawer = document.getElementById("map-mode-drawer");
+      const mapModeOverlay = document.getElementById("map-mode-overlay");
+      const mapModeClose = document.getElementById("map-mode-close");
+      const moreActionsButton = document.getElementById("more-actions-button");
+      const moreActionsMenu = document.getElementById("more-actions-menu");
+      const importCsvButton = document.getElementById("import-csv-button");
+      const exportCsvButton = document.getElementById("export-csv-button");
+      const logoutButton = document.getElementById("logout-button");
+      const csvFileInput = document.getElementById("csv-file-input");
+      const priorityChips = [...document.querySelectorAll(".priority-chip")];
+      const categoryQuickFilters = document.getElementById("category-quick-filters");
+      const priorityMiniFilters = document.getElementById("priority-mini-filters");
+      const categoryMiniFilters = document.getElementById("category-mini-filters");
+      const priorityFilterButton = document.getElementById("priority-filter-button");
+      const categoryFilterButton = document.getElementById("category-filter-button");
+      const priorityFilterMenu = document.getElementById("priority-filter-menu");
+      const categoryFilterMenu = document.getElementById("category-filter-menu");
+      const priorityFilterSelected = document.getElementById("priority-filter-selected");
+      const categoryFilterSelected = document.getElementById("category-filter-selected");
+      const priorityFilterClear = document.getElementById("priority-filter-clear");
+      const categoryFilterClear = document.getElementById("category-filter-clear");
+
+      let quickPriority = null;
+      let quickCategory = null;
+      let activeId = null;
+      let activeNameEditorId = null;
+      let selectedPriority = null;
+      let selectedCategory = null;
+      let editorMode = "create";
+      let editingId = null;
+      const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
+
+      function setStorageStatus(message) {
+        void message;
+      }
+
+      function logout() {
+        if (window.VKAuth) {
+          window.VKAuth.clearAuthenticated();
+          window.location.href = window.VKAuth.buildLoginUrl();
+          return;
+        }
+        window.location.href = "./login.html";
+      }
+
+      function buildDisplayName(name, title) {
+        if (!title) return name;
+        const hasAcademicTitle = /(Prof\.?|Professor|Dr\.?|Univ\.-Prof\.?|PD|Jun\.-Prof\.?)/i.test(title);
+        if (!hasAcademicTitle) return name;
+        if (title.includes(name)) return title;
+        const compactTitle = title.split(",")[0].trim();
+        return `${compactTitle} ${name}`.trim();
+      }
+
+      function simplifyOrganization(organization) {
+        if (!organization) return "Noch ergänzen";
+        return organization.split(/[,/|]/)[0].trim();
+      }
+
+      function normalizeSources(value) {
+        if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+        if (!value) return [];
+        return String(value)
+          .split(/\s*\|\s*|\n+/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      function normalizeCategory(value) {
+        const category = String(value || "").trim();
+        if (category === "Wissenschaftliches Netzwerk") return "Praxis";
+        if (category === "Berufliches Netzwerk") return "Praxis";
+        if (category === "Versorgungspraxis") return "Praxis";
+        if (category === "Patientenperspektive") return "Pflege";
+        if (category === "Methodik") return "Krankenhaus";
+        if (category === "Institution") return "Krankenhaus";
+        return category || "Praxis";
+      }
+
+      function createId() {
+        return `contact-local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      }
+
+      function normalizedPriorityValue(value) {
+        if (value === "Hoch") return "high";
+        if (value === "Mittel") return "medium";
+        return "low";
+      }
+
+      function csvEscape(value) {
+        const stringValue = String(value ?? "");
+        return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
+      }
+
+      function parseCsv(text) {
+        const rows = [];
+        let current = "";
+        let row = [];
+        let inQuotes = false;
+
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          const next = text[index + 1];
+
+          if (char === '"') {
+            if (inQuotes && next === '"') {
+              current += '"';
+              index += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === "," && !inQuotes) {
+            row.push(current);
+            current = "";
+          } else if ((char === "\n" || char === "\r") && !inQuotes) {
+            if (char === "\r" && next === "\n") index += 1;
+            row.push(current);
+            if (row.some((cell) => cell !== "")) rows.push(row);
+            row = [];
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+
+        if (current !== "" || row.length) {
+          row.push(current);
+          if (row.some((cell) => cell !== "")) rows.push(row);
+        }
+
+        if (!rows.length) return [];
+        const [header, ...body] = rows;
+        return body.map((cells) =>
+          header.reduce((entry, key, cellIndex) => {
+            entry[key] = cells[cellIndex] || "";
+            return entry;
+          }, {})
+        );
+      }
+
+      function sanitizeContact(entry, index = 0) {
+        const name = (entry.name || "").trim() || "Unbenannter Kontakt";
+        const initials = name
+          .split(/[\s/]+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0])
+          .join("")
+          .toUpperCase();
+        const category = normalizeCategory(entry.category || entry.role || defaultCategories[index % defaultCategories.length]);
+        const priority = entry.priority || priorityCycle[index % priorityCycle.length];
+        const latitude = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
+        const longitude = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
+
+        return {
+          id: entry.id || `contact-${String(index + 1).padStart(2, "0")}`,
+          name,
+          displayName: buildDisplayName(name, entry.title || ""),
+          initials: entry.initials || initials || "KK",
+          avatarClass: entry.avatarClass || avatarPalette[index % avatarPalette.length],
+          category,
+          categoryEmoji: categoryEmoji[category] || "•",
+          roleBadgeClass: roleBadgeClasses[category] || "role-badge role--netzwerk",
+          organization: entry.organization || defaultOrganizations[index % defaultOrganizations.length],
+          organizationShort: simplifyOrganization(entry.organization || defaultOrganizations[index % defaultOrganizations.length]),
+          title: entry.title || "Kontakt im Gesundheitswesen",
+          topic: entry.topic || "Noch ergänzen",
+          priority,
+          priorityClass:
+            priority === "Hoch" ? "badge--high" : priority === "Niedrig" ? "badge--low" : "badge--medium",
+          note:
+            entry.note ||
+            "Hintergrund, Relevanz und persönliche Einordnung dieses Kontakts noch ergänzen.",
+          nextStep: entry.nextStep || "Nächsten sinnvollen Schritt noch ergänzen",
+          email: entry.email || "",
+          phone: entry.phone || "",
+          linkedin: entry.linkedin || "",
+          location: entry.location || defaultLocations[index % defaultLocations.length],
+          city: entry.city || "",
+          state: entry.state || "",
+          street: entry.street || "",
+          postalCode: entry.postalCode || entry.postal_code || "",
+          url: entry.url || "",
+          description: entry.description || "",
+          lat: Number.isFinite(latitude) ? latitude : null,
+          lon: Number.isFinite(longitude) ? longitude : null,
+          image: entry.image || "",
+          sources: normalizeSources(entry.sources || entry.sourcesText || "")
+        };
+      }
+
+      const seedContacts = (window.VERSORGUNGS_COMPASS_CONTACTS || []).map((entry, index) => sanitizeContact(entry, index));
+      const deprecatedImageUrls = new Map([
+        [
+          "https://www.saxoforn.net/assets/images/3/gerlach_ferdinand-353e54fc.jpg",
+          "https://www.saxoforn.net/assets/images/9/gerlach_ferdinand-5se4n1wd2g5tsam.jpg"
+        ]
+      ]);
+
+      function resolveContactImage(localImage, seedImage) {
+        const normalizedLocalImage = String(localImage || "").trim();
+        const normalizedSeedImage = String(seedImage || "").trim();
+
+        if (!normalizedLocalImage) return normalizedSeedImage;
+        if (deprecatedImageUrls.has(normalizedLocalImage)) {
+          return deprecatedImageUrls.get(normalizedLocalImage) || normalizedSeedImage;
+        }
+
+        return normalizedLocalImage;
+      }
+
+      function mergeSeedContactData(localContact, seedContact, index = 0) {
+        if (!seedContact) return sanitizeContact(localContact, index);
+
+        const localSources = normalizeSources(localContact.sources);
+        const mergedContact = {
+          ...seedContact,
+          ...localContact,
+          image: resolveContactImage(localContact.image, seedContact.image),
+          sources: localSources.length ? localSources : seedContact.sources
+        };
+
+        return sanitizeContact(mergedContact, index);
+      }
+
+      function loadStoredContacts() {
+        try {
+          const raw = window.localStorage.getItem(storageKey);
+          if (!raw) {
+            setStorageStatus("Seed-Daten geladen");
+            return seedContacts.map((entry, index) => sanitizeContact(entry, index));
+          }
+
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) throw new Error("Invalid storage payload");
+
+          const localContacts = parsed.map((entry, index) => sanitizeContact(entry, index));
+          const seedById = new Map(seedContacts.map((contact) => [contact.id, contact]));
+          const mergedContacts = localContacts.map((contact, index) =>
+            mergeSeedContactData(contact, seedById.get(contact.id), index)
+          );
+          const knownIds = new Set(mergedContacts.map((contact) => contact.id));
+          const missingSeedContacts = seedContacts.filter((contact) => !knownIds.has(contact.id));
+          const result = [...mergedContacts, ...missingSeedContacts].map((entry, index) => sanitizeContact(entry, index));
+
+          setStorageStatus(`${result.length} lokale Kontakte geladen`);
+          return result;
+        } catch (error) {
+          console.warn("Lokale Kontakte konnten nicht geladen werden.", error);
+          setStorageStatus("Seed-Daten geladen, lokaler Speicher war nicht lesbar");
+          return seedContacts.map((entry, index) => sanitizeContact(entry, index));
+        }
+      }
+
+      let contacts = loadStoredContacts();
+
+      function uniqueValues(key) {
+        return [...new Set(contacts.map((contact) => contact[key]))].sort((a, b) => a.localeCompare(b, "de"));
+      }
+
+      function saveFavorites() {
+        window.localStorage.setItem("versorgungs-kompass-favorites-v4", JSON.stringify([...favorites]));
+      }
+
+      function persistContacts(message = `${contacts.length} lokale Kontakte gespeichert`) {
+        try {
+          const payload = contacts.map((contact) => ({
+            id: contact.id,
+            name: contact.name,
+            title: contact.title,
+            category: contact.category,
+            organization: contact.organization,
+            topic: contact.topic,
+            priority: contact.priority,
+            email: contact.email,
+            phone: contact.phone,
+            linkedin: contact.linkedin,
+            location: contact.location,
+            city: contact.city,
+            state: contact.state,
+            street: contact.street,
+            postalCode: contact.postalCode,
+            url: contact.url,
+            description: contact.description,
+            lat: contact.lat,
+            lon: contact.lon,
+            note: contact.note,
+            nextStep: contact.nextStep,
+            image: contact.image,
+            sources: contact.sources
+          }));
+          window.localStorage.setItem(storageKey, JSON.stringify(payload));
+          setStorageStatus(message);
+        } catch (error) {
+          console.warn("Lokale Kontakte konnten nicht gespeichert werden.", error);
+          window.alert("Die lokalen Änderungen konnten im Browser nicht gespeichert werden.");
+        }
+      }
+
+      function updateContactField(id, field, value) {
+        const currentContact = contacts.find((contact) => contact.id === id);
+        if (!currentContact) return;
+
+        const normalizedValue = typeof value === "string" ? value.trim() : value;
+        const currentValue = currentContact[field] || "";
+        if (currentValue === normalizedValue) return;
+
+        contacts = contacts.map((contact, index) =>
+          contact.id === id ? sanitizeContact({ ...contact, [field]: normalizedValue }, index) : contact
+        );
+
+        persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
+        updateView();
+
+        if (activeId === id && detailDrawer.classList.contains("is-open")) {
+          openDetail(id);
+        }
+      }
+
+      function toggleNameEditor(id) {
+        activeNameEditorId = activeNameEditorId === id ? null : id;
+        updateView();
+        if (activeNameEditorId === id) {
+          const input = list.querySelector(`.row-editor[data-id="${id}"][data-field="name"]`);
+          if (input) {
+            input.focus();
+            input.select();
+          }
+        }
+      }
+
+      function isIncomplete(contact) {
+        return [contact.organization, contact.topic, contact.note, contact.nextStep]
+          .map((value) => String(value || "").toLowerCase())
+          .some((value) => value.includes("noch ergänzen"));
+      }
+
+      function renderFilterMenu(menu, values, selectedValue, onSelect, emptyText) {
+        menu.innerHTML = `
+          <div class="filter-menu__hint">${emptyText}</div>
+          <div class="filter-menu__list">
+            ${values
+              .map(
+                (value) => `
+                  <button class="filter-option ${selectedValue === value ? "is-active" : ""}" type="button" data-value="${value}">
+                    <span>${menu === categoryFilterMenu ? `${categoryEmoji[value] || "•"} ${value}` : value}</span>
+                    ${selectedValue === value ? "<small>aktiv</small>" : ""}
+                  </button>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+        [...menu.querySelectorAll(".filter-option")].forEach((button) => {
+          button.addEventListener("click", () => {
+            onSelect(button.dataset.value);
+            menu.hidden = true;
+          });
+        });
+      }
+
+      function syncSelectedFilterPill(element, value, prefix) {
+        const label = element.querySelector("span");
+        if (!value) {
+          element.hidden = true;
+          label.textContent = "";
+          return;
+        }
+        element.hidden = false;
+        label.textContent = `${prefix}: ${value}`;
+      }
+
+      function closeMenus() {
+        priorityFilterMenu.hidden = true;
+        categoryFilterMenu.hidden = true;
+        moreActionsMenu.hidden = true;
+        priorityFilterButton.setAttribute("aria-expanded", "false");
+        categoryFilterButton.setAttribute("aria-expanded", "false");
+        moreActionsButton.setAttribute("aria-expanded", "false");
+      }
+
+      function filteredContacts() {
+        const search = searchInput.value.trim().toLowerCase();
+
+        return contacts.filter((contact) => {
+          const matchesSearch =
+            !search ||
+            [
+              contact.name,
+              contact.displayName,
+              contact.organization,
+              contact.category,
+              contact.topic,
+              contact.title,
+              contact.nextStep,
+              contact.location
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(search);
+
+          const matchesCategory = selectedCategory === null || contact.category === selectedCategory;
+          const matchesSelectPriority = selectedPriority === null || contact.priority === selectedPriority;
+          const matchesQuickPriority =
+            quickPriority === null || normalizedPriorityValue(contact.priority) === quickPriority;
+          const matchesQuickCategory = quickCategory === null || contact.category === quickCategory;
+
+          return matchesSearch && matchesCategory && matchesSelectPriority && matchesQuickPriority && matchesQuickCategory;
+        });
+      }
+
+      function renderCategoryQuickFilters() {
+        const values = uniqueValues("category");
+        categoryQuickFilters.innerHTML = values
+          .map(
+            (value) => `
+              <button
+                class="category-chip category-chip--icon ${quickCategory === value ? "is-active" : ""}"
+                type="button"
+                data-category="${value}"
+                title="${value}"
+                aria-label="${value}"
+              >
+                ${categoryEmoji[value] || "•"}
+              </button>
+            `
+          )
+          .join("");
+
+        [...categoryQuickFilters.querySelectorAll(".category-chip")].forEach((button) => {
+          button.addEventListener("click", () => {
+            quickCategory = quickCategory === button.dataset.category ? null : button.dataset.category;
+            updateView();
+          });
+        });
+      }
+
+      function renderMiniFilters() {
+        priorityMiniFilters.innerHTML = "";
+        categoryMiniFilters.innerHTML = "";
+      }
+
+      function renderSummary(items) {
+        const cards = [
+          { label: "Kontakte", value: contacts.length, sub: "Gesamtzahl aller Personen im Versorgungs-Kompass" },
+          { label: "Aktuell sichtbar", value: items.length, sub: "Kontakte im aktuellen Such- und Filterkontext" }
+        ];
+
+        summaryGrid.innerHTML = cards
+          .map(
+            (card) => `
+              <article class="summary-card">
+                <div class="summary-label">${card.label}</div>
+                <div class="summary-value">${card.value}</div>
+                <div class="summary-sub">${card.sub}</div>
+              </article>
+            `
+          )
+          .join("");
+      }
+
+      function renderTable(items) {
+        if (!items.length) {
+          list.innerHTML = `<div class="empty">Keine Kontakte im aktuellen Filter. Passe Suche oder Priorit&auml;t an.</div>`;
+          return;
+        }
+
+        list.innerHTML = items
+          .map(
+            (contact, index) => `
+              <article class="row ${contact.id === activeId ? "is-active" : ""}" data-id="${contact.id}" tabindex="0">
+                <div class="index-cell">${index + 1}</div>
+                <div class="contact-cell">
+                  ${
+                    contact.image
+                      ? `<img class="avatar contact-thumb ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
+                      : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`
+                  }
+                  <div class="contact-meta">
+                    <div class="contact-name__line">
+                      ${
+                        activeNameEditorId === contact.id
+                          ? `<input class="row-editor" type="text" value="${contact.name.replace(/"/g, "&quot;")}" data-id="${contact.id}" data-field="name" aria-label="Name bearbeiten" />`
+                          : `<button class="contact-name-button" type="button" data-open-detail="${contact.id}">${contact.name}</button>`
+                      }
+                      <button class="name-edit-toggle" type="button" data-edit-name="${contact.id}" aria-label="Name bearbeiten">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M12 20h9"></path>
+                          <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path>
+                        </svg>
+                      </button>
+                      <button
+                        class="favorite-star ${favorites.has(contact.id) ? "is-active" : ""}"
+                        type="button"
+                        data-id="${contact.id}"
+                        aria-label="${favorites.has(contact.id) ? "Favorit entfernen" : "Als Favorit markieren"}"
+                      >
+                        <svg viewBox="0 0 24 24" fill="${favorites.has(contact.id) ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                          <path d="m12 3.8 2.55 5.16 5.7.83-4.13 4.03.98 5.68L12 16.78l-5.1 2.72.98-5.68L3.75 9.8l5.7-.83L12 3.8Z"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <input class="row-editor" type="text" value="${contact.organization.replace(/"/g, "&quot;")}" data-id="${contact.id}" data-field="organization" aria-label="Organisation bearbeiten" />
+                </div>
+                <div>
+                  <select class="row-editor row-select row-select--priority ${contact.priority === "Hoch" ? "is-high" : contact.priority === "Mittel" ? "is-medium" : "is-low"}" data-id="${contact.id}" data-field="priority" aria-label="Priorität bearbeiten">
+                    ${["Hoch", "Mittel", "Niedrig"]
+                      .map((value) => `<option value="${value}" ${contact.priority === value ? "selected" : ""}>${priorityEmoji[value]} ${value}</option>`)
+                      .join("")}
+                  </select>
+                </div>
+                <div>
+                  <select class="row-editor row-select" data-id="${contact.id}" data-field="category" aria-label="Kategorie bearbeiten">
+                    ${defaultCategories
+                      .map((value) => `<option value="${value}" ${contact.category === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`)
+                      .join("")}
+                  </select>
+                </div>
+              </article>
+            `
+          )
+          .join("");
+
+        [...list.querySelectorAll(".row")].forEach((row) => {
+          row.addEventListener("click", () => openDetail(row.dataset.id, items));
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openDetail(row.dataset.id, items);
+            }
+          });
+        });
+
+        [...list.querySelectorAll(".favorite-star")].forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const { id } = button.dataset;
+            if (favorites.has(id)) {
+              favorites.delete(id);
+            } else {
+              favorites.add(id);
+            }
+            saveFavorites();
+            renderTable(items);
+          });
+        });
+
+        [...list.querySelectorAll("[data-open-detail]")].forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openDetail(button.dataset.openDetail, items);
+          });
+        });
+
+        [...list.querySelectorAll("[data-edit-name]")].forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            toggleNameEditor(button.dataset.editName);
+          });
+        });
+
+        [...list.querySelectorAll(".row-editor")].forEach((field) => {
+          field.addEventListener("click", (event) => event.stopPropagation());
+          field.addEventListener("keydown", (event) => event.stopPropagation());
+          const eventName = field.tagName === "SELECT" ? "change" : "blur";
+          field.addEventListener(eventName, () => {
+            updateContactField(field.dataset.id, field.dataset.field, field.value);
+            if (field.dataset.field === "name") {
+              activeNameEditorId = null;
+              updateView();
+            }
+          });
+          if (field.dataset.field === "name") {
+            field.addEventListener("keydown", (event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                field.blur();
+              }
+              if (event.key === "Escape") {
+                activeNameEditorId = null;
+                updateView();
+              }
+            });
+          }
+        });
+      }
+
+      function renderSourcesList(contact) {
+        if (!contact.sources.length) return "Noch ergänzen";
+        return `<ul class="detail-list">${contact.sources
+          .map(
+            (source) =>
+              `<li><a class="detail-link detail-link--compact" href="${source}" target="_blank" rel="noreferrer">Quelle öffnen</a></li>`
+          )
+          .join("")}</ul>`;
+      }
+
+      function stateLabel(contact) {
+        if (contact.state) return contact.state;
+        const location = String(contact.location || "");
+        return location.replace(/^\d{5}\s*/, "").trim() || "Unbekannt";
+      }
+
+      function buildDonutChart(items) {
+        const total = items.reduce((sum, item) => sum + item.count, 0);
+        if (!total) return "";
+
+        const radius = 78;
+        const circumference = 2 * Math.PI * radius;
+        let offset = 0;
+
+        const segments = items
+          .map((item) => {
+            const length = (item.count / total) * circumference;
+            const dashOffset = -offset;
+            offset += length;
+            return `<circle cx="100" cy="100" r="${radius}" fill="none" stroke="${item.color}" stroke-width="22" stroke-linecap="butt" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${dashOffset}" transform="rotate(-90 100 100)"></circle>`;
+          })
+          .join("");
+
+        return `
+          <svg class="category-donut" viewBox="0 0 200 200" aria-hidden="true">
+            <circle cx="100" cy="100" r="${radius}" fill="none" stroke="#edf1ff" stroke-width="22"></circle>
+            ${segments}
+            <circle cx="100" cy="100" r="55" fill="#ffffff"></circle>
+            <text x="100" y="94" text-anchor="middle" font-size="14" font-weight="700" fill="#68708e">Kontakte</text>
+            <text x="100" y="118" text-anchor="middle" font-size="30" font-weight="800" fill="#1a2559">${total}</text>
+          </svg>
+        `;
+      }
+
+      function renderDashboard(items = filteredContacts()) {
+        const totalContacts = contacts.length;
+        const visibleContacts = items.length;
+        const representedStates = new Set(items.map((contact) => stateLabel(contact)).filter(Boolean)).size;
+        const highPriorityCount = items.filter((contact) => contact.priority === "Hoch").length;
+
+        dashboardKpis.innerHTML = [
+          {
+            label: "Datensatz",
+            value: totalContacts,
+            sub: "Kontakte insgesamt"
+          },
+          {
+            label: "Aktiver Blick",
+            value: visibleContacts,
+            sub: "nach aktuellem Filter"
+          },
+          {
+            label: "Hohe Priorität",
+            value: highPriorityCount,
+            sub: "im aktuellen Blick"
+          }
+        ]
+          .map(
+            (card) => `
+              <article class="dashboard-kpi">
+                <div class="dashboard-kpi-label">${card.label}</div>
+                <div class="dashboard-kpi-value">${card.value}</div>
+                <div class="summary-sub">${card.sub}</div>
+              </article>
+            `
+          )
+          .join("");
+
+        dashboardSubtitle.textContent = `${visibleContacts} Kontakte im aktuellen Kontext, verteilt über ${representedStates} Bundesländer.`;
+
+        const categoryCounts = defaultCategories
+          .map((category) => ({
+            label: category,
+            count: items.filter((contact) => contact.category === category).length,
+            color: categoryChartColors[category] || "#2788f6"
+          }))
+          .filter((item) => item.count > 0);
+
+        if (!categoryCounts.length) {
+          categoryChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Kategorien auswertbar.</div>`;
+        } else {
+          const total = categoryCounts.reduce((sum, item) => sum + item.count, 0);
+          categoryChart.innerHTML = `
+            <div class="category-chart">
+              ${buildDonutChart(categoryCounts)}
+              <div class="category-legend">
+                ${categoryCounts
+                  .map(
+                    (item) => `
+                      <div class="legend-row">
+                        <span class="legend-swatch" style="background:${item.color}"></span>
+                        <span class="legend-label">${item.label}</span>
+                        <span class="legend-meta">${item.count} · ${Math.round((item.count / total) * 100)}%</span>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `;
+        }
+
+        const states = [...new Map(items.map((contact) => [stateLabel(contact), stateLabel(contact)])).values()]
+          .filter(Boolean)
+          .map((label) => ({
+            label,
+            count: items.filter((contact) => stateLabel(contact) === label).length
+          }))
+          .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "de"));
+
+        if (!states.length) {
+          stateChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Bundesländer auswertbar.</div>`;
+          return;
+        }
+
+        const maxStateCount = Math.max(...states.map((item) => item.count), 1);
+        stateChart.innerHTML = `
+          <div class="state-bars">
+            ${states
+              .map(
+                (item) => `
+                  <div class="state-row">
+                    <div class="state-name">${item.label}</div>
+                    <div class="state-bar-track">
+                      <div class="state-bar-fill" style="width:${(item.count / maxStateCount) * 100}%"></div>
+                    </div>
+                    <div class="state-value">${item.count}</div>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function syncBodyScrollLock() {
+        const overlayOpen =
+          detailDrawer.classList.contains("is-open") ||
+          editorDrawer.classList.contains("is-open") ||
+          dashboardDrawer.classList.contains("is-open") ||
+          mapModeDrawer.classList.contains("is-open");
+        document.body.style.overflow = overlayOpen ? "hidden" : "";
+      }
+
+      function openDetail(id, items = filteredContacts()) {
+        const currentItems = items.length ? items : filteredContacts();
+        const contact = currentItems.find((item) => item.id === id) || contacts.find((item) => item.id === id);
+        if (!contact) return;
+
+        const emailText = contact.email || "Noch ergänzen";
+        const phoneText = contact.phone || "Noch ergänzen";
+        const locationText = contact.location || "Noch ergänzen";
+        const linkedinUrl = contact.linkedin || "";
+        const heroSubtitle = contact.displayName === contact.title ? contact.organization : contact.title;
+        const portraitMarkup = contact.image
+          ? `<img class="avatar ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
+          : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`;
+
+        activeId = contact.id;
+        renderTable(currentItems);
+
+        const currentIndex = currentItems.findIndex((item) => item.id === contact.id);
+
+        detailPanel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Eintr&auml;gen</div>
+            <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
+          </div>
+          <div class="detail-content">
+            <section class="detail-hero">
+              <div class="detail-top">
+                ${portraitMarkup}
+                <div>
+                  <h3>${contact.displayName}</h3>
+                  <p>${heroSubtitle}</p>
+                </div>
+              </div>
+              <div class="detail-actions">
+                <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
+                <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
+              </div>
+            </section>
+
+            <div class="detail-strip">
+              <article class="detail-card">
+                <div class="detail-label">Priorit&auml;t</div>
+                <div class="detail-value"><span class="badge ${contact.priorityClass}">${contact.priority}</span></div>
+              </article>
+              <article class="detail-card">
+                <div class="detail-label">Kategorie</div>
+                <div class="detail-value"><span class="${contact.roleBadgeClass}">${contact.categoryEmoji} ${contact.category}</span></div>
+              </article>
+            </div>
+
+            <section class="section-block">
+              <h4 class="section-title">Profil</h4>
+              <div class="detail-stack">
+                <article class="detail-card">
+                  <div class="field-head">
+                    <span class="field-icon">&#127970;</span>
+                    <div class="detail-label">Organisation</div>
+                  </div>
+                  <div class="detail-value">
+                    ${contact.organization}
+                    <div class="detail-subvalue"><span class="field-icon" style="margin-right: 8px;">&#128205;</span>${locationText}</div>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="section-block">
+              <h4 class="section-title">Kommunikation</h4>
+              <div class="detail-stack detail-stack--duo">
+                <article class="detail-card">
+                  <div class="field-head">
+                    <span class="field-icon">&#9993;</span>
+                    <div class="detail-label">E-Mail</div>
+                  </div>
+                  <div class="detail-value detail-value--split">
+                    <span>${emailText}</span>
+                    ${contact.email ? `<a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a>` : ""}
+                  </div>
+                </article>
+                <article class="detail-card">
+                  <div class="field-head">
+                    <span class="field-icon">&#9742;</span>
+                    <div class="detail-label">Telefon</div>
+                  </div>
+                  <div class="detail-value">${phoneText}</div>
+                </article>
+              </div>
+              <div class="detail-stack" style="margin-top: 12px;">
+                <article class="detail-card">
+                  <div class="field-head">
+                    <span class="linkedin-icon">in</span>
+                    <div class="detail-label">LinkedIn</div>
+                  </div>
+                  <div class="detail-value">
+                    ${linkedinUrl ? `<a class="detail-link" href="${linkedinUrl}" target="_blank" rel="noreferrer">Profil &ouml;ffnen</a>` : "Noch ergänzen"}
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="section-block">
+              <h4 class="section-title">Inhalt</h4>
+              <div class="detail-stack">
+                <article class="detail-card">
+                  <div class="detail-label">Themenfokus</div>
+                  <div class="detail-value">${contact.topic}</div>
+                </article>
+                <article class="detail-card">
+                  <div class="detail-label">Einordnung</div>
+                  <div class="detail-value">${contact.note}</div>
+                </article>
+                <article class="detail-card">
+                  <div class="detail-label">N&auml;chster Schritt</div>
+                  <div class="detail-value">${contact.nextStep}</div>
+                </article>
+                <article class="detail-card">
+                  <div class="detail-label">Quellen</div>
+                  <div class="detail-value">${renderSourcesList(contact)}</div>
+                </article>
+              </div>
+              ${isIncomplete(contact) ? `<div class="detail-empty-note">Dieser Kontakt enthält noch offene Pflegefelder. Mit "Bearbeiten" kannst du die fehlenden Angaben direkt in der UI vervollständigen.</div>` : ""}
+            </section>
+          </div>
+        `;
+
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+
+        document.getElementById("detail-close").addEventListener("click", closeDetail);
+        document.getElementById("detail-edit").addEventListener("click", () => openEditor(contact));
+        document.getElementById("detail-delete").addEventListener("click", () => deleteContact(contact));
+      }
+
+      function closeDetail() {
+        detailDrawer.classList.remove("is-open");
+        detailDrawer.setAttribute("aria-hidden", "true");
+        syncBodyScrollLock();
+      }
+
+      function openEditor(contact = null) {
+        editorMode = contact ? "edit" : "create";
+        editingId = contact?.id || null;
+        editorTitle.textContent = contact ? "Kontakt bearbeiten" : "Neuen Kontakt anlegen";
+        editorSubtitle.textContent = contact
+          ? "Änderungen überschreiben den lokalen Browser-Stand."
+          : "Neue Kontakte werden lokal im Browser gespeichert.";
+        editorHint.textContent = contact
+          ? "Tipp: Unvollständige Kontakte kannst du direkt mit Platzhaltern wie 'Noch ergänzen' pflegen."
+          : "Der neue Kontakt ergänzt deine Seed-Daten lokal und bleibt nach dem Schließen des Browsers erhalten.";
+
+        editorForm.elements.id.value = contact?.id || "";
+        editorForm.elements.name.value = contact?.name || "";
+        editorForm.elements.title.value = contact?.title || "";
+        editorForm.elements.category.value = contact?.category || defaultCategories[0];
+        editorForm.elements.priority.value = contact?.priority || "Mittel";
+        editorForm.elements.organization.value = contact?.organization || "";
+        editorForm.elements.email.value = contact?.email || "";
+        editorForm.elements.phone.value = contact?.phone || "";
+        editorForm.elements.linkedin.value = contact?.linkedin || "";
+        editorForm.elements.location.value = contact?.location || "";
+        editorForm.elements.topic.value = contact?.topic || "";
+        editorForm.elements.note.value = contact?.note || "";
+        editorForm.elements.nextStep.value = contact?.nextStep || "";
+        editorForm.elements.image.value = contact?.image || "";
+        editorForm.elements.sourcesText.value = (contact?.sources || []).join("\n");
+
+        editorDrawer.classList.add("is-open");
+        editorDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        window.setTimeout(() => editorForm.elements.name.focus(), 0);
+      }
+
+      function closeEditor() {
+        editorDrawer.classList.remove("is-open");
+        editorDrawer.setAttribute("aria-hidden", "true");
+        syncBodyScrollLock();
+      }
+
+      function openDashboard() {
+        renderDashboard();
+        dashboardDrawer.classList.add("is-open");
+        dashboardDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+      }
+
+      function closeDashboard() {
+        dashboardDrawer.classList.remove("is-open");
+        dashboardDrawer.setAttribute("aria-hidden", "true");
+        syncBodyScrollLock();
+      }
+
+      function openMapMode() {
+        mapModeDrawer.classList.add("is-open");
+        mapModeDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+      }
+
+      function closeMapMode() {
+        mapModeDrawer.classList.remove("is-open");
+        mapModeDrawer.setAttribute("aria-hidden", "true");
+        syncBodyScrollLock();
+      }
+
+      function deleteContact(contact) {
+        const confirmed = window.confirm(`Soll "${contact.displayName}" wirklich aus deinem lokalen Versorgungs-Kompass gelöscht werden?`);
+        if (!confirmed) return;
+        contacts = contacts.filter((item) => item.id !== contact.id);
+        favorites.delete(contact.id);
+        saveFavorites();
+        persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
+        activeId = null;
+        closeDetail();
+        updateView();
+      }
+
+      function serializeContactsToCsv(items) {
+        const header = [
+          "id",
+          "name",
+          "title",
+          "category",
+          "organization",
+          "topic",
+          "priority",
+          "email",
+          "phone",
+          "linkedin",
+          "location",
+          "city",
+          "state",
+          "street",
+          "postalCode",
+          "url",
+          "description",
+          "lat",
+          "lon",
+          "note",
+          "nextStep",
+          "image",
+          "sources"
+        ];
+
+        const rows = items.map((contact) =>
+          [
+            contact.id,
+            contact.name,
+            contact.title,
+            contact.category,
+            contact.organization,
+            contact.topic,
+            contact.priority,
+            contact.email,
+            contact.phone,
+            contact.linkedin,
+            contact.location,
+            contact.city,
+            contact.state,
+            contact.street,
+            contact.postalCode,
+            contact.url,
+            contact.description,
+            contact.lat,
+            contact.lon,
+            contact.note,
+            contact.nextStep,
+            contact.image,
+            normalizeSources(contact.sources).join(" | ")
+          ]
+            .map(csvEscape)
+            .join(",")
+        );
+
+        return [header.join(","), ...rows].join("\n");
+      }
+
+      function downloadCsv() {
+        const csv = serializeContactsToCsv(contacts);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "versorgungs-kompass-local-export.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function importCsvText(text) {
+        const imported = parseCsv(text).map((entry, index) =>
+          sanitizeContact(
+            {
+              ...entry,
+              sources: normalizeSources(entry.sources)
+            },
+            index
+          )
+        );
+
+        if (!imported.length) {
+          window.alert("Die CSV enthielt keine importierbaren Kontakte.");
+          return;
+        }
+
+        contacts = imported;
+        persistContacts(`${contacts.length} Kontakte aus CSV importiert`);
+        activeId = null;
+        closeDetail();
+        closeEditor();
+        updateView();
+      }
+
+      function syncQuickFilterButtons() {
+        priorityChips.forEach((chip) => {
+          chip.classList.toggle("is-active", chip.dataset.priority === quickPriority);
+        });
+      }
+
+      function updateView() {
+        const items = filteredContacts();
+        renderSummary(items);
+        renderTable(items);
+        renderDashboard(items);
+        renderCategoryQuickFilters();
+        renderMiniFilters();
+        syncSelectedFilterPill(priorityFilterSelected, selectedPriority, "Priorität");
+        syncSelectedFilterPill(categoryFilterSelected, selectedCategory, "Kategorie");
+        renderFilterMenu(
+          priorityFilterMenu,
+          uniqueValues("priority"),
+          selectedPriority,
+          (value) => {
+            selectedPriority = value;
+            closeMenus();
+            updateView();
+          },
+          ""
+        );
+        renderFilterMenu(
+          categoryFilterMenu,
+          uniqueValues("category"),
+          selectedCategory,
+          (value) => {
+            selectedCategory = value;
+            closeMenus();
+            updateView();
+          },
+          ""
+        );
+
+        if (activeId && !items.some((item) => item.id === activeId)) {
+          closeDetail();
+          activeId = null;
+        }
+      }
+
+      editorForm.elements.category.innerHTML = defaultCategories
+        .map((category) => `<option value="${category}">${categoryEmoji[category] || "•"} ${category}</option>`)
+        .join("");
+
+      searchInput.addEventListener("input", updateView);
+
+      priorityChips.forEach((chip) => {
+        chip.addEventListener("click", () => {
+          quickPriority = quickPriority === chip.dataset.priority ? null : chip.dataset.priority;
+          syncQuickFilterButtons();
+          updateView();
+        });
+      });
+
+      priorityFilterButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = priorityFilterMenu.hidden;
+        closeMenus();
+        priorityFilterMenu.hidden = !open;
+        priorityFilterButton.setAttribute("aria-expanded", String(open));
+      });
+
+      categoryFilterButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = categoryFilterMenu.hidden;
+        closeMenus();
+        categoryFilterMenu.hidden = !open;
+        categoryFilterButton.setAttribute("aria-expanded", String(open));
+      });
+
+      moreActionsButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = moreActionsMenu.hidden;
+        closeMenus();
+        moreActionsMenu.hidden = !open;
+        moreActionsButton.setAttribute("aria-expanded", String(open));
+      });
+
+      priorityFilterClear.addEventListener("click", () => {
+        selectedPriority = null;
+        updateView();
+      });
+
+      categoryFilterClear.addEventListener("click", () => {
+        selectedCategory = null;
+        updateView();
+      });
+
+      detailOverlay.addEventListener("click", closeDetail);
+      editorOverlay.addEventListener("click", closeEditor);
+      editorClose.addEventListener("click", closeEditor);
+      editorCancel.addEventListener("click", closeEditor);
+      dashboardOverlay.addEventListener("click", closeDashboard);
+      dashboardClose.addEventListener("click", closeDashboard);
+      mapModeOverlay.addEventListener("click", closeMapMode);
+      mapModeClose.addEventListener("click", closeMapMode);
+
+      newContactButton.addEventListener("click", () => openEditor());
+      dashboardButton.addEventListener("click", openDashboard);
+      mapModeButton.addEventListener("click", openMapMode);
+      exportCsvButton.addEventListener("click", () => {
+        closeMenus();
+        downloadCsv();
+      });
+      importCsvButton.addEventListener("click", () => {
+        closeMenus();
+        csvFileInput.click();
+      });
+      logoutButton.addEventListener("click", () => {
+        closeMenus();
+        logout();
+      });
+
+      csvFileInput.addEventListener("change", async (event) => {
+        const [file] = event.target.files || [];
+        if (!file) return;
+        const text = await file.text();
+        importCsvText(text);
+        event.target.value = "";
+      });
+
+      editorForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(editorForm);
+        const entry = {
+          id: formData.get("id") || createId(),
+          name: String(formData.get("name") || "").trim(),
+          title: String(formData.get("title") || "").trim(),
+          category: String(formData.get("category") || defaultCategories[0]),
+          organization: String(formData.get("organization") || "").trim(),
+          topic: String(formData.get("topic") || "").trim(),
+          priority: String(formData.get("priority") || "Mittel"),
+          email: String(formData.get("email") || "").trim(),
+          phone: String(formData.get("phone") || "").trim(),
+          linkedin: String(formData.get("linkedin") || "").trim(),
+          location: String(formData.get("location") || "").trim(),
+          note: String(formData.get("note") || "").trim(),
+          nextStep: String(formData.get("nextStep") || "").trim(),
+          image: String(formData.get("image") || "").trim(),
+          sources: normalizeSources(formData.get("sourcesText") || "")
+        };
+
+        if (!entry.name) {
+          window.alert("Bitte trage mindestens einen Namen ein.");
+          editorForm.elements.name.focus();
+          return;
+        }
+
+        const sanitized = sanitizeContact(entry, contacts.length);
+
+        if (editorMode === "edit" && editingId) {
+          contacts = contacts.map((contact, index) =>
+            contact.id === editingId ? sanitizeContact({ ...contact, ...sanitized, id: editingId }, index) : contact
+          );
+        } else {
+          contacts = [sanitized, ...contacts];
+        }
+
+        persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
+        activeId = sanitized.id;
+        closeEditor();
+        updateView();
+        openDetail(sanitized.id);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeMenus();
+          if (mapModeDrawer.classList.contains("is-open")) {
+            closeMapMode();
+          } else if (dashboardDrawer.classList.contains("is-open")) {
+            closeDashboard();
+          } else if (editorDrawer.classList.contains("is-open")) {
+            closeEditor();
+          } else {
+            closeDetail();
+          }
+        }
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".header-filter") && !event.target.closest(".menu-shell")) closeMenus();
+      });
+
+      syncQuickFilterButtons();
+      updateView();
+    </script>
+  </body>
+</html>

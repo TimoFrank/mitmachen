@@ -1,0 +1,1388 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GWK 2026 – Deutschlandkarte</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body {
+      background: #f3f5f7;
+      color: rgba(0,0,0,0.82);
+      overflow: hidden;
+    }
+    .page-shell {
+      display: grid;
+      grid-template-rows: 56px minmax(0, 1fr);
+      height: 100vh;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .topbar-spacer {
+      flex: 1;
+      min-width: 0;
+    }
+    .topbar-logo {
+      display: block;
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+    .topbar h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    .topbar-version {
+      color: rgba(0,0,0,0.48);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .workspace {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      gap: 18px;
+      height: calc(100vh - 56px);
+      min-height: 0;
+      padding: 18px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .sidebar {
+      min-height: 0;
+      display: flex;
+    }
+    .map-area {
+      min-width: 0;
+      min-height: 0;
+    }
+    .map-box {
+      position: relative;
+      height: 100%;
+      min-height: calc(100vh - 92px);
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.07);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.8);
+    }
+    #map { height: 100%; width: 100%; background: #f6f7f8; }
+    .map-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 1000;
+      display: flex;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .map-toggle {
+      min-width: 120px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .map-toggle-icon {
+      display: inline-flex;
+      width: 12px;
+      height: 12px;
+      opacity: 0.88;
+      flex: 0 0 auto;
+    }
+    .map-toggle-active-heat {
+      background: rgba(159,38,34,0.14);
+      border-color: rgba(159,38,34,0.28);
+      color: #8c221e;
+    }
+    .map-toggle-active-filter {
+      background: rgba(32,104,148,0.12);
+      border-color: rgba(32,104,148,0.24);
+      color: #1f628d;
+    }
+    .map-dropdown {
+      position: relative;
+    }
+    .map-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 240px;
+      max-height: 320px;
+      overflow: auto;
+      padding: 8px;
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 18px 36px rgba(0,0,0,0.12);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: none;
+    }
+    .map-dropdown-menu-open {
+      display: block;
+    }
+    .map-dropdown-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 0;
+      background: transparent;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.72);
+      text-align: left;
+    }
+    .map-dropdown-item:hover {
+      background: rgba(0,0,0,0.04);
+    }
+    .map-dropdown-item-active {
+      background: rgba(32,104,148,0.10);
+      color: #1f628d;
+    }
+    .map-dropdown-meta {
+      color: rgba(0,0,0,0.42);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .state-view {
+      position: absolute;
+      inset: 18px;
+      z-index: 950;
+      display: none;
+      grid-template-rows: auto minmax(0, 1fr);
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.14);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .state-view-open {
+      display: grid;
+    }
+    .state-mode #map .leaflet-control-zoom {
+      display: none;
+    }
+    .state-mode #heatmap-toggle,
+    .state-mode .map-dropdown {
+      display: none;
+    }
+    .state-view-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.92);
+    }
+    .state-view-copy {
+      min-width: 0;
+    }
+    .state-view-kicker {
+      color: rgba(32,104,148,0.78);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .state-view-title {
+      color: rgba(0,0,0,0.84);
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+    .state-view-meta {
+      color: rgba(0,0,0,0.46);
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .state-view-spacer {
+      flex: 1;
+    }
+    .state-view-close {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.96);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .state-view-filter {
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .state-view-filter .map-dropdown-menu {
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 1200;
+    }
+    #state-map {
+      width: 100%;
+      height: 100%;
+      background: #f6f7f8;
+    }
+    .state-heat-tooltip {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      color: rgba(0,0,0,0.72);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 7px;
+    }
+    .state-heat-tooltip::before {
+      display: none;
+    }
+    .label-anchor {
+      position: relative;
+      transform: translate(-50%, -50%);
+    }
+    .state-heat-count {
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      transform: translate(8px, -50%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.72);
+      color: rgba(122,20,20,0.86);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      box-shadow: none;
+      border: 1px solid rgba(122,20,20,0.10);
+      line-height: 1;
+    }
+    .state-label-icon {
+      display: inline-flex;
+      width: 10px;
+      height: 10px;
+      margin-right: 5px;
+      vertical-align: -1px;
+      opacity: 0.88;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.86);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+      overflow: hidden;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto auto auto minmax(0, 1fr);
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: 100%;
+    }
+    .panel .hdr {
+      display:flex; justify-content: space-between; align-items:center;
+      padding: 10px 12px;
+      font-size: 13px; font-weight: 700;
+      color: rgba(0,0,0,0.78);
+    }
+    .muted { color: rgba(0,0,0,0.55); font-weight: 500; }
+
+    .swatch { width: 10px; height: 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.20); display: inline-block; }
+    .filter-group {
+      padding: 0 12px 12px 12px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.52);
+      position: relative;
+      z-index: 1;
+    }
+    .filter-title {
+      margin: 10px 0 8px 0;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.48);
+    }
+    .filter-list {
+      display: grid;
+      gap: 6px;
+    }
+    .filter-item {
+      display: grid;
+      grid-template-columns: 16px 10px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      color: rgba(0,0,0,0.74);
+    }
+    .filter-item input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+    .filter-label {
+      min-width: 0;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .filter-name {
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .filter-count {
+      color: rgba(0,0,0,0.42);
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.60);
+    }
+    .list-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.48);
+    }
+    .sidebar-note {
+      margin: 0;
+      color: rgba(0,0,0,0.58);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    button {
+      flex: 1;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.95);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    /* Optional list */
+    .list {
+      display: block;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      max-height: 430px;
+      background: rgba(255,255,255,0.38);
+      position: relative;
+      z-index: 0;
+    }
+    .item {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      cursor: pointer;
+      background: transparent;
+    }
+    .item:hover { background: rgba(0,0,0,0.03); }
+    .item-accent {
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.14);
+    }
+    .item-copy {
+      min-width: 0;
+    }
+    .item .t { font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.78); margin: 0 0 2px 0; }
+    .item .m { font-size: 12px; color: rgba(0,0,0,0.55); }
+    .item a { color: inherit; text-decoration: underline; }
+
+    /* Minimal category marker */
+    .cat-marker {
+      width: 12px; height: 12px; border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.95);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+    }
+
+    /* Reduce visual noise from the map */
+    .leaflet-control-attribution { font-size: 10px; opacity: 0.75; }
+    .leaflet-tile { filter: saturate(0.75) contrast(0.95) brightness(1.02); }
+
+    @media (max-width: 960px){
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        min-height: auto;
+      }
+      .panel {
+        height: auto;
+      }
+      .map-box {
+        min-height: 70vh;
+      }
+      body {
+        overflow: auto;
+      }
+      .page-shell {
+        height: auto;
+      }
+      .workspace {
+        height: auto;
+        overflow: visible;
+      }
+      .list {
+        max-height: 280px;
+      }
+    }
+
+    @media (max-width: 520px){
+      .workspace {
+        padding: 12px;
+        gap: 12px;
+      }
+      .topbar {
+        padding: 0 14px;
+      }
+      .topbar-version {
+        font-size: 11px;
+      }
+      .list { max-height: 200px; }
+    }
+  
+    
+    /* Custom labels (minimal, non-interactive) */
+    .city-label, .state-label {
+      padding: 1px 4px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.10);
+      border: 0;
+      white-space: nowrap;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    .city-label {
+      color: rgba(0,0,0,0.36);
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.1px;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+    }
+    .city-label.major { font-size: 10.5px; color: rgba(0,0,0,0.42); }
+    .city-label.capital { font-size: 10px; color: rgba(0,0,0,0.34); }
+    .city-label.extra { font-size: 10px; color: rgba(0,0,0,0.28); }
+    .city-label.more { font-size: 9.8px; color: rgba(0,0,0,0.24); }
+
+    .state-label {
+      position: relative;
+      display: inline-block;
+      background: rgba(255,255,255,0.08);
+      color: rgba(0,0,0,0.22);
+      font-size: 9.5px;
+      font-weight: 500;
+      letter-spacing: 0.35px;
+      text-transform: uppercase;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+      padding: 1px 4px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .state-label-heat {
+      background: rgba(255,248,247,0.92);
+      color: rgba(92,12,12,0.98);
+      font-weight: 800;
+      text-shadow: none;
+      box-shadow: 0 2px 12px rgba(103,20,20,0.12);
+      border: 1px solid rgba(122,20,20,0.14);
+    }
+    .state-view-state-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(32,104,148,0.14);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+      color: rgba(20,84,122,0.92);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .state-view-state-label svg {
+      width: 11px;
+      height: 11px;
+      flex: 0 0 auto;
+    }
+
+</style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <img class="topbar-logo" src="../public/gematik-logo.svg" alt="gematik"/>
+      <h1>GWK 2026</h1>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-version">Kontaktkarte Deutschland</div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="panel">
+          <div class="hdr">
+            <div>Alle Hochschulen</div>
+            <div class="muted"><span id="count"></span></div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-title">Fachgebiete</div>
+            <div id="subject-filters" class="filter-list"></div>
+          </div>
+          <div class="list-header">
+            <div class="list-title">Einträge</div>
+          </div>
+          <div id="list" class="list" style="display:block;"></div>
+        </div>
+      </aside>
+
+      <main class="map-area">
+        <div class="map-box">
+          <div class="map-controls">
+            <button id="heatmap-toggle" class="map-toggle" type="button">
+              <span class="map-toggle-icon" aria-hidden="true">
+                <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="currentColor"/>
+                  <path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.82)"/>
+                </svg>
+              </span>
+              <span>Heat-Map</span>
+            </button>
+          </div>
+          <div id="map"></div>
+          <section id="state-view" class="state-view" aria-hidden="true">
+            <div class="state-view-header">
+              <div class="state-view-copy">
+                <div class="state-view-kicker">Bundesland-Ansicht</div>
+                <div id="state-view-title" class="state-view-title">Bundesland</div>
+                <div id="state-view-meta" class="state-view-meta"></div>
+              </div>
+              <div class="state-view-spacer"></div>
+              <button id="state-view-close" class="state-view-close" type="button">Zurück</button>
+            </div>
+            <div id="state-map"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="./data/de-geojson.js"></script>
+<script src="./data/city-labels.js"></script>
+<script src="./data/state-labels.js"></script>
+<script src="./data/state-polygons.js"></script>
+<script src="./data/locations-gwk-2026.js"></script>
+
+<script>
+  const DATA = window.MAP_LOCATIONS;
+  const CITY_LABELS = window.MAP_CITY_LABELS;
+  const STATE_LABELS = window.MAP_STATE_LABELS;
+  const STATE_POLYGONS = window.MAP_STATE_POLYGONS;
+  const DE_GEOJSON = window.MAP_DE_GEOJSON;
+  const CATEGORY_COLORS = {"Arztpraxen": "#1f77b4", "Krankenhäuser": "#d62728", "Apotheken": "#2ca02c", "Pflegeeinrichtungen": "#9467bd", "Rettungsdienst": "#ff7f0e", "Hochschulen": "#0f766e"};
+  const SUBJECT_AREA_COLORS = {
+    'Management': '#2f7fc1',
+    'Gesundheit & Prävention': '#e33a3a',
+    'Versorgung & Pflege': '#12a66f',
+    'Medizin & Gesellschaft': '#8b63c9'
+  };
+  const SUBJECT_AREAS = Object.keys(SUBJECT_AREA_COLORS);
+  const AVATARS = {"Hochschulen": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%230f766e%22%20opacity%3D%220.16%22%2F%3E%3Cpath%20d%3D%22M14%2026l18-10%2018%2010v4L32%2040%2014%2030z%22%20fill%3D%22%230f766e%22%20opacity%3D%220.52%22%2F%3E%3Cpath%20d%3D%22M20%2032v8c0%202%206%206%2012%206s12-4%2012-6v-8%22%20fill%3D%22none%22%20stroke%3D%22%230f766e%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%3Cpath%20d%3D%22M50%2026v14%22%20stroke%3D%22%230f766e%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.48%22%2F%3E%3C%2Fsvg%3E", "Arztpraxen": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.18%22%2F%3E%0A%3Ccircle%20cx%3D%2232%22%20cy%3D%2226%22%20r%3D%2210%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M14%2054c3-10%2011-16%2018-16s15%206%2018%2016%22%20fill%3D%22none%22%20stroke%3D%22%231f77b4%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M42%2018h6v6h-6zM44%2012h2v18h-2z%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.48%22%2F%3E%0A%3C%2Fsvg%3E", "Krankenhäuser": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%23d62728%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M20%2050V18c0-2%202-4%204-4h16c2%200%204%202%204%204v32%22%20fill%3D%22none%22%20stroke%3D%22%23d62728%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M26%2024h6v6h-6zm0%2010h6v6h-6zm12-10h6v6h-6zm0%2010h6v6h-6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.45%22%2F%3E%0A%3Cpath%20d%3D%22M30%2018h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.50%22%2F%3E%0A%3C%2Fsvg%3E", "Apotheken": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M22%2022h20v20H22z%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M30%2024h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.50%22%2F%3E%0A%3Cpath%20d%3D%22M44%2022h2c2%200%204%202%204%204v16c0%202-2%204-4%204h-2%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.35%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E", "Pflegeeinrichtungen": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%239467bd%22%20opacity%3D%220.16%22%2F%3E%0A%3Ccircle%20cx%3D%2226%22%20cy%3D%2226%22%20r%3D%228%22%20fill%3D%22%239467bd%22%20opacity%3D%220.52%22%2F%3E%0A%3Ccircle%20cx%3D%2240%22%20cy%3D%2228%22%20r%3D%226%22%20fill%3D%22%239467bd%22%20opacity%3D%220.36%22%2F%3E%0A%3Cpath%20d%3D%22M14%2052c2-9%208-14%2012-14s10%205%2012%2014%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M34%2052c1-7%205-11%208-11s7%204%208%2011%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.36%22%2F%3E%0A%3C%2Fsvg%3E", "Rettungsdienst": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%23ff7f0e%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M18%2040c0-8%206-14%2014-14h8c8%200%2014%206%2014%2014%22%20fill%3D%22none%22%20stroke%3D%22%23ff7f0e%22%20stroke-width%3D%225%22%20opacity%3D%220.50%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3Ccircle%20cx%3D%2226%22%20cy%3D%2244%22%20r%3D%224%22%20fill%3D%22%23ff7f0e%22%20opacity%3D%220.55%22%2F%3E%0A%3Ccircle%20cx%3D%2246%22%20cy%3D%2244%22%20r%3D%224%22%20fill%3D%22%23ff7f0e%22%20opacity%3D%220.55%22%2F%3E%0A%3Cpath%20d%3D%22M24%2030h16%22%20stroke%3D%22%23ff7f0e%22%20stroke-width%3D%225%22%20opacity%3D%220.55%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3Cpath%20d%3D%22M32%2022v16%22%20stroke%3D%22%23ff7f0e%22%20stroke-width%3D%225%22%20opacity%3D%220.55%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E"};
+
+  // Main map: keep startup intentionally simple and deterministic.
+  const germanyStartCenter = [51.16, 10.45];
+  const germanyStartZoom = 6;
+  const map = L.map('map', {
+    center: germanyStartCenter,
+    zoom: germanyStartZoom,
+    minZoom: 5,
+    maxZoom: 12,
+    zoomControl: true
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
+  }).addTo(map);
+
+  // ---- Build exact Germany mask (inverse polygon) ----
+  function toLatLngs(ringLngLat){
+    // ring is [ [lng,lat], ... ]
+    return ringLngLat.map(pt => [pt[1], pt[0]]);
+  }
+
+  function germanyOuterRings(featureCollection){
+    const geom = featureCollection.features[0].geometry;
+    const holes = []; // each outer ring as a hole in the world polygon
+
+    if (geom.type === "Polygon") {
+      holes.push(toLatLngs(geom.coordinates[0]));
+    } else if (geom.type === "MultiPolygon") {
+      geom.coordinates.forEach(poly => {
+        // poly[0] is the outer ring
+        holes.push(toLatLngs(poly[0]));
+      });
+    }
+    return holes;
+  }
+
+  const worldRing = [[-90,-180],[-90,180],[90,180],[90,-180]];
+  const mainMapHoles = germanyOuterRings(DE_GEOJSON);
+  L.polygon([worldRing, ...mainMapHoles], {
+    stroke: false,
+    fillColor: '#98a2aa',
+    fillOpacity: 0.26,
+    interactive: false
+  }).addTo(map);
+  L.geoJSON(DE_GEOJSON, {
+    style: {
+      color: 'rgba(255,255,255,0.94)',
+      weight: 6,
+      opacity: 0.92,
+      fill: false
+    },
+    interactive: false
+  }).addTo(map);
+  L.geoJSON(DE_GEOJSON, {
+    style: {
+      color: 'rgba(0,0,0,0.30)',
+      weight: 1.5,
+      opacity: 0.88,
+      fill: false
+    },
+    interactive: false
+  }).addTo(map);
+
+  function resetMainMapView(){
+    map.setView(germanyStartCenter, germanyStartZoom, { animate: false });
+  }
+
+  // ---- Custom labels (major cities + state capitals) ----
+  // Basemap is "nolabels" to reduce noise; we add a curated set for orientation.
+  const majorLabelLayer = L.layerGroup().addTo(map);
+  const capitalLabelLayer = L.layerGroup().addTo(map);
+  const stateLabelLayer = L.layerGroup().addTo(map);
+  const extraLabelLayer = L.layerGroup().addTo(map);
+  const moreLabelLayer = L.layerGroup().addTo(map);
+  let stateHeatLayer = null;
+  const stateHeatCountLayer = L.layerGroup();
+  let heatMapActive = false;
+  let selectedState = "";
+  let stateMap = null;
+  let stateMapTiles = null;
+  let stateMapOutline = null;
+  let stateMapMarkers = null;
+  let stateMapMask = null;
+  let stateMapGermanyOutline = null;
+  let stateMapCityLabels = null;
+  let stateMapStateLabel = null;
+
+  function heatColor(value, max){
+    if (max <= 0) return "#f5dfdc";
+    const ratio = Math.max(0, Math.min(1, value / max));
+    if (ratio >= 0.85) return "#9f2622";
+    if (ratio >= 0.65) return "#bc4b42";
+    if (ratio >= 0.45) return "#cf746a";
+    if (ratio >= 0.25) return "#dfa299";
+    if (ratio > 0) return "#ecc9c3";
+    return "#f5dfdc";
+  }
+
+  function stateNameKey(value){
+    return normalize(value)
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/ß/g, "ss");
+  }
+
+  function stateLabelPosition(name){
+    const configured = STATE_LABELS.find((state) => state.name === name);
+    if (configured) return [configured.lat, configured.lon];
+    const feature = STATE_POLYGONS.features.find((entry) => entry.properties.name === name);
+    if (!feature) return null;
+    return L.geoJSON(feature).getBounds().getCenter();
+  }
+
+  function stateFeature(name){
+    return STATE_POLYGONS.features.find((entry) => entry.properties.name === name) || null;
+  }
+
+  function stateLabelCorner(name){
+    const feature = stateFeature(name);
+    if (!feature) return null;
+    const bounds = L.geoJSON(feature).getBounds();
+    const north = bounds.getNorth();
+    const south = bounds.getSouth();
+    const east = bounds.getEast();
+    const west = bounds.getWest();
+    return [south + ((north - south) * 0.20), west + ((east - west) * 0.20)];
+  }
+
+  function stateLabelHtml(name, total = null, heat = false){
+    const count = total && total > 0 ? `<span class="state-heat-count">${total}</span>` : "";
+    const heatClass = heat ? " state-label-heat" : "";
+    const icon = heat
+      ? `<span class="state-label-icon" aria-hidden="true"><svg viewBox="0 0 12 12" width="10" height="10" xmlns="http://www.w3.org/2000/svg"><path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="rgba(159,38,34,0.9)"/><path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.82)"/></svg></span>`
+      : "";
+    return `<div class="label-anchor"><div class="state-label${heatClass}">${icon}${name}${count}</div></div>`;
+  }
+
+  function buildStateHeatLayer(entries = DATA){
+    if (stateHeatLayer) {
+      stateHeatLayer.remove();
+    }
+    stateHeatCountLayer.clearLayers();
+
+    const countsByState = entries.reduce((acc, entry) => {
+      const key = stateNameKey(entry.state);
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const max = Object.values(countsByState).reduce((acc, total) => Math.max(acc, total), 0);
+
+    stateHeatLayer = L.geoJSON(STATE_POLYGONS, {
+      style: (feature) => {
+        const total = countsByState[stateNameKey(feature.properties.name)] || 0;
+        const fill = heatColor(total, max);
+        return {
+          color: 'rgba(0,0,0,0.10)',
+          weight: 1,
+          fillColor: fill,
+          fillOpacity: total > 0 ? 0.58 : 0.12,
+          interactive: true
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const total = countsByState[stateNameKey(feature.properties.name)] || 0;
+        layer.on('click', () => {
+          openStateView(feature.properties.name);
+        });
+        layer.on('mouseover', () => {
+          layer.setStyle({ weight: 1.4, color: 'rgba(122,20,20,0.38)' });
+        });
+        layer.on('mouseout', () => {
+          stateHeatLayer.resetStyle(layer);
+        });
+        const labelPosition = stateLabelPosition(feature.properties.name);
+        if (!labelPosition) return;
+        L.marker(labelPosition, {
+          icon: L.divIcon({
+            className: '',
+            html: stateLabelHtml(feature.properties.name, total, true),
+            iconSize: null
+          }),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: 200
+        }).addTo(stateHeatCountLayer);
+      }
+    });
+
+    if (heatMapActive) {
+      stateHeatLayer.addTo(map);
+      stateHeatCountLayer.addTo(map);
+    }
+  }
+
+  function labelIcon(text, cls){
+    const isState = (cls === "state-label");
+    const klass = isState ? "state-label" : ("city-label " + cls);
+    return L.divIcon({
+      className: '',
+      html: `<div class="label-anchor"><div class="${klass}">${text}</div></div>`,
+      iconSize: null
+    });
+  }
+
+  function addLabels(){
+    majorLabelLayer.clearLayers();
+    capitalLabelLayer.clearLayers();
+    stateLabelLayer.clearLayers();
+    extraLabelLayer.clearLayers();
+    moreLabelLayer.clearLayers();
+
+    CITY_LABELS.major.forEach(c => {
+      L.marker([c.lat, c.lon], {
+        icon: labelIcon(c.name, "major"),
+        interactive: false,
+        keyboard: false
+      }).addTo(majorLabelLayer);
+    });
+
+    CITY_LABELS.capitals.forEach(c => {
+      L.marker([c.lat, c.lon], {
+        icon: labelIcon(c.name, "capital"),
+        interactive: false,
+        keyboard: false
+      }).addTo(capitalLabelLayer);
+    });
+    CITY_LABELS.extra.forEach(c => {
+      L.marker([c.lat, c.lon], {
+        icon: labelIcon(c.name, "extra"),
+        interactive: false,
+        keyboard: false
+      }).addTo(extraLabelLayer);
+    });
+    CITY_LABELS.more.forEach(c => {
+      L.marker([c.lat, c.lon], {
+        icon: labelIcon(c.name, "more"),
+        interactive: false,
+        keyboard: false
+      }).addTo(moreLabelLayer);
+    });
+
+
+    STATE_LABELS.forEach(s => {
+      L.marker([s.lat, s.lon], {
+        icon: labelIcon(s.name, "state-label"),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: -50
+      }).addTo(stateLabelLayer);
+    });
+
+  }
+
+  function updateLabelVisibility(){
+    const z = map.getZoom();
+
+    // State labels: only on far overview (keep very subtle)
+    if (!heatMapActive && z >= 5 && z <= 6) {
+      if (!map.hasLayer(stateLabelLayer)) map.addLayer(stateLabelLayer);
+    } else {
+      if (map.hasLayer(stateLabelLayer)) map.removeLayer(stateLabelLayer);
+    }
+
+    if (z >= 6) {
+      if (!map.hasLayer(majorLabelLayer)) map.addLayer(majorLabelLayer);
+    } else {
+      if (map.hasLayer(majorLabelLayer)) map.removeLayer(majorLabelLayer);
+    }
+
+    if (z >= 7) {
+      if (!map.hasLayer(capitalLabelLayer)) map.addLayer(capitalLabelLayer);
+    } else {
+      if (map.hasLayer(capitalLabelLayer)) map.removeLayer(capitalLabelLayer);
+    }
+
+    if (z >= 9) {
+      if (!map.hasLayer(extraLabelLayer)) map.addLayer(extraLabelLayer);
+    } else {
+      if (map.hasLayer(extraLabelLayer)) map.removeLayer(extraLabelLayer);
+    }
+
+    if (z >= 10) {
+      if (!map.hasLayer(moreLabelLayer)) map.addLayer(moreLabelLayer);
+    } else {
+      if (map.hasLayer(moreLabelLayer)) map.removeLayer(moreLabelLayer);
+    }
+  }
+
+  addLabels();
+  updateLabelVisibility();
+  buildStateHeatLayer();
+
+
+
+  // ---- Markers ----
+  const mainMarkerLayer = L.layerGroup().addTo(map);
+
+  function subjectAreaFor(entry){
+    const text = normalize(entry.description);
+    if (/(gesundheitsökonomie|gesundheitsoekonomie|gesundheitsmanagement|health care management|management im gesundheitswesen|\\bvwl\\b|\\bbwl\\b|oekonomie)/.test(text)) return 'Management';
+    if (/(public health|epidemi|biometri|sozialmedizin|prävention|praevention|health systems)/.test(text)) return 'Gesundheit & Prävention';
+    if (/(versorgung|rehabilitation|gesundheitssystemforschung|imvr|pflege|hebammen|therapie|nursing)/.test(text)) return 'Versorgung & Pflege';
+    return 'Medizin & Gesellschaft';
+  }
+
+  function spreadSameCityMarkers(entries){
+    const groups = new Map();
+
+    entries.forEach((entry) => {
+      if (!hasCoordinates(entry)) return;
+      entry._displayLat = entry.lat;
+      entry._displayLon = entry.lon;
+      const key = `${normalize(entry.city)}|${entry.lat}|${entry.lon}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(entry);
+    });
+
+    groups.forEach((group) => {
+      if (group.length === 1) return;
+      const baseLat = group[0].lat;
+      const baseLon = group[0].lon;
+
+      group.forEach((entry, index) => {
+        const ring = Math.floor(index / 8);
+        const radius = 0.038 + (ring * 0.014);
+        const angle = (Math.PI * 2 * index) / Math.min(group.length, 8);
+        const latOffset = Math.sin(angle) * radius;
+        const lonOffset = (Math.cos(angle) * radius) / Math.max(Math.cos(baseLat * Math.PI / 180), 0.35);
+        entry._displayLat = baseLat + latOffset;
+        entry._displayLon = baseLon + lonOffset;
+      });
+    });
+  }
+
+  function spreadNearbyOverviewMarkers(entries){
+    const eligible = entries.filter(hasCoordinates);
+    const zoom = 6;
+    const thresholdPx = 34;
+    const parent = eligible.map((_, index) => index);
+
+    function find(index){
+      if (parent[index] !== index) parent[index] = find(parent[index]);
+      return parent[index];
+    }
+
+    function union(a, b){
+      const rootA = find(a);
+      const rootB = find(b);
+      if (rootA !== rootB) parent[rootB] = rootA;
+    }
+
+    const projected = eligible.map((entry) => map.project([entry.lat, entry.lon], zoom));
+
+    for (let i = 0; i < eligible.length; i += 1) {
+      for (let j = i + 1; j < eligible.length; j += 1) {
+        if (projected[i].distanceTo(projected[j]) < thresholdPx) {
+          union(i, j);
+        }
+      }
+    }
+
+    const clusters = new Map();
+    eligible.forEach((entry, index) => {
+      const root = find(index);
+      if (!clusters.has(root)) clusters.set(root, []);
+      clusters.get(root).push(entry);
+    });
+
+    clusters.forEach((cluster) => {
+      if (cluster.length <= 1) return;
+
+      const centerLat = cluster.reduce((sum, entry) => sum + entry.lat, 0) / cluster.length;
+      const centerLon = cluster.reduce((sum, entry) => sum + entry.lon, 0) / cluster.length;
+      const centerPoint = map.project([centerLat, centerLon], zoom);
+      const ordered = cluster.slice().sort((a, b) => {
+        const cityCompare = a.city.localeCompare(b.city, 'de');
+        if (cityCompare !== 0) return cityCompare;
+        return a.name.localeCompare(b.name, 'de');
+      });
+
+      ordered.forEach((entry, index) => {
+        const ring = Math.floor(index / 8);
+        const radiusPx = 18 + (ring * 10);
+        const angle = (-Math.PI / 2) + ((Math.PI * 2 * index) / Math.min(ordered.length, 8));
+        const targetPoint = L.point(
+          centerPoint.x + (Math.cos(angle) * radiusPx),
+          centerPoint.y + (Math.sin(angle) * radiusPx)
+        );
+        const targetLatLng = map.unproject(targetPoint, zoom);
+        entry._displayLat = targetLatLng.lat;
+        entry._displayLon = targetLatLng.lng;
+      });
+    });
+  }
+
+  const elList = document.getElementById('list');
+  const elCount = document.getElementById('count');
+  const elHeatMapToggle = document.getElementById('heatmap-toggle');
+  const elSubjectFilters = document.getElementById('subject-filters');
+  const elStateView = document.getElementById('state-view');
+  const elStateViewTitle = document.getElementById('state-view-title');
+  const elStateViewMeta = document.getElementById('state-view-meta');
+  const elStateViewClose = document.getElementById('state-view-close');
+  const activeSubjectAreas = new Set(SUBJECT_AREAS);
+
+  function normalize(s){ return (s || "").toString().toLowerCase(); }
+  function hasCoordinates(entry){ return Number.isFinite(entry.lat) && Number.isFinite(entry.lon); }
+  function subjectAreaColor(area){ return SUBJECT_AREA_COLORS[area] || SUBJECT_AREA_COLORS['Weitere Fachrichtungen']; }
+  function matchesSubjectArea(entry){ return activeSubjectAreas.has(subjectAreaFor(entry)); }
+
+  function stateEntries(name){
+    return DATA.filter((entry) => {
+      if (!hasCoordinates(entry)) return false;
+      if (!matchesSubjectArea(entry)) return false;
+      if (entry.state !== name) return false;
+      return true;
+    });
+  }
+
+  function renderSubjectFilters(){
+    const counts = SUBJECT_AREAS.reduce((acc, area) => {
+      acc[area] = DATA.filter((entry) => subjectAreaFor(entry) === area).length;
+      return acc;
+    }, {});
+
+    elSubjectFilters.innerHTML = '';
+    SUBJECT_AREAS.forEach((area) => {
+      const row = document.createElement('label');
+      row.className = 'filter-item';
+      const color = subjectAreaColor(area);
+      row.innerHTML = `
+        <input type="checkbox" data-area="${area}" ${activeSubjectAreas.has(area) ? 'checked' : ''}/>
+        <span class="swatch" style="background:${color}; border-color:rgba(0,0,0,0.08);"></span>
+        <span class="filter-label">
+          <span class="filter-name">${area}</span>
+          <span class="filter-count">${counts[area]}</span>
+        </span>
+      `;
+      elSubjectFilters.appendChild(row);
+    });
+
+    Array.from(elSubjectFilters.querySelectorAll('input[data-area]')).forEach((input) => {
+      input.addEventListener('change', () => {
+        const area = input.getAttribute('data-area');
+        if (input.checked) activeSubjectAreas.add(area);
+        else activeSubjectAreas.delete(area);
+        render();
+      });
+    });
+  }
+
+  
+  function popupHtml(d){
+    const link = d.url ? `<div style="margin-top:8px;"><a href="${d.url}" target="_blank" rel="noopener">Website</a></div>` : "";
+    const desc = d.description ? `<div style="margin-top:8px; color:rgba(0,0,0,0.72); line-height:1.35;">${d.description}</div>` : "";
+    const address = (d.street || d.postal_code || d.city)
+      ? `<div style="margin-top:8px; color:rgba(0,0,0,0.58); font-size:12px;">${[d.street, [d.postal_code, d.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</div>`
+      : "";
+    const email = d.email
+      ? `<div style="margin-top:6px; color:rgba(0,0,0,0.58); font-size:12px;">${d.email}</div>`
+      : "";
+    const meta = [d.primary_system ? `Primärsystem: ${d.primary_system}` : "", d.dq_hint ? `DQ: ${d.dq_hint}` : ""]
+      .filter(Boolean)
+      .join(" • ");
+    const metaBlock = meta ? `<div style="margin-top:6px; color:rgba(0,0,0,0.5); font-size:12px;">${meta}</div>` : "";
+
+    const avatar = (AVATARS[d.category] || "");
+    const person = d.person_name ? `<div style="font-weight:700; font-size:12.5px; color:rgba(0,0,0,0.72);">${d.person_name}</div>` : "";
+    const title = d.person_title ? `<div style="color:rgba(0,0,0,0.50); font-size:12px;">${d.person_title}</div>` : "";
+
+    const personBlock = (person || title) ? `
+      <div style="display:flex; gap:10px; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.06);">
+        <img src="${avatar}" alt="" width="34" height="34" style="border-radius:999px; background:rgba(255,255,255,0.6);"/>
+        <div>
+          ${person}
+          ${title}
+        </div>
+      </div>
+    ` : "";
+
+    return `<div style="min-width:240px;">
+      <div style="font-weight:700; font-size:14px; color:rgba(0,0,0,0.82);">${d.name}</div>
+      <div style="color:rgba(0,0,0,0.55); font-size:12px;">${d.category} • ${d.city}</div>
+      ${address}
+      ${desc}
+      ${email}
+      ${metaBlock}
+      ${personBlock}
+      ${link}
+    </div>`;
+  }
+
+  function markerFor(d){
+    const color = subjectAreaColor(subjectAreaFor(d));
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="cat-marker" style="background:${color};"></div>`,
+      iconSize: [14,14],
+      iconAnchor: [7,7],
+      popupAnchor: [0,-8]
+    });
+    return L.marker([d._displayLat || d.lat, d._displayLon || d.lon], { icon, zIndexOffset: 800 });
+  }
+
+  function ensureStateMap(){
+    if (stateMap) return;
+    stateMap = L.map('state-map', { zoomControl: true });
+    stateMapTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
+    }).addTo(stateMap);
+    stateMapMarkers = L.layerGroup().addTo(stateMap);
+
+    const stateMapHoles = germanyOuterRings(DE_GEOJSON);
+    stateMapMask = L.polygon([worldRing, ...stateMapHoles], {
+      stroke: false,
+      fillColor: '#fff',
+      fillOpacity: 0.82,
+      interactive: false
+    }).addTo(stateMap);
+
+    stateMapGermanyOutline = L.geoJSON(DE_GEOJSON, {
+      style: {
+        color: 'rgba(20,84,122,0.22)',
+        weight: 1,
+        fill: false
+      },
+      interactive: false
+    }).addTo(stateMap);
+    stateMapCityLabels = L.layerGroup().addTo(stateMap);
+  }
+
+  function renderStateMapCityLabels(feature){
+    if (!stateMapCityLabels) return;
+    stateMapCityLabels.clearLayers();
+    const bounds = L.geoJSON(feature).getBounds();
+    const labels = [
+      ...CITY_LABELS.major.map((city) => ({ ...city, cls: 'major' })),
+      ...CITY_LABELS.capitals.map((city) => ({ ...city, cls: 'capital' })),
+      ...CITY_LABELS.extra.map((city) => ({ ...city, cls: 'extra' }))
+    ];
+
+    labels
+      .filter((city) => bounds.contains([city.lat, city.lon]))
+      .forEach((city) => {
+        L.marker([city.lat, city.lon], {
+          icon: labelIcon(city.name, city.cls),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: -40
+        }).addTo(stateMapCityLabels);
+      });
+  }
+
+  function renderStateMap(){
+    if (!selectedState) return;
+    ensureStateMap();
+
+    if (stateMapOutline) {
+      stateMap.removeLayer(stateMapOutline);
+      stateMapOutline = null;
+    }
+
+    const feature = stateFeature(selectedState);
+    if (!feature) return;
+    const entries = stateEntries(selectedState);
+    spreadSameCityMarkers(entries);
+
+    stateMapOutline = L.geoJSON(feature, {
+      style: {
+        color: 'rgba(32,104,148,0.88)',
+        weight: 2,
+        fillColor: 'rgba(32,104,148,0.08)',
+        fillOpacity: 0.12
+      },
+      interactive: false
+    }).addTo(stateMap);
+
+    if (stateMapStateLabel) {
+      stateMap.removeLayer(stateMapStateLabel);
+      stateMapStateLabel = null;
+    }
+    const corner = stateLabelCorner(selectedState);
+    if (corner) {
+      stateMapStateLabel = L.marker(corner, {
+        icon: L.divIcon({
+          className: '',
+          html: `<div class="label-anchor"><div class="state-view-state-label"><svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="rgba(32,104,148,0.9)"/><path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.86)"/></svg><span>${selectedState}</span></div></div>`,
+          iconSize: null
+        }),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 320
+      }).addTo(stateMap);
+    }
+
+    stateMapMarkers.clearLayers();
+    entries.forEach((entry) => {
+      const marker = markerFor(entry);
+      marker.bindPopup(popupHtml(entry));
+      marker.addTo(stateMapMarkers);
+    });
+    renderStateMapCityLabels(feature);
+
+    const bounds = stateMapOutline.getBounds();
+    stateMap.fitBounds(bounds.pad(0.18));
+    stateMap.setMaxBounds(bounds.pad(0.35));
+    stateMap.invalidateSize();
+
+    elStateViewTitle.textContent = selectedState;
+    elStateViewMeta.textContent = `${entries.length} Einträge in ${selectedState}`;
+  }
+
+  function openStateView(name){
+    if (!name) return;
+    selectedState = name;
+    elStateView.classList.add('state-view-open');
+    elStateView.setAttribute('aria-hidden', 'false');
+    document.querySelector('.map-box').classList.add('state-mode');
+    renderStateMap();
+  }
+
+  function closeStateView(){
+    selectedState = "";
+    elStateView.classList.remove('state-view-open');
+    elStateView.setAttribute('aria-hidden', 'true');
+    document.querySelector('.map-box').classList.remove('state-mode');
+  }
+
+  let markerIndex = [];
+
+  function render(){
+    mainMarkerLayer.clearLayers();
+    markerIndex = [];
+
+    const filtered = DATA.filter((entry) => matchesSubjectArea(entry));
+    const mappedEntries = filtered.filter(hasCoordinates);
+    spreadSameCityMarkers(mappedEntries);
+    spreadNearbyOverviewMarkers(mappedEntries);
+    buildStateHeatLayer(mappedEntries);
+
+    mappedEntries.forEach(d => {
+      const m = markerFor(d);
+      m.bindPopup(popupHtml(d));
+      markerIndex.push({ marker: m, data: d });
+      if (!heatMapActive) {
+        m.addTo(mainMarkerLayer);
+      }
+    });
+
+    if (heatMapActive) {
+      if (map.hasLayer(mainMarkerLayer)) map.removeLayer(mainMarkerLayer);
+      if (stateHeatLayer && !map.hasLayer(stateHeatLayer)) stateHeatLayer.addTo(map);
+      if (!map.hasLayer(stateHeatCountLayer)) stateHeatCountLayer.addTo(map);
+    } else {
+      if (!map.hasLayer(mainMarkerLayer)) map.addLayer(mainMarkerLayer);
+      if (stateHeatLayer && map.hasLayer(stateHeatLayer)) map.removeLayer(stateHeatLayer);
+      if (map.hasLayer(stateHeatCountLayer)) map.removeLayer(stateHeatCountLayer);
+    }
+    updateLabelVisibility();
+
+    elCount.textContent = `${filtered.length} / ${DATA.length}`;
+
+    elList.innerHTML = "";
+    filtered.forEach(d => {
+      const item = document.createElement('div');
+      item.className = "item";
+      const color = subjectAreaColor(subjectAreaFor(d));
+      const area = subjectAreaFor(d);
+      const link = d.url ? `<a href="${d.url}" target="_blank" rel="noopener">Link</a>` : "";
+      item.innerHTML = `<span class="item-accent" style="background:${color}"></span>
+                        <div class="item-copy">
+                          <div class="t">${d.name}</div>
+                          <div class="m">${area} • ${d.city} ${link ? "• " + link : ""}</div>
+                        </div>`;
+      item.addEventListener('click', () => {
+        map.setView([d._displayLat || d.lat, d._displayLon || d.lon], Math.max(map.getZoom(), 10), { animate: true });
+        const hit = markerIndex.find(x => x.data === d);
+        if (heatMapActive) {
+          L.popup({ offset: [0, -4] })
+            .setLatLng([d._displayLat || d.lat, d._displayLon || d.lon])
+            .setContent(popupHtml(d))
+            .openOn(map);
+        } else if (hit) {
+          hit.marker.openPopup();
+        }
+      });
+      elList.appendChild(item);
+    });
+
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'item';
+      empty.innerHTML = `<div class="item-copy"><div class="t">Keine Einträge</div><div class="m">Aktuell liegen keine Hochschulstandorte vor.</div></div>`;
+      elList.appendChild(empty);
+    }
+  }
+
+  elStateViewClose.addEventListener('click', () => {
+    closeStateView();
+  });
+
+  elHeatMapToggle.addEventListener('click', () => {
+    heatMapActive = !heatMapActive;
+    elHeatMapToggle.classList.toggle('map-toggle-active-heat', heatMapActive);
+    render();
+  });
+
+  render();
+  renderSubjectFilters();
+  map.on('zoomend', () => {
+    updateLabelVisibility();
+  });
+  window.addEventListener('load', () => {
+    renderSubjectFilters();
+    render();
+    map.invalidateSize();
+    resetMainMapView();
+  });
+  window.addEventListener('resize', () => {
+    map.invalidateSize();
+    if (!elStateView.classList.contains('state-view-open')) {
+      resetMainMapView();
+    }
+    if (stateMap && elStateView.classList.contains('state-view-open')) {
+      stateMap.invalidateSize();
+    }
+  });
+</script>
+</body>
+</html>

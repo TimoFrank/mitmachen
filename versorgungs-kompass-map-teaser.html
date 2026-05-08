@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Versorgungs-Kompass – Karten-Vorschau</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f3f5f7;
+    }
+
+    body {
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #f6f7f8;
+    }
+
+    .teaser-fade {
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 84px;
+      background: linear-gradient(180deg, rgba(243,245,247,0) 0%, rgba(243,245,247,0.72) 56%, rgba(243,245,247,0.96) 100%);
+      pointer-events: none;
+      z-index: 400;
+    }
+
+    .map-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255,255,255,0.95);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.16);
+    }
+
+    .leaflet-control-container {
+      display: none;
+    }
+
+    .leaflet-tile {
+      filter: saturate(0.78) contrast(0.96) brightness(1.02);
+    }
+  </style>
+</head>
+<body>
+  <div id="map" aria-hidden="true"></div>
+  <div class="teaser-fade"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="./deutschlandkarte-project/data/de-geojson.js"></script>
+  <script src="./data/versorgungs-kompass-data.js"></script>
+  <script>
+    const CATEGORY_COLORS = {
+      Praxis: "#1f77b4",
+      Krankenhaus: "#d62728",
+      Apotheke: "#2ca02c",
+      Pflege: "#9467bd"
+    };
+
+    function loadContacts() {
+      const contacts = window.VERSORGUNGS_COMPASS_CONTACTS || [];
+      return contacts
+        .map((entry) => {
+          const lat = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
+          const lon = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+          return {
+            lat,
+            lon,
+            category: entry.category || "Praxis"
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function toLatLngs(ringLngLat) {
+      return ringLngLat.map((pt) => [pt[1], pt[0]]);
+    }
+
+    function germanyOuterRings(featureCollection) {
+      const geom = featureCollection.features[0].geometry;
+      const holes = [];
+
+      if (geom.type === "Polygon") {
+        holes.push(toLatLngs(geom.coordinates[0]));
+      } else if (geom.type === "MultiPolygon") {
+        geom.coordinates.forEach((poly) => holes.push(toLatLngs(poly[0])));
+      }
+      return holes;
+    }
+
+    const map = L.map("map", {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      tap: false,
+      touchZoom: false
+    });
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd",
+      maxZoom: 19
+    }).addTo(map);
+
+    const worldRing = [[-90,-180],[-90,180],[90,180],[90,-180]];
+    const holes = germanyOuterRings(window.MAP_DE_GEOJSON);
+
+    L.polygon([worldRing, ...holes], {
+      stroke: false,
+      fillColor: "#000",
+      fillOpacity: 0.08,
+      interactive: false
+    }).addTo(map);
+
+    const germanyLayer = L.geoJSON(window.MAP_DE_GEOJSON, {
+      style: {
+        color: "rgba(18,96,144,0.28)",
+        weight: 1.6,
+        fillColor: "rgba(53,132,194,0.08)",
+        fillOpacity: 0.12
+      },
+      interactive: false
+    }).addTo(map);
+
+    const bounds = germanyLayer.getBounds();
+    map.fitBounds(bounds.pad(0.14));
+    map.setZoom(Math.min(map.getZoom(), 8));
+
+    loadContacts().forEach((entry) => {
+      const color = CATEGORY_COLORS[entry.category] || "#1f77b4";
+      L.marker([entry.lat, entry.lon], {
+        icon: L.divIcon({
+          className: "",
+          html: '<div class="map-dot" style="background:' + color + ';"></div>',
+          iconSize: [8, 8],
+          iconAnchor: [4, 4]
+        }),
+        interactive: false,
+        keyboard: false
+      }).addTo(map);
+    });
+  </script>
+</body>
+</html>

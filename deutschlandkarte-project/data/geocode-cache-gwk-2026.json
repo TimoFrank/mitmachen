@@ -1,0 +1,278 @@
+{
+  "postalcode=73430|city=Aalen|country=Germany": {
+    "lat": 48.8375607,
+    "lon": 10.0929593,
+    "source": "geocoded_postal_city",
+    "display_name": "Aalen, VVG der Stadt Aalen, Ostalbkreis, Baden-Württemberg, Deutschland"
+  },
+  "postalcode=28359|city=Bremen|country=Germany": {
+    "lat": 53.0758196,
+    "lon": 8.8071646,
+    "source": "geocoded_postal_city",
+    "display_name": "Bremen, Deutschland"
+  },
+  "postalcode=40225|city=Düsseldorf|country=Germany": {
+    "lat": 51.2254018,
+    "lon": 6.7763137,
+    "source": "geocoded_postal_city",
+    "display_name": "Düsseldorf, Nordrhein-Westfalen, Deutschland"
+  },
+  "postalcode=36037|city=Fulda|country=Germany": {
+    "lat": 50.5514658,
+    "lon": 9.6762161,
+    "source": "geocoded_postal_city",
+    "display_name": "Fulda, Landkreis Fulda, Hessen, Deutschland"
+  },
+  "postalcode=35390|city=Gießen|country=Germany": {
+    "lat": 50.5862066,
+    "lon": 8.6742306,
+    "source": "geocoded_postal_city",
+    "display_name": "Gießen, Landkreis Gießen, Hessen, Deutschland"
+  },
+  "postalcode=20099|city=Hamburg|country=Germany": {
+    "lat": 53.5501721,
+    "lon": 10.0013165,
+    "source": "geocoded_postal_city",
+    "display_name": "Hamburg, Deutschland"
+  },
+  "postalcode=20146|city=Hamburg|country=Germany": {
+    "lat": 53.5501721,
+    "lon": 10.0013165,
+    "source": "geocoded_postal_city",
+    "display_name": "Hamburg, Deutschland"
+  },
+  "postalcode=30625|city=Hannover|country=Germany": {
+    "lat": 52.3744779,
+    "lon": 9.7385532,
+    "source": "geocoded_postal_city",
+    "display_name": "Hannover, Region Hannover, Niedersachsen, Deutschland"
+  },
+  "postalcode=07745|city=Jena|country=Germany": {
+    "lat": 50.9281717,
+    "lon": 11.5879359,
+    "source": "geocoded_postal_city",
+    "display_name": "Jena, Thüringen, Deutschland"
+  },
+  "postalcode=50923|city=Köln|country=Germany": {
+    "lat": 50.938361,
+    "lon": 6.959974,
+    "source": "geocoded_postal_city",
+    "display_name": "Köln, Nordrhein-Westfalen, Deutschland"
+  },
+  "postalcode=47805|city=Krefeld|country=Germany": {
+    "lat": 51.3331205,
+    "lon": 6.5623343,
+    "source": "geocoded_postal_city",
+    "display_name": "Krefeld, Nordrhein-Westfalen, Deutschland"
+  },
+  "postalcode=80539|city=München|country=Germany": {
+    "lat": 48.1371079,
+    "lon": 11.5753822,
+    "source": "geocoded_postal_city",
+    "display_name": "München, Bayern, Deutschland"
+  },
+  "postalcode=80333|city=München|country=Germany": {
+    "lat": 48.1371079,
+    "lon": 11.5753822,
+    "source": "geocoded_postal_city",
+    "display_name": "München, Bayern, Deutschland"
+  },
+  "postalcode=89231|city=Neu-Ulm|country=Germany": {
+    "lat": 48.3953489,
+    "lon": 10.0005211,
+    "source": "geocoded_postal_city",
+    "display_name": "Neu-Ulm, Landkreis Neu-Ulm, Bayern, Deutschland"
+  },
+  "postalcode=53424|city=Remagen|country=Germany": {
+    "lat": 50.5792112,
+    "lon": 7.2286788,
+    "source": "geocoded_postal_city",
+    "display_name": "Remagen, Landkreis Ahrweiler, Rheinland-Pfalz, 53424, Deutschland"
+  },
+  "postalcode=86159|city=Augsburg|country=Germany": {
+    "lat": 48.3690341,
+    "lon": 10.8979522,
+    "source": "geocoded_postal_city",
+    "display_name": "Augsburg, Bayern, Deutschland"
+  },
+  "postalcode=95447|city=Bayreuth|country=Germany": {
+    "lat": 49.9446345,
+    "lon": 11.5743543,
+    "source": "geocoded_postal_city",
+    "display_name": "Bayreuth, Bayern, Deutschland"
+  },
+  "postalcode=10587|city=Berlin|country=Germany": {
+    "lat": 52.5176015,
+    "lon": 13.3263325,
+    "source": "geocoded_postal_city",
+    "display_name": "Beiersdorf Manufactoring Berlin GmbH, Spreestadt Charlottenburg, Charlottenburg, Charlottenburg-Wilmersdorf, Berlin, 10587, Deutschland"
+  },
+  "postalcode=10623|city=Berlin|country=Germany": {
+    "lat": 52.5104043,
+    "lon": 13.3337184,
+    "source": "geocoded_postal_city",
+    "display_name": "Wirtschaftshof Zoo Berlin, Tiergarten, Mitte, Berlin, Deutschland"
+  },
+  "postalcode=12627|city=Berlin|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "postalcode=09111|city=Chemnitz|country=Germany": {
+    "lat": 50.8323531,
+    "lon": 12.918914,
+    "source": "geocoded_postal_city",
+    "display_name": "Chemnitz, Lichtenau, Sachsen, Deutschland"
+  },
+  "postalcode=94469|city=Deggendorf|country=Germany": {
+    "lat": 48.8333535,
+    "lon": 12.96205,
+    "source": "geocoded_postal_city",
+    "display_name": "Deggendorf, Landkreis Deggendorf, Bayern, 94469, Deutschland"
+  },
+  "postalcode=45141|city=Essen|country=Germany": {
+    "lat": 51.4582235,
+    "lon": 7.0158171,
+    "source": "geocoded_postal_city",
+    "display_name": "Essen, Nordrhein-Westfalen, Deutschland"
+  },
+  "postalcode=45127|city=Essen|country=Germany": {
+    "lat": 51.4582235,
+    "lon": 7.0158171,
+    "source": "geocoded_postal_city",
+    "display_name": "Essen, Nordrhein-Westfalen, Deutschland"
+  },
+  "postalcode=24943|city=Flensburg|country=Germany": {
+    "lat": 54.7833021,
+    "lon": 9.4333264,
+    "source": "geocoded_postal_city",
+    "display_name": "Flensburg, Schleswig-Holstein, Deutschland"
+  },
+  "postalcode=79098|city=Freiburg|country=Germany": {
+    "lat": 47.9960901,
+    "lon": 7.8494005,
+    "source": "geocoded_postal_city",
+    "display_name": "Freiburg im Breisgau, Baden-Württemberg, Deutschland"
+  },
+  "postalcode=78120|city=Furtwangen|country=Germany": {
+    "lat": 48.0512198,
+    "lon": 8.2073776,
+    "source": "geocoded_postal_city",
+    "display_name": "Furtwangen im Schwarzwald, VVG der Stadt Furtwangen im Schwarzwald, Schwarzwald-Baar-Kreis, Baden-Württemberg, 78120, Deutschland"
+  },
+  "postalcode=17489|city=Greifswald|country=Germany": {
+    "lat": 54.095791,
+    "lon": 13.3815238,
+    "source": "geocoded_postal_city",
+    "display_name": "Greifswald, Vorpommern-Greifswald, Mecklenburg-Vorpommern, Deutschland"
+  },
+  "postalcode=20457|city=Hamburg|country=Germany": {
+    "lat": 53.5501721,
+    "lon": 10.0013165,
+    "source": "geocoded_postal_city",
+    "display_name": "Hamburg, Deutschland"
+  },
+  "postalcode=69117|city=Heidelberg|country=Germany": {
+    "lat": 49.4093582,
+    "lon": 8.694724,
+    "source": "geocoded_postal_city",
+    "display_name": "Heidelberg, Baden-Württemberg, Deutschland"
+  },
+  "postalcode=24118|city=Kiel|country=Germany": {
+    "lat": 54.3227085,
+    "lon": 10.135555,
+    "source": "geocoded_postal_city",
+    "display_name": "Kiel, Schleswig-Holstein, Deutschland"
+  },
+  "postalcode=23562|city=Lübeck|country=Germany": {
+    "lat": 53.866444,
+    "lon": 10.684738,
+    "source": "geocoded_postal_city",
+    "display_name": "Lübeck, Schleswig-Holstein, Deutschland"
+  },
+  "postalcode=39106|city=Magdeburg|country=Germany": {
+    "lat": 52.1314783,
+    "lon": 11.6400789,
+    "source": "geocoded_postal_city",
+    "display_name": "Magdeburg, Sachsen-Anhalt, Deutschland"
+  },
+  "postalcode=68131|city=Mannheim|country=Germany": {
+    "lat": 49.4892913,
+    "lon": 8.4673098,
+    "source": "geocoded_postal_city",
+    "display_name": "Mannheim, Baden-Württemberg, Deutschland"
+  },
+  "postalcode=81667|city=München|country=Germany": {
+    "lat": 48.1371079,
+    "lon": 11.5753822,
+    "source": "geocoded_postal_city",
+    "display_name": "München, Bayern, Deutschland"
+  },
+  "postalcode=90403|city=Nürnberg|country=Germany": {
+    "lat": 49.453872,
+    "lon": 11.077298,
+    "source": "geocoded_postal_city",
+    "display_name": "Nürnberg, Bayern, Deutschland"
+  },
+  "postalcode=65375|city=Oestrich-Winkel|country=Germany": {
+    "lat": 50.0071863,
+    "lon": 8.0167585,
+    "source": "geocoded_postal_city",
+    "display_name": "Oestrich-Winkel, Rheingau-Taunus-Kreis, Hessen, 65375, Deutschland"
+  },
+  "postalcode=49076|city=Osnabrück|country=Germany": {
+    "lat": 52.2719595,
+    "lon": 8.047635,
+    "source": "geocoded_postal_city",
+    "display_name": "Osnabrück, Niedersachsen, Deutschland"
+  },
+  "postalcode=84347|city=Pfarrkirchen|country=Germany": {
+    "lat": 48.4320329,
+    "lon": 12.9386266,
+    "source": "geocoded_postal_city",
+    "display_name": "Pfarrkirchen, Landkreis Rottal-Inn, Bayern, 84347, Deutschland"
+  },
+  "postalcode=88499|city=Riedlingen|country=Germany": {
+    "lat": 48.1534412,
+    "lon": 9.4748796,
+    "source": "geocoded_postal_city",
+    "display_name": "Riedlingen, VVG der Stadt Riedlingen, Landkreis Biberach, Baden-Württemberg, 88499, Deutschland"
+  },
+  "postalcode=83024|city=Rosenheim|country=Germany": {
+    "lat": 47.8539273,
+    "lon": 12.127262,
+    "source": "geocoded_postal_city",
+    "display_name": "Rosenheim, Bayern, Deutschland"
+  },
+  "postalcode=56179|city=Vallendar|country=Germany": {
+    "lat": 50.4001381,
+    "lon": 7.6142479,
+    "source": "geocoded_postal_city",
+    "display_name": "Vallendar, Landkreis Mayen-Koblenz, Rheinland-Pfalz, 56179, Deutschland"
+  },
+  "postalcode=88250|city=Weingarten|country=Germany": {
+    "lat": 47.8075299,
+    "lon": 9.6431145,
+    "source": "geocoded_postal_city",
+    "display_name": "Weingarten, GVV Mittleres Schussental, Landkreis Ravensburg, Baden-Württemberg, 88250, Deutschland"
+  },
+  "postalcode=65197|city=Wiesbaden|country=Germany": {
+    "lat": 50.0820384,
+    "lon": 8.2416556,
+    "source": "geocoded_postal_city",
+    "display_name": "Wiesbaden, Hessen, Deutschland"
+  },
+  "postalcode=42119|city=Wuppertal|country=Germany": {
+    "lat": 51.264018,
+    "lon": 7.1780374,
+    "source": "geocoded_postal_city",
+    "display_name": "Wuppertal, Nordrhein-Westfalen, Deutschland"
+  },
+  "postalcode=97070|city=Würzburg|country=Germany": {
+    "lat": 49.7933723,
+    "lon": 9.9309779,
+    "source": "geocoded_postal_city",
+    "display_name": "Würzburg, Bayern, 97070, Deutschland"
+  }
+}

@@ -1,0 +1,692 @@
+{
+  "street=Süntelstraße 11a|postalcode=22457|city=Hamburg|country=Germany": {
+    "lat": 53.630568,
+    "lon": 9.9059997,
+    "source": "geocoded_address",
+    "display_name": "Zentrum für Physiotherapie und Physikalische Therapie, 11a, Süntelstraße, Schnelsen, Eimsbüttel, Hamburg, 22457, Deutschland"
+  },
+  "street=Große Hamburger Straße 5-11|postalcode=10115|city=Berlin|country=Germany": {
+    "lat": 52.5259606,
+    "lon": 13.3985892,
+    "source": "geocoded_address",
+    "display_name": "29-165, 5-11, Große Hamburger Straße, Spandauer Vorstadt, Mitte, Berlin, 10115, Deutschland"
+  },
+  "street=Eugenstr. 74|postalcode=72072|city=Tübingen|country=Germany": {
+    "lat": 48.5132381,
+    "lon": 9.0692636,
+    "source": "geocoded_address",
+    "display_name": "Udo Snack, 74, Eugenstraße, Christoph-Eck, Südstadt, Tübingen, Landkreis Tübingen, Baden-Württemberg, 72072, Deutschland"
+  },
+  "street=Tangstedter Landstraße 400|postalcode=22417|city=Hamburg|country=Germany": {
+    "lat": 53.6741411,
+    "lon": 10.0301284,
+    "source": "geocoded_address",
+    "display_name": "Asklepios Klinik Nord Heidberg, 400, Tangstedter Landstraße, Langenhorn, Hamburg-Nord, Hamburg, 22417, Deutschland"
+  },
+  "street=Kaiserstr. 38|postalcode=55116|city=Mainz|country=Germany": {
+    "lat": 50.0049805,
+    "lon": 8.2647926,
+    "source": "geocoded_address",
+    "display_name": "38, Kaiserstraße, Neustadt, Mainz, Rheinland-Pfalz, 55116, Deutschland"
+  },
+  "street=Warener Straße 7|postalcode=12683|city=Berlin|country=Germany": {
+    "lat": 52.5191728,
+    "lon": 13.5683225,
+    "source": "geocoded_address",
+    "display_name": "Unfallkrankenhaus Berlin, 7, Warener Straße, Getreideviertel, Biesdorf, Marzahn-Hellersdorf, Berlin, 12683, Deutschland"
+  },
+  "street=Adolf-Kolping-Str. 18|postalcode=96317|city=Kronach|country=Germany": {
+    "lat": 50.2421911,
+    "lon": 11.3229489,
+    "source": "geocoded_address",
+    "display_name": "18, Adolf-Kolping-Straße, Ziegelerden, Kronach, Landkreis Kronach, Bayern, 96317, Deutschland"
+  },
+  "street=Charitéplatz 1|postalcode=10117|city=Berlin|country=Germany": {
+    "lat": 52.5258523,
+    "lon": 13.3777575,
+    "source": "geocoded_address",
+    "display_name": "Campus Charité Mitte, 1, Charitéplatz, Friedrich-Wilhelm-Stadt, Mitte, Berlin, 10117, Deutschland"
+  },
+  "street=Im Buchwald 1|postalcode=57482|city=Olpe|country=Germany": {
+    "lat": 50.9379059,
+    "lon": 7.8939977,
+    "source": "geocoded_address",
+    "display_name": "Arztpraxis Spieren & Kollegen, 1, Im Buchwald, Hünsborn, Wenden, Kreis Olpe, Nordrhein-Westfalen, 57482, Deutschland"
+  },
+  "street=Spandauer Damm 130|postalcode=14050|city=Berlin|country=Germany": {
+    "lat": 52.5188836,
+    "lon": 13.2770845,
+    "source": "geocoded_address",
+    "display_name": "Haus V Verwaltung, 130, Spandauer Damm, Villenkolonie Westend, Westend, Charlottenburg-Wilmersdorf, Berlin, 14050, Deutschland"
+  },
+  "street=Hermann-Köhl-Str. 33|postalcode=89231|city=Neu-Ulm|country=Germany": {
+    "lat": 48.3919879,
+    "lon": 10.0005619,
+    "source": "geocoded_address",
+    "display_name": "Bayer, 33, Hermann-Köhl-Straße, Stadtmitte, Neu-Ulm, Landkreis Neu-Ulm, Bayern, 89231, Deutschland"
+  },
+  "street=Nußallee 7E|postalcode=63450|city=Hanau|country=Germany": {
+    "lat": 50.1330176,
+    "lon": 8.909551,
+    "source": "geocoded_address",
+    "display_name": "Gloria Apotheke, 7e, Nußallee, Innenstadt, Hanau, Hessen, 63450, Deutschland"
+  },
+  "street=Seelower Straße 13|postalcode=10439|city=Berlin|country=Germany": {
+    "lat": 52.5531352,
+    "lon": 13.4110018,
+    "source": "geocoded_address",
+    "display_name": "13, Seelower Straße, Nordisches Viertel, Prenzlauer Berg, Pankow, Berlin, 10439, Deutschland"
+  },
+  "street=Fuhlsbüttler Str. 141|postalcode=22305|city=Hamburg|country=Germany": {
+    "lat": 53.5908384,
+    "lon": 10.0443367,
+    "source": "geocoded_address",
+    "display_name": "141, Fuhlsbüttler Straße, Barmbek-Nord, Hamburg-Nord, Hamburg, 22305, Deutschland"
+  },
+  "street=Vohwinkeler Feld 39|postalcode=42327|city=Wuppertal|country=Germany": {
+    "lat": 51.2322192,
+    "lon": 7.0605931,
+    "source": "geocoded_address",
+    "display_name": "39, Vohwinkeler Feld, Vohwinkel, Gemarkung Vohwinkel, Vohwinkel, Wuppertal, Nordrhein-Westfalen, 42327, Deutschland"
+  },
+  "street=Wilhelmstraße 16|postalcode=65185|city=Wiesbaden|country=Germany": {
+    "lat": 50.079955,
+    "lon": 8.2447671,
+    "source": "geocoded_address",
+    "display_name": "Dr. med. Songül Föllmer, 16, Wilhelmstraße, Nordost, Wiesbaden, Hessen, 65185, Deutschland"
+  },
+  "street=Waldstraße 17|postalcode=24939|city=Flensburg|country=Germany": {
+    "lat": 54.7922897,
+    "lon": 9.4207165,
+    "source": "geocoded_address",
+    "display_name": "St. Franziskus-Hospital, 17, Waldstraße, Stadtpark, Westliche Höhe, Flensburg, Schleswig-Holstein, 24939, Deutschland"
+  },
+  "street=Am Heessener Wald 1|postalcode=59073|city=Hamm|country=Germany": {
+    "lat": 51.7078282,
+    "lon": 7.8416243,
+    "source": "geocoded_address",
+    "display_name": "1, Am Heessener Wald, Heessen, Hamm, Nordrhein-Westfalen, 59073, Deutschland"
+  },
+  "street=Ostseestraße 113|postalcode=10409|city=Berlin|country=Germany": {
+    "lat": 52.5458937,
+    "lon": 13.4443552,
+    "source": "geocoded_address",
+    "display_name": "113, Ostseestraße, Mühlenviertel, Prenzlauer Berg, Pankow, Berlin, 10409, Deutschland"
+  },
+  "street=Gerhard-Kienle-Weg 4|postalcode=58313|city=Herdecke|country=Germany": {
+    "lat": 51.4112267,
+    "lon": 7.3992713,
+    "source": "geocoded_address",
+    "display_name": "4, Gerhard-Kienle-Weg, Westende, Ende, Herdecke, Ennepe-Ruhr-Kreis, Nordrhein-Westfalen, 58313, Deutschland"
+  },
+  "street=Mittlere Setz 27|postalcode=97209|city=Veitshöchheim|country=Germany": {
+    "lat": 49.8291123,
+    "lon": 9.8794744,
+    "source": "geocoded_address",
+    "display_name": "Facharztpraxis für Allgemeinmedizin Dr. Schauber und Dr. Hirtl, 27, Mittlere Setz, Gartensiedlung, Veitshöchheim, Landkreis Würzburg, Bayern, 97209, Deutschland"
+  },
+  "street=Baierbacher Str. 3|postalcode=74629|city=Pfedelbach|country=Germany": {
+    "lat": 49.1758528,
+    "lon": 9.505341,
+    "source": "geocoded_address",
+    "display_name": "Gemeinschaftspraxis Pfedelbach, 3, Baierbacher Straße, Pfedelbach, VVG der Stadt Öhringen, Hohenlohekreis, Baden-Württemberg, 74629, Deutschland"
+  },
+  "street=Kolumbusring 61|postalcode=18106|city=Rostock|country=Germany": {
+    "lat": 54.1341039,
+    "lon": 12.071688,
+    "source": "geocoded_address",
+    "display_name": "Haarlekin, 61, Kolumbusring, Schmarl Dorf, Schmarl, Ortsbeirat 7 : Schmarl, Rostock, Mecklenburg-Vorpommern, 18106, Deutschland"
+  },
+  "street=Paulinenstraße 31a|postalcode=32756|city=Detmold|country=Germany": {
+    "lat": 51.9359914,
+    "lon": 8.874229,
+    "source": "geocoded_address",
+    "display_name": "HALEO hausärztliche Gemeinschaftspraxis, 31a, Paulinenstraße, Detmold-Nord, Detmold, Kreis Lippe, Nordrhein-Westfalen, 32756, Deutschland"
+  },
+  "street=Rauchstraße 5a|postalcode=34454|city=Bad Arolsen|country=Germany": {
+    "lat": 51.3814618,
+    "lon": 9.0149183,
+    "source": "geocoded_address",
+    "display_name": "5a, Rauchstraße, Bad Arolsen, Landkreis Waldeck-Frankenberg, Hessen, 34454, Deutschland"
+  },
+  "street=Weißer Wall 2|postalcode=29221|city=Celle|country=Germany": {
+    "lat": 52.6259234,
+    "lon": 10.0805268,
+    "source": "geocoded_address",
+    "display_name": "Apotheke Am Weißen Wall, 2;3, Weißer Wall, Hehlentor, Celle, Landkreis Celle, Niedersachsen, 29221, Deutschland"
+  },
+  "street=Berner Heerweg 175|postalcode=22159|city=Hamburg|country=Germany": {
+    "lat": 53.6055977,
+    "lon": 10.1187711,
+    "source": "geocoded_address",
+    "display_name": "Center-Apotheke, 175, Berner Heerweg, Gartenstadt Farmsen, Farmsen-Berne, Wandsbek, Hamburg, 22159, Deutschland"
+  },
+  "street=Pöltnerstr. 22|postalcode=82362|city=Weilheim|country=Germany": {
+    "lat": 47.8375349,
+    "lon": 11.1414384,
+    "source": "geocoded_address",
+    "display_name": "Höck-Haus, 22, Pöltnerstraße, Weilheim in Oberbayern, Landkreis Weilheim-Schongau, Bayern, 82362, Deutschland"
+  },
+  "street=Altenberger Str. 27|postalcode=01277|city=Dresden|country=Germany": {
+    "lat": 51.0400818,
+    "lon": 13.8062011,
+    "source": "geocoded_address",
+    "display_name": "27, Altenberger Straße, Neugruna, Blasewitz, Dresden, Sachsen, 01277, Deutschland"
+  },
+  "street=Osteroder Straße 9|postalcode=37412|city=Herzberg am Harz|country=Germany": {
+    "lat": 51.6568362,
+    "lon": 10.3334266,
+    "source": "geocoded_address",
+    "display_name": "Praxisgemeinschaft  Eckert | Poppe, 9, Osteroder Straße, Herzberg am Harz, Landkreis Göttingen, Niedersachsen, 37412, Deutschland"
+  },
+  "street=Bergstr. 20|postalcode=69168|city=Wiesloch|country=Germany": {
+    "lat": 49.297842,
+    "lon": 8.6958245,
+    "source": "geocoded_address",
+    "display_name": "20, Bergstraße, Wiesloch, VVG der Stadt Wiesloch, Rhein-Neckar-Kreis, Baden-Württemberg, 69168, Deutschland"
+  },
+  "street=Franz-Kruckenberg-Str. 2|postalcode=69126|city=Heidelberg|country=Germany": {
+    "lat": 49.3798497,
+    "lon": 8.6807905,
+    "source": "geocoded_address",
+    "display_name": "Friseur KoKo, 2, Franz-Kruckenberg-Straße, Quartier am Turm, Rohrbach, Heidelberg, Baden-Württemberg, 69126, Deutschland"
+  },
+  "street=Am Paschenberg 30|postalcode=16225|city=Eberswalde|country=Germany": {
+    "lat": 52.8280945,
+    "lon": 13.8266029,
+    "source": "geocoded_address",
+    "display_name": "30, Am Paschenberg, Hausberg, Eberswalde 1, Eberswalde, Barnim, Brandenburg, 16225, Deutschland"
+  },
+  "street=Leskowstr. 16|postalcode=90475|city=Nürnberg|country=Germany": {
+    "lat": 49.4179844,
+    "lon": 11.1895325,
+    "source": "geocoded_address",
+    "display_name": "16, Leskowstraße, Fischbach, Östliche Außenstadt, Nürnberg, Bayern, 90475, Deutschland"
+  },
+  "street=Kanalstraße 1-3|postalcode=36341|city=Lauterbach|country=Germany": {
+    "lat": 50.6353249,
+    "lon": 9.3971543,
+    "source": "geocoded_address",
+    "display_name": "Kanalstraße, Lauterbach, Lauterbach (Hessen), Vogelsbergkreis, Hessen, 36341, Deutschland"
+  },
+  "street=Kuglerstr. 16|postalcode=10439|city=Berlin|country=Germany": {
+    "lat": 52.552354,
+    "lon": 13.4169749,
+    "source": "geocoded_address",
+    "display_name": "16, Kuglerstraße, Humann-Kiez, Prenzlauer Berg, Pankow, Berlin, 10439, Deutschland"
+  },
+  "street=St.-Hubertus-Str. 4|postalcode=75181|city=Huchenfeld|country=Germany": {
+    "lat": 48.8556057,
+    "lon": 8.6942889,
+    "source": "geocoded_address",
+    "display_name": "St. Hubertus-Apotheke, 4, St.-Hubertus-Straße, Huchenfeld, Pforzheim, Baden-Württemberg, 75181, Deutschland"
+  },
+  "street=Freudenstädter Straße 36|postalcode=72270|city=Baiersbronn|country=Germany": {
+    "lat": 48.5054777,
+    "lon": 8.3713507,
+    "source": "geocoded_address",
+    "display_name": "36, Freudenstädter Straße, Oberdorf, Baiersbronn, Landkreis Freudenstadt, Baden-Württemberg, 72270, Deutschland"
+  },
+  "street=Am Exerzierplatz 7|postalcode=32423|city=Minden|country=Germany": {
+    "lat": 52.2859431,
+    "lon": 8.9497642,
+    "source": "geocoded_address",
+    "display_name": "7, Am Exerzierplatz, Grille, Meißen, Minden, Kreis Minden-Lübbecke, Nordrhein-Westfalen, 32423, Deutschland"
+  },
+  "street=Udenhäuser Str. 14|postalcode=34393|city=Grebenstein|country=Germany": {
+    "lat": 51.4447866,
+    "lon": 9.4172863,
+    "source": "geocoded_address",
+    "display_name": "14, Udenhäuser Straße, Kressenbrunnen, Grebenstein, Landkreis Kassel, Hessen, 34393, Deutschland"
+  },
+  "street=Friedrichstr. 34-36|postalcode=65185|city=Wiesbaden|country=Germany": {
+    "lat": 50.0802094,
+    "lon": 8.2393035,
+    "source": "geocoded_address",
+    "display_name": "Gemeinschaftspraxis Sommerbrodt & Kollegen, 34-36, Friedrichstraße, Mitte, Wiesbaden, Hessen, 65185, Deutschland"
+  },
+  "street=Wismarer Str. 2-4|postalcode=44143|city=Dortmund|country=Germany": {
+    "lat": 51.514535,
+    "lon": 7.4874483,
+    "source": "geocoded_address",
+    "display_name": "2-4, Wismarer Straße, Kaiserstraßenviertel, Innenstadt Ost, Dortmund, Nordrhein-Westfalen, 44143, Deutschland"
+  },
+  "street=Schwanebecker Chaussee 50|postalcode=13125|city=Berlin|country=Germany": {
+    "lat": 52.63108,
+    "lon": 13.5077151,
+    "source": "geocoded_address",
+    "display_name": "HELIOS Klinikum Berlin Buch, 50, Schwanebecker Chaussee, Buch III Nord, Buch, Pankow, Berlin, 13125, Deutschland"
+  },
+  "street=Robert-Koch-Straße 2|postalcode=42549|city=Velbert|country=Germany": {
+    "lat": 51.3503039,
+    "lon": 7.0116891,
+    "source": "geocoded_address",
+    "display_name": "2, Robert-Koch-Straße, Losenburg, Velbert-Mitte, Velbert, Kreis Mettmann, Nordrhein-Westfalen, 42549, Deutschland"
+  },
+  "street=Georgstraße 11|postalcode=32545|city=Bad Oyenhausen|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "postalcode=32545|city=Bad Oyenhausen|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "city=Bad Oyenhausen|state=Nordrhein-Westfalen|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "street=Alfred-Delp-Weg 3|postalcode=37073|city=Göttingen|country=Germany": {
+    "lat": 51.5214643,
+    "lon": 9.9633912,
+    "source": "geocoded_address",
+    "display_name": "Hausarztpraxis auf den Zietenterrassen, 3, Alfred-Delp-Weg, Zietenterrassen, Geismar, Göttingen, Landkreis Göttingen, Niedersachsen, 37085, Deutschland"
+  },
+  "street=Paulsenstraße 5|postalcode=10115|city=Berlin|country=Germany": {
+    "lat": 52.4614686,
+    "lon": 13.3118218,
+    "source": "geocoded_address",
+    "display_name": "5, Paulsenstraße, Steglitz, Steglitz-Zehlendorf, Berlin, 12163, Deutschland"
+  },
+  "street=Frankensteiner Straße 28|postalcode=64319|city=Pfungstadt|country=Germany": {
+    "lat": 49.7982504,
+    "lon": 8.6033862,
+    "source": "geocoded_address",
+    "display_name": "28, Frankensteiner Straße, Pfungstadt, Landkreis Darmstadt-Dieburg, Hessen, 64319, Deutschland"
+  },
+  "street=Ostendstraße 229–231|postalcode=90482|city=Nürnberg|country=Germany": {
+    "lat": 49.4603589,
+    "lon": 11.1317611,
+    "source": "geocoded_address",
+    "display_name": "Mögeldorfer ÄrzteZentrum, 229-231, Ostendstraße, Mögeldorf, Östliche Außenstadt, Nürnberg, Bayern, 90482, Deutschland"
+  },
+  "street=Vinzenz-von-Paul-Str. 10|postalcode=84503|city=Altötting|country=Germany": {
+    "lat": 48.2339889,
+    "lon": 12.6751487,
+    "source": "geocoded_address",
+    "display_name": "radio-log Altötting, 8-10, Vinzenz-von-Paul-Straße, Herrenmühle, Altötting, Landkreis Altötting, Bayern, 84503, Deutschland"
+  },
+  "street=Bischof-Altmann-Straße 9|postalcode=94032|city=Passau|country=Germany": {
+    "lat": 48.5664478,
+    "lon": 13.4462192,
+    "source": "geocoded_address",
+    "display_name": "9, Bischof-Altmann-Straße, Maierhof, Passau, Bayern, 94032, Deutschland"
+  },
+  "street=Siegstraße 11|postalcode=57548|city=Kirchen|country=Germany": {
+    "lat": 50.8022659,
+    "lon": 7.8830265,
+    "source": "geocoded_address",
+    "display_name": "Sportstudio Kirchen, 11, Siegstraße, Kirchen (Sieg), Landkreis Altenkirchen (Westerwald), Rheinland-Pfalz, 57548, Deutschland"
+  },
+  "street=Moltkestraße 90|postalcode=76133|city=Karlsruhe|country=Germany": {
+    "lat": 49.0156523,
+    "lon": 8.3745829,
+    "source": "geocoded_address",
+    "display_name": "Haus A (Verwaltung), 90, Moltkestraße, Binsenschlauch, Nordweststadt, Karlsruhe, Baden-Württemberg, 76133, Deutschland"
+  },
+  "street=Eichhofstraße 1|postalcode=36341|city=Lauterbach|country=Germany": {
+    "lat": 50.6296627,
+    "lon": 9.3911284,
+    "source": "geocoded_address",
+    "display_name": "Krankenhaus Eichhof, 1, Eichhofstraße, Lauterbach, Lauterbach (Hessen), Vogelsbergkreis, Hessen, 36341, Deutschland"
+  },
+  "street=Hamburger Straße 41|postalcode=20095|city=Hamburg|country=Germany": {
+    "lat": 53.573903,
+    "lon": 10.0323824,
+    "source": "geocoded_address",
+    "display_name": "Zentrale Bibliothek Behörden Hamburger Straße, 41, Hamburger Straße, Barmbek-Süd, Hamburg-Nord, Hamburg, 22083, Deutschland"
+  },
+  "street=Lindwurmstraße 2a|postalcode=80331|city=München|country=Germany": {
+    "lat": 48.1307898,
+    "lon": 11.5603683,
+    "source": "geocoded_address",
+    "display_name": "2a, Lindwurmstraße, Am Alten Südlichen Friedhof, Klinikviertel, Ludwigsvorstadt, Ludwigsvorstadt-Isarvorstadt, München, Bayern, 80337, Deutschland"
+  },
+  "street=August-Bebel-Str. 59A|postalcode=65428|city=Rüsselsheim|country=Germany": {
+    "lat": 49.9828288,
+    "lon": 8.4134633,
+    "source": "geocoded_address",
+    "display_name": "August-Bebel-Straße, A - Siedlung, Rüsselsheim, Rüsselsheim am Main, Kreis Groß-Gerau, Hessen, 65428, Deutschland"
+  },
+  "street=Taunusstr. 57|postalcode=65183|city=Wiesbaden|country=Germany": {
+    "lat": 50.089289,
+    "lon": 8.2395988,
+    "source": "geocoded_address",
+    "display_name": "57, Taunusstraße, Mitte, Wiesbaden, Hessen, 65183, Deutschland"
+  },
+  "street=Adolf-Silverberg-Straße 37|postalcode=50181|city=Köln|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "postalcode=50181|city=Köln|country=Germany": {
+    "lat": 50.938361,
+    "lon": 6.959974,
+    "source": "geocoded_postal_city",
+    "display_name": "Köln, Nordrhein-Westfalen, Deutschland"
+  },
+  "street=Pauwelsstr. 30|postalcode=52062|city=Aachen|country=Germany": {
+    "lat": 50.7762651,
+    "lon": 6.0440388,
+    "source": "geocoded_address",
+    "display_name": "Liegendeinfahrt Uniklinikum Aachen, 30, Pauwelsstraße, Melaten, Laurensberg, Aachen, Städteregion Aachen, Nordrhein-Westfalen, 52074, Deutschland"
+  },
+  "street=Q 5, 14-22 (7. OG)|postalcode=68159|city=Mannheim|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "postalcode=68159|city=Mannheim|country=Germany": {
+    "lat": 49.4892913,
+    "lon": 8.4673098,
+    "source": "geocoded_postal_city",
+    "display_name": "Mannheim, Baden-Württemberg, Deutschland"
+  },
+  "street=Tempelhofer Damm 227|postalcode=10115|city=Berlin|country=Germany": {
+    "lat": 52.456063,
+    "lon": 13.3862617,
+    "source": "geocoded_address",
+    "display_name": "Arcaden-Apotheke, 227, Tempelhofer Damm, Tempelhof, Tempelhof-Schöneberg, Berlin, 12099, Deutschland"
+  },
+  "street=Schönhauser Allee 118|postalcode=10115|city=Berlin|country=Germany": {
+    "lat": 52.5492072,
+    "lon": 13.4124394,
+    "source": "geocoded_address",
+    "display_name": "Ambulantes OP-Zentrum, 118, Schönhauser Allee, Bremer Höhe, Prenzlauer Berg, Pankow, Berlin, 10437, Deutschland"
+  },
+  "street=Anton-Wilhelm-Amo-Straße 6|postalcode=10117|city=Berlin|country=Germany": {
+    "lat": 52.5118182,
+    "lon": 13.3870311,
+    "source": "geocoded_address",
+    "display_name": "6, Anton-Wilhelm-Amo-Straße, Friedrichstadt, Mitte, Berlin, 10117, Deutschland"
+  },
+  "street=Friedrichstr. 47|postalcode=40213|city=Düsseldorf|country=Germany": {
+    "lat": 51.2164637,
+    "lon": 6.7766088,
+    "source": "geocoded_address",
+    "display_name": "47, Friedrichstraße, Friedrichstadt, Stadtbezirk 3, Düsseldorf, Nordrhein-Westfalen, 40217, Deutschland"
+  },
+  "street=Pillnitzer Weg 8|postalcode=13593|city=Berlin|country=Germany": {
+    "lat": 52.5229862,
+    "lon": 13.1575774,
+    "source": "geocoded_address",
+    "display_name": "8, Pillnitzer Weg, Rudolf-Wissell-Siedlung, Staaken, Spandau, Berlin, 13593, Deutschland"
+  },
+  "street=Am Dreilingsberg 1|postalcode=23570|city=Travemünde|country=Germany": {
+    "lat": 53.9618471,
+    "lon": 10.8591955,
+    "source": "geocoded_address",
+    "display_name": "1, Am Dreilingsberg, Alt-Travemünde / Rönnau, Travemünde, Lübeck, Schleswig-Holstein, 23570, Deutschland"
+  },
+  "street=Bahnhofstraße 71|postalcode=21423|city=Winsen|country=Germany": {
+    "lat": 53.3553115,
+    "lon": 10.2059187,
+    "source": "geocoded_address",
+    "display_name": "71, Bahnhofstraße, Winsen (Luhe), Landkreis Harburg, Niedersachsen, 21423, Deutschland"
+  },
+  "street=Hermelsbacher Weg 41|postalcode=57072|city=Siegen|country=Germany": {
+    "lat": 50.8811364,
+    "lon": 8.0098994,
+    "source": "geocoded_address",
+    "display_name": "Praxisklinik Hermelsbacher Weg, 41, Hermelsbacher Weg, Siegen, Kreis Siegen-Wittgenstein, Nordrhein-Westfalen, 57072, Deutschland"
+  },
+  "street=Auf dem Thie 5|postalcode=48431|city=Rheine|country=Germany": {
+    "lat": 52.2793898,
+    "lon": 7.4365199,
+    "source": "geocoded_address",
+    "display_name": "5, Auf dem Thie, Hörstkamp, Wietesch, Rheine, Kreis Steinfurt, Nordrhein-Westfalen, 48431, Deutschland"
+  },
+  "street=Ziegelhüttenweg 1-3|postalcode=60598|city=Frankfurt|country=Germany": {
+    "lat": 50.0947528,
+    "lon": 8.6820278,
+    "source": "geocoded_address",
+    "display_name": "1-3, Ziegelhüttenweg, Sachsenhausen Süd, Süd, Frankfurt am Main, Hessen, 60598, Deutschland"
+  },
+  "street=Pfaffenbergstraße 74|postalcode=67655|city=Kaiserslautern|country=Germany": {
+    "lat": 49.4284703,
+    "lon": 7.7595059,
+    "source": "geocoded_address",
+    "display_name": "74, Pfaffenbergstraße, PRE Uni-Park, Lämmchesberg, Kaiserslautern, Rheinland-Pfalz, 67663, Deutschland"
+  },
+  "street=Bundesplatz 3|postalcode=10715|city=Berlin|country=Germany": {
+    "lat": 52.4795896,
+    "lon": 13.3277166,
+    "source": "geocoded_address",
+    "display_name": "3, Bundesplatz, Wilmersdorf, Charlottenburg-Wilmersdorf, Berlin, 10715, Deutschland"
+  },
+  "street=Pödeldorferstraße 146|postalcode=96050|city=Bamberg|country=Germany": {
+    "lat": 49.9014728,
+    "lon": 10.9209955,
+    "source": "geocoded_address",
+    "display_name": "Fujiyama, 146, Pödeldorfer Straße, Malerviertel, Bamberg-Ost, Bamberg, Bayern, 96050, Deutschland"
+  },
+  "street=Kapellenstraße 3|postalcode=97688|city=Bad Kissingen|country=Germany": {
+    "lat": 50.2015996,
+    "lon": 10.0866308,
+    "source": "geocoded_address",
+    "display_name": "3, Kapellenstraße, Bad Kissingen, Landkreis Bad Kissingen, Bayern, 97688, Deutschland"
+  },
+  "street=Hein-Köllisch-Platz 1|postalcode=20359|city=Hamburg|country=Germany": {
+    "lat": 53.5475494,
+    "lon": 9.9576473,
+    "source": "geocoded_address",
+    "display_name": "Praxis St. Pauli, 1, Hein-Köllisch-Platz, St. Pauli, Hamburg-Mitte, Hamburg, 20359, Deutschland"
+  },
+  "street=Bahnhofstraße 18|postalcode=27432|city=Bremervörde|country=Germany": {
+    "lat": 53.4842651,
+    "lon": 9.1431619,
+    "source": "geocoded_address",
+    "display_name": "18, Bahnhofstraße, Engeo, Bremervörde, Landkreis Rotenburg (Wümme), Niedersachsen, 27432, Deutschland"
+  },
+  "street=Seestraße 98|postalcode=13353|city=Berlin|country=Germany": {
+    "lat": 52.5499803,
+    "lon": 13.3502513,
+    "source": "geocoded_address",
+    "display_name": "98, Seestraße, Brüsseler Kiez, Wedding, Mitte, Berlin, 13353, Deutschland"
+  },
+  "street=Marktstraße 59|postalcode=70372|city=Stuttgart|country=Germany": {
+    "lat": 48.8053623,
+    "lon": 9.2135357,
+    "source": "geocoded_address",
+    "display_name": "59, Marktstraße, Cannstatt-Mitte, Bad Cannstatt, Stuttgart, Baden-Württemberg, 70372, Deutschland"
+  },
+  "street=Heiliger Weg 2|postalcode=44135|city=Dortmund|country=Germany": {
+    "lat": 51.513429,
+    "lon": 7.4751266,
+    "source": "geocoded_address",
+    "display_name": "2, Heiliger Weg, Kaiserstraßenviertel, Innenstadt Ost, Dortmund, Nordrhein-Westfalen, 44135, Deutschland"
+  },
+  "street=Mittelstraße 4|postalcode=21698|city=Harsefeld|country=Germany": {
+    "lat": 53.4524358,
+    "lon": 9.504376,
+    "source": "geocoded_address",
+    "display_name": "Mittelstraße, Harsefeld, Samtgemeinde Harsefeld, Landkreis Stade, Niedersachsen, 21698, Deutschland"
+  },
+  "street=Frankfurter Straße 3-5|postalcode=63065|city=Offenbach|country=Germany": {
+    "lat": 50.1050046,
+    "lon": 8.7639762,
+    "source": "geocoded_address",
+    "display_name": "Ärztehaus, 3-5, Frankfurter Straße, Zentrum, Offenbach am Main, Hessen, 63065, Deutschland"
+  },
+  "street=Ellmaierstraße 23|postalcode=83022|city=Rosenheim|country=Germany": {
+    "lat": 47.8586585,
+    "lon": 12.1286902,
+    "source": "geocoded_address",
+    "display_name": "Ellmaierstraße, Schmucken, Kastenau, Rosenheim, Bayern, 83022, Deutschland"
+  },
+  "street=Falkenried 88|postalcode=20251|city=-|country=Germany": {
+    "lat": 53.5859777,
+    "lon": 9.9723455,
+    "source": "geocoded_address",
+    "display_name": "88, Falkenried, Hoheluft-Ost, Hamburg-Nord, Hamburg, 20251, Deutschland"
+  },
+  "street=Aachener Straße 445-449|postalcode=50933|city=Köln|country=Germany": {
+    "lat": 50.9366714,
+    "lon": 6.9044019,
+    "source": "geocoded_address",
+    "display_name": "Sana Dreifaltigkeits-Krankenhaus, 445-449, Aachener Straße, Braunsfeld, Lindenthal, Köln, Nordrhein-Westfalen, 50933, Deutschland"
+  },
+  "street=Schlehenweg 22|postalcode=78727|city=Oberndorf|country=Germany": {
+    "lat": 48.2968893,
+    "lon": 8.5509076,
+    "source": "geocoded_address",
+    "display_name": "Sozialstation Oberndorf - Fluorn-Winzeln - Epfendorf, 22, Schlehenweg, Lindenhof, Oberndorf am Neckar, VVG der Stadt Oberndorf am Neckar, Landkreis Rottweil, Baden-Württemberg, 78727, Deutschland"
+  },
+  "street=Beethovenstraße 20|postalcode=65189|city=Wiesbaden|country=Germany": {
+    "lat": 50.0764489,
+    "lon": 8.2544924,
+    "source": "geocoded_address",
+    "display_name": "Sankt-Josefs-Hospital, 20, Beethovenstraße, Südost, Wiesbaden, Hessen, 65189, Deutschland"
+  },
+  "street=Hubertusstraße 100|postalcode=41239|city=Mönchengladbach|country=Germany": {
+    "lat": 51.1580847,
+    "lon": 6.4199089,
+    "source": "geocoded_address",
+    "display_name": "100, Hubertusstraße, Hockstein, Süd, Mönchengladbach, Nordrhein-Westfalen, 41239, Deutschland"
+  },
+  "street=Fetscherstraße 74|postalcode=01307|city=Dresden|country=Germany": {
+    "lat": 51.0565497,
+    "lon": 13.7825908,
+    "source": "geocoded_address",
+    "display_name": "Universitätsklinikum Carl Gustav Carus, 74, Fetscherstraße, Johannstadt-Nord, Johannstadt, Altstadt, Dresden, Sachsen, 01307, Deutschland"
+  },
+  "street=Hufelandstraße 55|postalcode=45147|city=Essen|country=Germany": {
+    "lat": 51.4347062,
+    "lon": 6.9880092,
+    "source": "geocoded_address",
+    "display_name": "55, Hufelandstraße, Holsterhausen, Stadtbezirk III, Essen, Nordrhein-Westfalen, 45147, Deutschland"
+  },
+  "street=Theodor-Stern-Kai 7|postalcode=60596|city=Frankfurt|country=Germany": {
+    "lat": 50.0952039,
+    "lon": 8.6611054,
+    "source": "geocoded_address",
+    "display_name": "Universitätsklinikum Frankfurt, 7, Theodor-Stern-Kai, Sachsenhausen, Süd, Frankfurt am Main, Hessen, 60596, Deutschland"
+  },
+  "street=Rudolf-Buchheim-Straße 8|postalcode=35392|city=Gießen-Marburg|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "postalcode=35392|city=Gießen-Marburg|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "city=Gießen-Marburg|state=Hessen|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "street=Ernst-Grube-Straße 40|postalcode=06120|city=Halle|country=Germany": {
+    "lat": 51.5019795,
+    "lon": 11.9366516,
+    "source": "geocoded_address",
+    "display_name": "Universitätsklinikum Halle (Saale), 40, Ernst-Grube-Straße, Weinberg-Campus, Kröllwitz, Halle (Saale), Sachsen-Anhalt, 06120, Deutschland"
+  },
+  "street=Im Neuenheimer Feld 672|postalcode=69120|city=Heidelberg|country=Germany": {
+    "lat": 49.4199193,
+    "lon": 8.6676297,
+    "source": "geocoded_address",
+    "display_name": "Klinikverwaltung ZIM, 672, Im Neuenheimer Feld, Handschuhsheim, Neuenheim, Heidelberg, Baden-Württemberg, 69120, Deutschland"
+  },
+  "street=Hoppe-Seyler-Straße 3|postalcode=72076|city=Tübingen|country=Germany": {
+    "lat": 48.5300371,
+    "lon": 9.0380582,
+    "source": "geocoded_address",
+    "display_name": "CRONA-Kliniken, 3, Hoppe-Seyler-Straße, Universität, Tübingen, Landkreis Tübingen, Baden-Württemberg, 72076, Deutschland"
+  },
+  "street=Martinistraße 52|postalcode=20251|city=Hamburg|country=Germany": {
+    "lat": 53.5909051,
+    "lon": 9.9753758,
+    "source": "geocoded_address",
+    "display_name": "Universitätsklinikum Eppendorf, 52, Martinistraße, Eppendorf, Hamburg-Nord, Hamburg, 20251, Deutschland"
+  },
+  "street=Arnold-Heller-Straße 3|postalcode=24105|city=Kiel|country=Germany": {
+    "lat": 54.328446,
+    "lon": 10.1448833,
+    "source": "geocoded_address",
+    "display_name": "Klinik für Augenheilkunde, UK S-H, Campus Kiel, 3, Arnold-Heller-Straße, Düsternbrook, Kiel, Schleswig-Holstein, 24105, Deutschland"
+  },
+  "street=Venusberg-Campus 1|postalcode=53127|city=Bonn|country=Germany": {
+    "lat": 50.6957054,
+    "lon": 7.1048217,
+    "source": "geocoded_address",
+    "display_name": "Neurochirurgie, NNZ (Neuronotfallzentrum), 1, Venusberg-Campus, Venusberg, Stadtbezirk Bonn, Bonn, Nordrhein-Westfalen, 53127, Deutschland"
+  },
+  "street=Liebigstraße 18|postalcode=04103|city=Leipzig|country=Germany": {
+    "lat": 51.3310239,
+    "lon": 12.3850465,
+    "source": "geocoded_address",
+    "display_name": "Klinik und Poliklinik für Nuklearmedizin, 18, Liebigstraße, Seeburgviertel, Zentrum-Südost, Mitte, Leipzig, Sachsen, 04103, Deutschland"
+  },
+  "street=Liebigstraße 18 (Haus B)|postalcode=04103|city=Leipzig|country=Germany": {
+    "lat": null,
+    "lon": null,
+    "source": null,
+    "display_name": null
+  },
+  "postalcode=04103|city=Leipzig|country=Germany": {
+    "lat": 51.3406321,
+    "lon": 12.3747329,
+    "source": "geocoded_postal_city",
+    "display_name": "Leipzig, Sachsen, Deutschland"
+  },
+  "street=Hufelandstr. 55|postalcode=45147|city=Essen|country=Germany": {
+    "lat": 51.4346712,
+    "lon": 6.9872153,
+    "source": "geocoded_address",
+    "display_name": "Strahlenklinik, 55, Hufelandstraße, Holsterhausen, Stadtbezirk III, Essen, Nordrhein-Westfalen, 45147, Deutschland"
+  },
+  "street=Frankfurter Straße 37|postalcode=64720|city=Michelstadt|country=Germany": {
+    "lat": 49.686319,
+    "lon": 9.0039059,
+    "source": "geocoded_address",
+    "display_name": "Harald Sättler, 37, Frankfurter Straße, Michelstadt, Odenwaldkreis, Hessen, 64720, Deutschland"
+  },
+  "street=Zeppelinstraße 38|postalcode=61352|city=Bad Homburg|country=Germany": {
+    "lat": 50.2119988,
+    "lon": 8.6210174,
+    "source": "geocoded_address",
+    "display_name": "Vitos Klinik für Psychiatrie, Psychotherapie und Psychosomatik Bad Homburg, 38, Zeppelinstraße, Gonzenheim, Bad Homburg vor der Höhe, Hochtaunuskreis, Hessen, 61352, Deutschland"
+  },
+  "street=Aroser Allee 72-76|postalcode=13407|city=Berlin|country=Germany": {
+    "lat": 52.5640973,
+    "lon": 13.3534125,
+    "source": "geocoded_address",
+    "display_name": "Vivantes, 72-76, Aroser Allee, Weiße Stadt, Reinickendorf, Berlin, 13407, Deutschland"
+  },
+  "street=Stephanienstraße 72|postalcode=76133|city=Karlsruhe|country=Germany": {
+    "lat": 49.0114138,
+    "lon": 8.3909883,
+    "source": "geocoded_address",
+    "display_name": "72, Stephanienstraße, Innenstadt-West Westlicher Teil, Innenstadt-West, Karlsruhe, Baden-Württemberg, 76133, Deutschland"
+  },
+  "street=Kaiserdamm 26|postalcode=14057|city=Berlin|country=Germany": {
+    "lat": 52.5102306,
+    "lon": 13.2814283,
+    "source": "geocoded_address",
+    "display_name": "WitzlebenApotheke26, 26, Kaiserdamm, Westend, Charlottenburg-Wilmersdorf, Berlin, 14057, Deutschland"
+  },
+  "street=Vinzenz-von-Paul-Str. 14|postalcode=84503|city=Altötting|country=Germany": {
+    "lat": 48.2328656,
+    "lon": 12.6745342,
+    "source": "geocoded_address",
+    "display_name": "Vinzenz-von-Paul-Straße, Herrenmühle, Altötting, Landkreis Altötting, Bayern, 84503, Deutschland"
+  },
+  "street=Rosa-Bavarese-Str. 1|postalcode=80639|city=München|country=Germany": {
+    "lat": 48.146775,
+    "lon": 11.5027941,
+    "source": "geocoded_address",
+    "display_name": "1, Rosa-Bavarese-Straße, Nymphenburg Süd, Neuhausen-Nymphenburg, München, Bayern, 80639, Deutschland"
+  }
+}

@@ -1,0 +1,1522 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Versorgungs-Kompass – Karten-Modus</title>
+  <script src="./auth-config.js"></script>
+  <script src="./auth-guard.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body {
+      background: #f3f5f7;
+      color: rgba(0,0,0,0.82);
+      overflow: hidden;
+    }
+    .page-shell {
+      display: grid;
+      grid-template-rows: 76px minmax(0, 1fr);
+      height: 100vh;
+      overflow: hidden;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 22px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .topbar-spacer {
+      flex: 1;
+      min-width: 0;
+    }
+    .topbar-logo {
+      display: block;
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+    .topbar h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .topbar-version {
+      color: rgba(0,0,0,0.48);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .workspace {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 18px;
+      height: 100%;
+      min-height: 0;
+      padding: 18px;
+      overflow: hidden;
+    }
+    .sidebar {
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .map-area {
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    .map-box {
+      position: relative;
+      height: 100%;
+      min-height: 0;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.07);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.8);
+    }
+    #map { height: 100%; width: 100%; background: #f6f7f8; }
+    .map-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 1000;
+      display: flex;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .map-toggle {
+      min-width: 120px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .map-toggle-icon {
+      display: inline-flex;
+      width: 12px;
+      height: 12px;
+      opacity: 0.88;
+      flex: 0 0 auto;
+    }
+    .map-toggle-active-heat {
+      background: rgba(159,38,34,0.14);
+      border-color: rgba(159,38,34,0.28);
+      color: #8c221e;
+    }
+    .map-toggle-active-filter {
+      background: rgba(32,104,148,0.12);
+      border-color: rgba(32,104,148,0.24);
+      color: #1f628d;
+    }
+    .map-dropdown {
+      position: relative;
+    }
+    .map-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 240px;
+      max-height: 320px;
+      overflow: auto;
+      padding: 8px;
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 18px 36px rgba(0,0,0,0.12);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: none;
+    }
+    .map-dropdown-menu-open {
+      display: block;
+    }
+    .map-dropdown-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 0;
+      background: transparent;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.72);
+      text-align: left;
+    }
+    .map-dropdown-item:hover {
+      background: rgba(0,0,0,0.04);
+    }
+    .map-dropdown-item-active {
+      background: rgba(32,104,148,0.10);
+      color: #1f628d;
+    }
+    .map-dropdown-meta {
+      color: rgba(0,0,0,0.42);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .state-view {
+      position: absolute;
+      inset: 18px;
+      z-index: 950;
+      display: none;
+      grid-template-rows: auto minmax(0, 1fr);
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.14);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .state-view-open {
+      display: grid;
+    }
+    .state-mode #map .leaflet-control-zoom {
+      display: none;
+    }
+    .state-mode #heatmap-toggle,
+    .state-mode .map-dropdown {
+      display: none;
+    }
+    .state-view-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.92);
+    }
+    .state-view-copy {
+      min-width: 0;
+    }
+    .state-view-kicker {
+      color: rgba(32,104,148,0.78);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .state-view-title {
+      color: rgba(0,0,0,0.84);
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+    .state-view-meta {
+      color: rgba(0,0,0,0.46);
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .state-view-spacer {
+      flex: 1;
+    }
+    .state-view-close {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.96);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .state-view-filter {
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .state-view-filter .map-dropdown-menu {
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 1200;
+    }
+    #state-map {
+      width: 100%;
+      height: 100%;
+      background: #f6f7f8;
+    }
+    .state-heat-tooltip {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      color: rgba(0,0,0,0.72);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 7px;
+    }
+    .state-heat-tooltip::before {
+      display: none;
+    }
+    .label-anchor {
+      position: relative;
+      transform: translate(-50%, -50%);
+    }
+    .state-heat-count {
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      transform: translate(8px, -50%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.72);
+      color: rgba(122,20,20,0.86);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      box-shadow: none;
+      border: 1px solid rgba(122,20,20,0.10);
+      line-height: 1;
+    }
+    .state-label-icon {
+      display: inline-flex;
+      width: 10px;
+      height: 10px;
+      margin-right: 5px;
+      vertical-align: -1px;
+      opacity: 0.88;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(31,107,136,0.10);
+      border-radius: 16px;
+      box-shadow: 0 16px 34px rgba(16,46,110,0.08);
+      overflow: hidden;
+      height: 100%;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+    .panel .hdr {
+      display:flex; justify-content: space-between; align-items:center;
+      padding: 14px 14px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(27,95,125,0.78);
+    }
+    .panel .body { padding: 8px 14px 14px 14px; }
+    .muted { color: rgba(0,0,0,0.55); font-weight: 500; }
+
+    input[type="search"]{
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(31,107,136,0.12);
+      outline: none;
+      background: rgba(248,251,252,0.96);
+    }
+
+    .filters {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .category-chip {
+      appearance: none;
+      -webkit-appearance: none;
+      flex: 0 0 auto;
+      border: 1px solid rgba(1,14,82,0.14);
+      background: rgba(255,255,255,0.92);
+      color: rgba(0,0,0,0.68);
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: none;
+    }
+    .category-chip:hover {
+      border-color: rgba(1,14,82,0.28);
+      color: #010E52;
+    }
+    .category-chip.active {
+      background: #010E52;
+      color: #fff;
+      border-color: #010E52;
+    }
+    .category-chip-emoji {
+      font-size: 13px;
+      line-height: 1;
+    }
+    .swatch { width: 10px; height: 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.20); display: inline-block; }
+    .btnrow { display:flex; gap: 8px; margin-top: 12px; }
+    button {
+      flex: 1;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(31,107,136,0.12);
+      background: rgba(255,255,255,0.95);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    /* Optional list */
+    .list {
+      overflow: auto;
+      border-top: 1px solid rgba(31,107,136,0.08);
+      min-height: 0;
+      height: 100%;
+      background: rgba(255,255,255,0.86);
+    }
+    .item {
+      display: grid;
+      grid-template-columns: 10px 44px minmax(0, 1fr);
+      gap: 9px;
+      align-items: center;
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(31,107,136,0.08);
+      cursor: pointer;
+      background: transparent;
+    }
+    .item:hover { background: rgba(1,14,82,0.06); }
+    .item-accent {
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.14);
+    }
+    .item-copy {
+      min-width: 0;
+    }
+    .item-thumb {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(31,107,136,0.10);
+      box-shadow: 0 6px 14px rgba(16,46,110,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .item-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .item .t { font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.78); margin: 0; line-height: 1.28; }
+    .item .m { font-size: 12px; color: rgba(0,0,0,0.55); }
+    .item a { color: inherit; text-decoration: underline; }
+
+    /* Minimal category marker */
+    .cat-marker {
+      width: 12px; height: 12px; border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.95);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+    }
+
+
+    /* Reduce visual noise from the map */
+    .leaflet-control-attribution { font-size: 10px; opacity: 0.75; }
+    .leaflet-tile { filter: saturate(0.75) contrast(0.95) brightness(1.02); }
+
+    @media (max-width: 960px){
+      .workspace {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: auto;
+      }
+      .sidebar {
+        min-height: auto;
+        height: auto;
+        overflow: visible;
+      }
+      .panel {
+        height: auto;
+      }
+      .map-box {
+        min-height: 70vh;
+      }
+      .list {
+        max-height: 260px;
+      }
+      body {
+        overflow: auto;
+      }
+      .page-shell {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+      }
+    }
+
+    @media (max-width: 520px){
+      .workspace {
+        padding: 12px;
+        gap: 12px;
+      }
+      .topbar {
+        padding: 0 14px;
+      }
+      .topbar-version {
+        font-size: 11px;
+      }
+      .list { max-height: 200px; }
+    }
+  
+    
+    /* Custom labels (minimal, non-interactive) */
+    .city-label, .state-label {
+      padding: 1px 4px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.10);
+      border: 0;
+      white-space: nowrap;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    .city-label {
+      color: rgba(0,0,0,0.36);
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.1px;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+    }
+    .city-label.major { font-size: 10.5px; color: rgba(0,0,0,0.42); }
+    .city-label.capital { font-size: 10px; color: rgba(0,0,0,0.34); }
+    .city-label.extra { font-size: 10px; color: rgba(0,0,0,0.28); }
+    .city-label.more { font-size: 9.8px; color: rgba(0,0,0,0.24); }
+
+    .state-label {
+      position: relative;
+      display: inline-block;
+      background: rgba(255,255,255,0.08);
+      color: rgba(0,0,0,0.22);
+      font-size: 9.5px;
+      font-weight: 500;
+      letter-spacing: 0.35px;
+      text-transform: uppercase;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+      padding: 1px 4px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .state-label-heat {
+      background: rgba(255,248,247,0.92);
+      color: rgba(92,12,12,0.98);
+      font-weight: 800;
+      text-shadow: none;
+      box-shadow: 0 2px 12px rgba(103,20,20,0.12);
+      border: 1px solid rgba(122,20,20,0.14);
+    }
+    .state-view-state-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(32,104,148,0.14);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+      color: rgba(20,84,122,0.92);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .state-view-state-label svg {
+      width: 11px;
+      height: 11px;
+      flex: 0 0 auto;
+    }
+
+</style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <img class="topbar-logo" src="./public/gematik-logo.svg" alt="gematik"/>
+      <h1>Versorgungs-Kompass</h1>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-version">Karten-Modus</div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="panel">
+          <div class="hdr">
+            <div>Versorgungs-Kontakte</div>
+            <div class="muted"><span id="count"></span></div>
+          </div>
+          <div class="body">
+            <input id="search" type="search" placeholder="Suche (Name, Stadt, Kategorie) …"/>
+            <div id="filters" class="filters" aria-label="Kategorie-Filter"></div>
+            <div class="btnrow">
+              <button id="toggle">Liste</button>
+            </div>
+          </div>
+          <div id="list" class="list" style="display:block;"></div>
+        </div>
+      </aside>
+
+      <main class="map-area">
+        <div class="map-box">
+          <div class="map-controls">
+            <div class="map-dropdown">
+              <button id="state-filter-toggle" class="map-toggle" type="button">
+                <span class="map-toggle-icon" aria-hidden="true">
+                  <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1.5 2.1h9L7.2 5.9v3.1l-2.4.9V5.9z" fill="currentColor"/>
+                  </svg>
+                </span>
+                <span id="state-filter-label">Bundesland</span>
+              </button>
+              <div id="state-filter-menu" class="map-dropdown-menu"></div>
+            </div>
+            <button id="heatmap-toggle" class="map-toggle" type="button">
+              <span class="map-toggle-icon" aria-hidden="true">
+                <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="currentColor"/>
+                  <path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.82)"/>
+                </svg>
+              </span>
+              <span>Heat-Map</span>
+            </button>
+          </div>
+          <div id="map"></div>
+          <section id="state-view" class="state-view" aria-hidden="true">
+            <div class="state-view-header">
+              <div class="state-view-copy">
+                <div class="state-view-kicker">Bundesland-Ansicht</div>
+                <div id="state-view-title" class="state-view-title">Bundesland</div>
+                <div id="state-view-meta" class="state-view-meta"></div>
+              </div>
+              <div class="state-view-spacer"></div>
+              <div class="state-view-filter">
+                <button id="state-view-filter-toggle" class="map-toggle" type="button">
+                  <span class="map-toggle-icon" aria-hidden="true">
+                    <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1.5 2.1h9L7.2 5.9v3.1l-2.4.9V5.9z" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <span id="state-view-filter-label">Bundesland</span>
+                </button>
+              </div>
+              <button id="state-view-close" class="state-view-close" type="button">Zurück</button>
+            </div>
+            <div id="state-map"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script src="./deutschlandkarte-project/data/de-geojson.js"></script>
+<script src="./deutschlandkarte-project/data/city-labels.js"></script>
+<script src="./deutschlandkarte-project/data/state-labels.js"></script>
+<script src="./deutschlandkarte-project/data/state-polygons.js"></script>
+<script src="./data/versorgungs-kompass-data.js"></script>
+
+<script>
+  function loadCompassContacts() {
+    const seedContacts = window.VERSORGUNGS_COMPASS_CONTACTS || [];
+    try {
+      const raw = window.localStorage.getItem("versorgungs-kompass-contacts-v7");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.some((entry) => Number.isFinite(Number.parseFloat(entry.lat ?? entry.latitude ?? "")))) {
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.warn("Konnte lokale Versorgungs-Kompass-Daten für den Karten-Modus nicht lesen.", error);
+    }
+    return seedContacts;
+  }
+
+  function firstSource(contact) {
+    if (contact.url) return contact.url;
+    if (Array.isArray(contact.sources) && contact.sources.length) return contact.sources[0];
+    if (typeof contact.sources === "string" && contact.sources.trim()) return contact.sources.trim().split(/\s*\|\s*/)[0];
+    return "";
+  }
+
+  function toMapEntry(contact) {
+    const lat = Number.parseFloat(contact.lat ?? contact.latitude ?? "");
+    const lon = Number.parseFloat(contact.lon ?? contact.longitude ?? "");
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    const personName = String(contact.name || contact.organization || "Kontakt").trim();
+
+    return {
+      name: personName,
+      organization: contact.organization || "",
+      category: contact.category || "Praxis",
+      city: contact.city || String(contact.location || "").replace(/^\d{5}\s*/, "") || "-",
+      state: contact.state || "",
+      street: contact.street || "",
+      postal_code: contact.postalCode || contact.postal_code || String(contact.location || "").match(/\b\d{5}\b/)?.[0] || "",
+      lat,
+      lon,
+      url: firstSource(contact),
+      description: contact.description || contact.topic || "",
+      person_name: personName,
+      person_title: contact.title || "",
+      email: contact.email || "",
+      image: contact.image || "",
+      primary_system: "",
+      dq_hint: "",
+    };
+  }
+
+  const DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);
+  const CITY_LABELS = window.MAP_CITY_LABELS;
+  const STATE_LABELS = window.MAP_STATE_LABELS;
+  const STATE_POLYGONS = window.MAP_STATE_POLYGONS;
+  const DE_GEOJSON = window.MAP_DE_GEOJSON;
+  const CATEGORY_COLORS = {"Praxis": "#1f77b4", "Krankenhaus": "#d62728", "Apotheke": "#2ca02c", "Pflege": "#9467bd"};
+  const CATEGORY_EMOJIS = {"Praxis": "🩺", "Krankenhaus": "🏥", "Apotheke": "💊", "Pflege": "🤝"};
+  const AVATARS = {"Praxis": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.18%22%2F%3E%0A%3Ccircle%20cx%3D%2232%22%20cy%3D%2226%22%20r%3D%2210%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M14%2054c3-10%2011-16%2018-16s15%206%2018%2016%22%20fill%3D%22none%22%20stroke%3D%22%231f77b4%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M42%2018h6v6h-6zM44%2012h2v18h-2z%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.48%22%2F%3E%0A%3C%2Fsvg%3E", "Krankenhaus": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%23d62728%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M20%2050V18c0-2%202-4%204-4h16c2%200%204%202%204%204v32%22%20fill%3D%22none%22%20stroke%3D%22%23d62728%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M26%2024h6v6h-6zm0%2010h6v6h-6zm12-10h6v6h-6zm0%2010h6v6h-6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.45%22%2F%3E%0A%3Cpath%20d%3D%22M30%2018h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.50%22%2F%3E%0A%3C%2Fsvg%3E", "Apotheke": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M22%2022h20v20H22z%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M30%2024h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.50%22%2F%3E%0A%3Cpath%20d%3D%22M44%2022h2c2%200%204%202%204%204v16c0%202-2%204-4%204h-2%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.35%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E", "Pflege": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%239467bd%22%20opacity%3D%220.16%22%2F%3E%0A%3Ccircle%20cx%3D%2226%22%20cy%3D%2226%22%20r%3D%228%22%20fill%3D%22%239467bd%22%20opacity%3D%220.52%22%2F%3E%0A%3Ccircle%20cx%3D%2240%22%20cy%3D%2228%22%20r%3D%226%22%20fill%3D%22%239467bd%22%20opacity%3D%220.36%22%2F%3E%0A%3Cpath%20d%3D%22M14%2052c2-9%208-14%2012-14s10%205%2012%2014%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M34%2052c1-7%205-11%208-11s7%204%208%2011%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.36%22%2F%3E%0A%3C%2Fsvg%3E"};
+
+  // Minimal basemap WITHOUT labels (reduces noise outside Germany)
+  const map = L.map('map', { zoomControl: true });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
+  }).addTo(map);
+
+  // ---- Build exact Germany mask (inverse polygon) ----
+  function toLatLngs(ringLngLat){
+    // ring is [ [lng,lat], ... ]
+    return ringLngLat.map(pt => [pt[1], pt[0]]);
+  }
+
+  function germanyOuterRings(featureCollection){
+    const geom = featureCollection.features[0].geometry;
+    const holes = []; // each outer ring as a hole in the world polygon
+
+    if (geom.type === "Polygon") {
+      holes.push(toLatLngs(geom.coordinates[0]));
+    } else if (geom.type === "MultiPolygon") {
+      geom.coordinates.forEach(poly => {
+        // poly[0] is the outer ring
+        holes.push(toLatLngs(poly[0]));
+      });
+    }
+    return holes;
+  }
+
+  const worldRing = [[-90,-180],[-90,180],[90,180],[90,-180]];
+  const holes = germanyOuterRings(DE_GEOJSON);
+
+  // Darken outside Germany (everything except the Germany rings)
+  const mask = L.polygon([worldRing, ...holes], {
+    stroke: false,
+    fillColor: '#000',
+    fillOpacity: 0.08,
+    interactive: false
+  }).addTo(map);
+
+  // Germany outline (subtle)
+  const germanyLayer = L.geoJSON(DE_GEOJSON, {
+    style: {
+      color: 'rgba(0,0,0,0.28)',
+      weight: 1,
+      fill: false
+    },
+    interactive: false
+  }).addTo(map);
+
+  // Fit to Germany bounds and keep focus tight
+  const deBounds = germanyLayer.getBounds();
+  map.fitBounds(deBounds.pad(0.12));
+  map.setZoom(Math.min(map.getZoom(), 9));
+  map.setMaxBounds(deBounds.pad(0.35));
+  map.setMinZoom(5);
+
+  // ---- Custom labels (major cities + state capitals) ----
+  // Basemap is "nolabels" to reduce noise; we add a curated set for orientation.
+  const majorLabelLayer = L.layerGroup().addTo(map);
+  const capitalLabelLayer = L.layerGroup().addTo(map);
+  const stateLabelLayer = L.layerGroup().addTo(map);
+  const extraLabelLayer = L.layerGroup().addTo(map);
+  const moreLabelLayer = L.layerGroup().addTo(map);
+  let stateHeatLayer = null;
+  const stateHeatCountLayer = L.layerGroup();
+  let stateInteractionLayer = null;
+  let heatMapActive = false;
+  let selectedState = "";
+
+  function fitMapToState(name){
+    const feature = stateFeature(name);
+    if (!feature) return;
+    const bounds = L.geoJSON(feature).getBounds();
+    map.fitBounds(bounds.pad(0.14), { animate: true });
+  }
+
+  function stateInteractionStyle(name, hover = false){
+    const active = selectedState === name;
+    return {
+      color: active ? 'rgba(18,96,144,1)' : (hover ? 'rgba(18,96,144,0.92)' : 'rgba(20,84,122,0.18)'),
+      weight: active ? 3.2 : (hover ? 3 : 1),
+      fillColor: active ? 'rgba(53,132,194,0.42)' : (hover ? 'rgba(53,132,194,0.38)' : 'rgba(32,104,148,0.16)'),
+      fillOpacity: active ? 0.44 : (hover ? 0.38 : 0.03),
+      interactive: true
+    };
+  }
+
+  function refreshStateInteractionLayer(){
+    if (stateInteractionLayer) {
+      map.removeLayer(stateInteractionLayer);
+      stateInteractionLayer = null;
+    }
+
+    stateInteractionLayer = L.geoJSON(STATE_POLYGONS, {
+      pane: 'overlayPane',
+      style: (feature) => stateInteractionStyle(feature.properties.name),
+      onEachFeature: (feature, layer) => {
+        const name = feature.properties.name;
+        layer.on('mouseover', () => {
+          if (heatMapActive) return;
+          layer.setStyle(stateInteractionStyle(name, true));
+        });
+        layer.on('mouseout', () => {
+          if (!stateInteractionLayer) return;
+          stateInteractionLayer.resetStyle(layer);
+          layer.setStyle(stateInteractionStyle(name));
+        });
+        layer.on('click', () => {
+          const nextState = selectedState === name ? "" : name;
+          setSelectedState(nextState);
+        });
+      }
+    });
+
+    if (!heatMapActive) {
+      stateInteractionLayer.addTo(map);
+    }
+  }
+  let stateMap = null;
+  let stateMapTiles = null;
+  let stateMapOutline = null;
+  let stateMapMarkers = null;
+  let stateMapMask = null;
+  let stateMapGermanyOutline = null;
+  let stateMapCityLabels = null;
+  let stateMapStateLabel = null;
+
+  function heatColor(value, max){
+    if (max <= 0) return "#f5dfdc";
+    const ratio = Math.max(0, Math.min(1, value / max));
+    if (ratio >= 0.85) return "#9f2622";
+    if (ratio >= 0.65) return "#bc4b42";
+    if (ratio >= 0.45) return "#cf746a";
+    if (ratio >= 0.25) return "#dfa299";
+    if (ratio > 0) return "#ecc9c3";
+    return "#f5dfdc";
+  }
+
+  function stateNameKey(value){
+    return normalize(value)
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/ß/g, "ss");
+  }
+
+  function stateLabelPosition(name){
+    const configured = STATE_LABELS.find((state) => state.name === name);
+    if (configured) return [configured.lat, configured.lon];
+    const feature = STATE_POLYGONS.features.find((entry) => entry.properties.name === name);
+    if (!feature) return null;
+    return L.geoJSON(feature).getBounds().getCenter();
+  }
+
+  function stateFeature(name){
+    return STATE_POLYGONS.features.find((entry) => entry.properties.name === name) || null;
+  }
+
+  function stateLabelCorner(name){
+    const feature = stateFeature(name);
+    if (!feature) return null;
+    const bounds = L.geoJSON(feature).getBounds();
+    const north = bounds.getNorth();
+    const south = bounds.getSouth();
+    const east = bounds.getEast();
+    const west = bounds.getWest();
+    return [south + ((north - south) * 0.20), west + ((east - west) * 0.20)];
+  }
+
+  function stateLabelHtml(name, total = null, heat = false){
+    const count = total && total > 0 ? `<span class="state-heat-count">${total}</span>` : "";
+    const heatClass = heat ? " state-label-heat" : "";
+    const icon = heat
+      ? `<span class="state-label-icon" aria-hidden="true"><svg viewBox="0 0 12 12" width="10" height="10" xmlns="http://www.w3.org/2000/svg"><path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="rgba(159,38,34,0.9)"/><path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.82)"/></svg></span>`
+      : "";
+    return `<div class="label-anchor"><div class="state-label${heatClass}">${icon}${name}${count}</div></div>`;
+  }
+
+  function buildStateHeatLayer(entries = DATA){
+    if (stateHeatLayer) {
+      stateHeatLayer.remove();
+    }
+    stateHeatCountLayer.clearLayers();
+
+    const countsByState = entries.reduce((acc, entry) => {
+      const key = stateNameKey(entry.state);
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const max = Object.values(countsByState).reduce((acc, total) => Math.max(acc, total), 0);
+
+    stateHeatLayer = L.geoJSON(STATE_POLYGONS, {
+      style: (feature) => {
+        const total = countsByState[stateNameKey(feature.properties.name)] || 0;
+        const fill = heatColor(total, max);
+        return {
+          color: 'rgba(0,0,0,0.10)',
+          weight: 1,
+          fillColor: fill,
+          fillOpacity: total > 0 ? 0.58 : 0.12,
+          interactive: true
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const total = countsByState[stateNameKey(feature.properties.name)] || 0;
+        layer.on('click', () => {
+          const nextState = selectedState === feature.properties.name ? "" : feature.properties.name;
+          setSelectedState(nextState);
+        });
+        layer.on('mouseover', () => {
+          layer.setStyle({
+            weight: 3.1,
+            color: 'rgba(18,96,144,0.96)',
+            fillColor: total > 0 ? 'rgba(53,132,194,0.72)' : 'rgba(53,132,194,0.44)',
+            fillOpacity: total > 0 ? 0.78 : 0.44
+          });
+        });
+        layer.on('mouseout', () => {
+          stateHeatLayer.resetStyle(layer);
+        });
+        const labelPosition = stateLabelPosition(feature.properties.name);
+        if (!labelPosition) return;
+        L.marker(labelPosition, {
+          icon: L.divIcon({
+            className: '',
+            html: stateLabelHtml(feature.properties.name, total, true),
+            iconSize: null
+          }),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: 200
+        }).addTo(stateHeatCountLayer);
+      }
+    });
+
+    if (heatMapActive) {
+      stateHeatLayer.addTo(map);
+      stateHeatCountLayer.addTo(map);
+    }
+  }
+
+  function labelIcon(text, cls){
+    const isState = (cls === "state-label");
+    const klass = isState ? "state-label" : ("city-label " + cls);
+    return L.divIcon({
+      className: '',
+      html: `<div class="label-anchor"><div class="${klass}">${text}</div></div>`,
+      iconSize: null
+    });
+  }
+
+  function addLabels(){
+    majorLabelLayer.clearLayers();
+    capitalLabelLayer.clearLayers();
+    stateLabelLayer.clearLayers();
+    extraLabelLayer.clearLayers();
+    moreLabelLayer.clearLayers();
+
+    CITY_LABELS.major.forEach(c => {
+      L.marker([c.lat, c.lon], {
+        icon: labelIcon(c.name, "major"),
+        interactive: false,
+        keyboard: false
+      }).addTo(majorLabelLayer);
+    });
+
+    CITY_LABELS.capitals.forEach(c => {
+      L.marker([c.lat, c.lon], {
+        icon: labelIcon(c.name, "capital"),
+        interactive: false,
+        keyboard: false
+      }).addTo(capitalLabelLayer);
+    });
+    CITY_LABELS.extra.forEach(c => {
+      L.marker([c.lat, c.lon], {
+        icon: labelIcon(c.name, "extra"),
+        interactive: false,
+        keyboard: false
+      }).addTo(extraLabelLayer);
+    });
+    CITY_LABELS.more.forEach(c => {
+      L.marker([c.lat, c.lon], {
+        icon: labelIcon(c.name, "more"),
+        interactive: false,
+        keyboard: false
+      }).addTo(moreLabelLayer);
+    });
+
+
+    STATE_LABELS.forEach(s => {
+      L.marker([s.lat, s.lon], {
+        icon: labelIcon(s.name, "state-label"),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: -50
+      }).addTo(stateLabelLayer);
+    });
+
+  }
+
+  function updateLabelVisibility(){
+    const z = map.getZoom();
+
+    // State labels: only on far overview (keep very subtle)
+    if (!heatMapActive && z >= 5 && z <= 6) {
+      if (!map.hasLayer(stateLabelLayer)) map.addLayer(stateLabelLayer);
+    } else {
+      if (map.hasLayer(stateLabelLayer)) map.removeLayer(stateLabelLayer);
+    }
+
+    if (z >= 6) {
+      if (!map.hasLayer(majorLabelLayer)) map.addLayer(majorLabelLayer);
+    } else {
+      if (map.hasLayer(majorLabelLayer)) map.removeLayer(majorLabelLayer);
+    }
+
+    if (z >= 7) {
+      if (!map.hasLayer(capitalLabelLayer)) map.addLayer(capitalLabelLayer);
+    } else {
+      if (map.hasLayer(capitalLabelLayer)) map.removeLayer(capitalLabelLayer);
+    }
+
+    if (z >= 8) {
+      if (!map.hasLayer(extraLabelLayer)) map.addLayer(extraLabelLayer);
+    } else {
+      if (map.hasLayer(extraLabelLayer)) map.removeLayer(extraLabelLayer);
+    }
+
+    if (z >= 9) {
+      if (!map.hasLayer(moreLabelLayer)) map.addLayer(moreLabelLayer);
+    } else {
+      if (map.hasLayer(moreLabelLayer)) map.removeLayer(moreLabelLayer);
+    }
+  }
+
+  addLabels();
+  updateLabelVisibility();
+  map.on('zoomend', updateLabelVisibility);
+  buildStateHeatLayer();
+
+
+
+  // ---- Markers ----
+  const markerLayer = L.layerGroup().addTo(map);
+
+const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
+  const states = STATE_LABELS.map((state) => state.name);
+  let activeCategoryFilter = "";
+  let query = "";
+
+  const elFilters = document.getElementById('filters');
+  const elSearch = document.getElementById('search');
+  const elList = document.getElementById('list');
+  const elCount = document.getElementById('count');
+  const elHeatMapToggle = document.getElementById('heatmap-toggle');
+  const elStateFilterToggle = document.getElementById('state-filter-toggle');
+  const elStateFilterLabel = document.getElementById('state-filter-label');
+  const elStateFilterMenu = document.getElementById('state-filter-menu');
+  const elStateView = document.getElementById('state-view');
+  const elStateViewTitle = document.getElementById('state-view-title');
+  const elStateViewMeta = document.getElementById('state-view-meta');
+  const elStateViewClose = document.getElementById('state-view-close');
+  const elStateViewFilterToggle = document.getElementById('state-view-filter-toggle');
+  const elStateViewFilterLabel = document.getElementById('state-view-filter-label');
+  const elStateFilterDropdown = document.querySelector('.map-dropdown');
+  const elStateViewFilter = document.querySelector('.state-view-filter');
+
+  function normalize(s){ return (s || "").toString().toLowerCase(); }
+
+  function passes(d){
+    const q = normalize(query).trim();
+    if (activeCategoryFilter && d.category !== activeCategoryFilter) return false;
+    if (selectedState && d.state !== selectedState) return false;
+    if (!q) return true;
+    const hay = normalize(d.name) + " " + normalize(d.city) + " " + normalize(d.category) + " " + normalize(d.description);
+    return hay.includes(q);
+  }
+
+  function filteredEntries(){
+    return DATA.filter(passes);
+  }
+
+  function matchesQuery(entry){
+    const q = normalize(query).trim();
+    if (!q) return true;
+    const hay = normalize(entry.name) + " " + normalize(entry.city) + " " + normalize(entry.category) + " " + normalize(entry.description);
+    return hay.includes(q);
+  }
+
+  function stateEntries(name){
+    return DATA.filter((entry) => {
+      if (entry.state !== name) return false;
+      if (activeCategoryFilter && entry.category !== activeCategoryFilter) return false;
+      return matchesQuery(entry);
+    });
+  }
+
+  function allStateEntriesCount(){
+    return DATA.filter((entry) => (!activeCategoryFilter || entry.category === activeCategoryFilter) && matchesQuery(entry)).length;
+  }
+
+  
+  function popupHtml(d){
+    const link = d.url ? `<div style="margin-top:8px;"><a href="${d.url}" target="_blank" rel="noopener">Website</a></div>` : "";
+    const desc = d.description ? `<div style="margin-top:8px; color:rgba(0,0,0,0.72); line-height:1.35;">${d.description}</div>` : "";
+    const address = (d.street || d.postal_code || d.city)
+      ? `<div style="margin-top:8px; color:rgba(0,0,0,0.58); font-size:12px;">${[d.street, [d.postal_code, d.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</div>`
+      : "";
+    const email = d.email
+      ? `<div style="margin-top:6px; color:rgba(0,0,0,0.58); font-size:12px;">${d.email}</div>`
+      : "";
+    const meta = [d.primary_system ? `Primärsystem: ${d.primary_system}` : "", d.dq_hint ? `DQ: ${d.dq_hint}` : ""]
+      .filter(Boolean)
+      .join(" • ");
+    const metaBlock = meta ? `<div style="margin-top:6px; color:rgba(0,0,0,0.5); font-size:12px;">${meta}</div>` : "";
+
+    const avatar = (d.image || AVATARS[d.category] || "");
+    const org = d.organization ? `<div style="font-weight:700; font-size:12.5px; color:rgba(0,0,0,0.72);">${d.organization}</div>` : "";
+    const title = d.person_title ? `<div style="color:rgba(0,0,0,0.50); font-size:12px;">${d.person_title}</div>` : "";
+
+    const personBlock = (org || title) ? `
+      <div style="display:flex; gap:10px; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.06);">
+        <img src="${avatar}" alt="" width="34" height="34" style="border-radius:999px; background:rgba(255,255,255,0.6);"/>
+        <div>
+          ${org}
+          ${title}
+        </div>
+      </div>
+    ` : "";
+
+    return `<div style="min-width:240px;">
+      <div style="font-weight:700; font-size:14px; color:rgba(0,0,0,0.82);">${d.name}</div>
+      <div style="color:rgba(0,0,0,0.55); font-size:12px;">${[d.category, d.city].filter(Boolean).join(" • ")}</div>
+      ${address}
+      ${desc}
+      ${email}
+      ${metaBlock}
+      ${personBlock}
+      ${link}
+    </div>`;
+  }
+
+  function markerFor(d){
+    const color = CATEGORY_COLORS[d.category] || '#555';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="cat-marker" style="background:${color};"></div>`,
+      iconSize: [12,12],
+      iconAnchor: [6,6],
+      popupAnchor: [0,-8]
+    });
+    return L.marker([d.lat, d.lon], { icon });
+  }
+
+  function renderStateFilterMenu(){
+    const counts = states.reduce((acc, state) => {
+      acc[state] = stateEntries(state).length;
+      return acc;
+    }, {});
+
+    const allButtonClass = selectedState ? "map-dropdown-item" : "map-dropdown-item map-dropdown-item-active";
+    elStateFilterMenu.innerHTML = `<button class="${allButtonClass}" type="button" data-state="">
+      <span>Alle Bundesländer</span>
+      <span class="map-dropdown-meta">${allStateEntriesCount()}</span>
+    </button>`;
+
+    states.forEach((state) => {
+      const active = selectedState === state ? " map-dropdown-item-active" : "";
+      elStateFilterMenu.insertAdjacentHTML('beforeend', `<button class="map-dropdown-item${active}" type="button" data-state="${state}">
+        <span>${state}</span>
+        <span class="map-dropdown-meta">${counts[state]}</span>
+      </button>`);
+    });
+
+    Array.from(elStateFilterMenu.querySelectorAll('[data-state]')).forEach((button) => {
+      button.addEventListener('click', () => {
+        const state = button.getAttribute('data-state') || "";
+        setSelectedState(state);
+        closeStateFilterMenu();
+      });
+    });
+  }
+
+  function openStateFilterMenu(){
+    syncStateFilterMenuContainer();
+    elStateFilterMenu.classList.add('map-dropdown-menu-open');
+    updateStateFilterToggle();
+  }
+
+  function closeStateFilterMenu(){
+    elStateFilterMenu.classList.remove('map-dropdown-menu-open');
+    updateStateFilterToggle();
+  }
+
+  function updateStateFilterToggle(){
+    const active = elStateFilterMenu.classList.contains('map-dropdown-menu-open') || !!selectedState;
+    elStateFilterToggle.classList.toggle('map-toggle-active-filter', active);
+    elStateViewFilterToggle.classList.toggle('map-toggle-active-filter', active);
+  }
+
+  function syncStateFilterMenuContainer(){
+    const target = (selectedState && elStateView.classList.contains('state-view-open')) ? elStateViewFilter : elStateFilterDropdown;
+    if (elStateFilterMenu.parentElement !== target) {
+      target.appendChild(elStateFilterMenu);
+    }
+  }
+
+  function ensureStateMap(){
+    if (stateMap) return;
+    stateMap = L.map('state-map', { zoomControl: true });
+    stateMapTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
+    }).addTo(stateMap);
+    stateMapMarkers = L.layerGroup().addTo(stateMap);
+
+    const stateMapHoles = germanyOuterRings(DE_GEOJSON);
+    stateMapMask = L.polygon([worldRing, ...stateMapHoles], {
+      stroke: false,
+      fillColor: '#fff',
+      fillOpacity: 0.82,
+      interactive: false
+    }).addTo(stateMap);
+
+    stateMapGermanyOutline = L.geoJSON(DE_GEOJSON, {
+      style: {
+        color: 'rgba(20,84,122,0.22)',
+        weight: 1,
+        fill: false
+      },
+      interactive: false
+    }).addTo(stateMap);
+    stateMapCityLabels = L.layerGroup().addTo(stateMap);
+  }
+
+  function renderStateMapCityLabels(feature){
+    if (!stateMapCityLabels) return;
+    stateMapCityLabels.clearLayers();
+    const bounds = L.geoJSON(feature).getBounds();
+    const labels = [
+      ...CITY_LABELS.major.map((city) => ({ ...city, cls: 'major' })),
+      ...CITY_LABELS.capitals.map((city) => ({ ...city, cls: 'capital' })),
+      ...CITY_LABELS.extra.map((city) => ({ ...city, cls: 'extra' }))
+    ];
+
+    labels
+      .filter((city) => bounds.contains([city.lat, city.lon]))
+      .forEach((city) => {
+        L.marker([city.lat, city.lon], {
+          icon: labelIcon(city.name, city.cls),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: -40
+        }).addTo(stateMapCityLabels);
+      });
+  }
+
+  function renderStateMap(){
+    if (!selectedState) return;
+    ensureStateMap();
+
+    if (stateMapOutline) {
+      stateMap.removeLayer(stateMapOutline);
+      stateMapOutline = null;
+    }
+
+    const feature = stateFeature(selectedState);
+    if (!feature) return;
+    const entries = filteredEntries();
+
+    stateMapOutline = L.geoJSON(feature, {
+      style: {
+        color: 'rgba(32,104,148,0.88)',
+        weight: 2,
+        fillColor: 'rgba(32,104,148,0.08)',
+        fillOpacity: 0.12
+      },
+      interactive: false
+    }).addTo(stateMap);
+
+    if (stateMapStateLabel) {
+      stateMap.removeLayer(stateMapStateLabel);
+      stateMapStateLabel = null;
+    }
+    const corner = stateLabelCorner(selectedState);
+    if (corner) {
+      stateMapStateLabel = L.marker(corner, {
+        icon: L.divIcon({
+          className: '',
+          html: `<div class="label-anchor"><div class="state-view-state-label"><svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="rgba(32,104,148,0.9)"/><path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.86)"/></svg><span>${selectedState}</span></div></div>`,
+          iconSize: null
+        }),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 320
+      }).addTo(stateMap);
+    }
+
+    stateMapMarkers.clearLayers();
+    entries.forEach((entry) => {
+      const marker = markerFor(entry);
+      marker.bindPopup(popupHtml(entry));
+      marker.addTo(stateMapMarkers);
+    });
+    renderStateMapCityLabels(feature);
+
+    const bounds = stateMapOutline.getBounds();
+    stateMap.fitBounds(bounds.pad(0.18));
+    stateMap.setMaxBounds(bounds.pad(0.35));
+    stateMap.invalidateSize();
+
+    elStateViewTitle.textContent = selectedState;
+    elStateViewMeta.textContent = `${entries.length} Einträge im aktuellen Filterkontext`;
+  }
+
+  function openStateView(name){
+    if (!name) return;
+    setSelectedState(name);
+  }
+
+  function closeStateView(){
+    setSelectedState("");
+  }
+
+  function setSelectedState(name, { fitBounds = false } = {}){
+    selectedState = name;
+    elStateFilterLabel.textContent = name || "Bundesland";
+    elStateViewFilterLabel.textContent = name || "Bundesland";
+    renderStateFilterMenu();
+    updateStateFilterToggle();
+    elStateView.classList.remove('state-view-open');
+    elStateView.setAttribute('aria-hidden', 'true');
+    document.querySelector('.map-box').classList.remove('state-mode');
+    syncStateFilterMenuContainer();
+    if (name) {
+      elList.style.display = "block";
+    }
+    render();
+    if (name && fitBounds) {
+      fitMapToState(name);
+    }
+  }
+
+  function renderFilters(){
+    elFilters.innerHTML = "";
+    const allButton = document.createElement('button');
+    allButton.type = 'button';
+    allButton.className = `category-chip${activeCategoryFilter ? "" : " active"}`;
+    allButton.setAttribute('aria-pressed', activeCategoryFilter ? 'false' : 'true');
+    allButton.textContent = 'Alle';
+    allButton.addEventListener('click', () => {
+      activeCategoryFilter = "";
+      render();
+    });
+    elFilters.appendChild(allButton);
+
+    categories.forEach(cat => {
+      const checked = activeCategoryFilter === cat;
+      const emoji = CATEGORY_EMOJIS[cat] || "•";
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `category-chip${checked ? " active" : ""}`;
+      button.setAttribute('aria-pressed', checked ? 'true' : 'false');
+      button.innerHTML = `<span class="category-chip-emoji" aria-hidden="true">${emoji}</span>
+                          <span>${cat}</span>`;
+      button.addEventListener('click', () => {
+        activeCategoryFilter = activeCategoryFilter === cat ? "" : cat;
+        render();
+      });
+      elFilters.appendChild(button);
+    });
+  }
+
+  let markerIndex = [];
+
+  function render(){
+    markerLayer.clearLayers();
+    markerIndex = [];
+
+    const filtered = filteredEntries();
+    renderStateFilterMenu();
+    buildStateHeatLayer(filtered);
+    refreshStateInteractionLayer();
+
+    filtered.forEach(d => {
+      const m = markerFor(d);
+      m.bindPopup(popupHtml(d));
+      markerIndex.push({ marker: m, data: d });
+      if (!heatMapActive) {
+        markerLayer.addLayer(m);
+      }
+    });
+
+    if (heatMapActive) {
+      if (map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
+      if (stateInteractionLayer && map.hasLayer(stateInteractionLayer)) map.removeLayer(stateInteractionLayer);
+      if (stateHeatLayer && !map.hasLayer(stateHeatLayer)) stateHeatLayer.addTo(map);
+      if (!map.hasLayer(stateHeatCountLayer)) stateHeatCountLayer.addTo(map);
+    } else {
+      if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
+      if (stateInteractionLayer && !map.hasLayer(stateInteractionLayer)) stateInteractionLayer.addTo(map);
+      if (stateHeatLayer && map.hasLayer(stateHeatLayer)) map.removeLayer(stateHeatLayer);
+      if (map.hasLayer(stateHeatCountLayer)) map.removeLayer(stateHeatCountLayer);
+    }
+    updateLabelVisibility();
+
+    elCount.textContent = `${filtered.length} / ${DATA.length}`;
+
+    elList.innerHTML = "";
+    filtered.forEach(d => {
+      const item = document.createElement('div');
+      item.className = "item";
+      const color = CATEGORY_COLORS[d.category] || "#555";
+      const thumb = d.image || AVATARS[d.category] || "";
+      item.innerHTML = `<span class="item-accent" style="background:${color}"></span>
+                        <div class="item-thumb"><img src="${thumb}" alt="" loading="lazy"/></div>
+                        <div class="item-copy">
+                          <div class="t">${d.name}</div>
+                        </div>`;
+      item.addEventListener('click', () => {
+        map.setView([d.lat, d.lon], Math.max(map.getZoom(), 10), { animate: true });
+        const hit = markerIndex.find(x => x.data === d);
+        if (heatMapActive) {
+          L.popup({ offset: [0, -4] })
+            .setLatLng([d.lat, d.lon])
+            .setContent(popupHtml(d))
+            .openOn(map);
+        } else if (hit) {
+          hit.marker.openPopup();
+        }
+      });
+      elList.appendChild(item);
+    });
+
+    if (selectedState && elStateView.classList.contains('state-view-open')) {
+      renderStateMap();
+    }
+  }
+
+  elSearch.addEventListener('input', (e) => { query = e.target.value; render(); });
+
+  document.getElementById('toggle').addEventListener('click', () => {
+    const open = elList.style.display !== "none";
+    elList.style.display = open ? "none" : "block";
+  });
+
+  elStateFilterToggle.addEventListener('click', () => {
+    const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
+    if (open) closeStateFilterMenu();
+    else openStateFilterMenu();
+  });
+
+  elStateViewFilterToggle.addEventListener('click', () => {
+    const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
+    if (open) closeStateFilterMenu();
+    else openStateFilterMenu();
+  });
+
+  elStateViewClose.addEventListener('click', () => {
+    closeStateView();
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.map-dropdown') && !event.target.closest('.state-view-filter')) {
+      closeStateFilterMenu();
+    }
+  });
+
+  elHeatMapToggle.addEventListener('click', () => {
+    heatMapActive = !heatMapActive;
+    elHeatMapToggle.classList.toggle('map-toggle-active-heat', heatMapActive);
+    render();
+  });
+
+  renderFilters();
+  renderStateFilterMenu();
+  render();
+  window.addEventListener('load', () => {
+    activeCategoryFilter = "";
+    query = "";
+    elSearch.value = "";
+    renderFilters();
+    renderStateFilterMenu();
+    render();
+    map.invalidateSize();
+  });
+  window.addEventListener('resize', () => {
+    map.invalidateSize();
+    if (stateMap && elStateView.classList.contains('state-view-open')) {
+      stateMap.invalidateSize();
+    }
+  });
+</script>
+</body>
+</html>
