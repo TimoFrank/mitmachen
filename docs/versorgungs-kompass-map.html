@@ -17,6 +17,26 @@
       color: rgba(0,0,0,0.82);
       overflow: hidden;
     }
+    body.embed-mode .topbar,
+    body.embed-mode .sidebar,
+    body.embed-mode .map-controls,
+    body.embed-mode .state-view {
+      display: none !important;
+    }
+    body.embed-mode .page-shell {
+      grid-template-rows: 1fr;
+      height: 100vh;
+    }
+    body.embed-mode .workspace {
+      grid-template-columns: 1fr;
+      padding: 0;
+      gap: 0;
+    }
+    body.embed-mode .map-box {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
     .page-shell {
       display: grid;
       grid-template-rows: 76px minmax(0, 1fr);
@@ -711,7 +731,11 @@
     };
   }
 
-  const DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);
+  const EMBED_MODE = new URLSearchParams(window.location.search).get("embed") === "1";
+  if (EMBED_MODE) document.body.classList.add("embed-mode");
+
+  const BASE_DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);
+  let currentEntries = BASE_DATA.slice();
   const CITY_LABELS = window.MAP_CITY_LABELS;
   const STATE_LABELS = window.MAP_STATE_LABELS;
   const STATE_POLYGONS = window.MAP_STATE_POLYGONS;
@@ -830,6 +854,7 @@
           layer.setStyle(stateInteractionStyle(name));
         });
         layer.on('click', () => {
+          if (EMBED_MODE) return;
           const nextState = selectedState === name ? "" : name;
           setSelectedState(nextState);
         });
@@ -900,7 +925,7 @@
     return `<div class="label-anchor"><div class="state-label${heatClass}">${icon}${name}${count}</div></div>`;
   }
 
-  function buildStateHeatLayer(entries = DATA){
+  function buildStateHeatLayer(entries = currentEntries){
     if (stateHeatLayer) {
       stateHeatLayer.remove();
     }
@@ -930,6 +955,7 @@
       onEachFeature: (feature, layer) => {
         const total = countsByState[stateNameKey(feature.properties.name)] || 0;
         layer.on('click', () => {
+          if (EMBED_MODE) return;
           const nextState = selectedState === feature.properties.name ? "" : feature.properties.name;
           setSelectedState(nextState);
         });
@@ -1069,7 +1095,7 @@
   // ---- Markers ----
   const markerLayer = L.layerGroup().addTo(map);
 
-const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
+const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   const states = STATE_LABELS.map((state) => state.name);
   let activeCategoryFilter = "";
   let query = "";
@@ -1103,7 +1129,7 @@ const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
   }
 
   function filteredEntries(){
-    return DATA.filter(passes);
+    return EMBED_MODE ? currentEntries : BASE_DATA.filter(passes);
   }
 
   function matchesQuery(entry){
@@ -1114,7 +1140,7 @@ const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
   }
 
   function stateEntries(name){
-    return DATA.filter((entry) => {
+    return (EMBED_MODE ? currentEntries : BASE_DATA).filter((entry) => {
       if (entry.state !== name) return false;
       if (activeCategoryFilter && entry.category !== activeCategoryFilter) return false;
       return matchesQuery(entry);
@@ -1122,7 +1148,7 @@ const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
   }
 
   function allStateEntriesCount(){
-    return DATA.filter((entry) => (!activeCategoryFilter || entry.category === activeCategoryFilter) && matchesQuery(entry)).length;
+    return (EMBED_MODE ? currentEntries : BASE_DATA).filter((entry) => (!activeCategoryFilter || entry.category === activeCategoryFilter) && matchesQuery(entry)).length;
   }
 
   
@@ -1179,6 +1205,7 @@ const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
   }
 
   function renderStateFilterMenu(){
+    if (EMBED_MODE) return;
     const counts = states.reduce((acc, state) => {
       acc[state] = stateEntries(state).length;
       return acc;
@@ -1369,6 +1396,7 @@ const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
   }
 
   function renderFilters(){
+    if (EMBED_MODE) return;
     elFilters.innerHTML = "";
     const allButton = document.createElement('button');
     allButton.type = 'button';
@@ -1431,7 +1459,7 @@ const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
     }
     updateLabelVisibility();
 
-    elCount.textContent = `${filtered.length} / ${DATA.length}`;
+    elCount.textContent = `${filtered.length} / ${(EMBED_MODE ? currentEntries.length : BASE_DATA.length)}`;
 
     elList.innerHTML = "";
     filtered.forEach(d => {
@@ -1464,50 +1492,61 @@ const categories = Array.from(new Set(DATA.map(d => d.category))).sort();
     }
   }
 
-  elSearch.addEventListener('input', (e) => { query = e.target.value; render(); });
+  if (!EMBED_MODE) {
+    elSearch.addEventListener('input', (e) => { query = e.target.value; render(); });
 
-  document.getElementById('toggle').addEventListener('click', () => {
-    const open = elList.style.display !== "none";
-    elList.style.display = open ? "none" : "block";
-  });
+    document.getElementById('toggle').addEventListener('click', () => {
+      const open = elList.style.display !== "none";
+      elList.style.display = open ? "none" : "block";
+    });
 
-  elStateFilterToggle.addEventListener('click', () => {
-    const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
-    if (open) closeStateFilterMenu();
-    else openStateFilterMenu();
-  });
+    elStateFilterToggle.addEventListener('click', () => {
+      const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
+      if (open) closeStateFilterMenu();
+      else openStateFilterMenu();
+    });
 
-  elStateViewFilterToggle.addEventListener('click', () => {
-    const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
-    if (open) closeStateFilterMenu();
-    else openStateFilterMenu();
-  });
+    elStateViewFilterToggle.addEventListener('click', () => {
+      const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
+      if (open) closeStateFilterMenu();
+      else openStateFilterMenu();
+    });
 
-  elStateViewClose.addEventListener('click', () => {
-    closeStateView();
-  });
+    elStateViewClose.addEventListener('click', () => {
+      closeStateView();
+    });
 
-  document.addEventListener('click', (event) => {
-    if (!event.target.closest('.map-dropdown') && !event.target.closest('.state-view-filter')) {
-      closeStateFilterMenu();
-    }
-  });
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.map-dropdown') && !event.target.closest('.state-view-filter')) {
+        closeStateFilterMenu();
+      }
+    });
 
-  elHeatMapToggle.addEventListener('click', () => {
-    heatMapActive = !heatMapActive;
-    elHeatMapToggle.classList.toggle('map-toggle-active-heat', heatMapActive);
-    render();
-  });
+    elHeatMapToggle.addEventListener('click', () => {
+      heatMapActive = !heatMapActive;
+      elHeatMapToggle.classList.toggle('map-toggle-active-heat', heatMapActive);
+      render();
+    });
 
-  renderFilters();
-  renderStateFilterMenu();
-  render();
-  window.addEventListener('load', () => {
-    activeCategoryFilter = "";
-    query = "";
-    elSearch.value = "";
     renderFilters();
     renderStateFilterMenu();
+  }
+  render();
+  window.addEventListener("message", (event) => {
+    if (!event.data || event.data.type !== "versorgungs-kompass-map-data") return;
+    currentEntries = (event.data.contacts || []).map(toMapEntry).filter(Boolean);
+    selectedState = "";
+    render();
+    map.invalidateSize();
+  });
+  window.addEventListener('load', () => {
+    if (!EMBED_MODE) {
+      activeCategoryFilter = "";
+      query = "";
+      elSearch.value = "";
+      renderFilters();
+      renderStateFilterMenu();
+    }
     render();
     map.invalidateSize();
   });

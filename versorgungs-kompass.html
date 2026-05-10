@@ -33,6 +33,65 @@
         --shadow-lg: 0 34px 70px rgba(26, 37, 89, 0.14);
       }
 
+      @media (max-width: 1180px) {
+        .topbar {
+          flex-wrap: wrap;
+          justify-content: space-between;
+          padding: 16px 22px;
+        }
+
+        .topbar-spacer {
+          display: none;
+        }
+
+        .primary-nav {
+          width: 100%;
+          justify-content: stretch;
+        }
+
+        .primary-tab {
+          flex: 1 1 0;
+          min-width: 0;
+        }
+
+        .summary.summary--compact,
+        .dashboard-kpis,
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .filter-select-grid {
+          grid-template-columns: 1fr;
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .workspace-header,
+        .filter-toolbar,
+        .active-filter-bar,
+        .table-toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .view-shell {
+          padding: 0 14px 18px;
+        }
+
+        .controls {
+          padding: 0 14px 14px;
+        }
+
+        .workspace-header {
+          padding: 18px 14px 10px;
+        }
+
+        .summary.summary--compact {
+          padding: 0 14px 14px;
+        }
+      }
+
       * {
         box-sizing: border-box;
       }
@@ -72,6 +131,42 @@
         position: sticky;
         top: 0;
         z-index: 30;
+      }
+
+      .topbar-spacer {
+        flex: 1;
+      }
+
+      .primary-nav {
+        display: inline-flex;
+        align-items: center;
+        gap: 0;
+        padding: 4px;
+        border: 1px solid #d8e1fb;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 12px 28px rgba(49, 75, 153, 0.08);
+      }
+
+      .primary-tab {
+        min-height: 46px;
+        min-width: 140px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 14px;
+        background: transparent;
+        color: #4c5d90;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        cursor: pointer;
+        transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      }
+
+      .primary-tab.is-active {
+        background: linear-gradient(135deg, #275ee6, #4d90ff);
+        color: #ffffff;
+        box-shadow: 0 10px 22px rgba(54, 94, 191, 0.2);
       }
 
       .brand {
@@ -202,6 +297,240 @@
         margin-top: 8px;
         color: var(--muted);
         font-size: 0.92rem;
+      }
+
+      .workspace-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 24px 28px 12px;
+      }
+
+      .workspace-copy h2 {
+        margin: 0;
+        font-size: clamp(1.2rem, 1.8vw, 1.55rem);
+        letter-spacing: -0.04em;
+      }
+
+      .workspace-copy p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .workspace-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .summary.summary--compact {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        padding-top: 2px;
+        padding-bottom: 14px;
+      }
+
+      .summary.summary--compact .summary-card {
+        min-height: 82px;
+        padding: 14px 16px;
+        border-radius: 18px;
+      }
+
+      .summary.summary--compact .summary-label {
+        font-size: 0.74rem;
+      }
+
+      .summary.summary--compact .summary-value {
+        margin-top: 7px;
+        font-size: 1.75rem;
+      }
+
+      .summary.summary--compact .summary-sub {
+        margin-top: 4px;
+        font-size: 0.82rem;
+      }
+
+      .filter-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .filter-select-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: 12px;
+        width: min(880px, 100%);
+      }
+
+      .filter-results {
+        color: #546491;
+        font-size: 0.92rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .active-filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        min-height: 60px;
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+        box-shadow: 0 8px 24px rgba(49, 75, 153, 0.05);
+      }
+
+      .active-filter-label {
+        color: #47598b;
+        font-size: 0.86rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .active-filter-list {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        flex-wrap: wrap;
+        min-width: 180px;
+      }
+
+      .active-filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid #d8e1fb;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #30447f;
+        font-size: 0.86rem;
+        font-weight: 700;
+      }
+
+      .active-filter-chip button {
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: #edf3ff;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      .active-filter-empty {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .filter-reset {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #2e63e7;
+        font-size: 0.88rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .filter-reset:disabled {
+        color: #97a3c6;
+        cursor: default;
+      }
+
+      .view-panel {
+        display: none;
+      }
+
+      .view-panel.is-active {
+        display: block;
+      }
+
+      .view-shell {
+        padding: 0 28px 24px;
+      }
+
+      .view-card {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .view-card--map {
+        min-height: 760px;
+      }
+
+      .map-embed-frame {
+        display: block;
+        width: 100%;
+        height: 760px;
+        border: 0;
+        background: #f4f6ff;
+      }
+
+      .analytics-shell {
+        padding: 22px;
+      }
+
+      .analytics-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .analytics-head h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        letter-spacing: -0.02em;
+      }
+
+      .analytics-head p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .table-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(248, 250, 255, 0.82);
+      }
+
+      .table-toolbar__title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: #30447f;
+      }
+
+      .table-toolbar__meta {
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .contacts-table .thead,
+      .contacts-table .row {
+        grid-template-columns: 56px minmax(280px, 1.35fr) minmax(240px, 1fr) minmax(170px, 0.72fr) minmax(170px, 0.8fr) minmax(190px, 0.86fr);
       }
 
       .controls {
@@ -1948,41 +2277,46 @@
           <strong>Versorgungs-Kompass</strong>
         </div>
       </div>
+      <div class="topbar-spacer"></div>
+      <nav class="primary-nav" aria-label="Hauptbereiche">
+        <button class="primary-tab is-active" type="button" data-view-tab="contacts">Kontakte</button>
+        <button class="primary-tab" type="button" data-view-tab="map">Karte</button>
+        <button class="primary-tab" type="button" data-view-tab="analytics">Auswertung</button>
+      </nav>
     </header>
 
     <main class="wrap">
       <div class="accent-bar" aria-hidden="true"></div>
       <section class="crm-shell">
-        <div class="welcome">
-          <h2>Willkommen, Timo.</h2>
+        <div class="workspace-header">
+          <div class="workspace-copy">
+            <h2>Kontakte schnell finden und einordnen.</h2>
+            <p id="workspace-subtitle">113 Kontakte im aktuellen Kontext.</p>
+          </div>
+          <div class="workspace-actions">
+            <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+            <div class="menu-shell">
+              <button class="action-button menu-button" type="button" id="more-actions-button" aria-label="Weitere Optionen öffnen" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M4 7h16"></path>
+                  <path d="M4 12h16"></path>
+                  <path d="M4 17h16"></path>
+                </svg>
+              </button>
+              <div class="menu-popover" id="more-actions-menu" hidden>
+                <button class="menu-option" type="button" id="import-csv-button">CSV importieren</button>
+                <button class="menu-option" type="button" id="export-csv-button">CSV exportieren</button>
+                <button class="menu-option" type="button" id="logout-button">Abmelden</button>
+              </div>
+            </div>
+            <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,text/csv" />
+          </div>
         </div>
 
-        <div class="summary" id="summary-grid"></div>
+        <div class="summary summary--compact" id="summary-grid"></div>
 
         <div class="controls">
           <div class="controls-stack">
-            <div class="admin-row">
-              <div class="admin-actions">
-                <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
-                <button class="action-button" type="button" id="dashboard-button">Dashboard</button>
-                <button class="action-button" type="button" id="map-mode-button">Karten-Modus</button>
-                <div class="menu-shell">
-                  <button class="action-button menu-button" type="button" id="more-actions-button" aria-label="Weitere Optionen öffnen" aria-expanded="false">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path d="M4 7h16"></path>
-                      <path d="M4 12h16"></path>
-                      <path d="M4 17h16"></path>
-                    </svg>
-                  </button>
-                  <div class="menu-popover" id="more-actions-menu" hidden>
-                    <button class="menu-option" type="button" id="import-csv-button">CSV importieren</button>
-                    <button class="menu-option" type="button" id="export-csv-button">CSV exportieren</button>
-                    <button class="menu-option" type="button" id="logout-button">Abmelden</button>
-                  </div>
-                </div>
-                <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,text/csv" />
-              </div>
-            </div>
             <label class="search-shell" aria-label="Kontakte durchsuchen">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                 <circle cx="11" cy="11" r="7"></circle>
@@ -1995,74 +2329,115 @@
                 placeholder="Nach Name, Organisation, Thema oder Standort suchen"
               />
             </label>
+
+            <div class="filter-toolbar">
+              <div class="filter-select-grid">
+                <label class="select-shell">
+                  <select id="category-filter-select" aria-label="Kategorie filtern">
+                    <option value="">Alle Kategorien</option>
+                  </select>
+                </label>
+                <label class="select-shell">
+                  <select id="priority-filter-select" aria-label="Priorität filtern">
+                    <option value="">Alle Prioritäten</option>
+                    <option value="Hoch">Hoch</option>
+                    <option value="Mittel">Mittel</option>
+                    <option value="Niedrig">Niedrig</option>
+                  </select>
+                </label>
+                <label class="select-shell">
+                  <select id="state-filter-select" aria-label="Bundesland filtern">
+                    <option value="">Alle Bundesländer</option>
+                  </select>
+                </label>
+              </div>
+              <div class="filter-results" id="results-count">0 von 0 Kontakten</div>
+            </div>
+
+            <div class="active-filter-bar">
+              <div class="active-filter-label">Aktive Filter</div>
+              <div class="active-filter-list" id="active-filter-list"></div>
+              <button class="filter-reset" type="button" id="reset-all-filters">Alle Filter zurücksetzen</button>
+            </div>
           </div>
         </div>
 
-        <div class="table-wrap">
-          <section class="table" aria-labelledby="kontaktliste-title">
-            <div class="thead">
-              <div>#</div>
-              <div>Name</div>
-              <div class="column-head">
-                Organisation
+        <div class="view-shell">
+          <section class="view-panel is-active" id="view-contacts" data-view-panel="contacts">
+            <div class="view-card">
+              <div class="table-toolbar">
+                <div class="table-toolbar__title">Kontakte</div>
+                <div class="table-toolbar__meta" id="table-toolbar-meta">0 von 0 Kontakten</div>
               </div>
-              <div class="column-head column-head--stacked">
-                <div class="column-head__stack">
-                  <div class="column-head__main">
-                    <span class="column-head__label">Priorit&auml;t</span>
-                    <div class="mini-filters" id="priority-mini-filters" aria-label="Mini-Schnellfilter Priorit&auml;t"></div>
+              <div class="table-wrap">
+                <section class="table contacts-table" aria-labelledby="kontaktliste-title">
+                  <div class="thead">
+                    <div>#</div>
+                    <div>Name</div>
+                    <div>Organisation</div>
+                    <div>Priorität</div>
+                    <div>Kategorie</div>
+                    <div>Ort</div>
                   </div>
-                  <div class="quick-filters quick-filters--column" id="priority-quick-filters" aria-label="Schnellfilter Priorit&auml;t">
-                    <button class="priority-chip priority-chip--dot" type="button" data-priority="high" data-tooltip="Hoch" aria-label="Hoch">🔥</button>
-                    <button class="priority-chip priority-chip--dot" type="button" data-priority="medium" data-tooltip="Mittel" aria-label="Mittel">🟡</button>
-                    <button class="priority-chip priority-chip--dot" type="button" data-priority="low" data-tooltip="Niedrig" aria-label="Niedrig">🟢</button>
-                  </div>
-                </div>
-                <div class="header-filter">
-                  <button class="filter-icon-button" type="button" id="priority-filter-button" aria-label="Priorit&auml;tsfilter &ouml;ffnen" aria-expanded="false">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path d="M4 6h16"></path>
-                      <path d="M7 12h10"></path>
-                      <path d="M10 18h4"></path>
-                    </svg>
-                  </button>
-                  <div class="filter-selected" id="priority-filter-selected" hidden>
-                    <span></span>
-                    <button class="filter-clear" type="button" id="priority-filter-clear" aria-label="Priorit&auml;tsfilter entfernen">&times;</button>
-                  </div>
-                  <div class="filter-menu" id="priority-filter-menu" hidden></div>
-                </div>
-              </div>
-              <div class="column-head column-head--stacked">
-                <div class="column-head__stack">
-                  <div class="column-head__main">
-                    <span class="column-head__label">Kategorie</span>
-                    <div class="mini-filters" id="category-mini-filters" aria-label="Mini-Schnellfilter Kategorie"></div>
-                  </div>
-                  <div class="quick-filters quick-filters--column" id="category-quick-filters" aria-label="Schnellfilter Kategorie"></div>
-                </div>
-                <div class="header-filter">
-                  <button class="filter-icon-button" type="button" id="category-filter-button" aria-label="Kategoriefilter &ouml;ffnen" aria-expanded="false">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path d="M4 5h16"></path>
-                      <path d="M7 12h10"></path>
-                      <path d="M10 19h4"></path>
-                    </svg>
-                  </button>
-                  <div class="filter-selected" id="category-filter-selected" hidden>
-                    <span></span>
-                    <button class="filter-clear" type="button" id="category-filter-clear" aria-label="Kategoriefilter entfernen">&times;</button>
-                  </div>
-                  <div class="filter-menu" id="category-filter-menu" hidden></div>
-                </div>
+                  <div id="contact-list"></div>
+                </section>
               </div>
             </div>
-            <div id="contact-list"></div>
+          </section>
+
+          <section class="view-panel" id="view-map" data-view-panel="map">
+            <div class="view-card view-card--map">
+              <iframe
+                class="map-embed-frame"
+                id="map-view-frame"
+                title="Karte des Versorgungs-Kompass"
+                src="./versorgungs-kompass-map.html?embed=1"
+                loading="lazy"
+              ></iframe>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-analytics" data-view-panel="analytics">
+            <div class="view-card analytics-shell">
+              <div class="analytics-head">
+                <div>
+                  <h3>Auswertung</h3>
+                  <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Kategorie und Bundesland.</p>
+                </div>
+              </div>
+              <div class="dashboard-kpis" id="dashboard-kpis"></div>
+              <div class="dashboard-grid">
+                <article class="dashboard-card">
+                  <h4>Kategorie-Verteilung</h4>
+                  <p>Zeigt den Mix im aktuellen Filterkontext.</p>
+                  <div id="category-chart"></div>
+                </article>
+                <article class="dashboard-card">
+                  <h4>Verteilung nach Bundesland</h4>
+                  <p>Zeigt, wo dein Netzwerk regional vertreten ist.</p>
+                  <div id="state-chart"></div>
+                </article>
+              </div>
+              <details class="dashboard-backlog">
+                <summary>Feature-Backlog</summary>
+                <div class="dashboard-backlog-body">
+                  <ul>
+                    <li>Priorität x Kategorie: Wo liegen die wichtigsten Lücken oder Schwerpunkte?</li>
+                    <li>Priorität x Bundesland: In welchen Regionen fehlen hochpriorisierte Kontakte?</li>
+                    <li>Datenvollständigkeit: fehlende E-Mail, Quelle, Koordinaten oder Bundesland.</li>
+                    <li>Ambulant vs. stationär vs. Pflege: grobe Versorgungsstruktur im Netzwerk.</li>
+                    <li>Ballungsräume vs. Fläche: regionale Konzentration und weiße Flecken.</li>
+                    <li>Kontaktaktivität: Anteil der Datensätze mit gepflegtem nächsten Schritt.</li>
+                    <li>Quellenqualität: belastbare Quellen versus schwach dokumentierte Kontakte.</li>
+                    <li>Netzwerk-Reife: Anteil vollständiger Profile mit E-Mail und Follow-up.</li>
+                  </ul>
+                </div>
+              </details>
+            </div>
           </section>
         </div>
       </section>
 
-      <p class="footer-note">Made with &#10084;&#65039; in Berlin<span>www.timo-frank.de</span></p>
     </main>
 
     <aside class="detail-drawer" id="detail-drawer" aria-hidden="true">
@@ -2156,63 +2531,6 @@
       </section>
     </aside>
 
-    <aside class="map-mode-drawer" id="map-mode-drawer" aria-hidden="true">
-      <div class="map-mode-overlay" id="map-mode-overlay"></div>
-      <section class="map-mode-panel" aria-label="Karten-Modus">
-        <button class="map-mode-close" type="button" id="map-mode-close" aria-label="Karten-Modus schließen">&times;</button>
-        <iframe
-          class="map-mode-frame"
-          id="map-mode-frame"
-          title="Karten-Modus des Versorgungs-Kompass"
-          src="./versorgungs-kompass-map.html"
-          loading="lazy"
-        ></iframe>
-      </section>
-    </aside>
-
-    <aside class="dashboard-drawer" id="dashboard-drawer" aria-hidden="true">
-      <div class="dashboard-overlay" id="dashboard-overlay"></div>
-      <section class="dashboard-panel" aria-labelledby="dashboard-title">
-        <div class="dashboard-header">
-          <div>
-            <h3 id="dashboard-title">Reporting-Dashboard</h3>
-            <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Kategorie und Bundesland.</p>
-          </div>
-          <button class="dashboard-close" type="button" id="dashboard-close" aria-label="Dashboard schließen">&times;</button>
-        </div>
-        <div class="dashboard-body">
-          <div class="dashboard-kpis" id="dashboard-kpis"></div>
-          <div class="dashboard-grid">
-            <article class="dashboard-card">
-              <h4>Kategorie-Verteilung</h4>
-              <p>Geeignet als schneller Überblick über den Mix im aktuellen Datensatz.</p>
-              <div id="category-chart"></div>
-            </article>
-            <article class="dashboard-card">
-              <h4>Verteilung nach Bundesland</h4>
-              <p>Zeigt, wo dein Netzwerk aktuell regional am stärksten vertreten ist.</p>
-              <div id="state-chart"></div>
-            </article>
-          </div>
-          <details class="dashboard-backlog">
-            <summary>Feature-Backlog</summary>
-            <div class="dashboard-backlog-body">
-              <ul>
-                <li>Priorität x Kategorie: Wo liegen die wichtigsten Lücken oder Schwerpunkte?</li>
-                <li>Priorität x Bundesland: In welchen Regionen fehlen hochpriorisierte Kontakte?</li>
-                <li>Datenvollständigkeit: fehlende E-Mail, Quelle, Koordinaten oder Bundesland.</li>
-                <li>Ambulant vs. stationär vs. Pflege: grobe Versorgungsstruktur im Netzwerk.</li>
-                <li>Ballungsräume vs. Fläche: regionale Konzentration und weiße Flecken.</li>
-                <li>Kontaktaktivität: Anteil der Datensätze mit gepflegtem nächsten Schritt.</li>
-                <li>Quellenqualität: belastbare Quellen versus schwach dokumentierte Kontakte.</li>
-                <li>Netzwerk-Reife: Anteil vollständiger Profile mit E-Mail und Follow-up.</li>
-              </ul>
-            </div>
-          </details>
-        </div>
-      </section>
-    </aside>
-
     <script src="./data/versorgungs-kompass-data.js"></script>
     <script>
       const avatarPalette = [
@@ -2277,6 +2595,17 @@
       const searchInput = document.getElementById("search");
       const list = document.getElementById("contact-list");
       const summaryGrid = document.getElementById("summary-grid");
+      const workspaceSubtitle = document.getElementById("workspace-subtitle");
+      const tableToolbarMeta = document.getElementById("table-toolbar-meta");
+      const resultsCount = document.getElementById("results-count");
+      const activeFilterList = document.getElementById("active-filter-list");
+      const resetAllFiltersButton = document.getElementById("reset-all-filters");
+      const categoryFilterSelect = document.getElementById("category-filter-select");
+      const priorityFilterSelect = document.getElementById("priority-filter-select");
+      const stateFilterSelect = document.getElementById("state-filter-select");
+      const mapViewFrame = document.getElementById("map-view-frame");
+      const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
+      const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
       const detailDrawer = document.getElementById("detail-drawer");
       const detailPanel = document.getElementById("detail-panel");
       const detailOverlay = document.getElementById("detail-overlay");
@@ -2289,43 +2618,23 @@
       const editorClose = document.getElementById("editor-close");
       const editorCancel = document.getElementById("editor-cancel");
       const newContactButton = document.getElementById("new-contact-button");
-      const dashboardButton = document.getElementById("dashboard-button");
-      const dashboardDrawer = document.getElementById("dashboard-drawer");
-      const dashboardOverlay = document.getElementById("dashboard-overlay");
-      const dashboardClose = document.getElementById("dashboard-close");
       const dashboardSubtitle = document.getElementById("dashboard-subtitle");
       const dashboardKpis = document.getElementById("dashboard-kpis");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
-      const mapModeButton = document.getElementById("map-mode-button");
-      const mapModeDrawer = document.getElementById("map-mode-drawer");
-      const mapModeOverlay = document.getElementById("map-mode-overlay");
-      const mapModeClose = document.getElementById("map-mode-close");
       const moreActionsButton = document.getElementById("more-actions-button");
       const moreActionsMenu = document.getElementById("more-actions-menu");
       const importCsvButton = document.getElementById("import-csv-button");
       const exportCsvButton = document.getElementById("export-csv-button");
       const logoutButton = document.getElementById("logout-button");
       const csvFileInput = document.getElementById("csv-file-input");
-      const priorityChips = [...document.querySelectorAll(".priority-chip")];
-      const categoryQuickFilters = document.getElementById("category-quick-filters");
-      const priorityMiniFilters = document.getElementById("priority-mini-filters");
-      const categoryMiniFilters = document.getElementById("category-mini-filters");
-      const priorityFilterButton = document.getElementById("priority-filter-button");
-      const categoryFilterButton = document.getElementById("category-filter-button");
-      const priorityFilterMenu = document.getElementById("priority-filter-menu");
-      const categoryFilterMenu = document.getElementById("category-filter-menu");
-      const priorityFilterSelected = document.getElementById("priority-filter-selected");
-      const categoryFilterSelected = document.getElementById("category-filter-selected");
-      const priorityFilterClear = document.getElementById("priority-filter-clear");
-      const categoryFilterClear = document.getElementById("category-filter-clear");
 
-      let quickPriority = null;
-      let quickCategory = null;
+      let activeView = "contacts";
       let activeId = null;
       let activeNameEditorId = null;
-      let selectedPriority = null;
-      let selectedCategory = null;
+      let selectedPriority = "";
+      let selectedCategory = "";
+      let selectedState = "";
       let editorMode = "create";
       let editingId = null;
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
@@ -2635,47 +2944,8 @@
           .some((value) => value.includes("noch ergänzen"));
       }
 
-      function renderFilterMenu(menu, values, selectedValue, onSelect, emptyText) {
-        menu.innerHTML = `
-          <div class="filter-menu__hint">${emptyText}</div>
-          <div class="filter-menu__list">
-            ${values
-              .map(
-                (value) => `
-                  <button class="filter-option ${selectedValue === value ? "is-active" : ""}" type="button" data-value="${value}">
-                    <span>${menu === categoryFilterMenu ? `${categoryEmoji[value] || "•"} ${value}` : value}</span>
-                    ${selectedValue === value ? "<small>aktiv</small>" : ""}
-                  </button>
-                `
-              )
-              .join("")}
-          </div>
-        `;
-        [...menu.querySelectorAll(".filter-option")].forEach((button) => {
-          button.addEventListener("click", () => {
-            onSelect(button.dataset.value);
-            menu.hidden = true;
-          });
-        });
-      }
-
-      function syncSelectedFilterPill(element, value, prefix) {
-        const label = element.querySelector("span");
-        if (!value) {
-          element.hidden = true;
-          label.textContent = "";
-          return;
-        }
-        element.hidden = false;
-        label.textContent = `${prefix}: ${value}`;
-      }
-
       function closeMenus() {
-        priorityFilterMenu.hidden = true;
-        categoryFilterMenu.hidden = true;
         moreActionsMenu.hidden = true;
-        priorityFilterButton.setAttribute("aria-expanded", "false");
-        categoryFilterButton.setAttribute("aria-expanded", "false");
         moreActionsButton.setAttribute("aria-expanded", "false");
       }
 
@@ -2699,51 +2969,85 @@
               .toLowerCase()
               .includes(search);
 
-          const matchesCategory = selectedCategory === null || contact.category === selectedCategory;
-          const matchesSelectPriority = selectedPriority === null || contact.priority === selectedPriority;
-          const matchesQuickPriority =
-            quickPriority === null || normalizedPriorityValue(contact.priority) === quickPriority;
-          const matchesQuickCategory = quickCategory === null || contact.category === quickCategory;
+          const matchesCategory = !selectedCategory || contact.category === selectedCategory;
+          const matchesPriority = !selectedPriority || contact.priority === selectedPriority;
+          const matchesState = !selectedState || stateLabel(contact) === selectedState;
 
-          return matchesSearch && matchesCategory && matchesSelectPriority && matchesQuickPriority && matchesQuickCategory;
+          return matchesSearch && matchesCategory && matchesPriority && matchesState;
         });
       }
 
-      function renderCategoryQuickFilters() {
-        const values = uniqueValues("category");
-        categoryQuickFilters.innerHTML = values
+      function hitCountLabel(items) {
+        return `${items.length} von ${contacts.length} Kontakten`;
+      }
+
+      function populateFilterSelects() {
+        const categories = uniqueValues("category");
+        const states = [...new Map(contacts.map((contact) => [stateLabel(contact), stateLabel(contact)])).values()]
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, "de"));
+
+        categoryFilterSelect.innerHTML = [
+          `<option value="">Alle Kategorien</option>`,
+          ...categories.map((value) => `<option value="${value}">${categoryEmoji[value] || "•"} ${value}</option>`)
+        ].join("");
+
+        stateFilterSelect.innerHTML = [
+          `<option value="">Alle Bundesländer</option>`,
+          ...states.map((value) => `<option value="${value}">${value}</option>`)
+        ].join("");
+
+        categoryFilterSelect.value = selectedCategory;
+        priorityFilterSelect.value = selectedPriority;
+        stateFilterSelect.value = selectedState;
+      }
+
+      function renderActiveFilters() {
+        const filters = [
+          selectedCategory ? { key: "category", label: `Kategorie: ${selectedCategory}` } : null,
+          selectedPriority ? { key: "priority", label: `Priorität: ${selectedPriority}` } : null,
+          selectedState ? { key: "state", label: `Bundesland: ${selectedState}` } : null
+        ].filter(Boolean);
+
+        if (!filters.length) {
+          activeFilterList.innerHTML = `<div class="active-filter-empty">Keine aktiven Filter</div>`;
+          resetAllFiltersButton.disabled = !searchInput.value.trim();
+          return;
+        }
+
+        activeFilterList.innerHTML = filters
           .map(
-            (value) => `
-              <button
-                class="category-chip category-chip--icon ${quickCategory === value ? "is-active" : ""}"
-                type="button"
-                data-category="${value}"
-                title="${value}"
-                aria-label="${value}"
-              >
-                ${categoryEmoji[value] || "•"}
-              </button>
+            (filter) => `
+              <div class="active-filter-chip">
+                <span>${filter.label}</span>
+                <button type="button" data-clear-filter="${filter.key}" aria-label="${filter.label} entfernen">&times;</button>
+              </div>
             `
           )
           .join("");
 
-        [...categoryQuickFilters.querySelectorAll(".category-chip")].forEach((button) => {
+        resetAllFiltersButton.disabled = false;
+
+        [...activeFilterList.querySelectorAll("[data-clear-filter]")].forEach((button) => {
           button.addEventListener("click", () => {
-            quickCategory = quickCategory === button.dataset.category ? null : button.dataset.category;
+            const key = button.dataset.clearFilter;
+            if (key === "category") selectedCategory = "";
+            if (key === "priority") selectedPriority = "";
+            if (key === "state") selectedState = "";
             updateView();
           });
         });
       }
 
-      function renderMiniFilters() {
-        priorityMiniFilters.innerHTML = "";
-        categoryMiniFilters.innerHTML = "";
-      }
-
       function renderSummary(items) {
         const cards = [
-          { label: "Kontakte", value: contacts.length, sub: "Gesamtzahl aller Personen im Versorgungs-Kompass" },
-          { label: "Aktuell sichtbar", value: items.length, sub: "Kontakte im aktuellen Such- und Filterkontext" }
+          { label: "Kontakte gesamt", value: contacts.length, sub: "Alle Kontakte im Versorgungs-Kompass" },
+          { label: "Aktuelle Auswahl", value: items.length, sub: hitCountLabel(items) },
+          {
+            label: "Hohe Priorität",
+            value: contacts.filter((contact) => contact.priority === "Hoch").length,
+            sub: "Im gesamten Datensatz"
+          }
         ];
 
         summaryGrid.innerHTML = cards
@@ -2761,7 +3065,7 @@
 
       function renderTable(items) {
         if (!items.length) {
-          list.innerHTML = `<div class="empty">Keine Kontakte im aktuellen Filter. Passe Suche oder Priorit&auml;t an.</div>`;
+          list.innerHTML = `<div class="empty">Keine Kontakte im aktuellen Filter. Passe Suche oder Filter an.</div>`;
           return;
         }
 
@@ -2818,6 +3122,9 @@
                       .map((value) => `<option value="${value}" ${contact.category === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`)
                       .join("")}
                   </select>
+                </div>
+                <div>
+                  <div class="contact-subline">${contact.location || stateLabel(contact)}</div>
                 </div>
               </article>
             `
@@ -3033,12 +3340,60 @@
         `;
       }
 
+      function setActiveView(view) {
+        activeView = view;
+        viewTabs.forEach((tab) => {
+          tab.classList.toggle("is-active", tab.dataset.viewTab === view);
+        });
+        viewPanels.forEach((panel) => {
+          panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
+        });
+        if (view === "map") {
+          syncMapFrame(filteredContacts());
+        }
+      }
+
+      function syncMapFrame(items = filteredContacts()) {
+        if (!mapViewFrame || !mapViewFrame.contentWindow) return;
+        mapViewFrame.contentWindow.postMessage(
+          {
+            type: "versorgungs-kompass-map-data",
+            contacts: items.map((contact) => ({
+              id: contact.id,
+              name: contact.name,
+              title: contact.title,
+              category: contact.category,
+              organization: contact.organization,
+              topic: contact.topic,
+              priority: contact.priority,
+              email: contact.email,
+              phone: contact.phone,
+              linkedin: contact.linkedin,
+              location: contact.location,
+              city: contact.city,
+              state: stateLabel(contact),
+              street: contact.street,
+              postalCode: contact.postalCode,
+              url: contact.url,
+              description: contact.description,
+              lat: contact.lat,
+              lon: contact.lon,
+              note: contact.note,
+              nextStep: contact.nextStep,
+              image: contact.image,
+              sources: contact.sources
+            })),
+            totalContacts: contacts.length,
+            filteredContacts: items.length
+          },
+          "*"
+        );
+      }
+
       function syncBodyScrollLock() {
         const overlayOpen =
           detailDrawer.classList.contains("is-open") ||
-          editorDrawer.classList.contains("is-open") ||
-          dashboardDrawer.classList.contains("is-open") ||
-          mapModeDrawer.classList.contains("is-open");
+          editorDrawer.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
 
@@ -3221,31 +3576,6 @@
         syncBodyScrollLock();
       }
 
-      function openDashboard() {
-        renderDashboard();
-        dashboardDrawer.classList.add("is-open");
-        dashboardDrawer.setAttribute("aria-hidden", "false");
-        syncBodyScrollLock();
-      }
-
-      function closeDashboard() {
-        dashboardDrawer.classList.remove("is-open");
-        dashboardDrawer.setAttribute("aria-hidden", "true");
-        syncBodyScrollLock();
-      }
-
-      function openMapMode() {
-        mapModeDrawer.classList.add("is-open");
-        mapModeDrawer.setAttribute("aria-hidden", "false");
-        syncBodyScrollLock();
-      }
-
-      function closeMapMode() {
-        mapModeDrawer.classList.remove("is-open");
-        mapModeDrawer.setAttribute("aria-hidden", "true");
-        syncBodyScrollLock();
-      }
-
       function deleteContact(contact) {
         const confirmed = window.confirm(`Soll "${contact.displayName}" wirklich aus deinem lokalen Versorgungs-Kompass gelöscht werden?`);
         if (!confirmed) return;
@@ -3355,43 +3685,17 @@
         updateView();
       }
 
-      function syncQuickFilterButtons() {
-        priorityChips.forEach((chip) => {
-          chip.classList.toggle("is-active", chip.dataset.priority === quickPriority);
-        });
-      }
-
       function updateView() {
         const items = filteredContacts();
+        workspaceSubtitle.textContent = hitCountLabel(items);
+        resultsCount.textContent = hitCountLabel(items);
+        tableToolbarMeta.textContent = hitCountLabel(items);
         renderSummary(items);
         renderTable(items);
         renderDashboard(items);
-        renderCategoryQuickFilters();
-        renderMiniFilters();
-        syncSelectedFilterPill(priorityFilterSelected, selectedPriority, "Priorität");
-        syncSelectedFilterPill(categoryFilterSelected, selectedCategory, "Kategorie");
-        renderFilterMenu(
-          priorityFilterMenu,
-          uniqueValues("priority"),
-          selectedPriority,
-          (value) => {
-            selectedPriority = value;
-            closeMenus();
-            updateView();
-          },
-          ""
-        );
-        renderFilterMenu(
-          categoryFilterMenu,
-          uniqueValues("category"),
-          selectedCategory,
-          (value) => {
-            selectedCategory = value;
-            closeMenus();
-            updateView();
-          },
-          ""
-        );
+        renderActiveFilters();
+        populateFilterSelects();
+        syncMapFrame(items);
 
         if (activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
@@ -3404,29 +3708,32 @@
         .join("");
 
       searchInput.addEventListener("input", updateView);
-
-      priorityChips.forEach((chip) => {
-        chip.addEventListener("click", () => {
-          quickPriority = quickPriority === chip.dataset.priority ? null : chip.dataset.priority;
-          syncQuickFilterButtons();
-          updateView();
+      categoryFilterSelect.addEventListener("change", () => {
+        selectedCategory = categoryFilterSelect.value;
+        updateView();
+      });
+      priorityFilterSelect.addEventListener("change", () => {
+        selectedPriority = priorityFilterSelect.value;
+        updateView();
+      });
+      stateFilterSelect.addEventListener("change", () => {
+        selectedState = stateFilterSelect.value;
+        updateView();
+      });
+      resetAllFiltersButton.addEventListener("click", () => {
+        selectedCategory = "";
+        selectedPriority = "";
+        selectedState = "";
+        searchInput.value = "";
+        updateView();
+      });
+      mapViewFrame.addEventListener("load", () => {
+        syncMapFrame(filteredContacts());
+      });
+      viewTabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          setActiveView(tab.dataset.viewTab);
         });
-      });
-
-      priorityFilterButton.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const open = priorityFilterMenu.hidden;
-        closeMenus();
-        priorityFilterMenu.hidden = !open;
-        priorityFilterButton.setAttribute("aria-expanded", String(open));
-      });
-
-      categoryFilterButton.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const open = categoryFilterMenu.hidden;
-        closeMenus();
-        categoryFilterMenu.hidden = !open;
-        categoryFilterButton.setAttribute("aria-expanded", String(open));
       });
 
       moreActionsButton.addEventListener("click", (event) => {
@@ -3437,28 +3744,12 @@
         moreActionsButton.setAttribute("aria-expanded", String(open));
       });
 
-      priorityFilterClear.addEventListener("click", () => {
-        selectedPriority = null;
-        updateView();
-      });
-
-      categoryFilterClear.addEventListener("click", () => {
-        selectedCategory = null;
-        updateView();
-      });
-
       detailOverlay.addEventListener("click", closeDetail);
       editorOverlay.addEventListener("click", closeEditor);
       editorClose.addEventListener("click", closeEditor);
       editorCancel.addEventListener("click", closeEditor);
-      dashboardOverlay.addEventListener("click", closeDashboard);
-      dashboardClose.addEventListener("click", closeDashboard);
-      mapModeOverlay.addEventListener("click", closeMapMode);
-      mapModeClose.addEventListener("click", closeMapMode);
 
       newContactButton.addEventListener("click", () => openEditor());
-      dashboardButton.addEventListener("click", openDashboard);
-      mapModeButton.addEventListener("click", openMapMode);
       exportCsvButton.addEventListener("click", () => {
         closeMenus();
         downloadCsv();
@@ -3527,11 +3818,7 @@
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
           closeMenus();
-          if (mapModeDrawer.classList.contains("is-open")) {
-            closeMapMode();
-          } else if (dashboardDrawer.classList.contains("is-open")) {
-            closeDashboard();
-          } else if (editorDrawer.classList.contains("is-open")) {
+          if (editorDrawer.classList.contains("is-open")) {
             closeEditor();
           } else {
             closeDetail();
@@ -3540,10 +3827,11 @@
       });
 
       document.addEventListener("click", (event) => {
-        if (!event.target.closest(".header-filter") && !event.target.closest(".menu-shell")) closeMenus();
+        if (!event.target.closest(".menu-shell")) closeMenus();
       });
 
-      syncQuickFilterButtons();
+      setActiveView(activeView);
+      populateFilterSelects();
       updateView();
     </script>
   </body>
