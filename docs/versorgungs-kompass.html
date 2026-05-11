@@ -1712,17 +1712,17 @@
       }
 
       .detail-profile-top {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(290px, 336px);
+        align-items: start;
         gap: 14px;
       }
 
       .detail-profile-side {
         display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
-        min-width: 168px;
-        flex: 0 0 168px;
+        min-width: 290px;
       }
 
       .detail-profile-main {
@@ -1768,9 +1768,9 @@
       .detail-actions--stacked {
         display: flex;
         flex-wrap: wrap;
-        justify-content: flex-end;
+        justify-content: stretch;
         gap: 8px;
-        flex: 0 0 auto;
+        grid-column: span 2;
       }
 
       .detail-actions .action-button {
@@ -1778,6 +1778,7 @@
         padding: 0 12px;
         border-radius: 13px;
         font-size: 0.82rem;
+        flex: 1 1 0;
       }
 
       .detail-facts-grid {
@@ -2474,15 +2475,24 @@
           grid-template-columns: 1fr;
         }
 
-        .detail-profile-top,
+        .detail-profile-top {
+          grid-template-columns: 1fr;
+        }
+
         .detail-profile-main {
           flex-direction: column;
           align-items: flex-start;
         }
 
+        .detail-profile-side {
+          grid-template-columns: 1fr;
+          min-width: 0;
+        }
+
         .detail-actions--stacked {
           width: 100%;
           justify-content: stretch;
+          grid-column: auto;
         }
 
         .detail-facts-grid,
@@ -3786,6 +3796,14 @@
                       </select>
                     </label>
                   </article>
+                  <article class="detail-fact-card detail-fact-card--compact detail-fact-card--stack">
+                    <div class="detail-fact-label">Interner Owner</div>
+                    <label class="detail-select-shell">
+                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Interner Owner zuordnen">
+                        ${buildOwnerSelectOptions(ownerLabel)}
+                      </select>
+                    </label>
+                  </article>
                   <div class="detail-actions detail-actions--stacked">
                     <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
                     <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
@@ -3878,23 +3896,6 @@
                           <div class="detail-link-row">
                             <a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a>
                           </div>
-                        </article>
-                      `
-                      : ""
-                  }
-                  ${
-                    true
-                      ? `
-                        <article class="detail-info-card">
-                          <div class="detail-info-head">
-                            <span class="field-icon">👤</span>
-                            <span>Interner Owner</span>
-                          </div>
-                          <label class="detail-select-shell">
-                            <select class="detail-inline-select" id="detail-owner-select" aria-label="Interner Owner zuordnen">
-                              ${buildOwnerSelectOptions(ownerLabel)}
-                            </select>
-                          </label>
                         </article>
                       `
                       : ""
