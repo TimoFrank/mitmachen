@@ -1792,6 +1792,11 @@
         grid-column: span 2;
       }
 
+      .detail-fact-card--stack {
+        display: grid;
+        align-content: start;
+      }
+
       .detail-fact-label {
         color: #61709f;
         font-size: 0.72rem;
@@ -3465,6 +3470,16 @@
         return meaningfulOrEmpty(contact.title);
       }
 
+      function detailIntroSummary(contact) {
+        const description = meaningfulOrEmpty(contact.description);
+        const topic = meaningfulOrEmpty(contact.topic);
+        const specialty = specialtyLabel(contact);
+
+        if (description && description !== specialty) return description;
+        if (topic && topic !== specialty) return topic;
+        return "";
+      }
+
       function specialtyOptions() {
         return [...new Set(contacts.map((contact) => specialtyLabel(contact)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
       }
@@ -3712,7 +3727,7 @@
 
         const locationText = formatLocationDisplay(contact);
         const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
-        const roleSummary = contactRoleSummary(contact);
+        const introSummary = detailIntroSummary(contact);
         const missingFields = detailMissingFields(contact);
         const createdLabel = formatDateLabel(contact.createdAt);
         const updatedLabel = formatDateLabel(contact.updatedAt);
@@ -3746,12 +3761,7 @@
                   ${portraitMarkup}
                   <div class="detail-profile-copy">
                     <h3>${contact.displayName}</h3>
-                    <div class="detail-profile-role">${roleSummary}</div>
-                    ${
-                      organizationLabel || locationText
-                        ? `<div class="detail-profile-subline">${[organizationLabel, locationText].filter(Boolean).join(" • ")}</div>`
-                        : ""
-                    }
+                    ${introSummary ? `<div class="detail-profile-role">${introSummary}</div>` : ""}
                   </div>
                 </div>
                 <div class="detail-actions detail-actions--stacked">
@@ -3761,11 +3771,15 @@
               </section>
 
               <section class="detail-facts-grid">
-                <article class="detail-fact-card detail-fact-card--wide">
+                <article class="detail-fact-card">
                   <div class="detail-fact-label">Organisation</div>
                   <div class="detail-fact-value">${contact.organizationShort || organizationLabel || "Nicht dokumentiert"}</div>
                 </article>
                 <article class="detail-fact-card">
+                  <div class="detail-fact-label">Ort</div>
+                  <div class="detail-fact-value">${locationText || "Nicht dokumentiert"}</div>
+                </article>
+                <article class="detail-fact-card detail-fact-card--stack">
                   <div class="detail-fact-label">Fachrichtung</div>
                   <label class="detail-select-shell">
                     <select class="detail-inline-select" id="detail-specialty-select" aria-label="Fachrichtung zuordnen">
@@ -3774,14 +3788,10 @@
                   </label>
                 </article>
                 <article class="detail-fact-card">
-                  <div class="detail-fact-label">Ort</div>
-                  <div class="detail-fact-value">${locationText || "Nicht dokumentiert"}</div>
-                </article>
-                <article class="detail-fact-card">
                   <div class="detail-fact-label">Kategorie</div>
                   <div class="detail-fact-value">${categoryMarkup}</div>
                 </article>
-                <article class="detail-fact-card">
+                <article class="detail-fact-card detail-fact-card--wide detail-fact-card--stack">
                   <div class="detail-fact-label">Priorit&auml;t</div>
                   <label class="detail-select-shell">
                     <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen">
