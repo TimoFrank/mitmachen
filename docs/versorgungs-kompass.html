@@ -71,7 +71,7 @@
       @media (max-width: 860px) {
         .workspace-header,
         .filter-toolbar,
-        .table-toolbar {
+        .table-footer {
           flex-direction: column;
           align-items: stretch;
         }
@@ -685,28 +685,6 @@
         margin: 6px 0 0;
         color: var(--muted);
         font-size: 0.88rem;
-      }
-
-      .table-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 14px 18px;
-        border-bottom: 1px solid var(--line);
-        background: rgba(248, 250, 255, 0.82);
-      }
-
-      .table-toolbar__title {
-        font-size: 0.92rem;
-        font-weight: 800;
-        color: #30447f;
-      }
-
-      .table-toolbar__meta {
-        color: var(--muted);
-        font-size: 0.84rem;
-        font-weight: 700;
       }
 
       .table-footer {
@@ -2923,7 +2901,6 @@
         <div class="workspace-header">
           <div class="workspace-copy">
             <h2>Willkommen, Timo</h2>
-            <p id="workspace-subtitle">113 Kontakte im aktuellen Kontext.</p>
           </div>
           <div class="workspace-actions">
             <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
@@ -3007,10 +2984,6 @@
         <div class="view-shell">
           <section class="view-panel is-active" id="view-contacts" data-view-panel="contacts">
             <div class="view-card">
-              <div class="table-toolbar">
-                <div class="table-toolbar__title">Kontakte</div>
-                <div class="table-toolbar__meta" id="table-toolbar-meta">0 Kontakte sichtbar</div>
-              </div>
               <div class="table-wrap">
                 <section class="table contacts-table" aria-labelledby="kontaktliste-title">
                   <div class="thead">
@@ -3248,7 +3221,6 @@
       const list = document.getElementById("contact-list");
       const summaryGrid = document.getElementById("summary-grid");
       const resultsCount = document.getElementById("results-count");
-      const tableToolbarMeta = document.getElementById("table-toolbar-meta");
       const paginationMeta = document.getElementById("pagination-meta");
       const pagination = document.getElementById("pagination");
       const pageSizeSelect = document.getElementById("page-size-select");
@@ -3752,14 +3724,12 @@
       function renderTable(items) {
         if (!items.length) {
           list.innerHTML = `<div class="empty">Keine Kontakte im aktuellen Filter. Passe Suche oder Filter an.</div>`;
-          tableToolbarMeta.textContent = "0 Kontakte sichtbar";
           paginationMeta.textContent = "0–0 von 0 Kontakten";
           pagination.innerHTML = "";
           return;
         }
 
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
-        tableToolbarMeta.textContent = `${items.length} Kontakte sichtbar`;
         paginationMeta.textContent = `${startIndex + 1}–${endIndex} von ${items.length} Kontakten`;
 
         list.innerHTML = pageItems
@@ -4589,7 +4559,6 @@
       function updateView() {
         const items = filteredContacts();
         resultsCount.textContent = hitCountLabel(items);
-        document.getElementById("workspace-subtitle").textContent = `${contacts.length} Kontakte im aktuellen Kontext.`;
         renderSummary(items);
         renderTable(items);
         renderDashboard(items);
