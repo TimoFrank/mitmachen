@@ -3886,7 +3886,7 @@
                       <span class="field-icon">&#9993;</span>
                       <span>E-Mail</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-email-input" type="email" value="" placeholder="${String(contact.email || "E-Mail eintragen").replace(/"/g, "&quot;")}" />
+                    <input class="detail-inline-input" id="detail-email-input" type="email" value="" placeholder="E-Mail eintragen" />
                     ${
                       hasMeaningfulValue(contact.email)
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a></div>`
@@ -3898,7 +3898,7 @@
                       <span class="field-icon">&#9742;</span>
                       <span>Telefon</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-phone-input" type="text" value="" placeholder="${String(contact.phone || "Telefon eintragen").replace(/"/g, "&quot;")}" />
+                    <input class="detail-inline-input" id="detail-phone-input" type="text" value="" placeholder="Telefon eintragen" />
                     ${
                       hasMeaningfulValue(contact.phone)
                         ? ""
@@ -3910,7 +3910,7 @@
                       <span class="linkedin-icon">in</span>
                       <span>LinkedIn</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="" placeholder="${String(contact.linkedin || "LinkedIn-Profil eintragen").replace(/"/g, "&quot;")}" />
+                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="" placeholder="LinkedIn-Profil eintragen" />
                     ${
                       linkedinUrl
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a></div>`
@@ -3928,7 +3928,7 @@
                       <span class="field-icon">🗓</span>
                       <span>Notiz</span>
                     </div>
-                    <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="${String(contact.lastExchange || "Notiz eintragen").replace(/"/g, "&quot;")}"></textarea>
+                    <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="Notiz eintragen"></textarea>
                     ${noteText ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
                   <article class="detail-info-card ${(updatedLabel || createdLabel) ? "" : "detail-info-card--missing"}">
