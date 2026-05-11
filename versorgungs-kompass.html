@@ -533,7 +533,6 @@
           56px
           minmax(250px, 1.25fr)
           minmax(250px, 1.05fr)
-          minmax(190px, 0.86fr)
           minmax(180px, 0.78fr)
           minmax(230px, 0.98fr)
           minmax(160px, 0.72fr);
@@ -907,7 +906,7 @@
       }
 
       .table {
-        min-width: 1320px;
+        min-width: 1180px;
       }
 
       .thead,
@@ -917,7 +916,6 @@
           56px
           minmax(250px, 1.25fr)
           minmax(250px, 1.05fr)
-          minmax(190px, 0.86fr)
           minmax(180px, 0.78fr)
           minmax(230px, 0.98fr)
           minmax(160px, 0.72fr);
@@ -2625,7 +2623,6 @@
                     <div>#</div>
                     <div>Name</div>
                     <div>Organisation</div>
-                    <div>Ort</div>
                     <div>Kategorie</div>
                     <div>Fachrichtung</div>
                     <div>Priorität</div>
@@ -3373,9 +3370,6 @@
                   <input class="row-editor" type="text" value="${contact.organization.replace(/"/g, "&quot;")}" data-id="${contact.id}" data-field="organization" aria-label="Organisation bearbeiten" />
                 </div>
                 <div>
-                  <div class="contact-subline">${contact.location || stateLabel(contact)}</div>
-                </div>
-                <div>
                   <select class="row-editor row-select" data-id="${contact.id}" data-field="category" aria-label="Kategorie bearbeiten">
                     ${defaultCategories
                       .map((value) => `<option value="${value}" ${contact.category === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`)
@@ -3773,7 +3767,6 @@
                 </article>
                 <article class="detail-fact-card">
                   <div class="detail-fact-label">Fachrichtung</div>
-                  <div class="detail-fact-value">${specialtyText || "Nicht dokumentiert"}</div>
                   <label class="detail-select-shell">
                     <select class="detail-inline-select" id="detail-specialty-select" aria-label="Fachrichtung zuordnen">
                       ${buildSpecialtySelectOptions(specialtyText)}
@@ -3790,7 +3783,6 @@
                 </article>
                 <article class="detail-fact-card">
                   <div class="detail-fact-label">Priorit&auml;t</div>
-                  <div class="detail-fact-value">${priorityMarkup}</div>
                   <label class="detail-select-shell">
                     <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen">
                       ${buildPrioritySelectOptions(contact.priority)}
@@ -3899,7 +3891,6 @@
                       <span class="field-icon">👤</span>
                       <span>Interner Owner</span>
                     </div>
-                    <div class="detail-info-value ${ownerLabel ? "" : "detail-info-value--muted"}">${ownerLabel || "Nicht dokumentiert"}</div>
                     <label class="detail-select-shell">
                       <select class="detail-inline-select" id="detail-owner-select" aria-label="Interner Owner zuordnen">
                         ${buildOwnerSelectOptions(ownerLabel)}
