@@ -55,7 +55,6 @@
         }
 
         .summary.summary--compact,
-        .dashboard-kpis,
         .dashboard-grid {
           grid-template-columns: 1fr;
         }
@@ -1415,7 +1414,7 @@
         position: absolute;
         top: 0;
         right: 0;
-        width: min(620px, 100%);
+        width: min(660px, 100%);
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -1429,7 +1428,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 18px 20px;
+        padding: 16px 18px;
         border-bottom: 1px solid var(--line);
         position: sticky;
         top: 0;
@@ -1455,7 +1454,7 @@
       }
 
       .detail-content {
-        padding: 18px 20px 28px;
+        padding: 16px 18px 24px;
       }
 
       .detail-actions {
@@ -1690,28 +1689,28 @@
 
       .detail-profile {
         display: grid;
-        gap: 18px;
+        gap: 14px;
       }
 
       .detail-profile-top {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 16px;
+        gap: 14px;
       }
 
       .detail-profile-main {
         display: flex;
-        align-items: center;
-        gap: 16px;
+        align-items: flex-start;
+        gap: 14px;
         min-width: 0;
       }
 
       .detail-profile-main .avatar,
       .detail-profile-main img.avatar {
-        width: 84px;
-        height: 84px;
-        border-radius: 24px;
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
         box-shadow: 0 14px 30px rgba(42, 72, 156, 0.14);
       }
 
@@ -1721,62 +1720,73 @@
 
       .detail-profile-copy h3 {
         margin: 0;
-        font-size: clamp(1.55rem, 2vw, 2rem);
-        line-height: 1.06;
+        font-size: clamp(1.34rem, 1.8vw, 1.78rem);
+        line-height: 1.08;
         letter-spacing: -0.05em;
       }
 
       .detail-profile-role {
-        margin-top: 6px;
+        margin-top: 5px;
         color: #4d5d8f;
-        font-size: 1rem;
+        font-size: 0.92rem;
         font-weight: 700;
       }
 
       .detail-profile-subline {
-        margin-top: 8px;
+        margin-top: 6px;
         color: var(--muted);
-        font-size: 0.9rem;
-        line-height: 1.45;
+        font-size: 0.86rem;
+        line-height: 1.4;
       }
 
       .detail-actions--stacked {
         display: flex;
         flex-wrap: wrap;
         justify-content: flex-end;
-        gap: 10px;
+        gap: 8px;
         flex: 0 0 auto;
+      }
+
+      .detail-actions .action-button {
+        min-height: 38px;
+        padding: 0 12px;
+        border-radius: 13px;
+        font-size: 0.82rem;
       }
 
       .detail-facts-grid {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
       }
 
       .detail-fact-card {
-        min-height: 92px;
-        padding: 14px 15px;
+        min-height: 0;
+        padding: 10px 12px;
         border: 1px solid var(--line);
-        border-radius: 18px;
+        border-radius: 15px;
         background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
         box-shadow: 0 12px 28px rgba(49, 75, 153, 0.06);
       }
 
+      .detail-fact-card--wide {
+        grid-column: span 2;
+      }
+
       .detail-fact-label {
         color: #61709f;
-        font-size: 0.76rem;
+        font-size: 0.72rem;
         font-weight: 800;
         letter-spacing: 0.05em;
         text-transform: uppercase;
       }
 
       .detail-fact-value {
-        margin-top: 8px;
+        margin-top: 4px;
         color: #203165;
-        font-size: 0.98rem;
+        font-size: 0.88rem;
         font-weight: 800;
-        line-height: 1.35;
+        line-height: 1.28;
         word-break: break-word;
       }
 
@@ -1831,21 +1841,21 @@
 
       .detail-communication-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
       }
 
       .detail-context-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 0.8fr));
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
       }
 
       .detail-info-card {
-        min-height: 88px;
-        padding: 14px 15px;
+        min-height: 74px;
+        padding: 12px 13px;
         border: 1px solid var(--line);
-        border-radius: 18px;
+        border-radius: 16px;
         background: rgba(255, 255, 255, 0.96);
       }
 
@@ -1864,11 +1874,11 @@
       }
 
       .detail-info-value {
-        margin-top: 10px;
+        margin-top: 8px;
         color: #203165;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         font-weight: 700;
-        line-height: 1.45;
+        line-height: 1.4;
       }
 
       .detail-info-value--muted {
@@ -1892,6 +1902,10 @@
         padding-top: 4px;
         color: var(--muted);
         font-size: 0.82rem;
+      }
+
+      .analytics-head p {
+        max-width: 42ch;
       }
 
       .editor-drawer {
@@ -2026,49 +2040,6 @@
         cursor: pointer;
         box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
         flex: 0 0 auto;
-      }
-
-      .dashboard-body {
-        overflow: auto;
-        padding: 24px 26px 28px;
-        display: grid;
-        gap: 18px;
-      }
-
-      .dashboard-kpis {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-      }
-
-      .dashboard-kpi {
-        padding: 18px 20px;
-        border: 1px solid var(--line);
-        border-radius: 20px;
-        background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
-      }
-
-      .dashboard-kpi:nth-child(2) {
-        background: linear-gradient(180deg, #ffffff 0%, #eef6ff 100%);
-      }
-
-      .dashboard-kpi:nth-child(3) {
-        background: linear-gradient(180deg, #ffffff 0%, #fff4e8 100%);
-      }
-
-      .dashboard-kpi-label {
-        color: var(--muted);
-        font-size: 0.8rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-
-      .dashboard-kpi-value {
-        margin-top: 10px;
-        font-size: 2rem;
-        font-weight: 800;
-        letter-spacing: -0.05em;
       }
 
       .dashboard-grid {
@@ -2475,7 +2446,6 @@
           inset: 12px;
         }
 
-        .dashboard-kpis,
         .dashboard-grid,
         .category-chart {
           grid-template-columns: 1fr;
@@ -2514,7 +2484,7 @@
         <div class="workspace-header">
           <div class="workspace-copy">
             <h2>Kontakte schnell finden und einordnen.</h2>
-            <p id="workspace-subtitle">113 Kontakte im aktuellen Kontext.</p>
+            <p id="workspace-subtitle">Suche, filtere und pflege Versorgungskontakte.</p>
           </div>
           <div class="workspace-actions">
             <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
@@ -2590,7 +2560,6 @@
             <div class="view-card">
               <div class="table-toolbar">
                 <div class="table-toolbar__title">Kontakte</div>
-                <div class="table-toolbar__meta" id="table-toolbar-meta">0 von 0 Kontakten</div>
               </div>
               <div class="table-wrap">
                 <section class="table contacts-table" aria-labelledby="kontaktliste-title">
@@ -2628,7 +2597,6 @@
                   <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Kategorie und Bundesland.</p>
                 </div>
               </div>
-              <div class="dashboard-kpis" id="dashboard-kpis"></div>
               <div class="dashboard-grid">
                 <article class="dashboard-card">
                   <h4>Kategorie-Verteilung</h4>
@@ -2818,8 +2786,6 @@
       const searchInput = document.getElementById("search");
       const list = document.getElementById("contact-list");
       const summaryGrid = document.getElementById("summary-grid");
-      const workspaceSubtitle = document.getElementById("workspace-subtitle");
-      const tableToolbarMeta = document.getElementById("table-toolbar-meta");
       const resultsCount = document.getElementById("results-count");
       const activeFilterList = document.getElementById("active-filter-list");
       const resetAllFiltersButton = document.getElementById("reset-all-filters");
@@ -2842,7 +2808,6 @@
       const editorCancel = document.getElementById("editor-cancel");
       const newContactButton = document.getElementById("new-contact-button");
       const dashboardSubtitle = document.getElementById("dashboard-subtitle");
-      const dashboardKpis = document.getElementById("dashboard-kpis");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
       const moreActionsButton = document.getElementById("more-actions-button");
@@ -3273,7 +3238,7 @@
       function renderSummary(items) {
         const cards = [
           { label: "Kontakte gesamt", value: contacts.length, sub: "Alle Kontakte im Versorgungs-Kompass" },
-          { label: "Aktuelle Auswahl", value: items.length, sub: hitCountLabel(items) },
+          { label: "Aktuelle Auswahl", value: items.length, sub: "Treffer im aktuellen Filter" },
           {
             label: "Hohe Priorität",
             value: contacts.filter((contact) => contact.priority === "Hoch").length,
@@ -3520,40 +3485,9 @@
       }
 
       function renderDashboard(items = filteredContacts()) {
-        const totalContacts = contacts.length;
         const visibleContacts = items.length;
         const representedStates = new Set(items.map((contact) => stateLabel(contact)).filter(Boolean)).size;
-        const highPriorityCount = items.filter((contact) => contact.priority === "Hoch").length;
-
-        dashboardKpis.innerHTML = [
-          {
-            label: "Datensatz",
-            value: totalContacts,
-            sub: "Kontakte insgesamt"
-          },
-          {
-            label: "Aktiver Blick",
-            value: visibleContacts,
-            sub: "nach aktuellem Filter"
-          },
-          {
-            label: "Hohe Priorität",
-            value: highPriorityCount,
-            sub: "im aktuellen Blick"
-          }
-        ]
-          .map(
-            (card) => `
-              <article class="dashboard-kpi">
-                <div class="dashboard-kpi-label">${card.label}</div>
-                <div class="dashboard-kpi-value">${card.value}</div>
-                <div class="summary-sub">${card.sub}</div>
-              </article>
-            `
-          )
-          .join("");
-
-        dashboardSubtitle.textContent = `${visibleContacts} Kontakte im aktuellen Kontext, verteilt über ${representedStates} Bundesländer.`;
+        dashboardSubtitle.textContent = `Verteilung im aktuellen Filterkontext über ${representedStates} Bundesländer und Kategorien.`;
 
         const categoryCounts = defaultCategories
           .map((category) => ({
@@ -3732,9 +3666,9 @@
               </section>
 
               <section class="detail-facts-grid">
-                <article class="detail-fact-card">
+                <article class="detail-fact-card detail-fact-card--wide">
                   <div class="detail-fact-label">Organisation</div>
-                  <div class="detail-fact-value">${organizationLabel || "Nicht dokumentiert"}</div>
+                  <div class="detail-fact-value">${contact.organizationShort || organizationLabel || "Nicht dokumentiert"}</div>
                 </article>
                 <article class="detail-fact-card">
                   <div class="detail-fact-label">Ort</div>
@@ -3747,10 +3681,6 @@
                 <article class="detail-fact-card">
                   <div class="detail-fact-label">Priorit&auml;t</div>
                   <div class="detail-fact-value">${priorityMarkup}</div>
-                </article>
-                <article class="detail-fact-card">
-                  <div class="detail-fact-label">Aktualität</div>
-                  <div class="detail-fact-value">${updatedLabel || createdLabel || "Nicht dokumentiert"}</div>
                 </article>
               </section>
 
@@ -4083,9 +4013,7 @@
 
       function updateView() {
         const items = filteredContacts();
-        workspaceSubtitle.textContent = hitCountLabel(items);
         resultsCount.textContent = hitCountLabel(items);
-        tableToolbarMeta.textContent = hitCountLabel(items);
         renderSummary(items);
         renderTable(items);
         renderDashboard(items);
