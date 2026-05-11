@@ -1688,6 +1688,212 @@
         line-height: 1.45;
       }
 
+      .detail-profile {
+        display: grid;
+        gap: 18px;
+      }
+
+      .detail-profile-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .detail-profile-main {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .detail-profile-main .avatar,
+      .detail-profile-main img.avatar {
+        width: 84px;
+        height: 84px;
+        border-radius: 24px;
+        box-shadow: 0 14px 30px rgba(42, 72, 156, 0.14);
+      }
+
+      .detail-profile-copy {
+        min-width: 0;
+      }
+
+      .detail-profile-copy h3 {
+        margin: 0;
+        font-size: clamp(1.55rem, 2vw, 2rem);
+        line-height: 1.06;
+        letter-spacing: -0.05em;
+      }
+
+      .detail-profile-role {
+        margin-top: 6px;
+        color: #4d5d8f;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .detail-profile-subline {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .detail-actions--stacked {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+        flex: 0 0 auto;
+      }
+
+      .detail-facts-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .detail-fact-card {
+        min-height: 92px;
+        padding: 14px 15px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+        box-shadow: 0 12px 28px rgba(49, 75, 153, 0.06);
+      }
+
+      .detail-fact-label {
+        color: #61709f;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .detail-fact-value {
+        margin-top: 8px;
+        color: #203165;
+        font-size: 0.98rem;
+        font-weight: 800;
+        line-height: 1.35;
+        word-break: break-word;
+      }
+
+      .detail-fact-value .badge,
+      .detail-fact-value .role-badge {
+        min-height: 32px;
+      }
+
+      .detail-missing {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px 16px;
+        border: 1px solid #f2d7bb;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fffaf2 0%, #fff6ea 100%);
+        color: #945423;
+      }
+
+      .detail-missing-icon {
+        flex: 0 0 auto;
+        font-size: 1.05rem;
+        line-height: 1.2;
+      }
+
+      .detail-missing-copy {
+        min-width: 0;
+      }
+
+      .detail-missing-title {
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .detail-missing-list {
+        margin-top: 4px;
+        color: #a26433;
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .detail-section-title {
+        margin: 0 0 10px;
+        color: #243271;
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .detail-communication-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .detail-context-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 0.8fr));
+        gap: 12px;
+      }
+
+      .detail-info-card {
+        min-height: 88px;
+        padding: 14px 15px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      .detail-info-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #61709f;
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .detail-info-head .field-icon,
+      .detail-info-head .linkedin-icon {
+        margin-right: 0;
+      }
+
+      .detail-info-value {
+        margin-top: 10px;
+        color: #203165;
+        font-size: 0.95rem;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+
+      .detail-info-value--muted {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .detail-link-row {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .detail-footer-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding-top: 4px;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
       .editor-drawer {
         position: fixed;
         inset: 0;
@@ -2222,6 +2428,23 @@
         }
 
         .detail-stack--duo {
+          grid-template-columns: 1fr;
+        }
+
+        .detail-profile-top,
+        .detail-profile-main {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .detail-actions--stacked {
+          width: 100%;
+          justify-content: stretch;
+        }
+
+        .detail-facts-grid,
+        .detail-communication-grid,
+        .detail-context-grid {
           grid-template-columns: 1fr;
         }
 
@@ -2794,7 +3017,11 @@
           lat: Number.isFinite(latitude) ? latitude : null,
           lon: Number.isFinite(longitude) ? longitude : null,
           image: entry.image || "",
-          sources: normalizeSources(entry.sources || entry.sourcesText || "")
+          sources: normalizeSources(entry.sources || entry.sourcesText || ""),
+          lastExchange: entry.lastExchange || "",
+          owner: entry.owner || "",
+          createdAt: entry.createdAt || "",
+          updatedAt: entry.updatedAt || ""
         };
       }
 
@@ -2896,7 +3123,11 @@
             note: contact.note,
             nextStep: contact.nextStep,
             image: contact.image,
-            sources: contact.sources
+            sources: contact.sources,
+            lastExchange: contact.lastExchange,
+            owner: contact.owner,
+            createdAt: contact.createdAt,
+            updatedAt: contact.updatedAt
           }));
           window.localStorage.setItem(storageKey, JSON.stringify(payload));
           setStorageStatus(message);
@@ -2915,7 +3146,7 @@
         if (currentValue === normalizedValue) return;
 
         contacts = contacts.map((contact, index) =>
-          contact.id === id ? sanitizeContact({ ...contact, [field]: normalizedValue }, index) : contact
+          contact.id === id ? sanitizeContact({ ...contact, [field]: normalizedValue, updatedAt: new Date().toISOString() }, index) : contact
         );
 
         persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
@@ -3195,8 +3426,57 @@
         });
       }
 
+      function hasMeaningfulValue(value) {
+        const normalized = String(value || "").trim();
+        if (!normalized) return false;
+        return !/noch ergänzen/i.test(normalized);
+      }
+
+      function meaningfulOrEmpty(value) {
+        return hasMeaningfulValue(value) ? String(value).trim() : "";
+      }
+
+      function contactRoleSummary(contact) {
+        return (
+          meaningfulOrEmpty(contact.title) ||
+          meaningfulOrEmpty(contact.description) ||
+          meaningfulOrEmpty(contact.topic) ||
+          "Kontakt im Gesundheitswesen"
+        );
+      }
+
+      function formatLocationDisplay(contact) {
+        const cityState = [contact.city, stateLabel(contact)].filter(Boolean).join(", ");
+        if (hasMeaningfulValue(contact.location)) return contact.location;
+        if (cityState) return cityState;
+        return "";
+      }
+
+      function formatDateLabel(value) {
+        if (!value) return "";
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return String(value);
+        return new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric"
+        }).format(parsed);
+      }
+
+      function detailMissingFields(contact) {
+        const fields = [];
+        if (!hasMeaningfulValue(contact.email)) fields.push("E-Mail");
+        if (!hasMeaningfulValue(contact.phone)) fields.push("Telefon");
+        if (!hasMeaningfulValue(contact.linkedin)) fields.push("LinkedIn");
+        if (!hasMeaningfulValue(contact.topic)) fields.push("Thema");
+        if (!hasMeaningfulValue(contact.lastExchange)) fields.push("Letzter Austausch");
+        if (!hasMeaningfulValue(contact.owner)) fields.push("Interner Owner");
+        if (!hasMeaningfulValue(contact.location) && !hasMeaningfulValue(contact.city) && !hasMeaningfulValue(contact.state)) fields.push("Ort");
+        return fields;
+      }
+
       function renderSourcesList(contact) {
-        if (!contact.sources.length) return "Noch ergänzen";
+        if (!contact.sources.length) return "Keine Quellen dokumentiert";
         return `<ul class="detail-list">${contact.sources
           .map(
             (source) =>
@@ -3402,11 +3682,20 @@
         const contact = currentItems.find((item) => item.id === id) || contacts.find((item) => item.id === id);
         if (!contact) return;
 
-        const emailText = contact.email || "Noch ergänzen";
-        const phoneText = contact.phone || "Noch ergänzen";
-        const locationText = contact.location || "Noch ergänzen";
-        const linkedinUrl = contact.linkedin || "";
-        const heroSubtitle = contact.displayName === contact.title ? contact.organization : contact.title;
+        const locationText = formatLocationDisplay(contact);
+        const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
+        const roleSummary = contactRoleSummary(contact);
+        const missingFields = detailMissingFields(contact);
+        const createdLabel = formatDateLabel(contact.createdAt);
+        const updatedLabel = formatDateLabel(contact.updatedAt);
+        const ownerLabel = meaningfulOrEmpty(contact.owner);
+        const lastExchangeLabel = formatDateLabel(contact.lastExchange) || meaningfulOrEmpty(contact.lastExchange);
+        const topicLabel = meaningfulOrEmpty(contact.topic);
+        const noteLabel = meaningfulOrEmpty(contact.note);
+        const nextStepLabel = meaningfulOrEmpty(contact.nextStep);
+        const organizationLabel = meaningfulOrEmpty(contact.organization);
+        const priorityMarkup = `<span class="badge ${contact.priorityClass}">${contact.priority}</span>`;
+        const categoryMarkup = `<span class="${contact.roleBadgeClass}">${contact.categoryEmoji} ${contact.category}</span>`;
         const portraitMarkup = contact.image
           ? `<img class="avatar ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
           : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`;
@@ -3422,103 +3711,202 @@
             <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
           </div>
           <div class="detail-content">
-            <section class="detail-hero">
-              <div class="detail-top">
-                ${portraitMarkup}
-                <div>
-                  <h3>${contact.displayName}</h3>
-                  <p>${heroSubtitle}</p>
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${portraitMarkup}
+                  <div class="detail-profile-copy">
+                    <h3>${contact.displayName}</h3>
+                    <div class="detail-profile-role">${roleSummary}</div>
+                    ${
+                      organizationLabel || locationText
+                        ? `<div class="detail-profile-subline">${[organizationLabel, locationText].filter(Boolean).join(" • ")}</div>`
+                        : ""
+                    }
+                  </div>
                 </div>
-              </div>
-              <div class="detail-actions">
-                <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
-                <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
-              </div>
-            </section>
+                <div class="detail-actions detail-actions--stacked">
+                  <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
+                  <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
+                </div>
+              </section>
 
-            <div class="detail-strip">
-              <article class="detail-card">
-                <div class="detail-label">Priorit&auml;t</div>
-                <div class="detail-value"><span class="badge ${contact.priorityClass}">${contact.priority}</span></div>
-              </article>
-              <article class="detail-card">
-                <div class="detail-label">Kategorie</div>
-                <div class="detail-value"><span class="${contact.roleBadgeClass}">${contact.categoryEmoji} ${contact.category}</span></div>
-              </article>
+              <section class="detail-facts-grid">
+                <article class="detail-fact-card">
+                  <div class="detail-fact-label">Organisation</div>
+                  <div class="detail-fact-value">${organizationLabel || "Nicht dokumentiert"}</div>
+                </article>
+                <article class="detail-fact-card">
+                  <div class="detail-fact-label">Ort</div>
+                  <div class="detail-fact-value">${locationText || "Nicht dokumentiert"}</div>
+                </article>
+                <article class="detail-fact-card">
+                  <div class="detail-fact-label">Kategorie</div>
+                  <div class="detail-fact-value">${categoryMarkup}</div>
+                </article>
+                <article class="detail-fact-card">
+                  <div class="detail-fact-label">Priorit&auml;t</div>
+                  <div class="detail-fact-value">${priorityMarkup}</div>
+                </article>
+                <article class="detail-fact-card">
+                  <div class="detail-fact-label">Aktualität</div>
+                  <div class="detail-fact-value">${updatedLabel || createdLabel || "Nicht dokumentiert"}</div>
+                </article>
+              </section>
+
+              ${
+                missingFields.length
+                  ? `
+                    <section class="detail-missing">
+                      <div class="detail-missing-icon">⚠️</div>
+                      <div class="detail-missing-copy">
+                        <div class="detail-missing-title">Fehlende Angaben</div>
+                        <div class="detail-missing-list">${missingFields.join(", ")}</div>
+                      </div>
+                    </section>
+                  `
+                  : ""
+              }
+
+              <section class="section-block">
+                <h4 class="detail-section-title">Kommunikation</h4>
+                <div class="detail-communication-grid">
+                  ${
+                    hasMeaningfulValue(contact.email)
+                      ? `
+                        <article class="detail-info-card">
+                          <div class="detail-info-head">
+                            <span class="field-icon">&#9993;</span>
+                            <span>E-Mail</span>
+                          </div>
+                          <div class="detail-info-value">${contact.email}</div>
+                          <div class="detail-link-row">
+                            <a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a>
+                          </div>
+                        </article>
+                      `
+                      : ""
+                  }
+                  ${
+                    hasMeaningfulValue(contact.phone)
+                      ? `
+                        <article class="detail-info-card">
+                          <div class="detail-info-head">
+                            <span class="field-icon">&#9742;</span>
+                            <span>Telefon</span>
+                          </div>
+                          <div class="detail-info-value">${contact.phone}</div>
+                        </article>
+                      `
+                      : ""
+                  }
+                  ${
+                    linkedinUrl
+                      ? `
+                        <article class="detail-info-card">
+                          <div class="detail-info-head">
+                            <span class="linkedin-icon">in</span>
+                            <span>LinkedIn</span>
+                          </div>
+                          <div class="detail-info-value">Öffentliches Profil</div>
+                          <div class="detail-link-row">
+                            <a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a>
+                          </div>
+                        </article>
+                      `
+                      : ""
+                  }
+                  ${
+                    !hasMeaningfulValue(contact.email) && !hasMeaningfulValue(contact.phone) && !linkedinUrl
+                      ? `
+                        <article class="detail-info-card">
+                          <div class="detail-info-head">
+                            <span class="field-icon">i</span>
+                            <span>Kommunikation</span>
+                          </div>
+                          <div class="detail-info-value detail-info-value--muted">Keine Kommunikationsangaben dokumentiert.</div>
+                        </article>
+                      `
+                      : ""
+                  }
+                </div>
+              </section>
+
+              <section class="section-block">
+                <h4 class="detail-section-title">Kontext</h4>
+                <div class="detail-context-grid">
+                  <article class="detail-info-card">
+                    <div class="detail-info-head">
+                      <span class="field-icon">✦</span>
+                      <span>Thema</span>
+                    </div>
+                    <div class="detail-info-value ${topicLabel ? "" : "detail-info-value--muted"}">${topicLabel || "Nicht dokumentiert"}</div>
+                  </article>
+                  <article class="detail-info-card">
+                    <div class="detail-info-head">
+                      <span class="field-icon">🗓</span>
+                      <span>Letzter Austausch</span>
+                    </div>
+                    <div class="detail-info-value ${lastExchangeLabel ? "" : "detail-info-value--muted"}">${lastExchangeLabel || "Nicht dokumentiert"}</div>
+                  </article>
+                  <article class="detail-info-card">
+                    <div class="detail-info-head">
+                      <span class="field-icon">👤</span>
+                      <span>Interner Owner</span>
+                    </div>
+                    <div class="detail-info-value ${ownerLabel ? "" : "detail-info-value--muted"}">${ownerLabel || "Nicht dokumentiert"}</div>
+                  </article>
+                  <article class="detail-info-card">
+                    <div class="detail-info-head">
+                      <span class="field-icon">↻</span>
+                      <span>Zuletzt aktualisiert</span>
+                    </div>
+                    <div class="detail-info-value ${(updatedLabel || createdLabel) ? "" : "detail-info-value--muted"}">${updatedLabel || createdLabel || "Nicht dokumentiert"}</div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="section-block">
+                <h4 class="detail-section-title">Profil</h4>
+                <div class="detail-stack">
+                  ${
+                    noteLabel
+                      ? `
+                        <article class="detail-card">
+                          <div class="detail-label">Einordnung</div>
+                          <div class="detail-value">${noteLabel}</div>
+                        </article>
+                      `
+                      : ""
+                  }
+                  ${
+                    nextStepLabel
+                      ? `
+                        <article class="detail-card">
+                          <div class="detail-label">Nächster Schritt</div>
+                          <div class="detail-value">${nextStepLabel}</div>
+                        </article>
+                      `
+                      : ""
+                  }
+                  <article class="detail-card">
+                    <div class="detail-label">Quellen</div>
+                    <div class="detail-value">${renderSourcesList(contact)}</div>
+                  </div>
+                  ${
+                    !noteLabel && !nextStepLabel
+                      ? `<div class="detail-empty-note">Kein zusätzlicher interner Profilkontext dokumentiert.</div>`
+                      : ""
+                  }
+                </div>
+              </section>
+
+              <div class="detail-footer-meta">
+                <span>${createdLabel ? `Erstellt am ${createdLabel}` : "Erstellt: nicht dokumentiert"}</span>
+                <span>${updatedLabel ? `Aktualisiert am ${updatedLabel}` : "Aktualisiert: nicht dokumentiert"}</span>
+                <span>ID: ${contact.id}</span>
+              </div>
             </div>
-
-            <section class="section-block">
-              <h4 class="section-title">Profil</h4>
-              <div class="detail-stack">
-                <article class="detail-card">
-                  <div class="field-head">
-                    <span class="field-icon">&#127970;</span>
-                    <div class="detail-label">Organisation</div>
-                  </div>
-                  <div class="detail-value">
-                    ${contact.organization}
-                    <div class="detail-subvalue"><span class="field-icon" style="margin-right: 8px;">&#128205;</span>${locationText}</div>
-                  </div>
-                </article>
-              </div>
-            </section>
-
-            <section class="section-block">
-              <h4 class="section-title">Kommunikation</h4>
-              <div class="detail-stack detail-stack--duo">
-                <article class="detail-card">
-                  <div class="field-head">
-                    <span class="field-icon">&#9993;</span>
-                    <div class="detail-label">E-Mail</div>
-                  </div>
-                  <div class="detail-value detail-value--split">
-                    <span>${emailText}</span>
-                    ${contact.email ? `<a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a>` : ""}
-                  </div>
-                </article>
-                <article class="detail-card">
-                  <div class="field-head">
-                    <span class="field-icon">&#9742;</span>
-                    <div class="detail-label">Telefon</div>
-                  </div>
-                  <div class="detail-value">${phoneText}</div>
-                </article>
-              </div>
-              <div class="detail-stack" style="margin-top: 12px;">
-                <article class="detail-card">
-                  <div class="field-head">
-                    <span class="linkedin-icon">in</span>
-                    <div class="detail-label">LinkedIn</div>
-                  </div>
-                  <div class="detail-value">
-                    ${linkedinUrl ? `<a class="detail-link" href="${linkedinUrl}" target="_blank" rel="noreferrer">Profil &ouml;ffnen</a>` : "Noch ergänzen"}
-                  </div>
-                </article>
-              </div>
-            </section>
-
-            <section class="section-block">
-              <h4 class="section-title">Inhalt</h4>
-              <div class="detail-stack">
-                <article class="detail-card">
-                  <div class="detail-label">Themenfokus</div>
-                  <div class="detail-value">${contact.topic}</div>
-                </article>
-                <article class="detail-card">
-                  <div class="detail-label">Einordnung</div>
-                  <div class="detail-value">${contact.note}</div>
-                </article>
-                <article class="detail-card">
-                  <div class="detail-label">N&auml;chster Schritt</div>
-                  <div class="detail-value">${contact.nextStep}</div>
-                </article>
-                <article class="detail-card">
-                  <div class="detail-label">Quellen</div>
-                  <div class="detail-value">${renderSourcesList(contact)}</div>
-                </article>
-              </div>
-              ${isIncomplete(contact) ? `<div class="detail-empty-note">Dieser Kontakt enthält noch offene Pflegefelder. Mit "Bearbeiten" kannst du die fehlenden Angaben direkt in der UI vervollständigen.</div>` : ""}
-            </section>
           </div>
         `;
 
@@ -3612,7 +4000,11 @@
           "note",
           "nextStep",
           "image",
-          "sources"
+          "sources",
+          "lastExchange",
+          "owner",
+          "createdAt",
+          "updatedAt"
         ];
 
         const rows = items.map((contact) =>
@@ -3639,7 +4031,11 @@
             contact.note,
             contact.nextStep,
             contact.image,
-            normalizeSources(contact.sources).join(" | ")
+            normalizeSources(contact.sources).join(" | "),
+            contact.lastExchange,
+            contact.owner,
+            contact.createdAt,
+            contact.updatedAt
           ]
             .map(csvEscape)
             .join(",")
@@ -3774,6 +4170,8 @@
       editorForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const formData = new FormData(editorForm);
+        const timestamp = new Date().toISOString();
+        const existingContact = editingId ? contacts.find((contact) => contact.id === editingId) : null;
         const entry = {
           id: formData.get("id") || createId(),
           name: String(formData.get("name") || "").trim(),
@@ -3789,7 +4187,11 @@
           note: String(formData.get("note") || "").trim(),
           nextStep: String(formData.get("nextStep") || "").trim(),
           image: String(formData.get("image") || "").trim(),
-          sources: normalizeSources(formData.get("sourcesText") || "")
+          sources: normalizeSources(formData.get("sourcesText") || ""),
+          lastExchange: existingContact?.lastExchange || "",
+          owner: existingContact?.owner || "",
+          createdAt: existingContact?.createdAt || timestamp,
+          updatedAt: timestamp
         };
 
         if (!entry.name) {
