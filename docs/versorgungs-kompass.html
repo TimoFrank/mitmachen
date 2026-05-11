@@ -534,9 +534,9 @@
           minmax(250px, 1.25fr)
           minmax(250px, 1.05fr)
           minmax(190px, 0.86fr)
-          minmax(140px, 0.65fr)
           minmax(180px, 0.78fr)
-          minmax(230px, 0.98fr);
+          minmax(230px, 0.98fr)
+          minmax(160px, 0.72fr);
       }
 
       .controls {
@@ -918,9 +918,9 @@
           minmax(250px, 1.25fr)
           minmax(250px, 1.05fr)
           minmax(190px, 0.86fr)
-          minmax(140px, 0.65fr)
           minmax(180px, 0.78fr)
-          minmax(230px, 0.98fr);
+          minmax(230px, 0.98fr)
+          minmax(160px, 0.72fr);
         align-items: center;
       }
 
@@ -2626,9 +2626,9 @@
                     <div>Name</div>
                     <div>Organisation</div>
                     <div>Ort</div>
-                    <div>Priorität</div>
                     <div>Kategorie</div>
                     <div>Fachrichtung</div>
+                    <div>Priorität</div>
                   </div>
                   <div id="contact-list"></div>
                 </section>
@@ -3376,13 +3376,6 @@
                   <div class="contact-subline">${contact.location || stateLabel(contact)}</div>
                 </div>
                 <div>
-                  <select class="row-editor row-select row-select--priority ${contact.priority === "Hoch" ? "is-high" : contact.priority === "Mittel" ? "is-medium" : "is-low"}" data-id="${contact.id}" data-field="priority" aria-label="Priorität bearbeiten">
-                    ${["Hoch", "Mittel", "Niedrig"]
-                      .map((value) => `<option value="${value}" ${contact.priority === value ? "selected" : ""}>${priorityEmoji[value]} ${value}</option>`)
-                      .join("")}
-                  </select>
-                </div>
-                <div>
                   <select class="row-editor row-select" data-id="${contact.id}" data-field="category" aria-label="Kategorie bearbeiten">
                     ${defaultCategories
                       .map((value) => `<option value="${value}" ${contact.category === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`)
@@ -3391,6 +3384,9 @@
                 </div>
                 <div>
                   <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "Nicht dokumentiert"}</div>
+                </div>
+                <div>
+                  ${`<span class="badge ${contact.priorityClass}">${contact.priority}</span>`}
                 </div>
               </article>
             `
@@ -3493,6 +3489,15 @@
             (specialty) => `<option value="${specialty}" ${selectedSpecialty === specialty ? "selected" : ""}>${specialty}</option>`
           )
         ].join("");
+      }
+
+      function buildPrioritySelectOptions(selectedPriority = "Mittel") {
+        return ["Hoch", "Mittel", "Niedrig"]
+          .map(
+            (value) =>
+              `<option value="${value}" ${selectedPriority === value ? "selected" : ""}>${priorityEmoji[value]} ${value}</option>`
+          )
+          .join("");
       }
 
       function contactRoleSummary(contact) {
@@ -3786,6 +3791,11 @@
                 <article class="detail-fact-card">
                   <div class="detail-fact-label">Priorit&auml;t</div>
                   <div class="detail-fact-value">${priorityMarkup}</div>
+                  <label class="detail-select-shell">
+                    <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen">
+                      ${buildPrioritySelectOptions(contact.priority)}
+                    </select>
+                  </label>
                 </article>
               </section>
 
@@ -3961,6 +3971,12 @@
         if (detailSpecialtySelect) {
           detailSpecialtySelect.addEventListener("change", () => {
             updateContactField(contact.id, "title", detailSpecialtySelect.value);
+          });
+        }
+        const detailPrioritySelect = document.getElementById("detail-priority-select");
+        if (detailPrioritySelect) {
+          detailPrioritySelect.addEventListener("change", () => {
+            updateContactField(contact.id, "priority", detailPrioritySelect.value);
           });
         }
         const detailOwnerSelect = document.getElementById("detail-owner-select");
