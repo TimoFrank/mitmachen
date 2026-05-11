@@ -1713,16 +1713,16 @@
 
       .detail-profile-top {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(290px, 336px);
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 328px);
         align-items: start;
-        gap: 14px;
+        gap: 12px;
       }
 
       .detail-profile-side {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
-        min-width: 290px;
+        min-width: 300px;
       }
 
       .detail-profile-main {
@@ -1766,19 +1766,18 @@
       }
 
       .detail-actions--stacked {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: stretch;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
         grid-column: span 2;
       }
 
       .detail-actions .action-button {
-        min-height: 38px;
-        padding: 0 12px;
+        min-height: 40px;
+        padding: 0 10px;
         border-radius: 13px;
         font-size: 0.82rem;
-        flex: 1 1 0;
+        width: 100%;
       }
 
       .detail-facts-grid {
@@ -1806,7 +1805,7 @@
       }
 
       .detail-fact-card--compact {
-        padding: 10px 12px;
+        padding: 9px 11px;
       }
 
       .detail-fact-label {
@@ -1919,7 +1918,7 @@
 
       .detail-select-shell {
         position: relative;
-        margin-top: 10px;
+        margin-top: 6px;
       }
 
       .detail-select-shell::after {
@@ -1935,7 +1934,7 @@
 
       .detail-inline-select {
         width: 100%;
-        min-height: 38px;
+        min-height: 36px;
         padding: 0 36px 0 12px;
         border: 1px solid #d8def7;
         border-radius: 12px;
@@ -2491,7 +2490,7 @@
 
         .detail-actions--stacked {
           width: 100%;
-          justify-content: stretch;
+          grid-template-columns: 1fr;
           grid-column: auto;
         }
 
