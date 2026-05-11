@@ -535,7 +535,8 @@
           minmax(250px, 1.05fr)
           minmax(180px, 0.78fr)
           minmax(230px, 0.98fr)
-          minmax(160px, 0.72fr);
+          minmax(160px, 0.72fr)
+          minmax(190px, 0.86fr);
       }
 
       .controls {
@@ -906,7 +907,7 @@
       }
 
       .table {
-        min-width: 1180px;
+        min-width: 1360px;
       }
 
       .thead,
@@ -918,7 +919,8 @@
           minmax(250px, 1.05fr)
           minmax(180px, 0.78fr)
           minmax(230px, 0.98fr)
-          minmax(160px, 0.72fr);
+          minmax(160px, 0.72fr)
+          minmax(190px, 0.86fr);
         align-items: center;
       }
 
@@ -1217,6 +1219,24 @@
         color: #32457f;
         font-size: 0.84rem;
         font-weight: 700;
+      }
+
+      .contact-owner-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #eef3ff;
+        color: #37529d;
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      .contact-owner-chip--empty {
+        background: #fff5e9;
+        color: #9b6a1d;
       }
 
       .row-editor {
@@ -1713,16 +1733,16 @@
 
       .detail-profile-top {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(290px, 336px);
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 328px);
         align-items: start;
-        gap: 14px;
+        gap: 12px;
       }
 
       .detail-profile-side {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
-        min-width: 290px;
+        min-width: 300px;
       }
 
       .detail-profile-main {
@@ -1766,19 +1786,18 @@
       }
 
       .detail-actions--stacked {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: stretch;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
         grid-column: span 2;
       }
 
       .detail-actions .action-button {
-        min-height: 38px;
-        padding: 0 12px;
+        min-height: 40px;
+        padding: 0 10px;
         border-radius: 13px;
         font-size: 0.82rem;
-        flex: 1 1 0;
+        width: 100%;
       }
 
       .detail-facts-grid {
@@ -1806,7 +1825,7 @@
       }
 
       .detail-fact-card--compact {
-        padding: 10px 12px;
+        padding: 9px 11px;
       }
 
       .detail-fact-label {
@@ -1917,9 +1936,19 @@
         line-height: 1.4;
       }
 
+      .detail-warning {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        color: #a46b1f;
+        font-size: 0.77rem;
+        font-weight: 700;
+      }
+
       .detail-select-shell {
         position: relative;
-        margin-top: 10px;
+        margin-top: 6px;
       }
 
       .detail-select-shell::after {
@@ -1935,7 +1964,7 @@
 
       .detail-inline-select {
         width: 100%;
-        min-height: 38px;
+        min-height: 36px;
         padding: 0 36px 0 12px;
         border: 1px solid #d8def7;
         border-radius: 12px;
@@ -2491,7 +2520,7 @@
 
         .detail-actions--stacked {
           width: 100%;
-          justify-content: stretch;
+          grid-template-columns: 1fr;
           grid-column: auto;
         }
 
@@ -2652,6 +2681,7 @@
                     <div>Kategorie</div>
                     <div>Fachrichtung</div>
                     <div>Priorität</div>
+                    <div>Interner Owner</div>
                   </div>
                   <div id="contact-list"></div>
                 </section>
@@ -3408,6 +3438,9 @@
                 <div>
                   ${`<span class="badge ${contact.priorityClass}">${contact.priority}</span>`}
                 </div>
+                <div>
+                  <span class="contact-owner-chip ${meaningfulOrEmpty(contact.owner) ? "" : "contact-owner-chip--empty"}">${meaningfulOrEmpty(contact.owner) || "⚠ Kein Owner"}</span>
+                </div>
               </article>
             `
           )
@@ -3855,64 +3888,42 @@
               <section class="section-block">
                 <h4 class="detail-section-title">Kommunikation</h4>
                 <div class="detail-communication-grid">
-                  ${
-                    hasMeaningfulValue(contact.email)
-                      ? `
-                        <article class="detail-info-card">
-                          <div class="detail-info-head">
-                            <span class="field-icon">&#9993;</span>
-                            <span>E-Mail</span>
-                          </div>
-                          <div class="detail-info-value">${contact.email}</div>
-                          <div class="detail-link-row">
-                            <a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a>
-                          </div>
-                        </article>
-                      `
-                      : ""
-                  }
-                  ${
-                    hasMeaningfulValue(contact.phone)
-                      ? `
-                        <article class="detail-info-card">
-                          <div class="detail-info-head">
-                            <span class="field-icon">&#9742;</span>
-                            <span>Telefon</span>
-                          </div>
-                          <div class="detail-info-value">${contact.phone}</div>
-                        </article>
-                      `
-                      : ""
-                  }
-                  ${
-                    linkedinUrl
-                      ? `
-                        <article class="detail-info-card">
-                          <div class="detail-info-head">
-                            <span class="linkedin-icon">in</span>
-                            <span>LinkedIn</span>
-                          </div>
-                          <div class="detail-info-value">Öffentliches Profil</div>
-                          <div class="detail-link-row">
-                            <a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a>
-                          </div>
-                        </article>
-                      `
-                      : ""
-                  }
-                  ${
-                    !hasMeaningfulValue(contact.email) && !hasMeaningfulValue(contact.phone) && !linkedinUrl
-                      ? `
-                        <article class="detail-info-card">
-                          <div class="detail-info-head">
-                            <span class="field-icon">i</span>
-                            <span>Kommunikation</span>
-                          </div>
-                          <div class="detail-info-value detail-info-value--muted">Keine Kommunikationsangaben dokumentiert.</div>
-                        </article>
-                      `
-                      : ""
-                  }
+                  <article class="detail-info-card">
+                    <div class="detail-info-head">
+                      <span class="field-icon">&#9993;</span>
+                      <span>E-Mail</span>
+                    </div>
+                    <div class="detail-info-value ${hasMeaningfulValue(contact.email) ? "" : "detail-info-value--muted"}">${contact.email || "Nicht dokumentiert"}</div>
+                    ${
+                      hasMeaningfulValue(contact.email)
+                        ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a></div>`
+                        : `<div class="detail-warning"><span>⚠</span><span>Fehlende Angabe</span></div>`
+                    }
+                  </article>
+                  <article class="detail-info-card">
+                    <div class="detail-info-head">
+                      <span class="field-icon">&#9742;</span>
+                      <span>Telefon</span>
+                    </div>
+                    <div class="detail-info-value ${hasMeaningfulValue(contact.phone) ? "" : "detail-info-value--muted"}">${contact.phone || "Nicht dokumentiert"}</div>
+                    ${
+                      hasMeaningfulValue(contact.phone)
+                        ? ""
+                        : `<div class="detail-warning"><span>⚠</span><span>Fehlende Angabe</span></div>`
+                    }
+                  </article>
+                  <article class="detail-info-card">
+                    <div class="detail-info-head">
+                      <span class="linkedin-icon">in</span>
+                      <span>LinkedIn</span>
+                    </div>
+                    <div class="detail-info-value ${linkedinUrl ? "" : "detail-info-value--muted"}">${linkedinUrl ? "Öffentliches Profil" : "Nicht dokumentiert"}</div>
+                    ${
+                      linkedinUrl
+                        ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a></div>`
+                        : `<div class="detail-warning"><span>⚠</span><span>Fehlende Angabe</span></div>`
+                    }
+                  </article>
                 </div>
               </section>
 
