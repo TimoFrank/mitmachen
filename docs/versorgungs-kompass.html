@@ -2787,7 +2787,7 @@
               <input class="editor-input" id="field-name" name="name" required />
             </div>
             <div class="editor-field">
-              <label class="editor-label" for="field-title">Titel</label>
+              <label class="editor-label" for="field-title">Fachrichtung</label>
               <input class="editor-input" id="field-title" name="title" />
             </div>
             <div class="editor-field">
@@ -2821,18 +2821,6 @@
             <div class="editor-field">
               <label class="editor-label" for="field-location">Standort</label>
               <input class="editor-input" id="field-location" name="location" />
-            </div>
-            <div class="editor-field editor-field--full">
-              <label class="editor-label" for="field-topic">Themenfokus</label>
-              <textarea class="editor-textarea" id="field-topic" name="topic"></textarea>
-            </div>
-            <div class="editor-field editor-field--full">
-              <label class="editor-label" for="field-note">Einordnung</label>
-              <textarea class="editor-textarea" id="field-note" name="note"></textarea>
-            </div>
-            <div class="editor-field editor-field--full">
-              <label class="editor-label" for="field-next-step">Nächster Schritt</label>
-              <textarea class="editor-textarea" id="field-next-step" name="nextStep"></textarea>
             </div>
             <div class="editor-field editor-field--full">
               <label class="editor-label" for="field-image">Bild-URL</label>
@@ -4054,9 +4042,6 @@
         editorForm.elements.phone.value = contact?.phone || "";
         editorForm.elements.linkedin.value = contact?.linkedin || "";
         editorForm.elements.location.value = contact?.location || "";
-        editorForm.elements.topic.value = contact?.topic || "";
-        editorForm.elements.note.value = contact?.note || "";
-        editorForm.elements.nextStep.value = contact?.nextStep || "";
         editorForm.elements.image.value = contact?.image || "";
         editorForm.elements.sourcesText.value = (contact?.sources || []).join("\n");
 
@@ -4284,14 +4269,14 @@
           title: String(formData.get("title") || "").trim(),
           category: String(formData.get("category") || defaultCategories[0]),
           organization: String(formData.get("organization") || "").trim(),
-          topic: String(formData.get("topic") || "").trim(),
+          topic: existingContact?.topic || "",
           priority: String(formData.get("priority") || "Mittel"),
           email: String(formData.get("email") || "").trim(),
           phone: String(formData.get("phone") || "").trim(),
           linkedin: String(formData.get("linkedin") || "").trim(),
           location: String(formData.get("location") || "").trim(),
-          note: String(formData.get("note") || "").trim(),
-          nextStep: String(formData.get("nextStep") || "").trim(),
+          note: existingContact?.note || "",
+          nextStep: existingContact?.nextStep || "",
           image: String(formData.get("image") || "").trim(),
           sources: normalizeSources(formData.get("sourcesText") || ""),
           lastExchange: existingContact?.lastExchange || "",
