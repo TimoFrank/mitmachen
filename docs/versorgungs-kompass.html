@@ -58,6 +58,7 @@
           min-width: 0;
         }
 
+        .workspace-header,
         .summary.summary--compact,
         .dashboard-grid {
           grid-template-columns: 1fr;
@@ -69,7 +70,11 @@
       }
 
       @media (max-width: 860px) {
-        .workspace-header,
+        .workspace-header {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+
         .filter-toolbar,
         .table-footer {
           flex-direction: column;
@@ -318,14 +323,6 @@
         margin: 18px auto 28px;
       }
 
-      .accent-bar {
-        height: 16px;
-        margin-bottom: 12px;
-        border-radius: 24px 24px 12px 12px;
-        background: linear-gradient(90deg, #09a63e 0%, #31be61 55%, #5ac978 100%);
-        box-shadow: var(--shadow);
-      }
-
       .crm-shell {
         border: 1px solid var(--line);
         border-radius: 28px;
@@ -431,11 +428,11 @@
       }
 
       .workspace-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(220px, 0.7fr) minmax(520px, 1.4fr) auto;
+        align-items: center;
         gap: 18px;
-        padding: 24px 28px 12px;
+        padding: 22px 28px 18px;
       }
 
       .workspace-copy h2 {
@@ -460,29 +457,33 @@
 
       .summary.summary--compact {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-        padding-top: 2px;
-        padding-bottom: 14px;
+        gap: 10px;
+        padding: 0;
+        align-self: center;
       }
 
       .summary.summary--compact .summary-card {
-        min-height: 82px;
-        padding: 14px 16px;
+        min-height: 68px;
+        padding: 10px 12px;
         border-radius: 18px;
+        grid-template-columns: 38px minmax(0, 1fr);
+        gap: 12px;
       }
 
       .summary.summary--compact .summary-label {
-        font-size: 0.74rem;
+        font-size: 0.67rem;
       }
 
       .summary.summary--compact .summary-value {
-        margin-top: 7px;
-        font-size: 1.75rem;
+        margin-top: 2px;
+        font-size: 1.35rem;
       }
 
-      .summary.summary--compact .summary-sub {
-        margin-top: 4px;
-        font-size: 0.82rem;
+      .summary.summary--compact .summary-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        font-size: 1rem;
       }
 
       .filter-toolbar {
@@ -2896,12 +2897,12 @@
     </header>
 
     <main class="wrap">
-      <div class="accent-bar" aria-hidden="true"></div>
       <section class="crm-shell">
         <div class="workspace-header">
           <div class="workspace-copy">
             <h2>Willkommen, Timo</h2>
           </div>
+          <div class="summary summary--compact" id="summary-grid"></div>
           <div class="workspace-actions">
             <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
             <div class="menu-shell">
@@ -2920,8 +2921,6 @@
             <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,text/csv" />
           </div>
         </div>
-
-        <div class="summary summary--compact" id="summary-grid"></div>
 
         <div class="controls">
           <div class="controls-stack">
@@ -2957,8 +2956,8 @@
                 <div class="filter-panel" id="filter-panel" hidden>
                   <div class="filter-select-grid">
                     <label class="select-shell">
-                      <select id="category-filter-select" aria-label="Kategorie filtern">
-                        <option value="">Alle Kategorien</option>
+                      <select id="category-filter-select" aria-label="Sektor filtern">
+                        <option value="">Alle Sektoren</option>
                       </select>
                     </label>
                     <label class="select-shell">
@@ -2990,10 +2989,10 @@
                     <div>#</div>
                     <div>Name</div>
                     <div>Organisation</div>
-                    <div>Kategorie</div>
+                    <div>Sektor</div>
                     <div>Fachrichtung</div>
                     <div>Priorität</div>
-                    <div>Interner Owner</div>
+                    <div>Owner</div>
                   </div>
                   <div id="contact-list"></div>
                 </section>
@@ -3032,12 +3031,12 @@
               <div class="analytics-head">
                 <div>
                   <h3>Auswertung</h3>
-                  <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Kategorie und Bundesland.</p>
+                  <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Sektor und Bundesland.</p>
                 </div>
               </div>
               <div class="dashboard-grid">
                 <article class="dashboard-card">
-                  <h4>Kategorie-Verteilung</h4>
+                  <h4>Sektor-Verteilung</h4>
                   <p>Zeigt den Mix im aktuellen Filterkontext.</p>
                   <div id="category-chart"></div>
                 </article>
@@ -3051,7 +3050,7 @@
                 <summary>Feature-Backlog</summary>
                 <div class="dashboard-backlog-body">
                   <ul>
-                    <li>Priorität x Kategorie: Wo liegen die wichtigsten Lücken oder Schwerpunkte?</li>
+                    <li>Priorität x Sektor: Wo liegen die wichtigsten Lücken oder Schwerpunkte?</li>
                     <li>Priorität x Bundesland: In welchen Regionen fehlen hochpriorisierte Kontakte?</li>
                     <li>Datenvollständigkeit: fehlende E-Mail, Quelle, Koordinaten oder Bundesland.</li>
                     <li>Ambulant vs. stationär vs. Pflege: grobe Versorgungsstruktur im Netzwerk.</li>
@@ -3096,7 +3095,7 @@
               <input class="editor-input" id="field-title" name="title" />
             </div>
             <div class="editor-field">
-              <label class="editor-label" for="field-category">Kategorie</label>
+              <label class="editor-label" for="field-category">Sektor</label>
               <select class="editor-select" id="field-category" name="category"></select>
             </div>
             <div class="editor-field">
@@ -3643,7 +3642,7 @@
           .sort((a, b) => a.localeCompare(b, "de"));
 
         categoryFilterSelect.innerHTML = [
-          `<option value="">Alle Kategorien</option>`,
+          `<option value="">Alle Sektoren</option>`,
           ...categories.map((value) => `<option value="${value}">${categoryEmoji[value] || "•"} ${value}</option>`)
         ].join("");
 
@@ -3659,7 +3658,7 @@
 
       function renderActiveFilters() {
         const filters = [
-          selectedCategory ? { key: "category", label: `Kategorie: ${selectedCategory}` } : null,
+          selectedCategory ? { key: "category", label: `Sektor: ${selectedCategory}` } : null,
           selectedPriority ? { key: "priority", label: `Priorität: ${selectedPriority}` } : null,
           selectedState ? { key: "state", label: `Bundesland: ${selectedState}` } : null
         ].filter(Boolean);
@@ -3773,7 +3772,7 @@
                   <input class="row-editor" type="text" value="${contact.organization.replace(/"/g, "&quot;")}" data-id="${contact.id}" data-field="organization" aria-label="Organisation bearbeiten" />
                 </div>
                 <div>
-                  <select class="row-editor row-select" data-id="${contact.id}" data-field="category" aria-label="Kategorie bearbeiten">
+                  <select class="row-editor row-select" data-id="${contact.id}" data-field="category" aria-label="Sektor bearbeiten">
                     ${defaultCategories
                       .map((value) => `<option value="${value}" ${contact.category === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`)
                       .join("")}
@@ -3976,7 +3975,7 @@
         if (!hasMeaningfulValue(contact.linkedin)) fields.push("LinkedIn");
         if (!hasMeaningfulValue(contact.title)) fields.push("Fachrichtung");
         if (!hasMeaningfulValue(contact.lastExchange)) fields.push("Letzter Austausch");
-        if (!hasMeaningfulValue(contact.owner)) fields.push("Interner Owner");
+        if (!hasMeaningfulValue(contact.owner)) fields.push("Owner");
         if (!hasMeaningfulValue(contact.location) && !hasMeaningfulValue(contact.city) && !hasMeaningfulValue(contact.state)) fields.push("Ort");
         return fields;
       }
@@ -4028,7 +4027,7 @@
       function renderDashboard(items = filteredContacts()) {
         const visibleContacts = items.length;
         const representedStates = new Set(items.map((contact) => stateLabel(contact)).filter(Boolean)).size;
-        dashboardSubtitle.textContent = `Verteilung im aktuellen Filterkontext über ${representedStates} Bundesländer und Kategorien.`;
+        dashboardSubtitle.textContent = `Verteilung im aktuellen Filterkontext über ${representedStates} Bundesländer und Sektoren.`;
 
         const categoryCounts = defaultCategories
           .map((category) => ({
@@ -4039,7 +4038,7 @@
           .filter((item) => item.count > 0);
 
         if (!categoryCounts.length) {
-          categoryChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Kategorien auswertbar.</div>`;
+          categoryChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Sektoren auswertbar.</div>`;
         } else {
           const total = categoryCounts.reduce((sum, item) => sum + item.count, 0);
           categoryChart.innerHTML = `
@@ -4196,10 +4195,10 @@
                   <article class="detail-info-card detail-info-card--owner">
                     <div class="detail-info-head">
                       <span class="field-icon">👤</span>
-                      <span>Interner Owner</span>
+                      <span>Owner</span>
                     </div>
                     <label class="detail-select-shell">
-                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Interner Owner zuordnen">
+                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Owner zuordnen">
                         ${buildOwnerSelectOptions(ownerLabel)}
                       </select>
                     </label>
@@ -4215,14 +4214,14 @@
                       <span class="field-icon">🏢</span>
                       <span>Organisation</span>
                     </div>
-                    <div class="detail-info-value detail-info-value--plain">${organizationLabel || "Nicht dokumentiert"}</div>
+                    <input class="detail-inline-input" id="detail-organization-input" type="text" value="${String(contact.organization || "").replace(/"/g, "&quot;")}" placeholder="Organisation eintragen" />
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
                       <span class="field-icon">📍</span>
                       <span>Ort</span>
                     </div>
-                    <div class="detail-info-value detail-info-value--plain">${locationText || "Nicht dokumentiert"}</div>
+                    <input class="detail-inline-input" id="detail-location-input" type="text" value="${String(contact.location || "").replace(/"/g, "&quot;")}" placeholder="Ort eintragen" />
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
@@ -4238,10 +4237,10 @@
                   <article class="detail-info-card">
                     <div class="detail-info-head">
                       <span class="field-icon">${categoryEmoji[contact.category] || "•"}</span>
-                      <span>Kategorie</span>
+                      <span>Sektor</span>
                     </div>
                     <label class="detail-select-shell">
-                      <select class="detail-inline-select" id="detail-category-select" aria-label="Kategorie zuordnen">
+                      <select class="detail-inline-select" id="detail-category-select" aria-label="Sektor zuordnen">
                         ${buildCategorySelectOptions(contact.category)}
                       </select>
                     </label>
@@ -4347,6 +4346,18 @@
         if (detailSpecialtySelect) {
           detailSpecialtySelect.addEventListener("change", () => {
             updateContactField(contact.id, "title", detailSpecialtySelect.value);
+          });
+        }
+        const detailOrganizationInput = document.getElementById("detail-organization-input");
+        if (detailOrganizationInput) {
+          detailOrganizationInput.addEventListener("blur", () => {
+            updateContactField(contact.id, "organization", detailOrganizationInput.value);
+          });
+        }
+        const detailLocationInput = document.getElementById("detail-location-input");
+        if (detailLocationInput) {
+          detailLocationInput.addEventListener("blur", () => {
+            updateContactField(contact.id, "location", detailLocationInput.value);
           });
         }
         const detailCategorySelect = document.getElementById("detail-category-select");
