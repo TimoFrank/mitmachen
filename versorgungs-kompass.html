@@ -49,6 +49,10 @@
           justify-content: stretch;
         }
 
+        .topbar-account {
+          margin-left: auto;
+        }
+
         .primary-tab {
           flex: 1 1 0;
           min-width: 0;
@@ -153,25 +157,29 @@
         display: inline-flex;
         align-items: center;
         gap: 0;
-        padding: 4px;
+        padding: 5px;
         border: 1px solid #d8e1fb;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.92);
-        box-shadow: 0 12px 28px rgba(49, 75, 153, 0.08);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 16px 34px rgba(49, 75, 153, 0.1);
       }
 
       .primary-tab {
-        min-height: 46px;
-        min-width: 140px;
-        padding: 0 18px;
+        min-height: 52px;
+        min-width: 154px;
+        padding: 0 20px;
         border: 0;
-        border-radius: 14px;
+        border-radius: 17px;
         background: transparent;
         color: #4c5d90;
         font-size: 0.95rem;
         font-weight: 800;
         letter-spacing: -0.02em;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
         transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
       }
 
@@ -179,6 +187,12 @@
         background: linear-gradient(135deg, #275ee6, #4d90ff);
         color: #ffffff;
         box-shadow: 0 10px 22px rgba(54, 94, 191, 0.2);
+      }
+
+      .primary-tab svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
       }
 
       .brand {
@@ -226,6 +240,37 @@
         letter-spacing: -0.04em;
       }
 
+      .topbar-account {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 14px;
+        padding: 6px 8px 6px 6px;
+        border: 1px solid #d8e1fb;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 12px 28px rgba(49, 75, 153, 0.08);
+      }
+
+      .topbar-account__badge {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: linear-gradient(135deg, #edf3ff, #dce6ff);
+        color: #2d4389;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .topbar-account__caret {
+        color: #6877a8;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
       .wrap {
         width: calc(100% - 24px);
         margin: 18px auto 28px;
@@ -269,17 +314,22 @@
 
       .summary {
         display: grid;
-        grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 14px;
         padding: 10px 28px 20px;
       }
 
       .summary-card {
-        min-height: 108px;
-        padding: 18px 20px;
+        min-height: 92px;
+        padding: 16px 18px;
         border: 1px solid var(--line);
         border-radius: 20px;
         background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 12px 28px rgba(49, 75, 153, 0.06);
       }
 
       .summary-card:nth-child(1) {
@@ -292,23 +342,50 @@
 
       .summary-label {
         color: var(--muted);
-        font-size: 0.8rem;
+        font-size: 0.74rem;
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
       .summary-value {
-        margin-top: 10px;
+        margin-top: 4px;
         font-size: 2rem;
         font-weight: 800;
         letter-spacing: -0.05em;
       }
 
       .summary-sub {
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 0.92rem;
+        display: none;
+      }
+
+      .summary-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: inline-grid;
+        place-items: center;
+        font-size: 1.15rem;
+        color: #28488f;
+      }
+
+      .summary-icon--blue {
+        background: #e8f0ff;
+        color: #2463d3;
+      }
+
+      .summary-icon--amber {
+        background: #fff1da;
+        color: #b17912;
+      }
+
+      .summary-icon--rose {
+        background: #ffe7e1;
+        color: #bd5b47;
+      }
+
+      .summary-copy {
+        min-width: 0;
       }
 
       .workspace-header {
@@ -587,6 +664,76 @@
       .table-toolbar__meta {
         color: var(--muted);
         font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .table-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px 16px;
+        border-top: 1px solid var(--line);
+        background: rgba(248, 250, 255, 0.82);
+      }
+
+      .table-footer__meta {
+        color: var(--muted);
+        font-size: 0.88rem;
+        font-weight: 700;
+      }
+
+      .table-footer__controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-left: auto;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .pagination {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pagination-button {
+        min-width: 38px;
+        height: 38px;
+        padding: 0 10px;
+        border: 1px solid #d8e1fb;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #45568a;
+        font-size: 0.86rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .pagination-button:hover:not(:disabled) {
+        border-color: #b6c8ff;
+        background: #f7faff;
+      }
+
+      .pagination-button.is-active {
+        background: linear-gradient(135deg, #275ee6, #4d90ff);
+        border-color: transparent;
+        color: #ffffff;
+        box-shadow: 0 8px 18px rgba(54, 94, 191, 0.18);
+      }
+
+      .pagination-button:disabled {
+        cursor: default;
+        opacity: 0.46;
+      }
+
+      .page-size-shell {
+        min-width: 132px;
+      }
+
+      .page-size-shell select {
+        min-height: 40px;
         font-weight: 700;
       }
 
@@ -2689,10 +2836,37 @@
       </div>
       <div class="topbar-spacer"></div>
       <nav class="primary-nav" aria-label="Hauptbereiche">
-        <button class="primary-tab is-active" type="button" data-view-tab="contacts">Kontakte</button>
-        <button class="primary-tab" type="button" data-view-tab="map">Karte</button>
-        <button class="primary-tab" type="button" data-view-tab="analytics">Auswertung</button>
+        <button class="primary-tab is-active" type="button" data-view-tab="contacts">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9.5" cy="7" r="4"></circle>
+            <path d="M20 8v6"></path>
+            <path d="M23 11h-6"></path>
+          </svg>
+          <span>Kontakte</span>
+        </button>
+        <button class="primary-tab" type="button" data-view-tab="map">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+            <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+            <path d="M9 3v15"></path>
+            <path d="M15 6v15"></path>
+          </svg>
+          <span>Karte</span>
+        </button>
+        <button class="primary-tab" type="button" data-view-tab="analytics">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+            <path d="M4 19h16"></path>
+            <path d="M7 16V9"></path>
+            <path d="M12 16V5"></path>
+            <path d="M17 16v-4"></path>
+          </svg>
+          <span>Auswertung</span>
+        </button>
       </nav>
+      <div class="topbar-account" aria-label="Eingeloggter Nutzer">
+        <span class="topbar-account__badge">TF</span>
+        <span class="topbar-account__caret">⌄</span>
+      </div>
     </header>
 
     <main class="wrap">
@@ -2700,8 +2874,8 @@
       <section class="crm-shell">
         <div class="workspace-header">
           <div class="workspace-copy">
-            <h2>Kontakte schnell finden und einordnen.</h2>
-            <p id="workspace-subtitle">Suche, filtere und pflege Versorgungskontakte.</p>
+            <h2>Willkommen, Timo</h2>
+            <p id="workspace-subtitle">113 Kontakte im aktuellen Kontext.</p>
           </div>
           <div class="workspace-actions">
             <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
@@ -2788,6 +2962,7 @@
             <div class="view-card">
               <div class="table-toolbar">
                 <div class="table-toolbar__title">Kontakte</div>
+                <div class="table-toolbar__meta" id="table-toolbar-meta">0 Kontakte sichtbar</div>
               </div>
               <div class="table-wrap">
                 <section class="table contacts-table" aria-labelledby="kontaktliste-title">
@@ -2802,6 +2977,20 @@
                   </div>
                   <div id="contact-list"></div>
                 </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="pagination-meta">0–0 von 0 Kontakten</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="pagination"></div>
+                  <label class="select-shell page-size-shell">
+                    <select id="page-size-select" aria-label="Kontakte pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
+                </div>
               </div>
             </div>
           </section>
@@ -3012,6 +3201,10 @@
       const list = document.getElementById("contact-list");
       const summaryGrid = document.getElementById("summary-grid");
       const resultsCount = document.getElementById("results-count");
+      const tableToolbarMeta = document.getElementById("table-toolbar-meta");
+      const paginationMeta = document.getElementById("pagination-meta");
+      const pagination = document.getElementById("pagination");
+      const pageSizeSelect = document.getElementById("page-size-select");
       const activeFilterList = document.getElementById("active-filter-list");
       const resetAllFiltersButton = document.getElementById("reset-all-filters");
       const filterPanelButton = document.getElementById("filter-panel-button");
@@ -3050,6 +3243,8 @@
       let selectedPriority = "";
       let selectedCategory = "";
       let selectedState = "";
+      let currentPage = 1;
+      let pageSize = 20;
       let editorMode = "create";
       let editingId = null;
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
@@ -3406,6 +3601,18 @@
         return `${items.length} von ${contacts.length} Kontakten`;
       }
 
+      function paginatedItems(items) {
+        const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+        currentPage = Math.min(Math.max(1, currentPage), totalPages);
+        const startIndex = (currentPage - 1) * pageSize;
+        return {
+          totalPages,
+          startIndex,
+          endIndex: Math.min(startIndex + pageSize, items.length),
+          pageItems: items.slice(startIndex, startIndex + pageSize)
+        };
+      }
+
       function populateFilterSelects() {
         const categories = uniqueValues("category");
         const states = [...new Map(contacts.map((contact) => [stateLabel(contact), stateLabel(contact)])).values()]
@@ -3466,12 +3673,13 @@
 
       function renderSummary(items) {
         const cards = [
-          { label: "Kontakte gesamt", value: contacts.length, sub: "Alle Kontakte im Versorgungs-Kompass" },
-          { label: "Aktuelle Auswahl", value: items.length, sub: "Treffer im aktuellen Filter" },
+          { label: "Kontakte gesamt", value: contacts.length, icon: "👥", iconClass: "summary-icon--blue" },
+          { label: "Aktuelle Auswahl", value: items.length, icon: "⏺", iconClass: "summary-icon--amber" },
           {
             label: "Hohe Priorität",
             value: contacts.filter((contact) => contact.priority === "Hoch").length,
-            sub: "Im gesamten Datensatz"
+            icon: "⚑",
+            iconClass: "summary-icon--rose"
           }
         ];
 
@@ -3479,9 +3687,11 @@
           .map(
             (card) => `
               <article class="summary-card">
-                <div class="summary-label">${card.label}</div>
-                <div class="summary-value">${card.value}</div>
-                <div class="summary-sub">${card.sub}</div>
+                <div class="summary-icon ${card.iconClass}" aria-hidden="true">${card.icon}</div>
+                <div class="summary-copy">
+                  <div class="summary-label">${card.label}</div>
+                  <div class="summary-value">${card.value}</div>
+                </div>
               </article>
             `
           )
@@ -3491,14 +3701,21 @@
       function renderTable(items) {
         if (!items.length) {
           list.innerHTML = `<div class="empty">Keine Kontakte im aktuellen Filter. Passe Suche oder Filter an.</div>`;
+          tableToolbarMeta.textContent = "0 Kontakte sichtbar";
+          paginationMeta.textContent = "0–0 von 0 Kontakten";
+          pagination.innerHTML = "";
           return;
         }
 
-        list.innerHTML = items
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        tableToolbarMeta.textContent = `${items.length} Kontakte sichtbar`;
+        paginationMeta.textContent = `${startIndex + 1}–${endIndex} von ${items.length} Kontakten`;
+
+        list.innerHTML = pageItems
           .map(
             (contact, index) => `
               <article class="row ${contact.id === activeId ? "is-active" : ""}" data-id="${contact.id}" tabindex="0">
-                <div class="index-cell">${index + 1}</div>
+                <div class="index-cell">${startIndex + index + 1}</div>
                 <div class="contact-cell">
                   ${
                     contact.image
@@ -3555,12 +3772,21 @@
           )
           .join("");
 
+        pagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+
         [...list.querySelectorAll(".row")].forEach((row) => {
-          row.addEventListener("click", () => openDetail(row.dataset.id, items));
+          row.addEventListener("click", () => openDetail(row.dataset.id, pageItems));
           row.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              openDetail(row.dataset.id, items);
+              openDetail(row.dataset.id, pageItems);
             }
           });
         });
@@ -3582,7 +3808,7 @@
         [...list.querySelectorAll("[data-open-detail]")].forEach((button) => {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
-            openDetail(button.dataset.openDetail, items);
+            openDetail(button.dataset.openDetail, pageItems);
           });
         });
 
@@ -3616,6 +3842,20 @@
               }
             });
           }
+        });
+
+        [...pagination.querySelectorAll("[data-page]")].forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.page);
+            renderTable(items);
+          });
+        });
+
+        [...pagination.querySelectorAll("[data-page-nav]")].forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.pageNav === "next" ? 1 : -1;
+            renderTable(items);
+          });
         });
       }
 
@@ -4298,6 +4538,7 @@
       function updateView() {
         const items = filteredContacts();
         resultsCount.textContent = hitCountLabel(items);
+        document.getElementById("workspace-subtitle").textContent = `${contacts.length} Kontakte im aktuellen Kontext.`;
         renderSummary(items);
         renderTable(items);
         renderDashboard(items);
@@ -4315,19 +4556,30 @@
         .map((category) => `<option value="${category}">${categoryEmoji[category] || "•"} ${category}</option>`)
         .join("");
 
-      searchInput.addEventListener("input", updateView);
+      searchInput.addEventListener("input", () => {
+        currentPage = 1;
+        updateView();
+      });
+      pageSizeSelect.addEventListener("change", () => {
+        pageSize = Number(pageSizeSelect.value) || 20;
+        currentPage = 1;
+        updateView();
+      });
       categoryFilterSelect.addEventListener("change", () => {
         selectedCategory = categoryFilterSelect.value;
+        currentPage = 1;
         updateView();
         closeMenus();
       });
       priorityFilterSelect.addEventListener("change", () => {
         selectedPriority = priorityFilterSelect.value;
+        currentPage = 1;
         updateView();
         closeMenus();
       });
       stateFilterSelect.addEventListener("change", () => {
         selectedState = stateFilterSelect.value;
+        currentPage = 1;
         updateView();
         closeMenus();
       });
@@ -4336,6 +4588,7 @@
         selectedPriority = "";
         selectedState = "";
         searchInput.value = "";
+        currentPage = 1;
         updateView();
       });
       mapViewFrame.addEventListener("load", () => {
