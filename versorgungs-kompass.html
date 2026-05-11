@@ -61,17 +61,30 @@
 
         .filter-select-grid {
           grid-template-columns: 1fr;
-          width: 100%;
         }
       }
 
       @media (max-width: 860px) {
         .workspace-header,
         .filter-toolbar,
-        .active-filter-bar,
         .table-toolbar {
           flex-direction: column;
           align-items: stretch;
+        }
+
+        .filter-results {
+          margin-left: 0;
+        }
+
+        .filter-shell,
+        .filter-panel-button {
+          width: 100%;
+        }
+
+        .filter-panel {
+          left: 0;
+          right: auto;
+          width: 100%;
         }
 
         .view-shell {
@@ -356,28 +369,6 @@
       .filter-toolbar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .filter-select-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(180px, 1fr));
-        gap: 12px;
-        width: min(880px, 100%);
-      }
-
-      .filter-results {
-        color: #546491;
-        font-size: 0.92rem;
-        font-weight: 800;
-        white-space: nowrap;
-      }
-
-      .active-filter-bar {
-        display: flex;
-        align-items: center;
         gap: 14px;
         flex-wrap: wrap;
         min-height: 60px;
@@ -386,6 +377,19 @@
         border-radius: 18px;
         background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
         box-shadow: 0 8px 24px rgba(49, 75, 153, 0.05);
+      }
+
+      .filter-toolbar-spacer {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .filter-results {
+        color: #546491;
+        font-size: 0.92rem;
+        font-weight: 800;
+        white-space: nowrap;
+        margin-left: auto;
       }
 
       .active-filter-label {
@@ -432,6 +436,65 @@
       .active-filter-empty {
         color: var(--muted);
         font-size: 0.88rem;
+      }
+
+      .filter-shell {
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      .filter-panel-button {
+        min-height: 42px;
+        padding: 0 16px;
+        border: 1px solid #d8e1fb;
+        border-radius: 14px;
+        background: #ffffff;
+        color: #40548d;
+        font-size: 0.92rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(49, 75, 153, 0.05);
+      }
+
+      .filter-panel-button:hover,
+      .filter-panel-button[aria-expanded="true"] {
+        border-color: #b8c8fb;
+        background: #f8fbff;
+      }
+
+      .filter-panel-button svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .filter-panel-button__caret {
+        color: #7888b8;
+        font-size: 0.92rem;
+      }
+
+      .filter-panel {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        width: min(540px, calc(100vw - 40px));
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 22px 44px rgba(22, 38, 96, 0.16);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        z-index: 30;
+      }
+
+      .filter-select-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        width: 100%;
       }
 
       .filter-reset {
@@ -2678,33 +2741,44 @@
             </label>
 
             <div class="filter-toolbar">
-              <div class="filter-select-grid">
-                <label class="select-shell">
-                  <select id="category-filter-select" aria-label="Kategorie filtern">
-                    <option value="">Alle Kategorien</option>
-                  </select>
-                </label>
-                <label class="select-shell">
-                  <select id="priority-filter-select" aria-label="Priorität filtern">
-                    <option value="">Alle Prioritäten</option>
-                    <option value="Hoch">Hoch</option>
-                    <option value="Mittel">Mittel</option>
-                    <option value="Niedrig">Niedrig</option>
-                  </select>
-                </label>
-                <label class="select-shell">
-                  <select id="state-filter-select" aria-label="Bundesland filtern">
-                    <option value="">Alle Bundesländer</option>
-                  </select>
-                </label>
-              </div>
-              <div class="filter-results" id="results-count">0 von 0 Kontakten</div>
-            </div>
-
-            <div class="active-filter-bar">
               <div class="active-filter-label">Aktive Filter</div>
               <div class="active-filter-list" id="active-filter-list"></div>
+              <div class="filter-toolbar-spacer" aria-hidden="true"></div>
+              <div class="filter-results" id="results-count">0 von 0 Kontakten</div>
               <button class="filter-reset" type="button" id="reset-all-filters">Alle Filter zurücksetzen</button>
+              <div class="filter-shell">
+                <button class="filter-panel-button" type="button" id="filter-panel-button" aria-label="Filter öffnen" aria-expanded="false" aria-controls="filter-panel">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M4 6h16"></path>
+                    <path d="M7 12h10"></path>
+                    <path d="M10 18h4"></path>
+                  </svg>
+                  <span>Filter</span>
+                  <span class="filter-panel-button__caret">⌄</span>
+                </button>
+                <div class="filter-panel" id="filter-panel" hidden>
+                  <div class="filter-select-grid">
+                    <label class="select-shell">
+                      <select id="category-filter-select" aria-label="Kategorie filtern">
+                        <option value="">Alle Kategorien</option>
+                      </select>
+                    </label>
+                    <label class="select-shell">
+                      <select id="priority-filter-select" aria-label="Priorität filtern">
+                        <option value="">Alle Prioritäten</option>
+                        <option value="Hoch">Hoch</option>
+                        <option value="Mittel">Mittel</option>
+                        <option value="Niedrig">Niedrig</option>
+                      </select>
+                    </label>
+                    <label class="select-shell">
+                      <select id="state-filter-select" aria-label="Bundesland filtern">
+                        <option value="">Alle Bundesländer</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2940,6 +3014,8 @@
       const resultsCount = document.getElementById("results-count");
       const activeFilterList = document.getElementById("active-filter-list");
       const resetAllFiltersButton = document.getElementById("reset-all-filters");
+      const filterPanelButton = document.getElementById("filter-panel-button");
+      const filterPanel = document.getElementById("filter-panel");
       const categoryFilterSelect = document.getElementById("category-filter-select");
       const priorityFilterSelect = document.getElementById("priority-filter-select");
       const stateFilterSelect = document.getElementById("state-filter-select");
@@ -3294,6 +3370,8 @@
       function closeMenus() {
         moreActionsMenu.hidden = true;
         moreActionsButton.setAttribute("aria-expanded", "false");
+        filterPanel.hidden = true;
+        filterPanelButton.setAttribute("aria-expanded", "false");
       }
 
       function filteredContacts() {
@@ -4241,14 +4319,17 @@
       categoryFilterSelect.addEventListener("change", () => {
         selectedCategory = categoryFilterSelect.value;
         updateView();
+        closeMenus();
       });
       priorityFilterSelect.addEventListener("change", () => {
         selectedPriority = priorityFilterSelect.value;
         updateView();
+        closeMenus();
       });
       stateFilterSelect.addEventListener("change", () => {
         selectedState = stateFilterSelect.value;
         updateView();
+        closeMenus();
       });
       resetAllFiltersButton.addEventListener("click", () => {
         selectedCategory = "";
@@ -4272,6 +4353,14 @@
         closeMenus();
         moreActionsMenu.hidden = !open;
         moreActionsButton.setAttribute("aria-expanded", String(open));
+      });
+
+      filterPanelButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = filterPanel.hidden;
+        closeMenus();
+        filterPanel.hidden = !open;
+        filterPanelButton.setAttribute("aria-expanded", String(open));
       });
 
       detailOverlay.addEventListener("click", closeDetail);
@@ -4363,7 +4452,7 @@
       });
 
       document.addEventListener("click", (event) => {
-        if (!event.target.closest(".menu-shell")) closeMenus();
+        if (!event.target.closest(".menu-shell") && !event.target.closest(".filter-shell")) closeMenus();
       });
 
       setActiveView(activeView);
