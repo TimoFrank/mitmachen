@@ -1853,41 +1853,6 @@
         min-height: 32px;
       }
 
-      .detail-missing {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 14px 16px;
-        border: 1px solid #f2d7bb;
-        border-radius: 18px;
-        background: linear-gradient(180deg, #fffaf2 0%, #fff6ea 100%);
-        color: #945423;
-      }
-
-      .detail-missing-icon {
-        flex: 0 0 auto;
-        font-size: 1.05rem;
-        line-height: 1.2;
-      }
-
-      .detail-missing-copy {
-        min-width: 0;
-      }
-
-      .detail-missing-title {
-        font-size: 0.84rem;
-        font-weight: 800;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }
-
-      .detail-missing-list {
-        margin-top: 4px;
-        color: #a26433;
-        font-size: 0.92rem;
-        line-height: 1.45;
-      }
-
       .detail-section-title {
         margin: 0 0 10px;
         color: #243271;
@@ -1997,6 +1962,33 @@
       .detail-info-value--muted {
         color: var(--muted);
         font-weight: 600;
+      }
+
+      .detail-inline-input,
+      .detail-inline-textarea {
+        width: 100%;
+        margin-top: 8px;
+        padding: 10px 12px;
+        border: 1px solid #d8def7;
+        border-radius: 12px;
+        background: #f7f9ff;
+        color: #31447d;
+        font-size: 0.86rem;
+        font-weight: 600;
+        outline: 0;
+      }
+
+      .detail-inline-input:focus,
+      .detail-inline-textarea:focus {
+        border-color: #8eb2ff;
+        box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
+        background: #ffffff;
+      }
+
+      .detail-inline-textarea {
+        min-height: 104px;
+        resize: vertical;
+        line-height: 1.45;
       }
 
       .detail-link-row {
@@ -3800,12 +3792,11 @@
 
         const locationText = formatLocationDisplay(contact);
         const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
-        const missingFields = detailMissingFields(contact);
         const createdLabel = formatDateLabel(contact.createdAt);
         const updatedLabel = formatDateLabel(contact.updatedAt);
         const ownerLabel = meaningfulOrEmpty(contact.owner);
         const specialtyText = specialtyLabel(contact);
-        const lastExchangeLabel = formatDateLabel(contact.lastExchange) || meaningfulOrEmpty(contact.lastExchange);
+        const noteText = meaningfulOrEmpty(contact.lastExchange);
         const organizationLabel = meaningfulOrEmpty(contact.organization);
         const priorityMarkup = `<span class="badge ${contact.priorityClass}">${contact.priority}</span>`;
         const portraitMarkup = contact.image
@@ -3882,20 +3873,6 @@
                 </article>
               </section>
 
-              ${
-                missingFields.length
-                  ? `
-                    <section class="detail-missing">
-                      <div class="detail-missing-icon">⚠️</div>
-                      <div class="detail-missing-copy">
-                        <div class="detail-missing-title">Fehlende Angaben</div>
-                        <div class="detail-missing-list">${missingFields.join(", ")}</div>
-                      </div>
-                    </section>
-                  `
-                  : ""
-              }
-
               <section class="section-block">
                 <h4 class="detail-section-title">Kommunikation</h4>
                 <div class="detail-communication-grid">
@@ -3904,7 +3881,7 @@
                       <span class="field-icon">&#9993;</span>
                       <span>E-Mail</span>
                     </div>
-                    ${hasMeaningfulValue(contact.email) ? `<div class="detail-info-value">${contact.email}</div>` : ""}
+                    <input class="detail-inline-input" id="detail-email-input" type="email" value="${String(contact.email || "").replace(/"/g, "&quot;")}" placeholder="E-Mail eintragen" />
                     ${
                       hasMeaningfulValue(contact.email)
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a></div>`
@@ -3916,7 +3893,7 @@
                       <span class="field-icon">&#9742;</span>
                       <span>Telefon</span>
                     </div>
-                    ${hasMeaningfulValue(contact.phone) ? `<div class="detail-info-value">${contact.phone}</div>` : ""}
+                    <input class="detail-inline-input" id="detail-phone-input" type="text" value="${String(contact.phone || "").replace(/"/g, "&quot;")}" placeholder="Telefon eintragen" />
                     ${
                       hasMeaningfulValue(contact.phone)
                         ? ""
@@ -3928,7 +3905,7 @@
                       <span class="linkedin-icon">in</span>
                       <span>LinkedIn</span>
                     </div>
-                    ${linkedinUrl ? `<div class="detail-info-value">Öffentliches Profil</div>` : ""}
+                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="${String(contact.linkedin || "").replace(/"/g, "&quot;")}" placeholder="LinkedIn-Profil eintragen" />
                     ${
                       linkedinUrl
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a></div>`
@@ -3941,13 +3918,13 @@
               <section class="section-block">
                 <h4 class="detail-section-title">Status</h4>
                 <div class="detail-context-grid">
-                  <article class="detail-info-card ${lastExchangeLabel ? "" : "detail-info-card--missing"}">
+                  <article class="detail-info-card ${noteText ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
                       <span class="field-icon">🗓</span>
-                      <span>Letzter Austausch</span>
+                      <span>Notiz</span>
                     </div>
-                    ${lastExchangeLabel ? `<div class="detail-info-value">${lastExchangeLabel}</div>` : ""}
-                    ${lastExchangeLabel ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
+                    <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="Notiz eintragen">${String(contact.lastExchange || "")}</textarea>
+                    ${noteText ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
                   <article class="detail-info-card ${(updatedLabel || createdLabel) ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
@@ -3998,6 +3975,30 @@
         if (detailOwnerSelect) {
           detailOwnerSelect.addEventListener("change", () => {
             updateContactField(contact.id, "owner", detailOwnerSelect.value);
+          });
+        }
+        const detailEmailInput = document.getElementById("detail-email-input");
+        if (detailEmailInput) {
+          detailEmailInput.addEventListener("blur", () => {
+            updateContactField(contact.id, "email", detailEmailInput.value);
+          });
+        }
+        const detailPhoneInput = document.getElementById("detail-phone-input");
+        if (detailPhoneInput) {
+          detailPhoneInput.addEventListener("blur", () => {
+            updateContactField(contact.id, "phone", detailPhoneInput.value);
+          });
+        }
+        const detailLinkedinInput = document.getElementById("detail-linkedin-input");
+        if (detailLinkedinInput) {
+          detailLinkedinInput.addEventListener("blur", () => {
+            updateContactField(contact.id, "linkedin", detailLinkedinInput.value);
+          });
+        }
+        const detailNoteInput = document.getElementById("detail-note-input");
+        if (detailNoteInput) {
+          detailNoteInput.addEventListener("blur", () => {
+            updateContactField(contact.id, "lastExchange", detailNoteInput.value);
           });
         }
       }
