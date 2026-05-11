@@ -1484,6 +1484,12 @@
         font-weight: 700;
       }
 
+      .detail-toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
       .detail-close {
         width: 44px;
         height: 44px;
@@ -1497,6 +1503,12 @@
 
       .detail-content {
         padding: 16px 18px 24px;
+      }
+
+      .detail-bottom-actions {
+        margin-top: 14px;
+        display: flex;
+        justify-content: flex-end;
       }
 
       .detail-actions {
@@ -1976,6 +1988,12 @@
         font-size: 0.86rem;
         font-weight: 600;
         outline: 0;
+      }
+
+      .detail-inline-input::placeholder,
+      .detail-inline-textarea::placeholder {
+        color: #7f89b4;
+        font-weight: 500;
       }
 
       .detail-inline-input:focus,
@@ -3811,7 +3829,10 @@
         detailPanel.innerHTML = `
           <div class="detail-toolbar">
             <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Eintr&auml;gen</div>
-            <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
+            <div class="detail-toolbar-actions">
+              <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
+              <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
+            </div>
           </div>
           <div class="detail-content">
             <div class="detail-profile">
@@ -3839,10 +3860,6 @@
                       </select>
                     </label>
                   </article>
-                  <div class="detail-actions detail-actions--stacked">
-                    <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
-                    <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
-                  </div>
                 </div>
               </section>
 
@@ -3881,7 +3898,7 @@
                       <span class="field-icon">&#9993;</span>
                       <span>E-Mail</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-email-input" type="email" value="${String(contact.email || "").replace(/"/g, "&quot;")}" placeholder="E-Mail eintragen" />
+                    <input class="detail-inline-input" id="detail-email-input" type="email" value="" placeholder="${String(contact.email || "E-Mail eintragen").replace(/"/g, "&quot;")}" />
                     ${
                       hasMeaningfulValue(contact.email)
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a></div>`
@@ -3893,7 +3910,7 @@
                       <span class="field-icon">&#9742;</span>
                       <span>Telefon</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-phone-input" type="text" value="${String(contact.phone || "").replace(/"/g, "&quot;")}" placeholder="Telefon eintragen" />
+                    <input class="detail-inline-input" id="detail-phone-input" type="text" value="" placeholder="${String(contact.phone || "Telefon eintragen").replace(/"/g, "&quot;")}" />
                     ${
                       hasMeaningfulValue(contact.phone)
                         ? ""
@@ -3905,7 +3922,7 @@
                       <span class="linkedin-icon">in</span>
                       <span>LinkedIn</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="${String(contact.linkedin || "").replace(/"/g, "&quot;")}" placeholder="LinkedIn-Profil eintragen" />
+                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="" placeholder="${String(contact.linkedin || "LinkedIn-Profil eintragen").replace(/"/g, "&quot;")}" />
                     ${
                       linkedinUrl
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a></div>`
@@ -3923,7 +3940,7 @@
                       <span class="field-icon">🗓</span>
                       <span>Notiz</span>
                     </div>
-                    <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="Notiz eintragen">${String(contact.lastExchange || "")}</textarea>
+                    <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="${String(contact.lastExchange || "Notiz eintragen").replace(/"/g, "&quot;")}"></textarea>
                     ${noteText ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
                   <article class="detail-info-card ${(updatedLabel || createdLabel) ? "" : "detail-info-card--missing"}">
@@ -3941,6 +3958,9 @@
                 <span>${createdLabel ? `Erstellt am ${createdLabel}` : "Erstellt: nicht dokumentiert"}</span>
                 <span>${updatedLabel ? `Aktualisiert am ${updatedLabel}` : "Aktualisiert: nicht dokumentiert"}</span>
                 <span>ID: ${contact.id}</span>
+              </div>
+              <div class="detail-bottom-actions">
+                <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
               </div>
             </div>
           </div>
@@ -3980,24 +4000,28 @@
         const detailEmailInput = document.getElementById("detail-email-input");
         if (detailEmailInput) {
           detailEmailInput.addEventListener("blur", () => {
+            if (!detailEmailInput.value.trim()) return;
             updateContactField(contact.id, "email", detailEmailInput.value);
           });
         }
         const detailPhoneInput = document.getElementById("detail-phone-input");
         if (detailPhoneInput) {
           detailPhoneInput.addEventListener("blur", () => {
+            if (!detailPhoneInput.value.trim()) return;
             updateContactField(contact.id, "phone", detailPhoneInput.value);
           });
         }
         const detailLinkedinInput = document.getElementById("detail-linkedin-input");
         if (detailLinkedinInput) {
           detailLinkedinInput.addEventListener("blur", () => {
+            if (!detailLinkedinInput.value.trim()) return;
             updateContactField(contact.id, "linkedin", detailLinkedinInput.value);
           });
         }
         const detailNoteInput = document.getElementById("detail-note-input");
         if (detailNoteInput) {
           detailNoteInput.addEventListener("blur", () => {
+            if (!detailNoteInput.value.trim()) return;
             updateContactField(contact.id, "lastExchange", detailNoteInput.value);
           });
         }
