@@ -1224,14 +1224,17 @@
       .contact-owner-chip {
         display: inline-flex;
         align-items: center;
-        min-height: 30px;
-        padding: 0 10px;
+        justify-content: center;
+        min-height: 32px;
+        min-width: 104px;
+        padding: 0 14px;
         border-radius: 999px;
         background: #eef3ff;
         color: #37529d;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
         font-weight: 700;
         line-height: 1.2;
+        white-space: nowrap;
       }
 
       .contact-owner-chip--empty {
@@ -1896,7 +1899,7 @@
 
       .detail-communication-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
       }
 
@@ -1939,11 +1942,11 @@
       .detail-warning {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
         margin-top: 8px;
         color: #a46b1f;
-        font-size: 0.77rem;
+        font-size: 0.92rem;
         font-weight: 700;
+        line-height: 1;
       }
 
       .detail-select-shell {
@@ -3897,7 +3900,7 @@
                     ${
                       hasMeaningfulValue(contact.email)
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a></div>`
-                        : `<div class="detail-warning"><span>⚠</span><span>Fehlende Angabe</span></div>`
+                        : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
                     }
                   </article>
                   <article class="detail-info-card">
@@ -3909,7 +3912,7 @@
                     ${
                       hasMeaningfulValue(contact.phone)
                         ? ""
-                        : `<div class="detail-warning"><span>⚠</span><span>Fehlende Angabe</span></div>`
+                        : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
                     }
                   </article>
                   <article class="detail-info-card">
@@ -3921,7 +3924,7 @@
                     ${
                       linkedinUrl
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a></div>`
-                        : `<div class="detail-warning"><span>⚠</span><span>Fehlende Angabe</span></div>`
+                        : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
                     }
                   </article>
                 </div>
@@ -3936,6 +3939,7 @@
                       <span>Letzter Austausch</span>
                     </div>
                     <div class="detail-info-value ${lastExchangeLabel ? "" : "detail-info-value--muted"}">${lastExchangeLabel || "Nicht dokumentiert"}</div>
+                    ${lastExchangeLabel ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
@@ -3944,16 +3948,6 @@
                     </div>
                     <div class="detail-info-value ${(updatedLabel || createdLabel) ? "" : "detail-info-value--muted"}">${updatedLabel || createdLabel || "Nicht dokumentiert"}</div>
                   </article>
-                </div>
-              </section>
-
-              <section class="section-block">
-                <h4 class="detail-section-title">Quellen</h4>
-                <div class="detail-stack">
-                  <article class="detail-card">
-                    <div class="detail-label">Quellen</div>
-                    <div class="detail-value">${renderSourcesList(contact)}</div>
-                  </div>
                 </div>
               </section>
 
