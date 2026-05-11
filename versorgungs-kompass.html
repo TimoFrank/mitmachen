@@ -353,7 +353,7 @@
 
       .summary {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
         padding: 10px 28px 20px;
       }
@@ -376,7 +376,7 @@
       }
 
       .summary-card:nth-child(2) {
-        background: linear-gradient(180deg, #ffffff 0%, #fff3de 100%);
+        background: linear-gradient(180deg, #ffffff 0%, #ffece6 100%);
       }
 
       .summary-label {
@@ -429,7 +429,7 @@
 
       .workspace-header {
         display: grid;
-        grid-template-columns: minmax(220px, 0.7fr) minmax(520px, 1.4fr) auto;
+        grid-template-columns: minmax(220px, 0.8fr) auto auto;
         align-items: center;
         gap: 18px;
         padding: 22px 28px 18px;
@@ -437,8 +437,14 @@
 
       .workspace-copy h2 {
         margin: 0;
-        font-size: clamp(1.2rem, 1.8vw, 1.55rem);
-        letter-spacing: -0.04em;
+        font-size: clamp(1.95rem, 2.9vw, 2.75rem);
+        line-height: 0.98;
+        letter-spacing: -0.05em;
+        background: linear-gradient(135deg, #1b2a66 0%, #2f57c8 55%, #4b86ff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 10px 22px rgba(56, 87, 181, 0.1);
       }
 
       .workspace-copy p {
@@ -456,34 +462,36 @@
       }
 
       .summary.summary--compact {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
         padding: 0;
         align-self: center;
+        width: fit-content;
       }
 
       .summary.summary--compact .summary-card {
-        min-height: 68px;
-        padding: 10px 12px;
-        border-radius: 18px;
-        grid-template-columns: 38px minmax(0, 1fr);
-        gap: 12px;
+        min-width: 220px;
+        min-height: 56px;
+        padding: 7px 10px;
+        border-radius: 16px;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 10px;
       }
 
       .summary.summary--compact .summary-label {
-        font-size: 0.67rem;
+        font-size: 0.62rem;
       }
 
       .summary.summary--compact .summary-value {
-        margin-top: 2px;
-        font-size: 1.35rem;
+        margin-top: 1px;
+        font-size: 1.15rem;
       }
 
       .summary.summary--compact .summary-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 13px;
-        font-size: 1rem;
+        width: 32px;
+        height: 32px;
+        border-radius: 11px;
+        font-size: 0.88rem;
       }
 
       .filter-toolbar {
@@ -564,30 +572,56 @@
       }
 
       .filter-panel-button {
-        min-height: 42px;
-        padding: 0 16px;
-        border: 1px solid #d8e1fb;
-        border-radius: 14px;
-        background: #ffffff;
-        color: #40548d;
+        min-height: 46px;
+        padding: 0 16px 0 18px;
+        border: 1px solid #d4dffc;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        color: #334a86;
         font-size: 0.92rem;
-        font-weight: 700;
+        font-weight: 800;
         display: inline-flex;
         align-items: center;
         gap: 10px;
         cursor: pointer;
-        box-shadow: 0 8px 24px rgba(49, 75, 153, 0.05);
+        box-shadow: 0 10px 24px rgba(49, 75, 153, 0.08);
       }
 
       .filter-panel-button:hover,
       .filter-panel-button[aria-expanded="true"] {
-        border-color: #b8c8fb;
-        background: #f8fbff;
+        border-color: #9db6ff;
+        background: linear-gradient(180deg, #fdfefe 0%, #eef4ff 100%);
+        color: #24428c;
       }
 
       .filter-panel-button svg {
         width: 16px;
         height: 16px;
+      }
+
+      .filter-panel-button__label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .filter-panel-button__badge {
+        display: none;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #2d66ed, #4f95ff);
+        color: #ffffff;
+        font-size: 0.74rem;
+        font-weight: 800;
+        line-height: 22px;
+        text-align: center;
+        box-shadow: 0 10px 18px rgba(54, 94, 191, 0.18);
+      }
+
+      .filter-panel-button__badge.is-visible {
+        display: inline-block;
       }
 
       .filter-panel-button__caret {
@@ -599,22 +633,158 @@
         position: absolute;
         top: calc(100% + 10px);
         right: 0;
-        width: min(540px, calc(100vw - 40px));
+        width: min(420px, calc(100vw - 32px));
         padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: 18px;
+        border: 1px solid #d8e1fb;
+        border-radius: 20px;
         background: rgba(255, 255, 255, 0.98);
-        box-shadow: 0 22px 44px rgba(22, 38, 96, 0.16);
+        box-shadow: 0 22px 40px rgba(22, 38, 96, 0.16);
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
         z-index: 30;
       }
 
-      .filter-select-grid {
+      .filter-panel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+
+      .filter-panel-title {
+        margin: 0;
+        color: #20346f;
+        font-size: 0.94rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .filter-panel-copy {
+        margin: 4px 0 0;
+        color: #6b7aa7;
+        font-size: 0.78rem;
+      }
+
+      .filter-panel-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .filter-panel-close {
+        width: 34px;
+        height: 34px;
+        border: 1px solid #d8e1fb;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #5a6ea6;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+
+      .filter-panel-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: 1fr;
+        gap: 10px;
         width: 100%;
+      }
+
+      .filter-section {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid #dfe6fb;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #fbfcff 0%, #f6f9ff 100%);
+      }
+
+      .filter-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .filter-section-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        color: #2a3f7b;
+        font-size: 0.84rem;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+      }
+
+      .filter-section-icon {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #edf3ff;
+        color: #3f5ca6;
+        font-size: 0.88rem;
+      }
+
+      .filter-section-meta {
+        color: #7a89b4;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .filter-option-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .filter-option-list--scroll {
+        max-height: 132px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .filter-option-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 11px;
+        border: 1px solid #d8e1fb;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #38508f;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: border-color 120ms ease, background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+      }
+
+      .filter-option-chip:hover {
+        border-color: #b8c8fb;
+        background: #f7faff;
+      }
+
+      .filter-option-chip.is-active {
+        border-color: #98b0ff;
+        background: linear-gradient(135deg, #edf3ff, #f7faff);
+        color: #24428c;
+        box-shadow: 0 10px 20px rgba(49, 75, 153, 0.08);
+      }
+
+      .filter-option-chip__icon {
+        font-size: 0.95rem;
+      }
+
+      .filter-empty-note {
+        color: #7f8db5;
+        font-size: 0.78rem;
+        font-weight: 600;
       }
 
       .filter-reset {
@@ -754,7 +924,9 @@
       }
 
       .page-size-shell select {
-        min-height: 40px;
+        min-height: 38px;
+        padding-right: 34px;
+        font-size: 0.86rem;
         font-weight: 700;
       }
 
@@ -762,11 +934,10 @@
       .contacts-table .row {
         grid-template-columns:
           56px
-          minmax(250px, 1.25fr)
-          minmax(250px, 1.05fr)
-          minmax(180px, 0.78fr)
-          minmax(230px, 0.98fr)
-          minmax(160px, 0.72fr)
+          minmax(270px, 1.35fr)
+          minmax(280px, 1.12fr)
+          minmax(180px, 0.8fr)
+          minmax(250px, 1.02fr)
           minmax(190px, 0.86fr);
       }
 
@@ -779,6 +950,7 @@
         display: grid;
         gap: 12px;
       }
+
 
       .filters-row {
         display: flex;
@@ -1150,7 +1322,6 @@
           minmax(250px, 1.05fr)
           minmax(180px, 0.78fr)
           minmax(230px, 0.98fr)
-          minmax(160px, 0.72fr)
           minmax(190px, 0.86fr);
         align-items: center;
       }
@@ -1544,29 +1715,6 @@
         color: #264aa6;
       }
 
-      .name-edit-toggle {
-        width: 28px;
-        height: 28px;
-        margin-left: auto;
-        border: 0;
-        border-radius: 999px;
-        display: inline-grid;
-        place-items: center;
-        background: #edf3ff;
-        color: #5870b1;
-        cursor: pointer;
-        flex: 0 0 auto;
-      }
-
-      .name-edit-toggle:hover {
-        background: #dde8ff;
-      }
-
-      .name-edit-toggle svg {
-        width: 15px;
-        height: 15px;
-      }
-
       .contact-name {
         font-weight: 800;
         letter-spacing: -0.02em;
@@ -1585,6 +1733,7 @@
       .favorite-star {
         width: 28px;
         height: 28px;
+        margin-left: auto;
         border: 0;
         border-radius: 999px;
         display: inline-grid;
@@ -1739,7 +1888,14 @@
       .detail-bottom-actions {
         margin-top: 14px;
         display: flex;
-        justify-content: flex-end;
+        justify-content: stretch;
+      }
+
+      .detail-bottom-actions .action-button {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 16px;
+        justify-content: center;
       }
 
       .detail-actions {
@@ -1979,16 +2135,16 @@
 
       .detail-profile-top {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(300px, 328px);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         align-items: start;
-        gap: 12px;
+        gap: 18px;
       }
 
       .detail-profile-side {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 8px;
-        min-width: 220px;
+        gap: 12px;
+        min-width: 0;
       }
 
       .detail-profile-main {
@@ -2049,7 +2205,7 @@
       .detail-facts-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+        gap: 14px;
       }
 
       .detail-profile-grid {
@@ -2120,22 +2276,25 @@
       .detail-communication-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
+        gap: 14px;
       }
 
       .detail-context-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
+        gap: 14px;
       }
 
       .detail-info-card {
         position: relative;
-        min-height: 90px;
-        padding: 12px 13px;
+        min-height: 120px;
+        padding: 18px 18px 16px;
         border: 1px solid var(--line);
         border-radius: 16px;
         background: rgba(255, 255, 255, 0.96);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
       }
 
       .detail-info-card--owner {
@@ -2147,6 +2306,34 @@
       .detail-info-card--missing {
         border-color: #f2d7bb;
         background: linear-gradient(180deg, #fffaf2 0%, #fff6ea 100%);
+      }
+
+      .detail-info-card--priority {
+        min-height: 120px;
+        padding: 22px 18px 18px;
+      }
+
+      .detail-info-card--priority .detail-select-shell {
+        margin-top: 20px;
+      }
+
+      .detail-info-card--priority-high {
+        border-color: #f1c8bf;
+        background: linear-gradient(180deg, #fff7f4 0%, #ffefe9 100%);
+      }
+
+      .detail-info-card--priority-medium {
+        border-color: #f1ddb0;
+        background: linear-gradient(180deg, #fffbf3 0%, #fff4df 100%);
+      }
+
+      .detail-info-card--priority-low {
+        border-color: #bfe0c8;
+        background: linear-gradient(180deg, #f7fff8 0%, #ecfaf0 100%);
+      }
+
+      .detail-info-card--priority .detail-inline-select {
+        background: rgba(255, 255, 255, 0.8);
       }
 
       .detail-info-head {
@@ -2189,7 +2376,7 @@
 
       .detail-select-shell {
         position: relative;
-        margin-top: 6px;
+        margin-top: 14px;
       }
 
       .detail-select-shell::after {
@@ -2267,6 +2454,69 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+      }
+
+      .tag-editor {
+        display: grid;
+        gap: 12px;
+      }
+
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .theme-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid #d8e1fb;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #30447f;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .theme-tag button {
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: #edf3ff;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      .theme-tag--preset {
+        background: #f7f9ff;
+      }
+
+      .theme-tag--preset.is-active {
+        border-color: #9fb7ff;
+        background: #edf3ff;
+        color: #28488f;
+      }
+
+      .tag-input-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .tag-input-row .detail-inline-input {
+        margin-top: 0;
+        flex: 1 1 220px;
+      }
+
+      .tag-empty {
+        color: var(--muted);
+        font-size: 0.84rem;
       }
 
       .detail-footer-meta {
@@ -2950,29 +3200,64 @@
                     <path d="M7 12h10"></path>
                     <path d="M10 18h4"></path>
                   </svg>
-                  <span>Filter</span>
+                  <span class="filter-panel-button__label">
+                    <span>Filter</span>
+                    <span class="filter-panel-button__badge" id="filter-button-badge">0</span>
+                  </span>
                   <span class="filter-panel-button__caret">⌄</span>
                 </button>
                 <div class="filter-panel" id="filter-panel" hidden>
-                  <div class="filter-select-grid">
-                    <label class="select-shell">
-                      <select id="category-filter-select" aria-label="Sektor filtern">
-                        <option value="">Alle Sektoren</option>
-                      </select>
-                    </label>
-                    <label class="select-shell">
-                      <select id="priority-filter-select" aria-label="Priorität filtern">
-                        <option value="">Alle Prioritäten</option>
-                        <option value="Hoch">Hoch</option>
-                        <option value="Mittel">Mittel</option>
-                        <option value="Niedrig">Niedrig</option>
-                      </select>
-                    </label>
-                    <label class="select-shell">
-                      <select id="state-filter-select" aria-label="Bundesland filtern">
-                        <option value="">Alle Bundesländer</option>
-                      </select>
-                    </label>
+                  <div class="filter-panel-head">
+                    <div>
+                      <h3 class="filter-panel-title">Kontakte filtern</h3>
+                      <p class="filter-panel-copy">Kombiniere mehrere Optionen, ohne das Fenster zu verlassen.</p>
+                    </div>
+                    <div class="filter-panel-actions">
+                      <button class="filter-reset" type="button" id="filter-panel-reset">Alle Filter zurücksetzen</button>
+                      <button class="filter-panel-close" type="button" id="filter-panel-close" aria-label="Filter schließen">&times;</button>
+                    </div>
+                  </div>
+                  <div class="filter-panel-grid">
+                    <section class="filter-section">
+                      <div class="filter-section-head">
+                        <h4 class="filter-section-title">
+                          <span class="filter-section-icon">🏥</span>
+                          <span>Sektor</span>
+                        </h4>
+                        <span class="filter-section-meta" id="category-filter-meta">Alle</span>
+                      </div>
+                      <div class="filter-option-list" id="category-filter-options"></div>
+                    </section>
+                    <section class="filter-section">
+                      <div class="filter-section-head">
+                        <h4 class="filter-section-title">
+                          <span class="filter-section-icon">⚑</span>
+                          <span>Priorität</span>
+                        </h4>
+                        <span class="filter-section-meta" id="priority-filter-meta">Alle</span>
+                      </div>
+                      <div class="filter-option-list" id="priority-filter-options"></div>
+                    </section>
+                    <section class="filter-section">
+                      <div class="filter-section-head">
+                        <h4 class="filter-section-title">
+                          <span class="filter-section-icon">📍</span>
+                          <span>Bundesland</span>
+                        </h4>
+                        <span class="filter-section-meta" id="state-filter-meta">Alle</span>
+                      </div>
+                      <div class="filter-option-list filter-option-list--scroll" id="state-filter-options"></div>
+                    </section>
+                    <section class="filter-section">
+                      <div class="filter-section-head">
+                        <h4 class="filter-section-title">
+                          <span class="filter-section-icon">🏷️</span>
+                          <span>Themen</span>
+                        </h4>
+                        <span class="filter-section-meta" id="theme-filter-meta">Alle</span>
+                      </div>
+                      <div class="filter-option-list filter-option-list--scroll" id="theme-filter-options"></div>
+                    </section>
                   </div>
                 </div>
               </div>
@@ -2991,7 +3276,6 @@
                     <div>Organisation</div>
                     <div>Sektor</div>
                     <div>Fachrichtung</div>
-                    <div>Priorität</div>
                     <div>Owner</div>
                   </div>
                   <div id="contact-list"></div>
@@ -3214,6 +3498,14 @@
         "Laila Wahle",
         "Thomas Kostera"
       ];
+      const themeOptions = [
+        "Notfallversorgung",
+        "Krankenhausentlassbrief",
+        "E-Überweisung",
+        "Digitale Formulare",
+        "Heilmittel",
+        "Hilfsmittel"
+      ];
       const storageKey = "versorgungs-kompass-contacts-v7";
 
       const searchInput = document.getElementById("search");
@@ -3226,10 +3518,18 @@
       const activeFilterList = document.getElementById("active-filter-list");
       const resetAllFiltersButton = document.getElementById("reset-all-filters");
       const filterPanelButton = document.getElementById("filter-panel-button");
+      const filterButtonBadge = document.getElementById("filter-button-badge");
       const filterPanel = document.getElementById("filter-panel");
-      const categoryFilterSelect = document.getElementById("category-filter-select");
-      const priorityFilterSelect = document.getElementById("priority-filter-select");
-      const stateFilterSelect = document.getElementById("state-filter-select");
+      const filterPanelResetButton = document.getElementById("filter-panel-reset");
+      const filterPanelCloseButton = document.getElementById("filter-panel-close");
+      const categoryFilterOptions = document.getElementById("category-filter-options");
+      const priorityFilterOptions = document.getElementById("priority-filter-options");
+      const stateFilterOptions = document.getElementById("state-filter-options");
+      const themeFilterOptions = document.getElementById("theme-filter-options");
+      const categoryFilterMeta = document.getElementById("category-filter-meta");
+      const priorityFilterMeta = document.getElementById("priority-filter-meta");
+      const stateFilterMeta = document.getElementById("state-filter-meta");
+      const themeFilterMeta = document.getElementById("theme-filter-meta");
       const mapViewFrame = document.getElementById("map-view-frame");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
@@ -3260,9 +3560,10 @@
       let activeView = "contacts";
       let activeId = null;
       let activeNameEditorId = null;
-      let selectedPriority = "";
-      let selectedCategory = "";
-      let selectedState = "";
+      let selectedPriorities = [];
+      let selectedCategories = [];
+      let selectedStates = [];
+      let selectedThemes = [];
       let currentPage = 1;
       let pageSize = 20;
       let editorMode = "create";
@@ -3303,6 +3604,19 @@
           .split(/\s*\|\s*|\n+/)
           .map((item) => item.trim())
           .filter(Boolean);
+      }
+
+      function normalizeThemes(value) {
+        if (Array.isArray(value)) return [...new Set(value.map((item) => String(item).trim()).filter(Boolean))];
+        if (!value) return [];
+        return [
+          ...new Set(
+            String(value)
+              .split(/\s*\|\s*|,+|\n+/)
+              .map((item) => item.trim())
+              .filter(Boolean)
+          )
+        ];
       }
 
       function normalizeCategory(value) {
@@ -3424,6 +3738,7 @@
           lat: Number.isFinite(latitude) ? latitude : null,
           lon: Number.isFinite(longitude) ? longitude : null,
           image: entry.image || "",
+          themes: normalizeThemes(entry.themes || entry.themesText || entry.themeTags || ""),
           sources: normalizeSources(entry.sources || entry.sourcesText || ""),
           lastExchange: entry.lastExchange || "",
           owner: entry.owner || "",
@@ -3530,6 +3845,7 @@
             note: contact.note,
             nextStep: contact.nextStep,
             image: contact.image,
+            themes: contact.themes,
             sources: contact.sources,
             lastExchange: contact.lastExchange,
             owner: contact.owner,
@@ -3591,6 +3907,50 @@
         filterPanelButton.setAttribute("aria-expanded", "false");
       }
 
+      function toggleFilterValue(key, value) {
+        const filterMap = {
+          category: selectedCategories,
+          priority: selectedPriorities,
+          state: selectedStates,
+          theme: selectedThemes
+        };
+        const currentValues = filterMap[key];
+        if (!currentValues) return;
+
+        const nextValues = currentValues.includes(value)
+          ? currentValues.filter((item) => item !== value)
+          : [...currentValues, value];
+
+        if (key === "category") selectedCategories = nextValues;
+        if (key === "priority") selectedPriorities = nextValues;
+        if (key === "state") selectedStates = nextValues;
+        if (key === "theme") selectedThemes = nextValues;
+
+        currentPage = 1;
+        const panelWasOpen = !filterPanel.hidden;
+        updateView();
+        if (panelWasOpen) {
+          filterPanel.hidden = false;
+          filterPanelButton.setAttribute("aria-expanded", "true");
+        }
+      }
+
+      function removeFilterValue(key, value) {
+        if (key === "category") selectedCategories = selectedCategories.filter((item) => item !== value);
+        if (key === "priority") selectedPriorities = selectedPriorities.filter((item) => item !== value);
+        if (key === "state") selectedStates = selectedStates.filter((item) => item !== value);
+        if (key === "theme") selectedThemes = selectedThemes.filter((item) => item !== value);
+      }
+
+      function clearAllFilters({ clearSearch = true } = {}) {
+        selectedCategories = [];
+        selectedPriorities = [];
+        selectedStates = [];
+        selectedThemes = [];
+        if (clearSearch) searchInput.value = "";
+        currentPage = 1;
+      }
+
       function filteredContacts() {
         const search = searchInput.value.trim().toLowerCase();
 
@@ -3603,6 +3963,7 @@
               contact.organization,
               contact.category,
               contact.topic,
+              ...(contact.themes || []),
               contact.title,
               contact.nextStep,
               contact.location
@@ -3611,11 +3972,13 @@
               .toLowerCase()
               .includes(search);
 
-          const matchesCategory = !selectedCategory || contact.category === selectedCategory;
-          const matchesPriority = !selectedPriority || contact.priority === selectedPriority;
-          const matchesState = !selectedState || stateLabel(contact) === selectedState;
+          const matchesCategory = !selectedCategories.length || selectedCategories.includes(contact.category);
+          const matchesPriority = !selectedPriorities.length || selectedPriorities.includes(contact.priority);
+          const matchesState = !selectedStates.length || selectedStates.includes(stateLabel(contact));
+          const matchesTheme =
+            !selectedThemes.length || selectedThemes.some((theme) => normalizeThemes(contact.themes).includes(theme));
 
-          return matchesSearch && matchesCategory && matchesPriority && matchesState;
+          return matchesSearch && matchesCategory && matchesPriority && matchesState && matchesTheme;
         });
       }
 
@@ -3635,37 +3998,96 @@
         };
       }
 
-      function populateFilterSelects() {
-        const categories = uniqueValues("category");
+      function filterSelectionCount() {
+        return (
+          selectedCategories.length +
+          selectedPriorities.length +
+          selectedStates.length +
+          selectedThemes.length
+        );
+      }
+
+      function setMetaCount(element, count) {
+        element.textContent = count ? `${count} aktiv` : "Alle";
+      }
+
+      function renderFilterOptionGroup(target, options, selectedValues, filterKey) {
+        if (!options.length) {
+          target.innerHTML = `<div class="filter-empty-note">Keine Optionen vorhanden.</div>`;
+          return;
+        }
+
+        target.innerHTML = options
+          .map((option) => {
+            const isActive = selectedValues.includes(option.value);
+            return `
+              <button
+                class="filter-option-chip ${isActive ? "is-active" : ""}"
+                type="button"
+                data-filter-key="${filterKey}"
+                data-filter-value="${String(option.value).replace(/"/g, "&quot;")}"
+                aria-pressed="${isActive ? "true" : "false"}"
+              >
+                ${option.icon ? `<span class="filter-option-chip__icon">${option.icon}</span>` : ""}
+                <span>${option.label}</span>
+              </button>
+            `;
+          })
+          .join("");
+      }
+
+      function renderFilterPanel() {
+        const categories = uniqueValues("category").map((value) => ({
+          value,
+          label: value,
+          icon: categoryEmoji[value] || "•"
+        }));
+        const priorities = ["Hoch", "Mittel", "Niedrig"].map((value) => ({
+          value,
+          label: value,
+          icon: priorityEmoji[value] || "•"
+        }));
         const states = [...new Map(contacts.map((contact) => [stateLabel(contact), stateLabel(contact)])).values()]
           .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b, "de"));
+          .sort((a, b) => a.localeCompare(b, "de"))
+          .map((value) => ({ value, label: value }));
+        const themes = themeSuggestions().map((value) => ({ value, label: value }));
 
-        categoryFilterSelect.innerHTML = [
-          `<option value="">Alle Sektoren</option>`,
-          ...categories.map((value) => `<option value="${value}">${categoryEmoji[value] || "•"} ${value}</option>`)
-        ].join("");
+        renderFilterOptionGroup(categoryFilterOptions, categories, selectedCategories, "category");
+        renderFilterOptionGroup(priorityFilterOptions, priorities, selectedPriorities, "priority");
+        renderFilterOptionGroup(stateFilterOptions, states, selectedStates, "state");
+        renderFilterOptionGroup(themeFilterOptions, themes, selectedThemes, "theme");
 
-        stateFilterSelect.innerHTML = [
-          `<option value="">Alle Bundesländer</option>`,
-          ...states.map((value) => `<option value="${value}">${value}</option>`)
-        ].join("");
+        setMetaCount(categoryFilterMeta, selectedCategories.length);
+        setMetaCount(priorityFilterMeta, selectedPriorities.length);
+        setMetaCount(stateFilterMeta, selectedStates.length);
+        setMetaCount(themeFilterMeta, selectedThemes.length);
 
-        categoryFilterSelect.value = selectedCategory;
-        priorityFilterSelect.value = selectedPriority;
-        stateFilterSelect.value = selectedState;
+        const activeCount = filterSelectionCount();
+        filterButtonBadge.textContent = String(activeCount);
+        filterButtonBadge.classList.toggle("is-visible", activeCount > 0);
+
+        [...filterPanel.querySelectorAll("[data-filter-key][data-filter-value]")].forEach((button) => {
+          button.addEventListener("click", () => {
+            const { filterKey, filterValue } = button.dataset;
+            toggleFilterValue(filterKey, filterValue);
+          });
+        });
       }
 
       function renderActiveFilters() {
         const filters = [
-          selectedCategory ? { key: "category", label: `Sektor: ${selectedCategory}` } : null,
-          selectedPriority ? { key: "priority", label: `Priorität: ${selectedPriority}` } : null,
-          selectedState ? { key: "state", label: `Bundesland: ${selectedState}` } : null
-        ].filter(Boolean);
+          ...selectedCategories.map((value) => ({ key: "category", value, label: `Sektor: ${value}` })),
+          ...selectedPriorities.map((value) => ({ key: "priority", value, label: `Priorität: ${value}` })),
+          ...selectedStates.map((value) => ({ key: "state", value, label: `Bundesland: ${value}` })),
+          ...selectedThemes.map((value) => ({ key: "theme", value, label: `Thema: ${value}` }))
+        ];
 
         if (!filters.length) {
           activeFilterList.innerHTML = `<div class="active-filter-empty">Keine aktiven Filter</div>`;
-          resetAllFiltersButton.disabled = !searchInput.value.trim();
+          const hasSearch = Boolean(searchInput.value.trim());
+          resetAllFiltersButton.disabled = !hasSearch;
+          filterPanelResetButton.disabled = true;
           return;
         }
 
@@ -3674,20 +4096,20 @@
             (filter) => `
               <div class="active-filter-chip">
                 <span>${filter.label}</span>
-                <button type="button" data-clear-filter="${filter.key}" aria-label="${filter.label} entfernen">&times;</button>
+                <button type="button" data-clear-filter="${filter.key}" data-clear-value="${String(filter.value).replace(/"/g, "&quot;")}" aria-label="${filter.label} entfernen">&times;</button>
               </div>
             `
           )
           .join("");
 
         resetAllFiltersButton.disabled = false;
+        filterPanelResetButton.disabled = false;
 
         [...activeFilterList.querySelectorAll("[data-clear-filter]")].forEach((button) => {
           button.addEventListener("click", () => {
             const key = button.dataset.clearFilter;
-            if (key === "category") selectedCategory = "";
-            if (key === "priority") selectedPriority = "";
-            if (key === "state") selectedState = "";
+            const value = button.dataset.clearValue || "";
+            removeFilterValue(key, value);
             updateView();
           });
         });
@@ -3696,7 +4118,6 @@
       function renderSummary(items) {
         const cards = [
           { label: "Kontakte gesamt", value: contacts.length, icon: "👥", iconClass: "summary-icon--blue" },
-          { label: "Aktuelle Auswahl", value: items.length, icon: "⏺", iconClass: "summary-icon--amber" },
           {
             label: "Hohe Priorität",
             value: contacts.filter((contact) => contact.priority === "Hoch").length,
@@ -3744,17 +4165,7 @@
                   }
                   <div class="contact-meta">
                     <div class="contact-name__line">
-                      ${
-                        activeNameEditorId === contact.id
-                          ? `<input class="row-editor" type="text" value="${contact.name.replace(/"/g, "&quot;")}" data-id="${contact.id}" data-field="name" aria-label="Name bearbeiten" />`
-                          : `<button class="contact-name-button" type="button" data-open-detail="${contact.id}">${contact.name}</button>`
-                      }
-                      <button class="name-edit-toggle" type="button" data-edit-name="${contact.id}" aria-label="Name bearbeiten">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                          <path d="M12 20h9"></path>
-                          <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path>
-                        </svg>
-                      </button>
+                      <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${contact.name}</button>
                       <button
                         class="favorite-star ${favorites.has(contact.id) ? "is-active" : ""}"
                         type="button"
@@ -3769,20 +4180,13 @@
                   </div>
                 </div>
                 <div>
-                  <input class="row-editor" type="text" value="${contact.organization.replace(/"/g, "&quot;")}" data-id="${contact.id}" data-field="organization" aria-label="Organisation bearbeiten" />
+                  <div class="contact-subline contact-subline--primary">${contact.organization || "Nicht dokumentiert"}</div>
                 </div>
                 <div>
-                  <select class="row-editor row-select" data-id="${contact.id}" data-field="category" aria-label="Sektor bearbeiten">
-                    ${defaultCategories
-                      .map((value) => `<option value="${value}" ${contact.category === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`)
-                      .join("")}
-                  </select>
+                  <div class="contact-subline contact-subline--primary">${categoryEmoji[contact.category] || "•"} ${contact.category || "Nicht dokumentiert"}</div>
                 </div>
                 <div>
                   <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "Nicht dokumentiert"}</div>
-                </div>
-                <div>
-                  ${`<span class="badge ${contact.priorityClass}">${contact.priority}</span>`}
                 </div>
                 <div>
                   <span class="contact-owner-chip ${meaningfulOrEmpty(contact.owner) ? "" : "contact-owner-chip--empty"}">${meaningfulOrEmpty(contact.owner) || "⚠ Kein Owner"}</span>
@@ -3829,13 +4233,6 @@
           button.addEventListener("click", (event) => {
             event.stopPropagation();
             openDetail(button.dataset.openDetail, pageItems);
-          });
-        });
-
-        [...list.querySelectorAll("[data-edit-name]")].forEach((button) => {
-          button.addEventListener("click", (event) => {
-            event.stopPropagation();
-            toggleNameEditor(button.dataset.editName);
           });
         });
 
@@ -3939,6 +4336,26 @@
               `<option value="${value}" ${selectedCategory === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`
           )
           .join("");
+      }
+
+      function themeSuggestions() {
+        return [...new Set([...themeOptions, ...contacts.flatMap((contact) => normalizeThemes(contact.themes))])].sort((a, b) =>
+          a.localeCompare(b, "de")
+        );
+      }
+
+      function updateContactThemes(id, themes) {
+        const normalizedThemes = normalizeThemes(themes);
+        contacts = contacts.map((contact, index) =>
+          contact.id === id
+            ? sanitizeContact({ ...contact, themes: normalizedThemes, updatedAt: new Date().toISOString() }, index)
+            : contact
+        );
+        persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
+        updateView();
+        if (activeId === id && detailDrawer.classList.contains("is-open")) {
+          openDetail(id);
+        }
       }
 
       function contactRoleSummary(contact) {
@@ -4164,7 +4581,8 @@
         const specialtyText = specialtyLabel(contact);
         const noteText = meaningfulOrEmpty(contact.lastExchange);
         const organizationLabel = meaningfulOrEmpty(contact.organization);
-        const priorityMarkup = `<span class="badge ${contact.priorityClass}">${contact.priority}</span>`;
+        const themeTags = normalizeThemes(contact.themes);
+        const suggestedThemes = themeSuggestions();
         const portraitMarkup = contact.image
           ? `<img class="avatar ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
           : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`;
@@ -4249,6 +4667,45 @@
               </section>
 
               <section class="section-block">
+                <h4 class="detail-section-title">Themen</h4>
+                <div class="detail-info-card">
+                  <div class="tag-editor">
+                    <div class="tag-list">
+                      ${
+                        themeTags.length
+                          ? themeTags
+                              .map(
+                                (tag) => `
+                                  <div class="theme-tag">
+                                    <span>${tag}</span>
+                                    <button type="button" data-remove-theme="${tag}" aria-label="${tag} entfernen">&times;</button>
+                                  </div>
+                                `
+                              )
+                              .join("")
+                          : `<div class="tag-empty">Noch keine Themen hinterlegt.</div>`
+                      }
+                    </div>
+                    <div class="tag-list">
+                      ${suggestedThemes
+                        .map(
+                          (tag) => `
+                            <button class="theme-tag theme-tag--preset ${themeTags.includes(tag) ? "is-active" : ""}" type="button" data-theme-option="${tag}" aria-pressed="${themeTags.includes(tag) ? "true" : "false"}">
+                              ${tag}
+                            </button>
+                          `
+                        )
+                        .join("")}
+                    </div>
+                    <div class="tag-input-row">
+                      <input class="detail-inline-input" id="detail-theme-input" type="text" value="" placeholder="Weiteres Thema ergänzen" />
+                      <button class="action-button action-button--ghost" type="button" id="detail-theme-add">Tag hinzufügen</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="section-block">
                 <h4 class="detail-section-title">Kommunikation</h4>
                 <div class="detail-communication-grid">
                   <article class="detail-info-card ${hasMeaningfulValue(contact.email) ? "" : "detail-info-card--missing"}">
@@ -4293,7 +4750,7 @@
               <section class="section-block">
                 <h4 class="detail-section-title">Status</h4>
                 <div class="detail-context-grid">
-                  <article class="detail-info-card">
+                  <article class="detail-info-card detail-info-card--priority detail-info-card--priority-${normalizedPriorityValue(contact.priority)}">
                     <div class="detail-info-head">
                       <span class="field-icon">⚑</span>
                       <span>Priorit&auml;t</span>
@@ -4329,7 +4786,7 @@
                 <span>ID: ${contact.id}</span>
               </div>
               <div class="detail-bottom-actions">
-                <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
+                <button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt löschen</button>
               </div>
             </div>
           </div>
@@ -4378,6 +4835,34 @@
             updateContactField(contact.id, "owner", detailOwnerSelect.value);
           });
         }
+        const detailThemeInput = document.getElementById("detail-theme-input");
+        const detailThemeAdd = document.getElementById("detail-theme-add");
+        if (detailThemeInput && detailThemeAdd) {
+          const addTheme = () => {
+            const nextTag = detailThemeInput.value.trim();
+            if (!nextTag) return;
+            updateContactThemes(contact.id, [...themeTags, nextTag]);
+          };
+          detailThemeAdd.addEventListener("click", addTheme);
+          detailThemeInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              addTheme();
+            }
+          });
+        }
+        [...detailPanel.querySelectorAll("[data-theme-option]")].forEach((button) => {
+          button.addEventListener("click", () => {
+            const tag = button.dataset.themeOption;
+            const nextThemes = themeTags.includes(tag) ? themeTags.filter((item) => item !== tag) : [...themeTags, tag];
+            updateContactThemes(contact.id, nextThemes);
+          });
+        });
+        [...detailPanel.querySelectorAll("[data-remove-theme]")].forEach((button) => {
+          button.addEventListener("click", () => {
+            updateContactThemes(contact.id, themeTags.filter((item) => item !== button.dataset.removeTheme));
+          });
+        });
         const detailEmailInput = document.getElementById("detail-email-input");
         if (detailEmailInput) {
           detailEmailInput.addEventListener("blur", () => {
@@ -4470,6 +4955,7 @@
           "category",
           "organization",
           "topic",
+          "themes",
           "priority",
           "email",
           "phone",
@@ -4501,6 +4987,7 @@
             contact.category,
             contact.organization,
             contact.topic,
+            normalizeThemes(contact.themes).join(" | "),
             contact.priority,
             contact.email,
             contact.phone,
@@ -4574,7 +5061,7 @@
         renderTable(items);
         renderDashboard(items);
         renderActiveFilters();
-        populateFilterSelects();
+        renderFilterPanel();
         syncMapFrame(items);
 
         if (activeId && !items.some((item) => item.id === activeId)) {
@@ -4596,31 +5083,18 @@
         currentPage = 1;
         updateView();
       });
-      categoryFilterSelect.addEventListener("change", () => {
-        selectedCategory = categoryFilterSelect.value;
-        currentPage = 1;
-        updateView();
-        closeMenus();
-      });
-      priorityFilterSelect.addEventListener("change", () => {
-        selectedPriority = priorityFilterSelect.value;
-        currentPage = 1;
-        updateView();
-        closeMenus();
-      });
-      stateFilterSelect.addEventListener("change", () => {
-        selectedState = stateFilterSelect.value;
-        currentPage = 1;
-        updateView();
-        closeMenus();
-      });
       resetAllFiltersButton.addEventListener("click", () => {
-        selectedCategory = "";
-        selectedPriority = "";
-        selectedState = "";
-        searchInput.value = "";
-        currentPage = 1;
+        clearAllFilters();
         updateView();
+      });
+      filterPanelResetButton.addEventListener("click", () => {
+        const panelWasOpen = !filterPanel.hidden;
+        clearAllFilters({ clearSearch: false });
+        updateView();
+        if (panelWasOpen) {
+          filterPanel.hidden = false;
+          filterPanelButton.setAttribute("aria-expanded", "true");
+        }
       });
       mapViewFrame.addEventListener("load", () => {
         syncMapFrame(filteredContacts());
@@ -4653,6 +5127,12 @@
         closeMenus();
         filterPanel.hidden = !open;
         filterPanelButton.setAttribute("aria-expanded", String(open));
+      });
+      filterPanel.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+      filterPanelCloseButton.addEventListener("click", () => {
+        closeMenus();
       });
 
       detailOverlay.addEventListener("click", closeDetail);
@@ -4748,7 +5228,6 @@
       });
 
       setActiveView(activeView);
-      populateFilterSelects();
       updateView();
     </script>
   </body>
