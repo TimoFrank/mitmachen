@@ -1718,6 +1718,13 @@
         gap: 14px;
       }
 
+      .detail-profile-side {
+        display: grid;
+        gap: 8px;
+        min-width: 168px;
+        flex: 0 0 168px;
+      }
+
       .detail-profile-main {
         display: flex;
         align-items: flex-start;
@@ -1795,6 +1802,10 @@
       .detail-fact-card--stack {
         display: grid;
         align-content: start;
+      }
+
+      .detail-fact-card--compact {
+        padding: 10px 12px;
       }
 
       .detail-fact-label {
@@ -3509,6 +3520,15 @@
           .join("");
       }
 
+      function buildCategorySelectOptions(selectedCategory = "") {
+        return defaultCategories
+          .map(
+            (value) =>
+              `<option value="${value}" ${selectedCategory === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`
+          )
+          .join("");
+      }
+
       function contactRoleSummary(contact) {
         return (
           meaningfulOrEmpty(contact.title) ||
@@ -3542,7 +3562,6 @@
         if (!hasMeaningfulValue(contact.phone)) fields.push("Telefon");
         if (!hasMeaningfulValue(contact.linkedin)) fields.push("LinkedIn");
         if (!hasMeaningfulValue(contact.title)) fields.push("Fachrichtung");
-        if (!hasMeaningfulValue(contact.topic)) fields.push("Thema");
         if (!hasMeaningfulValue(contact.lastExchange)) fields.push("Letzter Austausch");
         if (!hasMeaningfulValue(contact.owner)) fields.push("Interner Owner");
         if (!hasMeaningfulValue(contact.location) && !hasMeaningfulValue(contact.city) && !hasMeaningfulValue(contact.state)) fields.push("Ort");
@@ -3727,19 +3746,14 @@
 
         const locationText = formatLocationDisplay(contact);
         const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
-        const introSummary = detailIntroSummary(contact);
         const missingFields = detailMissingFields(contact);
         const createdLabel = formatDateLabel(contact.createdAt);
         const updatedLabel = formatDateLabel(contact.updatedAt);
         const ownerLabel = meaningfulOrEmpty(contact.owner);
         const specialtyText = specialtyLabel(contact);
         const lastExchangeLabel = formatDateLabel(contact.lastExchange) || meaningfulOrEmpty(contact.lastExchange);
-        const topicLabel = meaningfulOrEmpty(contact.topic);
-        const noteLabel = meaningfulOrEmpty(contact.note);
-        const nextStepLabel = meaningfulOrEmpty(contact.nextStep);
         const organizationLabel = meaningfulOrEmpty(contact.organization);
         const priorityMarkup = `<span class="badge ${contact.priorityClass}">${contact.priority}</span>`;
-        const categoryMarkup = `<span class="${contact.roleBadgeClass}">${contact.categoryEmoji} ${contact.category}</span>`;
         const portraitMarkup = contact.image
           ? `<img class="avatar ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
           : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`;
@@ -3761,12 +3775,21 @@
                   ${portraitMarkup}
                   <div class="detail-profile-copy">
                     <h3>${contact.displayName}</h3>
-                    ${introSummary ? `<div class="detail-profile-role">${introSummary}</div>` : ""}
                   </div>
                 </div>
-                <div class="detail-actions detail-actions--stacked">
-                  <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
-                  <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
+                <div class="detail-profile-side">
+                  <article class="detail-fact-card detail-fact-card--compact detail-fact-card--stack">
+                    <div class="detail-fact-label">Priorit&auml;t</div>
+                    <label class="detail-select-shell">
+                      <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen">
+                        ${buildPrioritySelectOptions(contact.priority)}
+                      </select>
+                    </label>
+                  </article>
+                  <div class="detail-actions detail-actions--stacked">
+                    <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
+                    <button class="action-button action-button--danger" type="button" id="detail-delete">Löschen</button>
+                  </div>
                 </div>
               </section>
 
@@ -3787,15 +3810,11 @@
                     </select>
                   </label>
                 </article>
-                <article class="detail-fact-card">
+                <article class="detail-fact-card detail-fact-card--stack">
                   <div class="detail-fact-label">Kategorie</div>
-                  <div class="detail-fact-value">${categoryMarkup}</div>
-                </article>
-                <article class="detail-fact-card detail-fact-card--wide detail-fact-card--stack">
-                  <div class="detail-fact-label">Priorit&auml;t</div>
                   <label class="detail-select-shell">
-                    <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen">
-                      ${buildPrioritySelectOptions(contact.priority)}
+                    <select class="detail-inline-select" id="detail-category-select" aria-label="Kategorie zuordnen">
+                      ${buildCategorySelectOptions(contact.category)}
                     </select>
                   </label>
                 </article>
@@ -3864,6 +3883,23 @@
                       : ""
                   }
                   ${
+                    true
+                      ? `
+                        <article class="detail-info-card">
+                          <div class="detail-info-head">
+                            <span class="field-icon">👤</span>
+                            <span>Interner Owner</span>
+                          </div>
+                          <label class="detail-select-shell">
+                            <select class="detail-inline-select" id="detail-owner-select" aria-label="Interner Owner zuordnen">
+                              ${buildOwnerSelectOptions(ownerLabel)}
+                            </select>
+                          </label>
+                        </article>
+                      `
+                      : ""
+                  }
+                  ${
                     !hasMeaningfulValue(contact.email) && !hasMeaningfulValue(contact.phone) && !linkedinUrl
                       ? `
                         <article class="detail-info-card">
@@ -3880,32 +3916,14 @@
               </section>
 
               <section class="section-block">
-                <h4 class="detail-section-title">Kontext</h4>
+                <h4 class="detail-section-title">Status</h4>
                 <div class="detail-context-grid">
-                  <article class="detail-info-card">
-                    <div class="detail-info-head">
-                      <span class="field-icon">✦</span>
-                      <span>Thema</span>
-                    </div>
-                    <div class="detail-info-value ${topicLabel ? "" : "detail-info-value--muted"}">${topicLabel || "Nicht dokumentiert"}</div>
-                  </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
                       <span class="field-icon">🗓</span>
                       <span>Letzter Austausch</span>
                     </div>
                     <div class="detail-info-value ${lastExchangeLabel ? "" : "detail-info-value--muted"}">${lastExchangeLabel || "Nicht dokumentiert"}</div>
-                  </article>
-                  <article class="detail-info-card">
-                    <div class="detail-info-head">
-                      <span class="field-icon">👤</span>
-                      <span>Interner Owner</span>
-                    </div>
-                    <label class="detail-select-shell">
-                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Interner Owner zuordnen">
-                        ${buildOwnerSelectOptions(ownerLabel)}
-                      </select>
-                    </label>
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
@@ -3918,37 +3936,12 @@
               </section>
 
               <section class="section-block">
-                <h4 class="detail-section-title">Profil</h4>
+                <h4 class="detail-section-title">Quellen</h4>
                 <div class="detail-stack">
-                  ${
-                    noteLabel
-                      ? `
-                        <article class="detail-card">
-                          <div class="detail-label">Einordnung</div>
-                          <div class="detail-value">${noteLabel}</div>
-                        </article>
-                      `
-                      : ""
-                  }
-                  ${
-                    nextStepLabel
-                      ? `
-                        <article class="detail-card">
-                          <div class="detail-label">Nächster Schritt</div>
-                          <div class="detail-value">${nextStepLabel}</div>
-                        </article>
-                      `
-                      : ""
-                  }
                   <article class="detail-card">
                     <div class="detail-label">Quellen</div>
                     <div class="detail-value">${renderSourcesList(contact)}</div>
                   </div>
-                  ${
-                    !noteLabel && !nextStepLabel
-                      ? `<div class="detail-empty-note">Kein zusätzlicher interner Profilkontext dokumentiert.</div>`
-                      : ""
-                  }
                 </div>
               </section>
 
@@ -3972,6 +3965,12 @@
         if (detailSpecialtySelect) {
           detailSpecialtySelect.addEventListener("change", () => {
             updateContactField(contact.id, "title", detailSpecialtySelect.value);
+          });
+        }
+        const detailCategorySelect = document.getElementById("detail-category-select");
+        if (detailCategorySelect) {
+          detailCategorySelect.addEventListener("change", () => {
+            updateContactField(contact.id, "category", detailCategorySelect.value);
           });
         }
         const detailPrioritySelect = document.getElementById("detail-priority-select");
