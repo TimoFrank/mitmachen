@@ -1910,11 +1910,17 @@
       }
 
       .detail-info-card {
+        position: relative;
         min-height: 74px;
         padding: 12px 13px;
         border: 1px solid var(--line);
         border-radius: 16px;
         background: rgba(255, 255, 255, 0.96);
+      }
+
+      .detail-info-card--missing {
+        border-color: #f2d7bb;
+        background: linear-gradient(180deg, #fffaf2 0%, #fff6ea 100%);
       }
 
       .detail-info-head {
@@ -1940,9 +1946,11 @@
       }
 
       .detail-warning {
+        position: absolute;
+        top: 12px;
+        right: 12px;
         display: inline-flex;
         align-items: center;
-        margin-top: 8px;
         color: #a46b1f;
         font-size: 0.92rem;
         font-weight: 700;
@@ -3891,36 +3899,36 @@
               <section class="section-block">
                 <h4 class="detail-section-title">Kommunikation</h4>
                 <div class="detail-communication-grid">
-                  <article class="detail-info-card">
+                  <article class="detail-info-card ${hasMeaningfulValue(contact.email) ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
                       <span class="field-icon">&#9993;</span>
                       <span>E-Mail</span>
                     </div>
-                    <div class="detail-info-value ${hasMeaningfulValue(contact.email) ? "" : "detail-info-value--muted"}">${contact.email || "Nicht dokumentiert"}</div>
+                    ${hasMeaningfulValue(contact.email) ? `<div class="detail-info-value">${contact.email}</div>` : ""}
                     ${
                       hasMeaningfulValue(contact.email)
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a></div>`
                         : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
                     }
                   </article>
-                  <article class="detail-info-card">
+                  <article class="detail-info-card ${hasMeaningfulValue(contact.phone) ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
                       <span class="field-icon">&#9742;</span>
                       <span>Telefon</span>
                     </div>
-                    <div class="detail-info-value ${hasMeaningfulValue(contact.phone) ? "" : "detail-info-value--muted"}">${contact.phone || "Nicht dokumentiert"}</div>
+                    ${hasMeaningfulValue(contact.phone) ? `<div class="detail-info-value">${contact.phone}</div>` : ""}
                     ${
                       hasMeaningfulValue(contact.phone)
                         ? ""
                         : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
                     }
                   </article>
-                  <article class="detail-info-card">
+                  <article class="detail-info-card ${linkedinUrl ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
                       <span class="linkedin-icon">in</span>
                       <span>LinkedIn</span>
                     </div>
-                    <div class="detail-info-value ${linkedinUrl ? "" : "detail-info-value--muted"}">${linkedinUrl ? "Öffentliches Profil" : "Nicht dokumentiert"}</div>
+                    ${linkedinUrl ? `<div class="detail-info-value">Öffentliches Profil</div>` : ""}
                     ${
                       linkedinUrl
                         ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a></div>`
@@ -3933,20 +3941,21 @@
               <section class="section-block">
                 <h4 class="detail-section-title">Status</h4>
                 <div class="detail-context-grid">
-                  <article class="detail-info-card">
+                  <article class="detail-info-card ${lastExchangeLabel ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
                       <span class="field-icon">🗓</span>
                       <span>Letzter Austausch</span>
                     </div>
-                    <div class="detail-info-value ${lastExchangeLabel ? "" : "detail-info-value--muted"}">${lastExchangeLabel || "Nicht dokumentiert"}</div>
+                    ${lastExchangeLabel ? `<div class="detail-info-value">${lastExchangeLabel}</div>` : ""}
                     ${lastExchangeLabel ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
-                  <article class="detail-info-card">
+                  <article class="detail-info-card ${(updatedLabel || createdLabel) ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
                       <span class="field-icon">↻</span>
                       <span>Zuletzt aktualisiert</span>
                     </div>
-                    <div class="detail-info-value ${(updatedLabel || createdLabel) ? "" : "detail-info-value--muted"}">${updatedLabel || createdLabel || "Nicht dokumentiert"}</div>
+                    ${(updatedLabel || createdLabel) ? `<div class="detail-info-value">${updatedLabel || createdLabel}</div>` : ""}
+                    ${(updatedLabel || createdLabel) ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
                 </div>
               </section>
