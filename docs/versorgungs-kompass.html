@@ -241,6 +241,7 @@
       }
 
       .topbar-account {
+        position: relative;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -250,6 +251,16 @@
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.94);
         box-shadow: 0 12px 28px rgba(49, 75, 153, 0.08);
+      }
+
+      .topbar-account__button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
       }
 
       .topbar-account__badge {
@@ -269,6 +280,37 @@
         color: #6877a8;
         font-size: 0.82rem;
         font-weight: 700;
+      }
+
+      .account-popover {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        min-width: 210px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 18px 36px rgba(26, 37, 89, 0.14);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        z-index: 40;
+      }
+
+      .account-popover[hidden] {
+        display: none;
+      }
+
+      .account-popover__name {
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        color: #2a3d78;
+        font-size: 0.9rem;
+        font-weight: 800;
+        background: #f4f7ff;
       }
 
       .wrap {
@@ -2864,8 +2906,14 @@
         </button>
       </nav>
       <div class="topbar-account" aria-label="Eingeloggter Nutzer">
-        <span class="topbar-account__badge">TF</span>
-        <span class="topbar-account__caret">⌄</span>
+        <button class="topbar-account__button" type="button" id="account-button" aria-label="Nutzerkonto öffnen" aria-expanded="false">
+          <span class="topbar-account__badge">TF</span>
+          <span class="topbar-account__caret">⌄</span>
+        </button>
+        <div class="account-popover" id="account-menu" hidden>
+          <div class="account-popover__name">Timo Frank</div>
+          <button class="menu-option" type="button" id="account-logout-button">Abmelden</button>
+        </div>
       </div>
     </header>
 
@@ -2890,7 +2938,6 @@
               <div class="menu-popover" id="more-actions-menu" hidden>
                 <button class="menu-option" type="button" id="import-csv-button">CSV importieren</button>
                 <button class="menu-option" type="button" id="export-csv-button">CSV exportieren</button>
-                <button class="menu-option" type="button" id="logout-button">Abmelden</button>
               </div>
             </div>
             <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,text/csv" />
@@ -3230,11 +3277,13 @@
       const dashboardSubtitle = document.getElementById("dashboard-subtitle");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
+      const accountButton = document.getElementById("account-button");
+      const accountMenu = document.getElementById("account-menu");
+      const accountLogoutButton = document.getElementById("account-logout-button");
       const moreActionsButton = document.getElementById("more-actions-button");
       const moreActionsMenu = document.getElementById("more-actions-menu");
       const importCsvButton = document.getElementById("import-csv-button");
       const exportCsvButton = document.getElementById("export-csv-button");
-      const logoutButton = document.getElementById("logout-button");
       const csvFileInput = document.getElementById("csv-file-input");
 
       let activeView = "contacts";
@@ -3565,6 +3614,8 @@
       function closeMenus() {
         moreActionsMenu.hidden = true;
         moreActionsButton.setAttribute("aria-expanded", "false");
+        accountMenu.hidden = true;
+        accountButton.setAttribute("aria-expanded", "false");
         filterPanel.hidden = true;
         filterPanelButton.setAttribute("aria-expanded", "false");
       }
@@ -4608,6 +4659,14 @@
         moreActionsButton.setAttribute("aria-expanded", String(open));
       });
 
+      accountButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = accountMenu.hidden;
+        closeMenus();
+        accountMenu.hidden = !open;
+        accountButton.setAttribute("aria-expanded", String(open));
+      });
+
       filterPanelButton.addEventListener("click", (event) => {
         event.stopPropagation();
         const open = filterPanel.hidden;
@@ -4630,7 +4689,7 @@
         closeMenus();
         csvFileInput.click();
       });
-      logoutButton.addEventListener("click", () => {
+      accountLogoutButton.addEventListener("click", () => {
         closeMenus();
         logout();
       });
@@ -4705,7 +4764,7 @@
       });
 
       document.addEventListener("click", (event) => {
-        if (!event.target.closest(".menu-shell") && !event.target.closest(".filter-shell")) closeMenus();
+        if (!event.target.closest(".menu-shell") && !event.target.closest(".filter-shell") && !event.target.closest(".topbar-account")) closeMenus();
       });
 
       setActiveView(activeView);
