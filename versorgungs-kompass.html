@@ -900,13 +900,20 @@
       }
 
       .table {
-        min-width: 1120px;
+        min-width: 1320px;
       }
 
       .thead,
       .row {
         display: grid;
-        grid-template-columns: 56px minmax(330px, 1.45fr) minmax(240px, 0.95fr) minmax(170px, 0.7fr) minmax(260px, 0.95fr);
+        grid-template-columns:
+          56px
+          minmax(250px, 1.25fr)
+          minmax(250px, 1.05fr)
+          minmax(210px, 0.95fr)
+          minmax(140px, 0.65fr)
+          minmax(180px, 0.78fr)
+          minmax(210px, 0.9fr);
         align-items: center;
       }
 
@@ -1198,6 +1205,13 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+
+      .contact-subline--primary {
+        margin-top: 0;
+        color: #32457f;
+        font-size: 0.84rem;
+        font-weight: 700;
       }
 
       .row-editor {
@@ -1879,6 +1893,43 @@
         font-size: 0.9rem;
         font-weight: 700;
         line-height: 1.4;
+      }
+
+      .detail-select-shell {
+        position: relative;
+        margin-top: 10px;
+      }
+
+      .detail-select-shell::after {
+        content: "⌄";
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #7b85b0;
+        font-size: 0.95rem;
+        pointer-events: none;
+      }
+
+      .detail-inline-select {
+        width: 100%;
+        min-height: 38px;
+        padding: 0 36px 0 12px;
+        border: 1px solid #d8def7;
+        border-radius: 12px;
+        background: #f7f9ff;
+        color: #31447d;
+        font-size: 0.84rem;
+        font-weight: 700;
+        appearance: none;
+        outline: 0;
+        cursor: pointer;
+      }
+
+      .detail-inline-select:focus {
+        border-color: #8eb2ff;
+        box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
+        background: #ffffff;
       }
 
       .detail-info-value--muted {
@@ -2567,6 +2618,7 @@
                     <div>#</div>
                     <div>Name</div>
                     <div>Organisation</div>
+                    <div>Fachrichtung</div>
                     <div>Priorität</div>
                     <div>Kategorie</div>
                     <div>Ort</div>
@@ -2781,6 +2833,14 @@
         Mittel: "🟡",
         Niedrig: "🟢"
       };
+      const ownerOptions = [
+        "Timo Frank",
+        "Mirjam Scholz",
+        "Max Fröhlich",
+        "Johanna Ludwig",
+        "Laila Wahle",
+        "Thomas Kostera"
+      ];
       const storageKey = "versorgungs-kompass-contacts-v7";
 
       const searchInput = document.getElementById("search");
@@ -3306,6 +3366,9 @@
                   <input class="row-editor" type="text" value="${contact.organization.replace(/"/g, "&quot;")}" data-id="${contact.id}" data-field="organization" aria-label="Organisation bearbeiten" />
                 </div>
                 <div>
+                  <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "Nicht dokumentiert"}</div>
+                </div>
+                <div>
                   <select class="row-editor row-select row-select--priority ${contact.priority === "Hoch" ? "is-high" : contact.priority === "Mittel" ? "is-medium" : "is-low"}" data-id="${contact.id}" data-field="priority" aria-label="Priorität bearbeiten">
                     ${["Hoch", "Mittel", "Niedrig"]
                       .map((value) => `<option value="${value}" ${contact.priority === value ? "selected" : ""}>${priorityEmoji[value]} ${value}</option>`)
@@ -3401,6 +3464,17 @@
         return hasMeaningfulValue(value) ? String(value).trim() : "";
       }
 
+      function specialtyLabel(contact) {
+        return meaningfulOrEmpty(contact.title);
+      }
+
+      function buildOwnerSelectOptions(selectedOwner = "") {
+        return [
+          `<option value="">Keinen Owner zuweisen</option>`,
+          ...ownerOptions.map((owner) => `<option value="${owner}" ${selectedOwner === owner ? "selected" : ""}>${owner}</option>`)
+        ].join("");
+      }
+
       function contactRoleSummary(contact) {
         return (
           meaningfulOrEmpty(contact.title) ||
@@ -3433,6 +3507,7 @@
         if (!hasMeaningfulValue(contact.email)) fields.push("E-Mail");
         if (!hasMeaningfulValue(contact.phone)) fields.push("Telefon");
         if (!hasMeaningfulValue(contact.linkedin)) fields.push("LinkedIn");
+        if (!hasMeaningfulValue(contact.title)) fields.push("Fachrichtung");
         if (!hasMeaningfulValue(contact.topic)) fields.push("Thema");
         if (!hasMeaningfulValue(contact.lastExchange)) fields.push("Letzter Austausch");
         if (!hasMeaningfulValue(contact.owner)) fields.push("Interner Owner");
@@ -3623,6 +3698,7 @@
         const createdLabel = formatDateLabel(contact.createdAt);
         const updatedLabel = formatDateLabel(contact.updatedAt);
         const ownerLabel = meaningfulOrEmpty(contact.owner);
+        const specialtyText = specialtyLabel(contact);
         const lastExchangeLabel = formatDateLabel(contact.lastExchange) || meaningfulOrEmpty(contact.lastExchange);
         const topicLabel = meaningfulOrEmpty(contact.topic);
         const noteLabel = meaningfulOrEmpty(contact.note);
@@ -3669,6 +3745,10 @@
                 <article class="detail-fact-card detail-fact-card--wide">
                   <div class="detail-fact-label">Organisation</div>
                   <div class="detail-fact-value">${contact.organizationShort || organizationLabel || "Nicht dokumentiert"}</div>
+                </article>
+                <article class="detail-fact-card">
+                  <div class="detail-fact-label">Fachrichtung</div>
+                  <div class="detail-fact-value">${specialtyText || "Nicht dokumentiert"}</div>
                 </article>
                 <article class="detail-fact-card">
                   <div class="detail-fact-label">Ort</div>
@@ -3785,6 +3865,11 @@
                       <span>Interner Owner</span>
                     </div>
                     <div class="detail-info-value ${ownerLabel ? "" : "detail-info-value--muted"}">${ownerLabel || "Nicht dokumentiert"}</div>
+                    <label class="detail-select-shell">
+                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Interner Owner zuordnen">
+                        ${buildOwnerSelectOptions(ownerLabel)}
+                      </select>
+                    </label>
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
@@ -3847,6 +3932,12 @@
         document.getElementById("detail-close").addEventListener("click", closeDetail);
         document.getElementById("detail-edit").addEventListener("click", () => openEditor(contact));
         document.getElementById("detail-delete").addEventListener("click", () => deleteContact(contact));
+        const detailOwnerSelect = document.getElementById("detail-owner-select");
+        if (detailOwnerSelect) {
+          detailOwnerSelect.addEventListener("change", () => {
+            updateContactField(contact.id, "owner", detailOwnerSelect.value);
+          });
+        }
       }
 
       function closeDetail() {
