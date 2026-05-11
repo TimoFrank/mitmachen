@@ -910,10 +910,10 @@
           56px
           minmax(250px, 1.25fr)
           minmax(250px, 1.05fr)
-          minmax(210px, 0.95fr)
+          minmax(190px, 0.86fr)
           minmax(140px, 0.65fr)
           minmax(180px, 0.78fr)
-          minmax(210px, 0.9fr);
+          minmax(230px, 0.98fr);
         align-items: center;
       }
 
@@ -2618,10 +2618,10 @@
                     <div>#</div>
                     <div>Name</div>
                     <div>Organisation</div>
-                    <div>Fachrichtung</div>
+                    <div>Ort</div>
                     <div>Priorität</div>
                     <div>Kategorie</div>
-                    <div>Ort</div>
+                    <div>Fachrichtung</div>
                   </div>
                   <div id="contact-list"></div>
                 </section>
@@ -3366,7 +3366,7 @@
                   <input class="row-editor" type="text" value="${contact.organization.replace(/"/g, "&quot;")}" data-id="${contact.id}" data-field="organization" aria-label="Organisation bearbeiten" />
                 </div>
                 <div>
-                  <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "Nicht dokumentiert"}</div>
+                  <div class="contact-subline">${contact.location || stateLabel(contact)}</div>
                 </div>
                 <div>
                   <select class="row-editor row-select row-select--priority ${contact.priority === "Hoch" ? "is-high" : contact.priority === "Mittel" ? "is-medium" : "is-low"}" data-id="${contact.id}" data-field="priority" aria-label="Priorität bearbeiten">
@@ -3383,7 +3383,7 @@
                   </select>
                 </div>
                 <div>
-                  <div class="contact-subline">${contact.location || stateLabel(contact)}</div>
+                  <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "Nicht dokumentiert"}</div>
                 </div>
               </article>
             `
@@ -3468,10 +3468,23 @@
         return meaningfulOrEmpty(contact.title);
       }
 
+      function specialtyOptions() {
+        return [...new Set(contacts.map((contact) => specialtyLabel(contact)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
+      }
+
       function buildOwnerSelectOptions(selectedOwner = "") {
         return [
           `<option value="">Keinen Owner zuweisen</option>`,
           ...ownerOptions.map((owner) => `<option value="${owner}" ${selectedOwner === owner ? "selected" : ""}>${owner}</option>`)
+        ].join("");
+      }
+
+      function buildSpecialtySelectOptions(selectedSpecialty = "") {
+        return [
+          `<option value="">Keine Fachrichtung zuweisen</option>`,
+          ...specialtyOptions().map(
+            (specialty) => `<option value="${specialty}" ${selectedSpecialty === specialty ? "selected" : ""}>${specialty}</option>`
+          )
         ].join("");
       }
 
@@ -3749,6 +3762,11 @@
                 <article class="detail-fact-card">
                   <div class="detail-fact-label">Fachrichtung</div>
                   <div class="detail-fact-value">${specialtyText || "Nicht dokumentiert"}</div>
+                  <label class="detail-select-shell">
+                    <select class="detail-inline-select" id="detail-specialty-select" aria-label="Fachrichtung zuordnen">
+                      ${buildSpecialtySelectOptions(specialtyText)}
+                    </select>
+                  </label>
                 </article>
                 <article class="detail-fact-card">
                   <div class="detail-fact-label">Ort</div>
@@ -3932,6 +3950,12 @@
         document.getElementById("detail-close").addEventListener("click", closeDetail);
         document.getElementById("detail-edit").addEventListener("click", () => openEditor(contact));
         document.getElementById("detail-delete").addEventListener("click", () => deleteContact(contact));
+        const detailSpecialtySelect = document.getElementById("detail-specialty-select");
+        if (detailSpecialtySelect) {
+          detailSpecialtySelect.addEventListener("change", () => {
+            updateContactField(contact.id, "title", detailSpecialtySelect.value);
+          });
+        }
         const detailOwnerSelect = document.getElementById("detail-owner-select");
         if (detailOwnerSelect) {
           detailOwnerSelect.addEventListener("change", () => {
