@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Versorgungs-Kompass – Kontaktkarte</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(180deg, #f9fbff 0%, #f1f5ff 100%);
+      font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #f6f7f8;
+    }
+
+    .map-fade {
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 40px;
+      background: linear-gradient(180deg, rgba(243,245,247,0) 0%, rgba(243,245,247,0.28) 60%, rgba(243,245,247,0.62) 100%);
+      pointer-events: none;
+      z-index: 400;
+    }
+
+    .map-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 3px solid rgba(255,255,255,0.95);
+      box-shadow: 0 4px 14px rgba(45, 102, 237, 0.22);
+      background: #2d66ed;
+    }
+
+    .leaflet-control-container,
+    .leaflet-control-attribution {
+      display: none;
+    }
+
+    .leaflet-tile {
+      filter: saturate(0.78) contrast(0.96) brightness(1.02);
+    }
+  </style>
+</head>
+<body>
+  <div id="map" aria-hidden="true"></div>
+  <div class="map-fade"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="./deutschlandkarte-project/data/de-geojson.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const lat = Number.parseFloat(params.get("lat") || "");
+    const lon = Number.parseFloat(params.get("lon") || "");
+
+    function toLatLngs(ringLngLat) {
+      return ringLngLat.map((pt) => [pt[1], pt[0]]);
+    }
+
+    function germanyOuterRings(featureCollection) {
+      const geom = featureCollection.features[0].geometry;
+      const holes = [];
+
+      if (geom.type === "Polygon") {
+        holes.push(toLatLngs(geom.coordinates[0]));
+      } else if (geom.type === "MultiPolygon") {
+        geom.coordinates.forEach((poly) => holes.push(toLatLngs(poly[0])));
+      }
+      return holes;
+    }
+
+    const map = L.map("map", {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      tap: false,
+      touchZoom: false,
+      zoomSnap: 0.1,
+      zoomDelta: 0.2
+    });
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd",
+      maxZoom: 19
+    }).addTo(map);
+
+    const germanyGeoJson = window.MAP_DE_GEOJSON;
+    const worldRing = [[-90,-180],[-90,180],[90,180],[90,-180]];
+    const holes = germanyOuterRings(germanyGeoJson);
+
+    L.polygon([worldRing, ...holes], {
+      stroke: false,
+      fillColor: "#ffffff",
+      fillOpacity: 0.84,
+      interactive: false
+    }).addTo(map);
+
+    const germanyLayer = L.geoJSON(germanyGeoJson, {
+      style: {
+        color: "rgba(18,96,144,0.42)",
+        weight: 1.7,
+        fillColor: "rgba(53,132,194,0.12)",
+        fillOpacity: 0.18
+      },
+      interactive: false
+    }).addTo(map);
+
+    const bounds = germanyLayer.getBounds();
+    map.fitBounds(bounds.pad(0.08));
+    map.setMaxBounds(bounds.pad(0.12));
+
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      L.marker([lat, lon], {
+        icon: L.divIcon({
+          className: "",
+          html: '<div class="map-dot"></div>',
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        }),
+        interactive: false,
+        keyboard: false
+      }).addTo(map);
+    }
+  </script>
+</body>
+</html>

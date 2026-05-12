@@ -2297,6 +2297,16 @@
         justify-content: center;
       }
 
+      .detail-info-card--span-full {
+        grid-column: 1 / -1;
+      }
+
+      .detail-info-card--map {
+        min-height: 0;
+        padding-bottom: 14px;
+        justify-content: flex-start;
+      }
+
       .detail-info-card--owner {
         border-color: #c9dbff;
         background: linear-gradient(180deg, #edf4ff 0%, #dce9ff 100%);
@@ -2360,6 +2370,48 @@
 
       .detail-info-value--plain {
         font-weight: 500;
+      }
+
+      .detail-mini-map {
+        position: relative;
+        margin-top: 14px;
+        width: 100%;
+        min-height: 110px;
+        border: 1px solid #dbe4fb;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #f9fbff 0%, #f1f5ff 100%);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .detail-mini-map-frame {
+        display: block;
+        width: 100%;
+        height: 110px;
+        border: 0;
+        background: transparent;
+      }
+
+      .detail-mini-map-empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        color: #7a88b2;
+        font-size: 0.84rem;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .detail-mini-map-caption {
+        margin-top: 8px;
+        color: #5f6e9d;
+        font-size: 0.78rem;
+        font-weight: 700;
       }
 
       .detail-warning {
@@ -4385,6 +4437,33 @@
         }).format(parsed);
       }
 
+      function buildDetailMiniMap(contact, locationText) {
+        const hasCoords = Number.isFinite(contact.lat) && Number.isFinite(contact.lon);
+        if (!hasCoords) {
+          return `
+            <div class="detail-mini-map">
+              <div class="detail-mini-map-empty">Noch keine Koordinaten für diesen Kontakt hinterlegt.</div>
+            </div>
+            <div class="detail-mini-map-caption">${locationText || "Standort noch nicht dokumentiert."}</div>
+          `;
+        }
+
+        const src = `./versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
+
+        return `
+          <div class="detail-mini-map">
+            <iframe
+              class="detail-mini-map-frame"
+              title="Standortkarte Deutschland"
+              src="${src}"
+              loading="lazy"
+              tabindex="-1"
+            ></iframe>
+          </div>
+          <div class="detail-mini-map-caption">${locationText || "Standort noch nicht dokumentiert."}</div>
+        `;
+      }
+
       function detailMissingFields(contact) {
         const fields = [];
         if (!hasMeaningfulValue(contact.email)) fields.push("E-Mail");
@@ -4640,6 +4719,13 @@
                       <span>Ort</span>
                     </div>
                     <input class="detail-inline-input" id="detail-location-input" type="text" value="${String(contact.location || "").replace(/"/g, "&quot;")}" placeholder="Ort eintragen" />
+                  </article>
+                  <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
+                    <div class="detail-info-head">
+                      <span class="field-icon">🗺️</span>
+                      <span>Standort in Deutschland</span>
+                    </div>
+                    ${buildDetailMiniMap(contact, locationText)}
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
