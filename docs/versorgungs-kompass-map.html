@@ -1020,9 +1020,22 @@
       .panel,
       body.embed-mode .panel {
         width: calc(100% - 20px);
-        height: min(68dvh, 560px);
+        height: min(76dvh, 620px);
         margin-bottom: max(8px, env(safe-area-inset-bottom));
         border-radius: 24px 24px 18px 18px;
+        touch-action: pan-y;
+        overscroll-behavior: contain;
+        background: rgba(255,255,255,0.98);
+      }
+
+      .sidebar[data-sheet-state="collapsed"] .panel,
+      body.embed-mode .sidebar[data-sheet-state="collapsed"] .panel {
+        transform: translateY(calc(100% - 128px));
+      }
+
+      .sidebar[data-sheet-state="half"] .panel,
+      body.embed-mode .sidebar[data-sheet-state="half"] .panel {
+        transform: translateY(calc(100% - min(54dvh, 430px)));
       }
 
       .panel .body {
@@ -1035,6 +1048,8 @@
 
       .item {
         grid-template-columns: 10px minmax(0, 1fr);
+        min-height: 58px;
+        padding: 12px 16px;
       }
 
       .item-thumb {
@@ -1054,6 +1069,13 @@
 
       .leaflet-popup {
         display: none;
+      }
+
+      .cat-marker {
+        width: 22px;
+        height: 22px;
+        border-width: 3px;
+        box-shadow: 0 5px 16px rgba(0,0,0,0.26);
       }
     }
 
@@ -1634,6 +1656,11 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     mobileSheetState = nextState;
     if (!elSidebar) return;
     elSidebar.dataset.sheetState = isMobileLayout() ? nextState : 'desktop';
+    if (isMobileLayout() && map) {
+      const sheetIsOpen = nextState === 'half' || nextState === 'full';
+      if (sheetIsOpen) map.scrollWheelZoom.disable();
+      else map.scrollWheelZoom.enable();
+    }
   }
 
   function cycleMobileSheetState(){
@@ -1778,11 +1805,12 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   function markerFor(d){
     const color = CATEGORY_COLORS[d.category] || '#555';
+    const size = isMobileLayout() ? 22 : 12;
     const icon = L.divIcon({
       className: '',
       html: `<div class="cat-marker" style="background:${color};"></div>`,
-      iconSize: [12,12],
-      iconAnchor: [6,6],
+      iconSize: [size,size],
+      iconAnchor: [size / 2,size / 2],
       popupAnchor: [0,-8]
     });
     return L.marker([d.lat, d.lon], { icon });
@@ -2022,9 +2050,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   function focusMapContact(d){
     activeMapContactId = d.id;
     renderMobilePreview(d);
-    if (isMobileLayout()) {
-      setMobileSheetState('half');
-    }
+    if (isMobileLayout()) setMobileSheetState('collapsed');
     renderList(filteredEntries());
     updateMapResetButton();
   }
@@ -2054,12 +2080,13 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
                         </div>`;
       item.addEventListener('click', () => {
         activeMapContactId = d.id;
+        if (isMobileLayout()) {
+          openEntryDetail(d);
+          return;
+        }
         map.setView([d.lat, d.lon], Math.max(map.getZoom(), 10), { animate: true });
         const hit = markerIndex.find((x) => x.data.id === d.id);
-        if (isMobileLayout()) {
-          renderMobilePreview(d);
-          setMobileSheetState('half');
-        } else if (heatMapActive) {
+        if (heatMapActive) {
           L.popup({ offset: [0, -4] })
             .setLatLng([d.lat, d.lon])
             .setContent(popupHtml(d))
@@ -2149,6 +2176,14 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   elMobileSheetToggle?.addEventListener('click', () => {
     cycleMobileSheetState();
   });
+
+  document.querySelector('.panel')?.addEventListener('pointerdown', (event) => {
+    if (isMobileLayout()) event.stopPropagation();
+  });
+
+  document.querySelector('.panel')?.addEventListener('touchmove', (event) => {
+    if (isMobileLayout()) event.stopPropagation();
+  }, { passive: true });
 
   document.addEventListener('click', (event) => {
     if (!event.target.closest('.map-dropdown') && !event.target.closest('.state-view-filter')) {

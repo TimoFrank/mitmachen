@@ -2956,6 +2956,16 @@
         gap: 14px;
       }
 
+      .dashboard-cluster-title {
+        grid-column: 1 / -1;
+        margin: 6px 2px -4px;
+        color: #53608f;
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
       .dashboard-card {
         min-width: 0;
         border: 1px solid rgba(214, 222, 249, 0.96);
@@ -2983,6 +2993,31 @@
 
       .dashboard-card--fill {
         grid-column: span 8;
+      }
+
+      .dashboard-card--distribution-main {
+        grid-column: span 8;
+      }
+
+      .dashboard-card--distribution-side {
+        grid-column: span 4;
+      }
+
+      .dashboard-card--geo-map {
+        grid-column: span 3;
+      }
+
+      .dashboard-card--geo-bars {
+        grid-column: span 5;
+      }
+
+      .dashboard-card--geo-top {
+        grid-column: span 4;
+      }
+
+      .dashboard-card--insight,
+      .dashboard-card--quality {
+        grid-column: span 6;
       }
 
       .dashboard-card--subtle {
@@ -3038,57 +3073,62 @@
         font-size: 0.78rem;
       }
 
-      .category-chart {
+      .metric-bars {
         display: grid;
-        grid-template-columns: minmax(145px, 180px) minmax(0, 1fr);
-        gap: 16px;
+        gap: 10px;
+      }
+
+      .metric-row {
+        display: grid;
+        grid-template-columns: minmax(128px, 0.34fr) minmax(0, 1fr) 92px;
+        gap: 12px;
         align-items: center;
       }
 
-      .dashboard-card--compact .category-chart {
-        grid-template-columns: 1fr;
-      }
-
-      .category-donut {
-        width: min(100%, 180px);
-        aspect-ratio: 1;
-        display: block;
-        margin: 0 auto;
-      }
-
-      .category-legend {
-        display: grid;
-        gap: 9px;
-      }
-
-      .legend-row {
-        display: grid;
-        grid-template-columns: 12px minmax(0, 1fr) auto;
-        gap: 9px;
+      .metric-label {
+        min-width: 0;
+        display: inline-flex;
         align-items: center;
+        gap: 8px;
+        color: #243271;
+        font-size: 0.82rem;
+        font-weight: 900;
       }
 
-      .legend-swatch {
+      .metric-dot {
         width: 9px;
         height: 9px;
+        flex: 0 0 auto;
         border-radius: 999px;
       }
 
-      .legend-label {
-        min-width: 0;
-        color: #243271;
-        font-size: 0.82rem;
-        font-weight: 800;
+      .metric-track {
+        height: 10px;
+        border-radius: 999px;
+        background: #edf1ff;
         overflow: hidden;
-        text-overflow: ellipsis;
+      }
+
+      .metric-fill {
+        display: block;
+        height: 100%;
+        min-width: 3px;
+        border-radius: inherit;
+      }
+
+      .metric-value {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 900;
+        text-align: right;
         white-space: nowrap;
       }
 
-      .legend-meta {
-        color: var(--muted);
-        font-size: 0.78rem;
+      .metric-muted-note {
+        margin-top: 10px;
+        color: #7a86ad;
+        font-size: 0.76rem;
         font-weight: 800;
-        white-space: nowrap;
       }
 
       .state-bars {
@@ -3136,14 +3176,14 @@
 
       .coverage-map {
         display: grid;
-        grid-template-columns: minmax(180px, 1fr) minmax(120px, 0.62fr);
-        gap: 16px;
+        grid-template-columns: 1fr;
+        gap: 10px;
         align-items: center;
       }
 
       .coverage-mini-map {
-        width: min(100%, 260px);
-        aspect-ratio: 0.82;
+        width: min(100%, 210px);
+        height: auto;
         display: block;
         margin: 0 auto;
         filter: drop-shadow(0 14px 24px rgba(39, 88, 166, 0.12));
@@ -3169,8 +3209,8 @@
       }
 
       .quality-list {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
       }
 
       .coverage-legend-row,
@@ -3185,56 +3225,47 @@
         font-weight: 800;
       }
 
-      .city-ranking {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 14px;
-        align-items: stretch;
+      .coverage-legend {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px 10px;
       }
 
-      .city-rank-card {
-        min-width: 0;
+      .city-ranking {
         display: grid;
-        grid-template-rows: auto 74px auto auto;
         gap: 8px;
-        justify-items: center;
-        text-align: center;
-        padding: 12px 8px;
-        border-radius: 16px;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      }
+
+      .city-rank-row {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(218, 225, 247, 0.72);
       }
 
       .city-rank-number {
-        justify-self: start;
-        color: #243271;
+        color: #7480a9;
         font-size: 0.78rem;
         font-weight: 900;
       }
 
-      .city-icon {
-        width: 78px;
-        height: 70px;
-        color: #2d71f0;
-      }
-
-      .city-icon svg {
-        width: 100%;
-        height: 100%;
-        display: block;
-        stroke: currentColor;
-      }
-
       .city-rank-name {
+        min-width: 0;
         color: #243271;
         font-size: 0.82rem;
         font-weight: 900;
         line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .city-rank-count {
-        color: #5d698d;
+        color: #10236e;
         font-size: 0.76rem;
-        font-weight: 800;
+        font-weight: 900;
+        white-space: nowrap;
       }
 
       .dashboard-card-footer-link {
@@ -3301,12 +3332,25 @@
 
       .priority-bars {
         display: grid;
-        gap: 12px;
+        gap: 10px;
+      }
+
+      .priority-stack {
+        display: flex;
+        height: 16px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf1ff;
+      }
+
+      .priority-stack-segment {
+        min-width: 0;
+        height: 100%;
       }
 
       .priority-row {
         display: grid;
-        grid-template-columns: 88px minmax(0, 1fr) 74px;
+        grid-template-columns: minmax(80px, 1fr) auto;
         gap: 10px;
         align-items: center;
       }
@@ -3329,10 +3373,11 @@
       }
 
       .priority-track {
-        height: 12px;
+        height: 8px;
         border-radius: 999px;
         background: #edf1ff;
         overflow: hidden;
+        display: none;
       }
 
       .priority-fill {
@@ -3359,6 +3404,17 @@
 
       .gap-panel + .gap-panel {
         margin-top: 8px;
+      }
+
+      .dashboard-card--insight #gap-analysis {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .dashboard-card--insight .dashboard-link-button {
+        grid-column: 1 / -1;
+        margin-top: 0;
       }
 
       .gap-panel-title {
@@ -3413,21 +3469,21 @@
       }
 
       .quality-row {
-        min-height: 116px;
-        grid-template-columns: 1fr;
-        justify-items: center;
+        min-height: 0;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        justify-items: stretch;
         align-content: center;
-        gap: 8px;
-        padding: 14px 12px;
+        gap: 9px;
+        padding: 10px;
         border: 1px solid #e0e7fb;
         border-radius: 13px;
         background: #ffffff;
-        text-align: center;
+        text-align: left;
       }
 
       .quality-icon {
-        width: 44px;
-        height: 44px;
+        width: 34px;
+        height: 34px;
         display: grid;
         place-items: center;
         border-radius: 999px;
@@ -3449,7 +3505,7 @@
 
       .quality-percent {
         color: #10236e;
-        font-size: 1.35rem;
+        font-size: 0.98rem;
         font-weight: 900;
         letter-spacing: -0.03em;
       }
@@ -4546,13 +4602,20 @@
         }
 
         .dashboard-card--wide,
+        .dashboard-card--distribution-main,
+        .dashboard-card--geo-bars,
         .dashboard-card--half,
         .dashboard-card--fill {
           grid-column: span 12;
         }
 
         .dashboard-card--medium,
-        .dashboard-card--compact {
+        .dashboard-card--compact,
+        .dashboard-card--distribution-side,
+        .dashboard-card--geo-map,
+        .dashboard-card--geo-top,
+        .dashboard-card--insight,
+        .dashboard-card--quality {
           grid-column: span 6;
         }
       }
@@ -4694,16 +4757,41 @@
           display: inline-flex;
           width: 38px;
           min-width: 38px;
+          height: 38px;
           min-height: 38px;
           padding: 0;
+          align-items: center;
           justify-content: center;
           border-radius: 999px;
-          box-shadow: none;
+          background: #f4f7ff;
+          border: 1px solid #dbe5ff;
+          color: #245ddf;
+          box-shadow: 0 6px 16px rgba(38, 82, 180, 0.08);
         }
 
         .topbar-mobile-new .action-button__icon {
+          position: relative;
+          width: 18px;
+          height: 18px;
           margin: 0;
-          font-size: 1.1rem;
+          font-size: 0;
+        }
+
+        .topbar-mobile-new .action-button__icon::before,
+        .topbar-mobile-new .action-button__icon::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 16px;
+          height: 2px;
+          border-radius: 999px;
+          background: currentColor;
+          transform: translate(-50%, -50%);
+        }
+
+        .topbar-mobile-new .action-button__icon::after {
+          transform: translate(-50%, -50%) rotate(90deg);
         }
 
         .summary,
@@ -4737,7 +4825,10 @@
         }
 
         .workspace-header {
-          display: block;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: end;
+          column-gap: 12px;
           padding: 14px 16px 8px;
         }
 
@@ -4759,20 +4850,25 @@
         }
 
         .summary.summary--compact {
-          display: block;
+          display: flex;
+          justify-content: flex-end;
           width: auto;
-          padding: 12px 0 6px;
+          padding: 0;
         }
 
         .summary-card {
           width: fit-content;
           min-width: 0;
-          min-height: 44px;
-          padding: 0 14px;
-          border-radius: 14px;
-          grid-template-columns: 24px minmax(0, 1fr);
-          gap: 9px;
-          box-shadow: none;
+          min-height: 52px;
+          padding: 7px 12px;
+          border: 1px solid #d6e1ff;
+          border-radius: 16px;
+          grid-template-columns: 30px minmax(0, 1fr);
+          gap: 8px;
+          background:
+            linear-gradient(135deg, rgba(39, 94, 230, 0.1), rgba(77, 144, 255, 0.04)),
+            #ffffff;
+          box-shadow: 0 10px 24px rgba(26, 71, 165, 0.08);
         }
 
         .summary-card .summary-label,
@@ -4782,16 +4878,18 @@
 
         .summary.summary--compact .summary-card {
           min-width: 0;
-          min-height: 44px;
-          padding: 0 14px;
-          border-radius: 14px;
-          grid-template-columns: 24px minmax(0, 1fr);
+          min-height: 52px;
+          padding: 7px 12px;
+          border-radius: 16px;
+          grid-template-columns: 30px minmax(0, 1fr);
         }
 
         .summary.summary--compact .summary-value {
           margin: 0;
-          font-size: 1rem;
+          color: #17327e;
+          font-size: 1.02rem;
           letter-spacing: -0.02em;
+          white-space: nowrap;
         }
 
         .summary.summary--compact .summary-value small {
@@ -4802,16 +4900,17 @@
         }
 
         .summary.summary--compact .summary-icon {
-          width: 24px;
-          height: 24px;
-          background: transparent;
+          width: 30px;
+          height: 30px;
+          border-radius: 11px;
+          background: #edf3ff;
           font-size: 0;
         }
 
         .summary.summary--compact .summary-icon::before {
           content: "";
-          width: 16px;
-          height: 16px;
+          width: 15px;
+          height: 15px;
           border: 2px solid #667399;
           border-radius: 999px;
           box-shadow: 10px 0 0 -2px #667399;
@@ -4919,7 +5018,7 @@
           bottom: 0;
           top: auto;
           width: 100%;
-          max-height: min(82dvh, 720px);
+          max-height: min(70dvh, 620px);
           z-index: 35;
           border-radius: 24px 24px 0 0;
           padding: 16px 16px calc(92px + env(safe-area-inset-bottom));
@@ -4951,8 +5050,7 @@
         }
 
         .filter-panel-copy {
-          margin-top: 4px;
-          font-size: 0.9rem;
+          display: none;
         }
 
         .filter-panel-actions {
@@ -4997,13 +5095,12 @@
 
         .filter-panel-grid {
           grid-template-columns: 1fr;
-          gap: 0;
+          gap: 10px;
         }
 
         .filter-section {
-          padding: 14px 0;
+          padding: 0;
           border: 0;
-          border-top: 1px solid #e7ebf8;
           border-radius: 0;
           background: transparent;
         }
@@ -5013,20 +5110,23 @@
         }
 
         .filter-section-icon,
+        .filter-section-meta,
         #theme-filter-options,
         #theme-filter-meta,
-        .filter-section:has(#theme-filter-options) {
+        .filter-section:has(#priority-filter-options),
+        .filter-section:has(#theme-filter-options),
+        .filter-section:has(#owner-filter-options) {
           display: none;
         }
 
         .filter-section-title {
-          font-size: 1rem;
+          font-size: 0.92rem;
         }
 
         .filter-option-chip {
-          min-height: 38px;
-          padding: 0 13px;
-          font-size: 0.9rem;
+          min-height: 36px;
+          padding: 0 12px;
+          font-size: 0.86rem;
           box-shadow: none;
         }
 
@@ -5035,7 +5135,7 @@
         }
 
         .filter-option-list--scroll {
-          max-height: 116px;
+          max-height: 84px;
         }
 
         .view-shell {
@@ -5300,13 +5400,30 @@
         .detail-inline-input,
         .detail-inline-textarea,
         .custom-select-trigger--detail {
-          min-height: 30px;
-          padding: 0;
+          min-height: 42px;
+          padding: 0 12px;
           border: 0;
-          border-radius: 0;
-          background: transparent;
+          border-radius: 12px;
+          background: #f7f9ff;
           box-shadow: none !important;
           font-size: 0.95rem;
+        }
+
+        .custom-select-trigger--detail .custom-select-trigger__label {
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          line-height: 1.25;
+        }
+
+        .custom-select-panel--detail {
+          position: fixed;
+          left: 14px;
+          right: 14px;
+          top: auto;
+          bottom: calc(14px + env(safe-area-inset-bottom));
+          z-index: 120;
+          max-height: min(46dvh, 360px);
         }
 
         .detail-mini-map {
@@ -5499,7 +5616,14 @@
         .dashboard-card--medium,
         .dashboard-card--compact,
         .dashboard-card--half,
-        .dashboard-card--fill {
+        .dashboard-card--fill,
+        .dashboard-card--distribution-main,
+        .dashboard-card--distribution-side,
+        .dashboard-card--geo-map,
+        .dashboard-card--geo-bars,
+        .dashboard-card--geo-top,
+        .dashboard-card--insight,
+        .dashboard-card--quality {
           grid-column: span 12;
         }
 
@@ -5586,12 +5710,18 @@
           font-size: 1rem;
         }
 
+        .metric-row,
         .state-row,
         .priority-row {
           grid-template-columns: 1fr;
           gap: 8px;
         }
 
+        .dashboard-card--insight #gap-analysis {
+          grid-template-columns: 1fr;
+        }
+
+        .metric-value,
         .priority-value,
         .state-value {
           text-align: left;
@@ -5848,29 +5978,12 @@
                   <h3>Auswertung</h3>
                   <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Sektor und Bundesland.</p>
                 </div>
-                <div class="analytics-actions">
-                  <button class="dashboard-control" type="button" id="dashboard-filter-button">
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                      <path d="M4 6h16"></path>
-                      <path d="M7 12h10"></path>
-                      <path d="M10 18h4"></path>
-                    </svg>
-                    <span>Filter &amp; Kontext</span>
-                  </button>
-                  <button class="dashboard-control" type="button" aria-label="Zeitraum auswählen">
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                      <path d="M8 2v4"></path>
-                      <path d="M16 2v4"></path>
-                      <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                      <path d="M3 10h18"></path>
-                    </svg>
-                    <span>Zeitraum: Letzte 12 Monate</span>
-                  </button>
+              <div class="analytics-actions">
                 </div>
               </div>
-              <div class="dashboard-context" id="dashboard-active-context"></div>
               <div class="dashboard-grid">
-                <article class="dashboard-card dashboard-card--medium">
+                <div class="dashboard-cluster-title">Verteilung</div>
+                <article class="dashboard-card dashboard-card--distribution-main">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Kontakte nach Sektor</h4>
@@ -5880,17 +5993,7 @@
                   </div>
                   <div id="category-chart"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--wide">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Kontakte nach Bundesland</h4>
-                      <p>Sortiert nach Anzahl der Kontakte.</p>
-                    </div>
-                    <span class="card-menu-dot" aria-hidden="true">...</span>
-                  </div>
-                  <div id="state-chart"></div>
-                </article>
-                <article class="dashboard-card dashboard-card--compact">
+                <article class="dashboard-card dashboard-card--distribution-side">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Prioritätsverteilung</h4>
@@ -5900,7 +6003,9 @@
                   </div>
                   <div id="priority-chart"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--medium">
+
+                <div class="dashboard-cluster-title">Regionale Verteilung</div>
+                <article class="dashboard-card dashboard-card--geo-map">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Regionale Abdeckung (relativ)</h4>
@@ -5910,7 +6015,29 @@
                   </div>
                   <div id="coverage-map"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--fill">
+                <article class="dashboard-card dashboard-card--geo-bars">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Kontakte nach Bundesland</h4>
+                      <p>Sortiert nach Anzahl der Kontakte.</p>
+                    </div>
+                    <span class="card-menu-dot" aria-hidden="true">...</span>
+                  </div>
+                  <div id="state-chart"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--geo-top">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Top Städte nach Kontakten</h4>
+                      <p>Regionale Schwerpunkte der aktuellen Auswahl.</p>
+                    </div>
+                    <span class="dashboard-info" title="Nach Ort und Bundesland gruppiert">i</span>
+                  </div>
+                  <div id="top-regions"></div>
+                </article>
+
+                <div class="dashboard-cluster-title">Hinweise / Maßnahmen</div>
+                <article class="dashboard-card dashboard-card--insight">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Unterrepräsentierte Bereiche</h4>
@@ -5920,17 +6047,7 @@
                   </div>
                   <div id="gap-analysis"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--half">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Top Regionen nach Kontakten</h4>
-                      <p>Städte und Bundesländer mit hoher Dichte.</p>
-                    </div>
-                    <span class="dashboard-info" title="Nach Ort und Bundesland gruppiert">i</span>
-                  </div>
-                  <div id="top-regions"></div>
-                </article>
-                <article class="dashboard-card dashboard-card--half dashboard-card--subtle">
+                <article class="dashboard-card dashboard-card--quality dashboard-card--subtle">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Datenqualität (Auswahl)</h4>
@@ -6441,8 +6558,6 @@
       const newContactButton = document.getElementById("new-contact-button");
       const mobileNewContactButton = document.getElementById("mobile-new-contact-button");
       const dashboardSubtitle = document.getElementById("dashboard-subtitle");
-      const dashboardActiveContext = document.getElementById("dashboard-active-context");
-      const dashboardFilterButton = document.getElementById("dashboard-filter-button");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
       const priorityChart = document.getElementById("priority-chart");
@@ -7392,9 +7507,10 @@
       }
 
       function sanitizeContact(entry, index = 0) {
-        const name = (entry.name || "").trim() || "Unbenannter Kontakt";
+        const name = (entry.name || "").trim();
+        const displayName = name || (entry.organization || "").trim() || "Unbenannter Kontakt";
         const specialty = normalizeSpecialty(entry.specialty || entry.title || entry.person_title || entry.Fachrichtung || "");
-        const initials = name
+        const initials = displayName
           .split(/[\s/]+/)
           .filter(Boolean)
           .slice(0, 2)
@@ -7409,7 +7525,7 @@
         return {
           id: entry.id || `contact-${String(index + 1).padStart(2, "0")}`,
           name,
-          displayName: buildDisplayName(name, ""),
+          displayName: buildDisplayName(displayName, ""),
           initials: entry.initials || initials || "KK",
           avatarClass: entry.avatarClass || avatarPalette[index % avatarPalette.length],
           category,
@@ -7739,12 +7855,18 @@
       }
 
       function renderFilterOptionGroup(target, options, selectedValues, filterKey) {
-        if (!options.length) {
+        const mobileLimit = filterKey === "category" ? 4 : 5;
+        const visibleOptions = isMobileLayout()
+          ? options
+              .filter((option, index) => index < mobileLimit || selectedValues.includes(option.value))
+              .slice(0, mobileLimit + selectedValues.length)
+          : options;
+        if (!visibleOptions.length) {
           target.innerHTML = `<div class="filter-empty-note">Keine Optionen vorhanden.</div>`;
           return;
         }
 
-        target.innerHTML = options
+        target.innerHTML = visibleOptions
           .map((option) => {
             const isActive = selectedValues.includes(option.value);
             return `
@@ -7772,11 +7894,23 @@
           value,
           label: value
         }));
+        const stateCounts = contacts.reduce((acc, contact) => {
+          const label = stateLabel(contact);
+          if (label) acc[label] = (acc[label] || 0) + 1;
+          return acc;
+        }, {});
         const states = [...new Map(contacts.map((contact) => [stateLabel(contact), stateLabel(contact)])).values()]
           .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b, "de"))
+          .sort((a, b) => isMobileLayout() ? ((stateCounts[b] || 0) - (stateCounts[a] || 0)) || a.localeCompare(b, "de") : a.localeCompare(b, "de"))
           .map((value) => ({ value, label: value }));
-        const specialties = specialtyOptions().map((value) => ({ value, label: value }));
+        const specialtyCounts = contacts.reduce((acc, contact) => {
+          const label = specialtyLabel(contact);
+          if (label) acc[label] = (acc[label] || 0) + 1;
+          return acc;
+        }, {});
+        const specialties = specialtyOptions()
+          .sort((a, b) => isMobileLayout() ? ((specialtyCounts[b] || 0) - (specialtyCounts[a] || 0)) || a.localeCompare(b, "de") : 0)
+          .map((value) => ({ value, label: value }));
         const owners = ownerOptions.map((value) => ({ value, label: value }));
         const themes = themeSuggestions().map((value) => ({ value, label: value }));
 
@@ -7890,7 +8024,7 @@
                       : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`
                   }
                   <div class="mobile-contact-copy">
-                    <h3 class="mobile-contact-name">${contact.name}</h3>
+                    <h3 class="mobile-contact-name">${contact.name || "&mdash;"}</h3>
                     <div class="mobile-contact-organization">${contact.organization || "Nicht dokumentiert"}</div>
                     <div class="mobile-contact-meta">${[contact.category, specialtyLabel(contact), contact.city || stateLabel(contact)].filter(Boolean).join(" · ")}</div>
                   </div>
@@ -7914,7 +8048,7 @@
                   }
                   <div class="contact-meta">
                     <div class="contact-name__line">
-                      <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${contact.name}</button>
+                      <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${contact.name || "&mdash;"}</button>
                       <button
                         class="favorite-star ${favorites.has(contact.id) ? "is-active" : ""}"
                         type="button"
@@ -8604,38 +8738,47 @@
       function renderDashboard(items = filteredContacts()) {
         const visibleContacts = items.length;
         const representedStates = new Set(items.map((contact) => stateLabel(contact)).filter(Boolean)).size;
-        const selectedPercent = contacts.length ? Math.round((visibleContacts / contacts.length) * 100) : 0;
         dashboardSubtitle.textContent = `${visibleContacts} von ${contacts.length} Kontakten in der aktuellen Auswahl über ${representedStates} Bundesländer.`;
-        renderDashboardContext(visibleContacts, selectedPercent);
 
         const categoryCounts = defaultCategories
           .map((category) => ({
             label: category,
             count: items.filter((contact) => categoryLabel(contact) === category).length,
             color: categoryChartColors[category] || "#2788f6"
-          }));
+          }))
+          .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "de"));
 
         if (!visibleContacts) {
           categoryChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Sektoren auswertbar.</div>`;
         } else {
           const total = categoryCounts.reduce((sum, item) => sum + item.count, 0);
+          const visibleCategories = categoryCounts.filter((item) => item.count > 0);
+          const emptyCategories = categoryCounts.filter((item) => item.count === 0);
+          const maxCategoryCount = Math.max(...visibleCategories.map((item) => item.count), 1);
           categoryChart.innerHTML = `
-            <div class="category-chart">
-              ${buildDonutChart(categoryCounts)}
-              <div class="category-legend">
-                ${categoryCounts
-                  .map(
-                    (item) => `
-                      <div class="legend-row">
-                        <span class="legend-swatch" style="background:${item.color}"></span>
-                        <span class="legend-label">${escapeHtml(item.label)}</span>
-                        <span class="legend-meta">${item.count} · ${Math.round((item.count / total) * 100)}%</span>
-                      </div>
-                    `
-                  )
-                  .join("")}
-              </div>
+            <div class="metric-bars">
+              ${visibleCategories
+                .map(
+                  (item) => `
+                    <div class="metric-row">
+                      <span class="metric-label">
+                        <span class="metric-dot" style="background:${item.color}"></span>
+                        <span>${escapeHtml(item.label)}</span>
+                      </span>
+                      <span class="metric-track">
+                        <span class="metric-fill" style="width:${(item.count / maxCategoryCount) * 100}%; background:${item.color}"></span>
+                      </span>
+                      <span class="metric-value">${item.count} · ${formatPercent(item.count, total)}</span>
+                    </div>
+                  `
+                )
+                .join("")}
             </div>
+            ${
+              emptyCategories.length
+                ? `<div class="metric-muted-note">Weitere Sektoren ohne Kontakte: ${emptyCategories.map((item) => escapeHtml(item.label)).join(", ")}</div>`
+                : ""
+            }
             <div class="dashboard-note">Gesamt <strong>${total}</strong></div>
           `;
         }
@@ -8679,23 +8822,6 @@
         renderQualitySummary(items);
       }
 
-      function renderDashboardContext(visibleContacts, selectedPercent) {
-        const chips = [
-          `Aktuelle Auswahl: ${visibleContacts} (${selectedPercent} %)`,
-          "Zeitraum: Letzte 12 Monate"
-        ];
-        if (searchInput.value.trim()) chips.push(`Suche: ${searchInput.value.trim()}`);
-        selectedCategories.forEach((value) => chips.push(`Sektor: ${value}`));
-        selectedPriorities.forEach((value) => chips.push(`Priorität: ${value}`));
-        selectedStates.forEach((value) => chips.push(`Bundesland: ${value}`));
-        selectedThemes.forEach((value) => chips.push(`Thema: ${value}`));
-
-        dashboardActiveContext.innerHTML = `
-          <span class="dashboard-context-label">Aktive Auswahl</span>
-          ${chips.map((chip) => `<span class="dashboard-context-chip">${escapeHtml(chip)}</span>`).join("")}
-        `;
-      }
-
       function renderPriorityDistribution(items) {
         const priorities = ["Hoch", "Mittel", "Niedrig", "Unbekannt"].map((priority) => ({
           label: priority,
@@ -8709,6 +8835,16 @@
         }
         priorityChart.innerHTML = `
           <div class="priority-bars">
+            <div class="priority-stack" aria-label="100 Prozent Verteilung nach Priorität">
+              ${priorities
+                .map((item) => {
+                  const percent = total ? (item.count / total) * 100 : 0;
+                  return item.count
+                    ? `<span class="priority-stack-segment" style="width:${percent}%; background:${item.color}" title="${escapeHtml(item.label)}: ${item.count} · ${formatPercent(item.count, total)}"></span>`
+                    : "";
+                })
+                .join("")}
+            </div>
             ${priorities
               .map((item) => {
                 const percent = total ? Math.round((item.count / total) * 100) : 0;
@@ -8717,9 +8853,6 @@
                     <span class="priority-label">
                       <span class="priority-dot" style="background:${item.color}"></span>
                       <span>${escapeHtml(item.label)}</span>
-                    </span>
-                    <span class="priority-track">
-                      <span class="priority-fill" style="width:${percent}%; background:${item.color}; ${item.count ? "" : "min-width:0;"}"></span>
                     </span>
                     <span class="priority-value">${item.count} · ${formatPercent(item.count, total)}</span>
                   </div>
@@ -8874,11 +9007,10 @@
             ${rows
               .map(
                 ([label, count], index) => `
-                  <div class="city-rank-card">
+                  <div class="city-rank-row">
                     <span class="city-rank-number">${index + 1}.</span>
-                    <span class="city-icon">${cityIconSvg(label)}</span>
                     <span class="city-rank-name">${escapeHtml(label)}</span>
-                    <span class="city-rank-count">${count} ${count === 1 ? "Kontakt" : "Kontakte"}</span>
+                    <span class="city-rank-count">${count}</span>
                   </div>
                 `
               )
@@ -9424,6 +9556,7 @@
         const header = [
           "id",
           "name",
+          "honorificTitle",
           "specialty",
           "category",
           "organization",
@@ -9456,6 +9589,7 @@
           [
             contact.id,
             contact.name,
+            contact.honorificTitle,
             contact.specialty,
             contact.category,
             contact.organization,
@@ -9573,10 +9707,6 @@
         if (panelWasOpen) {
           setFilterPanelOpen(true);
         }
-      });
-      dashboardFilterButton.addEventListener("click", () => {
-        setFilterPanelOpen(true);
-        filterPanelButton.focus();
       });
       mapViewFrame.addEventListener("load", () => {
         syncMapFrame(filteredContacts());
