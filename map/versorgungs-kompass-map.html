@@ -936,6 +936,127 @@
       flex: 0 0 auto;
     }
 
+    @media (max-width: 760px) {
+      .page-shell,
+      body.embed-mode .page-shell {
+        height: 100dvh;
+      }
+
+      body.embed-mode .workspace,
+      .workspace {
+        grid-template-columns: 1fr;
+        padding: 0;
+        gap: 0;
+      }
+
+      .map-area,
+      body.embed-mode .map-area {
+        height: 100dvh;
+      }
+
+      .map-controls {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+      }
+
+      #contact-mode-toggle {
+        order: 1;
+      }
+
+      .map-dropdown {
+        order: 3;
+      }
+
+      #heatmap-toggle {
+        order: 2;
+      }
+
+      #map-reset-toggle {
+        order: 4;
+        position: absolute;
+        top: 50px;
+        right: 0;
+        min-width: 44px;
+        width: 44px;
+        padding: 0;
+      }
+
+      #map-reset-label {
+        display: none;
+      }
+
+      .map-toggle {
+        min-height: 42px;
+        border-radius: 13px;
+        box-shadow: 0 8px 20px rgba(20, 37, 86, 0.12);
+      }
+
+      .map-legend {
+        top: auto;
+        right: auto;
+        left: 12px;
+        bottom: calc(106px + env(safe-area-inset-bottom));
+        min-width: 132px;
+        padding: 9px;
+        border-radius: 13px;
+      }
+
+      .map-legend-title {
+        display: none;
+      }
+
+      .map-legend-list {
+        gap: 6px;
+      }
+
+      .map-legend-item {
+        font-size: 11px;
+      }
+
+      .panel,
+      body.embed-mode .panel {
+        width: calc(100% - 20px);
+        height: min(68dvh, 560px);
+        margin-bottom: max(8px, env(safe-area-inset-bottom));
+        border-radius: 24px 24px 18px 18px;
+      }
+
+      .panel .body {
+        padding: 8px 16px 10px;
+      }
+
+      .filters {
+        display: none;
+      }
+
+      .item {
+        grid-template-columns: 10px minmax(0, 1fr);
+      }
+
+      .item-thumb {
+        display: none;
+      }
+
+      .mobile-map-preview {
+        margin: 0 16px 10px;
+        padding: 12px;
+        border-radius: 16px;
+        box-shadow: none;
+      }
+
+      .mobile-map-preview-meta {
+        display: none;
+      }
+
+      .leaflet-popup {
+        display: none;
+      }
+    }
+
 </style>
 </head>
 <body>
@@ -973,6 +1094,9 @@
       <main class="map-area">
         <div class="map-box">
           <div class="map-controls">
+            <button id="contact-mode-toggle" class="map-toggle map-toggle-active-home" type="button" aria-pressed="true">
+              <span>Kontakte</span>
+            </button>
             <div class="map-dropdown">
               <button id="state-filter-toggle" class="map-toggle" type="button">
                 <span class="map-toggle-icon" aria-hidden="true">
@@ -1880,13 +2004,11 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
     categories.forEach(cat => {
       const checked = activeCategoryFilter === cat;
-      const emoji = CATEGORY_EMOJIS[cat] || "•";
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `category-chip${checked ? " active" : ""}`;
       button.setAttribute('aria-pressed', checked ? 'true' : 'false');
-      button.innerHTML = `<span class="category-chip-emoji" aria-hidden="true">${emoji}</span>
-                          <span>${cat}</span>`;
+      button.textContent = cat;
       button.addEventListener('click', () => {
         activeCategoryFilter = activeCategoryFilter === cat ? "" : cat;
         render();

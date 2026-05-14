@@ -699,6 +699,10 @@
         cursor: pointer;
       }
 
+      .filter-panel-apply {
+        display: none;
+      }
+
       .filter-panel-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -882,6 +886,21 @@
         font-size: 0.82rem;
         font-weight: 700;
         line-height: 1.35;
+      }
+
+      .mobile-contact-meta {
+        margin-top: 4px;
+        color: #7a84a7;
+        font-size: 0.78rem;
+        font-weight: 650;
+        line-height: 1.3;
+      }
+
+      .mobile-contact-chevron {
+        color: #667399;
+        font-size: 1.7rem;
+        line-height: 1;
+        flex: 0 0 auto;
       }
 
       .mobile-contact-badges {
@@ -2481,6 +2500,13 @@
 
       .detail-info-value--plain {
         font-weight: 500;
+      }
+
+      .detail-static-value {
+        margin-top: 12px;
+        color: #203165;
+        font-size: 0.95rem;
+        font-weight: 800;
       }
 
       .detail-mini-map {
@@ -4532,45 +4558,101 @@
       }
 
 @media (max-width: 760px) {
+        html,
         body {
-          padding-bottom: calc(88px + env(safe-area-inset-bottom));
+          width: 100%;
+          min-height: 100dvh;
+          overflow-x: hidden;
+        }
+
+        body {
+          padding-bottom: calc(76px + env(safe-area-inset-bottom));
+          background: #ffffff;
+        }
+
+        body.mobile-filter-open::before {
+          content: "";
+          position: fixed;
+          inset: 0;
+          z-index: 34;
+          background: rgba(17, 25, 55, 0.28);
         }
 
         .wrap {
           width: 100%;
-          margin: 10px auto 0;
+          margin: 0 auto;
         }
 
         .topbar {
-          gap: 10px;
-          padding: 12px 14px;
+          gap: 8px;
+          min-height: 64px;
+          padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
           position: sticky;
           top: 0;
           z-index: 30;
+          flex-wrap: nowrap;
+          border-bottom: 0;
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 1px 0 rgba(26, 37, 89, 0.08);
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
         }
 
         .brand {
           width: auto;
           min-width: 0;
           flex: 1 1 auto;
+          gap: 8px;
+        }
+
+        .brand-mark {
+          width: 34px;
+          height: 34px;
+        }
+
+        .brand-mark span {
+          width: 12px;
+          height: 12px;
+          border-radius: 5px;
+        }
+
+        .brand-mark span:nth-child(1) {
+          top: 2px;
+          left: 5px;
+        }
+
+        .brand-mark span:nth-child(2) {
+          top: 12px;
+          left: 15px;
+        }
+
+        .brand-mark span:nth-child(3) {
+          top: 22px;
+          left: 5px;
         }
 
         .brand-text strong {
-          font-size: clamp(1.1rem, 6vw, 1.4rem);
+          display: block;
+          max-width: 52vw;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 1.14rem;
+          letter-spacing: -0.03em;
         }
 
         .primary-nav {
           position: fixed;
-          left: 12px;
-          right: 12px;
-          bottom: max(12px, env(safe-area-inset-bottom));
+          left: 10px;
+          right: 10px;
+          bottom: max(8px, env(safe-area-inset-bottom));
           width: auto;
           min-width: 0;
           z-index: 40;
-          padding: 6px;
-          border-radius: 22px;
-          background: rgba(255, 255, 255, 0.94);
-          box-shadow: 0 16px 36px rgba(18, 31, 82, 0.18);
+          padding: 4px;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 10px 28px rgba(18, 31, 82, 0.14);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
         }
@@ -4578,30 +4660,45 @@
         .primary-tab {
           min-width: 0;
           flex: 1 1 0;
-          min-height: 52px;
-          padding: 0 8px;
-          font-size: 0.82rem;
+          min-height: 48px;
+          padding: 0 6px;
+          border-radius: 14px;
+          font-size: 0.78rem;
           gap: 6px;
+        }
+
+        .primary-tab svg {
+          width: 17px;
+          height: 17px;
         }
 
         .topbar-account {
           margin-left: 0;
-          padding: 4px 6px 4px 4px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          box-shadow: none;
         }
 
         .topbar-account__badge {
-          width: 38px;
-          height: 38px;
+          width: 36px;
+          height: 36px;
+          font-size: 0.82rem;
+        }
+
+        .topbar-account__caret {
+          display: none;
         }
 
         .topbar-mobile-new {
           display: inline-flex;
-          width: 46px;
-          min-width: 46px;
-          min-height: 46px;
+          width: 38px;
+          min-width: 38px;
+          min-height: 38px;
           padding: 0;
           justify-content: center;
-          border-radius: 16px;
+          border-radius: 999px;
+          box-shadow: none;
         }
 
         .topbar-mobile-new .action-button__icon {
@@ -4614,9 +4711,13 @@
           grid-template-columns: 1fr;
         }
 
+        .crm-shell {
+          min-width: 0;
+        }
+
         .controls {
           margin-top: 0;
-          padding: 0 12px 12px;
+          padding: 0 16px 10px;
         }
 
         .welcome,
@@ -4636,12 +4737,18 @@
         }
 
         .workspace-header {
-          padding: 14px 12px 8px;
-          gap: 10px;
+          display: block;
+          padding: 14px 16px 8px;
         }
 
         .workspace-copy h2 {
-          font-size: clamp(1.5rem, 7vw, 2rem);
+          font-size: 1.14rem;
+          line-height: 1.15;
+          color: #526083;
+          background: none;
+          -webkit-text-fill-color: currentColor;
+          text-shadow: none;
+          letter-spacing: -0.02em;
         }
 
         .workspace-actions,
@@ -4652,15 +4759,66 @@
         }
 
         .summary.summary--compact {
-          padding: 0 12px 10px;
+          display: block;
+          width: auto;
+          padding: 12px 0 6px;
         }
 
         .summary-card {
-          min-height: 74px;
-          padding: 12px 14px;
+          width: fit-content;
+          min-width: 0;
+          min-height: 44px;
+          padding: 0 14px;
+          border-radius: 14px;
+          grid-template-columns: 24px minmax(0, 1fr);
+          gap: 9px;
+          box-shadow: none;
+        }
+
+        .summary-card .summary-label,
+        .summary-value span {
+          display: none;
+        }
+
+        .summary.summary--compact .summary-card {
+          min-width: 0;
+          min-height: 44px;
+          padding: 0 14px;
+          border-radius: 14px;
+          grid-template-columns: 24px minmax(0, 1fr);
+        }
+
+        .summary.summary--compact .summary-value {
+          margin: 0;
+          font-size: 1rem;
+          letter-spacing: -0.02em;
+        }
+
+        .summary.summary--compact .summary-value small {
+          margin-left: 3px;
+          font-size: 1rem;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+        }
+
+        .summary.summary--compact .summary-icon {
+          width: 24px;
+          height: 24px;
+          background: transparent;
+          font-size: 0;
+        }
+
+        .summary.summary--compact .summary-icon::before {
+          content: "";
+          width: 16px;
+          height: 16px;
+          border: 2px solid #667399;
+          border-radius: 999px;
+          box-shadow: 10px 0 0 -2px #667399;
         }
 
         .active-filter-list {
+          grid-column: 1 / -1;
           flex-wrap: nowrap;
           overflow-x: auto;
           padding-bottom: 2px;
@@ -4672,25 +4830,86 @@
           display: none;
         }
 
+        .active-filter-empty {
+          display: none;
+        }
+
+        .active-filter-chip {
+          min-height: 34px;
+          padding: 0 11px;
+          background: #eef3ff;
+          box-shadow: none;
+          font-size: 0.86rem;
+        }
+
         .filter-toolbar {
+          display: grid;
+          grid-template-columns: 1fr auto;
           gap: 10px;
           align-items: stretch;
+          min-height: 0;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          box-shadow: none;
         }
 
         .filter-results {
-          margin-left: 0;
-          font-size: 0.84rem;
-          font-weight: 800;
+          display: none;
         }
 
         .filter-shell {
           width: auto;
-          order: -1;
-          align-self: flex-end;
+          order: 0;
+          align-self: stretch;
         }
 
         .filter-panel-button {
           width: auto;
+          min-height: 48px;
+          padding: 0 14px;
+          border-radius: 15px;
+          box-shadow: none;
+        }
+
+        .filter-panel-button__caret,
+        .filter-panel-button__badge:not(.is-visible) {
+          display: none;
+        }
+
+        .controls-stack {
+          display: grid;
+          gap: 10px;
+        }
+
+        .search-shell {
+          min-height: 48px;
+          border-radius: 15px;
+          box-shadow: none;
+        }
+
+        .search-input {
+          font-size: 0.95rem;
+        }
+
+        .search-input::placeholder {
+          color: transparent;
+        }
+
+        .search-input:placeholder-shown::before {
+          content: none;
+        }
+
+        .search-input::placeholder {
+          color: #8b94b7;
+        }
+
+        .search-input {
+          min-width: 0;
+        }
+
+        .search-input[placeholder] {
+          text-overflow: ellipsis;
         }
 
         .filter-panel {
@@ -4700,9 +4919,10 @@
           bottom: 0;
           top: auto;
           width: 100%;
-          max-height: 78vh;
+          max-height: min(82dvh, 720px);
+          z-index: 35;
           border-radius: 24px 24px 0 0;
-          padding: 16px 14px calc(18px + env(safe-area-inset-bottom));
+          padding: 16px 16px calc(92px + env(safe-area-inset-bottom));
           box-shadow: 0 -18px 40px rgba(18, 31, 82, 0.22);
           overflow: auto;
         }
@@ -4715,16 +4935,151 @@
           background: rgba(255, 255, 255, 0.98);
         }
 
+        .filter-panel-head::before {
+          content: "";
+          display: block;
+          width: 48px;
+          height: 5px;
+          margin: 0 auto 14px;
+          border-radius: 999px;
+          background: #cfd5e6;
+        }
+
+        .filter-panel-title {
+          font-size: 1.3rem;
+          letter-spacing: -0.03em;
+        }
+
+        .filter-panel-copy {
+          margin-top: 4px;
+          font-size: 0.9rem;
+        }
+
+        .filter-panel-actions {
+          align-items: flex-start;
+        }
+
+        #filter-panel-reset {
+          position: fixed;
+          left: 16px;
+          right: calc(50% + 7px);
+          bottom: calc(14px + env(safe-area-inset-bottom));
+          z-index: 37;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 48px;
+          padding: 0 10px;
+          border: 1px solid #cfd9fb;
+          border-radius: 14px;
+          background: #ffffff;
+          color: #245ddf;
+          font-weight: 800;
+        }
+
+        .filter-panel-apply {
+          position: fixed;
+          right: 16px;
+          bottom: calc(14px + env(safe-area-inset-bottom));
+          z-index: 36;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: calc(50% - 23px);
+          min-height: 48px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #275ee6, #4d90ff);
+          color: #ffffff;
+          border: 0;
+          font-weight: 850;
+          cursor: pointer;
+        }
+
         .filter-panel-grid {
           grid-template-columns: 1fr;
+          gap: 0;
+        }
+
+        .filter-section {
+          padding: 14px 0;
+          border: 0;
+          border-top: 1px solid #e7ebf8;
+          border-radius: 0;
+          background: transparent;
+        }
+
+        .filter-section:first-child {
+          border-top: 0;
+        }
+
+        .filter-section-icon,
+        #theme-filter-options,
+        #theme-filter-meta,
+        .filter-section:has(#theme-filter-options) {
+          display: none;
+        }
+
+        .filter-section-title {
+          font-size: 1rem;
+        }
+
+        .filter-option-chip {
+          min-height: 38px;
+          padding: 0 13px;
+          font-size: 0.9rem;
+          box-shadow: none;
+        }
+
+        .filter-option-chip__icon {
+          display: none;
+        }
+
+        .filter-option-list--scroll {
+          max-height: 116px;
         }
 
         .view-shell {
-          padding: 0 12px 18px;
+          padding: 0 16px 10px;
         }
 
         .view-card {
-          border-radius: 20px;
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+          overflow: visible;
+        }
+
+        .mobile-contact-list {
+          gap: 10px;
+          padding: 8px 0 0;
+        }
+
+        .mobile-contact-card {
+          min-height: 96px;
+          padding: 12px;
+          border-radius: 16px;
+          box-shadow: none;
+        }
+
+        .mobile-contact-top {
+          gap: 11px;
+        }
+
+        .mobile-contact-card .avatar,
+        .mobile-contact-card img.avatar {
+          width: 52px;
+          height: 52px;
+          flex-basis: 52px;
+          font-size: 0.95rem;
+        }
+
+        .mobile-contact-name {
+          font-size: 1rem;
+        }
+
+        .mobile-contact-organization {
+          font-size: 0.86rem;
         }
 
         .contacts-table .thead {
@@ -4736,11 +5091,13 @@
         }
 
         .table-wrap {
+          border-top: 0;
           overflow: visible;
+          background: transparent;
         }
 
         .table-footer {
-          padding: 10px 12px 16px;
+          display: none;
         }
 
         .table-footer__controls {
@@ -4768,7 +5125,7 @@
         }
 
         .detail-content {
-          padding: 14px 14px 110px;
+          padding: 14px 16px 92px;
         }
 
         .detail-stack--duo,
@@ -4780,13 +5137,12 @@
         }
 
         .detail-profile-main {
-          flex-direction: column;
-          align-items: flex-start;
+          flex-direction: row;
+          align-items: center;
         }
 
         .detail-profile-side {
-          grid-template-columns: 1fr;
-          min-width: 0;
+          display: none;
         }
 
         .detail-actions--stacked {
@@ -4810,14 +5166,155 @@
           width: 100%;
         }
 
+        .topbar .topbar-mobile-new {
+          width: 38px;
+          min-width: 38px;
+          flex: 0 0 38px;
+        }
+
         .detail-panel,
         .editor-panel {
-          top: auto;
+          top: 0;
           bottom: 0;
           width: 100%;
           max-width: 100%;
           height: min(100%, 100dvh);
-          border-radius: 24px 24px 0 0;
+          border-radius: 0;
+        }
+
+        .detail-toolbar,
+        .editor-toolbar {
+          padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+          min-height: 58px;
+        }
+
+        .detail-counter {
+          font-size: 0;
+        }
+
+        .detail-counter::before {
+          content: "Versorgungs-Kompass";
+          font-size: 0.95rem;
+          font-weight: 850;
+          color: #1a2559;
+        }
+
+        .detail-close {
+          min-width: 44px;
+          min-height: 44px;
+        }
+
+        .detail-profile {
+          padding: 0;
+          border: 0;
+          background: transparent;
+        }
+
+        .detail-profile-top {
+          display: block;
+          padding: 14px 0;
+        }
+
+        .detail-profile-main .avatar,
+        .detail-profile-main img.avatar {
+          width: 64px;
+          height: 64px;
+          flex-basis: 64px;
+        }
+
+        .detail-profile-copy h3 {
+          font-size: 1.35rem;
+          line-height: 1.12;
+        }
+
+        .detail-profile-subline {
+          font-size: 0.88rem;
+        }
+
+        .detail-section-title {
+          margin: 0 0 8px;
+          font-size: 1rem;
+        }
+
+        .section-block {
+          margin-top: 12px;
+        }
+
+        .section-block:has(.tag-editor),
+        .section-block:has(.detail-context-grid),
+        .detail-footer-meta,
+        .detail-bottom-actions {
+          display: none;
+        }
+
+        .detail-facts-grid,
+        .detail-communication-grid {
+          display: block;
+          border: 1px solid #e0e5f5;
+          border-radius: 16px;
+          overflow: hidden;
+          background: #ffffff;
+        }
+
+        .detail-info-card {
+          min-height: 48px;
+          padding: 10px 12px;
+          border: 0;
+          border-bottom: 1px solid #edf0f8;
+          border-radius: 0;
+          background: #ffffff;
+          box-shadow: none;
+        }
+
+        .detail-info-card:last-child {
+          border-bottom: 0;
+        }
+
+        .detail-info-card--map {
+          margin-top: 12px;
+          border: 1px solid #e0e5f5;
+          border-radius: 16px;
+        }
+
+        .detail-info-card--missing-summary {
+          margin-top: 12px;
+          border: 1px solid #ccd9ff;
+          border-radius: 14px;
+          background: #f7faff;
+          color: #30447f;
+          font-weight: 750;
+        }
+
+        .detail-info-head .field-icon,
+        .detail-info-head .linkedin-icon,
+        .detail-warning {
+          display: none;
+        }
+
+        .detail-info-head {
+          margin-bottom: 6px;
+          color: #53608f;
+          font-size: 0.78rem;
+        }
+
+        .detail-inline-input,
+        .detail-inline-textarea,
+        .custom-select-trigger--detail {
+          min-height: 30px;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none !important;
+          font-size: 0.95rem;
+        }
+
+        .detail-mini-map {
+          min-height: 132px;
+        }
+
+        .detail-link-row {
+          margin-top: 6px;
         }
 
         .editor-grid,
@@ -4837,8 +5334,120 @@
         .editor-footer {
           position: sticky;
           bottom: 0;
+          display: block;
           background: rgba(255, 255, 255, 0.98);
-          padding-bottom: calc(12px + env(safe-area-inset-bottom));
+          padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+        }
+
+        .editor-toolbar h3 {
+          font-size: 1.35rem;
+        }
+
+        .editor-toolbar p {
+          max-width: 270px;
+        }
+
+        .editor-form {
+          padding: 16px 16px 18px;
+        }
+
+        .editor-intro {
+          margin-bottom: 12px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: #68708e;
+        }
+
+        .editor-intro strong {
+          display: none;
+        }
+
+        .editor-section {
+          padding: 12px 0;
+        }
+
+        .editor-section:first-of-type {
+          padding-top: 0;
+        }
+
+        .editor-section-head {
+          margin-bottom: 10px;
+        }
+
+        .editor-section-icon {
+          display: none;
+        }
+
+        .editor-section:not(:first-of-type) {
+          border: 1px solid #e0e6f6;
+          border-radius: 14px;
+          padding: 0;
+          margin-top: 10px;
+        }
+
+        .editor-section:not(:first-of-type) .editor-section-head {
+          min-height: 48px;
+          margin: 0;
+          padding: 0 14px;
+          justify-content: space-between;
+        }
+
+        .editor-section:not(:first-of-type) .editor-section-head::after {
+          content: "⌄";
+          color: #50649f;
+          font-weight: 900;
+        }
+
+        .editor-section:not(:first-of-type) .editor-grid {
+          display: none;
+        }
+
+        .editor-field:has(#field-specialty),
+        .editor-field:has(#field-priority),
+        .editor-field:has(#field-postal-code),
+        .editor-field:has(#field-city),
+        .editor-field:has(#field-state),
+        .editor-message--warning,
+        .editor-footer__hint {
+          display: none;
+        }
+
+        .editor-label__required {
+          color: #c33f31;
+        }
+
+        .editor-input,
+        .editor-textarea,
+        .custom-select-trigger {
+          min-height: 48px;
+          border-radius: 13px;
+          box-shadow: none;
+        }
+
+        .editor-actions {
+          display: grid;
+          width: 100%;
+          gap: 8px;
+        }
+
+        .editor-actions .action-button {
+          min-width: 0;
+          min-height: 48px;
+        }
+
+        #editor-save {
+          order: 1;
+        }
+
+        #editor-save-next {
+          order: 2;
+        }
+
+        #editor-cancel {
+          order: 3;
+          border-color: transparent;
+          background: transparent;
         }
 
         .import-panel {
@@ -4894,6 +5503,16 @@
           grid-column: span 12;
         }
 
+        .view-card--map {
+          min-height: calc(100dvh - 152px - env(safe-area-inset-bottom));
+        }
+
+        .map-embed-frame {
+          height: calc(100dvh - 152px - env(safe-area-inset-bottom));
+          min-height: 520px;
+          border-radius: 0;
+        }
+
         .analytics-head,
         .coverage-map {
           grid-template-columns: 1fr;
@@ -4907,6 +5526,64 @@
         .dashboard-control {
           width: 100%;
           justify-content: center;
+        }
+
+        .analytics-shell {
+          padding: 0;
+        }
+
+        .analytics-head {
+          gap: 10px;
+          padding: 4px 0 12px;
+        }
+
+        .analytics-head h3 {
+          margin: 0;
+          font-size: 1.2rem;
+        }
+
+        .analytics-head p,
+        .dashboard-info,
+        .dashboard-card p,
+        #priority-chart,
+        #coverage-map,
+        #top-regions,
+        .dashboard-card:has(#priority-chart),
+        .dashboard-card:has(#coverage-map),
+        .dashboard-card:has(#top-regions) {
+          display: none;
+        }
+
+        .analytics-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .dashboard-control {
+          min-height: 44px;
+          padding: 0 10px;
+          border-radius: 14px;
+          font-size: 0.82rem;
+          box-shadow: none;
+        }
+
+        .dashboard-grid {
+          gap: 12px;
+        }
+
+        .dashboard-card {
+          padding: 14px;
+          border-radius: 16px;
+          box-shadow: none;
+        }
+
+        .dashboard-card-head {
+          margin-bottom: 8px;
+        }
+
+        .dashboard-card h4 {
+          font-size: 1rem;
         }
 
         .state-row,
@@ -5048,6 +5725,7 @@
                     <div class="filter-panel-actions">
                       <button class="filter-reset" type="button" id="filter-panel-reset">Alle Filter zurücksetzen</button>
                       <button class="filter-panel-close" type="button" id="filter-panel-close" aria-label="Filter schließen">&times;</button>
+                      <button class="filter-panel-apply" type="button" id="filter-panel-apply">Filter anwenden</button>
                     </div>
                   </div>
                   <div class="filter-panel-grid">
@@ -5289,7 +5967,7 @@
           <input type="hidden" name="id" />
           <input type="hidden" name="themesText" id="field-themes-hidden" class="editor-theme-hidden" />
           <div class="editor-intro">
-            <strong>Pflichtfelder:</strong> Name, Organisation, Sektor, PLZ, Ort, Bundesland.
+            <strong>Pflichtfelder:</strong> Name. Details kannst du später ergänzen.
           </div>
           <div class="editor-status" id="editor-status"></div>
 
@@ -5306,12 +5984,12 @@
                 <div class="editor-message editor-message--error" id="field-name-error"></div>
               </div>
               <div class="editor-field">
-                <label class="editor-label" for="field-organization">Organisation <span class="editor-label__required">*</span></label>
+                <label class="editor-label" for="field-organization">Organisation</label>
                 <input class="editor-input" id="field-organization" name="organization" placeholder="Organisation oder Einrichtung..." />
                 <div class="editor-message editor-message--error" id="field-organization-error"></div>
               </div>
               <div class="editor-field">
-                <label class="editor-label" for="field-category">Sektor <span class="editor-label__required">*</span></label>
+                <label class="editor-label" for="field-category">Sektor</label>
                 <div class="editor-select-shell" data-custom-select data-select-type="category">
                   <select class="editor-select" id="field-category" name="category"></select>
                 </div>
@@ -5333,9 +6011,9 @@
                 <label class="editor-label" for="field-priority">Priorität</label>
                 <div class="editor-select-shell" data-custom-select data-select-type="priority">
                   <select class="editor-select" id="field-priority" name="priority">
-                    <option value="Hoch">🔥 Hoch</option>
-                    <option value="Mittel">🟡 Mittel</option>
-                    <option value="Niedrig">🟢 Niedrig</option>
+                    <option value="Hoch">Hoch</option>
+                    <option value="Mittel">Mittel</option>
+                    <option value="Niedrig">Niedrig</option>
                   </select>
                 </div>
               </div>
@@ -5347,17 +6025,17 @@
                 <div class="editor-message editor-message--warning" id="field-owner-warning">Zugeordneter Owner kann später geändert werden.</div>
               </div>
               <div class="editor-field">
-                <label class="editor-label" for="field-postal-code">PLZ <span class="editor-label__required">*</span></label>
+                <label class="editor-label" for="field-postal-code">PLZ</label>
                 <input class="editor-input" id="field-postal-code" name="postalCode" inputmode="numeric" placeholder="z. B. 10117" />
                 <div class="editor-message editor-message--error" id="field-postal-code-error"></div>
               </div>
               <div class="editor-field">
-                <label class="editor-label" for="field-city">Ort <span class="editor-label__required">*</span></label>
+                <label class="editor-label" for="field-city">Ort</label>
                 <input class="editor-input" id="field-city" name="city" placeholder="z. B. Berlin" />
                 <div class="editor-message editor-message--error" id="field-city-error"></div>
               </div>
               <div class="editor-field editor-field--full">
-                <label class="editor-label" for="field-state">Bundesland <span class="editor-label__required">*</span></label>
+                <label class="editor-label" for="field-state">Bundesland</label>
                 <div class="editor-select-shell" data-custom-select data-select-type="state">
                   <select class="editor-select" id="field-state" name="state"></select>
                 </div>
@@ -5726,6 +6404,7 @@
       const filterPanel = document.getElementById("filter-panel");
       const filterPanelResetButton = document.getElementById("filter-panel-reset");
       const filterPanelCloseButton = document.getElementById("filter-panel-close");
+      const filterPanelApplyButton = document.getElementById("filter-panel-apply");
       const categoryFilterOptions = document.getElementById("category-filter-options");
       const priorityFilterOptions = document.getElementById("priority-filter-options");
       const stateFilterOptions = document.getElementById("state-filter-options");
@@ -6738,6 +7417,7 @@
           roleBadgeClass: roleBadgeClasses[category] || "role-badge role--netzwerk",
           organization: entry.organization || defaultOrganizations[index % defaultOrganizations.length],
           organizationShort: simplifyOrganization(entry.organization || defaultOrganizations[index % defaultOrganizations.length]),
+          honorificTitle: entry.honorificTitle || entry.academicTitle || "",
           specialty,
           topic: entry.topic || "",
           priority,
@@ -6930,6 +7610,13 @@
         accountButton.setAttribute("aria-expanded", "false");
         filterPanel.hidden = true;
         filterPanelButton.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("mobile-filter-open");
+      }
+
+      function setFilterPanelOpen(open) {
+        filterPanel.hidden = !open;
+        filterPanelButton.setAttribute("aria-expanded", String(open));
+        document.body.classList.toggle("mobile-filter-open", open && isMobileLayout());
       }
 
       function toggleFilterValue(key, value) {
@@ -6959,8 +7646,7 @@
         const panelWasOpen = !filterPanel.hidden;
         updateView();
         if (panelWasOpen) {
-          filterPanel.hidden = false;
-          filterPanelButton.setAttribute("aria-expanded", "true");
+          setFilterPanelOpen(true);
         }
       }
 
@@ -7080,13 +7766,11 @@
       function renderFilterPanel() {
         const categories = uniqueValues("category").map((value) => ({
           value,
-          label: value,
-          icon: categoryEmoji[value] || "•"
+          label: value
         }));
         const priorities = ["Hoch", "Mittel", "Niedrig"].map((value) => ({
           value,
-          label: value,
-          icon: priorityEmoji[value] || "•"
+          label: value
         }));
         const states = [...new Map(contacts.map((contact) => [stateLabel(contact), stateLabel(contact)])).values()]
           .filter(Boolean)
@@ -7124,12 +7808,12 @@
 
       function renderActiveFilters() {
         const filters = [
-          ...selectedCategories.map((value) => ({ key: "category", value, label: `Sektor: ${value}` })),
-          ...selectedPriorities.map((value) => ({ key: "priority", value, label: `Priorität: ${value}` })),
-          ...selectedStates.map((value) => ({ key: "state", value, label: `Bundesland: ${value}` })),
-          ...selectedSpecialties.map((value) => ({ key: "specialty", value, label: `Fachrichtung: ${value}` })),
-          ...selectedOwners.map((value) => ({ key: "owner", value, label: `Owner: ${value}` })),
-          ...selectedThemes.map((value) => ({ key: "theme", value, label: `Thema: ${value}` }))
+          ...selectedCategories.map((value) => ({ key: "category", value, label: isMobileLayout() ? value : `Sektor: ${value}` })),
+          ...selectedPriorities.map((value) => ({ key: "priority", value, label: isMobileLayout() ? value : `Priorität: ${value}` })),
+          ...selectedStates.map((value) => ({ key: "state", value, label: isMobileLayout() ? value : `Bundesland: ${value}` })),
+          ...selectedSpecialties.map((value) => ({ key: "specialty", value, label: isMobileLayout() ? value : `Fachrichtung: ${value}` })),
+          ...selectedOwners.map((value) => ({ key: "owner", value, label: isMobileLayout() ? value : `Owner: ${value}` })),
+          ...selectedThemes.map((value) => ({ key: "theme", value, label: isMobileLayout() ? value : `Thema: ${value}` }))
         ];
 
         if (!filters.length) {
@@ -7166,7 +7850,7 @@
 
       function renderSummary(items) {
         const cards = [
-          { label: "Kontakte gesamt", value: contacts.length, meta: "100 %", icon: "👥", iconClass: "summary-icon--blue" }
+          { label: "Kontakte gesamt", value: contacts.length, meta: isMobileLayout() ? "Kontakte" : "100 %", icon: "", iconClass: "summary-icon--blue" }
         ];
 
         summaryGrid.innerHTML = cards
@@ -7176,7 +7860,7 @@
                 <div class="summary-icon ${card.iconClass}" aria-hidden="true">${card.icon}</div>
                 <div class="summary-copy">
                   <div class="summary-label">${card.label}</div>
-                  <div class="summary-value">${card.value} <span>${card.meta}</span></div>
+                  <div class="summary-value">${card.value} <span>${card.meta}</span>${isMobileLayout() ? ` <small>Kontakte</small>` : ""}</div>
                 </div>
               </article>
             `
@@ -7208,21 +7892,9 @@
                   <div class="mobile-contact-copy">
                     <h3 class="mobile-contact-name">${contact.name}</h3>
                     <div class="mobile-contact-organization">${contact.organization || "Nicht dokumentiert"}</div>
+                    <div class="mobile-contact-meta">${[contact.category, specialtyLabel(contact), contact.city || stateLabel(contact)].filter(Boolean).join(" · ")}</div>
                   </div>
-                  <button
-                    class="favorite-star ${favorites.has(contact.id) ? "is-active" : ""}"
-                    type="button"
-                    data-id="${contact.id}"
-                    aria-label="${favorites.has(contact.id) ? "Favorit entfernen" : "Als Favorit markieren"}"
-                  >
-                    <svg viewBox="0 0 24 24" fill="${favorites.has(contact.id) ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <path d="m12 3.8 2.55 5.16 5.7.83-4.13 4.03.98 5.68L12 16.78l-5.1 2.72.98-5.68L3.75 9.8l5.7-.83L12 3.8Z"></path>
-                    </svg>
-                  </button>
-                </div>
-                <div class="mobile-contact-badges">
-                  <span class="mobile-badge mobile-badge--sector">${contact.category || "Sektor offen"}</span>
-                  <span class="mobile-badge ${meaningfulOrEmpty(contact.owner) ? "mobile-badge--owner" : "mobile-badge--owner-empty"}">${meaningfulOrEmpty(contact.owner) || "Kein Owner"}</span>
+                  <span class="mobile-contact-chevron" aria-hidden="true">›</span>
                 </div>
               </article>
             `
@@ -7661,15 +8333,15 @@
         const warnings = [];
 
         if (!values.name) errors.push({ field: "name", message: "Bitte Namen eingeben." });
-        if (!values.organization) errors.push({ field: "organization", message: "Bitte Organisation ergänzen." });
-        if (!values.category) errors.push({ field: "category", message: "Bitte Sektor auswählen." });
-        if (!values.postalCode) {
+        if (!isMobileLayout() && !values.organization) errors.push({ field: "organization", message: "Bitte Organisation ergänzen." });
+        if (!isMobileLayout() && !values.category) errors.push({ field: "category", message: "Bitte Sektor auswählen." });
+        if (!isMobileLayout() && !values.postalCode) {
           errors.push({ field: "postalCode", message: "Bitte PLZ ergänzen." });
-        } else if (!/^\d{5}$/.test(values.postalCode)) {
+        } else if (values.postalCode && !/^\d{5}$/.test(values.postalCode)) {
           errors.push({ field: "postalCode", message: "PLZ muss 5-stellig sein." });
         }
-        if (!values.city) errors.push({ field: "city", message: "Bitte Ort ergänzen." });
-        if (!values.state) errors.push({ field: "state", message: "Bitte Bundesland auswählen." });
+        if (!isMobileLayout() && !values.city) errors.push({ field: "city", message: "Bitte Ort ergänzen." });
+        if (!isMobileLayout() && !values.state) errors.push({ field: "state", message: "Bitte Bundesland auswählen." });
         if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
           errors.push({ field: "email", message: "Bitte eine gültige E-Mail-Adresse eingeben." });
         }
@@ -7715,7 +8387,7 @@
         return ["Hoch", "Mittel", "Niedrig"]
           .map(
             (value) =>
-              `<option value="${value}" ${selectedPriority === value ? "selected" : ""}>${priorityEmoji[value]} ${value}</option>`
+              `<option value="${value}" ${selectedPriority === value ? "selected" : ""}>${value}</option>`
           )
           .join("");
       }
@@ -7724,7 +8396,7 @@
         return defaultCategories
           .map(
             (value) =>
-              `<option value="${value}" ${selectedCategory === value ? "selected" : ""}>${categoryEmoji[value] || "•"} ${value}</option>`
+              `<option value="${value}" ${selectedCategory === value ? "selected" : ""}>${value}</option>`
           )
           .join("");
       }
@@ -8271,6 +8943,7 @@
             contacts: items.map((contact) => ({
               id: contact.id,
               name: contact.name,
+              honorificTitle: contact.honorificTitle,
               specialty: contact.specialty,
               category: contact.category,
               organization: contact.organization,
@@ -8319,10 +8992,12 @@
         const updatedLabel = formatDateLabel(contact.updatedAt);
         const ownerLabel = meaningfulOrEmpty(contact.owner);
         const specialtyText = specialtyLabel(contact);
+        const honorificTitle = meaningfulOrEmpty(contact.honorificTitle);
         const noteText = meaningfulOrEmpty(contact.lastExchange);
         const organizationLabel = meaningfulOrEmpty(contact.organization);
         const themeTags = normalizeThemes(contact.themes);
         const suggestedThemes = themeSuggestions();
+        const missingFields = detailMissingFields(contact);
         const portraitMarkup = contact.image
           ? `<img class="avatar ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
           : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`;
@@ -8347,6 +9022,9 @@
                   ${portraitMarkup}
                   <div class="detail-profile-copy">
                     <h3>${contact.displayName}</h3>
+                    ${honorificTitle ? `<div class="detail-profile-subline">${honorificTitle}</div>` : ""}
+                    <div class="detail-profile-role">${organizationLabel || "Organisation nicht dokumentiert"}</div>
+                    <div class="detail-profile-subline">${[contact.category, specialtyText, locationText].filter(Boolean).join(" · ")}</div>
                   </div>
                 </div>
                 <div class="detail-profile-side">
@@ -8381,13 +9059,6 @@
                     </div>
                     <input class="detail-inline-input" id="detail-location-input" type="text" value="${String(contact.location || "").replace(/"/g, "&quot;")}" placeholder="Ort eintragen" />
                   </article>
-                  <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
-                    <div class="detail-info-head">
-                      <span class="field-icon">🗺️</span>
-                      <span>Standort in Deutschland</span>
-                    </div>
-                    ${buildDetailMiniMap(contact, locationText)}
-                  </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
                       <span class="field-icon">🩺</span>
@@ -8399,6 +9070,17 @@
                       </select>
                     </div>
                   </article>
+                  ${
+                    honorificTitle
+                      ? `<article class="detail-info-card">
+                          <div class="detail-info-head">
+                            <span class="field-icon">Dr.</span>
+                            <span>Titel</span>
+                          </div>
+                          <div class="detail-static-value">${honorificTitle}</div>
+                        </article>`
+                      : ""
+                  }
                   <article class="detail-info-card">
                     <div class="detail-info-head">
                       <span class="field-icon">${categoryEmoji[contact.category] || "•"}</span>
@@ -8493,6 +9175,19 @@
                   </article>
                 </div>
               </section>
+
+              <section class="section-block">
+                <h4 class="detail-section-title">Standort</h4>
+                <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
+                  ${buildDetailMiniMap(contact, locationText)}
+                </article>
+              </section>
+
+              ${
+                missingFields.length
+                  ? `<div class="detail-info-card detail-info-card--missing-summary">Fehlende Angaben: ${missingFields.join(", ")}</div>`
+                  : ""
+              }
 
               <section class="section-block">
                 <h4 class="detail-section-title">Status</h4>
@@ -8656,7 +9351,7 @@
         editorTitle.textContent = contact ? "Kontakt bearbeiten" : "Neuen Kontakt anlegen";
         editorSubtitle.textContent = contact
           ? "Basisdaten zuerst, Details können laufend ergänzt werden."
-          : "Schnell erfassen. Details können später ergänzt werden.";
+          : "Nur Name ist Pflicht. Details kannst du später ergänzen.";
         editorHint.textContent = contact
           ? "Änderungen überschreiben deinen lokalen Browser-Stand."
           : "Neue Kontakte werden lokal im Browser gespeichert und stehen danach direkt in Liste, Karte und Detail-Ansicht zur Verfügung.";
@@ -8683,7 +9378,21 @@
         setEditorThemes(contact?.themes || []);
         refreshEditorCustomSelects();
         updateEditorDuplicateHint();
-        validateEditorValues({ showWarnings: false });
+        [
+          "name",
+          "organization",
+          "category",
+          "specialty",
+          "postalCode",
+          "city",
+          "state",
+          "location",
+          "owner",
+          "email",
+          "themesText"
+        ].forEach((field) => setEditorFieldMessage(field, "", ""));
+        editorStatus.textContent = "";
+        editorStatus.className = "editor-status";
 
         editorDrawer.classList.add("is-open");
         editorDrawer.setAttribute("aria-hidden", "false");
@@ -8821,6 +9530,7 @@
       function updateView() {
         const items = filteredContacts();
         resultsCount.textContent = hitCountLabel(items);
+        searchInput.placeholder = isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
         renderSummary(items);
         renderTable(items);
         renderDashboard(items);
@@ -8835,7 +9545,7 @@
       }
 
       editorForm.elements.category.innerHTML = defaultCategories
-        .map((category) => `<option value="${category}">${categoryEmoji[category] || "•"} ${category}</option>`)
+        .map((category) => `<option value="${category}">${category}</option>`)
         .join("");
       editorForm.elements.owner.innerHTML = buildOwnerSelectOptions("");
       editorForm.elements.state.innerHTML = buildStateSelectOptions("");
@@ -8861,13 +9571,11 @@
         clearAllFilters({ clearSearch: false });
         updateView();
         if (panelWasOpen) {
-          filterPanel.hidden = false;
-          filterPanelButton.setAttribute("aria-expanded", "true");
+          setFilterPanelOpen(true);
         }
       });
       dashboardFilterButton.addEventListener("click", () => {
-        filterPanel.hidden = false;
-        filterPanelButton.setAttribute("aria-expanded", "true");
+        setFilterPanelOpen(true);
         filterPanelButton.focus();
       });
       mapViewFrame.addEventListener("load", () => {
@@ -8899,13 +9607,15 @@
         event.stopPropagation();
         const open = filterPanel.hidden;
         closeMenus();
-        filterPanel.hidden = !open;
-        filterPanelButton.setAttribute("aria-expanded", String(open));
+        setFilterPanelOpen(open);
       });
       filterPanel.addEventListener("click", (event) => {
         event.stopPropagation();
       });
       filterPanelCloseButton.addEventListener("click", () => {
+        closeMenus();
+      });
+      filterPanelApplyButton.addEventListener("click", () => {
         closeMenus();
       });
 
@@ -9048,12 +9758,6 @@
           return;
         }
 
-        if (!entry.organization) {
-          window.alert("Bitte ergänze mindestens eine Organisation oder Einrichtung.");
-          editorForm.elements.organization.focus();
-          return;
-        }
-
         const sanitized = sanitizeContact(entry, contacts.length);
 
         if (editorMode === "edit" && editingId) {
@@ -9103,6 +9807,8 @@
       });
 
       window.addEventListener("resize", () => {
+        if (filterPanel.hidden) document.body.classList.remove("mobile-filter-open");
+        else document.body.classList.toggle("mobile-filter-open", isMobileLayout());
         updateView();
       });
 
