@@ -376,6 +376,10 @@
       }
 
       .summary-card:nth-child(2) {
+        background: linear-gradient(180deg, #ffffff 0%, #eef4ff 100%);
+      }
+
+      .summary-card:nth-child(3) {
         background: linear-gradient(180deg, #ffffff 0%, #ffece6 100%);
       }
 
@@ -392,6 +396,14 @@
         font-size: 2rem;
         font-weight: 800;
         letter-spacing: -0.05em;
+      }
+
+      .summary-value span {
+        margin-left: 7px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0;
       }
 
       .summary-sub {
@@ -835,15 +847,18 @@
       }
 
       .analytics-shell {
-        padding: 22px;
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
       }
 
       .analytics-head {
         display: flex;
-        align-items: flex-end;
+        align-items: flex-start;
         justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 18px;
+        gap: 16px;
+        margin-bottom: 16px;
+        padding: 0 2px;
       }
 
       .analytics-head h3 {
@@ -1154,6 +1169,19 @@
         transform: translateY(-50%);
         color: #7b85b0;
         font-size: 1rem;
+        pointer-events: none;
+      }
+
+      .select-shell[data-custom-select]::after {
+        display: none;
+      }
+
+      .select-shell[data-custom-select] select {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
         pointer-events: none;
       }
 
@@ -2431,36 +2459,68 @@
         margin-top: 14px;
       }
 
-      .detail-select-shell::after {
-        content: "⌄";
+      .detail-inline-select {
         position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #7b85b0;
-        font-size: 0.95rem;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
         pointer-events: none;
       }
 
-      .detail-inline-select {
-        width: 100%;
+      .custom-select-trigger--detail {
         min-height: 36px;
-        padding: 0 36px 0 12px;
-        border: 1px solid #d8def7;
+        padding: 0 12px;
         border-radius: 12px;
         background: #f7f9ff;
         color: #31447d;
         font-size: 0.84rem;
         font-weight: 700;
-        appearance: none;
-        outline: 0;
-        cursor: pointer;
       }
 
-      .detail-inline-select:focus {
-        border-color: #8eb2ff;
-        box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
-        background: #ffffff;
+      .custom-select-trigger--detail .custom-select-trigger__icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      .custom-select-panel--detail {
+        top: calc(100% + 6px);
+        border-radius: 14px;
+        padding: 7px;
+        box-shadow: 0 14px 28px rgba(23, 37, 84, 0.16);
+      }
+
+      .custom-select-panel--detail .custom-select-option {
+        padding: 9px 10px;
+        font-size: 0.82rem;
+      }
+
+      .custom-select-trigger--compact {
+        min-height: 54px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 18px;
+        background: transparent;
+        box-shadow: none;
+        font-size: 0.96rem;
+        font-weight: 800;
+      }
+
+      .custom-select-trigger--compact .custom-select-trigger__icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      .select-shell[data-custom-select].is-open .custom-select-trigger--compact,
+      .select-shell[data-custom-select]:focus-within .custom-select-trigger--compact {
+        border-color: transparent;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      .custom-select-panel--compact {
+        top: calc(100% + 8px);
+        min-width: 180px;
       }
 
       .detail-info-value--muted {
@@ -2720,42 +2780,159 @@
         flex: 0 0 auto;
       }
 
+      .analytics-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .dashboard-control {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        padding: 0 13px;
+        border: 1px solid #d6def9;
+        border-radius: 12px;
+        background: #fbfcff;
+        color: #30427d;
+        font-size: 0.84rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .dashboard-control svg {
+        width: 17px;
+        height: 17px;
+        stroke: currentColor;
+      }
+
+      .dashboard-context {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: -4px 0 16px;
+        padding: 10px 12px;
+        border: 1px solid rgba(214, 222, 249, 0.86);
+        border-radius: 14px;
+        background: rgba(248, 250, 255, 0.82);
+      }
+
+      .dashboard-context-label {
+        color: #53608f;
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .dashboard-context-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 9px;
+        border: 1px solid #dce5ff;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #33437a;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
       .dashboard-grid {
         display: grid;
-        grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
-        gap: 18px;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 14px;
       }
 
       .dashboard-card {
-        border: 1px solid var(--line);
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.9);
-        box-shadow: var(--shadow);
-        padding: 22px;
+        min-width: 0;
+        border: 1px solid rgba(214, 222, 249, 0.96);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 12px 32px rgba(38, 52, 105, 0.07);
+        padding: 16px;
+      }
+
+      .dashboard-card--wide {
+        grid-column: span 5;
+      }
+
+      .dashboard-card--medium {
+        grid-column: span 4;
+      }
+
+      .dashboard-card--compact {
+        grid-column: span 3;
+      }
+
+      .dashboard-card--subtle {
+        background: rgba(252, 253, 255, 0.86);
+      }
+
+      .dashboard-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
       }
 
       .dashboard-card h4 {
         margin: 0;
-        font-size: 1rem;
-        letter-spacing: -0.02em;
+        color: #18245a;
+        font-size: 0.96rem;
+        letter-spacing: -0.01em;
       }
 
       .dashboard-card p {
-        margin: 6px 0 0;
+        margin: 5px 0 0;
         color: var(--muted);
-        font-size: 0.86rem;
+        font-size: 0.8rem;
+        line-height: 1.35;
+      }
+
+      .dashboard-info {
+        width: 18px;
+        height: 18px;
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border: 1px solid #cfd9fb;
+        border-radius: 999px;
+        color: #5f6fa8;
+        font-size: 0.72rem;
+        font-weight: 900;
+      }
+
+      .card-menu-dot {
+        color: #7b88b4;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .dashboard-note {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(218, 225, 247, 0.8);
+        color: #5d698d;
+        font-size: 0.78rem;
       }
 
       .category-chart {
-        margin-top: 18px;
         display: grid;
-        grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
-        gap: 18px;
+        grid-template-columns: minmax(145px, 180px) minmax(0, 1fr);
+        gap: 16px;
         align-items: center;
       }
 
+      .dashboard-card--compact .category-chart {
+        grid-template-columns: 1fr;
+      }
+
       .category-donut {
-        width: min(100%, 220px);
+        width: min(100%, 180px);
         aspect-ratio: 1;
         display: block;
         margin: 0 auto;
@@ -2763,54 +2940,63 @@
 
       .category-legend {
         display: grid;
-        gap: 12px;
+        gap: 9px;
       }
 
       .legend-row {
         display: grid;
-        grid-template-columns: 16px minmax(0, 1fr) auto;
-        gap: 10px;
+        grid-template-columns: 12px minmax(0, 1fr) auto;
+        gap: 9px;
         align-items: center;
       }
 
       .legend-swatch {
-        width: 12px;
-        height: 12px;
+        width: 9px;
+        height: 9px;
         border-radius: 999px;
       }
 
       .legend-label {
         min-width: 0;
-        font-size: 0.92rem;
-        font-weight: 700;
+        color: #243271;
+        font-size: 0.82rem;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .legend-meta {
         color: var(--muted);
-        font-size: 0.86rem;
-        font-weight: 700;
+        font-size: 0.78rem;
+        font-weight: 800;
+        white-space: nowrap;
       }
 
       .state-bars {
-        margin-top: 18px;
         display: grid;
-        gap: 12px;
+        gap: 8px;
       }
 
       .state-row {
         display: grid;
-        grid-template-columns: minmax(140px, 180px) minmax(0, 1fr) auto;
-        gap: 12px;
+        grid-template-columns: minmax(112px, 170px) minmax(0, 1fr) minmax(72px, auto);
+        gap: 10px;
         align-items: center;
       }
 
       .state-name {
-        font-size: 0.9rem;
-        font-weight: 700;
+        min-width: 0;
+        color: #243271;
+        font-size: 0.78rem;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .state-bar-track {
-        height: 12px;
+        height: 9px;
         border-radius: 999px;
         background: #edf1ff;
         overflow: hidden;
@@ -2819,22 +3005,316 @@
       .state-bar-fill {
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, #2788f6 0%, #61a8ff 100%);
+        background: linear-gradient(90deg, #2d71f0 0%, #68adff 100%);
       }
 
       .state-value {
         color: var(--muted);
-        font-size: 0.86rem;
+        font-size: 0.76rem;
+        font-weight: 900;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .coverage-map {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) minmax(120px, 0.62fr);
+        gap: 16px;
+        align-items: center;
+      }
+
+      .coverage-mini-map {
+        width: min(100%, 260px);
+        aspect-ratio: 0.82;
+        display: block;
+        margin: 0 auto;
+        filter: drop-shadow(0 14px 24px rgba(39, 88, 166, 0.12));
+      }
+
+      .coverage-state {
+        stroke: rgba(255, 255, 255, 0.92);
+        stroke-width: 1.25;
+        vector-effect: non-scaling-stroke;
+        transition: fill 160ms ease, opacity 160ms ease;
+      }
+
+      .coverage-state--empty {
+        opacity: 0.68;
+      }
+
+      .coverage-legend,
+      .quality-list,
+      .ranking-list,
+      .gap-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .coverage-legend-row,
+      .quality-row,
+      .ranking-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: center;
+        color: #243271;
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .coverage-legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+      }
+
+      .coverage-table {
+        display: grid;
+        gap: 6px;
+      }
+
+      .coverage-table-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) minmax(94px, 1fr) 52px 82px;
+        gap: 10px;
+        align-items: center;
+        padding: 7px 0;
+        border-bottom: 1px solid rgba(218, 225, 247, 0.82);
+        color: #243271;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .coverage-table-row:first-child {
+        color: #68708e;
+        font-size: 0.72rem;
+        font-weight: 900;
+      }
+
+      .coverage-reference {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        width: max-content;
+      }
+
+      .reference-info {
+        width: 17px;
+        height: 17px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid #cfd9fb;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #5f6fa8;
+        font-size: 0.68rem;
+        font-weight: 900;
+        cursor: help;
+      }
+
+      .reference-popup {
+        position: absolute;
+        left: 0;
+        top: calc(100% + 8px);
+        z-index: 5;
+        width: min(260px, 72vw);
+        padding: 10px 12px;
+        border: 1px solid #d6def9;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 16px 34px rgba(38, 52, 105, 0.15);
+        color: #53608f;
+        font-size: 0.76rem;
+        line-height: 1.35;
+        font-weight: 700;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-4px);
+        transition: opacity 140ms ease, transform 140ms ease;
+      }
+
+      .coverage-reference:hover .reference-popup,
+      .coverage-reference:focus-within .reference-popup {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .mini-progress {
+        display: grid;
+        grid-template-columns: minmax(90px, 1fr) 42px;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .mini-progress-track {
+        display: block;
+        height: 7px;
+        border-radius: 999px;
+        background: #edf1ff;
+        overflow: hidden;
+      }
+
+      .mini-progress-fill {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2458d3 0%, #5ca2ff 100%);
+        min-width: 3px;
+      }
+
+      .priority-bars {
+        display: grid;
+        gap: 12px;
+      }
+
+      .priority-row {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr) 74px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .priority-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        color: #243271;
+        font-size: 0.8rem;
+        font-weight: 900;
+      }
+
+      .priority-dot {
+        width: 9px;
+        height: 9px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+      }
+
+      .priority-track {
+        height: 12px;
+        border-radius: 999px;
+        background: #edf1ff;
+        overflow: hidden;
+      }
+
+      .priority-fill {
+        display: block;
+        height: 100%;
+        min-width: 3px;
+        border-radius: inherit;
+      }
+
+      .priority-value {
+        color: #68708e;
+        font-size: 0.76rem;
+        font-weight: 900;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .gap-panel {
+        padding: 11px 12px;
+        border: 1px solid #dfe7ff;
+        border-radius: 14px;
+        background: #fbfcff;
+      }
+
+      .gap-panel + .gap-panel {
+        margin-top: 8px;
+      }
+
+      .gap-panel-title {
+        margin: 0 0 4px;
+        color: #243271;
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .gap-tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border: 1px solid #dce5ff;
+        border-radius: 8px;
+        background: #f4f7ff;
+        color: #2d5ed7;
+        font-size: 0.74rem;
+        font-weight: 900;
+      }
+
+      .gap-tag--warm {
+        border-color: #ffd8bb;
+        background: #fff5ec;
+        color: #c95b16;
+      }
+
+      .dashboard-link-button {
+        width: 100%;
+        min-height: 34px;
+        margin-top: 10px;
+        border: 1px solid #d6def9;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #285bd6;
+        font-size: 0.8rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .ranking-index {
+        color: #7480a9;
+        font-weight: 900;
+      }
+
+      .quality-row {
+        padding: 10px;
+        border: 1px solid #e0e7fb;
+        border-radius: 13px;
+        background: #ffffff;
+      }
+
+      .quality-icon {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #2d71f0;
+        font-size: 0.88rem;
+        font-weight: 900;
+      }
+
+      .quality-copy span,
+      .ranking-row span {
+        display: block;
+      }
+
+      .quality-copy small {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 0.72rem;
         font-weight: 800;
       }
 
       .dashboard-empty {
-        margin-top: 18px;
-        padding: 14px 16px;
-        border-radius: 16px;
+        margin-top: 8px;
+        padding: 13px 14px;
+        border-radius: 14px;
         background: #f4f7ff;
         color: var(--muted);
-        font-size: 0.9rem;
+        font-size: 0.86rem;
       }
 
       .dashboard-backlog {
@@ -2899,7 +3379,7 @@
         position: absolute;
         top: 0;
         right: 0;
-        width: min(760px, 100%);
+        width: min(820px, 100%);
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -2912,7 +3392,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 18px 20px;
+        padding: 18px 22px;
         border-bottom: 1px solid var(--line);
         background: rgba(255, 255, 255, 0.95);
       }
@@ -2932,13 +3412,71 @@
       .editor-form {
         flex: 1 1 auto;
         overflow: auto;
-        padding: 20px;
+        padding: 18px 22px 22px;
       }
 
       .editor-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
+      }
+
+      .editor-intro {
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        border: 1px solid #dbe5ff;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #f9fbff 0%, #f2f6ff 100%);
+        color: #53608f;
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .editor-intro strong {
+        color: #28488f;
+      }
+
+      .editor-section {
+        padding: 16px 0 18px;
+        border-top: 1px solid rgba(218, 225, 247, 0.9);
+      }
+
+      .editor-section:first-of-type {
+        padding-top: 4px;
+        border-top: 0;
+      }
+
+      .editor-section-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .editor-section-icon {
+        width: 22px;
+        height: 22px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 8px;
+        background: #eef3ff;
+        color: #4f63a6;
+        font-size: 0.82rem;
+        flex: 0 0 auto;
+      }
+
+      .editor-section-title {
+        margin: 0;
+        color: #243271;
+        font-size: 0.96rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .editor-section-title small {
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 700;
       }
 
       .editor-field {
@@ -2954,12 +3492,14 @@
         font-size: 0.8rem;
         font-weight: 800;
         letter-spacing: 0.03em;
-        text-transform: uppercase;
         color: #53608f;
       }
 
+      .editor-label__required {
+        color: #e06649;
+      }
+
       .editor-input,
-      .editor-select,
       .editor-textarea {
         width: 100%;
         min-height: 48px;
@@ -2978,17 +3518,250 @@
       }
 
       .editor-input:focus,
-      .editor-select:focus,
       .editor-textarea:focus {
         border-color: #8eb2ff;
         box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
         background: #ffffff;
       }
 
+      .editor-select-shell {
+        position: relative;
+      }
+
+      .editor-select {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .custom-select-trigger {
+        width: 100%;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 0 14px 0 16px;
+        border: 1px solid #d6def9;
+        border-radius: 14px;
+        background: #fbfcff;
+        color: var(--text);
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: left;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+      }
+
+      .custom-select-trigger__label {
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .custom-select-trigger__icon {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
+        color: #6f7dab;
+      }
+
+      .custom-select-trigger__icon svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .custom-select-trigger.is-placeholder {
+        color: #8a96bc;
+        font-weight: 600;
+      }
+
+      .editor-select-shell.is-open .custom-select-trigger,
+      .editor-select-shell:focus-within .custom-select-trigger {
+        border-color: #8eb2ff;
+        box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
+        background: #ffffff;
+      }
+
+      .custom-select-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        z-index: 36;
+        max-height: 240px;
+        overflow: auto;
+        padding: 8px;
+        border-radius: 16px;
+        border: 1px solid rgba(18, 34, 78, 0.1);
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 18px 36px rgba(23, 37, 84, 0.16);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+
+      .custom-select-panel[hidden] {
+        display: none;
+      }
+
+      .custom-select-option {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 11px 12px;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        color: rgba(18, 34, 78, 0.76);
+        font-size: 0.93rem;
+        font-weight: 650;
+        line-height: 1.25;
+        text-align: left;
+        transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+      }
+
+      .custom-select-option:hover,
+      .custom-select-option:focus-visible {
+        background: rgba(39, 93, 223, 0.08);
+        color: #22489f;
+        outline: 0;
+      }
+
+      .custom-select-option.is-selected {
+        background: rgba(39, 93, 223, 0.12);
+        color: #22489f;
+      }
+
+      .custom-select-option.is-placeholder {
+        color: #7f8bb3;
+      }
+
+      .custom-select-option__check {
+        flex: 0 0 auto;
+        color: inherit;
+        font-size: 0.82rem;
+        font-weight: 800;
+        opacity: 0;
+      }
+
+      .custom-select-option.is-selected .custom-select-option__check {
+        opacity: 1;
+      }
+
       .editor-help {
         color: var(--muted);
         font-size: 0.78rem;
         line-height: 1.45;
+      }
+
+      .editor-message {
+        display: none;
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
+
+      .editor-message.is-visible {
+        display: block;
+      }
+
+      .editor-message--error {
+        color: #c24c36;
+      }
+
+      .editor-message--warning {
+        color: #9a6a18;
+      }
+
+      .editor-field.has-error .editor-input,
+      .editor-field.has-error .editor-textarea,
+      .editor-field.has-error .custom-select-trigger {
+        border-color: #f0b8ad;
+        background: #fff8f6;
+        box-shadow: 0 0 0 3px rgba(226, 102, 73, 0.12);
+      }
+
+      .editor-field.has-warning .editor-input,
+      .editor-field.has-warning .editor-textarea,
+      .editor-field.has-warning .custom-select-trigger {
+        border-color: #efd9ab;
+        background: #fffbf3;
+      }
+
+      .editor-status {
+        display: none;
+        margin: 0 0 14px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .editor-status.is-visible {
+        display: block;
+      }
+
+      .editor-status--error {
+        border: 1px solid #f0c5bb;
+        background: linear-gradient(180deg, #fff8f5 0%, #fff2ee 100%);
+        color: #9b4737;
+      }
+
+      .editor-status--warning {
+        border: 1px solid #efd8aa;
+        background: linear-gradient(180deg, #fffcf5 0%, #fff7e8 100%);
+        color: #94651d;
+      }
+
+      .editor-help--duplicate {
+        display: none;
+        color: #3254a3;
+      }
+
+      .editor-help--duplicate.is-visible {
+        display: block;
+      }
+
+      .editor-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .editor-chip {
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid #d8e1fb;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #30447f;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .editor-chip.is-active {
+        border-color: #a6bcff;
+        background: #edf3ff;
+        color: #2b4a90;
+      }
+
+      .editor-theme-hidden {
+        display: none;
+      }
+
+      .editor-fieldset {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        min-width: 0;
       }
 
       .editor-footer {
@@ -3012,6 +3785,10 @@
         flex-wrap: wrap;
       }
 
+      .editor-actions .action-button {
+        min-width: 178px;
+      }
+
       .footer-note {
         padding: 18px 0 10px;
         text-align: center;
@@ -3033,11 +3810,50 @@
         .controls {
           grid-template-columns: 1fr 1fr;
         }
+
+        .dashboard-card--wide {
+          grid-column: span 12;
+        }
+
+        .dashboard-card--medium,
+        .dashboard-card--compact {
+          grid-column: span 6;
+        }
       }
 
       @media (max-width: 760px) {
         .wrap {
           width: min(100% - 12px, 1760px);
+        }
+
+        .topbar {
+          gap: 12px;
+        }
+
+        .brand {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .brand-text strong {
+          font-size: clamp(1.25rem, 7vw, 1.7rem);
+        }
+
+        .primary-nav {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .primary-tab {
+          min-width: 0;
+          flex: 1 1 0;
+          padding: 0 8px;
+          font-size: 0.82rem;
+          gap: 6px;
+        }
+
+        .topbar-account {
+          margin-left: 0;
         }
 
         .summary,
@@ -3133,14 +3949,48 @@
           inset: 12px;
         }
 
-        .dashboard-grid,
+        .dashboard-card--wide,
+        .dashboard-card--medium,
+        .dashboard-card--compact {
+          grid-column: span 12;
+        }
+
         .category-chart {
           grid-template-columns: 1fr;
         }
 
-        .state-row {
+        .analytics-head,
+        .coverage-map {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+
+        .analytics-actions {
+          justify-content: stretch;
+        }
+
+        .dashboard-control {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .state-row,
+        .coverage-table-row {
           grid-template-columns: 1fr;
           gap: 8px;
+        }
+
+        .priority-row {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+
+        .priority-value {
+          text-align: left;
+        }
+
+        .state-value {
+          text-align: left;
         }
       }
     </style>
@@ -3337,7 +4187,7 @@
                 <div class="table-footer__meta" id="pagination-meta">0–0 von 0 Kontakten</div>
                 <div class="table-footer__controls">
                   <div class="pagination" id="pagination"></div>
-                  <label class="select-shell page-size-shell">
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
                     <select id="page-size-select" aria-label="Kontakte pro Seite anzeigen">
                       <option value="10">10 pro Seite</option>
                       <option value="20" selected>20 pro Seite</option>
@@ -3369,34 +4219,109 @@
                   <h3>Auswertung</h3>
                   <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Sektor und Bundesland.</p>
                 </div>
+                <div class="analytics-actions">
+                  <button class="dashboard-control" type="button" id="dashboard-filter-button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                      <path d="M4 6h16"></path>
+                      <path d="M7 12h10"></path>
+                      <path d="M10 18h4"></path>
+                    </svg>
+                    <span>Filter &amp; Kontext</span>
+                  </button>
+                  <button class="dashboard-control" type="button" aria-label="Zeitraum auswählen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                      <path d="M8 2v4"></path>
+                      <path d="M16 2v4"></path>
+                      <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                      <path d="M3 10h18"></path>
+                    </svg>
+                    <span>Zeitraum: Letzte 12 Monate</span>
+                  </button>
+                </div>
               </div>
+              <div class="dashboard-context" id="dashboard-active-context"></div>
               <div class="dashboard-grid">
-                <article class="dashboard-card">
-                  <h4>Sektor-Verteilung</h4>
-                  <p>Zeigt den Mix im aktuellen Filterkontext.</p>
+                <article class="dashboard-card dashboard-card--medium">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Kontakte nach Sektor</h4>
+                      <p>Mix im aktuellen Filterkontext.</p>
+                    </div>
+                    <span class="dashboard-info" title="Absolute Anzahl und Anteil an der aktuellen Auswahl">i</span>
+                  </div>
                   <div id="category-chart"></div>
                 </article>
-                <article class="dashboard-card">
-                  <h4>Verteilung nach Bundesland</h4>
-                  <p>Zeigt, wo dein Netzwerk regional vertreten ist.</p>
+                <article class="dashboard-card dashboard-card--wide">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Kontakte nach Bundesland</h4>
+                      <p>Sortiert nach Anzahl der Kontakte.</p>
+                    </div>
+                    <span class="card-menu-dot" aria-hidden="true">...</span>
+                  </div>
                   <div id="state-chart"></div>
                 </article>
+                <article class="dashboard-card dashboard-card--compact">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Prioritätsverteilung</h4>
+                      <p>Hoch, Mittel, Niedrig und Unbekannt.</p>
+                    </div>
+                    <span class="dashboard-info" title="Prioritäten in der aktuellen Auswahl">i</span>
+                  </div>
+                  <div id="priority-chart"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--medium">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Regionale Abdeckung (relativ)</h4>
+                      <p>Kontakte im Verhältnis zu geschätztem Potenzial.</p>
+                    </div>
+                    <span class="dashboard-info" title="Platzhalterwerte, bis echte Potenzialdaten ergänzt werden">i</span>
+                  </div>
+                  <div id="coverage-map"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--wide">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Regionale Abdeckung im Vergleich</h4>
+                      <p>Bundesländer mit Fortschrittsindikator.</p>
+                    </div>
+                    <span class="card-menu-dot" aria-hidden="true">...</span>
+                  </div>
+                  <div id="coverage-table"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--compact">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Unterrepräsentierte Bereiche</h4>
+                      <p>Geringe Abdeckung relativ zum geschätzten Potenzial.</p>
+                    </div>
+                    <span class="dashboard-info" title="Aus geschätztem Potenzial und aktuellen Kontakten abgeleitet">i</span>
+                  </div>
+                  <div id="gap-analysis"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--compact">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Top Regionen nach Kontakten</h4>
+                      <p>Städte und Bundesländer mit hoher Dichte.</p>
+                    </div>
+                    <span class="dashboard-info" title="Nach Ort und Bundesland gruppiert">i</span>
+                  </div>
+                  <div id="top-regions"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--compact dashboard-card--subtle">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Datenqualität (Auswahl)</h4>
+                      <p>Nachrangige Hinweise zur Pflege.</p>
+                    </div>
+                    <span class="dashboard-info" title="Fehlende Kontaktwege in der aktuellen Auswahl">i</span>
+                  </div>
+                  <div id="quality-chart"></div>
+                </article>
               </div>
-              <details class="dashboard-backlog">
-                <summary>Feature-Backlog</summary>
-                <div class="dashboard-backlog-body">
-                  <ul>
-                    <li>Priorität x Sektor: Wo liegen die wichtigsten Lücken oder Schwerpunkte?</li>
-                    <li>Priorität x Bundesland: In welchen Regionen fehlen hochpriorisierte Kontakte?</li>
-                    <li>Datenvollständigkeit: fehlende E-Mail, Quelle, Koordinaten oder Bundesland.</li>
-                    <li>Ambulant vs. stationär vs. Pflege: grobe Versorgungsstruktur im Netzwerk.</li>
-                    <li>Ballungsräume vs. Fläche: regionale Konzentration und weiße Flecken.</li>
-                    <li>Kontaktaktivität: Anteil der Datensätze mit gepflegtem nächsten Schritt.</li>
-                    <li>Quellenqualität: belastbare Quellen versus schwach dokumentierte Kontakte.</li>
-                    <li>Netzwerk-Reife: Anteil vollständiger Profile mit E-Mail und Follow-up.</li>
-                  </ul>
-                </div>
-              </details>
             </div>
           </section>
         </div>
@@ -3415,74 +4340,167 @@
         <div class="editor-toolbar">
           <div>
             <h3 id="editor-title">Kontakt pflegen</h3>
-            <p id="editor-subtitle">Neue Kontakte werden lokal im Browser gespeichert.</p>
+            <p id="editor-subtitle">Schnell erfassen. Details k&ouml;nnen sp&auml;ter erg&auml;nzt werden.</p>
           </div>
           <button class="detail-close" type="button" id="editor-close" aria-label="Editor schlie&szlig;en">&times;</button>
         </div>
         <form class="editor-form" id="editor-form">
-          <div class="editor-grid">
-            <input type="hidden" name="id" />
-            <div class="editor-field">
-              <label class="editor-label" for="field-name">Name</label>
-              <input class="editor-input" id="field-name" name="name" required />
-            </div>
-            <div class="editor-field">
-              <label class="editor-label" for="field-title">Fachrichtung</label>
-              <input class="editor-input" id="field-title" name="title" />
-            </div>
-            <div class="editor-field">
-              <label class="editor-label" for="field-category">Sektor</label>
-              <select class="editor-select" id="field-category" name="category"></select>
-            </div>
-            <div class="editor-field">
-              <label class="editor-label" for="field-priority">Priorität</label>
-              <select class="editor-select" id="field-priority" name="priority">
-                <option value="Hoch">Hoch</option>
-                <option value="Mittel">Mittel</option>
-                <option value="Niedrig">Niedrig</option>
-              </select>
-            </div>
-            <div class="editor-field editor-field--full">
-              <label class="editor-label" for="field-organization">Organisation</label>
-              <input class="editor-input" id="field-organization" name="organization" />
-            </div>
-            <div class="editor-field">
-              <label class="editor-label" for="field-email">E-Mail</label>
-              <input class="editor-input" id="field-email" name="email" type="email" />
-            </div>
-            <div class="editor-field">
-              <label class="editor-label" for="field-phone">Telefon</label>
-              <input class="editor-input" id="field-phone" name="phone" />
-            </div>
-            <div class="editor-field">
-              <label class="editor-label" for="field-linkedin">LinkedIn</label>
-              <input class="editor-input" id="field-linkedin" name="linkedin" type="url" />
-            </div>
-            <div class="editor-field">
-              <label class="editor-label" for="field-location">Standort</label>
-              <input class="editor-input" id="field-location" name="location" />
-            </div>
-            <div class="editor-field editor-field--full">
-              <label class="editor-label" for="field-image">Bild-URL</label>
-              <input class="editor-input" id="field-image" name="image" type="url" />
-            </div>
-            <div class="editor-field editor-field--full">
-              <label class="editor-label" for="field-sources">Quellen</label>
-              <textarea class="editor-textarea" id="field-sources" name="sourcesText"></textarea>
-              <div class="editor-help">Eine Quelle pro Zeile. Beim CSV-Export werden die Quellen mit <code>|</code> verbunden.</div>
-            </div>
+          <input type="hidden" name="id" />
+          <input type="hidden" name="themesText" id="field-themes-hidden" class="editor-theme-hidden" />
+          <div class="editor-intro">
+            <strong>Pflichtfelder:</strong> Name, Organisation, Sektor, PLZ, Ort, Bundesland.
           </div>
+          <div class="editor-status" id="editor-status"></div>
+
+          <section class="editor-section" aria-labelledby="editor-section-basic">
+            <div class="editor-section-head">
+              <span class="editor-section-icon">&#128273;</span>
+              <h4 class="editor-section-title" id="editor-section-basic">Basisdaten</h4>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="field-name">Name <span class="editor-label__required">*</span></label>
+                <input class="editor-input" id="field-name" name="name" required placeholder="Kontaktname eingeben..." />
+                <div class="editor-help editor-help--duplicate" id="editor-duplicate-hint"></div>
+                <div class="editor-message editor-message--error" id="field-name-error"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-organization">Organisation <span class="editor-label__required">*</span></label>
+                <input class="editor-input" id="field-organization" name="organization" placeholder="Organisation oder Einrichtung..." />
+                <div class="editor-message editor-message--error" id="field-organization-error"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-category">Sektor <span class="editor-label__required">*</span></label>
+                <div class="editor-select-shell" data-custom-select data-select-type="category">
+                  <select class="editor-select" id="field-category" name="category"></select>
+                </div>
+                <div class="editor-message editor-message--error" id="field-category-error"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-specialty">Fachrichtung</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="specialty">
+                  <select class="editor-select" id="field-specialty" name="specialty"></select>
+                </div>
+                <div class="editor-message editor-message--warning" id="field-specialty-warning"></div>
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="field-location">Standort</label>
+                <input class="editor-input" id="field-location" name="location" placeholder="Ort oder PLZ eingeben..." />
+                <div class="editor-message editor-message--warning" id="field-location-warning"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-priority">Priorität</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="priority">
+                  <select class="editor-select" id="field-priority" name="priority">
+                    <option value="Hoch">🔥 Hoch</option>
+                    <option value="Mittel">🟡 Mittel</option>
+                    <option value="Niedrig">🟢 Niedrig</option>
+                  </select>
+                </div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-owner">Owner</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="owner">
+                  <select class="editor-select" id="field-owner" name="owner"></select>
+                </div>
+                <div class="editor-message editor-message--warning" id="field-owner-warning">Zugeordneter Owner kann später geändert werden.</div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-postal-code">PLZ <span class="editor-label__required">*</span></label>
+                <input class="editor-input" id="field-postal-code" name="postalCode" inputmode="numeric" placeholder="z. B. 10117" />
+                <div class="editor-message editor-message--error" id="field-postal-code-error"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-city">Ort <span class="editor-label__required">*</span></label>
+                <input class="editor-input" id="field-city" name="city" placeholder="z. B. Berlin" />
+                <div class="editor-message editor-message--error" id="field-city-error"></div>
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="field-state">Bundesland <span class="editor-label__required">*</span></label>
+                <div class="editor-select-shell" data-custom-select data-select-type="state">
+                  <select class="editor-select" id="field-state" name="state"></select>
+                </div>
+                <div class="editor-message editor-message--error" id="field-state-error"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section" aria-labelledby="editor-section-communication">
+            <div class="editor-section-head">
+              <span class="editor-section-icon">&#9993;</span>
+              <h4 class="editor-section-title" id="editor-section-communication">Kontaktwege <small>(optional)</small></h4>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="field-email">E-Mail</label>
+                <input class="editor-input" id="field-email" name="email" type="email" placeholder="E-Mail eingeben..." />
+                <div class="editor-message editor-message--warning" id="field-email-warning"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-phone">Telefon</label>
+                <input class="editor-input" id="field-phone" name="phone" placeholder="Telefonnummer eingeben..." />
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="field-linkedin">LinkedIn</label>
+                <input class="editor-input" id="field-linkedin" name="linkedin" type="url" placeholder="LinkedIn-Profil (URL)..." />
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section" aria-labelledby="editor-section-context">
+            <div class="editor-section-head">
+              <span class="editor-section-icon">&#128172;</span>
+              <h4 class="editor-section-title" id="editor-section-context">Kontext</h4>
+            </div>
+            <div class="editor-grid">
+              <fieldset class="editor-field editor-field--full editor-fieldset">
+                <label class="editor-label" for="field-theme-input">Themen</label>
+                <input class="editor-input" id="field-theme-input" type="text" placeholder="Thema hinzufügen..." />
+                <div class="editor-chip-row" id="editor-theme-presets"></div>
+                <div class="editor-chip-row" id="editor-theme-selected"></div>
+                <div class="editor-message editor-message--warning" id="field-themes-warning"></div>
+              </fieldset>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="field-note">Notiz</label>
+                <textarea class="editor-textarea" id="field-note" name="note" placeholder="Kurze Notiz zum Kontakt..."></textarea>
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="field-sources">Quelle</label>
+                <textarea class="editor-textarea" id="field-sources" name="sourcesText" placeholder="z. B. Empfehlung, Veranstaltung, Recherche..."></textarea>
+                <div class="editor-help">Eine Quelle pro Zeile. Beim CSV-Export werden Quellen mit <code>|</code> verbunden.</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section" aria-labelledby="editor-section-additional">
+            <div class="editor-section-head">
+              <span class="editor-section-icon">&#128196;</span>
+              <h4 class="editor-section-title" id="editor-section-additional">Weitere Angaben <small>(optional)</small></h4>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="field-street">Stra&szlig;e</label>
+                <input class="editor-input" id="field-street" name="street" placeholder="Stra&szlig;e und Hausnummer..." />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-image">Bild-URL</label>
+                <input class="editor-input" id="field-image" name="image" type="url" placeholder="Bild-URL..." />
+              </div>
+            </div>
+          </section>
         </form>
         <div class="editor-footer">
           <div class="editor-footer__hint" id="editor-hint">Änderungen werden lokal im Browser gespeichert.</div>
           <div class="editor-actions">
             <button class="action-button" type="button" id="editor-cancel">Abbrechen</button>
+            <button class="action-button" type="submit" form="editor-form" id="editor-save-next">Speichern &amp; weiteren anlegen</button>
             <button class="action-button action-button--primary" type="submit" form="editor-form" id="editor-save">Kontakt speichern</button>
           </div>
         </div>
       </section>
     </aside>
 
+    <script src="./deutschlandkarte-project/data/state-polygons.js"></script>
     <script src="./data/versorgungs-kompass-data.js"></script>
     <script>
       const avatarPalette = [
@@ -3494,9 +4512,12 @@
       ];
       const defaultCategories = [
         "Praxis",
-        "Apotheke",
         "Krankenhaus",
-        "Pflege"
+        "Apotheke",
+        "Pflege",
+        "Krankenkasse",
+        "Reha",
+        "Sonstige"
       ];
       const defaultLocations = [
         "10117 Berlin",
@@ -3521,9 +4542,12 @@
       const priorityCycle = ["Mittel", "Hoch", "Niedrig"];
       const categoryEmoji = {
         Praxis: "🩺",
-        Apotheke: "💊",
         Krankenhaus: "🏥",
-        Pflege: "🧑‍⚕️"
+        Apotheke: "💊",
+        Pflege: "🧑‍⚕️",
+        Krankenkasse: "🏛️",
+        Reha: "♿",
+        Sonstige: "•"
       };
       const roleBadgeClasses = {
         Praxis: "role-badge role--versorgung",
@@ -3533,9 +4557,18 @@
       };
       const categoryChartColors = {
         Praxis: "#2788f6",
-        Apotheke: "#09a63e",
         Krankenhaus: "#ff7f3f",
-        Pflege: "#9b46df"
+        Apotheke: "#09a63e",
+        Pflege: "#9b46df",
+        Krankenkasse: "#6677cc",
+        Reha: "#f5a623",
+        Sonstige: "#9aa6b8"
+      };
+      const priorityChartColors = {
+        Hoch: "#e43d30",
+        Mittel: "#ff9f1c",
+        Niedrig: "#39a866",
+        Unbekannt: "#9aa6b8"
       };
       const priorityEmoji = {
         Hoch: "🔥",
@@ -3550,6 +4583,69 @@
         "Laila Wahle",
         "Thomas Kostera"
       ];
+      const germanStates = [
+        "Baden-Württemberg",
+        "Bayern",
+        "Berlin",
+        "Brandenburg",
+        "Bremen",
+        "Hamburg",
+        "Hessen",
+        "Mecklenburg-Vorpommern",
+        "Niedersachsen",
+        "Nordrhein-Westfalen",
+        "Rheinland-Pfalz",
+        "Saarland",
+        "Sachsen",
+        "Sachsen-Anhalt",
+        "Schleswig-Holstein",
+        "Thüringen"
+      ];
+      const stateAbbreviations = {
+        "Baden-Württemberg": "BW",
+        Bayern: "BY",
+        Berlin: "BE",
+        Brandenburg: "BB",
+        Bremen: "HB",
+        Hamburg: "HH",
+        Hessen: "HE",
+        "Mecklenburg-Vorpommern": "MV",
+        Niedersachsen: "NI",
+        "Nordrhein-Westfalen": "NW",
+        "Rheinland-Pfalz": "RP",
+        Saarland: "SL",
+        Sachsen: "SN",
+        "Sachsen-Anhalt": "ST",
+        "Schleswig-Holstein": "SH",
+        Thüringen: "TH"
+      };
+      const statePotentialEstimates = {
+        "Nordrhein-Westfalen": 38,
+        Bayern: 28,
+        "Baden-Württemberg": 24,
+        Niedersachsen: 18,
+        Hessen: 18,
+        Berlin: 16,
+        Sachsen: 12,
+        "Rheinland-Pfalz": 10,
+        "Schleswig-Holstein": 9,
+        Brandenburg: 8,
+        Thüringen: 8,
+        Hamburg: 8,
+        "Sachsen-Anhalt": 7,
+        "Mecklenburg-Vorpommern": 6,
+        Saarland: 5,
+        Bremen: 5
+      };
+      const sectorPotentialEstimates = {
+        Praxis: 70,
+        Krankenhaus: 34,
+        Apotheke: 24,
+        Pflege: 28,
+        Krankenkasse: 16,
+        Reha: 12,
+        Sonstige: 10
+      };
       const themeOptions = [
         "Notfallversorgung",
         "Krankenhausentlassbrief",
@@ -3558,6 +4654,58 @@
         "Heilmittel",
         "Hilfsmittel"
       ];
+      const specialtyTargetCatalog = [
+        "Allgemeinmedizin",
+        "Augenheilkunde",
+        "Dermatologie",
+        "Diabetologie",
+        "Gastroenterologie",
+        "Gynäkologie",
+        "Hals-Nasen-Ohrenheilkunde (HNO)",
+        "HIV/Infektiologie",
+        "Innere Medizin",
+        "Kinder- und Jugendmedizin",
+        "Neurologie",
+        "Onkologie",
+        "Orthopädie und Unfallchirurgie",
+        "Pneumologie",
+        "Psychiatrie und Psychotherapie",
+        "Psychologische Psychotherapie",
+        "Radiologie",
+        "Urologie"
+      ];
+      const specialtyValueMapping = {
+        Allgemeinmedizin: "Allgemeinmedizin",
+        Augenarzt: "Augenheilkunde",
+        Dermatologe: "Dermatologie",
+        Dermatologie: "Dermatologie",
+        Diabetologie: "Diabetologie",
+        Gastroenterologie: "Gastroenterologie",
+        Gynäkolgoie: "Gynäkologie",
+        Gynäkologie: "Gynäkologie",
+        HIV: "HIV/Infektiologie",
+        "HIV/Infektiologie": "HIV/Infektiologie",
+        HNO: "Hals-Nasen-Ohrenheilkunde (HNO)",
+        "Hals-Nasen-Ohrenheilkunde (HNO)": "Hals-Nasen-Ohrenheilkunde (HNO)",
+        "Innere Medizin": "Innere Medizin",
+        "Kinder- und Jugendmedizin": "Kinder- und Jugendmedizin",
+        Kinderarzt: "Kinder- und Jugendmedizin",
+        Kinderchirurgie: "Kinder- und Jugendmedizin",
+        Kinderchirurgin: "Kinder- und Jugendmedizin",
+        Neurologie: "Neurologie",
+        Onkologie: "Onkologie",
+        Pneumologe: "Pneumologie",
+        Pneumologie: "Pneumologie",
+        Psychiatrie: "Psychiatrie und Psychotherapie",
+        "Psychiatrie und Psychotherapie": "Psychiatrie und Psychotherapie",
+        "Psychologische Psychotherapeutin": "Psychologische Psychotherapie",
+        "Psychologischer Psychotherapeut": "Psychologische Psychotherapie",
+        "Psychologische Psychotherapie": "Psychologische Psychotherapie",
+        Radiologie: "Radiologie",
+        Unfallchirurgie: "Orthopädie und Unfallchirurgie",
+        "Orthopädie und Unfallchirurgie": "Orthopädie und Unfallchirurgie",
+        Urologie: "Urologie"
+      };
       const storageKey = "versorgungs-kompass-contacts-v7";
 
       const searchInput = document.getElementById("search");
@@ -3596,10 +4744,25 @@
       const editorHint = document.getElementById("editor-hint");
       const editorClose = document.getElementById("editor-close");
       const editorCancel = document.getElementById("editor-cancel");
+      const editorSaveNext = document.getElementById("editor-save-next");
+      const editorDuplicateHint = document.getElementById("editor-duplicate-hint");
+      const editorStatus = document.getElementById("editor-status");
+      const editorThemeInput = document.getElementById("field-theme-input");
+      const editorThemeHiddenInput = document.getElementById("field-themes-hidden");
+      const editorThemePresets = document.getElementById("editor-theme-presets");
+      const editorThemeSelected = document.getElementById("editor-theme-selected");
       const newContactButton = document.getElementById("new-contact-button");
       const dashboardSubtitle = document.getElementById("dashboard-subtitle");
+      const dashboardActiveContext = document.getElementById("dashboard-active-context");
+      const dashboardFilterButton = document.getElementById("dashboard-filter-button");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
+      const priorityChart = document.getElementById("priority-chart");
+      const coverageMap = document.getElementById("coverage-map");
+      const coverageTable = document.getElementById("coverage-table");
+      const gapAnalysis = document.getElementById("gap-analysis");
+      const topRegions = document.getElementById("top-regions");
+      const qualityChart = document.getElementById("quality-chart");
       const accountButton = document.getElementById("account-button");
       const accountMenu = document.getElementById("account-menu");
       const accountLogoutButton = document.getElementById("account-logout-button");
@@ -3620,7 +4783,10 @@
       let pageSize = 20;
       let editorMode = "create";
       let editingId = null;
+      let editorThemes = [];
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
+      const customSelectInstances = new WeakMap();
+      let loadedContactsFromStorage = false;
 
       function setStorageStatus(message) {
         void message;
@@ -3680,6 +4846,12 @@
         if (category === "Methodik") return "Krankenhaus";
         if (category === "Institution") return "Krankenhaus";
         return category || "Praxis";
+      }
+
+      function normalizeSpecialty(value) {
+        const specialty = String(value || "").trim();
+        if (!specialty || specialty === "-" || specialty.includes("|") || specialty.includes(",")) return "";
+        return specialtyValueMapping[specialty] || "";
       }
 
       function createId() {
@@ -3745,6 +4917,7 @@
 
       function sanitizeContact(entry, index = 0) {
         const name = (entry.name || "").trim() || "Unbenannter Kontakt";
+        const specialty = normalizeSpecialty(entry.specialty || entry.title || entry.person_title || entry.Fachrichtung || "");
         const initials = name
           .split(/[\s/]+/)
           .filter(Boolean)
@@ -3760,7 +4933,7 @@
         return {
           id: entry.id || `contact-${String(index + 1).padStart(2, "0")}`,
           name,
-          displayName: buildDisplayName(name, entry.title || ""),
+          displayName: buildDisplayName(name, ""),
           initials: entry.initials || initials || "KK",
           avatarClass: entry.avatarClass || avatarPalette[index % avatarPalette.length],
           category,
@@ -3768,15 +4941,13 @@
           roleBadgeClass: roleBadgeClasses[category] || "role-badge role--netzwerk",
           organization: entry.organization || defaultOrganizations[index % defaultOrganizations.length],
           organizationShort: simplifyOrganization(entry.organization || defaultOrganizations[index % defaultOrganizations.length]),
-          title: entry.title || "Kontakt im Gesundheitswesen",
-          topic: entry.topic || "Noch ergänzen",
+          specialty,
+          topic: entry.topic || "",
           priority,
           priorityClass:
             priority === "Hoch" ? "badge--high" : priority === "Niedrig" ? "badge--low" : "badge--medium",
-          note:
-            entry.note ||
-            "Hintergrund, Relevanz und persönliche Einordnung dieses Kontakts noch ergänzen.",
-          nextStep: entry.nextStep || "Nächsten sinnvollen Schritt noch ergänzen",
+          note: entry.note || "",
+          nextStep: entry.nextStep || "",
           email: entry.email || "",
           phone: entry.phone || "",
           linkedin: entry.linkedin || "",
@@ -3837,10 +5008,12 @@
         try {
           const raw = window.localStorage.getItem(storageKey);
           if (!raw) {
+            loadedContactsFromStorage = false;
             setStorageStatus("Seed-Daten geladen");
             return seedContacts.map((entry, index) => sanitizeContact(entry, index));
           }
 
+          loadedContactsFromStorage = true;
           const parsed = JSON.parse(raw);
           if (!Array.isArray(parsed)) throw new Error("Invalid storage payload");
 
@@ -3872,12 +5045,13 @@
         window.localStorage.setItem("versorgungs-kompass-favorites-v4", JSON.stringify([...favorites]));
       }
 
-      function persistContacts(message = `${contacts.length} lokale Kontakte gespeichert`) {
+      function persistContacts(message = `${contacts.length} lokale Kontakte gespeichert`, { silent = false } = {}) {
         try {
+          contacts = contacts.map((contact, index) => sanitizeContact(contact, index));
           const payload = contacts.map((contact) => ({
             id: contact.id,
             name: contact.name,
-            title: contact.title,
+            specialty: contact.specialty,
             category: contact.category,
             organization: contact.organization,
             topic: contact.topic,
@@ -3908,9 +5082,11 @@
           setStorageStatus(message);
         } catch (error) {
           console.warn("Lokale Kontakte konnten nicht gespeichert werden.", error);
-          window.alert("Die lokalen Änderungen konnten im Browser nicht gespeichert werden.");
+          if (!silent) window.alert("Die lokalen Änderungen konnten im Browser nicht gespeichert werden.");
         }
       }
+
+      if (loadedContactsFromStorage) persistContacts(`${contacts.length} lokale Kontakte bereinigt`, { silent: true });
 
       function updateContactField(id, field, value) {
         const currentContact = contacts.find((contact) => contact.id === id);
@@ -4016,7 +5192,7 @@
               contact.category,
               contact.topic,
               ...(contact.themes || []),
-              contact.title,
+              contact.specialty,
               contact.nextStep,
               contact.location
             ]
@@ -4168,11 +5344,17 @@
       }
 
       function renderSummary(items) {
+        const selectedCount = items.length;
+        const selectedPercent = contacts.length ? Math.round((selectedCount / contacts.length) * 100) : 0;
+        const highPriorityCount = items.filter((contact) => contact.priority === "Hoch").length;
+        const highPriorityPercent = selectedCount ? Math.round((highPriorityCount / selectedCount) * 100) : 0;
         const cards = [
-          { label: "Kontakte gesamt", value: contacts.length, icon: "👥", iconClass: "summary-icon--blue" },
+          { label: "Kontakte gesamt", value: contacts.length, meta: "100 %", icon: "👥", iconClass: "summary-icon--blue" },
+          { label: "Aktuelle Auswahl", value: selectedCount, meta: `${selectedPercent} %`, icon: "◢", iconClass: "summary-icon--blue" },
           {
             label: "Hohe Priorität",
-            value: contacts.filter((contact) => contact.priority === "Hoch").length,
+            value: highPriorityCount,
+            meta: `${highPriorityPercent} %`,
             icon: "⚑",
             iconClass: "summary-icon--rose"
           }
@@ -4185,7 +5367,7 @@
                 <div class="summary-icon ${card.iconClass}" aria-hidden="true">${card.icon}</div>
                 <div class="summary-copy">
                   <div class="summary-label">${card.label}</div>
-                  <div class="summary-value">${card.value}</div>
+                  <div class="summary-value">${card.value} <span>${card.meta}</span></div>
                 </div>
               </article>
             `
@@ -4338,8 +5520,17 @@
         return hasMeaningfulValue(value) ? String(value).trim() : "";
       }
 
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
       function specialtyLabel(contact) {
-        return meaningfulOrEmpty(contact.title);
+        return meaningfulOrEmpty(contact.specialty);
       }
 
       function detailIntroSummary(contact) {
@@ -4353,7 +5544,7 @@
       }
 
       function specialtyOptions() {
-        return [...new Set(contacts.map((contact) => specialtyLabel(contact)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
+        return specialtyTargetCatalog;
       }
 
       function buildOwnerSelectOptions(selectedOwner = "") {
@@ -4365,11 +5556,315 @@
 
       function buildSpecialtySelectOptions(selectedSpecialty = "") {
         return [
-          `<option value="">Keine Fachrichtung zuweisen</option>`,
+          `<option value="">Bitte wählen...</option>`,
           ...specialtyOptions().map(
             (specialty) => `<option value="${specialty}" ${selectedSpecialty === specialty ? "selected" : ""}>${specialty}</option>`
           )
         ].join("");
+      }
+
+      function buildStateSelectOptions(selectedState = "") {
+        return [
+          `<option value="">Bitte wählen...</option>`,
+          ...germanStates.map((state) => `<option value="${state}" ${selectedState === state ? "selected" : ""}>${state}</option>`)
+        ].join("");
+      }
+
+      function closeCustomSelect(select) {
+        const instance = customSelectInstances.get(select);
+        if (!instance) return;
+        instance.shell.classList.remove("is-open");
+        instance.trigger.setAttribute("aria-expanded", "false");
+        instance.panel.hidden = true;
+      }
+
+      function closeAllCustomSelects(except = null) {
+        document.querySelectorAll("[data-custom-select] select").forEach((select) => {
+          if (select === except) return;
+          closeCustomSelect(select);
+        });
+      }
+
+      function focusEditorFieldByName(fieldName) {
+        const target =
+          fieldName === "themesText"
+            ? editorThemeInput
+            : editorForm.querySelector(`[name="${fieldName}"]`);
+        if (!target) return;
+        const instance = customSelectInstances.get(target);
+        if (instance) {
+          instance.trigger.focus();
+          return;
+        }
+        target.focus();
+      }
+
+      function createCustomSelectOption(option, isSelected) {
+        const button = document.createElement("button");
+        button.className = `custom-select-option${isSelected ? " is-selected" : ""}${option.value ? "" : " is-placeholder"}`;
+        button.type = "button";
+        button.dataset.optionValue = option.value;
+        button.setAttribute("role", "option");
+        button.setAttribute("aria-selected", String(isSelected));
+
+        const label = document.createElement("span");
+        label.className = "custom-select-option__label";
+        label.textContent = option.textContent.trim();
+
+        const check = document.createElement("span");
+        check.className = "custom-select-option__check";
+        check.textContent = "✓";
+        check.setAttribute("aria-hidden", "true");
+
+        button.append(label, check);
+        return button;
+      }
+
+      function syncCustomSelect(select) {
+        const instance = customSelectInstances.get(select);
+        if (!instance) return;
+
+        const options = [...select.options];
+        const selectedOption = options.find((option) => option.value === select.value) || options[select.selectedIndex] || options[0];
+
+        instance.label.textContent = (selectedOption?.textContent || "Bitte wählen...").trim();
+        instance.trigger.classList.toggle("is-placeholder", !String(select.value || "").trim());
+        instance.panel.replaceChildren(
+          ...options.map((option) => createCustomSelectOption(option, option.value === select.value))
+        );
+      }
+
+      function initCustomSelect(select) {
+        if (!select) return;
+        const shell = select.closest("[data-custom-select]");
+        if (!shell || customSelectInstances.has(select)) {
+          if (customSelectInstances.has(select)) syncCustomSelect(select);
+          return;
+        }
+        const variant = shell.dataset.selectVariant || (shell.classList.contains("detail-select-shell") ? "detail" : "default");
+        const isDetail = variant === "detail";
+        const isCompact = variant === "compact";
+
+        const trigger = document.createElement("button");
+        trigger.type = "button";
+        trigger.className = `custom-select-trigger${isDetail ? " custom-select-trigger--detail" : ""}${isCompact ? " custom-select-trigger--compact" : ""}`;
+        trigger.setAttribute("aria-haspopup", "listbox");
+        trigger.setAttribute("aria-expanded", "false");
+
+        const label = document.createElement("span");
+        label.className = "custom-select-trigger__label";
+
+        const icon = document.createElement("span");
+        icon.className = "custom-select-trigger__icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.innerHTML =
+          '<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M3.25 5.75 8 10.5l4.75-4.75" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+        trigger.append(label, icon);
+
+        const panel = document.createElement("div");
+        panel.className = `custom-select-panel${isDetail ? " custom-select-panel--detail" : ""}${isCompact ? " custom-select-panel--compact" : ""}`;
+        panel.hidden = true;
+        panel.setAttribute("role", "listbox");
+
+        customSelectInstances.set(select, { shell, trigger, label, panel });
+        shell.append(trigger, panel);
+
+        trigger.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const shouldOpen = !shell.classList.contains("is-open");
+          closeAllCustomSelects(select);
+          if (!shouldOpen) {
+            closeCustomSelect(select);
+            return;
+          }
+          shell.classList.add("is-open");
+          trigger.setAttribute("aria-expanded", "true");
+          panel.hidden = false;
+        });
+
+        panel.addEventListener("click", (event) => {
+          const optionButton = event.target.closest("[data-option-value]");
+          if (!optionButton) return;
+          const nextValue = optionButton.dataset.optionValue ?? "";
+          if (select.value !== nextValue) {
+            select.value = nextValue;
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+          } else {
+            syncCustomSelect(select);
+          }
+          closeCustomSelect(select);
+          trigger.focus();
+        });
+
+        select.addEventListener("change", () => {
+          syncCustomSelect(select);
+        });
+
+        syncCustomSelect(select);
+      }
+
+      function refreshCustomSelects(root = document) {
+        root.querySelectorAll("[data-custom-select] select").forEach((select) => {
+          initCustomSelect(select);
+          syncCustomSelect(select);
+        });
+      }
+
+      function refreshEditorCustomSelects() {
+        refreshCustomSelects(editorForm);
+      }
+
+      function renderEditorSpecialtyOptions(selectedSpecialty = "") {
+        editorForm.elements.specialty.innerHTML = buildSpecialtySelectOptions(selectedSpecialty);
+        refreshEditorCustomSelects();
+      }
+
+      function renderEditorThemes() {
+        editorThemeHiddenInput.value = editorThemes.join(" | ");
+        editorThemePresets.innerHTML = themeOptions
+          .map(
+            (theme) =>
+              `<button class="editor-chip ${editorThemes.includes(theme) ? "is-active" : ""}" type="button" data-theme-preset="${theme}">${theme}</button>`
+          )
+          .join("");
+        editorThemeSelected.innerHTML = editorThemes.length
+          ? editorThemes
+              .map(
+                (theme) =>
+                  `<button class="editor-chip is-active" type="button" data-theme-remove="${theme}">${theme} ×</button>`
+              )
+              .join("")
+          : `<div class="editor-help">Noch keine Themen gewählt.</div>`;
+      }
+
+      function setEditorThemes(value) {
+        editorThemes = normalizeThemes(value);
+        renderEditorThemes();
+      }
+
+      function updateEditorDuplicateHint() {
+        const nameValue = String(editorForm.elements.name.value || "").trim().toLowerCase();
+        const organizationValue = String(editorForm.elements.organization.value || "").trim().toLowerCase();
+        if (!nameValue) {
+          editorDuplicateHint.textContent = "";
+          editorDuplicateHint.classList.remove("is-visible");
+          return;
+        }
+        const hit = contacts.find((contact) => {
+          if (editingId && contact.id === editingId) return false;
+          const sameName = String(contact.name || "").trim().toLowerCase() === nameValue;
+          const sameOrganization = organizationValue && String(contact.organization || "").trim().toLowerCase() === organizationValue;
+          return sameName || sameOrganization;
+        });
+        if (!hit) {
+          editorDuplicateHint.textContent = "";
+          editorDuplicateHint.classList.remove("is-visible");
+          return;
+        }
+        editorDuplicateHint.textContent = `Möglicher bestehender Kontakt: ${hit.displayName} – ${hit.organization}`;
+        editorDuplicateHint.classList.add("is-visible");
+      }
+
+      function deriveLocationLabel({ postalCode = "", city = "" }) {
+        return [String(postalCode || "").trim(), String(city || "").trim()].filter(Boolean).join(" ");
+      }
+
+      function splitLocationLabel(location) {
+        const normalized = String(location || "").trim();
+        const match = normalized.match(/^(\d{5})\s+(.+)$/);
+        if (!match) return { postalCode: "", city: normalized };
+        return { postalCode: match[1], city: match[2] };
+      }
+
+      function setEditorFieldMessage(fieldName, kind, message = "") {
+        const field =
+          fieldName === "themesText"
+            ? editorThemeInput.closest(".editor-field")
+            : editorForm.querySelector(`[name="${fieldName}"]`)?.closest(".editor-field");
+        if (!field) return;
+        field.classList.remove("has-error", "has-warning");
+        const errorNode = document.getElementById(`field-${fieldName.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}-error`);
+        const warningNode = document.getElementById(`field-${fieldName.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}-warning`);
+        [errorNode, warningNode].forEach((node) => {
+          if (!node) return;
+          node.textContent = "";
+          node.classList.remove("is-visible");
+        });
+        if (!message || !kind) return;
+        field.classList.add(kind === "error" ? "has-error" : "has-warning");
+        const node = kind === "error" ? errorNode : warningNode;
+        if (!node) return;
+        node.textContent = message;
+        node.classList.add("is-visible");
+      }
+
+      function validateEditorValues({ showWarnings = true } = {}) {
+        const values = {
+          name: String(editorForm.elements.name.value || "").trim(),
+          organization: String(editorForm.elements.organization.value || "").trim(),
+          category: String(editorForm.elements.category.value || "").trim(),
+          specialty: String(editorForm.elements.specialty.value || "").trim(),
+          postalCode: String(editorForm.elements.postalCode.value || "").trim(),
+          city: String(editorForm.elements.city.value || "").trim(),
+          state: String(editorForm.elements.state.value || "").trim(),
+          location: String(editorForm.elements.location.value || "").trim(),
+          owner: String(editorForm.elements.owner.value || "").trim(),
+          email: String(editorForm.elements.email.value || "").trim()
+        };
+        const errors = [];
+        const warnings = [];
+
+        if (!values.name) errors.push({ field: "name", message: "Bitte Namen eingeben." });
+        if (!values.organization) errors.push({ field: "organization", message: "Bitte Organisation ergänzen." });
+        if (!values.category) errors.push({ field: "category", message: "Bitte Sektor auswählen." });
+        if (!values.postalCode) {
+          errors.push({ field: "postalCode", message: "Bitte PLZ ergänzen." });
+        } else if (!/^\d{5}$/.test(values.postalCode)) {
+          errors.push({ field: "postalCode", message: "PLZ muss 5-stellig sein." });
+        }
+        if (!values.city) errors.push({ field: "city", message: "Bitte Ort ergänzen." });
+        if (!values.state) errors.push({ field: "state", message: "Bitte Bundesland auswählen." });
+        if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+          errors.push({ field: "email", message: "Bitte eine gültige E-Mail-Adresse eingeben." });
+        }
+
+        if (!values.specialty) warnings.push({ field: "specialty", message: "Fachrichtung fehlt noch." });
+        if (!values.owner) warnings.push({ field: "owner", message: "Noch kein Owner zugewiesen." });
+        if (!values.email) warnings.push({ field: "email", message: "E-Mail ist empfohlen." });
+        if (!editorThemes.length) warnings.push({ field: "themesText", message: "Noch keine Themen gewählt." });
+        if (!values.location && !(values.postalCode && values.city)) warnings.push({ field: "location", message: "Standort sollte klar benannt sein." });
+
+        [
+          "name",
+          "organization",
+          "category",
+          "specialty",
+          "postalCode",
+          "city",
+          "state",
+          "location",
+          "owner",
+          "email",
+          "themesText"
+        ].forEach((field) => setEditorFieldMessage(field, "", ""));
+
+        errors.forEach((item) => setEditorFieldMessage(item.field, "error", item.message));
+        if (showWarnings) warnings.forEach((item) => setEditorFieldMessage(item.field, "warning", item.message));
+
+        if (errors.length) {
+          editorStatus.textContent = `Bitte korrigiere ${errors.length} Pflichtfeld${errors.length === 1 ? "" : "er"}, bevor der Kontakt gespeichert werden kann.`;
+          editorStatus.className = "editor-status is-visible editor-status--error";
+        } else if (showWarnings && warnings.length) {
+          editorStatus.textContent = `${warnings.length} Hinweis${warnings.length === 1 ? "" : "e"} zur Datenqualität: Der Kontakt kann gespeichert werden, ist aber noch nicht vollständig gepflegt.`;
+          editorStatus.className = "editor-status is-visible editor-status--warning";
+        } else {
+          editorStatus.textContent = "";
+          editorStatus.className = "editor-status";
+        }
+
+        return { values, errors, warnings };
       }
 
       function buildPrioritySelectOptions(selectedPriority = "Mittel") {
@@ -4412,7 +5907,7 @@
 
       function contactRoleSummary(contact) {
         return (
-          meaningfulOrEmpty(contact.title) ||
+          meaningfulOrEmpty(contact.specialty) ||
           meaningfulOrEmpty(contact.description) ||
           meaningfulOrEmpty(contact.topic) ||
           "Kontakt im Gesundheitswesen"
@@ -4469,7 +5964,7 @@
         if (!hasMeaningfulValue(contact.email)) fields.push("E-Mail");
         if (!hasMeaningfulValue(contact.phone)) fields.push("Telefon");
         if (!hasMeaningfulValue(contact.linkedin)) fields.push("LinkedIn");
-        if (!hasMeaningfulValue(contact.title)) fields.push("Fachrichtung");
+        if (!hasMeaningfulValue(contact.specialty)) fields.push("Fachrichtung");
         if (!hasMeaningfulValue(contact.lastExchange)) fields.push("Letzter Austausch");
         if (!hasMeaningfulValue(contact.owner)) fields.push("Owner");
         if (!hasMeaningfulValue(contact.location) && !hasMeaningfulValue(contact.city) && !hasMeaningfulValue(contact.state)) fields.push("Ort");
@@ -4492,6 +5987,75 @@
         return location.replace(/^\d{5}\s*/, "").trim() || "Unbekannt";
       }
 
+      function categoryLabel(contact) {
+        const category = String(contact.category || "").trim();
+        return defaultCategories.includes(category) ? category : "Sonstige";
+      }
+
+      function formatPercent(count, total) {
+        if (!total) return "0 %";
+        const value = (count / total) * 100;
+        return `${value >= 10 || Number.isInteger(value) ? Math.round(value) : value.toFixed(1).replace(".", ",")} %`;
+      }
+
+      function estimatedStatePotential(state, count = 0) {
+        return Math.max(statePotentialEstimates[state] || Math.ceil(Math.max(count, 1) / 0.45), count, 1);
+      }
+
+      function coverageColor(coverage) {
+        if (coverage >= 80) return "#1f53c7";
+        if (coverage >= 60) return "#3f7df0";
+        if (coverage >= 40) return "#7da8f7";
+        if (coverage >= 20) return "#b7cdfb";
+        return "#dbe5fb";
+      }
+
+      function polygonPoints(feature) {
+        const geometry = feature?.geometry;
+        if (!geometry) return [];
+        if (geometry.type === "Polygon") return [geometry.coordinates];
+        if (geometry.type === "MultiPolygon") return geometry.coordinates;
+        return [];
+      }
+
+      function statePolygonBounds(features) {
+        const bounds = { minLon: Infinity, maxLon: -Infinity, minLat: Infinity, maxLat: -Infinity };
+        features.forEach((feature) => {
+          polygonPoints(feature).forEach((polygon) => {
+            polygon.forEach((ring) => {
+              ring.forEach(([lon, lat]) => {
+                bounds.minLon = Math.min(bounds.minLon, lon);
+                bounds.maxLon = Math.max(bounds.maxLon, lon);
+                bounds.minLat = Math.min(bounds.minLat, lat);
+                bounds.maxLat = Math.max(bounds.maxLat, lat);
+              });
+            });
+          });
+        });
+        return bounds;
+      }
+
+      function statePolygonPath(feature, bounds, width = 240, height = 292, padding = 8) {
+        const lonSpan = bounds.maxLon - bounds.minLon || 1;
+        const latSpan = bounds.maxLat - bounds.minLat || 1;
+        const scale = Math.min((width - padding * 2) / lonSpan, (height - padding * 2) / latSpan);
+        const mapPoint = ([lon, lat]) => {
+          const x = padding + (lon - bounds.minLon) * scale + ((width - padding * 2 - lonSpan * scale) / 2);
+          const y = padding + (bounds.maxLat - lat) * scale + ((height - padding * 2 - latSpan * scale) / 2);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        };
+        return polygonPoints(feature)
+          .map((polygon) =>
+            polygon
+              .map((ring) => {
+                const points = ring.map(mapPoint);
+                return points.length ? `M${points.join("L")}Z` : "";
+              })
+              .join("")
+          )
+          .join("");
+      }
+
       function buildDonutChart(items) {
         const total = items.reduce((sum, item) => sum + item.count, 0);
         if (!total) return "";
@@ -4505,6 +6069,7 @@
             const length = (item.count / total) * circumference;
             const dashOffset = -offset;
             offset += length;
+            if (!item.count) return "";
             return `<circle cx="100" cy="100" r="${radius}" fill="none" stroke="${item.color}" stroke-width="22" stroke-linecap="butt" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${dashOffset}" transform="rotate(-90 100 100)"></circle>`;
           })
           .join("");
@@ -4523,17 +6088,18 @@
       function renderDashboard(items = filteredContacts()) {
         const visibleContacts = items.length;
         const representedStates = new Set(items.map((contact) => stateLabel(contact)).filter(Boolean)).size;
-        dashboardSubtitle.textContent = `Verteilung im aktuellen Filterkontext über ${representedStates} Bundesländer und Sektoren.`;
+        const selectedPercent = contacts.length ? Math.round((visibleContacts / contacts.length) * 100) : 0;
+        dashboardSubtitle.textContent = `${visibleContacts} von ${contacts.length} Kontakten in der aktuellen Auswahl über ${representedStates} Bundesländer.`;
+        renderDashboardContext(visibleContacts, selectedPercent);
 
         const categoryCounts = defaultCategories
           .map((category) => ({
             label: category,
-            count: items.filter((contact) => contact.category === category).length,
+            count: items.filter((contact) => categoryLabel(contact) === category).length,
             color: categoryChartColors[category] || "#2788f6"
-          }))
-          .filter((item) => item.count > 0);
+          }));
 
-        if (!categoryCounts.length) {
+        if (!visibleContacts) {
           categoryChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Sektoren auswertbar.</div>`;
         } else {
           const total = categoryCounts.reduce((sum, item) => sum + item.count, 0);
@@ -4546,7 +6112,7 @@
                     (item) => `
                       <div class="legend-row">
                         <span class="legend-swatch" style="background:${item.color}"></span>
-                        <span class="legend-label">${item.label}</span>
+                        <span class="legend-label">${escapeHtml(item.label)}</span>
                         <span class="legend-meta">${item.count} · ${Math.round((item.count / total) * 100)}%</span>
                       </div>
                     `
@@ -4554,6 +6120,7 @@
                   .join("")}
               </div>
             </div>
+            <div class="dashboard-note">Gesamt <strong>${total}</strong></div>
           `;
         }
 
@@ -4567,21 +6134,256 @@
 
         if (!states.length) {
           stateChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Bundesländer auswertbar.</div>`;
-          return;
+        } else {
+          const maxStateCount = Math.max(...states.map((item) => item.count), 1);
+          const total = states.reduce((sum, item) => sum + item.count, 0);
+          stateChart.innerHTML = `
+            <div class="state-bars">
+              ${states
+                .map(
+                  (item) => `
+                    <div class="state-row">
+                      <div class="state-name" title="${escapeHtml(item.label)}">${escapeHtml(item.label)}</div>
+                      <div class="state-bar-track">
+                        <div class="state-bar-fill" style="width:${(item.count / maxStateCount) * 100}%"></div>
+                      </div>
+                      <div class="state-value">${item.count} · ${formatPercent(item.count, total)}</div>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+          `;
         }
 
-        const maxStateCount = Math.max(...states.map((item) => item.count), 1);
-        stateChart.innerHTML = `
-          <div class="state-bars">
-            ${states
+        renderPriorityDistribution(items);
+        renderCoverageModules(items);
+        renderGapAnalysis(items);
+        renderTopRegions(items);
+        renderQualitySummary(items);
+      }
+
+      function renderDashboardContext(visibleContacts, selectedPercent) {
+        const chips = [
+          `Aktuelle Auswahl: ${visibleContacts} (${selectedPercent} %)`,
+          "Zeitraum: Letzte 12 Monate"
+        ];
+        if (searchInput.value.trim()) chips.push(`Suche: ${searchInput.value.trim()}`);
+        selectedCategories.forEach((value) => chips.push(`Sektor: ${value}`));
+        selectedPriorities.forEach((value) => chips.push(`Priorität: ${value}`));
+        selectedStates.forEach((value) => chips.push(`Bundesland: ${value}`));
+        selectedThemes.forEach((value) => chips.push(`Thema: ${value}`));
+
+        dashboardActiveContext.innerHTML = `
+          <span class="dashboard-context-label">Aktive Auswahl</span>
+          ${chips.map((chip) => `<span class="dashboard-context-chip">${escapeHtml(chip)}</span>`).join("")}
+        `;
+      }
+
+      function renderPriorityDistribution(items) {
+        const priorities = ["Hoch", "Mittel", "Niedrig", "Unbekannt"].map((priority) => ({
+          label: priority,
+          count: items.filter((contact) => (contact.priority || "Unbekannt") === priority).length,
+          color: priorityChartColors[priority]
+        }));
+        const total = priorities.reduce((sum, item) => sum + item.count, 0);
+        if (!total) {
+          priorityChart.innerHTML = `<div class="dashboard-empty">Keine Prioritäten in der aktuellen Auswahl.</div>`;
+          return;
+        }
+        priorityChart.innerHTML = `
+          <div class="priority-bars">
+            ${priorities
+              .map((item) => {
+                const percent = total ? Math.round((item.count / total) * 100) : 0;
+                return `
+                  <div class="priority-row">
+                    <span class="priority-label">
+                      <span class="priority-dot" style="background:${item.color}"></span>
+                      <span>${escapeHtml(item.label)}</span>
+                    </span>
+                    <span class="priority-track">
+                      <span class="priority-fill" style="width:${percent}%; background:${item.color}; ${item.count ? "" : "min-width:0;"}"></span>
+                    </span>
+                    <span class="priority-value">${item.count} · ${formatPercent(item.count, total)}</span>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+          <div class="dashboard-note">Gesamt <strong>${total}</strong></div>
+        `;
+      }
+
+      function buildCoverageRows(items) {
+        const statesToShow = selectedStates.length ? selectedStates : germanStates;
+        return statesToShow
+          .map((state) => {
+            const count = items.filter((contact) => stateLabel(contact) === state).length;
+            const potential = estimatedStatePotential(state, count);
+            const coverage = Math.min(100, Math.round((count / potential) * 100));
+            return { state, count, potential, coverage };
+          })
+          .sort((a, b) => (b.coverage - a.coverage) || (b.count - a.count) || a.state.localeCompare(b.state, "de"));
+      }
+
+      function renderCoverageModules(items) {
+        const rows = buildCoverageRows(items);
+        const coverageByState = new Map(rows.map((row) => [row.state, row]));
+        const legend = [
+          { label: "≥ 80 %", color: coverageColor(80) },
+          { label: "60–79 %", color: coverageColor(60) },
+          { label: "40–59 %", color: coverageColor(40) },
+          { label: "20–39 %", color: coverageColor(20) },
+          { label: "< 20 %", color: coverageColor(0) }
+        ];
+        const features = window.MAP_STATE_POLYGONS?.features || [];
+        const bounds = statePolygonBounds(features);
+        const mapSvg = features.length && Number.isFinite(bounds.minLon)
+          ? `
+            <svg class="coverage-mini-map" viewBox="0 0 240 292" role="img" aria-label="Blaue Deutschland-Heatmap nach relativer Abdeckung">
+              ${features
+                .map((feature) => {
+                  const state = feature.properties.name;
+                  const row = coverageByState.get(state) || { coverage: 0, count: 0, potential: estimatedStatePotential(state, 0) };
+                  return `<path class="coverage-state ${row.count ? "" : "coverage-state--empty"}" d="${statePolygonPath(feature, bounds)}" fill="${coverageColor(row.coverage)}"><title>${escapeHtml(state)}: ${row.coverage} % Abdeckung, ${row.count} Kontakte, ~ ${row.potential} Potenzial</title></path>`;
+                })
+                .join("")}
+            </svg>
+          `
+          : `<div class="dashboard-empty">Bundesland-Geometrien konnten nicht geladen werden.</div>`;
+
+        coverageMap.innerHTML = `
+          <div class="coverage-map">
+            ${mapSvg}
+            <div class="coverage-legend">
+              ${legend
+                .map(
+                  (item) => `
+                    <div class="coverage-legend-row">
+                      <span class="coverage-legend-swatch" style="background:${item.color}"></span>
+                      <span>${item.label}</span>
+                      <span></span>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+          </div>
+          <div class="dashboard-note">Abdeckung = Kontakte / geschätztes Potenzial. Potenzialwerte sind vorbereitete Schätzwerte.</div>
+        `;
+
+        const tableRows = rows.slice(0, selectedStates.length ? rows.length : 7);
+        coverageTable.innerHTML = `
+          <div class="coverage-table">
+            <div class="coverage-table-row">
+              <span>Bundesland</span>
+              <span>Abdeckung relativ</span>
+              <span>Kontakte</span>
+              <span class="coverage-reference">
+                <span>Potenzial</span>
+                <button class="reference-info" type="button" aria-label="Geschätzten Referenzwert erklären">i</button>
+                <span class="reference-popup" role="tooltip">Der geschätzte Referenzwert ist ein vorbereiteter Platzhalter für das erwartete Kontaktpotenzial je Bundesland. Sobald echte Referenzdaten vorliegen, kann dieser Wert ersetzt werden.</span>
+              </span>
+            </div>
+            ${tableRows
+              .map(
+                (row) => `
+                  <div class="coverage-table-row">
+                    <span>${escapeHtml(row.state)}</span>
+                    <span class="mini-progress">
+                      <span class="mini-progress-track"><span class="mini-progress-fill" style="width:${row.coverage}%"></span></span>
+                      <span>${row.coverage} %</span>
+                    </span>
+                    <span>${row.count}</span>
+                    <span>~ ${row.potential}</span>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function renderGapAnalysis(items) {
+        const sectorGaps = defaultCategories
+          .filter((sector) => sector !== "Sonstige")
+          .map((sector) => {
+            const count = items.filter((contact) => categoryLabel(contact) === sector).length;
+            const potential = sectorPotentialEstimates[sector] || Math.max(count, 1);
+            return { label: sector, coverage: count / potential, count };
+          })
+          .sort((a, b) => (a.coverage - b.coverage) || (a.count - b.count))
+          .slice(0, 3);
+        const stateGaps = buildCoverageRows(items)
+          .sort((a, b) => (a.coverage - b.coverage) || (a.count - b.count))
+          .slice(0, 3);
+
+        gapAnalysis.innerHTML = `
+          <div class="gap-panel">
+            <div class="gap-panel-title">Sektoren</div>
+            <p>Die Abdeckung in diesen Sektoren ist im Verhältnis zum Potenzial besonders niedrig.</p>
+            <div class="tag-list">${sectorGaps.map((item) => `<span class="gap-tag gap-tag--warm">${escapeHtml(item.label)}</span>`).join("")}</div>
+          </div>
+          <div class="gap-panel">
+            <div class="gap-panel-title">Bundesländer</div>
+            <p>Diese Regionen sind im aktuellen Netzwerk vergleichsweise schwach vertreten.</p>
+            <div class="tag-list">${stateGaps.map((item) => `<span class="gap-tag">${escapeHtml(item.state)}</span>`).join("")}</div>
+          </div>
+          <button class="dashboard-link-button" type="button" id="dashboard-map-link">Zur Kartenansicht</button>
+        `;
+        document.getElementById("dashboard-map-link")?.addEventListener("click", () => setActiveView("map"));
+      }
+
+      function renderTopRegions(items) {
+        const grouped = new Map();
+        items.forEach((contact) => {
+          const city = meaningfulOrEmpty(contact.city) || meaningfulOrEmpty(contact.location).replace(/^\d{5}\s*/, "") || "Unbekannt";
+          const state = stateLabel(contact);
+          const label = `${city}${state && state !== "Unbekannt" ? `, ${stateAbbreviations[state] || state}` : ""}`;
+          grouped.set(label, (grouped.get(label) || 0) + 1);
+        });
+        const rows = [...grouped.entries()].sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0], "de")).slice(0, 5);
+        if (!rows.length) {
+          topRegions.innerHTML = `<div class="dashboard-empty">Keine Regionen in der aktuellen Auswahl.</div>`;
+          return;
+        }
+        topRegions.innerHTML = `
+          <div class="ranking-list">
+            ${rows
+              .map(
+                ([label, count], index) => `
+                  <div class="ranking-row">
+                    <span class="ranking-index">${index + 1}.</span>
+                    <span>${escapeHtml(label)}</span>
+                    <span>${count}</span>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function renderQualitySummary(items) {
+        const total = items.length;
+        const checks = [
+          { label: "Fehlende E-Mail", icon: "@", count: items.filter((contact) => !hasMeaningfulValue(contact.email)).length },
+          { label: "Fehlende Telefonnummer", icon: "☎", count: items.filter((contact) => !hasMeaningfulValue(contact.phone)).length },
+          { label: "Fehlendes LinkedIn", icon: "in", count: items.filter((contact) => !hasMeaningfulValue(contact.linkedin)).length }
+        ];
+        qualityChart.innerHTML = `
+          <div class="quality-list">
+            ${checks
               .map(
                 (item) => `
-                  <div class="state-row">
-                    <div class="state-name">${item.label}</div>
-                    <div class="state-bar-track">
-                      <div class="state-bar-fill" style="width:${(item.count / maxStateCount) * 100}%"></div>
-                    </div>
-                    <div class="state-value">${item.count}</div>
+                  <div class="quality-row">
+                    <span class="quality-icon">${escapeHtml(item.icon)}</span>
+                    <span class="quality-copy">
+                      <span>${escapeHtml(item.label)}</span>
+                      <small>${item.count} Kontakte</small>
+                    </span>
+                    <span>${formatPercent(item.count, total)}</span>
                   </div>
                 `
               )
@@ -4611,7 +6413,7 @@
             contacts: items.map((contact) => ({
               id: contact.id,
               name: contact.name,
-              title: contact.title,
+              specialty: contact.specialty,
               category: contact.category,
               organization: contact.organization,
               topic: contact.topic,
@@ -4694,11 +6496,11 @@
                       <span class="field-icon">👤</span>
                       <span>Owner</span>
                     </div>
-                    <label class="detail-select-shell">
+                    <div class="detail-select-shell" data-custom-select data-select-type="owner" data-select-variant="detail">
                       <select class="detail-inline-select" id="detail-owner-select" aria-label="Owner zuordnen">
                         ${buildOwnerSelectOptions(ownerLabel)}
                       </select>
-                    </label>
+                    </div>
                   </article>
                 </div>
               </section>
@@ -4732,22 +6534,22 @@
                       <span class="field-icon">🩺</span>
                       <span>Fachrichtung</span>
                     </div>
-                    <label class="detail-select-shell">
+                    <div class="detail-select-shell" data-custom-select data-select-type="specialty" data-select-variant="detail">
                       <select class="detail-inline-select" id="detail-specialty-select" aria-label="Fachrichtung zuordnen">
                         ${buildSpecialtySelectOptions(specialtyText)}
                       </select>
-                    </label>
+                    </div>
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
                       <span class="field-icon">${categoryEmoji[contact.category] || "•"}</span>
                       <span>Sektor</span>
                     </div>
-                    <label class="detail-select-shell">
+                    <div class="detail-select-shell" data-custom-select data-select-type="category" data-select-variant="detail">
                       <select class="detail-inline-select" id="detail-category-select" aria-label="Sektor zuordnen">
                         ${buildCategorySelectOptions(contact.category)}
                       </select>
-                    </label>
+                    </div>
                   </article>
                 </div>
               </section>
@@ -4841,11 +6643,11 @@
                       <span class="field-icon">⚑</span>
                       <span>Priorit&auml;t</span>
                     </div>
-                    <label class="detail-select-shell">
+                    <div class="detail-select-shell" data-custom-select data-select-type="priority" data-select-variant="detail">
                       <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen">
                         ${buildPrioritySelectOptions(contact.priority)}
                       </select>
-                    </label>
+                    </div>
                   </article>
                   <article class="detail-info-card ${noteText ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
@@ -4881,6 +6683,7 @@
         detailDrawer.classList.add("is-open");
         detailDrawer.setAttribute("aria-hidden", "false");
         syncBodyScrollLock();
+        refreshCustomSelects(detailDrawer);
 
         document.getElementById("detail-close").addEventListener("click", closeDetail);
         document.getElementById("detail-edit").addEventListener("click", () => openEditor(contact));
@@ -4888,7 +6691,7 @@
         const detailSpecialtySelect = document.getElementById("detail-specialty-select");
         if (detailSpecialtySelect) {
           detailSpecialtySelect.addEventListener("change", () => {
-            updateContactField(contact.id, "title", detailSpecialtySelect.value);
+            updateContactField(contact.id, "specialty", detailSpecialtySelect.value);
           });
         }
         const detailOrganizationInput = document.getElementById("detail-organization-input");
@@ -4980,6 +6783,7 @@
       }
 
       function closeDetail() {
+        closeAllCustomSelects();
         detailDrawer.classList.remove("is-open");
         detailDrawer.setAttribute("aria-hidden", "true");
         syncBodyScrollLock();
@@ -4988,17 +6792,19 @@
       function openEditor(contact = null) {
         editorMode = contact ? "edit" : "create";
         editingId = contact?.id || null;
+        const splitLocation = splitLocationLabel(contact?.location || "");
+        editorForm.dataset.submitAction = "save";
         editorTitle.textContent = contact ? "Kontakt bearbeiten" : "Neuen Kontakt anlegen";
         editorSubtitle.textContent = contact
-          ? "Änderungen überschreiben den lokalen Browser-Stand."
-          : "Neue Kontakte werden lokal im Browser gespeichert.";
+          ? "Basisdaten zuerst, Details können laufend ergänzt werden."
+          : "Schnell erfassen. Details können später ergänzt werden.";
         editorHint.textContent = contact
-          ? "Tipp: Unvollständige Kontakte kannst du direkt mit Platzhaltern wie 'Noch ergänzen' pflegen."
-          : "Der neue Kontakt ergänzt deine Seed-Daten lokal und bleibt nach dem Schließen des Browsers erhalten.";
+          ? "Änderungen überschreiben deinen lokalen Browser-Stand."
+          : "Neue Kontakte werden lokal im Browser gespeichert und stehen danach direkt in Liste, Karte und Detail-Ansicht zur Verfügung.";
 
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
-        editorForm.elements.title.value = contact?.title || "";
+        editorForm.elements.specialty.value = contact?.specialty || "";
         editorForm.elements.category.value = contact?.category || defaultCategories[0];
         editorForm.elements.priority.value = contact?.priority || "Mittel";
         editorForm.elements.organization.value = contact?.organization || "";
@@ -5006,8 +6812,19 @@
         editorForm.elements.phone.value = contact?.phone || "";
         editorForm.elements.linkedin.value = contact?.linkedin || "";
         editorForm.elements.location.value = contact?.location || "";
+        editorForm.elements.owner.value = contact?.owner || "";
+        editorForm.elements.postalCode.value = contact?.postalCode || splitLocation.postalCode || "";
+        editorForm.elements.city.value = contact?.city || splitLocation.city || "";
+        editorForm.elements.state.value = contact?.state || "";
+        editorForm.elements.street.value = contact?.street || "";
+        editorForm.elements.note.value = contact?.note || "";
         editorForm.elements.image.value = contact?.image || "";
         editorForm.elements.sourcesText.value = (contact?.sources || []).join("\n");
+        renderEditorSpecialtyOptions(contact?.specialty || "");
+        setEditorThemes(contact?.themes || []);
+        refreshEditorCustomSelects();
+        updateEditorDuplicateHint();
+        validateEditorValues({ showWarnings: false });
 
         editorDrawer.classList.add("is-open");
         editorDrawer.setAttribute("aria-hidden", "false");
@@ -5016,6 +6833,8 @@
       }
 
       function closeEditor() {
+        editorForm.dataset.submitAction = "save";
+        closeAllCustomSelects();
         editorDrawer.classList.remove("is-open");
         editorDrawer.setAttribute("aria-hidden", "true");
         syncBodyScrollLock();
@@ -5037,7 +6856,7 @@
         const header = [
           "id",
           "name",
-          "title",
+          "specialty",
           "category",
           "organization",
           "topic",
@@ -5069,7 +6888,7 @@
           [
             contact.id,
             contact.name,
-            contact.title,
+            contact.specialty,
             contact.category,
             contact.organization,
             contact.topic,
@@ -5159,6 +6978,11 @@
       editorForm.elements.category.innerHTML = defaultCategories
         .map((category) => `<option value="${category}">${categoryEmoji[category] || "•"} ${category}</option>`)
         .join("");
+      editorForm.elements.owner.innerHTML = buildOwnerSelectOptions("");
+      editorForm.elements.state.innerHTML = buildStateSelectOptions("");
+      renderEditorSpecialtyOptions();
+      renderEditorThemes();
+      refreshCustomSelects();
 
       searchInput.addEventListener("input", () => {
         currentPage = 1;
@@ -5181,6 +7005,11 @@
           filterPanel.hidden = false;
           filterPanelButton.setAttribute("aria-expanded", "true");
         }
+      });
+      dashboardFilterButton.addEventListener("click", () => {
+        filterPanel.hidden = false;
+        filterPanelButton.setAttribute("aria-expanded", "true");
+        filterPanelButton.focus();
       });
       mapViewFrame.addEventListener("load", () => {
         syncMapFrame(filteredContacts());
@@ -5225,6 +7054,12 @@
       editorOverlay.addEventListener("click", closeEditor);
       editorClose.addEventListener("click", closeEditor);
       editorCancel.addEventListener("click", closeEditor);
+      document.getElementById("editor-save").addEventListener("click", () => {
+        editorForm.dataset.submitAction = "save";
+      });
+      editorSaveNext.addEventListener("click", () => {
+        editorForm.dataset.submitAction = "save-next";
+      });
 
       newContactButton.addEventListener("click", () => openEditor());
       exportCsvButton.addEventListener("click", () => {
@@ -5248,15 +7083,70 @@
         event.target.value = "";
       });
 
+      editorThemePresets.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-theme-preset]");
+        if (!button) return;
+        const { themePreset } = button.dataset;
+        if (editorThemes.includes(themePreset)) {
+          editorThemes = editorThemes.filter((theme) => theme !== themePreset);
+        } else {
+          editorThemes = normalizeThemes([...editorThemes, themePreset]);
+        }
+        renderEditorThemes();
+        validateEditorValues();
+      });
+
+      editorThemeSelected.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-theme-remove]");
+        if (!button) return;
+        editorThemes = editorThemes.filter((theme) => theme !== button.dataset.themeRemove);
+        renderEditorThemes();
+        validateEditorValues();
+      });
+
+      editorThemeInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== ",") return;
+        event.preventDefault();
+        const value = editorThemeInput.value.trim();
+        if (!value) return;
+        editorThemes = normalizeThemes([...editorThemes, value]);
+        editorThemeInput.value = "";
+        renderEditorThemes();
+        validateEditorValues();
+      });
+
+      ["name", "organization", "postalCode", "city", "location", "email"].forEach((fieldName) => {
+        editorForm.elements[fieldName].addEventListener("input", () => {
+          if (fieldName === "name" || fieldName === "organization") updateEditorDuplicateHint();
+          validateEditorValues();
+        });
+      });
+      ["category", "specialty", "priority", "owner", "state"].forEach((fieldName) => {
+        editorForm.elements[fieldName].addEventListener("change", () => {
+          validateEditorValues();
+        });
+      });
+
       editorForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const formData = new FormData(editorForm);
         const timestamp = new Date().toISOString();
+        const submitAction = editorForm.dataset.submitAction || "save";
         const existingContact = editingId ? contacts.find((contact) => contact.id === editingId) : null;
+        const validation = validateEditorValues({ showWarnings: true });
+        if (validation.errors.length) {
+          const firstErrorField = validation.errors[0]?.field;
+          focusEditorFieldByName(firstErrorField);
+          return;
+        }
+        const postalCode = String(formData.get("postalCode") || "").trim();
+        const city = String(formData.get("city") || "").trim();
+        const derivedLocation = deriveLocationLabel({ postalCode, city });
+        const locationValue = String(formData.get("location") || "").trim() || derivedLocation;
         const entry = {
           id: formData.get("id") || createId(),
           name: String(formData.get("name") || "").trim(),
-          title: String(formData.get("title") || "").trim(),
+          specialty: String(formData.get("specialty") || "").trim(),
           category: String(formData.get("category") || defaultCategories[0]),
           organization: String(formData.get("organization") || "").trim(),
           topic: existingContact?.topic || "",
@@ -5264,13 +7154,18 @@
           email: String(formData.get("email") || "").trim(),
           phone: String(formData.get("phone") || "").trim(),
           linkedin: String(formData.get("linkedin") || "").trim(),
-          location: String(formData.get("location") || "").trim(),
-          note: existingContact?.note || "",
+          location: locationValue,
+          city,
+          state: String(formData.get("state") || "").trim(),
+          street: String(formData.get("street") || "").trim(),
+          postalCode,
+          note: String(formData.get("note") || "").trim() || existingContact?.note || "",
           nextStep: existingContact?.nextStep || "",
           image: String(formData.get("image") || "").trim(),
           sources: normalizeSources(formData.get("sourcesText") || ""),
+          themes: editorThemes,
           lastExchange: existingContact?.lastExchange || "",
-          owner: existingContact?.owner || "",
+          owner: String(formData.get("owner") || "").trim(),
           createdAt: existingContact?.createdAt || timestamp,
           updatedAt: timestamp
         };
@@ -5278,6 +7173,12 @@
         if (!entry.name) {
           window.alert("Bitte trage mindestens einen Namen ein.");
           editorForm.elements.name.focus();
+          return;
+        }
+
+        if (!entry.organization) {
+          window.alert("Bitte ergänze mindestens eine Organisation oder Einrichtung.");
+          editorForm.elements.organization.focus();
           return;
         }
 
@@ -5293,6 +7194,12 @@
 
         persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
         activeId = sanitized.id;
+        editorForm.dataset.submitAction = "save";
+        if (submitAction === "save-next" && editorMode !== "edit") {
+          updateView();
+          openEditor();
+          return;
+        }
         closeEditor();
         updateView();
         openDetail(sanitized.id);
@@ -5300,6 +7207,13 @@
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+          const hasOpenCustomSelect = [...document.querySelectorAll("[data-custom-select] select")].some((select) =>
+            select.closest("[data-custom-select]")?.classList.contains("is-open")
+          );
+          if (hasOpenCustomSelect) {
+            closeAllCustomSelects();
+            return;
+          }
           closeMenus();
           if (editorDrawer.classList.contains("is-open")) {
             closeEditor();
@@ -5311,6 +7225,7 @@
 
       document.addEventListener("click", (event) => {
         if (!event.target.closest(".menu-shell") && !event.target.closest(".filter-shell") && !event.target.closest(".topbar-account")) closeMenus();
+        if (!event.target.closest("[data-custom-select]")) closeAllCustomSelects();
       });
 
       setActiveView(activeView);
