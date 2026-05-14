@@ -8,6 +8,7 @@
   "targetCatalog": {
     "medicalSpecialties": [
       "Allgemeinmedizin",
+      "Anästhesiologie",
       "Augenheilkunde",
       "Dermatologie",
       "Diabetologie",
@@ -17,6 +18,7 @@
       "HIV/Infektiologie",
       "Innere Medizin",
       "Kinder- und Jugendmedizin",
+      "Kinderchirurgie",
       "Neurologie",
       "Onkologie",
       "Orthopädie und Unfallchirurgie",
@@ -151,9 +153,9 @@
     },
     {
       "source": "Kinderchirurgin",
-      "target": "Kinder- und Jugendmedizin",
+      "target": "Kinderchirurgie",
       "action": "normalize",
-      "note": "Kinderchirurgie mit Kinder- und Jugendmedizin fusioniert."
+      "note": "Kinderchirurgie wird als eigene Fachrichtung geführt."
     },
     {
       "source": "Neurologie",
@@ -223,6 +225,11 @@
     {
       "source": "Urologie",
       "target": "Urologie",
+      "action": "keep"
+    },
+    {
+      "source": "Anästhesiologie",
+      "target": "Anästhesiologie",
       "action": "keep"
     }
   ]

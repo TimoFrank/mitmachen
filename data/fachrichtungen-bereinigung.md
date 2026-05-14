@@ -6,11 +6,12 @@ Stand: 2026-05-14
 
 Die aktuelle Datenbasis `data/versorgungs-kompass-data.csv` enthält 113 Kontakte. Das bisherige Feld `title` wurde in `specialty` umbenannt und fachlich bereinigt.
 
-Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fachrichtungen, Berufsbezeichnungen, Tippfehler, Rollen, ein Personenname, leere Platzhalter und Mehrfachwerte. Der Zielkatalog enthält jetzt ausschließlich medizinische Fachrichtungen. `Pflege`, `Geschäftsführung` und `Nicht dokumentiert` sind entfernt.
+Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fachrichtungen, Berufsbezeichnungen, Tippfehler, Rollen, ein Personenname, leere Platzhalter und Mehrfachwerte. Der Zielkatalog enthält jetzt ausschließlich medizinische Fachrichtungen. `Pflege`, `Geschäftsführung` und `Nicht dokumentiert` sind entfernt. Nach der zweiten Prüfung wurden `Anästhesiologie` und `Kinderchirurgie` als eigene Fachrichtungen ergänzt.
 
 ## Zielkatalog
 
 - Allgemeinmedizin
+- Anästhesiologie
 - Augenheilkunde
 - Dermatologie
 - Diabetologie
@@ -20,6 +21,7 @@ Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fa
 - HIV/Infektiologie
 - Innere Medizin
 - Kinder- und Jugendmedizin
+- Kinderchirurgie
 - Neurologie
 - Onkologie
 - Orthopädie und Unfallchirurgie
@@ -37,7 +39,8 @@ Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fa
 - Fachfremde Werte wie `Pflege` bleiben leer.
 - Personenwerte wie `Dr. Michael Bayeff-Filoff` bleiben leer.
 - Mehrfachwerte mit `|` oder Komma bleiben leer.
-- `Kinderchirurgin`, `Kinderarzt` und `Kinder- und Jugendmedizin` werden zu `Kinder- und Jugendmedizin` zusammengeführt.
+- `Kinderchirurgin` und `Kinderchirurgie` werden künftig als `Kinderchirurgie` geführt.
+- `Kinderarzt` und `Kinder- und Jugendmedizin` werden zu `Kinder- und Jugendmedizin` zusammengeführt.
 
 ## Normalisierungen
 
@@ -49,7 +52,7 @@ Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fa
 | HNO | Hals-Nasen-Ohrenheilkunde (HNO) |
 | HIV | HIV/Infektiologie |
 | Kinderarzt | Kinder- und Jugendmedizin |
-| Kinderchirurgin | Kinder- und Jugendmedizin |
+| Kinderchirurgin | Kinderchirurgie |
 | Pneumologe | Pneumologie |
 | Psychiatrie | Psychiatrie und Psychotherapie |
 | Psychologische Psychotherapeutin | Psychologische Psychotherapie |
@@ -80,23 +83,26 @@ Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fa
 
 | Specialty | Kontakte |
 | --- | ---: |
-| Allgemeinmedizin | 35 |
-| Orthopädie und Unfallchirurgie | 34 |
-| (leer) | 15 |
-| Kinder- und Jugendmedizin | 5 |
+| (leer) | 45 |
+| Allgemeinmedizin | 32 |
+| Hals-Nasen-Ohrenheilkunde (HNO) | 4 |
+| Kinder- und Jugendmedizin | 4 |
+| Gastroenterologie | 3 |
 | Gynäkologie | 3 |
-| Hals-Nasen-Ohrenheilkunde (HNO) | 3 |
+| Radiologie | 3 |
 | Dermatologie | 2 |
 | Diabetologie | 2 |
-| Gastroenterologie | 2 |
-| HIV/Infektiologie | 2 |
 | Neurologie | 2 |
+| Orthopädie und Unfallchirurgie | 2 |
 | Psychologische Psychotherapie | 2 |
+| Anästhesiologie | 1 |
 | Augenheilkunde | 1 |
+| HIV/Infektiologie | 1 |
 | Innere Medizin | 1 |
+| Kinderchirurgie | 1 |
+| Onkologie | 1 |
 | Pneumologie | 1 |
 | Psychiatrie und Psychotherapie | 1 |
-| Radiologie | 1 |
 | Urologie | 1 |
 
 ## Umsetzungshinweis
