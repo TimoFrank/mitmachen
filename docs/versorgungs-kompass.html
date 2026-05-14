@@ -258,6 +258,10 @@
         box-shadow: 0 12px 28px rgba(49, 75, 153, 0.08);
       }
 
+      .topbar-mobile-new {
+        display: none;
+      }
+
       .topbar-account__button {
         display: inline-flex;
         align-items: center;
@@ -832,6 +836,85 @@
         background: rgba(255, 255, 255, 0.9);
         box-shadow: var(--shadow);
         overflow: hidden;
+      }
+
+      .mobile-contact-list {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .mobile-contact-card {
+        border: 1px solid rgba(214, 222, 249, 0.96);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.97);
+        box-shadow: 0 10px 26px rgba(38, 52, 105, 0.06);
+        padding: 14px;
+      }
+
+      .mobile-contact-card.is-active {
+        border-color: #8bb6ff;
+        background: #f6f9ff;
+      }
+
+      .mobile-contact-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .mobile-contact-copy {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .mobile-contact-name {
+        margin: 0;
+        color: #243271;
+        font-size: 0.98rem;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+
+      .mobile-contact-organization {
+        margin-top: 4px;
+        color: #5d6a95;
+        font-size: 0.82rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .mobile-contact-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .mobile-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        line-height: 1.1;
+      }
+
+      .mobile-badge--sector {
+        background: #eef3ff;
+        color: #3450a3;
+      }
+
+      .mobile-badge--owner {
+        background: #f5f7ff;
+        color: #53608f;
+      }
+
+      .mobile-badge--owner-empty {
+        background: #fff5e9;
+        color: #9b6a1d;
       }
 
       .view-card--map {
@@ -2868,6 +2951,14 @@
         grid-column: span 3;
       }
 
+      .dashboard-card--half {
+        grid-column: span 6;
+      }
+
+      .dashboard-card--fill {
+        grid-column: span 8;
+      }
+
       .dashboard-card--subtle {
         background: rgba(252, 253, 255, 0.86);
       }
@@ -3051,6 +3142,11 @@
         gap: 9px;
       }
 
+      .quality-list {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
       .coverage-legend-row,
       .quality-row,
       .ranking-row {
@@ -3063,33 +3159,69 @@
         font-weight: 800;
       }
 
+      .city-ranking {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .city-rank-card {
+        min-width: 0;
+        display: grid;
+        grid-template-rows: auto 74px auto auto;
+        gap: 8px;
+        justify-items: center;
+        text-align: center;
+        padding: 12px 8px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      }
+
+      .city-rank-number {
+        justify-self: start;
+        color: #243271;
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .city-icon {
+        width: 78px;
+        height: 70px;
+        color: #2d71f0;
+      }
+
+      .city-icon svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        stroke: currentColor;
+      }
+
+      .city-rank-name {
+        color: #243271;
+        font-size: 0.82rem;
+        font-weight: 900;
+        line-height: 1.25;
+      }
+
+      .city-rank-count {
+        color: #5d698d;
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
+      .dashboard-card-footer-link {
+        margin-top: 12px;
+        color: #2d66ed;
+        font-size: 0.8rem;
+        font-weight: 900;
+      }
+
       .coverage-legend-swatch {
         width: 12px;
         height: 12px;
         border-radius: 4px;
-      }
-
-      .coverage-table {
-        display: grid;
-        gap: 6px;
-      }
-
-      .coverage-table-row {
-        display: grid;
-        grid-template-columns: minmax(120px, 1fr) minmax(94px, 1fr) 52px 82px;
-        gap: 10px;
-        align-items: center;
-        padding: 7px 0;
-        border-bottom: 1px solid rgba(218, 225, 247, 0.82);
-        color: #243271;
-        font-size: 0.78rem;
-        font-weight: 800;
-      }
-
-      .coverage-table-row:first-child {
-        color: #68708e;
-        font-size: 0.72rem;
-        font-weight: 900;
       }
 
       .coverage-reference {
@@ -3139,29 +3271,6 @@
       .coverage-reference:focus-within .reference-popup {
         opacity: 1;
         transform: translateY(0);
-      }
-
-      .mini-progress {
-        display: grid;
-        grid-template-columns: minmax(90px, 1fr) 42px;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .mini-progress-track {
-        display: block;
-        height: 7px;
-        border-radius: 999px;
-        background: #edf1ff;
-        overflow: hidden;
-      }
-
-      .mini-progress-fill {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #2458d3 0%, #5ca2ff 100%);
-        min-width: 3px;
       }
 
       .priority-bars {
@@ -3278,22 +3387,45 @@
       }
 
       .quality-row {
-        padding: 10px;
+        min-height: 116px;
+        grid-template-columns: 1fr;
+        justify-items: center;
+        align-content: center;
+        gap: 8px;
+        padding: 14px 12px;
         border: 1px solid #e0e7fb;
         border-radius: 13px;
         background: #ffffff;
+        text-align: center;
       }
 
       .quality-icon {
-        width: 32px;
-        height: 32px;
+        width: 44px;
+        height: 44px;
         display: grid;
         place-items: center;
         border-radius: 999px;
         background: #eef4ff;
         color: #2d71f0;
-        font-size: 0.88rem;
+        font-size: 1rem;
         font-weight: 900;
+      }
+
+      .quality-icon--purple {
+        background: #f1e8ff;
+        color: #8b4bd9;
+      }
+
+      .quality-icon--amber {
+        background: #fff3dc;
+        color: #d48a10;
+      }
+
+      .quality-percent {
+        color: #10236e;
+        font-size: 1.35rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
       }
 
       .quality-copy span,
@@ -3790,6 +3922,581 @@
         min-width: 178px;
       }
 
+      .import-drawer {
+        position: fixed;
+        inset: 0;
+        display: none;
+        z-index: 100;
+      }
+
+      .import-drawer.is-open {
+        display: block;
+      }
+
+      .import-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(17, 25, 55, 0.42);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .import-panel {
+        position: absolute;
+        top: 24px;
+        right: 24px;
+        bottom: 24px;
+        width: min(980px, calc(100vw - 48px));
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        border: 1px solid rgba(217, 222, 245, 0.96);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 34px 80px rgba(17, 27, 67, 0.28);
+        overflow: hidden;
+      }
+
+      .import-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 22px 26px 14px;
+      }
+
+      .import-header h3 {
+        margin: 0;
+        color: #10236e;
+        font-size: 1.42rem;
+        letter-spacing: -0.03em;
+      }
+
+      .import-header p {
+        margin: 6px 0 0;
+        color: #5d6a9c;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+
+      .import-close {
+        width: 38px;
+        height: 38px;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        color: #10236e;
+        font-size: 1.6rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .import-body {
+        overflow: auto;
+        padding: 0 26px 22px;
+      }
+
+      .import-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 26px;
+        border-top: 1px solid var(--line);
+        background: #ffffff;
+      }
+
+      .import-footer-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .import-steps {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin: 8px 0 26px;
+      }
+
+      .import-step {
+        display: grid;
+        gap: 8px;
+        color: #6674a5;
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-align: center;
+        position: relative;
+        min-width: 0;
+      }
+
+      .import-step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 15px;
+        left: calc(50% + 24px);
+        right: calc(-50% + 24px);
+        height: 2px;
+        background: #dfe6fb;
+      }
+
+      .import-step span {
+        width: 34px;
+        height: 34px;
+        display: inline-grid;
+        place-items: center;
+        justify-self: center;
+        border: 1px solid #d4def9;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #42558c;
+        font-size: 0.9rem;
+        font-weight: 900;
+        position: relative;
+        z-index: 1;
+      }
+
+      .import-step.is-active {
+        color: #2565ea;
+      }
+
+      .import-step.is-active span {
+        border-color: transparent;
+        background: linear-gradient(135deg, #275ee6, #4d90ff);
+        color: #ffffff;
+        box-shadow: 0 10px 22px rgba(54, 94, 191, 0.2);
+      }
+
+      .import-dropzone {
+        min-height: 210px;
+        border: 1.5px dashed #9cb8ff;
+        border-radius: 20px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+        color: #20346f;
+        cursor: pointer;
+        transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+      }
+
+      .import-dropzone.is-dragover,
+      .import-dropzone:hover {
+        border-color: #2d66ed;
+        background: #f4f8ff;
+        box-shadow: 0 14px 34px rgba(54, 94, 191, 0.12);
+      }
+
+      .import-upload-icon,
+      .import-success-mark {
+        width: 70px;
+        height: 70px;
+        display: inline-grid;
+        place-items: center;
+        margin: 0 auto 16px;
+        border-radius: 999px;
+        background: #edf3ff;
+        color: #17337b;
+        font-size: 2rem;
+        font-weight: 900;
+      }
+
+      .import-success-mark {
+        background: #dff6e8;
+        color: #159246;
+      }
+
+      .import-dropzone strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 1.05rem;
+      }
+
+      .import-dropzone small,
+      .import-muted {
+        color: #6573a3;
+        font-size: 0.84rem;
+        line-height: 1.4;
+      }
+
+      .import-format-grid,
+      .import-review-metrics,
+      .import-next-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .import-format-card,
+      .import-info-box,
+      .import-file-card,
+      .import-metric,
+      .import-profile-card,
+      .import-action-card,
+      .import-defaults,
+      .import-bulk-card {
+        border: 1px solid #d8e1fb;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+      }
+
+      .import-format-card {
+        min-height: 96px;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .import-format-card.is-active {
+        border-color: #2d66ed;
+        box-shadow: inset 0 0 0 1px rgba(45, 102, 237, 0.2);
+      }
+
+      .import-radio-dot {
+        width: 16px;
+        height: 16px;
+        border: 1px solid #c7d2ee;
+        border-radius: 999px;
+      }
+
+      .import-format-card.is-active .import-radio-dot {
+        border: 5px solid #3477f4;
+      }
+
+      .file-badge {
+        width: 42px;
+        height: 52px;
+        border: 2px solid currentColor;
+        border-radius: 8px;
+        display: inline-grid;
+        place-items: end center;
+        padding-bottom: 6px;
+        font-size: 0.76rem;
+        font-weight: 900;
+        background: #ffffff;
+      }
+
+      .file-badge--excel,
+      .file-badge--csv {
+        color: #1f9a55;
+      }
+
+      .file-badge--pdf {
+        color: #7547b7;
+      }
+
+      .import-template-button {
+        margin-top: 18px;
+      }
+
+      .import-info-box {
+        margin-top: 18px;
+        padding: 14px 16px;
+        color: #2b407d;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+
+      .import-info-box ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      .import-file-card {
+        padding: 16px 18px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .import-file-card strong,
+      .import-format-card strong,
+      .import-action-card strong {
+        display: block;
+        overflow-wrap: anywhere;
+      }
+
+      .import-detect-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+        padding: 16px;
+        border: 1px solid #d8e1fb;
+        border-radius: 16px;
+        background: #ffffff;
+      }
+
+      .import-detect-metric {
+        display: grid;
+        gap: 4px;
+        justify-items: center;
+        color: #61709f;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .import-detect-metric strong {
+        color: #10236e;
+        font-size: 1.02rem;
+        font-weight: 900;
+      }
+
+      .import-table-wrap {
+        margin-top: 18px;
+        border: 1px solid #d8e1fb;
+        border-radius: 16px;
+        overflow: auto;
+        background: #ffffff;
+      }
+
+      .import-preview-table,
+      .import-review-table,
+      .import-map-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+      }
+
+      .import-preview-table th,
+      .import-preview-table td,
+      .import-review-table th,
+      .import-review-table td,
+      .import-map-table th,
+      .import-map-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #e4e8fb;
+        color: #17275f;
+        font-size: 0.82rem;
+        text-align: left;
+        vertical-align: middle;
+      }
+
+      .import-preview-table th,
+      .import-review-table th,
+      .import-map-table th {
+        background: #f4f6ff;
+        color: #243271;
+        font-size: 0.78rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .import-map-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(250px, 0.72fr);
+        gap: 18px;
+      }
+
+      .import-map-table select,
+      .import-defaults input,
+      .import-defaults select,
+      .import-profile-card input,
+      .import-bulk-card select {
+        width: 100%;
+        min-height: 42px;
+        padding: 0 12px;
+        border: 1px solid #d6def9;
+        border-radius: 10px;
+        background: #fbfcff;
+        color: #17275f;
+        outline: 0;
+      }
+
+      .import-defaults,
+      .import-bulk-card,
+      .import-profile-card {
+        padding: 16px;
+      }
+
+      .import-defaults h4,
+      .import-bulk-card h4,
+      .import-profile-card h4 {
+        margin: 0 0 8px;
+        color: #17275f;
+        font-size: 1rem;
+      }
+
+      .import-defaults p {
+        margin: 0 0 16px;
+        color: #6573a3;
+        font-size: 0.84rem;
+        line-height: 1.4;
+      }
+
+      .import-defaults label,
+      .import-bulk-card label {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+        color: #5c6b9a;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .map-state {
+        width: 22px;
+        height: 22px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        font-weight: 900;
+      }
+
+      .map-state--ok {
+        background: #dff6e8;
+        color: #159246;
+      }
+
+      .map-state--warn {
+        background: #fff1da;
+        color: #c37a00;
+      }
+
+      .import-review-metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: 18px;
+      }
+
+      .import-metric {
+        min-height: 86px;
+        padding: 14px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+
+      .import-metric strong {
+        color: #10236e;
+        font-size: 1.42rem;
+        font-weight: 900;
+      }
+
+      .import-metric span {
+        color: #5b6a9c;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .status-pill {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .status-pill--ready {
+        border: 1px solid #a9e4bf;
+        background: #e8ffe5;
+        color: #0b8c39;
+      }
+
+      .status-pill--duplicate {
+        border: 1px solid #f4c56f;
+        background: #fff6df;
+        color: #c77a00;
+      }
+
+      .status-pill--review {
+        border: 1px solid #a9c2ff;
+        background: #eef4ff;
+        color: #2d66ed;
+      }
+
+      .status-pill--error {
+        border: 1px solid #f0b8ad;
+        background: #fff1ec;
+        color: #e43d30;
+      }
+
+      .import-row-action {
+        width: 100%;
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid #d8e1fb;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #2e63e7;
+        font-size: 0.76rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .import-bulk-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .import-bulk-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .import-report {
+        display: grid;
+        gap: 18px;
+      }
+
+      .import-report-center {
+        text-align: center;
+        padding: 14px 0 4px;
+      }
+
+      .import-report-center h4 {
+        margin: 0 0 6px;
+        color: #10236e;
+        font-size: 1.04rem;
+      }
+
+      .import-profile-card {
+        max-width: 430px;
+      }
+
+      .import-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        color: #53608f;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .import-next-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .import-action-card {
+        min-height: 78px;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        color: #17275f;
+        text-align: left;
+      }
+
+      .import-action-card span {
+        color: #2e63e7;
+        font-size: 1.4rem;
+      }
+
       .footer-note {
         padding: 18px 0 10px;
         text-align: center;
@@ -3812,7 +4519,9 @@
           grid-template-columns: 1fr 1fr;
         }
 
-        .dashboard-card--wide {
+        .dashboard-card--wide,
+        .dashboard-card--half,
+        .dashboard-card--fill {
           grid-column: span 12;
         }
 
@@ -3822,32 +4531,54 @@
         }
       }
 
-      @media (max-width: 760px) {
+@media (max-width: 760px) {
+        body {
+          padding-bottom: calc(88px + env(safe-area-inset-bottom));
+        }
+
         .wrap {
-          width: min(100% - 12px, 1760px);
+          width: 100%;
+          margin: 10px auto 0;
         }
 
         .topbar {
-          gap: 12px;
+          gap: 10px;
+          padding: 12px 14px;
+          position: sticky;
+          top: 0;
+          z-index: 30;
         }
 
         .brand {
-          width: 100%;
+          width: auto;
           min-width: 0;
+          flex: 1 1 auto;
         }
 
         .brand-text strong {
-          font-size: clamp(1.25rem, 7vw, 1.7rem);
+          font-size: clamp(1.1rem, 6vw, 1.4rem);
         }
 
         .primary-nav {
-          width: 100%;
+          position: fixed;
+          left: 12px;
+          right: 12px;
+          bottom: max(12px, env(safe-area-inset-bottom));
+          width: auto;
           min-width: 0;
+          z-index: 40;
+          padding: 6px;
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.94);
+          box-shadow: 0 16px 36px rgba(18, 31, 82, 0.18);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
         }
 
         .primary-tab {
           min-width: 0;
           flex: 1 1 0;
+          min-height: 52px;
           padding: 0 8px;
           font-size: 0.82rem;
           gap: 6px;
@@ -3855,6 +4586,27 @@
 
         .topbar-account {
           margin-left: 0;
+          padding: 4px 6px 4px 4px;
+        }
+
+        .topbar-account__badge {
+          width: 38px;
+          height: 38px;
+        }
+
+        .topbar-mobile-new {
+          display: inline-flex;
+          width: 46px;
+          min-width: 46px;
+          min-height: 46px;
+          padding: 0;
+          justify-content: center;
+          border-radius: 16px;
+        }
+
+        .topbar-mobile-new .action-button__icon {
+          margin: 0;
+          font-size: 1.1rem;
         }
 
         .summary,
@@ -3864,40 +4616,166 @@
 
         .controls {
           margin-top: 0;
-        }
-
-        .admin-row {
-          position: static;
-        }
-
-        .detail-grid {
-          grid-template-columns: 1fr;
+          padding: 0 12px 12px;
         }
 
         .welcome,
         .summary,
         .controls {
-          padding-left: 16px;
-          padding-right: 16px;
+          padding-left: 12px;
+          padding-right: 12px;
         }
 
         .welcome {
-          padding-right: 16px;
+          padding-right: 12px;
+          padding-top: 14px;
         }
 
         .welcome p {
           white-space: normal;
         }
 
-        .detail-content {
-          padding: 14px 14px 22px;
+        .workspace-header {
+          padding: 14px 12px 8px;
+          gap: 10px;
         }
 
-        .detail-stack--duo {
+        .workspace-copy h2 {
+          font-size: clamp(1.5rem, 7vw, 2rem);
+        }
+
+        .workspace-actions,
+        .active-filter-label,
+        .filter-toolbar-spacer,
+        .filter-reset {
+          display: none;
+        }
+
+        .summary.summary--compact {
+          padding: 0 12px 10px;
+        }
+
+        .summary-card {
+          min-height: 74px;
+          padding: 12px 14px;
+        }
+
+        .active-filter-list {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 2px;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .active-filter-list::-webkit-scrollbar {
+          display: none;
+        }
+
+        .filter-toolbar {
+          gap: 10px;
+          align-items: stretch;
+        }
+
+        .filter-results {
+          margin-left: 0;
+          font-size: 0.84rem;
+          font-weight: 800;
+        }
+
+        .filter-shell {
+          width: auto;
+          order: -1;
+          align-self: flex-end;
+        }
+
+        .filter-panel-button {
+          width: auto;
+        }
+
+        .filter-panel {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          top: auto;
+          width: 100%;
+          max-height: 78vh;
+          border-radius: 24px 24px 0 0;
+          padding: 16px 14px calc(18px + env(safe-area-inset-bottom));
+          box-shadow: 0 -18px 40px rgba(18, 31, 82, 0.22);
+          overflow: auto;
+        }
+
+        .filter-panel-head {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          padding-bottom: 10px;
+          background: rgba(255, 255, 255, 0.98);
+        }
+
+        .filter-panel-grid {
           grid-template-columns: 1fr;
         }
 
-        .detail-profile-top {
+        .view-shell {
+          padding: 0 12px 18px;
+        }
+
+        .view-card {
+          border-radius: 20px;
+        }
+
+        .contacts-table .thead {
+          display: none;
+        }
+
+        .table {
+          min-width: 0;
+        }
+
+        .table-wrap {
+          overflow: visible;
+        }
+
+        .table-footer {
+          padding: 10px 12px 16px;
+        }
+
+        .table-footer__controls {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .pagination {
+          gap: 6px;
+          overflow-x: auto;
+          flex: 1 1 auto;
+        }
+
+        .pagination-button {
+          min-width: 34px;
+          height: 34px;
+        }
+
+        .page-size-shell {
+          min-width: 118px;
+        }
+
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .detail-content {
+          padding: 14px 14px 110px;
+        }
+
+        .detail-stack--duo,
+        .detail-profile-top,
+        .detail-facts-grid,
+        .detail-communication-grid,
+        .detail-context-grid {
           grid-template-columns: 1fr;
         }
 
@@ -3917,12 +4795,6 @@
           grid-column: auto;
         }
 
-        .detail-facts-grid,
-        .detail-communication-grid,
-        .detail-context-grid {
-          grid-template-columns: 1fr;
-        }
-
         .admin-row,
         .editor-footer {
           align-items: stretch;
@@ -3931,10 +4803,6 @@
         .admin-actions,
         .editor-actions {
           width: 100%;
-        }
-
-        .admin-actions,
-        .editor-actions {
           justify-content: stretch;
         }
 
@@ -3942,7 +4810,75 @@
           width: 100%;
         }
 
-        .editor-grid {
+        .detail-panel,
+        .editor-panel {
+          top: auto;
+          bottom: 0;
+          width: 100%;
+          max-width: 100%;
+          height: min(100%, 100dvh);
+          border-radius: 24px 24px 0 0;
+        }
+
+        .editor-grid,
+        .import-format-grid,
+        .import-review-metrics,
+        .import-map-layout,
+        .import-bulk-layout,
+        .import-next-actions,
+        .import-detect-metrics,
+        .dashboard-grid,
+        .category-chart,
+        .city-ranking,
+        .quality-list {
+          grid-template-columns: 1fr;
+        }
+
+        .editor-footer {
+          position: sticky;
+          bottom: 0;
+          background: rgba(255, 255, 255, 0.98);
+          padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        }
+
+        .import-panel {
+          inset: 10px;
+          width: auto;
+          border-radius: 18px;
+        }
+
+        .import-header,
+        .import-body,
+        .import-footer {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .import-steps {
+          grid-template-columns: repeat(5, minmax(58px, 1fr));
+          overflow-x: auto;
+          padding-bottom: 4px;
+        }
+
+        .import-step {
+          font-size: 0.72rem;
+        }
+
+        .import-step strong {
+          overflow-wrap: anywhere;
+          line-height: 1.08;
+        }
+
+        .import-footer {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .import-footer-actions {
+          width: 100%;
+        }
+
+        .import-bulk-actions {
           grid-template-columns: 1fr;
         }
 
@@ -3952,12 +4888,10 @@
 
         .dashboard-card--wide,
         .dashboard-card--medium,
-        .dashboard-card--compact {
+        .dashboard-card--compact,
+        .dashboard-card--half,
+        .dashboard-card--fill {
           grid-column: span 12;
-        }
-
-        .category-chart {
-          grid-template-columns: 1fr;
         }
 
         .analytics-head,
@@ -3976,20 +4910,12 @@
         }
 
         .state-row,
-        .coverage-table-row {
+        .priority-row {
           grid-template-columns: 1fr;
           gap: 8px;
         }
 
-        .priority-row {
-          grid-template-columns: 1fr;
-          gap: 6px;
-        }
-
-        .priority-value {
-          text-align: left;
-        }
-
+        .priority-value,
         .state-value {
           text-align: left;
         }
@@ -4037,6 +4963,9 @@
           <span>Auswertung</span>
         </button>
       </nav>
+      <button class="action-button action-button--primary topbar-mobile-new" type="button" id="mobile-new-contact-button" aria-label="Neuen Kontakt anlegen">
+        <span class="action-button__icon">+</span>
+      </button>
       <div class="topbar-account" aria-label="Eingeloggter Nutzer">
         <button class="topbar-account__button" type="button" id="account-button" aria-label="Nutzerkonto öffnen" aria-expanded="false">
           <span class="topbar-account__badge">TF</span>
@@ -4058,6 +4987,7 @@
           <div class="summary summary--compact" id="summary-grid"></div>
           <div class="workspace-actions">
             <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+            <button class="action-button" type="button" id="open-import-button"><span class="action-button__icon">↥</span>Kontakte importieren</button>
             <div class="menu-shell">
               <button class="action-button menu-button" type="button" id="more-actions-button" aria-label="Weitere Optionen öffnen" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -4067,11 +4997,11 @@
                 </svg>
               </button>
               <div class="menu-popover" id="more-actions-menu" hidden>
-                <button class="menu-option" type="button" id="import-csv-button">CSV importieren</button>
+                <button class="menu-option" type="button" id="import-csv-button">Kontakte importieren</button>
                 <button class="menu-option" type="button" id="export-csv-button">CSV exportieren</button>
               </div>
             </div>
-            <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,text/csv" />
+            <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,.xlsx,.xls,.doc,.docx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
           </div>
         </div>
 
@@ -4150,6 +5080,26 @@
                         <span class="filter-section-meta" id="state-filter-meta">Alle</span>
                       </div>
                       <div class="filter-option-list filter-option-list--scroll" id="state-filter-options"></div>
+                    </section>
+                    <section class="filter-section">
+                      <div class="filter-section-head">
+                        <h4 class="filter-section-title">
+                          <span class="filter-section-icon">🩺</span>
+                          <span>Fachrichtung</span>
+                        </h4>
+                        <span class="filter-section-meta" id="specialty-filter-meta">Alle</span>
+                      </div>
+                      <div class="filter-option-list filter-option-list--scroll" id="specialty-filter-options"></div>
+                    </section>
+                    <section class="filter-section">
+                      <div class="filter-section-head">
+                        <h4 class="filter-section-title">
+                          <span class="filter-section-icon">👤</span>
+                          <span>Owner</span>
+                        </h4>
+                        <span class="filter-section-meta" id="owner-filter-meta">Alle</span>
+                      </div>
+                      <div class="filter-option-list filter-option-list--scroll" id="owner-filter-options"></div>
                     </section>
                     <section class="filter-section">
                       <div class="filter-section-head">
@@ -4282,17 +5232,7 @@
                   </div>
                   <div id="coverage-map"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--wide">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Regionale Abdeckung im Vergleich</h4>
-                      <p>Bundesländer mit Fortschrittsindikator.</p>
-                    </div>
-                    <span class="card-menu-dot" aria-hidden="true">...</span>
-                  </div>
-                  <div id="coverage-table"></div>
-                </article>
-                <article class="dashboard-card dashboard-card--compact">
+                <article class="dashboard-card dashboard-card--fill">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Unterrepräsentierte Bereiche</h4>
@@ -4302,7 +5242,7 @@
                   </div>
                   <div id="gap-analysis"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--compact">
+                <article class="dashboard-card dashboard-card--half">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Top Regionen nach Kontakten</h4>
@@ -4312,7 +5252,7 @@
                   </div>
                   <div id="top-regions"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--compact dashboard-card--subtle">
+                <article class="dashboard-card dashboard-card--half dashboard-card--subtle">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Datenqualität (Auswahl)</h4>
@@ -4501,7 +5441,23 @@
       </section>
     </aside>
 
+    <aside class="import-drawer" id="import-drawer" aria-hidden="true">
+      <div class="import-overlay" id="import-overlay"></div>
+      <section class="import-panel" aria-labelledby="import-title" aria-modal="true" role="dialog">
+        <div class="import-header">
+          <div>
+            <h3 id="import-title">Kontakte importieren</h3>
+            <p id="import-subtitle">Neue Versorgungskontakte aus CSV, Excel, Word oder PDF hinzufügen.</p>
+          </div>
+          <button class="import-close" type="button" id="import-close" aria-label="Import schließen">&times;</button>
+        </div>
+        <div class="import-body" id="import-body"></div>
+        <div class="import-footer" id="import-footer"></div>
+      </section>
+    </aside>
+
     <script src="./deutschlandkarte-project/data/state-polygons.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="./data/versorgungs-kompass-data.js"></script>
     <script>
       const avatarPalette = [
@@ -4707,6 +5663,50 @@
         "Orthopädie und Unfallchirurgie": "Orthopädie und Unfallchirurgie",
         Urologie: "Urologie"
       };
+      const importSteps = [
+        { id: "select", label: "Datei auswählen" },
+        { id: "detect", label: "Daten erkennen" },
+        { id: "map", label: "Felder zuordnen" },
+        { id: "review", label: "Prüfen" },
+        { id: "report", label: "Importieren" }
+      ];
+      const importTargetFields = [
+        { value: "ignore", label: "Nicht importieren" },
+        { value: "name", label: "Name" },
+        { value: "organization", label: "Organisation" },
+        { value: "category", label: "Sektor" },
+        { value: "specialty", label: "Fachrichtung" },
+        { value: "location", label: "Standort" },
+        { value: "postalCode", label: "PLZ" },
+        { value: "city", label: "Ort" },
+        { value: "state", label: "Bundesland" },
+        { value: "email", label: "E-Mail" },
+        { value: "phone", label: "Telefon" },
+        { value: "linkedin", label: "LinkedIn" },
+        { value: "priority", label: "Priorität" },
+        { value: "owner", label: "Owner" },
+        { value: "themes", label: "Themen" },
+        { value: "note", label: "Notiz" },
+        { value: "source", label: "Quelle" }
+      ];
+      const importFieldAliases = {
+        name: ["name", "kontakt", "person", "ansprechpartner", "vollstaendiger name", "vollständiger name"],
+        organization: ["organisation", "organization", "einrichtung", "firma", "praxis", "klinik", "unternehmen", "mvz"],
+        category: ["sektor", "kategorie", "branche", "typ", "category"],
+        specialty: ["fachrichtung", "fachgebiet", "fach", "rolle", "position", "funktion"],
+        location: ["standort", "adresse", "location"],
+        postalCode: ["plz", "postleitzahl", "zip", "postal"],
+        city: ["ort", "stadt", "city"],
+        state: ["bundesland", "land", "state"],
+        email: ["email", "e-mail", "mail"],
+        phone: ["telefon", "phone", "tel", "mobil"],
+        linkedin: ["linkedin", "linked in"],
+        priority: ["prioritaet", "priorität", "prio", "priority"],
+        owner: ["owner", "verantwortlich", "zuständig", "zustaendig"],
+        themes: ["themen", "tags", "schwerpunkte", "topic", "topics"],
+        note: ["notiz", "bemerkung", "kommentar", "hinweis"],
+        source: ["quelle", "source", "herkunft"]
+      };
       const storageKey = "versorgungs-kompass-contacts-v7";
 
       const searchInput = document.getElementById("search");
@@ -4726,10 +5726,14 @@
       const categoryFilterOptions = document.getElementById("category-filter-options");
       const priorityFilterOptions = document.getElementById("priority-filter-options");
       const stateFilterOptions = document.getElementById("state-filter-options");
+      const specialtyFilterOptions = document.getElementById("specialty-filter-options");
+      const ownerFilterOptions = document.getElementById("owner-filter-options");
       const themeFilterOptions = document.getElementById("theme-filter-options");
       const categoryFilterMeta = document.getElementById("category-filter-meta");
       const priorityFilterMeta = document.getElementById("priority-filter-meta");
       const stateFilterMeta = document.getElementById("state-filter-meta");
+      const specialtyFilterMeta = document.getElementById("specialty-filter-meta");
+      const ownerFilterMeta = document.getElementById("owner-filter-meta");
       const themeFilterMeta = document.getElementById("theme-filter-meta");
       const mapViewFrame = document.getElementById("map-view-frame");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
@@ -4753,6 +5757,7 @@
       const editorThemePresets = document.getElementById("editor-theme-presets");
       const editorThemeSelected = document.getElementById("editor-theme-selected");
       const newContactButton = document.getElementById("new-contact-button");
+      const mobileNewContactButton = document.getElementById("mobile-new-contact-button");
       const dashboardSubtitle = document.getElementById("dashboard-subtitle");
       const dashboardActiveContext = document.getElementById("dashboard-active-context");
       const dashboardFilterButton = document.getElementById("dashboard-filter-button");
@@ -4760,7 +5765,6 @@
       const stateChart = document.getElementById("state-chart");
       const priorityChart = document.getElementById("priority-chart");
       const coverageMap = document.getElementById("coverage-map");
-      const coverageTable = document.getElementById("coverage-table");
       const gapAnalysis = document.getElementById("gap-analysis");
       const topRegions = document.getElementById("top-regions");
       const qualityChart = document.getElementById("quality-chart");
@@ -4769,9 +5773,17 @@
       const accountLogoutButton = document.getElementById("account-logout-button");
       const moreActionsButton = document.getElementById("more-actions-button");
       const moreActionsMenu = document.getElementById("more-actions-menu");
+      const openImportButton = document.getElementById("open-import-button");
       const importCsvButton = document.getElementById("import-csv-button");
       const exportCsvButton = document.getElementById("export-csv-button");
       const csvFileInput = document.getElementById("csv-file-input");
+      const importDrawer = document.getElementById("import-drawer");
+      const importOverlay = document.getElementById("import-overlay");
+      const importClose = document.getElementById("import-close");
+      const importTitle = document.getElementById("import-title");
+      const importSubtitle = document.getElementById("import-subtitle");
+      const importBody = document.getElementById("import-body");
+      const importFooter = document.getElementById("import-footer");
 
       let activeView = "contacts";
       let activeId = null;
@@ -4779,12 +5791,15 @@
       let selectedPriorities = [];
       let selectedCategories = [];
       let selectedStates = [];
+      let selectedSpecialties = [];
+      let selectedOwners = [];
       let selectedThemes = [];
       let currentPage = 1;
       let pageSize = 20;
       let editorMode = "create";
       let editingId = null;
       let editorThemes = [];
+      let importState = createImportState();
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
       const customSelectInstances = new WeakMap();
       let loadedContactsFromStorage = false;
@@ -4914,6 +5929,784 @@
             return entry;
           }, {})
         );
+      }
+
+      function createImportState() {
+        return {
+          step: "select",
+          parsed: null,
+          mapping: {},
+          defaults: {
+            priority: "Mittel",
+            owner: "Timo Frank",
+            source: "Dateiname",
+            categoryFallback: ""
+          },
+          skippedRows: new Set(),
+          rowActions: {},
+          report: null,
+          profile: null
+        };
+      }
+
+      function normalizeImportKey(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, " ");
+      }
+
+      function detectDelimiter(text) {
+        const sample = text.split(/\r?\n/).slice(0, 12).join("\n");
+        return [",", ";", "\t", "|"]
+          .map((delimiter) => ({ delimiter, count: sample.split(delimiter).length - 1 }))
+          .sort((left, right) => right.count - left.count)[0]?.delimiter || ",";
+      }
+
+      function parseDelimitedRows(text, delimiter = detectDelimiter(text)) {
+        const rows = [];
+        let cell = "";
+        let row = [];
+        let quoted = false;
+
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          const next = text[index + 1];
+          if (character === '"' && quoted && next === '"') {
+            cell += '"';
+            index += 1;
+          } else if (character === '"') {
+            quoted = !quoted;
+          } else if (character === delimiter && !quoted) {
+            row.push(cell.trim());
+            cell = "";
+          } else if ((character === "\n" || character === "\r") && !quoted) {
+            if (character === "\r" && next === "\n") index += 1;
+            row.push(cell.trim());
+            if (row.some(Boolean)) rows.push(row);
+            row = [];
+            cell = "";
+          } else {
+            cell += character;
+          }
+        }
+
+        row.push(cell.trim());
+        if (row.some(Boolean)) rows.push(row);
+        return rows;
+      }
+
+      function rowsToImportObjects(rows) {
+        const columns = (rows[0] || []).map((column, index) => String(column || `Spalte ${index + 1}`).trim());
+        return {
+          columns,
+          rows: rows.slice(1).map((row) =>
+            columns.reduce((entry, column, index) => {
+              entry[column] = String(row[index] ?? "").trim();
+              return entry;
+            }, {})
+          )
+        };
+      }
+
+      function suggestImportMapping(columns) {
+        const used = new Set();
+        return columns.reduce((mapping, column) => {
+          const normalizedColumn = normalizeImportKey(column);
+          const match = importTargetFields.find((field) => {
+            if (field.value === "ignore" || used.has(field.value)) return false;
+            return (importFieldAliases[field.value] || []).some((alias) => normalizedColumn.includes(normalizeImportKey(alias)));
+          });
+          mapping[column] = match?.value || "ignore";
+          if (match?.value) used.add(match.value);
+          return mapping;
+        }, {});
+      }
+
+      function importStepMarkup() {
+        const activeIndex = importSteps.findIndex((step) => step.id === importState.step);
+        return `
+          <div class="import-steps" aria-label="Import-Schritte">
+            ${importSteps
+              .map(
+                (step, index) => `
+                  <div class="import-step ${index <= activeIndex ? "is-active" : ""}">
+                    <span>${index + 1}</span>
+                    <strong>${step.label}</strong>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function setImportStep(step) {
+        importState.step = step;
+        renderImportWizard();
+      }
+
+      function openImportWizard() {
+        importState = createImportState();
+        closeMenus();
+        importDrawer.classList.add("is-open");
+        importDrawer.setAttribute("aria-hidden", "false");
+        renderImportWizard();
+        syncBodyScrollLock();
+      }
+
+      function closeImportWizard() {
+        importDrawer.classList.remove("is-open");
+        importDrawer.setAttribute("aria-hidden", "true");
+        csvFileInput.value = "";
+        syncBodyScrollLock();
+      }
+
+      function selectImportFile() {
+        csvFileInput.click();
+      }
+
+      async function handleImportFile(file) {
+        if (!file) return;
+        const extension = file.name.split(".").pop()?.toLowerCase() || "";
+        const baseParsed = {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: "unsupported",
+          delimiter: "",
+          sheets: [],
+          sheetData: {},
+          selectedSheet: "",
+          columns: [],
+          rows: [],
+          warning: ""
+        };
+
+        if (["doc", "docx", "pdf"].includes(extension)) {
+          importState.parsed = {
+            ...baseParsed,
+            fileType: "best-effort",
+            warning: "Word/PDF wurde nicht sauber als Tabelle erkannt. Für einen stabilen Import bitte als CSV oder Excel exportieren."
+          };
+          importState.step = "detect";
+          renderImportWizard();
+          return;
+        }
+
+        if (extension === "csv" || file.type.includes("csv")) {
+          const text = await file.text();
+          const delimiter = detectDelimiter(text);
+          const objects = rowsToImportObjects(parseDelimitedRows(text, delimiter));
+          importState.parsed = { ...baseParsed, fileType: "csv", delimiter, ...objects };
+          importState.mapping = suggestImportMapping(objects.columns);
+          importState.defaults.source = file.name;
+          importState.step = "detect";
+          renderImportWizard();
+          return;
+        }
+
+        if (["xlsx", "xls"].includes(extension)) {
+          if (!window.XLSX) {
+            importState.parsed = {
+              ...baseParsed,
+              fileType: "unsupported",
+              warning: "Excel kann gerade nicht gelesen werden, weil die Tabellen-Library nicht geladen ist. CSV funktioniert weiterhin."
+            };
+            importState.step = "detect";
+            renderImportWizard();
+            return;
+          }
+          const buffer = await file.arrayBuffer();
+          const workbook = window.XLSX.read(buffer, { type: "array", cellDates: false });
+          const sheetName = workbook.SheetNames[0] || "Tabelle 1";
+          const sheetData = workbook.SheetNames.reduce((data, name) => {
+            data[name] = window.XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, raw: false, defval: "" });
+            return data;
+          }, {});
+          const rows = sheetData[sheetName] || [];
+          const objects = rowsToImportObjects(rows);
+          importState.parsed = {
+            ...baseParsed,
+            fileType: "excel",
+            sheets: workbook.SheetNames,
+            sheetData,
+            selectedSheet: sheetName,
+            ...objects
+          };
+          importState.mapping = suggestImportMapping(objects.columns);
+          importState.defaults.source = file.name;
+          importState.step = "detect";
+          renderImportWizard();
+          return;
+        }
+
+        importState.parsed = {
+          ...baseParsed,
+          warning: "Dieses Format wird nicht unterstützt. Für den MVP-Import bitte CSV oder Excel verwenden."
+        };
+        importState.step = "detect";
+        renderImportWizard();
+      }
+
+      function readMappedValue(row, field) {
+        const source = Object.entries(importState.mapping).find(([, target]) => target === field)?.[0];
+        return source ? String(row[source] || "").trim() : "";
+      }
+
+      function splitImportedLocation(value) {
+        const text = String(value || "").trim();
+        const match = text.match(/(\d{5})\s+(.+)/);
+        return {
+          postalCode: match ? match[1] : "",
+          city: match ? match[2].trim() : ""
+        };
+      }
+
+      function buildImportRows() {
+        const parsed = importState.parsed;
+        if (!parsed) return [];
+        const sectorSet = new Set(defaultCategories.map(normalizeImportKey));
+        const existing = contacts.map((contact) => ({
+          key: `${normalizeImportKey(contact.name)}|${normalizeImportKey(contact.organization)}`,
+          name: contact.name,
+          organization: contact.organization
+        }));
+
+        return parsed.rows.map((row, index) => {
+          const location = readMappedValue(row, "location");
+          const splitLocation = splitImportedLocation(location);
+          const entry = {
+            rowNumber: index + 2,
+            name: readMappedValue(row, "name"),
+            organization: readMappedValue(row, "organization"),
+            category: readMappedValue(row, "category") || importState.defaults.categoryFallback,
+            specialty: readMappedValue(row, "specialty"),
+            location,
+            postalCode: readMappedValue(row, "postalCode") || splitLocation.postalCode,
+            city: readMappedValue(row, "city") || splitLocation.city,
+            state: readMappedValue(row, "state"),
+            email: readMappedValue(row, "email"),
+            phone: readMappedValue(row, "phone"),
+            linkedin: readMappedValue(row, "linkedin"),
+            priority: readMappedValue(row, "priority") || importState.defaults.priority || "Mittel",
+            owner: readMappedValue(row, "owner") || importState.defaults.owner || "Timo Frank",
+            themes: readMappedValue(row, "themes"),
+            note: readMappedValue(row, "note"),
+            source: readMappedValue(row, "source") || importState.defaults.source || parsed.fileName
+          };
+          const problems = [];
+          let errors = 0;
+          let warnings = 0;
+
+          if (!entry.name) {
+            problems.push("Name fehlt (Pflichtfeld)");
+            errors += 1;
+          }
+          if (entry.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.email)) {
+            problems.push("E-Mail wirkt ungültig");
+            warnings += 1;
+          }
+          if (entry.category && !sectorSet.has(normalizeImportKey(normalizeCategory(entry.category)))) {
+            problems.push("Sektor unbekannt");
+            warnings += 1;
+          }
+          if (!entry.location && !entry.city && !entry.postalCode && !entry.state) {
+            problems.push("Standort unklar");
+            warnings += 1;
+          }
+
+          const duplicate = Boolean(
+            entry.name &&
+              existing.find(
+                (contact) =>
+                  contact.key === `${normalizeImportKey(entry.name)}|${normalizeImportKey(entry.organization)}` ||
+                  (normalizeImportKey(entry.name).length > 6 && contact.key.includes(normalizeImportKey(entry.name)))
+              )
+          );
+
+          let status = "ready";
+          if (errors) status = "error";
+          else if (duplicate) status = "duplicate";
+          else if (warnings) status = "review";
+
+          const action = importState.rowActions[entry.rowNumber] || "";
+          const skip = importState.skippedRows.has(entry.rowNumber) || (errors > 0 && action !== "import");
+          return { ...entry, problems, errors, warnings, duplicate, status, action, skip };
+        });
+      }
+
+      function importCounts(rows = buildImportRows()) {
+        return {
+          ready: rows.filter((row) => row.status === "ready" && !row.skip).length,
+          review: rows.filter((row) => row.status === "review" && !row.skip).length,
+          duplicate: rows.filter((row) => row.status === "duplicate" && !row.skip).length,
+          error: rows.filter((row) => row.status === "error" && !row.skip).length,
+          skipped: rows.filter((row) => row.skip).length,
+          warnings: rows.reduce((sum, row) => sum + row.warnings, 0),
+          errors: rows.reduce((sum, row) => sum + row.errors, 0)
+        };
+      }
+
+      function statusLabel(status) {
+        if (status === "ready") return "Importbereit";
+        if (status === "duplicate") return "Dublette möglich";
+        if (status === "error") return "Fehler";
+        return "Prüfen";
+      }
+
+      function previewTableMarkup(columns, rows) {
+        if (!columns.length) return "";
+        const limitedColumns = columns.slice(0, 8);
+        return `
+          <div class="import-table-wrap">
+            <table class="import-preview-table">
+              <thead><tr>${limitedColumns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead>
+              <tbody>
+                ${rows
+                  .slice(0, 5)
+                  .map((row) => `<tr>${limitedColumns.map((column) => `<td>${escapeHtml(row[column] || "-")}</td>`).join("")}</tr>`)
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderImportWizard() {
+        const parsed = importState.parsed;
+        importTitle.textContent = importState.step === "report" ? "Import abgeschlossen" : "Kontakte importieren";
+        importSubtitle.textContent =
+          importState.step === "report"
+            ? "Der Import wurde abgeschlossen."
+            : "Neue Versorgungskontakte aus CSV, Excel, Word oder PDF hinzufügen.";
+
+        if (importState.step === "select") renderImportSelect();
+        if (importState.step === "detect") renderImportDetect(parsed);
+        if (importState.step === "map") renderImportMap(parsed);
+        if (importState.step === "review") renderImportReview(parsed);
+        if (importState.step === "report") renderImportReport();
+      }
+
+      function renderImportSelect() {
+        importBody.innerHTML = `
+          ${importStepMarkup()}
+          <label class="import-dropzone" id="import-dropzone">
+            <div>
+              <span class="import-upload-icon">↥</span>
+              <strong>Datei hier ablegen oder auswählen</strong>
+              <small>Empfohlen: CSV, Excel · Optional: Word, PDF</small>
+            </div>
+          </label>
+          <div class="import-format-grid">
+            <div class="import-format-card is-active">
+              <span class="file-badge file-badge--excel">XLS</span>
+              <div><strong>CSV oder Excel importieren</strong><small class="import-muted">Am zuverlässigsten</small></div>
+              <span class="import-radio-dot" aria-hidden="true"></span>
+            </div>
+            <div class="import-format-card">
+              <span class="file-badge file-badge--pdf">PDF</span>
+              <div><strong>Word oder PDF importieren</strong><small class="import-muted">Best Effort</small></div>
+              <span class="import-radio-dot" aria-hidden="true"></span>
+            </div>
+          </div>
+          <button class="filter-reset import-template-button" type="button" id="import-template-button">↧ Import-Vorlage herunterladen</button>
+          <div class="import-info-box">
+            <ul>
+              <li>Name ist Pflichtfeld</li>
+              <li>Du kannst Felder später prüfen</li>
+              <li>Dubletten werden vor dem Import erkannt</li>
+            </ul>
+          </div>
+        `;
+        importFooter.innerHTML = `
+          <button class="action-button" type="button" id="import-cancel">Abbrechen</button>
+          <button class="action-button action-button--primary" type="button" id="import-pick-file">Weiter</button>
+        `;
+        bindImportSelectEvents();
+      }
+
+      function renderImportDetect(parsed) {
+        const hasWarning = Boolean(parsed?.warning);
+        importBody.innerHTML = `
+          ${importStepMarkup()}
+          <div class="import-file-card">
+            <span class="file-badge ${parsed?.fileType === "best-effort" ? "file-badge--pdf" : "file-badge--excel"}">${parsed?.fileType === "csv" ? "CSV" : parsed?.fileType === "best-effort" ? "PDF" : "XLS"}</span>
+            <div>
+              <strong>${escapeHtml(parsed?.fileName || "Keine Datei")}</strong>
+              <small class="import-muted">${formatFileSize(parsed?.fileSize || 0)} · Hochgeladen</small>
+            </div>
+            <button class="filter-reset" type="button" id="import-change-file">Ändern</button>
+            <button class="import-close" type="button" id="import-clear-file" aria-label="Datei entfernen">⌫</button>
+          </div>
+          ${
+            hasWarning
+              ? `<div class="import-info-box">${escapeHtml(parsed.warning)}</div>`
+              : `
+                <div class="import-detect-metrics">
+                  <div class="import-detect-metric"><strong>${parsed.rows.length}</strong><span>Zeilen erkannt</span></div>
+                  <div class="import-detect-metric"><strong>${parsed.columns.length}</strong><span>Spalten erkannt</span></div>
+                  <div class="import-detect-metric"><strong>${parsed.sheets.length || 1}</strong><span>${parsed.fileType === "excel" ? "Tabellenblatt" : "Datei"}</span></div>
+                </div>
+                ${
+                  parsed.fileType === "excel"
+                    ? `<label class="import-info-box">Tabelle auswählen:
+                        <select id="import-sheet-select" style="min-height:38px;margin-left:12px;padding:0 12px;border:1px solid #d6def9;border-radius:10px;background:#fff;color:#17275f">
+                          ${parsed.sheets.map((sheet) => `<option value="${escapeHtml(sheet)}" ${parsed.selectedSheet === sheet ? "selected" : ""}>${escapeHtml(sheet)}</option>`).join("")}
+                        </select>
+                      </label>`
+                    : ""
+                }
+                <div class="import-info-box">Vermutete Kontaktfelder wurden automatisch erkannt. Du kannst sie im nächsten Schritt prüfen.</div>
+                ${previewTableMarkup(parsed.columns, parsed.rows)}
+              `
+          }
+        `;
+        importFooter.innerHTML = `
+          <button class="action-button" type="button" id="import-back-select">Zurück</button>
+          <button class="action-button action-button--primary" type="button" id="import-next-map" ${hasWarning ? "disabled" : ""}>Weiter zuordnen</button>
+        `;
+        document.getElementById("import-change-file").addEventListener("click", selectImportFile);
+        document.getElementById("import-clear-file").addEventListener("click", () => setImportStep("select"));
+        document.getElementById("import-back-select").addEventListener("click", () => setImportStep("select"));
+        document.getElementById("import-next-map").addEventListener("click", () => setImportStep("map"));
+        const sheetSelect = document.getElementById("import-sheet-select");
+        if (sheetSelect) {
+          sheetSelect.addEventListener("change", () => {
+            const rows = parsed.sheetData?.[sheetSelect.value] || [];
+            const objects = rowsToImportObjects(rows);
+            importState.parsed = { ...parsed, selectedSheet: sheetSelect.value, ...objects };
+            importState.mapping = suggestImportMapping(objects.columns);
+            renderImportWizard();
+          });
+        }
+      }
+
+      function renderImportMap(parsed) {
+        importBody.innerHTML = `
+          ${importStepMarkup()}
+          <div class="import-info-box">Ordne die erkannten Spalten den Kontaktfeldern im Versorgungs-Kompass zu.</div>
+          <div class="import-map-layout">
+            <div class="import-table-wrap" style="margin-top:0">
+              <table class="import-map-table">
+                <thead><tr><th>Erkannte Spalte</th><th>Zielfeld</th><th></th></tr></thead>
+                <tbody>
+                  ${parsed.columns
+                    .map(
+                      (column) => `
+                        <tr>
+                          <td>${escapeHtml(column)}</td>
+                          <td>
+                            <select data-import-map="${escapeHtml(column)}">
+                              ${importTargetFields
+                                .map(
+                                  (field) =>
+                                    `<option value="${field.value}" ${importState.mapping[column] === field.value ? "selected" : ""}>${field.label}</option>`
+                                )
+                                .join("")}
+                            </select>
+                          </td>
+                          <td><span class="map-state ${importState.mapping[column] === "ignore" ? "map-state--warn" : "map-state--ok"}">${importState.mapping[column] === "ignore" ? "!" : "✓"}</span></td>
+                        </tr>
+                      `
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+            <aside class="import-defaults">
+              <h4>Standardwerte</h4>
+              <p>Diese Werte werden für importierte Kontakte gesetzt, wenn die Datei sie nicht liefert.</p>
+              <label>Priorität <select id="import-default-priority">${["Hoch", "Mittel", "Niedrig"].map((item) => `<option ${importState.defaults.priority === item ? "selected" : ""}>${item}</option>`).join("")}</select></label>
+              <label>Owner <select id="import-default-owner">${[...ownerOptions, "TF"].map((item) => `<option ${importState.defaults.owner === item ? "selected" : ""}>${item}</option>`).join("")}</select></label>
+              <label>Quelle <input id="import-default-source" value="${escapeHtml(importState.defaults.source)}" /></label>
+              <label>Sektor <select id="import-default-category"><option value="">Nicht setzen</option>${defaultCategories.map((item) => `<option value="${item}" ${importState.defaults.categoryFallback === item ? "selected" : ""}>${item}</option>`).join("")}</select></label>
+            </aside>
+          </div>
+        `;
+        importFooter.innerHTML = `
+          <button class="action-button" type="button" id="import-back-detect">Zurück</button>
+          <button class="action-button action-button--primary" type="button" id="import-next-review">Weiter prüfen</button>
+        `;
+        importBody.querySelectorAll("[data-import-map]").forEach((select) => {
+          select.addEventListener("change", () => {
+            importState.mapping[select.dataset.importMap] = select.value;
+            renderImportMap(parsed);
+          });
+        });
+        document.getElementById("import-default-priority").addEventListener("change", (event) => (importState.defaults.priority = event.target.value));
+        document.getElementById("import-default-owner").addEventListener("change", (event) => (importState.defaults.owner = event.target.value));
+        document.getElementById("import-default-source").addEventListener("input", (event) => (importState.defaults.source = event.target.value));
+        document.getElementById("import-default-category").addEventListener("change", (event) => (importState.defaults.categoryFallback = event.target.value));
+        document.getElementById("import-back-detect").addEventListener("click", () => setImportStep("detect"));
+        document.getElementById("import-next-review").addEventListener("click", () => setImportStep("review"));
+      }
+
+      function renderImportReview() {
+        const rows = buildImportRows();
+        const counts = importCounts(rows);
+        importBody.innerHTML = `
+          ${importStepMarkup()}
+          <div class="import-review-metrics">
+            <div class="import-metric"><strong>${counts.ready}</strong><span>importbereit</span></div>
+            <div class="import-metric"><strong>${counts.duplicate}</strong><span>mögliche Dubletten</span></div>
+            <div class="import-metric"><strong>${counts.review}</strong><span>prüfen</span></div>
+            <div class="import-metric"><strong>${counts.error}</strong><span>Fehler</span></div>
+          </div>
+          <div class="import-table-wrap">
+            <table class="import-review-table">
+              <thead><tr><th>Status</th><th>Name</th><th>Organisation</th><th>Thema / Sektor</th><th>Problem / Hinweis</th><th>Aktion</th></tr></thead>
+              <tbody>
+                ${rows
+                  .slice(0, 12)
+                  .map(
+                    (row) => `
+                      <tr>
+                        <td><span class="status-pill status-pill--${row.status}">${statusLabel(row.status)}</span></td>
+                        <td>${escapeHtml(row.name || "-")}</td>
+                        <td>${escapeHtml(row.organization || "-")}</td>
+                        <td>${escapeHtml(row.category || row.specialty || "Unbekannt")}</td>
+                        <td>${escapeHtml(row.problems.join(", ") || "-")}</td>
+                        <td>
+                          <select class="import-row-action" data-import-row-action="${row.rowNumber}">
+                            <option value="" ${!row.skip && !row.action ? "selected" : ""}>Trotzdem importieren</option>
+                            <option value="skip" ${row.skip ? "selected" : ""}>Überspringen</option>
+                            <option value="later" ${row.action === "later" ? "selected" : ""}>Später prüfen</option>
+                          </select>
+                        </td>
+                      </tr>
+                    `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+          ${rows.length > 12 ? `<button class="filter-reset import-template-button" type="button">${rows.length - 12} weitere Zeilen werden mit geprüft</button>` : ""}
+          <div class="import-bulk-layout">
+            <section class="import-bulk-card">
+              <h4>Sammelaktionen</h4>
+              <div class="import-bulk-actions">
+                <button class="action-button" type="button" id="bulk-owner">Owner für alle setzen</button>
+                <button class="action-button" type="button" id="bulk-priority">Priorität für alle setzen</button>
+                <button class="action-button" type="button" id="bulk-category">Sektor für unbekannte Werte setzen</button>
+                <button class="action-button" type="button" id="bulk-skip-errors">Zeilen mit Fehlern überspringen</button>
+              </div>
+            </section>
+            <div class="import-info-box" style="margin-top:0">
+              <strong>Name ist Pflichtfeld.</strong><br />
+              Problematische Zeilen werden vor dem Import sichtbar. Dubletten blockieren den Import nicht.
+            </div>
+          </div>
+        `;
+        importFooter.innerHTML = `
+          <button class="action-button" type="button" id="import-back-map">Zurück</button>
+          <div class="import-footer-actions">
+            <button class="action-button" type="button" id="import-only-ready">Nur importbereite Kontakte importieren</button>
+            <button class="action-button action-button--primary" type="button" id="import-run">Import starten</button>
+          </div>
+        `;
+        importBody.querySelectorAll("[data-import-row-action]").forEach((select) => {
+          select.addEventListener("change", () => {
+            const rowNumber = Number(select.dataset.importRowAction);
+            importState.rowActions[rowNumber] = select.value;
+            if (select.value === "skip" || select.value === "later") importState.skippedRows.add(rowNumber);
+            else importState.skippedRows.delete(rowNumber);
+            renderImportReview();
+          });
+        });
+        document.getElementById("bulk-owner").addEventListener("click", () => {
+          importState.defaults.owner = "Timo Frank";
+          renderImportReview();
+        });
+        document.getElementById("bulk-priority").addEventListener("click", () => {
+          importState.defaults.priority = "Mittel";
+          renderImportReview();
+        });
+        document.getElementById("bulk-category").addEventListener("click", () => {
+          importState.defaults.categoryFallback = "Praxis";
+          renderImportReview();
+        });
+        document.getElementById("bulk-skip-errors").addEventListener("click", () => {
+          rows.filter((row) => row.errors).forEach((row) => importState.skippedRows.add(row.rowNumber));
+          renderImportReview();
+        });
+        document.getElementById("import-back-map").addEventListener("click", () => setImportStep("map"));
+        document.getElementById("import-only-ready").addEventListener("click", () => runContactImport({ onlyReady: true }));
+        document.getElementById("import-run").addEventListener("click", () => runContactImport({ onlyReady: false }));
+      }
+
+      function runContactImport({ onlyReady = false } = {}) {
+        const rows = buildImportRows();
+        const now = new Date().toISOString();
+        const importableRows = rows.filter((row) => {
+          if (row.skip) return false;
+          if (row.errors) return false;
+          if (onlyReady && row.status !== "ready") return false;
+          return true;
+        });
+        const imported = importableRows.map((row, index) =>
+          sanitizeContact(
+            {
+              id: createId(),
+              name: row.name,
+              organization: row.organization,
+              category: normalizeCategory(row.category),
+              specialty: row.specialty,
+              priority: row.priority || "Mittel",
+              email: row.email,
+              phone: row.phone,
+              linkedin: row.linkedin,
+              location: row.location || deriveLocationLabel({ postalCode: row.postalCode, city: row.city }),
+              postalCode: row.postalCode,
+              city: row.city,
+              state: row.state,
+              note: row.note,
+              themes: row.themes,
+              sources: row.source,
+              owner: row.owner || "Timo Frank",
+              createdAt: now,
+              updatedAt: now
+            },
+            contacts.length + index
+          )
+        );
+        contacts = [...imported, ...contacts];
+        persistContacts(`${imported.length} Kontakte importiert`);
+        activeId = imported[0]?.id || null;
+        currentPage = 1;
+        updateView();
+        const counts = importCounts(rows);
+        importState.report = {
+          imported: imported.length,
+          skipped: rows.length - imported.length,
+          duplicates: rows.filter((row) => row.duplicate).length,
+          errors: counts.errors,
+          warnings: counts.warnings,
+          fileName: importState.parsed?.fileName || "",
+          rows
+        };
+        importState.profile = {
+          mapping: importState.mapping,
+          defaults: importState.defaults,
+          source: importState.defaults.source,
+          owner: importState.defaults.owner,
+          sectorMapping: {}
+        };
+        importState.step = "report";
+        renderImportWizard();
+      }
+
+      function renderImportReport() {
+        const report = importState.report || { imported: 0, skipped: 0, duplicates: 0, errors: 0, warnings: 0, fileName: "" };
+        importBody.innerHTML = `
+          ${importStepMarkup()}
+          <div class="import-report">
+            <div class="import-report-center">
+              <span class="import-success-mark">✓</span>
+              <h4>Import erfolgreich abgeschlossen</h4>
+              <p class="import-muted">${report.imported} neue Kontakte wurden erfolgreich importiert.</p>
+            </div>
+            <div class="import-review-metrics">
+              <div class="import-metric"><strong>${report.imported}</strong><span>Kontakte importiert</span></div>
+              <div class="import-metric"><strong>${report.skipped}</strong><span>Zeilen übersprungen</span></div>
+              <div class="import-metric"><strong>${report.duplicates}</strong><span>mögliche Dubletten</span></div>
+              <div class="import-metric"><strong>${report.warnings}</strong><span>Warnungen</span></div>
+            </div>
+            <section class="import-profile-card">
+              <h4>Importprofil speichern</h4>
+              <input value="${escapeHtml((report.fileName || "Import").replace(/\.[^.]+$/, ""))} Profil" readonly />
+              <label class="import-checkbox"><input type="checkbox" checked /> Spaltenzuordnung für künftige Importe merken</label>
+            </section>
+            <div>
+              <h4>Nächste Schritte</h4>
+              <div class="import-next-actions">
+                <button class="import-action-card" type="button" id="show-imported"><strong>Importierte Kontakte anzeigen</strong><span>›</span></button>
+                <button class="import-action-card" type="button" id="export-import-errors"><strong>Fehlerhafte Zeilen exportieren</strong><span>›</span></button>
+                <button class="import-action-card" type="button" id="download-import-report"><strong>Importbericht herunterladen</strong><span>›</span></button>
+              </div>
+            </div>
+            <div class="import-muted">Quelle: ${escapeHtml(report.fileName || "Datei")} · Importiert von: Timo Frank</div>
+          </div>
+        `;
+        importFooter.innerHTML = `
+          <button class="action-button" type="button" id="import-close-report">Schließen</button>
+          <button class="action-button action-button--primary" type="button" id="import-show-contacts">Importierte Kontakte anzeigen</button>
+        `;
+        document.getElementById("import-close-report").addEventListener("click", closeImportWizard);
+        document.getElementById("import-show-contacts").addEventListener("click", showImportedContacts);
+        document.getElementById("show-imported").addEventListener("click", showImportedContacts);
+        document.getElementById("export-import-errors").addEventListener("click", exportImportErrors);
+        document.getElementById("download-import-report").addEventListener("click", downloadImportReport);
+      }
+
+      function bindImportSelectEvents() {
+        const dropzone = document.getElementById("import-dropzone");
+        document.getElementById("import-cancel").addEventListener("click", closeImportWizard);
+        document.getElementById("import-pick-file").addEventListener("click", selectImportFile);
+        document.getElementById("import-template-button").addEventListener("click", downloadImportTemplate);
+        dropzone.addEventListener("click", selectImportFile);
+        dropzone.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          dropzone.classList.add("is-dragover");
+        });
+        dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragover"));
+        dropzone.addEventListener("drop", (event) => {
+          event.preventDefault();
+          dropzone.classList.remove("is-dragover");
+          handleImportFile(event.dataTransfer.files?.[0]);
+        });
+      }
+
+      function downloadImportTemplate() {
+        const header = importTargetFields.filter((field) => field.value !== "ignore").map((field) => field.label).join(";");
+        const example = "Johanna Dorn;MVZ Universitätsklinikum Süd;Krankenhaus;Kinder- und Jugendmedizin;Hamburg;20095;Hamburg;Hamburg;johanna.dorn@example.de;040 5552101;https://linkedin.com/in/jd;Mittel;Timo Frank;Pilot;Erstkontakt aus Netzwerk;Import-Vorlage";
+        const blob = new Blob([`${header}\n${example}\n`], { type: "text/csv;charset=utf-8" });
+        downloadBlob(blob, "versorgungs-kompass-import-vorlage.csv");
+      }
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function formatFileSize(size) {
+        if (!size) return "";
+        if (size < 1024) return `${size} B`;
+        return `${(size / 1024).toLocaleString("de-DE", { maximumFractionDigits: 1 })} KB`;
+      }
+
+      function showImportedContacts() {
+        clearAllFilters();
+        searchInput.value = "";
+        setActiveView("contacts");
+        closeImportWizard();
+      }
+
+      function exportImportErrors() {
+        const rows = (importState.report?.rows || []).filter((row) => row.errors || row.skip);
+        const csv = ["Zeile,Name,Organisation,Problem", ...rows.map((row) => [row.rowNumber, row.name, row.organization, row.problems.join(" | ")].map(csvEscape).join(","))].join("\n");
+        downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "versorgungs-kompass-import-fehler.csv");
+      }
+
+      function downloadImportReport() {
+        const report = importState.report || {};
+        const text = [
+          "Versorgungs-Kompass Importbericht",
+          `Quelle: ${report.fileName || ""}`,
+          `Importierte Kontakte: ${report.imported || 0}`,
+          `Übersprungene Zeilen: ${report.skipped || 0}`,
+          `Mögliche Dubletten: ${report.duplicates || 0}`,
+          `Fehler: ${report.errors || 0}`,
+          `Warnungen: ${report.warnings || 0}`
+        ].join("\n");
+        downloadBlob(new Blob([text], { type: "text/plain;charset=utf-8;" }), "versorgungs-kompass-importbericht.txt");
       }
 
       function sanitizeContact(entry, index = 0) {
@@ -5141,6 +6934,8 @@
           category: selectedCategories,
           priority: selectedPriorities,
           state: selectedStates,
+          specialty: selectedSpecialties,
+          owner: selectedOwners,
           theme: selectedThemes
         };
         const currentValues = filterMap[key];
@@ -5153,6 +6948,8 @@
         if (key === "category") selectedCategories = nextValues;
         if (key === "priority") selectedPriorities = nextValues;
         if (key === "state") selectedStates = nextValues;
+        if (key === "specialty") selectedSpecialties = nextValues;
+        if (key === "owner") selectedOwners = nextValues;
         if (key === "theme") selectedThemes = nextValues;
 
         currentPage = 1;
@@ -5168,6 +6965,8 @@
         if (key === "category") selectedCategories = selectedCategories.filter((item) => item !== value);
         if (key === "priority") selectedPriorities = selectedPriorities.filter((item) => item !== value);
         if (key === "state") selectedStates = selectedStates.filter((item) => item !== value);
+        if (key === "specialty") selectedSpecialties = selectedSpecialties.filter((item) => item !== value);
+        if (key === "owner") selectedOwners = selectedOwners.filter((item) => item !== value);
         if (key === "theme") selectedThemes = selectedThemes.filter((item) => item !== value);
       }
 
@@ -5175,6 +6974,8 @@
         selectedCategories = [];
         selectedPriorities = [];
         selectedStates = [];
+        selectedSpecialties = [];
+        selectedOwners = [];
         selectedThemes = [];
         if (clearSearch) searchInput.value = "";
         currentPage = 1;
@@ -5204,15 +7005,21 @@
           const matchesCategory = !selectedCategories.length || selectedCategories.includes(contact.category);
           const matchesPriority = !selectedPriorities.length || selectedPriorities.includes(contact.priority);
           const matchesState = !selectedStates.length || selectedStates.includes(stateLabel(contact));
+          const matchesSpecialty = !selectedSpecialties.length || selectedSpecialties.includes(specialtyLabel(contact));
+          const matchesOwner = !selectedOwners.length || selectedOwners.includes(meaningfulOrEmpty(contact.owner));
           const matchesTheme =
             !selectedThemes.length || selectedThemes.some((theme) => normalizeThemes(contact.themes).includes(theme));
 
-          return matchesSearch && matchesCategory && matchesPriority && matchesState && matchesTheme;
+          return matchesSearch && matchesCategory && matchesPriority && matchesState && matchesSpecialty && matchesOwner && matchesTheme;
         });
       }
 
       function hitCountLabel(items) {
         return `${items.length} von ${contacts.length} Kontakten`;
+      }
+
+      function isMobileLayout() {
+        return window.matchMedia("(max-width: 760px)").matches;
       }
 
       function paginatedItems(items) {
@@ -5232,6 +7039,8 @@
           selectedCategories.length +
           selectedPriorities.length +
           selectedStates.length +
+          selectedSpecialties.length +
+          selectedOwners.length +
           selectedThemes.length
         );
       }
@@ -5280,16 +7089,22 @@
           .filter(Boolean)
           .sort((a, b) => a.localeCompare(b, "de"))
           .map((value) => ({ value, label: value }));
+        const specialties = specialtyOptions().map((value) => ({ value, label: value }));
+        const owners = ownerOptions.map((value) => ({ value, label: value }));
         const themes = themeSuggestions().map((value) => ({ value, label: value }));
 
         renderFilterOptionGroup(categoryFilterOptions, categories, selectedCategories, "category");
         renderFilterOptionGroup(priorityFilterOptions, priorities, selectedPriorities, "priority");
         renderFilterOptionGroup(stateFilterOptions, states, selectedStates, "state");
+        renderFilterOptionGroup(specialtyFilterOptions, specialties, selectedSpecialties, "specialty");
+        renderFilterOptionGroup(ownerFilterOptions, owners, selectedOwners, "owner");
         renderFilterOptionGroup(themeFilterOptions, themes, selectedThemes, "theme");
 
         setMetaCount(categoryFilterMeta, selectedCategories.length);
         setMetaCount(priorityFilterMeta, selectedPriorities.length);
         setMetaCount(stateFilterMeta, selectedStates.length);
+        setMetaCount(specialtyFilterMeta, selectedSpecialties.length);
+        setMetaCount(ownerFilterMeta, selectedOwners.length);
         setMetaCount(themeFilterMeta, selectedThemes.length);
 
         const activeCount = filterSelectionCount();
@@ -5309,6 +7124,8 @@
           ...selectedCategories.map((value) => ({ key: "category", value, label: `Sektor: ${value}` })),
           ...selectedPriorities.map((value) => ({ key: "priority", value, label: `Priorität: ${value}` })),
           ...selectedStates.map((value) => ({ key: "state", value, label: `Bundesland: ${value}` })),
+          ...selectedSpecialties.map((value) => ({ key: "specialty", value, label: `Fachrichtung: ${value}` })),
+          ...selectedOwners.map((value) => ({ key: "owner", value, label: `Owner: ${value}` })),
           ...selectedThemes.map((value) => ({ key: "theme", value, label: `Thema: ${value}` }))
         ];
 
@@ -5374,10 +7191,44 @@
 
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
         paginationMeta.textContent = `${startIndex + 1}–${endIndex} von ${items.length} Kontakten`;
-
-        list.innerHTML = pageItems
-          .map(
-            (contact, index) => `
+        if (isMobileLayout()) {
+          list.innerHTML = `<div class="mobile-contact-list">${pageItems
+            .map(
+              (contact) => `
+              <article class="mobile-contact-card ${contact.id === activeId ? "is-active" : ""}" data-id="${contact.id}" tabindex="0">
+                <div class="mobile-contact-top">
+                  ${
+                    contact.image
+                      ? `<img class="avatar contact-thumb ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
+                      : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`
+                  }
+                  <div class="mobile-contact-copy">
+                    <h3 class="mobile-contact-name">${contact.name}</h3>
+                    <div class="mobile-contact-organization">${contact.organization || "Nicht dokumentiert"}</div>
+                  </div>
+                  <button
+                    class="favorite-star ${favorites.has(contact.id) ? "is-active" : ""}"
+                    type="button"
+                    data-id="${contact.id}"
+                    aria-label="${favorites.has(contact.id) ? "Favorit entfernen" : "Als Favorit markieren"}"
+                  >
+                    <svg viewBox="0 0 24 24" fill="${favorites.has(contact.id) ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <path d="m12 3.8 2.55 5.16 5.7.83-4.13 4.03.98 5.68L12 16.78l-5.1 2.72.98-5.68L3.75 9.8l5.7-.83L12 3.8Z"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div class="mobile-contact-badges">
+                  <span class="mobile-badge mobile-badge--sector">${contact.category || "Sektor offen"}</span>
+                  <span class="mobile-badge ${meaningfulOrEmpty(contact.owner) ? "mobile-badge--owner" : "mobile-badge--owner-empty"}">${meaningfulOrEmpty(contact.owner) || "Kein Owner"}</span>
+                </div>
+              </article>
+            `
+            )
+            .join("")}</div>`;
+        } else {
+          list.innerHTML = pageItems
+            .map(
+              (contact, index) => `
               <article class="row ${contact.id === activeId ? "is-active" : ""}" data-id="${contact.id}" tabindex="0">
                 <div class="index-cell">${startIndex + index + 1}</div>
                 <div class="contact-cell">
@@ -5416,8 +7267,9 @@
                 </div>
               </article>
             `
-          )
-          .join("");
+            )
+            .join("");
+        }
 
         pagination.innerHTML = [
           `<button class="pagination-button" type="button" data-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
@@ -5428,7 +7280,7 @@
           `<button class="pagination-button" type="button" data-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
         ].join("");
 
-        [...list.querySelectorAll(".row")].forEach((row) => {
+        [...list.querySelectorAll(".row, .mobile-contact-card")].forEach((row) => {
           row.addEventListener("click", () => openDetail(row.dataset.id, items));
           row.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -6259,37 +8111,12 @@
                 .join("")}
             </div>
           </div>
-          <div class="dashboard-note">Abdeckung = Kontakte / geschätztes Potenzial. Potenzialwerte sind vorbereitete Schätzwerte.</div>
-        `;
-
-        const tableRows = rows.slice(0, selectedStates.length ? rows.length : 7);
-        coverageTable.innerHTML = `
-          <div class="coverage-table">
-            <div class="coverage-table-row">
-              <span>Bundesland</span>
-              <span>Abdeckung relativ</span>
-              <span>Kontakte</span>
-              <span class="coverage-reference">
-                <span>Potenzial</span>
-                <button class="reference-info" type="button" aria-label="Geschätzten Referenzwert erklären">i</button>
-                <span class="reference-popup" role="tooltip">Der geschätzte Referenzwert ist ein vorbereiteter Platzhalter für das erwartete Kontaktpotenzial je Bundesland. Sobald echte Referenzdaten vorliegen, kann dieser Wert ersetzt werden.</span>
-              </span>
-            </div>
-            ${tableRows
-              .map(
-                (row) => `
-                  <div class="coverage-table-row">
-                    <span>${escapeHtml(row.state)}</span>
-                    <span class="mini-progress">
-                      <span class="mini-progress-track"><span class="mini-progress-fill" style="width:${row.coverage}%"></span></span>
-                      <span>${row.coverage} %</span>
-                    </span>
-                    <span>${row.count}</span>
-                    <span>~ ${row.potential}</span>
-                  </div>
-                `
-              )
-              .join("")}
+          <div class="dashboard-note">
+            <span class="coverage-reference">
+              <span>Abdeckung = Kontakte / geschätztes Potenzial</span>
+              <button class="reference-info" type="button" aria-label="Geschätzten Referenzwert erklären">i</button>
+              <span class="reference-popup" role="tooltip">Der geschätzte Referenzwert ist ein vorbereiteter Platzhalter für das erwartete Kontaktpotenzial je Bundesland. Sobald echte Referenzdaten vorliegen, kann dieser Wert ersetzt werden.</span>
+            </span>
           </div>
         `;
       }
@@ -6324,6 +8151,36 @@
         document.getElementById("dashboard-map-link")?.addEventListener("click", () => setActiveView("map"));
       }
 
+      function cityIconSvg(label) {
+        const normalized = String(label || "").toLowerCase();
+        const common = `fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"`;
+        if (normalized.includes("münchen") || normalized.includes("munich")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M17 72V36l8-7 8 7v36M25 29V17M20 17h10M39 72V28h18v44M43 28v-8h10v8M47 20V11M62 72V38l7-6 7 6v34M69 32V19M65 19h8M11 72h74M23 46h5M23 57h5M45 39h7M45 51h7M67 48h4M67 59h4"/></svg>`;
+        }
+        if (normalized.includes("berlin")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M48 73V23M42 23h12M45 17h6M48 11v6M40 73h16M37 34h22M40 46h16M43 58h10M29 73h38M34 73l4-39M62 73l-4-39"/></svg>`;
+        }
+        if (normalized.includes("köln") || normalized.includes("cologne")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M20 72V30l9-13 9 13v42M58 72V30l9-13 9 13v42M29 17V8M67 17V8M24 40h10M62 40h10M24 53h10M62 53h10M39 72V45l9-10 9 10v27M15 72h66M44 52h8M44 62h8"/></svg>`;
+        }
+        if (normalized.includes("hamburg")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M15 68h66M19 58h58l-8 10H27l-8-10ZM30 58V35h20v23M50 58V27h16v31M56 27v-9M50 35h16M36 44h8M36 52h8M66 44h6M66 52h6M20 58c7-8 16-12 28-12s21 4 28 12"/></svg>`;
+        }
+        if (normalized.includes("frankfurt")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M13 72h70M20 72V42h10v30M36 72V26h13v46M55 72V34h10v38M70 72V48h9v24M39 34h7M39 43h7M39 52h7M39 61h7M58 43h4M58 53h4M23 50h4M23 59h4M73 56h3M73 64h3"/></svg>`;
+        }
+        if (normalized.includes("wiesbaden")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M15 72h66M24 72V42h48v30M30 42c5-10 13-15 18-15s13 5 18 15M48 27V15M42 15h12M31 52h7M44 52h8M58 52h7M31 62h7M44 62h8M58 62h7M22 42h52"/></svg>`;
+        }
+        if (normalized.includes("essen")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M15 72h66M22 72V45h16v27M44 72V34h16v38M66 72V50h12v22M29 45V31l8 5 8-5v14M48 34V22l8 5 8-5v12M26 54h8M26 63h8M48 44h8M48 54h8M48 64h8M69 58h5M69 65h5"/></svg>`;
+        }
+        if (normalized.includes("altötting") || normalized.includes("altoetting")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M18 72h60M28 72V42l20-14 20 14v30M36 72V52h24v20M48 28V14M43 18h10M38 42h20M43 52v20M53 52v20M26 42h44"/></svg>`;
+        }
+        return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M15 72h66M22 72V46h12v26M40 72V30h14v42M60 72V40h14v32M25 54h6M25 63h6M44 39h6M44 49h6M44 59h6M64 49h6M64 59h6M47 30v-8M43 22h8"/></svg>`;
+      }
+
       function renderTopRegions(items) {
         const grouped = new Map();
         items.forEach((contact) => {
@@ -6338,28 +8195,36 @@
           return;
         }
         topRegions.innerHTML = `
-          <div class="ranking-list">
+          <div class="city-ranking">
             ${rows
               .map(
                 ([label, count], index) => `
-                  <div class="ranking-row">
-                    <span class="ranking-index">${index + 1}.</span>
-                    <span>${escapeHtml(label)}</span>
-                    <span>${count}</span>
+                  <div class="city-rank-card">
+                    <span class="city-rank-number">${index + 1}.</span>
+                    <span class="city-icon">${cityIconSvg(label)}</span>
+                    <span class="city-rank-name">${escapeHtml(label)}</span>
+                    <span class="city-rank-count">${count} ${count === 1 ? "Kontakt" : "Kontakte"}</span>
                   </div>
                 `
               )
               .join("")}
           </div>
+          <div class="dashboard-card-footer-link">Alle Regionen anzeigen →</div>
         `;
       }
 
       function renderQualitySummary(items) {
         const total = items.length;
         const checks = [
-          { label: "Fehlende E-Mail", icon: "@", count: items.filter((contact) => !hasMeaningfulValue(contact.email)).length },
-          { label: "Fehlende Telefonnummer", icon: "☎", count: items.filter((contact) => !hasMeaningfulValue(contact.phone)).length },
-          { label: "Fehlendes LinkedIn", icon: "in", count: items.filter((contact) => !hasMeaningfulValue(contact.linkedin)).length }
+          { label: "Fehlende E-Mail", icon: "@", iconClass: "", count: items.filter((contact) => !hasMeaningfulValue(contact.email)).length },
+          { label: "Fehlende Telefon", icon: "☎", iconClass: "quality-icon--purple", count: items.filter((contact) => !hasMeaningfulValue(contact.phone)).length },
+          { label: "Fehlendes LinkedIn", icon: "in", iconClass: "", count: items.filter((contact) => !hasMeaningfulValue(contact.linkedin)).length },
+          {
+            label: "Unvollständige Adresse",
+            icon: "⌂",
+            iconClass: "quality-icon--amber",
+            count: items.filter((contact) => !hasMeaningfulValue(contact.street) || !hasMeaningfulValue(contact.postalCode) || !hasMeaningfulValue(contact.city) || !hasMeaningfulValue(stateLabel(contact))).length
+          }
         ];
         qualityChart.innerHTML = `
           <div class="quality-list">
@@ -6367,17 +8232,18 @@
               .map(
                 (item) => `
                   <div class="quality-row">
-                    <span class="quality-icon">${escapeHtml(item.icon)}</span>
+                    <span class="quality-icon ${item.iconClass}">${escapeHtml(item.icon)}</span>
                     <span class="quality-copy">
                       <span>${escapeHtml(item.label)}</span>
-                      <small>${item.count} Kontakte</small>
                     </span>
-                    <span>${formatPercent(item.count, total)}</span>
+                    <span class="quality-percent">${formatPercent(item.count, total)}</span>
+                    <span class="quality-copy"><small>${item.count} Kontakte</small></span>
                   </div>
                 `
               )
               .join("")}
           </div>
+          <div class="dashboard-card-footer-link">Alle Qualitätsmetriken ansehen →</div>
         `;
       }
 
@@ -6434,7 +8300,8 @@
       function syncBodyScrollLock() {
         const overlayOpen =
           detailDrawer.classList.contains("is-open") ||
-          editorDrawer.classList.contains("is-open");
+          editorDrawer.classList.contains("is-open") ||
+          importDrawer.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
 
@@ -7051,24 +8918,37 @@
       });
 
       newContactButton.addEventListener("click", () => openEditor());
+      mobileNewContactButton?.addEventListener("click", () => openEditor());
+      openImportButton.addEventListener("click", openImportWizard);
       exportCsvButton.addEventListener("click", () => {
         closeMenus();
         downloadCsv();
       });
       importCsvButton.addEventListener("click", () => {
         closeMenus();
-        csvFileInput.click();
+        openImportWizard();
       });
+      importOverlay.addEventListener("click", closeImportWizard);
+      importClose.addEventListener("click", closeImportWizard);
       accountLogoutButton.addEventListener("click", () => {
         closeMenus();
         logout();
       });
 
+      window.addEventListener("message", (event) => {
+        if (!event.data || typeof event.data !== "object") return;
+        if (event.data.type === "versorgungs-kompass-open-detail" && event.data.id) {
+          activeId = event.data.id;
+          setActiveView("contacts");
+          openDetail(event.data.id, filteredContacts());
+        }
+      });
+
       csvFileInput.addEventListener("change", async (event) => {
         const [file] = event.target.files || [];
         if (!file) return;
-        const text = await file.text();
-        importCsvText(text);
+        if (!importDrawer.classList.contains("is-open")) openImportWizard();
+        await handleImportFile(file);
         event.target.value = "";
       });
 
@@ -7204,7 +9084,9 @@
             return;
           }
           closeMenus();
-          if (editorDrawer.classList.contains("is-open")) {
+          if (importDrawer.classList.contains("is-open")) {
+            closeImportWizard();
+          } else if (editorDrawer.classList.contains("is-open")) {
             closeEditor();
           } else {
             closeDetail();
@@ -7215,6 +9097,10 @@
       document.addEventListener("click", (event) => {
         if (!event.target.closest(".menu-shell") && !event.target.closest(".filter-shell") && !event.target.closest(".topbar-account")) closeMenus();
         if (!event.target.closest("[data-custom-select]")) closeAllCustomSelects();
+      });
+
+      window.addEventListener("resize", () => {
+        updateView();
       });
 
       setActiveView(activeView);
