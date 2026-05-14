@@ -8,6 +8,7 @@ import {
   createOrganization,
   createPerson,
   getUserByEmail,
+  importContacts,
   parseNoteFormData,
   parseOrganizationFormData,
   parsePersonFormData,
@@ -16,6 +17,7 @@ import {
   updatePerson,
   updatePersonOwner
 } from "@/lib/db";
+import { ImportContactInput } from "@/lib/types";
 
 function requireText(value: string, label: string) {
   if (!value) {
@@ -61,6 +63,25 @@ export async function createPersonAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/people");
   redirect(`/people/${personId}?saved=person-created`);
+}
+
+export async function importContactsAction(formData: FormData) {
+  await requireUserId();
+  const rawRows = String(formData.get("rows") || "[]");
+  const rows = JSON.parse(rawRows) as Array<
+    ImportContactInput & {
+      skip?: boolean;
+      duplicate?: boolean;
+      warningCount?: number;
+      errorCount?: number;
+    }
+  >;
+
+  const result = importContacts(rows);
+  revalidatePath("/");
+  revalidatePath("/people");
+  revalidatePath("/organizations");
+  return result;
 }
 
 export async function updatePersonAction(personId: number, formData: FormData) {

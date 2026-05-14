@@ -130,3 +130,45 @@ export type GlobalSearchItem = {
   href: string;
   keywords: string;
 };
+
+export type ImportExistingContact = {
+  id: number;
+  name: string;
+  organizationName: string | null;
+};
+
+export type ImportContactInput = {
+  name: string;
+  organization: string;
+  sector: string;
+  specialty: string;
+  location: string;
+  postalCode: string;
+  city: string;
+  state: string;
+  email: string;
+  phone: string;
+  linkedIn: string;
+  priority: string;
+  owner: string;
+  topics: string;
+  note: string;
+  source: string;
+};
+
+export type ImportContactResult = {
+  imported: number;
+  skipped: number;
+  duplicates: number;
+  warnings: number;
+  errors: number;
+  importedIds: number[];
+};
+
+export type ImportContext = {
+  users: UserOption[];
+  organizations: OrganizationOption[];
+  existingContacts: ImportExistingContact[];
+  sectors: string[];
+  defaultOwner: string;
+};

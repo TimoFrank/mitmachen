@@ -5,6 +5,9 @@ import path from "node:path";
 import {
   DashboardStats,
   GlobalSearchItem,
+  ImportContactInput,
+  ImportContactResult,
+  ImportContext,
   NoteListItem,
   OrganizationDetail,
   OrganizationFilterOptions,
@@ -45,6 +48,13 @@ type NoteInput = {
   entityType: "person" | "organization";
   entityId: number;
   authorId: number;
+};
+
+type ImportContactRow = ImportContactInput & {
+  skip?: boolean;
+  duplicate?: boolean;
+  warningCount?: number;
+  errorCount?: number;
 };
 
 let database: Database.Database | null = null;
@@ -695,6 +705,24 @@ export function getOrganizationFilterOptions(): OrganizationFilterOptions {
   };
 }
 
+export function getImportContext(): ImportContext {
+  const people = getPeople({ sort: "name" }).map((person) => ({
+    id: person.id,
+    name: `${person.firstName} ${person.lastName}`,
+    organizationName: person.organizationName
+  }));
+  const users = getUsers();
+  const defaultOwner = users.find((user) => user.name === "Timo Frank")?.name || users[0]?.name || "TF";
+
+  return {
+    users,
+    organizations: getOrganizationsForSelect(),
+    existingContacts: people,
+    sectors: [...ORGANIZATION_SECTORS],
+    defaultOwner
+  };
+}
+
 export function getOrganizations(options?: {
   query?: string;
   sort?: SortOption;
@@ -959,6 +987,168 @@ export function createPerson(input: PersonFormInput) {
     );
 
   return Number(result.lastInsertRowid);
+}
+
+function splitImportName(name: string) {
+  const compactName = name.trim().replace(/\s+/g, " ");
+  const parts = compactName.split(" ").filter(Boolean);
+
+  if (parts.length <= 1) {
+    return { firstName: "", lastName: compactName };
+  }
+
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts[parts.length - 1]
+  };
+}
+
+function resolveImportOwnerId(users: UserOption[], owner: string) {
+  const normalizedOwner = normalizeForLookup(owner);
+
+  if (!normalizedOwner) {
+    return null;
+  }
+
+  return (
+    users.find((user) => normalizeForLookup(user.name) === normalizedOwner)?.id ??
+    users.find((user) =>
+      user.name
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join("")
+        .toLowerCase() === normalizedOwner
+    )?.id ??
+    null
+  );
+}
+
+function buildImportNote(row: ImportContactInput) {
+  const details = [
+    row.note,
+    row.priority ? `Prioritaet: ${row.priority}` : "",
+    row.topics ? `Themen: ${row.topics}` : "",
+    row.linkedIn ? `LinkedIn: ${row.linkedIn}` : "",
+    row.postalCode ? `PLZ: ${row.postalCode}` : "",
+    row.state ? `Bundesland: ${row.state}` : "",
+    row.source ? `Quelle: ${row.source}` : ""
+  ].filter(Boolean);
+
+  return details.join("\n");
+}
+
+export function importContacts(rows: ImportContactRow[]): ImportContactResult {
+  const db = ensureDatabase();
+  const users = getUsers();
+  const existingOrganizations = new Map(
+    getOrganizationsForSelect().map((organization) => [normalizeForLookup(organization.name), organization.id])
+  );
+  const existingPeople = new Set(
+    getPeople({ sort: "name" }).map((person) => normalizeForLookup(`${person.firstName} ${person.lastName}|${person.organizationName || ""}`))
+  );
+
+  const insertOrg = db.prepare(`
+    INSERT INTO organizations (name, industry, city, owner_id, status, created_at, updated_at)
+    VALUES (@name, @industry, @city, @ownerId, 'Lead', @createdAt, @updatedAt)
+  `);
+  const insertPerson = db.prepare(`
+    INSERT INTO people (first_name, last_name, role, email, phone, organization_id, owner_id, status, created_at, updated_at)
+    VALUES (@firstName, @lastName, @role, @email, @phone, @organizationId, @ownerId, 'Neu', @createdAt, @updatedAt)
+  `);
+  const insertNote = db.prepare(`
+    INSERT INTO notes (body, entity_type, entity_id, author_id, created_at)
+    VALUES (@body, 'person', @personId, @authorId, @createdAt)
+  `);
+
+  const result: ImportContactResult = {
+    imported: 0,
+    skipped: 0,
+    duplicates: 0,
+    warnings: 0,
+    errors: 0,
+    importedIds: []
+  };
+
+  const transaction = db.transaction(() => {
+    rows.forEach((row) => {
+      result.warnings += row.warningCount || 0;
+      result.errors += row.errorCount || 0;
+
+      if (row.duplicate) {
+        result.duplicates += 1;
+      }
+
+      if (row.skip || !row.name.trim()) {
+        result.skipped += 1;
+        return;
+      }
+
+      const organizationName = row.organization.trim();
+      let organizationId: number | null = null;
+      const ownerId = resolveImportOwnerId(users, row.owner);
+
+      if (organizationName) {
+        const organizationKey = normalizeForLookup(organizationName);
+        organizationId = existingOrganizations.get(organizationKey) ?? null;
+
+        if (!organizationId) {
+          const now = new Date().toISOString();
+          organizationId = Number(
+            insertOrg.run(
+              mapParams({
+                name: organizationName,
+                industry: nullableString(row.sector),
+                city: nullableString(row.city || row.location),
+                ownerId,
+                createdAt: now,
+                updatedAt: now
+              })
+            ).lastInsertRowid
+          );
+          existingOrganizations.set(organizationKey, organizationId);
+        }
+      }
+
+      const now = new Date().toISOString();
+      const duplicateKey = normalizeForLookup(`${row.name}|${organizationName}`);
+      const { firstName, lastName } = splitImportName(row.name);
+      const personId = Number(
+        insertPerson.run(
+          mapParams({
+            firstName,
+            lastName,
+            role: nullableString(row.specialty || row.sector),
+            email: nullableString(row.email),
+            phone: nullableString(row.phone),
+            organizationId,
+            ownerId,
+            createdAt: now,
+            updatedAt: now
+          })
+        ).lastInsertRowid
+      );
+
+      const note = buildImportNote(row);
+      if (note && ownerId) {
+        insertNote.run(
+          mapParams({
+            body: note,
+            personId,
+            authorId: ownerId,
+            createdAt: now
+          })
+        );
+      }
+
+      existingPeople.add(duplicateKey);
+      result.imported += 1;
+      result.importedIds.push(personId);
+    });
+  });
+
+  transaction();
+  return result;
 }
 
 export function updatePerson(id: number, input: PersonFormInput) {

@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Versorgungs-Kompass</title>
-    <script src="./auth-config.js"></script>
-    <script src="./auth-guard.js"></script>
+    <script src="../login/auth-config.js"></script>
+    <script src="../login/auth-guard.js"></script>
     <link
       rel="icon"
       type="image/svg+xml"
@@ -2519,7 +2519,8 @@
       }
 
       .custom-select-panel--compact {
-        top: calc(100% + 8px);
+        top: auto;
+        bottom: calc(100% + 8px);
         min-width: 180px;
       }
 
@@ -4206,7 +4207,7 @@
                 class="map-embed-frame"
                 id="map-view-frame"
                 title="Karte des Versorgungs-Kompass"
-                src="./versorgungs-kompass-map.html?embed=1"
+                src="../map/versorgungs-kompass-map.html?embed=1"
                 loading="lazy"
               ></iframe>
             </div>
@@ -4500,8 +4501,8 @@
       </section>
     </aside>
 
-    <script src="./deutschlandkarte-project/data/state-polygons.js"></script>
-    <script src="./data/versorgungs-kompass-data.js"></script>
+    <script src="../map/data/state-polygons.js"></script>
+    <script src="../data/versorgungs-kompass-data.js"></script>
     <script>
       const avatarPalette = [
         "avatar--faculty",
@@ -4798,7 +4799,7 @@
           window.location.href = window.VKAuth.buildLoginUrl();
           return;
         }
-        window.location.href = "./login.html";
+        window.location.href = "../login/login.html";
       }
 
       function buildDisplayName(name, title) {
@@ -5344,20 +5345,8 @@
       }
 
       function renderSummary(items) {
-        const selectedCount = items.length;
-        const selectedPercent = contacts.length ? Math.round((selectedCount / contacts.length) * 100) : 0;
-        const highPriorityCount = items.filter((contact) => contact.priority === "Hoch").length;
-        const highPriorityPercent = selectedCount ? Math.round((highPriorityCount / selectedCount) * 100) : 0;
         const cards = [
-          { label: "Kontakte gesamt", value: contacts.length, meta: "100 %", icon: "👥", iconClass: "summary-icon--blue" },
-          { label: "Aktuelle Auswahl", value: selectedCount, meta: `${selectedPercent} %`, icon: "◢", iconClass: "summary-icon--blue" },
-          {
-            label: "Hohe Priorität",
-            value: highPriorityCount,
-            meta: `${highPriorityPercent} %`,
-            icon: "⚑",
-            iconClass: "summary-icon--rose"
-          }
+          { label: "Kontakte gesamt", value: contacts.length, meta: "100 %", icon: "👥", iconClass: "summary-icon--blue" }
         ];
 
         summaryGrid.innerHTML = cards
@@ -5420,7 +5409,7 @@
                   <div class="contact-subline contact-subline--primary">${categoryEmoji[contact.category] || "•"} ${contact.category || "Nicht dokumentiert"}</div>
                 </div>
                 <div>
-                  <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "Nicht dokumentiert"}</div>
+                  <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "-"}</div>
                 </div>
                 <div>
                   <span class="contact-owner-chip ${meaningfulOrEmpty(contact.owner) ? "" : "contact-owner-chip--empty"}">${meaningfulOrEmpty(contact.owner) || "⚠ Kein Owner"}</span>
@@ -5440,11 +5429,11 @@
         ].join("");
 
         [...list.querySelectorAll(".row")].forEach((row) => {
-          row.addEventListener("click", () => openDetail(row.dataset.id, pageItems));
+          row.addEventListener("click", () => openDetail(row.dataset.id, items));
           row.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              openDetail(row.dataset.id, pageItems);
+              openDetail(row.dataset.id, items);
             }
           });
         });
@@ -5466,7 +5455,7 @@
         [...list.querySelectorAll("[data-open-detail]")].forEach((button) => {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
-            openDetail(button.dataset.openDetail, pageItems);
+            openDetail(button.dataset.openDetail, items);
           });
         });
 
@@ -5943,7 +5932,7 @@
           `;
         }
 
-        const src = `./versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
+        const src = `../map/versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
 
         return `
           <div class="detail-mini-map">

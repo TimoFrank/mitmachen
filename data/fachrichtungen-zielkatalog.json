@@ -1,0 +1,229 @@
+{
+  "source": "data/versorgungs-kompass-data.csv",
+  "field": "specialty",
+  "previousField": "title",
+  "recordCount": 113,
+  "currentDistinctValues": 35,
+  "targetDistinctValues": 18,
+  "targetCatalog": {
+    "medicalSpecialties": [
+      "Allgemeinmedizin",
+      "Augenheilkunde",
+      "Dermatologie",
+      "Diabetologie",
+      "Gastroenterologie",
+      "Gynäkologie",
+      "Hals-Nasen-Ohrenheilkunde (HNO)",
+      "HIV/Infektiologie",
+      "Innere Medizin",
+      "Kinder- und Jugendmedizin",
+      "Neurologie",
+      "Onkologie",
+      "Orthopädie und Unfallchirurgie",
+      "Pneumologie",
+      "Psychiatrie und Psychotherapie",
+      "Psychologische Psychotherapie",
+      "Radiologie",
+      "Urologie"
+    ]
+  },
+  "mapping": [
+    {
+      "source": "",
+      "target": "",
+      "action": "clear",
+      "note": "Leerer Wert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "-",
+      "target": "",
+      "action": "clear",
+      "note": "Platzhalter; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "- | Unfallchirurgie",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfach-/Mischwert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Allgemeinmedizin",
+      "target": "Allgemeinmedizin",
+      "action": "keep"
+    },
+    {
+      "source": "Allgemeinmedizin | Diabetologie",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfachwert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Allgemeinmedizin | Psychotherapie | Psychiatrie | Labor",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfachwert mit fachfremdem Anteil; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Allgemeinmedizin, HIV-Schwerpunkt",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfach-/Schwerpunktwert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Allgemeinmedizin, Urologie",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfachwert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Augenarzt",
+      "target": "Augenheilkunde",
+      "action": "normalize"
+    },
+    {
+      "source": "Dermatologe",
+      "target": "Dermatologie",
+      "action": "normalize"
+    },
+    {
+      "source": "Diabetologie",
+      "target": "Diabetologie",
+      "action": "keep"
+    },
+    {
+      "source": "Dr. Michael Bayeff-Filoff",
+      "target": "",
+      "action": "clear",
+      "note": "Personenname im Fachrichtungsfeld."
+    },
+    {
+      "source": "Gastroenterologie",
+      "target": "Gastroenterologie",
+      "action": "keep"
+    },
+    {
+      "source": "GF",
+      "target": "",
+      "action": "clear",
+      "note": "Rollenwert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Gynäkolgoie",
+      "target": "Gynäkologie",
+      "action": "normalize",
+      "note": "Tippfehler."
+    },
+    {
+      "source": "Gynäkologie",
+      "target": "Gynäkologie",
+      "action": "keep"
+    },
+    {
+      "source": "HIV",
+      "target": "HIV/Infektiologie",
+      "action": "normalize"
+    },
+    {
+      "source": "HIV | Unfallchirurgie",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfachwert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "HNO",
+      "target": "Hals-Nasen-Ohrenheilkunde (HNO)",
+      "action": "normalize"
+    },
+    {
+      "source": "Innere Medizin",
+      "target": "Innere Medizin",
+      "action": "keep"
+    },
+    {
+      "source": "Kinder- und Jugendmedizin",
+      "target": "Kinder- und Jugendmedizin",
+      "action": "keep"
+    },
+    {
+      "source": "Kinderarzt",
+      "target": "Kinder- und Jugendmedizin",
+      "action": "normalize"
+    },
+    {
+      "source": "Kinderchirurgin",
+      "target": "Kinder- und Jugendmedizin",
+      "action": "normalize",
+      "note": "Kinderchirurgie mit Kinder- und Jugendmedizin fusioniert."
+    },
+    {
+      "source": "Neurologie",
+      "target": "Neurologie",
+      "action": "keep"
+    },
+    {
+      "source": "Onkologie, Gastroenterologie",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfachwert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Pflege",
+      "target": "",
+      "action": "clear",
+      "note": "Pflege ist nicht mehr Teil des Zielkatalogs."
+    },
+    {
+      "source": "Pflege | Allgemeinmedizin",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfach-/Versorgungsbereichswert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Pflege | Orthopädie",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfach-/Versorgungsbereichswert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Pneumologe",
+      "target": "Pneumologie",
+      "action": "normalize"
+    },
+    {
+      "source": "Psychiatrie",
+      "target": "Psychiatrie und Psychotherapie",
+      "action": "normalize"
+    },
+    {
+      "source": "Psychologische Psychotherapeutin",
+      "target": "Psychologische Psychotherapie",
+      "action": "normalize"
+    },
+    {
+      "source": "Psychologische Psychotherapeutin | Unfallchirurgie",
+      "target": "",
+      "action": "clear",
+      "note": "Mehrfachwert; Fachrichtung bleibt leer."
+    },
+    {
+      "source": "Psychologischer Psychotherapeut",
+      "target": "Psychologische Psychotherapie",
+      "action": "normalize"
+    },
+    {
+      "source": "Radiologie",
+      "target": "Radiologie",
+      "action": "keep"
+    },
+    {
+      "source": "Unfallchirurgie",
+      "target": "Orthopädie und Unfallchirurgie",
+      "action": "normalize"
+    },
+    {
+      "source": "Urologie",
+      "target": "Urologie",
+      "action": "keep"
+    }
+  ]
+}

@@ -6,6 +6,14 @@
     return parts[parts.length - 1] || config.defaultFile || "versorgungs-kompass.html";
   }
 
+  function currentPathFromLogin() {
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    const fileName = parts.pop() || config.defaultFile || "versorgungs-kompass.html";
+    const folderName = parts.pop();
+    const relativePath = folderName ? `../${folderName}/${fileName}` : `../${fileName}`;
+    return relativePath + window.location.search + window.location.hash;
+  }
+
   function getStoredSession() {
     try {
       const raw = window.localStorage.getItem(config.storageKey);
@@ -37,11 +45,11 @@
   }
 
   function buildLoginUrl() {
-    const loginFile = config.loginFile || "login.html";
-    const currentTarget = currentFileName() + window.location.search + window.location.hash;
+    const loginPath = config.loginPath || "./" + (config.loginFile || "login.html");
+    const currentTarget = currentPathFromLogin();
     const params = new URLSearchParams();
     params.set("return", currentTarget);
-    return "./" + loginFile + "?" + params.toString();
+    return loginPath + "?" + params.toString();
   }
 
   window.VKAuth = {
@@ -54,7 +62,7 @@
     clearAuthenticated: clearStoredSession,
     buildLoginUrl,
     getDefaultUrl: function () {
-      return "./" + (config.defaultFile || "versorgungs-kompass.html");
+      return config.defaultPath || "./" + (config.defaultFile || "versorgungs-kompass.html");
     }
   };
 

@@ -4,122 +4,69 @@ Das gematik-Hospitationsnetzwerk
 
 Privates Arbeits-Repository fuer den `Versorgungs-Kompass`, den Karten-Modus und die zugehoerige Datenbasis des `gematik-Hospitationsnetzwerks`.
 
-Der Projektordner enthaelt aktuell zwei Arbeitsstraenge:
-
-- einen **statischen Versorgungs-Kompass** auf HTML-/JS-Basis
-- einen **Next.js CRM-Prototyp**, der perspektivisch als weiterentwickelte Anwendung dienen kann
+Der aktive Projektstand ist der statische `Versorgungs-Kompass` auf HTML-/JS-Basis. Aeltere CRM-, Mitmachen- und Karten-Prototypen wurden unter `archive/` abgelegt.
 
 ## Einstieg
 
 Fuer den aktuellen nutzbaren Stand sind diese Dateien relevant:
 
-- `login.html`: vorgeschaltete Login-Seite
-- `versorgungs-kompass.html`: Hauptansicht des Kompass
-- `versorgungs-kompass-map.html`: Karten-Modus als Overlay-Inhalt
-- `versorgungs-kompass-map-teaser.html`: Mini-Karten-Vorschau fuer die Login-Seite
-- `auth-config.js`, `auth-guard.js`, `auth-login.js`: einfache Passwort-Schranke
+- `login/login.html`: vorgeschaltete Login-Seite
+- `login/auth-config.js`, `login/auth-guard.js`, `login/auth-login.js`: einfache Passwort-Schranke
+- `app/versorgungs-kompass.html`: Hauptansicht des Kompass
+- `map/versorgungs-kompass-map.html`: Karten-Modus als Overlay-Inhalt
+- `map/versorgungs-kompass-map-teaser.html`: Mini-Karten-Vorschau fuer die Login-Seite
+- `map/versorgungs-kompass-contact-mini-map.html`: kompakte Kontaktkarte
 
 ## Daten
 
-Die produktiven Seed-Daten fuer den Kompass liegen hier:
+Die produktiven Kompass-Daten liegen hier:
 
 - `data/versorgungs-kompass-data.js`
 - `data/versorgungs-kompass-data.csv`
+- `data/fachrichtungen-bereinigung.md`
+- `data/fachrichtungen-zielkatalog.json`
 
-Die Karten- und Masterdaten fuer das `Mitmachen`- / Versorgungs-Netzwerk liegen hier:
+Fuer den Karten-Modus werden diese Kartendateien benoetigt:
 
-- `deutschlandkarte-project/data/locations-master.csv`
-- `deutschlandkarte-project/data/locations.js`
-- `deutschlandkarte-project/data/locations-public.js`
+- `map/data/de-geojson.js`
+- `map/data/city-labels.js`
+- `map/data/state-labels.js`
+- `map/data/state-polygons.js`
+- `map/data/state-polygons.geojson`
 
 ## Ordnerueberblick
 
-- `data/`: Kompass-Daten, CSV-Import-/Exportbasis
-- `deutschlandkarte-project/`: Deutschlandkarte, Referenzlayouts, Kartendaten und Importskripte
+- `app/`: Hauptanwendung des Versorgungs-Kompass
+- `login/`: Login-Seite und Auth-Skripte
+- `map/`: Kartenmodus, Mini-Karten und Kartendaten
+- `data/`: Kompass-Daten und fachliche Bereinigungstabellen
+- `docs/`: GitHub-Pages-Publish-Ordner
 - `public/`: Logos und statische Assets
-- `app/`, `components/`, `lib/`: Next.js CRM-Prototyp
-- `scripts/`: Hilfsskripte fuer Seed und Smoke-Test
+- `scripts/`: Hilfsskripte fuer den statischen Kompass
+- `archive/`: archivierte Altstaende und Experimente
 
-## Lokale Nutzung des statischen Kompass
+## Lokale Nutzung
 
 Du kannst den aktuellen Kompass direkt lokal oeffnen:
 
-1. `login.html`
+1. `login/login.html`
 2. Passwort eingeben
 3. Weiterleitung in den `Versorgungs-Kompass`
 
 Wichtig:
 
-- Fuer den Karten-Modus werden zusaetzliche Kartendateien aus `deutschlandkarte-project/data/` benoetigt.
+- Fuer den Karten-Modus werden die Kartendateien aus `map/data/` benoetigt.
 - Der Login ist bewusst einfach gehalten und fuer private, kontrollierte Nutzung gedacht.
-
-## Lokaler Start des Next.js-Prototyps
-
-### Voraussetzungen
-
-- Node.js 22
-- npm 10+
-
-### Installation
-
-```bash
-npm install
-```
-
-### Umgebungsvariablen
-
-```bash
-cp .env.example .env.local
-```
-
-Beispiel:
-
-```env
-APP_URL=http://localhost:3000
-SESSION_SECRET=ein-langer-zufaelliger-string
-DATABASE_PATH=./data/crm.sqlite
-```
-
-### Start
-
-```bash
-npm run dev
-```
-
-Danach ist der Prototyp unter [http://localhost:3000](http://localhost:3000) erreichbar.
-
-### Hilfreiche Checks
-
-```bash
-npm run typecheck
-npm run lint
-npm run smoke
-```
-
-## Zusammenarbeit im privaten GitHub-Repo
-
-Empfohlenes Vorgehen:
-
-1. `main` nur fuer stabile Staende nutzen
-2. groessere Aenderungen in kurzen Feature-Branches bearbeiten
-3. Datenpflege bevorzugt ueber die CSV-/Masterdateien dokumentieren
-4. keine echten Zugangsdaten oder lokalen `.env`-Dateien committen
-
-## Hinweise zum Commit-Umfang
-
-Dieses Repo soll bewusst auch die statischen Daten des `Versorgungs-Kompass` enthalten. Deshalb wird `data/` **nicht** pauschal ignoriert. Ignoriert werden nur lokale SQLite-Dateien und Laufzeitartefakte.
-
-## Deployment
-
-Die bisherige Deploy-Notiz fuer den App-Prototyp liegt in [README.deploy.md](/Users/timofrank/Desktop/Versorgungs-CRM/README.deploy.md).
 
 ## GitHub Pages
 
-Fuer eine einfache oeffentliche Web-Version des statischen `Versorgungs-Kompass` wird der Publish-Ordner `docs/` verwendet.
+Fuer eine einfache Web-Version des statischen `Versorgungs-Kompass` wird der Publish-Ordner `docs/` verwendet.
 
 - Einstieg fuer GitHub Pages: `docs/index.html`
 - Login-Seite: `docs/login.html`
 - Publish-Assets lassen sich mit `scripts/sync_github_pages.sh` aus dem aktuellen Projektstand aktualisieren
+
+`docs/` ist eine Publish-Kopie. Aktive Bearbeitung findet in `app/`, `login/`, `map/`, `data/` und `public/` statt.
 
 Fuer GitHub Pages in GitHub:
 
@@ -128,3 +75,13 @@ Fuer GitHub Pages in GitHub:
 3. Source: `Deploy from a branch`
 4. Branch: `main`
 5. Folder: `/docs`
+
+## Archiv
+
+Archivierte Projektteile:
+
+- `archive/next-crm-prototype/`: ehemaliger Next.js-/TypeScript-CRM-Prototyp inklusive Render-Deployment und SQLite-Logik
+- `archive/mitmachen-crm/`: ehemalige Mitmachen-/Versorgungsnetzwerk-Staende, Importskripte und Masterdaten
+- `archive/map-experiments/`: alte Deutschlandkarten-Experimente aus dem Projekt-Root
+
+Diese Archivordner dienen nur als Rueckgriff. Der aktive Kompass sollte nicht von Dateien daraus abhaengen.

@@ -2,7 +2,6 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
   {
     "id": "contact-001",
     "name": "Johanna Dorn",
-    "title": "",
     "category": "Praxis",
     "organization": "MVZ Universitätsklinikum Aachen",
     "topic": "Sektor: MVZ · Privater Kontakt",
@@ -24,12 +23,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://static.wixstatic.com/media/152c06_010b8bc96a864bef87575ae039340c20~mv2.webp",
     "sources": [
       "https://www.ukaachen.de/ueber-uns/tochtergesellschaften/medizinisches-versorgungszentrum/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-002",
     "name": "Dr. Stefan Vlaho",
-    "title": "Kinder- und Jugendmedizin",
     "category": "Praxis",
     "organization": "Zentrum für Kinder und Jugendliche Inn-Salzach e.V.",
     "topic": "Sektor: Hausarzt · Fachrichtung: Kinder- und Jugendmedizin · Primärsystem: Meierhofer · Frank, Timo",
@@ -51,12 +50,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.innklinikum.de/fileadmin/user_upload/Altoetting/Paed/Bilder/vlaho-02.png",
     "sources": [
       "https://kinderzentrum.de/"
-    ]
+    ],
+    "specialty": "Kinder- und Jugendmedizin"
   },
   {
     "id": "contact-003",
     "name": "Frank Dastych",
-    "title": "HNO",
     "category": "Praxis",
     "organization": "HNO Regional",
     "topic": "Sektor: Facharzt · Fachrichtung: HNO · Vorstand KV Hessen",
@@ -78,12 +77,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.hno-regional.de/wp-content/uploads/2019/07/Frank-Dastych.jpg",
     "sources": [
       "https://www.hno-regional.de/"
-    ]
+    ],
+    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)"
   },
   {
     "id": "contact-004",
     "name": "Knut Schnell",
-    "title": "Psychiatrie",
     "category": "Praxis",
     "organization": "Vitos Klinik für Psychiatrie und Psychotherapie",
     "topic": "Sektor: Facharzt · Fachrichtung: Psychiatrie · Privater Kontakt",
@@ -105,12 +104,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.vitos.de/fileadmin/_processed_/6/8/csm_BadHomburg_Aussen_nah_c838229654.jpg",
     "sources": [
       "https://www.vitos.de/gesellschaften/vitos-hochtaunus/einrichtungen/vitos-klinik-fuer-psychiatrie-und-psychotherapie-bad-homburg/kontakt-und-anfahrt/"
-    ]
+    ],
+    "specialty": "Psychiatrie und Psychotherapie"
   },
   {
     "id": "contact-005",
     "name": "Michael Brendler",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis Michael Brendler",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: Meierhofer · Frank, Timo",
@@ -132,12 +131,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://hausarzt-bad-kissingen.de/wp-content/uploads/2019/05/ddrennts-1.jpg",
     "sources": [
       "https://hausarzt-bad-kissingen.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-006",
     "name": "Wolfgang von Meißner",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärzte am Spritzenhaus",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: EVA, Abasoft | EVA, abasoft · Privater Kontakt",
@@ -159,12 +158,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.hausaerzte-am-spritzenhaus.de/images/portrait/Wolfgang%20von%20Mei%C3%9Fner.jpg",
     "sources": [
       "https://www.hausaerzte-am-spritzenhaus.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-007",
     "name": "Markus Jasinski",
-    "title": "Unfallchirurgie",
     "category": "Praxis",
     "organization": "Praxis Jasinski",
     "topic": "Sektor: Facharzt · Fachrichtung: Unfallchirurgie · Brief an gematik 11/25",
@@ -186,12 +185,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://static.wixstatic.com/media/3039b6_5ad2cca313974de29937f516fafdce48~mv2.jpg/v1/fill/w_884,h_590,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Markus%20Jasinski%206944.jpg",
     "sources": [
       "https://www.unfallchirurgie-bamberg.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-008",
     "name": "Dr. med. Beatrice Staudt",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Dr. med. Beatrice Staudt",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Ärzte-Stammtisch",
@@ -213,12 +212,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://dr-staudt.de/images/2022/09/02/d12821_staudt_b.jpg",
     "sources": [
       "https://dr-staudt.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-009",
     "name": "Dr. Rüdiger Berndt",
-    "title": "Gastroenterologie",
     "category": "Praxis",
     "organization": "Gastropraxis Ostseeplatz",
     "topic": "Sektor: Facharzt · Fachrichtung: Gastroenterologie · Primärsystem: tomedo · Privater Kontakt",
@@ -240,12 +239,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://gastropraxis.berlin/wp-content/uploads/2024/07/Rudiger-Berndt_500x600.jpg",
     "sources": [
       "https://gastropraxis.berlin/"
-    ]
+    ],
+    "specialty": "Gastroenterologie"
   },
   {
     "id": "contact-010",
     "name": "Bernhard Tenckhoff",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Tenckhoff",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Kontakt über Florian",
@@ -267,12 +266,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.hausarztpraxis-kugler16.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-011",
     "name": "Irmgard Landgraf",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Internistische Hausarztpraxis Irmgard Landgraf",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: Meierhofer · Frank, Timo",
@@ -294,12 +293,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://interniststeglitz.de/wp-content/uploads/2024/08/internist_steglitz_dr_Bajour_Landgraf.jpg",
     "sources": [
       "https://interniststeglitz.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-012",
     "name": "Oliver Fasold",
-    "title": "Neurologie",
     "category": "Praxis",
     "organization": "Neurozentrum Tempelhof",
     "topic": "Sektor: Facharzt · Fachrichtung: Neurologie",
@@ -321,12 +320,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://neurozentrum-tempelhof.berlin/wp-content/uploads/2021/08/210701_ZBMG_PHT0029-scaled.jpg",
     "sources": [
       "https://neurozentrum-tempelhof.berlin/"
-    ]
+    ],
+    "specialty": "Neurologie"
   },
   {
     "id": "contact-013",
     "name": "Dr. med. Sven Schellberg",
-    "title": "HIV",
     "category": "Praxis",
     "organization": "Novopraxis",
     "topic": "Sektor: Facharzt · Fachrichtung: HIV · Privater Kontakt",
@@ -348,12 +347,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.novopraxis.berlin/assets/images/e/image001-edit-20220411215811-dcdeae2e.jpg",
     "sources": [
       "https://www.novopraxis.berlin/"
-    ]
+    ],
+    "specialty": "HIV/Infektiologie"
   },
   {
     "id": "contact-014",
     "name": "Maike Henningsen",
-    "title": "Gynäkologie",
     "category": "Praxis",
     "organization": "Praxis Frauenmedizin Bundesplatz",
     "topic": "Sektor: Facharzt · Fachrichtung: Gynäkologie · Privater Kontakt",
@@ -375,12 +374,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.frauenmedizin-am-bundesplatz.de/quality_auto/Frauenmedizin-am-Bundesplatz-Berlin-Priv-Doz-Dr-med-Maike-Henningsen.png",
     "sources": [
       "https://www.frauenmedizin-am-bundesplatz.de/"
-    ]
+    ],
+    "specialty": "Gynäkologie"
   },
   {
     "id": "contact-015",
     "name": "Susanne von der Heydt",
-    "title": "Kinderchirurgin",
     "category": "Praxis",
     "organization": "Praxis für Kinderchirurgie Berlin",
     "topic": "Sektor: Hausarzt · Fachrichtung: Kinderchirurgin · Primärsystem: Meierhofer · Frank, Timo",
@@ -402,12 +401,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://praxis-vonderheydt.de/wp-content/uploads/2024/01/IMG_9895-5-scaled.jpeg",
     "sources": [
       "https://praxis-vonderheydt.de/"
-    ]
+    ],
+    "specialty": "Kinder- und Jugendmedizin"
   },
   {
     "id": "contact-016",
     "name": "Marc Hanefeld",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis für Familienmedizin",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: T2Med · Privater Kontakt",
@@ -429,12 +428,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://praxis-hanefeld.com/wp-content/uploads/2025/06/marc-hanefeld-sp2-2-743x1024.jpg",
     "sources": [
       "https://praxis-hanefeld.com/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-017",
     "name": "Dr. Joachim Draws",
-    "title": "HNO",
     "category": "Praxis",
     "organization": "HNO in Celle",
     "topic": "Sektor: Facharzt · Fachrichtung: HNO · Primärsystem: medatixx isy.net · Privater Kontakt",
@@ -456,12 +455,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://drdraws.de/img/DrDraws.jpg",
     "sources": [
       "https://drdraws.de/"
-    ]
+    ],
+    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)"
   },
   {
     "id": "contact-018",
     "name": "Matthias Hempel",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "HALEO",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · Privater Kontakt",
@@ -483,12 +482,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.haleo.de/fileadmin/_processed_/7/d/csm_hempel-portrait_2e7d90ad8c.jpg",
     "sources": [
       "https://www.haleo.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-019",
     "name": "Max Tischler",
-    "title": "Dermatologe",
     "category": "Praxis",
     "organization": "Haut+Laserpraxis Dr. Tischler+Team",
     "topic": "Sektor: Hausarzt · Fachrichtung: Dermatologe · Primärsystem: Meierhofer · Frank, Timo",
@@ -510,12 +509,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://drtischler.de/wp-content/uploads/2025/11/Praxis_Dr._Max_Tischler_Dortmund27.08.2025_28-scaled.jpg",
     "sources": [
       "https://drtischler.de/"
-    ]
+    ],
+    "specialty": "Dermatologie"
   },
   {
     "id": "contact-020",
     "name": "Annette Rennert",
-    "title": "Allgemeinmedizin | Diabetologie",
     "category": "Praxis",
     "organization": "Praxis im Kaiserviertel",
     "topic": "Sektor: Hausarzt | Facharzt · Fachrichtung: Allgemeinmedizin | Diabetologie · Primärsystem: medatixx · Privater Kontakt",
@@ -537,12 +536,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxis-kaiserviertel.de/.cm4all/uproc.php/0/_Design/Content/annette-rennert.jpg?_=17d900fc3a0",
     "sources": [
       "https://www.praxis-kaiserviertel.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-021",
     "name": "Dr. Martin Deile",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarzt Deile",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: tomedo · Privater Kontakt",
@@ -564,12 +563,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://image.jimcdn.com/app/cms/image/transf/none/path/s81bfafdb9bf1321d/backgroundarea/i72be136f6cd52386/version/1568314895/image.jpg",
     "sources": [
       "https://www.hausarzt-deile.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-022",
     "name": "Ursula Hahn",
-    "title": "Augenarzt",
     "category": "Praxis",
     "organization": "OcuNet",
     "topic": "Sektor: Augenarzt · Fachrichtung: Augenarzt · Primärsystem: Meierhofer · Frank, Timo",
@@ -591,12 +590,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.ocunet.de/"
-    ]
+    ],
+    "specialty": "Augenheilkunde"
   },
   {
     "id": "contact-023",
     "name": "Dr. med. Hiwa Dashti",
-    "title": "Innere Medizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Dashti",
     "topic": "Sektor: Hausarzt · Fachrichtung: Innere Medizin · Primärsystem: Duria · Privater Kontakt",
@@ -618,12 +617,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.hausarztpraxis-dashti.de/wp-content/uploads/2017/06/dsc06167.1496662667.jpg",
     "sources": [
       "https://www.hausarztpraxis-dashti.de/"
-    ]
+    ],
+    "specialty": "Innere Medizin"
   },
   {
     "id": "contact-024",
     "name": "Dr. Nils Hentig",
-    "title": "Allgemeinmedizin, HIV-Schwerpunkt",
     "category": "Praxis",
     "organization": "Praxis Darab & von Hentig",
     "topic": "Sektor: Facharzt · Fachrichtung: Allgemeinmedizin, HIV-Schwerpunkt · Primärsystem: Medical Office · Privater Kontakt",
@@ -645,12 +644,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://praxis-darab-vonhentig.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-025",
     "name": "Dr. med. Christoph Claus",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärztliche Gemeinschaftspraxis Grebenstein",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: Duria · Kontakt über KV Hessen",
@@ -672,12 +671,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.hausaerzte-grebenstein.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-026",
     "name": "Thomas Fischer",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Ihre Hausarzt-Praxis auf den Zietenterrassen",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: Meierhofer · Frank, Timo",
@@ -699,12 +698,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://hausarzt-zietenterrassen.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-027",
     "name": "Christine Löber",
-    "title": "HNO",
     "category": "Praxis",
     "organization": "HNO- Gemeinschaftspraxis Farmsen",
     "topic": "Sektor: Facharzt · Fachrichtung: HNO · Privater Kontakt",
@@ -726,12 +725,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://hno-farmsen.de/wp-content/uploads/2019/02/HNO-PRAXIS-FARMSEN_Aerzte_Dr_Brocks_Dr_Loeber-1.jpg",
     "sources": [
       "https://hno-farmsen.de/"
-    ]
+    ],
+    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)"
   },
   {
     "id": "contact-028",
     "name": "Jana Husemann",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis St. Pauli",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: Meierhofer · Frank, Timo",
@@ -753,12 +752,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxis-st-pauli.de/__we_thumbs__/12/288_P1040283.webp",
     "sources": [
       "https://www.praxis-st-pauli.de/de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-029",
     "name": "Dr. med. Ulrich Tappe",
-    "title": "Gastroenterologie",
     "category": "Praxis",
     "organization": "Gastro Praxis Hamm",
     "topic": "Sektor: Facharzt · Fachrichtung: Gastroenterologie · Primärsystem: medatixx isy.net · Privater Kontakt",
@@ -780,12 +779,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.gastro-praxis-hamm.de/content/1-startseite/gastropraxis_dr-delker-dr_tappe-001.jpg",
     "sources": [
       "https://www.gastro-praxis-hamm.de/"
-    ]
+    ],
+    "specialty": "Gastroenterologie"
   },
   {
     "id": "contact-030",
     "name": "Dr. Marcus Rothsching",
-    "title": "Diabetologie",
     "category": "Praxis",
     "organization": "Diabetologie Dr. Rothsching",
     "topic": "Sektor: Facharzt · Fachrichtung: Diabetologie · Primärsystem: Medical Office · Privater Kontakt",
@@ -807,12 +806,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.diabetologie-rothsching.de/"
-    ]
+    ],
+    "specialty": "Diabetologie"
   },
   {
     "id": "contact-031",
     "name": "Florian Rau",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis im Zetrum Harsefeld",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: SAP is.h · Privater Kontakt",
@@ -834,12 +833,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxis-im-zentrum-harsefeld.de/wp-content/uploads/2026/02/team-praxis-im-zentrum-2048x1471.png.pagespeed.ce.lDqKfoggZT.png",
     "sources": [
       "https://www.praxis-im-zentrum-harsefeld.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-032",
     "name": "Pascal Nohl-Deryk",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärztliche Gemeinschaftspraxis Drs. Hestermann-Menzer",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Privater Kontakt",
@@ -861,12 +860,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://drs-hestermann-menzer.de/wp-content/uploads/2020/10/prax_inh-e1603535415823-900x423.jpg",
     "sources": [
       "https://drs-hestermann-menzer.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-033",
     "name": "Moritz Eckert",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarzt Herzberg",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: Duria · Privater Kontakt",
@@ -888,12 +887,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://image.jimcdn.com/app/cms/image/transf/dimension=1920x1024:format=png/path/se54b5828f0346ddd/image/i87a2ced2118e7a27/version/1710772248/image.png",
     "sources": [
       "https://www.hausarzt-herzberg.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-034",
     "name": "Nicola Bühlinger Gopfart",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztzentrum Huchenfeld",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · Privater Kontakt",
@@ -915,12 +914,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://hausarztzentrum-huchenfeld.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-035",
     "name": "Dr. Jonas Fröhlich",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis Dr. Froehlich",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · HÄPPI",
@@ -942,12 +941,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.praxisfroehlichkl.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-036",
     "name": "Volker Thielmann",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Kirchener Gemeinschaftspraxis",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: tomedo · Privater Kontakt",
@@ -969,12 +968,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxis-kirchen.de/assets/images/8/IMG_0004-827a6b90.jpg",
     "sources": [
       "https://www.praxis-kirchen.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-037",
     "name": "Bahman Afzali",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "MVZ Hausarztmedizin Bedburg",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: tomedo · Privater Kontakt",
@@ -996,12 +995,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://mvzbedburg.de/wp-content/uploads/2023/02/20221115_docport_Bedburg_0335-scaled-1.jpeg",
     "sources": [
       "https://mvzbedburg.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-038",
     "name": "Dr. Thomas Mai",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Lauterbach Dr. Mai & Dr. Lips",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · Privater Kontakt",
@@ -1023,12 +1022,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://hausarztpraxis-lauterbach.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-039",
     "name": "Sabine Maur",
-    "title": "Psychologische Psychotherapeutin",
     "category": "Praxis",
     "organization": "BAG Sabine Maur & Michael Kurt",
     "topic": "Sektor: Psychologie · Fachrichtung: Psychologische Psychotherapeutin · Primärsystem: medatixx · Privater Kontakt",
@@ -1050,12 +1049,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://image.jimcdn.com/app/cms/image/transf/dimension=99x1024:format=jpg/path/s38803484ae562712/image/i815568a079e951f6/version/1435425425/image.jpg",
     "sources": [
       "https://psychotherapie-mz.jimdofree.com/"
-    ]
+    ],
+    "specialty": "Psychologische Psychotherapie"
   },
   {
     "id": "contact-040",
     "name": "Dr. Roger Vogelmann",
-    "title": "Onkologie, Gastroenterologie",
     "category": "Praxis",
     "organization": "Mannheimer Onkologie Praxis",
     "topic": "Sektor: Facharzt · Fachrichtung: Onkologie, Gastroenterologie · Primärsystem: medatixx isy.net · Privater Kontakt",
@@ -1077,12 +1076,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.mannheimer-onkologie-praxis.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-041",
     "name": "Dr. med. Ingo Drehmer",
-    "title": "Urologie",
     "category": "Praxis",
     "organization": "Urologische Gemeinschaftspraxis",
     "topic": "Sektor: Facharzt · Fachrichtung: Urologie · Primärsystem: Duria · Kontakt über KV Hessen",
@@ -1104,12 +1103,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.urologie-odenwald.de/quality_auto/Drehmer.jpg",
     "sources": [
       "https://www.urologie-odenwald.de/"
-    ]
+    ],
+    "specialty": "Urologie"
   },
   {
     "id": "contact-042",
     "name": "Ivo Schmid",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärzte im Grillepark",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · Privater Kontakt",
@@ -1131,12 +1130,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.hausaerzte-im-grillepark.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-043",
     "name": "Dr. Ahmad Sirfy",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "smartpraxis",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: tomedo · Privater Kontakt",
@@ -1158,12 +1157,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.smartpraxis.de/wp-content/uploads/2021/12/smartpraxis_sirfy_muenchen_21.jpg",
     "sources": [
       "https://www.smartpraxis.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-044",
     "name": "Judith Mair",
-    "title": "Dermatologe",
     "category": "Praxis",
     "organization": "Dermatologie am Glacis",
     "topic": "Sektor: Hausarzt · Fachrichtung: Dermatologe · Primärsystem: Meierhofer · Frank, Timo",
@@ -1185,12 +1184,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://dermatologie-am-glacis.de/wp-content/smush-webp/2021/05/dermatologie-am-glacis-01.jpg.webp",
     "sources": [
       "https://dermatologie-am-glacis.de"
-    ]
+    ],
+    "specialty": "Dermatologie"
   },
   {
     "id": "contact-045",
     "name": "Nicolas Kahl",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Fischbach",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · Privater Kontakt",
@@ -1212,12 +1211,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://le-cdn.website-editor.net/md/and1/dms3rep/multi/opt/116982-1920w.jpeg",
     "sources": [
       "https://www.hausarzt-fischbach.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-046",
     "name": "Wolfgang Landendörfer",
-    "title": "Kinder- und Jugendmedizin",
     "category": "Praxis",
     "organization": "Kinderarztpraxis Tiergarten",
     "topic": "Sektor: Facharzt · Fachrichtung: Kinder- und Jugendmedizin · Primärsystem: CGM · Privater Kontakt",
@@ -1239,12 +1238,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://cdn.prod.website-files.com/65c217c19c71fdd17fa6ce76/65e889cad19c731bd8cdfcb4_Kinderarztpraxis-am-Tiergarten-Nuernberg_Team.webp",
     "sources": [
       "https://www.kinderarztpraxis-tiergarten.de/"
-    ]
+    ],
+    "specialty": "Kinder- und Jugendmedizin"
   },
   {
     "id": "contact-047",
     "name": "Philipp Weisser",
-    "title": "Radiologie",
     "category": "Praxis",
     "organization": "Radiologisches Zentrum",
     "topic": "Sektor: Facharzt · Fachrichtung: Radiologie · Primärsystem: medatixx isy.net · Privater Kontakt, Berufsverband Radiologie",
@@ -1266,12 +1265,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.rz-dietzenbach.de/"
-    ]
+    ],
+    "specialty": "Radiologie"
   },
   {
     "id": "contact-048",
     "name": "Stefan Spieren",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "DFGZ",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx isy.net · Privater Kontakt",
@@ -1293,12 +1292,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://spieren.de/wp-content/uploads/2024/09/IMG_3241-e1727005688707-1024x626.jpg",
     "sources": [
       "https://spieren.de/dfgz/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-049",
     "name": "Susanne Bublitz",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Gemeinschaftspraxis Pfedelbach",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx",
@@ -1320,12 +1319,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.gemeinschaftspraxis-pfedelbach.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-050",
     "name": "Dr. med. Martin Gunkel",
-    "title": "Kinderarzt",
     "category": "Praxis",
     "organization": "Kinderarztpraxis Pfungstadt",
     "topic": "Sektor: Kinderarzt · Fachrichtung: Kinderarzt · Primärsystem: Duria · Kontakt über KV Hessen",
@@ -1347,12 +1346,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.gunkel-rosenhagen.de/"
-    ]
+    ],
+    "specialty": "Kinder- und Jugendmedizin"
   },
   {
     "id": "contact-051",
     "name": "Nikolaus-Maria Brunn-Schulte-Wissing",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis Brunn-Schulte-Wissing",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Privater Kontakt",
@@ -1374,12 +1373,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.dr-bsw.de/wp-content/uploads/2019/02/og-image-bsw.jpg",
     "sources": [
       "https://www.dr-bsw.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-052",
     "name": "Tilo Schneider",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Gemeinschaftspraxis Schmarl / Hausärztliche Praxis Rostock Schmarl",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: Meierhofer · Frank, Timo",
@@ -1401,12 +1400,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://gemeinschaftspraxis-schmarl.de/wp-content/uploads/2022/12/Gemeinschaftspraxis-Schmarl-Dr-Schneider-600px.jpg",
     "sources": [
       "https://gemeinschaftspraxis-schmarl.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-053",
     "name": "Dr. med. Dipl. humanbiol. Christian von Mallinckrodt",
-    "title": "Pneumologe",
     "category": "Praxis",
     "organization": "Lungenfachzentrum Rhein-Main",
     "topic": "Sektor: Facharzt · Fachrichtung: Pneumologe · Primärsystem: Duria · Kontakt über KV Hessen",
@@ -1428,12 +1427,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.lungenfachzentrum-rheinmain.de/s/cc_images/cache_11192768.jpg?t=1465291727",
     "sources": [
       "https://www.lungenfachzentrum-rheinmain.de/"
-    ]
+    ],
+    "specialty": "Pneumologie"
   },
   {
     "id": "contact-054",
     "name": "Hans-Jürgen Bickmann",
-    "title": "Gynäkologie",
     "category": "Praxis",
     "organization": "Praxis Bickmann",
     "topic": "Sektor: Facharzt · Fachrichtung: Gynäkologie · Ärztlicher Beirat NRW",
@@ -1455,12 +1454,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.dr-bickmann.de/images/layout/gynaekologie-1.jpeg",
     "sources": [
       "https://www.dr-bickmann.de/"
-    ]
+    ],
+    "specialty": "Gynäkologie"
   },
   {
     "id": "contact-055",
     "name": "Mathias Heinicke",
-    "title": "Psychologischer Psychotherapeut",
     "category": "Praxis",
     "organization": "Praxis für Psychotherapie",
     "topic": "Sektor: Psychologie · Fachrichtung: Psychologischer Psychotherapeut · Primärsystem: medatixx · Privater Kontakt",
@@ -1482,12 +1481,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://vt-stuttgart.de/"
-    ]
+    ],
+    "specialty": "Psychologische Psychotherapie"
   },
   {
     "id": "contact-056",
     "name": "Dr. med. Jörg Sandmann",
-    "title": "Allgemeinmedizin, Urologie",
     "category": "Praxis",
     "organization": "Praxen am Dreilingsberg / Priwall",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin, Urologie · Privater Kontakt",
@@ -1509,12 +1508,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.arzt-travemuende.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-057",
     "name": "Elmar-Marc Bredl",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Gemeinschaftspraxis Hirtl/Brede",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: tomedo · Privater Kontakt",
@@ -1536,12 +1535,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://praxis-hirtl-brede.de/wp-content/uploads/2024/09/Aerzte-Brede-800x800.jpg",
     "sources": [
       "https://praxis-hirtl-brede.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-058",
     "name": "Christian Lübbers",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "HNO-Arzt Weilheim",
     "topic": "Sektor: Facharzt · Fachrichtung: Allgemeinmedizin · Privater Kontakt",
@@ -1563,12 +1562,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.hno-weilheim.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-059",
     "name": "Dr. med. Klaus-Jürgen Doubek",
-    "title": "Gynäkolgoie",
     "category": "Praxis",
     "organization": "Frauenarzt Wiesbaden",
     "topic": "Sektor: Facharzt · Fachrichtung: Gynäkolgoie · Primärsystem: Duria · Kontakt über KV Hessen",
@@ -1590,12 +1589,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.doubek.de/"
-    ]
+    ],
+    "specialty": "Gynäkologie"
   },
   {
     "id": "contact-060",
     "name": "Dr. Christian Sommerbrodt",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärztliche Gemeinschaftspraxis Sommerbrodt & Kollegen",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · KVH VV, Hausärzteverband-Vorstand, Podcast",
@@ -1617,12 +1616,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.sommerbrodt.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-061",
     "name": "Christian Sommerbrodt",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärztliche Praxis Sommerbrodt & Kollegen",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · Privater Kontakt",
@@ -1644,12 +1643,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.sommerbrodt.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-062",
     "name": "Dr. Christian Köhler",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "MEDICI WIESBADEN",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · Podcast",
@@ -1671,12 +1670,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://medici-wiesbaden.com/wp-content/uploads/2023/10/Doc_CK3.jpeg",
     "sources": [
       "https://medici-wiesbaden.com/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-063",
     "name": "Rita Bangert-Semb",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarzt-Zentrum Wiesloch",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: EVA, abasoft · Privater Kontakt",
@@ -1698,12 +1697,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.hausarzt-zentrum.com/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-064",
     "name": "Kristina Spöhrer",
-    "title": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis Am Bahnhof",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: Meierhofer · Frank, Timo",
@@ -1725,12 +1724,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxisambahnhofwinsen.de/s/cc_images/cache_44449940.jpg?t=1732026735",
     "sources": [
       "https://www.praxisambahnhofwinsen.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-065",
     "name": "Henning Koch",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Sana Prävention Hamburg",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -1752,12 +1751,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://sana-praevention.de/wp-content/uploads/2024/11/hamburg-slider-1.jpg",
     "sources": [
       "https://sana-praevention.de/unser-standort-hamburg/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-066",
     "name": "Stefan Vlaho",
-    "title": "Kinder- und Jugendmedizin",
     "category": "Krankenhaus",
     "organization": "Kinderklinik",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Kinder- und Jugendmedizin · Privater Kontakt",
@@ -1779,12 +1778,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.innklinikum.de/fileadmin/user_upload/Altoetting/Paed/Bilder/vlaho-02.png",
     "sources": [
       "https://www.innklinikum.de/medizin-standorte/medizinangebot-von-a-z/zentrum-fuer-kinder-und-jugendmedizin-altoetting"
-    ]
+    ],
+    "specialty": "Kinder- und Jugendmedizin"
   },
   {
     "id": "contact-067",
     "name": "Dr. Susanne Reger-Tan",
-    "title": "Diabetologie",
     "category": "Krankenhaus",
     "organization": "Herz- und Diabeteszentrum (HDZ NRW)",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Diabetologie · Primärsystem: Orbis · Privater Kontakt",
@@ -1806,12 +1805,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.hdz-nrw.de/fileadmin/_processed_/8/8/csm_Reger-Tan_Susanne_H%C3%BCbbe_e20b3c708a.jpg",
     "sources": [
       "https://www.hdz-nrw.de/"
-    ]
+    ],
+    "specialty": "Diabetologie"
   },
   {
     "id": "contact-068",
     "name": "Antonia Hohe",
-    "title": "- | Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Alexianer",
     "topic": "Sektor: Krankenhaus · Fachrichtung: - | Unfallchirurgie · Primärsystem: - | Meierhofer · Privater Kontakt | Frank, Timo",
@@ -1833,12 +1832,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.alexianer-berlin-hedwigkliniken.de/fileadmin/_processed_/9/5/csm_Berlin_St-Hedwig-Krankenhaus_Eingangsportal_f2e06f7293.jpg",
     "sources": [
       "https://www.alexianer-berlin-hedwigkliniken.de"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-069",
     "name": "BG Klinikum Berlin",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "BG Klinikum Berlin",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -1860,12 +1859,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.bg-kliniken.de/fileadmin/08_Berlin/Bilder/angepasst_DSC_04921.jpg",
     "sources": [
       "https://www.bg-kliniken.de/unfallkrankenhaus-berlin/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-070",
     "name": "Dr. Peter Gocke",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Charité",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -1887,12 +1886,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.charite.de/fileadmin/_processed_/6/2/csm_Peter-Gocke_400d0a031e.jpg",
     "sources": [
       "https://www.charite.de"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-071",
     "name": "Peter Gocke",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Charité Berlin",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -1914,12 +1913,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.charite.de/fileadmin/_processed_/6/2/csm_Peter-Gocke_400d0a031e.jpg",
     "sources": [
       "https://www.charite.de"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-072",
     "name": "Steffen Ott",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "DRK Kliniken Berlin",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -1941,12 +1940,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.drk-kliniken-berlin.de/fileadmin/_processed_/6/8/csm_md_allgemein_300dpi_2021__17__sRGB_87b2eaf70d.jpg",
     "sources": [
       "https://www.drk-kliniken-berlin.de"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-073",
     "name": "Ferdinand Nietschke",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Helios Klinik Berlin Buch",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -1968,12 +1967,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.helios-gesundheit.de/standorte-angebote/kliniken/berlin-buch/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-074",
     "name": "Jan Schuster",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Helios Klinikum Berlin-Buch",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -1995,12 +1994,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.helios-gesundheit.de/standorte-angebote/kliniken/berlin-buch/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-075",
     "name": "Franziska Gerken",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Vivantes",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2022,12 +2021,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.vivantes.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-076",
     "name": "Tobias Meixner",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Vivantis Kliniken Berlin",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -2049,12 +2048,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.vivantes.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-077",
     "name": "Andreas Kocks",
-    "title": "Pflege | Allgemeinmedizin",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Bonn (UKB)",
     "topic": "Sektor: Krankenhaus | Hausarzt · Fachrichtung: Pflege | Allgemeinmedizin · Primärsystem: Meierhofer · Frank, Timo",
@@ -2076,12 +2075,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.ukbonn.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-078",
     "name": "David Senf-Mothes",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UK Dresden",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2103,12 +2102,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.uniklinikum-dresden.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-079",
     "name": "Armin de Greiff",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UK Essen",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2130,12 +2129,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.uk-essen.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-080",
     "name": "Anke Diehl",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Essen (AöR)",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -2157,12 +2156,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.uk-essen.de/wp-content/uploads/2023/12/Diehl_web-500x500.jpg",
     "sources": [
       "https://www.uk-essen.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-081",
     "name": "Jana Aulenkamp",
-    "title": "Allgemeinmedizin",
     "category": "Krankenhaus",
     "organization": "Universitätsmedizin Essen (UME)",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Allgemeinmedizin · Privater Kontakt",
@@ -2184,12 +2183,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.ume.de/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-082",
     "name": "Kerstin Ganskopf",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Fördeklinikum Flensburg",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -2211,12 +2210,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.foerdeklinikum.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-083",
     "name": "Dr. Michael von Wagner",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UK Frankfurt",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2238,12 +2237,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.unimedizin-ffm.de/fileadmin/_processed_/5/2/csm_von_Wagner_M_5f49eb6e6f.jpg",
     "sources": [
       "https://www.unimedizin-ffm.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-084",
     "name": "Prof. Dr. Sebastian Kuhn",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UK Gießen-Marburg",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2265,12 +2264,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.ukgm.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-085",
     "name": "Jens Schneider",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UK Halle",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2292,12 +2291,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.umh.de/fileadmin/_processed_/e/7/csm_Herr_Schneider_J_1_zu_3_print_3dfb755799.jpg",
     "sources": [
       "https://www.umh.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-086",
     "name": "Christian Schöps",
-    "title": "Neurologie",
     "category": "Krankenhaus",
     "organization": "Albertinen Krankenhaus",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Neurologie · Primärsystem: iMedOne · Privater Kontakt",
@@ -2319,12 +2318,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://albertinen.de"
-    ]
+    ],
+    "specialty": "Neurologie"
   },
   {
     "id": "contact-087",
     "name": "Fritz Arndt",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Asklepios",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2346,12 +2345,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.asklepios.com/hamburg/nord/heidberg/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-088",
     "name": "Fabian Linke",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Krankenhaus St. Adolf- Stift Reinbek",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -2373,12 +2372,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.krankenhaus-reinbek.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-089",
     "name": "Ann-Kathrin Lange",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UKE",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2400,12 +2399,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.uke.de/indexb%C3%BChne/slider_startseite/tag-und-nacht/uke_header_startseite_30aug2021_buehnenbild_startseite_morgen_buehnenbild_startseite.jpg",
     "sources": [
       "https://www.uke.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-090",
     "name": "Matthias Pump",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UK Heidelberg",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2427,12 +2426,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.klinikum.uni-heidelberg.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-091",
     "name": "Moritz Völker",
-    "title": "",
     "category": "Krankenhaus",
     "organization": "Gemeinschaftskrankenhaus Herdecke",
     "topic": "Sektor: Krankenhaus · Kontakt über Bertelsmann 30u40",
@@ -2454,12 +2453,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.gemeinschaftskrankenhaus.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-092",
     "name": "Klinikum Karlsruhe",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Klinikum Karlsruhe",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -2481,12 +2480,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.klinikum-karlsruhe.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-093",
     "name": "Kai Käßhöfer",
-    "title": "Allgemeinmedizin | Psychotherapie | Psychiatrie | Labor",
     "category": "Krankenhaus",
     "organization": "Vorstand Stadtmission Karlsruhe",
     "topic": "Sektor: Pflege | Psychotherapie | Krankenhaus | Labor · Fachrichtung: Allgemeinmedizin | Psychotherapie | Psychiatrie | Labor · Primärsystem: Meierhofer · Frank, Timo",
@@ -2508,12 +2507,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://karlsruher-stadtmission.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-094",
     "name": "Rudolf Dück",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UKSH",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2535,12 +2534,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.uksh.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-095",
     "name": "Sana Dreifaltigkeitsklinik Köln",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Sana Dreifaltigkeitsklinik Köln",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -2562,12 +2561,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.sana.de/koeln"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-096",
     "name": "Thomas Faust",
-    "title": "GF",
     "category": "Krankenhaus",
     "organization": "Krankenhaus Eichhof",
     "topic": "Sektor: Krankenhaus · Fachrichtung: GF · Privater Kontakt",
@@ -2589,12 +2588,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.eichhof-online.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-097",
     "name": "Dr. Carolin Fuchs",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Uniklinik Leipzig",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2616,12 +2615,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.uniklinikum-leipzig.de/einrichtungen/bereich-6/PublishingImages/Carolin_Fuchs.jpg?RenditionID=5",
     "sources": [
       "https://www.uniklinikum-leipzig.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-098",
     "name": "Jörg Studzinski",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Uniklinikum Leipzig",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -2643,12 +2642,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.uniklinikum-leipzig.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-099",
     "name": "Städtische Kliniken Mönchengladbach GmbH",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Städtische Kliniken Mönchengladbach GmbH",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Wahle, Laila",
@@ -2670,12 +2669,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.sk-mg.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-100",
     "name": "Dr. Kurt Kruber",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "LMU",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2697,12 +2696,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.lmu-klinikum.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-101",
     "name": "Matthias Keller",
-    "title": "Psychologische Psychotherapeutin | Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Kinderklinik Passau",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Psychologische Psychotherapeutin | Unfallchirurgie · Primärsystem: medatixx | Meierhofer · Privater Kontakt | Frank, Timo",
@@ -2724,12 +2723,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://kinderklinik-passau.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-102",
     "name": "Dr. Michael Bayeff-Filoff",
-    "title": "Dr. Michael Bayeff-Filoff",
     "category": "Krankenhaus",
     "organization": "RoMed Klinikum",
     "topic": "Sektor: Krankenhaus · Privater Kontakt Frank, Timo",
@@ -2751,12 +2750,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.romed-kliniken.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-103",
     "name": "Sandra Baskiewicz",
-    "title": "Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "UK Tübingen",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2778,12 +2777,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.medizin.uni-tuebingen.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-104",
     "name": "Nicolas Conze",
-    "title": "Allgemeinmedizin",
     "category": "Krankenhaus",
     "organization": "Helios Klinikum Niederberg",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Allgemeinmedizin · Primärsystem: SAP is.h · Privater Kontakt",
@@ -2805,12 +2804,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.helios-gesundheit.de/standorte-angebote/kliniken/niederberg/"
-    ]
+    ],
+    "specialty": "Allgemeinmedizin"
   },
   {
     "id": "contact-105",
     "name": "Arne Evers",
-    "title": "Pflege | Orthopädie",
     "category": "Krankenhaus",
     "organization": "St. Josefs Hospital",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Pflege | Orthopädie · Primärsystem: Orbis · Privater Kontakt",
@@ -2832,12 +2831,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.joho.de/fileadmin/_processed_/d/5/csm_WI2025_Shooting1_Arne_Evers_PD14_e191740198.jpg",
     "sources": [
       "https://www.joho.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-106",
     "name": "Tilly Duderstadt",
-    "title": "HIV",
     "category": "Apotheke",
     "organization": "Nordring Apotheke",
     "topic": "Sektor: Apotheke · Fachrichtung: HIV · Privater Kontakt",
@@ -2859,12 +2858,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.apothekerinnen-kongress.de/wp-content/uploads/2025/05/Tilly-Duderstadt.png",
     "sources": [
       "https://nordring-apotheke-berlin.de/"
-    ]
+    ],
+    "specialty": "HIV/Infektiologie"
   },
   {
     "id": "contact-107",
     "name": "Reik Hofmann",
-    "title": "HIV | Unfallchirurgie",
     "category": "Apotheke",
     "organization": "Witzleben Apotheke",
     "topic": "Sektor: Apotheke · Fachrichtung: HIV | Unfallchirurgie · Primärsystem: - | Meierhofer · Privater Kontakt | Frank, Timo",
@@ -2886,12 +2885,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://shop.witzleben-apotheke.de/documents/products/Statisch/01%20Startseite/02%20%C3%9Cber%20uns/apotheke-witzleben-apotheke-26.jpg?ver=1758025588",
     "sources": [
       "https://witzleben-apotheke.de/"
-    ]
+    ],
+    "specialty": ""
   },
   {
     "id": "contact-108",
     "name": "Sabine Haul",
-    "title": "Unfallchirurgie",
     "category": "Apotheke",
     "organization": "Elefanten-Apotheke",
     "topic": "Sektor: Apotheke · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2913,12 +2912,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://elefantenapotheke-hamburg.de"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-109",
     "name": "Benedikt Bühler",
-    "title": "Unfallchirurgie",
     "category": "Apotheke",
     "organization": "Apotheke Tübingen",
     "topic": "Sektor: Apotheke · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2940,12 +2939,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.apotheke-tuebingen.de"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-110",
     "name": "Stefanie Röseler",
-    "title": "Unfallchirurgie",
     "category": "Pflege",
     "organization": "Pflegedienstleiterin Sozialstation Heerstraße Nord",
     "topic": "Sektor: Pflege · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2967,12 +2966,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://foev-verbund.de/wp-content/uploads/2020/08/foev-stefanie-roesler.jpg",
     "sources": [
       "https://foev-verbund.de/hauskrankenpflege-spandau/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-111",
     "name": "Fabiola Meier",
-    "title": "Unfallchirurgie",
     "category": "Pflege",
     "organization": "Caritasverband Landkreis Kronach",
     "topic": "Sektor: Pflege · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -2994,12 +2993,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://caritas-kronach.de/medien/20b4d469-2c2f-4e92-adca-8c5cae805276/fotowand_caritas.jpg?width=2000",
     "sources": [
       "https://caritas-kronach.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-112",
     "name": "Andreas Bronner",
-    "title": "Unfallchirurgie",
     "category": "Pflege",
     "organization": "Sozialstation Raum Oberndorf gGmbH",
     "topic": "Sektor: Pflege · Fachrichtung: Unfallchirurgie · Primärsystem: Meierhofer · Frank, Timo",
@@ -3021,12 +3020,12 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.sozialstation-rwob.de/wp-content/uploads/2206_Sozialstation_Oberndorf_Corporate-14-scaled.jpg",
     "sources": [
       "https://www.sozialstation-rwob.de/"
-    ]
+    ],
+    "specialty": "Orthopädie und Unfallchirurgie"
   },
   {
     "id": "contact-113",
     "name": "Stephan Graue",
-    "title": "Pflege",
     "category": "Pflege",
     "organization": "Evangelischen Pflege Diakonie Vohwinkel gGmbH",
     "topic": "Sektor: Pflege · Fachrichtung: Pflege · Primärsystem: medatixx isy.net · Privater Kontakt",
@@ -3048,6 +3047,7 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.diakonie-vohwinkel.de/fileadmin/Content/Contentbilder/Ambulanter_Dienst/Content2024/Content_AD_6K1A6889.jpg",
     "sources": [
       "https://www.diakonie-vohwinkel.de/"
-    ]
+    ],
+    "specialty": ""
   }
 ];

@@ -16,7 +16,8 @@
     "better-sqlite3": "^11.8.1",
     "next": "^15.2.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "read-excel-file": "^9.0.9"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

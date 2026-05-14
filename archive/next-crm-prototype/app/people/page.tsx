@@ -37,9 +37,14 @@ export default async function PeoplePage({
       subtitle="Verwalten Sie alle Kontakte in Ihrem CRM-System."
       currentPath="/people"
       headerActions={
-        <Link className="button button-primary" href="/people/new">
-          + Person
-        </Link>
+        <>
+          <Link className="button button-secondary" href="/people/import">
+            Kontakte importieren
+          </Link>
+          <Link className="button button-primary" href="/people/new">
+            + Person
+          </Link>
+        </>
       }
     >
       <SaveToast saved={saved} />
