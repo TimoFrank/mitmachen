@@ -1041,14 +1041,14 @@
       .filter-toolbar {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 10px;
         flex-wrap: wrap;
-        min-height: 60px;
-        padding: 12px 16px;
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
-        box-shadow: 0 8px 24px rgba(49, 75, 153, 0.05);
+        min-height: 38px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
       }
 
       .filter-toolbar-spacer {
@@ -1057,17 +1057,17 @@
       }
 
       .filter-results {
-        color: #546491;
-        font-size: 0.92rem;
+        color: #1f3270;
+        font-size: 0.88rem;
         font-weight: 800;
         white-space: nowrap;
         margin-left: auto;
       }
 
       .active-filter-label {
-        color: #47598b;
-        font-size: 0.86rem;
-        font-weight: 800;
+        color: #64719b;
+        font-size: 0.78rem;
+        font-weight: 850;
         white-space: nowrap;
       }
 
@@ -1084,14 +1084,14 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        min-height: 36px;
-        padding: 0 12px;
-        border: 1px solid #d8e1fb;
+        min-height: 30px;
+        padding: 0 7px 0 10px;
+        border: 1px solid #d9e2f7;
         border-radius: 999px;
-        background: #ffffff;
-        color: #30447f;
-        font-size: 0.86rem;
-        font-weight: 700;
+        background: #f7faff;
+        color: #384d86;
+        font-size: 0.76rem;
+        font-weight: 800;
       }
 
       .active-filter-chip button {
@@ -1100,7 +1100,7 @@
         padding: 0;
         border: 0;
         border-radius: 999px;
-        background: #edf3ff;
+        background: rgba(54, 82, 165, 0.1);
         color: inherit;
         cursor: pointer;
       }
@@ -1591,12 +1591,13 @@
       .contacts-table .thead,
       .contacts-table .row {
         grid-template-columns:
-          56px
-          minmax(270px, 1.35fr)
-          minmax(280px, 1.12fr)
-          minmax(180px, 0.8fr)
-          minmax(250px, 1.02fr)
-          minmax(190px, 0.86fr);
+          minmax(235px, 1.25fr)
+          minmax(220px, 1.05fr)
+          minmax(135px, 0.7fr)
+          minmax(190px, 0.9fr)
+          minmax(145px, 0.72fr)
+          minmax(150px, 0.72fr)
+          minmax(130px, 0.6fr);
       }
 
       .controls {
@@ -1606,9 +1607,31 @@
 
       .controls-stack {
         display: grid;
-        gap: 12px;
+        grid-template-columns: minmax(320px, 1fr) auto;
+        gap: 10px 12px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #dce3f5;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 8px 22px rgba(26, 37, 89, 0.05);
       }
 
+      .controls-stack .search-shell {
+        min-height: 42px;
+        border-radius: 7px;
+        box-shadow: none;
+      }
+
+      .controls-stack .filter-toolbar {
+        grid-column: 1 / -1;
+      }
+
+      .controls-stack .filter-panel-button {
+        min-height: 38px;
+        border-radius: 7px;
+        box-shadow: none;
+      }
 
       .filters-row {
         display: flex;
@@ -1976,38 +1999,39 @@
       .table-wrap {
         border-top: 1px solid var(--line);
         overflow: auto;
-        background:
-          linear-gradient(180deg, rgba(238, 242, 255, 0.7) 0%, rgba(255, 255, 255, 0.9) 100%);
+        background: #ffffff;
       }
 
       .table {
-        min-width: 1360px;
+        min-width: 1180px;
       }
 
       .thead,
       .row {
         display: grid;
         grid-template-columns:
-          56px
-          minmax(250px, 1.25fr)
-          minmax(250px, 1.05fr)
-          minmax(180px, 0.78fr)
-          minmax(230px, 0.98fr)
-          minmax(190px, 0.86fr);
+          minmax(235px, 1.25fr)
+          minmax(220px, 1.05fr)
+          minmax(135px, 0.7fr)
+          minmax(190px, 0.9fr)
+          minmax(145px, 0.72fr)
+          minmax(150px, 0.72fr)
+          minmax(130px, 0.6fr);
         align-items: center;
       }
 
       .thead {
-        min-height: 58px;
+        min-height: 44px;
         position: sticky;
         top: 0;
         z-index: 5;
         border-bottom: 1px solid var(--line);
-        background: #f4f6ff;
+        background: #f8faff;
         color: #243271;
-        font-size: 0.84rem;
+        font-size: 0.76rem;
         font-weight: 800;
-        letter-spacing: -0.01em;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
       }
 
       .thead > div,
@@ -2015,7 +2039,7 @@
         min-height: 100%;
         display: flex;
         align-items: center;
-        padding: 9px 14px;
+        padding: 8px 12px;
         border-right: 1px solid #e4e8fb;
       }
 
@@ -2212,10 +2236,10 @@
       }
 
       .row {
-        min-height: 52px;
-        background: rgba(255, 255, 255, 0.88);
+        min-height: 58px;
+        background: #ffffff;
         border-bottom: 1px solid #e8ecfb;
-        font-size: 0.91rem;
+        font-size: 0.88rem;
         transition: background-color 160ms ease, transform 160ms ease;
         cursor: pointer;
       }
@@ -2225,8 +2249,8 @@
       }
 
       .row.is-active {
-        background: #edf5ff;
-        box-shadow: inset 0 0 0 1px #88bcff;
+        background: #f2f7ff;
+        box-shadow: inset 3px 0 0 #155fe4, inset 0 0 0 1px #b7d2ff;
       }
 
       .index-cell {
@@ -2298,21 +2322,74 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 32px;
-        min-width: 104px;
-        padding: 0 14px;
+        min-height: 28px;
+        min-width: 0;
+        padding: 0 9px;
         border-radius: 999px;
-        background: #eef3ff;
-        color: #37529d;
-        font-size: 0.82rem;
+        background: #f2f5ff;
+        color: #43558c;
+        font-size: 0.76rem;
         font-weight: 700;
         line-height: 1.2;
         white-space: nowrap;
       }
 
       .contact-owner-chip--empty {
-        background: #fff5e9;
-        color: #9b6a1d;
+        background: #fff8ee;
+        color: #8a641f;
+      }
+
+      .contact-sector-pill,
+      .contact-priority-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        max-width: 100%;
+        padding: 0 9px;
+        border: 1px solid #dce4f6;
+        border-radius: 999px;
+        background: #f8faff;
+        color: #3f4f80;
+        font-size: 0.76rem;
+        font-weight: 750;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .contact-priority-pill {
+        border-color: transparent;
+        background: transparent;
+        color: #6b7498;
+        padding-inline: 0;
+      }
+
+      .contact-priority-pill::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        margin-right: 7px;
+        border-radius: 999px;
+        background: #9aa4c2;
+      }
+
+      .contact-priority-pill--high::before {
+        background: #c8614b;
+      }
+
+      .contact-priority-pill--medium::before {
+        background: #c59a32;
+      }
+
+      .contact-priority-pill--low::before {
+        background: #4a9b66;
+      }
+
+      .contact-date {
+        color: #667399;
+        font-size: 0.8rem;
+        font-weight: 700;
+        white-space: nowrap;
       }
 
       .row-editor {
@@ -2507,7 +2584,7 @@
         position: absolute;
         top: 0;
         right: 0;
-        width: min(660px, 100%);
+        width: min(560px, 100%);
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -2521,7 +2598,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 16px 18px;
+        padding: 12px 16px;
         border-bottom: 1px solid var(--line);
         position: sticky;
         top: 0;
@@ -2542,18 +2619,18 @@
       }
 
       .detail-close {
-        width: 44px;
-        height: 44px;
+        width: 36px;
+        height: 36px;
         border: 0;
-        border-radius: 14px;
-        background: #eaedff;
+        border-radius: 8px;
+        background: #f2f5ff;
         color: var(--text);
-        font-size: 1.35rem;
+        font-size: 1.12rem;
         cursor: pointer;
       }
 
       .detail-content {
-        padding: 16px 18px 24px;
+        padding: 16px;
       }
 
       .detail-bottom-actions {
@@ -3045,9 +3122,9 @@
 
       .detail-profile-top {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         align-items: start;
-        gap: 18px;
+        gap: 12px;
       }
 
       .detail-profile-side {
@@ -3066,9 +3143,9 @@
 
       .detail-profile-main .avatar,
       .detail-profile-main img.avatar {
-        width: 72px;
-        height: 72px;
-        border-radius: 20px;
+        width: 62px;
+        height: 62px;
+        border-radius: 16px;
         box-shadow: 0 14px 30px rgba(42, 72, 156, 0.14);
       }
 
@@ -3078,9 +3155,9 @@
 
       .detail-profile-copy h3 {
         margin: 0;
-        font-size: clamp(1.34rem, 1.8vw, 1.78rem);
+        font-size: 1.36rem;
         line-height: 1.08;
-        letter-spacing: -0.05em;
+        letter-spacing: -0.035em;
       }
 
       .detail-profile-role {
@@ -3115,7 +3192,7 @@
       .detail-facts-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
+        gap: 10px;
       }
 
       .detail-profile-grid {
@@ -3175,9 +3252,9 @@
       }
 
       .detail-section-title {
-        margin: 0 0 10px;
+        margin: 0 0 8px;
         color: #243271;
-        font-size: 0.84rem;
+        font-size: 0.76rem;
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -3185,8 +3262,8 @@
 
       .detail-communication-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
+        grid-template-columns: 1fr;
+        gap: 8px;
       }
 
       .detail-communication-grid .detail-info-card {
@@ -3199,20 +3276,20 @@
 
       .detail-context-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
+        grid-template-columns: 1fr;
+        gap: 8px;
       }
 
       .detail-info-card {
         position: relative;
-        min-height: 120px;
-        padding: 18px 18px 16px;
+        min-height: 0;
+        padding: 12px;
         border: 1px solid var(--line);
-        border-radius: 16px;
+        border-radius: 8px;
         background: rgba(255, 255, 255, 0.96);
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
       }
 
       .detail-info-card--span-full {
@@ -3227,22 +3304,22 @@
 
       .detail-info-card--owner {
         border-color: #c9dbff;
-        background: linear-gradient(180deg, #edf4ff 0%, #dce9ff 100%);
-        box-shadow: 0 16px 32px rgba(61, 105, 212, 0.14);
+        background: #f5f8ff;
+        box-shadow: none;
       }
 
       .detail-info-card--missing {
-        border-color: #f2d7bb;
-        background: linear-gradient(180deg, #fffaf2 0%, #fff6ea 100%);
+        border-color: #eadfca;
+        background: #fffaf2;
       }
 
       .detail-info-card--priority {
-        min-height: 120px;
-        padding: 22px 18px 18px;
+        min-height: 0;
+        padding: 12px;
       }
 
       .detail-info-card--priority .detail-select-shell {
-        margin-top: 20px;
+        margin-top: 8px;
       }
 
       .detail-info-card--priority-high {
@@ -3264,13 +3341,43 @@
         background: rgba(255, 255, 255, 0.8);
       }
 
+      @media (min-width: 1024px) {
+        body.detail-open .wrap {
+          padding-right: 442px;
+        }
+
+        body.detail-open .view-card {
+          box-shadow: 0 10px 24px rgba(26, 37, 89, 0.05);
+        }
+
+        .detail-drawer.is-open {
+          display: block;
+          inset: 70px 0 0 auto;
+          width: 420px;
+          pointer-events: none;
+        }
+
+        .detail-drawer.is-open .detail-overlay {
+          display: none;
+        }
+
+        .detail-drawer.is-open .detail-panel {
+          width: 420px;
+          pointer-events: auto;
+          border-left: 1px solid #dce3f5;
+          box-shadow: -12px 0 28px rgba(16, 27, 80, 0.08);
+        }
+      }
+
       .detail-info-head {
         display: flex;
         align-items: center;
         gap: 8px;
         color: #61709f;
-        font-size: 0.8rem;
+        font-size: 0.74rem;
         font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
       }
 
       .detail-info-head .field-icon,
@@ -3290,10 +3397,97 @@
         font-weight: 500;
       }
 
+      .detail-tabs {
+        position: sticky;
+        top: 61px;
+        z-index: 2;
+        display: flex;
+        gap: 6px;
+        margin: 14px -16px 0;
+        padding: 8px 16px;
+        border-top: 1px solid #eef2fb;
+        border-bottom: 1px solid #eef2fb;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        overflow-x: auto;
+      }
+
+      .detail-tab {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #5f6e9d;
+        font-size: 0.76rem;
+        font-weight: 850;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .detail-tab.is-active,
+      .detail-tab:hover {
+        background: #edf3ff;
+        color: #244ba4;
+      }
+
+      .detail-missing-summary {
+        padding: 10px 12px;
+        border: 1px solid #eadfca;
+        border-radius: 8px;
+        background: #fffaf2;
+        color: #735728;
+        font-size: 0.82rem;
+        font-weight: 750;
+        line-height: 1.42;
+      }
+
+      .detail-missing-summary strong {
+        color: #503a16;
+      }
+
+      .detail-compact-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .detail-compact-row {
+        display: grid;
+        grid-template-columns: 116px minmax(0, 1fr);
+        gap: 10px;
+        align-items: baseline;
+        min-height: 28px;
+        color: #253777;
+        font-size: 0.86rem;
+        line-height: 1.35;
+      }
+
+      .detail-compact-row span:first-child {
+        color: #6a759b;
+        font-size: 0.74rem;
+        font-weight: 850;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .detail-compact-row a {
+        color: #1f5ed9;
+        text-decoration: none;
+        font-weight: 750;
+        overflow-wrap: anywhere;
+      }
+
+      .detail-secondary {
+        color: #6b759b;
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
       .detail-static-value {
-        margin-top: 12px;
+        margin-top: 8px;
         color: #203165;
-        font-size: 0.95rem;
+        font-size: 0.88rem;
         font-weight: 800;
       }
 
@@ -6431,7 +6625,12 @@
 
         .controls-stack {
           display: grid;
+          grid-template-columns: 1fr;
           gap: 10px;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
         }
 
         .search-shell {
@@ -7569,12 +7768,13 @@
               <div class="table-wrap">
                 <section class="table contacts-table" aria-labelledby="kontaktliste-title">
                   <div class="thead">
-                    <div>#</div>
                     <div>Name</div>
                     <div>Organisation</div>
                     <div>Sektor</div>
                     <div>Fachrichtung</div>
+                    <div>Ort</div>
                     <div>Owner</div>
+                    <div>Aktualisiert</div>
                   </div>
                   <div id="contact-list"></div>
                 </section>
@@ -10373,9 +10573,8 @@
         } else {
           list.innerHTML = pageItems
             .map(
-              (contact, index) => `
+              (contact) => `
               <article class="row ${contact.id === activeId ? "is-active" : ""}" data-id="${contact.id}" tabindex="0">
-                <div class="index-cell">${startIndex + index + 1}</div>
                 <div class="contact-cell">
                   ${
                     contact.image
@@ -10385,30 +10584,27 @@
                   <div class="contact-meta">
                     <div class="contact-name__line">
                       <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${contact.name || "&mdash;"}</button>
-                      <button
-                        class="favorite-star ${favorites.has(contact.id) ? "is-active" : ""}"
-                        type="button"
-                        data-id="${contact.id}"
-                        aria-label="${favorites.has(contact.id) ? "Favorit entfernen" : "Als Favorit markieren"}"
-                      >
-                        <svg viewBox="0 0 24 24" fill="${favorites.has(contact.id) ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                          <path d="m12 3.8 2.55 5.16 5.7.83-4.13 4.03.98 5.68L12 16.78l-5.1 2.72.98-5.68L3.75 9.8l5.7-.83L12 3.8Z"></path>
-                        </svg>
-                      </button>
                     </div>
+                    <div class="contact-subline">${[meaningfulOrEmpty(contact.topic), normalizedPriorityValue(contact.priority) ? `Priorität ${contact.priority}` : ""].filter(Boolean).join(" · ")}</div>
                   </div>
                 </div>
                 <div>
                   <div class="contact-subline contact-subline--primary">${contact.organization || "Nicht dokumentiert"}</div>
                 </div>
                 <div>
-                  <div class="contact-subline contact-subline--primary">${categoryEmoji[contact.category] || "•"} ${contact.category || "Nicht dokumentiert"}</div>
+                  <span class="contact-sector-pill">${contact.category || "Nicht dokumentiert"}</span>
                 </div>
                 <div>
                   <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "-"}</div>
                 </div>
                 <div>
-                  <span class="contact-owner-chip ${meaningfulOrEmpty(contact.owner) ? "" : "contact-owner-chip--empty"}">${meaningfulOrEmpty(contact.owner) || "⚠ Kein Owner"}</span>
+                  <div class="contact-subline contact-subline--primary">${formatLocationDisplay(contact) || "-"}</div>
+                </div>
+                <div>
+                  <span class="contact-owner-chip ${meaningfulOrEmpty(contact.owner) ? "" : "contact-owner-chip--empty"}">${meaningfulOrEmpty(contact.owner) || "Kein Owner"}</span>
+                </div>
+                <div>
+                  <span class="contact-date">${formatDateLabel(contact.updatedAt || contact.createdAt) || "-"}</span>
                 </div>
               </article>
             `
@@ -12010,8 +12206,10 @@
       }
 
       function syncBodyScrollLock() {
+        const detailOpen = detailDrawer.classList.contains("is-open");
+        document.body.classList.toggle("detail-open", detailOpen);
         const overlayOpen =
-          detailDrawer.classList.contains("is-open") ||
+          (detailOpen && isMobileLayout()) ||
           editorDrawer.classList.contains("is-open") ||
           importDrawer.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
@@ -12041,6 +12239,26 @@
         const portraitMarkup = contact.image
           ? `<img class="avatar ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
           : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`;
+        const missingFields = [
+          !organizationLabel ? "Organisation" : "",
+          !locationText ? "Ort" : "",
+          !specialtyText ? "Fachrichtung" : "",
+          !ownerLabel ? "Owner" : "",
+          !hasMeaningfulValue(contact.email) ? "E-Mail" : "",
+          !hasMeaningfulValue(contact.phone) ? "Telefon" : "",
+          !linkedinUrl ? "LinkedIn" : ""
+        ].filter(Boolean);
+        const contactWays = [
+          hasMeaningfulValue(contact.email)
+            ? `<div class="detail-compact-row"><span>E-Mail</span><a href="mailto:${escapeHtml(contact.email)}">${escapeHtml(contact.email)}</a></div>`
+            : "",
+          hasMeaningfulValue(contact.phone)
+            ? `<div class="detail-compact-row"><span>Telefon</span><a href="tel:${escapeHtml(contact.phone)}">${escapeHtml(contact.phone)}</a></div>`
+            : "",
+          linkedinUrl
+            ? `<div class="detail-compact-row"><span>LinkedIn</span><a href="${escapeHtml(linkedinUrl)}" target="_blank" rel="noreferrer">Profil öffnen</a></div>`
+            : ""
+        ].filter(Boolean);
 
         activeId = contact.id;
         renderTable(currentItems);
@@ -12049,7 +12267,7 @@
 
         detailPanel.innerHTML = `
           <div class="detail-toolbar">
-            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Eintr&auml;gen</div>
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>
             <div class="detail-toolbar-actions">
               ${editable ? `<button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>` : ""}
               <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
@@ -12067,41 +12285,38 @@
                     <div class="detail-profile-subline">${[contact.category, specialtyText, locationText].filter(Boolean).join(" · ")}</div>
                   </div>
                 </div>
-                <div class="detail-profile-side">
-                  <article class="detail-info-card detail-info-card--owner">
-                    <div class="detail-info-head">
-                      <span class="field-icon">👤</span>
-                      <span>Owner</span>
-                    </div>
-                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="owner" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Owner zuordnen"${disabledAttr}>
-                        ${buildOwnerSelectOptions(ownerLabel)}
-                      </select>
-                    </div>
-                  </article>
-                </div>
               </section>
 
-              <section class="section-block">
+              <div class="detail-tabs" aria-label="Detailbereiche">
+                <button class="detail-tab is-active" type="button" data-scroll-detail="detail-overview">Überblick</button>
+                <button class="detail-tab" type="button" data-scroll-detail="detail-contactways">Kontaktwege</button>
+                <button class="detail-tab" type="button" data-scroll-detail="detail-themes">Themen</button>
+                <button class="detail-tab" type="button" data-scroll-detail="detail-notes">Notizen</button>
+                <button class="detail-tab" type="button" data-scroll-detail="detail-activity">Aktivitäten</button>
+              </div>
+
+              <section class="section-block" id="detail-overview">
                 <h4 class="detail-section-title">Stammdaten</h4>
+                ${
+                  missingFields.length
+                    ? `<div class="detail-missing-summary"><strong>Fehlende Angaben:</strong> ${missingFields.join(", ")}</div>`
+                    : `<div class="detail-missing-summary"><strong>Datenstatus:</strong> Die wichtigsten Angaben sind gepflegt.</div>`
+                }
                 <div class="detail-facts-grid">
                   <article class="detail-info-card">
                     <div class="detail-info-head">
-                      <span class="field-icon">🏢</span>
                       <span>Organisation</span>
                     </div>
                     <input class="detail-inline-input" id="detail-organization-input" type="text" value="${String(contact.organization || "").replace(/"/g, "&quot;")}" placeholder="Organisation eintragen"${disabledAttr} />
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
-                      <span class="field-icon">📍</span>
                       <span>Ort</span>
                     </div>
                     <input class="detail-inline-input" id="detail-location-input" type="text" value="${String(contact.location || "").replace(/"/g, "&quot;")}" placeholder="Ort eintragen"${disabledAttr} />
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
-                      <span class="field-icon">🩺</span>
                       <span>Fachrichtung</span>
                     </div>
                     <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="specialty" data-select-variant="detail">
@@ -12114,7 +12329,6 @@
                     honorificTitle
                       ? `<article class="detail-info-card">
                           <div class="detail-info-head">
-                            <span class="field-icon">Dr.</span>
                             <span>Titel</span>
                           </div>
                           <div class="detail-static-value">${honorificTitle}</div>
@@ -12123,7 +12337,6 @@
                   }
                   <article class="detail-info-card">
                     <div class="detail-info-head">
-                      <span class="field-icon">${categoryEmoji[contact.category] || "•"}</span>
                       <span>Sektor</span>
                     </div>
                     <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="category" data-select-variant="detail">
@@ -12132,10 +12345,61 @@
                       </select>
                     </div>
                   </article>
+                  <article class="detail-info-card detail-info-card--owner">
+                    <div class="detail-info-head">
+                      <span>Owner</span>
+                    </div>
+                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="owner" data-select-variant="detail">
+                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Owner zuordnen"${disabledAttr}>
+                        ${buildOwnerSelectOptions(ownerLabel)}
+                      </select>
+                    </div>
+                  </article>
+                  <article class="detail-info-card detail-info-card--priority detail-info-card--priority-${normalizedPriorityValue(contact.priority)}">
+                    <div class="detail-info-head">
+                      <span>Priorit&auml;t</span>
+                    </div>
+                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="priority" data-select-variant="detail">
+                      <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen"${disabledAttr}>
+                        ${buildPrioritySelectOptions(contact.priority)}
+                      </select>
+                    </div>
+                  </article>
                 </div>
               </section>
 
-              <section class="section-block">
+              <section class="section-block" id="detail-contactways">
+                <h4 class="detail-section-title">Kontaktwege</h4>
+                <div class="detail-compact-list">
+                  ${
+                    contactWays.length
+                      ? contactWays.join("")
+                      : `<div class="detail-secondary">Noch keine Kontaktwege gepflegt.</div>`
+                  }
+                </div>
+                <div class="detail-communication-grid">
+                  <article class="detail-info-card ${hasMeaningfulValue(contact.email) ? "" : "detail-info-card--missing"}">
+                    <div class="detail-info-head">
+                      <span>E-Mail</span>
+                    </div>
+                    <input class="detail-inline-input" id="detail-email-input" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen"${disabledAttr} />
+                  </article>
+                  <article class="detail-info-card ${hasMeaningfulValue(contact.phone) ? "" : "detail-info-card--missing"}">
+                    <div class="detail-info-head">
+                      <span>Telefon</span>
+                    </div>
+                    <input class="detail-inline-input" id="detail-phone-input" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon eintragen"${disabledAttr} />
+                  </article>
+                  <article class="detail-info-card ${linkedinUrl ? "" : "detail-info-card--missing"}">
+                    <div class="detail-info-head">
+                      <span>LinkedIn</span>
+                    </div>
+                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="${escapeHtml(linkedinUrl)}" placeholder="LinkedIn-Profil eintragen"${disabledAttr} />
+                  </article>
+                </div>
+              </section>
+
+              <section class="section-block" id="detail-themes">
                 <h4 class="detail-section-title">Themen</h4>
                 <div class="detail-info-card">
                   <div class="tag-editor">
@@ -12175,57 +12439,6 @@
               </section>
 
               <section class="section-block">
-                <h4 class="detail-section-title">Kommunikation</h4>
-                <div class="detail-communication-grid">
-                  <article class="detail-info-card ${hasMeaningfulValue(contact.email) ? "" : "detail-info-card--missing"}">
-                    <div class="detail-info-head">
-                      <span class="field-icon">&#9993;</span>
-                      <span>E-Mail</span>
-                    </div>
-                    <input class="detail-inline-input" id="detail-email-input" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen"${disabledAttr} />
-                    ${
-                      hasMeaningfulValue(contact.email)
-                        ? `<div class="detail-contact-actions">
-                            <a class="detail-link detail-link--compact" href="mailto:${escapeHtml(contact.email)}">Senden</a>
-                            <button class="detail-link detail-link--compact" type="button" data-copy-contact="${escapeHtml(contact.email)}">Kopieren</button>
-                          </div>`
-                        : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
-                    }
-                  </article>
-                  <article class="detail-info-card ${hasMeaningfulValue(contact.phone) ? "" : "detail-info-card--missing"}">
-                    <div class="detail-info-head">
-                      <span class="field-icon">&#9742;</span>
-                      <span>Telefon</span>
-                    </div>
-                    <input class="detail-inline-input" id="detail-phone-input" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon eintragen"${disabledAttr} />
-                    ${
-                      hasMeaningfulValue(contact.phone)
-                        ? `<div class="detail-contact-actions">
-                            <a class="detail-link detail-link--compact" href="tel:${escapeHtml(contact.phone)}">Anrufen</a>
-                            <button class="detail-link detail-link--compact" type="button" data-copy-contact="${escapeHtml(contact.phone)}">Kopieren</button>
-                          </div>`
-                        : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
-                    }
-                  </article>
-                  <article class="detail-info-card ${linkedinUrl ? "" : "detail-info-card--missing"}">
-                    <div class="detail-info-head">
-                      <span class="linkedin-icon">in</span>
-                      <span>LinkedIn</span>
-                    </div>
-                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="${escapeHtml(linkedinUrl)}" placeholder="LinkedIn-Profil eintragen"${disabledAttr} />
-                    ${
-                      linkedinUrl
-                        ? `<div class="detail-contact-actions">
-                            <a class="detail-link detail-link--compact" href="${escapeHtml(linkedinUrl)}" target="_blank" rel="noreferrer">Öffnen</a>
-                            <button class="detail-link detail-link--compact" type="button" data-copy-contact="${escapeHtml(linkedinUrl)}">Kopieren</button>
-                          </div>`
-                        : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
-                    }
-                  </article>
-                </div>
-              </section>
-
-              <section class="section-block">
                 <h4 class="detail-section-title">Standort</h4>
                 <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
                   ${buildDetailMiniMap(contact, locationText)}
@@ -12234,37 +12447,29 @@
 
               ${readonlyNotice}
 
-              <section class="section-block">
-                <h4 class="detail-section-title">Status</h4>
+              <section class="section-block" id="detail-notes">
+                <h4 class="detail-section-title">Notizen</h4>
                 <div class="detail-context-grid">
-                  <article class="detail-info-card detail-info-card--priority detail-info-card--priority-${normalizedPriorityValue(contact.priority)}">
-                    <div class="detail-info-head">
-                      <span class="field-icon">⚑</span>
-                      <span>Priorit&auml;t</span>
-                    </div>
-                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="priority" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen"${disabledAttr}>
-                        ${buildPrioritySelectOptions(contact.priority)}
-                      </select>
-                    </div>
-                  </article>
                   <article class="detail-info-card ${noteText ? "" : "detail-info-card--missing"}">
                     <div class="detail-info-head">
-                      <span class="field-icon">🗓</span>
                       <span>Notiz</span>
                     </div>
                     <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="Notiz eintragen"${disabledAttr}></textarea>
-                    ${noteText ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
+                  ${
+                    meaningfulOrEmpty(contact.note)
+                      ? `<article class="detail-info-card"><div class="detail-info-head"><span>Interne Notiz</span></div><div class="detail-secondary">${escapeHtml(contact.note)}</div></article>`
+                      : ""
+                  }
                 </div>
               </section>
 
-              <section class="section-block">
+              <section class="section-block" id="detail-activity">
                 <div class="detail-info-card history-card">
                   <div class="history-head">
                     <div>
                       <h4>Verlauf</h4>
-                      <p>Nachvollziehbar: wer was wann am Kontakt geändert hat.</p>
+                      <p>Änderungen und Importereignisse.</p>
                     </div>
                   </div>
                   <div class="history-filters" id="history-filters"></div>
@@ -12297,6 +12502,14 @@
         document.getElementById("detail-edit")?.addEventListener("click", () => openEditor(contact));
         document.getElementById("detail-delete")?.addEventListener("click", () => deleteContact(contact));
         document.getElementById("detail-restore")?.addEventListener("click", () => restoreContact(contact));
+        [...detailPanel.querySelectorAll("[data-scroll-detail]")].forEach((button) => {
+          button.addEventListener("click", () => {
+            detailPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
+            document.getElementById(button.dataset.scrollDetail)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+        const detailNoteInputInitial = document.getElementById("detail-note-input");
+        if (detailNoteInputInitial) detailNoteInputInitial.value = noteText;
         if (!editable) return;
         const detailSpecialtySelect = document.getElementById("detail-specialty-select");
         if (detailSpecialtySelect) {
@@ -13042,6 +13255,7 @@
         else document.body.classList.toggle("mobile-filter-open", isMobileLayout());
         if (filterPanel.hidden) document.documentElement.classList.remove("mobile-filter-open");
         else document.documentElement.classList.toggle("mobile-filter-open", isMobileLayout());
+        syncBodyScrollLock();
         updateView();
       });
 
