@@ -7502,6 +7502,11 @@
       .app-shell {
         grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
         background: var(--background);
+        transition: grid-template-columns 180ms ease;
+      }
+
+      .app-shell.is-sidebar-collapsed {
+        grid-template-columns: 76px minmax(0, 1fr);
       }
 
       .app-sidebar {
@@ -7509,12 +7514,47 @@
         padding: 22px 14px 18px;
         background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-strong) 100%);
         box-shadow: none;
+        transition: width 180ms ease, padding 180ms ease;
+      }
+
+      .app-shell.is-sidebar-collapsed .app-sidebar {
+        width: 76px;
+        padding-inline: 12px;
       }
 
       .sidebar-brand,
       .sidebar-nav .primary-tab,
       .sidebar-link {
         border-radius: var(--radius-md);
+      }
+
+      .sidebar-brand {
+        overflow: hidden;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-brand {
+        justify-content: center;
+        padding-inline: 0;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-brand strong,
+      .app-shell.is-sidebar-collapsed .sidebar-nav .primary-tab span,
+      .app-shell.is-sidebar-collapsed .sidebar-link span,
+      .app-shell.is-sidebar-collapsed .sidebar-footer div {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-brand .brand-mark {
+        width: 36px;
+        height: 36px;
       }
 
       .sidebar-nav {
@@ -7526,6 +7566,12 @@
         min-height: 42px;
         font-size: var(--font-size-sm);
         letter-spacing: 0;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-nav .primary-tab,
+      .app-shell.is-sidebar-collapsed .sidebar-link {
+        justify-content: center;
+        padding: 0;
       }
 
       .sidebar-nav .primary-tab svg,
@@ -7547,6 +7593,41 @@
         background: rgba(255, 255, 255, 0.1);
       }
 
+      .sidebar-collapse {
+        width: 100%;
+        min-height: 38px;
+        margin-top: auto;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: var(--radius-md);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.82);
+        cursor: pointer;
+      }
+
+      .sidebar-collapse:hover,
+      .sidebar-collapse:focus-visible {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        outline: none;
+      }
+
+      .sidebar-collapse svg {
+        width: 18px;
+        height: 18px;
+        transition: transform 180ms ease;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-collapse svg {
+        transform: rotate(180deg);
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-collapse {
+        margin-top: auto;
+      }
+
       .sidebar-footer__badge,
       .topbar-account__badge,
       .account-avatar {
@@ -7556,12 +7637,34 @@
         box-shadow: none;
       }
 
+      .sidebar-footer {
+        margin-top: 12px;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-footer {
+        display: flex;
+        justify-content: center;
+        padding-inline: 0;
+      }
+
       .topbar {
         min-height: var(--topbar-height);
         padding: 0 var(--page-padding);
         border-bottom: 1px solid var(--border);
         background: rgba(255, 255, 255, 0.96);
         box-shadow: none;
+      }
+
+      .topbar-title {
+        display: none;
+      }
+
+      .topbar-account {
+        display: none;
+      }
+
+      .app-shell.is-sidebar-collapsed .topbar-account {
+        display: inline-flex;
       }
 
       .topbar-title h1,
@@ -8256,6 +8359,10 @@
           padding-inline: 12px;
         }
 
+        .topbar-account {
+          display: inline-flex;
+        }
+
         .wrap {
           padding: 0;
         }
@@ -8308,7 +8415,7 @@
           <strong>Versorgungs-Kompass</strong>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
-          <button class="primary-tab is-active" type="button" data-view-tab="contacts">
+          <button class="primary-tab is-active" type="button" data-view-tab="contacts" title="Kontakte">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
               <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
               <circle cx="9.5" cy="7" r="4"></circle>
@@ -8317,7 +8424,7 @@
             </svg>
             <span>Kontakte</span>
           </button>
-          <button class="primary-tab" type="button" data-view-tab="map">
+          <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
               <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
               <path d="M9 3v15"></path>
@@ -8325,7 +8432,7 @@
             </svg>
             <span>Karte</span>
           </button>
-          <button class="primary-tab" type="button" data-view-tab="analytics">
+          <button class="primary-tab" type="button" data-view-tab="analytics" title="Auswertung">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
               <path d="M4 19h16"></path>
               <path d="M7 16V9"></path>
@@ -8336,14 +8443,14 @@
           </button>
         </nav>
         <div class="sidebar-secondary" aria-label="Weitere Bereiche">
-          <button class="sidebar-link" type="button" id="sidebar-quality-button">
+          <button class="sidebar-link" type="button" id="sidebar-quality-button" title="Datenqualität">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
               <path d="m9 12 2 2 4-5"></path>
             </svg>
             <span>Datenqualität</span>
           </button>
-          <button class="sidebar-link" type="button" id="sidebar-import-button">
+          <button class="sidebar-link" type="button" id="sidebar-import-button" title="Importe">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <path d="M7 10l5 5 5-5"></path>
@@ -8352,11 +8459,16 @@
             <span>Importe</span>
           </button>
         </div>
+        <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" title="Menü einklappen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+        </button>
         <div class="sidebar-footer">
           <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
           <div>
             <strong id="sidebar-user-name">Timo Frank</strong>
-            <span>Admin</span>
+            <span id="sidebar-user-role">Admin</span>
           </div>
         </div>
       </aside>
@@ -9238,6 +9350,8 @@
       const ownerFilterMeta = document.getElementById("owner-filter-meta");
       const themeFilterMeta = document.getElementById("theme-filter-meta");
       const mapViewFrame = document.getElementById("map-view-frame");
+      const appShell = document.querySelector(".app-shell");
+      const sidebarCollapseButton = document.getElementById("sidebar-collapse-button");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
       const topbarViewTitle = document.getElementById("topbar-view-title");
@@ -9246,6 +9360,7 @@
       const workspaceViewSubtitle = document.getElementById("workspace-view-subtitle");
       const sidebarUserBadge = document.getElementById("sidebar-user-badge");
       const sidebarUserName = document.getElementById("sidebar-user-name");
+      const sidebarUserRole = document.getElementById("sidebar-user-role");
       const sidebarQualityButton = document.getElementById("sidebar-quality-button");
       const sidebarImportButton = document.getElementById("sidebar-import-button");
       const detailDrawer = document.getElementById("detail-drawer");
@@ -10784,6 +10899,7 @@
         if (badge) badge.textContent = initials;
         if (sidebarUserBadge) sidebarUserBadge.textContent = initials;
         if (sidebarUserName) sidebarUserName.textContent = displayName;
+        if (sidebarUserRole) sidebarUserRole.textContent = roleLabel(role);
         if (accountAvatar) accountAvatar.textContent = initials;
         if (name) name.textContent = displayName;
         if (accountEmail) accountEmail.textContent = profile?.email || "Supabase-Profil";
@@ -13001,6 +13117,28 @@
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
       }
 
+      function setSidebarCollapsed(collapsed) {
+        appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
+        if (sidebarCollapseButton) {
+          sidebarCollapseButton.setAttribute("aria-expanded", String(!collapsed));
+          sidebarCollapseButton.setAttribute("aria-label", collapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen");
+          sidebarCollapseButton.setAttribute("title", collapsed ? "Menü ausklappen" : "Menü einklappen");
+        }
+        try {
+          window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", collapsed ? "true" : "false");
+        } catch (error) {
+          console.warn("Sidebar-Zustand konnte nicht gespeichert werden.", error);
+        }
+      }
+
+      function restoreSidebarState() {
+        try {
+          setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true");
+        } catch (error) {
+          setSidebarCollapsed(false);
+        }
+      }
+
       function setActiveView(view) {
         activeView = view;
         viewTabs.forEach((tab) => {
@@ -13759,6 +13897,10 @@
         tab.addEventListener("click", () => {
           setActiveView(tab.dataset.viewTab);
         });
+      });
+      restoreSidebarState();
+      sidebarCollapseButton?.addEventListener("click", () => {
+        setSidebarCollapsed(!appShell?.classList.contains("is-sidebar-collapsed"));
       });
       brandHomeLink?.addEventListener("click", (event) => {
         event.preventDefault();
