@@ -3487,6 +3487,10 @@
         grid-column: span 6;
       }
 
+      .dashboard-card--care-queue {
+        grid-column: span 12;
+      }
+
       .dashboard-card--subtle {
         background: rgba(252, 253, 255, 0.86);
       }
@@ -4117,6 +4121,134 @@
         background: #f4f7ff;
         color: var(--muted);
         font-size: 0.86rem;
+      }
+
+      .care-queue-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .care-queue-card {
+        display: grid;
+        gap: 10px;
+        min-height: 188px;
+        padding: 12px;
+        border: 1px solid #dfe7ff;
+        border-radius: 14px;
+        background: #ffffff;
+      }
+
+      .care-queue-card--attention {
+        border-color: #ffdcb8;
+        background: #fffaf4;
+      }
+
+      .care-queue-head {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: center;
+      }
+
+      .care-queue-icon {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #2d66ed;
+        font-size: 0.95rem;
+        font-weight: 950;
+      }
+
+      .care-queue-card--attention .care-queue-icon {
+        background: #fff0de;
+        color: #bd6415;
+      }
+
+      .care-queue-title {
+        min-width: 0;
+        color: #243271;
+        font-size: 0.82rem;
+        font-weight: 950;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .care-queue-hint {
+        margin-top: 2px;
+        color: #7480a9;
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+
+      .care-queue-count {
+        min-width: 34px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f2f6ff;
+        color: #10236e;
+        font-size: 0.86rem;
+        font-weight: 950;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .care-queue-list {
+        display: grid;
+        gap: 7px;
+      }
+
+      .care-queue-contact {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 8px;
+        border: 1px solid #e3eaff;
+        border-radius: 10px;
+        background: #fbfcff;
+        color: #243271;
+        font-size: 0.78rem;
+        font-weight: 900;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .care-queue-contact:hover {
+        border-color: #b9c9ff;
+        background: #f6f9ff;
+      }
+
+      .care-queue-contact span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .care-queue-contact small {
+        color: #7480a9;
+        font-size: 0.7rem;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .care-queue-empty {
+        min-height: 72px;
+        display: grid;
+        place-items: center;
+        padding: 12px;
+        border-radius: 12px;
+        background: #f7f9ff;
+        color: #6c78a5;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-align: center;
       }
 
       .dashboard-backlog {
@@ -5316,6 +5448,10 @@
         .dashboard-card--quality {
           grid-column: span 6;
         }
+
+        .care-queue-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
 
       @media (max-width: 760px) {
@@ -5329,6 +5465,10 @@
         body {
           padding-bottom: calc(76px + env(safe-area-inset-bottom));
           background: #ffffff;
+        }
+
+        .care-queue-grid {
+          grid-template-columns: 1fr;
         }
 
         body.mobile-filter-open::before {
@@ -6879,6 +7019,16 @@
                   </div>
                   <div id="quality-chart"></div>
                 </article>
+                <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Pflege-Queue</h4>
+                      <p>Konkrete Aufgaben für Admins und Editors. Jeder Treffer öffnet direkt den passenden Kontakt.</p>
+                    </div>
+                    <span class="dashboard-info" tabindex="0" aria-label="Pflege-Queue erklären">i<span class="dashboard-info__popup" role="tooltip">Die Queue sucht nach fehlenden Ownern, Kontaktwegen, Standortdaten, Fachrichtungen, unklaren Organisationen, Dublettenverdacht, archivierten Kontakten und länger nicht aktualisierten Datensätzen.</span></span>
+                  </div>
+                  <div id="care-queue"></div>
+                </article>
               </div>
             </div>
           </section>
@@ -7395,6 +7545,8 @@
       const gapAnalysis = document.getElementById("gap-analysis");
       const topRegions = document.getElementById("top-regions");
       const qualityChart = document.getElementById("quality-chart");
+      const careQueueCard = document.getElementById("care-queue-card");
+      const careQueue = document.getElementById("care-queue");
       const accountButton = document.getElementById("account-button");
       const accountMenu = document.getElementById("account-menu");
       const accountEmail = document.getElementById("account-email");
@@ -7515,6 +7667,7 @@
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
+        setRoleElementVisible(careQueueCard, canEditContacts());
         permissionBanner?.classList.toggle("is-visible", role !== "admin");
         if (permissionBannerText) permissionBannerText.textContent = permissionText(role);
       }
@@ -10303,6 +10456,7 @@
         renderGapAnalysis(items);
         renderTopRegions(items);
         renderQualitySummary(items);
+        renderCareQueue(items);
       }
 
       function renderPriorityDistribution(items) {
@@ -10567,6 +10721,218 @@
               .join("")}
           </div>
         `;
+      }
+
+      function normalizedQualityKey(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim();
+      }
+
+      function isMissingOwner(contact) {
+        return !hasMeaningfulValue(contact.owner) && !hasMeaningfulValue(contact.ownerId);
+      }
+
+      function isMissingLocation(contact) {
+        return !hasMeaningfulValue(contact.postalCode) || !hasMeaningfulValue(contact.city);
+      }
+
+      function isUnclearOrganization(contact) {
+        const organization = meaningfulOrEmpty(contact.organization);
+        if (!organization) return true;
+        return /^(-|n\.?a\.?|unbekannt|keine organisation|privat|sonstige)$/i.test(organization) || organization.length < 3;
+      }
+
+      function isContactStale(contact) {
+        if (!contact.updatedAt) return true;
+        const parsed = new Date(contact.updatedAt);
+        if (Number.isNaN(parsed.getTime())) return true;
+        const sixMonths = 1000 * 60 * 60 * 24 * 180;
+        return Date.now() - parsed.getTime() > sixMonths;
+      }
+
+      function duplicateSuspects(items) {
+        const groups = new Map();
+        const add = (key, contact) => {
+          if (!key) return;
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(contact);
+        };
+
+        items.forEach((contact) => {
+          const email = normalizedQualityKey(contact.email);
+          const name = normalizedQualityKey(contact.name || contact.displayName);
+          const organization = normalizedQualityKey(contact.organization);
+          const city = normalizedQualityKey(contact.city);
+          add(email ? `email:${email}` : "", contact);
+          add(name && organization ? `name-org:${name}:${organization}` : "", contact);
+          add(name && city ? `name-city:${name}:${city}` : "", contact);
+        });
+
+        const suspects = new Map();
+        groups.forEach((group) => {
+          if (group.length < 2) return;
+          group.forEach((contact) => suspects.set(contact.id, contact));
+        });
+        return [...suspects.values()];
+      }
+
+      function buildCareQueueItems(items) {
+        const activeItems = contacts.filter((contact) => contact.status !== "archived");
+        const archivedItems = contacts.filter((contact) => contact.status === "archived");
+        const duplicateItems = duplicateSuspects(activeItems);
+        const reviewItems = activeItems.filter((contact) => {
+          const missingCount = [
+            isMissingOwner(contact),
+            !hasMeaningfulValue(contact.email),
+            isMissingLocation(contact),
+            !hasMeaningfulValue(contact.specialty),
+            isUnclearOrganization(contact)
+          ].filter(Boolean).length;
+          return missingCount >= 2 || duplicateItems.some((item) => item.id === contact.id) || isContactStale(contact);
+        });
+
+        return [
+          {
+            key: "missing-owner",
+            title: "Fehlender Owner",
+            hint: "Niemand verantwortlich",
+            icon: "👤",
+            contacts: activeItems.filter(isMissingOwner)
+          },
+          {
+            key: "missing-email",
+            title: "Fehlende E-Mail",
+            hint: "Kontaktweg ergänzen",
+            icon: "@",
+            contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.email))
+          },
+          {
+            key: "missing-location",
+            title: "Fehlende PLZ/Ort",
+            hint: "Karte und Region pflegen",
+            icon: "⌖",
+            contacts: activeItems.filter(isMissingLocation)
+          },
+          {
+            key: "missing-specialty",
+            title: "Fehlende Fachrichtung",
+            hint: "Einordnung verbessern",
+            icon: "⚕",
+            contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.specialty))
+          },
+          {
+            key: "unclear-organization",
+            title: "Unklare Organisation",
+            hint: "Organisation prüfen",
+            icon: "🏢",
+            contacts: activeItems.filter(isUnclearOrganization)
+          },
+          {
+            key: "duplicates",
+            title: "Dublettenverdacht",
+            hint: "Ähnliche Einträge prüfen",
+            icon: "⧉",
+            attention: true,
+            contacts: duplicateItems
+          },
+          {
+            key: "archived",
+            title: "Archivierte Kontakte",
+            hint: canAdministerData() ? "Wiederherstellen möglich" : "Nur Admin sichtbar",
+            icon: "A",
+            attention: true,
+            contacts: canAdministerData() ? archivedItems : []
+          },
+          {
+            key: "stale",
+            title: "Länger nicht aktualisiert",
+            hint: "Seit 6 Monaten offen",
+            icon: "↻",
+            contacts: activeItems.filter(isContactStale)
+          },
+          {
+            key: "review",
+            title: "Zu prüfen",
+            hint: "Mehrere Qualitätshinweise",
+            icon: "!",
+            attention: true,
+            contacts: reviewItems
+          }
+        ];
+      }
+
+      function renderCareQueue(items) {
+        if (!careQueue) return;
+        if (!canEditContacts()) {
+          careQueue.innerHTML = "";
+          return;
+        }
+        const queueItems = buildCareQueueItems(items);
+        careQueue.innerHTML = `
+          <div class="care-queue-grid">
+            ${queueItems
+              .map((item) => {
+                const visible = item.contacts.slice(0, 3);
+                return `
+                  <section class="care-queue-card ${item.attention ? "care-queue-card--attention" : ""}">
+                    <div class="care-queue-head">
+                      <span class="care-queue-icon">${escapeHtml(item.icon)}</span>
+                      <span>
+                        <span class="care-queue-title">${escapeHtml(item.title)}</span>
+                        <span class="care-queue-hint">${escapeHtml(item.hint)}</span>
+                      </span>
+                      <span class="care-queue-count">${item.contacts.length}</span>
+                    </div>
+                    ${
+                      visible.length
+                        ? `<div class="care-queue-list">
+                            ${visible
+                              .map(
+                                (contact) => `
+                                  <button class="care-queue-contact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">
+                                    <span>${escapeHtml(contact.displayName || contact.name)}</span>
+                                    <small>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</small>
+                                  </button>
+                                `
+                              )
+                              .join("")}
+                          </div>`
+                        : `<div class="care-queue-empty">Aktuell kein Handlungsbedarf.</div>`
+                    }
+                  </section>
+                `;
+              })
+              .join("")}
+          </div>
+        `;
+      }
+
+      async function openCareQueueContact(id, archived = false) {
+        if (!id) return;
+        if (archived && !showingArchive) {
+          if (!canAdministerData()) {
+            showPermissionDenied("Nur Admins dürfen archivierte Kontakte öffnen.");
+            return;
+          }
+          showingArchive = true;
+          currentPage = 1;
+          try {
+            contacts = (await window.dataService.loadContacts({ includeArchived: true })).map((contact, index) => sanitizeContact(contact, index));
+          } catch (error) {
+            console.error("Archivierter Kontakt konnte nicht geladen werden.", error);
+            window.alert("Der archivierte Kontakt konnte nicht geladen werden. Bitte prüfe Anmeldung und Rolle.");
+            return;
+          }
+        }
+        activeId = id;
+        setActiveView("contacts");
+        updateView();
+        openDetail(id, filteredContacts());
       }
 
       function setActiveView(view) {
@@ -11124,8 +11490,8 @@
         const confirmed = window.confirm(`Soll "${contact.displayName}" archiviert werden? Der Kontakt wird nicht physisch gelöscht und die Archivierung erscheint im Verlauf.`);
         if (!confirmed) return;
         try {
-          await window.dataService.archiveContact(contact.id);
-          contacts = contacts.filter((item) => item.id !== contact.id);
+          const archived = await window.dataService.archiveContact(contact.id);
+          contacts = contacts.map((item, index) => (item.id === contact.id ? sanitizeContact({ ...item, ...archived }, index) : item));
           contactHistoryCache.delete(contact.id);
           favorites.delete(contact.id);
           saveFavorites();
@@ -11393,13 +11759,18 @@
         closeDetail();
         currentPage = 1;
         try {
-          contacts = (await window.dataService.loadContacts({ includeArchived: showingArchive })).map((contact, index) => sanitizeContact(contact, index));
+          contacts = (await window.dataService.loadContacts({ includeArchived: true })).map((contact, index) => sanitizeContact(contact, index));
         } catch (error) {
           console.error(showingArchive ? "Archiv konnte nicht geladen werden." : "Kontakte konnten nicht geladen werden.", error);
           window.alert(showingArchive ? "Das Archiv konnte nicht geladen werden. Bitte prüfe Anmeldung und Rolle." : "Die Kontakte konnten nicht neu geladen werden.");
           showingArchive = false;
         }
         updateView();
+      });
+      careQueue?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-care-contact]");
+        if (!button) return;
+        openCareQueueContact(button.dataset.careContact, button.dataset.careArchived === "true");
       });
       openImportButton.addEventListener("click", openImportWizard);
       exportCsvButton.addEventListener("click", () => {
@@ -11617,10 +11988,10 @@
 
       async function initializeData() {
         try {
-          contacts = (await window.dataService.loadContacts()).map((contact, index) => sanitizeContact(contact, index));
           const profiles = await window.dataService.getProfiles();
           applyProfiles(profiles);
           renderAccountProfile(await window.dataService.getCurrentProfile());
+          contacts = (await window.dataService.loadContacts({ includeArchived: canAdministerData() })).map((contact, index) => sanitizeContact(contact, index));
           await loadSavedViewsAndSettings();
           loadedContactsFromStorage = false;
           setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
