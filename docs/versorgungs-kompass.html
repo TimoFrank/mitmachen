@@ -6143,6 +6143,7 @@
           <div class="summary summary--compact" id="summary-grid"></div>
           <div class="workspace-actions">
             <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+            <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
             <button class="action-button" type="button" id="open-import-button"><span class="action-button__icon">↥</span>Kontakte importieren</button>
             <div class="menu-shell">
               <button class="action-button menu-button" type="button" id="more-actions-button" aria-label="Weitere Optionen öffnen" aria-expanded="false">
@@ -6904,6 +6905,7 @@
       const editorThemePresets = document.getElementById("editor-theme-presets");
       const editorThemeSelected = document.getElementById("editor-theme-selected");
       const newContactButton = document.getElementById("new-contact-button");
+      const archiveViewButton = document.getElementById("archive-view-button");
       const mobileNewContactButton = document.getElementById("mobile-new-contact-button");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
@@ -8026,6 +8028,7 @@
       }
 
       let contacts = loadStoredContacts();
+      let showingArchive = false;
 
       function uniqueValues(key) {
         return [...new Set(contacts.map((contact) => contact[key]))].sort((a, b) => a.localeCompare(b, "de"));
@@ -8226,8 +8229,11 @@
 
       function filteredContacts() {
         const search = searchInput.value.trim().toLowerCase();
+        const baseContacts = showingArchive
+          ? contacts.filter((contact) => contact.status === "archived")
+          : contacts.filter((contact) => contact.status !== "archived");
 
-        return contacts.filter((contact) => {
+        return baseContacts.filter((contact) => {
           const matchesSearch =
             !search ||
             [
@@ -9882,7 +9888,11 @@
                 <span>ID: ${contact.id}</span>
               </div>
               <div class="detail-bottom-actions">
-                <button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt archivieren</button>
+                ${
+                  contact.status === "archived"
+                    ? `<button class="action-button action-button--primary" type="button" id="detail-restore">Kontakt wiederherstellen</button>`
+                    : `<button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt archivieren</button>`
+                }
               </div>
             </div>
           </div>
@@ -9895,7 +9905,8 @@
 
         document.getElementById("detail-close").addEventListener("click", closeDetail);
         document.getElementById("detail-edit").addEventListener("click", () => openEditor(contact));
-        document.getElementById("detail-delete").addEventListener("click", () => deleteContact(contact));
+        document.getElementById("detail-delete")?.addEventListener("click", () => deleteContact(contact));
+        document.getElementById("detail-restore")?.addEventListener("click", () => restoreContact(contact));
         const detailSpecialtySelect = document.getElementById("detail-specialty-select");
         if (detailSpecialtySelect) {
           detailSpecialtySelect.addEventListener("change", () => {
@@ -10097,6 +10108,25 @@
         updateView();
       }
 
+      async function restoreContact(contact) {
+        const confirmed = window.confirm(`Soll "${contact.displayName}" wieder in den aktiven Datenbestand aufgenommen werden?`);
+        if (!confirmed) return;
+        try {
+          const restored = await window.dataService.restoreContact(contact.id);
+          contacts = contacts.map((item, index) => (item.id === contact.id ? sanitizeContact(restored, index) : item));
+          setStorageStatus("Kontakt in Supabase wiederhergestellt");
+        } catch (error) {
+          console.error("Kontakt konnte nicht wiederhergestellt werden.", error);
+          window.alert("Der Kontakt konnte nicht wiederhergestellt werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          return;
+        }
+        showingArchive = false;
+        activeId = contact.id;
+        closeDetail();
+        updateView();
+        openDetail(contact.id);
+      }
+
       function serializeContactsToCsv(items) {
         const header = [
           "id",
@@ -10209,6 +10239,7 @@
       function updateView() {
         const items = filteredContacts();
         resultsCount.textContent = hitCountLabel(items);
+        archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
         searchInput.placeholder = isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
         renderSummary(items);
         renderTable(items);
@@ -10312,6 +10343,20 @@
 
       newContactButton.addEventListener("click", () => openEditor());
       mobileNewContactButton?.addEventListener("click", () => openEditor());
+      archiveViewButton.addEventListener("click", async () => {
+        showingArchive = !showingArchive;
+        activeId = null;
+        closeDetail();
+        currentPage = 1;
+        try {
+          contacts = (await window.dataService.loadContacts({ includeArchived: showingArchive })).map((contact, index) => sanitizeContact(contact, index));
+        } catch (error) {
+          console.error(showingArchive ? "Archiv konnte nicht geladen werden." : "Kontakte konnten nicht geladen werden.", error);
+          window.alert(showingArchive ? "Das Archiv konnte nicht geladen werden. Bitte prüfe Anmeldung und Rolle." : "Die Kontakte konnten nicht neu geladen werden.");
+          showingArchive = false;
+        }
+        updateView();
+      });
       openImportButton.addEventListener("click", openImportWizard);
       exportCsvButton.addEventListener("click", () => {
         closeMenus();

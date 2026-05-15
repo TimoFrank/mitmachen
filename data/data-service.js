@@ -184,15 +184,17 @@
     return profileCache.get(userId) || null;
   }
 
-  async function loadContacts() {
+  async function loadContacts(options = {}) {
     const supabase = getClient();
     await loadProfiles();
-    const { data, error } = await supabase
+    let query = supabase
       .from("contacts")
       .select(DB_FIELDS.join(","))
-      .neq("status", "archived")
       .order("updated_at", { ascending: false, nullsFirst: false })
       .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    if (options.status) query = query.eq("status", options.status);
+    const { data, error } = await query;
     if (error) throw error;
     contactCache = (data || []).map(dbToUi);
     return contactCache;
@@ -280,6 +282,13 @@
     });
   }
 
+  async function restoreContact(id) {
+    return updateContact(id, { status: "active" }).then((restored) => {
+      contactCache = [restored, ...contactCache.filter((contact) => contact.id !== id)];
+      return restored;
+    });
+  }
+
   async function getDashboardStats(filters = {}) {
     const items = await getContacts(filters);
     return {
@@ -314,6 +323,7 @@
     createContact,
     updateContact,
     archiveContact,
+    restoreContact,
     getDashboardStats,
     getMapData
   };
