@@ -26,6 +26,7 @@
     "updated_by"
   ];
   const WRITE_FIELDS = DB_FIELDS.filter((field) => !["created_at", "created_by", "updated_at", "updated_by"].includes(field));
+  const CHANGE_FIELDS = ["id", "contact_id", "action", "field_name", "old_value", "new_value", "changed_at", "changed_by"];
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   let client = null;
   let profileCache = new Map();
@@ -86,6 +87,17 @@
     return role || "Nutzer";
   }
 
+  function profileSummary(id) {
+    const profile = profileCache.get(id);
+    return {
+      id: id || "",
+      displayName: profile?.display_name || profile?.email || "Unbekannter Nutzer",
+      initials: profile?.initials || String(profile?.display_name || profile?.email || "UN").slice(0, 2).toUpperCase(),
+      role: profile?.role || "",
+      roleLabel: roleLabel(profile?.role)
+    };
+  }
+
   function resolveOwnerId(value) {
     const owner = String(value || "").trim();
     if (!owner) return null;
@@ -131,6 +143,20 @@
       topic: topics.length ? `Themen: ${topics.join(" · ")}` : "",
       description: row.sector ? `Sektor: ${row.sector}` : "",
       _index: index
+    };
+  }
+
+  function changeToUi(row) {
+    return {
+      id: row.id,
+      contactId: row.contact_id,
+      action: row.action || "update",
+      fieldName: row.field_name || "",
+      oldValue: row.old_value || "",
+      newValue: row.new_value || "",
+      changedAt: row.changed_at || "",
+      changedBy: row.changed_by || "",
+      user: profileSummary(row.changed_by)
     };
   }
 
@@ -223,6 +249,21 @@
     const { data, error } = await supabase.from("contacts").select(DB_FIELDS.join(",")).eq("id", id).single();
     if (error) throw error;
     return dbToUi(data);
+  }
+
+  async function getContactChanges(contactId, options = {}) {
+    const supabase = getClient();
+    if (!profileCache.size) await loadProfiles();
+    let query = supabase
+      .from("changes")
+      .select(CHANGE_FIELDS.join(","))
+      .eq("contact_id", contactId)
+      .order("changed_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (options.action) query = query.eq("action", options.action);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(changeToUi);
   }
 
   async function getCurrentUserId() {
@@ -333,6 +374,7 @@
     getContact,
     getProfiles,
     getCurrentProfile,
+    getContactChanges,
     createContact,
     updateContact,
     archiveContact,

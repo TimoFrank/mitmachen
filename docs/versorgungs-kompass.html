@@ -2151,6 +2151,224 @@
         justify-content: center;
       }
 
+      .history-card {
+        display: grid;
+        gap: 14px;
+      }
+
+      .history-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .history-head h4 {
+        margin: 0;
+        color: #243271;
+        font-size: 1rem;
+      }
+
+      .history-head p {
+        margin: 4px 0 0;
+        color: #667399;
+        font-size: 0.82rem;
+        font-weight: 650;
+        line-height: 1.35;
+      }
+
+      .history-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .history-filter {
+        min-height: 30px;
+        padding: 0 11px;
+        border: 1px solid #dce4fb;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #536397;
+        font-size: 0.76rem;
+        font-weight: 850;
+        cursor: pointer;
+      }
+
+      .history-filter.is-active {
+        border-color: transparent;
+        background: #edf3ff;
+        color: #2f55ad;
+      }
+
+      .history-timeline {
+        display: grid;
+        gap: 12px;
+      }
+
+      .history-loading,
+      .history-empty,
+      .history-error {
+        padding: 18px;
+        border: 1px dashed #d9e1f8;
+        border-radius: 16px;
+        background: #f8faff;
+        color: #64719f;
+        font-size: 0.86rem;
+        font-weight: 750;
+        line-height: 1.45;
+      }
+
+      .history-error {
+        border-color: #f1c7ba;
+        background: #fff6f2;
+        color: #a5553c;
+      }
+
+      .history-item {
+        position: relative;
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .history-item::before {
+        content: "";
+        position: absolute;
+        left: 16px;
+        top: 38px;
+        bottom: -12px;
+        width: 2px;
+        background: #e1e8fb;
+      }
+
+      .history-item:last-child::before {
+        display: none;
+      }
+
+      .history-dot {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: #edf3ff;
+        color: #3155ad;
+        font-size: 0.86rem;
+        font-weight: 900;
+        z-index: 1;
+      }
+
+      .history-dot--archive {
+        background: #fff0ea;
+        color: #ba5635;
+      }
+
+      .history-dot--restore {
+        background: #eefbf1;
+        color: #21864a;
+      }
+
+      .history-dot--create {
+        background: #ecf7ff;
+        color: #2268b5;
+      }
+
+      .history-entry {
+        padding: 12px;
+        border: 1px solid #e2e8fb;
+        border-radius: 16px;
+        background: #ffffff;
+      }
+
+      .history-entry-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .history-title {
+        color: #253777;
+        font-size: 0.9rem;
+        font-weight: 900;
+        line-height: 1.25;
+      }
+
+      .history-meta {
+        margin-top: 4px;
+        color: #6e7aa5;
+        font-size: 0.76rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .history-action-pill {
+        min-height: 24px;
+        padding: 0 9px;
+        border-radius: 999px;
+        background: #f2f5ff;
+        color: #4f60a0;
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .history-change-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .history-change {
+        display: grid;
+        gap: 6px;
+        padding: 9px 10px;
+        border-radius: 12px;
+        background: #f8faff;
+      }
+
+      .history-field {
+        color: #354887;
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .history-values {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+      }
+
+      .history-value {
+        min-width: 0;
+        padding: 7px 8px;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #536397;
+        font-size: 0.76rem;
+        font-weight: 700;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+
+      .history-value--old {
+        color: #8b6d62;
+        background: #fff7f3;
+      }
+
+      .history-value--new {
+        color: #27633f;
+        background: #f1fbf4;
+      }
+
+      .history-arrow {
+        color: #7e8ab4;
+        font-weight: 900;
+      }
+
       .detail-actions {
         display: flex;
         gap: 10px;
@@ -7092,6 +7310,8 @@
       let editorThemes = [];
       let importState = createImportState();
       let currentProfile = null;
+      const contactHistoryCache = new Map();
+      const contactHistoryFilters = new Map();
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
       const customSelectInstances = new WeakMap();
       let loadedContactsFromStorage = false;
@@ -7947,6 +8167,7 @@
           for (const contact of imported) {
             created.push(await window.dataService.createContact(contact));
           }
+          created.forEach((contact) => contactHistoryCache.delete(contact.id));
           contacts = [...created, ...contacts.filter((contact) => !created.some((item) => item.id === contact.id))].map((contact, index) =>
             sanitizeContact(contact, index)
           );
@@ -8361,6 +8582,7 @@
           contacts = contacts.map((contact, index) =>
             contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
           );
+          contactHistoryCache.delete(id);
           setStorageStatus("Kontakt in Supabase gespeichert");
         } catch (error) {
           console.error("Kontaktfeld konnte nicht gespeichert werden.", error);
@@ -9261,6 +9483,7 @@
           contacts = contacts.map((contact, index) =>
             contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
           );
+          contactHistoryCache.delete(id);
           setStorageStatus("Themen in Supabase gespeichert");
         } catch (error) {
           console.error("Themen konnten nicht gespeichert werden.", error);
@@ -9298,6 +9521,217 @@
           month: "2-digit",
           year: "numeric"
         }).format(parsed);
+      }
+
+      function formatDateTimeLabel(value) {
+        if (!value) return "";
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return String(value);
+        return new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(parsed);
+      }
+
+      function historyFieldLabel(field) {
+        const labels = {
+          name: "Name",
+          organization: "Organisation",
+          sector: "Sektor",
+          specialty: "Fachrichtung",
+          priority: "Priorität",
+          owner_id: "Owner",
+          postal_code: "PLZ",
+          city: "Ort",
+          federal_state: "Bundesland",
+          latitude: "Breitengrad",
+          longitude: "Längengrad",
+          email: "E-Mail",
+          phone: "Telefon",
+          linkedin: "LinkedIn",
+          topics: "Themen",
+          notes: "Notiz",
+          source: "Quelle",
+          image_url: "Bild",
+          status: "Status",
+          updated_at: "Aktualisiert am",
+          updated_by: "Aktualisiert von"
+        };
+        return labels[field] || field || "Kontakt";
+      }
+
+      function historyActionLabel(action, changes = []) {
+        if (action === "create") return "Kontakt angelegt";
+        if (action === "archive") return "Kontakt archiviert";
+        if (action === "import") return "Importiert";
+        if (changes.some((change) => change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived")) return "Kontakt wiederhergestellt";
+        return changes.length > 1 ? `${changes.length} Felder geändert` : "Feld geändert";
+      }
+
+      function historyActionKey(change) {
+        if (change.action === "archive") return "archive";
+        if (change.action === "create") return "create";
+        if (change.action === "import") return "import";
+        if (change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived") return "restore";
+        return "update";
+      }
+
+      function historyActionIcon(actionKey) {
+        if (actionKey === "create") return "+";
+        if (actionKey === "archive") return "A";
+        if (actionKey === "restore") return "R";
+        if (actionKey === "import") return "I";
+        return "↻";
+      }
+
+      function formatHistoryValue(field, value) {
+        const normalized = String(value || "").trim();
+        if (!normalized) return "leer";
+        if (field === "owner_id") return ownerOptionLabel(normalized).replace(/^⚠\s*/, "");
+        if (field === "topics") {
+          try {
+            const parsed = JSON.parse(normalized.replace(/^{/, "[").replace(/}$/, "]"));
+            if (Array.isArray(parsed)) return parsed.join(", ") || "leer";
+          } catch (error) {
+            return normalized.replace(/[{}"]/g, "").replace(/,/g, ", ");
+          }
+        }
+        if (field === "status") return normalized === "archived" ? "Archiviert" : "Aktiv";
+        return normalized.length > 140 ? `${normalized.slice(0, 137)}...` : normalized;
+      }
+
+      function groupHistoryChanges(changes = []) {
+        const groups = [];
+        changes.forEach((change) => {
+          const lastGroup = groups[groups.length - 1];
+          const lastTime = lastGroup ? new Date(lastGroup.changedAt).getTime() : 0;
+          const currentTime = new Date(change.changedAt).getTime();
+          const sameBatch =
+            lastGroup &&
+            lastGroup.action === change.action &&
+            lastGroup.changedBy === change.changedBy &&
+            Number.isFinite(lastTime) &&
+            Number.isFinite(currentTime) &&
+            Math.abs(lastTime - currentTime) <= 5000;
+          if (sameBatch) {
+            lastGroup.changes.push(change);
+            return;
+          }
+          groups.push({
+            id: `${change.id}`,
+            action: change.action,
+            changedAt: change.changedAt,
+            changedBy: change.changedBy,
+            user: change.user,
+            changes: [change]
+          });
+        });
+        return groups;
+      }
+
+      function renderHistoryFilters(contactId, changes = []) {
+        const activeFilter = contactHistoryFilters.get(contactId) || "all";
+        const filters = [
+          { key: "all", label: "Alle" },
+          { key: "update", label: "Änderungen" },
+          { key: "archive", label: "Archiv" },
+          { key: "restore", label: "Wiederhergestellt" },
+          { key: "create", label: "Anlage" },
+          { key: "import", label: "Import" }
+        ].filter((filter) => filter.key === "all" || changes.some((change) => historyActionKey(change) === filter.key));
+        return filters
+          .map(
+            (filter) =>
+              `<button class="history-filter ${activeFilter === filter.key ? "is-active" : ""}" type="button" data-history-filter="${filter.key}">${filter.label}</button>`
+          )
+          .join("");
+      }
+
+      function renderHistoryTimeline(contactId, changes = []) {
+        const activeFilter = contactHistoryFilters.get(contactId) || "all";
+        const visibleChanges = activeFilter === "all" ? changes : changes.filter((change) => historyActionKey(change) === activeFilter);
+        const groups = groupHistoryChanges(visibleChanges);
+        const timeline = document.getElementById("history-timeline");
+        const filters = document.getElementById("history-filters");
+        if (filters) filters.innerHTML = renderHistoryFilters(contactId, changes);
+        const bindFilters = () => {
+          filters?.querySelectorAll("[data-history-filter]").forEach((button) => {
+            button.addEventListener("click", () => {
+              contactHistoryFilters.set(contactId, button.dataset.historyFilter || "all");
+              renderHistoryTimeline(contactId, changes);
+            });
+          });
+        };
+        if (!timeline) return;
+        if (!changes.length) {
+          timeline.innerHTML = `<div class="history-empty">Noch kein Verlauf vorhanden. Sobald ein Kontakt angelegt, geändert, archiviert oder wiederhergestellt wird, erscheint hier ein nachvollziehbares Protokoll.</div>`;
+          bindFilters();
+          return;
+        }
+        if (!groups.length) {
+          timeline.innerHTML = `<div class="history-empty">Für diesen Filter gibt es noch keine Einträge.</div>`;
+          bindFilters();
+          return;
+        }
+        timeline.innerHTML = groups
+          .map((group) => {
+            const actionKey = historyActionKey(group.changes[0]);
+            return `
+              <article class="history-item">
+                <div class="history-dot history-dot--${actionKey}">${historyActionIcon(actionKey)}</div>
+                <div class="history-entry">
+                  <div class="history-entry-head">
+                    <div>
+                      <div class="history-title">${historyActionLabel(group.action, group.changes)}</div>
+                      <div class="history-meta">${escapeHtml(formatDateTimeLabel(group.changedAt))} · ${escapeHtml(group.user?.displayName || "Unbekannter Nutzer")} ${group.user?.role ? `(${escapeHtml(roleLabel(group.user.role))})` : ""}</div>
+                    </div>
+                    <span class="history-action-pill">${escapeHtml(actionKey)}</span>
+                  </div>
+                  <div class="history-change-list">
+                    ${group.changes
+                      .filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by")
+                      .map(
+                        (change) => `
+                          <div class="history-change">
+                            <div class="history-field">${escapeHtml(historyFieldLabel(change.fieldName))}</div>
+                            <div class="history-values">
+                              <span class="history-value history-value--old">${escapeHtml(formatHistoryValue(change.fieldName, change.oldValue))}</span>
+                              <span class="history-arrow">→</span>
+                              <span class="history-value history-value--new">${escapeHtml(formatHistoryValue(change.fieldName, change.newValue))}</span>
+                            </div>
+                          </div>
+                        `
+                      )
+                      .join("") || `<div class="history-change"><div class="history-field">${escapeHtml(historyActionLabel(group.action, group.changes))}</div></div>`}
+                  </div>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+
+        bindFilters();
+      }
+
+      async function loadContactHistory(contactId) {
+        const timeline = document.getElementById("history-timeline");
+        if (!timeline || !window.dataService?.getContactChanges) return;
+        if (contactHistoryCache.has(contactId)) {
+          renderHistoryTimeline(contactId, contactHistoryCache.get(contactId));
+          return;
+        }
+        timeline.innerHTML = `<div class="history-loading">Verlauf wird geladen...</div>`;
+        try {
+          const changes = await window.dataService.getContactChanges(contactId);
+          contactHistoryCache.set(contactId, changes);
+          renderHistoryTimeline(contactId, changes);
+        } catch (error) {
+          console.error("Änderungsverlauf konnte nicht geladen werden.", error);
+          timeline.innerHTML = `<div class="history-error">Der Änderungsverlauf konnte nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
+        }
       }
 
       function buildDetailMiniMap(contact, locationText) {
@@ -10132,6 +10566,21 @@
                 </div>
               </section>
 
+              <section class="section-block">
+                <div class="detail-info-card history-card">
+                  <div class="history-head">
+                    <div>
+                      <h4>Verlauf</h4>
+                      <p>Nachvollziehbar: wer was wann am Kontakt geändert hat.</p>
+                    </div>
+                  </div>
+                  <div class="history-filters" id="history-filters"></div>
+                  <div class="history-timeline" id="history-timeline">
+                    <div class="history-loading">Verlauf wird geladen...</div>
+                  </div>
+                </div>
+              </section>
+
               <div class="detail-footer-meta">
                 <span>${createdLabel ? `Erstellt am ${createdLabel}` : "Erstellt: nicht dokumentiert"}</span>
                 <span>${updatedLabel ? `Aktualisiert am ${updatedLabel}` : "Aktualisiert: nicht dokumentiert"}</span>
@@ -10154,6 +10603,7 @@
         detailDrawer.setAttribute("aria-hidden", "false");
         syncBodyScrollLock();
         refreshCustomSelects(detailDrawer);
+        loadContactHistory(contact.id);
 
         document.getElementById("detail-close").addEventListener("click", closeDetail);
         document.getElementById("detail-edit")?.addEventListener("click", () => openEditor(contact));
@@ -10351,11 +10801,12 @@
           showPermissionDenied("Nur Admins dürfen Kontakte archivieren.");
           return;
         }
-        const confirmed = window.confirm(`Soll "${contact.displayName}" archiviert werden? Der Kontakt wird nicht physisch gelöscht.`);
+        const confirmed = window.confirm(`Soll "${contact.displayName}" archiviert werden? Der Kontakt wird nicht physisch gelöscht und die Archivierung erscheint im Verlauf.`);
         if (!confirmed) return;
         try {
           await window.dataService.archiveContact(contact.id);
           contacts = contacts.filter((item) => item.id !== contact.id);
+          contactHistoryCache.delete(contact.id);
           favorites.delete(contact.id);
           saveFavorites();
           setStorageStatus("Kontakt in Supabase archiviert");
@@ -10374,11 +10825,12 @@
           showPermissionDenied("Nur Admins dürfen archivierte Kontakte wiederherstellen.");
           return;
         }
-        const confirmed = window.confirm(`Soll "${contact.displayName}" wieder in den aktiven Datenbestand aufgenommen werden?`);
+        const confirmed = window.confirm(`Soll "${contact.displayName}" wieder in den aktiven Datenbestand aufgenommen werden? Die Wiederherstellung erscheint im Verlauf.`);
         if (!confirmed) return;
         try {
           const restored = await window.dataService.restoreContact(contact.id);
           contacts = contacts.map((item, index) => (item.id === contact.id ? sanitizeContact(restored, index) : item));
+          contactHistoryCache.delete(contact.id);
           setStorageStatus("Kontakt in Supabase wiederhergestellt");
         } catch (error) {
           console.error("Kontakt konnte nicht wiederhergestellt werden.", error);
@@ -10781,9 +11233,11 @@
             contacts = contacts.map((contact, index) =>
               contact.id === editingId ? sanitizeContact({ ...contact, ...savedContact, id: editingId }, index) : contact
             );
+            contactHistoryCache.delete(editingId);
           } else {
             savedContact = await window.dataService.createContact(sanitized);
             contacts = [sanitizeContact(savedContact, contacts.length), ...contacts];
+            contactHistoryCache.delete(savedContact.id);
           }
           setStorageStatus("Kontakt in Supabase gespeichert");
         } catch (error) {
