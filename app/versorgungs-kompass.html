@@ -204,6 +204,8 @@
         display: flex;
         align-items: center;
         gap: 16px;
+        color: inherit;
+        text-decoration: none;
       }
 
       .brand-mark {
@@ -3047,6 +3049,7 @@
       }
 
       .dashboard-info {
+        position: relative;
         width: 18px;
         height: 18px;
         display: inline-grid;
@@ -3057,6 +3060,35 @@
         color: #5f6fa8;
         font-size: 0.72rem;
         font-weight: 900;
+        cursor: help;
+      }
+
+      .dashboard-info__popup {
+        position: absolute;
+        right: -2px;
+        top: calc(100% + 8px);
+        z-index: 8;
+        width: min(280px, 76vw);
+        padding: 10px 12px;
+        border: 1px solid #d6def9;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 16px 34px rgba(38, 52, 105, 0.15);
+        color: #53608f;
+        font-size: 0.76rem;
+        line-height: 1.35;
+        font-weight: 700;
+        text-align: left;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-4px);
+        transition: opacity 140ms ease, transform 140ms ease;
+      }
+
+      .dashboard-info:hover .dashboard-info__popup,
+      .dashboard-info:focus-within .dashboard-info__popup {
+        opacity: 1;
+        transform: translateY(0);
       }
 
       .card-menu-dot {
@@ -3080,7 +3112,7 @@
 
       .metric-row {
         display: grid;
-        grid-template-columns: minmax(128px, 0.34fr) minmax(0, 1fr) 92px;
+        grid-template-columns: minmax(128px, 0.34fr) minmax(0, 1fr) 48px 58px;
         gap: 12px;
         align-items: center;
       }
@@ -3103,6 +3135,7 @@
       }
 
       .metric-track {
+        position: relative;
         height: 10px;
         border-radius: 999px;
         background: #edf1ff;
@@ -3110,18 +3143,42 @@
       }
 
       .metric-fill {
+        position: relative;
         display: block;
         height: 100%;
         min-width: 3px;
         border-radius: inherit;
       }
 
-      .metric-value {
-        color: var(--muted);
-        font-size: 0.78rem;
+      .value-count-cell {
+        justify-self: end;
+        color: #10236e;
+        font-size: 0.86rem;
+        font-weight: 950;
+        line-height: 1;
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .metric-percent,
+      .state-percent,
+      .priority-percent {
+        display: inline-flex;
+        justify-self: end;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 48px;
+        padding: 2px 7px;
+        border: 1px solid #dfe7ff;
+        border-radius: 999px;
+        background: #f5f8ff;
+        color: #657099;
+        font-size: 0.72rem;
         font-weight: 900;
         text-align: right;
         white-space: nowrap;
+        font-variant-numeric: tabular-nums;
       }
 
       .metric-muted-note {
@@ -3131,6 +3188,45 @@
         font-weight: 800;
       }
 
+      .chart-total-row {
+        display: grid;
+        gap: 10px;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(218, 225, 247, 0.8);
+        color: #5d698d;
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+
+      .chart-total-row--metric {
+        grid-template-columns: minmax(128px, 0.34fr) minmax(0, 1fr) 48px 58px;
+        gap: 12px;
+      }
+
+      .chart-total-row--state {
+        grid-template-columns: minmax(112px, 170px) minmax(0, 1fr) 48px 58px;
+      }
+
+      .chart-total-row--priority {
+        grid-template-columns: minmax(80px, 0.9fr) minmax(0, 1fr) 48px 58px;
+      }
+
+      .chart-total-label {
+        color: #2f3b73;
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .chart-total-count {
+        justify-self: end;
+        color: #10236e;
+        font-size: 0.9rem;
+        font-weight: 950;
+        font-variant-numeric: tabular-nums;
+      }
+
       .state-bars {
         display: grid;
         gap: 8px;
@@ -3138,7 +3234,7 @@
 
       .state-row {
         display: grid;
-        grid-template-columns: minmax(112px, 170px) minmax(0, 1fr) minmax(72px, auto);
+        grid-template-columns: minmax(112px, 170px) minmax(0, 1fr) 48px 58px;
         gap: 10px;
         align-items: center;
       }
@@ -3154,6 +3250,7 @@
       }
 
       .state-bar-track {
+        position: relative;
         height: 9px;
         border-radius: 999px;
         background: #edf1ff;
@@ -3161,17 +3258,11 @@
       }
 
       .state-bar-fill {
+        position: relative;
         height: 100%;
+        min-width: 3px;
         border-radius: inherit;
         background: linear-gradient(90deg, #2d71f0 0%, #68adff 100%);
-      }
-
-      .state-value {
-        color: var(--muted);
-        font-size: 0.76rem;
-        font-weight: 900;
-        text-align: right;
-        white-space: nowrap;
       }
 
       .coverage-map {
@@ -3182,7 +3273,7 @@
       }
 
       .coverage-mini-map {
-        width: min(100%, 210px);
+        width: min(100%, 178px);
         height: auto;
         display: block;
         margin: 0 auto;
@@ -3197,7 +3288,7 @@
       }
 
       .coverage-state--empty {
-        opacity: 0.68;
+        opacity: 0.78;
       }
 
       .coverage-legend,
@@ -3237,10 +3328,10 @@
 
       .city-rank-row {
         display: grid;
-        grid-template-columns: 24px minmax(0, 1fr) auto;
+        grid-template-columns: 24px 38px minmax(0, 1fr) auto;
         gap: 10px;
         align-items: center;
-        padding: 8px 0;
+        padding: 7px 0;
         border-bottom: 1px solid rgba(218, 225, 247, 0.72);
       }
 
@@ -3261,6 +3352,20 @@
         white-space: nowrap;
       }
 
+      .city-rank-icon {
+        width: 36px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        color: #2d66ed;
+      }
+
+      .city-rank-icon svg {
+        width: 36px;
+        height: 32px;
+        display: block;
+      }
+
       .city-rank-count {
         color: #10236e;
         font-size: 0.76rem;
@@ -3268,66 +3373,10 @@
         white-space: nowrap;
       }
 
-      .dashboard-card-footer-link {
-        margin-top: 12px;
-        color: #2d66ed;
-        font-size: 0.8rem;
-        font-weight: 900;
-      }
-
       .coverage-legend-swatch {
         width: 12px;
         height: 12px;
         border-radius: 4px;
-      }
-
-      .coverage-reference {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        width: max-content;
-      }
-
-      .reference-info {
-        width: 17px;
-        height: 17px;
-        display: inline-grid;
-        place-items: center;
-        border: 1px solid #cfd9fb;
-        border-radius: 999px;
-        background: #ffffff;
-        color: #5f6fa8;
-        font-size: 0.68rem;
-        font-weight: 900;
-        cursor: help;
-      }
-
-      .reference-popup {
-        position: absolute;
-        left: 0;
-        top: calc(100% + 8px);
-        z-index: 5;
-        width: min(260px, 72vw);
-        padding: 10px 12px;
-        border: 1px solid #d6def9;
-        border-radius: 12px;
-        background: #ffffff;
-        box-shadow: 0 16px 34px rgba(38, 52, 105, 0.15);
-        color: #53608f;
-        font-size: 0.76rem;
-        line-height: 1.35;
-        font-weight: 700;
-        opacity: 0;
-        pointer-events: none;
-        transform: translateY(-4px);
-        transition: opacity 140ms ease, transform 140ms ease;
-      }
-
-      .coverage-reference:hover .reference-popup,
-      .coverage-reference:focus-within .reference-popup {
-        opacity: 1;
-        transform: translateY(0);
       }
 
       .priority-bars {
@@ -3350,7 +3399,7 @@
 
       .priority-row {
         display: grid;
-        grid-template-columns: minmax(80px, 1fr) auto;
+        grid-template-columns: minmax(80px, 0.9fr) minmax(0, 1fr) 48px 58px;
         gap: 10px;
         align-items: center;
       }
@@ -3373,30 +3422,25 @@
       }
 
       .priority-track {
+        position: relative;
         height: 8px;
         border-radius: 999px;
         background: #edf1ff;
         overflow: hidden;
-        display: none;
       }
 
       .priority-fill {
+        position: relative;
         display: block;
         height: 100%;
         min-width: 3px;
         border-radius: inherit;
       }
 
-      .priority-value {
-        color: #68708e;
-        font-size: 0.76rem;
-        font-weight: 900;
-        text-align: right;
-        white-space: nowrap;
-      }
-
       .gap-panel {
-        padding: 11px 12px;
+        display: grid;
+        gap: 10px;
+        padding: 12px;
         border: 1px solid #dfe7ff;
         border-radius: 14px;
         background: #fbfcff;
@@ -3418,10 +3462,88 @@
       }
 
       .gap-panel-title {
-        margin: 0 0 4px;
+        margin: 0;
         color: #243271;
         font-size: 0.82rem;
         font-weight: 900;
+      }
+
+      .gap-panel-head {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+      }
+
+      .gap-panel-icon {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #fff5ec;
+        color: #c95b16;
+        font-size: 1rem;
+        font-weight: 950;
+      }
+
+      .gap-panel-icon--blue {
+        background: #edf4ff;
+        color: #2d66ed;
+      }
+
+      .gap-panel-kicker {
+        margin-top: 2px;
+        color: #7480a9;
+        font-size: 0.72rem;
+        font-weight: 850;
+      }
+
+      .gap-item-list {
+        display: grid;
+        gap: 7px;
+      }
+
+      .gap-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 32px;
+        padding: 7px 8px;
+        border: 1px solid #e3eaff;
+        border-radius: 10px;
+        background: #ffffff;
+      }
+
+      .gap-item-name {
+        min-width: 0;
+        color: #243271;
+        font-size: 0.78rem;
+        font-weight: 900;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .gap-item-count {
+        color: #10236e;
+        font-size: 0.78rem;
+        font-weight: 950;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .gap-item-share {
+        min-width: 44px;
+        padding: 2px 7px;
+        border: 1px solid #dfe7ff;
+        border-radius: 999px;
+        background: #f5f8ff;
+        color: #657099;
+        font-size: 0.7rem;
+        font-weight: 900;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
       }
 
       .tag-list {
@@ -4502,6 +4624,103 @@
         color: #e43d30;
       }
 
+      .deploy-reminder {
+        position: fixed;
+        left: 24px;
+        bottom: 24px;
+        z-index: 130;
+        width: min(420px, calc(100vw - 32px));
+        padding: 18px;
+        border: 1px solid rgba(17, 24, 39, 0.12);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 22px 70px rgba(15, 23, 42, 0.18);
+      }
+
+      .deploy-reminder[hidden] {
+        display: none;
+      }
+
+      .deploy-reminder strong {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 34px 6px 0;
+        font-size: 15px;
+        color: #101828;
+      }
+
+      .deploy-reminder__icon {
+        width: 20px;
+        height: 20px;
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: #fff6df;
+        color: #b76a00;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .deploy-reminder__close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: #667085;
+        font: inherit;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .deploy-reminder__close:hover,
+      .deploy-reminder__close:focus-visible {
+        border-color: rgba(17, 24, 39, 0.12);
+        background: #f8fafc;
+        color: #344054;
+      }
+
+      .deploy-reminder p {
+        margin: 0;
+        color: #475467;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .deploy-reminder__actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .deploy-reminder__button {
+        min-height: 34px;
+        border: 1px solid rgba(17, 24, 39, 0.14);
+        border-radius: 8px;
+        padding: 0 12px;
+        background: #fff;
+        color: #344054;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .deploy-reminder__button--primary {
+        border-color: #175cd3;
+        background: #175cd3;
+        color: #fff;
+      }
+
       .import-row-action {
         width: 100%;
         min-height: 32px;
@@ -4620,7 +4839,7 @@
         }
       }
 
-@media (max-width: 760px) {
+      @media (max-width: 760px) {
         html,
         body {
           width: 100%;
@@ -4639,6 +4858,15 @@
           inset: 0;
           z-index: 34;
           background: rgba(17, 25, 55, 0.28);
+        }
+
+        body.mobile-filter-open {
+          overflow: hidden;
+          touch-action: none;
+        }
+
+        html.mobile-filter-open {
+          overflow: hidden;
         }
 
         .wrap {
@@ -4833,10 +5061,22 @@
         }
 
         .workspace-copy h2 {
-          font-size: 1.14rem;
+          display: inline-flex;
+          min-height: 52px;
+          align-items: center;
+          width: fit-content;
+          padding: 7px 14px;
+          border-radius: 16px;
+          background:
+            radial-gradient(circle at 12% 18%, rgba(255, 127, 63, 0.17), transparent 30%),
+            linear-gradient(135deg, rgba(39, 94, 230, 0.16), rgba(77, 144, 255, 0.05)),
+            #ffffff;
+          border: 1px solid #d6e1ff;
+          box-shadow: 0 14px 30px rgba(26, 71, 165, 0.12);
+          font-size: 1rem;
           line-height: 1.15;
-          color: #526083;
-          background: none;
+          color: #17327e;
+          background-clip: border-box;
           -webkit-text-fill-color: currentColor;
           text-shadow: none;
           letter-spacing: -0.02em;
@@ -4866,9 +5106,10 @@
           grid-template-columns: 30px minmax(0, 1fr);
           gap: 8px;
           background:
-            linear-gradient(135deg, rgba(39, 94, 230, 0.1), rgba(77, 144, 255, 0.04)),
+            radial-gradient(circle at 16% 15%, rgba(255, 127, 63, 0.18), transparent 28%),
+            linear-gradient(135deg, rgba(39, 94, 230, 0.16), rgba(77, 144, 255, 0.05)),
             #ffffff;
-          box-shadow: 0 10px 24px rgba(26, 71, 165, 0.08);
+          box-shadow: 0 14px 30px rgba(26, 71, 165, 0.12);
         }
 
         .summary-card .summary-label,
@@ -4903,17 +5144,17 @@
           width: 30px;
           height: 30px;
           border-radius: 11px;
-          background: #edf3ff;
+          background:
+            linear-gradient(135deg, rgba(36, 93, 223, 0.14), rgba(255, 255, 255, 0.72)),
+            #edf3ff;
+          color: #245ddf;
           font-size: 0;
         }
 
-        .summary.summary--compact .summary-icon::before {
-          content: "";
-          width: 15px;
-          height: 15px;
-          border: 2px solid #667399;
-          border-radius: 999px;
-          box-shadow: 10px 0 0 -2px #667399;
+        .summary.summary--compact .summary-icon svg {
+          width: 20px;
+          height: 20px;
+          display: block;
         }
 
         .active-filter-list {
@@ -5018,35 +5259,36 @@
           bottom: 0;
           top: auto;
           width: 100%;
-          max-height: min(70dvh, 620px);
+          max-height: min(82dvh, 620px);
           z-index: 35;
-          border-radius: 24px 24px 0 0;
-          padding: 16px 16px calc(92px + env(safe-area-inset-bottom));
+          border-radius: 20px 20px 0 0;
+          padding: 12px 10px calc(84px + env(safe-area-inset-bottom));
           box-shadow: 0 -18px 40px rgba(18, 31, 82, 0.22);
           overflow: auto;
+          overscroll-behavior: contain;
+          touch-action: pan-y;
         }
 
         .filter-panel-head {
           position: sticky;
           top: 0;
           z-index: 2;
-          padding-bottom: 10px;
+          min-height: 44px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 0 48px 8px;
           background: rgba(255, 255, 255, 0.98);
         }
 
         .filter-panel-head::before {
-          content: "";
-          display: block;
-          width: 48px;
-          height: 5px;
-          margin: 0 auto 14px;
-          border-radius: 999px;
-          background: #cfd5e6;
+          content: none;
         }
 
         .filter-panel-title {
-          font-size: 1.3rem;
+          font-size: 1rem;
           letter-spacing: -0.03em;
+          text-align: center;
         }
 
         .filter-panel-copy {
@@ -5054,7 +5296,17 @@
         }
 
         .filter-panel-actions {
-          align-items: flex-start;
+          align-items: center;
+        }
+
+        .filter-panel-close {
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: 38px;
+          height: 38px;
+          min-height: 38px;
+          border-radius: 13px;
         }
 
         #filter-panel-reset {
@@ -5095,7 +5347,7 @@
 
         .filter-panel-grid {
           grid-template-columns: 1fr;
-          gap: 10px;
+          gap: 8px;
         }
 
         .filter-section {
@@ -5123,11 +5375,30 @@
           font-size: 0.92rem;
         }
 
+        .filter-option-list {
+          display: flex;
+          flex-wrap: nowrap;
+          gap: 8px;
+          margin-inline: -10px;
+          padding: 0 10px 2px;
+          overflow-x: auto;
+          overscroll-behavior-inline: contain;
+          scroll-snap-type: x proximity;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .filter-option-list::-webkit-scrollbar {
+          display: none;
+        }
+
         .filter-option-chip {
+          flex: 0 0 auto;
           min-height: 36px;
           padding: 0 12px;
           font-size: 0.86rem;
           box-shadow: none;
+          scroll-snap-align: start;
         }
 
         .filter-option-chip__icon {
@@ -5135,7 +5406,7 @@
         }
 
         .filter-option-list--scroll {
-          max-height: 84px;
+          max-height: none;
         }
 
         .view-shell {
@@ -5713,25 +5984,62 @@
         .metric-row,
         .state-row,
         .priority-row {
-          grid-template-columns: 1fr;
-          gap: 8px;
+          grid-template-columns: minmax(0, 1fr) auto auto;
+          gap: 7px 8px;
+          align-items: center;
+        }
+
+        .metric-track,
+        .state-bar-track,
+        .priority-track {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+
+        .value-count-cell {
+          grid-column: 2;
+          grid-row: 1;
+        }
+
+        .metric-percent,
+        .priority-percent,
+        .state-percent {
+          grid-column: 3;
+          grid-row: 1;
+        }
+
+        .chart-total-row,
+        .chart-total-row--metric,
+        .chart-total-row--state,
+        .chart-total-row--priority {
+          grid-template-columns: 1fr auto auto;
+        }
+
+        .chart-total-row > span:nth-child(2) {
+          display: none;
+        }
+
+        .chart-total-row > span:nth-child(4) {
+          display: none;
         }
 
         .dashboard-card--insight #gap-analysis {
           grid-template-columns: 1fr;
         }
 
-        .metric-value,
-        .priority-value,
-        .state-value {
-          text-align: left;
+        .metric-percent,
+        .priority-percent,
+        .state-percent {
+          text-align: center;
+          justify-self: end;
+          justify-content: flex-start;
         }
       }
     </style>
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">
+      <a class="brand" href="#contacts" id="brand-home-link" aria-label="Zur Kontakte-Ansicht">
         <div class="brand-mark" aria-hidden="true">
           <span></span>
           <span></span>
@@ -5740,7 +6048,7 @@
         <div class="brand-text">
           <strong>Versorgungs-Kompass</strong>
         </div>
-      </div>
+      </a>
       <div class="topbar-spacer"></div>
       <nav class="primary-nav" aria-label="Hauptbereiche">
         <button class="primary-tab is-active" type="button" data-view-tab="contacts">
@@ -5784,6 +6092,16 @@
         </div>
       </div>
     </header>
+
+    <aside class="deploy-reminder" id="deploy-reminder" aria-live="polite" hidden>
+      <button class="deploy-reminder__close" type="button" id="deploy-reminder-close" aria-label="Hinweis schließen">×</button>
+      <strong><span class="deploy-reminder__icon" aria-hidden="true">!</span>Deine Änderung wurde lokal gespeichert</strong>
+      <p>Diese Demo-Anwendung hat keine zentrale Datenbank. Darum wird die Änderung aktuell nur in diesem Browser gespeichert und ist auf anderen Geräten nicht sichtbar.</p>
+      <div class="deploy-reminder__actions">
+        <button class="deploy-reminder__button deploy-reminder__button--primary" type="button" id="deploy-reminder-export">Lokale Daten als CSV sichern</button>
+        <button class="deploy-reminder__button" type="button" id="deploy-reminder-help">Warum nur lokal?</button>
+      </div>
+    </aside>
 
     <main class="wrap">
       <section class="crm-shell">
@@ -5976,7 +6294,6 @@
               <div class="analytics-head">
                 <div>
                   <h3>Auswertung</h3>
-                  <p id="dashboard-subtitle">Verteilung deiner Kontakte nach Sektor und Bundesland.</p>
                 </div>
               <div class="analytics-actions">
                 </div>
@@ -5987,9 +6304,8 @@
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Kontakte nach Sektor</h4>
-                      <p>Mix im aktuellen Filterkontext.</p>
                     </div>
-                    <span class="dashboard-info" title="Absolute Anzahl und Anteil an der aktuellen Auswahl">i</span>
+                    <span class="dashboard-info" tabindex="0" aria-label="Statistik Kontakte nach Sektor erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Statistik zeigt, aus welchen Versorgungsbereichen die Kontakte in der aktuellen Auswahl stammen. Die Zahl im Balken ist die Anzahl der Kontakte, der Prozentwert zeigt den Anteil an allen ausgewählten Kontakten.</span></span>
                   </div>
                   <div id="category-chart"></div>
                 </article>
@@ -5997,9 +6313,8 @@
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Prioritätsverteilung</h4>
-                      <p>Hoch, Mittel, Niedrig und Unbekannt.</p>
                     </div>
-                    <span class="dashboard-info" title="Prioritäten in der aktuellen Auswahl">i</span>
+                    <span class="dashboard-info" tabindex="0" aria-label="Statistik Prioritätsverteilung erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Statistik zeigt, wie viele Kontakte in der aktuellen Auswahl welcher Priorität zugeordnet sind. Die Zahl im Balken ist die Anzahl, der Prozentwert rechts ist der Anteil an der Auswahl.</span></span>
                   </div>
                   <div id="priority-chart"></div>
                 </article>
@@ -6008,10 +6323,9 @@
                 <article class="dashboard-card dashboard-card--geo-map">
                   <div class="dashboard-card-head">
                     <div>
-                      <h4>Regionale Abdeckung (relativ)</h4>
-                      <p>Kontakte im Verhältnis zu geschätztem Potenzial.</p>
+                      <h4>Regionale Verteilung</h4>
                     </div>
-                    <span class="dashboard-info" title="Platzhalterwerte, bis echte Potenzialdaten ergänzt werden">i</span>
+                    <span class="dashboard-info" tabindex="0" aria-label="Regionale Verteilung erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Heatmap zeigt, wie sich die Kontakte der aktuellen Auswahl auf die Bundesländer verteilen. Dunklere Flächen bedeuten: In diesem Bundesland liegt ein größerer Anteil der ausgewählten Kontakte.</span></span>
                   </div>
                   <div id="coverage-map"></div>
                 </article>
@@ -6021,7 +6335,6 @@
                       <h4>Kontakte nach Bundesland</h4>
                       <p>Sortiert nach Anzahl der Kontakte.</p>
                     </div>
-                    <span class="card-menu-dot" aria-hidden="true">...</span>
                   </div>
                   <div id="state-chart"></div>
                 </article>
@@ -6041,16 +6354,16 @@
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Unterrepräsentierte Bereiche</h4>
-                      <p>Geringe Abdeckung relativ zum geschätzten Potenzial.</p>
+                      <p>Bereiche mit wenigen Kontakten in der aktuellen Auswahl.</p>
                     </div>
-                    <span class="dashboard-info" title="Aus geschätztem Potenzial und aktuellen Kontakten abgeleitet">i</span>
+                    <span class="dashboard-info" tabindex="0" aria-label="Unterrepräsentierte Bereiche erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Hinweise zeigen Sektoren und Bundesländer, die im aktuellen Datenbestand nur schwach vertreten sind. Das ist eine Verteilungsbetrachtung und kein Abgleich mit externen Referenzwerten.</span></span>
                   </div>
                   <div id="gap-analysis"></div>
                 </article>
                 <article class="dashboard-card dashboard-card--quality dashboard-card--subtle">
                   <div class="dashboard-card-head">
                     <div>
-                      <h4>Datenqualität (Auswahl)</h4>
+                      <h4>Datenqualität</h4>
                       <p>Nachrangige Hinweise zur Pflege.</p>
                     </div>
                     <span class="dashboard-info" title="Fehlende Kontaktwege in der aktuellen Auswahl">i</span>
@@ -6226,7 +6539,7 @@
           </section>
         </form>
         <div class="editor-footer">
-          <div class="editor-footer__hint" id="editor-hint">Änderungen werden lokal im Browser gespeichert.</div>
+          <div class="editor-footer__hint" id="editor-hint">Demo ohne Datenbank: Änderungen werden nur in diesem Browser gespeichert.</div>
           <div class="editor-actions">
             <button class="action-button" type="button" id="editor-cancel">Abbrechen</button>
             <button class="action-button" type="submit" form="editor-form" id="editor-save-next">Speichern &amp; weiteren anlegen</button>
@@ -6505,7 +6818,7 @@
         note: ["notiz", "bemerkung", "kommentar", "hinweis"],
         source: ["quelle", "source", "herkunft"]
       };
-      const storageKey = "versorgungs-kompass-contacts-v8";
+      const storageKey = "versorgungs-kompass-contacts-v9";
 
       const searchInput = document.getElementById("search");
       const list = document.getElementById("contact-list");
@@ -6557,7 +6870,6 @@
       const editorThemeSelected = document.getElementById("editor-theme-selected");
       const newContactButton = document.getElementById("new-contact-button");
       const mobileNewContactButton = document.getElementById("mobile-new-contact-button");
-      const dashboardSubtitle = document.getElementById("dashboard-subtitle");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
       const priorityChart = document.getElementById("priority-chart");
@@ -6567,9 +6879,14 @@
       const qualityChart = document.getElementById("quality-chart");
       const accountButton = document.getElementById("account-button");
       const accountMenu = document.getElementById("account-menu");
+      const brandHomeLink = document.getElementById("brand-home-link");
       const accountLogoutButton = document.getElementById("account-logout-button");
       const moreActionsButton = document.getElementById("more-actions-button");
       const moreActionsMenu = document.getElementById("more-actions-menu");
+      const deployReminder = document.getElementById("deploy-reminder");
+      const deployReminderExport = document.getElementById("deploy-reminder-export");
+      const deployReminderHelp = document.getElementById("deploy-reminder-help");
+      const deployReminderClose = document.getElementById("deploy-reminder-close");
       const openImportButton = document.getElementById("open-import-button");
       const importCsvButton = document.getElementById("import-csv-button");
       const exportCsvButton = document.getElementById("export-csv-button");
@@ -6603,6 +6920,32 @@
 
       function setStorageStatus(message) {
         void message;
+      }
+
+      function showDeployReminder() {
+        if (!deployReminder) return;
+        deployReminder.hidden = false;
+      }
+
+      function hideDeployReminder() {
+        if (!deployReminder) return;
+        deployReminder.hidden = true;
+      }
+
+      function explainDeployPath() {
+        window.alert(
+          [
+            "Warum wird nur lokal gespeichert?",
+            "",
+            "Der Versorgungs-Kompass ist aktuell eine Demo-Anwendung ohne Datenbank und ohne Server-Speicherung.",
+            "Darum kann die App Änderungen nicht zentral für alle Nutzer ablegen.",
+            "",
+            "Was passiert beim Speichern?",
+            "Die Änderung wird nur in deinem Browser gesichert. Wenn du ein anderes Gerät nutzt oder den Browser-Speicher löschst, ist diese lokale Änderung dort nicht vorhanden.",
+            "",
+            "Du kannst deine lokale Arbeitsfassung als CSV sichern. Eine echte gemeinsame Datenpflege braucht später eine Datenbank oder einen kleinen Admin-Bereich."
+          ].join("\n")
+        );
       }
 
       function logout() {
@@ -7673,6 +8016,7 @@
           }));
           window.localStorage.setItem(storageKey, JSON.stringify(payload));
           setStorageStatus(message);
+          if (!silent) showDeployReminder();
         } catch (error) {
           console.warn("Lokale Kontakte konnten nicht gespeichert werden.", error);
           if (!silent) window.alert("Die lokalen Änderungen konnten im Browser nicht gespeichert werden.");
@@ -7727,12 +8071,14 @@
         filterPanel.hidden = true;
         filterPanelButton.setAttribute("aria-expanded", "false");
         document.body.classList.remove("mobile-filter-open");
+        document.documentElement.classList.remove("mobile-filter-open");
       }
 
       function setFilterPanelOpen(open) {
         filterPanel.hidden = !open;
         filterPanelButton.setAttribute("aria-expanded", String(open));
         document.body.classList.toggle("mobile-filter-open", open && isMobileLayout());
+        document.documentElement.classList.toggle("mobile-filter-open", open && isMobileLayout());
       }
 
       function toggleFilterValue(key, value) {
@@ -7855,12 +8201,7 @@
       }
 
       function renderFilterOptionGroup(target, options, selectedValues, filterKey) {
-        const mobileLimit = filterKey === "category" ? 4 : 5;
-        const visibleOptions = isMobileLayout()
-          ? options
-              .filter((option, index) => index < mobileLimit || selectedValues.includes(option.value))
-              .slice(0, mobileLimit + selectedValues.length)
-          : options;
+        const visibleOptions = options;
         if (!visibleOptions.length) {
           target.innerHTML = `<div class="filter-empty-note">Keine Optionen vorhanden.</div>`;
           return;
@@ -7938,6 +8279,7 @@
             toggleFilterValue(filterKey, filterValue);
           });
         });
+
       }
 
       function renderActiveFilters() {
@@ -7984,7 +8326,20 @@
 
       function renderSummary(items) {
         const cards = [
-          { label: "Kontakte gesamt", value: contacts.length, meta: isMobileLayout() ? "Kontakte" : "100 %", icon: "", iconClass: "summary-icon--blue" }
+          {
+            label: "Kontakte gesamt",
+            value: contacts.length,
+            meta: isMobileLayout() ? "Kontakte" : "100 %",
+            icon: `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M16 20v-1.4a4.6 4.6 0 0 0-4.6-4.6H7.6A4.6 4.6 0 0 0 3 18.6V20"></path>
+                <circle cx="9.5" cy="7.5" r="3.5"></circle>
+                <path d="M20.5 20v-1.1a3.6 3.6 0 0 0-2.7-3.5"></path>
+                <path d="M16.8 4.4a3.5 3.5 0 0 1 0 6.2"></path>
+              </svg>
+            `,
+            iconClass: "summary-icon--blue"
+          }
         ];
 
         summaryGrid.innerHTML = cards
@@ -8644,19 +8999,14 @@
 
       function formatPercent(count, total) {
         if (!total) return "0 %";
-        const value = (count / total) * 100;
-        return `${value >= 10 || Number.isInteger(value) ? Math.round(value) : value.toFixed(1).replace(".", ",")} %`;
+        return `${Math.round((count / total) * 100)} %`;
       }
 
-      function estimatedStatePotential(state, count = 0) {
-        return Math.max(statePotentialEstimates[state] || Math.ceil(Math.max(count, 1) / 0.45), count, 1);
-      }
-
-      function coverageColor(coverage) {
-        if (coverage >= 80) return "#1f53c7";
-        if (coverage >= 60) return "#3f7df0";
-        if (coverage >= 40) return "#7da8f7";
-        if (coverage >= 20) return "#b7cdfb";
+      function distributionColor(share) {
+        if (share >= 20) return "#1f53c7";
+        if (share >= 10) return "#3f7df0";
+        if (share >= 5) return "#7da8f7";
+        if (share > 0) return "#b7cdfb";
         return "#dbe5fb";
       }
 
@@ -8668,16 +9018,26 @@
         return [];
       }
 
+      function coverageProjectPoint([lon, lat]) {
+        const latitude = Math.max(-85, Math.min(85, Number(lat) || 0));
+        const radians = latitude * Math.PI / 180;
+        return [
+          Number(lon) || 0,
+          Math.log(Math.tan(Math.PI / 4 + radians / 2)) * 180 / Math.PI
+        ];
+      }
+
       function statePolygonBounds(features) {
-        const bounds = { minLon: Infinity, maxLon: -Infinity, minLat: Infinity, maxLat: -Infinity };
+        const bounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         features.forEach((feature) => {
           polygonPoints(feature).forEach((polygon) => {
             polygon.forEach((ring) => {
-              ring.forEach(([lon, lat]) => {
-                bounds.minLon = Math.min(bounds.minLon, lon);
-                bounds.maxLon = Math.max(bounds.maxLon, lon);
-                bounds.minLat = Math.min(bounds.minLat, lat);
-                bounds.maxLat = Math.max(bounds.maxLat, lat);
+              ring.forEach((point) => {
+                const [x, y] = coverageProjectPoint(point);
+                bounds.minX = Math.min(bounds.minX, x);
+                bounds.maxX = Math.max(bounds.maxX, x);
+                bounds.minY = Math.min(bounds.minY, y);
+                bounds.maxY = Math.max(bounds.maxY, y);
               });
             });
           });
@@ -8686,12 +9046,13 @@
       }
 
       function statePolygonPath(feature, bounds, width = 240, height = 292, padding = 8) {
-        const lonSpan = bounds.maxLon - bounds.minLon || 1;
-        const latSpan = bounds.maxLat - bounds.minLat || 1;
-        const scale = Math.min((width - padding * 2) / lonSpan, (height - padding * 2) / latSpan);
-        const mapPoint = ([lon, lat]) => {
-          const x = padding + (lon - bounds.minLon) * scale + ((width - padding * 2 - lonSpan * scale) / 2);
-          const y = padding + (bounds.maxLat - lat) * scale + ((height - padding * 2 - latSpan * scale) / 2);
+        const xSpan = bounds.maxX - bounds.minX || 1;
+        const ySpan = bounds.maxY - bounds.minY || 1;
+        const scale = Math.min((width - padding * 2) / xSpan, (height - padding * 2) / ySpan);
+        const mapPoint = (point) => {
+          const [xProjected, yProjected] = coverageProjectPoint(point);
+          const x = padding + (xProjected - bounds.minX) * scale + ((width - padding * 2 - xSpan * scale) / 2);
+          const y = padding + (bounds.maxY - yProjected) * scale + ((height - padding * 2 - ySpan * scale) / 2);
           return `${x.toFixed(1)},${y.toFixed(1)}`;
         };
         return polygonPoints(feature)
@@ -8737,8 +9098,6 @@
 
       function renderDashboard(items = filteredContacts()) {
         const visibleContacts = items.length;
-        const representedStates = new Set(items.map((contact) => stateLabel(contact)).filter(Boolean)).size;
-        dashboardSubtitle.textContent = `${visibleContacts} von ${contacts.length} Kontakten in der aktuellen Auswahl über ${representedStates} Bundesländer.`;
 
         const categoryCounts = defaultCategories
           .map((category) => ({
@@ -8753,7 +9112,6 @@
         } else {
           const total = categoryCounts.reduce((sum, item) => sum + item.count, 0);
           const visibleCategories = categoryCounts.filter((item) => item.count > 0);
-          const emptyCategories = categoryCounts.filter((item) => item.count === 0);
           const maxCategoryCount = Math.max(...visibleCategories.map((item) => item.count), 1);
           categoryChart.innerHTML = `
             <div class="metric-bars">
@@ -8768,18 +9126,19 @@
                       <span class="metric-track">
                         <span class="metric-fill" style="width:${(item.count / maxCategoryCount) * 100}%; background:${item.color}"></span>
                       </span>
-                      <span class="metric-value">${item.count} · ${formatPercent(item.count, total)}</span>
+                      <span class="value-count-cell" aria-label="${item.count} Kontakte">${item.count}</span>
+                      <span class="metric-percent" aria-label="${formatPercent(item.count, total)} Anteil">${formatPercent(item.count, total)}</span>
                     </div>
                   `
                 )
                 .join("")}
             </div>
-            ${
-              emptyCategories.length
-                ? `<div class="metric-muted-note">Weitere Sektoren ohne Kontakte: ${emptyCategories.map((item) => escapeHtml(item.label)).join(", ")}</div>`
-                : ""
-            }
-            <div class="dashboard-note">Gesamt <strong>${total}</strong></div>
+            <div class="chart-total-row chart-total-row--metric">
+              <span class="chart-total-label">Gesamt</span>
+              <span></span>
+              <span class="chart-total-count">${total}</span>
+              <span></span>
+            </div>
           `;
         }
 
@@ -8806,11 +9165,18 @@
                       <div class="state-bar-track">
                         <div class="state-bar-fill" style="width:${(item.count / maxStateCount) * 100}%"></div>
                       </div>
-                      <div class="state-value">${item.count} · ${formatPercent(item.count, total)}</div>
+                      <div class="value-count-cell" aria-label="${item.count} Kontakte">${item.count}</div>
+                      <div class="state-percent" aria-label="${formatPercent(item.count, total)} Anteil">${formatPercent(item.count, total)}</div>
                     </div>
                   `
                 )
                 .join("")}
+            </div>
+            <div class="chart-total-row chart-total-row--state">
+              <span class="chart-total-label">Gesamt</span>
+              <span></span>
+              <span class="chart-total-count">${total}</span>
+              <span></span>
             </div>
           `;
         }
@@ -8847,55 +9213,63 @@
             </div>
             ${priorities
               .map((item) => {
-                const percent = total ? Math.round((item.count / total) * 100) : 0;
                 return `
                   <div class="priority-row">
                     <span class="priority-label">
                       <span class="priority-dot" style="background:${item.color}"></span>
                       <span>${escapeHtml(item.label)}</span>
                     </span>
-                    <span class="priority-value">${item.count} · ${formatPercent(item.count, total)}</span>
+                    <span class="priority-track">
+                      ${item.count ? `<span class="priority-fill" style="width:${(item.count / total) * 100}%; background:${item.color}"></span>` : ""}
+                    </span>
+                    <span class="value-count-cell" aria-label="${item.count} Kontakte">${item.count}</span>
+                    <span class="priority-percent" aria-label="${formatPercent(item.count, total)} Anteil">${formatPercent(item.count, total)}</span>
                   </div>
                 `;
               })
               .join("")}
           </div>
-          <div class="dashboard-note">Gesamt <strong>${total}</strong></div>
+          <div class="chart-total-row chart-total-row--priority">
+            <span class="chart-total-label">Gesamt</span>
+            <span></span>
+            <span class="chart-total-count">${total}</span>
+            <span></span>
+          </div>
         `;
       }
 
       function buildCoverageRows(items) {
         const statesToShow = selectedStates.length ? selectedStates : germanStates;
+        const total = items.length;
         return statesToShow
           .map((state) => {
             const count = items.filter((contact) => stateLabel(contact) === state).length;
-            const potential = estimatedStatePotential(state, count);
-            const coverage = Math.min(100, Math.round((count / potential) * 100));
-            return { state, count, potential, coverage };
+            const share = total ? Math.round((count / total) * 100) : 0;
+            return { state, count, share };
           })
-          .sort((a, b) => (b.coverage - a.coverage) || (b.count - a.count) || a.state.localeCompare(b.state, "de"));
+          .sort((a, b) => (b.share - a.share) || (b.count - a.count) || a.state.localeCompare(b.state, "de"));
       }
 
       function renderCoverageModules(items) {
         const rows = buildCoverageRows(items);
         const coverageByState = new Map(rows.map((row) => [row.state, row]));
         const legend = [
-          { label: "≥ 80 %", color: coverageColor(80) },
-          { label: "60–79 %", color: coverageColor(60) },
-          { label: "40–59 %", color: coverageColor(40) },
-          { label: "20–39 %", color: coverageColor(20) },
-          { label: "< 20 %", color: coverageColor(0) }
+          { label: "≥ 20 %", color: distributionColor(20) },
+          { label: "10–19 %", color: distributionColor(10) },
+          { label: "5–9 %", color: distributionColor(5) },
+          { label: "1–4 %", color: distributionColor(1) },
+          { label: "0 %", color: distributionColor(0) }
         ];
         const features = window.MAP_STATE_POLYGONS?.features || [];
         const bounds = statePolygonBounds(features);
-        const mapSvg = features.length && Number.isFinite(bounds.minLon)
+        const mapSvg = features.length && Number.isFinite(bounds.minX)
           ? `
-            <svg class="coverage-mini-map" viewBox="0 0 240 292" role="img" aria-label="Blaue Deutschland-Heatmap nach relativer Abdeckung">
+            <svg class="coverage-mini-map" viewBox="0 0 240 292" role="img" aria-label="Blaue Deutschland-Heatmap nach Kontaktverteilung">
               ${features
                 .map((feature) => {
                   const state = feature.properties.name;
-                  const row = coverageByState.get(state) || { coverage: 0, count: 0, potential: estimatedStatePotential(state, 0) };
-                  return `<path class="coverage-state ${row.count ? "" : "coverage-state--empty"}" d="${statePolygonPath(feature, bounds)}" fill="${coverageColor(row.coverage)}"><title>${escapeHtml(state)}: ${row.coverage} % Abdeckung, ${row.count} Kontakte, ~ ${row.potential} Potenzial</title></path>`;
+                  const row = coverageByState.get(state) || { share: 0, count: 0 };
+                  return `<path class="coverage-state ${row.count ? "" : "coverage-state--empty"}" d="${statePolygonPath(feature, bounds)}" fill="${distributionColor(row.share)}"><title>${escapeHtml(state)}: ${row.count} Kontakte, ${row.share} % der Auswahl</title></path>`;
                 })
                 .join("")}
             </svg>
@@ -8919,44 +9293,69 @@
                 .join("")}
             </div>
           </div>
-          <div class="dashboard-note">
-            <span class="coverage-reference">
-              <span>Abdeckung = Kontakte / geschätztes Potenzial</span>
-              <button class="reference-info" type="button" aria-label="Geschätzten Referenzwert erklären">i</button>
-              <span class="reference-popup" role="tooltip">Der geschätzte Referenzwert ist ein vorbereiteter Platzhalter für das erwartete Kontaktpotenzial je Bundesland. Sobald echte Referenzdaten vorliegen, kann dieser Wert ersetzt werden.</span>
-            </span>
-          </div>
         `;
       }
 
       function renderGapAnalysis(items) {
+        const total = Math.max(items.length, 1);
         const sectorGaps = defaultCategories
           .filter((sector) => sector !== "Sonstige")
           .map((sector) => {
             const count = items.filter((contact) => categoryLabel(contact) === sector).length;
-            const potential = sectorPotentialEstimates[sector] || Math.max(count, 1);
-            return { label: sector, coverage: count / potential, count };
+            return { label: sector, count, share: Math.round((count / total) * 100) };
           })
-          .sort((a, b) => (a.coverage - b.coverage) || (a.count - b.count))
+          .sort((a, b) => (a.count - b.count) || a.label.localeCompare(b.label, "de"))
           .slice(0, 3);
         const stateGaps = buildCoverageRows(items)
-          .sort((a, b) => (a.coverage - b.coverage) || (a.count - b.count))
+          .sort((a, b) => (a.count - b.count) || a.state.localeCompare(b.state, "de"))
           .slice(0, 3);
 
         gapAnalysis.innerHTML = `
           <div class="gap-panel">
-            <div class="gap-panel-title">Sektoren</div>
-            <p>Die Abdeckung in diesen Sektoren ist im Verhältnis zum Potenzial besonders niedrig.</p>
-            <div class="tag-list">${sectorGaps.map((item) => `<span class="gap-tag gap-tag--warm">${escapeHtml(item.label)}</span>`).join("")}</div>
+            <div class="gap-panel-head">
+              <span class="gap-panel-icon" aria-hidden="true">🏥</span>
+              <div>
+                <div class="gap-panel-title">Sektoren</div>
+                <div class="gap-panel-kicker">Niedrigster Anteil</div>
+              </div>
+            </div>
+            <div class="gap-item-list">
+              ${sectorGaps
+                .map(
+                  (item) => `
+                    <div class="gap-item">
+                      <span class="gap-item-name">${escapeHtml(item.label)}</span>
+                      <span class="gap-item-count">${item.count}</span>
+                      <span class="gap-item-share">${item.share} %</span>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
           </div>
           <div class="gap-panel">
-            <div class="gap-panel-title">Bundesländer</div>
-            <p>Diese Regionen sind im aktuellen Netzwerk vergleichsweise schwach vertreten.</p>
-            <div class="tag-list">${stateGaps.map((item) => `<span class="gap-tag">${escapeHtml(item.state)}</span>`).join("")}</div>
+            <div class="gap-panel-head">
+              <span class="gap-panel-icon gap-panel-icon--blue" aria-hidden="true">⌖</span>
+              <div>
+                <div class="gap-panel-title">Bundesländer</div>
+                <div class="gap-panel-kicker">Geringe regionale Präsenz</div>
+              </div>
+            </div>
+            <div class="gap-item-list">
+              ${stateGaps
+                .map(
+                  (item) => `
+                    <div class="gap-item">
+                      <span class="gap-item-name">${escapeHtml(item.state)}</span>
+                      <span class="gap-item-count">${item.count}</span>
+                      <span class="gap-item-share">${item.share} %</span>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
           </div>
-          <button class="dashboard-link-button" type="button" id="dashboard-map-link">Zur Kartenansicht</button>
         `;
-        document.getElementById("dashboard-map-link")?.addEventListener("click", () => setActiveView("map"));
       }
 
       function cityIconSvg(label) {
@@ -9009,6 +9408,7 @@
                 ([label, count], index) => `
                   <div class="city-rank-row">
                     <span class="city-rank-number">${index + 1}.</span>
+                    <span class="city-rank-icon">${cityIconSvg(label)}</span>
                     <span class="city-rank-name">${escapeHtml(label)}</span>
                     <span class="city-rank-count">${count}</span>
                   </div>
@@ -9016,7 +9416,6 @@
               )
               .join("")}
           </div>
-          <div class="dashboard-card-footer-link">Alle Regionen anzeigen →</div>
         `;
       }
 
@@ -9050,7 +9449,6 @@
               )
               .join("")}
           </div>
-          <div class="dashboard-card-footer-link">Alle Qualitätsmetriken ansehen →</div>
         `;
       }
 
@@ -9485,8 +9883,8 @@
           ? "Basisdaten zuerst, Details können laufend ergänzt werden."
           : "Nur Name ist Pflicht. Details kannst du später ergänzen.";
         editorHint.textContent = contact
-          ? "Änderungen überschreiben deinen lokalen Browser-Stand."
-          : "Neue Kontakte werden lokal im Browser gespeichert und stehen danach direkt in Liste, Karte und Detail-Ansicht zur Verfügung.";
+          ? "Änderungen überschreiben deinen lokalen Browser-Stand. Die Demo hat keine zentrale Datenbank."
+          : "Neue Kontakte werden nur in diesem Browser gespeichert. Die Demo hat keine zentrale Datenbank, daher sehen andere Nutzer diese lokalen Änderungen nicht.";
 
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
@@ -9716,6 +10114,11 @@
           setActiveView(tab.dataset.viewTab);
         });
       });
+      brandHomeLink?.addEventListener("click", (event) => {
+        event.preventDefault();
+        closeMenus();
+        setActiveView("contacts");
+      });
 
       moreActionsButton.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -9767,6 +10170,12 @@
         closeMenus();
         downloadCsv();
       });
+      deployReminderExport?.addEventListener("click", () => {
+        downloadCsv();
+        hideDeployReminder();
+      });
+      deployReminderHelp?.addEventListener("click", explainDeployPath);
+      deployReminderClose?.addEventListener("click", hideDeployReminder);
       importCsvButton.addEventListener("click", () => {
         closeMenus();
         openImportWizard();
@@ -9939,6 +10348,8 @@
       window.addEventListener("resize", () => {
         if (filterPanel.hidden) document.body.classList.remove("mobile-filter-open");
         else document.body.classList.toggle("mobile-filter-open", isMobileLayout());
+        if (filterPanel.hidden) document.documentElement.classList.remove("mobile-filter-open");
+        else document.documentElement.classList.toggle("mobile-filter-open", isMobileLayout());
         updateView();
       });
 

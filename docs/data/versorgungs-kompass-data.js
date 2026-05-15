@@ -2,10 +2,13 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
   {
     "id": "contact-001",
     "name": "Johanna Dorn",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Praxis",
     "organization": "MVZ Universitätsklinikum Aachen",
     "topic": "Sektor: MVZ · Privater Kontakt",
     "priority": "Hoch",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -23,43 +26,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://static.wixstatic.com/media/152c06_010b8bc96a864bef87575ae039340c20~mv2.webp",
     "sources": [
       "https://www.ukaachen.de/ueber-uns/tochtergesellschaften/medizinisches-versorgungszentrum/"
-    ],
-    "specialty": ""
-  },
-  {
-    "id": "contact-002",
-    "name": "Dr. Stefan Vlaho",
-    "category": "Praxis",
-    "organization": "Zentrum für Kinder und Jugendliche Inn-Salzach e.V.",
-    "topic": "Sektor: Hausarzt · Fachrichtung: Kinder- und Jugendmedizin· Primärsystem: Meierhofer · Frank, Timo",
-    "priority": "Mittel",
-    "email": "s.vlaho@kinderzentrum.de",
-    "phone": "",
-    "linkedin": "",
-    "location": "84503 Altötting",
-    "city": "Altötting",
-    "state": "Bayern",
-    "street": "Vinzenz-von-Paul-Str. 14",
-    "postalCode": "84503",
-    "url": "https://kinderzentrum.de/",
-    "description": "Sektor: Hausarzt · Fachrichtung: Kinder- und Jugendmedizin· Primärsystem: Meierhofer · Frank, Timo",
-    "lat": 48.2328656,
-    "lon": 12.6745342,
-    "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Kinder- und Jugendmedizin· Primärsystem: Meierhofer · Frank, Timo",
-    "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "https://www.innklinikum.de/fileadmin/user_upload/Altoetting/Paed/Bilder/vlaho-02.png",
-    "sources": [
-      "https://kinderzentrum.de/"
-    ],
-    "specialty": "Kinder- und Jugendmedizin"
+    ]
   },
   {
     "id": "contact-003",
     "name": "Frank Dastych",
+    "honorificTitle": "",
+    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)",
     "category": "Praxis",
     "organization": "HNO Regional",
     "topic": "Sektor: Facharzt · Fachrichtung: Hals-Nasen-Ohrenheilkunde (HNO)· Vorstand KV Hessen",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -77,16 +55,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.hno-regional.de/wp-content/uploads/2019/07/Frank-Dastych.jpg",
     "sources": [
       "https://www.hno-regional.de/"
-    ],
-    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)"
+    ]
   },
   {
     "id": "contact-004",
     "name": "Knut Schnell",
+    "honorificTitle": "",
+    "specialty": "Psychiatrie und Psychotherapie",
     "category": "Praxis",
     "organization": "Vitos Klinik für Psychiatrie und Psychotherapie",
     "topic": "Sektor: Facharzt · Fachrichtung: Psychiatrie und Psychotherapie· Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -104,16 +84,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.vitos.de/fileadmin/_processed_/6/8/csm_BadHomburg_Aussen_nah_c838229654.jpg",
     "sources": [
       "https://www.vitos.de/gesellschaften/vitos-hochtaunus/einrichtungen/vitos-klinik-fuer-psychiatrie-und-psychotherapie-bad-homburg/kontakt-und-anfahrt/"
-    ],
-    "specialty": "Psychiatrie und Psychotherapie"
+    ]
   },
   {
     "id": "contact-005",
     "name": "Michael Brendler",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis Michael Brendler",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -131,16 +113,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://hausarzt-bad-kissingen.de/wp-content/uploads/2019/05/ddrennts-1.jpg",
     "sources": [
       "https://hausarzt-bad-kissingen.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-006",
     "name": "Wolfgang von Meißner",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärzte am Spritzenhaus",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: EVA, Abasoft | EVA, abasoft · Privater Kontakt",
     "priority": "Hoch",
+    "owner": "",
     "email": "vonmeissner@hausaerzte-am-spritzenhaus.de;blickle@hausaerzte-am-spritzenhaus.de",
     "phone": "",
     "linkedin": "",
@@ -155,19 +139,21 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.3713507,
     "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: EVA, Abasoft | EVA, abasoft · Privater Kontakt",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "https://www.hausaerzte-am-spritzenhaus.de/images/portrait/Wolfgang%20von%20Mei%C3%9Fner.jpg",
+    "image": "https://h-am-s.de/images/portrait/Wolfgang%20von%20Mei%C3%9Fner.jpg",
     "sources": [
       "https://www.hausaerzte-am-spritzenhaus.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-007",
     "name": "Markus Jasinski",
+    "honorificTitle": "",
+    "specialty": "Orthopädie und Unfallchirurgie",
     "category": "Praxis",
     "organization": "Praxis Jasinski",
     "topic": "Sektor: Facharzt · Fachrichtung: Orthopädie und Unfallchirurgie· Brief an gematik 11/25",
     "priority": "Hoch",
+    "owner": "",
     "email": "markus.jasinski@unfallchirurgie-bamberg.de",
     "phone": "",
     "linkedin": "",
@@ -185,16 +171,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://static.wixstatic.com/media/3039b6_5ad2cca313974de29937f516fafdce48~mv2.jpg/v1/fill/w_884,h_590,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Markus%20Jasinski%206944.jpg",
     "sources": [
       "https://www.unfallchirurgie-bamberg.de/"
-    ],
-    "specialty": "Orthopädie und Unfallchirurgie"
+    ]
   },
   {
     "id": "contact-008",
-    "name": "Dr. med. Beatrice Staudt",
+    "name": "Beatrice Staudt",
+    "honorificTitle": "Dr. med.",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
-    "organization": "Dr. med. Beatrice Staudt",
+    "organization": "Hausarztpraxis Beatrice Staudt",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Ärzte-Stammtisch",
     "priority": "Hoch",
+    "owner": "",
     "email": "hausarzt@dr-staudt.de",
     "phone": "",
     "linkedin": "",
@@ -212,16 +200,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://dr-staudt.de/images/2022/09/02/d12821_staudt_b.jpg",
     "sources": [
       "https://dr-staudt.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-009",
-    "name": "Dr. Rüdiger Berndt",
+    "name": "Rüdiger Berndt",
+    "honorificTitle": "Dr.",
+    "specialty": "Gastroenterologie",
     "category": "Praxis",
     "organization": "Gastropraxis Ostseeplatz",
     "topic": "Sektor: Facharzt · Fachrichtung: Gastroenterologie· Primärsystem: tomedo · Privater Kontakt",
     "priority": "Hoch",
+    "owner": "",
     "email": "rb@gastropraxis.berlin",
     "phone": "",
     "linkedin": "",
@@ -239,16 +229,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://gastropraxis.berlin/wp-content/uploads/2024/07/Rudiger-Berndt_500x600.jpg",
     "sources": [
       "https://gastropraxis.berlin/"
-    ],
-    "specialty": "Gastroenterologie"
+    ]
   },
   {
     "id": "contact-010",
     "name": "Bernhard Tenckhoff",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Tenckhoff",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Kontakt über Florian",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "b.tenckhoff@gmx.de",
     "phone": "",
     "linkedin": "",
@@ -263,19 +255,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 13.4169749,
     "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Kontakt über Florian",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.hausarztpraxis-kugler16.de/.cm4all/uproc.php/0/Logo_praxis_3.png",
     "sources": [
-      "https://www.hausarztpraxis-kugler16.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+      "https://www.hausarztpraxis-kugler16.de/",
+      "https://www.hausarztpraxis-kugler16.de/Praxis/"
+    ]
   },
   {
     "id": "contact-011",
     "name": "Irmgard Landgraf",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Internistische Hausarztpraxis Irmgard Landgraf",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "landgraf@praxislandgraf.de",
     "phone": "",
     "linkedin": "",
@@ -293,16 +288,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://interniststeglitz.de/wp-content/uploads/2024/08/internist_steglitz_dr_Bajour_Landgraf.jpg",
     "sources": [
       "https://interniststeglitz.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-012",
     "name": "Oliver Fasold",
+    "honorificTitle": "",
+    "specialty": "Neurologie",
     "category": "Praxis",
     "organization": "Neurozentrum Tempelhof",
     "topic": "Sektor: Facharzt · Fachrichtung: Neurologie",
     "priority": "Mittel",
+    "owner": "",
     "email": "ofasold@neurozentrum-tempelhof.berlin",
     "phone": "",
     "linkedin": "",
@@ -320,16 +317,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://neurozentrum-tempelhof.berlin/wp-content/uploads/2021/08/210701_ZBMG_PHT0029-scaled.jpg",
     "sources": [
       "https://neurozentrum-tempelhof.berlin/"
-    ],
-    "specialty": "Neurologie"
+    ]
   },
   {
     "id": "contact-013",
-    "name": "Dr. med. Sven Schellberg",
+    "name": "Sven Schellberg",
+    "honorificTitle": "Dr. med.",
+    "specialty": "HIV/Infektiologie",
     "category": "Praxis",
     "organization": "Novopraxis",
     "topic": "Sektor: Facharzt · Fachrichtung: HIV/Infektiologie· Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "info@novopraxis.berlin",
     "phone": "",
     "linkedin": "",
@@ -347,16 +346,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.novopraxis.berlin/assets/images/e/image001-edit-20220411215811-dcdeae2e.jpg",
     "sources": [
       "https://www.novopraxis.berlin/"
-    ],
-    "specialty": "HIV/Infektiologie"
+    ]
   },
   {
     "id": "contact-014",
     "name": "Maike Henningsen",
+    "honorificTitle": "",
+    "specialty": "Gynäkologie",
     "category": "Praxis",
     "organization": "Praxis Frauenmedizin Bundesplatz",
     "topic": "Sektor: Facharzt · Fachrichtung: Gynäkologie· Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -371,19 +372,21 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 13.3277166,
     "note": "Projektkontext: Sektor: Facharzt · Fachrichtung: Gynäkologie· Privater Kontakt Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "https://www.frauenmedizin-am-bundesplatz.de/quality_auto/Frauenmedizin-am-Bundesplatz-Berlin-Priv-Doz-Dr-med-Maike-Henningsen.png",
+    "image": "https://cdn.prod.website-files.com/660e9ac3a2830c0807ba640b/691f48f117e9c1a4a354e749_Konstantinou_Henningsen.png",
     "sources": [
       "https://www.frauenmedizin-am-bundesplatz.de/"
-    ],
-    "specialty": "Gynäkologie"
+    ]
   },
   {
     "id": "contact-015",
     "name": "Susanne von der Heydt",
+    "honorificTitle": "",
+    "specialty": "Kinderchirurgie",
     "category": "Praxis",
     "organization": "Praxis für Kinderchirurgie Berlin",
     "topic": "Sektor: Hausarzt · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "susanne@von-der-heydt.com",
     "phone": "",
     "linkedin": "",
@@ -401,16 +404,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://praxis-vonderheydt.de/wp-content/uploads/2024/01/IMG_9895-5-scaled.jpeg",
     "sources": [
       "https://praxis-vonderheydt.de/"
-    ],
-    "specialty": "Kinderchirurgie"
+    ]
   },
   {
     "id": "contact-016",
     "name": "Marc Hanefeld",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis für Familienmedizin",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: T2Med · Privater Kontakt",
     "priority": "Hoch",
+    "owner": "",
     "email": "marc@doc-hanefeld.de",
     "phone": "",
     "linkedin": "",
@@ -428,16 +433,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://praxis-hanefeld.com/wp-content/uploads/2025/06/marc-hanefeld-sp2-2-743x1024.jpg",
     "sources": [
       "https://praxis-hanefeld.com/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-017",
-    "name": "Dr. Joachim Draws",
+    "name": "Joachim Draws",
+    "honorificTitle": "Dr.",
+    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)",
     "category": "Praxis",
     "organization": "HNO in Celle",
     "topic": "Sektor: Facharzt · Fachrichtung: Hals-Nasen-Ohrenheilkunde (HNO)· Primärsystem: medatixx isy.net · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "jdraws@icloud.com",
     "phone": "",
     "linkedin": "",
@@ -455,16 +462,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://drdraws.de/img/DrDraws.jpg",
     "sources": [
       "https://drdraws.de/"
-    ],
-    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)"
+    ]
   },
   {
     "id": "contact-018",
     "name": "Matthias Hempel",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "HALEO",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "dr.hempel@haleo.de",
     "phone": "",
     "linkedin": "",
@@ -482,16 +491,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.haleo.de/fileadmin/_processed_/7/d/csm_hempel-portrait_2e7d90ad8c.jpg",
     "sources": [
       "https://www.haleo.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-019",
     "name": "Max Tischler",
+    "honorificTitle": "",
+    "specialty": "Dermatologie",
     "category": "Praxis",
     "organization": "Haut+Laserpraxis Dr. Tischler+Team",
     "topic": "Sektor: Hausarzt · Fachrichtung: Dermatologie· Primärsystem: Meierhofer · Frank, Timo",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -509,16 +520,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://drtischler.de/wp-content/uploads/2025/11/Praxis_Dr._Max_Tischler_Dortmund27.08.2025_28-scaled.jpg",
     "sources": [
       "https://drtischler.de/"
-    ],
-    "specialty": "Dermatologie"
+    ]
   },
   {
     "id": "contact-020",
     "name": "Annette Rennert",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Praxis",
     "organization": "Praxis im Kaiserviertel",
     "topic": "Sektor: Hausarzt | Facharzt · Primärsystem: medatixx · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "rennert@diabetologie-kaiserviertel.de;pate@diabetologie-kaiserviertel.de",
     "phone": "",
     "linkedin": "",
@@ -536,16 +549,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxis-kaiserviertel.de/.cm4all/uproc.php/0/_Design/Content/annette-rennert.jpg?_=17d900fc3a0",
     "sources": [
       "https://www.praxis-kaiserviertel.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-021",
-    "name": "Dr. Martin Deile",
+    "name": "Martin Deile",
+    "honorificTitle": "Dr.",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Dr. Martin Deile",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: tomedo · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "kontakt@hausarzt-deile.de",
     "phone": "",
     "linkedin": "",
@@ -563,16 +578,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://image.jimcdn.com/app/cms/image/transf/none/path/s81bfafdb9bf1321d/backgroundarea/i72be136f6cd52386/version/1568314895/image.jpg",
     "sources": [
       "https://www.hausarzt-deile.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-022",
     "name": "Ursula Hahn",
+    "honorificTitle": "",
+    "specialty": "Augenheilkunde",
     "category": "Praxis",
     "organization": "OcuNet",
     "topic": "Sektor: Augenarzt · Fachrichtung: Augenheilkunde· Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "zentrale@ocunet.de",
     "phone": "",
     "linkedin": "",
@@ -587,19 +604,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 6.7766088,
     "note": "Projektkontext: Sektor: Augenarzt · Fachrichtung: Augenheilkunde· Primärsystem: Meierhofer · Frank, Timo",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.ocunet.de/assets/uploads/contentImages/20_Foto_Vorstand_BMC_NRW.jpg",
     "sources": [
-      "https://www.ocunet.de/"
-    ],
-    "specialty": "Augenheilkunde"
+      "https://www.ocunet.de/",
+      "https://www.ocunet.de/aktuelles/pressemitteilungen/intersektorale-versorgung-ohne-therapiebr%C3%BCche.html"
+    ]
   },
   {
     "id": "contact-023",
-    "name": "Dr. med. Hiwa Dashti",
+    "name": "Hiwa Dashti",
+    "honorificTitle": "Dr. med.",
+    "specialty": "Innere Medizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Dashti",
     "topic": "Sektor: Hausarzt · Fachrichtung: Innere Medizin· Primärsystem: Duria · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "mail@hausarztpraxis-dashti.de",
     "phone": "",
     "linkedin": "",
@@ -617,16 +637,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.hausarztpraxis-dashti.de/wp-content/uploads/2017/06/dsc06167.1496662667.jpg",
     "sources": [
       "https://www.hausarztpraxis-dashti.de/"
-    ],
-    "specialty": "Innere Medizin"
+    ]
   },
   {
     "id": "contact-024",
-    "name": "Dr. Nils Hentig",
+    "name": "Nils Hentig",
+    "honorificTitle": "Dr.",
+    "specialty": "",
     "category": "Praxis",
     "organization": "Praxis Darab & von Hentig",
     "topic": "Sektor: Facharzt · Primärsystem: Medical Office · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -641,19 +663,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.6820278,
     "note": "Projektkontext: Sektor: Facharzt · Primärsystem: Medical Office · Privater Kontakt Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.fr.de/assets/images/12/421/12421375-1196427340-961952-jef.jpg",
     "sources": [
-      "https://praxis-darab-vonhentig.de/"
-    ],
-    "specialty": ""
+      "https://praxis-darab-vonhentig.de/",
+      "https://www.fr.de/frankfurt/kino-nordsyrien-11060022.html"
+    ]
   },
   {
     "id": "contact-025",
-    "name": "Dr. med. Christoph Claus",
+    "name": "Christoph Claus",
+    "honorificTitle": "Dr. med.",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärztliche Gemeinschaftspraxis Grebenstein",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Duria · Kontakt über KV Hessen",
     "priority": "Mittel",
+    "owner": "",
     "email": "dr.christoph.claus@hausaerzte-grebenstein.de",
     "phone": "",
     "linkedin": "",
@@ -668,19 +693,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.4172863,
     "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Duria · Kontakt über KV Hessen",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.kvhessen.de/fileadmin/user_upload/Bilder/VV/VV_Christoph-Claus_c_Tom_Wolf.jpg",
     "sources": [
-      "https://www.hausaerzte-grebenstein.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+      "https://www.hausaerzte-grebenstein.de/",
+      "https://www.kvhessen.de/ueber-uns/vertreterversammlung/alphabet/w?filter%5BsortBy%5D=0&cHash=9cc844ede3c88704c2a82ccd2a616eda"
+    ]
   },
   {
     "id": "contact-026",
     "name": "Thomas Fischer",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Ihre Hausarzt-Praxis auf den Zietenterrassen",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Meierhofer · Frank, Timo",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -695,19 +723,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.9633912,
     "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Meierhofer · Frank, Timo Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://hausarzt-zietenterrassen.de/wp-content/uploads/2019/11/Facetune-1-1024x724.jpg",
     "sources": [
-      "https://hausarzt-zietenterrassen.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+      "https://hausarzt-zietenterrassen.de/",
+      "https://hausarzt-zietenterrassen.de/?page_id=122"
+    ]
   },
   {
     "id": "contact-027",
     "name": "Christine Löber",
+    "honorificTitle": "",
+    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)",
     "category": "Praxis",
     "organization": "HNO- Gemeinschaftspraxis Farmsen",
     "topic": "Sektor: Facharzt · Fachrichtung: Hals-Nasen-Ohrenheilkunde (HNO)· Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -725,16 +756,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://hno-farmsen.de/wp-content/uploads/2019/02/HNO-PRAXIS-FARMSEN_Aerzte_Dr_Brocks_Dr_Loeber-1.jpg",
     "sources": [
       "https://hno-farmsen.de/"
-    ],
-    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)"
+    ]
   },
   {
     "id": "contact-028",
     "name": "Jana Husemann",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis St. Pauli",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Meierhofer · Frank, Timo",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -752,16 +785,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxis-st-pauli.de/__we_thumbs__/12/288_P1040283.webp",
     "sources": [
       "https://www.praxis-st-pauli.de/de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-029",
-    "name": "Dr. med. Ulrich Tappe",
+    "name": "Ulrich Tappe",
+    "honorificTitle": "Dr. med.",
+    "specialty": "Gastroenterologie",
     "category": "Praxis",
     "organization": "Gastro Praxis Hamm",
     "topic": "Sektor: Facharzt · Fachrichtung: Gastroenterologie· Primärsystem: medatixx isy.net · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "tappe@gastro-praxis-hamm.de",
     "phone": "",
     "linkedin": "",
@@ -779,16 +814,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.gastro-praxis-hamm.de/content/1-startseite/gastropraxis_dr-delker-dr_tappe-001.jpg",
     "sources": [
       "https://www.gastro-praxis-hamm.de/"
-    ],
-    "specialty": "Gastroenterologie"
+    ]
   },
   {
     "id": "contact-030",
-    "name": "Dr. Marcus Rothsching",
+    "name": "Marcus Rothsching",
+    "honorificTitle": "Dr.",
+    "specialty": "Diabetologie",
     "category": "Praxis",
     "organization": "Diabetologie Dr. Rothsching",
     "topic": "Sektor: Facharzt · Fachrichtung: Diabetologie· Primärsystem: Medical Office · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "rothsching@gmail.com",
     "phone": "",
     "linkedin": "",
@@ -803,19 +840,21 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.909551,
     "note": "Projektkontext: Sektor: Facharzt · Fachrichtung: Diabetologie· Primärsystem: Medical Office · Privater Kontakt",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.diabetologie-rothsching.de/file_server/genimg.jpg",
     "sources": [
       "https://www.diabetologie-rothsching.de/"
-    ],
-    "specialty": "Diabetologie"
+    ]
   },
   {
     "id": "contact-031",
     "name": "Florian Rau",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis im Zentrum Harsefeld",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: SAP is.h · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "info@praxis-im-zentrum-harsefeld.de",
     "phone": "",
     "linkedin": "",
@@ -833,16 +872,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxis-im-zentrum-harsefeld.de/wp-content/uploads/2026/02/team-praxis-im-zentrum-2048x1471.png.pagespeed.ce.lDqKfoggZT.png",
     "sources": [
       "https://www.praxis-im-zentrum-harsefeld.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-032",
     "name": "Pascal Nohl-Deryk",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärztliche Gemeinschaftspraxis Drs. Hestermann-Menzer",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "pascal@nohl-deryk.de",
     "phone": "",
     "linkedin": "",
@@ -860,16 +901,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://drs-hestermann-menzer.de/wp-content/uploads/2020/10/prax_inh-e1603535415823-900x423.jpg",
     "sources": [
       "https://drs-hestermann-menzer.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-033",
     "name": "Moritz Eckert",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarzt Herzberg",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Duria · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "moritz.eckert@gmail.com",
     "phone": "",
     "linkedin": "",
@@ -887,16 +930,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://image.jimcdn.com/app/cms/image/transf/dimension=1920x1024:format=png/path/se54b5828f0346ddd/image/i87a2ced2118e7a27/version/1710772248/image.png",
     "sources": [
       "https://www.hausarzt-herzberg.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-034",
     "name": "Nicola Bühlinger Gopfart",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztzentrum Huchenfeld",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -911,19 +956,21 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.6942889,
     "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://hausarztzentrum-huchenfeld.de/wp-content/uploads/2020/03/hausarztzentrum_huchenfeld.png",
     "sources": [
       "https://hausarztzentrum-huchenfeld.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-035",
-    "name": "Dr. Jonas Fröhlich",
+    "name": "Jonas Fröhlich",
+    "honorificTitle": "Dr.",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis Dr. Froehlich",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · HÄPPI",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "j.f.froehlich@gmx.de",
     "phone": "",
     "linkedin": "",
@@ -941,16 +988,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.praxisfroehlichkl.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-036",
     "name": "Volker Thielmann",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Kirchener Gemeinschaftspraxis",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: tomedo · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -968,16 +1017,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxis-kirchen.de/assets/images/8/IMG_0004-827a6b90.jpg",
     "sources": [
       "https://www.praxis-kirchen.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-037",
     "name": "Bahman Afzali",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "MVZ Hausarztmedizin Bedburg",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: tomedo · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "ba@docport.de",
     "phone": "",
     "linkedin": "",
@@ -995,16 +1046,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://mvzbedburg.de/wp-content/uploads/2023/02/20221115_docport_Bedburg_0335-scaled-1.jpeg",
     "sources": [
       "https://mvzbedburg.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-038",
-    "name": "Dr. Thomas Mai",
+    "name": "Thomas Mai",
+    "honorificTitle": "Dr.",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Lauterbach Dr. Mai & Dr. Lips",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1019,19 +1072,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.3971543,
     "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://hausarztpraxis-lauterbach.de/wp-content/uploads/2024/01/A640086-Verbessert-RR-scaled.jpg",
     "sources": [
-      "https://hausarztpraxis-lauterbach.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+      "https://hausarztpraxis-lauterbach.de/",
+      "https://hausarztpraxis-lauterbach.de/ueber-uns/"
+    ]
   },
   {
     "id": "contact-039",
     "name": "Sabine Maur",
+    "honorificTitle": "",
+    "specialty": "Psychologische Psychotherapie",
     "category": "Praxis",
     "organization": "BAG Sabine Maur & Michael Kurt",
     "topic": "Sektor: Psychologie · Fachrichtung: Psychologische Psychotherapie· Primärsystem: medatixx · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "sabine.maur@lpk-rlp.de",
     "phone": "",
     "linkedin": "",
@@ -1049,16 +1105,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://image.jimcdn.com/app/cms/image/transf/dimension=99x1024:format=jpg/path/s38803484ae562712/image/i815568a079e951f6/version/1435425425/image.jpg",
     "sources": [
       "https://psychotherapie-mz.jimdofree.com/"
-    ],
-    "specialty": "Psychologische Psychotherapie"
+    ]
   },
   {
     "id": "contact-040",
-    "name": "Dr. Roger Vogelmann",
+    "name": "Roger Vogelmann",
+    "honorificTitle": "Dr.",
+    "specialty": "Onkologie",
     "category": "Praxis",
     "organization": "Mannheimer Onkologie Praxis",
     "topic": "Sektor: Facharzt · Primärsystem: medatixx isy.net · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "vogelmann@mannheimer-onkologie-praxis.de",
     "phone": "",
     "linkedin": "",
@@ -1073,19 +1131,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.4673098,
     "note": "Projektkontext: Sektor: Facharzt · Primärsystem: medatixx isy.net · Privater Kontakt",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.mannheimer-onkologie-praxis.de/.cm4all/uproc.php/0/Hauptelemente/.Vogelmann_neu_Topbild.jpg/picture-1200?_=16891099598",
     "sources": [
-      "https://www.mannheimer-onkologie-praxis.de/"
-    ],
-    "specialty": "Onkologie"
+      "https://www.mannheimer-onkologie-praxis.de/",
+      "https://www.mannheimer-onkologie-praxis.de/Ueber-uns/Aerzte/Priv-Doz-Dr-Roger-Vogelmann/"
+    ]
   },
   {
     "id": "contact-041",
-    "name": "Dr. med. Ingo Drehmer",
+    "name": "Ingo Drehmer",
+    "honorificTitle": "Dr. med.",
+    "specialty": "Urologie",
     "category": "Praxis",
     "organization": "Urologische Gemeinschaftspraxis",
     "topic": "Sektor: Facharzt · Fachrichtung: Urologie· Primärsystem: Duria · Kontakt über KV Hessen",
     "priority": "Mittel",
+    "owner": "",
     "email": "weber@urologie-odenwald.de",
     "phone": "",
     "linkedin": "",
@@ -1100,19 +1161,21 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.0039059,
     "note": "Projektkontext: Sektor: Facharzt · Fachrichtung: Urologie· Primärsystem: Duria · Kontakt über KV Hessen",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "https://www.urologie-odenwald.de/quality_auto/Drehmer.jpg",
+    "image": "https://static.wixstatic.com/media/715618_4587cd8518b44268930902493a596da4~mv2.jpg/v1/fill/w_275%2Ch_275%2Cal_c%2Cq_80%2Cusm_0.66_1.00_0.01%2Cenc_avif%2Cquality_auto/Dr_Drehmer_NEW.jpg",
     "sources": [
       "https://www.urologie-odenwald.de/"
-    ],
-    "specialty": "Urologie"
+    ]
   },
   {
     "id": "contact-042",
     "name": "Ivo Schmid",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärzte im Grillepark",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1130,16 +1193,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.hausaerzte-im-grillepark.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-043",
-    "name": "Dr. Ahmad Sirfy",
+    "name": "Ahmad Sirfy",
+    "honorificTitle": "Dr.",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "smartpraxis",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: tomedo · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "mail@sirfy.de",
     "phone": "",
     "linkedin": "",
@@ -1157,16 +1222,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.smartpraxis.de/wp-content/uploads/2021/12/smartpraxis_sirfy_muenchen_21.jpg",
     "sources": [
       "https://www.smartpraxis.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-044",
     "name": "Judith Mair",
+    "honorificTitle": "",
+    "specialty": "Dermatologie",
     "category": "Praxis",
     "organization": "Dermatologie am Glacis",
     "topic": "Sektor: Hausarzt · Fachrichtung: Dermatologie· Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "dr.mair@dermatologie-am-glacis.de",
     "phone": "",
     "linkedin": "",
@@ -1184,16 +1251,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://dermatologie-am-glacis.de/wp-content/smush-webp/2021/05/dermatologie-am-glacis-01.jpg.webp",
     "sources": [
       "https://dermatologie-am-glacis.de"
-    ],
-    "specialty": "Dermatologie"
+    ]
   },
   {
     "id": "contact-045",
     "name": "Nicolas Kahl",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarztpraxis Fischbach",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "nicolas.kahl@gmx.de",
     "phone": "",
     "linkedin": "",
@@ -1211,16 +1280,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://le-cdn.website-editor.net/md/and1/dms3rep/multi/opt/116982-1920w.jpeg",
     "sources": [
       "https://www.hausarzt-fischbach.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-046",
     "name": "Wolfgang Landendörfer",
+    "honorificTitle": "",
+    "specialty": "Kinder- und Jugendmedizin",
     "category": "Praxis",
     "organization": "Kinderarztpraxis Tiergarten",
     "topic": "Sektor: Facharzt · Fachrichtung: Kinder- und Jugendmedizin· Primärsystem: CGM · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1238,16 +1309,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://cdn.prod.website-files.com/65c217c19c71fdd17fa6ce76/65e889cad19c731bd8cdfcb4_Kinderarztpraxis-am-Tiergarten-Nuernberg_Team.webp",
     "sources": [
       "https://www.kinderarztpraxis-tiergarten.de/"
-    ],
-    "specialty": "Kinder- und Jugendmedizin"
+    ]
   },
   {
     "id": "contact-047",
     "name": "Philipp Weisser",
+    "honorificTitle": "",
+    "specialty": "Radiologie",
     "category": "Praxis",
     "organization": "Radiologisches Zentrum",
     "topic": "Sektor: Facharzt · Fachrichtung: Radiologie· Primärsystem: medatixx isy.net · Privater Kontakt, Berufsverband Radiologie",
     "priority": "Mittel",
+    "owner": "",
     "email": "lv.hes@radiologenverband.de",
     "phone": "",
     "linkedin": "",
@@ -1262,19 +1335,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.7639762,
     "note": "Projektkontext: Sektor: Facharzt · Fachrichtung: Radiologie· Primärsystem: medatixx isy.net · Privater Kontakt, Berufsverband Radiologie",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.rz-dietzenbach.de/timthumb.php?w=200&h=200&src=images/team/qswimg_1476sw.jpg",
     "sources": [
-      "https://www.rz-dietzenbach.de/"
-    ],
-    "specialty": "Radiologie"
+      "https://www.rz-dietzenbach.de/",
+      "https://www.rz-dietzenbach.de/praxis/aerzteteam/"
+    ]
   },
   {
     "id": "contact-048",
     "name": "Stefan Spieren",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "DFGZ",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx isy.net · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "stefan@spieren.de",
     "phone": "",
     "linkedin": "",
@@ -1292,16 +1368,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://spieren.de/wp-content/uploads/2024/09/IMG_3241-e1727005688707-1024x626.jpg",
     "sources": [
       "https://spieren.de/dfgz/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-049",
     "name": "Susanne Bublitz",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Gemeinschaftspraxis Pfedelbach",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1316,19 +1394,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.505341,
     "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://sozialministerium.baden-wuerttemberg.de/fileadmin/_processed_/a/f/csm_Sommertour-2017_Praxis-Pfedelbach_Rundgang_5d745b1eeb.jpg",
     "sources": [
-      "https://www.gemeinschaftspraxis-pfedelbach.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+      "https://www.gemeinschaftspraxis-pfedelbach.de/",
+      "https://sozialministerium.baden-wuerttemberg.de/de/service/media/mid/hausaerztliche-gemeinschaftspraxis-in-pfedelbach"
+    ]
   },
   {
     "id": "contact-050",
-    "name": "Dr. med. Martin Gunkel",
+    "name": "Martin Gunkel",
+    "honorificTitle": "Dr. med.",
+    "specialty": "Kinder- und Jugendmedizin",
     "category": "Praxis",
     "organization": "Kinderarztpraxis Pfungstadt",
     "topic": "Sektor: Kinderarzt · Fachrichtung: Kinder- und Jugendmedizin· Primärsystem: Duria · Kontakt über KV Hessen",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "praxis@gunkel-rosenhagen.de",
     "phone": "",
     "linkedin": "",
@@ -1343,19 +1424,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.6033862,
     "note": "Projektkontext: Sektor: Kinderarzt · Fachrichtung: Kinder- und Jugendmedizin· Primärsystem: Duria · Kontakt über KV Hessen",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.kinderaerzte-im-netz.de/media/5dcd15ebb49d3859c69efa86/400x800-normal/logo-website-png..png",
     "sources": [
-      "https://www.gunkel-rosenhagen.de/"
-    ],
-    "specialty": "Kinder- und Jugendmedizin"
+      "https://www.gunkel-rosenhagen.de/",
+      "https://www.kinderaerzte-im-netz.de/aerzte/pfungstadt/gunkel/startseite.html"
+    ]
   },
   {
     "id": "contact-051",
     "name": "Nikolaus-Maria Brunn-Schulte-Wissing",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis Brunn-Schulte-Wissing",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1373,16 +1457,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.dr-bsw.de/wp-content/uploads/2019/02/og-image-bsw.jpg",
     "sources": [
       "https://www.dr-bsw.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-052",
     "name": "Tilo Schneider",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Gemeinschaftspraxis Schmarl / Hausärztliche Praxis Rostock Schmarl",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "tiloschneider@yahoo.de",
     "phone": "",
     "linkedin": "",
@@ -1400,16 +1486,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://gemeinschaftspraxis-schmarl.de/wp-content/uploads/2022/12/Gemeinschaftspraxis-Schmarl-Dr-Schneider-600px.jpg",
     "sources": [
       "https://gemeinschaftspraxis-schmarl.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-053",
-    "name": "Dr. med. Dipl. humanbiol. Christian von Mallinckrodt",
+    "name": "Christian von Mallinckrodt",
+    "honorificTitle": "Dr. med. Dipl. humanbiol.",
+    "specialty": "Pneumologie",
     "category": "Praxis",
     "organization": "Lungenfachzentrum Rhein-Main",
     "topic": "Sektor: Facharzt · Fachrichtung: Pneumologie· Primärsystem: Duria · Kontakt über KV Hessen",
     "priority": "Mittel",
+    "owner": "",
     "email": "cvm@lungenfachzentrum-rheinmain.de",
     "phone": "",
     "linkedin": "",
@@ -1427,16 +1515,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.lungenfachzentrum-rheinmain.de/s/cc_images/cache_11192768.jpg?t=1465291727",
     "sources": [
       "https://www.lungenfachzentrum-rheinmain.de/"
-    ],
-    "specialty": "Pneumologie"
+    ]
   },
   {
     "id": "contact-054",
     "name": "Hans-Jürgen Bickmann",
+    "honorificTitle": "",
+    "specialty": "Gynäkologie",
     "category": "Praxis",
     "organization": "Praxis Bickmann",
     "topic": "Sektor: Facharzt · Fachrichtung: Gynäkologie· Ärztlicher Beirat NRW",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1454,16 +1544,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.dr-bickmann.de/images/layout/gynaekologie-1.jpeg",
     "sources": [
       "https://www.dr-bickmann.de/"
-    ],
-    "specialty": "Gynäkologie"
+    ]
   },
   {
     "id": "contact-055",
     "name": "Mathias Heinicke",
+    "honorificTitle": "",
+    "specialty": "Psychologische Psychotherapie",
     "category": "Praxis",
     "organization": "Praxis für Psychotherapie",
     "topic": "Sektor: Psychologie · Fachrichtung: Psychologische Psychotherapie· Primärsystem: medatixx · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1481,16 +1573,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://vt-stuttgart.de/"
-    ],
-    "specialty": "Psychologische Psychotherapie"
+    ]
   },
   {
     "id": "contact-056",
-    "name": "Dr. med. Jörg Sandmann",
+    "name": "Jörg Sandmann",
+    "honorificTitle": "Dr. med.",
+    "specialty": "",
     "category": "Praxis",
     "organization": "Praxen am Dreilingsberg / Priwall",
     "topic": "Sektor: Hausarzt · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1505,19 +1599,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 10.8591955,
     "note": "Projektkontext: Sektor: Hausarzt · Privater Kontakt Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.arzt-travemuende.de/wp-content/uploads/2025/12/jsa2025-Mittel-225x300.jpg",
     "sources": [
-      "https://www.arzt-travemuende.de/"
-    ],
-    "specialty": ""
+      "https://www.arzt-travemuende.de/",
+      "https://www.arzt-travemuende.de/team/aerzte-im-team/dr-joerg-sandmann"
+    ]
   },
   {
     "id": "contact-057",
     "name": "Elmar-Marc Bredl",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Gemeinschaftspraxis Hirtl/Bredl",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: tomedo · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1535,16 +1632,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://praxis-hirtl-brede.de/wp-content/uploads/2024/09/Aerzte-Brede-800x800.jpg",
     "sources": [
       "https://praxis-hirtl-brede.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-058",
     "name": "Christian Lübbers",
+    "honorificTitle": "",
+    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)",
     "category": "Praxis",
     "organization": "HNO-Arzt Weilheim",
     "topic": "Sektor: Facharzt · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1559,19 +1658,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 11.1414384,
     "note": "Projektkontext: Sektor: Facharzt · Privater Kontakt Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.hno-weilheim.de/wp-content/uploads/christian-w-luebbers.jpg",
     "sources": [
-      "https://www.hno-weilheim.de/"
-    ],
-    "specialty": "Hals-Nasen-Ohrenheilkunde (HNO)"
+      "https://www.hno-weilheim.de/",
+      "https://www.hno-weilheim.de/aerzte/"
+    ]
   },
   {
     "id": "contact-059",
-    "name": "Dr. med. Klaus-Jürgen Doubek",
+    "name": "Klaus-Jürgen Doubek",
+    "honorificTitle": "Dr. med.",
+    "specialty": "Gynäkologie",
     "category": "Praxis",
     "organization": "Frauenarzt Wiesbaden",
     "topic": "Sektor: Facharzt · Fachrichtung: Gynäkologie· Primärsystem: Duria · Kontakt über KV Hessen",
     "priority": "Mittel",
+    "owner": "",
     "email": "praxis@doubek.de",
     "phone": "",
     "linkedin": "",
@@ -1586,46 +1688,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.2447671,
     "note": "Projektkontext: Sektor: Facharzt · Fachrichtung: Gynäkologie· Primärsystem: Duria · Kontakt über KV Hessen",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.kvhessen.de/fileadmin/user_upload/Bilder/VV/VV_Klaus-Juergen-Doubek_c_Tom_Wolf.jpg",
     "sources": [
-      "https://www.doubek.de/"
-    ],
-    "specialty": "Gynäkologie"
+      "https://www.doubek.de/",
+      "https://www.kvhessen.de/ueber-uns/vertreterversammlung/alphabet/w?filter%5BsortBy%5D=0&cHash=9cc844ede3c88704c2a82ccd2a616eda"
+    ]
   },
   {
     "id": "contact-060",
-    "name": "Dr. Christian Sommerbrodt",
-    "category": "Praxis",
-    "organization": "Hausärztliche Gemeinschaftspraxis Sommerbrodt & Kollegen",
-    "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · KVH VV, Hausärzteverband-Vorstand, Podcast",
-    "priority": "Mittel",
-    "email": "sobro@gmx.de",
-    "phone": "",
-    "linkedin": "",
-    "location": "65185 Wiesbaden",
-    "city": "Wiesbaden",
-    "state": "Hessen",
-    "street": "Friedrichstr. 34-36",
-    "postalCode": "65185",
-    "url": "https://www.sommerbrodt.de/",
-    "description": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · KVH VV, Hausärzteverband-Vorstand, Podcast",
-    "lat": 50.0802094,
-    "lon": 8.2393035,
-    "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · KVH VV, Hausärzteverband-Vorstand, Podcast",
-    "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
-    "sources": [
-      "https://www.sommerbrodt.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
-  },
-  {
-    "id": "contact-061",
     "name": "Christian Sommerbrodt",
+    "honorificTitle": "Dr.",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausärztliche Praxis Sommerbrodt & Kollegen",
-    "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt",
+    "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · KVH VV, Hausärzteverband-Vorstand, Podcast · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "sobro@gmx.de",
     "phone": "",
     "linkedin": "",
@@ -1635,24 +1713,26 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "street": "Friedrichstr. 34-36",
     "postalCode": "65185",
     "url": "https://www.sommerbrodt.de/",
-    "description": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt",
+    "description": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · KVH VV, Hausärzteverband-Vorstand, Podcast · Privater Kontakt",
     "lat": 50.0802094,
     "lon": 8.2393035,
-    "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Privater Kontakt",
+    "note": "Projektkontext: Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin · Primärsystem: medatixx · KVH VV, Hausärzteverband-Vorstand, Podcast · Privater Kontakt Datenqualität: Dublettenmigration aus contact-061; Privatkontakt-Kontext wurde übernommen.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.sommerbrodt.de/-_-/res/f24656c9-c925-4ff4-9217-781a72cd23a5/images/files/f24656c9-c925-4ff4-9217-781a72cd23a5/db0f176c-5f14-4dec-bf2c-8b8baf1426d1/768-576/60e412e1efc4b87c76ba7a4366ac83131b3dd488",
     "sources": [
       "https://www.sommerbrodt.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-062",
-    "name": "Dr. Christian Köhler",
+    "name": "Christian Köhler",
+    "honorificTitle": "Dr.",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "MEDICI WIESBADEN",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: medatixx · Podcast",
     "priority": "Mittel",
+    "owner": "",
     "email": "ckoehler1809@gmail.com",
     "phone": "",
     "linkedin": "",
@@ -1670,16 +1750,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://medici-wiesbaden.com/wp-content/uploads/2023/10/Doc_CK3.jpeg",
     "sources": [
       "https://medici-wiesbaden.com/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-063",
     "name": "Rita Bangert-Semb",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Hausarzt-Zentrum Wiesloch",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: EVA, abasoft · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "rita.semb@hausarzt-zentrum.com",
     "phone": "",
     "linkedin": "",
@@ -1697,16 +1779,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.hausarzt-zentrum.com/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-064",
     "name": "Kristina Spöhrer",
+    "honorificTitle": "",
+    "specialty": "Allgemeinmedizin",
     "category": "Praxis",
     "organization": "Praxis Am Bahnhof",
     "topic": "Sektor: Hausarzt · Fachrichtung: Allgemeinmedizin· Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "spoehrer_k@yahoo.de",
     "phone": "",
     "linkedin": "",
@@ -1724,21 +1808,23 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.praxisambahnhofwinsen.de/s/cc_images/cache_44449940.jpg?t=1732026735",
     "sources": [
       "https://www.praxisambahnhofwinsen.de/"
-    ],
-    "specialty": "Allgemeinmedizin"
+    ]
   },
   {
     "id": "contact-065",
     "name": "Henning Koch",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Sana Prävention Hamburg",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "henning.koch@sana.de",
     "phone": "",
     "linkedin": "",
-    "location": "20251 -",
-    "city": "-",
+    "location": "20251 Hamburg",
+    "city": "Hamburg",
     "state": "Hamburg",
     "street": "Falkenried 88",
     "postalCode": "20251",
@@ -1751,16 +1837,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://sana-praevention.de/wp-content/uploads/2024/11/hamburg-slider-1.jpg",
     "sources": [
       "https://sana-praevention.de/unser-standort-hamburg/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-066",
     "name": "Stefan Vlaho",
+    "honorificTitle": "Dr.",
+    "specialty": "Kinder- und Jugendmedizin",
     "category": "Krankenhaus",
     "organization": "InnKlinikum Altötting und Mühldorf – Zentrum für Kinder und Jugendmedizin",
-    "topic": "Sektor: Krankenhaus · Fachrichtung: Kinder- und Jugendmedizin· Privater Kontakt",
+    "topic": "Sektor: Krankenhaus · Fachrichtung: Kinder- und Jugendmedizin · Privater Kontakt · Sektor: Hausarzt · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "s.vlaho@kinderzentrum.de",
     "phone": "",
     "linkedin": "",
@@ -1770,29 +1858,32 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "street": "Vinzenz-von-Paul-Str. 10",
     "postalCode": "84503",
     "url": "https://www.innklinikum.de/medizin-standorte/medizinangebot-von-a-z/zentrum-fuer-kinder-und-jugendmedizin-altoetting",
-    "description": "Sektor: Krankenhaus · Fachrichtung: Kinder- und Jugendmedizin· Privater Kontakt",
+    "description": "Sektor: Krankenhaus · Fachrichtung: Kinder- und Jugendmedizin · Privater Kontakt · Sektor: Hausarzt · Primärsystem: Meierhofer · Frank, Timo",
     "lat": 48.2339889,
     "lon": 12.6751487,
-    "note": "Projektkontext: Sektor: Krankenhaus · Fachrichtung: Kinder- und Jugendmedizin· Privater Kontakt",
+    "note": "Projektkontext: Sektor: Krankenhaus · Fachrichtung: Kinder- und Jugendmedizin · Privater Kontakt · Projektkontext: Sektor: Hausarzt · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Dublettenmigration aus contact-002; Praxis-/Privatkontakt-Kontext und Quelle wurden in diesen Krankenhauskontakt übernommen.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
     "image": "https://www.innklinikum.de/fileadmin/user_upload/Altoetting/Paed/Bilder/vlaho-02.png",
     "sources": [
-      "https://www.innklinikum.de/medizin-standorte/medizinangebot-von-a-z/zentrum-fuer-kinder-und-jugendmedizin-altoetting"
-    ],
-    "specialty": "Kinder- und Jugendmedizin"
+      "https://www.innklinikum.de/medizin-standorte/medizinangebot-von-a-z/zentrum-fuer-kinder-und-jugendmedizin-altoetting",
+      "https://kinderzentrum.de/"
+    ]
   },
   {
     "id": "contact-067",
-    "name": "Dr. Susanne Reger-Tan",
+    "name": "Susanne Reger-Tan",
+    "honorificTitle": "Dr.",
+    "specialty": "Diabetologie",
     "category": "Krankenhaus",
     "organization": "Herz- und Diabeteszentrum (HDZ NRW)",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Diabetologie· Primärsystem: Orbis · Privater Kontakt",
     "priority": "Hoch",
+    "owner": "",
     "email": "sreger-tan@hdz-nrw.de",
     "phone": "",
     "linkedin": "",
-    "location": "32545 Bad Oyenhausen",
-    "city": "Bad Oyenhausen",
+    "location": "32545 Bad Oeynhausen",
+    "city": "Bad Oeynhausen",
     "state": "Nordrhein-Westfalen",
     "street": "Georgstraße 11",
     "postalCode": "32545",
@@ -1805,16 +1896,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.hdz-nrw.de/fileadmin/_processed_/8/8/csm_Reger-Tan_Susanne_H%C3%BCbbe_e20b3c708a.jpg",
     "sources": [
       "https://www.hdz-nrw.de/"
-    ],
-    "specialty": "Diabetologie"
+    ]
   },
   {
     "id": "contact-068",
     "name": "Antonia Hohe",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Alexianer St. Hedwig Kliniken Berlin",
     "topic": "Sektor: Krankenhaus · Primärsystem: - | Meierhofer · Privater Kontakt | Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "g.woditsch@alexianer.de",
     "phone": "",
     "linkedin": "",
@@ -1832,16 +1925,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.alexianer-berlin-hedwigkliniken.de/fileadmin/_processed_/9/5/csm_Berlin_St-Hedwig-Krankenhaus_Eingangsportal_f2e06f7293.jpg",
     "sources": [
       "https://www.alexianer-berlin-hedwigkliniken.de"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-069",
-    "name": "BG Klinikum Berlin",
+    "name": "",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "BG Klinikum Berlin",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1854,21 +1949,23 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "description": "Sektor: Krankenhaus · Wahle, Laila",
     "lat": 52.5191728,
     "lon": 13.5683225,
-    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
+    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert. Datenqualität: Kein personenbezogener Ansprechpartner dokumentiert; Organisation aus der Namensspalte entfernt.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
     "image": "https://www.bg-kliniken.de/fileadmin/08_Berlin/Bilder/angepasst_DSC_04921.jpg",
     "sources": [
       "https://www.bg-kliniken.de/unfallkrankenhaus-berlin/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-070",
-    "name": "Dr. Peter Gocke",
+    "name": "Peter Gocke",
+    "honorificTitle": "Dr.",
+    "specialty": "Radiologie",
     "category": "Krankenhaus",
     "organization": "Charité – Universitätsmedizin Berlin",
-    "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
+    "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo · Wahle, Laila",
     "priority": "Mittel",
+    "owner": "",
     "email": "peter.gocke@charite.de",
     "phone": "",
     "linkedin": "",
@@ -1878,51 +1975,26 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "street": "Charitéplatz 1",
     "postalCode": "10117",
     "url": "https://www.charite.de",
-    "description": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
+    "description": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo · Wahle, Laila",
     "lat": 52.5258523,
     "lon": 13.3777575,
-    "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
+    "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo · Wahle, Laila Datenqualität: Dublettenmigration aus contact-071; Kontext Wahle, Laila wurde übernommen.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
     "image": "https://www.charite.de/fileadmin/_processed_/6/2/csm_Peter-Gocke_400d0a031e.jpg",
     "sources": [
       "https://www.charite.de"
-    ],
-    "specialty": "Radiologie"
-  },
-  {
-    "id": "contact-071",
-    "name": "Peter Gocke",
-    "category": "Krankenhaus",
-    "organization": "Charité – Universitätsmedizin Berlin",
-    "topic": "Sektor: Krankenhaus · Wahle, Laila",
-    "priority": "Mittel",
-    "email": "",
-    "phone": "",
-    "linkedin": "",
-    "location": "10117 Berlin",
-    "city": "Berlin",
-    "state": "Berlin",
-    "street": "Charitéplatz 1",
-    "postalCode": "10117",
-    "url": "https://www.charite.de",
-    "description": "Sektor: Krankenhaus · Wahle, Laila",
-    "lat": 52.5258523,
-    "lon": 13.3777575,
-    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt",
-    "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "https://www.charite.de/fileadmin/_processed_/6/2/csm_Peter-Gocke_400d0a031e.jpg",
-    "sources": [
-      "https://www.charite.de"
-    ],
-    "specialty": "Radiologie"
+    ]
   },
   {
     "id": "contact-072",
     "name": "Steffen Ott",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "DRK Kliniken Berlin",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1940,16 +2012,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.drk-kliniken-berlin.de/fileadmin/_processed_/6/8/csm_md_allgemein_300dpi_2021__17__sRGB_87b2eaf70d.jpg",
     "sources": [
       "https://www.drk-kliniken-berlin.de"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-073",
-    "name": "Ferdinand Nietschke",
+    "name": "Ferdinand Nitschke",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Helios Klinikum Berlin-Buch",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1964,19 +2038,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 13.5077151,
     "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://s7g10.scene7.com/is/image/heliosgesundheit/HEL-ferdinand-nitschke?dpr=off&qlt=85&ts=1757921503183",
     "sources": [
-      "https://www.helios-gesundheit.de/standorte-angebote/kliniken/berlin-buch/"
-    ],
-    "specialty": ""
+      "https://www.helios-gesundheit.de/standorte-angebote/kliniken/berlin-buch/",
+      "https://www.helios-gesundheit.de/unternehmen/ueber-helios/schwerpunkte/digitalisierung/"
+    ]
   },
   {
     "id": "contact-074",
     "name": "Jan Schuster",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Helios Klinikum Berlin-Buch",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -1994,16 +2071,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.helios-gesundheit.de/standorte-angebote/kliniken/berlin-buch/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-075",
     "name": "Franziska Gerken",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Vivantes Netzwerk für Gesundheit",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2021,16 +2100,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.vivantes.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-076",
     "name": "Tobias Meixner",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Vivantes Netzwerk für Gesundheit",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2045,19 +2126,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 13.3534125,
     "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.vivantes.de/fileadmin/_processed_/1/e/csm_tobias-meixner_750x530_ca6533bfa3.webp",
     "sources": [
-      "https://www.vivantes.de/"
-    ],
-    "specialty": ""
+      "https://www.vivantes.de/",
+      "https://www.vivantes.de/unternehmen/media-events/pressemitteilungen/presse-detail/tobias-meixner-ist-neuer-direktor-klinikmanagement-bei-vivantes/"
+    ]
   },
   {
     "id": "contact-077",
     "name": "Andreas Kocks",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Bonn (UKB)",
     "topic": "Sektor: Krankenhaus | Hausarzt · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "anika.meissner@hausarzt-bw.de",
     "phone": "",
     "linkedin": "",
@@ -2072,19 +2156,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 7.1048217,
     "note": "Projektkontext: Sektor: Krankenhaus | Hausarzt · Primärsystem: Meierhofer · Frank, Timo",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.ukbonn.de/site/assets/files/7513/andreas-kocks.jpg.webp",
     "sources": [
-      "https://www.ukbonn.de/"
-    ],
-    "specialty": ""
+      "https://www.ukbonn.de/",
+      "https://www.ukbonn.de/ueber-uns/pflege/pflegewissenschaft/"
+    ]
   },
   {
     "id": "contact-078",
     "name": "David Senf-Mothes",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Carl Gustav Carus Dresden",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "david.senf-mothes@ukdd.de",
     "phone": "",
     "linkedin": "",
@@ -2099,19 +2186,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 13.7825908,
     "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.uniklinikum-dresden.de/de/das-klinikum/universitaetscentren/zentrum-fuer-medizinische-informatik/images/copy_of_fotos-mitarbeiter/senf-mothes.jpg/@@images/5ecc8854-2448-4fff-b42b-9af3ac50ade4.jpeg",
     "sources": [
-      "https://www.uniklinikum-dresden.de/"
-    ],
-    "specialty": ""
+      "https://www.uniklinikum-dresden.de/",
+      "https://www.uniklinikum-dresden.de/de/das-klinikum/universitaetscentren/zentrum-fuer-medizinische-informatik/zentrum/fotos-mitarbeiter"
+    ]
   },
   {
     "id": "contact-079",
     "name": "Armin de Greiff",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Essen",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "armin.de-greiff@uk-essen.de",
     "phone": "",
     "linkedin": "",
@@ -2126,19 +2216,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 6.9880092,
     "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://images.cio.de/bdb/2603752/840x473.jpg",
     "sources": [
-      "https://www.uk-essen.de/"
-    ],
-    "specialty": ""
+      "https://www.uk-essen.de/",
+      "https://www.cio.de/article/3687270/zwei-it-chefs-setzen-auf-kuenstliche-intelligenz.html"
+    ]
   },
   {
     "id": "contact-080",
     "name": "Anke Diehl",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Essen",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2156,16 +2249,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.uk-essen.de/wp-content/uploads/2023/12/Diehl_web-500x500.jpg",
     "sources": [
       "https://www.uk-essen.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-081",
     "name": "Jana Aulenkamp",
+    "honorificTitle": "",
+    "specialty": "Anästhesiologie",
     "category": "Krankenhaus",
     "organization": "Universitätsmedizin Essen",
     "topic": "Sektor: Krankenhaus · Privater Kontakt",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2180,19 +2275,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 6.9872153,
     "note": "Projektkontext: Sektor: Krankenhaus · Privater Kontakt Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://anaesthesie.uk-essen.de/fileadmin/_processed_/1/2/csm_Aulenkamp__Jana_8a35fb0ef4.jpg",
     "sources": [
-      "https://www.ume.de/"
-    ],
-    "specialty": "Anästhesiologie"
+      "https://www.ume.de/",
+      "https://anaesthesie.uk-essen.de/ueber-uns/unser-team/weiterbildungsassistenten"
+    ]
   },
   {
     "id": "contact-082",
     "name": "Kerstin Ganskopf",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Fördeklinikum Flensburg",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2207,19 +2305,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.4207165,
     "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.foerdeklinikum.de/fileadmin/content/_processed_/b/2/csm_Ganskopf_30e78e63bb.jpg",
     "sources": [
-      "https://www.foerdeklinikum.de/"
-    ],
-    "specialty": ""
+      "https://www.foerdeklinikum.de/",
+      "https://www.foerdeklinikum.de/projektteam"
+    ]
   },
   {
     "id": "contact-083",
-    "name": "Dr. Michael von Wagner",
+    "name": "Michael von Wagner",
+    "honorificTitle": "Dr.",
+    "specialty": "Gastroenterologie",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Frankfurt",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "michael.wagner@kgu.de",
     "phone": "",
     "linkedin": "",
@@ -2237,16 +2338,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.unimedizin-ffm.de/fileadmin/_processed_/5/2/csm_von_Wagner_M_5f49eb6e6f.jpg",
     "sources": [
       "https://www.unimedizin-ffm.de/"
-    ],
-    "specialty": "Gastroenterologie"
+    ]
   },
   {
     "id": "contact-084",
-    "name": "Prof. Dr. Sebastian Kuhn",
+    "name": "Sebastian Kuhn",
+    "honorificTitle": "Prof. Dr.",
+    "specialty": "Orthopädie und Unfallchirurgie",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Gießen und Marburg",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Orthopädie und Unfallchirurgie· Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "sebastian.kuhn@uni-marburg.de",
     "phone": "",
     "linkedin": "",
@@ -2261,19 +2364,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9,
     "note": "Projektkontext: Sektor: Krankenhaus · Fachrichtung: Orthopädie und Unfallchirurgie· Primärsystem: Meierhofer · Frank, Timo",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://idw-online.de/de/newsimage385421?&size=screen",
     "sources": [
-      "https://www.ukgm.de/"
-    ],
-    "specialty": "Orthopädie und Unfallchirurgie"
+      "https://www.ukgm.de/",
+      "https://idw-online.de/-DJHQAA"
+    ]
   },
   {
     "id": "contact-085",
     "name": "Jens Schneider",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsmedizin Halle",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2291,16 +2397,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.umh.de/fileadmin/_processed_/e/7/csm_Herr_Schneider_J_1_zu_3_print_3dfb755799.jpg",
     "sources": [
       "https://www.umh.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-086",
     "name": "Christian Schöps",
+    "honorificTitle": "",
+    "specialty": "Neurologie",
     "category": "Krankenhaus",
     "organization": "Albertinen Krankenhaus",
     "topic": "Sektor: Krankenhaus · Fachrichtung: Neurologie· Primärsystem: iMedOne · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "christian.schoeps@immanuelalbertinen.de",
     "phone": "",
     "linkedin": "",
@@ -2315,19 +2423,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.9059997,
     "note": "Projektkontext: Sektor: Krankenhaus · Fachrichtung: Neurologie· Primärsystem: iMedOne · Privater Kontakt",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://albertinen.de/assets/_processed_/d/8/csm_schoeps-chrisitian-oberarzt-neurologie-neurologische-fruehrehabilitation-albertinen-krankenhaus-hamburg_480d622505.jpg",
     "sources": [
-      "https://albertinen.de"
-    ],
-    "specialty": "Neurologie"
+      "https://albertinen.de",
+      "https://albertinen.de/person/christian-schoeps/"
+    ]
   },
   {
     "id": "contact-087",
     "name": "Fritz Arndt",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Asklepios Klinik Nord – Heidberg",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "f.arndt@asklepios.com;g.liss@asklepios.com",
     "phone": "",
     "linkedin": "",
@@ -2345,16 +2456,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.asklepios.com/hamburg/nord/heidberg/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-088",
     "name": "Fabian Linke",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Krankenhaus St. Adolf- Stift Reinbek",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
-    "priority": "Mittel",
+    "priority": "Niedrig",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2369,19 +2482,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 10.0323824,
     "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.krankenhaus-reinbek.de/sites/default/files/styles/news_image/public/2023-03/Fabian%20Linke-5655_Portr%C3%A4t%20KH%20Reinbek_1414.jpg?itok=NfCBbZ4y",
     "sources": [
-      "https://www.krankenhaus-reinbek.de/"
-    ],
-    "specialty": ""
+      "https://www.krankenhaus-reinbek.de/",
+      "https://www.krankenhaus-reinbek.de/newsblog/2023-04-03/fabian-linke-ist-neuer-geschaeftsfuehrer-im-krankenhaus-reinbek-st-adolf-stift"
+    ]
   },
   {
     "id": "contact-089",
     "name": "Ann-Kathrin Lange",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Hamburg-Eppendorf (UKE)",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "a.lange@uke.de",
     "phone": "",
     "linkedin": "",
@@ -2394,21 +2510,24 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "description": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "lat": 53.5909051,
     "lon": 9.9753758,
-    "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
+    "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert. Datenqualität: Allgemeines UKE-Bühnenbild als Profilfoto entfernt; kein belastbares persönliches Profilfoto verifiziert.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "https://www.uke.de/indexb%C3%BChne/slider_startseite/tag-und-nacht/uke_header_startseite_30aug2021_buehnenbild_startseite_morgen_buehnenbild_startseite.jpg",
+    "image": "https://www.uke.de/dateien/einrichtungen/unternehmenskommunikation/aktuelles-aus-dem-uke-startseite/2024/ti-messenger-lange-heitkamp-20241113-2_contentbild2.jpg",
     "sources": [
-      "https://www.uke.de/"
-    ],
-    "specialty": ""
+      "https://www.uke.de/",
+      "https://www.uke.de/allgemein/mediathek/aktuelles/2024-meldungen-startseite/index.html"
+    ]
   },
   {
     "id": "contact-090",
     "name": "Matthias Pump",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Heidelberg",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "matthias.pump@med.uni-heidelberg.de",
     "phone": "",
     "linkedin": "",
@@ -2426,16 +2545,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.klinikum.uni-heidelberg.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-091",
     "name": "Moritz Völker",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Gemeinschaftskrankenhaus Herdecke",
     "topic": "Sektor: Krankenhaus · Kontakt über Bertelsmann 30u40",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2450,19 +2571,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 7.3992713,
     "note": "Projektkontext: Sektor: Krankenhaus · Kontakt über Bertelsmann 30u40 Datenhinweis: E-Mail fehlt",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.gemeinschaftskrankenhaus.de/fileadmin/user_upload/Moritz_V%C3%B6lker.jpg",
     "sources": [
-      "https://www.gemeinschaftskrankenhaus.de/"
-    ],
-    "specialty": ""
+      "https://www.gemeinschaftskrankenhaus.de/",
+      "https://www.gemeinschaftskrankenhaus.de/medizin-therapie-pflege/fachabteilungen/team/"
+    ]
   },
   {
     "id": "contact-092",
-    "name": "Klinikum Karlsruhe",
+    "name": "",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Klinikum Karlsruhe",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2475,21 +2599,23 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "description": "Sektor: Krankenhaus · Wahle, Laila",
     "lat": 49.0156523,
     "lon": 8.3745829,
-    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
+    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert. Datenqualität: Kein personenbezogener Ansprechpartner dokumentiert; Organisation aus der Namensspalte entfernt.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.klinikum-karlsruhe.de/fileadmin/_processed_/0/c/csm_zentraleingang_haus_m_2022_1ae4bb75c7.jpg",
     "sources": [
       "https://www.klinikum-karlsruhe.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-093",
     "name": "Kai Käßhöfer",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Karlsruher Stadtmission",
     "topic": "Sektor: Pflege | Psychotherapie | Krankenhaus | Labor · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "sml@psychotherapie-mz.de;knut.schnell@med.uni-goettingen.de",
     "phone": "",
     "linkedin": "",
@@ -2504,19 +2630,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 8.3909883,
     "note": "Projektkontext: Sektor: Pflege | Psychotherapie | Krankenhaus | Labor · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Rolle aus Organisationsfeld bereinigt: Vorstand Stadtmission Karlsruhe.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://cdn.prod.website-files.com/65e8673a3c7ba0dc4d30f36b/66f6724aeed2f1503a715a01_kai-kaesshoefer.png",
     "sources": [
-      "https://karlsruher-stadtmission.de/"
-    ],
-    "specialty": ""
+      "https://karlsruher-stadtmission.de/",
+      "https://www.famedly.com/webinar/kein-bock-auf-abstimmungschaos"
+    ]
   },
   {
     "id": "contact-094",
     "name": "Rudolf Dück",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Schleswig-Holstein (UKSH)",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "rudolf.dueck@uksh.de;tobias.voth@uksh.de",
     "phone": "",
     "linkedin": "",
@@ -2531,19 +2660,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 10.1448833,
     "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://images.cio.de/bdb/3256274/840x473.jpg",
     "sources": [
-      "https://www.uksh.de/"
-    ],
-    "specialty": ""
+      "https://www.uksh.de/",
+      "https://www.cio.de/article/3690515/dueck-wird-neuer-it-chef-der-uniklinik.html"
+    ]
   },
   {
     "id": "contact-095",
-    "name": "Sana Dreifaltigkeitsklinik Köln",
+    "name": "",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Sana Dreifaltigkeitsklinik Köln",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2556,21 +2688,23 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "description": "Sektor: Krankenhaus · Wahle, Laila",
     "lat": 50.9366714,
     "lon": 6.9044019,
-    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
+    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert. Datenqualität: Kein personenbezogener Ansprechpartner dokumentiert; Organisation aus der Namensspalte entfernt.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.sana.de/media/_processed_/b/f/csm_DFK-Koeln-Klinikgebaeude_01_cef2cb784f.jpg",
     "sources": [
       "https://www.sana.de/koeln"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-096",
     "name": "Thomas Faust",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Krankenhaus Eichhof",
     "topic": "Sektor: Krankenhaus · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "faust@eichhof-online.de",
     "phone": "",
     "linkedin": "",
@@ -2585,19 +2719,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.3911284,
     "note": "Projektkontext: Sektor: Krankenhaus · Privater Kontakt",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.eichhof-online.de/fileadmin/_processed_/3/0/csm_2025-08-30-Vorstand_9def535b22.jpg",
     "sources": [
-      "https://www.eichhof-online.de/"
-    ],
-    "specialty": ""
+      "https://www.eichhof-online.de/",
+      "https://www.eichhof-online.de/aktuelles/presse/presse-details/neuer-vorstand-ist-einer-von-uns.html"
+    ]
   },
   {
     "id": "contact-097",
-    "name": "Dr. Carolin Fuchs",
+    "name": "Carolin Fuchs",
+    "honorificTitle": "Dr.",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Leipzig",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "carolin.fuchs@medizin.uni-leipzig.de",
     "phone": "",
     "linkedin": "",
@@ -2615,16 +2752,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.uniklinikum-leipzig.de/einrichtungen/bereich-6/PublishingImages/Carolin_Fuchs.jpg?RenditionID=5",
     "sources": [
       "https://www.uniklinikum-leipzig.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-098",
     "name": "Jörg Studzinski",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Leipzig",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2639,19 +2778,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 12.3747329,
     "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://www.ina.gematik.de/fileadmin/Expertengremium_Profilbilder/Joerg_Studzinski_2_final.jpg",
     "sources": [
-      "https://www.uniklinikum-leipzig.de/"
-    ],
-    "specialty": ""
+      "https://www.uniklinikum-leipzig.de/",
+      "https://www.ina.gematik.de/community-hub/community-formate/interop-council/expertinnen"
+    ]
   },
   {
     "id": "contact-099",
-    "name": "Städtische Kliniken Mönchengladbach GmbH",
+    "name": "",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Städtische Kliniken Mönchengladbach GmbH",
     "topic": "Sektor: Krankenhaus · Wahle, Laila",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2664,21 +2806,23 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "description": "Sektor: Krankenhaus · Wahle, Laila",
     "lat": 51.1580847,
     "lon": 6.4199089,
-    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
+    "note": "Projektkontext: Sektor: Krankenhaus · Wahle, Laila Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert. Datenqualität: Kein personenbezogener Ansprechpartner dokumentiert; Organisation aus der Namensspalte entfernt.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "",
+    "image": "https://sk-mg.de/UserFiles/39/de/head/standard_headbild_1200.webp",
     "sources": [
       "https://www.sk-mg.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-100",
-    "name": "Dr. Kurt Kruber",
+    "name": "Kurt Kruber",
+    "honorificTitle": "Dr.",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "LMU Klinikum",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "kurt.kruber@med.uni-muenchen.de",
     "phone": "",
     "linkedin": "",
@@ -2693,19 +2837,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 11.5603683,
     "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://cdn.lmu-klinikum.de/7306095eb1a3adf6/94f02071808e/v/0cd4c8801435/Kruber.jpg",
     "sources": [
-      "https://www.lmu-klinikum.de/"
-    ],
-    "specialty": ""
+      "https://www.lmu-klinikum.de/",
+      "https://www.lmu-klinikum.de/mit/uber-uns/leitung/ac8a0672fb13c591"
+    ]
   },
   {
     "id": "contact-101",
     "name": "Matthias Keller",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Kinderklinik Passau",
     "topic": "Sektor: Krankenhaus · Primärsystem: medatixx | Meierhofer · Privater Kontakt | Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "matthias.keller@kinderklinik-passau.de",
     "phone": "",
     "linkedin": "",
@@ -2720,19 +2867,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 13.4462192,
     "note": "Projektkontext: Sektor: Krankenhaus · Primärsystem: medatixx | Meierhofer · Privater Kontakt | Frank, Timo",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://kinderklinik-passau.de/images/00_Mitarbeiter/Keller-Matthias_2023.jpg",
     "sources": [
-      "https://kinderklinik-passau.de/"
-    ],
-    "specialty": ""
+      "https://kinderklinik-passau.de/",
+      "https://kinderklinik-passau.de/diekinderklinik/zentren-stationen-und-therapeutische-bereiche/klinik-fuer-kinder-und-jugendliche"
+    ]
   },
   {
     "id": "contact-102",
-    "name": "Dr. Michael Bayeff-Filoff",
+    "name": "Michael Bayeff-Filoff",
+    "honorificTitle": "Dr.",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "RoMed Klinikum",
     "topic": "Sektor: Krankenhaus · Privater Kontakt Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "michael.bayeff-filloff@ro-med.de",
     "phone": "",
     "linkedin": "",
@@ -2747,19 +2897,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 12.1286902,
     "note": "Projektkontext: Sektor: Krankenhaus · Privater Kontakt Frank, Timo",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.rosenheim24.de/assets/images/36/357/36357052-dr-michael-bayeff-filloff-von-romed-in-rosenheim-ist-nicht-nur-selber-notarzt-sondern-sorgt-auch-noch-in-ganz-bayern-fuer-die-bestmoegliche-qualitaet-2Mef.jpg",
     "sources": [
-      "https://www.romed-kliniken.de/"
-    ],
-    "specialty": ""
+      "https://www.romed-kliniken.de/",
+      "https://www.rosenheim24.de/rosenheim/rosenheim-land/lebensretter-vom-romed-rosenheim-dr-bayeff-filloff-erhaelt-bundesverdienstkreuz-93447648.html"
+    ]
   },
   {
     "id": "contact-103",
     "name": "Sandra Baskiewicz",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Universitätsklinikum Tübingen",
     "topic": "Sektor: Krankenhaus · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "sandra.baskiewicz@med.uni-tuebingen.de",
     "phone": "",
     "linkedin": "",
@@ -2777,16 +2930,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.medizin.uni-tuebingen.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-104",
     "name": "Nicolas Conze",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "Helios Klinikum Niederberg",
     "topic": "Sektor: Krankenhaus · Primärsystem: SAP is.h · Privater Kontakt",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2804,16 +2959,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "",
     "sources": [
       "https://www.helios-gesundheit.de/standorte-angebote/kliniken/niederberg/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-105",
     "name": "Arne Evers",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Krankenhaus",
     "organization": "St. Josefs Hospital",
     "topic": "Sektor: Krankenhaus · Primärsystem: Orbis · Privater Kontakt",
     "priority": "Hoch",
+    "owner": "",
     "email": "aevers@joho.de;prehbein@joho.de",
     "phone": "",
     "linkedin": "",
@@ -2831,16 +2988,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.joho.de/fileadmin/_processed_/d/5/csm_WI2025_Shooting1_Arne_Evers_PD14_e191740198.jpg",
     "sources": [
       "https://www.joho.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-106",
     "name": "Tilly Duderstadt",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Apotheke",
     "organization": "Nordring Apotheke",
     "topic": "Sektor: Apotheke · Privater Kontakt",
     "priority": "Hoch",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2858,16 +3017,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.apothekerinnen-kongress.de/wp-content/uploads/2025/05/Tilly-Duderstadt.png",
     "sources": [
       "https://nordring-apotheke-berlin.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-107",
     "name": "Reik Hofmann",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Apotheke",
     "organization": "Witzleben Apotheke",
     "topic": "Sektor: Apotheke · Primärsystem: - | Meierhofer · Privater Kontakt | Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "r.hofmann@witzleben-apotheke.de",
     "phone": "",
     "linkedin": "",
@@ -2885,16 +3046,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://shop.witzleben-apotheke.de/documents/products/Statisch/01%20Startseite/02%20%C3%9Cber%20uns/apotheke-witzleben-apotheke-26.jpg?ver=1758025588",
     "sources": [
       "https://witzleben-apotheke.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-108",
     "name": "Sabine Haul",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Apotheke",
     "organization": "Elefanten-Apotheke",
     "topic": "Sektor: Apotheke · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "sabine@haul-hamburg.de",
     "phone": "",
     "linkedin": "",
@@ -2909,19 +3072,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 10.0443367,
     "note": "Projektkontext: Sektor: Apotheke · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://cdn.apotheken-umschau.de/v7/_auirp_/imgs/04/4/6/7/1/1/5/9/tok_ba14b866b599dff65f743f583ccb0115/w1200_h630_x1250_y703_online_Sabine_Haul_2246-a3ff92d85e3b8f27.jpg",
     "sources": [
-      "https://elefantenapotheke-hamburg.de"
-    ],
-    "specialty": ""
+      "https://elefantenapotheke-hamburg.de",
+      "https://www.apotheken-umschau.de/unsere-marken/apotheken-umschau-impact/richtig-einnehmen/apothekerin-interview-fehler-an-jedem-punkt-des-medikationsprozesses-1115795.html"
+    ]
   },
   {
     "id": "contact-109",
     "name": "Benedikt Bühler",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Apotheke",
     "organization": "Apotheke Tübingen",
     "topic": "Sektor: Apotheke · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "benedikt.buehler@rathaus-apotheke-groetzingen.de",
     "phone": "",
     "linkedin": "",
@@ -2936,19 +3102,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 9.0692636,
     "note": "Projektkontext: Sektor: Apotheke · Primärsystem: Meierhofer · Frank, Timo Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Gesprächsanlass schärfen und priorisierten Outreach vorbereiten.",
-    "image": "",
+    "image": "https://www.pharmazeutische-zeitung.de/fileadmin/_processed_/4/5/csm_4562_ae4e9564e8.jpg",
     "sources": [
-      "https://www.apotheke-tuebingen.de"
-    ],
-    "specialty": ""
+      "https://www.apotheke-tuebingen.de",
+      "https://www.pharmazeutische-zeitung.de/buehler-im-via-vorstand-144976/"
+    ]
   },
   {
     "id": "contact-110",
     "name": "Stefanie Röseler",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Pflege",
     "organization": "Sozialstation Heerstraße Nord",
     "topic": "Sektor: Pflege · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Hoch",
+    "owner": "",
     "email": "s.roeseler@foev-pflege.de",
     "phone": "",
     "linkedin": "",
@@ -2966,16 +3135,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://foev-verbund.de/wp-content/uploads/2020/08/foev-stefanie-roesler.jpg",
     "sources": [
       "https://foev-verbund.de/hauskrankenpflege-spandau/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-111",
     "name": "Fabiola Meier",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Pflege",
     "organization": "Caritasverband für den Landkreis Kronach e.V.",
     "topic": "Sektor: Pflege · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "",
     "phone": "",
     "linkedin": "",
@@ -2990,19 +3161,22 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "lon": 11.3229489,
     "note": "Projektkontext: Sektor: Pflege · Primärsystem: Meierhofer · Frank, Timo Datenhinweis: E-Mail fehlt Datenqualität: Fachrichtung \"Orthopädie und Unfallchirurgie\" entfernt; keine belastbare medizinische Fachrichtung für diesen Kontakt verifiziert.",
     "nextStep": "Direkten Kontaktweg prüfen und fehlende E-Mail oder Ansprechperson ergänzen.",
-    "image": "https://caritas-kronach.de/medien/20b4d469-2c2f-4e92-adca-8c5cae805276/fotowand_caritas.jpg?width=2000",
+    "image": "https://awesome-technologies.de/wp-content/uploads/2020/02/caritaskronach_bw.jpeg",
     "sources": [
-      "https://caritas-kronach.de/"
-    ],
-    "specialty": ""
+      "https://caritas-kronach.de/",
+      "https://awesome-technologies.de/clients/caritas-kronach"
+    ]
   },
   {
     "id": "contact-112",
     "name": "Andreas Bronner",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Pflege",
     "organization": "Sozialstation Raum Oberndorf gGmbH",
     "topic": "Sektor: Pflege · Primärsystem: Meierhofer · Frank, Timo",
     "priority": "Mittel",
+    "owner": "",
     "email": "bronner@sozialstation-oberndorf.de",
     "phone": "",
     "linkedin": "",
@@ -3020,16 +3194,18 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.sozialstation-rwob.de/wp-content/uploads/2206_Sozialstation_Oberndorf_Corporate-14-scaled.jpg",
     "sources": [
       "https://www.sozialstation-rwob.de/"
-    ],
-    "specialty": ""
+    ]
   },
   {
     "id": "contact-113",
     "name": "Stephan Graue",
+    "honorificTitle": "",
+    "specialty": "",
     "category": "Pflege",
     "organization": "Evangelische Pflege Diakonie Vohwinkel gGmbH",
     "topic": "Sektor: Pflege · Primärsystem: medatixx isy.net · Privater Kontakt",
     "priority": "Hoch",
+    "owner": "",
     "email": "sgraue@diakonie-vohwinkel.de",
     "phone": "",
     "linkedin": "",
@@ -3047,7 +3223,6 @@ window.VERSORGUNGS_COMPASS_CONTACTS = [
     "image": "https://www.diakonie-vohwinkel.de/fileadmin/Content/Contentbilder/Ambulanter_Dienst/Content2024/Content_AD_6K1A6889.jpg",
     "sources": [
       "https://www.diakonie-vohwinkel.de/"
-    ],
-    "specialty": ""
+    ]
   }
 ];

@@ -26,6 +26,23 @@ Die produktiven Kompass-Daten liegen hier:
 - `data/fachrichtungen-bereinigung.md`
 - `data/fachrichtungen-zielkatalog.json`
 
+### Prioritaet und Owner dauerhaft pflegen
+
+Prioritaet und Owner gehoeren in den Datensatz, wenn sie dauerhaft Teil der Demo-Daten sein sollen.
+
+Der kanonische Pflegeweg ist:
+
+1. `data/versorgungs-kompass-data.csv` bearbeiten.
+2. Die Spalten `priority` und `owner` pflegen.
+   - `priority`: `Hoch`, `Mittel` oder `Niedrig`
+   - `owner`: z. B. `Timo Frank`, `Mirjam Scholz`, `Max Fröhlich`, `Johanna Ludwig`, `Laila Wahle`, `Thomas Kostera`
+3. `node scripts/sync_contact_data.js` ausfuehren.
+4. Die geaenderten Dateien committen und deployen.
+
+Das Sync-Skript validiert die CSV, schreibt `data/versorgungs-kompass-data.js` neu und spiegelt CSV und JS nach `docs/data/`.
+
+Wichtig: Die Benutzeroberflaeche ist aktuell eine Demo ohne Datenbank. Aenderungen direkt in der App koennen deshalb nur im lokalen Browser-Speicher abgelegt werden. Das ist im Moment die einzige Speicherfunktion der App. Andere Nutzer, andere Browser oder andere Geraete sehen diese lokalen Aenderungen nicht. Fuer eine dauerhafte Aenderung im Demo-Datensatz kann die App eine CSV exportieren; diese CSV muss danach manuell in den Projekt-Datensatz uebernommen und deployed werden.
+
 Fuer den Karten-Modus werden diese Kartendateien benoetigt:
 
 - `map/data/de-geojson.js`
