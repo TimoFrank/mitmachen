@@ -6669,6 +6669,7 @@
         "Laila Wahle",
         "Thomas Kostera"
       ];
+      let ownerProfiles = [];
       const germanStates = [
         "Baden-Württemberg",
         "Bayern",
@@ -8018,6 +8019,15 @@
       }
 
       function applyProfiles(profiles = []) {
+        ownerProfiles = profiles
+          .map((profile) => ({
+            id: profile.id,
+            label: profile.display_name || profile.email || profile.initials || profile.id,
+            email: profile.email || "",
+            initials: profile.initials || ""
+          }))
+          .filter((profile) => profile.id && profile.label)
+          .sort((a, b) => a.label.localeCompare(b.label, "de"));
         const profileNames = profiles.map((profile) => profile.display_name || profile.email || profile.initials).filter(Boolean);
         ownerOptions = [...new Set([...profileNames, ...ownerOptions])].sort((a, b) => a.localeCompare(b, "de"));
       }
@@ -8615,9 +8625,21 @@
       }
 
       function buildOwnerSelectOptions(selectedOwner = "") {
+        const selectedProfile = ownerProfiles.find(
+          (profile) => profile.id === selectedOwner || profile.label === selectedOwner || profile.email === selectedOwner || profile.initials === selectedOwner
+        );
+        const selectedOwnerId = selectedProfile?.id || "";
+        const profileOptions = ownerProfiles.map(
+          (profile) =>
+            `<option value="${escapeHtml(profile.id)}" ${selectedOwnerId === profile.id ? "selected" : ""}>${escapeHtml(profile.label)}${profile.email ? ` (${escapeHtml(profile.email)})` : ""}</option>`
+        );
+        const legacyOptions = ownerOptions
+          .filter((owner) => !ownerProfiles.some((profile) => profile.label === owner || profile.email === owner || profile.initials === owner))
+          .map((owner) => `<option value="${escapeHtml(owner)}" ${!selectedOwnerId && selectedOwner === owner ? "selected" : ""}>${escapeHtml(owner)}</option>`);
         return [
           `<option value="">Keinen Owner zuweisen</option>`,
-          ...ownerOptions.map((owner) => `<option value="${owner}" ${selectedOwner === owner ? "selected" : ""}>${owner}</option>`)
+          ...profileOptions,
+          ...legacyOptions
         ].join("");
       }
 
@@ -9988,7 +10010,7 @@
         editorForm.elements.phone.value = contact?.phone || "";
         editorForm.elements.linkedin.value = contact?.linkedin || "";
         editorForm.elements.location.value = contact?.location || "";
-        editorForm.elements.owner.value = contact?.owner || "";
+        editorForm.elements.owner.value = contact?.ownerId || contact?.owner || "";
         editorForm.elements.postalCode.value = contact?.postalCode || splitLocation.postalCode || "";
         editorForm.elements.city.value = contact?.city || splitLocation.city || "";
         editorForm.elements.state.value = contact?.state || "";
@@ -10386,6 +10408,7 @@
           themes: editorThemes,
           lastExchange: existingContact?.lastExchange || "",
           owner: String(formData.get("owner") || "").trim(),
+          ownerId: String(formData.get("owner") || "").trim(),
           createdAt: existingContact?.createdAt || timestamp,
           updatedAt: timestamp
         };
