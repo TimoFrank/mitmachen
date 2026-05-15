@@ -799,6 +799,19 @@
         box-shadow: 0 10px 20px rgba(49, 75, 153, 0.08);
       }
 
+      .filter-option-chip--legacy {
+        border-style: dashed;
+        border-color: #d1d6e5;
+        background: #f4f5f8;
+        color: #7a8299;
+      }
+
+      .filter-option-chip--legacy.is-active {
+        border-color: #aeb6cc;
+        background: #eef0f5;
+        color: #626a7f;
+      }
+
       .filter-option-chip__icon {
         font-size: 0.95rem;
       }
@@ -8032,6 +8045,12 @@
         ownerOptions = [...new Set([...profileNames, ...ownerOptions])].sort((a, b) => a.localeCompare(b, "de"));
       }
 
+      function isLegacyOwner(value) {
+        const owner = String(value || "").trim();
+        if (!owner) return false;
+        return !ownerProfiles.some((profile) => profile.id === owner || profile.label === owner || profile.email === owner || profile.initials === owner);
+      }
+
       function renderAccountProfile(profile) {
         if (!profile) return;
         const badge = accountButton?.querySelector(".topbar-account__badge");
@@ -8285,7 +8304,7 @@
             const isActive = selectedValues.includes(option.value);
             return `
               <button
-                class="filter-option-chip ${isActive ? "is-active" : ""}"
+                class="filter-option-chip ${isActive ? "is-active" : ""} ${option.legacy ? "filter-option-chip--legacy" : ""}"
                 type="button"
                 data-filter-key="${filterKey}"
                 data-filter-value="${String(option.value).replace(/"/g, "&quot;")}"
@@ -8329,7 +8348,8 @@
           value,
           label: ownerProfiles.some((profile) => profile.label === value || profile.email === value || profile.initials === value)
             ? value
-            : `${value} (kein echter Account)`
+            : `⚠ ${value} (kein echter Account)`,
+          legacy: isLegacyOwner(value)
         }));
         const themes = themeSuggestions().map((value) => ({ value, label: value }));
 
@@ -8641,7 +8661,7 @@
         );
         const legacyOptions = ownerOptions
           .filter((owner) => !ownerProfiles.some((profile) => profile.label === owner || profile.email === owner || profile.initials === owner))
-          .map((owner) => `<option value="${escapeHtml(owner)}" ${!selectedOwnerId && selectedOwner === owner ? "selected" : ""}>${escapeHtml(owner)} (kein echter Account)</option>`);
+          .map((owner) => `<option value="${escapeHtml(owner)}" ${!selectedOwnerId && selectedOwner === owner ? "selected" : ""}>⚠ ${escapeHtml(owner)} (kein echter Account)</option>`);
         return [
           `<option value="">Keinen Owner zuweisen</option>`,
           ...profileOptions,
