@@ -70,16 +70,23 @@ Fuer den Karten-Modus werden diese Kartendateien benoetigt:
 
 ## Lokale Nutzung
 
-Du kannst den aktuellen Kompass direkt lokal oeffnen:
+Der aktuelle Kompass nutzt Supabase als produktiven Datenstand. Starte lokal am besten einen kleinen Webserver aus dem Repository:
 
-1. `login/login.html`
-2. Passwort eingeben
-3. Weiterleitung in den `Versorgungs-Kompass`
+```bash
+python3 -m http.server 4173
+```
+
+Danach oeffnen:
+
+1. `http://127.0.0.1:4173/login/login.html`
+2. Mit Supabase-E-Mail und Passwort anmelden.
+3. Weiterleitung in den `Versorgungs-Kompass`.
 
 Wichtig:
 
 - Fuer den Karten-Modus werden die Kartendateien aus `map/data/` benoetigt.
-- Der Login ist bewusst einfach gehalten und fuer private, kontrollierte Nutzung gedacht.
+- `file:///.../app/versorgungs-kompass.html` ist fuer den Supabase-Betrieb nicht der empfohlene Einstieg. Wenn dort noch eine alte lokale Passwort-Session liegt, kann die Oberflaeche ohne echte Supabase-Session leer wirken.
+- Ohne gueltige Supabase-Session duerfen `profiles` und `contacts` wegen RLS nicht gelesen werden.
 
 ## GitHub Pages
 

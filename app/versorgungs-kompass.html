@@ -14118,7 +14118,15 @@
           setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
         } catch (error) {
           console.error("Supabase-Daten konnten nicht geladen werden.", error);
-          contacts = [];
+          const message = String(error?.message || error?.details || "");
+          const authFailed = /permission denied|JWT|auth|not authenticated|Unauthorized|401/i.test(message);
+          if (window.dataService?.isConfigured?.() && authFailed && window.VKAuth) {
+            window.VKAuth.clearAuthenticated();
+            window.location.replace(window.VKAuth.buildLoginUrl());
+            return;
+          }
+          loadedContactsFromStorage = true;
+          setStorageStatus(`${contacts.length} lokale Kontakte geladen; Supabase ist nicht erreichbar`);
           window.alert("Kontakte konnten nicht aus Supabase geladen werden. Bitte prüfe Konfiguration, Anmeldung und RLS-Rollen.");
         }
         setActiveView(activeView);
