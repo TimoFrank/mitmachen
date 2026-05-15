@@ -429,7 +429,7 @@
     return data.user.id;
   }
 
-  async function createContact(contact) {
+  async function createContact(contact, options = {}) {
     const supabase = getClient();
     const userId = await getCurrentUserId();
     const payload = { ...uiToDb(contact), created_by: userId, updated_by: userId };
@@ -437,10 +437,10 @@
     if (error) throw error;
     const { error: logError } = await supabase.from("changes").insert({
       contact_id: data.id,
-      action: "create",
+      action: options.action === "import" ? "import" : "create",
       field_name: null,
       old_value: "",
-      new_value: data.name || data.id,
+      new_value: options.batchId ? `${data.name || data.id} · Batch ${options.batchId}` : data.name || data.id,
       changed_by: userId
     });
     if (logError) throw logError;

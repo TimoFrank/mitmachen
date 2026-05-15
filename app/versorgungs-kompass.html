@@ -4829,7 +4829,7 @@
 
       .import-steps {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 12px;
         margin: 8px 0 26px;
       }
@@ -5407,6 +5407,85 @@
       .import-action-card span {
         color: #2e63e7;
         font-size: 1.4rem;
+      }
+
+      .import-batch-bar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border: 1px solid #d8e1fb;
+        border-radius: 14px;
+        background: #f8fbff;
+        color: #53608f;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .import-batch-bar strong {
+        display: block;
+        color: #10236e;
+        font-size: 0.92rem;
+      }
+
+      .import-entry-table {
+        min-width: 1180px;
+      }
+
+      .import-entry-table input,
+      .import-entry-table select {
+        width: 100%;
+        min-height: 36px;
+        padding: 0 10px;
+        border: 1px solid #d6def9;
+        border-radius: 9px;
+        background: #fbfcff;
+        color: #17275f;
+        font: inherit;
+        font-size: 0.78rem;
+        outline: 0;
+      }
+
+      .import-entry-table input:focus,
+      .import-entry-table select:focus {
+        border-color: #8fb0ff;
+        box-shadow: 0 0 0 3px rgba(45, 102, 237, 0.12);
+      }
+
+      .import-entry-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .import-protocol-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .import-protocol-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+        border: 1px solid #e2e8fb;
+        border-radius: 12px;
+        background: #fbfcff;
+        color: #243271;
+        font-size: 0.8rem;
+        font-weight: 850;
+      }
+
+      .import-protocol-row small {
+        display: block;
+        margin-top: 2px;
+        color: #7480a9;
+        font-size: 0.72rem;
       }
 
       .footer-note {
@@ -7438,11 +7517,12 @@
         Urologie: "Urologie"
       };
       const importSteps = [
-        { id: "select", label: "Datei auswählen" },
-        { id: "detect", label: "Daten erkennen" },
+        { id: "select", label: "Start" },
+        { id: "entry", label: "Erfassen" },
+        { id: "detect", label: "Datei prüfen" },
         { id: "map", label: "Felder zuordnen" },
         { id: "review", label: "Prüfen" },
-        { id: "report", label: "Importieren" }
+        { id: "report", label: "Protokoll" }
       ];
       const importTargetFields = [
         { value: "ignore", label: "Nicht importieren" },
@@ -7801,7 +7881,9 @@
       function createImportState() {
         return {
           step: "select",
+          batchId: `VK-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
           parsed: null,
+          manualRows: createManualImportRows(8),
           mapping: {},
           defaults: {
             priority: "Mittel",
@@ -7814,6 +7896,26 @@
           report: null,
           profile: null
         };
+      }
+
+      function createManualImportRows(count = 1) {
+        return Array.from({ length: count }, () => ({
+          name: "",
+          organization: "",
+          category: "Praxis",
+          specialty: "",
+          postalCode: "",
+          city: "",
+          state: "",
+          email: "",
+          phone: "",
+          linkedin: "",
+          priority: "Mittel",
+          owner: "",
+          themes: "",
+          note: "",
+          source: "Online-Batch"
+        }));
       }
 
       function normalizeImportKey(value) {
@@ -8041,35 +8143,46 @@
 
       function buildImportRows() {
         const parsed = importState.parsed;
-        if (!parsed) return [];
+        if (!parsed && importState.step !== "entry") return [];
         const sectorSet = new Set(defaultCategories.map(normalizeImportKey));
         const existing = contacts.map((contact) => ({
           key: `${normalizeImportKey(contact.name)}|${normalizeImportKey(contact.organization)}`,
           name: contact.name,
           organization: contact.organization
         }));
+        const sourceRows =
+          parsed?.fileType === "manual" || importState.step === "entry"
+            ? importState.manualRows
+                .map((row, index) => ({ ...row, rowNumber: index + 1 }))
+                .filter((row) =>
+                  ["name", "organization", "specialty", "postalCode", "city", "state", "email", "phone", "linkedin", "owner", "themes", "note"].some((key) =>
+                    hasMeaningfulValue(row[key])
+                  )
+                )
+            : parsed.rows.map((row, index) => ({ ...row, rowNumber: index + 2 }));
 
-        return parsed.rows.map((row, index) => {
-          const location = readMappedValue(row, "location");
+        return sourceRows.map((row) => {
+          const manual = parsed?.fileType === "manual" || importState.step === "entry";
+          const location = manual ? "" : readMappedValue(row, "location");
           const splitLocation = splitImportedLocation(location);
           const entry = {
-            rowNumber: index + 2,
-            name: readMappedValue(row, "name"),
-            organization: readMappedValue(row, "organization"),
-            category: readMappedValue(row, "category") || importState.defaults.categoryFallback,
-            specialty: readMappedValue(row, "specialty"),
+            rowNumber: row.rowNumber,
+            name: manual ? row.name : readMappedValue(row, "name"),
+            organization: manual ? row.organization : readMappedValue(row, "organization"),
+            category: (manual ? row.category : readMappedValue(row, "category")) || importState.defaults.categoryFallback,
+            specialty: manual ? row.specialty : readMappedValue(row, "specialty"),
             location,
-            postalCode: readMappedValue(row, "postalCode") || splitLocation.postalCode,
-            city: readMappedValue(row, "city") || splitLocation.city,
-            state: readMappedValue(row, "state"),
-            email: readMappedValue(row, "email"),
-            phone: readMappedValue(row, "phone"),
-            linkedin: readMappedValue(row, "linkedin"),
-            priority: readMappedValue(row, "priority") || importState.defaults.priority || "Mittel",
-            owner: readMappedValue(row, "owner") || importState.defaults.owner || "Timo Frank",
-            themes: readMappedValue(row, "themes"),
-            note: readMappedValue(row, "note"),
-            source: readMappedValue(row, "source") || importState.defaults.source || parsed.fileName
+            postalCode: (manual ? row.postalCode : readMappedValue(row, "postalCode")) || splitLocation.postalCode,
+            city: (manual ? row.city : readMappedValue(row, "city")) || splitLocation.city,
+            state: manual ? row.state : readMappedValue(row, "state"),
+            email: manual ? row.email : readMappedValue(row, "email"),
+            phone: manual ? row.phone : readMappedValue(row, "phone"),
+            linkedin: manual ? row.linkedin : readMappedValue(row, "linkedin"),
+            priority: (manual ? row.priority : readMappedValue(row, "priority")) || importState.defaults.priority || "Mittel",
+            owner: (manual ? row.owner : readMappedValue(row, "owner")) || importState.defaults.owner || "",
+            themes: manual ? row.themes : readMappedValue(row, "themes"),
+            note: manual ? row.note : readMappedValue(row, "note"),
+            source: (manual ? row.source : readMappedValue(row, "source")) || importState.defaults.source || parsed?.fileName || "Online-Batch"
           };
           const problems = [];
           let errors = 0;
@@ -8151,13 +8264,14 @@
 
       function renderImportWizard() {
         const parsed = importState.parsed;
-        importTitle.textContent = importState.step === "report" ? "Import abgeschlossen" : "Kontakte importieren";
+        importTitle.textContent = importState.step === "report" ? "Batch-Protokoll" : "Kontakt-Batch erfassen";
         importSubtitle.textContent =
           importState.step === "report"
-            ? "Der Import wurde abgeschlossen."
-            : "Neue Versorgungskontakte aus CSV, Excel, Word oder PDF hinzufügen.";
+            ? "Der Import wurde abgeschlossen und kann nachvollzogen werden."
+            : "Mehrere Kontakte in einer prüfbaren Online-Tabelle anlegen. CSV/Excel kann optional vorbefüllen.";
 
         if (importState.step === "select") renderImportSelect();
+        if (importState.step === "entry") renderImportEntry();
         if (importState.step === "detect") renderImportDetect(parsed);
         if (importState.step === "map") renderImportMap(parsed);
         if (importState.step === "review") renderImportReview(parsed);
@@ -8167,39 +8281,100 @@
       function renderImportSelect() {
         importBody.innerHTML = `
           ${importStepMarkup()}
+          <div class="import-batch-bar">
+            <span><strong>Batch-ID ${escapeHtml(importState.batchId)}</strong>Diese ID wird im Importbericht, in der Quelle und beim Rollback verwendet.</span>
+            <span class="status-pill status-pill--review">prüfbar</span>
+          </div>
+          <div class="import-format-grid">
+            <button class="import-format-card is-active" type="button" id="import-start-manual">
+              <span class="file-badge file-badge--excel">TAB</span>
+              <div><strong>Online-Tabelle ausfüllen</strong><small class="import-muted">Empfohlen: Zeile für Zeile prüfbar</small></div>
+              <span class="import-radio-dot" aria-hidden="true"></span>
+            </button>
+            <button class="import-format-card" type="button" id="import-start-file">
+              <span class="file-badge file-badge--csv">CSV</span>
+              <div><strong>CSV oder Excel als Vorbefüllung</strong><small class="import-muted">Optional, danach prüfbar</small></div>
+              <span class="import-radio-dot" aria-hidden="true"></span>
+            </button>
+          </div>
           <label class="import-dropzone" id="import-dropzone">
             <div>
               <span class="import-upload-icon">↥</span>
-              <strong>Datei hier ablegen oder auswählen</strong>
-              <small>Empfohlen: CSV, Excel · Optional: Word, PDF</small>
+              <strong>Datei optional hier ablegen</strong>
+              <small>CSV oder Excel füllt die Tabelle vor. Der Kern bleibt die manuelle Prüfung.</small>
             </div>
           </label>
-          <div class="import-format-grid">
-            <div class="import-format-card is-active">
-              <span class="file-badge file-badge--excel">XLS</span>
-              <div><strong>CSV oder Excel importieren</strong><small class="import-muted">Am zuverlässigsten</small></div>
-              <span class="import-radio-dot" aria-hidden="true"></span>
-            </div>
-            <div class="import-format-card">
-              <span class="file-badge file-badge--pdf">PDF</span>
-              <div><strong>Word oder PDF importieren</strong><small class="import-muted">Best Effort</small></div>
-              <span class="import-radio-dot" aria-hidden="true"></span>
-            </div>
-          </div>
           <button class="filter-reset import-template-button" type="button" id="import-template-button">↧ Import-Vorlage herunterladen</button>
           <div class="import-info-box">
             <ul>
               <li>Name ist Pflichtfeld</li>
-              <li>Du kannst Felder später prüfen</li>
+              <li>Jede Zeile kann vor dem Import bearbeitet werden</li>
               <li>Dubletten werden vor dem Import erkannt</li>
+              <li>Der Batch kann nach dem Import archiviert zurückgerollt werden</li>
             </ul>
           </div>
         `;
         importFooter.innerHTML = `
           <button class="action-button" type="button" id="import-cancel">Abbrechen</button>
-          <button class="action-button action-button--primary" type="button" id="import-pick-file">Weiter</button>
+          <button class="action-button" type="button" id="import-pick-file">Datei wählen</button>
+          <button class="action-button action-button--primary" type="button" id="import-open-entry">Online-Tabelle starten</button>
         `;
         bindImportSelectEvents();
+      }
+
+      function renderImportEntry() {
+        const rows = importState.manualRows;
+        importBody.innerHTML = `
+          ${importStepMarkup()}
+          <div class="import-batch-bar">
+            <span><strong>Batch-ID ${escapeHtml(importState.batchId)}</strong>${rows.length} Tabellenzeilen vorbereitet. Leere Zeilen werden ignoriert.</span>
+            <span class="status-pill status-pill--review">Online-Erfassung</span>
+          </div>
+          <div class="import-table-wrap">
+            <table class="import-review-table import-entry-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Name *</th><th>Organisation</th><th>Sektor</th><th>Fachrichtung</th><th>PLZ</th><th>Ort</th><th>Bundesland</th><th>E-Mail</th><th>Telefon</th><th>Owner</th><th>Priorität</th><th>Themen</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows
+                  .map(
+                    (row, index) => `
+                      <tr>
+                        <td>${index + 1}</td>
+                        <td><input data-manual-row="${index}" data-manual-field="name" value="${escapeHtml(row.name)}" placeholder="Name" /></td>
+                        <td><input data-manual-row="${index}" data-manual-field="organization" value="${escapeHtml(row.organization)}" placeholder="Organisation" /></td>
+                        <td><select data-manual-row="${index}" data-manual-field="category">${defaultCategories.map((item) => `<option value="${item}" ${row.category === item ? "selected" : ""}>${item}</option>`).join("")}</select></td>
+                        <td><input data-manual-row="${index}" data-manual-field="specialty" value="${escapeHtml(row.specialty)}" placeholder="Fachrichtung" /></td>
+                        <td><input data-manual-row="${index}" data-manual-field="postalCode" value="${escapeHtml(row.postalCode)}" placeholder="PLZ" /></td>
+                        <td><input data-manual-row="${index}" data-manual-field="city" value="${escapeHtml(row.city)}" placeholder="Ort" /></td>
+                        <td><select data-manual-row="${index}" data-manual-field="state"><option value="">-</option>${germanStates.map((item) => `<option value="${item}" ${row.state === item ? "selected" : ""}>${item}</option>`).join("")}</select></td>
+                        <td><input data-manual-row="${index}" data-manual-field="email" value="${escapeHtml(row.email)}" placeholder="mail@example.de" /></td>
+                        <td><input data-manual-row="${index}" data-manual-field="phone" value="${escapeHtml(row.phone)}" placeholder="Telefon" /></td>
+                        <td><select data-manual-row="${index}" data-manual-field="owner"><option value="">Kein Owner</option>${ownerOptions.map((item) => `<option value="${escapeHtml(item)}" ${row.owner === item ? "selected" : ""}>${escapeHtml(ownerOptionLabel(item))}</option>`).join("")}</select></td>
+                        <td><select data-manual-row="${index}" data-manual-field="priority">${["Hoch", "Mittel", "Niedrig"].map((item) => `<option value="${item}" ${row.priority === item ? "selected" : ""}>${item}</option>`).join("")}</select></td>
+                        <td><input data-manual-row="${index}" data-manual-field="themes" value="${escapeHtml(row.themes)}" placeholder="Thema; Thema" /></td>
+                        <td><button class="import-close" type="button" data-manual-remove="${index}" aria-label="Zeile entfernen">×</button></td>
+                      </tr>
+                    `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+          <div class="import-entry-actions">
+            <button class="action-button" type="button" id="manual-add-row">Zeile hinzufügen</button>
+            <button class="action-button" type="button" id="manual-add-five">5 Zeilen hinzufügen</button>
+            <button class="action-button" type="button" id="manual-prefill-defaults">Standardwerte auffüllen</button>
+          </div>
+          <div class="import-info-box">Pflichtfeld ist nur der Name. Fehlende Owner, Standorte oder Fachrichtungen werden als Pflegehinweis in der Prüfung sichtbar.</div>
+        `;
+        importFooter.innerHTML = `
+          <button class="action-button" type="button" id="manual-back-select">Zurück</button>
+          <button class="action-button action-button--primary" type="button" id="manual-next-review">Vorschau prüfen</button>
+        `;
+        bindManualImportEvents();
       }
 
       function renderImportDetect(parsed) {
@@ -8302,7 +8477,10 @@
         `;
         importFooter.innerHTML = `
           <button class="action-button" type="button" id="import-back-detect">Zurück</button>
-          <button class="action-button action-button--primary" type="button" id="import-next-review">Weiter prüfen</button>
+          <div class="import-footer-actions">
+            <button class="action-button" type="button" id="import-to-manual-table">In Online-Tabelle bearbeiten</button>
+            <button class="action-button action-button--primary" type="button" id="import-next-review">Weiter prüfen</button>
+          </div>
         `;
         importBody.querySelectorAll("[data-import-map]").forEach((select) => {
           select.addEventListener("change", () => {
@@ -8315,7 +8493,95 @@
         document.getElementById("import-default-source").addEventListener("input", (event) => (importState.defaults.source = event.target.value));
         document.getElementById("import-default-category").addEventListener("change", (event) => (importState.defaults.categoryFallback = event.target.value));
         document.getElementById("import-back-detect").addEventListener("click", () => setImportStep("detect"));
+        document.getElementById("import-to-manual-table").addEventListener("click", convertMappedImportToManualRows);
         document.getElementById("import-next-review").addEventListener("click", () => setImportStep("review"));
+      }
+
+      function convertMappedImportToManualRows() {
+        importState.manualRows = buildImportRows().map((row) => ({
+          name: row.name,
+          organization: row.organization,
+          category: normalizeCategory(row.category),
+          specialty: row.specialty,
+          postalCode: row.postalCode,
+          city: row.city,
+          state: row.state,
+          email: row.email,
+          phone: row.phone,
+          linkedin: row.linkedin,
+          priority: row.priority || "Mittel",
+          owner: row.owner || "",
+          themes: row.themes,
+          note: row.note,
+          source: row.source || importState.parsed?.fileName || "Online-Batch"
+        }));
+        if (!importState.manualRows.length) importState.manualRows = createManualImportRows(8);
+        importState.parsed = {
+          fileName: importState.parsed?.fileName || importState.batchId,
+          fileSize: importState.parsed?.fileSize || 0,
+          fileType: "manual",
+          delimiter: "",
+          sheets: [],
+          sheetData: {},
+          selectedSheet: "",
+          columns: [],
+          rows: importState.manualRows,
+          warning: ""
+        };
+        setImportStep("entry");
+      }
+
+      function bindManualImportEvents() {
+        importBody.querySelectorAll("[data-manual-row][data-manual-field]").forEach((field) => {
+          field.addEventListener("input", () => {
+            const rowIndex = Number(field.dataset.manualRow);
+            importState.manualRows[rowIndex][field.dataset.manualField] = field.value;
+          });
+          field.addEventListener("change", () => {
+            const rowIndex = Number(field.dataset.manualRow);
+            importState.manualRows[rowIndex][field.dataset.manualField] = field.value;
+          });
+        });
+        importBody.querySelectorAll("[data-manual-remove]").forEach((button) => {
+          button.addEventListener("click", () => {
+            importState.manualRows.splice(Number(button.dataset.manualRemove), 1);
+            if (!importState.manualRows.length) importState.manualRows.push(...createManualImportRows(1));
+            renderImportEntry();
+          });
+        });
+        document.getElementById("manual-add-row").addEventListener("click", () => {
+          importState.manualRows.push(...createManualImportRows(1));
+          renderImportEntry();
+        });
+        document.getElementById("manual-add-five").addEventListener("click", () => {
+          importState.manualRows.push(...createManualImportRows(5));
+          renderImportEntry();
+        });
+        document.getElementById("manual-prefill-defaults").addEventListener("click", () => {
+          importState.manualRows = importState.manualRows.map((row) => ({
+            ...row,
+            category: row.category || "Praxis",
+            priority: row.priority || "Mittel",
+            source: row.source || "Online-Batch"
+          }));
+          renderImportEntry();
+        });
+        document.getElementById("manual-back-select").addEventListener("click", () => setImportStep("select"));
+        document.getElementById("manual-next-review").addEventListener("click", () => {
+          importState.parsed = {
+            fileName: importState.batchId,
+            fileSize: 0,
+            fileType: "manual",
+            delimiter: "",
+            sheets: [],
+            sheetData: {},
+            selectedSheet: "",
+            columns: [],
+            rows: importState.manualRows,
+            warning: ""
+          };
+          setImportStep("review");
+        });
       }
 
       function renderImportReview() {
@@ -8328,6 +8594,10 @@
             <div class="import-metric"><strong>${counts.duplicate}</strong><span>mögliche Dubletten</span></div>
             <div class="import-metric"><strong>${counts.review}</strong><span>prüfen</span></div>
             <div class="import-metric"><strong>${counts.error}</strong><span>Fehler</span></div>
+          </div>
+          <div class="import-batch-bar">
+            <span><strong>Batch-ID ${escapeHtml(importState.batchId)}</strong>Vorschau mit Validierung. Fehlerhafte Zeilen werden nicht importiert, außer sie werden bewusst freigegeben.</span>
+            <span class="status-pill status-pill--review">${escapeHtml(importState.parsed?.fileType === "manual" ? "Online-Tabelle" : "Datei")}</span>
           </div>
           <div class="import-table-wrap">
             <table class="import-review-table">
@@ -8436,9 +8706,9 @@
               postalCode: row.postalCode,
               city: row.city,
               state: row.state,
-              note: row.note,
+              note: [row.note, `Import-Batch: ${importState.batchId}`].filter(Boolean).join("\n"),
               themes: row.themes,
-              sources: row.source,
+              sources: [row.source, `Batch ${importState.batchId}`].filter(Boolean).join(" | "),
               owner: row.owner || "Timo Frank",
               createdAt: now,
               updatedAt: now
@@ -8446,10 +8716,10 @@
             contacts.length + index
           )
         );
+        const created = [];
         try {
-          const created = [];
           for (const contact of imported) {
-            created.push(await window.dataService.createContact(contact));
+            created.push(await window.dataService.createContact(contact, { action: "import", batchId: importState.batchId }));
           }
           created.forEach((contact) => contactHistoryCache.delete(contact.id));
           contacts = [...created, ...contacts.filter((contact) => !created.some((item) => item.id === contact.id))].map((contact, index) =>
@@ -8472,7 +8742,10 @@
           errors: counts.errors,
           warnings: counts.warnings,
           fileName: importState.parsed?.fileName || "",
-          rows
+          batchId: importState.batchId,
+          rows,
+          createdIds: created.map((contact) => contact.id),
+          createdContacts: created
         };
         importState.profile = {
           mapping: importState.mapping,
@@ -8489,11 +8762,15 @@
         const report = importState.report || { imported: 0, skipped: 0, duplicates: 0, errors: 0, warnings: 0, fileName: "" };
         importBody.innerHTML = `
           ${importStepMarkup()}
+          <div class="import-batch-bar">
+            <span><strong>Batch-ID ${escapeHtml(report.batchId || importState.batchId)}</strong>${report.imported} Kontakte angelegt. Jeder Kontakt hat einen Eintrag im Änderungsverlauf.</span>
+            <span class="status-pill status-pill--ready">abgeschlossen</span>
+          </div>
           <div class="import-report">
             <div class="import-report-center">
               <span class="import-success-mark">✓</span>
-              <h4>Import erfolgreich abgeschlossen</h4>
-              <p class="import-muted">${report.imported} neue Kontakte wurden erfolgreich importiert.</p>
+              <h4>Batch erfolgreich abgeschlossen</h4>
+              <p class="import-muted">${report.imported} neue Kontakte wurden importiert. Ein Rollback archiviert diese Kontakte wieder.</p>
             </div>
             <div class="import-review-metrics">
               <div class="import-metric"><strong>${report.imported}</strong><span>Kontakte importiert</span></div>
@@ -8502,9 +8779,20 @@
               <div class="import-metric"><strong>${report.warnings}</strong><span>Warnungen</span></div>
             </div>
             <section class="import-profile-card">
-              <h4>Importprofil speichern</h4>
-              <input value="${escapeHtml((report.fileName || "Import").replace(/\.[^.]+$/, ""))} Profil" readonly />
-              <label class="import-checkbox"><input type="checkbox" checked /> Spaltenzuordnung für künftige Importe merken</label>
+              <h4>Batch-Protokoll</h4>
+              <div class="import-protocol-list">
+                ${report.createdContacts
+                  ?.slice(0, 8)
+                  .map(
+                    (contact) => `
+                      <div class="import-protocol-row">
+                        <span>${escapeHtml(contact.displayName || contact.name)}<small>${escapeHtml(contact.organization || "Organisation offen")}</small></span>
+                        <span class="status-pill status-pill--ready">angelegt</span>
+                      </div>
+                    `
+                  )
+                  .join("") || `<div class="import-muted">Keine Kontakte protokolliert.</div>`}
+              </div>
             </section>
             <div>
               <h4>Nächste Schritte</h4>
@@ -8512,9 +8800,10 @@
                 <button class="import-action-card" type="button" id="show-imported"><strong>Importierte Kontakte anzeigen</strong><span>›</span></button>
                 <button class="import-action-card" type="button" id="export-import-errors"><strong>Fehlerhafte Zeilen exportieren</strong><span>›</span></button>
                 <button class="import-action-card" type="button" id="download-import-report"><strong>Importbericht herunterladen</strong><span>›</span></button>
+                <button class="import-action-card" type="button" id="rollback-import-batch"><strong>Batch rollbacken</strong><span>↶</span></button>
               </div>
             </div>
-            <div class="import-muted">Quelle: ${escapeHtml(report.fileName || "Datei")} · Importiert von: Timo Frank</div>
+            <div class="import-muted">Quelle: ${escapeHtml(report.fileName || "Online-Tabelle")} · Importiert von: ${escapeHtml(currentProfile?.display_name || currentProfile?.email || "Angemeldeter Nutzer")}</div>
           </div>
         `;
         importFooter.innerHTML = `
@@ -8526,12 +8815,16 @@
         document.getElementById("show-imported").addEventListener("click", showImportedContacts);
         document.getElementById("export-import-errors").addEventListener("click", exportImportErrors);
         document.getElementById("download-import-report").addEventListener("click", downloadImportReport);
+        document.getElementById("rollback-import-batch").addEventListener("click", rollbackImportBatch);
       }
 
       function bindImportSelectEvents() {
         const dropzone = document.getElementById("import-dropzone");
         document.getElementById("import-cancel").addEventListener("click", closeImportWizard);
         document.getElementById("import-pick-file").addEventListener("click", selectImportFile);
+        document.getElementById("import-start-file").addEventListener("click", selectImportFile);
+        document.getElementById("import-start-manual").addEventListener("click", () => setImportStep("entry"));
+        document.getElementById("import-open-entry").addEventListener("click", () => setImportStep("entry"));
         document.getElementById("import-template-button").addEventListener("click", downloadImportTemplate);
         dropzone.addEventListener("click", selectImportFile);
         dropzone.addEventListener("dragover", (event) => {
@@ -8577,6 +8870,35 @@
         closeImportWizard();
       }
 
+      async function rollbackImportBatch() {
+        const report = importState.report;
+        const ids = report?.createdIds || [];
+        if (!ids.length) {
+          window.alert("Für diesen Batch sind keine importierten Kontakte hinterlegt.");
+          return;
+        }
+        const confirmed = window.confirm(`Rollback für Batch ${report.batchId || importState.batchId} starten? ${ids.length} Kontakte werden archiviert, nicht physisch gelöscht.`);
+        if (!confirmed) return;
+        try {
+          const archived = [];
+          for (const id of ids) {
+            archived.push(await window.dataService.archiveContact(id));
+            contactHistoryCache.delete(id);
+          }
+          contacts = contacts.map((contact, index) => {
+            const archivedContact = archived.find((item) => item.id === contact.id);
+            return archivedContact ? sanitizeContact({ ...contact, ...archivedContact }, index) : contact;
+          });
+          importState.report = { ...report, rollbackAt: new Date().toISOString(), rollbackCount: archived.length };
+          setStorageStatus(`Rollback fuer Batch ${report.batchId || importState.batchId}: ${archived.length} Kontakte archiviert`);
+          updateView();
+          renderImportReport();
+        } catch (error) {
+          console.error("Import-Rollback fehlgeschlagen.", error);
+          window.alert("Der Rollback konnte nicht vollständig ausgeführt werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+        }
+      }
+
       function exportImportErrors() {
         const rows = (importState.report?.rows || []).filter((row) => row.errors || row.skip);
         const csv = ["Zeile,Name,Organisation,Problem", ...rows.map((row) => [row.rowNumber, row.name, row.organization, row.problems.join(" | ")].map(csvEscape).join(","))].join("\n");
@@ -8587,14 +8909,19 @@
         const report = importState.report || {};
         const text = [
           "Versorgungs-Kompass Importbericht",
-          `Quelle: ${report.fileName || ""}`,
+          `Batch-ID: ${report.batchId || importState.batchId}`,
+          `Quelle: ${report.fileName || "Online-Tabelle"}`,
           `Importierte Kontakte: ${report.imported || 0}`,
           `Übersprungene Zeilen: ${report.skipped || 0}`,
           `Mögliche Dubletten: ${report.duplicates || 0}`,
           `Fehler: ${report.errors || 0}`,
-          `Warnungen: ${report.warnings || 0}`
+          `Warnungen: ${report.warnings || 0}`,
+          `Rollback: ${report.rollbackAt ? `${report.rollbackCount || 0} Kontakte archiviert am ${formatDateTimeLabel(report.rollbackAt)}` : "nicht ausgeführt"}`,
+          "",
+          "Importierte Kontakte:",
+          ...(report.createdContacts || []).map((contact) => `- ${contact.displayName || contact.name} (${contact.id})`)
         ].join("\n");
-        downloadBlob(new Blob([text], { type: "text/plain;charset=utf-8;" }), "versorgungs-kompass-importbericht.txt");
+        downloadBlob(new Blob([text], { type: "text/plain;charset=utf-8;" }), `versorgungs-kompass-importbericht-${report.batchId || importState.batchId}.txt`);
       }
 
       function sanitizeContact(entry, index = 0) {
