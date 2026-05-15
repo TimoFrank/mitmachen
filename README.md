@@ -11,8 +11,9 @@ Der aktive Projektstand ist der statische `Versorgungs-Kompass` auf HTML-/JS-Bas
 Fuer den aktuellen nutzbaren Stand sind diese Dateien relevant:
 
 - `login/login.html`: vorgeschaltete Login-Seite
-- `login/auth-config.js`, `login/auth-guard.js`, `login/auth-login.js`: einfache Passwort-Schranke
+- `login/auth-config.js`, `login/auth-guard.js`, `login/auth-login.js`: Login-Einstieg; mit Supabase-Konfiguration E-Mail/Passwort, sonst lokale Passwort-Schranke
 - `app/versorgungs-kompass.html`: Hauptansicht des Kompass
+- `data/supabase-config.js`, `data/data-service.js`: Supabase-Konfiguration und Data-Service-Layer
 - `map/versorgungs-kompass-map.html`: Karten-Modus als Overlay-Inhalt
 - `map/versorgungs-kompass-map-teaser.html`: Mini-Karten-Vorschau fuer die Login-Seite
 - `map/versorgungs-kompass-contact-mini-map.html`: kompakte Kontaktkarte
@@ -41,7 +42,9 @@ Der kanonische Pflegeweg ist:
 
 Das Sync-Skript validiert die CSV, schreibt `data/versorgungs-kompass-data.js` neu und spiegelt CSV und JS nach `docs/data/`.
 
-Wichtig: Die Benutzeroberflaeche ist aktuell eine Demo ohne Datenbank. Aenderungen direkt in der App koennen deshalb nur im lokalen Browser-Speicher abgelegt werden. Das ist im Moment die einzige Speicherfunktion der App. Andere Nutzer, andere Browser oder andere Geraete sehen diese lokalen Aenderungen nicht. Fuer eine dauerhafte Aenderung im Demo-Datensatz kann die App eine CSV exportieren; diese CSV muss danach manuell in den Projekt-Datensatz uebernommen und deployed werden.
+Der Zielbetrieb nutzt Supabase als gemeinsamen Datenstand. Die statische Oberflaeche bleibt erhalten und greift ueber `window.dataService` auf Supabase zu. Service-Role-Keys duerfen nie in `data/supabase-config.js` oder andere Frontend-Dateien eingetragen werden.
+
+Fuer Setup, SQL, Rollen, RLS und Import siehe `supabase/README.md`.
 
 Fuer den Karten-Modus werden diese Kartendateien benoetigt:
 

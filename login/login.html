@@ -11,6 +11,9 @@
     />
     <script src="./auth-config.js"></script>
     <script src="./auth-guard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../data/supabase-config.js"></script>
+    <script src="../data/data-service.js"></script>
     <style>
       :root {
         color-scheme: light;
@@ -165,11 +168,15 @@
         </section>
 
         <section class="login-card" aria-labelledby="login-title">
-          <p>Gib das gemeinsame Passwort ein, um den geschützten Bereich zu öffnen.</p>
+          <p id="login-copy">Gib das gemeinsame Passwort ein, um den geschützten Bereich zu öffnen.</p>
 
           <form id="login-form">
+            <div id="email-field" hidden>
+              <label for="email">E-Mail</label>
+              <input id="email" name="email" type="email" autocomplete="username" />
+            </div>
             <div>
-              <label for="password">Passwort</label>
+              <label for="password" id="password-label">Passwort</label>
               <input id="password" name="password" type="password" autocomplete="current-password" required />
             </div>
             <div class="login-error" id="login-error" hidden>Das Passwort ist nicht korrekt.</div>

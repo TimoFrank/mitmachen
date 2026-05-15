@@ -2196,9 +2196,12 @@
         justify-content: center;
         min-height: 44px;
         padding: 0 16px;
+        border: 0;
         border-radius: 999px;
         background: #eff4ff;
         color: var(--text);
+        cursor: pointer;
+        font: inherit;
         text-decoration: none;
         font-weight: 700;
       }
@@ -2409,6 +2412,14 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 14px;
+      }
+
+      .detail-communication-grid .detail-info-card {
+        justify-content: flex-start;
+      }
+
+      .detail-communication-grid .detail-info-head {
+        min-height: 24px;
       }
 
       .detail-context-grid {
@@ -2665,6 +2676,13 @@
         border-color: #8eb2ff;
         box-shadow: 0 0 0 4px rgba(74, 121, 237, 0.12);
         background: #ffffff;
+      }
+
+      .detail-contact-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
       }
 
       .detail-inline-textarea {
@@ -6095,11 +6113,11 @@
 
     <aside class="deploy-reminder" id="deploy-reminder" aria-live="polite" hidden>
       <button class="deploy-reminder__close" type="button" id="deploy-reminder-close" aria-label="Hinweis schließen">×</button>
-      <strong><span class="deploy-reminder__icon" aria-hidden="true">!</span>Deine Änderung wurde lokal gespeichert</strong>
-      <p>Diese Demo-Anwendung hat keine zentrale Datenbank. Darum wird die Änderung aktuell nur in diesem Browser gespeichert und ist auf anderen Geräten nicht sichtbar.</p>
+      <strong><span class="deploy-reminder__icon" aria-hidden="true">!</span>Lokaler Fallback aktiv</strong>
+      <p>Supabase ist noch nicht erreichbar oder konfiguriert. Änderungen im Fallback sind nur in diesem Browser sichtbar.</p>
       <div class="deploy-reminder__actions">
         <button class="deploy-reminder__button deploy-reminder__button--primary" type="button" id="deploy-reminder-export">Lokale Daten als CSV sichern</button>
-        <button class="deploy-reminder__button" type="button" id="deploy-reminder-help">Warum nur lokal?</button>
+        <button class="deploy-reminder__button" type="button" id="deploy-reminder-help">Setup-Hinweis</button>
       </div>
     </aside>
 
@@ -6539,7 +6557,7 @@
           </section>
         </form>
         <div class="editor-footer">
-          <div class="editor-footer__hint" id="editor-hint">Demo ohne Datenbank: Änderungen werden nur in diesem Browser gespeichert.</div>
+          <div class="editor-footer__hint" id="editor-hint">Änderungen werden im gemeinsamen Supabase-Datenstand gespeichert.</div>
           <div class="editor-actions">
             <button class="action-button" type="button" id="editor-cancel">Abbrechen</button>
             <button class="action-button" type="submit" form="editor-form" id="editor-save-next">Speichern &amp; weiteren anlegen</button>
@@ -6566,6 +6584,9 @@
 
     <script src="../map/data/state-polygons.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../data/supabase-config.js"></script>
+    <script src="../data/data-service.js"></script>
     <script src="../data/versorgungs-kompass-data.js"></script>
     <script>
       const avatarPalette = [
@@ -6640,7 +6661,7 @@
         Mittel: "🟡",
         Niedrig: "🟢"
       };
-      const ownerOptions = [
+      let ownerOptions = [
         "Timo Frank",
         "Mirjam Scholz",
         "Max Fröhlich",
@@ -6919,7 +6940,8 @@
       let loadedContactsFromStorage = false;
 
       function setStorageStatus(message) {
-        void message;
+        if (!message) return;
+        console.info(`[Versorgungs-Kompass] ${message}`);
       }
 
       function showDeployReminder() {
@@ -6935,20 +6957,23 @@
       function explainDeployPath() {
         window.alert(
           [
-            "Warum wird nur lokal gespeichert?",
+            "Wie wird jetzt gespeichert?",
             "",
-            "Der Versorgungs-Kompass ist aktuell eine Demo-Anwendung ohne Datenbank und ohne Server-Speicherung.",
-            "Darum kann die App Änderungen nicht zentral für alle Nutzer ablegen.",
+            "Der Versorgungs-Kompass nutzt Supabase als gemeinsamen Datenstand.",
+            "Die Oberfläche bleibt statisch, liest und schreibt aber über den Data-Service-Layer.",
             "",
-            "Was passiert beim Speichern?",
-            "Die Änderung wird nur in deinem Browser gesichert. Wenn du ein anderes Gerät nutzt oder den Browser-Speicher löschst, ist diese lokale Änderung dort nicht vorhanden.",
+            "Wichtig:",
+            "Du musst mit Supabase angemeldet sein. Viewer dürfen lesen, Editor/Admin dürfen speichern.",
             "",
-            "Du kannst deine lokale Arbeitsfassung als CSV sichern. Eine echte gemeinsame Datenpflege braucht später eine Datenbank oder einen kleinen Admin-Bereich."
+            "Der Export bleibt als Sicherung und Migrationshilfe verfügbar."
           ].join("\n")
         );
       }
 
-      function logout() {
+      async function logout() {
+        if (window.dataService?.getClient && window.dataService.isConfigured?.()) {
+          await window.dataService.getClient().auth.signOut();
+        }
         if (window.VKAuth) {
           window.VKAuth.clearAuthenticated();
           window.location.href = window.VKAuth.buildLoginUrl();
@@ -7676,7 +7701,7 @@
         document.getElementById("import-run").addEventListener("click", () => runContactImport({ onlyReady: false }));
       }
 
-      function runContactImport({ onlyReady = false } = {}) {
+      async function runContactImport({ onlyReady = false } = {}) {
         const rows = buildImportRows();
         const now = new Date().toISOString();
         const importableRows = rows.filter((row) => {
@@ -7711,8 +7736,20 @@
             contacts.length + index
           )
         );
-        contacts = [...imported, ...contacts];
-        persistContacts(`${imported.length} Kontakte importiert`);
+        try {
+          const created = [];
+          for (const contact of imported) {
+            created.push(await window.dataService.createContact(contact));
+          }
+          contacts = [...created, ...contacts.filter((contact) => !created.some((item) => item.id === contact.id))].map((contact, index) =>
+            sanitizeContact(contact, index)
+          );
+          setStorageStatus(`${created.length} Kontakte nach Supabase importiert`);
+        } catch (error) {
+          console.error("Import konnte nicht gespeichert werden.", error);
+          window.alert("Der Import konnte nicht in Supabase gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          return;
+        }
         activeId = imported[0]?.id || null;
         currentPage = 1;
         updateView();
@@ -7930,9 +7967,12 @@
         if (!seedContact) return sanitizeContact(localContact, index);
 
         const localSources = normalizeSources(localContact.sources);
+        const localLinkedin = meaningfulOrEmpty(localContact.linkedin);
+        const seedLinkedin = meaningfulOrEmpty(seedContact.linkedin);
         const mergedContact = {
           ...seedContact,
           ...localContact,
+          linkedin: localLinkedin || seedLinkedin,
           image: resolveContactImage(localContact.image, seedContact.image),
           sources: localSources.length ? localSources : seedContact.sources
         };
@@ -7977,11 +8017,26 @@
         return [...new Set(contacts.map((contact) => contact[key]))].sort((a, b) => a.localeCompare(b, "de"));
       }
 
+      function applyProfiles(profiles = []) {
+        const profileNames = profiles.map((profile) => profile.display_name || profile.email || profile.initials).filter(Boolean);
+        ownerOptions = [...new Set([...profileNames, ...ownerOptions])].sort((a, b) => a.localeCompare(b, "de"));
+      }
+
+      function renderAccountProfile(profile) {
+        if (!profile) return;
+        const badge = accountButton?.querySelector(".topbar-account__badge");
+        const name = accountMenu?.querySelector(".account-popover__name");
+        if (badge) badge.textContent = profile.initials || String(profile.display_name || profile.email || "VK").slice(0, 2).toUpperCase();
+        if (name) name.textContent = profile.display_name || profile.email || "Angemeldet";
+        const welcome = document.querySelector(".workspace-copy h2");
+        if (welcome) welcome.textContent = `Willkommen, ${(profile.display_name || profile.email || "Team").split(" ")[0]}`;
+      }
+
       function saveFavorites() {
         window.localStorage.setItem("versorgungs-kompass-favorites-v4", JSON.stringify([...favorites]));
       }
 
-      function persistContacts(message = `${contacts.length} lokale Kontakte gespeichert`, { silent = false } = {}) {
+      function persistContacts(message = `${contacts.length} Kontakte gespeichert`, { silent = false } = {}) {
         try {
           contacts = contacts.map((contact, index) => sanitizeContact(contact, index));
           const payload = contacts.map((contact) => ({
@@ -8016,16 +8071,16 @@
           }));
           window.localStorage.setItem(storageKey, JSON.stringify(payload));
           setStorageStatus(message);
-          if (!silent) showDeployReminder();
+          if (!silent && !window.dataService?.isConfigured?.()) showDeployReminder();
         } catch (error) {
           console.warn("Lokale Kontakte konnten nicht gespeichert werden.", error);
-          if (!silent) window.alert("Die lokalen Änderungen konnten im Browser nicht gespeichert werden.");
+          if (!silent) window.alert("Die Änderungen konnten nicht im Browser gespeichert werden.");
         }
       }
 
       if (loadedContactsFromStorage) persistContacts(`${contacts.length} lokale Kontakte bereinigt`, { silent: true });
 
-      function updateContactField(id, field, value) {
+      async function updateContactField(id, field, value) {
         const currentContact = contacts.find((contact) => contact.id === id);
         if (!currentContact) return;
 
@@ -8033,11 +8088,18 @@
         const currentValue = currentContact[field] || "";
         if (currentValue === normalizedValue) return;
 
-        contacts = contacts.map((contact, index) =>
-          contact.id === id ? sanitizeContact({ ...contact, [field]: normalizedValue, updatedAt: new Date().toISOString() }, index) : contact
-        );
+        try {
+          const updated = await window.dataService.updateContact(id, { [field]: normalizedValue });
+          contacts = contacts.map((contact, index) =>
+            contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
+          );
+          setStorageStatus("Kontakt in Supabase gespeichert");
+        } catch (error) {
+          console.error("Kontaktfeld konnte nicht gespeichert werden.", error);
+          window.alert("Die Änderung konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          return;
+        }
 
-        persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
         updateView();
 
         if (activeId === id && detailDrawer.classList.contains("is-open")) {
@@ -8896,14 +8958,19 @@
         );
       }
 
-      function updateContactThemes(id, themes) {
+      async function updateContactThemes(id, themes) {
         const normalizedThemes = normalizeThemes(themes);
-        contacts = contacts.map((contact, index) =>
-          contact.id === id
-            ? sanitizeContact({ ...contact, themes: normalizedThemes, updatedAt: new Date().toISOString() }, index)
-            : contact
-        );
-        persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
+        try {
+          const updated = await window.dataService.updateContact(id, { themes: normalizedThemes });
+          contacts = contacts.map((contact, index) =>
+            contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
+          );
+          setStorageStatus("Themen in Supabase gespeichert");
+        } catch (error) {
+          console.error("Themen konnten nicht gespeichert werden.", error);
+          window.alert("Die Themen konnten nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          return;
+        }
         updateView();
         if (activeId === id && detailDrawer.classList.contains("is-open")) {
           openDetail(id);
@@ -9672,10 +9739,13 @@
                       <span class="field-icon">&#9993;</span>
                       <span>E-Mail</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-email-input" type="email" value="" placeholder="E-Mail eintragen" />
+                    <input class="detail-inline-input" id="detail-email-input" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen" />
                     ${
                       hasMeaningfulValue(contact.email)
-                        ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="mailto:${contact.email}">Senden</a></div>`
+                        ? `<div class="detail-contact-actions">
+                            <a class="detail-link detail-link--compact" href="mailto:${escapeHtml(contact.email)}">Senden</a>
+                            <button class="detail-link detail-link--compact" type="button" data-copy-contact="${escapeHtml(contact.email)}">Kopieren</button>
+                          </div>`
                         : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
                     }
                   </article>
@@ -9684,10 +9754,13 @@
                       <span class="field-icon">&#9742;</span>
                       <span>Telefon</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-phone-input" type="text" value="" placeholder="Telefon eintragen" />
+                    <input class="detail-inline-input" id="detail-phone-input" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon eintragen" />
                     ${
                       hasMeaningfulValue(contact.phone)
-                        ? ""
+                        ? `<div class="detail-contact-actions">
+                            <a class="detail-link detail-link--compact" href="tel:${escapeHtml(contact.phone)}">Anrufen</a>
+                            <button class="detail-link detail-link--compact" type="button" data-copy-contact="${escapeHtml(contact.phone)}">Kopieren</button>
+                          </div>`
                         : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
                     }
                   </article>
@@ -9696,10 +9769,13 @@
                       <span class="linkedin-icon">in</span>
                       <span>LinkedIn</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="" placeholder="LinkedIn-Profil eintragen" />
+                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="${escapeHtml(linkedinUrl)}" placeholder="LinkedIn-Profil eintragen" />
                     ${
                       linkedinUrl
-                        ? `<div class="detail-link-row"><a class="detail-link detail-link--compact" href="${linkedinUrl}" target="_blank" rel="noreferrer">Öffnen</a></div>`
+                        ? `<div class="detail-contact-actions">
+                            <a class="detail-link detail-link--compact" href="${escapeHtml(linkedinUrl)}" target="_blank" rel="noreferrer">Öffnen</a>
+                            <button class="detail-link detail-link--compact" type="button" data-copy-contact="${escapeHtml(linkedinUrl)}">Kopieren</button>
+                          </div>`
                         : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`
                     }
                   </article>
@@ -9758,7 +9834,7 @@
                 <span>ID: ${contact.id}</span>
               </div>
               <div class="detail-bottom-actions">
-                <button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt löschen</button>
+                <button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt archivieren</button>
               </div>
             </div>
           </div>
@@ -9857,6 +9933,22 @@
             updateContactField(contact.id, "linkedin", detailLinkedinInput.value);
           });
         }
+        [...detailPanel.querySelectorAll("[data-copy-contact]")].forEach((button) => {
+          button.addEventListener("click", async () => {
+            const value = button.dataset.copyContact || "";
+            if (!value) return;
+            try {
+              await navigator.clipboard.writeText(value);
+              const previousText = button.textContent;
+              button.textContent = "Kopiert";
+              window.setTimeout(() => {
+                button.textContent = previousText;
+              }, 1400);
+            } catch (error) {
+              window.prompt("Wert kopieren", value);
+            }
+          });
+        });
         const detailNoteInput = document.getElementById("detail-note-input");
         if (detailNoteInput) {
           detailNoteInput.addEventListener("blur", () => {
@@ -9883,8 +9975,8 @@
           ? "Basisdaten zuerst, Details können laufend ergänzt werden."
           : "Nur Name ist Pflicht. Details kannst du später ergänzen.";
         editorHint.textContent = contact
-          ? "Änderungen überschreiben deinen lokalen Browser-Stand. Die Demo hat keine zentrale Datenbank."
-          : "Neue Kontakte werden nur in diesem Browser gespeichert. Die Demo hat keine zentrale Datenbank, daher sehen andere Nutzer diese lokalen Änderungen nicht.";
+          ? "Änderungen werden im gemeinsamen Supabase-Datenstand gespeichert und protokolliert."
+          : "Neue Kontakte werden im gemeinsamen Supabase-Datenstand angelegt.";
 
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
@@ -9938,13 +10030,20 @@
         syncBodyScrollLock();
       }
 
-      function deleteContact(contact) {
-        const confirmed = window.confirm(`Soll "${contact.displayName}" wirklich aus deinem lokalen Versorgungs-Kompass gelöscht werden?`);
+      async function deleteContact(contact) {
+        const confirmed = window.confirm(`Soll "${contact.displayName}" archiviert werden? Der Kontakt wird nicht physisch gelöscht.`);
         if (!confirmed) return;
-        contacts = contacts.filter((item) => item.id !== contact.id);
-        favorites.delete(contact.id);
-        saveFavorites();
-        persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
+        try {
+          await window.dataService.archiveContact(contact.id);
+          contacts = contacts.filter((item) => item.id !== contact.id);
+          favorites.delete(contact.id);
+          saveFavorites();
+          setStorageStatus("Kontakt in Supabase archiviert");
+        } catch (error) {
+          console.error("Kontakt konnte nicht archiviert werden.", error);
+          window.alert("Der Kontakt konnte nicht archiviert werden. Nur Admins dürfen archivieren.");
+          return;
+        }
         activeId = null;
         closeDetail();
         updateView();
@@ -10248,7 +10347,7 @@
         });
       });
 
-      editorForm.addEventListener("submit", (event) => {
+      editorForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const formData = new FormData(editorForm);
         const timestamp = new Date().toISOString();
@@ -10299,16 +10398,26 @@
 
         const sanitized = sanitizeContact(entry, contacts.length);
 
-        if (editorMode === "edit" && editingId) {
-          contacts = contacts.map((contact, index) =>
-            contact.id === editingId ? sanitizeContact({ ...contact, ...sanitized, id: editingId }, index) : contact
-          );
-        } else {
-          contacts = [sanitized, ...contacts];
+        let savedContact;
+        try {
+          if (editorMode === "edit" && editingId) {
+            savedContact = await window.dataService.updateContact(editingId, sanitized);
+            contacts = contacts.map((contact, index) =>
+              contact.id === editingId ? sanitizeContact({ ...contact, ...savedContact, id: editingId }, index) : contact
+            );
+          } else {
+            savedContact = await window.dataService.createContact(sanitized);
+            contacts = [sanitizeContact(savedContact, contacts.length), ...contacts];
+          }
+          setStorageStatus("Kontakt in Supabase gespeichert");
+        } catch (error) {
+          console.error("Kontakt konnte nicht gespeichert werden.", error);
+          editorStatus.textContent = "Kontakt konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
+          editorStatus.className = "editor-status is-visible editor-status--error";
+          return;
         }
 
-        persistContacts(`${contacts.length} lokale Kontakte gespeichert`);
-        activeId = sanitized.id;
+        activeId = savedContact.id;
         editorForm.dataset.submitAction = "save";
         if (submitAction === "save-next" && editorMode !== "edit") {
           updateView();
@@ -10317,7 +10426,7 @@
         }
         closeEditor();
         updateView();
-        openDetail(sanitized.id);
+        openDetail(savedContact.id);
       });
 
       document.addEventListener("keydown", (event) => {
@@ -10353,8 +10462,24 @@
         updateView();
       });
 
-      setActiveView(activeView);
-      updateView();
+      async function initializeData() {
+        try {
+          contacts = (await window.dataService.loadContacts()).map((contact, index) => sanitizeContact(contact, index));
+          const profiles = await window.dataService.getProfiles();
+          applyProfiles(profiles);
+          renderAccountProfile(await window.dataService.getCurrentProfile());
+          loadedContactsFromStorage = false;
+          setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
+        } catch (error) {
+          console.error("Supabase-Daten konnten nicht geladen werden.", error);
+          contacts = [];
+          window.alert("Kontakte konnten nicht aus Supabase geladen werden. Bitte prüfe Konfiguration, Anmeldung und RLS-Rollen.");
+        }
+        setActiveView(activeView);
+        updateView();
+      }
+
+      initializeData();
     </script>
   </body>
 </html>

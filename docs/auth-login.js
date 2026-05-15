@@ -25,28 +25,66 @@
   }
 
   if (auth.isAuthenticated()) {
-    window.location.replace(getReturnUrl());
+    if (!window.dataService?.isConfigured?.()) window.location.replace(getReturnUrl());
   }
 
   window.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("login-form");
+    const emailField = document.getElementById("email-field");
+    const emailInput = document.getElementById("email");
     const input = document.getElementById("password");
+    const passwordLabel = document.getElementById("password-label");
     const error = document.getElementById("login-error");
     const button = document.getElementById("login-submit");
     const title = document.getElementById("login-app-name");
     const subtitle = document.getElementById("login-subtitle");
+    const copy = document.getElementById("login-copy");
+    const useSupabase = Boolean(window.dataService?.isConfigured?.());
 
     if (title) title.textContent = config.appName || "Versorgungs-Kompass";
     if (subtitle) subtitle.textContent = "Das gematik-Hospitationsnetzwerk";
     if (!form || !input || !error || !button) return;
 
+    if (useSupabase) {
+      emailField.hidden = false;
+      emailInput.required = true;
+      if (copy) copy.textContent = "Melde dich mit deinem Supabase-Konto an, um den gemeinsamen Datenstand zu öffnen.";
+      if (passwordLabel) passwordLabel.textContent = "Supabase-Passwort";
+      button.textContent = "Anmelden";
+      window.dataService
+        .getClient()
+        .auth.getSession()
+        .then(({ data }) => {
+          if (data.session) {
+            auth.setAuthenticated();
+            window.location.replace(getReturnUrl());
+          }
+        });
+    }
+
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
       error.hidden = true;
       button.disabled = true;
-      button.textContent = "Prüfe Passwort …";
+      button.textContent = useSupabase ? "Melde an …" : "Prüfe Passwort …";
 
       try {
+        if (useSupabase) {
+          const { error: loginError } = await window.dataService.getClient().auth.signInWithPassword({
+            email: emailInput.value.trim(),
+            password: input.value
+          });
+          if (loginError) {
+            error.textContent = "Die Anmeldung war nicht erfolgreich. Bitte prüfe E-Mail und Passwort.";
+            error.hidden = false;
+            input.focus();
+            return;
+          }
+          auth.setAuthenticated();
+          window.location.replace(getReturnUrl());
+          return;
+        }
+
         const hash = await sha256(input.value);
         if (hash !== config.passwordHash) {
           error.hidden = false;
@@ -63,7 +101,7 @@
         error.hidden = false;
       } finally {
         button.disabled = false;
-        button.textContent = "Öffnen";
+        button.textContent = useSupabase ? "Anmelden" : "Öffnen";
       }
     });
   });
