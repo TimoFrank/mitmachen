@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Versorgungs-Kompass</title>
-    <script src="../login/auth-config.js"></script>
-    <script src="../login/auth-guard.js"></script>
+    <script src="./auth-config.js"></script>
+    <script src="./auth-guard.js"></script>
     <link
       rel="icon"
       type="image/svg+xml"
@@ -6283,7 +6283,7 @@
                 class="map-embed-frame"
                 id="map-view-frame"
                 title="Karte des Versorgungs-Kompass"
-                src="../map/versorgungs-kompass-map.html?embed=1"
+                src="./versorgungs-kompass-map.html?embed=1"
                 loading="lazy"
               ></iframe>
             </div>
@@ -6564,9 +6564,9 @@
       </section>
     </aside>
 
-    <script src="../map/data/state-polygons.js"></script>
+    <script src="./data/state-polygons.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="../data/versorgungs-kompass-data.js"></script>
+    <script src="./data/versorgungs-kompass-data.js"></script>
     <script>
       const avatarPalette = [
         "avatar--faculty",
@@ -6954,7 +6954,7 @@
           window.location.href = window.VKAuth.buildLoginUrl();
           return;
         }
-        window.location.href = "../login/login.html";
+        window.location.href = "./login.html";
       }
 
       function buildDisplayName(name, title) {
@@ -8948,7 +8948,7 @@
           `;
         }
 
-        const src = `../map/versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
+        const src = `./versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
 
         return `
           <div class="detail-mini-map">
