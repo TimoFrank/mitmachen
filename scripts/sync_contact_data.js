@@ -175,6 +175,12 @@ function writeOutputs(contacts) {
 
 function main() {
   const contacts = readContacts();
+  if (contacts.length > 0 && process.env.ALLOW_PUBLIC_CONTACT_SEED !== "1") {
+    console.error("Abbruch: GitHub Pages darf keine echten Kontaktdaten aus CSV/JS ausliefern.");
+    console.error("Nutze Supabase fuer produktive Daten. Fuer bewusst synthetische Demo-Seeds: ALLOW_PUBLIC_CONTACT_SEED=1 setzen.");
+    process.exit(1);
+  }
+
   const { errors, warnings } = validateContacts(contacts);
 
   if (errors.length) {

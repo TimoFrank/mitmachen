@@ -4,9 +4,9 @@ Stand: 2026-05-14
 
 ## Befund
 
-Die aktuelle Datenbasis `data/versorgungs-kompass-data.csv` enthält 113 Kontakte. Das bisherige Feld `title` wurde in `specialty` umbenannt und fachlich bereinigt.
+Der produktive Versorgungs-Kompass lädt Kontaktdaten inzwischen aus Supabase. Die früheren öffentlichen CSV/JS-Seeds wurden geleert, damit GitHub Pages keine echten Kontakt- oder Personendaten mehr ausliefert.
 
-Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fachrichtungen, Berufsbezeichnungen, Tippfehler, Rollen, ein Personenname, leere Platzhalter und Mehrfachwerte. Der Zielkatalog enthält jetzt ausschließlich medizinische Fachrichtungen. `Pflege`, `Geschäftsführung` und `Nicht dokumentiert` sind entfernt. Nach der zweiten Prüfung wurden `Anästhesiologie` und `Kinderchirurgie` als eigene Fachrichtungen ergänzt.
+Dieses Dokument enthält nur noch den allgemeinen, nicht personenbezogenen Zielkatalog für das Feld `specialty`. Alte Audit-Details mit konkreten Kontaktbeispielen wurden aus dem öffentlichen Repository entfernt.
 
 ## Zielkatalog
 
@@ -37,7 +37,7 @@ Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fa
 - Leere Felder und `-` bleiben leer.
 - Rollenwerte wie `GF` bleiben leer.
 - Fachfremde Werte wie `Pflege` bleiben leer.
-- Personenwerte wie `Dr. Michael Bayeff-Filoff` bleiben leer.
+- Personenwerte bleiben leer.
 - Mehrfachwerte mit `|` oder Komma bleiben leer.
 - `Kinderchirurgin` und `Kinderchirurgie` werden künftig als `Kinderchirurgie` geführt.
 - `Kinderarzt` und `Kinder- und Jugendmedizin` werden zu `Kinder- und Jugendmedizin` zusammengeführt.
@@ -70,7 +70,7 @@ Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fa
 | Allgemeinmedizin \| Psychotherapie \| Psychiatrie \| Labor | Mehrfachwert mit fachfremdem Anteil |
 | Allgemeinmedizin, HIV-Schwerpunkt | Mehrfach-/Schwerpunktwert |
 | Allgemeinmedizin, Urologie | Mehrfachwert |
-| Dr. Michael Bayeff-Filoff | Personenname |
+| Personenname | Personenwerte gehoeren nicht in das Fachrichtungsfeld |
 | GF | Rollenwert |
 | HIV \| Unfallchirurgie | Mehrfachwert |
 | Onkologie, Gastroenterologie | Mehrfachwert |
@@ -79,32 +79,6 @@ Der frühere Bestand enthielt 35 unterschiedliche Werte. Darunter waren echte Fa
 | Pflege \| Orthopädie | Mehrfach-/Versorgungsbereichswert |
 | Psychologische Psychotherapeutin \| Unfallchirurgie | Mehrfachwert |
 
-## Zielverteilung nach Umsetzung
-
-| Specialty | Kontakte |
-| --- | ---: |
-| (leer) | 45 |
-| Allgemeinmedizin | 32 |
-| Hals-Nasen-Ohrenheilkunde (HNO) | 4 |
-| Kinder- und Jugendmedizin | 4 |
-| Gastroenterologie | 3 |
-| Gynäkologie | 3 |
-| Radiologie | 3 |
-| Dermatologie | 2 |
-| Diabetologie | 2 |
-| Neurologie | 2 |
-| Orthopädie und Unfallchirurgie | 2 |
-| Psychologische Psychotherapie | 2 |
-| Anästhesiologie | 1 |
-| Augenheilkunde | 1 |
-| HIV/Infektiologie | 1 |
-| Innere Medizin | 1 |
-| Kinderchirurgie | 1 |
-| Onkologie | 1 |
-| Pneumologie | 1 |
-| Psychiatrie und Psychotherapie | 1 |
-| Urologie | 1 |
-
 ## Umsetzungshinweis
 
-Das maschinenlesbare Mapping liegt in `data/fachrichtungen-zielkatalog.json`. Die produktiven Kompass-Daten in `data/versorgungs-kompass-data.csv` und `data/versorgungs-kompass-data.js` sowie die Kopien unter `docs/data/` sind bereits auf `specialty` migriert.
+Das maschinenlesbare Mapping liegt in `data/fachrichtungen-zielkatalog.json`. Produktive Kontaktdaten werden nicht mehr in GitHub gespeichert, sondern in Supabase gepflegt.

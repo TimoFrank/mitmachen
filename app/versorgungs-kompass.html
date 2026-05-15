@@ -297,7 +297,7 @@
         position: absolute;
         top: calc(100% + 10px);
         right: 0;
-        min-width: 210px;
+        width: min(360px, calc(100vw - 32px));
         padding: 8px;
         border: 1px solid var(--line);
         border-radius: 16px;
@@ -322,6 +322,114 @@
         font-size: 0.9rem;
         font-weight: 800;
         background: #f4f7ff;
+      }
+
+      .account-popover__meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 8px 0;
+        padding: 0 4px;
+      }
+
+      .account-popover__email {
+        min-width: 0;
+        color: #6a76a3;
+        font-size: 0.78rem;
+        font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .account-role-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #2f55ad;
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .account-permission-note {
+        margin: 8px 0;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #f7f9ff;
+        color: #526395;
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .account-settings-preview {
+        display: grid;
+        gap: 7px;
+        margin: 8px 0;
+        padding: 10px 12px;
+        border: 1px solid #e1e7fb;
+        border-radius: 12px;
+        background: #ffffff;
+      }
+
+      .account-settings-preview strong {
+        color: #243271;
+        font-size: 0.8rem;
+      }
+
+      .account-settings-preview span {
+        color: #6f7ca8;
+        font-size: 0.76rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .permission-banner {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid #dbe4fb;
+        border-radius: 14px;
+        background: #f7f9ff;
+        color: #4f6094;
+        font-size: 0.84rem;
+        font-weight: 750;
+        line-height: 1.35;
+      }
+
+      .permission-banner.is-visible {
+        display: flex;
+      }
+
+      .permission-banner strong {
+        color: #263a7a;
+      }
+
+      .permission-banner__icon {
+        display: inline-grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        background: #e8efff;
+        color: #3155ad;
+        flex: 0 0 auto;
+      }
+
+      .is-role-hidden {
+        display: none !important;
+      }
+
+      .readonly-control {
+        opacity: 0.72;
       }
 
       .wrap {
@@ -6133,6 +6241,15 @@
         </button>
         <div class="account-popover" id="account-menu" hidden>
           <div class="account-popover__name">Timo Frank</div>
+          <div class="account-popover__meta">
+            <span class="account-popover__email" id="account-email">Angemeldet</span>
+            <span class="account-role-pill" id="account-role">Nutzer</span>
+          </div>
+          <div class="account-permission-note" id="account-permission-note">Rollenrechte werden geladen.</div>
+          <div class="account-settings-preview">
+            <strong>Profil &amp; Einstellungen</strong>
+            <span>Vorgesehen: gespeicherte Suchen, Standardansicht, Tabellendichte, Farben, Schriftgröße und persönliche CRM-Präferenzen.</span>
+          </div>
           <button class="menu-option" type="button" id="account-logout-button">Abmelden</button>
         </div>
       </div>
@@ -6156,6 +6273,10 @@
           </div>
           <div class="summary summary--compact" id="summary-grid"></div>
           <div class="workspace-actions">
+            <div class="permission-banner" id="permission-banner" aria-live="polite">
+              <span class="permission-banner__icon" aria-hidden="true">i</span>
+              <span id="permission-banner-text">Rollenrechte werden geladen.</span>
+            </div>
             <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
             <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
             <button class="action-button" type="button" id="open-import-button"><span class="action-button__icon">↥</span>Kontakte importieren</button>
@@ -6930,6 +7051,11 @@
       const qualityChart = document.getElementById("quality-chart");
       const accountButton = document.getElementById("account-button");
       const accountMenu = document.getElementById("account-menu");
+      const accountEmail = document.getElementById("account-email");
+      const accountRole = document.getElementById("account-role");
+      const accountPermissionNote = document.getElementById("account-permission-note");
+      const permissionBanner = document.getElementById("permission-banner");
+      const permissionBannerText = document.getElementById("permission-banner-text");
       const brandHomeLink = document.getElementById("brand-home-link");
       const accountLogoutButton = document.getElementById("account-logout-button");
       const moreActionsButton = document.getElementById("more-actions-button");
@@ -6965,6 +7091,7 @@
       let editingId = null;
       let editorThemes = [];
       let importState = createImportState();
+      let currentProfile = null;
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
       const customSelectInstances = new WeakMap();
       let loadedContactsFromStorage = false;
@@ -6998,6 +7125,47 @@
             "Der Export bleibt als Sicherung und Migrationshilfe verfügbar."
           ].join("\n")
         );
+      }
+
+      function currentRole() {
+        return String(currentProfile?.role || "viewer").toLowerCase();
+      }
+
+      function canEditContacts() {
+        return currentRole() === "admin" || currentRole() === "editor";
+      }
+
+      function canAdministerData() {
+        return currentRole() === "admin";
+      }
+
+      function permissionText(role = currentRole()) {
+        if (role === "admin") return "Admin: Kontakte anlegen und bearbeiten, Archiv und Import nutzen, Datenqualität prüfen.";
+        if (role === "editor") return "Editor: Kontakte anlegen und bearbeiten. Archiv, Import und Rollenverwaltung bleiben Admins vorbehalten.";
+        return "Viewer: Lesen, Suchen, Filtern, Karte und Auswertung nutzen. Änderungen sind deaktiviert.";
+      }
+
+      function showPermissionDenied(message) {
+        window.alert(message || "Für diese Aktion fehlen dir die nötigen Rechte.");
+      }
+
+      function setRoleElementVisible(element, visible) {
+        if (!element) return;
+        element.classList.toggle("is-role-hidden", !visible);
+        element.setAttribute("aria-hidden", visible ? "false" : "true");
+      }
+
+      function applyRoleUi() {
+        const role = currentRole();
+        document.body.dataset.userRole = role;
+        setRoleElementVisible(newContactButton, canEditContacts());
+        setRoleElementVisible(mobileNewContactButton, canEditContacts());
+        setRoleElementVisible(openImportButton, canAdministerData());
+        setRoleElementVisible(importCsvButton, canAdministerData());
+        setRoleElementVisible(exportCsvButton, canAdministerData());
+        setRoleElementVisible(archiveViewButton, canAdministerData());
+        permissionBanner?.classList.toggle("is-visible", role !== "admin");
+        if (permissionBannerText) permissionBannerText.textContent = permissionText(role);
       }
 
       async function logout() {
@@ -7244,6 +7412,10 @@
       }
 
       function openImportWizard() {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Kontakte importieren.");
+          return;
+        }
         importState = createImportState();
         closeMenus();
         importDrawer.classList.add("is-open");
@@ -7260,6 +7432,10 @@
       }
 
       function selectImportFile() {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Kontakte importieren.");
+          return;
+        }
         csvFileInput.click();
       }
 
@@ -7867,7 +8043,7 @@
 
       function downloadImportTemplate() {
         const header = importTargetFields.filter((field) => field.value !== "ignore").map((field) => field.label).join(";");
-        const example = "Johanna Dorn;MVZ Universitätsklinikum Süd;Krankenhaus;Kinder- und Jugendmedizin;Hamburg;20095;Hamburg;Hamburg;johanna.dorn@example.de;040 5552101;https://linkedin.com/in/jd;Mittel;Timo Frank;Pilot;Erstkontakt aus Netzwerk;Import-Vorlage";
+        const example = "Demo Kontakt;Demo Organisation;Krankenhaus;Kinder- und Jugendmedizin;Hamburg;20095;Hamburg;Hamburg;;;;Mittel;;Pilot;;Import-Vorlage";
         const blob = new Blob([`${header}\n${example}\n`], { type: "text/csv;charset=utf-8" });
         downloadBlob(blob, "versorgungs-kompass-import-vorlage.csv");
       }
@@ -7968,6 +8144,7 @@
           sources: normalizeSources(entry.sources || entry.sourcesText || ""),
           lastExchange: entry.lastExchange || "",
           owner: entry.owner || "",
+          ownerId: entry.ownerId || "",
           status: entry.status || "active",
           createdAt: entry.createdAt || "",
           updatedAt: entry.updatedAt || ""
@@ -8103,13 +8280,19 @@
       }
 
       function renderAccountProfile(profile) {
-        if (!profile) return;
+        currentProfile = profile || null;
         const badge = accountButton?.querySelector(".topbar-account__badge");
         const name = accountMenu?.querySelector(".account-popover__name");
-        if (badge) badge.textContent = profile.initials || String(profile.display_name || profile.email || "VK").slice(0, 2).toUpperCase();
-        if (name) name.textContent = profile.display_name || profile.email || "Angemeldet";
+        const displayName = profile?.display_name || profile?.email || "Angemeldet";
+        const role = currentRole();
+        if (badge) badge.textContent = profile?.initials || String(displayName || "VK").slice(0, 2).toUpperCase();
+        if (name) name.textContent = displayName;
+        if (accountEmail) accountEmail.textContent = profile?.email || "Supabase-Profil";
+        if (accountRole) accountRole.textContent = roleLabel(role);
+        if (accountPermissionNote) accountPermissionNote.textContent = permissionText(role);
         const welcome = document.querySelector(".workspace-copy h2");
-        if (welcome) welcome.textContent = `Willkommen, ${(profile.display_name || profile.email || "Team").split(" ")[0]}`;
+        if (welcome) welcome.textContent = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
+        applyRoleUi();
       }
 
       function saveFavorites() {
@@ -8161,6 +8344,10 @@
       if (loadedContactsFromStorage) persistContacts(`${contacts.length} lokale Kontakte bereinigt`, { silent: true });
 
       async function updateContactField(id, field, value) {
+        if (!canEditContacts()) {
+          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts geändert werden.");
+          return;
+        }
         const currentContact = contacts.find((contact) => contact.id === id);
         if (!currentContact) return;
 
@@ -8797,6 +8984,9 @@
 
         instance.label.textContent = (selectedOption?.textContent || "Bitte wählen...").trim();
         instance.trigger.classList.toggle("is-placeholder", !String(select.value || "").trim());
+        instance.trigger.disabled = Boolean(select.disabled);
+        instance.trigger.classList.toggle("readonly-control", Boolean(select.disabled));
+        instance.trigger.setAttribute("aria-disabled", String(Boolean(select.disabled)));
         instance.panel.replaceChildren(
           ...options.map((option) => createCustomSelectOption(option, option.value === select.value))
         );
@@ -8841,6 +9031,7 @@
         trigger.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
+          if (select.disabled) return;
           const shouldOpen = !shell.classList.contains("is-open");
           closeAllCustomSelects(select);
           if (!shouldOpen) {
@@ -9060,6 +9251,10 @@
       }
 
       async function updateContactThemes(id, themes) {
+        if (!canEditContacts()) {
+          showPermissionDenied("Du hast Leserechte. Themen können nur von Editor- oder Admin-Accounts geändert werden.");
+          return;
+        }
         const normalizedThemes = normalizeThemes(themes);
         try {
           const updated = await window.dataService.updateContact(id, { themes: normalizedThemes });
@@ -9696,6 +9891,13 @@
         const themeTags = normalizeThemes(contact.themes);
         const suggestedThemes = themeSuggestions();
         const missingFields = detailMissingFields(contact);
+        const editable = canEditContacts();
+        const admin = canAdministerData();
+        const disabledAttr = editable ? "" : " disabled";
+        const readonlyClass = editable ? "" : " readonly-control";
+        const readonlyNotice = editable
+          ? ""
+          : `<div class="detail-info-card detail-info-card--missing-summary">Lesemodus: Deine Rolle erlaubt Suchen, Filtern und Auswerten. Änderungen sind deaktiviert.</div>`;
         const portraitMarkup = contact.image
           ? `<img class="avatar ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
           : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`;
@@ -9709,7 +9911,7 @@
           <div class="detail-toolbar">
             <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Eintr&auml;gen</div>
             <div class="detail-toolbar-actions">
-              <button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>
+              ${editable ? `<button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>` : ""}
               <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
             </div>
           </div>
@@ -9731,8 +9933,8 @@
                       <span class="field-icon">👤</span>
                       <span>Owner</span>
                     </div>
-                    <div class="detail-select-shell" data-custom-select data-select-type="owner" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Owner zuordnen">
+                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="owner" data-select-variant="detail">
+                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Owner zuordnen"${disabledAttr}>
                         ${buildOwnerSelectOptions(ownerLabel)}
                       </select>
                     </div>
@@ -9748,22 +9950,22 @@
                       <span class="field-icon">🏢</span>
                       <span>Organisation</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-organization-input" type="text" value="${String(contact.organization || "").replace(/"/g, "&quot;")}" placeholder="Organisation eintragen" />
+                    <input class="detail-inline-input" id="detail-organization-input" type="text" value="${String(contact.organization || "").replace(/"/g, "&quot;")}" placeholder="Organisation eintragen"${disabledAttr} />
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
                       <span class="field-icon">📍</span>
                       <span>Ort</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-location-input" type="text" value="${String(contact.location || "").replace(/"/g, "&quot;")}" placeholder="Ort eintragen" />
+                    <input class="detail-inline-input" id="detail-location-input" type="text" value="${String(contact.location || "").replace(/"/g, "&quot;")}" placeholder="Ort eintragen"${disabledAttr} />
                   </article>
                   <article class="detail-info-card">
                     <div class="detail-info-head">
                       <span class="field-icon">🩺</span>
                       <span>Fachrichtung</span>
                     </div>
-                    <div class="detail-select-shell" data-custom-select data-select-type="specialty" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-specialty-select" aria-label="Fachrichtung zuordnen">
+                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="specialty" data-select-variant="detail">
+                      <select class="detail-inline-select" id="detail-specialty-select" aria-label="Fachrichtung zuordnen"${disabledAttr}>
                         ${buildSpecialtySelectOptions(specialtyText)}
                       </select>
                     </div>
@@ -9784,8 +9986,8 @@
                       <span class="field-icon">${categoryEmoji[contact.category] || "•"}</span>
                       <span>Sektor</span>
                     </div>
-                    <div class="detail-select-shell" data-custom-select data-select-type="category" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-category-select" aria-label="Sektor zuordnen">
+                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="category" data-select-variant="detail">
+                      <select class="detail-inline-select" id="detail-category-select" aria-label="Sektor zuordnen"${disabledAttr}>
                         ${buildCategorySelectOptions(contact.category)}
                       </select>
                     </div>
@@ -9805,7 +10007,7 @@
                                 (tag) => `
                                   <div class="theme-tag">
                                     <span>${tag}</span>
-                                    <button type="button" data-remove-theme="${tag}" aria-label="${tag} entfernen">&times;</button>
+                                    ${editable ? `<button type="button" data-remove-theme="${tag}" aria-label="${tag} entfernen">&times;</button>` : ""}
                                   </div>
                                 `
                               )
@@ -9817,7 +10019,7 @@
                       ${suggestedThemes
                         .map(
                           (tag) => `
-                            <button class="theme-tag theme-tag--preset ${themeTags.includes(tag) ? "is-active" : ""}" type="button" data-theme-option="${tag}" aria-pressed="${themeTags.includes(tag) ? "true" : "false"}">
+                            <button class="theme-tag theme-tag--preset ${themeTags.includes(tag) ? "is-active" : ""}" type="button" data-theme-option="${tag}" aria-pressed="${themeTags.includes(tag) ? "true" : "false"}"${disabledAttr}>
                               ${tag}
                             </button>
                           `
@@ -9825,8 +10027,8 @@
                         .join("")}
                     </div>
                     <div class="tag-input-row">
-                      <input class="detail-inline-input" id="detail-theme-input" type="text" value="" placeholder="Weiteres Thema ergänzen" />
-                      <button class="action-button action-button--ghost" type="button" id="detail-theme-add">Tag hinzufügen</button>
+                      <input class="detail-inline-input" id="detail-theme-input" type="text" value="" placeholder="Weiteres Thema ergänzen"${disabledAttr} />
+                      ${editable ? `<button class="action-button action-button--ghost" type="button" id="detail-theme-add">Tag hinzufügen</button>` : ""}
                     </div>
                   </div>
                 </div>
@@ -9840,7 +10042,7 @@
                       <span class="field-icon">&#9993;</span>
                       <span>E-Mail</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-email-input" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen" />
+                    <input class="detail-inline-input" id="detail-email-input" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen"${disabledAttr} />
                     ${
                       hasMeaningfulValue(contact.email)
                         ? `<div class="detail-contact-actions">
@@ -9855,7 +10057,7 @@
                       <span class="field-icon">&#9742;</span>
                       <span>Telefon</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-phone-input" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon eintragen" />
+                    <input class="detail-inline-input" id="detail-phone-input" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon eintragen"${disabledAttr} />
                     ${
                       hasMeaningfulValue(contact.phone)
                         ? `<div class="detail-contact-actions">
@@ -9870,7 +10072,7 @@
                       <span class="linkedin-icon">in</span>
                       <span>LinkedIn</span>
                     </div>
-                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="${escapeHtml(linkedinUrl)}" placeholder="LinkedIn-Profil eintragen" />
+                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="${escapeHtml(linkedinUrl)}" placeholder="LinkedIn-Profil eintragen"${disabledAttr} />
                     ${
                       linkedinUrl
                         ? `<div class="detail-contact-actions">
@@ -9895,6 +10097,7 @@
                   ? `<div class="detail-info-card detail-info-card--missing-summary">Fehlende Angaben: ${missingFields.join(", ")}</div>`
                   : ""
               }
+              ${readonlyNotice}
 
               <section class="section-block">
                 <h4 class="detail-section-title">Status</h4>
@@ -9904,8 +10107,8 @@
                       <span class="field-icon">⚑</span>
                       <span>Priorit&auml;t</span>
                     </div>
-                    <div class="detail-select-shell" data-custom-select data-select-type="priority" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen">
+                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="priority" data-select-variant="detail">
+                      <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen"${disabledAttr}>
                         ${buildPrioritySelectOptions(contact.priority)}
                       </select>
                     </div>
@@ -9915,7 +10118,7 @@
                       <span class="field-icon">🗓</span>
                       <span>Notiz</span>
                     </div>
-                    <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="Notiz eintragen"></textarea>
+                    <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="Notiz eintragen"${disabledAttr}></textarea>
                     ${noteText ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
                   <article class="detail-info-card ${(updatedLabel || createdLabel) ? "" : "detail-info-card--missing"}">
@@ -9936,9 +10139,11 @@
               </div>
               <div class="detail-bottom-actions">
                 ${
-                  contact.status === "archived"
+                  admin && contact.status === "archived"
                     ? `<button class="action-button action-button--primary" type="button" id="detail-restore">Kontakt wiederherstellen</button>`
-                    : `<button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt archivieren</button>`
+                    : admin
+                      ? `<button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt archivieren</button>`
+                      : ""
                 }
               </div>
             </div>
@@ -9951,9 +10156,10 @@
         refreshCustomSelects(detailDrawer);
 
         document.getElementById("detail-close").addEventListener("click", closeDetail);
-        document.getElementById("detail-edit").addEventListener("click", () => openEditor(contact));
+        document.getElementById("detail-edit")?.addEventListener("click", () => openEditor(contact));
         document.getElementById("detail-delete")?.addEventListener("click", () => deleteContact(contact));
         document.getElementById("detail-restore")?.addEventListener("click", () => restoreContact(contact));
+        if (!editable) return;
         const detailSpecialtySelect = document.getElementById("detail-specialty-select");
         if (detailSpecialtySelect) {
           detailSpecialtySelect.addEventListener("change", () => {
@@ -10072,6 +10278,10 @@
       }
 
       function openEditor(contact = null) {
+        if (!canEditContacts()) {
+          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts bearbeitet werden.");
+          return;
+        }
         editorMode = contact ? "edit" : "create";
         editingId = contact?.id || null;
         const splitLocation = splitLocationLabel(contact?.location || "");
@@ -10137,6 +10347,10 @@
       }
 
       async function deleteContact(contact) {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Kontakte archivieren.");
+          return;
+        }
         const confirmed = window.confirm(`Soll "${contact.displayName}" archiviert werden? Der Kontakt wird nicht physisch gelöscht.`);
         if (!confirmed) return;
         try {
@@ -10156,6 +10370,10 @@
       }
 
       async function restoreContact(contact) {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen archivierte Kontakte wiederherstellen.");
+          return;
+        }
         const confirmed = window.confirm(`Soll "${contact.displayName}" wieder in den aktiven Datenbestand aufgenommen werden?`);
         if (!confirmed) return;
         try {
@@ -10391,6 +10609,10 @@
       newContactButton.addEventListener("click", () => openEditor());
       mobileNewContactButton?.addEventListener("click", () => openEditor());
       archiveViewButton.addEventListener("click", async () => {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen das Archiv öffnen.");
+          return;
+        }
         showingArchive = !showingArchive;
         activeId = null;
         closeDetail();
@@ -10406,6 +10628,10 @@
       });
       openImportButton.addEventListener("click", openImportWizard);
       exportCsvButton.addEventListener("click", () => {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Kontaktdaten exportieren.");
+          return;
+        }
         closeMenus();
         downloadCsv();
       });
@@ -10438,6 +10664,11 @@
       csvFileInput.addEventListener("change", async (event) => {
         const [file] = event.target.files || [];
         if (!file) return;
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Kontakte importieren.");
+          event.target.value = "";
+          return;
+        }
         if (!importDrawer.classList.contains("is-open")) openImportWizard();
         await handleImportFile(file);
         event.target.value = "";
@@ -10489,6 +10720,10 @@
 
       editorForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!canEditContacts()) {
+          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts gespeichert werden.");
+          return;
+        }
         const formData = new FormData(editorForm);
         const timestamp = new Date().toISOString();
         const submitAction = editorForm.dataset.submitAction || "save";
@@ -10620,6 +10855,7 @@
         updateView();
       }
 
+      renderAccountProfile(null);
       initializeData();
     </script>
   </body>

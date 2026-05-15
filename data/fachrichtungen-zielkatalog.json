@@ -1,9 +1,9 @@
 {
-  "source": "data/versorgungs-kompass-data.csv",
+  "source": "Supabase/private migration source",
   "field": "specialty",
   "previousField": "title",
-  "recordCount": 113,
-  "currentDistinctValues": 35,
+  "recordCount": null,
+  "currentDistinctValues": null,
   "targetDistinctValues": 18,
   "targetCatalog": {
     "medicalSpecialties": [
@@ -93,7 +93,7 @@
       "action": "keep"
     },
     {
-      "source": "Dr. Michael Bayeff-Filoff",
+      "source": "Personenname",
       "target": "",
       "action": "clear",
       "note": "Personenname im Fachrichtungsfeld."

@@ -4,7 +4,7 @@ Das gematik-Hospitationsnetzwerk
 
 Privates Arbeits-Repository fuer den `Versorgungs-Kompass`, den Karten-Modus und die zugehoerige Datenbasis des `gematik-Hospitationsnetzwerks`.
 
-Der aktive Projektstand ist der statische `Versorgungs-Kompass` auf HTML-/JS-Basis. Aeltere CRM-, Mitmachen- und Karten-Prototypen wurden unter `archive/` abgelegt.
+Der aktive Projektstand ist der statische `Versorgungs-Kompass` auf HTML-/JS-Basis mit Supabase als Backend.
 
 ## Einstieg
 
@@ -20,18 +20,22 @@ Fuer den aktuellen nutzbaren Stand sind diese Dateien relevant:
 
 ## Daten
 
-Die produktiven Kompass-Daten liegen hier:
+Die produktiven Kompass-Daten liegen nicht mehr im GitHub-Repository, sondern in Supabase.
+
+Die frueheren statischen Seed-Dateien bleiben nur als leere Fallback-Schnittstelle erhalten, damit lokale Entwicklungs- und Kartenpfade nicht brechen:
 
 - `data/versorgungs-kompass-data.js`
 - `data/versorgungs-kompass-data.csv`
 - `data/fachrichtungen-bereinigung.md`
 - `data/fachrichtungen-zielkatalog.json`
 
+Wichtig: In diese Dateien duerfen keine echten Personen-, Kontakt-, E-Mail-, Telefon-, LinkedIn- oder CRM-Daten mehr committed werden. GitHub Pages ist oeffentliches statisches Hosting und kein sicherer Backend-Speicher.
+
 ### Prioritaet und Owner dauerhaft pflegen
 
-Prioritaet und Owner gehoeren in den Datensatz, wenn sie dauerhaft Teil der Demo-Daten sein sollen.
+Prioritaet und Owner werden im Supabase-Datenbestand gepflegt. Der alte CSV-Pflegeweg ist nicht mehr produktiv.
 
-Der kanonische Pflegeweg ist:
+Der fruehere CSV-Sync-Pfad ist nur noch fuer lokale Migrations- oder Demo-Experimente gedacht:
 
 1. `data/versorgungs-kompass-data.csv` bearbeiten.
 2. Die Spalten `priority` und `owner` pflegen.
@@ -40,7 +44,7 @@ Der kanonische Pflegeweg ist:
 3. `node scripts/sync_contact_data.js` ausfuehren.
 4. Die geaenderten Dateien committen und deployen.
 
-Das Sync-Skript validiert die CSV, schreibt `data/versorgungs-kompass-data.js` neu und spiegelt CSV und JS nach `docs/data/`.
+Das Sync-Skript validiert die CSV, schreibt `data/versorgungs-kompass-data.js` neu und spiegelt CSV und JS nach `docs/data/`. Es darf nicht mit echten Kontaktdaten fuer GitHub Pages genutzt werden.
 
 Der Zielbetrieb nutzt Supabase als gemeinsamen Datenstand. Die statische Oberflaeche bleibt erhalten und greift ueber `window.dataService` auf Supabase zu. Service-Role-Keys duerfen nie in `data/supabase-config.js` oder andere Frontend-Dateien eingetragen werden.
 
@@ -63,7 +67,6 @@ Fuer den Karten-Modus werden diese Kartendateien benoetigt:
 - `docs/`: GitHub-Pages-Publish-Ordner
 - `public/`: Logos und statische Assets
 - `scripts/`: Hilfsskripte fuer den statischen Kompass
-- `archive/`: archivierte Altstaende und Experimente
 
 ## Lokale Nutzung
 
@@ -98,10 +101,4 @@ Fuer GitHub Pages in GitHub:
 
 ## Archiv
 
-Archivierte Projektteile:
-
-- `archive/next-crm-prototype/`: ehemaliger Next.js-/TypeScript-CRM-Prototyp inklusive Render-Deployment und SQLite-Logik
-- `archive/mitmachen-crm/`: ehemalige Mitmachen-/Versorgungsnetzwerk-Staende, Importskripte und Masterdaten
-- `archive/map-experiments/`: alte Deutschlandkarten-Experimente aus dem Projekt-Root
-
-Diese Archivordner dienen nur als Rueckgriff. Der aktive Kompass sollte nicht von Dateien daraus abhaengen.
+Alte Archivordner wurden aus dem GitHub-Repository entfernt, weil sie fuer den Supabase-Betrieb nicht benoetigt werden und alte Kontakt-, Demo- oder Importdaten enthalten konnten. Lokale Backups liegen ausserhalb des Repositorys.
