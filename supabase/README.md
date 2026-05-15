@@ -19,6 +19,8 @@ Fuer den MVP reicht E-Mail/Passwort oder Magic Link:
 2. Nutzer:innen unter `Authentication > Users` anlegen oder einladen.
 3. Nach dem ersten Login die Rolle in `profiles.role` setzen: `admin`, `editor` oder `viewer`.
 
+Eine kurze Admin-Anleitung fuer neue Kolleg:innen liegt in `supabase/onboarding.md`.
+
 Beispiel:
 
 ```sql

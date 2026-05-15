@@ -297,7 +297,7 @@
         position: absolute;
         top: calc(100% + 10px);
         right: 0;
-        width: min(360px, calc(100vw - 32px));
+        width: min(430px, calc(100vw - 32px));
         padding: 8px;
         border: 1px solid var(--line);
         border-radius: 16px;
@@ -389,6 +389,42 @@
         font-size: 0.76rem;
         font-weight: 700;
         line-height: 1.35;
+      }
+
+      .account-onboarding-list {
+        display: grid;
+        gap: 7px;
+        margin: 2px 0 0;
+      }
+
+      .account-onboarding-item {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        color: #526395;
+        font-size: 0.76rem;
+        font-weight: 750;
+        line-height: 1.35;
+      }
+
+      .account-onboarding-dot {
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #3155ad;
+        font-size: 0.7rem;
+        font-weight: 950;
+      }
+
+      .account-onboarding-item strong {
+        display: block;
+        margin-bottom: 1px;
+        color: #243271;
+        font-size: 0.76rem;
       }
 
       .saved-view-list {
@@ -6796,6 +6832,15 @@
             <span>Vorgesehen: gespeicherte Suchen, Standardansicht, Tabellendichte, Farben, Schriftgröße und persönliche CRM-Präferenzen.</span>
           </div>
           <div class="account-settings-preview">
+            <strong>Erste Schritte</strong>
+            <div class="account-onboarding-list" id="account-onboarding-list">
+              <div class="account-onboarding-item">
+                <span class="account-onboarding-dot">1</span>
+                <span><strong>Rolle prüfen</strong>Deine Möglichkeiten werden geladen.</span>
+              </div>
+            </div>
+          </div>
+          <div class="account-settings-preview">
             <strong>Gespeicherte Suchen</strong>
             <div class="saved-view-list" id="account-saved-views">
               <div class="saved-view-empty">Noch keine gespeicherten Suchen geladen.</div>
@@ -7633,6 +7678,7 @@
       const accountRole = document.getElementById("account-role");
       const accountPermissionNote = document.getElementById("account-permission-note");
       const accountSavedViews = document.getElementById("account-saved-views");
+      const accountOnboardingList = document.getElementById("account-onboarding-list");
       const permissionBanner = document.getElementById("permission-banner");
       const permissionBannerText = document.getElementById("permission-banner-text");
       const brandHomeLink = document.getElementById("brand-home-link");
@@ -7726,6 +7772,52 @@
         if (role === "admin") return "Admin: Kontakte anlegen und bearbeiten, Archiv und Import nutzen, Datenqualität prüfen.";
         if (role === "editor") return "Editor: Kontakte anlegen und bearbeiten. Archiv, Import und Rollenverwaltung bleiben Admins vorbehalten.";
         return "Viewer: Lesen, Suchen, Filtern, Karte und Auswertung nutzen. Änderungen sind deaktiviert.";
+      }
+
+      function onboardingSteps(role = currentRole()) {
+        const common = [
+          {
+            title: "Profil als Owner nutzen",
+            copy: "Dein Supabase-Profil erscheint in Owner-Auswahlen. Kontakte ohne echten Account bleiben markiert."
+          },
+          {
+            title: "Suchen speichern",
+            copy: "Filter, Suchbegriffe und Seitenlänge können als private Suche gespeichert werden."
+          }
+        ];
+        if (role === "admin") {
+          return [
+            { title: "Teamzugang verwalten", copy: "Neue Accounts in Supabase anlegen, Profil prüfen und Rolle setzen." },
+            { title: "Datenpflege steuern", copy: "Import, Archiv, Rollback und Pflege-Queue sind für Admins sichtbar." },
+            ...common
+          ];
+        }
+        if (role === "editor") {
+          return [
+            { title: "Kontakte pflegen", copy: "Kontakte anlegen, bearbeiten und Owner/Fachrichtung/Standort nachziehen." },
+            { title: "Pflege-Queue nutzen", copy: "Hinweise zu fehlenden Feldern und Dubletten direkt abarbeiten." },
+            ...common
+          ];
+        }
+        return [
+          { title: "Lesemodus nutzen", copy: "Kontakte, Karte und Auswertung lesen; Bearbeitung ist bewusst deaktiviert." },
+          { title: "Filter anwenden", copy: "Eigene Suchen speichern und relevante Kontaktgruppen schneller wiederfinden." },
+          ...common.slice(0, 1)
+        ];
+      }
+
+      function renderAccountOnboarding(role = currentRole()) {
+        if (!accountOnboardingList) return;
+        accountOnboardingList.innerHTML = onboardingSteps(role)
+          .map(
+            (step, index) => `
+              <div class="account-onboarding-item">
+                <span class="account-onboarding-dot">${index + 1}</span>
+                <span><strong>${escapeHtml(step.title)}</strong>${escapeHtml(step.copy)}</span>
+              </div>
+            `
+          )
+          .join("");
       }
 
       function showPermissionDenied(message) {
@@ -9122,6 +9214,7 @@
         if (accountEmail) accountEmail.textContent = profile?.email || "Supabase-Profil";
         if (accountRole) accountRole.textContent = roleLabel(role);
         if (accountPermissionNote) accountPermissionNote.textContent = permissionText(role);
+        renderAccountOnboarding(role);
         const welcome = document.querySelector(".workspace-copy h2");
         if (welcome) welcome.textContent = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
         applyRoleUi();
