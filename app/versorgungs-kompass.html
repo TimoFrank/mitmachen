@@ -7945,6 +7945,135 @@
         background: var(--surface);
       }
 
+      .table-command-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0 12px;
+      }
+
+      .table-command-spacer {
+        flex: 1 1 auto;
+      }
+
+      .bulk-toolbar {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px;
+        border: 1px solid #bfd3ff;
+        border-radius: var(--radius-md);
+        background: var(--info-soft);
+        color: var(--text-primary);
+      }
+
+      .bulk-toolbar[hidden] {
+        display: none;
+      }
+
+      .bulk-toolbar__count {
+        padding: 0 8px;
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+        color: var(--primary);
+        white-space: nowrap;
+      }
+
+      .bulk-toolbar__link {
+        border: 0;
+        background: transparent;
+        color: var(--primary);
+        font: inherit;
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .bulk-toolbar__link:hover {
+        text-decoration: underline;
+      }
+
+      .bulk-toolbar__divider {
+        width: 1px;
+        height: 22px;
+        background: #bfd3ff;
+      }
+
+      .action-button--compact {
+        min-height: 34px;
+        padding: 0 11px;
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-xs);
+      }
+
+      .action-button--danger-soft {
+        border-color: #fecaca;
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .column-menu-shell {
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      .column-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 25;
+        width: 240px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .column-menu[hidden] {
+        display: none;
+      }
+
+      .column-menu__title {
+        padding: 4px 4px 8px;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .column-menu__options {
+        display: grid;
+        gap: 4px;
+      }
+
+      .column-option {
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 0 8px;
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 750;
+        cursor: pointer;
+      }
+
+      .column-option:hover {
+        background: var(--surface-muted);
+      }
+
+      .column-option input {
+        width: 15px;
+        height: 15px;
+        accent-color: var(--primary);
+      }
+
       .table,
       .import-preview-table,
       .import-review-table,
@@ -7975,16 +8104,61 @@
       }
 
       .row {
-        min-height: var(--row-height);
+        min-height: 52px;
       }
 
       .row:hover {
         background: var(--surface-muted);
       }
 
+      .row.is-bulk-selected {
+        background: #fbfdff;
+        box-shadow: inset 0 0 0 1px #d8e6ff;
+      }
+
       .row.is-active {
         background: var(--info-soft);
         box-shadow: inset 3px 0 0 var(--primary), inset 0 0 0 1px #bfd3ff;
+      }
+
+      .contacts-table .thead,
+      .contacts-table .row {
+        grid-template-columns: var(--contacts-grid-template);
+      }
+
+      .contacts-table .thead > div,
+      .contacts-table .row > div {
+        min-width: 0;
+        padding: 8px 10px;
+      }
+
+      .contacts-table .thead .cell--select,
+      .contacts-table .row .cell--select,
+      .contacts-table .thead .cell--actions,
+      .contacts-table .row .cell--actions {
+        justify-content: center;
+        padding-inline: 8px;
+      }
+
+      .contacts-table .cell--updated {
+        justify-content: flex-end;
+        text-align: right;
+      }
+
+      .table-checkbox {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--primary);
+        cursor: pointer;
+      }
+
+      .table-row-menu {
+        width: 30px;
+        height: 30px;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        letter-spacing: 0.08em;
       }
 
       .avatar,
@@ -8015,7 +8189,8 @@
       .filter-option-chip,
       .theme-tag,
       .contact-sector-pill,
-      .contact-owner-chip,
+      .owner-badge,
+      .quality-badge,
       .badge,
       .account-role-pill,
       .saved-view-pill,
@@ -8080,12 +8255,95 @@
 
       .badge--quiet,
       .badge--status,
-      .contact-sector-pill,
-      .contact-owner-chip,
       .account-role-pill--admin {
         background: var(--info-soft);
         color: var(--primary);
         border-color: #bfd3ff;
+      }
+
+      .contact-sector-pill {
+        background: #eef5ff;
+        color: #155fe4;
+        border-color: #bfd3ff;
+      }
+
+      .contact-sector-pill--praxis {
+        background: var(--success-soft);
+        color: #177245;
+        border-color: #bde8ca;
+      }
+
+      .contact-sector-pill--krankenhaus {
+        background: var(--info-soft);
+        color: var(--primary);
+        border-color: #bfd3ff;
+      }
+
+      .contact-sector-pill--apotheke {
+        background: #f4ecff;
+        color: #6b35b8;
+        border-color: #dbc6ff;
+      }
+
+      .contact-sector-pill--pflege {
+        background: #fff1ed;
+        color: #a34120;
+        border-color: #ffd2c4;
+      }
+
+      .owner-badge {
+        gap: 7px;
+        padding: 2px 8px 2px 3px;
+        background: #ffffff;
+        color: var(--text-secondary);
+        border-color: var(--border);
+      }
+
+      .owner-badge__avatar {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: #dbeafe;
+        color: var(--primary);
+        font-size: 0.68rem;
+        font-weight: 850;
+      }
+
+      .owner-badge--empty {
+        background: #f8fafc;
+        color: #64748b;
+        border-color: #e2e8f0;
+      }
+
+      .owner-badge--empty .owner-badge__avatar {
+        background: #e2e8f0;
+        color: #94a3b8;
+      }
+
+      .quality-badge {
+        background: #f8fafc;
+        color: #64748b;
+        border-color: #e2e8f0;
+      }
+
+      .quality-badge--good {
+        background: var(--success-soft);
+        color: #177245;
+        border-color: #bde8ca;
+      }
+
+      .quality-badge--medium {
+        background: var(--warning-soft);
+        color: #8a5b14;
+        border-color: #f2d7a8;
+      }
+
+      .quality-badge--low {
+        background: var(--danger-soft);
+        color: var(--danger);
+        border-color: #fecaca;
       }
 
       .detail-panel {
@@ -8725,17 +8983,29 @@
         <div class="view-shell">
           <section class="view-panel is-active" id="view-contacts" data-view-panel="contacts">
             <div class="view-card">
+              <div class="table-command-row">
+                <div class="bulk-toolbar" id="bulk-toolbar" hidden>
+                  <span class="bulk-toolbar__count" id="bulk-selection-count">0 Kontakte ausgewählt</span>
+                  <button class="bulk-toolbar__link" type="button" id="bulk-clear-selection">Auswahl aufheben</button>
+                  <span class="bulk-toolbar__divider" aria-hidden="true"></span>
+                  <button class="action-button action-button--compact" type="button" id="bulk-export">Exportieren</button>
+                  <button class="action-button action-button--compact" type="button" id="bulk-assign-owner">Owner zuweisen</button>
+                  <button class="action-button action-button--compact action-button--danger-soft" type="button" id="bulk-archive">Archivieren</button>
+                </div>
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="column-menu-shell" id="column-menu-shell">
+                  <button class="action-button action-button--compact" type="button" id="columns-button" aria-expanded="false" aria-controls="columns-menu">
+                    Spalten anpassen
+                  </button>
+                  <div class="column-menu" id="columns-menu" hidden>
+                    <div class="column-menu__title">Sichtbare Spalten</div>
+                    <div class="column-menu__options" id="column-options"></div>
+                  </div>
+                </div>
+              </div>
               <div class="table-wrap">
                 <section class="table contacts-table" aria-labelledby="kontaktliste-title">
-                  <div class="thead">
-                    <div>Name</div>
-                    <div>Organisation</div>
-                    <div>Sektor</div>
-                    <div>Fachrichtung</div>
-                    <div>Ort</div>
-                    <div>Owner</div>
-                    <div>Aktualisiert</div>
-                  </div>
+                  <div class="thead" id="contacts-table-head"></div>
                   <div id="contact-list"></div>
                 </section>
               </div>
@@ -9319,9 +9589,36 @@
       const storageKey = "versorgungs-kompass-contacts-v9";
       const savedViewsStorageKey = "versorgungs-kompass-saved-views-v1";
       const settingsStorageKey = "versorgungs-kompass-user-settings-v1";
+      const visibleColumnsStorageKey = "versorgungs-kompass-visible-contact-columns-v1";
+      const defaultContactColumnKeys = ["name", "organization", "category", "specialty", "location", "owner", "updated"];
+      const contactTableColumns = [
+        { key: "name", label: "Name", template: "minmax(220px, 1.18fr)", required: true },
+        { key: "organization", label: "Organisation", template: "minmax(200px, 1.02fr)" },
+        { key: "category", label: "Sektor", template: "minmax(118px, 0.62fr)" },
+        { key: "specialty", label: "Fachrichtung", template: "minmax(170px, 0.82fr)" },
+        { key: "location", label: "Ort", template: "minmax(135px, 0.64fr)" },
+        { key: "state", label: "Bundesland", template: "minmax(155px, 0.72fr)" },
+        { key: "owner", label: "Owner", template: "minmax(150px, 0.74fr)" },
+        { key: "priority", label: "Priorität", template: "minmax(108px, 0.52fr)" },
+        { key: "updated", label: "Aktualisiert", template: "minmax(118px, 0.56fr)" },
+        { key: "source", label: "Quelle", template: "minmax(145px, 0.68fr)" },
+        { key: "quality", label: "Datenqualität", template: "minmax(128px, 0.62fr)" }
+      ];
 
       const searchInput = document.getElementById("search");
       const list = document.getElementById("contact-list");
+      const contactsTable = document.querySelector(".contacts-table");
+      const contactsTableHead = document.getElementById("contacts-table-head");
+      const bulkToolbar = document.getElementById("bulk-toolbar");
+      const bulkSelectionCount = document.getElementById("bulk-selection-count");
+      const bulkClearSelection = document.getElementById("bulk-clear-selection");
+      const bulkExportButton = document.getElementById("bulk-export");
+      const bulkAssignOwnerButton = document.getElementById("bulk-assign-owner");
+      const bulkArchiveButton = document.getElementById("bulk-archive");
+      const columnMenuShell = document.getElementById("column-menu-shell");
+      const columnsButton = document.getElementById("columns-button");
+      const columnsMenu = document.getElementById("columns-menu");
+      const columnOptions = document.getElementById("column-options");
       const summaryGrid = document.getElementById("summary-grid");
       const resultsCount = document.getElementById("results-count");
       const paginationMeta = document.getElementById("pagination-meta");
@@ -9447,9 +9744,31 @@
       let userSettings = null;
       let activeCareQueueKey = "";
       const selectedCareIds = new Set();
+      const selectedContactIds = new Set();
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
       const customSelectInstances = new WeakMap();
       let loadedContactsFromStorage = false;
+      let visibleContactColumns = loadVisibleContactColumns();
+
+      function loadVisibleContactColumns() {
+        try {
+          const saved = JSON.parse(window.localStorage.getItem(visibleColumnsStorageKey) || "null");
+          const allowed = new Set(contactTableColumns.map((column) => column.key));
+          const normalized = Array.isArray(saved) ? saved.filter((key) => allowed.has(key)) : [];
+          if (normalized.length) {
+            return contactTableColumns
+              .filter((column) => column.required || normalized.includes(column.key))
+              .map((column) => column.key);
+          }
+        } catch (error) {
+          console.warn("Spalteneinstellungen konnten nicht geladen werden.", error);
+        }
+        return [...defaultContactColumnKeys];
+      }
+
+      function persistVisibleContactColumns() {
+        window.localStorage.setItem(visibleColumnsStorageKey, JSON.stringify(visibleContactColumns));
+      }
 
       function setStorageStatus(message) {
         if (!message) return;
@@ -11206,6 +11525,8 @@
         moreActionsButton.setAttribute("aria-expanded", "false");
         accountMenu.hidden = true;
         accountButton.setAttribute("aria-expanded", "false");
+        if (columnsMenu) columnsMenu.hidden = true;
+        columnsButton?.setAttribute("aria-expanded", "false");
         filterPanel.hidden = true;
         filterPanelButton.setAttribute("aria-expanded", "false");
         document.body.classList.remove("mobile-filter-open");
@@ -11502,8 +11823,180 @@
           .join("");
       }
 
+      function visibleTableColumns() {
+        const visible = new Set(visibleContactColumns);
+        return contactTableColumns.filter((column) => column.required || visible.has(column.key));
+      }
+
+      function updateContactTableGrid(columns = visibleTableColumns()) {
+        const template = ["42px", ...columns.map((column) => column.template), "44px"].join(" ");
+        contactsTable?.style.setProperty("--contacts-grid-template", template);
+      }
+
+      function normalizeClassPart(value) {
+        return String(value || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+      }
+
+      function ownerDisplayLabel(value) {
+        const owner = meaningfulOrEmpty(value);
+        if (!owner) return "";
+        const profile = ownerProfileForValue(owner);
+        return profile?.label || owner;
+      }
+
+      function initialsFromLabel(value) {
+        const label = String(value || "").trim();
+        if (!label) return "KO";
+        const parts = label.split(/\s+/).filter(Boolean);
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+
+      function ownerBadgeMarkup(contact) {
+        const label = ownerDisplayLabel(contact.owner || contact.ownerId);
+        if (!label) {
+          return `
+            <span class="owner-badge owner-badge--empty">
+              <span class="owner-badge__avatar" aria-hidden="true"></span>
+              <span>Kein Owner</span>
+            </span>
+          `;
+        }
+        return `
+          <span class="owner-badge">
+            <span class="owner-badge__avatar" aria-hidden="true">${escapeHtml(initialsFromLabel(label))}</span>
+            <span>${escapeHtml(label)}</span>
+          </span>
+        `;
+      }
+
+      function sectorBadgeMarkup(value) {
+        const label = meaningfulOrEmpty(value) || "Nicht dokumentiert";
+        return `<span class="contact-sector-pill contact-sector-pill--${normalizeClassPart(label)}">${escapeHtml(label)}</span>`;
+      }
+
+      function sourceLabel(contact) {
+        const sources = normalizeSources(contact.sources);
+        return sources[0] || meaningfulOrEmpty(contact.source) || "-";
+      }
+
+      function dataQualityLabel(contact) {
+        const missing = [
+          contact.name,
+          contact.organization,
+          contact.category,
+          contact.location || contact.city,
+          contact.email,
+          contact.phone,
+          contact.owner || contact.ownerId
+        ].filter((value) => !hasMeaningfulValue(value)).length;
+        if (missing === 0) return { label: "Vollständig", tone: "good" };
+        if (missing <= 2) return { label: "Prüfen", tone: "medium" };
+        return { label: "Lücken", tone: "low" };
+      }
+
+      function tableCellMarkup(contact, key) {
+        if (key === "name") {
+          const subline = [normalizedPriorityValue(contact.priority) ? `Priorität ${contact.priority}` : "", meaningfulOrEmpty(contact.topic)].filter(Boolean).join(" · ");
+          return `
+            <div class="contact-cell">
+              ${
+                contact.image
+                  ? `<img class="avatar contact-thumb ${contact.avatarClass}" src="${contact.image}" alt="${escapeHtml(contact.displayName)}" loading="lazy" />`
+                  : `<span class="avatar ${contact.avatarClass}">${escapeHtml(contact.initials)}</span>`
+              }
+              <div class="contact-meta">
+                <div class="contact-name__line">
+                  <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${escapeHtml(contact.name) || "&mdash;"}</button>
+                </div>
+                ${subline ? `<div class="contact-subline">${escapeHtml(subline)}</div>` : ""}
+              </div>
+            </div>
+          `;
+        }
+        if (key === "organization") {
+          return `<div class="contact-subline contact-subline--primary">${escapeHtml(contact.organization || "Nicht dokumentiert")}</div>`;
+        }
+        if (key === "category") return sectorBadgeMarkup(contact.category);
+        if (key === "specialty") return `<div class="contact-subline contact-subline--primary">${escapeHtml(specialtyLabel(contact) || "-")}</div>`;
+        if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(formatLocationDisplay(contact) || "-")}</div>`;
+        if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stateLabel(contact) || "-")}</div>`;
+        if (key === "owner") return ownerBadgeMarkup(contact);
+        if (key === "priority") {
+          const priority = normalizedPriorityValue(contact.priority);
+          return priority ? `<span class="contact-priority-pill contact-priority-pill--${priority.toLowerCase()}">${escapeHtml(priority)}</span>` : `<span class="contact-priority-pill">-</span>`;
+        }
+        if (key === "updated") return `<span class="contact-date">${escapeHtml(formatDateLabel(contact.updatedAt || contact.createdAt) || "-")}</span>`;
+        if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(sourceLabel(contact))}</div>`;
+        if (key === "quality") {
+          const quality = dataQualityLabel(contact);
+          return `<span class="quality-badge quality-badge--${quality.tone}">${quality.label}</span>`;
+        }
+        return "";
+      }
+
+      function renderTableHead(pageItems, columns = visibleTableColumns()) {
+        const pageIds = pageItems.map((contact) => contact.id);
+        const selectedOnPage = pageIds.filter((id) => selectedContactIds.has(id)).length;
+        contactsTableHead.innerHTML = [
+          `<div class="cell--select"><input class="table-checkbox" type="checkbox" id="select-visible-contacts" aria-label="Alle sichtbaren Kontakte auswählen" ${pageIds.length && selectedOnPage === pageIds.length ? "checked" : ""}></div>`,
+          ...columns.map((column) => `<div class="cell--${column.key}">${column.label}</div>`),
+          `<div class="cell--actions" aria-label="Aktionen"></div>`
+        ].join("");
+        const headerCheckbox = document.getElementById("select-visible-contacts");
+        if (headerCheckbox) {
+          headerCheckbox.indeterminate = selectedOnPage > 0 && selectedOnPage < pageIds.length;
+          headerCheckbox.addEventListener("change", () => {
+            pageIds.forEach((id) => {
+              if (headerCheckbox.checked) selectedContactIds.add(id);
+              else selectedContactIds.delete(id);
+            });
+            renderTable(filteredContacts());
+          });
+        }
+      }
+
+      function renderBulkToolbar() {
+        const count = selectedContactIds.size;
+        bulkToolbar.hidden = count === 0;
+        bulkSelectionCount.textContent = `${count} ${count === 1 ? "Kontakt" : "Kontakte"} ausgewählt`;
+      }
+
+      function renderColumnMenu() {
+        const visible = new Set(visibleContactColumns);
+        columnOptions.innerHTML = contactTableColumns
+          .map(
+            (column) => `
+              <label class="column-option">
+                <input type="checkbox" data-column-toggle="${column.key}" ${column.required || visible.has(column.key) ? "checked" : ""} ${column.required ? "disabled" : ""}>
+                <span>${column.label}</span>
+              </label>
+            `
+          )
+          .join("");
+      }
+
+      function syncSelectedContacts(items) {
+        const availableIds = new Set(items.map((contact) => contact.id));
+        [...selectedContactIds].forEach((id) => {
+          if (!availableIds.has(id)) selectedContactIds.delete(id);
+        });
+      }
+
       function renderTable(items) {
+        syncSelectedContacts(items);
+        renderBulkToolbar();
+        const columns = visibleTableColumns();
+        updateContactTableGrid(columns);
+        renderColumnMenu();
+
         if (!items.length) {
+          contactsTableHead.innerHTML = "";
           list.innerHTML = `<div class="empty">Keine Kontakte im aktuellen Filter. Passe Suche oder Filter an.</div>`;
           paginationMeta.textContent = "0–0 von 0 Kontakten";
           pagination.innerHTML = "";
@@ -11513,6 +12006,7 @@
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
         paginationMeta.textContent = `${startIndex + 1}–${endIndex} von ${items.length} Kontakten`;
         if (isMobileLayout()) {
+          contactsTableHead.innerHTML = "";
           list.innerHTML = `<div class="mobile-contact-list">${pageItems
             .map(
               (contact) => `
@@ -11520,13 +12014,13 @@
                 <div class="mobile-contact-top">
                   ${
                     contact.image
-                      ? `<img class="avatar contact-thumb ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
-                      : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`
+                      ? `<img class="avatar contact-thumb ${contact.avatarClass}" src="${contact.image}" alt="${escapeHtml(contact.displayName)}" loading="lazy" />`
+                      : `<span class="avatar ${contact.avatarClass}">${escapeHtml(contact.initials)}</span>`
                   }
                   <div class="mobile-contact-copy">
-                    <h3 class="mobile-contact-name">${contact.name || "&mdash;"}</h3>
-                    <div class="mobile-contact-organization">${contact.organization || "Nicht dokumentiert"}</div>
-                    <div class="mobile-contact-meta">${[contact.category, specialtyLabel(contact), contact.city || stateLabel(contact)].filter(Boolean).join(" · ")}</div>
+                    <h3 class="mobile-contact-name">${escapeHtml(contact.name) || "&mdash;"}</h3>
+                    <div class="mobile-contact-organization">${escapeHtml(contact.organization || "Nicht dokumentiert")}</div>
+                    <div class="mobile-contact-meta">${escapeHtml([contact.category, specialtyLabel(contact), contact.city || stateLabel(contact)].filter(Boolean).join(" · "))}</div>
                   </div>
                   <span class="mobile-contact-chevron" aria-hidden="true">›</span>
                 </div>
@@ -11535,40 +12029,17 @@
             )
             .join("")}</div>`;
         } else {
+          renderTableHead(pageItems, columns);
           list.innerHTML = pageItems
             .map(
               (contact) => `
-              <article class="row ${contact.id === activeId ? "is-active" : ""}" data-id="${contact.id}" tabindex="0">
-                <div class="contact-cell">
-                  ${
-                    contact.image
-                      ? `<img class="avatar contact-thumb ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
-                      : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`
-                  }
-                  <div class="contact-meta">
-                    <div class="contact-name__line">
-                      <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${contact.name || "&mdash;"}</button>
-                    </div>
-                    <div class="contact-subline">${[meaningfulOrEmpty(contact.topic), normalizedPriorityValue(contact.priority) ? `Priorität ${contact.priority}` : ""].filter(Boolean).join(" · ")}</div>
-                  </div>
+              <article class="row ${contact.id === activeId ? "is-active" : ""} ${selectedContactIds.has(contact.id) ? "is-bulk-selected" : ""}" data-id="${contact.id}" tabindex="0">
+                <div class="cell--select">
+                  <input class="table-checkbox" type="checkbox" data-row-select="${contact.id}" aria-label="${escapeHtml(contact.displayName)} auswählen" ${selectedContactIds.has(contact.id) ? "checked" : ""}>
                 </div>
-                <div>
-                  <div class="contact-subline contact-subline--primary">${contact.organization || "Nicht dokumentiert"}</div>
-                </div>
-                <div>
-                  <span class="contact-sector-pill">${contact.category || "Nicht dokumentiert"}</span>
-                </div>
-                <div>
-                  <div class="contact-subline contact-subline--primary">${specialtyLabel(contact) || "-"}</div>
-                </div>
-                <div>
-                  <div class="contact-subline contact-subline--primary">${formatLocationDisplay(contact) || "-"}</div>
-                </div>
-                <div>
-                  <span class="contact-owner-chip ${meaningfulOrEmpty(contact.owner) ? "" : "contact-owner-chip--empty"}">${meaningfulOrEmpty(contact.owner) || "Kein Owner"}</span>
-                </div>
-                <div>
-                  <span class="contact-date">${formatDateLabel(contact.updatedAt || contact.createdAt) || "-"}</span>
+                ${columns.map((column) => `<div class="cell--${column.key}">${tableCellMarkup(contact, column.key)}</div>`).join("")}
+                <div class="cell--actions">
+                  <button class="icon-button table-row-menu" type="button" aria-label="Weitere Aktionen für ${escapeHtml(contact.displayName)}">•••</button>
                 </div>
               </article>
             `
@@ -11586,27 +12057,29 @@
         ].join("");
 
         [...list.querySelectorAll(".row, .mobile-contact-card")].forEach((row) => {
-          row.addEventListener("click", () => openDetail(row.dataset.id, items));
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, input, label, a, select, textarea")) return;
+            openDetail(row.dataset.id, items);
+          });
           row.addEventListener("keydown", (event) => {
-            if (event.key === "Enter" || event.key === " ") {
+            if ((event.key === "Enter" || event.key === " ") && !event.target.closest("button, input, label, a, select, textarea")) {
               event.preventDefault();
               openDetail(row.dataset.id, items);
             }
           });
         });
 
-        [...list.querySelectorAll(".favorite-star")].forEach((button) => {
-          button.addEventListener("click", (event) => {
-            event.stopPropagation();
-            const { id } = button.dataset;
-            if (favorites.has(id)) {
-              favorites.delete(id);
-            } else {
-              favorites.add(id);
-            }
-            saveFavorites();
+        [...list.querySelectorAll("[data-row-select]")].forEach((checkbox) => {
+          checkbox.addEventListener("click", (event) => event.stopPropagation());
+          checkbox.addEventListener("change", () => {
+            if (checkbox.checked) selectedContactIds.add(checkbox.dataset.rowSelect);
+            else selectedContactIds.delete(checkbox.dataset.rowSelect);
             renderTable(items);
           });
+        });
+
+        [...list.querySelectorAll(".table-row-menu")].forEach((button) => {
+          button.addEventListener("click", (event) => event.stopPropagation());
         });
 
         [...list.querySelectorAll("[data-open-detail]")].forEach((button) => {
@@ -13816,6 +14289,81 @@
         URL.revokeObjectURL(url);
       }
 
+      function selectedContacts() {
+        return contacts.filter((contact) => selectedContactIds.has(contact.id));
+      }
+
+      function downloadSelectedCsv() {
+        const items = selectedContacts();
+        if (!items.length) return;
+        const csv = serializeContactsToCsv(items);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `versorgungs-kompass-auswahl-${items.length}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      async function assignOwnerToSelectedContacts() {
+        if (!selectedContactIds.size) return;
+        if (!canEditContacts()) {
+          showPermissionDenied("Du hast Leserechte. Owner können nur von Editor- oder Admin-Accounts geändert werden.");
+          return;
+        }
+        const ownerLabels = ownerOptions.map((owner) => ownerDisplayLabel(owner)).filter(Boolean);
+        const owner = window.prompt(
+          `Owner für ${selectedContactIds.size} Kontakte zuweisen. Bitte Namen oder Profil-ID eintragen:${ownerLabels.length ? `\n\n${ownerLabels.slice(0, 8).join(", ")}` : ""}`,
+          currentProfile?.id || currentProfile?.display_name || ""
+        );
+        if (owner === null) return;
+        const normalizedOwner = owner.trim();
+        try {
+          for (const id of [...selectedContactIds]) {
+            await updateContactField(id, "owner", normalizedOwner, { silent: true });
+          }
+          setStorageStatus(`${selectedContactIds.size} Kontakte aktualisiert`);
+          selectedContactIds.clear();
+          updateView();
+        } catch (error) {
+          console.error("Owner-Zuweisung konnte nicht abgeschlossen werden.", error);
+          window.alert("Die Owner-Zuweisung konnte nicht abgeschlossen werden.");
+        }
+      }
+
+      async function archiveSelectedContacts() {
+        const items = selectedContacts();
+        if (!items.length) return;
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Kontakte archivieren.");
+          return;
+        }
+        const confirmed = window.confirm(`${items.length} Kontakte archivieren? Die Kontakte werden nicht physisch gelöscht.`);
+        if (!confirmed) return;
+        try {
+          for (const contact of items) {
+            const archived = await window.dataService.archiveContact(contact.id);
+            contacts = contacts.map((item, index) => (item.id === contact.id ? sanitizeContact({ ...item, ...archived }, index) : item));
+            contactHistoryCache.delete(contact.id);
+            favorites.delete(contact.id);
+          }
+          saveFavorites();
+          selectedContactIds.clear();
+          if (items.some((contact) => contact.id === activeId)) {
+            activeId = null;
+            closeDetail();
+          }
+          setStorageStatus(`${items.length} Kontakte archiviert`);
+          updateView();
+        } catch (error) {
+          console.error("Kontakte konnten nicht archiviert werden.", error);
+          window.alert("Die Kontakte konnten nicht archiviert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+        }
+      }
+
       function importCsvText(text) {
         const imported = parseCsv(text).map((entry, index) =>
           sanitizeContact(
@@ -13877,6 +14425,44 @@
         currentPage = 1;
         persistUserSettingPatch({ pageSize });
         updateView();
+      });
+      bulkClearSelection?.addEventListener("click", () => {
+        selectedContactIds.clear();
+        updateView();
+      });
+      bulkExportButton?.addEventListener("click", () => {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Kontaktdaten exportieren.");
+          return;
+        }
+        downloadSelectedCsv();
+      });
+      bulkAssignOwnerButton?.addEventListener("click", assignOwnerToSelectedContacts);
+      bulkArchiveButton?.addEventListener("click", archiveSelectedContacts);
+      columnsButton?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = columnsMenu.hidden;
+        closeMenus();
+        columnsMenu.hidden = !open;
+        columnsButton.setAttribute("aria-expanded", String(open));
+      });
+      columnMenuShell?.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+      columnOptions?.addEventListener("change", (event) => {
+        const toggle = event.target.closest("[data-column-toggle]");
+        if (!toggle) return;
+        const key = toggle.dataset.columnToggle;
+        const column = contactTableColumns.find((item) => item.key === key);
+        if (!column || column.required) return;
+        const visible = new Set(visibleContactColumns);
+        if (toggle.checked) visible.add(key);
+        else visible.delete(key);
+        visibleContactColumns = contactTableColumns
+          .filter((item) => item.required || visible.has(item.key))
+          .map((item) => item.key);
+        persistVisibleContactColumns();
+        renderTable(filteredContacts());
       });
       resetAllFiltersButton.addEventListener("click", () => {
         clearAllFilters();
@@ -14236,7 +14822,7 @@
       });
 
       document.addEventListener("click", (event) => {
-        if (!event.target.closest(".menu-shell") && !event.target.closest(".filter-shell") && !event.target.closest(".topbar-account")) closeMenus();
+        if (!event.target.closest(".menu-shell") && !event.target.closest(".filter-shell") && !event.target.closest(".topbar-account") && !event.target.closest(".column-menu-shell")) closeMenus();
         if (!event.target.closest("[data-custom-select]")) closeAllCustomSelects();
       });
 
