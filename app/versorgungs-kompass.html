@@ -4008,6 +4008,20 @@
         color: #22489f;
       }
 
+      .custom-select-option--legacy {
+        border: 1px dashed #d1d6e5;
+        background: #f4f5f8;
+        color: #7a8299;
+      }
+
+      .custom-select-option--legacy:hover,
+      .custom-select-option--legacy:focus-visible,
+      .custom-select-option--legacy.is-selected {
+        border-color: #aeb6cc;
+        background: #eef0f5;
+        color: #626a7f;
+      }
+
       .custom-select-option.is-placeholder {
         color: #7f8bb3;
       }
@@ -8722,7 +8736,8 @@
 
       function createCustomSelectOption(option, isSelected) {
         const button = document.createElement("button");
-        button.className = `custom-select-option${isSelected ? " is-selected" : ""}${option.value ? "" : " is-placeholder"}`;
+        const isLegacy = option.textContent.includes("kein echter Account");
+        button.className = `custom-select-option${isSelected ? " is-selected" : ""}${option.value ? "" : " is-placeholder"}${isLegacy ? " custom-select-option--legacy" : ""}`;
         button.type = "button";
         button.dataset.optionValue = option.value;
         button.setAttribute("role", "option");
