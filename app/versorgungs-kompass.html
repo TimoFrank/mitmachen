@@ -297,12 +297,12 @@
         position: absolute;
         top: calc(100% + 10px);
         right: 0;
-        width: min(430px, calc(100vw - 32px));
-        padding: 8px;
+        width: min(380px, calc(100vw - 32px));
+        padding: 10px;
         border: 1px solid var(--line);
-        border-radius: 16px;
+        border-radius: 18px;
         background: rgba(255, 255, 255, 0.98);
-        box-shadow: 0 18px 36px rgba(26, 37, 89, 0.14);
+        box-shadow: 0 22px 50px rgba(26, 37, 89, 0.18);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         z-index: 40;
@@ -312,16 +312,37 @@
         display: none;
       }
 
-      .account-popover__name {
-        min-height: 40px;
-        padding: 0 12px;
-        border-radius: 10px;
-        display: flex;
+      .account-profile-card {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 12px;
         align-items: center;
+        padding: 12px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #f7faff 0%, #eef4ff 100%);
+      }
+
+      .account-avatar {
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #2f68ef, #6aa5ff);
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 950;
+        box-shadow: 0 12px 22px rgba(45, 102, 237, 0.22);
+      }
+
+      .account-popover__name {
+        min-width: 0;
         color: #2a3d78;
-        font-size: 0.9rem;
-        font-weight: 800;
-        background: #f4f7ff;
+        font-size: 1rem;
+        font-weight: 950;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .account-popover__meta {
@@ -356,6 +377,21 @@
         letter-spacing: 0.02em;
         text-transform: uppercase;
         white-space: nowrap;
+      }
+
+      .account-role-pill--admin {
+        background: #eaf1ff;
+        color: #2451c4;
+      }
+
+      .account-role-pill--editor {
+        background: #eaf8ef;
+        color: #237247;
+      }
+
+      .account-role-pill--viewer {
+        background: #f3f5fb;
+        color: #657099;
       }
 
       .account-permission-note {
@@ -425,6 +461,24 @@
         margin-bottom: 1px;
         color: #243271;
         font-size: 0.76rem;
+      }
+
+      .account-quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 8px 0;
+      }
+
+      .account-quick-action {
+        min-height: 38px;
+        border: 1px solid #dfe7ff;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #2f55ad;
+        font-size: 0.78rem;
+        font-weight: 900;
+        cursor: pointer;
       }
 
       .saved-view-list {
@@ -2465,6 +2519,24 @@
         margin-top: 10px;
       }
 
+      .history-details {
+        margin-top: 10px;
+      }
+
+      .history-details summary {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border: 1px solid #dfe7ff;
+        border-radius: 999px;
+        background: #f7f9ff;
+        color: #3155ad;
+        font-size: 0.74rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
       .history-change {
         display: grid;
         gap: 6px;
@@ -4285,6 +4357,109 @@
         font-size: 0.78rem;
         font-weight: 800;
         text-align: center;
+      }
+
+      .care-queue-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: auto;
+      }
+
+      .care-queue-open {
+        width: 100%;
+        min-height: 32px;
+        border: 1px solid #d6def9;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #285bd6;
+        font-size: 0.78rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .care-workbench {
+        margin-top: 14px;
+        padding: 14px;
+        border: 1px solid #dfe7ff;
+        border-radius: 16px;
+        background: #ffffff;
+      }
+
+      .care-workbench[hidden] {
+        display: none;
+      }
+
+      .care-workbench-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+
+      .care-workbench-title {
+        margin: 0;
+        color: #18245a;
+        font-size: 1rem;
+        font-weight: 950;
+      }
+
+      .care-workbench-copy {
+        margin-top: 4px;
+        color: #657099;
+        font-size: 0.82rem;
+        font-weight: 750;
+      }
+
+      .care-workbench-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 12px;
+      }
+
+      .care-workbench-toolbar select,
+      .care-workbench-table input {
+        min-height: 36px;
+        border: 1px solid #d6def9;
+        border-radius: 10px;
+        background: #fbfcff;
+        color: #17275f;
+        font: inherit;
+        font-size: 0.8rem;
+      }
+
+      .care-workbench-toolbar select {
+        min-width: 220px;
+        padding: 0 10px;
+      }
+
+      .care-workbench-table {
+        width: 100%;
+        min-width: 840px;
+        border-collapse: collapse;
+      }
+
+      .care-workbench-table th,
+      .care-workbench-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #e4e8fb;
+        color: #17275f;
+        font-size: 0.82rem;
+        text-align: left;
+        vertical-align: middle;
+      }
+
+      .care-workbench-table th {
+        background: #f4f6ff;
+        color: #243271;
+        font-size: 0.76rem;
+        font-weight: 950;
+      }
+
+      .care-workbench-table input {
+        width: 100%;
+        padding: 0 10px;
       }
 
       .dashboard-backlog {
@@ -6821,24 +6996,20 @@
           <span class="topbar-account__caret">⌄</span>
         </button>
         <div class="account-popover" id="account-menu" hidden>
-          <div class="account-popover__name">Timo Frank</div>
-          <div class="account-popover__meta">
-            <span class="account-popover__email" id="account-email">Angemeldet</span>
-            <span class="account-role-pill" id="account-role">Nutzer</span>
-          </div>
-          <div class="account-permission-note" id="account-permission-note">Rollenrechte werden geladen.</div>
-          <div class="account-settings-preview">
-            <strong>Profil &amp; Einstellungen</strong>
-            <span>Vorgesehen: gespeicherte Suchen, Standardansicht, Tabellendichte, Farben, Schriftgröße und persönliche CRM-Präferenzen.</span>
-          </div>
-          <div class="account-settings-preview">
-            <strong>Erste Schritte</strong>
-            <div class="account-onboarding-list" id="account-onboarding-list">
-              <div class="account-onboarding-item">
-                <span class="account-onboarding-dot">1</span>
-                <span><strong>Rolle prüfen</strong>Deine Möglichkeiten werden geladen.</span>
+          <div class="account-profile-card">
+            <div class="account-avatar" id="account-avatar">TF</div>
+            <div>
+              <div class="account-popover__name">Timo Frank</div>
+              <div class="account-popover__meta">
+                <span class="account-popover__email" id="account-email">Angemeldet</span>
+                <span class="account-role-pill" id="account-role">Nutzer</span>
               </div>
             </div>
+          </div>
+          <div class="account-permission-note" id="account-permission-note">Rollenrechte werden geladen.</div>
+          <div class="account-quick-actions">
+            <button class="account-quick-action" type="button" id="account-tour-button">Tour starten</button>
+            <button class="account-quick-action" type="button" id="account-quality-button">Pflege-Queue</button>
           </div>
           <div class="account-settings-preview">
             <strong>Gespeicherte Suchen</strong>
@@ -7152,6 +7323,7 @@
                     <span class="dashboard-info" tabindex="0" aria-label="Pflege-Queue erklären">i<span class="dashboard-info__popup" role="tooltip">Die Queue sucht nach fehlenden Ownern, Kontaktwegen, Standortdaten, Fachrichtungen, unklaren Organisationen, Dublettenverdacht, archivierten Kontakten und länger nicht aktualisierten Datensätzen.</span></span>
                   </div>
                   <div id="care-queue"></div>
+                  <div class="care-workbench" id="care-workbench" hidden></div>
                 </article>
               </div>
             </div>
@@ -7672,13 +7844,16 @@
       const qualityChart = document.getElementById("quality-chart");
       const careQueueCard = document.getElementById("care-queue-card");
       const careQueue = document.getElementById("care-queue");
+      const careWorkbench = document.getElementById("care-workbench");
       const accountButton = document.getElementById("account-button");
       const accountMenu = document.getElementById("account-menu");
       const accountEmail = document.getElementById("account-email");
       const accountRole = document.getElementById("account-role");
       const accountPermissionNote = document.getElementById("account-permission-note");
       const accountSavedViews = document.getElementById("account-saved-views");
-      const accountOnboardingList = document.getElementById("account-onboarding-list");
+      const accountAvatar = document.getElementById("account-avatar");
+      const accountTourButton = document.getElementById("account-tour-button");
+      const accountQualityButton = document.getElementById("account-quality-button");
       const permissionBanner = document.getElementById("permission-banner");
       const permissionBannerText = document.getElementById("permission-banner-text");
       const brandHomeLink = document.getElementById("brand-home-link");
@@ -7721,6 +7896,8 @@
       const contactHistoryFilters = new Map();
       let savedViews = [];
       let userSettings = null;
+      let activeCareQueueKey = "";
+      const selectedCareIds = new Set();
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
       const customSelectInstances = new WeakMap();
       let loadedContactsFromStorage = false;
@@ -7772,52 +7949,6 @@
         if (role === "admin") return "Admin: Kontakte anlegen und bearbeiten, Archiv und Import nutzen, Datenqualität prüfen.";
         if (role === "editor") return "Editor: Kontakte anlegen und bearbeiten. Archiv, Import und Rollenverwaltung bleiben Admins vorbehalten.";
         return "Viewer: Lesen, Suchen, Filtern, Karte und Auswertung nutzen. Änderungen sind deaktiviert.";
-      }
-
-      function onboardingSteps(role = currentRole()) {
-        const common = [
-          {
-            title: "Profil als Owner nutzen",
-            copy: "Dein Supabase-Profil erscheint in Owner-Auswahlen. Kontakte ohne echten Account bleiben markiert."
-          },
-          {
-            title: "Suchen speichern",
-            copy: "Filter, Suchbegriffe und Seitenlänge können als private Suche gespeichert werden."
-          }
-        ];
-        if (role === "admin") {
-          return [
-            { title: "Teamzugang verwalten", copy: "Neue Accounts in Supabase anlegen, Profil prüfen und Rolle setzen." },
-            { title: "Datenpflege steuern", copy: "Import, Archiv, Rollback und Pflege-Queue sind für Admins sichtbar." },
-            ...common
-          ];
-        }
-        if (role === "editor") {
-          return [
-            { title: "Kontakte pflegen", copy: "Kontakte anlegen, bearbeiten und Owner/Fachrichtung/Standort nachziehen." },
-            { title: "Pflege-Queue nutzen", copy: "Hinweise zu fehlenden Feldern und Dubletten direkt abarbeiten." },
-            ...common
-          ];
-        }
-        return [
-          { title: "Lesemodus nutzen", copy: "Kontakte, Karte und Auswertung lesen; Bearbeitung ist bewusst deaktiviert." },
-          { title: "Filter anwenden", copy: "Eigene Suchen speichern und relevante Kontaktgruppen schneller wiederfinden." },
-          ...common.slice(0, 1)
-        ];
-      }
-
-      function renderAccountOnboarding(role = currentRole()) {
-        if (!accountOnboardingList) return;
-        accountOnboardingList.innerHTML = onboardingSteps(role)
-          .map(
-            (step, index) => `
-              <div class="account-onboarding-item">
-                <span class="account-onboarding-dot">${index + 1}</span>
-                <span><strong>${escapeHtml(step.title)}</strong>${escapeHtml(step.copy)}</span>
-              </div>
-            `
-          )
-          .join("");
       }
 
       function showPermissionDenied(message) {
@@ -9210,11 +9341,14 @@
         const displayName = profile?.display_name || profile?.email || "Angemeldet";
         const role = currentRole();
         if (badge) badge.textContent = profile?.initials || String(displayName || "VK").slice(0, 2).toUpperCase();
+        if (accountAvatar) accountAvatar.textContent = profile?.initials || String(displayName || "VK").slice(0, 2).toUpperCase();
         if (name) name.textContent = displayName;
         if (accountEmail) accountEmail.textContent = profile?.email || "Supabase-Profil";
-        if (accountRole) accountRole.textContent = roleLabel(role);
+        if (accountRole) {
+          accountRole.textContent = roleLabel(role);
+          accountRole.className = `account-role-pill account-role-pill--${role}`;
+        }
         if (accountPermissionNote) accountPermissionNote.textContent = permissionText(role);
-        renderAccountOnboarding(role);
         const welcome = document.querySelector(".workspace-copy h2");
         if (welcome) welcome.textContent = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
         applyRoleUi();
@@ -9457,7 +9591,7 @@
 
       if (loadedContactsFromStorage) persistContacts(`${contacts.length} lokale Kontakte bereinigt`, { silent: true });
 
-      async function updateContactField(id, field, value) {
+      async function updateContactField(id, field, value, options = {}) {
         if (!canEditContacts()) {
           showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts geändert werden.");
           return;
@@ -9476,16 +9610,16 @@
             contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
           );
           contactHistoryCache.delete(id);
-          setStorageStatus("Kontakt in Supabase gespeichert");
+          if (!options.silent) setStorageStatus("Kontakt in Supabase gespeichert");
         } catch (error) {
           console.error("Kontaktfeld konnte nicht gespeichert werden.", error);
           window.alert("Die Änderung konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
           return;
         }
 
-        updateView();
+        if (!options.silent) updateView();
 
-        if (activeId === id && detailDrawer.classList.contains("is-open")) {
+        if (!options.silent && activeId === id && detailDrawer.classList.contains("is-open")) {
           openDetail(id);
         }
       }
@@ -10457,11 +10591,18 @@
       }
 
       function historyActionLabel(action, changes = []) {
-        if (action === "create") return "Kontakt angelegt";
+        const visible = changes.filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by");
+        if (action === "create" || action === "import") return "Kontakt erstellt";
         if (action === "archive") return "Kontakt archiviert";
-        if (action === "import") return "Importiert";
         if (changes.some((change) => change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived")) return "Kontakt wiederhergestellt";
-        return changes.length > 1 ? `${changes.length} Felder geändert` : "Feld geändert";
+        if (visible.length === 1) {
+          const change = visible[0];
+          const field = historyFieldLabel(change.fieldName);
+          if (!String(change.oldValue || "").trim() && String(change.newValue || "").trim()) return `${field} hinzugefügt`;
+          if (String(change.oldValue || "").trim() && !String(change.newValue || "").trim()) return `${field} entfernt`;
+          return `${field} geändert`;
+        }
+        return visible.length > 1 ? `${visible.length} Angaben geändert` : "Aktualisiert";
       }
 
       function historyActionKey(change) {
@@ -10484,6 +10625,9 @@
         const normalized = String(value || "").trim();
         if (!normalized) return "leer";
         if (field === "owner_id") return ownerOptionLabel(normalized).replace(/^⚠\s*/, "");
+        if (field === "linkedin") return "LinkedIn-Profil hinterlegt";
+        if (field === "email") return "E-Mail-Adresse hinterlegt";
+        if (field === "phone") return "Telefonnummer hinterlegt";
         if (field === "topics") {
           try {
             const parsed = JSON.parse(normalized.replace(/^{/, "[").replace(/}$/, "]"));
@@ -10572,6 +10716,7 @@
         timeline.innerHTML = groups
           .map((group) => {
             const actionKey = historyActionKey(group.changes[0]);
+            const visibleChanges = group.changes.filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by");
             return `
               <article class="history-item">
                 <div class="history-dot history-dot--${actionKey}">${historyActionIcon(actionKey)}</div>
@@ -10583,23 +10728,29 @@
                     </div>
                     <span class="history-action-pill">${escapeHtml(actionKey)}</span>
                   </div>
-                  <div class="history-change-list">
-                    ${group.changes
-                      .filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by")
-                      .map(
-                        (change) => `
-                          <div class="history-change">
-                            <div class="history-field">${escapeHtml(historyFieldLabel(change.fieldName))}</div>
-                            <div class="history-values">
-                              <span class="history-value history-value--old">${escapeHtml(formatHistoryValue(change.fieldName, change.oldValue))}</span>
-                              <span class="history-arrow">→</span>
-                              <span class="history-value history-value--new">${escapeHtml(formatHistoryValue(change.fieldName, change.newValue))}</span>
-                            </div>
+                  ${
+                    visibleChanges.length
+                      ? `<details class="history-details">
+                          <summary>Details anzeigen</summary>
+                          <div class="history-change-list">
+                            ${visibleChanges
+                              .map(
+                                (change) => `
+                                  <div class="history-change">
+                                    <div class="history-field">${escapeHtml(historyFieldLabel(change.fieldName))}</div>
+                                    <div class="history-values">
+                                      <span class="history-value history-value--old">${escapeHtml(formatHistoryValue(change.fieldName, change.oldValue))}</span>
+                                      <span class="history-arrow">→</span>
+                                      <span class="history-value history-value--new">${escapeHtml(formatHistoryValue(change.fieldName, change.newValue))}</span>
+                                    </div>
+                                  </div>
+                                `
+                              )
+                              .join("")}
                           </div>
-                        `
-                      )
-                      .join("") || `<div class="history-change"><div class="history-field">${escapeHtml(historyActionLabel(group.action, group.changes))}</div></div>`}
-                  </div>
+                        </details>`
+                      : ""
+                  }
                 </div>
               </article>
             `;
@@ -11324,10 +11475,71 @@
                           </div>`
                         : `<div class="care-queue-empty">Aktuell kein Handlungsbedarf.</div>`
                     }
+                    ${
+                      item.contacts.length
+                        ? `<div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}">Alle ${item.contacts.length} bearbeiten</button></div>`
+                        : ""
+                    }
                   </section>
                 `;
               })
               .join("")}
+          </div>
+        `;
+        if (activeCareQueueKey) renderCareWorkbench(activeCareQueueKey);
+      }
+
+      function careQueueItemByKey(key) {
+        return buildCareQueueItems(filteredContacts()).find((item) => item.key === key);
+      }
+
+      function renderCareWorkbench(key) {
+        if (!careWorkbench) return;
+        const item = careQueueItemByKey(key);
+        if (!item) {
+          careWorkbench.hidden = true;
+          return;
+        }
+        activeCareQueueKey = key;
+        selectedCareIds.clear();
+        const rows = item.contacts;
+        careWorkbench.hidden = false;
+        careWorkbench.innerHTML = `
+          <div class="care-workbench-head">
+            <div>
+              <h4 class="care-workbench-title">${escapeHtml(item.title)}</h4>
+              <div class="care-workbench-copy">${rows.length} Kontakte in dieser Pflegeansicht. Hier kannst du die komplette Liste bearbeiten, nicht nur die Vorschau.</div>
+            </div>
+            <button class="detail-close" type="button" id="care-workbench-close" aria-label="Pflegeansicht schließen">&times;</button>
+          </div>
+          ${
+            key === "missing-owner"
+              ? `<div class="care-workbench-toolbar">
+                  <select id="care-bulk-owner"><option value="">Owner auswählen</option>${ownerOptions.map((owner) => `<option value="${escapeHtml(owner)}">${escapeHtml(ownerOptionLabel(owner))}</option>`).join("")}</select>
+                  <button class="action-button action-button--primary" type="button" id="care-apply-owner">Allen sichtbaren zuweisen</button>
+                </div>`
+              : ""
+          }
+          <div class="import-table-wrap">
+            <table class="care-workbench-table">
+              <thead><tr><th>Name</th><th>Organisation</th><th>Owner</th><th>E-Mail</th><th>Fachrichtung</th><th></th></tr></thead>
+              <tbody>
+                ${rows
+                  .map(
+                    (contact) => `
+                      <tr>
+                        <td>${escapeHtml(contact.displayName || contact.name)}</td>
+                        <td>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</td>
+                        <td>${escapeHtml(meaningfulOrEmpty(contact.owner) || "Kein Owner")}</td>
+                        <td><input data-care-email="${escapeHtml(contact.id)}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen" /></td>
+                        <td>${escapeHtml(specialtyLabel(contact) || "-")}</td>
+                        <td><button class="detail-link detail-link--compact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">Öffnen</button></td>
+                      </tr>
+                    `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
           </div>
         `;
       }
@@ -11421,8 +11633,6 @@
 
         const locationText = formatLocationDisplay(contact);
         const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
-        const createdLabel = formatDateLabel(contact.createdAt);
-        const updatedLabel = formatDateLabel(contact.updatedAt);
         const ownerLabel = meaningfulOrEmpty(contact.owner);
         const specialtyText = specialtyLabel(contact);
         const honorificTitle = meaningfulOrEmpty(contact.honorificTitle);
@@ -11430,7 +11640,6 @@
         const organizationLabel = meaningfulOrEmpty(contact.organization);
         const themeTags = normalizeThemes(contact.themes);
         const suggestedThemes = themeSuggestions();
-        const missingFields = detailMissingFields(contact);
         const editable = canEditContacts();
         const admin = canAdministerData();
         const disabledAttr = editable ? "" : " disabled";
@@ -11632,11 +11841,6 @@
                 </article>
               </section>
 
-              ${
-                missingFields.length
-                  ? `<div class="detail-info-card detail-info-card--missing-summary">Fehlende Angaben: ${missingFields.join(", ")}</div>`
-                  : ""
-              }
               ${readonlyNotice}
 
               <section class="section-block">
@@ -11661,14 +11865,6 @@
                     <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="Notiz eintragen"${disabledAttr}></textarea>
                     ${noteText ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
                   </article>
-                  <article class="detail-info-card ${(updatedLabel || createdLabel) ? "" : "detail-info-card--missing"}">
-                    <div class="detail-info-head">
-                      <span class="field-icon">↻</span>
-                      <span>Zuletzt aktualisiert</span>
-                    </div>
-                    ${(updatedLabel || createdLabel) ? `<div class="detail-info-value">${updatedLabel || createdLabel}</div>` : ""}
-                    ${(updatedLabel || createdLabel) ? "" : `<div class="detail-warning" aria-label="Fehlende Angabe">⚠</div>`}
-                  </article>
                 </div>
               </section>
 
@@ -11687,11 +11883,6 @@
                 </div>
               </section>
 
-              <div class="detail-footer-meta">
-                <span>${createdLabel ? `Erstellt am ${createdLabel}` : "Erstellt: nicht dokumentiert"}</span>
-                <span>${updatedLabel ? `Aktualisiert am ${updatedLabel}` : "Aktualisiert: nicht dokumentiert"}</span>
-                <span>ID: ${contact.id}</span>
-              </div>
               <div class="detail-bottom-actions">
                 ${
                   admin && contact.status === "archived"
@@ -12188,9 +12379,48 @@
         updateView();
       });
       careQueue?.addEventListener("click", (event) => {
+        const openButton = event.target.closest("[data-care-open]");
+        if (openButton) {
+          renderCareWorkbench(openButton.dataset.careOpen);
+          return;
+        }
         const button = event.target.closest("[data-care-contact]");
         if (!button) return;
         openCareQueueContact(button.dataset.careContact, button.dataset.careArchived === "true");
+      });
+      careWorkbench?.addEventListener("click", async (event) => {
+        if (event.target.closest("#care-workbench-close")) {
+          activeCareQueueKey = "";
+          careWorkbench.hidden = true;
+          return;
+        }
+        const openButton = event.target.closest("[data-care-contact]");
+        if (openButton) {
+          openCareQueueContact(openButton.dataset.careContact, openButton.dataset.careArchived === "true");
+          return;
+        }
+        if (event.target.closest("#care-apply-owner")) {
+          const owner = document.getElementById("care-bulk-owner")?.value || "";
+          if (!owner) {
+            window.alert("Bitte zuerst einen Owner auswählen.");
+            return;
+          }
+          const item = careQueueItemByKey(activeCareQueueKey);
+          const targets = item?.contacts || [];
+          for (const contact of targets) {
+            await updateContactField(contact.id, "owner", owner, { silent: true });
+          }
+          setStorageStatus(`${targets.length} Kontakte aktualisiert`);
+          updateView();
+          renderCareWorkbench(activeCareQueueKey);
+        }
+      });
+      careWorkbench?.addEventListener("change", async (event) => {
+        const input = event.target.closest("[data-care-email]");
+        if (!input) return;
+        await updateContactField(input.dataset.careEmail, "email", input.value, { silent: true });
+        updateView();
+        renderCareWorkbench(activeCareQueueKey);
       });
       openImportButton.addEventListener("click", openImportWizard);
       exportCsvButton.addEventListener("click", () => {
@@ -12216,6 +12446,15 @@
       accountLogoutButton.addEventListener("click", () => {
         closeMenus();
         logout();
+      });
+      accountTourButton?.addEventListener("click", () => {
+        closeMenus();
+        window.alert("Geführte Tour: 1. Kontakte durchsuchen, 2. Kontaktprofil öffnen, 3. Filter speichern, 4. Pflege-Queue nutzen. Eine interaktive Schritt-für-Schritt-Tour bauen wir als nächste UX-Schicht sauber aus.");
+      });
+      accountQualityButton?.addEventListener("click", () => {
+        closeMenus();
+        setActiveView("analytics");
+        careQueueCard?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
 
       window.addEventListener("message", (event) => {
