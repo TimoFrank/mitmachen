@@ -6533,8 +6533,7 @@
 
         .workspace-actions,
         .active-filter-label,
-        .filter-toolbar-spacer,
-        .filter-reset {
+        .filter-toolbar-spacer {
           display: none;
         }
 
@@ -6606,8 +6605,11 @@
           display: block;
         }
 
-        .active-filter-list {
+        .active-filter-row {
           grid-column: 1 / -1;
+        }
+
+        .active-filter-list {
           flex-wrap: nowrap;
           overflow-x: auto;
           padding-bottom: 2px;
@@ -6633,9 +6635,10 @@
 
         .filter-toolbar {
           display: grid;
-          grid-template-columns: 1fr auto;
+          grid-template-columns: auto auto;
           gap: 10px;
           align-items: stretch;
+          justify-content: start;
           min-height: 0;
           padding: 0;
           border: 0;
@@ -6716,7 +6719,7 @@
           max-height: min(82dvh, 620px);
           z-index: 35;
           border-radius: 20px 20px 0 0;
-          padding: 12px 10px calc(84px + env(safe-area-inset-bottom));
+          padding: 0 0 calc(74px + env(safe-area-inset-bottom));
           box-shadow: 0 -18px 40px rgba(18, 31, 82, 0.22);
           overflow: auto;
           overscroll-behavior: contain;
@@ -6731,7 +6734,7 @@
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 0 48px 8px;
+          padding: 12px 48px 10px;
           background: rgba(255, 255, 255, 0.98);
         }
 
@@ -6802,13 +6805,14 @@
         .filter-panel-grid {
           grid-template-columns: 1fr;
           gap: 8px;
+          max-height: none;
         }
 
         .filter-section {
-          padding: 0;
-          border: 0;
-          border-radius: 0;
-          background: transparent;
+          padding: 10px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: var(--surface-muted);
         }
 
         .filter-section:first-child {
@@ -6816,12 +6820,7 @@
         }
 
         .filter-section-icon,
-        .filter-section-meta,
-        #theme-filter-options,
-        #theme-filter-meta,
-        .filter-section:has(#priority-filter-options),
-        .filter-section:has(#theme-filter-options),
-        .filter-section:has(#owner-filter-options) {
+        .filter-section-meta {
           display: none;
         }
 
@@ -7939,6 +7938,291 @@
         color: #76531d;
       }
 
+      .controls {
+        padding-bottom: 12px;
+      }
+
+      .controls-stack {
+        display: grid;
+        grid-template-columns: minmax(360px, 1fr) auto;
+        gap: 8px 10px;
+        align-items: center;
+        padding: 10px;
+        border-color: var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .controls-stack .search-shell {
+        min-height: 40px;
+        border-radius: var(--radius-sm);
+        box-shadow: none;
+      }
+
+      .controls-stack .search-shell svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .filter-toolbar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        min-height: 40px;
+        flex-wrap: nowrap;
+      }
+
+      .filter-results {
+        margin-left: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+      }
+
+      .filter-reset[hidden] {
+        display: none;
+      }
+
+      .active-filter-row {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 26px;
+      }
+
+      .active-filter-row:has(.active-filter-empty) {
+        display: none;
+      }
+
+      .active-filter-label {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+      }
+
+      .active-filter-list {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .active-filter-chip,
+      .active-filter-more {
+        min-height: 26px;
+        border-radius: 999px;
+        font-size: var(--font-size-xs);
+        box-shadow: none;
+      }
+
+      .active-filter-chip button {
+        background: transparent;
+        color: var(--text-muted);
+      }
+
+      .active-filter-more {
+        display: inline-flex;
+        align-items: center;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        color: var(--primary);
+        font-weight: 850;
+        cursor: pointer;
+      }
+
+      .filter-panel-button {
+        min-height: 36px;
+        padding: 0 12px;
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        box-shadow: none;
+        font-size: var(--font-size-sm);
+      }
+
+      .filter-panel-button__label {
+        gap: 7px;
+      }
+
+      .filter-panel-button__caret {
+        display: none;
+      }
+
+      .filter-panel {
+        width: min(520px, calc(100vw - 32px));
+        max-height: min(78vh, 720px);
+        padding: 0;
+        border-color: var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+      }
+
+      .filter-panel-head {
+        align-items: center;
+        margin: 0;
+        padding: 14px 14px 10px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .filter-panel-title {
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+      }
+
+      .filter-panel-copy {
+        color: var(--text-muted);
+      }
+
+      .filter-panel-close {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-sm);
+      }
+
+      .filter-panel-search {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 10px 14px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+      }
+
+      .filter-panel-search svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .filter-panel-search input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text-primary);
+        font: inherit;
+        font-size: var(--font-size-sm);
+      }
+
+      .filter-panel-saved {
+        margin: 0 14px 10px;
+        padding: 10px;
+        border-radius: var(--radius-md);
+        box-shadow: none;
+      }
+
+      .filter-panel-grid {
+        max-height: calc(min(78vh, 720px) - 212px);
+        display: grid;
+        gap: 10px;
+        padding: 0 14px 12px;
+        overflow: auto;
+      }
+
+      .filter-group,
+      .filter-more {
+        display: grid;
+        gap: 8px;
+      }
+
+      .filter-group[hidden],
+      .filter-more[hidden],
+      .filter-section[hidden] {
+        display: none;
+      }
+
+      .filter-group-title,
+      .filter-more summary {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .filter-more summary {
+        cursor: pointer;
+      }
+
+      .filter-more-grid {
+        display: grid;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .filter-section {
+        gap: 8px;
+        padding: 10px;
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+      }
+
+      .filter-section--muted {
+        background: #fbfcff;
+      }
+
+      .filter-section-note {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        line-height: var(--line-height-normal);
+      }
+
+      .filter-section-title {
+        gap: 0;
+        font-size: var(--font-size-sm);
+      }
+
+      .filter-option-list {
+        gap: 6px;
+      }
+
+      .filter-option-chip {
+        min-height: 28px;
+        padding: 0 9px;
+        border-radius: 999px;
+        font-size: var(--font-size-xs);
+      }
+
+      .filter-panel-footer {
+        position: sticky;
+        bottom: 0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 10px 14px 14px;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .filter-panel-footer .filter-reset {
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+      }
+
+      .filter-panel-apply {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: var(--primary);
+        color: #ffffff;
+        font-weight: 850;
+        cursor: pointer;
+      }
+
       .table-wrap,
       .import-table-wrap {
         border-color: var(--border);
@@ -7950,7 +8234,11 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 10px 0 12px;
+        padding: 10px 10px;
+      }
+
+      .table-command-row:has(.bulk-toolbar[hidden]) {
+        display: none;
       }
 
       .table-command-spacer {
@@ -8872,9 +9160,6 @@
             </label>
 
             <div class="filter-toolbar">
-              <div class="active-filter-label">Aktive Filter</div>
-              <div class="active-filter-list" id="active-filter-list"></div>
-              <div class="filter-toolbar-spacer" aria-hidden="true"></div>
               <div class="filter-results" id="results-count">0 von 0 Kontakten</div>
               <button class="filter-reset" type="button" id="reset-all-filters">Alle Filter zurücksetzen</button>
               <div class="filter-shell">
@@ -8893,15 +9178,20 @@
                 <div class="filter-panel" id="filter-panel" hidden>
                   <div class="filter-panel-head">
                     <div>
-                      <h3 class="filter-panel-title">Kontakte filtern</h3>
-                      <p class="filter-panel-copy">Kombiniere mehrere Optionen, ohne das Fenster zu verlassen.</p>
+                      <h3 class="filter-panel-title">Filter</h3>
+                      <p class="filter-panel-copy">Häufige Filter zuerst, weitere Optionen darunter.</p>
                     </div>
                     <div class="filter-panel-actions">
-                      <button class="filter-reset" type="button" id="filter-panel-reset">Alle Filter zurücksetzen</button>
                       <button class="filter-panel-close" type="button" id="filter-panel-close" aria-label="Filter schließen">&times;</button>
-                      <button class="filter-panel-apply" type="button" id="filter-panel-apply">Filter anwenden</button>
                     </div>
                   </div>
+                  <label class="filter-panel-search" aria-label="Filter suchen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <circle cx="11" cy="11" r="7"></circle>
+                      <path d="m20 20-3.5-3.5"></path>
+                    </svg>
+                    <input id="filter-search" type="search" placeholder="Filter suchen" />
+                  </label>
                   <section class="filter-panel-saved" aria-labelledby="saved-views-title">
                     <div class="filter-panel-saved__head">
                       <div>
@@ -8913,69 +9203,110 @@
                     <div class="filter-panel-saved__list" id="saved-views-quicklist"></div>
                   </section>
                   <div class="filter-panel-grid">
-                    <section class="filter-section">
-                      <div class="filter-section-head">
-                        <h4 class="filter-section-title">
-                          <span class="filter-section-icon">🏥</span>
-                          <span>Sektor</span>
-                        </h4>
-                        <span class="filter-section-meta" id="category-filter-meta">Alle</span>
+                    <div class="filter-group" data-filter-group="klassifizierung">
+                      <div class="filter-group-title">Klassifizierung</div>
+                      <section class="filter-section" data-filter-section="sektor klassifizierung">
+                        <div class="filter-section-head">
+                          <h4 class="filter-section-title"><span>Sektor</span></h4>
+                          <span class="filter-section-meta" id="category-filter-meta">Alle</span>
+                        </div>
+                        <div class="filter-option-list" id="category-filter-options"></div>
+                      </section>
+                      <section class="filter-section" data-filter-section="fachrichtung klassifizierung">
+                        <div class="filter-section-head">
+                          <h4 class="filter-section-title"><span>Fachrichtung</span></h4>
+                          <span class="filter-section-meta" id="specialty-filter-meta">Alle</span>
+                        </div>
+                        <div class="filter-option-list filter-option-list--scroll" id="specialty-filter-options"></div>
+                      </section>
+                    </div>
+                    <div class="filter-group" data-filter-group="kontakt organisation">
+                      <div class="filter-group-title">Kontakt &amp; Organisation</div>
+                      <section class="filter-section" data-filter-section="owner kontakt organisation">
+                        <div class="filter-section-head">
+                          <h4 class="filter-section-title"><span>Owner</span></h4>
+                          <span class="filter-section-meta" id="owner-filter-meta">Alle</span>
+                        </div>
+                        <div class="filter-option-list filter-option-list--scroll" id="owner-filter-options"></div>
+                      </section>
+                      <section class="filter-section" data-filter-section="priorität kontakt">
+                        <div class="filter-section-head">
+                          <h4 class="filter-section-title"><span>Priorität</span></h4>
+                          <span class="filter-section-meta" id="priority-filter-meta">Alle</span>
+                        </div>
+                        <div class="filter-option-list" id="priority-filter-options"></div>
+                      </section>
+                    </div>
+                    <div class="filter-group" data-filter-group="standort">
+                      <div class="filter-group-title">Standort</div>
+                      <section class="filter-section" data-filter-section="bundesland standort ort">
+                        <div class="filter-section-head">
+                          <h4 class="filter-section-title"><span>Bundesland</span></h4>
+                          <span class="filter-section-meta" id="state-filter-meta">Alle</span>
+                        </div>
+                        <div class="filter-option-list filter-option-list--scroll" id="state-filter-options"></div>
+                      </section>
+                    </div>
+                    <details class="filter-more" open>
+                      <summary>Weitere Filter</summary>
+                      <div class="filter-more-grid">
+                        <section class="filter-section" data-filter-section="themen klassifizierung quelle aktualität datenqualität fehlende angaben">
+                          <div class="filter-section-head">
+                            <h4 class="filter-section-title"><span>Themen</span></h4>
+                            <span class="filter-section-meta" id="theme-filter-meta">Alle</span>
+                          </div>
+                          <div class="filter-option-list filter-option-list--scroll" id="theme-filter-options"></div>
+                        </section>
+                        <section class="filter-section" data-filter-section="datenqualität vollständig prüfen lücken">
+                          <div class="filter-section-head">
+                            <h4 class="filter-section-title"><span>Datenqualität</span></h4>
+                            <span class="filter-section-meta" id="quality-filter-meta">Alle</span>
+                          </div>
+                          <div class="filter-option-list" id="quality-filter-options"></div>
+                        </section>
+                        <section class="filter-section" data-filter-section="fehlende angaben email telefon owner organisation fachrichtung">
+                          <div class="filter-section-head">
+                            <h4 class="filter-section-title"><span>Fehlende Angaben</span></h4>
+                            <span class="filter-section-meta" id="missing-filter-meta">Alle</span>
+                          </div>
+                          <div class="filter-option-list" id="missing-filter-options"></div>
+                        </section>
+                        <section class="filter-section" data-filter-section="aktualität zuletzt aktualisiert">
+                          <div class="filter-section-head">
+                            <h4 class="filter-section-title"><span>Zuletzt aktualisiert</span></h4>
+                            <span class="filter-section-meta" id="updated-filter-meta">Alle</span>
+                          </div>
+                          <div class="filter-option-list" id="updated-filter-options"></div>
+                        </section>
+                        <section class="filter-section" data-filter-section="quelle source import">
+                          <div class="filter-section-head">
+                            <h4 class="filter-section-title"><span>Quelle</span></h4>
+                            <span class="filter-section-meta" id="source-filter-meta">Alle</span>
+                          </div>
+                          <div class="filter-option-list filter-option-list--scroll" id="source-filter-options"></div>
+                        </section>
                       </div>
-                      <div class="filter-option-list" id="category-filter-options"></div>
-                    </section>
-                    <section class="filter-section">
-                      <div class="filter-section-head">
-                        <h4 class="filter-section-title">
-                          <span class="filter-section-icon">⚑</span>
-                          <span>Priorität</span>
-                        </h4>
-                        <span class="filter-section-meta" id="priority-filter-meta">Alle</span>
-                      </div>
-                      <div class="filter-option-list" id="priority-filter-options"></div>
-                    </section>
-                    <section class="filter-section">
-                      <div class="filter-section-head">
-                        <h4 class="filter-section-title">
-                          <span class="filter-section-icon">📍</span>
-                          <span>Bundesland</span>
-                        </h4>
-                        <span class="filter-section-meta" id="state-filter-meta">Alle</span>
-                      </div>
-                      <div class="filter-option-list filter-option-list--scroll" id="state-filter-options"></div>
-                    </section>
-                    <section class="filter-section">
-                      <div class="filter-section-head">
-                        <h4 class="filter-section-title">
-                          <span class="filter-section-icon">🩺</span>
-                          <span>Fachrichtung</span>
-                        </h4>
-                        <span class="filter-section-meta" id="specialty-filter-meta">Alle</span>
-                      </div>
-                      <div class="filter-option-list filter-option-list--scroll" id="specialty-filter-options"></div>
-                    </section>
-                    <section class="filter-section">
-                      <div class="filter-section-head">
-                        <h4 class="filter-section-title">
-                          <span class="filter-section-icon">👤</span>
-                          <span>Owner</span>
-                        </h4>
-                        <span class="filter-section-meta" id="owner-filter-meta">Alle</span>
-                      </div>
-                      <div class="filter-option-list filter-option-list--scroll" id="owner-filter-options"></div>
-                    </section>
-                    <section class="filter-section">
-                      <div class="filter-section-head">
-                        <h4 class="filter-section-title">
-                          <span class="filter-section-icon">🏷️</span>
-                          <span>Themen</span>
-                        </h4>
-                        <span class="filter-section-meta" id="theme-filter-meta">Alle</span>
-                      </div>
-                      <div class="filter-option-list filter-option-list--scroll" id="theme-filter-options"></div>
-                    </section>
+                    </details>
+                  </div>
+                  <div class="filter-panel-footer">
+                    <button class="filter-reset" type="button" id="filter-panel-reset">Zurücksetzen</button>
+                    <button class="filter-panel-apply" type="button" id="filter-panel-apply">Anwenden</button>
                   </div>
                 </div>
               </div>
+              <div class="column-menu-shell" id="column-menu-shell">
+                <button class="action-button action-button--compact" type="button" id="columns-button" aria-expanded="false" aria-controls="columns-menu">
+                  Spalten anpassen
+                </button>
+                <div class="column-menu" id="columns-menu" hidden>
+                  <div class="column-menu__title">Sichtbare Spalten</div>
+                  <div class="column-menu__options" id="column-options"></div>
+                </div>
+              </div>
+            </div>
+            <div class="active-filter-row">
+              <div class="active-filter-label">Aktive Filter</div>
+              <div class="active-filter-list" id="active-filter-list"></div>
             </div>
           </div>
         </div>
@@ -8993,15 +9324,6 @@
                   <button class="action-button action-button--compact action-button--danger-soft" type="button" id="bulk-archive">Archivieren</button>
                 </div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
-                <div class="column-menu-shell" id="column-menu-shell">
-                  <button class="action-button action-button--compact" type="button" id="columns-button" aria-expanded="false" aria-controls="columns-menu">
-                    Spalten anpassen
-                  </button>
-                  <div class="column-menu" id="columns-menu" hidden>
-                    <div class="column-menu__title">Sichtbare Spalten</div>
-                    <div class="column-menu__options" id="column-options"></div>
-                  </div>
-                </div>
               </div>
               <div class="table-wrap">
                 <section class="table contacts-table" aria-labelledby="kontaktliste-title">
@@ -9604,6 +9926,19 @@
         { key: "source", label: "Quelle", template: "minmax(145px, 0.68fr)" },
         { key: "quality", label: "Datenqualität", template: "minmax(128px, 0.62fr)" }
       ];
+      const missingFieldFilterOptions = [
+        { value: "email", label: "E-Mail" },
+        { value: "phone", label: "Telefon" },
+        { value: "owner", label: "Owner" },
+        { value: "organization", label: "Organisation" },
+        { value: "specialty", label: "Fachrichtung" }
+      ];
+      const updatedRangeFilterOptions = [
+        { value: "7", label: "Letzte 7 Tage" },
+        { value: "30", label: "Letzte 30 Tage" },
+        { value: "90", label: "Letzte 90 Tage" },
+        { value: "older90", label: "Älter als 90 Tage" }
+      ];
 
       const searchInput = document.getElementById("search");
       const list = document.getElementById("contact-list");
@@ -9629,6 +9964,7 @@
       const filterPanelButton = document.getElementById("filter-panel-button");
       const filterButtonBadge = document.getElementById("filter-button-badge");
       const filterPanel = document.getElementById("filter-panel");
+      const filterSearchInput = document.getElementById("filter-search");
       const saveCurrentViewButton = document.getElementById("save-current-view-button");
       const savedViewsQuicklist = document.getElementById("saved-views-quicklist");
       const filterPanelResetButton = document.getElementById("filter-panel-reset");
@@ -9640,12 +9976,20 @@
       const specialtyFilterOptions = document.getElementById("specialty-filter-options");
       const ownerFilterOptions = document.getElementById("owner-filter-options");
       const themeFilterOptions = document.getElementById("theme-filter-options");
+      const qualityFilterOptions = document.getElementById("quality-filter-options");
+      const missingFilterOptions = document.getElementById("missing-filter-options");
+      const updatedFilterOptions = document.getElementById("updated-filter-options");
+      const sourceFilterOptions = document.getElementById("source-filter-options");
       const categoryFilterMeta = document.getElementById("category-filter-meta");
       const priorityFilterMeta = document.getElementById("priority-filter-meta");
       const stateFilterMeta = document.getElementById("state-filter-meta");
       const specialtyFilterMeta = document.getElementById("specialty-filter-meta");
       const ownerFilterMeta = document.getElementById("owner-filter-meta");
       const themeFilterMeta = document.getElementById("theme-filter-meta");
+      const qualityFilterMeta = document.getElementById("quality-filter-meta");
+      const missingFilterMeta = document.getElementById("missing-filter-meta");
+      const updatedFilterMeta = document.getElementById("updated-filter-meta");
+      const sourceFilterMeta = document.getElementById("source-filter-meta");
       const mapViewFrame = document.getElementById("map-view-frame");
       const appShell = document.querySelector(".app-shell");
       const sidebarCollapseButton = document.getElementById("sidebar-collapse-button");
@@ -9731,6 +10075,10 @@
       let selectedSpecialties = [];
       let selectedOwners = [];
       let selectedThemes = [];
+      let selectedQualities = [];
+      let selectedMissingFields = [];
+      let selectedUpdatedRanges = [];
+      let selectedSources = [];
       let currentPage = 1;
       let pageSize = 20;
       let editorMode = "create";
@@ -11198,7 +11546,7 @@
       function ownerOptionLabel(value) {
         const profile = ownerProfileForValue(value);
         if (profile) return profile.label;
-        return `⚠ ${value} (kein echter Account)`;
+        return `${value} (kein echter Account)`;
       }
 
       function roleLabel(role) {
@@ -11243,7 +11591,11 @@
           states: selectedStates,
           specialties: selectedSpecialties,
           owners: selectedOwners,
-          themes: selectedThemes
+          themes: selectedThemes,
+          qualities: selectedQualities,
+          missingFields: selectedMissingFields,
+          updatedRanges: selectedUpdatedRanges,
+          sources: selectedSources
         };
       }
 
@@ -11265,7 +11617,7 @@
       function savedViewSummary(view) {
         const chips = [];
         const filters = view.filters || {};
-        const filterCount = ["categories", "priorities", "states", "specialties", "owners", "themes"].reduce(
+        const filterCount = ["categories", "priorities", "states", "specialties", "owners", "themes", "qualities", "missingFields", "updatedRanges", "sources"].reduce(
           (count, key) => count + (Array.isArray(filters[key]) ? filters[key].length : 0),
           0
         );
@@ -11383,6 +11735,10 @@
         selectedSpecialties = Array.isArray(filters.specialties) ? filters.specialties : [];
         selectedOwners = Array.isArray(filters.owners) ? filters.owners : [];
         selectedThemes = Array.isArray(filters.themes) ? filters.themes : [];
+        selectedQualities = Array.isArray(filters.qualities) ? filters.qualities : [];
+        selectedMissingFields = Array.isArray(filters.missingFields) ? filters.missingFields : [];
+        selectedUpdatedRanges = Array.isArray(filters.updatedRanges) ? filters.updatedRanges : [];
+        selectedSources = Array.isArray(filters.sources) ? filters.sources : [];
         searchInput.value = view.searchQuery || "";
         pageSize = Number(view.pageSize || 20);
         if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
@@ -11547,7 +11903,11 @@
           state: selectedStates,
           specialty: selectedSpecialties,
           owner: selectedOwners,
-          theme: selectedThemes
+          theme: selectedThemes,
+          quality: selectedQualities,
+          missing: selectedMissingFields,
+          updated: selectedUpdatedRanges,
+          source: selectedSources
         };
         const currentValues = filterMap[key];
         if (!currentValues) return;
@@ -11562,6 +11922,10 @@
         if (key === "specialty") selectedSpecialties = nextValues;
         if (key === "owner") selectedOwners = nextValues;
         if (key === "theme") selectedThemes = nextValues;
+        if (key === "quality") selectedQualities = nextValues;
+        if (key === "missing") selectedMissingFields = nextValues;
+        if (key === "updated") selectedUpdatedRanges = nextValues;
+        if (key === "source") selectedSources = nextValues;
 
         currentPage = 1;
         const panelWasOpen = !filterPanel.hidden;
@@ -11578,6 +11942,10 @@
         if (key === "specialty") selectedSpecialties = selectedSpecialties.filter((item) => item !== value);
         if (key === "owner") selectedOwners = selectedOwners.filter((item) => item !== value);
         if (key === "theme") selectedThemes = selectedThemes.filter((item) => item !== value);
+        if (key === "quality") selectedQualities = selectedQualities.filter((item) => item !== value);
+        if (key === "missing") selectedMissingFields = selectedMissingFields.filter((item) => item !== value);
+        if (key === "updated") selectedUpdatedRanges = selectedUpdatedRanges.filter((item) => item !== value);
+        if (key === "source") selectedSources = selectedSources.filter((item) => item !== value);
       }
 
       function clearAllFilters({ clearSearch = true } = {}) {
@@ -11587,6 +11955,10 @@
         selectedSpecialties = [];
         selectedOwners = [];
         selectedThemes = [];
+        selectedQualities = [];
+        selectedMissingFields = [];
+        selectedUpdatedRanges = [];
+        selectedSources = [];
         if (clearSearch) searchInput.value = "";
         currentPage = 1;
       }
@@ -11619,11 +11991,21 @@
           const matchesPriority = !selectedPriorities.length || selectedPriorities.includes(contact.priority);
           const matchesState = !selectedStates.length || selectedStates.includes(stateLabel(contact));
           const matchesSpecialty = !selectedSpecialties.length || selectedSpecialties.includes(specialtyLabel(contact));
-          const matchesOwner = !selectedOwners.length || selectedOwners.includes(meaningfulOrEmpty(contact.owner));
+          const contactOwnerValues = [meaningfulOrEmpty(contact.owner), meaningfulOrEmpty(contact.ownerId)].filter(Boolean);
+          const matchesOwner = !selectedOwners.length || selectedOwners.some((owner) => contactOwnerValues.includes(owner));
           const matchesTheme =
             !selectedThemes.length || selectedThemes.some((theme) => normalizeThemes(contact.themes).includes(theme));
+          const matchesQuality = !selectedQualities.length || selectedQualities.includes(dataQualityLabel(contact).label);
+          const missingFields = contactMissingFields(contact).map((field) => field.value);
+          const matchesMissing =
+            !selectedMissingFields.length || selectedMissingFields.every((field) => missingFields.includes(field));
+          const matchesUpdated =
+            !selectedUpdatedRanges.length || selectedUpdatedRanges.some((range) => contactMatchesUpdatedRange(contact, range));
+          const contactSources = normalizeSources(contact.sources);
+          const matchesSource =
+            !selectedSources.length || selectedSources.some((source) => contactSources.includes(source));
 
-          return matchesSearch && matchesCategory && matchesPriority && matchesState && matchesSpecialty && matchesOwner && matchesTheme;
+          return matchesSearch && matchesCategory && matchesPriority && matchesState && matchesSpecialty && matchesOwner && matchesTheme && matchesQuality && matchesMissing && matchesUpdated && matchesSource;
         });
       }
 
@@ -11654,8 +12036,16 @@
           selectedStates.length +
           selectedSpecialties.length +
           selectedOwners.length +
-          selectedThemes.length
+          selectedThemes.length +
+          selectedQualities.length +
+          selectedMissingFields.length +
+          selectedUpdatedRanges.length +
+          selectedSources.length
         );
+      }
+
+      function hasActiveSearchOrFilters() {
+        return Boolean(searchInput.value.trim()) || filterSelectionCount() > 0;
       }
 
       function setMetaCount(element, count) {
@@ -11677,11 +12067,11 @@
                 class="filter-option-chip ${isActive ? "is-active" : ""} ${option.legacy ? "filter-option-chip--legacy" : ""}"
                 type="button"
                 data-filter-key="${filterKey}"
-                data-filter-value="${String(option.value).replace(/"/g, "&quot;")}"
+                data-filter-value="${escapeHtml(option.value)}"
                 aria-pressed="${isActive ? "true" : "false"}"
               >
                 ${option.icon ? `<span class="filter-option-chip__icon">${option.icon}</span>` : ""}
-                <span>${option.label}</span>
+                <span>${escapeHtml(option.label)}</span>
               </button>
             `;
           })
@@ -11720,6 +12110,11 @@
           legacy: isLegacyOwner(value)
         }));
         const themes = themeSuggestions().map((value) => ({ value, label: value }));
+        const qualities = ["Vollständig", "Prüfen", "Lücken"].map((value) => ({ value, label: value }));
+        const sources = [...new Set(contacts.flatMap((contact) => normalizeSources(contact.sources)))]
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, "de"))
+          .map((value) => ({ value, label: value }));
 
         renderFilterOptionGroup(categoryFilterOptions, categories, selectedCategories, "category");
         renderFilterOptionGroup(priorityFilterOptions, priorities, selectedPriorities, "priority");
@@ -11727,6 +12122,10 @@
         renderFilterOptionGroup(specialtyFilterOptions, specialties, selectedSpecialties, "specialty");
         renderFilterOptionGroup(ownerFilterOptions, owners, selectedOwners, "owner");
         renderFilterOptionGroup(themeFilterOptions, themes, selectedThemes, "theme");
+        renderFilterOptionGroup(qualityFilterOptions, qualities, selectedQualities, "quality");
+        renderFilterOptionGroup(missingFilterOptions, missingFieldFilterOptions, selectedMissingFields, "missing");
+        renderFilterOptionGroup(updatedFilterOptions, updatedRangeFilterOptions, selectedUpdatedRanges, "updated");
+        renderFilterOptionGroup(sourceFilterOptions, sources, selectedSources, "source");
 
         setMetaCount(categoryFilterMeta, selectedCategories.length);
         setMetaCount(priorityFilterMeta, selectedPriorities.length);
@@ -11734,6 +12133,10 @@
         setMetaCount(specialtyFilterMeta, selectedSpecialties.length);
         setMetaCount(ownerFilterMeta, selectedOwners.length);
         setMetaCount(themeFilterMeta, selectedThemes.length);
+        setMetaCount(qualityFilterMeta, selectedQualities.length);
+        setMetaCount(missingFilterMeta, selectedMissingFields.length);
+        setMetaCount(updatedFilterMeta, selectedUpdatedRanges.length);
+        setMetaCount(sourceFilterMeta, selectedSources.length);
 
         const activeCount = filterSelectionCount();
         filterButtonBadge.textContent = String(activeCount);
@@ -11746,6 +12149,7 @@
           });
         });
 
+        applyFilterPanelSearch();
       }
 
       function renderActiveFilters() {
@@ -11754,28 +12158,42 @@
           ...selectedPriorities.map((value) => ({ key: "priority", value, label: isMobileLayout() ? value : `Priorität: ${value}` })),
           ...selectedStates.map((value) => ({ key: "state", value, label: isMobileLayout() ? value : `Bundesland: ${value}` })),
           ...selectedSpecialties.map((value) => ({ key: "specialty", value, label: isMobileLayout() ? value : `Fachrichtung: ${value}` })),
-          ...selectedOwners.map((value) => ({ key: "owner", value, label: isMobileLayout() ? value : `Owner: ${value}` })),
-          ...selectedThemes.map((value) => ({ key: "theme", value, label: isMobileLayout() ? value : `Thema: ${value}` }))
+          ...selectedOwners.map((value) => ({ key: "owner", value, label: isMobileLayout() ? ownerDisplayLabel(value) : `Owner: ${ownerDisplayLabel(value) || "Kein Owner"}` })),
+          ...selectedThemes.map((value) => ({ key: "theme", value, label: isMobileLayout() ? value : `Thema: ${value}` })),
+          ...selectedQualities.map((value) => ({ key: "quality", value, label: isMobileLayout() ? value : `Datenqualität: ${value}` })),
+          ...selectedMissingFields.map((value) => {
+            const label = missingFieldFilterOptions.find((field) => field.value === value)?.label || value;
+            return { key: "missing", value, label: isMobileLayout() ? label : `Fehlt: ${label}` };
+          }),
+          ...selectedUpdatedRanges.map((value) => {
+            const label = updatedRangeFilterOptions.find((range) => range.value === value)?.label || value;
+            return { key: "updated", value, label: isMobileLayout() ? label : `Aktualisiert: ${label}` };
+          }),
+          ...selectedSources.map((value) => ({ key: "source", value, label: isMobileLayout() ? value : `Quelle: ${value}` }))
         ];
+        const canReset = hasActiveSearchOrFilters();
+        resetAllFiltersButton.hidden = !canReset;
+        filterPanelResetButton.hidden = !canReset;
 
         if (!filters.length) {
           activeFilterList.innerHTML = `<div class="active-filter-empty">Keine aktiven Filter</div>`;
-          const hasSearch = Boolean(searchInput.value.trim());
-          resetAllFiltersButton.disabled = !hasSearch;
-          filterPanelResetButton.disabled = true;
+          resetAllFiltersButton.disabled = !canReset;
+          filterPanelResetButton.disabled = !canReset;
           return;
         }
 
-        activeFilterList.innerHTML = filters
+        const visibleFilters = filters.slice(0, 3);
+        const hiddenFilterCount = filters.length - visibleFilters.length;
+        activeFilterList.innerHTML = visibleFilters
           .map(
             (filter) => `
               <div class="active-filter-chip">
-                <span>${filter.label}</span>
-                <button type="button" data-clear-filter="${filter.key}" data-clear-value="${String(filter.value).replace(/"/g, "&quot;")}" aria-label="${filter.label} entfernen">&times;</button>
+                <span>${escapeHtml(filter.label)}</span>
+                <button type="button" data-clear-filter="${filter.key}" data-clear-value="${escapeHtml(filter.value)}" aria-label="${escapeHtml(filter.label)} entfernen">&times;</button>
               </div>
             `
           )
-          .join("");
+          .join("") + (hiddenFilterCount > 0 ? `<button class="active-filter-more" type="button" data-open-filter-menu>+ ${hiddenFilterCount} weitere</button>` : "");
 
         resetAllFiltersButton.disabled = false;
         filterPanelResetButton.disabled = false;
@@ -11787,6 +12205,26 @@
             removeFilterValue(key, value);
             updateView();
           });
+        });
+        activeFilterList.querySelector("[data-open-filter-menu]")?.addEventListener("click", () => {
+          closeMenus();
+          setFilterPanelOpen(true);
+        });
+      }
+
+      function applyFilterPanelSearch() {
+        if (!filterPanel || !filterSearchInput) return;
+        const query = filterSearchInput.value.trim().toLowerCase();
+        const groups = [...filterPanel.querySelectorAll(".filter-group, .filter-more")];
+        groups.forEach((group) => {
+          let visibleSections = 0;
+          group.querySelectorAll(".filter-section").forEach((section) => {
+            const haystack = `${section.dataset.filterSection || ""} ${section.textContent || ""}`.toLowerCase();
+            const visible = !query || haystack.includes(query);
+            section.hidden = !visible;
+            if (visible) visibleSections += 1;
+          });
+          group.hidden = query ? visibleSections === 0 : false;
         });
       }
 
@@ -11898,6 +12336,27 @@
         if (missing === 0) return { label: "Vollständig", tone: "good" };
         if (missing <= 2) return { label: "Prüfen", tone: "medium" };
         return { label: "Lücken", tone: "low" };
+      }
+
+      function contactMissingFields(contact) {
+        return [
+          { value: "email", label: "E-Mail", present: hasMeaningfulValue(contact.email) },
+          { value: "phone", label: "Telefon", present: hasMeaningfulValue(contact.phone) },
+          { value: "owner", label: "Owner", present: hasMeaningfulValue(contact.owner || contact.ownerId) },
+          { value: "organization", label: "Organisation", present: hasMeaningfulValue(contact.organization) },
+          { value: "specialty", label: "Fachrichtung", present: hasMeaningfulValue(contact.specialty) }
+        ].filter((field) => !field.present);
+      }
+
+      function contactMatchesUpdatedRange(contact, range) {
+        const date = new Date(contact.updatedAt || contact.createdAt || "");
+        if (Number.isNaN(date.getTime())) return range === "unknown";
+        const ageDays = Math.floor((Date.now() - date.getTime()) / 86400000);
+        if (range === "7") return ageDays <= 7;
+        if (range === "30") return ageDays <= 30;
+        if (range === "90") return ageDays <= 90;
+        if (range === "older90") return ageDays > 90;
+        return false;
       }
 
       function tableCellMarkup(contact, key) {
@@ -12177,7 +12636,7 @@
         );
         const legacyOptions = ownerOptions
           .filter((owner) => isLegacyOwner(owner))
-          .map((owner) => `<option value="${escapeHtml(owner)}" ${!selectedOwnerId && selectedOwner === owner ? "selected" : ""}>⚠ ${escapeHtml(owner)} (kein echter Account)</option>`);
+          .map((owner) => `<option value="${escapeHtml(owner)}" ${!selectedOwnerId && selectedOwner === owner ? "selected" : ""}>${escapeHtml(owner)} (kein echter Account)</option>`);
         return [
           `<option value="">Keinen Owner zuweisen</option>`,
           ...profileOptions,
@@ -14528,6 +14987,7 @@
       filterPanel.addEventListener("click", (event) => {
         event.stopPropagation();
       });
+      filterSearchInput?.addEventListener("input", applyFilterPanelSearch);
       filterPanelCloseButton.addEventListener("click", () => {
         closeMenus();
       });
