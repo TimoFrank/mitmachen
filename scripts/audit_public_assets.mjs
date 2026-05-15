@@ -1,0 +1,60 @@
+import { readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+const root = new URL("..", import.meta.url).pathname;
+const publicFiles = [
+  "data/versorgungs-kompass-data.csv",
+  "data/versorgungs-kompass-data.js",
+  "docs/data/versorgungs-kompass-data.csv",
+  "docs/data/versorgungs-kompass-data.js",
+  "data/supabase-config.js",
+  "docs/data/supabase-config.js"
+];
+
+const failures = [];
+
+function read(relativePath) {
+  return readFileSync(join(root, relativePath), "utf8");
+}
+
+function assert(condition, message) {
+  if (!condition) failures.push(message);
+}
+
+for (const relativePath of publicFiles) {
+  assert(statSync(join(root, relativePath)).isFile(), `${relativePath} fehlt`);
+}
+
+const seedCsv = read("data/versorgungs-kompass-data.csv");
+const docsSeedCsv = read("docs/data/versorgungs-kompass-data.csv");
+const seedJs = read("data/versorgungs-kompass-data.js");
+const docsSeedJs = read("docs/data/versorgungs-kompass-data.js");
+const config = read("data/supabase-config.js");
+const docsConfig = read("docs/data/supabase-config.js");
+
+assert(seedCsv.split(/\r?\n/).filter(Boolean).length === 1, "data/versorgungs-kompass-data.csv darf nur die Header-Zeile enthalten");
+assert(docsSeedCsv.split(/\r?\n/).filter(Boolean).length === 1, "docs/data/versorgungs-kompass-data.csv darf nur die Header-Zeile enthalten");
+assert(seedJs.includes("window.VERSORGUNGS_COMPASS_CONTACTS = [];"), "data/versorgungs-kompass-data.js muss leer bleiben");
+assert(docsSeedJs.includes("window.VERSORGUNGS_COMPASS_CONTACTS = [];"), "docs/data/versorgungs-kompass-data.js muss leer bleiben");
+
+for (const [label, content] of [
+  ["data/supabase-config.js", config],
+  ["docs/data/supabase-config.js", docsConfig]
+]) {
+  assert(!/service[_-]?role/i.test(content), `${label} enthaelt Service-Role-Hinweis`);
+  assert(!/sb_secret_/i.test(content), `${label} enthaelt moeglich geheimen Supabase-Key`);
+  assert(/supabaseAnonKey/.test(content), `${label} enthaelt keinen anon/publishable Key`);
+}
+
+const suspiciousPublicSeedText = [seedCsv, docsSeedCsv, seedJs, docsSeedJs].join("\n");
+assert(!/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(suspiciousPublicSeedText), "Oeffentliche Seed-Dateien enthalten E-Mail-Adressen");
+assert(!/linkedin\.com/i.test(suspiciousPublicSeedText), "Oeffentliche Seed-Dateien enthalten LinkedIn-URLs");
+assert(!/\+?\d[\d\s()./-]{7,}\d/.test(suspiciousPublicSeedText), "Oeffentliche Seed-Dateien enthalten moegliche Telefonnummern");
+
+if (failures.length) {
+  console.error("Public Asset Audit fehlgeschlagen:");
+  failures.forEach((failure) => console.error(`- ${failure}`));
+  process.exit(1);
+}
+
+console.log("Public Asset Audit OK: keine oeffentlichen Kontakt-Seeds oder Service-Role-Keys gefunden.");

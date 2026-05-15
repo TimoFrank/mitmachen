@@ -48,7 +48,7 @@ Das Sync-Skript validiert die CSV, schreibt `data/versorgungs-kompass-data.js` n
 
 Der Zielbetrieb nutzt Supabase als gemeinsamen Datenstand. Die statische Oberflaeche bleibt erhalten und greift ueber `window.dataService` auf Supabase zu. Service-Role-Keys duerfen nie in `data/supabase-config.js` oder andere Frontend-Dateien eingetragen werden.
 
-Fuer Setup, SQL, Rollen, RLS und Import siehe `supabase/README.md`. Fuer neue Nutzer:innen und Rollen-Onboarding siehe `supabase/onboarding.md`.
+Fuer Setup, SQL, Rollen, RLS und Import siehe `supabase/README.md`. Fuer neue Nutzer:innen und Rollen-Onboarding siehe `supabase/onboarding.md`. Fuer Regelbetrieb, Backups, Redirects und Sicherheitschecks siehe `supabase/operations.md`.
 
 Fuer den Karten-Modus werden diese Kartendateien benoetigt:
 

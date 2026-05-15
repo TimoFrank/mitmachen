@@ -1,5 +1,7 @@
 # Supabase Setup fuer den Versorgungs-Kompass
 
+Regelbetrieb, Sicherheitschecks, Backup/Restore und Redirect-Kontrolle sind in `supabase/operations.md` dokumentiert.
+
 ## 1. Projekt erstellen
 
 1. Neues Supabase-Projekt anlegen.
