@@ -391,6 +391,78 @@
         line-height: 1.35;
       }
 
+      .saved-view-list {
+        display: grid;
+        gap: 8px;
+        margin: 8px 0;
+      }
+
+      .saved-view-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 10px;
+        border: 1px solid #dfe6fa;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #2c3e7d;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .saved-view-item:hover {
+        border-color: #b9c9ff;
+        background: #f7faff;
+      }
+
+      .saved-view-item strong {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.82rem;
+      }
+
+      .saved-view-item span {
+        display: block;
+        margin-top: 2px;
+        color: #7180ad;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+
+      .saved-view-pill {
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: #edf3ff;
+        color: #3155ad;
+        font-size: 0.66rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .saved-view-empty {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #f7f9ff;
+        color: #6c78a5;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .saved-view-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
       .permission-banner {
         display: none;
         align-items: center;
@@ -422,6 +494,42 @@
         background: #e8efff;
         color: #3155ad;
         flex: 0 0 auto;
+      }
+
+      .filter-panel-saved {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 14px;
+        padding: 12px;
+        border: 1px solid #e0e7fb;
+        border-radius: 16px;
+        background: #f8faff;
+      }
+
+      .filter-panel-saved__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .filter-panel-saved__title {
+        color: #243271;
+        font-size: 0.86rem;
+        font-weight: 900;
+      }
+
+      .filter-panel-saved__copy {
+        margin-top: 2px;
+        color: #6b78a6;
+        font-size: 0.76rem;
+        font-weight: 700;
+      }
+
+      .filter-panel-saved__list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
 
       .is-role-hidden {
@@ -6468,6 +6576,12 @@
             <strong>Profil &amp; Einstellungen</strong>
             <span>Vorgesehen: gespeicherte Suchen, Standardansicht, Tabellendichte, Farben, Schriftgröße und persönliche CRM-Präferenzen.</span>
           </div>
+          <div class="account-settings-preview">
+            <strong>Gespeicherte Suchen</strong>
+            <div class="saved-view-list" id="account-saved-views">
+              <div class="saved-view-empty">Noch keine gespeicherten Suchen geladen.</div>
+            </div>
+          </div>
           <button class="menu-option" type="button" id="account-logout-button">Abmelden</button>
         </div>
       </div>
@@ -6561,6 +6675,16 @@
                       <button class="filter-panel-apply" type="button" id="filter-panel-apply">Filter anwenden</button>
                     </div>
                   </div>
+                  <section class="filter-panel-saved" aria-labelledby="saved-views-title">
+                    <div class="filter-panel-saved__head">
+                      <div>
+                        <div class="filter-panel-saved__title" id="saved-views-title">Gespeicherte Suchen</div>
+                        <div class="filter-panel-saved__copy">Private Suchprofile für deine Arbeitsweise.</div>
+                      </div>
+                      <button class="filter-reset" type="button" id="save-current-view-button">Aktuelle Suche speichern</button>
+                    </div>
+                    <div class="filter-panel-saved__list" id="saved-views-quicklist"></div>
+                  </section>
                   <div class="filter-panel-grid">
                     <section class="filter-section">
                       <div class="filter-section-head">
@@ -7208,6 +7332,8 @@
         source: ["quelle", "source", "herkunft"]
       };
       const storageKey = "versorgungs-kompass-contacts-v9";
+      const savedViewsStorageKey = "versorgungs-kompass-saved-views-v1";
+      const settingsStorageKey = "versorgungs-kompass-user-settings-v1";
 
       const searchInput = document.getElementById("search");
       const list = document.getElementById("contact-list");
@@ -7221,6 +7347,8 @@
       const filterPanelButton = document.getElementById("filter-panel-button");
       const filterButtonBadge = document.getElementById("filter-button-badge");
       const filterPanel = document.getElementById("filter-panel");
+      const saveCurrentViewButton = document.getElementById("save-current-view-button");
+      const savedViewsQuicklist = document.getElementById("saved-views-quicklist");
       const filterPanelResetButton = document.getElementById("filter-panel-reset");
       const filterPanelCloseButton = document.getElementById("filter-panel-close");
       const filterPanelApplyButton = document.getElementById("filter-panel-apply");
@@ -7272,6 +7400,7 @@
       const accountEmail = document.getElementById("account-email");
       const accountRole = document.getElementById("account-role");
       const accountPermissionNote = document.getElementById("account-permission-note");
+      const accountSavedViews = document.getElementById("account-saved-views");
       const permissionBanner = document.getElementById("permission-banner");
       const permissionBannerText = document.getElementById("permission-banner-text");
       const brandHomeLink = document.getElementById("brand-home-link");
@@ -7312,6 +7441,8 @@
       let currentProfile = null;
       const contactHistoryCache = new Map();
       const contactHistoryFilters = new Map();
+      let savedViews = [];
+      let userSettings = null;
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
       const customSelectInstances = new WeakMap();
       let loadedContactsFromStorage = false;
@@ -8518,6 +8649,195 @@
 
       function saveFavorites() {
         window.localStorage.setItem("versorgungs-kompass-favorites-v4", JSON.stringify([...favorites]));
+      }
+
+      function currentFilterPayload() {
+        return {
+          categories: selectedCategories,
+          priorities: selectedPriorities,
+          states: selectedStates,
+          specialties: selectedSpecialties,
+          owners: selectedOwners,
+          themes: selectedThemes
+        };
+      }
+
+      function currentSavedViewPayload(name) {
+        return {
+          name,
+          description: "",
+          scope: "private",
+          viewType: activeView || "contacts",
+          filters: currentFilterPayload(),
+          searchQuery: searchInput.value.trim(),
+          sortKey: "updated_at",
+          sortDirection: "desc",
+          pageSize,
+          isDefault: false
+        };
+      }
+
+      function savedViewSummary(view) {
+        const chips = [];
+        const filters = view.filters || {};
+        const filterCount = ["categories", "priorities", "states", "specialties", "owners", "themes"].reduce(
+          (count, key) => count + (Array.isArray(filters[key]) ? filters[key].length : 0),
+          0
+        );
+        if (view.searchQuery) chips.push(`Suche: ${view.searchQuery}`);
+        if (filterCount) chips.push(`${filterCount} Filter`);
+        chips.push(`${view.pageSize || 20} pro Seite`);
+        return chips.join(" · ");
+      }
+
+      function loadLocalSavedViews() {
+        try {
+          const parsed = JSON.parse(window.localStorage.getItem(savedViewsStorageKey) || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function saveLocalSavedViews(items) {
+        window.localStorage.setItem(savedViewsStorageKey, JSON.stringify(items));
+      }
+
+      function normalizeSavedView(view) {
+        return {
+          id: view.id || `local-view-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          name: view.name || "Gespeicherte Suche",
+          description: view.description || "",
+          scope: view.scope || "private",
+          viewType: view.viewType || "contacts",
+          filters: view.filters || {},
+          searchQuery: view.searchQuery || "",
+          sortKey: view.sortKey || "updated_at",
+          sortDirection: view.sortDirection || "desc",
+          pageSize: Number(view.pageSize || 20),
+          isDefault: Boolean(view.isDefault),
+          createdAt: view.createdAt || new Date().toISOString(),
+          updatedAt: view.updatedAt || new Date().toISOString()
+        };
+      }
+
+      async function loadSavedViewsAndSettings() {
+        try {
+          if (window.dataService?.getSavedViews) {
+            savedViews = (await window.dataService.getSavedViews()).map(normalizeSavedView);
+          } else {
+            savedViews = loadLocalSavedViews().map(normalizeSavedView);
+          }
+        } catch (error) {
+          console.warn("Gespeicherte Suchen konnten nicht aus Supabase geladen werden. Lokaler Fallback aktiv.", error);
+          savedViews = loadLocalSavedViews().map(normalizeSavedView);
+        }
+
+        try {
+          userSettings = window.dataService?.getUserSettings ? await window.dataService.getUserSettings() : null;
+        } catch (error) {
+          try {
+            userSettings = JSON.parse(window.localStorage.getItem(settingsStorageKey) || "null");
+          } catch (storageError) {
+            userSettings = null;
+          }
+        }
+
+        if (userSettings?.pageSize) {
+          pageSize = Number(userSettings.pageSize) || pageSize;
+          if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
+        }
+
+        renderSavedViews();
+      }
+
+      function renderSavedViews() {
+        const visible = savedViews.slice(0, 6);
+        const emptyMarkup = `<div class="saved-view-empty">Speichere aktuelle Filter als Suche, um sie später direkt wieder aufzurufen.</div>`;
+        const listMarkup = visible.length
+          ? visible
+              .map(
+                (view) => `
+                  <button class="saved-view-item" type="button" data-apply-saved-view="${escapeHtml(view.id)}">
+                    <span>
+                      <strong>${escapeHtml(view.name)}</strong>
+                      <span>${escapeHtml(savedViewSummary(view))}</span>
+                    </span>
+                    <span class="saved-view-pill">${view.scope === "team" ? "Team" : "Privat"}</span>
+                  </button>
+                `
+              )
+              .join("")
+          : emptyMarkup;
+
+        if (accountSavedViews) accountSavedViews.innerHTML = listMarkup;
+        if (savedViewsQuicklist) {
+          savedViewsQuicklist.innerHTML = visible.length
+            ? visible
+                .map(
+                  (view) => `
+                    <button class="history-filter" type="button" data-apply-saved-view="${escapeHtml(view.id)}">${escapeHtml(view.name)}</button>
+                  `
+                )
+                .join("")
+            : `<div class="saved-view-empty">Noch keine gespeicherte Suche.</div>`;
+        }
+
+        document.querySelectorAll("[data-apply-saved-view]").forEach((button) => {
+          button.addEventListener("click", () => applySavedView(button.dataset.applySavedView));
+        });
+      }
+
+      function applySavedView(id) {
+        const view = savedViews.find((item) => item.id === id);
+        if (!view) return;
+        const filters = view.filters || {};
+        selectedCategories = Array.isArray(filters.categories) ? filters.categories : [];
+        selectedPriorities = Array.isArray(filters.priorities) ? filters.priorities : [];
+        selectedStates = Array.isArray(filters.states) ? filters.states : [];
+        selectedSpecialties = Array.isArray(filters.specialties) ? filters.specialties : [];
+        selectedOwners = Array.isArray(filters.owners) ? filters.owners : [];
+        selectedThemes = Array.isArray(filters.themes) ? filters.themes : [];
+        searchInput.value = view.searchQuery || "";
+        pageSize = Number(view.pageSize || 20);
+        if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
+        currentPage = 1;
+        setActiveView(view.viewType || "contacts");
+        closeMenus();
+        updateView();
+      }
+
+      async function saveCurrentView() {
+        const defaultName = searchInput.value.trim() || "Meine Suche";
+        const name = window.prompt("Name der gespeicherten Suche", defaultName);
+        if (!name || !name.trim()) return;
+        const payload = currentSavedViewPayload(name.trim());
+        let created;
+        try {
+          if (window.dataService?.createSavedView) {
+            created = await window.dataService.createSavedView(payload);
+          }
+        } catch (error) {
+          console.warn("Gespeicherte Suche konnte nicht in Supabase gespeichert werden. Lokaler Fallback aktiv.", error);
+        }
+        const nextView = normalizeSavedView(created || payload);
+        savedViews = [nextView, ...savedViews.filter((view) => view.id !== nextView.id)];
+        if (!created) saveLocalSavedViews(savedViews);
+        renderSavedViews();
+        setStorageStatus(created ? "Gespeicherte Suche in Supabase gespeichert" : "Gespeicherte Suche lokal gespeichert");
+      }
+
+      async function persistUserSettingPatch(patch = {}) {
+        userSettings = { ...(userSettings || {}), ...patch };
+        try {
+          if (window.dataService?.upsertUserSettings) {
+            userSettings = await window.dataService.upsertUserSettings(userSettings);
+          } else {
+            window.localStorage.setItem(settingsStorageKey, JSON.stringify(userSettings));
+          }
+        } catch (error) {
+          window.localStorage.setItem(settingsStorageKey, JSON.stringify(userSettings));
+        }
       }
 
       function persistContacts(message = `${contacts.length} Kontakte gespeichert`, { silent = false } = {}) {
@@ -10963,6 +11283,7 @@
         renderDashboard(items);
         renderActiveFilters();
         renderFilterPanel();
+        renderSavedViews();
         syncMapFrame(items);
 
         if (activeId && !items.some((item) => item.id === activeId)) {
@@ -10987,6 +11308,7 @@
       pageSizeSelect.addEventListener("change", () => {
         pageSize = Number(pageSizeSelect.value) || 20;
         currentPage = 1;
+        persistUserSettingPatch({ pageSize });
         updateView();
       });
       resetAllFiltersButton.addEventListener("click", () => {
@@ -11046,6 +11368,7 @@
       filterPanelApplyButton.addEventListener("click", () => {
         closeMenus();
       });
+      saveCurrentViewButton?.addEventListener("click", saveCurrentView);
 
       detailOverlay.addEventListener("click", closeDetail);
       editorOverlay.addEventListener("click", closeEditor);
@@ -11298,6 +11621,7 @@
           const profiles = await window.dataService.getProfiles();
           applyProfiles(profiles);
           renderAccountProfile(await window.dataService.getCurrentProfile());
+          await loadSavedViewsAndSettings();
           loadedContactsFromStorage = false;
           setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
         } catch (error) {

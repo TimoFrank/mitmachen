@@ -9,7 +9,7 @@
 ## 2. Datenbank einrichten
 
 1. `supabase/schema.sql` im Supabase SQL Editor ausfuehren.
-2. RLS ist danach fuer `profiles`, `contacts` und `changes` aktiv.
+2. RLS ist danach fuer `profiles`, `contacts`, `changes`, `saved_views` und `user_settings` aktiv.
 
 ## 3. Auth aktivieren
 
@@ -47,3 +47,19 @@ Der Service-Role-Key ist nur fuer lokale Admin-Skripte gedacht und darf nicht de
 3. In `changes` pruefen, ob bearbeitete Felder protokolliert wurden.
 4. Als `admin` anmelden: Kontakt archivieren; er verschwindet aus Liste, Karte und Dashboard.
 5. Ausloggen oder privates Browserfenster nutzen: Ohne Supabase-Session darf kein Datenzugriff moeglich sein.
+
+## 6. Gespeicherte Suchen und Einstellungen
+
+Phase 4 nutzt zwei Tabellen:
+
+- `saved_views`: private gespeicherte Suchen pro User, spaeter optional `scope = 'team'` fuer Team-Views.
+- `user_settings`: persoenliche Standardansicht, Seitenlaenge, Tabellendichte, Theme, Schriftgroesse und weitere CRM-Praeferenzen.
+
+Wenn `schema.sql` bereits frueher ausgefuehrt wurde, kann fuer Phase 4 auch nur `supabase/phase4-saved-views.sql` ausgefuehrt werden.
+
+RLS-Regeln:
+
+- Private Views sind nur fuer den jeweiligen `owner_id` sichtbar.
+- Team-Views sind fuer authentifizierte Nutzer lesbar.
+- Team-Views koennen nur Admins anlegen oder verwalten.
+- `user_settings` gehoert immer genau dem eingeloggten User.
