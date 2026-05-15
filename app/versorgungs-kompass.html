@@ -8156,7 +8156,7 @@
         if (!currentContact) return;
 
         const normalizedValue = typeof value === "string" ? value.trim() : value;
-        const currentValue = currentContact[field] || "";
+        const currentValue = field === "owner" ? currentContact.ownerId || currentContact.owner || "" : currentContact[field] || "";
         if (currentValue === normalizedValue) return;
 
         try {

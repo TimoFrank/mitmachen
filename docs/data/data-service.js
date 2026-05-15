@@ -251,7 +251,9 @@
     const { data: oldRow, error: oldError } = await supabase.from("contacts").select(DB_FIELDS.join(",")).eq("id", id).single();
     if (oldError) throw oldError;
     const merged = { ...dbToUi(oldRow), ...patch, id };
-    if (Object.prototype.hasOwnProperty.call(patch, "owner")) {
+    if (Object.prototype.hasOwnProperty.call(patch, "ownerId")) {
+      merged.ownerId = resolveOwnerId(patch.ownerId);
+    } else if (Object.prototype.hasOwnProperty.call(patch, "owner")) {
       merged.ownerId = resolveOwnerId(patch.owner);
     }
     const dbPatch = uiToDb(merged);
