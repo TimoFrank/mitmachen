@@ -244,7 +244,11 @@
     const userId = await getCurrentUserId();
     const { data: oldRow, error: oldError } = await supabase.from("contacts").select(DB_FIELDS.join(",")).eq("id", id).single();
     if (oldError) throw oldError;
-    const dbPatch = uiToDb({ ...dbToUi(oldRow), ...patch, id });
+    const merged = { ...dbToUi(oldRow), ...patch, id };
+    if (Object.prototype.hasOwnProperty.call(patch, "owner")) {
+      merged.ownerId = resolveOwnerId(patch.owner);
+    }
+    const dbPatch = uiToDb(merged);
     delete dbPatch.id;
     dbPatch.updated_by = userId;
     dbPatch.updated_at = new Date().toISOString();

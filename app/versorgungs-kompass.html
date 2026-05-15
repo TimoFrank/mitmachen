@@ -8099,7 +8099,8 @@
         if (currentValue === normalizedValue) return;
 
         try {
-          const updated = await window.dataService.updateContact(id, { [field]: normalizedValue });
+          const patch = field === "owner" ? { owner: normalizedValue, ownerId: normalizedValue } : { [field]: normalizedValue };
+          const updated = await window.dataService.updateContact(id, patch);
           contacts = contacts.map((contact, index) =>
             contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
           );
