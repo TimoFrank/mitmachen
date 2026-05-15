@@ -126,10 +126,7 @@
         min-height: 100vh;
         font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         color: var(--text);
-        background:
-          radial-gradient(circle at 12% 0%, rgba(39, 136, 246, 0.12), transparent 24%),
-          radial-gradient(circle at 100% 10%, rgba(155, 70, 223, 0.12), transparent 22%),
-          linear-gradient(180deg, var(--page) 0%, var(--page-2) 100%);
+        background: #f5f7fb;
       }
 
       button,
@@ -142,9 +139,9 @@
       .topbar {
         display: flex;
         align-items: center;
-        gap: 18px;
-        min-height: 80px;
-        padding: 0 26px;
+        gap: 14px;
+        min-height: 70px;
+        padding: 0 24px;
         border-bottom: 1px solid rgba(26, 37, 89, 0.08);
         background: rgba(255, 255, 255, 0.92);
         backdrop-filter: blur(18px);
@@ -291,6 +288,232 @@
         color: #6877a8;
         font-size: 0.82rem;
         font-weight: 700;
+      }
+
+      .app-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        background: #f5f7fb;
+      }
+
+      .app-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 22px 14px 18px;
+        background:
+          linear-gradient(180deg, rgba(13, 62, 149, 0.92), rgba(5, 33, 92, 0.98)),
+          #06357f;
+        color: #ffffff;
+        box-shadow: 8px 0 28px rgba(8, 35, 94, 0.16);
+        z-index: 50;
+      }
+
+      .app-main {
+        min-width: 0;
+      }
+
+      .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 52px;
+        padding: 0 8px 18px;
+        color: #ffffff;
+        text-decoration: none;
+      }
+
+      .sidebar-brand .brand-mark {
+        width: 42px;
+        height: 42px;
+      }
+
+      .sidebar-brand .brand-mark span {
+        width: 14px;
+        height: 14px;
+        border-radius: 6px;
+      }
+
+      .sidebar-brand .brand-mark span:nth-child(1) {
+        top: 2px;
+        left: 6px;
+        background: #45a1ff;
+      }
+
+      .sidebar-brand .brand-mark span:nth-child(2) {
+        top: 14px;
+        left: 18px;
+        background: #ff9a4d;
+      }
+
+      .sidebar-brand .brand-mark span:nth-child(3) {
+        top: 26px;
+        left: 6px;
+        background: #e8f1ff;
+      }
+
+      .sidebar-brand strong {
+        display: block;
+        max-width: 150px;
+        font-size: 1rem;
+        line-height: 1.08;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+      }
+
+      .sidebar-nav {
+        width: 100%;
+        display: grid;
+        gap: 6px;
+        margin-top: 14px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .sidebar-nav .primary-tab {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        justify-content: flex-start;
+        padding: 0 12px;
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.9rem;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .sidebar-nav .primary-tab:hover,
+      .sidebar-nav .primary-tab:focus-visible {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        outline: none;
+      }
+
+      .sidebar-nav .primary-tab.is-active {
+        background: #155fe4;
+        color: #ffffff;
+        box-shadow: 0 8px 22px rgba(0, 24, 80, 0.22);
+      }
+
+      .sidebar-secondary {
+        display: grid;
+        gap: 4px;
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .sidebar-link {
+        min-height: 40px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.72);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.86rem;
+        font-weight: 750;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .sidebar-link:hover,
+      .sidebar-link:focus-visible {
+        background: rgba(255, 255, 255, 0.09);
+        color: #ffffff;
+        outline: none;
+      }
+
+      .sidebar-link svg,
+      .sidebar-nav svg {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+      }
+
+      .sidebar-footer {
+        margin-top: auto;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        padding: 12px 8px 0;
+        color: #ffffff;
+      }
+
+      .sidebar-footer__badge {
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .sidebar-footer strong,
+      .sidebar-footer span {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .sidebar-footer strong {
+        font-size: 0.84rem;
+      }
+
+      .sidebar-footer span {
+        margin-top: 2px;
+        color: rgba(255, 255, 255, 0.66);
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+
+      .mobile-primary-nav,
+      .topbar > .brand {
+        display: none;
+      }
+
+      .topbar-title {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .topbar-title h1 {
+        margin: 0;
+        color: #17275f;
+        font-size: 1.18rem;
+        line-height: 1.1;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+      }
+
+      .topbar-title span {
+        color: #6b7599;
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
+      .topbar-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
       .account-popover {
@@ -631,16 +854,17 @@
       }
 
       .wrap {
-        width: calc(100% - 24px);
-        margin: 18px auto 28px;
+        width: 100%;
+        margin: 0;
+        padding: 18px 22px 28px;
       }
 
       .crm-shell {
-        border: 1px solid var(--line);
-        border-radius: 28px;
-        background: rgba(255, 255, 255, 0.88);
-        box-shadow: var(--shadow-lg);
-        overflow: hidden;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        overflow: visible;
         position: relative;
       }
 
@@ -753,22 +977,18 @@
 
       .workspace-header {
         display: grid;
-        grid-template-columns: minmax(220px, 0.8fr) auto auto;
+        grid-template-columns: minmax(220px, 1fr) auto;
         align-items: center;
-        gap: 18px;
-        padding: 22px 28px 18px;
+        gap: 14px;
+        padding: 0 0 16px;
       }
 
       .workspace-copy h2 {
         margin: 0;
-        font-size: clamp(1.95rem, 2.9vw, 2.75rem);
-        line-height: 0.98;
-        letter-spacing: -0.05em;
-        background: linear-gradient(135deg, #1b2a66 0%, #2f57c8 55%, #4b86ff 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        text-shadow: 0 10px 22px rgba(56, 87, 181, 0.1);
+        color: #17275f;
+        font-size: clamp(1.45rem, 2vw, 1.9rem);
+        line-height: 1.08;
+        letter-spacing: -0.035em;
       }
 
       .workspace-copy p {
@@ -778,7 +998,7 @@
       }
 
       .workspace-actions {
-        display: flex;
+        display: none;
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
@@ -794,10 +1014,10 @@
       }
 
       .summary.summary--compact .summary-card {
-        min-width: 220px;
-        min-height: 56px;
+        min-width: 170px;
+        min-height: 52px;
         padding: 7px 10px;
-        border-radius: 16px;
+        border-radius: 8px;
         grid-template-columns: 32px minmax(0, 1fr);
         gap: 10px;
       }
@@ -1152,14 +1372,14 @@
       }
 
       .view-shell {
-        padding: 0 28px 24px;
+        padding: 0;
       }
 
       .view-card {
         border: 1px solid var(--line);
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.9);
-        box-shadow: var(--shadow);
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 12px 30px rgba(26, 37, 89, 0.06);
         overflow: hidden;
       }
 
@@ -1380,7 +1600,7 @@
       }
 
       .controls {
-        padding: 0 28px 14px;
+        padding: 0 0 14px;
         margin-top: 0;
       }
 
@@ -1419,10 +1639,10 @@
       }
 
       .action-button {
-        min-height: 42px;
+        min-height: 38px;
         padding: 0 14px;
         border: 1px solid #d5defb;
-        border-radius: 14px;
+        border-radius: 8px;
         background: #ffffff;
         color: #2e427f;
         font-size: 0.86rem;
@@ -5766,6 +5986,25 @@
         }
       }
 
+      @media (min-width: 761px) and (max-width: 1180px) {
+        .app-shell {
+          grid-template-columns: 220px minmax(0, 1fr);
+        }
+
+        .topbar {
+          flex-wrap: nowrap;
+          min-height: 72px;
+        }
+
+        .topbar-actions {
+          flex-wrap: nowrap;
+        }
+
+        .topbar-actions .action-button {
+          white-space: nowrap;
+        }
+      }
+
       @media (max-width: 760px) {
         html,
         body {
@@ -5777,6 +6016,48 @@
         body {
           padding-bottom: calc(76px + env(safe-area-inset-bottom));
           background: #ffffff;
+        }
+
+        .app-shell {
+          display: block;
+          min-height: 100dvh;
+          background: #ffffff;
+        }
+
+        .app-sidebar {
+          display: none;
+        }
+
+        .app-main {
+          min-width: 0;
+        }
+
+        .topbar > .brand {
+          display: flex;
+        }
+
+        .topbar-title {
+          display: none;
+        }
+
+        .topbar-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-left: auto;
+        }
+
+        .topbar-actions > .action-button:not(.topbar-mobile-new),
+        .topbar-actions > .menu-shell {
+          display: none;
+        }
+
+        .topbar-actions .action-button {
+          width: auto;
+        }
+
+        .mobile-primary-nav {
+          display: inline-flex;
         }
 
         .care-queue-grid {
@@ -6969,80 +7250,168 @@
     </style>
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="#contacts" id="brand-home-link" aria-label="Zur Kontakte-Ansicht">
-        <div class="brand-mark" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <div class="brand-text">
+    <div class="app-shell">
+      <aside class="app-sidebar" aria-label="Hauptnavigation">
+        <a class="sidebar-brand" href="#contacts" id="brand-home-link" aria-label="Zur Kontakte-Ansicht">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
           <strong>Versorgungs-Kompass</strong>
+        </a>
+        <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
+          <button class="primary-tab is-active" type="button" data-view-tab="contacts">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9.5" cy="7" r="4"></circle>
+              <path d="M20 8v6"></path>
+              <path d="M23 11h-6"></path>
+            </svg>
+            <span>Kontakte</span>
+          </button>
+          <button class="primary-tab" type="button" data-view-tab="map">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+              <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+              <path d="M9 3v15"></path>
+              <path d="M15 6v15"></path>
+            </svg>
+            <span>Karte</span>
+          </button>
+          <button class="primary-tab" type="button" data-view-tab="analytics">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+              <path d="M4 19h16"></path>
+              <path d="M7 16V9"></path>
+              <path d="M12 16V5"></path>
+              <path d="M17 16v-4"></path>
+            </svg>
+            <span>Auswertung</span>
+          </button>
+        </nav>
+        <div class="sidebar-secondary" aria-label="Weitere Bereiche">
+          <button class="sidebar-link" type="button" id="sidebar-quality-button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+              <path d="m9 12 2 2 4-5"></path>
+            </svg>
+            <span>Datenqualität</span>
+          </button>
+          <button class="sidebar-link" type="button" id="sidebar-import-button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <path d="M7 10l5 5 5-5"></path>
+              <path d="M12 15V3"></path>
+            </svg>
+            <span>Importe</span>
+          </button>
         </div>
-      </a>
-      <div class="topbar-spacer"></div>
-      <nav class="primary-nav" aria-label="Hauptbereiche">
-        <button class="primary-tab is-active" type="button" data-view-tab="contacts">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9.5" cy="7" r="4"></circle>
-            <path d="M20 8v6"></path>
-            <path d="M23 11h-6"></path>
-          </svg>
-          <span>Kontakte</span>
-        </button>
-        <button class="primary-tab" type="button" data-view-tab="map">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-            <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
-            <path d="M9 3v15"></path>
-            <path d="M15 6v15"></path>
-          </svg>
-          <span>Karte</span>
-        </button>
-        <button class="primary-tab" type="button" data-view-tab="analytics">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-            <path d="M4 19h16"></path>
-            <path d="M7 16V9"></path>
-            <path d="M12 16V5"></path>
-            <path d="M17 16v-4"></path>
-          </svg>
-          <span>Auswertung</span>
-        </button>
-      </nav>
-      <button class="action-button action-button--primary topbar-mobile-new" type="button" id="mobile-new-contact-button" aria-label="Neuen Kontakt anlegen">
-        <span class="action-button__icon">+</span>
-      </button>
-      <div class="topbar-account" aria-label="Eingeloggter Nutzer">
-        <button class="topbar-account__button" type="button" id="account-button" aria-label="Nutzerkonto öffnen" aria-expanded="false">
-          <span class="topbar-account__badge">TF</span>
-          <span class="topbar-account__caret">⌄</span>
-        </button>
-        <div class="account-popover" id="account-menu" hidden>
-          <div class="account-profile-card">
-            <div class="account-avatar" id="account-avatar">TF</div>
-            <div>
-              <div class="account-popover__name">Timo Frank</div>
-              <div class="account-popover__meta">
-                <span class="account-popover__email" id="account-email">Angemeldet</span>
-                <span class="account-role-pill" id="account-role">Nutzer</span>
+        <div class="sidebar-footer">
+          <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
+          <div>
+            <strong id="sidebar-user-name">Timo Frank</strong>
+            <span>Admin</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <a class="brand" href="#contacts" aria-label="Zur Kontakte-Ansicht">
+            <div class="brand-mark" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="brand-text">
+              <strong>Versorgungs-Kompass</strong>
+            </div>
+          </a>
+          <div class="topbar-title">
+            <h1 id="topbar-view-title">Kontakte</h1>
+            <span id="topbar-view-meta">Willkommen, Timo</span>
+          </div>
+          <div class="topbar-spacer"></div>
+          <nav class="primary-nav mobile-primary-nav" aria-label="Hauptbereiche mobil">
+            <button class="primary-tab is-active" type="button" data-view-tab="contacts">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9.5" cy="7" r="4"></circle>
+                <path d="M20 8v6"></path>
+                <path d="M23 11h-6"></path>
+              </svg>
+              <span>Kontakte</span>
+            </button>
+            <button class="primary-tab" type="button" data-view-tab="map">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                <path d="M9 3v15"></path>
+                <path d="M15 6v15"></path>
+              </svg>
+              <span>Karte</span>
+            </button>
+            <button class="primary-tab" type="button" data-view-tab="analytics">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M4 19h16"></path>
+                <path d="M7 16V9"></path>
+                <path d="M12 16V5"></path>
+                <path d="M17 16v-4"></path>
+              </svg>
+              <span>Auswertung</span>
+            </button>
+          </nav>
+          <div class="topbar-actions">
+            <button class="action-button action-button--primary topbar-mobile-new" type="button" id="mobile-new-contact-button" aria-label="Neuen Kontakt anlegen">
+              <span class="action-button__icon">+</span>
+            </button>
+            <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+            <button class="action-button" type="button" id="open-import-button"><span class="action-button__icon">↥</span>Kontakte importieren</button>
+            <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
+            <div class="menu-shell">
+              <button class="action-button menu-button" type="button" id="more-actions-button" aria-label="Weitere Optionen öffnen" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M4 7h16"></path>
+                  <path d="M4 12h16"></path>
+                  <path d="M4 17h16"></path>
+                </svg>
+              </button>
+              <div class="menu-popover" id="more-actions-menu" hidden>
+                <button class="menu-option" type="button" id="import-csv-button">Kontakte importieren</button>
+                <button class="menu-option" type="button" id="export-csv-button">CSV exportieren</button>
               </div>
             </div>
-          </div>
-          <div class="account-permission-note" id="account-permission-note">Rollenrechte werden geladen.</div>
-          <div class="account-quick-actions">
-            <button class="account-quick-action" type="button" id="account-tour-button">Tour starten</button>
-            <button class="account-quick-action" type="button" id="account-quality-button">Pflege-Queue</button>
-          </div>
-          <div class="account-settings-preview">
-            <strong>Gespeicherte Suchen</strong>
-            <div class="saved-view-list" id="account-saved-views">
-              <div class="saved-view-empty">Noch keine gespeicherten Suchen geladen.</div>
+            <div class="topbar-account" aria-label="Eingeloggter Nutzer">
+              <button class="topbar-account__button" type="button" id="account-button" aria-label="Nutzerkonto öffnen" aria-expanded="false">
+                <span class="topbar-account__badge">TF</span>
+                <span class="topbar-account__caret">⌄</span>
+              </button>
+              <div class="account-popover" id="account-menu" hidden>
+                <div class="account-profile-card">
+                  <div class="account-avatar" id="account-avatar">TF</div>
+                  <div>
+                    <div class="account-popover__name">Timo Frank</div>
+                    <div class="account-popover__meta">
+                      <span class="account-popover__email" id="account-email">Angemeldet</span>
+                      <span class="account-role-pill" id="account-role">Nutzer</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="account-permission-note" id="account-permission-note">Rollenrechte werden geladen.</div>
+                <div class="account-quick-actions">
+                  <button class="account-quick-action" type="button" id="account-tour-button">Tour starten</button>
+                  <button class="account-quick-action" type="button" id="account-quality-button">Pflege-Queue</button>
+                </div>
+                <div class="account-settings-preview">
+                  <strong>Gespeicherte Suchen</strong>
+                  <div class="saved-view-list" id="account-saved-views">
+                    <div class="saved-view-empty">Noch keine gespeicherten Suchen geladen.</div>
+                  </div>
+                </div>
+                <button class="menu-option" type="button" id="account-logout-button">Abmelden</button>
+              </div>
             </div>
+            <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,.xlsx,.xls,.doc,.docx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
           </div>
-          <button class="menu-option" type="button" id="account-logout-button">Abmelden</button>
-        </div>
-      </div>
-    </header>
+        </header>
 
     <aside class="deploy-reminder" id="deploy-reminder" aria-live="polite" hidden>
       <button class="deploy-reminder__close" type="button" id="deploy-reminder-close" aria-label="Hinweis schließen">×</button>
@@ -7058,7 +7427,8 @@
       <section class="crm-shell">
         <div class="workspace-header">
           <div class="workspace-copy">
-            <h2>Willkommen, Timo</h2>
+            <h2 id="workspace-view-title">Kontakte</h2>
+            <p id="workspace-view-subtitle">Willkommen, Timo</p>
           </div>
           <div class="summary summary--compact" id="summary-grid"></div>
           <div class="workspace-actions">
@@ -7066,23 +7436,6 @@
               <span class="permission-banner__icon" aria-hidden="true">i</span>
               <span id="permission-banner-text">Rollenrechte werden geladen.</span>
             </div>
-            <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
-            <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
-            <button class="action-button" type="button" id="open-import-button"><span class="action-button__icon">↥</span>Kontakte importieren</button>
-            <div class="menu-shell">
-              <button class="action-button menu-button" type="button" id="more-actions-button" aria-label="Weitere Optionen öffnen" aria-expanded="false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M4 7h16"></path>
-                  <path d="M4 12h16"></path>
-                  <path d="M4 17h16"></path>
-                </svg>
-              </button>
-              <div class="menu-popover" id="more-actions-menu" hidden>
-                <button class="menu-option" type="button" id="import-csv-button">Kontakte importieren</button>
-                <button class="menu-option" type="button" id="export-csv-button">CSV exportieren</button>
-              </div>
-            </div>
-            <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,.xlsx,.xls,.doc,.docx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
           </div>
         </div>
 
@@ -7355,6 +7708,8 @@
       </section>
 
     </main>
+      </div>
+    </div>
 
     <aside class="detail-drawer" id="detail-drawer" aria-hidden="true">
       <div class="detail-overlay" id="detail-overlay"></div>
@@ -7837,6 +8192,14 @@
       const mapViewFrame = document.getElementById("map-view-frame");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
+      const topbarViewTitle = document.getElementById("topbar-view-title");
+      const topbarViewMeta = document.getElementById("topbar-view-meta");
+      const workspaceViewTitle = document.getElementById("workspace-view-title");
+      const workspaceViewSubtitle = document.getElementById("workspace-view-subtitle");
+      const sidebarUserBadge = document.getElementById("sidebar-user-badge");
+      const sidebarUserName = document.getElementById("sidebar-user-name");
+      const sidebarQualityButton = document.getElementById("sidebar-quality-button");
+      const sidebarImportButton = document.getElementById("sidebar-import-button");
       const detailDrawer = document.getElementById("detail-drawer");
       const detailPanel = document.getElementById("detail-panel");
       const detailOverlay = document.getElementById("detail-overlay");
@@ -8007,7 +8370,7 @@
           window.location.href = window.VKAuth.buildLoginUrl();
           return;
         }
-        window.location.href = "./login.html";
+        window.location.href = "../login/login.html";
       }
 
       function buildDisplayName(name, title) {
@@ -9299,6 +9662,12 @@
 
       let contacts = loadStoredContacts();
       let showingArchive = false;
+      let greetingLabel = "Willkommen, Timo";
+      const viewLabels = {
+        contacts: { title: "Kontakte", subtitle: "Pflege, Suche und Segmentierung der Versorgungskontakte." },
+        map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
+        analytics: { title: "Auswertung", subtitle: "Kennzahlen, Datenqualität und Pflege-Queue." }
+      };
 
       function uniqueValues(key) {
         return [...new Set(contacts.map((contact) => contact[key]))].sort((a, b) => a.localeCompare(b, "de"));
@@ -9363,8 +9732,11 @@
         const name = accountMenu?.querySelector(".account-popover__name");
         const displayName = profile?.display_name || profile?.email || "Angemeldet";
         const role = currentRole();
-        if (badge) badge.textContent = profile?.initials || String(displayName || "VK").slice(0, 2).toUpperCase();
-        if (accountAvatar) accountAvatar.textContent = profile?.initials || String(displayName || "VK").slice(0, 2).toUpperCase();
+        const initials = profile?.initials || String(displayName || "VK").slice(0, 2).toUpperCase();
+        if (badge) badge.textContent = initials;
+        if (sidebarUserBadge) sidebarUserBadge.textContent = initials;
+        if (sidebarUserName) sidebarUserName.textContent = displayName;
+        if (accountAvatar) accountAvatar.textContent = initials;
         if (name) name.textContent = displayName;
         if (accountEmail) accountEmail.textContent = profile?.email || "Supabase-Profil";
         if (accountRole) {
@@ -9372,8 +9744,8 @@
           accountRole.className = `account-role-pill account-role-pill--${role}`;
         }
         if (accountPermissionNote) accountPermissionNote.textContent = permissionText(role);
-        const welcome = document.querySelector(".workspace-copy h2");
-        if (welcome) welcome.textContent = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
+        greetingLabel = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
+        renderViewChrome();
         applyRoleUi();
       }
 
@@ -10812,7 +11184,7 @@
           `;
         }
 
-        const src = `./versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
+        const src = `../map/versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
 
         return `
           <div class="detail-mini-map">
@@ -11577,6 +11949,14 @@
         openDetail(id, filteredContacts());
       }
 
+      function renderViewChrome() {
+        const view = viewLabels[activeView] || viewLabels.contacts;
+        if (topbarViewTitle) topbarViewTitle.textContent = view.title;
+        if (topbarViewMeta) topbarViewMeta.textContent = greetingLabel;
+        if (workspaceViewTitle) workspaceViewTitle.textContent = view.title;
+        if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
+      }
+
       function setActiveView(view) {
         activeView = view;
         viewTabs.forEach((tab) => {
@@ -11585,6 +11965,7 @@
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
         });
+        renderViewChrome();
         if (view === "map") {
           syncMapFrame(filteredContacts());
         }
@@ -12322,6 +12703,15 @@
         event.preventDefault();
         closeMenus();
         setActiveView("contacts");
+      });
+      sidebarQualityButton?.addEventListener("click", () => {
+        closeMenus();
+        setActiveView("analytics");
+        careQueueCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      sidebarImportButton?.addEventListener("click", () => {
+        closeMenus();
+        openImportWizard();
       });
 
       moreActionsButton.addEventListener("click", (event) => {
