@@ -7630,7 +7630,11 @@
 
       .dashboard-card--subtle,
       .dashboard-card--care-queue,
-      .detail-info-card--owner {
+      .detail-info-card--owner,
+      .detail-info-card--priority,
+      .detail-info-card--priority-high,
+      .detail-info-card--priority-medium,
+      .detail-info-card--priority-low {
         background: var(--surface);
         box-shadow: var(--shadow-sm);
       }
@@ -7926,8 +7930,14 @@
 
       .filter-option-chip__icon,
       .editor-section-icon,
+      .filter-section-icon,
       .field-icon {
         display: none;
+      }
+
+      .filter-section-title,
+      .editor-section-head {
+        gap: 0;
       }
 
       .filter-option-chip.is-active,
@@ -7980,6 +7990,64 @@
         box-shadow: var(--shadow-md);
       }
 
+      .detail-toolbar {
+        min-height: 58px;
+        padding: 10px 16px;
+      }
+
+      .detail-content {
+        padding: 14px 16px 18px;
+      }
+
+      .detail-profile {
+        gap: 12px;
+      }
+
+      .detail-profile-main {
+        gap: 12px;
+      }
+
+      .detail-profile-copy h3 {
+        font-size: 1.2rem;
+        line-height: var(--line-height-tight);
+        letter-spacing: -0.02em;
+      }
+
+      .detail-profile-role,
+      .detail-profile-subline {
+        margin-top: 4px;
+      }
+
+      .detail-actions--stacked {
+        gap: 8px;
+      }
+
+      .detail-facts-grid,
+      .detail-profile-grid,
+      .detail-communication-grid,
+      .detail-context-grid,
+      .detail-stack {
+        gap: 8px;
+      }
+
+      .detail-fact-card,
+      .detail-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .detail-card {
+        padding: 12px;
+      }
+
+      .detail-fact-card--owner {
+        border-color: var(--border);
+        background: var(--surface-muted);
+        box-shadow: none;
+      }
+
       .detail-toolbar,
       .editor-toolbar,
       .import-header {
@@ -8014,6 +8082,36 @@
         box-shadow: var(--shadow-lg);
       }
 
+      .editor-panel {
+        width: min(720px, calc(100vw - 32px));
+      }
+
+      .editor-toolbar,
+      .import-header {
+        padding: 18px 22px 14px;
+      }
+
+      .editor-form,
+      .import-body {
+        padding: 16px 22px 22px;
+      }
+
+      .editor-section {
+        padding: 14px 0 16px;
+        border-width: 1px 0 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .editor-section:first-of-type {
+        border-top: 0;
+      }
+
+      .editor-intro {
+        margin-bottom: 12px;
+        padding: 10px 12px;
+      }
+
       .editor-form,
       .import-body {
         background: var(--surface);
@@ -8037,10 +8135,45 @@
         background: rgba(255, 255, 255, 0.98);
       }
 
+      .import-dropzone,
+      .import-format-card,
+      .import-info-box,
+      .import-file-card,
+      .import-metric,
+      .import-profile-card,
+      .import-action-card,
+      .import-defaults,
+      .import-bulk-card,
+      .import-detect-metrics,
+      .import-table-wrap {
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .import-dropzone {
+        min-height: 172px;
+        border-color: var(--border-strong);
+        background: var(--surface);
+      }
+
+      .import-upload-icon,
+      .import-success-mark {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 12px;
+        font-size: 1.3rem;
+      }
+
       .map-embed-frame,
       .view-card--map {
         border-radius: var(--radius-md);
         background: var(--surface);
+      }
+
+      .view-card--map {
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
       }
 
       .dashboard-info {
@@ -8077,6 +8210,26 @@
 
       .dashboard-grid {
         gap: var(--section-gap);
+      }
+
+      .metric-dot,
+      .priority-dot,
+      .coverage-legend-swatch {
+        box-shadow: none;
+      }
+
+      .metric-track,
+      .state-bar-track,
+      .priority-track,
+      .priority-stack {
+        background: #edf2fb;
+      }
+
+      .quality-icon,
+      .gap-panel-icon,
+      .care-queue-icon {
+        border-radius: var(--radius-md);
+        box-shadow: none;
       }
 
       .dashboard-cluster-title {
@@ -8116,6 +8269,22 @@
         .mobile-contact-card {
           border-radius: var(--radius-lg);
           box-shadow: none;
+        }
+
+        .workspace-copy h2,
+        .summary-card,
+        .summary.summary--compact .summary-card {
+          background: var(--surface);
+          border-color: var(--border);
+          box-shadow: none;
+        }
+
+        .workspace-copy h2 {
+          min-height: 44px;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          color: var(--text-primary);
         }
 
         .detail-panel,
