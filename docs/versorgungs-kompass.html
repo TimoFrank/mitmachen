@@ -8325,7 +8325,12 @@
         const specialties = specialtyOptions()
           .sort((a, b) => isMobileLayout() ? ((specialtyCounts[b] || 0) - (specialtyCounts[a] || 0)) || a.localeCompare(b, "de") : 0)
           .map((value) => ({ value, label: value }));
-        const owners = ownerOptions.map((value) => ({ value, label: value }));
+        const owners = ownerOptions.map((value) => ({
+          value,
+          label: ownerProfiles.some((profile) => profile.label === value || profile.email === value || profile.initials === value)
+            ? value
+            : `${value} (kein echter Account)`
+        }));
         const themes = themeSuggestions().map((value) => ({ value, label: value }));
 
         renderFilterOptionGroup(categoryFilterOptions, categories, selectedCategories, "category");
@@ -8636,7 +8641,7 @@
         );
         const legacyOptions = ownerOptions
           .filter((owner) => !ownerProfiles.some((profile) => profile.label === owner || profile.email === owner || profile.initials === owner))
-          .map((owner) => `<option value="${escapeHtml(owner)}" ${!selectedOwnerId && selectedOwner === owner ? "selected" : ""}>${escapeHtml(owner)}</option>`);
+          .map((owner) => `<option value="${escapeHtml(owner)}" ${!selectedOwnerId && selectedOwner === owner ? "selected" : ""}>${escapeHtml(owner)} (kein echter Account)</option>`);
         return [
           `<option value="">Keinen Owner zuweisen</option>`,
           ...profileOptions,
