@@ -8059,11 +8059,13 @@
           .map((profile) => {
             const baseLabel = profile.display_name || profile.email || profile.initials || profile.id;
             const duplicateLabel = displayNameCounts[baseLabel] > 1;
+            const roleSuffix = profile.role ? roleLabel(profile.role) : "";
             return {
               id: profile.id,
-              label: duplicateLabel && profile.email ? `${baseLabel} (${profile.email})` : baseLabel,
+              label: duplicateLabel && roleSuffix ? `${baseLabel} (${roleSuffix})` : baseLabel,
               matchLabels: [baseLabel, profile.email || "", profile.initials || ""].filter(Boolean),
               email: profile.email || "",
+              role: profile.role || "",
               initials: profile.initials || ""
             };
           })
@@ -8091,6 +8093,13 @@
         const profile = ownerProfileForValue(value);
         if (profile) return profile.label;
         return `⚠ ${value} (kein echter Account)`;
+      }
+
+      function roleLabel(role) {
+        if (role === "admin") return "Admin";
+        if (role === "editor") return "Editor";
+        if (role === "viewer") return "Viewer";
+        return role || "Nutzer";
       }
 
       function renderAccountProfile(profile) {

@@ -75,8 +75,15 @@
     if (!profile) return "";
     const displayName = profile.display_name || profile.email || "";
     const duplicateDisplayName = [...profileCache.values()].filter((item) => item.display_name && item.display_name === profile.display_name).length > 1;
-    if (duplicateDisplayName && profile.email) return `${displayName} (${profile.email})`;
+    if (duplicateDisplayName && profile.role) return `${displayName} (${roleLabel(profile.role)})`;
     return displayName;
+  }
+
+  function roleLabel(role) {
+    if (role === "admin") return "Admin";
+    if (role === "editor") return "Editor";
+    if (role === "viewer") return "Viewer";
+    return role || "Nutzer";
   }
 
   function resolveOwnerId(value) {
