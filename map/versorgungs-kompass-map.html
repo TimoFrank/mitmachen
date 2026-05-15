@@ -51,14 +51,21 @@
       height: 100%;
     }
     body.embed-mode .workspace {
-      grid-template-columns: 320px minmax(0, 1fr);
+      grid-template-columns: 300px minmax(0, 1fr);
       padding: 0;
       gap: 0;
       height: 100%;
     }
+
+    body.embed-mode.has-map-detail .workspace {
+      grid-template-columns: 300px minmax(0, 1fr) minmax(360px, 28vw);
+    }
     body.embed-mode .sidebar {
       border-right: 1px solid var(--border);
       background: var(--surface);
+    }
+    body.embed-mode .panel .body {
+      display: none;
     }
     body.embed-mode .panel {
       border: 0;
@@ -125,6 +132,9 @@
       min-height: 0;
       padding: 18px;
       overflow: hidden;
+    }
+    .workspace.has-map-detail {
+      grid-template-columns: 300px minmax(0, 1fr) 380px;
     }
     .sidebar {
       height: 100%;
@@ -209,21 +219,21 @@
     }
     .map-legend {
       position: absolute;
-      top: 14px;
+      bottom: 14px;
       right: 14px;
       z-index: 990;
-      min-width: 164px;
-      padding: 12px 12px 10px;
-      border-radius: 16px;
-      border: 1px solid rgba(0,0,0,0.10);
+      min-width: 148px;
+      padding: 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
       background: rgba(255,255,255,0.94);
-      box-shadow: 0 12px 28px rgba(0,0,0,0.10);
+      box-shadow: var(--shadow-sm);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
     .map-legend-title {
-      margin: 0 0 8px;
-      color: rgba(0,0,0,0.58);
+      margin: 0 0 7px;
+      color: var(--text-muted);
       font-size: 10px;
       font-weight: 800;
       letter-spacing: 0.08em;
@@ -231,7 +241,7 @@
     }
     .map-legend-list {
       display: grid;
-      gap: 7px;
+      gap: 6px;
     }
     .map-legend-item {
       display: grid;
@@ -239,7 +249,7 @@
       align-items: center;
       gap: 8px;
       color: rgba(0,0,0,0.74);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       line-height: 1.2;
     }
@@ -566,13 +576,19 @@
       height: 100%;
       background: rgba(255,255,255,0.86);
     }
+    .list-empty {
+      padding: 18px 14px;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
     .item {
       display: grid;
-      grid-template-columns: 10px 44px minmax(0, 1fr);
-      gap: 9px;
+      grid-template-columns: 8px minmax(0, 1fr);
+      gap: 10px;
       align-items: center;
-      padding: 9px 12px;
-      border-bottom: 1px solid rgba(31,107,136,0.08);
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
       cursor: pointer;
       background: transparent;
     }
@@ -581,36 +597,216 @@
       background: rgba(32,104,148,0.10);
     }
     .item-accent {
-      width: 10px;
-      height: 10px;
-      margin-top: 4px;
+      width: 8px;
+      height: 8px;
+      margin-top: 2px;
       border-radius: 999px;
       box-shadow: inset 0 0 0 1px rgba(0,0,0,0.14);
     }
     .item-copy {
       min-width: 0;
     }
-    .item-thumb {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
-      overflow: hidden;
-      background: rgba(255,255,255,0.92);
-      border: 1px solid rgba(31,107,136,0.10);
-      box-shadow: 0 6px 14px rgba(16,46,110,0.06);
+    .item .t { font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.78); margin: 0; line-height: 1.28; }
+    .item .m { font-size: 12px; color: rgba(0,0,0,0.55); }
+    .item .sector-pill {
+      width: fit-content;
+      margin-top: 5px;
+    }
+    .item a { color: inherit; text-decoration: underline; }
+
+    .sector-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      border: 1px solid #bfd3ff;
+      background: #eaf1ff;
+      color: #155fe4;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .map-detail-panel {
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      overflow: auto;
+      display: none;
+    }
+
+    .workspace.has-map-detail .map-detail-panel,
+    body.embed-mode.has-map-detail .map-detail-panel {
+      display: block;
+    }
+
+    .map-detail-empty {
+      padding: 22px;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .map-detail-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 52px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
-    .item-thumb img {
+
+    .map-detail-kicker {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .map-detail-close {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+    }
+
+    .map-detail-body {
+      padding: 14px;
+    }
+
+    .map-detail-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .map-detail-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 900;
+      overflow: hidden;
+    }
+
+    .map-detail-avatar img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      display: block;
     }
-    .item .t { font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.78); margin: 0; line-height: 1.28; }
-    .item .m { font-size: 12px; color: rgba(0,0,0,0.55); }
-    .item a { color: inherit; text-decoration: underline; }
+
+    .map-detail-title {
+      margin: 0;
+      color: var(--text-primary);
+      font-size: 18px;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .map-detail-subtitle,
+    .map-detail-meta {
+      margin-top: 4px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    .map-detail-section {
+      padding-top: 14px;
+      margin-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .map-detail-section h3 {
+      margin: 0 0 8px;
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .map-detail-line-list {
+      display: grid;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .map-detail-line {
+      display: grid;
+      grid-template-columns: 105px minmax(0, 1fr);
+      gap: 10px;
+      min-height: 36px;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid #edf1f8;
+      font-size: 12px;
+    }
+
+    .map-detail-line:last-child {
+      border-bottom: 0;
+    }
+
+    .map-detail-label {
+      color: var(--text-muted);
+      font-weight: 850;
+    }
+
+    .map-detail-value {
+      min-width: 0;
+      color: var(--text-primary);
+      font-weight: 750;
+      overflow-wrap: anywhere;
+    }
+
+    .map-detail-value a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .map-detail-value a:hover {
+      text-decoration: underline;
+    }
+
+    .map-detail-missing {
+      padding: 9px 10px;
+      border: 1px solid #f1d7a8;
+      border-radius: var(--radius-md);
+      background: #fff8eb;
+      color: #76531d;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.4;
+    }
+
+    .map-detail-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
 
     .mobile-sheet-header {
       align-items: center;
@@ -782,7 +978,9 @@
         overflow: visible;
       }
       .workspace,
-      body.embed-mode .workspace {
+      body.embed-mode .workspace,
+      .workspace.has-map-detail,
+      body.embed-mode.has-map-detail .workspace {
         display: flex;
         flex-direction: column;
         grid-template-columns: none;
@@ -791,6 +989,10 @@
         height: auto;
         min-height: 100dvh;
         overflow: visible;
+      }
+      .workspace.has-map-detail .map-detail-panel,
+      body.embed-mode.has-map-detail .map-detail-panel {
+        display: none;
       }
       .map-area {
         position: relative;
@@ -1008,7 +1210,9 @@
       }
 
       body.embed-mode .workspace,
-      .workspace {
+      .workspace,
+      .workspace.has-map-detail,
+      body.embed-mode.has-map-detail .workspace {
         display: flex;
         flex-direction: column;
         grid-template-columns: none;
@@ -1017,6 +1221,11 @@
         height: auto;
         min-height: 100dvh;
         overflow: visible;
+      }
+
+      .workspace.has-map-detail .map-detail-panel,
+      body.embed-mode.has-map-detail .map-detail-panel {
+        display: none;
       }
 
       .map-area,
@@ -1155,10 +1364,6 @@
         max-height: none;
         overflow: visible;
         padding-bottom: calc(92px + env(safe-area-inset-bottom));
-      }
-
-      .item-thumb {
-        display: none;
       }
 
       .mobile-map-preview {
@@ -1355,24 +1560,24 @@
               </span>
               <span>Verteilung</span>
             </button>
-            <button id="map-reset-toggle" class="map-toggle" type="button">
+            <button id="map-reset-toggle" class="map-toggle" type="button" aria-label="Karte auf Deutschland zurücksetzen">
               <span class="map-toggle-icon" aria-hidden="true">
                 <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
                   <path d="M6 1.5a4.5 4.5 0 1 0 4.07 6.42" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                   <path d="M7.3 1.7h3.2v3.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </span>
-              <span id="map-reset-label">Deutschland</span>
+              <span id="map-reset-label">Zurücksetzen</span>
             </button>
           </div>
           <div id="map-active-filters" class="map-active-filters" aria-label="Aktive Kartenfilter"></div>
           <aside class="map-legend" aria-label="Legende Kontaktpunkte">
             <div class="map-legend-title">Legende</div>
             <div class="map-legend-list">
-              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#1f77b4;"></span><span>Praxis</span></div>
-              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#d62728;"></span><span>Krankenhaus</span></div>
-              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#2ca02c;"></span><span>Apotheke</span></div>
-              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#9467bd;"></span><span>Pflege</span></div>
+              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#155fe4;"></span><span>Praxis</span></div>
+              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#dc2626;"></span><span>Krankenhaus</span></div>
+              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#16a34a;"></span><span>Apotheke</span></div>
+              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#7c3aed;"></span><span>Pflege</span></div>
             </div>
           </aside>
           <div id="map"></div>
@@ -1400,6 +1605,7 @@
           </section>
         </div>
       </main>
+      <aside id="map-detail-panel" class="map-detail-panel" aria-live="polite"></aside>
     </div>
   </div>
 
@@ -1443,11 +1649,13 @@
     const personName = String(contact.name || contact.organization || "Kontakt").trim();
 
     return {
+      id: contact.id || `${personName}-${lat}-${lon}`,
       name: personName,
       organization: contact.organization || "",
       category: contact.category || "Praxis",
       city: contact.city || String(contact.location || "").replace(/^\d{5}\s*/, "") || "-",
       state: contact.state || "",
+      location: contact.location || "",
       street: contact.street || "",
       postal_code: contact.postalCode || contact.postal_code || String(contact.location || "").match(/\b\d{5}\b/)?.[0] || "",
       lat,
@@ -1457,6 +1665,11 @@
       person_name: personName,
       person_title: contact.specialty || contact.title || "",
       email: contact.email || "",
+      phone: contact.phone || "",
+      linkedin: contact.linkedin || "",
+      priority: contact.priority || "",
+      owner: contact.owner || "",
+      themes: Array.isArray(contact.themes) ? contact.themes : String(contact.themes || "").split(/\s*\|\s*/).filter(Boolean),
       image: contact.image || "",
       primary_system: "",
       dq_hint: "",
@@ -1472,7 +1685,7 @@
   const STATE_LABELS = window.MAP_STATE_LABELS;
   const STATE_POLYGONS = window.MAP_STATE_POLYGONS;
   const DE_GEOJSON = window.MAP_DE_GEOJSON;
-  const CATEGORY_COLORS = {"Praxis": "#1f77b4", "Krankenhaus": "#d62728", "Apotheke": "#2ca02c", "Pflege": "#9467bd"};
+  const CATEGORY_COLORS = {"Praxis": "#155fe4", "Krankenhaus": "#dc2626", "Apotheke": "#16a34a", "Pflege": "#7c3aed"};
   const CATEGORY_EMOJIS = {"Praxis": "🩺", "Krankenhaus": "🏥", "Apotheke": "💊", "Pflege": "🤝"};
   const AVATARS = {"Praxis": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.18%22%2F%3E%0A%3Ccircle%20cx%3D%2232%22%20cy%3D%2226%22%20r%3D%2210%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M14%2054c3-10%2011-16%2018-16s15%206%2018%2016%22%20fill%3D%22none%22%20stroke%3D%22%231f77b4%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M42%2018h6v6h-6zM44%2012h2v18h-2z%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.48%22%2F%3E%0A%3C%2Fsvg%3E", "Krankenhaus": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%23d62728%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M20%2050V18c0-2%202-4%204-4h16c2%200%204%202%204%204v32%22%20fill%3D%22none%22%20stroke%3D%22%23d62728%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M26%2024h6v6h-6zm0%2010h6v6h-6zm12-10h6v6h-6zm0%2010h6v6h-6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.45%22%2F%3E%0A%3Cpath%20d%3D%22M30%2018h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.50%22%2F%3E%0A%3C%2Fsvg%3E", "Apotheke": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M22%2022h20v20H22z%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M30%2024h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.50%22%2F%3E%0A%3Cpath%20d%3D%22M44%2022h2c2%200%204%202%204%204v16c0%202-2%204-4%204h-2%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.35%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E", "Pflege": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%239467bd%22%20opacity%3D%220.16%22%2F%3E%0A%3Ccircle%20cx%3D%2226%22%20cy%3D%2226%22%20r%3D%228%22%20fill%3D%22%239467bd%22%20opacity%3D%220.52%22%2F%3E%0A%3Ccircle%20cx%3D%2240%22%20cy%3D%2228%22%20r%3D%226%22%20fill%3D%22%239467bd%22%20opacity%3D%220.36%22%2F%3E%0A%3Cpath%20d%3D%22M14%2052c2-9%208-14%2012-14s10%205%2012%2014%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M34%2052c1-7%205-11%208-11s7%204%208%2011%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.36%22%2F%3E%0A%3C%2Fsvg%3E"};
 
@@ -1861,11 +2074,28 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   const elMobileSheetMeta = document.getElementById('mobile-sheet-meta');
   const elMobileMapPreview = document.getElementById('mobile-map-preview');
   const elMapActiveFilters = document.getElementById('map-active-filters');
+  const elWorkspace = document.querySelector('.workspace');
+  const elMapDetailPanel = document.getElementById('map-detail-panel');
 
   let mobileSheetState = 'collapsed';
   let mobilePreviewContactId = "";
 
   function normalize(s){ return (s || "").toString().toLowerCase(); }
+  function escapeHtml(value){
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  function hasValue(value){ return String(value || "").trim().length > 0; }
+  function initials(value){
+    const parts = String(value || "VK").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "VK";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
   function isMobileLayout(){ return window.matchMedia('(max-width: 760px)').matches; }
 
   function setMobileSheetState(nextState = 'collapsed'){
@@ -1939,23 +2169,6 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     return (EMBED_MODE ? currentEntries : BASE_DATA).filter((entry) => (!activeCategoryFilter || entry.category === activeCategoryFilter) && matchesQuery(entry)).length;
   }
 
-  
-  function popupHtml(d){
-    const avatar = (d.image || AVATARS[d.category] || "");
-    const cityLine = [d.city, d.state].filter(Boolean).join(", ");
-    const org = d.organization ? `<div style="margin-top:4px; color:rgba(0,0,0,0.66); font-size:12px; font-weight:600;">${d.organization}</div>` : "";
-    const city = cityLine ? `<div style="margin-top:2px; color:rgba(0,0,0,0.52); font-size:11.5px;">${cityLine}</div>` : "";
-
-    return `<div style="min-width:220px; display:flex; gap:10px; align-items:center;">
-      <img src="${avatar}" alt="" width="38" height="38" style="border-radius:12px; object-fit:cover; background:rgba(255,255,255,0.7); border:1px solid rgba(31,107,136,0.10);" />
-      <div style="min-width:0;">
-        <div style="font-weight:800; font-size:13.5px; color:rgba(0,0,0,0.82); line-height:1.2;">${d.name}</div>
-        ${org}
-        ${city}
-      </div>
-    </div>`;
-  }
-
   function renderMapActiveFilters(){
     if (!elMapActiveFilters) return;
     const chips = [];
@@ -2013,6 +2226,97 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: "versorgungs-kompass-open-detail", id: entry.id }, "*");
     }
+  }
+
+  function entryLocation(entry){
+    return [entry.postal_code, entry.city].filter(Boolean).join(" ") || entry.location || entry.state || "";
+  }
+
+  function missingEntryFields(entry){
+    const missing = [];
+    if (!hasValue(entry.email)) missing.push("E-Mail");
+    if (!hasValue(entry.phone)) missing.push("Telefon");
+    if (!hasValue(entry.linkedin)) missing.push("LinkedIn");
+    if (!hasValue(entry.person_title)) missing.push("Fachrichtung");
+    if (!hasValue(entry.owner)) missing.push("Owner");
+    return missing;
+  }
+
+  function mapDetailLine(label, value, href = ""){
+    const present = hasValue(value);
+    return `
+      <div class="map-detail-line ${present ? "" : "map-detail-line-empty"}">
+        <span class="map-detail-label">${escapeHtml(label)}</span>
+        <span class="map-detail-value">${present && href ? `<a href="${escapeHtml(href)}" ${href.startsWith("http") ? `target="_blank" rel="noreferrer"` : ""}>${escapeHtml(value)}</a>` : escapeHtml(present ? value : "Nicht hinterlegt")}</span>
+      </div>
+    `;
+  }
+
+  function renderMapDetail(entry){
+    if (!elMapDetailPanel) return;
+    if (!entry) {
+      elWorkspace?.classList.remove('has-map-detail');
+      document.body.classList.remove('has-map-detail');
+      elMapDetailPanel.innerHTML = "";
+      return;
+    }
+    const location = entryLocation(entry);
+    const missing = missingEntryFields(entry);
+    const themeTags = Array.isArray(entry.themes) ? entry.themes : [];
+    const avatar = entry.image
+      ? `<img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.name)}" loading="lazy" />`
+      : escapeHtml(initials(entry.name));
+    elWorkspace?.classList.add('has-map-detail');
+    document.body.classList.add('has-map-detail');
+    elMapDetailPanel.innerHTML = `
+      <div class="map-detail-toolbar">
+        <span class="map-detail-kicker">Kontaktprofil</span>
+        <button class="map-detail-close" type="button" id="map-detail-close" aria-label="Details schließen">&times;</button>
+      </div>
+      <div class="map-detail-body">
+        <div class="map-detail-head">
+          <div class="map-detail-avatar">${avatar}</div>
+          <div>
+            <h2 class="map-detail-title">${escapeHtml(entry.name)}</h2>
+            <div class="map-detail-subtitle">${escapeHtml(entry.organization || "Organisation nicht dokumentiert")}</div>
+            <div class="map-detail-meta">${escapeHtml([entry.category, location].filter(Boolean).join(" · ") || "Sektor und Ort nicht dokumentiert")}</div>
+          </div>
+        </div>
+        <section class="map-detail-section">
+          ${missing.length ? `<div class="map-detail-missing"><strong>Fehlende Angaben:</strong> ${escapeHtml(missing.join(", "))}</div>` : `<div class="map-detail-missing"><strong>Datenstatus:</strong> Die wichtigsten Angaben sind gepflegt.</div>`}
+        </section>
+        <section class="map-detail-section">
+          <h3>Stammdaten</h3>
+          <div class="map-detail-line-list">
+            ${mapDetailLine("Organisation", entry.organization)}
+            ${mapDetailLine("Sektor", entry.category)}
+            ${mapDetailLine("Fachrichtung", entry.person_title)}
+            ${mapDetailLine("Ort", location)}
+            ${mapDetailLine("Bundesland", entry.state)}
+          </div>
+        </section>
+        <section class="map-detail-section">
+          <h3>Kontaktwege</h3>
+          <div class="map-detail-line-list">
+            ${mapDetailLine("E-Mail", entry.email, entry.email ? `mailto:${entry.email}` : "")}
+            ${mapDetailLine("Telefon", entry.phone, entry.phone ? `tel:${entry.phone}` : "")}
+            ${mapDetailLine("LinkedIn", entry.linkedin ? "Profil öffnen" : "", entry.linkedin)}
+          </div>
+        </section>
+        <section class="map-detail-section">
+          <h3>Themen</h3>
+          <div class="map-detail-chip-row">
+            ${themeTags.length ? themeTags.map((tag) => `<span class="sector-pill">${escapeHtml(tag)}</span>`).join("") : `<span class="map-detail-meta">Noch keine Themen hinterlegt.</span>`}
+          </div>
+        </section>
+      </div>
+    `;
+    document.getElementById('map-detail-close')?.addEventListener('click', () => {
+      activeMapContactId = "";
+      renderMapDetail(null);
+      renderList(filteredEntries());
+      updateMapResetButton();
+    });
   }
 
   function renderMobilePreview(entry = null){
@@ -2195,7 +2499,9 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     stateMapMarkers.clearLayers();
     entries.forEach((entry) => {
       const marker = markerFor(entry);
-      marker.bindPopup(popupHtml(entry));
+      marker.on('click', () => {
+        focusMapContact(entry);
+      });
       marker.addTo(stateMapMarkers);
     });
     renderStateMapCityLabels(feature);
@@ -2242,7 +2548,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   function updateMapResetButton(){
     const hasState = Boolean(selectedState);
     const hasFocusedContact = Boolean(activeMapContactId);
-    elMapResetLabel.textContent = hasState && hasFocusedContact ? "Zum Bundesland" : "Deutschland";
+    elMapResetLabel.textContent = hasState && hasFocusedContact ? "Zum Bundesland" : "Zurücksetzen";
     elMapResetToggle.classList.toggle('map-toggle-active-neutral', hasState || hasFocusedContact);
     elMapResetToggle.classList.toggle('map-toggle-active-home', hasState);
   }
@@ -2281,6 +2587,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   function focusMapContact(d){
     activeMapContactId = d.id;
     renderMobilePreview(d);
+    if (!isMobileLayout()) renderMapDetail(d);
     if (isMobileLayout()) setMobileSheetState('full');
     renderList(filteredEntries());
     updateMapResetButton();
@@ -2295,19 +2602,23 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       elMobileSheetMeta.textContent = selectedState ? `${selectedState}${activeCategoryFilter ? ` • ${activeCategoryFilter}` : ''}` : `Deutschlandweite Ansicht`;
     }
     elList.innerHTML = "";
+    if (!entries.length) {
+      elList.innerHTML = `<div class="list-empty">Keine Kontakte im aktuellen Kartenfilter.</div>`;
+      renderMapDetail(null);
+      return;
+    }
 
     entries.forEach((d) => {
       const item = document.createElement('div');
       const isActive = activeMapContactId === d.id;
       item.className = `item${isActive ? " item-active" : ""}`;
       const color = CATEGORY_COLORS[d.category] || "#555";
-      const thumb = d.image || AVATARS[d.category] || "";
-      const meta = [d.organization, [d.city, d.state].filter(Boolean).join(", ")].filter(Boolean);
+      const meta = [d.organization, entryLocation(d)].filter(Boolean);
       item.innerHTML = `<span class="item-accent" style="background:${color}"></span>
-                        <div class="item-thumb"><img src="${thumb}" alt="" loading="lazy"/></div>
                         <div class="item-copy">
-                          <div class="t">${d.name}</div>
-                          ${meta.length ? `<div class="m">${meta.join(" • ")}</div>` : ""}
+                          <div class="t">${escapeHtml(d.name)}</div>
+                          ${meta.length ? `<div class="m">${escapeHtml(meta.join(" · "))}</div>` : ""}
+                          <span class="sector-pill">${escapeHtml(d.category)}</span>
                         </div>`;
       item.addEventListener('click', () => {
         activeMapContactId = d.id;
@@ -2316,17 +2627,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
           return;
         }
         map.setView([d.lat, d.lon], Math.max(map.getZoom(), 10), { animate: true });
-        const hit = markerIndex.find((x) => x.data.id === d.id);
-        if (heatMapActive) {
-          L.popup({ offset: [0, -4] })
-            .setLatLng([d.lat, d.lon])
-            .setContent(popupHtml(d))
-            .openOn(map);
-        } else if (hit) {
-          hit.marker.openPopup();
-        }
-        renderList(entries);
-        updateMapResetButton();
+        focusMapContact(d);
       });
       elList.appendChild(item);
     });
@@ -2337,20 +2638,18 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     markerIndex = [];
 
     const filtered = filteredEntries();
+    if (activeMapContactId && !filtered.some((entry) => entry.id === activeMapContactId)) {
+      activeMapContactId = "";
+      renderMapDetail(null);
+    }
     renderStateFilterMenu();
     buildStateHeatLayer(filtered);
     refreshStateInteractionLayer();
 
     filtered.forEach(d => {
       const m = markerFor(d);
-      if (!isMobileLayout()) {
-        m.bindPopup(popupHtml(d));
-      }
       m.on('click', () => {
         focusMapContact(d);
-        if (!isMobileLayout() && !heatMapActive) {
-          m.openPopup();
-        }
       });
       markerIndex.push({ marker: m, data: d });
       if (!heatMapActive) {
@@ -2454,6 +2753,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     selectedState = "";
     activeMapContactId = "";
     mobilePreviewContactId = "";
+    renderMapDetail(null);
     setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
     render();
     map.invalidateSize();
