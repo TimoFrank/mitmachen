@@ -2627,7 +2627,7 @@
         position: absolute;
         top: 0;
         right: 0;
-        width: min(560px, 100%);
+        width: min(520px, 100%);
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -3021,8 +3021,8 @@
       }
 
       .section-block {
-        margin-top: 18px;
-        padding-top: 18px;
+        margin-top: 14px;
+        padding-top: 14px;
         border-top: 1px solid rgba(26, 37, 89, 0.1);
       }
 
@@ -3179,17 +3179,17 @@
 
       .detail-profile-main {
         display: flex;
-        align-items: flex-start;
-        gap: 14px;
+        align-items: center;
+        gap: 12px;
         min-width: 0;
       }
 
       .detail-profile-main .avatar,
       .detail-profile-main img.avatar {
-        width: 62px;
-        height: 62px;
-        border-radius: 16px;
-        box-shadow: 0 14px 30px rgba(42, 72, 156, 0.14);
+        width: 54px;
+        height: 54px;
+        border-radius: 999px;
+        box-shadow: none;
       }
 
       .detail-profile-copy {
@@ -3198,9 +3198,9 @@
 
       .detail-profile-copy h3 {
         margin: 0;
-        font-size: 1.36rem;
-        line-height: 1.08;
-        letter-spacing: -0.035em;
+        font-size: 1.16rem;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
       }
 
       .detail-profile-role {
@@ -3211,10 +3211,14 @@
       }
 
       .detail-profile-subline {
-        margin-top: 6px;
+        margin-top: 4px;
         color: var(--muted);
-        font-size: 0.86rem;
+        font-size: 0.82rem;
         line-height: 1.4;
+      }
+
+      .detail-profile-status {
+        margin-top: 7px;
       }
 
       .detail-actions--stacked {
@@ -3385,8 +3389,12 @@
       }
 
       @media (min-width: 1024px) {
+        body.detail-open {
+          --detail-panel-width: clamp(420px, 34vw, 520px);
+        }
+
         body.detail-open .wrap {
-          padding-right: 442px;
+          padding-right: calc(var(--detail-panel-width) + 22px);
         }
 
         body.detail-open .view-card {
@@ -3396,7 +3404,7 @@
         .detail-drawer.is-open {
           display: block;
           inset: 70px 0 0 auto;
-          width: 420px;
+          width: var(--detail-panel-width, 500px);
           pointer-events: none;
         }
 
@@ -3405,7 +3413,7 @@
         }
 
         .detail-drawer.is-open .detail-panel {
-          width: 420px;
+          width: var(--detail-panel-width, 500px);
           pointer-events: auto;
           border-left: 1px solid #dce3f5;
           box-shadow: -12px 0 28px rgba(16, 27, 80, 0.08);
@@ -3488,6 +3496,75 @@
 
       .detail-missing-summary strong {
         color: #503a16;
+      }
+
+      .detail-line-list {
+        display: grid;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+
+      .detail-line {
+        display: grid;
+        grid-template-columns: minmax(118px, 0.42fr) minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        min-height: 38px;
+        padding: 8px 12px;
+        border-bottom: 1px solid #edf1f8;
+        color: var(--text-primary);
+        font-size: 0.86rem;
+      }
+
+      .detail-line:last-child {
+        border-bottom: 0;
+      }
+
+      .detail-line__label {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 850;
+      }
+
+      .detail-line__value {
+        min-width: 0;
+        font-weight: 750;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+
+      .detail-line__value a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      .detail-line__value a:hover {
+        text-decoration: underline;
+      }
+
+      .detail-line--empty .detail-line__value {
+        color: var(--text-muted);
+        font-weight: 650;
+      }
+
+      .detail-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 10px 12px;
+      }
+
+      .detail-note-block {
+        padding: 12px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      .detail-note-block--empty {
+        color: var(--text-muted);
       }
 
       .detail-compact-list {
@@ -13304,6 +13381,30 @@
         return fields;
       }
 
+      function detailLine(label, value, options = {}) {
+        const empty = !hasMeaningfulValue(value);
+        const display = empty ? (options.emptyLabel || "Nicht hinterlegt") : value;
+        const valueMarkup = options.html && !empty ? value : escapeHtml(display);
+        return `
+          <div class="detail-line ${empty ? "detail-line--empty" : ""}">
+            <span class="detail-line__label">${escapeHtml(label)}</span>
+            <span class="detail-line__value">${valueMarkup}</span>
+          </div>
+        `;
+      }
+
+      function detailContactLine(label, value, href = "") {
+        const hasValue = hasMeaningfulValue(value);
+        return `
+          <div class="detail-line detail-line--contact ${hasValue ? "" : "detail-line--empty"}">
+            <span class="detail-line__label">${escapeHtml(label)}</span>
+            <span class="detail-line__value">
+              ${hasValue && href ? `<a href="${escapeHtml(href)}" ${href.startsWith("http") ? `target="_blank" rel="noreferrer"` : ""}>${escapeHtml(value)}</a>` : escapeHtml(hasValue ? value : "Nicht hinterlegt")}
+            </span>
+          </div>
+        `;
+      }
+
       function renderSourcesList(contact) {
         if (!contact.sources.length) return "Keine Quellen dokumentiert";
         return `<ul class="detail-list">${contact.sources
@@ -14146,17 +14247,10 @@
         const noteText = meaningfulOrEmpty(contact.lastExchange);
         const organizationLabel = meaningfulOrEmpty(contact.organization);
         const themeTags = normalizeThemes(contact.themes);
-        const suggestedThemes = themeSuggestions();
-        const editable = canEditContacts();
         const admin = canAdministerData();
-        const disabledAttr = editable ? "" : " disabled";
-        const readonlyClass = editable ? "" : " readonly-control";
-        const readonlyNotice = editable
-          ? ""
-          : `<div class="detail-info-card detail-info-card--missing-summary">Lesemodus: Deine Rolle erlaubt Suchen, Filtern und Auswerten. Änderungen sind deaktiviert.</div>`;
         const portraitMarkup = contact.image
-          ? `<img class="avatar ${contact.avatarClass}" src="${contact.image}" alt="${contact.displayName}" loading="lazy" />`
-          : `<span class="avatar ${contact.avatarClass}">${contact.initials}</span>`;
+          ? `<img class="avatar ${contact.avatarClass}" src="${escapeHtml(contact.image)}" alt="${escapeHtml(contact.displayName)}" loading="lazy" />`
+          : `<span class="avatar ${contact.avatarClass}">${escapeHtml(contact.initials)}</span>`;
         const missingFields = [
           !organizationLabel ? "Organisation" : "",
           !locationText ? "Ort" : "",
@@ -14166,17 +14260,8 @@
           !hasMeaningfulValue(contact.phone) ? "Telefon" : "",
           !linkedinUrl ? "LinkedIn" : ""
         ].filter(Boolean);
-        const contactWays = [
-          hasMeaningfulValue(contact.email)
-            ? `<div class="detail-compact-row"><span>E-Mail</span><a href="mailto:${escapeHtml(contact.email)}">${escapeHtml(contact.email)}</a></div>`
-            : "",
-          hasMeaningfulValue(contact.phone)
-            ? `<div class="detail-compact-row"><span>Telefon</span><a href="tel:${escapeHtml(contact.phone)}">${escapeHtml(contact.phone)}</a></div>`
-            : "",
-          linkedinUrl
-            ? `<div class="detail-compact-row"><span>LinkedIn</span><a href="${escapeHtml(linkedinUrl)}" target="_blank" rel="noreferrer">Profil öffnen</a></div>`
-            : ""
-        ].filter(Boolean);
+        const detailMeta = [contact.category, locationText].filter(Boolean).join(" · ");
+        const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
 
         activeId = contact.id;
         renderTable(currentItems);
@@ -14187,7 +14272,6 @@
           <div class="detail-toolbar">
             <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>
             <div class="detail-toolbar-actions">
-              ${editable ? `<button class="action-button action-button--primary" type="button" id="detail-edit">Bearbeiten</button>` : ""}
               <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
             </div>
           </div>
@@ -14197,10 +14281,11 @@
                 <div class="detail-profile-main">
                   ${portraitMarkup}
                   <div class="detail-profile-copy">
-                    <h3>${contact.displayName}</h3>
-                    ${honorificTitle ? `<div class="detail-profile-subline">${honorificTitle}</div>` : ""}
-                    <div class="detail-profile-role">${organizationLabel || "Organisation nicht dokumentiert"}</div>
-                    <div class="detail-profile-subline">${[contact.category, specialtyText, locationText].filter(Boolean).join(" · ")}</div>
+                    <h3>${escapeHtml(contact.displayName)}</h3>
+                    ${honorificTitle ? `<div class="detail-profile-subline">${escapeHtml(honorificTitle)}</div>` : ""}
+                    <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
+                    <div class="detail-profile-subline">${escapeHtml(detailMeta || "Sektor und Ort nicht dokumentiert")}</div>
+                    <div class="detail-profile-status"><span class="badge badge--active">${contact.status === "archived" ? "Archiviert" : "Aktiv"}</span></div>
                   </div>
                 </div>
               </section>
@@ -14220,138 +14305,36 @@
                     ? `<div class="detail-missing-summary"><strong>Fehlende Angaben:</strong> ${missingFields.join(", ")}</div>`
                     : `<div class="detail-missing-summary"><strong>Datenstatus:</strong> Die wichtigsten Angaben sind gepflegt.</div>`
                 }
-                <div class="detail-facts-grid">
-                  <article class="detail-info-card">
-                    <div class="detail-info-head">
-                      <span>Organisation</span>
-                    </div>
-                    <input class="detail-inline-input" id="detail-organization-input" type="text" value="${String(contact.organization || "").replace(/"/g, "&quot;")}" placeholder="Organisation eintragen"${disabledAttr} />
-                  </article>
-                  <article class="detail-info-card">
-                    <div class="detail-info-head">
-                      <span>Ort</span>
-                    </div>
-                    <input class="detail-inline-input" id="detail-location-input" type="text" value="${String(contact.location || "").replace(/"/g, "&quot;")}" placeholder="Ort eintragen"${disabledAttr} />
-                  </article>
-                  <article class="detail-info-card">
-                    <div class="detail-info-head">
-                      <span>Fachrichtung</span>
-                    </div>
-                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="specialty" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-specialty-select" aria-label="Fachrichtung zuordnen"${disabledAttr}>
-                        ${buildSpecialtySelectOptions(specialtyText)}
-                      </select>
-                    </div>
-                  </article>
-                  ${
-                    honorificTitle
-                      ? `<article class="detail-info-card">
-                          <div class="detail-info-head">
-                            <span>Titel</span>
-                          </div>
-                          <div class="detail-static-value">${honorificTitle}</div>
-                        </article>`
-                      : ""
-                  }
-                  <article class="detail-info-card">
-                    <div class="detail-info-head">
-                      <span>Sektor</span>
-                    </div>
-                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="category" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-category-select" aria-label="Sektor zuordnen"${disabledAttr}>
-                        ${buildCategorySelectOptions(contact.category)}
-                      </select>
-                    </div>
-                  </article>
-                  <article class="detail-info-card detail-info-card--owner">
-                    <div class="detail-info-head">
-                      <span>Owner</span>
-                    </div>
-                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="owner" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-owner-select" aria-label="Owner zuordnen"${disabledAttr}>
-                        ${buildOwnerSelectOptions(ownerLabel)}
-                      </select>
-                    </div>
-                  </article>
-                  <article class="detail-info-card detail-info-card--priority detail-info-card--priority-${normalizedPriorityValue(contact.priority)}">
-                    <div class="detail-info-head">
-                      <span>Priorit&auml;t</span>
-                    </div>
-                    <div class="detail-select-shell${readonlyClass}" data-custom-select data-select-type="priority" data-select-variant="detail">
-                      <select class="detail-inline-select" id="detail-priority-select" aria-label="Priorität zuordnen"${disabledAttr}>
-                        ${buildPrioritySelectOptions(contact.priority)}
-                      </select>
-                    </div>
-                  </article>
+                <div class="detail-line-list">
+                  ${detailLine("Organisation", organizationLabel)}
+                  ${detailLine("Sektor", contact.category)}
+                  ${detailLine("Fachrichtung", specialtyText, { emptyLabel: "Bitte wählen" })}
+                  ${detailLine("Ort", locationText)}
+                  ${detailLine("Owner", ownerDisplay, { emptyLabel: "Kein Owner" })}
+                  ${detailLine("Priorität", normalizedPriorityValue(contact.priority) || contact.priority || "Mittel")}
+                  ${honorificTitle ? detailLine("Titel", honorificTitle) : ""}
+                  ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
                 </div>
               </section>
 
               <section class="section-block" id="detail-contactways">
                 <h4 class="detail-section-title">Kontaktwege</h4>
-                <div class="detail-compact-list">
-                  ${
-                    contactWays.length
-                      ? contactWays.join("")
-                      : `<div class="detail-secondary">Noch keine Kontaktwege gepflegt.</div>`
-                  }
-                </div>
-                <div class="detail-communication-grid">
-                  <article class="detail-info-card ${hasMeaningfulValue(contact.email) ? "" : "detail-info-card--missing"}">
-                    <div class="detail-info-head">
-                      <span>E-Mail</span>
-                    </div>
-                    <input class="detail-inline-input" id="detail-email-input" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen"${disabledAttr} />
-                  </article>
-                  <article class="detail-info-card ${hasMeaningfulValue(contact.phone) ? "" : "detail-info-card--missing"}">
-                    <div class="detail-info-head">
-                      <span>Telefon</span>
-                    </div>
-                    <input class="detail-inline-input" id="detail-phone-input" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon eintragen"${disabledAttr} />
-                  </article>
-                  <article class="detail-info-card ${linkedinUrl ? "" : "detail-info-card--missing"}">
-                    <div class="detail-info-head">
-                      <span>LinkedIn</span>
-                    </div>
-                    <input class="detail-inline-input" id="detail-linkedin-input" type="url" value="${escapeHtml(linkedinUrl)}" placeholder="LinkedIn-Profil eintragen"${disabledAttr} />
-                  </article>
+                <div class="detail-line-list">
+                  ${detailContactLine("E-Mail", meaningfulOrEmpty(contact.email), `mailto:${meaningfulOrEmpty(contact.email)}`)}
+                  ${detailContactLine("Telefon", meaningfulOrEmpty(contact.phone), `tel:${meaningfulOrEmpty(contact.phone)}`)}
+                  ${detailContactLine("LinkedIn", linkedinUrl ? "Profil öffnen" : "", linkedinUrl)}
                 </div>
               </section>
 
               <section class="section-block" id="detail-themes">
                 <h4 class="detail-section-title">Themen</h4>
-                <div class="detail-info-card">
-                  <div class="tag-editor">
-                    <div class="tag-list">
-                      ${
-                        themeTags.length
-                          ? themeTags
-                              .map(
-                                (tag) => `
-                                  <div class="theme-tag">
-                                    <span>${tag}</span>
-                                    ${editable ? `<button type="button" data-remove-theme="${tag}" aria-label="${tag} entfernen">&times;</button>` : ""}
-                                  </div>
-                                `
-                              )
-                              .join("")
-                          : `<div class="tag-empty">Noch keine Themen hinterlegt.</div>`
-                      }
-                    </div>
-                    <div class="tag-list">
-                      ${suggestedThemes
-                        .map(
-                          (tag) => `
-                            <button class="theme-tag theme-tag--preset ${themeTags.includes(tag) ? "is-active" : ""}" type="button" data-theme-option="${tag}" aria-pressed="${themeTags.includes(tag) ? "true" : "false"}"${disabledAttr}>
-                              ${tag}
-                            </button>
-                          `
-                        )
-                        .join("")}
-                    </div>
-                    <div class="tag-input-row">
-                      <input class="detail-inline-input" id="detail-theme-input" type="text" value="" placeholder="Weiteres Thema ergänzen"${disabledAttr} />
-                      ${editable ? `<button class="action-button action-button--ghost" type="button" id="detail-theme-add">Tag hinzufügen</button>` : ""}
-                    </div>
+                <div class="detail-line-list">
+                  <div class="detail-chip-row">
+                    ${
+                      themeTags.length
+                        ? themeTags.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("")
+                        : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`
+                    }
                   </div>
                 </div>
               </section>
@@ -14363,22 +14346,12 @@
                 </article>
               </section>
 
-              ${readonlyNotice}
-
               <section class="section-block" id="detail-notes">
                 <h4 class="detail-section-title">Notizen</h4>
-                <div class="detail-context-grid">
-                  <article class="detail-info-card ${noteText ? "" : "detail-info-card--missing"}">
-                    <div class="detail-info-head">
-                      <span>Notiz</span>
-                    </div>
-                    <textarea class="detail-inline-textarea" id="detail-note-input" placeholder="Notiz eintragen"${disabledAttr}></textarea>
-                  </article>
-                  ${
-                    meaningfulOrEmpty(contact.note)
-                      ? `<article class="detail-info-card"><div class="detail-info-head"><span>Interne Notiz</span></div><div class="detail-secondary">${escapeHtml(contact.note)}</div></article>`
-                      : ""
-                  }
+                <div class="detail-line-list">
+                  <div class="detail-note-block ${noteText || meaningfulOrEmpty(contact.note) ? "" : "detail-note-block--empty"}">
+                    ${escapeHtml(noteText || meaningfulOrEmpty(contact.note) || "Noch keine Notizen hinterlegt.")}
+                  </div>
                 </div>
               </section>
 
@@ -14426,117 +14399,6 @@
             document.getElementById(button.dataset.scrollDetail)?.scrollIntoView({ behavior: "smooth", block: "start" });
           });
         });
-        const detailNoteInputInitial = document.getElementById("detail-note-input");
-        if (detailNoteInputInitial) detailNoteInputInitial.value = noteText;
-        if (!editable) return;
-        const detailSpecialtySelect = document.getElementById("detail-specialty-select");
-        if (detailSpecialtySelect) {
-          detailSpecialtySelect.addEventListener("change", () => {
-            updateContactField(contact.id, "specialty", detailSpecialtySelect.value);
-          });
-        }
-        const detailOrganizationInput = document.getElementById("detail-organization-input");
-        if (detailOrganizationInput) {
-          detailOrganizationInput.addEventListener("blur", () => {
-            updateContactField(contact.id, "organization", detailOrganizationInput.value);
-          });
-        }
-        const detailLocationInput = document.getElementById("detail-location-input");
-        if (detailLocationInput) {
-          detailLocationInput.addEventListener("blur", () => {
-            updateContactField(contact.id, "location", detailLocationInput.value);
-          });
-        }
-        const detailCategorySelect = document.getElementById("detail-category-select");
-        if (detailCategorySelect) {
-          detailCategorySelect.addEventListener("change", () => {
-            updateContactField(contact.id, "category", detailCategorySelect.value);
-          });
-        }
-        const detailPrioritySelect = document.getElementById("detail-priority-select");
-        if (detailPrioritySelect) {
-          detailPrioritySelect.addEventListener("change", () => {
-            updateContactField(contact.id, "priority", detailPrioritySelect.value);
-          });
-        }
-        const detailOwnerSelect = document.getElementById("detail-owner-select");
-        if (detailOwnerSelect) {
-          detailOwnerSelect.addEventListener("change", () => {
-            updateContactField(contact.id, "owner", detailOwnerSelect.value);
-          });
-        }
-        const detailThemeInput = document.getElementById("detail-theme-input");
-        const detailThemeAdd = document.getElementById("detail-theme-add");
-        if (detailThemeInput && detailThemeAdd) {
-          const addTheme = () => {
-            const nextTag = detailThemeInput.value.trim();
-            if (!nextTag) return;
-            updateContactThemes(contact.id, [...themeTags, nextTag]);
-          };
-          detailThemeAdd.addEventListener("click", addTheme);
-          detailThemeInput.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              addTheme();
-            }
-          });
-        }
-        [...detailPanel.querySelectorAll("[data-theme-option]")].forEach((button) => {
-          button.addEventListener("click", () => {
-            const tag = button.dataset.themeOption;
-            const nextThemes = themeTags.includes(tag) ? themeTags.filter((item) => item !== tag) : [...themeTags, tag];
-            updateContactThemes(contact.id, nextThemes);
-          });
-        });
-        [...detailPanel.querySelectorAll("[data-remove-theme]")].forEach((button) => {
-          button.addEventListener("click", () => {
-            updateContactThemes(contact.id, themeTags.filter((item) => item !== button.dataset.removeTheme));
-          });
-        });
-        const detailEmailInput = document.getElementById("detail-email-input");
-        if (detailEmailInput) {
-          detailEmailInput.addEventListener("blur", () => {
-            if (!detailEmailInput.value.trim()) return;
-            updateContactField(contact.id, "email", detailEmailInput.value);
-          });
-        }
-        const detailPhoneInput = document.getElementById("detail-phone-input");
-        if (detailPhoneInput) {
-          detailPhoneInput.addEventListener("blur", () => {
-            if (!detailPhoneInput.value.trim()) return;
-            updateContactField(contact.id, "phone", detailPhoneInput.value);
-          });
-        }
-        const detailLinkedinInput = document.getElementById("detail-linkedin-input");
-        if (detailLinkedinInput) {
-          detailLinkedinInput.addEventListener("blur", () => {
-            if (!detailLinkedinInput.value.trim()) return;
-            updateContactField(contact.id, "linkedin", detailLinkedinInput.value);
-          });
-        }
-        [...detailPanel.querySelectorAll("[data-copy-contact]")].forEach((button) => {
-          button.addEventListener("click", async () => {
-            const value = button.dataset.copyContact || "";
-            if (!value) return;
-            try {
-              await navigator.clipboard.writeText(value);
-              const previousText = button.textContent;
-              button.textContent = "Kopiert";
-              window.setTimeout(() => {
-                button.textContent = previousText;
-              }, 1400);
-            } catch (error) {
-              window.prompt("Wert kopieren", value);
-            }
-          });
-        });
-        const detailNoteInput = document.getElementById("detail-note-input");
-        if (detailNoteInput) {
-          detailNoteInput.addEventListener("blur", () => {
-            if (!detailNoteInput.value.trim()) return;
-            updateContactField(contact.id, "lastExchange", detailNoteInput.value);
-          });
-        }
       }
 
       function closeDetail() {
