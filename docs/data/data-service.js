@@ -72,7 +72,11 @@
 
   function profileName(id) {
     const profile = profileCache.get(id);
-    return profile?.display_name || profile?.email || "";
+    if (!profile) return "";
+    const displayName = profile.display_name || profile.email || "";
+    const duplicateDisplayName = [...profileCache.values()].filter((item) => item.display_name && item.display_name === profile.display_name).length > 1;
+    if (duplicateDisplayName && profile.email) return `${displayName} (${profile.email})`;
+    return displayName;
   }
 
   function resolveOwnerId(value) {
