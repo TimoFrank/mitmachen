@@ -11,10 +11,35 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
   <style>
-    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    :root {
+      --primary: #155fe4;
+      --primary-hover: #0d4fc4;
+      --primary-soft: #eaf1ff;
+      --background: #f5f7fb;
+      --surface: #ffffff;
+      --surface-muted: #f8faff;
+      --border: #dce3f5;
+      --border-strong: #b8c7e8;
+      --text-primary: #17275f;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --success: #16a34a;
+      --warning: #b7791f;
+      --danger: #dc2626;
+      --info: #2563eb;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-size-xs: 0.74rem;
+      --font-size-sm: 0.84rem;
+      --font-size-md: 0.94rem;
+    }
+    html, body { height: 100%; margin: 0; font-family: var(--font-family); }
     body {
-      background: #f3f5f7;
-      color: rgba(0,0,0,0.82);
+      background: var(--background);
+      color: var(--text-primary);
       overflow: hidden;
     }
     body.embed-mode .topbar,
@@ -32,14 +57,14 @@
       height: 100%;
     }
     body.embed-mode .sidebar {
-      border-right: 1px solid rgba(31,107,136,0.08);
-      background: rgba(255,255,255,0.94);
+      border-right: 1px solid var(--border);
+      background: var(--surface);
     }
     body.embed-mode .panel {
       border: 0;
       border-radius: 0;
       box-shadow: none;
-      background: rgba(255,255,255,0.94);
+      background: var(--surface);
     }
     body.embed-mode .map-area {
       padding: 0;
@@ -60,8 +85,8 @@
       align-items: center;
       gap: 14px;
       padding: 0 22px;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      background: rgba(255,255,255,0.92);
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.96);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
@@ -87,7 +112,7 @@
       text-overflow: ellipsis;
     }
     .topbar-version {
-      color: rgba(0,0,0,0.48);
+      color: var(--text-muted);
       font-size: 13px;
       font-weight: 700;
       white-space: nowrap;
@@ -116,11 +141,11 @@
       position: relative;
       height: 100%;
       min-height: 0;
-      border-radius: 18px;
+      border-radius: var(--radius-md);
       overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.07);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      background: rgba(255,255,255,0.8);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      background: var(--surface);
     }
     #map { height: 100%; width: 100%; background: #f6f7f8; }
     .map-controls {
@@ -1159,6 +1184,88 @@
       }
     }
 
+    .map-toggle,
+    .map-dropdown-menu,
+    .map-legend,
+    .mobile-map-preview,
+    .panel,
+    .item,
+    .state-view,
+    .mobile-sheet-header {
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-md) !important;
+      background: rgba(255, 255, 255, 0.96) !important;
+      color: var(--text-primary) !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+
+    .map-toggle,
+    .map-dropdown-item,
+    .map-active-filter-chip {
+      min-height: 34px;
+      font-size: var(--font-size-xs);
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .map-toggle:hover,
+    .map-dropdown-item:hover {
+      border-color: var(--border-strong) !important;
+      background: var(--surface-muted) !important;
+    }
+
+    .map-toggle-active-home,
+    .map-dropdown-item-active {
+      border-color: var(--primary) !important;
+      background: var(--primary) !important;
+      color: #ffffff !important;
+      box-shadow: none !important;
+    }
+
+    .map-toggle-active-filter,
+    .map-active-filter-chip {
+      border-color: #bfd3ff !important;
+      background: var(--primary-soft) !important;
+      color: var(--primary) !important;
+      box-shadow: none !important;
+    }
+
+    .map-toggle-active-heat {
+      border-color: #fecaca !important;
+      background: #fff1f1 !important;
+      color: var(--danger) !important;
+    }
+
+    .map-toggle-active-neutral {
+      border-color: var(--border) !important;
+      background: var(--surface-muted) !important;
+      color: var(--text-muted) !important;
+    }
+
+    .map-legend-title,
+    .section-title,
+    .mobile-sheet-meta {
+      color: var(--text-muted) !important;
+      font-size: var(--font-size-xs) !important;
+      font-weight: 850 !important;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .map-legend-item,
+    .item-title,
+    .item-meta,
+    .mobile-sheet-title {
+      font-size: var(--font-size-sm) !important;
+      color: var(--text-primary) !important;
+    }
+
+    .item:hover,
+    .item-active {
+      background: var(--surface-muted) !important;
+      box-shadow: inset 3px 0 0 var(--primary) !important;
+    }
+
 </style>
 </head>
 <body>
@@ -1270,10 +1377,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-<script src="./deutschlandkarte-project/data/de-geojson.js"></script>
-<script src="./deutschlandkarte-project/data/city-labels.js"></script>
-<script src="./deutschlandkarte-project/data/state-labels.js"></script>
-<script src="./deutschlandkarte-project/data/state-polygons.js"></script>
+<script src="./data/de-geojson.js"></script>
+<script src="./data/city-labels.js"></script>
+<script src="./data/state-labels.js"></script>
+<script src="./data/state-polygons.js"></script>
 <script src="./data/versorgungs-kompass-data.js"></script>
 
 <script>
