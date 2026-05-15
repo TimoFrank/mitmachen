@@ -8068,14 +8068,28 @@
           })
           .filter((profile) => profile.id && profile.label)
           .sort((a, b) => a.label.localeCompare(b.label, "de"));
-        const profileNames = ownerProfiles.map((profile) => profile.label);
-        ownerOptions = [...new Set([...profileNames, ...ownerOptions])].sort((a, b) => a.localeCompare(b, "de"));
+        const profileMatchLabels = new Set(ownerProfiles.flatMap((profile) => profile.matchLabels));
+        ownerOptions = [
+          ...ownerProfiles.map((profile) => profile.id),
+          ...ownerOptions.filter((owner) => !profileMatchLabels.has(owner))
+        ].sort((a, b) => ownerOptionLabel(a).localeCompare(ownerOptionLabel(b), "de"));
       }
 
       function isLegacyOwner(value) {
         const owner = String(value || "").trim();
         if (!owner) return false;
         return !ownerProfiles.some((profile) => profile.id === owner || profile.label === owner || profile.matchLabels.includes(owner));
+      }
+
+      function ownerProfileForValue(value) {
+        const owner = String(value || "").trim();
+        return ownerProfiles.find((profile) => profile.id === owner || profile.label === owner || profile.matchLabels.includes(owner));
+      }
+
+      function ownerOptionLabel(value) {
+        const profile = ownerProfileForValue(value);
+        if (profile) return profile.label;
+        return `⚠ ${value} (kein echter Account)`;
       }
 
       function renderAccountProfile(profile) {
@@ -8376,9 +8390,7 @@
           .map((value) => ({ value, label: value }));
         const owners = ownerOptions.map((value) => ({
           value,
-          label: ownerProfiles.some((profile) => profile.label === value || profile.matchLabels.includes(value))
-            ? value
-            : `⚠ ${value} (kein echter Account)`,
+          label: ownerOptionLabel(value),
           legacy: isLegacyOwner(value)
         }));
         const themes = themeSuggestions().map((value) => ({ value, label: value }));
@@ -8687,10 +8699,10 @@
         const selectedOwnerId = selectedProfile?.id || "";
         const profileOptions = ownerProfiles.map(
           (profile) =>
-            `<option value="${escapeHtml(profile.id)}" ${selectedOwnerId === profile.id ? "selected" : ""}>${escapeHtml(profile.label)}${profile.email ? ` (${escapeHtml(profile.email)})` : ""}</option>`
+            `<option value="${escapeHtml(profile.id)}" ${selectedOwnerId === profile.id ? "selected" : ""}>${escapeHtml(profile.label)}</option>`
         );
         const legacyOptions = ownerOptions
-          .filter((owner) => !ownerProfiles.some((profile) => profile.label === owner || profile.matchLabels.includes(owner)))
+          .filter((owner) => isLegacyOwner(owner))
           .map((owner) => `<option value="${escapeHtml(owner)}" ${!selectedOwnerId && selectedOwner === owner ? "selected" : ""}>⚠ ${escapeHtml(owner)} (kein echter Account)</option>`);
         return [
           `<option value="">Keinen Owner zuweisen</option>`,
