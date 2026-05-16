@@ -42,7 +42,7 @@
         --page-padding: 22px;
         --card-padding: 16px;
         --section-gap: 16px;
-        --row-height: 48px;
+        --row-height: 44px;
         --radius-sm: 6px;
         --radius-md: 8px;
         --radius-lg: 12px;
@@ -325,6 +325,7 @@
         font-size: 0.95rem;
         font-weight: 800;
         letter-spacing: -0.02em;
+        overflow: hidden;
       }
 
       .topbar-account__caret {
@@ -496,6 +497,10 @@
         align-items: center;
         padding: 12px 8px 0;
         color: #ffffff;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
       }
 
       .sidebar-footer__badge {
@@ -508,6 +513,18 @@
         border: 1px solid rgba(255, 255, 255, 0.22);
         font-size: 0.82rem;
         font-weight: 900;
+        overflow: hidden;
+      }
+
+      .sidebar-footer:hover,
+      .sidebar-footer:focus-visible {
+        outline: none;
+      }
+
+      .sidebar-footer:hover .sidebar-footer__badge,
+      .sidebar-footer:focus-visible .sidebar-footer__badge {
+        border-color: rgba(255, 255, 255, 0.46);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.13);
       }
 
       .sidebar-footer strong,
@@ -604,6 +621,348 @@
         font-size: 1rem;
         font-weight: 950;
         box-shadow: 0 12px 22px rgba(45, 102, 237, 0.22);
+        overflow: hidden;
+      }
+
+      .avatar-image,
+      .profile-avatar img,
+      .profile-photo-preview img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        border-radius: inherit;
+      }
+
+      .profile-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: stretch;
+        justify-content: center;
+        padding: 0;
+        background: rgba(19, 29, 62, 0.42);
+        z-index: 95;
+      }
+
+      .profile-modal.is-open {
+        display: flex;
+      }
+
+      .profile-panel {
+        width: min(760px, calc(100vw - 36px));
+        max-height: calc(100vh - 48px);
+        align-self: center;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        border: 1px solid #d8e2f7;
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 26px 70px rgba(16, 32, 82, 0.26);
+        overflow: hidden;
+      }
+
+      .profile-panel__head,
+      .profile-panel__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 20px 24px;
+      }
+
+      .profile-panel__head {
+        border-bottom: 1px solid #e5ebfa;
+      }
+
+      .profile-panel__head h2 {
+        margin: 0;
+        color: #17275f;
+        font-size: 1.35rem;
+        font-weight: 950;
+        letter-spacing: 0;
+      }
+
+      .profile-panel__head p {
+        margin: 4px 0 0;
+        color: #596795;
+        font-size: 0.9rem;
+        font-weight: 650;
+      }
+
+      .profile-panel__body {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        overflow: auto;
+        background: #f7f9fd;
+      }
+
+      .profile-section {
+        border: 1px solid #dfe7f8;
+        border-radius: 10px;
+        background: #ffffff;
+        padding: 18px;
+      }
+
+      .profile-section h3 {
+        margin: 0 0 14px;
+        color: #1d2e68;
+        font-size: 0.95rem;
+        font-weight: 950;
+      }
+
+      .profile-hero {
+        display: grid;
+        grid-template-columns: 132px minmax(0, 1fr);
+        gap: 22px;
+        align-items: center;
+      }
+
+      .profile-avatar {
+        width: 112px;
+        height: 112px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #dfe8f8, #edf3ff);
+        color: #173172;
+        font-size: 1.7rem;
+        font-weight: 950;
+        overflow: hidden;
+      }
+
+      .profile-hero h3 {
+        margin-bottom: 8px;
+        font-size: 1.45rem;
+      }
+
+      .profile-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .profile-field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .profile-field--wide {
+        grid-column: 1 / -1;
+      }
+
+      .profile-field label,
+      .profile-setting__label,
+      .profile-role-label {
+        color: #182a66;
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .profile-field input,
+      .profile-field select,
+      .profile-field textarea {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #d7e1f5;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #142456;
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 0.88rem;
+      }
+
+      .profile-field textarea {
+        min-height: 78px;
+        resize: vertical;
+      }
+
+      .profile-field input[readonly] {
+        background: #f3f6fb;
+        color: #7a86a7;
+      }
+
+      .profile-settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 14px;
+        align-items: end;
+      }
+
+      .profile-setting-toggle {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 42px;
+      }
+
+      .profile-switch {
+        position: relative;
+        width: 48px;
+        height: 28px;
+        flex: 0 0 auto;
+      }
+
+      .profile-switch input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+      }
+
+      .profile-switch span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #c9d3e8;
+        transition: background 160ms ease;
+      }
+
+      .profile-switch span::after {
+        content: "";
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 2px 7px rgba(26, 38, 76, 0.24);
+        transition: transform 160ms ease;
+      }
+
+      .profile-switch input:checked + span {
+        background: #155fe4;
+      }
+
+      .profile-switch input:checked + span::after {
+        transform: translateX(20px);
+      }
+
+      .profile-notice {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        margin-top: 12px;
+        padding: 10px 12px;
+        border: 1px solid #c8dcff;
+        border-radius: 8px;
+        background: #f3f7ff;
+        color: #27427e;
+        font-size: 0.82rem;
+        font-weight: 700;
+        line-height: 1.4;
+      }
+
+      .profile-role-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .profile-role-card p {
+        margin: 8px 0 0;
+        color: #596795;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+
+      .profile-status {
+        min-height: 18px;
+        color: #596795;
+        font-size: 0.82rem;
+        font-weight: 750;
+      }
+
+      .profile-status.is-error {
+        color: #c83232;
+      }
+
+      .profile-panel__footer {
+        border-top: 1px solid #e5ebfa;
+        background: #ffffff;
+      }
+
+      .profile-photo-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(18, 28, 59, 0.52);
+        z-index: 110;
+      }
+
+      .profile-photo-modal.is-open {
+        display: flex;
+      }
+
+      .profile-photo-panel {
+        width: min(520px, calc(100vw - 32px));
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 24px 70px rgba(15, 31, 79, 0.3);
+        padding: 22px;
+      }
+
+      .profile-photo-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .profile-photo-preview {
+        width: 148px;
+        height: 148px;
+        display: grid;
+        place-items: center;
+        margin: 20px auto;
+        border-radius: 999px;
+        background: #e7edf8;
+        color: #173172;
+        font-size: 2rem;
+        font-weight: 950;
+        overflow: hidden;
+      }
+
+      .profile-photo-actions {
+        display: grid;
+        justify-items: center;
+        gap: 10px;
+      }
+
+      .profile-photo-remove {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid #e5ebfa;
+      }
+
+      .profile-photo-remove strong {
+        display: block;
+        color: #17275f;
+        font-size: 0.9rem;
+      }
+
+      .profile-photo-remove span {
+        color: #596795;
+        font-size: 0.82rem;
+        font-weight: 650;
       }
 
       .account-popover__name {
@@ -1080,8 +1439,8 @@
       }
 
       .summary.summary--compact .summary-icon {
-        width: 32px;
-        height: 32px;
+        width: 30px;
+        height: 30px;
         border-radius: 11px;
         font-size: 0.88rem;
       }
@@ -2292,6 +2651,15 @@
         cursor: pointer;
       }
 
+      body.is-compact-table .row {
+        min-height: 40px;
+      }
+
+      body.is-compact-table .avatar {
+        width: 28px;
+        height: 28px;
+      }
+
       .row:hover {
         background: #f8fbff;
       }
@@ -2308,8 +2676,21 @@
       }
 
       .contact-cell {
+        display: flex;
+        align-items: center;
         gap: 9px;
         justify-content: flex-start;
+        min-width: 0;
+      }
+
+      .contact-meta {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .contact-name__line {
+        min-width: 0;
       }
 
       .avatar {
@@ -2495,14 +2876,19 @@
       }
 
       .contact-name-button {
+        display: block;
         min-width: 0;
+        max-width: 100%;
         padding: 0;
         border: 0;
         background: transparent;
         color: var(--text);
         font-size: 0.9rem;
         font-weight: 800;
-        letter-spacing: -0.02em;
+        letter-spacing: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         text-align: left;
         cursor: pointer;
       }
@@ -2851,11 +3237,46 @@
         padding: 0 9px;
         border-radius: 999px;
         background: #f2f5ff;
+        border: 1px solid #dce5ff;
         color: #4f60a0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         font-size: 0.68rem;
         font-weight: 900;
+        line-height: 1;
         text-transform: uppercase;
         white-space: nowrap;
+      }
+
+      .history-action-pill--update {
+        background: #edf4ff;
+        border-color: #bfd3ff;
+        color: #155fe4;
+      }
+
+      .history-action-pill--import {
+        background: #eefbf4;
+        border-color: #bce8cf;
+        color: #147a44;
+      }
+
+      .history-action-pill--create {
+        background: #f0fdf9;
+        border-color: #b9eee1;
+        color: #0f766e;
+      }
+
+      .history-action-pill--archive {
+        background: #fff1f2;
+        border-color: #fecdd3;
+        color: #be123c;
+      }
+
+      .history-action-pill--restore {
+        background: #fff7ed;
+        border-color: #fed7aa;
+        color: #c2410c;
       }
 
       .history-change-list {
@@ -3592,11 +4013,113 @@
         font-weight: 650;
       }
 
+      .detail-edit-grid {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .detail-edit-field {
+        display: grid;
+        gap: 5px;
+      }
+
+      .detail-edit-field label {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .detail-edit-input,
+      .detail-edit-select,
+      .detail-note-input,
+      .detail-theme-input {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 0.86rem;
+        font-weight: 700;
+        line-height: 1.35;
+        padding: 8px 10px;
+        outline: none;
+        transition: border-color 140ms ease, box-shadow 140ms ease;
+      }
+
+      .detail-edit-input:focus,
+      .detail-edit-select:focus,
+      .detail-note-input:focus,
+      .detail-theme-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(21, 95, 228, 0.12);
+      }
+
+      .detail-edit-input--title {
+        min-height: 44px;
+        font-size: 1.05rem;
+        font-weight: 900;
+      }
+
+      .detail-profile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
       .detail-chip-row {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
         padding: 10px 12px;
+      }
+
+      .detail-theme-editor {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .detail-theme-presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .theme-tag--editable,
+      .theme-tag--preset {
+        border: 1px solid #d7e0f3;
+        cursor: pointer;
+      }
+
+      .theme-tag--editable {
+        padding-right: 8px;
+      }
+
+      .theme-tag__remove {
+        margin-left: 5px;
+        color: #5f6e9d;
+        font-weight: 900;
+      }
+
+      .theme-tag--preset.is-active {
+        border-color: #b7d2ff;
+        background: #edf3ff;
+        color: #155fe4;
+      }
+
+      .detail-theme-add {
+        display: flex;
+        gap: 8px;
+      }
+
+      .detail-theme-add .detail-theme-input {
+        flex: 1 1 auto;
       }
 
       .detail-note-block {
@@ -3608,6 +4131,27 @@
 
       .detail-note-block--empty {
         color: var(--text-muted);
+      }
+
+      .detail-note-input {
+        min-height: 108px;
+        resize: vertical;
+        font-weight: 650;
+      }
+
+      .detail-note-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px 12px;
+        border-top: 1px solid #edf1f8;
+      }
+
+      .detail-note-status {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 700;
       }
 
       .detail-compact-list {
@@ -8622,10 +9166,26 @@
         grid-template-columns: var(--contacts-grid-template);
       }
 
+      .organizations-table .thead,
+      .organizations-table .row {
+        display: grid;
+        grid-template-columns:
+          minmax(260px, 1.35fr)
+          minmax(150px, 0.72fr)
+          minmax(150px, 0.72fr)
+          minmax(170px, 0.78fr)
+          minmax(120px, 0.54fr)
+          minmax(128px, 0.56fr)
+          44px;
+        align-items: center;
+      }
+
       .contacts-table .thead > div,
-      .contacts-table .row > div {
+      .contacts-table .row > div,
+      .organizations-table .thead > div,
+      .organizations-table .row > div {
         min-width: 0;
-        padding: 6px 10px;
+        padding: 5px 10px;
       }
 
       .contacts-table .thead .cell--select,
@@ -8639,6 +9199,96 @@
       .contacts-table .cell--updated {
         justify-content: flex-end;
         text-align: right;
+      }
+
+      .organization-logo {
+        width: 38px;
+        height: 38px;
+        border: 1px solid #dfe7fb;
+        border-radius: 8px;
+        display: inline-grid;
+        place-items: center;
+        background: #ffffff;
+        color: #155fe4;
+        font-size: 0.84rem;
+        font-weight: 900;
+        flex: 0 0 auto;
+      }
+
+      .organization-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .organization-name-button,
+      .organization-contact-link {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--primary);
+        font: inherit;
+        font-weight: 850;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .organization-name-button {
+        color: var(--text-primary);
+      }
+
+      .organization-name-button:hover,
+      .organization-contact-link:hover {
+        color: var(--primary-hover);
+        text-decoration: underline;
+      }
+
+      .organization-profile-logo {
+        width: 76px;
+        height: 76px;
+        border: 1px solid #dfe7fb;
+        border-radius: 12px;
+        display: inline-grid;
+        place-items: center;
+        background: #ffffff;
+        color: #155fe4;
+        font-size: 1.22rem;
+        font-weight: 950;
+        flex: 0 0 auto;
+      }
+
+      .organization-contact-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .organization-contact-table th,
+      .organization-contact-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #edf1f8;
+        color: #32457f;
+        font-size: 0.8rem;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .organization-contact-table th {
+        color: #657195;
+        font-size: 0.72rem;
+        font-weight: 900;
+      }
+
+      .organization-contact-table tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .organization-contact-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-bottom: 10px;
       }
 
       .table-checkbox {
@@ -8814,6 +9464,7 @@
         font-weight: 850;
         line-height: 1;
         flex: 0 0 auto;
+        overflow: hidden;
       }
 
       .owner-badge__label {
@@ -9172,6 +9823,53 @@
           box-shadow: none;
         }
       }
+      @media (max-width: 760px) {
+        .profile-modal {
+          padding: 0;
+        }
+
+        .profile-panel {
+          width: 100vw;
+          height: 100vh;
+          max-height: 100vh;
+          border-radius: 0;
+          border: 0;
+        }
+
+        .profile-panel__head,
+        .profile-panel__footer {
+          padding: 16px;
+        }
+
+        .profile-panel__body {
+          padding: 10px;
+        }
+
+        .profile-hero,
+        .profile-grid,
+        .profile-settings-grid,
+        .profile-role-card,
+        .profile-photo-remove {
+          grid-template-columns: 1fr;
+        }
+
+        .profile-hero {
+          text-align: center;
+          justify-items: center;
+        }
+
+        .profile-setting-toggle {
+          justify-content: flex-start;
+        }
+
+        .profile-panel__footer {
+          justify-content: stretch;
+        }
+
+        .profile-panel__footer .action-button {
+          flex: 1;
+        }
+      }
     </style>
   </head>
   <body>
@@ -9194,6 +9892,17 @@
               <path d="M23 11h-6"></path>
             </svg>
             <span>Kontakte</span>
+          </button>
+          <button class="primary-tab" type="button" data-view-tab="organizations" title="Organisationen">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+              <path d="M3 21h18"></path>
+              <path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path>
+              <path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path>
+              <path d="M9 7h3"></path>
+              <path d="M9 11h3"></path>
+              <path d="M9 15h3"></path>
+            </svg>
+            <span>Organisationen</span>
           </button>
           <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -9235,13 +9944,13 @@
             <path d="m15 18-6-6 6-6"></path>
           </svg>
         </button>
-        <div class="sidebar-footer">
+        <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen">
           <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
           <div>
             <strong id="sidebar-user-name">Timo Frank</strong>
             <span id="sidebar-user-role">Admin</span>
           </div>
-        </div>
+        </button>
       </aside>
 
       <div class="app-main">
@@ -9269,7 +9978,18 @@
                 <path d="M20 8v6"></path>
                 <path d="M23 11h-6"></path>
               </svg>
-              <span>Kontakte</span>
+            <span>Kontakte</span>
+          </button>
+            <button class="primary-tab" type="button" data-view-tab="organizations">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M3 21h18"></path>
+                <path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path>
+                <path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path>
+                <path d="M9 7h3"></path>
+                <path d="M9 11h3"></path>
+                <path d="M9 15h3"></path>
+              </svg>
+              <span>Organisationen</span>
             </button>
             <button class="primary-tab" type="button" data-view-tab="map">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -9294,6 +10014,7 @@
               <span class="action-button__icon">+</span>
             </button>
             <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+            <button class="action-button action-button--primary" type="button" id="new-organization-button"><span class="action-button__icon">+</span>Organisation anlegen</button>
             <button class="action-button" type="button" id="open-import-button"><span class="action-button__icon">↥</span>Kontakte importieren</button>
             <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
             <div class="menu-shell">
@@ -9327,6 +10048,7 @@
                 </div>
                 <div class="account-permission-note" id="account-permission-note">Rollenrechte werden geladen.</div>
                 <div class="account-quick-actions">
+                  <button class="account-quick-action" type="button" id="account-profile-button">Mein Profil</button>
                   <button class="account-quick-action" type="button" id="account-tour-button">Tour starten</button>
                   <button class="account-quick-action" type="button" id="account-quality-button">Datenqualität</button>
                 </div>
@@ -9340,6 +10062,7 @@
               </div>
             </div>
             <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,.xlsx,.xls,.doc,.docx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+            <input class="visually-hidden" type="file" id="profile-photo-input" accept="image/jpeg,image/png,image/webp" />
           </div>
         </header>
 
@@ -9573,6 +10296,31 @@
             </div>
           </section>
 
+          <section class="view-panel" id="view-organizations" data-view-panel="organizations">
+            <div class="view-card organizations-workspace">
+              <div class="table-wrap">
+                <section class="table organizations-table" aria-labelledby="organisationen-title">
+                  <div class="thead" id="organizations-table-head">
+                    <div class="cell--organization">Organisation</div>
+                    <div class="cell--sector">Sektor</div>
+                    <div class="cell--location">Standort</div>
+                    <div class="cell--state">Bundesland</div>
+                    <div class="cell--contacts">Kontakte</div>
+                    <div class="cell--updated">Aktualisiert</div>
+                    <div class="cell--actions" aria-label="Aktionen"></div>
+                  </div>
+                  <div id="organization-list"></div>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="organizations-pagination-meta">0-0 von 0 Organisationen</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="organizations-pagination"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="view-panel" id="view-map" data-view-panel="map">
             <div class="view-card view-card--map">
               <iframe
@@ -9709,6 +10457,147 @@
       </div>
     </div>
 
+    <aside class="profile-modal" id="profile-modal" aria-hidden="true">
+      <section class="profile-panel" aria-labelledby="profile-title" aria-modal="true" role="dialog">
+        <div class="profile-panel__head">
+          <div>
+            <h2 id="profile-title">Mein Profil</h2>
+            <p>Verwalte deine persönlichen Informationen und Einstellungen.</p>
+          </div>
+          <button class="detail-close" type="button" id="profile-close" aria-label="Profil schließen">×</button>
+        </div>
+        <form id="profile-form">
+          <div class="profile-panel__body">
+            <section class="profile-section">
+              <div class="profile-hero">
+                <div>
+                  <div class="profile-avatar" id="profile-avatar-preview">TF</div>
+                  <button class="action-button" type="button" id="profile-photo-open">Foto ändern</button>
+                </div>
+                <div>
+                  <h3 id="profile-display-title">Timo Frank</h3>
+                  <div class="profile-meta">
+                    <span class="account-role-pill account-role-pill--admin" id="profile-role-pill">Admin</span>
+                    <span class="account-popover__email" id="profile-email-label">timo.frank@versorgungs-kompass.de</span>
+                  </div>
+                  <div class="profile-status" id="profile-status" aria-live="polite"></div>
+                </div>
+              </div>
+            </section>
+            <section class="profile-section">
+              <h3>Basisdaten</h3>
+              <div class="profile-grid">
+                <div class="profile-field">
+                  <label for="profile-display-name">Anzeigename</label>
+                  <input id="profile-display-name" name="displayName" autocomplete="name" required />
+                </div>
+                <div class="profile-field">
+                  <label for="profile-initials">Initialen</label>
+                  <input id="profile-initials" name="initials" maxlength="4" />
+                </div>
+                <div class="profile-field">
+                  <label for="profile-email">E-Mail</label>
+                  <input id="profile-email" name="email" type="email" readonly />
+                </div>
+                <div class="profile-field">
+                  <label for="profile-team">Team / Bereich</label>
+                  <input id="profile-team" name="team" placeholder="Optional" />
+                </div>
+                <div class="profile-field profile-field--wide">
+                  <label for="profile-bio">Kurzbeschreibung</label>
+                  <textarea id="profile-bio" name="bio" rows="3" placeholder="Optional"></textarea>
+                </div>
+              </div>
+            </section>
+            <section class="profile-section">
+              <h3>Darstellung &amp; Nutzung</h3>
+              <div class="profile-settings-grid">
+                <div class="profile-field">
+                  <label for="profile-default-view">Standardansicht</label>
+                  <select id="profile-default-view" name="defaultViewType">
+                    <option value="contacts">Kontakte</option>
+                    <option value="organizations">Organisationen</option>
+                    <option value="map">Karte</option>
+                    <option value="analytics">Auswertung</option>
+                  </select>
+                </div>
+                <div class="profile-field">
+                  <label for="profile-default-tab">Standard-Tab im Kontaktprofil</label>
+                  <select id="profile-default-tab" name="defaultContactTab">
+                    <option value="overview">Überblick</option>
+                    <option value="contact">Kontaktwege</option>
+                    <option value="topics">Themen</option>
+                    <option value="activities">Aktivitäten</option>
+                  </select>
+                </div>
+                <div class="profile-setting-toggle">
+                  <label class="profile-switch" for="profile-compact-table">
+                    <input id="profile-compact-table" name="compactTable" type="checkbox" />
+                    <span></span>
+                  </label>
+                  <div>
+                    <div class="profile-setting__label">Kompakte Tabelle</div>
+                    <div class="account-popover__email">Zeilenhöhe reduzieren</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="profile-section">
+              <h3>Benachrichtigungen</h3>
+              <div class="profile-setting-toggle">
+                <label class="profile-switch" for="profile-notifications">
+                  <input id="profile-notifications" name="notificationsEnabled" type="checkbox" />
+                  <span></span>
+                </label>
+                <div>
+                  <div class="profile-setting__label">Benachrichtigungen im Versorgungs-Kompass anzeigen</div>
+                  <div class="account-popover__email">Hinweise zu neuen Aktivitäten und relevanten Änderungen im System.</div>
+                </div>
+              </div>
+              <div class="profile-notice"><span aria-hidden="true">i</span><span>Weitere Benachrichtigungseinstellungen werden später ergänzt.</span></div>
+            </section>
+            <section class="profile-section">
+              <h3>Rolle &amp; Berechtigungen</h3>
+              <div class="profile-role-card">
+                <div>
+                  <div class="profile-role-label">Deine Rolle im System</div>
+                  <p id="profile-role-description">Rollenrechte werden geladen.</p>
+                </div>
+                <span class="account-role-pill" id="profile-role-display">Nutzer</span>
+              </div>
+            </section>
+          </div>
+          <div class="profile-panel__footer">
+            <button class="action-button" type="button" id="profile-cancel">Abbrechen</button>
+            <button class="action-button action-button--primary" type="submit" id="profile-save">Speichern</button>
+          </div>
+        </form>
+      </section>
+    </aside>
+
+    <aside class="profile-photo-modal" id="profile-photo-modal" aria-hidden="true">
+      <section class="profile-photo-panel" aria-labelledby="profile-photo-title" aria-modal="true" role="dialog">
+        <div class="profile-photo-head">
+          <h3 id="profile-photo-title">Profilfoto ändern</h3>
+          <button class="detail-close" type="button" id="profile-photo-close" aria-label="Foto-Dialog schließen">×</button>
+        </div>
+        <div class="profile-photo-preview" id="profile-photo-preview">TF</div>
+        <div class="profile-photo-actions">
+          <button class="action-button action-button--primary" type="button" id="profile-photo-pick">Foto auswählen</button>
+          <div class="account-popover__email">PNG, JPG oder WebP · max. 5 MB</div>
+          <div class="profile-status" id="profile-photo-status" aria-live="polite"></div>
+        </div>
+        <div class="profile-photo-remove">
+          <div>
+            <strong>Foto entfernen</strong>
+            <span>Dein Profil wird wieder mit deinen Initialen angezeigt.</span>
+          </div>
+          <button class="action-button action-button--danger" type="button" id="profile-photo-remove">Entfernen</button>
+        </div>
+        <div class="profile-notice"><span aria-hidden="true">i</span><span>Quadratische Bilder werden automatisch rund zugeschnitten. Die Initialen werden angezeigt, wenn kein Foto hinterlegt ist.</span></div>
+      </section>
+    </aside>
+
     <aside class="detail-drawer" id="detail-drawer" aria-hidden="true">
       <div class="detail-overlay" id="detail-overlay"></div>
       <section class="detail-panel" id="detail-panel" aria-live="polite"></section>
@@ -9734,7 +10623,7 @@
 
           <section class="editor-section" aria-labelledby="editor-section-basic">
             <div class="editor-section-head">
-              <span class="editor-section-icon">&#128273;</span>
+              <span class="editor-section-icon">ID</span>
               <h4 class="editor-section-title" id="editor-section-basic">Basisdaten</h4>
             </div>
             <div class="editor-grid">
@@ -9807,7 +10696,7 @@
 
           <section class="editor-section" aria-labelledby="editor-section-communication">
             <div class="editor-section-head">
-              <span class="editor-section-icon">&#9993;</span>
+              <span class="editor-section-icon">@</span>
               <h4 class="editor-section-title" id="editor-section-communication">Kontaktwege <small>(optional)</small></h4>
             </div>
             <div class="editor-grid">
@@ -9829,7 +10718,7 @@
 
           <section class="editor-section" aria-labelledby="editor-section-context">
             <div class="editor-section-head">
-              <span class="editor-section-icon">&#128172;</span>
+              <span class="editor-section-icon">TH</span>
               <h4 class="editor-section-title" id="editor-section-context">Kontext</h4>
             </div>
             <div class="editor-grid">
@@ -9854,7 +10743,7 @@
 
           <section class="editor-section" aria-labelledby="editor-section-additional">
             <div class="editor-section-head">
-              <span class="editor-section-icon">&#128196;</span>
+              <span class="editor-section-icon">+</span>
               <h4 class="editor-section-title" id="editor-section-additional">Weitere Angaben <small>(optional)</small></h4>
             </div>
             <div class="editor-grid">
@@ -9875,6 +10764,89 @@
             <button class="action-button" type="button" id="editor-cancel">Abbrechen</button>
             <button class="action-button" type="submit" form="editor-form" id="editor-save-next">Speichern &amp; weiteren anlegen</button>
             <button class="action-button action-button--primary" type="submit" form="editor-form" id="editor-save">Kontakt speichern</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <aside class="editor-drawer" id="organization-editor-drawer" aria-hidden="true">
+      <div class="editor-overlay" id="organization-editor-overlay"></div>
+      <section class="editor-panel" aria-labelledby="organization-editor-title">
+        <div class="editor-toolbar">
+          <div>
+            <h3 id="organization-editor-title">Organisation anlegen</h3>
+            <p id="organization-editor-subtitle">Stammdaten der Einrichtung oder Institution pflegen.</p>
+          </div>
+          <button class="detail-close" type="button" id="organization-editor-close" aria-label="Editor schließen">&times;</button>
+        </div>
+        <form class="editor-form" id="organization-editor-form">
+          <input type="hidden" name="id" />
+          <div class="editor-intro">
+            <strong>Pflichtfeld:</strong> Name. Kontakte können direkt im Organisationsprofil zugeordnet werden.
+          </div>
+          <div class="editor-status" id="organization-editor-status"></div>
+          <section class="editor-section">
+            <div class="editor-section-head">
+              <span class="editor-section-icon">ORG</span>
+              <h4 class="editor-section-title">Stammdaten</h4>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-name">Name <span class="editor-label__required">*</span></label>
+                <input class="editor-input" id="organization-field-name" name="name" required placeholder="Organisation oder Einrichtung..." />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-sector">Sektor</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="category">
+                  <select class="editor-select" id="organization-field-sector" name="sector"></select>
+                </div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-type">Organisationstyp</label>
+                <input class="editor-input" id="organization-field-type" name="organizationType" placeholder="z. B. Universitätsklinikum" />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-postal-code">PLZ</label>
+                <input class="editor-input" id="organization-field-postal-code" name="postalCode" inputmode="numeric" placeholder="z. B. 53127" />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-city">Ort</label>
+                <input class="editor-input" id="organization-field-city" name="city" placeholder="z. B. Bonn" />
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-state">Bundesland</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="state">
+                  <select class="editor-select" id="organization-field-state" name="state"></select>
+                </div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-website">Website</label>
+                <input class="editor-input" id="organization-field-website" name="website" type="url" placeholder="https://..." />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-phone">Telefon</label>
+                <input class="editor-input" id="organization-field-phone" name="phone" placeholder="+49 ..." />
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-email">E-Mail</label>
+                <input class="editor-input" id="organization-field-email" name="email" type="email" placeholder="info@organisation.de" />
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-source">Quelle</label>
+                <input class="editor-input" id="organization-field-source" name="source" placeholder="z. B. Kontaktdatenbestand, Recherche" />
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-notes">Notiz</label>
+                <textarea class="editor-textarea" id="organization-field-notes" name="notes" placeholder="Kurze Notiz zur Organisation..."></textarea>
+              </div>
+            </div>
+          </section>
+        </form>
+        <div class="editor-footer">
+          <div class="editor-footer__hint">Speichern schreibt in die Organisationen-Tabelle, sofern die Sprint-4-Migration aktiv ist.</div>
+          <div class="editor-actions">
+            <button class="action-button" type="button" id="organization-editor-cancel">Abbrechen</button>
+            <button class="action-button action-button--primary" type="submit" form="organization-editor-form" id="organization-editor-save">Organisation speichern</button>
           </div>
         </div>
       </section>
@@ -9915,6 +10887,8 @@
         "Apotheke",
         "Pflege",
         "Krankenkasse",
+        "Wissenschaft & Forschung",
+        "Öffentlicher Sektor",
         "Reha",
         "Sonstige"
       ];
@@ -9940,12 +10914,12 @@
       ];
       const priorityCycle = ["Mittel", "Hoch", "Niedrig"];
       const categoryEmoji = {
-        Praxis: "🩺",
-        Krankenhaus: "🏥",
-        Apotheke: "💊",
-        Pflege: "🧑‍⚕️",
-        Krankenkasse: "🏛️",
-        Reha: "♿",
+        Praxis: "PR",
+        Krankenhaus: "KH",
+        Apotheke: "AP",
+        Pflege: "PF",
+        Krankenkasse: "KK",
+        Reha: "RH",
         Sonstige: "•"
       };
       const roleBadgeClasses = {
@@ -9970,9 +10944,9 @@
         Unbekannt: "#9aa6b8"
       };
       const priorityEmoji = {
-        Hoch: "🔥",
-        Mittel: "🟡",
-        Niedrig: "🟢"
+        Hoch: "H",
+        Mittel: "M",
+        Niedrig: "N"
       };
       let ownerOptions = [
         "Timo Frank",
@@ -10188,6 +11162,11 @@
 
       const searchInput = document.getElementById("search");
       const list = document.getElementById("contact-list");
+      const organizationList = document.getElementById("organization-list");
+      const organizationsTable = document.querySelector(".organizations-table");
+      const organizationsTableHead = document.getElementById("organizations-table-head");
+      const organizationsPaginationMeta = document.getElementById("organizations-pagination-meta");
+      const organizationsPagination = document.getElementById("organizations-pagination");
       const contactsTable = document.querySelector(".contacts-table");
       const contactsTableHead = document.getElementById("contacts-table-head");
       const bulkToolbar = document.getElementById("bulk-toolbar");
@@ -10269,6 +11248,7 @@
       const editorThemePresets = document.getElementById("editor-theme-presets");
       const editorThemeSelected = document.getElementById("editor-theme-selected");
       const newContactButton = document.getElementById("new-contact-button");
+      const newOrganizationButton = document.getElementById("new-organization-button");
       const archiveViewButton = document.getElementById("archive-view-button");
       const mobileNewContactButton = document.getElementById("mobile-new-contact-button");
       const categoryChart = document.getElementById("category-chart");
@@ -10289,6 +11269,8 @@
       const accountPermissionNote = document.getElementById("account-permission-note");
       const accountSavedViews = document.getElementById("account-saved-views");
       const accountAvatar = document.getElementById("account-avatar");
+      const sidebarProfileButton = document.getElementById("sidebar-profile-button");
+      const accountProfileButton = document.getElementById("account-profile-button");
       const accountTourButton = document.getElementById("account-tour-button");
       const accountQualityButton = document.getElementById("account-quality-button");
       const permissionBanner = document.getElementById("permission-banner");
@@ -10305,6 +11287,25 @@
       const importCsvButton = document.getElementById("import-csv-button");
       const exportCsvButton = document.getElementById("export-csv-button");
       const csvFileInput = document.getElementById("csv-file-input");
+      const profileModal = document.getElementById("profile-modal");
+      const profileForm = document.getElementById("profile-form");
+      const profileClose = document.getElementById("profile-close");
+      const profileCancel = document.getElementById("profile-cancel");
+      const profileStatus = document.getElementById("profile-status");
+      const profileAvatarPreview = document.getElementById("profile-avatar-preview");
+      const profileDisplayTitle = document.getElementById("profile-display-title");
+      const profileEmailLabel = document.getElementById("profile-email-label");
+      const profileRolePill = document.getElementById("profile-role-pill");
+      const profileRoleDisplay = document.getElementById("profile-role-display");
+      const profileRoleDescription = document.getElementById("profile-role-description");
+      const profilePhotoOpen = document.getElementById("profile-photo-open");
+      const profilePhotoInput = document.getElementById("profile-photo-input");
+      const profilePhotoModal = document.getElementById("profile-photo-modal");
+      const profilePhotoClose = document.getElementById("profile-photo-close");
+      const profilePhotoPick = document.getElementById("profile-photo-pick");
+      const profilePhotoRemove = document.getElementById("profile-photo-remove");
+      const profilePhotoPreview = document.getElementById("profile-photo-preview");
+      const profilePhotoStatus = document.getElementById("profile-photo-status");
       const importDrawer = document.getElementById("import-drawer");
       const importOverlay = document.getElementById("import-overlay");
       const importClose = document.getElementById("import-close");
@@ -10312,9 +11313,18 @@
       const importSubtitle = document.getElementById("import-subtitle");
       const importBody = document.getElementById("import-body");
       const importFooter = document.getElementById("import-footer");
+      const organizationEditorDrawer = document.getElementById("organization-editor-drawer");
+      const organizationEditorOverlay = document.getElementById("organization-editor-overlay");
+      const organizationEditorForm = document.getElementById("organization-editor-form");
+      const organizationEditorTitle = document.getElementById("organization-editor-title");
+      const organizationEditorSubtitle = document.getElementById("organization-editor-subtitle");
+      const organizationEditorClose = document.getElementById("organization-editor-close");
+      const organizationEditorCancel = document.getElementById("organization-editor-cancel");
+      const organizationEditorStatus = document.getElementById("organization-editor-status");
 
       let activeView = "contacts";
       let activeId = null;
+      let activeOrganizationId = null;
       let activeNameEditorId = null;
       let selectedPriorities = [];
       let selectedCategories = [];
@@ -10330,7 +11340,9 @@
       let pageSize = 20;
       let editorMode = "create";
       let editingId = null;
+      let pendingEditorOrganizationId = "";
       let editorThemes = [];
+      let detailEditMode = false;
       let importState = createImportState();
       let currentProfile = null;
       const contactHistoryCache = new Map();
@@ -10409,8 +11421,8 @@
       }
 
       function permissionText(role = currentRole()) {
-        if (role === "admin") return "Admin: Kontakte anlegen und bearbeiten, Archiv und Import nutzen, Datenqualität prüfen.";
-        if (role === "editor") return "Editor: Kontakte anlegen und bearbeiten. Archiv, Import und Rollenverwaltung bleiben Admins vorbehalten.";
+        if (role === "admin") return "Admin: Kontakte und Organisationen anlegen und bearbeiten, Archiv und Import nutzen, Datenqualität prüfen.";
+        if (role === "editor") return "Editor: Kontakte und Organisationen anlegen und bearbeiten. Archiv, Import und Rollenverwaltung bleiben Admins vorbehalten.";
         return "Viewer: Lesen, Suchen, Filtern, Karte und Auswertung nutzen. Änderungen sind deaktiviert.";
       }
 
@@ -10429,6 +11441,7 @@
         document.body.dataset.userRole = role;
         setRoleElementVisible(newContactButton, canEditContacts());
         setRoleElementVisible(mobileNewContactButton, canEditContacts());
+        setRoleElementVisible(newOrganizationButton, canEditContacts());
         setRoleElementVisible(openImportButton, canAdministerData());
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
@@ -11643,6 +12656,7 @@
           categoryEmoji: categoryEmoji[category] || "•",
           roleBadgeClass: roleBadgeClasses[category] || "role-badge role--netzwerk",
           organization: entry.organization || defaultOrganizations[index % defaultOrganizations.length],
+          organizationId: entry.organizationId || entry.organization_id || "",
           organizationShort: simplifyOrganization(entry.organization || defaultOrganizations[index % defaultOrganizations.length]),
           honorificTitle: entry.honorificTitle || entry.academicTitle || "",
           specialty,
@@ -11745,10 +12759,13 @@
       }
 
       let contacts = loadStoredContacts();
+      let organizations = deriveOrganizationsFromContacts(contacts);
+      let editingOrganizationId = null;
       let showingArchive = false;
       let greetingLabel = "Willkommen, Timo";
       const viewLabels = {
         contacts: { title: "Kontakte", subtitle: "Pflege, Suche und Segmentierung der Versorgungskontakte." },
+        organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." }
@@ -11756,6 +12773,207 @@
 
       function uniqueValues(key) {
         return [...new Set(contacts.map((contact) => contact[key]))].sort((a, b) => a.localeCompare(b, "de"));
+      }
+
+      function normalizeOrganizationName(value) {
+        return String(value || "")
+          .trim()
+          .replace(/\s+/g, " ")
+          .toLowerCase();
+      }
+
+      function organizationInitials(name) {
+        const cleanName = String(name || "").replace(/[^\p{L}\p{N}\s-]/gu, " ").trim();
+        const parts = cleanName.split(/\s+/).filter(Boolean);
+        if (!parts.length) return "OR";
+        const important = parts.filter((part) => !/^(der|die|das|und|am|im|in|für|fuer)$/i.test(part));
+        const source = important.length ? important : parts;
+        if (source.length === 1) return source[0].slice(0, 2).toUpperCase();
+        return `${source[0][0]}${source[source.length - 1][0]}`.toUpperCase();
+      }
+
+      function organizationLocation(organization) {
+        return [organization.postalCode, organization.city].filter(Boolean).join(" ");
+      }
+
+      function organizationContacts(organization) {
+        const normalized = normalizeOrganizationName(organization.name);
+        return contacts
+          .filter((contact) => contact.status !== "archived")
+          .filter((contact) => {
+            if (organization.id && contact.organizationId && contact.organizationId === organization.id) return true;
+            return normalized && normalizeOrganizationName(contact.organization) === normalized;
+          });
+      }
+
+      function deriveOrganizationsFromContacts(sourceContacts = contacts) {
+        const byName = new Map();
+        sourceContacts
+          .filter((contact) => contact.status !== "archived")
+          .forEach((contact) => {
+            const name = meaningfulOrEmpty(contact.organization);
+            const normalizedName = normalizeOrganizationName(name);
+            if (!name || !normalizedName || /^(noch ergänzen|noch ergaenzen|keine organisation|privat|unbekannt)$/i.test(name)) return;
+            const existing = byName.get(normalizedName);
+            const next = existing || {
+              id: contact.organizationId || `derived-org-${normalizedName.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+              name,
+              normalizedName,
+              sector: contact.category || "",
+              organizationType: contact.category || "",
+              postalCode: contact.postalCode || "",
+              city: contact.city || "",
+              state: stateLabel(contact) === "Unbekannt" ? "" : stateLabel(contact),
+              website: contact.url || "",
+              phone: "",
+              email: "",
+              notes: "",
+              source: "Aus Kontakten abgeleitet",
+              status: "active",
+              contactCount: 0,
+              updatedAt: contact.updatedAt || contact.createdAt || ""
+            };
+            next.contactCount += 1;
+            if (!next.sector && contact.category) next.sector = contact.category;
+            if (!next.postalCode && contact.postalCode) next.postalCode = contact.postalCode;
+            if (!next.city && contact.city) next.city = contact.city;
+            if (!next.state && stateLabel(contact) !== "Unbekannt") next.state = stateLabel(contact);
+            if (!next.updatedAt || String(contact.updatedAt || contact.createdAt || "") > next.updatedAt) next.updatedAt = contact.updatedAt || contact.createdAt || "";
+            byName.set(normalizedName, next);
+          });
+        return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, "de"));
+      }
+
+      function mergeOrganizations(remoteOrganizations = [], derivedOrganizations = deriveOrganizationsFromContacts()) {
+        const byKey = new Map();
+        derivedOrganizations.forEach((organization) => byKey.set(normalizeOrganizationName(organization.name), organization));
+        remoteOrganizations.forEach((organization) => {
+          const key = normalizeOrganizationName(organization.name);
+          const derived = byKey.get(key);
+          byKey.set(key, {
+            ...(derived || {}),
+            ...organization,
+            contactCount: organization.contactCount || derived?.contactCount || organizationContacts(organization).length
+          });
+        });
+        return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, "de"));
+      }
+
+      function filteredOrganizations() {
+        const search = searchInput.value.trim().toLowerCase();
+        return organizations.filter((organization) => {
+          const contactsForOrganization = organizationContacts(organization);
+          const haystack = [
+            organization.name,
+            organization.sector,
+            organization.organizationType,
+            organization.city,
+            organization.state,
+            organization.website,
+            ...contactsForOrganization.map((contact) => contact.name)
+          ].join(" ").toLowerCase();
+          const matchesSearch = !search || haystack.includes(search);
+          const matchesSector = !selectedCategories.length || selectedCategories.includes(organization.sector);
+          const matchesState = !selectedStates.length || selectedStates.includes(organization.state);
+          const missingFields = [];
+          if (!hasMeaningfulValue(organization.sector)) missingFields.push("sector");
+          if (!hasMeaningfulValue(organization.city) && !hasMeaningfulValue(organization.postalCode)) missingFields.push("location");
+          if (!contactsForOrganization.length) missingFields.push("contacts");
+          if (!hasMeaningfulValue(organization.source)) missingFields.push("source");
+          const matchesMissing =
+            !selectedMissingFields.length || selectedMissingFields.every((field) => {
+              const mapped = field === "organization" ? "contacts" : field === "specialty" ? "sector" : field;
+              return missingFields.includes(mapped);
+            });
+          return matchesSearch && matchesSector && matchesState && matchesMissing;
+        });
+      }
+
+      function organizationQualityLabel(organization) {
+        const contactsForOrganization = organizationContacts(organization);
+        const missing = [
+          organization.sector,
+          organization.city || organization.postalCode,
+          organization.source,
+          contactsForOrganization.length ? "contacts" : ""
+        ].filter((value) => !hasMeaningfulValue(value)).length;
+        if (missing === 0) return { label: "Vollständig", tone: "good" };
+        if (missing <= 2) return { label: "Prüfen", tone: "medium" };
+        return { label: "Lücken", tone: "low" };
+      }
+
+      function renderOrganizationsTable(items) {
+        if (!organizationList || !organizationsPagination || !organizationsPaginationMeta) return;
+        if (!items.length) {
+          organizationList.innerHTML = `<div class="empty">Keine Organisationen im aktuellen Filter. Passe Suche oder Filter an.</div>`;
+          organizationsPaginationMeta.textContent = "0-0 von 0 Organisationen";
+          organizationsPagination.innerHTML = "";
+          return;
+        }
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        organizationsPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Organisationen`;
+        organizationList.innerHTML = pageItems
+          .map((organization) => {
+            const contactCount = organizationContacts(organization).length;
+            return `
+              <article class="row ${organization.id === activeOrganizationId ? "is-active" : ""}" data-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                <div class="cell--organization">
+                  <div class="organization-cell">
+                    <span class="organization-logo" aria-hidden="true">${escapeHtml(organizationInitials(organization.name))}</span>
+                    <div class="contact-meta">
+                      <button class="organization-name-button" type="button" data-open-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
+                      <div class="contact-subline">${escapeHtml(organization.organizationType || organization.website || "Organisation")}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="cell--sector">${sectorBadgeMarkup(organization.sector || "Sonstige")}</div>
+                <div class="cell--location"><div class="contact-subline contact-subline--primary">${escapeHtml(organizationLocation(organization) || "-")}</div></div>
+                <div class="cell--state"><div class="contact-subline contact-subline--primary">${escapeHtml(organization.state || "-")}</div></div>
+                <div class="cell--contacts"><button class="organization-contact-link" type="button" data-open-organization="${escapeHtml(organization.id)}">${contactCount} ${contactCount === 1 ? "Kontakt" : "Kontakte"}</button></div>
+                <div class="cell--updated"><span class="contact-date">${escapeHtml(formatDateLabel(organization.updatedAt || organization.createdAt) || "-")}</span></div>
+                <div class="cell--actions"><button class="icon-button table-row-menu" type="button" aria-label="Weitere Aktionen">•••</button></div>
+              </article>
+            `;
+          })
+          .join("");
+        organizationsPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-org-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-org-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-org-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+        organizationList.querySelectorAll("[data-organization-id]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, input, label, a, select, textarea")) return;
+            openOrganizationDetail(row.dataset.organizationId, items);
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openOrganizationDetail(row.dataset.organizationId, items);
+            }
+          });
+        });
+        organizationList.querySelectorAll("[data-open-organization]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openOrganizationDetail(button.dataset.openOrganization, items);
+          });
+        });
+        organizationsPagination.querySelectorAll("[data-org-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.orgPage);
+            renderOrganizationsTable(items);
+          });
+        });
+        organizationsPagination.querySelectorAll("[data-org-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.orgPageNav === "next" ? 1 : -1;
+            renderOrganizationsTable(items);
+          });
+        });
       }
 
       function applyProfiles(profiles = []) {
@@ -11775,7 +12993,8 @@
               matchLabels: [baseLabel, profile.email || "", profile.initials || ""].filter(Boolean),
               email: profile.email || "",
               role: profile.role || "",
-              initials: profile.initials || ""
+              initials: profile.initials || "",
+              avatarUrl: profile.avatar_url || profile.avatarUrl || ""
             };
           })
           .filter((profile) => profile.id && profile.label)
@@ -11811,18 +13030,38 @@
         return role || "Nutzer";
       }
 
+      function initialsFromProfile(profile) {
+        const source = profile?.display_name || profile?.displayName || profile?.email || "VK";
+        const parts = String(source).trim().split(/\s+/).filter(Boolean);
+        if (profile?.initials) return String(profile.initials).trim().slice(0, 4).toUpperCase();
+        if (parts.length > 1) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+        return String(source).slice(0, 2).toUpperCase();
+      }
+
+      function avatarMarkup(profile, className = "avatar-image") {
+        const avatarUrl = profile?.avatar_url || profile?.avatarUrl || "";
+        const displayName = profile?.display_name || profile?.displayName || profile?.email || "Nutzer";
+        if (!avatarUrl) return escapeHtml(initialsFromProfile(profile));
+        return `<img class="${className}" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" loading="lazy" onerror="this.remove()">`;
+      }
+
+      function updateAvatarElement(element, profile, className = "avatar-image") {
+        if (!element) return;
+        element.innerHTML = avatarMarkup(profile, className);
+      }
+
       function renderAccountProfile(profile) {
         currentProfile = profile || null;
         const badge = accountButton?.querySelector(".topbar-account__badge");
         const name = accountMenu?.querySelector(".account-popover__name");
         const displayName = profile?.display_name || profile?.email || "Angemeldet";
         const role = currentRole();
-        const initials = profile?.initials || String(displayName || "VK").slice(0, 2).toUpperCase();
-        if (badge) badge.textContent = initials;
-        if (sidebarUserBadge) sidebarUserBadge.textContent = initials;
+        const initials = initialsFromProfile(profile);
+        updateAvatarElement(badge, profile);
+        updateAvatarElement(sidebarUserBadge, profile);
         if (sidebarUserName) sidebarUserName.textContent = displayName;
         if (sidebarUserRole) sidebarUserRole.textContent = roleLabel(role);
-        if (accountAvatar) accountAvatar.textContent = initials;
+        updateAvatarElement(accountAvatar, profile);
         if (name) name.textContent = displayName;
         if (accountEmail) accountEmail.textContent = profile?.email || "Supabase-Profil";
         if (accountRole) {
@@ -11833,6 +13072,170 @@
         greetingLabel = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
         renderViewChrome();
         applyRoleUi();
+      }
+
+      function profileSettingsPayload() {
+        const preferences = userSettings?.preferences || {};
+        return {
+          defaultViewType: userSettings?.defaultViewType || "contacts",
+          tableDensity: userSettings?.tableDensity || "comfortable",
+          preferences: {
+            ...preferences,
+            defaultContactTab: preferences.defaultContactTab || "overview",
+            notificationsEnabled: preferences.notificationsEnabled !== false
+          }
+        };
+      }
+
+      function setProfileStatus(message = "", isError = false) {
+        if (!profileStatus) return;
+        profileStatus.textContent = message;
+        profileStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setProfilePhotoStatus(message = "", isError = false) {
+        if (!profilePhotoStatus) return;
+        profilePhotoStatus.textContent = message;
+        profilePhotoStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function renderProfileForm() {
+        const profile = currentProfile || {};
+        const displayName = profile.display_name || profile.email || "Angemeldet";
+        const role = currentRole();
+        const settings = profileSettingsPayload();
+        updateAvatarElement(profileAvatarPreview, profile);
+        updateAvatarElement(profilePhotoPreview, profile);
+        if (profileDisplayTitle) profileDisplayTitle.textContent = displayName;
+        if (profileEmailLabel) profileEmailLabel.textContent = profile.email || "Supabase-Profil";
+        [profileRolePill, profileRoleDisplay].forEach((element) => {
+          if (!element) return;
+          element.textContent = roleLabel(role);
+          element.className = `account-role-pill account-role-pill--${role}`;
+        });
+        if (profileRoleDescription) profileRoleDescription.textContent = permissionText(role);
+        if (!profileForm) return;
+        profileForm.elements.displayName.value = displayName;
+        profileForm.elements.initials.value = initialsFromProfile(profile);
+        profileForm.elements.email.value = profile.email || "";
+        profileForm.elements.team.value = profile.team || "";
+        profileForm.elements.bio.value = profile.bio || "";
+        profileForm.elements.defaultViewType.value = settings.defaultViewType === "analytics" ? "analytics" : settings.defaultViewType === "map" ? "map" : settings.defaultViewType === "organizations" ? "organizations" : "contacts";
+        profileForm.elements.defaultContactTab.value = settings.preferences.defaultContactTab || "overview";
+        profileForm.elements.compactTable.checked = settings.tableDensity === "compact";
+        profileForm.elements.notificationsEnabled.checked = settings.preferences.notificationsEnabled !== false;
+      }
+
+      function openProfileModal() {
+        closeMenus();
+        renderProfileForm();
+        setProfileStatus("");
+        profileModal?.classList.add("is-open");
+        profileModal?.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        profileForm?.elements.displayName?.focus();
+      }
+
+      function closeProfileModal() {
+        profileModal?.classList.remove("is-open");
+        profileModal?.setAttribute("aria-hidden", "true");
+        closeProfilePhotoModal();
+        syncBodyScrollLock();
+      }
+
+      function openProfilePhotoModal() {
+        renderProfileForm();
+        setProfilePhotoStatus("");
+        profilePhotoModal?.classList.add("is-open");
+        profilePhotoModal?.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+      }
+
+      function closeProfilePhotoModal() {
+        profilePhotoModal?.classList.remove("is-open");
+        profilePhotoModal?.setAttribute("aria-hidden", "true");
+        setProfilePhotoStatus("");
+      }
+
+      async function saveProfileForm(event) {
+        event?.preventDefault();
+        if (!profileForm) return;
+        const formData = new FormData(profileForm);
+        const nextProfile = {
+          displayName: String(formData.get("displayName") || "").trim(),
+          initials: String(formData.get("initials") || "").trim().slice(0, 4).toUpperCase(),
+          team: String(formData.get("team") || "").trim(),
+          bio: String(formData.get("bio") || "").trim(),
+          avatarUrl: currentProfile?.avatar_url || null
+        };
+        const nextSettings = {
+          ...userSettings,
+          defaultViewType: String(formData.get("defaultViewType") || "contacts"),
+          tableDensity: formData.get("compactTable") ? "compact" : "comfortable",
+          preferences: {
+            ...(userSettings?.preferences || {}),
+            defaultContactTab: String(formData.get("defaultContactTab") || "overview"),
+            notificationsEnabled: Boolean(formData.get("notificationsEnabled"))
+          }
+        };
+        if (!nextProfile.displayName) {
+          setProfileStatus("Bitte trage einen Anzeigenamen ein.", true);
+          return;
+        }
+        setProfileStatus("Profil wird gespeichert...");
+        try {
+          const updatedProfile = await window.dataService.updateCurrentProfile(nextProfile);
+          userSettings = window.dataService?.upsertUserSettings ? await window.dataService.upsertUserSettings(nextSettings) : nextSettings;
+          renderAccountProfile(updatedProfile);
+          applyProfiles(await window.dataService.getProfiles());
+          applyUserSettingsUi();
+          setProfileStatus("Gespeichert.");
+          updateView();
+        } catch (error) {
+          console.error("Profil konnte nicht gespeichert werden.", error);
+          setProfileStatus("Profil konnte nicht gespeichert werden. Bitte prüfe Anmeldung und Verbindung.", true);
+        }
+      }
+
+      async function handleProfilePhotoFile(file) {
+        setProfilePhotoStatus("");
+        try {
+          setProfilePhotoStatus("Foto wird hochgeladen...");
+          const avatarUrl = await window.dataService.uploadCurrentProfileImage(file);
+          const updatedProfile = await window.dataService.updateCurrentProfile({
+            ...(currentProfile || {}),
+            avatarUrl
+          });
+          renderAccountProfile(updatedProfile);
+          applyProfiles(await window.dataService.getProfiles());
+          renderProfileForm();
+          updateView();
+          setProfilePhotoStatus("Foto gespeichert.");
+        } catch (error) {
+          console.error("Profilfoto konnte nicht hochgeladen werden.", error);
+          setProfilePhotoStatus(error?.message || "Upload fehlgeschlagen. Bitte prüfe Format, Größe und Verbindung.", true);
+        } finally {
+          if (profilePhotoInput) profilePhotoInput.value = "";
+        }
+      }
+
+      async function removeProfilePhoto() {
+        if (!currentProfile?.avatar_url) {
+          setProfilePhotoStatus("Es ist kein Profilfoto hinterlegt.");
+          return;
+        }
+        setProfilePhotoStatus("Foto wird entfernt...");
+        try {
+          const updatedProfile = await window.dataService.removeCurrentProfileImage();
+          renderAccountProfile(updatedProfile);
+          applyProfiles(await window.dataService.getProfiles());
+          renderProfileForm();
+          updateView();
+          setProfilePhotoStatus("Foto entfernt.");
+        } catch (error) {
+          console.error("Profilfoto konnte nicht entfernt werden.", error);
+          setProfilePhotoStatus("Foto konnte nicht entfernt werden. Bitte prüfe Anmeldung und Verbindung.", true);
+        }
       }
 
       function saveFavorites() {
@@ -11939,6 +13342,7 @@
           pageSize = Number(userSettings.pageSize) || pageSize;
           if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
         }
+        applyUserSettingsUi();
 
         renderSavedViews();
       }
@@ -12034,6 +13438,10 @@
         } catch (error) {
           window.localStorage.setItem(settingsStorageKey, JSON.stringify(userSettings));
         }
+      }
+
+      function applyUserSettingsUi() {
+        document.body.classList.toggle("is-compact-table", userSettings?.tableDensity === "compact");
       }
 
       function persistContacts(message = `${contacts.length} Kontakte gespeichert`, { silent = false } = {}) {
@@ -12265,6 +13673,7 @@
       }
 
       function hitCountLabel(items) {
+        if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
         return `${items.length} von ${contacts.length} Kontakten`;
       }
 
@@ -12334,7 +13743,8 @@
       }
 
       function renderFilterPanel() {
-        const categories = uniqueValues("category").map((value) => ({
+        const categorySource = activeView === "organizations" ? organizations.map((organization) => organization.sector).filter(Boolean) : uniqueValues("category");
+        const categories = [...new Set(categorySource)].sort((a, b) => a.localeCompare(b, "de")).map((value) => ({
           value,
           label: value
         }));
@@ -12342,12 +13752,15 @@
           value,
           label: value
         }));
-        const stateCounts = contacts.reduce((acc, contact) => {
-          const label = stateLabel(contact);
+        const stateCounts = (activeView === "organizations" ? organizations : contacts).reduce((acc, item) => {
+          const label = activeView === "organizations" ? item.state : stateLabel(item);
           if (label) acc[label] = (acc[label] || 0) + 1;
           return acc;
         }, {});
-        const states = [...new Map(contacts.map((contact) => [stateLabel(contact), stateLabel(contact)])).values()]
+        const states = [...new Map((activeView === "organizations" ? organizations : contacts).map((item) => {
+          const label = activeView === "organizations" ? item.state : stateLabel(item);
+          return [label, label];
+        })).values()]
           .filter(Boolean)
           .sort((a, b) => isMobileLayout() ? ((stateCounts[b] || 0) - (stateCounts[a] || 0)) || a.localeCompare(b, "de") : a.localeCompare(b, "de"))
           .map((value) => ({ value, label: value }));
@@ -12484,6 +13897,10 @@
       }
 
       function renderSummary(items) {
+        if (activeView === "organizations") {
+          summaryGrid.innerHTML = "";
+          return;
+        }
         const cards = [
           {
             label: "Kontakte gesamt",
@@ -12555,7 +13972,9 @@
       }
 
       function ownerBadgeMarkup(contact) {
-        const rawLabel = ownerDisplayLabel(contact.owner || contact.ownerId);
+        const ownerValue = contact.owner || contact.ownerId;
+        const profile = ownerProfileForValue(ownerValue);
+        const rawLabel = ownerDisplayLabel(ownerValue);
         const label = ownerBadgeLabel(rawLabel);
         if (!label) {
           return `
@@ -12566,7 +13985,7 @@
         }
         return `
           <span class="owner-badge">
-            <span class="owner-badge__avatar" aria-hidden="true">${escapeHtml(initialsFromLabel(label))}</span>
+            <span class="owner-badge__avatar" aria-hidden="true">${profile ? avatarMarkup(profile) : escapeHtml(initialsFromLabel(label))}</span>
             <span class="owner-badge__label">${escapeHtml(label)}</span>
           </span>
         `;
@@ -12620,7 +14039,6 @@
 
       function tableCellMarkup(contact, key) {
         if (key === "name") {
-          const subline = meaningfulOrEmpty(contact.topic);
           return `
             <div class="contact-cell">
               ${
@@ -12632,7 +14050,6 @@
                 <div class="contact-name__line">
                   <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${escapeHtml(contact.name) || "&mdash;"}</button>
                 </div>
-                ${subline ? `<div class="contact-subline">${escapeHtml(subline)}</div>` : ""}
               </div>
             </div>
           `;
@@ -12860,6 +14277,7 @@
       function displayNoteText(contact) {
         const raw = [contact.lastExchange, contact.note].map(meaningfulOrEmpty).find(Boolean) || "";
         if (!raw) return "";
+        if (/(Projektkontext|Primärsystem|Dublettenmigration|Privatkontakt-Kontext|Import-Batch|Datenqualität)/i.test(raw)) return "";
         const cleaned = raw
           .split(/\n+/)
           .map((line) => line.trim())
@@ -13179,6 +14597,7 @@
         const values = {
           name: String(editorForm.elements.name.value || "").trim(),
           organization: String(editorForm.elements.organization.value || "").trim(),
+          organizationId: contact.organizationId || "",
           category: String(editorForm.elements.category.value || "").trim(),
           specialty: String(editorForm.elements.specialty.value || "").trim(),
           postalCode: String(editorForm.elements.postalCode.value || "").trim(),
@@ -13290,6 +14709,61 @@
         }
       }
 
+      async function saveDetailInline(contact) {
+        if (!canEditContacts()) {
+          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts geändert werden.");
+          return;
+        }
+        const fields = [...detailPanel.querySelectorAll("[data-detail-field]")];
+        const patch = {};
+        fields.forEach((field) => {
+          patch[field.dataset.detailField] = String(field.value || "").trim();
+        });
+        const postalCode = patch.postalCode ?? contact.postalCode ?? "";
+        const city = patch.city ?? contact.city ?? "";
+        patch.location = deriveLocationLabel({ postalCode, city }) || contact.location || "";
+        patch.ownerId = patch.owner || "";
+        patch.updatedAt = new Date().toISOString();
+
+        if (!patch.name) {
+          window.alert("Bitte trage mindestens einen Namen ein.");
+          detailPanel.querySelector("[data-detail-field='name']")?.focus();
+          return;
+        }
+
+        try {
+          const updated = await window.dataService.updateContact(contact.id, patch);
+          contacts = contacts.map((item, index) =>
+            item.id === contact.id ? sanitizeContact({ ...item, ...updated, id: contact.id }, index) : item
+          );
+          contactHistoryCache.delete(contact.id);
+          setStorageStatus("Kontakt in Supabase gespeichert");
+          detailEditMode = false;
+          updateView();
+          openDetail(contact.id);
+        } catch (error) {
+          console.error("Kontakt konnte nicht gespeichert werden.", error);
+          window.alert("Die Änderung konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+        }
+      }
+
+      async function saveDetailNote(contact, textarea, statusElement) {
+        const value = String(textarea?.value || "").trim();
+        const current = displayNoteText(contact);
+        const rawNote = meaningfulOrEmpty(contact.note);
+        if (value === current && (!rawNote || rawNote === current)) return;
+        if (statusElement) statusElement.textContent = "Speichern...";
+        await updateContactField(contact.id, "note", value, { silent: true });
+        setStorageStatus("Notiz in Supabase gespeichert");
+        if (statusElement) statusElement.textContent = "Gespeichert";
+        updateView();
+        openDetail(contact.id);
+      }
+
+      async function applyDetailThemeChange(contact, nextThemes) {
+        await updateContactThemes(contact.id, nextThemes);
+      }
+
       function contactRoleSummary(contact) {
         return (
           meaningfulOrEmpty(contact.specialty) ||
@@ -13359,17 +14833,26 @@
 
       function historyActionLabel(action, changes = []) {
         const visible = changes.filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by");
-        if (action === "create" || action === "import") return "Kontakt erstellt";
+        if (action === "create") return "Kontakt erstellt";
+        if (action === "import") return "Kontakt importiert";
         if (action === "archive") return "Kontakt archiviert";
         if (changes.some((change) => change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived")) return "Kontakt wiederhergestellt";
         if (visible.length === 1) {
           const change = visible[0];
           const field = historyFieldLabel(change.fieldName);
-          if (!String(change.oldValue || "").trim() && String(change.newValue || "").trim()) return `${field} hinzugefügt`;
-          if (String(change.oldValue || "").trim() && !String(change.newValue || "").trim()) return `${field} entfernt`;
-          return `${field} geändert`;
+          if (!String(change.oldValue || "").trim() && String(change.newValue || "").trim()) return `Update: ${field} hinzugefügt`;
+          if (String(change.oldValue || "").trim() && !String(change.newValue || "").trim()) return `Update: ${field} entfernt`;
+          return `Update: ${field}`;
         }
-        return visible.length > 1 ? `${visible.length} Angaben geändert` : "Aktualisiert";
+        return visible.length > 1 ? `${visible.length} Updates` : "Update";
+      }
+
+      function historyActionBadgeLabel(actionKey) {
+        if (actionKey === "create") return "Neu";
+        if (actionKey === "import") return "Import";
+        if (actionKey === "archive") return "Archiv";
+        if (actionKey === "restore") return "Restore";
+        return "Update";
       }
 
       function historyActionKey(change) {
@@ -13440,7 +14923,7 @@
         const activeFilter = contactHistoryFilters.get(contactId) || "all";
         const filters = [
           { key: "all", label: "Alle" },
-          { key: "update", label: "Änderungen" },
+          { key: "update", label: "Updates" },
           { key: "archive", label: "Archiv" },
           { key: "restore", label: "Wiederhergestellt" },
           { key: "create", label: "Anlage" },
@@ -13491,9 +14974,12 @@
                   <div class="history-entry-head">
                     <div>
                       <div class="history-title">${historyActionLabel(group.action, group.changes)}</div>
-                      <div class="history-meta">${escapeHtml(formatDateTimeLabel(group.changedAt))} · ${escapeHtml(group.user?.displayName || "Unbekannter Nutzer")} ${group.user?.role ? `(${escapeHtml(roleLabel(group.user.role))})` : ""}</div>
+                      <div class="history-meta">
+                        <span class="owner-badge__avatar" aria-hidden="true">${avatarMarkup(group.user)}</span>
+                        ${escapeHtml(formatDateTimeLabel(group.changedAt))} · ${escapeHtml(group.user?.displayName || "Unbekannter Nutzer")} ${group.user?.role ? `(${escapeHtml(roleLabel(group.user.role))})` : ""}
+                      </div>
                     </div>
-                    <span class="history-action-pill">${escapeHtml(actionKey)}</span>
+                    <span class="history-action-pill history-action-pill--${actionKey}">${escapeHtml(historyActionBadgeLabel(actionKey))}</span>
                   </div>
                   ${
                     visibleChanges.length
@@ -13592,6 +15078,109 @@
           <div class="detail-line ${empty ? "detail-line--empty" : ""}">
             <span class="detail-line__label">${escapeHtml(label)}</span>
             <span class="detail-line__value">${valueMarkup}</span>
+          </div>
+        `;
+      }
+
+      function detailLineHtml(label, html, options = {}) {
+        return `
+          <div class="detail-line ${options.empty ? "detail-line--empty" : ""}">
+            <span class="detail-line__label">${escapeHtml(label)}</span>
+            <span class="detail-line__value">${html}</span>
+          </div>
+        `;
+      }
+
+      function detailEditField(label, field, value, options = {}) {
+        const tag = options.type === "select" ? "select" : "input";
+        const valueAttr = escapeHtml(value || "");
+        const fieldId = `detail-field-${field}`;
+        const common = `id="${fieldId}" class="${tag === "select" ? "detail-edit-select" : "detail-edit-input"}" data-detail-field="${field}"`;
+        return `
+          <div class="detail-edit-field">
+            <label for="${fieldId}">${escapeHtml(label)}</label>
+            ${
+              tag === "select"
+                ? `<select ${common}>${options.options || ""}</select>`
+                : `<input ${common} type="${options.inputType || "text"}" value="${valueAttr}" placeholder="${escapeHtml(options.placeholder || "")}" />`
+            }
+          </div>
+        `;
+      }
+
+      function renderDetailEditGrid(contact, locationText) {
+        const selectedOwner = contact.ownerId || contact.owner || "";
+        return `
+          <div class="detail-edit-grid">
+            ${detailEditField("Organisation", "organization", contact.organization, { placeholder: "Organisation" })}
+            ${detailEditField("Sektor", "category", contact.category, { type: "select", options: buildCategorySelectOptions(contact.category) })}
+            ${detailEditField("Fachrichtung", "specialty", contact.specialty, { type: "select", options: buildSpecialtySelectOptions(contact.specialty) })}
+            ${detailEditField("PLZ", "postalCode", contact.postalCode || splitLocationLabel(locationText).postalCode, { placeholder: "PLZ" })}
+            ${detailEditField("Ort", "city", contact.city || splitLocationLabel(locationText).city, { placeholder: "Ort" })}
+            ${detailEditField("Bundesland", "state", contact.state, { type: "select", options: buildStateSelectOptions(contact.state) })}
+            ${detailEditField("Owner", "owner", selectedOwner, { type: "select", options: buildOwnerSelectOptions(selectedOwner) })}
+            ${detailEditField("Priorität", "priority", contact.priority, { type: "select", options: buildPrioritySelectOptions(priorityDisplayLabel(contact.priority)) })}
+          </div>
+        `;
+      }
+
+      function renderContactwaysEditGrid(contact) {
+        return `
+          <div class="detail-edit-grid">
+            ${detailEditField("E-Mail", "email", contact.email, { inputType: "email", placeholder: "name@organisation.de" })}
+            ${detailEditField("Telefon", "phone", contact.phone, { inputType: "tel", placeholder: "+49 ..." })}
+            ${detailEditField("LinkedIn", "linkedin", contact.linkedin, { inputType: "url", placeholder: "https://..." })}
+          </div>
+        `;
+      }
+
+      function renderDetailThemeEditor(themeTags) {
+        const preferred = [
+          "E-Überweisung",
+          "Krankenhausentlassbrief",
+          "Entlassmanagement",
+          "Digitale Formulare",
+          "Heilmittel",
+          "Allgemeinmedizin",
+          "Psychotherapie",
+          "Kardiologie",
+          "Prävention",
+          "Pflege"
+        ];
+        const suggestions = [...new Set([...preferred, ...themeSuggestions()])].slice(0, 18);
+        const active = new Set(themeTags);
+        return `
+          <div class="detail-theme-editor">
+            <div class="detail-chip-row">
+              ${
+                themeTags.length
+                  ? themeTags
+                      .map(
+                        (tag) => `
+                          <button class="theme-tag theme-tag--editable" type="button" data-detail-theme-remove="${escapeHtml(tag)}">
+                            ${escapeHtml(tag)}<span class="theme-tag__remove" aria-hidden="true">&times;</span>
+                          </button>
+                        `
+                      )
+                      .join("")
+                  : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`
+              }
+            </div>
+            <div class="detail-theme-presets">
+              ${suggestions
+                .map(
+                  (tag) => `
+                    <button class="theme-tag theme-tag--preset ${active.has(tag) ? "is-active" : ""}" type="button" data-detail-theme-toggle="${escapeHtml(tag)}">
+                      ${escapeHtml(tag)}
+                    </button>
+                  `
+                )
+                .join("")}
+            </div>
+            <div class="detail-theme-add">
+              <input class="detail-theme-input" id="detail-theme-input" type="text" placeholder="Neues Thema hinzufügen" />
+              <button class="action-button" type="button" id="detail-theme-add">Hinzufügen</button>
+            </div>
           </div>
         `;
       }
@@ -13946,7 +15535,7 @@
         gapAnalysis.innerHTML = `
           <div class="gap-panel">
             <div class="gap-panel-head">
-              <span class="gap-panel-icon" aria-hidden="true">🏥</span>
+              <span class="gap-panel-icon" aria-hidden="true">KH</span>
               <div>
                 <div class="gap-panel-title">Sektoren</div>
                 <div class="gap-panel-kicker">Niedrigster Anteil</div>
@@ -14408,7 +15997,18 @@
       }
 
       function setActiveView(view) {
+        if (!viewLabels[view]) view = "contacts";
+        if (activeView !== view) currentPage = 1;
         activeView = view;
+        if (view === "organizations") {
+          selectedPriorities = [];
+          selectedSpecialties = [];
+          selectedOwners = [];
+          selectedThemes = [];
+          selectedQualities = [];
+          selectedUpdatedRanges = [];
+          selectedSources = [];
+        }
         viewTabs.forEach((tab) => {
           tab.classList.toggle("is-active", tab.dataset.viewTab === view);
         });
@@ -14466,8 +16066,230 @@
         const overlayOpen =
           (detailOpen && isMobileLayout()) ||
           editorDrawer.classList.contains("is-open") ||
-          importDrawer.classList.contains("is-open");
+          organizationEditorDrawer?.classList.contains("is-open") ||
+          importDrawer.classList.contains("is-open") ||
+          profileModal?.classList.contains("is-open") ||
+          profilePhotoModal?.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
+      }
+
+      function openOrganizationDetail(id, items = filteredOrganizations()) {
+        const currentItems = items.length ? items : filteredOrganizations();
+        const organization = currentItems.find((item) => item.id === id) || organizations.find((item) => item.id === id);
+        if (!organization) return;
+        const linkedContacts = organizationContacts(organization);
+        const currentIndex = currentItems.findIndex((item) => item.id === organization.id);
+        const locationText = organizationLocation(organization);
+        const quality = organizationQualityLabel(organization);
+        activeOrganizationId = organization.id;
+        activeId = null;
+        renderOrganizationsTable(currentItems);
+
+        detailPanel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Organisationen</div>
+            <div class="detail-toolbar-actions">
+              ${canEditContacts() ? `<button class="action-button detail-profile-edit" type="button" id="organization-detail-edit">Bearbeiten</button>` : ""}
+              <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
+            </div>
+          </div>
+          <div class="detail-content">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  <span class="organization-profile-logo" aria-hidden="true">${escapeHtml(organizationInitials(organization.name))}</span>
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(organization.name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(organization.organizationType || organization.sector || "Organisation")}</div>
+                    <div class="detail-profile-subline">${escapeHtml([locationText, organization.state].filter(Boolean).join(" · ") || "Standort nicht dokumentiert")}</div>
+                    <div class="detail-profile-status">${sectorBadgeMarkup(organization.sector || "Sonstige")} <span class="quality-badge quality-badge--${quality.tone}">${quality.label}</span></div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="detail-tabs" aria-label="Detailbereiche">
+                <button class="detail-tab is-active" type="button" data-scroll-detail="organization-overview">Überblick</button>
+                <button class="detail-tab" type="button" data-scroll-detail="organization-contacts">Kontakte (${linkedContacts.length})</button>
+                <button class="detail-tab" type="button" data-scroll-detail="organization-themes">Themen</button>
+                <button class="detail-tab" type="button" data-scroll-detail="organization-notes">Notizen</button>
+                <button class="detail-tab" type="button" data-scroll-detail="organization-activity">Aktivitäten</button>
+              </div>
+
+              <section class="section-block" id="organization-overview">
+                <h4 class="detail-section-title">Stammdaten</h4>
+                <div class="detail-line-list">
+                  ${detailLine("Name", organization.name)}
+                  ${detailLine("Sektor", organization.sector)}
+                  ${detailLine("Organisationstyp", organization.organizationType)}
+                  ${detailLine("Standort", locationText)}
+                  ${detailLine("Bundesland", organization.state)}
+                  ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
+                  ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
+                  ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
+                  ${detailLine("Quelle", organization.source)}
+                  ${detailLine("Zugeordnete Kontakte", `${linkedContacts.length} ${linkedContacts.length === 1 ? "Kontakt" : "Kontakte"}`)}
+                </div>
+              </section>
+
+              <section class="section-block" id="organization-contacts">
+                <div class="organization-contact-actions">
+                  ${canEditContacts() ? `<button class="action-button" type="button" id="organization-link-contact">Kontakt zuordnen</button><button class="action-button action-button--primary" type="button" id="organization-new-contact">Neuen Kontakt anlegen</button>` : ""}
+                </div>
+                <h4 class="detail-section-title">Zugeordnete Kontakte</h4>
+                <div class="detail-line-list">
+                  ${
+                    linkedContacts.length
+                      ? `<table class="organization-contact-table">
+                          <thead><tr><th>Kontakt</th><th>Funktion / Rolle</th><th>Fachbereich / Fokus</th><th>Owner</th><th>Aktualisiert</th><th></th></tr></thead>
+                          <tbody>
+                            ${linkedContacts
+                              .map(
+                                (contact) => `
+                                  <tr>
+                                    <td><strong>${escapeHtml(contact.displayName || contact.name)}</strong></td>
+                                    <td>${escapeHtml(contact.honorificTitle || contact.specialty || "-")}</td>
+                                    <td>${escapeHtml(specialtyLabel(contact) || normalizeThemes(contact.themes).slice(0, 2).join(", ") || "-")}</td>
+                                    <td>${ownerBadgeMarkup(contact)}</td>
+                                    <td>${escapeHtml(formatDateLabel(contact.updatedAt || contact.createdAt) || "-")}</td>
+                                    <td><button class="detail-link detail-link--compact" type="button" data-open-org-contact="${escapeHtml(contact.id)}">Kontakt öffnen</button></td>
+                                  </tr>
+                                `
+                              )
+                              .join("")}
+                          </tbody>
+                        </table>`
+                      : `<div class="empty">Dieser Organisation sind noch keine Kontakte zugeordnet.</div>`
+                  }
+                </div>
+              </section>
+
+              <section class="section-block" id="organization-themes">
+                <h4 class="detail-section-title">Themen</h4>
+                <div class="detail-chip-row">
+                  ${
+                    [...new Set(linkedContacts.flatMap((contact) => normalizeThemes(contact.themes)))].length
+                      ? [...new Set(linkedContacts.flatMap((contact) => normalizeThemes(contact.themes)))].slice(0, 12).map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("")
+                      : `<span class="detail-secondary">Noch keine Themen aus zugeordneten Kontakten sichtbar.</span>`
+                  }
+                </div>
+              </section>
+
+              <section class="section-block" id="organization-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                <div class="detail-note-block ${organization.notes ? "" : "detail-note-block--empty"}">${escapeHtml(organization.notes || "Noch keine Notiz hinterlegt.")}</div>
+              </section>
+
+              <section class="section-block" id="organization-activity">
+                <div class="history-empty">Aktivitäten werden später organisationsübergreifend aus Kontaktverlauf und Aufgaben aufgebaut.</div>
+              </section>
+            </div>
+          </div>
+        `;
+
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        document.getElementById("detail-close").addEventListener("click", closeDetail);
+        document.getElementById("organization-detail-edit")?.addEventListener("click", () => openOrganizationEditor(organization));
+        document.getElementById("organization-new-contact")?.addEventListener("click", () => openEditor(null, { organization }));
+        document.getElementById("organization-link-contact")?.addEventListener("click", () => linkExistingContactToOrganization(organization));
+        detailPanel.querySelectorAll("[data-open-org-contact]").forEach((button) => {
+          button.addEventListener("click", () => {
+            setActiveView("contacts");
+            openDetail(button.dataset.openOrgContact, contacts);
+          });
+        });
+        detailPanel.querySelectorAll("[data-scroll-detail]").forEach((button) => {
+          button.addEventListener("click", () => {
+            detailPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
+            document.getElementById(button.dataset.scrollDetail)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+      }
+
+      async function linkExistingContactToOrganization(organization) {
+        const query = window.prompt("Kontakt suchen und zuordnen. Bitte einen Teil des Namens eingeben:");
+        if (!query) return;
+        const normalizedQuery = query.trim().toLowerCase();
+        const matches = contacts.filter((contact) => contact.status !== "archived" && String(contact.displayName || contact.name).toLowerCase().includes(normalizedQuery));
+        const contact = matches[0];
+        if (!contact) {
+          window.alert("Kein passender Kontakt gefunden.");
+          return;
+        }
+        try {
+          const updated = await window.dataService.updateContact(contact.id, {
+            organizationId: organization.id.startsWith("derived-org-") ? "" : organization.id,
+            organization: organization.name
+          });
+          contacts = contacts.map((item, index) => (item.id === contact.id ? sanitizeContact({ ...item, ...updated }, index) : item));
+          organizations = mergeOrganizations(organizations, deriveOrganizationsFromContacts(contacts));
+          setStorageStatus("Kontakt mit Organisation verknüpft");
+          updateView();
+          openOrganizationDetail(organization.id);
+        } catch (error) {
+          console.error("Kontakt konnte nicht zugeordnet werden.", error);
+          window.alert("Die Zuordnung konnte nicht gespeichert werden. Bitte prüfe Migration, Rolle und Verbindung.");
+        }
+      }
+
+      async function assignOrganizationToContact(contact) {
+        const query = window.prompt("Organisation suchen oder neu als Freitext zuordnen:", contact.organization || "");
+        if (query === null) return;
+        const name = query.trim();
+        if (!name) return;
+        const existing = organizations.find((organization) => normalizeOrganizationName(organization.name) === normalizeOrganizationName(name));
+        try {
+          const updated = await window.dataService.updateContact(contact.id, {
+            organizationId: existing && !existing.id.startsWith("derived-org-") ? existing.id : "",
+            organization: existing?.name || name
+          });
+          contacts = contacts.map((item, index) => (item.id === contact.id ? sanitizeContact({ ...item, ...updated }, index) : item));
+          organizations = mergeOrganizations(organizations, deriveOrganizationsFromContacts(contacts));
+          setStorageStatus("Organisation am Kontakt gespeichert");
+          updateView();
+          openDetail(contact.id, contacts);
+        } catch (error) {
+          console.error("Organisation konnte nicht am Kontakt gespeichert werden.", error);
+          window.alert("Die Organisation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+        }
+      }
+
+      function openOrganizationEditor(organization = null) {
+        if (!canEditContacts()) {
+          showPermissionDenied("Organisationen können nur von Editor- oder Admin-Accounts bearbeitet werden.");
+          return;
+        }
+        editingOrganizationId = organization?.id || null;
+        organizationEditorTitle.textContent = organization ? "Organisation bearbeiten" : "Organisation anlegen";
+        organizationEditorSubtitle.textContent = organization ? "Stammdaten der Organisation aktualisieren." : "Neue Einrichtung, Institution oder Organisation anlegen.";
+        organizationEditorForm.elements.id.value = organization?.id || "";
+        organizationEditorForm.elements.name.value = organization?.name || "";
+        organizationEditorForm.elements.sector.value = organization?.sector || defaultCategories[0];
+        organizationEditorForm.elements.organizationType.value = organization?.organizationType || "";
+        organizationEditorForm.elements.postalCode.value = organization?.postalCode || "";
+        organizationEditorForm.elements.city.value = organization?.city || "";
+        organizationEditorForm.elements.state.value = organization?.state || "";
+        organizationEditorForm.elements.website.value = organization?.website || "";
+        organizationEditorForm.elements.phone.value = organization?.phone || "";
+        organizationEditorForm.elements.email.value = organization?.email || "";
+        organizationEditorForm.elements.source.value = organization?.source || "";
+        organizationEditorForm.elements.notes.value = organization?.notes || "";
+        organizationEditorStatus.textContent = "";
+        organizationEditorStatus.className = "editor-status";
+        refreshCustomSelects(organizationEditorDrawer);
+        organizationEditorDrawer.classList.add("is-open");
+        organizationEditorDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        window.setTimeout(() => organizationEditorForm.elements.name.focus(), 0);
+      }
+
+      function closeOrganizationEditor() {
+        editingOrganizationId = null;
+        closeAllCustomSelects();
+        organizationEditorDrawer.classList.remove("is-open");
+        organizationEditorDrawer.setAttribute("aria-hidden", "true");
+        syncBodyScrollLock();
       }
 
       function openDetail(id, items = filteredContacts()) {
@@ -14482,20 +16304,16 @@
         const honorificTitle = meaningfulOrEmpty(contact.honorificTitle);
         const noteText = displayNoteText(contact);
         const organizationLabel = meaningfulOrEmpty(contact.organization);
+        const linkedOrganization = organizations.find((organization) =>
+          (contact.organizationId && organization.id === contact.organizationId) ||
+          (organizationLabel && normalizeOrganizationName(organization.name) === normalizeOrganizationName(organizationLabel))
+        );
         const themeTags = normalizeThemes(contact.themes);
+        const editingDetail = detailEditMode && canEditContacts();
         const admin = canAdministerData();
         const portraitMarkup = contact.image
           ? `<img class="avatar ${contact.avatarClass}" src="${escapeHtml(contact.image)}" alt="${escapeHtml(contact.displayName)}" loading="lazy" />`
           : `<span class="avatar ${contact.avatarClass}">${escapeHtml(contact.initials)}</span>`;
-        const missingFields = [
-          !organizationLabel ? "Organisation" : "",
-          !locationText ? "Ort" : "",
-          !specialtyText ? "Fachrichtung" : "",
-          !ownerLabel ? "Owner" : "",
-          !hasMeaningfulValue(contact.email) ? "E-Mail" : "",
-          !hasMeaningfulValue(contact.phone) ? "Telefon" : "",
-          !linkedinUrl ? "LinkedIn" : ""
-        ].filter(Boolean);
         const detailMeta = [contact.category, locationText].filter(Boolean).join(" · ");
         const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
         const normalizedStatus = String(contact.status || "").trim().toLowerCase();
@@ -14514,7 +16332,16 @@
           <div class="detail-toolbar">
             <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>
             <div class="detail-toolbar-actions">
-              ${canEditContacts() ? `<button class="action-button detail-profile-edit" type="button" id="detail-edit">Bearbeiten</button>` : ""}
+              ${
+                editingDetail
+                  ? `
+                    <button class="action-button" type="button" id="detail-cancel-edit">Abbrechen</button>
+                    <button class="action-button action-button--primary detail-profile-edit" type="button" id="detail-save-edit">Speichern</button>
+                  `
+                  : canEditContacts()
+                    ? `<button class="action-button detail-profile-edit" type="button" id="detail-edit">Bearbeiten</button>`
+                    : ""
+              }
               <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
             </div>
           </div>
@@ -14524,7 +16351,11 @@
                 <div class="detail-profile-main">
                   ${portraitMarkup}
                   <div class="detail-profile-copy">
-                    <h3>${escapeHtml(contact.displayName)}</h3>
+                    ${
+                      editingDetail
+                        ? `<input class="detail-edit-input detail-edit-input--title" data-detail-field="name" value="${escapeHtml(contact.name)}" aria-label="Name" />`
+                        : `<h3>${escapeHtml(contact.displayName)}</h3>`
+                    }
                     ${honorificTitle ? `<div class="detail-profile-subline">${escapeHtml(honorificTitle)}</div>` : ""}
                     <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
                     <div class="detail-profile-subline">${escapeHtml(detailMeta || "Sektor und Ort nicht dokumentiert")}</div>
@@ -14543,42 +16374,57 @@
 
               <section class="section-block" id="detail-overview">
                 <h4 class="detail-section-title">Stammdaten</h4>
-                ${
-                  missingFields.length
-                    ? `<div class="detail-missing-summary"><strong>Fehlende Angaben:</strong> ${missingFields.join(", ")}${canEditContacts() ? ` · <button class="detail-inline-action" type="button" id="detail-quality-open">In Datenqualität prüfen</button>` : ""}</div>`
-                    : ""
-                }
                 <div class="detail-line-list">
-                  ${detailLine("Organisation", organizationLabel)}
-                  ${detailLine("Sektor", contact.category)}
-                  ${detailLine("Fachrichtung", specialtyText, { emptyLabel: "Bitte wählen" })}
-                  ${detailLine("Ort", locationText)}
-                  ${detailLine("Owner", ownerDisplay, { emptyLabel: "Kein Owner" })}
-                  ${detailLine("Priorität", priorityDisplayLabel(contact.priority))}
-                  ${honorificTitle ? detailLine("Titel", honorificTitle) : ""}
-                  ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
+                  ${
+                    editingDetail
+                      ? renderDetailEditGrid(contact, locationText)
+                      : `
+                        ${detailLineHtml(
+                          "Organisation",
+                          linkedOrganization
+                            ? `<button class="organization-contact-link" type="button" data-open-linked-organization="${escapeHtml(linkedOrganization.id)}">${escapeHtml(linkedOrganization.name)}</button>`
+                            : escapeHtml(organizationLabel || "Keine Organisation hinterlegt") + (canEditContacts() ? ` <button class="detail-inline-action" type="button" id="detail-assign-organization">Organisation zuordnen</button>` : ""),
+                          { empty: !organizationLabel && !linkedOrganization }
+                        )}
+                        ${detailLine("Sektor", contact.category)}
+                        ${detailLine("Fachrichtung", specialtyText, { emptyLabel: "Bitte wählen" })}
+                        ${detailLine("Ort", locationText)}
+                        ${detailLineHtml("Owner", ownerBadgeMarkup(contact), { empty: !ownerDisplay })}
+                        ${detailLine("Priorität", priorityDisplayLabel(contact.priority))}
+                        ${honorificTitle ? detailLine("Titel", honorificTitle) : ""}
+                        ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
+                      `
+                  }
                 </div>
               </section>
 
               <section class="section-block" id="detail-contactways">
                 <h4 class="detail-section-title">Kontaktwege</h4>
                 <div class="detail-line-list">
-                  ${detailContactLine("E-Mail", meaningfulOrEmpty(contact.email), `mailto:${meaningfulOrEmpty(contact.email)}`)}
-                  ${detailContactLine("Telefon", meaningfulOrEmpty(contact.phone), `tel:${meaningfulOrEmpty(contact.phone)}`)}
-                  ${detailContactLine("LinkedIn", linkedinUrl ? "Profil öffnen" : "", linkedinUrl)}
+                  ${
+                    editingDetail
+                      ? renderContactwaysEditGrid(contact)
+                      : `
+                        ${detailContactLine("E-Mail", meaningfulOrEmpty(contact.email), `mailto:${meaningfulOrEmpty(contact.email)}`)}
+                        ${detailContactLine("Telefon", meaningfulOrEmpty(contact.phone), `tel:${meaningfulOrEmpty(contact.phone)}`)}
+                        ${detailContactLine("LinkedIn", linkedinUrl ? "Profil öffnen" : "", linkedinUrl)}
+                      `
+                  }
                 </div>
               </section>
 
               <section class="section-block" id="detail-themes">
                 <h4 class="detail-section-title">Themen</h4>
                 <div class="detail-line-list">
-                  <div class="detail-chip-row">
-                    ${
-                      themeTags.length
-                        ? themeTags.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("")
-                        : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`
-                    }
-                  </div>
+                  ${canEditContacts() ? renderDetailThemeEditor(themeTags) : `
+                    <div class="detail-chip-row">
+                      ${
+                        themeTags.length
+                          ? themeTags.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("")
+                          : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`
+                      }
+                    </div>
+                  `}
                 </div>
               </section>
 
@@ -14592,10 +16438,17 @@
               <section class="section-block" id="detail-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 <div class="detail-line-list">
-                  <div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">
-                    ${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}
-                    ${canEditContacts() ? `<div><button class="detail-inline-action detail-inline-action--note" type="button" id="detail-note-edit">${noteText ? "Notiz bearbeiten" : "Notiz hinzufügen"}</button></div>` : ""}
-                  </div>
+                  ${
+                    canEditContacts()
+                      ? `
+                        <textarea class="detail-note-input" id="detail-note-input" placeholder="Noch keine Notiz hinterlegt.">${escapeHtml(noteText)}</textarea>
+                        <div class="detail-note-actions">
+                          <span class="detail-note-status" id="detail-note-status">Direkt bearbeitbar</span>
+                          <button class="action-button" type="button" id="detail-note-save">Notiz speichern</button>
+                        </div>
+                      `
+                      : `<div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}</div>`
+                  }
                 </div>
               </section>
 
@@ -14634,14 +16487,59 @@
         loadContactHistory(contact.id);
 
         document.getElementById("detail-close").addEventListener("click", closeDetail);
-        document.getElementById("detail-edit")?.addEventListener("click", () => openEditor(contact));
-        document.getElementById("detail-note-edit")?.addEventListener("click", () => openEditor(contact));
-        document.getElementById("detail-quality-open")?.addEventListener("click", () => {
-          closeDetail();
-          setActiveView("quality");
+        document.getElementById("detail-edit")?.addEventListener("click", () => {
+          detailEditMode = true;
+          openDetail(contact.id, currentItems);
+        });
+        document.getElementById("detail-cancel-edit")?.addEventListener("click", () => {
+          detailEditMode = false;
+          openDetail(contact.id, currentItems);
+        });
+        document.getElementById("detail-save-edit")?.addEventListener("click", () => saveDetailInline(contact));
+        const noteInput = document.getElementById("detail-note-input");
+        const noteStatus = document.getElementById("detail-note-status");
+        document.getElementById("detail-note-save")?.addEventListener("click", () => saveDetailNote(contact, noteInput, noteStatus));
+        noteInput?.addEventListener("keydown", (event) => {
+          if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+            event.preventDefault();
+            saveDetailNote(contact, noteInput, noteStatus);
+          }
+        });
+        detailPanel.querySelectorAll("[data-detail-theme-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const tag = button.dataset.detailThemeToggle;
+            const current = new Set(normalizeThemes(contact.themes));
+            if (current.has(tag)) current.delete(tag);
+            else current.add(tag);
+            applyDetailThemeChange(contact, [...current]);
+          });
+        });
+        detailPanel.querySelectorAll("[data-detail-theme-remove]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const tag = button.dataset.detailThemeRemove;
+            applyDetailThemeChange(contact, normalizeThemes(contact.themes).filter((item) => item !== tag));
+          });
+        });
+        const addTheme = () => {
+          const input = document.getElementById("detail-theme-input");
+          const value = String(input?.value || "").trim();
+          if (!value) return;
+          applyDetailThemeChange(contact, [...normalizeThemes(contact.themes), value]);
+        };
+        document.getElementById("detail-theme-add")?.addEventListener("click", addTheme);
+        document.getElementById("detail-theme-input")?.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            addTheme();
+          }
         });
         document.getElementById("detail-delete")?.addEventListener("click", () => deleteContact(contact));
         document.getElementById("detail-restore")?.addEventListener("click", () => restoreContact(contact));
+        detailPanel.querySelector("[data-open-linked-organization]")?.addEventListener("click", (event) => {
+          setActiveView("organizations");
+          openOrganizationDetail(event.currentTarget.dataset.openLinkedOrganization);
+        });
+        document.getElementById("detail-assign-organization")?.addEventListener("click", () => assignOrganizationToContact(contact));
         [...detailPanel.querySelectorAll("[data-scroll-detail]")].forEach((button) => {
           button.addEventListener("click", () => {
             detailPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
@@ -14652,16 +16550,19 @@
 
       function closeDetail() {
         closeAllCustomSelects();
+        detailEditMode = false;
         detailDrawer.classList.remove("is-open");
         detailDrawer.setAttribute("aria-hidden", "true");
         syncBodyScrollLock();
       }
 
-      function openEditor(contact = null) {
+      function openEditor(contact = null, options = {}) {
         if (!canEditContacts()) {
           showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts bearbeitet werden.");
           return;
         }
+        const organizationDefaults = options.organization || null;
+        pendingEditorOrganizationId = organizationDefaults?.id && !organizationDefaults.id.startsWith("derived-org-") ? organizationDefaults.id : "";
         editorMode = contact ? "edit" : "create";
         editingId = contact?.id || null;
         const splitLocation = splitLocationLabel(contact?.location || "");
@@ -14677,17 +16578,17 @@
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
         editorForm.elements.specialty.value = contact?.specialty || "";
-        editorForm.elements.category.value = contact?.category || defaultCategories[0];
+        editorForm.elements.category.value = contact?.category || organizationDefaults?.sector || defaultCategories[0];
         editorForm.elements.priority.value = contact?.priority || "Mittel";
-        editorForm.elements.organization.value = contact?.organization || "";
+        editorForm.elements.organization.value = contact?.organization || organizationDefaults?.name || "";
         editorForm.elements.email.value = contact?.email || "";
         editorForm.elements.phone.value = contact?.phone || "";
         editorForm.elements.linkedin.value = contact?.linkedin || "";
         editorForm.elements.location.value = contact?.location || "";
         editorForm.elements.owner.value = contact?.ownerId || contact?.owner || "";
-        editorForm.elements.postalCode.value = contact?.postalCode || splitLocation.postalCode || "";
-        editorForm.elements.city.value = contact?.city || splitLocation.city || "";
-        editorForm.elements.state.value = contact?.state || "";
+        editorForm.elements.postalCode.value = contact?.postalCode || organizationDefaults?.postalCode || splitLocation.postalCode || "";
+        editorForm.elements.city.value = contact?.city || organizationDefaults?.city || splitLocation.city || "";
+        editorForm.elements.state.value = contact?.state || organizationDefaults?.state || "";
         editorForm.elements.street.value = contact?.street || "";
         editorForm.elements.note.value = contact?.note || "";
         editorForm.elements.image.value = contact?.image || "";
@@ -14959,19 +16860,34 @@
       }
 
       function updateView() {
-        const items = filteredContacts();
+        organizations = mergeOrganizations(organizations, deriveOrganizationsFromContacts(contacts));
+        const items = activeView === "organizations" ? filteredOrganizations() : filteredContacts();
         resultsCount.textContent = hitCountLabel(items);
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
-        searchInput.placeholder = isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
+        const isOrganizationsView = activeView === "organizations";
+        searchInput.placeholder = isOrganizationsView
+          ? "Organisationen suchen..."
+          : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
+        newContactButton.hidden = isOrganizationsView;
+        mobileNewContactButton.hidden = isOrganizationsView;
+        newOrganizationButton.hidden = !isOrganizationsView;
+        archiveViewButton.hidden = isOrganizationsView;
+        openImportButton.hidden = isOrganizationsView;
+        columnMenuShell.hidden = isOrganizationsView;
+        bulkToolbar.hidden = isOrganizationsView || selectedContactIds.size === 0;
         renderSummary(items);
-        renderTable(items);
-        renderDashboard(items);
+        if (isOrganizationsView) {
+          renderOrganizationsTable(items);
+        } else {
+          renderTable(items);
+        }
+        renderDashboard(filteredContacts());
         renderActiveFilters();
         renderFilterPanel();
         renderSavedViews();
-        syncMapFrame(items);
+        syncMapFrame(filteredContacts());
 
-        if (activeId && !items.some((item) => item.id === activeId)) {
+        if (!isOrganizationsView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
           activeId = null;
         }
@@ -14980,6 +16896,10 @@
       editorForm.elements.category.innerHTML = defaultCategories
         .map((category) => `<option value="${category}">${category}</option>`)
         .join("");
+      organizationEditorForm.elements.sector.innerHTML = defaultCategories
+        .map((category) => `<option value="${category}">${category}</option>`)
+        .join("");
+      organizationEditorForm.elements.state.innerHTML = buildStateSelectOptions("");
       editorForm.elements.owner.innerHTML = buildOwnerSelectOptions("");
       editorForm.elements.state.innerHTML = buildStateSelectOptions("");
       renderEditorSpecialtyOptions();
@@ -15052,6 +16972,7 @@
       viewTabs.forEach((tab) => {
         tab.addEventListener("click", () => {
           setActiveView(tab.dataset.viewTab);
+          updateView();
         });
       });
       restoreSidebarState();
@@ -15087,6 +17008,28 @@
         accountMenu.hidden = !open;
         accountButton.setAttribute("aria-expanded", String(open));
       });
+      sidebarProfileButton?.addEventListener("click", openProfileModal);
+      accountProfileButton?.addEventListener("click", openProfileModal);
+      profileClose?.addEventListener("click", closeProfileModal);
+      profileCancel?.addEventListener("click", closeProfileModal);
+      profileModal?.addEventListener("click", (event) => {
+        if (event.target === profileModal) closeProfileModal();
+      });
+      profileForm?.addEventListener("submit", saveProfileForm);
+      profilePhotoOpen?.addEventListener("click", openProfilePhotoModal);
+      profilePhotoClose?.addEventListener("click", closeProfilePhotoModal);
+      profilePhotoModal?.addEventListener("click", (event) => {
+        if (event.target === profilePhotoModal) closeProfilePhotoModal();
+      });
+      profilePhotoPick?.addEventListener("click", () => profilePhotoInput?.click());
+      profilePhotoInput?.addEventListener("change", () => handleProfilePhotoFile(profilePhotoInput.files?.[0]));
+      profilePhotoRemove?.addEventListener("click", removeProfilePhoto);
+      profileForm?.elements.displayName?.addEventListener("input", () => {
+        if (!profileForm.elements.initials.value.trim()) {
+          profileForm.elements.initials.value = initialsFromProfile({ display_name: profileForm.elements.displayName.value });
+        }
+        if (profileDisplayTitle) profileDisplayTitle.textContent = profileForm.elements.displayName.value || "Mein Profil";
+      });
 
       filterPanelButton.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -15119,6 +17062,52 @@
 
       newContactButton.addEventListener("click", () => openEditor());
       mobileNewContactButton?.addEventListener("click", () => openEditor());
+      newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
+      organizationEditorOverlay?.addEventListener("click", closeOrganizationEditor);
+      organizationEditorClose?.addEventListener("click", closeOrganizationEditor);
+      organizationEditorCancel?.addEventListener("click", closeOrganizationEditor);
+      organizationEditorForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!canEditContacts()) {
+          showPermissionDenied("Organisationen können nur von Editor- oder Admin-Accounts gespeichert werden.");
+          return;
+        }
+        const formData = new FormData(organizationEditorForm);
+        const payload = {
+          name: String(formData.get("name") || "").trim(),
+          sector: String(formData.get("sector") || "").trim(),
+          organizationType: String(formData.get("organizationType") || "").trim(),
+          postalCode: String(formData.get("postalCode") || "").trim(),
+          city: String(formData.get("city") || "").trim(),
+          state: String(formData.get("state") || "").trim(),
+          website: String(formData.get("website") || "").trim(),
+          phone: String(formData.get("phone") || "").trim(),
+          email: String(formData.get("email") || "").trim(),
+          source: String(formData.get("source") || "").trim(),
+          notes: String(formData.get("notes") || "").trim()
+        };
+        if (!payload.name) {
+          organizationEditorStatus.textContent = "Bitte trage einen Namen ein.";
+          organizationEditorStatus.className = "editor-status is-visible editor-status--error";
+          organizationEditorForm.elements.name.focus();
+          return;
+        }
+        try {
+          const saved = editingOrganizationId && !editingOrganizationId.startsWith("derived-org-")
+            ? await window.dataService.updateOrganization(editingOrganizationId, payload)
+            : await window.dataService.createOrganization(payload);
+          organizations = mergeOrganizations([saved, ...organizations.filter((organization) => organization.id !== saved.id)], deriveOrganizationsFromContacts(contacts));
+          setStorageStatus("Organisation in Supabase gespeichert");
+          closeOrganizationEditor();
+          setActiveView("organizations");
+          updateView();
+          openOrganizationDetail(saved.id);
+        } catch (error) {
+          console.error("Organisation konnte nicht gespeichert werden.", error);
+          organizationEditorStatus.textContent = "Organisation konnte nicht gespeichert werden. Bitte prüfe Migration, Rolle und Verbindung.";
+          organizationEditorStatus.className = "editor-status is-visible editor-status--error";
+        }
+      });
       archiveViewButton.addEventListener("click", async () => {
         if (!canAdministerData()) {
           showPermissionDenied("Nur Admins dürfen das Archiv öffnen.");
@@ -15220,6 +17209,16 @@
         closeMenus();
         setActiveView("quality");
       });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        if (profilePhotoModal?.classList.contains("is-open")) {
+          closeProfilePhotoModal();
+          return;
+        }
+        if (profileModal?.classList.contains("is-open")) {
+          closeProfileModal();
+        }
+      });
 
       window.addEventListener("message", (event) => {
         if (!event.data || typeof event.data !== "object") return;
@@ -15313,6 +17312,7 @@
           specialty: String(formData.get("specialty") || "").trim(),
           category: String(formData.get("category") || defaultCategories[0]),
           organization: String(formData.get("organization") || "").trim(),
+          organizationId: existingContact?.organizationId || pendingEditorOrganizationId || "",
           topic: existingContact?.topic || "",
           priority: String(formData.get("priority") || "Mittel"),
           email: String(formData.get("email") || "").trim(),
@@ -15388,6 +17388,8 @@
           closeMenus();
           if (importDrawer.classList.contains("is-open")) {
             closeImportWizard();
+          } else if (organizationEditorDrawer.classList.contains("is-open")) {
+            closeOrganizationEditor();
           } else if (editorDrawer.classList.contains("is-open")) {
             closeEditor();
           } else {
@@ -15416,7 +17418,20 @@
           applyProfiles(profiles);
           renderAccountProfile(await window.dataService.getCurrentProfile());
           contacts = (await window.dataService.loadContacts({ includeArchived: canAdministerData() })).map((contact, index) => sanitizeContact(contact, index));
+          try {
+            if (window.dataService.loadOrganizations) {
+              organizations = mergeOrganizations(await window.dataService.loadOrganizations({ includeArchived: canAdministerData() }), deriveOrganizationsFromContacts(contacts));
+            } else {
+              organizations = deriveOrganizationsFromContacts(contacts);
+            }
+          } catch (organizationError) {
+            console.warn("Organisationen konnten nicht aus Supabase geladen werden. Kontaktbasierter Fallback aktiv.", organizationError);
+            organizations = deriveOrganizationsFromContacts(contacts);
+          }
           await loadSavedViewsAndSettings();
+          if (["contacts", "organizations", "map", "analytics"].includes(userSettings?.defaultViewType)) {
+            activeView = userSettings.defaultViewType;
+          }
           loadedContactsFromStorage = false;
           setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
         } catch (error) {
