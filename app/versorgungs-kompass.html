@@ -37,12 +37,12 @@
         --info: #2563eb;
         --info-soft: #edf4ff;
         --sidebar-width: 248px;
-        --topbar-height: 70px;
+        --topbar-height: 56px;
         --content-max-width: none;
         --page-padding: 22px;
         --card-padding: 16px;
         --section-gap: 16px;
-        --row-height: 58px;
+        --row-height: 48px;
         --radius-sm: 6px;
         --radius-md: 8px;
         --radius-lg: 12px;
@@ -183,7 +183,7 @@
         display: flex;
         align-items: center;
         gap: 14px;
-        min-height: 70px;
+        min-height: 56px;
         padding: 0 24px;
         border-bottom: 1px solid rgba(26, 37, 89, 0.08);
         background: rgba(255, 255, 255, 0.92);
@@ -474,6 +474,11 @@
         background: rgba(255, 255, 255, 0.09);
         color: #ffffff;
         outline: none;
+      }
+
+      .sidebar-link.is-active {
+        background: var(--sidebar-active);
+        color: #ffffff;
       }
 
       .sidebar-link svg,
@@ -899,7 +904,7 @@
       .wrap {
         width: 100%;
         margin: 0;
-        padding: 18px 22px 28px;
+        padding: 12px 22px 28px;
       }
 
       .crm-shell {
@@ -1023,7 +1028,7 @@
         grid-template-columns: minmax(220px, 1fr) auto;
         align-items: center;
         gap: 14px;
-        padding: 0 0 16px;
+        padding: 0 0 10px;
       }
 
       .workspace-copy h2 {
@@ -2279,7 +2284,7 @@
       }
 
       .row {
-        min-height: 58px;
+        min-height: 48px;
         background: #ffffff;
         border-bottom: 1px solid #e8ecfb;
         font-size: 0.88rem;
@@ -2303,13 +2308,13 @@
       }
 
       .contact-cell {
-        gap: 10px;
+        gap: 9px;
         justify-content: flex-start;
       }
 
       .avatar {
-        width: 34px;
-        height: 34px;
+        width: 32px;
+        height: 32px;
         border-radius: 10px;
         display: inline-grid;
         place-items: center;
@@ -2485,7 +2490,7 @@
 
       .contact-thumb {
         object-fit: cover;
-        object-position: center top;
+        object-position: center;
         background: #eef2ff;
       }
 
@@ -2495,7 +2500,7 @@
         border: 0;
         background: transparent;
         color: var(--text);
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         font-weight: 800;
         letter-spacing: -0.02em;
         text-align: left;
@@ -3186,10 +3191,18 @@
 
       .detail-profile-main .avatar,
       .detail-profile-main img.avatar {
-        width: 54px;
-        height: 54px;
+        width: 72px;
+        height: 72px;
         border-radius: 999px;
         box-shadow: none;
+      }
+
+      .detail-profile-main img.avatar,
+      .detail-top img.avatar,
+      .contact-thumb,
+      .mobile-contact-card img.avatar {
+        object-fit: cover;
+        object-position: center;
       }
 
       .detail-profile-copy {
@@ -3219,6 +3232,14 @@
 
       .detail-profile-status {
         margin-top: 7px;
+      }
+
+      .detail-profile-edit {
+        margin-top: 10px;
+        min-height: 32px;
+        padding: 0 11px;
+        border-radius: 8px;
+        font-size: 0.78rem;
       }
 
       .detail-actions--stacked {
@@ -3484,18 +3505,40 @@
       }
 
       .detail-missing-summary {
-        padding: 10px 12px;
-        border: 1px solid #eadfca;
-        border-radius: 8px;
-        background: #fffaf2;
-        color: #735728;
-        font-size: 0.82rem;
-        font-weight: 750;
+        margin-bottom: 8px;
+        padding: 6px 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.74rem;
+        font-weight: 700;
         line-height: 1.42;
       }
 
       .detail-missing-summary strong {
-        color: #503a16;
+        color: var(--text-muted);
+      }
+
+      .detail-inline-action {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--primary);
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .detail-inline-action:hover,
+      .detail-inline-action:focus-visible {
+        text-decoration: underline;
+        outline: none;
+      }
+
+      .detail-inline-action--note {
+        margin-top: 8px;
+        font-size: 0.78rem;
       }
 
       .detail-line-list {
@@ -4125,11 +4168,16 @@
       }
 
       .dashboard-card--insight,
-      .dashboard-card--quality {
+      .dashboard-card--quality,
+      .dashboard-card--quality-link {
         grid-column: span 6;
       }
 
       .dashboard-card--care-queue {
+        grid-column: span 12;
+      }
+
+      .dashboard-card--quality-overview {
         grid-column: span 12;
       }
 
@@ -4696,6 +4744,60 @@
         cursor: pointer;
       }
 
+      .analytics-quality-link {
+        display: grid;
+        gap: 10px;
+      }
+
+      .analytics-quality-link__metric {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid #dfe7ff;
+        border-radius: 12px;
+        background: #ffffff;
+      }
+
+      .analytics-quality-link__metric strong {
+        color: #10236e;
+        font-size: 1.15rem;
+        font-weight: 950;
+        letter-spacing: -0.03em;
+      }
+
+      .analytics-quality-link__metric span {
+        color: #657099;
+        font-size: 0.76rem;
+        font-weight: 850;
+        text-align: right;
+      }
+
+      .analytics-quality-link__button {
+        min-height: 34px;
+        border: 1px solid #d6def9;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #285bd6;
+        font-size: 0.8rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .analytics-quality-link__button:hover,
+      .analytics-quality-link__button:focus-visible {
+        border-color: #b9c9ff;
+        background: #f6f9ff;
+        outline: none;
+      }
+
+      .quality-workspace-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 14px;
+      }
+
       .ranking-index {
         color: #7480a9;
         font-weight: 900;
@@ -4859,6 +4961,32 @@
       .care-queue-card--done .care-queue-count {
         background: #eaf8ef;
         color: #237247;
+      }
+
+      .care-queue-priority {
+        width: fit-content;
+        min-height: 22px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 7px;
+        border: 1px solid #dfe7ff;
+        border-radius: 999px;
+        background: #f6f8ff;
+        color: #657099;
+        font-size: 0.68rem;
+        font-weight: 900;
+      }
+
+      .care-queue-priority--high {
+        border-color: #ffd7b8;
+        background: #fff7ed;
+        color: #b45309;
+      }
+
+      .care-queue-priority--medium {
+        border-color: #dfe7ff;
+        background: #f6f8ff;
+        color: #285bd6;
       }
 
       .care-queue-list {
@@ -6291,7 +6419,8 @@
         .dashboard-card--geo-map,
         .dashboard-card--geo-top,
         .dashboard-card--insight,
-        .dashboard-card--quality {
+        .dashboard-card--quality,
+        .dashboard-card--quality-link {
           grid-column: span 6;
         }
 
@@ -7424,7 +7553,9 @@
         .dashboard-card--geo-bars,
         .dashboard-card--geo-top,
         .dashboard-card--insight,
-        .dashboard-card--quality {
+        .dashboard-card--quality,
+        .dashboard-card--quality-link,
+        .dashboard-card--quality-overview {
           grid-column: span 12;
         }
 
@@ -8469,7 +8600,7 @@
       }
 
       .row {
-        min-height: 52px;
+        min-height: var(--row-height);
       }
 
       .row:hover {
@@ -8494,7 +8625,7 @@
       .contacts-table .thead > div,
       .contacts-table .row > div {
         min-width: 0;
-        padding: 8px 10px;
+        padding: 6px 10px;
       }
 
       .contacts-table .thead .cell--select,
@@ -8657,11 +8788,18 @@
       }
 
       .owner-badge {
-        gap: 7px;
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        max-width: 100%;
+        gap: 6px;
         padding: 2px 8px 2px 3px;
         background: #ffffff;
         color: var(--text-secondary);
         border-color: var(--border);
+        line-height: 1;
+        white-space: nowrap;
+        vertical-align: middle;
       }
 
       .owner-badge__avatar {
@@ -8674,17 +8812,27 @@
         color: var(--primary);
         font-size: 0.68rem;
         font-weight: 850;
+        line-height: 1;
+        flex: 0 0 auto;
+      }
+
+      .owner-badge__label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
       }
 
       .owner-badge--empty {
+        min-height: 24px;
+        padding: 0 8px;
         background: #f8fafc;
         color: #64748b;
         border-color: #e2e8f0;
       }
 
       .owner-badge--empty .owner-badge__avatar {
-        background: #e2e8f0;
-        color: #94a3b8;
+        display: none;
       }
 
       .quality-badge {
@@ -9180,7 +9328,7 @@
                 <div class="account-permission-note" id="account-permission-note">Rollenrechte werden geladen.</div>
                 <div class="account-quick-actions">
                   <button class="account-quick-action" type="button" id="account-tour-button">Tour starten</button>
-                  <button class="account-quick-action" type="button" id="account-quality-button">Pflege-Queue</button>
+                  <button class="account-quick-action" type="button" id="account-quality-button">Datenqualität</button>
                 </div>
                 <div class="account-settings-preview">
                   <strong>Gespeicherte Suchen</strong>
@@ -9497,7 +9645,7 @@
                   <div id="top-regions"></div>
                 </article>
 
-                <div class="dashboard-cluster-title">Hinweise / Maßnahmen</div>
+                <div class="dashboard-cluster-title">Reporting-Hinweise</div>
                 <article class="dashboard-card dashboard-card--insight">
                   <div class="dashboard-card-head">
                     <div>
@@ -9508,22 +9656,43 @@
                   </div>
                   <div id="gap-analysis"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--quality dashboard-card--subtle">
+                <article class="dashboard-card dashboard-card--quality-link dashboard-card--subtle">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Datenqualität</h4>
-                      <p>Nachrangige Hinweise zur Pflege.</p>
+                      <p>Kompakter Hinweis. Die vollständige Pflege-Queue liegt im eigenen Bereich.</p>
                     </div>
-                    <span class="dashboard-info" title="Fehlende Kontaktwege in der aktuellen Auswahl">i</span>
+                    <span class="dashboard-info" title="Datenqualität ist als eigener Arbeitsbereich verfügbar">i</span>
+                  </div>
+                  <div id="analytics-quality-summary"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-quality" data-view-panel="quality">
+            <div class="view-card analytics-shell quality-workspace">
+              <div class="analytics-head">
+                <div>
+                  <h3>Datenqualität</h3>
+                </div>
+              </div>
+              <div class="quality-workspace-grid">
+                <article class="dashboard-card dashboard-card--quality-overview">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Pflegehinweise</h4>
+                      <p>Datenlücken in der aktuellen Auswahl nach Problemtyp.</p>
+                    </div>
+                    <span class="dashboard-info" title="Die Zahlen basieren auf den sichtbaren Kontakten und aktiven Filtern.">i</span>
                   </div>
                   <div id="quality-chart"></div>
                 </article>
-                <div class="dashboard-cluster-title">Pflege-Queue</div>
                 <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Pflege-Queue</h4>
-                      <p>Konkrete Aufgaben für Admins und Editors. Jeder Treffer öffnet direkt den passenden Kontakt.</p>
+                      <p>Konkrete Arbeitsliste für fehlende Angaben, Dubletten und veraltete Kontakte.</p>
                     </div>
                     <span class="dashboard-info" tabindex="0" aria-label="Pflege-Queue erklären">i<span class="dashboard-info__popup" role="tooltip">Die Queue sucht nach fehlenden Ownern, Kontaktwegen, Standortdaten, Fachrichtungen, unklaren Organisationen, Dublettenverdacht, archivierten Kontakten und länger nicht aktualisierten Datensätzen.</span></span>
                   </div>
@@ -10108,6 +10277,7 @@
       const coverageMap = document.getElementById("coverage-map");
       const gapAnalysis = document.getElementById("gap-analysis");
       const topRegions = document.getElementById("top-regions");
+      const analyticsQualitySummary = document.getElementById("analytics-quality-summary");
       const qualityChart = document.getElementById("quality-chart");
       const careQueueCard = document.getElementById("care-queue-card");
       const careQueue = document.getElementById("care-queue");
@@ -10263,7 +10433,7 @@
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
-        setRoleElementVisible(careQueueCard, canEditContacts());
+        setRoleElementVisible(careQueueCard, true);
         permissionBanner?.classList.toggle("is-visible", role !== "admin");
         if (permissionBannerText) permissionBannerText.textContent = permissionText(role);
       }
@@ -10341,6 +10511,13 @@
         if (value === "Hoch") return "high";
         if (value === "Mittel") return "medium";
         return "low";
+      }
+
+      function priorityDisplayLabel(value) {
+        const normalized = normalizedPriorityValue(value);
+        if (normalized === "high") return "Hoch";
+        if (normalized === "medium") return "Mittel";
+        return "Niedrig";
       }
 
       function csvEscape(value) {
@@ -11573,7 +11750,8 @@
       const viewLabels = {
         contacts: { title: "Kontakte", subtitle: "Pflege, Suche und Segmentierung der Versorgungskontakte." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
-        analytics: { title: "Auswertung", subtitle: "Kennzahlen, Datenqualität und Pflege-Queue." }
+        analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
+        quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." }
       };
 
       function uniqueValues(key) {
@@ -12364,8 +12542,12 @@
         return profile?.label || owner;
       }
 
+      function ownerBadgeLabel(value) {
+        return String(value || "").replace(/\s*\((Admin|Editor|Viewer|Nutzer)\)\s*$/i, "").trim();
+      }
+
       function initialsFromLabel(value) {
-        const label = String(value || "").trim();
+        const label = String(value || "").replace(/\([^)]*\)/g, "").trim();
         if (!label) return "KO";
         const parts = label.split(/\s+/).filter(Boolean);
         if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -12373,19 +12555,19 @@
       }
 
       function ownerBadgeMarkup(contact) {
-        const label = ownerDisplayLabel(contact.owner || contact.ownerId);
+        const rawLabel = ownerDisplayLabel(contact.owner || contact.ownerId);
+        const label = ownerBadgeLabel(rawLabel);
         if (!label) {
           return `
             <span class="owner-badge owner-badge--empty">
-              <span class="owner-badge__avatar" aria-hidden="true"></span>
-              <span>Kein Owner</span>
+              <span class="owner-badge__label">Kein Owner</span>
             </span>
           `;
         }
         return `
           <span class="owner-badge">
             <span class="owner-badge__avatar" aria-hidden="true">${escapeHtml(initialsFromLabel(label))}</span>
-            <span>${escapeHtml(label)}</span>
+            <span class="owner-badge__label">${escapeHtml(label)}</span>
           </span>
         `;
       }
@@ -12438,7 +12620,7 @@
 
       function tableCellMarkup(contact, key) {
         if (key === "name") {
-          const subline = [normalizedPriorityValue(contact.priority) ? `Priorität ${contact.priority}` : "", meaningfulOrEmpty(contact.topic)].filter(Boolean).join(" · ");
+          const subline = meaningfulOrEmpty(contact.topic);
           return `
             <div class="contact-cell">
               ${
@@ -12465,7 +12647,7 @@
         if (key === "owner") return ownerBadgeMarkup(contact);
         if (key === "priority") {
           const priority = normalizedPriorityValue(contact.priority);
-          return priority ? `<span class="contact-priority-pill contact-priority-pill--${priority.toLowerCase()}">${escapeHtml(priority)}</span>` : `<span class="contact-priority-pill">-</span>`;
+          return priority ? `<span class="contact-priority-pill contact-priority-pill--${priority.toLowerCase()}">${escapeHtml(priorityDisplayLabel(contact.priority))}</span>` : `<span class="contact-priority-pill">-</span>`;
         }
         if (key === "updated") return `<span class="contact-date">${escapeHtml(formatDateLabel(contact.updatedAt || contact.createdAt) || "-")}</span>`;
         if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(sourceLabel(contact))}</div>`;
@@ -12673,6 +12855,27 @@
 
       function meaningfulOrEmpty(value) {
         return hasMeaningfulValue(value) ? String(value).trim() : "";
+      }
+
+      function displayNoteText(contact) {
+        const raw = [contact.lastExchange, contact.note].map(meaningfulOrEmpty).find(Boolean) || "";
+        if (!raw) return "";
+        const cleaned = raw
+          .split(/\n+/)
+          .map((line) => line.trim())
+          .map((line) =>
+            line
+              .replace(/\s*Datenqualität:\s*.*$/i, "")
+              .replace(/\s*Dublettenmigration[^.;\n]*/gi, "")
+              .replace(/\s*Privatkontakt-Kontext wurde übernommen\.?/gi, "")
+              .replace(/\s*Import-Batch:\s*[^.;\n]*/gi, "")
+              .replace(/\s{2,}/g, " ")
+              .replace(/[·\s,;.-]+$/g, "")
+              .trim()
+          )
+          .filter(Boolean)
+          .join("\n");
+        return cleaned.trim();
       }
 
       function escapeHtml(value) {
@@ -13851,35 +14054,50 @@
 
       function renderQualitySummary(items) {
         const total = items.length;
+        const activeItems = contacts.filter((contact) => contact.status !== "archived");
+        const duplicateItems = duplicateSuspects(activeItems);
         const checks = [
-          { label: "Fehlende E-Mail", icon: "@", iconClass: "", count: items.filter((contact) => !hasMeaningfulValue(contact.email)).length },
-          { label: "Fehlende Telefon", icon: "☎", iconClass: "quality-icon--purple", count: items.filter((contact) => !hasMeaningfulValue(contact.phone)).length },
-          { label: "Fehlendes LinkedIn", icon: "in", iconClass: "", count: items.filter((contact) => !hasMeaningfulValue(contact.linkedin)).length },
-          {
-            label: "Unvollständige Adresse",
-            icon: "⌂",
-            iconClass: "quality-icon--amber",
-            count: items.filter((contact) => !hasMeaningfulValue(contact.street) || !hasMeaningfulValue(contact.postalCode) || !hasMeaningfulValue(contact.city) || !hasMeaningfulValue(stateLabel(contact))).length
-          }
+          { label: "Fehlende E-Mail", icon: "@", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.email)) },
+          { label: "Fehlendes Telefon", icon: "TEL", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !hasMeaningfulValue(contact.phone)) },
+          { label: "Fehlende Fachrichtung", icon: "FA", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.specialty)) },
+          { label: "Fehlender Owner", icon: "OW", iconClass: "quality-icon--amber", contacts: items.filter(isMissingOwner) },
+          { label: "Fehlender Standort", icon: "LOC", iconClass: "quality-icon--amber", contacts: items.filter(isMissingLocation) },
+          { label: "Mögliche Dubletten", icon: "DUP", iconClass: "quality-icon--purple", contacts: duplicateItems.filter((contact) => items.some((item) => item.id === contact.id)) },
+          { label: "Veraltete Kontakte", icon: "ALT", iconClass: "", contacts: items.filter(isContactStale) }
         ];
-        qualityChart.innerHTML = `
-          <div class="quality-list">
-            ${checks
-              .map(
-                (item) => `
-                  <div class="quality-row">
-                    <span class="quality-icon ${item.iconClass}">${escapeHtml(item.icon)}</span>
-                    <span class="quality-copy">
-                      <span>${escapeHtml(item.label)}</span>
-                    </span>
-                    <span class="quality-percent">${formatPercent(item.count, total)}</span>
-                    <span class="quality-copy"><small>${item.count} Kontakte</small></span>
-                  </div>
-                `
-              )
-              .join("")}
-          </div>
-        `;
+        const affectedIds = new Set();
+        checks.forEach((check) => check.contacts.forEach((contact) => affectedIds.add(contact.id)));
+        if (analyticsQualitySummary) {
+          analyticsQualitySummary.innerHTML = `
+            <div class="analytics-quality-link">
+              <div class="analytics-quality-link__metric">
+                <strong>${affectedIds.size}</strong>
+                <span>Kontakte mit fehlenden Angaben</span>
+              </div>
+              <button class="analytics-quality-link__button" type="button" id="analytics-quality-open">Datenqualität prüfen</button>
+            </div>
+          `;
+        }
+        if (qualityChart) {
+          qualityChart.innerHTML = `
+            <div class="quality-list">
+              ${checks
+                .map(
+                  (item) => `
+                    <div class="quality-row">
+                      <span class="quality-icon ${item.iconClass}">${escapeHtml(item.icon)}</span>
+                      <span class="quality-copy">
+                        <span>${escapeHtml(item.label)}</span>
+                        <small>${item.contacts.length} Kontakte</small>
+                      </span>
+                      <span class="quality-percent">${formatPercent(item.contacts.length, total)}</span>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+          `;
+        }
       }
 
       function normalizedQualityKey(value) {
@@ -13950,7 +14168,8 @@
             key: "missing-owner",
             title: "Fehlender Owner",
             hint: "Niemand verantwortlich",
-            icon: "👤",
+            icon: "OW",
+            priority: "Hoch",
             contacts: activeItems.filter(isMissingOwner)
           },
           {
@@ -13958,34 +14177,47 @@
             title: "Fehlende E-Mail",
             hint: "Kontaktweg ergänzen",
             icon: "@",
+            priority: "Hoch",
             contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.email))
           },
           {
+            key: "missing-phone",
+            title: "Fehlendes Telefon",
+            hint: "Kontaktweg ergänzen",
+            icon: "TEL",
+            priority: "Mittel",
+            contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.phone))
+          },
+          {
             key: "missing-location",
-            title: "Fehlende PLZ/Ort",
+            title: "Fehlender Standort",
             hint: "Karte und Region pflegen",
-            icon: "⌖",
+            icon: "LOC",
+            priority: "Hoch",
             contacts: activeItems.filter(isMissingLocation)
           },
           {
             key: "missing-specialty",
             title: "Fehlende Fachrichtung",
             hint: "Einordnung verbessern",
-            icon: "⚕",
+            icon: "FA",
+            priority: "Mittel",
             contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.specialty))
           },
           {
             key: "unclear-organization",
             title: "Unklare Organisation",
             hint: "Organisation prüfen",
-            icon: "🏢",
+            icon: "ORG",
+            priority: "Mittel",
             contacts: activeItems.filter(isUnclearOrganization)
           },
           {
             key: "duplicates",
             title: "Dublettenverdacht",
             hint: "Ähnliche Einträge prüfen",
-            icon: "⧉",
+            icon: "DUP",
+            priority: "Hoch",
             attention: true,
             contacts: duplicateItems
           },
@@ -13994,6 +14226,7 @@
             title: "Archivierte Kontakte",
             hint: canAdministerData() ? "Wiederherstellen möglich" : "Nur Admin sichtbar",
             icon: "A",
+            priority: "Niedrig",
             attention: true,
             contacts: canAdministerData() ? archivedItems : []
           },
@@ -14001,7 +14234,8 @@
             key: "stale",
             title: "Länger nicht aktualisiert",
             hint: "Seit 6 Monaten offen",
-            icon: "↻",
+            icon: "ALT",
+            priority: "Mittel",
             contacts: activeItems.filter(isContactStale)
           }
         ].sort((left, right) => {
@@ -14015,7 +14249,7 @@
       function renderCareQueue(items) {
         if (!careQueue) return;
         if (!canEditContacts()) {
-          careQueue.innerHTML = "";
+          careQueue.innerHTML = `<div class="dashboard-empty">Die Pflege-Queue ist für Editors und Admins vorgesehen. Datenqualitäts-Hinweise bleiben oben sichtbar.</div>`;
           return;
         }
         const queueItems = buildCareQueueItems(items);
@@ -14031,6 +14265,7 @@
                       <span class="care-queue-copy">
                         <span class="care-queue-title">${escapeHtml(item.title)}</span>
                         <span class="care-queue-hint">${escapeHtml(item.hint)}</span>
+                        <span class="care-queue-priority care-queue-priority--${item.priority === "Hoch" ? "high" : item.priority === "Mittel" ? "medium" : "low"}">Priorität ${escapeHtml(item.priority)}</span>
                       </span>
                       <span class="care-queue-count">${item.contacts.length}</span>
                     </div>
@@ -14177,6 +14412,7 @@
         viewTabs.forEach((tab) => {
           tab.classList.toggle("is-active", tab.dataset.viewTab === view);
         });
+        sidebarQualityButton?.classList.toggle("is-active", view === "quality");
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
         });
@@ -14244,7 +14480,7 @@
         const ownerLabel = meaningfulOrEmpty(contact.owner);
         const specialtyText = specialtyLabel(contact);
         const honorificTitle = meaningfulOrEmpty(contact.honorificTitle);
-        const noteText = meaningfulOrEmpty(contact.lastExchange);
+        const noteText = displayNoteText(contact);
         const organizationLabel = meaningfulOrEmpty(contact.organization);
         const themeTags = normalizeThemes(contact.themes);
         const admin = canAdministerData();
@@ -14262,6 +14498,12 @@
         ].filter(Boolean);
         const detailMeta = [contact.category, locationText].filter(Boolean).join(" · ");
         const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
+        const normalizedStatus = String(contact.status || "").trim().toLowerCase();
+        const statusLabel = normalizedStatus === "archived"
+          ? "Archiviert"
+          : normalizedStatus && !["active", "aktiv"].includes(normalizedStatus)
+            ? contact.status
+            : "";
 
         activeId = contact.id;
         renderTable(currentItems);
@@ -14272,6 +14514,7 @@
           <div class="detail-toolbar">
             <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>
             <div class="detail-toolbar-actions">
+              ${canEditContacts() ? `<button class="action-button detail-profile-edit" type="button" id="detail-edit">Bearbeiten</button>` : ""}
               <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
             </div>
           </div>
@@ -14285,7 +14528,7 @@
                     ${honorificTitle ? `<div class="detail-profile-subline">${escapeHtml(honorificTitle)}</div>` : ""}
                     <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
                     <div class="detail-profile-subline">${escapeHtml(detailMeta || "Sektor und Ort nicht dokumentiert")}</div>
-                    <div class="detail-profile-status"><span class="badge badge--active">${contact.status === "archived" ? "Archiviert" : "Aktiv"}</span></div>
+                    ${statusLabel ? `<div class="detail-profile-status"><span class="badge badge--status">${escapeHtml(statusLabel)}</span></div>` : ""}
                   </div>
                 </div>
               </section>
@@ -14302,8 +14545,8 @@
                 <h4 class="detail-section-title">Stammdaten</h4>
                 ${
                   missingFields.length
-                    ? `<div class="detail-missing-summary"><strong>Fehlende Angaben:</strong> ${missingFields.join(", ")}</div>`
-                    : `<div class="detail-missing-summary"><strong>Datenstatus:</strong> Die wichtigsten Angaben sind gepflegt.</div>`
+                    ? `<div class="detail-missing-summary"><strong>Fehlende Angaben:</strong> ${missingFields.join(", ")}${canEditContacts() ? ` · <button class="detail-inline-action" type="button" id="detail-quality-open">In Datenqualität prüfen</button>` : ""}</div>`
+                    : ""
                 }
                 <div class="detail-line-list">
                   ${detailLine("Organisation", organizationLabel)}
@@ -14311,7 +14554,7 @@
                   ${detailLine("Fachrichtung", specialtyText, { emptyLabel: "Bitte wählen" })}
                   ${detailLine("Ort", locationText)}
                   ${detailLine("Owner", ownerDisplay, { emptyLabel: "Kein Owner" })}
-                  ${detailLine("Priorität", normalizedPriorityValue(contact.priority) || contact.priority || "Mittel")}
+                  ${detailLine("Priorität", priorityDisplayLabel(contact.priority))}
                   ${honorificTitle ? detailLine("Titel", honorificTitle) : ""}
                   ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
                 </div>
@@ -14349,8 +14592,9 @@
               <section class="section-block" id="detail-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 <div class="detail-line-list">
-                  <div class="detail-note-block ${noteText || meaningfulOrEmpty(contact.note) ? "" : "detail-note-block--empty"}">
-                    ${escapeHtml(noteText || meaningfulOrEmpty(contact.note) || "Noch keine Notizen hinterlegt.")}
+                  <div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">
+                    ${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}
+                    ${canEditContacts() ? `<div><button class="detail-inline-action detail-inline-action--note" type="button" id="detail-note-edit">${noteText ? "Notiz bearbeiten" : "Notiz hinzufügen"}</button></div>` : ""}
                   </div>
                 </div>
               </section>
@@ -14391,6 +14635,11 @@
 
         document.getElementById("detail-close").addEventListener("click", closeDetail);
         document.getElementById("detail-edit")?.addEventListener("click", () => openEditor(contact));
+        document.getElementById("detail-note-edit")?.addEventListener("click", () => openEditor(contact));
+        document.getElementById("detail-quality-open")?.addEventListener("click", () => {
+          closeDetail();
+          setActiveView("quality");
+        });
         document.getElementById("detail-delete")?.addEventListener("click", () => deleteContact(contact));
         document.getElementById("detail-restore")?.addEventListener("click", () => restoreContact(contact));
         [...detailPanel.querySelectorAll("[data-scroll-detail]")].forEach((button) => {
@@ -14816,8 +15065,7 @@
       });
       sidebarQualityButton?.addEventListener("click", () => {
         closeMenus();
-        setActiveView("analytics");
-        careQueueCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setActiveView("quality");
       });
       sidebarImportButton?.addEventListener("click", () => {
         closeMenus();
@@ -14964,8 +15212,13 @@
       });
       accountQualityButton?.addEventListener("click", () => {
         closeMenus();
-        setActiveView("analytics");
-        careQueueCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setActiveView("quality");
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest("#analytics-quality-open")) return;
+        closeMenus();
+        setActiveView("quality");
       });
 
       window.addEventListener("message", (event) => {
