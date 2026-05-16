@@ -2,6 +2,7 @@
   const DB_FIELDS = [
     "id",
     "name",
+    "organization_id",
     "organization",
     "sector",
     "specialty",
@@ -19,6 +20,11 @@
     "notes",
     "source",
     "image_url",
+    "image_source_url",
+    "image_source_label",
+    "image_rights_note",
+    "image_updated_at",
+    "image_updated_by",
     "status",
     "created_at",
     "created_by",
@@ -26,6 +32,28 @@
     "updated_by"
   ];
   const WRITE_FIELDS = DB_FIELDS.filter((field) => !["created_at", "created_by", "updated_at", "updated_by"].includes(field));
+  const ORGANIZATION_FIELDS = [
+    "id",
+    "name",
+    "normalized_name",
+    "sector",
+    "organization_type",
+    "postal_code",
+    "city",
+    "federal_state",
+    "latitude",
+    "longitude",
+    "website",
+    "phone",
+    "email",
+    "notes",
+    "source",
+    "status",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
   const CHANGE_FIELDS = ["id", "contact_id", "action", "field_name", "old_value", "new_value", "changed_at", "changed_by"];
   const SAVED_VIEW_FIELDS = [
     "id",
@@ -55,10 +83,42 @@
     "created_at",
     "updated_at"
   ];
+  const PROFILE_FIELDS = [
+    "id",
+    "email",
+    "display_name",
+    "initials",
+    "role",
+    "active",
+    "avatar_url",
+    "team",
+    "bio",
+    "created_at",
+    "updated_at"
+  ];
+  const PROFILE_IMAGE_BUCKET = "profile-images";
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   let client = null;
   let profileCache = new Map();
   let contactCache = [];
+  let supportsContactOrganizationId = true;
+  let supportsContactImageSources = false;
+
+  function contactSelectFields() {
+    return DB_FIELDS.filter((field) => {
+      if (!supportsContactOrganizationId && field === "organization_id") return false;
+      if (!supportsContactImageSources && field.startsWith("image_") && field !== "image_url") return false;
+      return true;
+    }).join(",");
+  }
+
+  function isMissingOrganizationIdError(error) {
+    return /organization_id/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
+
+  function isMissingContactImageSourceError(error) {
+    return /image_source_url|image_source_label|image_rights_note|image_updated_at|image_updated_by/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
 
   function isConfigured() {
     return Boolean(
@@ -78,6 +138,31 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
     return client;
+  }
+
+  function isLocalMode() {
+    return CONFIG.dataMode === "local";
+  }
+
+  function localProfile() {
+    return {
+      id: "local-admin",
+      email: "local@example.test",
+      display_name: "Timo Frank",
+      initials: "TF",
+      role: "admin",
+      active: true,
+      avatar_url: "",
+      team: "",
+      bio: ""
+    };
+  }
+
+  function localContacts(options = {}) {
+    const rows = Array.isArray(window.VERSORGUNGS_COMPASS_CONTACTS) ? window.VERSORGUNGS_COMPASS_CONTACTS : [];
+    return rows
+      .filter((contact) => options.includeArchived || contact.status !== "archived")
+      .map((contact, index) => ({ ...contact, _index: index }));
   }
 
   function normalizePriority(value) {
@@ -115,14 +200,23 @@
     return role || "Nutzer";
   }
 
+  function initialsFromProfile(profile) {
+    const source = profile?.display_name || profile?.email || "VK";
+    const parts = String(source).trim().split(/\s+/).filter(Boolean);
+    if (profile?.initials) return String(profile.initials).trim().slice(0, 4).toUpperCase();
+    if (parts.length > 1) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    return String(source).slice(0, 2).toUpperCase();
+  }
+
   function profileSummary(id) {
     const profile = profileCache.get(id);
     return {
       id: id || "",
       displayName: profile?.display_name || profile?.email || "Unbekannter Nutzer",
-      initials: profile?.initials || String(profile?.display_name || profile?.email || "UN").slice(0, 2).toUpperCase(),
+      initials: initialsFromProfile(profile),
       role: profile?.role || "",
-      roleLabel: roleLabel(profile?.role)
+      roleLabel: roleLabel(profile?.role),
+      avatarUrl: profile?.avatar_url || ""
     };
   }
 
@@ -141,6 +235,7 @@
     const topics = splitList(row.topics);
     return {
       id: row.id,
+      organizationId: row.organization_id || "",
       name: row.name || "",
       organization: row.organization || "",
       category: row.sector || "Praxis",
@@ -162,6 +257,11 @@
       note: row.notes || "",
       sources: splitList(row.source),
       image: row.image_url || "",
+      imageSourceUrl: row.image_source_url || "",
+      imageSourceLabel: row.image_source_label || "",
+      imageRightsNote: row.image_rights_note || "",
+      imageUpdatedAt: row.image_updated_at || "",
+      imageUpdatedBy: row.image_updated_by || "",
       status: row.status || "active",
       createdAt: row.created_at || "",
       updatedAt: row.updated_at || "",
@@ -243,6 +343,7 @@
   function uiToDb(contact) {
     const db = {
       id: contact.id,
+      organization_id: contact.organizationId || contact.organization_id || null,
       name: String(contact.name || "").trim(),
       organization: String(contact.organization || "").trim() || null,
       sector: String(contact.category || contact.sector || "").trim() || "Praxis",
@@ -261,6 +362,11 @@
       notes: contact.note || contact.notes || null,
       source: splitList(contact.sources || contact.source).join("; ") || null,
       image_url: contact.image || contact.image_url || null,
+      image_source_url: contact.imageSourceUrl || contact.image_source_url || null,
+      image_source_label: contact.imageSourceLabel || contact.image_source_label || null,
+      image_rights_note: contact.imageRightsNote || contact.image_rights_note || null,
+      image_updated_at: contact.imageUpdatedAt || contact.image_updated_at || null,
+      image_updated_by: contact.imageUpdatedBy || contact.image_updated_by || null,
       status: contact.status || "active"
     };
     Object.keys(db).forEach((key) => {
@@ -279,9 +385,70 @@
     });
   }
 
+  function normalizeOrganizationName(value) {
+    return String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
+
+  function organizationDbToUi(row, contactCount = 0) {
+    return {
+      id: row.id,
+      name: row.name || "",
+      normalizedName: row.normalized_name || normalizeOrganizationName(row.name),
+      sector: row.sector || "",
+      organizationType: row.organization_type || "",
+      postalCode: row.postal_code || "",
+      city: row.city || "",
+      state: row.federal_state || "",
+      latitude: row.latitude,
+      longitude: row.longitude,
+      lat: Number.isFinite(Number(row.latitude)) ? Number(row.latitude) : null,
+      lon: Number.isFinite(Number(row.longitude)) ? Number(row.longitude) : null,
+      website: row.website || "",
+      phone: row.phone || "",
+      email: row.email || "",
+      notes: row.notes || "",
+      source: row.source || "",
+      status: row.status || "active",
+      contactCount,
+      createdAt: row.created_at || "",
+      updatedAt: row.updated_at || "",
+      createdBy: row.created_by || "",
+      updatedBy: row.updated_by || ""
+    };
+  }
+
+  function organizationUiToDb(organization) {
+    const name = String(organization.name || "").trim();
+    return {
+      name,
+      normalized_name: normalizeOrganizationName(organization.normalizedName || name),
+      sector: String(organization.sector || "").trim() || null,
+      organization_type: String(organization.organizationType || organization.organization_type || "").trim() || null,
+      postal_code: organization.postalCode || organization.postal_code || null,
+      city: organization.city || null,
+      federal_state: organization.state || organization.federal_state || null,
+      latitude: Number.isFinite(Number(organization.lat ?? organization.latitude)) ? Number(organization.lat ?? organization.latitude) : null,
+      longitude: Number.isFinite(Number(organization.lon ?? organization.longitude)) ? Number(organization.lon ?? organization.longitude) : null,
+      website: String(organization.website || "").trim() || null,
+      phone: String(organization.phone || "").trim() || null,
+      email: String(organization.email || "").trim() || null,
+      notes: String(organization.notes || organization.note || "").trim() || null,
+      source: String(organization.source || "").trim() || null,
+      status: organization.status || "active"
+    };
+  }
+
   async function loadProfiles() {
+    if (isLocalMode()) {
+      const profile = localProfile();
+      profileCache = new Map([[profile.id, profile]]);
+      return [profile];
+    }
     const supabase = getClient();
-    const { data, error } = await supabase.from("profiles").select("id,email,display_name,initials,role,active").eq("active", true);
+    const { data, error } = await supabase.from("profiles").select(PROFILE_FIELDS.join(",")).eq("active", true);
     if (error) throw error;
     profileCache = new Map((data || []).map((profile) => [profile.id, profile]));
     return [...profileCache.values()];
@@ -293,6 +460,7 @@
   }
 
   async function getCurrentProfile() {
+    if (isLocalMode()) return localProfile();
     const { data, error } = await getClient().auth.getUser();
     if (error) throw error;
     const userId = data.user?.id;
@@ -301,18 +469,81 @@
     return profileCache.get(userId) || null;
   }
 
+  async function updateCurrentProfile(profile = {}) {
+    const userId = await getCurrentUserId();
+    const payload = {
+      display_name: String(profile.displayName ?? profile.display_name ?? "").trim(),
+      initials: String(profile.initials || "").trim().slice(0, 4).toUpperCase() || null,
+      team: String(profile.team || "").trim() || null,
+      bio: String(profile.bio || "").trim() || null,
+      avatar_url: profile.avatarUrl ?? profile.avatar_url ?? null,
+      updated_at: new Date().toISOString()
+    };
+    if (!payload.display_name) throw new Error("Bitte trage einen Anzeigenamen ein.");
+    const { data, error } = await getClient()
+      .from("profiles")
+      .update(payload)
+      .eq("id", userId)
+      .select(PROFILE_FIELDS.join(","))
+      .single();
+    if (error) throw error;
+    profileCache.set(userId, data);
+    return data;
+  }
+
+  async function uploadCurrentProfileImage(file) {
+    if (!file) throw new Error("Bitte wähle ein Profilfoto aus.");
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) throw new Error("Bitte nutze ein JPG-, PNG- oder WebP-Bild.");
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) throw new Error("Das Profilfoto darf maximal 5 MB groß sein.");
+
+    const userId = await getCurrentUserId();
+    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = `${userId}/avatar.${extension}`;
+    const { error } = await getClient().storage.from(PROFILE_IMAGE_BUCKET).upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: true
+    });
+    if (error) throw error;
+    const { data } = getClient().storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(path);
+    return data?.publicUrl || "";
+  }
+
+  async function removeCurrentProfileImage() {
+    const userId = await getCurrentUserId();
+    const paths = ["jpg", "jpeg", "png", "webp"].map((extension) => `${userId}/avatar.${extension}`);
+    await getClient().storage.from(PROFILE_IMAGE_BUCKET).remove(paths);
+    return updateCurrentProfile({ ...(profileCache.get(userId) || {}), avatar_url: null });
+  }
+
   async function loadContacts(options = {}) {
+    if (isLocalMode()) {
+      contactCache = localContacts(options);
+      return contactCache;
+    }
     const supabase = getClient();
     await loadProfiles();
     let query = supabase
       .from("contacts")
-      .select(DB_FIELDS.join(","))
+      .select(contactSelectFields())
       .order("updated_at", { ascending: false, nullsFirst: false })
       .order("name", { ascending: true });
     if (!options.includeArchived) query = query.neq("status", "archived");
     if (options.status) query = query.eq("status", options.status);
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      if (supportsContactOrganizationId && isMissingOrganizationIdError(error)) {
+        supportsContactOrganizationId = false;
+        return loadContacts(options);
+      }
+      if (supportsContactImageSources && isMissingContactImageSourceError(error)) {
+        supportsContactImageSources = false;
+        return loadContacts(options);
+      }
+      throw error;
+    }
     contactCache = (data || []).map(dbToUi);
     return contactCache;
   }
@@ -326,8 +557,18 @@
     const cached = contactCache.find((contact) => contact.id === id);
     if (cached) return cached;
     const supabase = getClient();
-    const { data, error } = await supabase.from("contacts").select(DB_FIELDS.join(",")).eq("id", id).single();
-    if (error) throw error;
+    const { data, error } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single();
+    if (error) {
+      if (supportsContactOrganizationId && isMissingOrganizationIdError(error)) {
+        supportsContactOrganizationId = false;
+        return getContact(id);
+      }
+      if (supportsContactImageSources && isMissingContactImageSourceError(error)) {
+        supportsContactImageSources = false;
+        return getContact(id);
+      }
+      throw error;
+    }
     return dbToUi(data);
   }
 
@@ -344,6 +585,108 @@
     const { data, error } = await query;
     if (error) throw error;
     return (data || []).map(changeToUi);
+  }
+
+  async function loadOrganizations(options = {}) {
+    if (isLocalMode()) return [];
+    const supabase = getClient();
+    let query = supabase
+      .from("organizations")
+      .select(ORGANIZATION_FIELDS.join(","))
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const ids = (data || []).map((row) => row.id);
+    const counts = new Map();
+    if (ids.length) {
+      const { data: linkedContacts, error: countError } = await supabase
+        .from("contacts")
+        .select("organization_id")
+        .in("organization_id", ids)
+        .neq("status", "archived");
+      if (countError) throw countError;
+      (linkedContacts || []).forEach((row) => {
+        if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
+      });
+    }
+    return (data || []).map((row) => organizationDbToUi(row, counts.get(row.id) || 0));
+  }
+
+  async function getOrganization(id) {
+    const supabase = getClient();
+    const { data, error } = await supabase.from("organizations").select(ORGANIZATION_FIELDS.join(",")).eq("id", id).single();
+    if (error) throw error;
+    return organizationDbToUi(data);
+  }
+
+  async function createOrganization(organization) {
+    if (isLocalMode()) {
+      const name = String(organization?.name || "").trim();
+      if (!name) throw new Error("Name der Organisation fehlt.");
+      return {
+        id: organization.id || `local-organization-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        name,
+        normalizedName: normalizeOrganizationName(name),
+        sector: String(organization.sector || "").trim(),
+        organizationType: String(organization.organizationType || "").trim(),
+        postalCode: String(organization.postalCode || "").trim(),
+        city: String(organization.city || "").trim(),
+        state: String(organization.state || "").trim(),
+        website: String(organization.website || "").trim(),
+        phone: String(organization.phone || "").trim(),
+        email: String(organization.email || "").trim(),
+        source: String(organization.source || "").trim(),
+        notes: String(organization.notes || "").trim(),
+        status: "active",
+        contactCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    }
+    const supabase = getClient();
+    const userId = await getCurrentUserId();
+    const payload = { ...organizationUiToDb(organization), created_by: userId, updated_by: userId };
+    if (!payload.name) throw new Error("Name der Organisation fehlt.");
+    const { data, error } = await supabase.from("organizations").insert(payload).select(ORGANIZATION_FIELDS.join(",")).single();
+    if (error) throw error;
+    return organizationDbToUi(data);
+  }
+
+  async function updateOrganization(id, patch) {
+    const supabase = getClient();
+    const userId = await getCurrentUserId();
+    const payload = {};
+    if ("name" in patch) {
+      payload.name = String(patch.name || "").trim();
+      payload.normalized_name = normalizeOrganizationName(patch.name);
+    }
+    if ("sector" in patch) payload.sector = String(patch.sector || "").trim() || null;
+    if ("organizationType" in patch || "organization_type" in patch) payload.organization_type = String(patch.organizationType || patch.organization_type || "").trim() || null;
+    if ("postalCode" in patch || "postal_code" in patch) payload.postal_code = patch.postalCode || patch.postal_code || null;
+    if ("city" in patch) payload.city = patch.city || null;
+    if ("state" in patch || "federal_state" in patch) payload.federal_state = patch.state || patch.federal_state || null;
+    if ("latitude" in patch || "lat" in patch) payload.latitude = Number.isFinite(Number(patch.lat ?? patch.latitude)) ? Number(patch.lat ?? patch.latitude) : null;
+    if ("longitude" in patch || "lon" in patch) payload.longitude = Number.isFinite(Number(patch.lon ?? patch.longitude)) ? Number(patch.lon ?? patch.longitude) : null;
+    if ("website" in patch) payload.website = String(patch.website || "").trim() || null;
+    if ("phone" in patch) payload.phone = String(patch.phone || "").trim() || null;
+    if ("email" in patch) payload.email = String(patch.email || "").trim() || null;
+    if ("notes" in patch || "note" in patch) payload.notes = String(patch.notes || patch.note || "").trim() || null;
+    if ("source" in patch) payload.source = String(patch.source || "").trim() || null;
+    if ("status" in patch) payload.status = patch.status || "active";
+    payload.updated_by = userId;
+    payload.updated_at = new Date().toISOString();
+    const { data, error } = await supabase.from("organizations").update(payload).eq("id", id).select(ORGANIZATION_FIELDS.join(",")).single();
+    if (error) throw error;
+    return organizationDbToUi(data);
+  }
+
+  async function linkContactToOrganization(contactId, organization) {
+    const organizationId = typeof organization === "string" ? organization : organization?.id;
+    const organizationName = typeof organization === "string" ? "" : organization?.name;
+    return updateContact(contactId, { organizationId, organization: organizationName || undefined });
   }
 
   async function getSavedViews() {
@@ -430,10 +773,30 @@
   }
 
   async function createContact(contact, options = {}) {
+    if (isLocalMode()) {
+      const created = {
+        ...contact,
+        id: contact.id || `local-contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        status: contact.status || "active",
+        priority: normalizePriority(contact.priority),
+        createdAt: contact.createdAt || new Date().toISOString(),
+        updatedAt: contact.updatedAt || new Date().toISOString()
+      };
+      contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
+      return created;
+    }
     const supabase = getClient();
     const userId = await getCurrentUserId();
     const payload = { ...uiToDb(contact), created_by: userId, updated_by: userId };
-    const { data, error } = await supabase.from("contacts").insert(payload).select(DB_FIELDS.join(",")).single();
+    if (!supportsContactOrganizationId) delete payload.organization_id;
+    if (!supportsContactImageSources) {
+      delete payload.image_source_url;
+      delete payload.image_source_label;
+      delete payload.image_rights_note;
+      delete payload.image_updated_at;
+      delete payload.image_updated_by;
+    }
+    const { data, error } = await supabase.from("contacts").insert(payload).select(contactSelectFields()).single();
     if (error) throw error;
     const { error: logError } = await supabase.from("changes").insert({
       contact_id: data.id,
@@ -452,7 +815,7 @@
   async function updateContact(id, patch) {
     const supabase = getClient();
     const userId = await getCurrentUserId();
-    const { data: oldRow, error: oldError } = await supabase.from("contacts").select(DB_FIELDS.join(",")).eq("id", id).single();
+    const { data: oldRow, error: oldError } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single();
     if (oldError) throw oldError;
     const merged = { ...dbToUi(oldRow), ...patch, id };
     if (Object.prototype.hasOwnProperty.call(patch, "ownerId")) {
@@ -462,10 +825,28 @@
     }
     const dbPatch = uiToDb(merged);
     delete dbPatch.id;
+    if (!supportsContactOrganizationId) delete dbPatch.organization_id;
+    if (!["image", "image_url"].some((field) => Object.prototype.hasOwnProperty.call(patch, field))) {
+      delete dbPatch.image_url;
+    }
+    if (!["imageSourceUrl", "image_source_url", "imageSourceLabel", "image_source_label", "imageRightsNote", "image_rights_note"].some((field) => Object.prototype.hasOwnProperty.call(patch, field))) {
+      delete dbPatch.image_source_url;
+      delete dbPatch.image_source_label;
+      delete dbPatch.image_rights_note;
+      delete dbPatch.image_updated_at;
+      delete dbPatch.image_updated_by;
+    }
+    if (!supportsContactImageSources) {
+      delete dbPatch.image_source_url;
+      delete dbPatch.image_source_label;
+      delete dbPatch.image_rights_note;
+      delete dbPatch.image_updated_at;
+      delete dbPatch.image_updated_by;
+    }
     dbPatch.updated_by = userId;
     dbPatch.updated_at = new Date().toISOString();
     const changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
-    const { data, error } = await supabase.from("contacts").update(dbPatch).eq("id", id).select(DB_FIELDS.join(",")).single();
+    const { data, error } = await supabase.from("contacts").update(dbPatch).eq("id", id).select(contactSelectFields()).single();
     if (error) throw error;
     if (changedFields.length) {
       const action = dbPatch.status === "archived" ? "archive" : "update";
@@ -530,7 +911,15 @@
     getContact,
     getProfiles,
     getCurrentProfile,
+    updateCurrentProfile,
+    uploadCurrentProfileImage,
+    removeCurrentProfileImage,
     getContactChanges,
+    loadOrganizations,
+    getOrganization,
+    createOrganization,
+    updateOrganization,
+    linkContactToOrganization,
     getSavedViews,
     createSavedView,
     updateSavedView,

@@ -6,14 +6,22 @@ create table if not exists public.profiles (
   display_name text not null,
   initials text,
   role text not null default 'viewer' check (role in ('admin', 'editor', 'viewer')),
+  avatar_url text,
+  team text,
+  bio text,
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+alter table public.profiles add column if not exists avatar_url text;
+alter table public.profiles add column if not exists team text;
+alter table public.profiles add column if not exists bio text;
+
 create table if not exists public.contacts (
   id text primary key,
   name text not null,
+  organization_id uuid,
   organization text,
   sector text,
   specialty text,
@@ -31,12 +39,50 @@ create table if not exists public.contacts (
   notes text,
   source text,
   image_url text,
+  image_source_url text,
+  image_source_label text,
+  image_rights_note text,
+  image_updated_at timestamptz,
+  image_updated_by uuid references public.profiles(id),
   status text not null default 'active' check (status in ('active', 'archived')),
   created_at timestamptz not null default now(),
   created_by uuid references public.profiles(id),
   updated_at timestamptz not null default now(),
   updated_by uuid references public.profiles(id)
 );
+
+create table if not exists public.organizations (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  normalized_name text not null,
+  sector text,
+  organization_type text,
+  postal_code text,
+  city text,
+  federal_state text,
+  latitude double precision,
+  longitude double precision,
+  website text,
+  phone text,
+  email text,
+  notes text,
+  source text,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  created_by uuid references public.profiles(id),
+  updated_at timestamptz not null default now(),
+  updated_by uuid references public.profiles(id)
+);
+
+alter table public.contacts
+  drop constraint if exists contacts_organization_id_fkey,
+  add constraint contacts_organization_id_fkey foreign key (organization_id) references public.organizations(id) on delete set null;
+
+alter table public.contacts add column if not exists image_source_url text;
+alter table public.contacts add column if not exists image_source_label text;
+alter table public.contacts add column if not exists image_rights_note text;
+alter table public.contacts add column if not exists image_updated_at timestamptz;
+alter table public.contacts add column if not exists image_updated_by uuid references public.profiles(id);
 
 create table if not exists public.changes (
   id bigint generated always as identity primary key,
@@ -55,7 +101,7 @@ create table if not exists public.saved_views (
   name text not null,
   description text,
   scope text not null default 'private' check (scope in ('private', 'team')),
-  view_type text not null default 'contacts' check (view_type in ('contacts', 'map', 'analytics')),
+  view_type text not null default 'contacts' check (view_type in ('contacts', 'organizations', 'map', 'analytics')),
   filters jsonb not null default '{}'::jsonb,
   search_query text not null default '',
   sort_key text not null default 'updated_at',
@@ -69,7 +115,7 @@ create table if not exists public.saved_views (
 create table if not exists public.user_settings (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   default_view_id uuid references public.saved_views(id) on delete set null,
-  default_view_type text not null default 'contacts' check (default_view_type in ('contacts', 'map', 'analytics')),
+  default_view_type text not null default 'contacts' check (default_view_type in ('contacts', 'organizations', 'map', 'analytics')),
   table_density text not null default 'comfortable' check (table_density in ('compact', 'comfortable', 'spacious')),
   theme text not null default 'system' check (theme in ('system', 'light', 'contrast')),
   font_scale numeric not null default 1 check (font_scale between 0.9 and 1.2),
@@ -79,9 +125,19 @@ create table if not exists public.user_settings (
   updated_at timestamptz not null default now()
 );
 
+alter table public.user_settings drop constraint if exists user_settings_default_view_type_check;
+alter table public.user_settings
+  add constraint user_settings_default_view_type_check
+  check (default_view_type in ('contacts', 'organizations', 'map', 'analytics'));
+
 create index if not exists contacts_status_idx on public.contacts(status);
 create index if not exists contacts_owner_idx on public.contacts(owner_id);
+create index if not exists contacts_organization_id_idx on public.contacts(organization_id);
 create index if not exists contacts_state_idx on public.contacts(federal_state);
+create index if not exists organizations_normalized_name_idx on public.organizations(normalized_name);
+create index if not exists organizations_sector_idx on public.organizations(sector);
+create index if not exists organizations_state_idx on public.organizations(federal_state);
+create index if not exists organizations_status_idx on public.organizations(status);
 create index if not exists changes_contact_idx on public.changes(contact_id);
 create index if not exists saved_views_owner_idx on public.saved_views(owner_id);
 create index if not exists saved_views_scope_idx on public.saved_views(scope);
@@ -111,6 +167,11 @@ create trigger contacts_touch_updated_at
 before update on public.contacts
 for each row execute function public.touch_updated_at();
 
+drop trigger if exists organizations_touch_updated_at on public.organizations;
+create trigger organizations_touch_updated_at
+before update on public.organizations
+for each row execute function public.touch_updated_at();
+
 drop trigger if exists saved_views_touch_updated_at on public.saved_views;
 create trigger saved_views_touch_updated_at
 before update on public.saved_views
@@ -121,15 +182,23 @@ create trigger user_settings_touch_updated_at
 before update on public.user_settings
 for each row execute function public.touch_updated_at();
 
+drop trigger if exists profiles_touch_updated_at on public.profiles;
+create trigger profiles_touch_updated_at
+before update on public.profiles
+for each row execute function public.touch_updated_at();
+
 alter table public.profiles enable row level security;
 alter table public.contacts enable row level security;
+alter table public.organizations enable row level security;
 alter table public.changes enable row level security;
 alter table public.saved_views enable row level security;
 alter table public.user_settings enable row level security;
 
 grant usage on schema public to authenticated;
 grant select on public.profiles to authenticated;
+grant update (display_name, initials, avatar_url, team, bio, updated_at) on public.profiles to authenticated;
 grant select, insert, update on public.contacts to authenticated;
+grant select, insert, update on public.organizations to authenticated;
 grant select, insert on public.changes to authenticated;
 grant select, insert, update, delete on public.saved_views to authenticated;
 grant select, insert, update, delete on public.user_settings to authenticated;
@@ -138,6 +207,7 @@ grant usage, select on sequence public.changes_id_seq to authenticated;
 grant usage on schema public to service_role;
 grant select, insert, update, delete on public.profiles to service_role;
 grant select, insert, update, delete on public.contacts to service_role;
+grant select, insert, update, delete on public.organizations to service_role;
 grant select, insert, update, delete on public.changes to service_role;
 grant select, insert, update, delete on public.saved_views to service_role;
 grant select, insert, update, delete on public.user_settings to service_role;
@@ -148,6 +218,13 @@ create policy "profiles authenticated read"
 on public.profiles for select
 to authenticated
 using (true);
+
+drop policy if exists "profiles own update" on public.profiles;
+create policy "profiles own update"
+on public.profiles for update
+to authenticated
+using (id = auth.uid() and active = true)
+with check (id = auth.uid() and active = true);
 
 drop policy if exists "profiles admin write" on public.profiles;
 create policy "profiles admin write"
@@ -190,6 +267,47 @@ with check (
 drop policy if exists "contacts admin archive" on public.contacts;
 create policy "contacts admin archive"
 on public.contacts for update
+to authenticated
+using (public.current_profile_role() = 'admin')
+with check (
+  public.current_profile_role() = 'admin'
+  and updated_by = auth.uid()
+);
+
+drop policy if exists "organizations authenticated read active" on public.organizations;
+create policy "organizations authenticated read active"
+on public.organizations for select
+to authenticated
+using (status <> 'archived' or public.current_profile_role() = 'admin');
+
+drop policy if exists "organizations editor admin insert" on public.organizations;
+create policy "organizations editor admin insert"
+on public.organizations for insert
+to authenticated
+with check (
+  public.current_profile_role() in ('editor', 'admin')
+  and created_by = auth.uid()
+  and updated_by = auth.uid()
+  and status = 'active'
+);
+
+drop policy if exists "organizations editor admin update active" on public.organizations;
+create policy "organizations editor admin update active"
+on public.organizations for update
+to authenticated
+using (
+  public.current_profile_role() in ('editor', 'admin')
+  and status <> 'archived'
+)
+with check (
+  public.current_profile_role() in ('editor', 'admin')
+  and updated_by = auth.uid()
+  and status <> 'archived'
+);
+
+drop policy if exists "organizations admin archive" on public.organizations;
+create policy "organizations admin archive"
+on public.organizations for update
 to authenticated
 using (public.current_profile_role() = 'admin')
 with check (
@@ -292,3 +410,47 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('profile-images', 'profile-images', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "profile images public read" on storage.objects;
+create policy "profile images public read"
+on storage.objects for select
+to public
+using (bucket_id = 'profile-images');
+
+drop policy if exists "profile images own insert" on storage.objects;
+create policy "profile images own insert"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'profile-images'
+  and split_part(name, '/', 1) = auth.uid()::text
+);
+
+drop policy if exists "profile images own update" on storage.objects;
+create policy "profile images own update"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'profile-images'
+  and split_part(name, '/', 1) = auth.uid()::text
+)
+with check (
+  bucket_id = 'profile-images'
+  and split_part(name, '/', 1) = auth.uid()::text
+);
+
+drop policy if exists "profile images own delete" on storage.objects;
+create policy "profile images own delete"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'profile-images'
+  and split_part(name, '/', 1) = auth.uid()::text
+);

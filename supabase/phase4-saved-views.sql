@@ -8,7 +8,7 @@ create table if not exists public.saved_views (
   name text not null,
   description text,
   scope text not null default 'private' check (scope in ('private', 'team')),
-  view_type text not null default 'contacts' check (view_type in ('contacts', 'map', 'analytics')),
+  view_type text not null default 'contacts' check (view_type in ('contacts', 'organizations', 'map', 'analytics')),
   filters jsonb not null default '{}'::jsonb,
   search_query text not null default '',
   sort_key text not null default 'updated_at',
@@ -22,7 +22,7 @@ create table if not exists public.saved_views (
 create table if not exists public.user_settings (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   default_view_id uuid references public.saved_views(id) on delete set null,
-  default_view_type text not null default 'contacts' check (default_view_type in ('contacts', 'map', 'analytics')),
+  default_view_type text not null default 'contacts' check (default_view_type in ('contacts', 'organizations', 'map', 'analytics')),
   table_density text not null default 'comfortable' check (table_density in ('compact', 'comfortable', 'spacious')),
   theme text not null default 'system' check (theme in ('system', 'light', 'contrast')),
   font_scale numeric not null default 1 check (font_scale between 0.9 and 1.2),
