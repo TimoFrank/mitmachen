@@ -12043,10 +12043,10 @@
         }
 
         .app-main {
-          width: calc(100vw - 66px);
-          max-width: calc(100vw - 66px);
+          width: calc(100vw - 76px);
+          max-width: calc(100vw - 76px);
           min-width: 0;
-          margin-left: 66px;
+          margin-left: 76px;
           overflow-x: hidden;
         }
 
@@ -12205,15 +12205,24 @@
 
         .table-footer__controls {
           display: flex;
-          justify-content: center;
+          justify-content: stretch;
           width: 100%;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .pagination {
+          display: flex;
+          width: 100%;
           max-width: 100%;
-          justify-content: center;
-          overflow-x: auto;
-          padding-bottom: 2px;
+          min-width: 0;
+          justify-content: flex-start;
+          overflow-x: scroll !important;
+          overflow-y: hidden;
+          padding: 0 2px 4px;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-x;
+          overscroll-behavior-inline: contain;
           scrollbar-width: none;
         }
 
@@ -12222,8 +12231,15 @@
         }
 
         .pagination-button {
+          flex: 0 0 auto;
           min-width: 34px;
           height: 34px;
+        }
+
+        .pagination-button.is-active {
+          border-color: transparent !important;
+          background: linear-gradient(135deg, #275ee6, #4d90ff) !important;
+          color: #ffffff !important;
         }
 
         .page-size-shell {
@@ -12231,7 +12247,7 @@
         }
 
         .filter-panel {
-          left: 66px;
+          left: 76px;
           right: 0;
           width: auto;
           max-height: min(84dvh, 640px);
@@ -12268,14 +12284,36 @@
         }
 
         .filter-field--accordion summary {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           min-height: 38px;
           padding: 8px 10px;
           font-size: 0.86rem;
         }
 
+        .filter-field--accordion summary::after {
+          content: "⌄";
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          margin-left: 8px;
+          color: var(--text-muted);
+          font-size: 1rem;
+          line-height: 1;
+          transform: rotate(0deg);
+        }
+
+        .filter-field--accordion[open] summary::after {
+          transform: rotate(180deg);
+        }
+
         .filter-choice-list {
           display: flex !important;
           width: 100%;
+          max-width: 100%;
           flex-wrap: nowrap;
           flex-direction: row;
           gap: 8px;
@@ -12286,6 +12324,7 @@
           overflow-y: hidden;
           -webkit-overflow-scrolling: touch;
           overscroll-behavior-inline: contain;
+          touch-action: pan-x;
           scrollbar-width: none;
         }
 
@@ -12301,6 +12340,7 @@
           border-radius: 999px;
           background: #ffffff;
           white-space: nowrap;
+          user-select: none;
         }
 
         .filter-choice input {
@@ -12314,13 +12354,20 @@
           background: var(--primary-soft);
         }
 
+        .filter-choice.is-legacy-owner {
+          border-style: dashed;
+          background: #f7f9fe;
+          color: #7a86a6;
+          opacity: 0.72;
+        }
+
         #filter-panel-reset {
           left: 10px !important;
           right: auto !important;
           bottom: calc(12px + env(safe-area-inset-bottom));
-          width: 126px !important;
-          min-width: 126px !important;
-          max-width: 126px !important;
+          width: calc((100vw - 76px - 30px) / 2) !important;
+          min-width: 0 !important;
+          max-width: none !important;
           min-height: 44px;
           padding: 0 8px;
           border-radius: 12px;
@@ -12338,17 +12385,17 @@
         }
 
         .filter-panel-apply {
-          left: 146px !important;
+          left: calc(20px + ((100vw - 76px - 30px) / 2)) !important;
           right: 10px !important;
           bottom: calc(12px + env(safe-area-inset-bottom));
-          width: auto;
+          width: calc((100vw - 76px - 30px) / 2) !important;
           min-height: 44px;
           border-radius: 12px;
         }
 
         .detail-drawer.is-open {
-          left: 66px;
-          width: calc(100vw - 66px);
+          left: 76px;
+          width: calc(100vw - 76px);
           overflow-x: hidden;
         }
 
@@ -16507,6 +16554,26 @@
         return !ownerProfiles.some((profile) => profile.id === owner || profile.label === owner || profile.matchLabels.includes(owner));
       }
 
+      function isCurrentProfileOwnerOption(value) {
+        if (!currentProfile) return false;
+        const owner = String(value || "").trim();
+        if (!owner) return false;
+        const profile = ownerProfileForValue(owner);
+        if (profile?.id && profile.id === currentProfile.id) return true;
+        const currentValues = new Set(currentProfileOwnerValues().map((item) => item.toLowerCase()));
+        const ownerValues = [
+          owner,
+          ownerOptionLabel(owner),
+          profile?.label,
+          profile?.email,
+          profile?.initials,
+          ...(profile?.matchLabels || [])
+        ]
+          .map((item) => String(item || "").trim().toLowerCase())
+          .filter(Boolean);
+        return ownerValues.some((item) => currentValues.has(item));
+      }
+
       function syncOwnerOptionsFromContacts() {
         const contactOwners = contacts
           .flatMap((contact) => [contact.ownerId, contact.owner])
@@ -17007,13 +17074,10 @@
 
       function renderViewSelectOwners() {
         if (!viewSelectOwnerList) return;
-        const currentOwnerValues = new Set(currentProfileOwnerValues().map((value) => value.toLowerCase()));
         const uniqueOwners = [
           ...new Set(
             ownerOptions.filter((owner) => {
-              const normalizedOwner = String(owner || "").trim().toLowerCase();
-              const normalizedLabel = ownerOptionLabel(owner).trim().toLowerCase();
-              return owner && !currentOwnerValues.has(normalizedOwner) && !currentOwnerValues.has(normalizedLabel);
+              return owner && !isCurrentProfileOwnerOption(owner);
             })
           )
         ];
@@ -17505,7 +17569,7 @@
                 .map((option) => {
                   const selected = selectedSet.has(option.value);
                   return `
-                    <label class="filter-choice ${selected ? "is-selected" : ""}">
+                    <label class="filter-choice ${selected ? "is-selected" : ""} ${option.legacy ? "is-legacy-owner" : ""}">
                       <input type="checkbox" value="${escapeHtml(option.value)}" ${selected ? "checked" : ""}>
                       <span>${escapeHtml(option.label)}</span>
                     </label>
@@ -17553,11 +17617,13 @@
         const specialties = specialtyOptions()
           .sort((a, b) => isMobileLayout() ? ((specialtyCounts[b] || 0) - (specialtyCounts[a] || 0)) || a.localeCompare(b, "de") : 0)
           .map((value) => ({ value, label: value }));
-        const owners = ownerOptions.map((value) => ({
-          value,
-          label: ownerOptionLabel(value),
-          legacy: isLegacyOwner(value)
-        }));
+        const owners = ownerOptions
+          .filter((value) => !isCurrentProfileOwnerOption(value))
+          .map((value) => ({
+            value,
+            label: ownerOptionLabel(value),
+            legacy: isLegacyOwner(value)
+          }));
         owners.unshift({ value: "__none__", label: "Kein Owner" });
         const themes = themeSuggestions().map((value) => ({ value, label: value }));
         const qualities = ["Vollständig", "Prüfen", "Lücken"].map((value) => ({ value, label: value }));
