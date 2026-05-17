@@ -11589,11 +11589,16 @@
         --team-badge-text: #a34120;
       }
 
-      .team-account-side {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        align-self: center;
+      .team-badge--6 {
+        --team-badge-bg: #ecfeff;
+        --team-badge-border: #a5f3fc;
+        --team-badge-text: #155e75;
+      }
+
+      .team-badge--7 {
+        --team-badge-bg: #f1f5f9;
+        --team-badge-border: #cbd5e1;
+        --team-badge-text: #334155;
       }
 
       .team-account-role {
@@ -11609,28 +11614,22 @@
         margin-top: 0;
       }
 
-      .team-account-contacts {
-        display: inline-flex;
-        align-items: baseline;
-        justify-content: flex-end;
-        gap: 5px;
-        justify-items: end;
+      .team-contact-details {
+        grid-column: 2 / -1;
+        width: 100%;
+        min-width: 0;
+        box-shadow: none;
       }
 
-      .team-owner-count {
-        min-width: 96px;
-        color: var(--text-primary);
-        font-size: var(--font-size-lg);
-        font-weight: 950;
-        font-variant-numeric: tabular-nums;
+      .team-contact-details summary {
+        min-width: 0;
         white-space: nowrap;
       }
 
-      .team-owner-count span {
-        color: var(--text-muted);
-        font-size: var(--font-size-xs);
-        font-weight: 850;
-        text-align: right;
+      .team-contact-details .profile-owner-summary-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .imports-history-list {
@@ -11666,13 +11665,9 @@
         }
 
         .team-account-role,
-        .team-account-side {
+        .team-contact-details {
           grid-column: 2;
           justify-self: start;
-        }
-
-        .team-account-contacts {
-          justify-content: flex-start;
         }
       }
 
@@ -17413,20 +17408,25 @@
           .filter(Boolean);
       }
 
-      function ownerContactCountForProfile(profile) {
+      function ownerContactsForProfile(profile) {
         const values = new Set(ownerValuesForProfile(profile));
-        if (!values.size) return 0;
+        if (!values.size) return [];
         return contacts.filter((contact) => {
           if (contact.status === "archived") return false;
           return [contact.owner, contact.ownerId].some((value) => values.has(String(value || "").trim()));
-        }).length;
+        });
       }
 
-      function teamToneClass(team) {
+      function ownerContactCountForProfile(profile) {
+        return ownerContactsForProfile(profile).length;
+      }
+
+      function teamToneClass(team, index = null) {
+        if (Number.isInteger(index)) return `team-badge--${index % 8}`;
         const value = String(team || "").trim();
         if (!value) return "team-badge--0";
         const hash = [...value].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-        return `team-badge--${hash % 6}`;
+        return `team-badge--${hash % 8}`;
       }
 
       function teamProfiles() {
@@ -17472,15 +17472,16 @@
         const groups = groupedTeamProfiles();
         teamAccountList.innerHTML = groups.length
           ? groups
-              .map(({ team, accounts }) => `
+              .map(({ team, accounts }, groupIndex) => `
                 <section class="team-section">
                   <div class="team-section-head">
-                    <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
+                    <span class="team-badge ${teamToneClass(team, groupIndex)}">${escapeHtml(team)}</span>
                   </div>
                   <div class="team-section-accounts">
                     ${accounts
                       .map((profile) => {
-                const ownerCount = ownerContactCountForProfile(profile);
+                const ownerContacts = ownerContactsForProfile(profile);
+                const ownerCount = ownerContacts.length;
                 const role = String(profile.role || "viewer").toLowerCase();
                 const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
                 return `
@@ -17493,9 +17494,31 @@
                     <div class="team-account-role">
                       <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
                     </div>
-                    <div class="team-account-side">
-                      <div class="team-owner-count team-account-contacts">${ownerCount}<span>${ownerCount === 1 ? "Kontakt" : "Kontakte"}</span></div>
-                    </div>
+                    <details class="profile-owner-details team-contact-details">
+                      <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt" : "Kontakte"}</span></summary>
+                      <div class="profile-owner-list">
+                        ${
+                          ownerContacts.length
+                            ? ownerContacts
+                                .slice(0, 12)
+                                .map(
+                                  (contact) => `
+                                    <button class="profile-owner-contact" type="button" data-team-owner-contact="${escapeHtml(contact.id)}">
+                                      ${contactAvatarMarkup(contact, "sm")}
+                                      <span>
+                                        <strong>${escapeHtml(contact.displayName || contact.name || "Unbenannter Kontakt")}</strong>
+                                        <span>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</span>
+                                      </span>
+                                      <small>${escapeHtml(formatDateLabel(contact.updatedAt || contact.createdAt) || "kein Datum")}</small>
+                                    </button>
+                                  `
+                                )
+                                .join("") +
+                              (ownerContacts.length > 12 ? `<div class="profile-owner-empty">${ownerContacts.length - 12} weitere Kontakte in der Kontaktliste.</div>` : "")
+                            : `<div class="profile-owner-empty">Keine Kontakte zugeordnet.</div>`
+                        }
+                      </div>
+                    </details>
                   </article>
                 `;
               })
@@ -17505,6 +17528,14 @@
               `)
               .join("")
           : `<div class="saved-view-empty">Noch keine Accounts geladen.</div>`;
+        teamAccountList.querySelectorAll("[data-team-owner-contact]").forEach((button) => {
+          button.addEventListener("click", () => {
+            setActiveView("contacts");
+            updateRouteHash("contacts");
+            updateView();
+            openDetail(button.dataset.teamOwnerContact, contacts);
+          });
+        });
       }
 
       function renderProfileOwnerSummary() {
@@ -22633,7 +22664,6 @@
         if (!event.data || typeof event.data !== "object") return;
         if (event.data.type === "versorgungs-kompass-open-detail" && event.data.id) {
           activeId = event.data.id;
-          setActiveView("contacts");
           openDetail(event.data.id, filteredContacts());
         }
       });
