@@ -11206,12 +11206,14 @@
       .app-shell[data-active-view="quality"] .controls,
       .app-shell[data-active-view="imports"] .controls,
       .app-shell[data-active-view="settings"] .controls,
+      .app-shell[data-active-view="team"] .controls,
       .app-shell[data-active-view="profile"] .controls {
         display: none;
       }
 
       .app-shell[data-active-view="imports"] .summary,
       .app-shell[data-active-view="settings"] .summary,
+      .app-shell[data-active-view="team"] .summary,
       .app-shell[data-active-view="profile"] .summary,
       .app-shell[data-active-view="map"] .summary,
       .app-shell[data-active-view="analytics"] .summary,
@@ -11413,6 +11415,107 @@
         margin-top: 14px;
       }
 
+      .settings-workspace,
+      .team-workspace {
+        width: min(760px, 100%);
+        margin: 0 auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
+      .settings-workspace,
+      .team-workspace {
+        padding: 14px;
+      }
+
+      .settings-workspace .profile-section:first-child {
+        margin-top: 0;
+      }
+
+      .team-account-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .team-account-row {
+        display: grid;
+        grid-template-columns: 46px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        min-height: 68px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .team-account-avatar {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: var(--font-size-sm);
+        font-weight: 950;
+        overflow: hidden;
+      }
+
+      .team-account-copy {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .team-account-copy strong,
+      .team-account-copy span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .team-account-copy strong {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        line-height: var(--line-height-tight);
+      }
+
+      .team-account-copy span {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 750;
+      }
+
+      .team-account-meta {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .team-owner-count {
+        min-width: 86px;
+        display: grid;
+        justify-items: end;
+        gap: 2px;
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+        font-weight: 950;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .team-owner-count span {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        text-align: right;
+      }
+
       .imports-history-list {
         display: grid;
         gap: 8px;
@@ -11439,6 +11542,15 @@
 
         .imports-history-row {
           grid-template-columns: 1fr;
+        }
+
+        .team-account-row {
+          grid-template-columns: 42px minmax(0, 1fr);
+        }
+
+        .team-owner-count {
+          grid-column: 2;
+          justify-items: start;
         }
       }
 
@@ -12936,6 +13048,15 @@
             </svg>
             <span>Importe</span>
           </button>
+          <button class="sidebar-link" type="button" id="sidebar-team-button" title="Team">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>Team</span>
+          </button>
           <button class="sidebar-link" type="button" id="sidebar-settings-button" title="Einstellungen">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
@@ -13384,22 +13505,37 @@
             </div>
           </section>
 
+          <section class="view-panel" id="view-team" data-view-panel="team">
+            <div class="team-workspace">
+              <section class="profile-section">
+                <h3>Accounts</h3>
+                <div class="team-account-list" id="team-account-list">
+                  <div class="saved-view-empty">Accounts werden nach dem Laden des Profils angezeigt.</div>
+                </div>
+              </section>
+            </div>
+          </section>
+
           <section class="view-panel" id="view-settings" data-view-panel="settings">
-            <div class="view-card settings-workspace">
+            <div class="settings-workspace">
               <section class="profile-section">
                 <h3>Systemeinstellungen</h3>
                 <div class="detail-line-list">
                   <div class="detail-line">
-                    <span class="detail-line__label">Datenquelle</span>
-                    <span class="detail-line__value">Supabase oder lokaler Fallback, je nach Verbindung.</span>
+                    <span class="detail-line__label">Arbeitsbereiche</span>
+                    <span class="detail-line__value">Konfiguration für Standardansichten, Tabellenzustand und gespeicherte Team-Filter.</span>
                   </div>
                   <div class="detail-line">
-                    <span class="detail-line__label">Profil</span>
-                    <span class="detail-line__value">Persönliche Daten und Nutzungsvoreinstellungen liegen unter „Mein Profil“.</span>
+                    <span class="detail-line__label">Rollen &amp; Rechte</span>
+                    <span class="detail-line__value">Zentrale Verwaltung von Admin-, Editor- und Viewer-Berechtigungen.</span>
                   </div>
                   <div class="detail-line">
-                    <span class="detail-line__label">Import</span>
-                    <span class="detail-line__value">Kontaktimporte werden im eigenen Bereich „Importe“ gestartet.</span>
+                    <span class="detail-line__label">Benachrichtigungen</span>
+                    <span class="detail-line__value">Regeln für Hinweise zu neuen Kontakten, Pflegeaufgaben und Team-Aktivität.</span>
+                  </div>
+                  <div class="detail-line">
+                    <span class="detail-line__label">Datenpflege</span>
+                    <span class="detail-line__value">Schwellwerte für Aktualitätsprüfungen, Dublettenhinweise und Archivierung.</span>
                   </div>
                 </div>
               </section>
@@ -13500,6 +13636,7 @@
             </section>
           </div>
           <div class="profile-panel__footer">
+            <button class="action-button" type="button" id="profile-logout">Abmelden</button>
             <button class="action-button" type="button" id="profile-cancel">Änderungen verwerfen</button>
             <button class="action-button action-button--primary" type="submit" id="profile-save">Speichern</button>
           </div>
@@ -14733,6 +14870,7 @@
       const sidebarUserRole = document.getElementById("sidebar-user-role");
       const sidebarQualityButton = document.getElementById("sidebar-quality-button");
       const sidebarImportButton = document.getElementById("sidebar-import-button");
+      const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const detailDrawer = document.getElementById("detail-drawer");
       const detailPanel = document.getElementById("detail-panel");
@@ -14782,6 +14920,7 @@
       const accountPermissionNote = document.getElementById("account-permission-note");
       const accountSavedViews = document.getElementById("account-saved-views");
       const settingsSavedViews = document.getElementById("settings-saved-views");
+      const teamAccountList = document.getElementById("team-account-list");
       const accountAvatar = document.getElementById("account-avatar");
       const sidebarProfileButton = document.getElementById("sidebar-profile-button");
       const accountProfileButton = document.getElementById("account-profile-button");
@@ -14810,6 +14949,7 @@
       const profileForm = document.getElementById("profile-form");
       const profileClose = document.getElementById("profile-close");
       const profileCancel = document.getElementById("profile-cancel");
+      const profileLogout = document.getElementById("profile-logout");
       const profileStatus = document.getElementById("profile-status");
       const profileAvatarPreview = document.getElementById("profile-avatar-preview");
       const profileDisplayTitle = document.getElementById("profile-display-title");
@@ -14982,6 +15122,14 @@
         return currentRole() === "admin";
       }
 
+      function canAccessView(view) {
+        return !["imports", "quality"].includes(view) || canAdministerData();
+      }
+
+      function safeViewForRole(view) {
+        return canAccessView(view) ? view : "contacts";
+      }
+
       function permissionText(role = currentRole()) {
         if (role === "admin") return "Admin: Kontakte und Organisationen anlegen und bearbeiten, Archiv und Import nutzen, Datenqualität prüfen.";
         if (role === "editor") return "Editor: Kontakte und Organisationen anlegen und bearbeiten. Archiv, Import und Rollenverwaltung bleiben Admins vorbehalten.";
@@ -15010,9 +15158,16 @@
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
+        setRoleElementVisible(sidebarQualityButton, canAdministerData());
+        setRoleElementVisible(sidebarImportButton, canAdministerData());
+        setRoleElementVisible(accountQualityButton, canAdministerData());
         setRoleElementVisible(careQueueCard, true);
         permissionBanner?.classList.toggle("is-visible", role !== "admin");
         if (permissionBannerText) permissionBannerText.textContent = permissionText(role);
+        if (!canAccessView(activeView)) {
+          setActiveView("contacts");
+          updateRouteHash("contacts");
+        }
       }
 
       async function logout() {
@@ -16523,6 +16678,7 @@
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
         imports: { title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." },
+        team: { title: "Team", subtitle: "Accounts, Rollen und Owner-Zuständigkeiten im Überblick." },
         settings: { title: "Einstellungen", subtitle: "Systemeinstellungen und Konfiguration." },
         profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." }
       };
@@ -16920,6 +17076,7 @@
               email: profile.email || "",
               role: profile.role || "",
               initials: profile.initials || "",
+              team: profile.team || "",
               avatarUrl: profileAvatarUrl(profile),
               updatedAt: profile.updated_at || profile.updatedAt || ""
             };
@@ -16943,6 +17100,7 @@
           email: profile.email || "",
           role: profile.role || "",
           initials: profile.initials || "",
+          team: profile.team || "",
           avatarUrl: profileAvatarUrl(profile),
           updatedAt: profile.updated_at || profile.updatedAt || ""
         };
@@ -17108,6 +17266,76 @@
         });
       }
 
+      function ownerValuesForProfile(profile) {
+        return [
+          profile?.id,
+          profile?.label,
+          profile?.display_name,
+          profile?.displayName,
+          profile?.email,
+          profile?.initials,
+          ...(profile?.matchLabels || [])
+        ]
+          .map((value) => String(value || "").trim())
+          .filter(Boolean);
+      }
+
+      function ownerContactCountForProfile(profile) {
+        const values = new Set(ownerValuesForProfile(profile));
+        if (!values.size) return 0;
+        return contacts.filter((contact) => {
+          if (contact.status === "archived") return false;
+          return [contact.owner, contact.ownerId].some((value) => values.has(String(value || "").trim()));
+        }).length;
+      }
+
+      function teamProfiles() {
+        const byId = new Map();
+        ownerProfiles.forEach((profile) => byId.set(profile.id, profile));
+        if (currentProfile?.id && !byId.has(currentProfile.id)) {
+          byId.set(currentProfile.id, {
+            id: currentProfile.id,
+            label: currentProfile.display_name || currentProfile.email || currentProfile.initials || currentProfile.id,
+            matchLabels: [currentProfile.display_name || "", currentProfile.email || "", currentProfile.initials || ""].filter(Boolean),
+            email: currentProfile.email || "",
+            role: currentProfile.role || "",
+            initials: currentProfile.initials || "",
+            team: currentProfile.team || "",
+            avatarUrl: profileAvatarUrl(currentProfile),
+            updatedAt: currentProfile.updated_at || currentProfile.updatedAt || ""
+          });
+        }
+        return [...byId.values()].sort((a, b) => a.label.localeCompare(b.label, "de"));
+      }
+
+      function renderTeamView() {
+        if (!teamAccountList) return;
+        const profiles = teamProfiles();
+        teamAccountList.innerHTML = profiles.length
+          ? profiles
+              .map((profile) => {
+                const ownerCount = ownerContactCountForProfile(profile);
+                const role = String(profile.role || "viewer").toLowerCase();
+                const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
+                return `
+                  <article class="team-account-row">
+                    <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
+                    <div class="team-account-copy">
+                      <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
+                      <span>${escapeHtml(profile.email || "Keine E-Mail hinterlegt")}</span>
+                      <div class="team-account-meta">
+                        <span class="profile-team-line">${escapeHtml(profile.team || "Team nicht ausgewählt")}</span>
+                        <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
+                      </div>
+                    </div>
+                    <div class="team-owner-count">${ownerCount}<span>${ownerCount === 1 ? "Owner-Kontakt" : "Owner-Kontakte"}</span></div>
+                  </article>
+                `;
+              })
+              .join("")
+          : `<div class="saved-view-empty">Noch keine Accounts geladen.</div>`;
+      }
+
       function renderProfileOwnerSummary() {
         if (!profileOwnerSummary) return;
         const ownerContacts = currentProfileOwnerContacts();
@@ -17166,6 +17394,7 @@
         greetingLabel = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
         renderViewChrome();
         renderProfileOwnerSummary();
+        renderTeamView();
         applyRoleUi();
       }
 
@@ -20808,7 +21037,7 @@
       }
 
       function updateRouteHash(view) {
-        const nextHash = `#${view || activeView || "contacts"}`;
+        const nextHash = `#${safeViewForRole(view || activeView || "contacts")}`;
         if (window.location.hash !== nextHash) {
           window.history.pushState(null, "", nextHash);
         }
@@ -20816,6 +21045,9 @@
 
       function setActiveView(view) {
         if (!viewLabels[view]) view = "contacts";
+        const requestedView = view;
+        view = safeViewForRole(view);
+        if (requestedView !== view) updateRouteHash(view);
         if (activeView !== view) currentPage = 1;
         activeView = view;
         if (view === "organizations") {
@@ -20832,6 +21064,7 @@
         });
         sidebarQualityButton?.classList.toggle("is-active", view === "quality");
         sidebarImportButton?.classList.toggle("is-active", view === "imports");
+        sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "settings");
         sidebarProfileButton?.classList.toggle("is-active", view === "profile");
         viewPanels.forEach((panel) => {
@@ -20841,6 +21074,7 @@
         if (appShell) appShell.dataset.activeView = view;
         renderViewChrome();
         if (view === "profile") renderProfileForm();
+        if (view === "team") renderTeamView();
         if (view === "map") {
           syncMapFrame(filteredContacts());
         }
@@ -21756,6 +21990,7 @@
         renderSavedViews();
         syncMapFrame(filteredContacts());
         renderProfileOwnerSummary();
+        renderTeamView();
 
         if (!isOrganizationsView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
@@ -21886,6 +22121,13 @@
         closeMobileSidebar();
         setActiveView("imports");
         updateRouteHash("imports");
+        updateView();
+      });
+      sidebarTeamButton?.addEventListener("click", () => {
+        closeMenus();
+        closeMobileSidebar();
+        setActiveView("team");
+        updateRouteHash("team");
         updateView();
       });
       sidebarSettingsButton?.addEventListener("click", () => {
@@ -22174,6 +22416,10 @@
       importOverlay.addEventListener("click", closeImportWizard);
       importClose.addEventListener("click", closeImportWizard);
       accountLogoutButton?.addEventListener("click", () => {
+        closeMenus();
+        logout();
+      });
+      profileLogout?.addEventListener("click", () => {
         closeMenus();
         logout();
       });
