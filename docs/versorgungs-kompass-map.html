@@ -51,14 +51,14 @@
       height: 100%;
     }
     body.embed-mode .workspace {
-      grid-template-columns: 300px minmax(0, 1fr);
+      grid-template-columns: 380px minmax(0, 1fr);
       padding: 0;
       gap: 0;
       height: 100%;
     }
 
     body.embed-mode.has-map-detail .workspace {
-      grid-template-columns: 300px minmax(0, 1fr) minmax(360px, 28vw);
+      grid-template-columns: 380px minmax(0, 1fr) minmax(400px, 30vw);
     }
     body.embed-mode .sidebar {
       border-right: 1px solid var(--border);
@@ -126,7 +126,7 @@
     }
     .workspace {
       display: grid;
-      grid-template-columns: 320px minmax(0, 1fr);
+      grid-template-columns: 380px minmax(0, 1fr);
       gap: 18px;
       height: 100%;
       min-height: 0;
@@ -134,7 +134,7 @@
       overflow: hidden;
     }
     .workspace.has-map-detail {
-      grid-template-columns: 300px minmax(0, 1fr) 380px;
+      grid-template-columns: 380px minmax(0, 1fr) minmax(400px, 30vw);
     }
     .sidebar {
       height: 100%;
@@ -142,12 +142,16 @@
       overflow: hidden;
     }
     .map-area {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       min-width: 0;
       min-height: 0;
       height: 100%;
       overflow: hidden;
     }
     .map-box {
+      flex: 1 1 auto;
       position: relative;
       height: 100%;
       min-height: 0;
@@ -156,6 +160,43 @@
       border: 1px solid var(--border);
       box-shadow: var(--shadow-sm);
       background: var(--surface);
+    }
+    .map-search-shell {
+      flex: 0 0 auto;
+      display: grid;
+      gap: 8px;
+      padding: 0;
+    }
+    .map-search-field {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+      color: var(--text-muted);
+    }
+    .map-search-field svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+    .map-search-field input[type="search"] {
+      min-height: 44px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+    .map-search-field input[type="search"]:focus {
+      outline: none;
+      box-shadow: none;
     }
     #map { height: 100%; width: 100%; background: #f6f7f8; }
     .map-controls {
@@ -636,6 +677,7 @@
     .item .m { font-size: 12px; color: rgba(0,0,0,0.55); }
     .item-meta-row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 8px;
       min-width: 0;
@@ -643,7 +685,10 @@
     }
     .item-meta-row .m {
       min-width: 0;
-      flex: 1 1 auto;
+      flex: 1 1 190px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .item .sector-pill {
       width: fit-content;
@@ -683,6 +728,10 @@
       background: var(--surface);
       overflow: auto;
       display: none;
+    }
+
+    .map-detail-panel {
+      --detail-pad: 16px;
     }
 
     .workspace.has-map-detail .map-detail-panel,
@@ -733,14 +782,20 @@
     }
 
     .map-detail-body {
-      padding: 14px;
+      display: grid;
+      gap: 14px;
+      padding: var(--detail-pad);
     }
 
     .map-detail-head {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+      box-shadow: var(--shadow-sm);
       display: flex;
-      align-items: center;
-      gap: 12px;
-      padding-bottom: 14px;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px;
       border-bottom: 1px solid var(--border);
     }
 
@@ -757,6 +812,11 @@
       overflow: hidden;
     }
 
+    .map-detail-profile-copy {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
     .map-detail-avatar img {
       width: 100%;
       height: 100%;
@@ -766,7 +826,7 @@
     .map-detail-title {
       margin: 0;
       color: var(--text-primary);
-      font-size: 18px;
+      font-size: 20px;
       line-height: 1.15;
       letter-spacing: -0.02em;
     }
@@ -780,10 +840,47 @@
       line-height: 1.35;
     }
 
+    .map-detail-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .map-detail-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .map-detail-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .map-detail-tab {
+      flex: 0 0 auto;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .map-detail-tab.is-active {
+      border-color: rgba(21, 95, 228, 0.24);
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
     .map-detail-section {
-      padding-top: 14px;
-      margin-top: 14px;
-      border-top: 1px solid var(--border);
+      padding: 0;
+      margin: 0;
+      border-top: 0;
     }
 
     .map-detail-section h3 {
@@ -798,7 +895,7 @@
     .map-detail-line-list {
       display: grid;
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
       overflow: hidden;
       background: #fff;
     }
@@ -807,7 +904,7 @@
       display: grid;
       grid-template-columns: 105px minmax(0, 1fr);
       gap: 10px;
-      min-height: 36px;
+      min-height: 42px;
       align-items: center;
       padding: 8px 10px;
       border-bottom: 1px solid #edf1f8;
@@ -840,7 +937,7 @@
     }
 
     .map-detail-missing {
-      padding: 9px 10px;
+      padding: 10px 12px;
       border: 1px solid #f1d7a8;
       border-radius: var(--radius-md);
       background: #fff8eb;
@@ -1907,7 +2004,6 @@
             </span>
           </button>
           <div class="body">
-            <input id="search" type="search" placeholder="Suche (Name, Stadt, Kategorie) …"/>
             <div id="filters" class="filters" aria-label="Kategorie-Filter"></div>
           </div>
           <div id="mobile-map-preview" class="mobile-map-preview" hidden></div>
@@ -1917,6 +2013,15 @@
       </aside>
 
       <main class="map-area">
+        <div class="map-search-shell">
+          <label class="map-search-field" for="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m20 20-3.5-3.5"></path>
+            </svg>
+            <input id="search" type="search" placeholder="Kontakte suchen" autocomplete="off"/>
+          </label>
+        </div>
         <div class="map-box">
           <button id="map-menu-toggle" class="map-menu-button" type="button" aria-label="Kartenmenü öffnen" aria-expanded="false">
             <span aria-hidden="true"></span>
@@ -2545,7 +2650,16 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     if (activeCategoryFilter && d.category !== activeCategoryFilter) return false;
     if (selectedState && d.state !== selectedState) return false;
     if (!q) return true;
-    const hay = normalize(d.name) + " " + normalize(d.city) + " " + normalize(d.category) + " " + normalize(d.description);
+    const hay = [
+      d.name,
+      d.organization,
+      d.city,
+      d.state,
+      d.category,
+      d.person_title,
+      d.owner,
+      d.description
+    ].map(normalize).join(" ");
     return hay.includes(q);
   }
 
@@ -2677,6 +2791,11 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     `;
   }
 
+  function mapDetailPill(label, color = "#155fe4"){
+    if (!hasValue(label)) return "";
+    return `<span class="sector-pill" style="--sector-color:${color};--sector-bg:${sectorTint(color)}">${escapeHtml(label)}</span>`;
+  }
+
   function renderMapDetail(entry){
     if (!elMapDetailPanel) return;
     if (!entry) {
@@ -2688,6 +2807,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     const location = entryLocation(entry);
     const missing = missingEntryFields(entry);
     const themeTags = Array.isArray(entry.themes) ? entry.themes : [];
+    const sectorColor = CATEGORY_COLORS[entry.category] || "#155fe4";
     const avatar = entry.image
       ? `<img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.name)}" loading="lazy" />`
       : escapeHtml(initials(entry.name));
@@ -2701,11 +2821,21 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       <div class="map-detail-body">
         <div class="map-detail-head">
           <div class="map-detail-avatar">${avatar}</div>
-          <div>
+          <div class="map-detail-profile-copy">
             <h2 class="map-detail-title">${escapeHtml(entry.name)}</h2>
             <div class="map-detail-subtitle">${escapeHtml(entry.organization || "Organisation nicht dokumentiert")}</div>
             <div class="map-detail-meta">${escapeHtml([entry.category, location].filter(Boolean).join(" · ") || "Sektor und Ort nicht dokumentiert")}</div>
+            <div class="map-detail-status">
+              ${mapDetailPill(entry.category, sectorColor)}
+              ${entry.owner ? mapDetailPill(`Owner: ${entry.owner}`, "#155fe4") : ""}
+              ${entry.priority ? mapDetailPill(entry.priority, entry.priority === "Hoch" ? "#dc2626" : entry.priority === "Mittel" ? "#b7791f" : "#64748b") : ""}
+            </div>
           </div>
+        </div>
+        <div class="map-detail-tabs" role="tablist" aria-label="Profilbereiche">
+          <button class="map-detail-tab is-active" type="button">Überblick</button>
+          <button class="map-detail-tab" type="button">Kontakt</button>
+          <button class="map-detail-tab" type="button">Themen</button>
         </div>
         <section class="map-detail-section">
           ${missing.length ? `<div class="map-detail-missing"><strong>Fehlende Angaben:</strong> ${escapeHtml(missing.join(", "))}</div>` : `<div class="map-detail-missing"><strong>Datenstatus:</strong> Die wichtigsten Angaben sind gepflegt.</div>`}
@@ -3041,6 +3171,9 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     if (isMobileLayout() && activeIndex >= 0) {
       currentListPage = Math.floor(activeIndex / mobileListPageSize) + 1;
     }
+    if (!isMobileLayout() && d.state) {
+      fitMapToState(d.state);
+    }
     if (isMobileLayout()) {
       renderMobilePreview(null);
       renderMapDetail(d);
@@ -3107,7 +3240,6 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
           updateMapResetButton();
           return;
         }
-        map.setView([d.lat, d.lon], Math.max(map.getZoom(), 10), { animate: true });
         focusMapContact(d);
       });
       elList.appendChild(item);
