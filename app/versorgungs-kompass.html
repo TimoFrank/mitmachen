@@ -832,6 +832,23 @@
         min-height: 42px;
       }
 
+      .profile-setting-toggle--disabled {
+        opacity: 0.58;
+      }
+
+      .profile-setting-toggle--disabled .profile-setting__label,
+      .profile-setting-toggle--disabled .profile-setting__note {
+        color: var(--text-muted);
+      }
+
+      .profile-setting__note {
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 750;
+        line-height: var(--line-height-normal);
+      }
+
       .profile-switch {
         position: relative;
         width: 48px;
@@ -872,6 +889,11 @@
 
       .profile-switch input:checked + span::after {
         transform: translateX(20px);
+      }
+
+      .profile-switch input:disabled + span {
+        background: var(--border);
+        cursor: not-allowed;
       }
 
       .profile-notice {
@@ -11759,8 +11781,8 @@
         }
 
         .team-contact-details {
-          grid-column: 2 / 4;
-          grid-row: 2;
+          grid-column: 1 / -1;
+          grid-row: 3;
           justify-self: stretch;
           align-self: start;
           width: 100%;
@@ -11854,8 +11876,8 @@
         }
 
         .team-contact-details {
-          grid-column: 2 / 4;
-          grid-row: 2;
+          grid-column: 1 / -1;
+          grid-row: 3;
           justify-self: stretch;
           width: 100%;
         }
@@ -13409,7 +13431,7 @@
             </button>
           </div>
         </nav>
-        <div class="sidebar-secondary" aria-label="Weitere Bereiche">
+        <div class="sidebar-secondary" id="sidebar-data-care-section" aria-label="Weitere Bereiche">
           <span class="sidebar-section-label">Datenpflege</span>
           <button class="sidebar-link" type="button" id="sidebar-quality-button" title="Datenqualität">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -13990,16 +14012,14 @@
             </section>
             <section class="profile-section">
               <h3>Benachrichtigungen</h3>
-              <div class="profile-setting-toggle">
+              <div class="profile-setting-toggle profile-setting-toggle--disabled">
                 <label class="profile-switch" for="profile-notifications">
-                  <input id="profile-notifications" name="notificationsEnabled" type="checkbox" />
+                  <input id="profile-notifications" name="notificationsEnabled" type="checkbox" disabled />
                   <span></span>
                 </label>
                 <div>
-                  <div class="profile-setting__label profile-label-with-info">
-                    <span>Benachrichtigungen im Versorgungs-Kompass anzeigen</span>
-                    <span class="dashboard-info" tabindex="0" aria-label="Benachrichtigungen erklären">i<span class="dashboard-info__popup" role="tooltip">Hinweise zu neuen Aktivitäten und relevanten Änderungen im System.</span></span>
-                  </div>
+                  <div class="profile-setting__label">Benachrichtigungen per E-Mail erhalten</div>
+                  <div class="profile-setting__note">Diese Funktion ist noch nicht verfügbar.</div>
                 </div>
               </div>
             </section>
@@ -14007,10 +14027,7 @@
               <h3>Rolle &amp; Berechtigungen</h3>
               <div class="profile-role-card">
                 <div>
-                  <div class="profile-role-label profile-label-with-info">
-                    <span>Deine Rolle im System</span>
-                    <span class="dashboard-info" tabindex="0" aria-label="Rollenrechte erklären">i<span class="dashboard-info__popup" id="profile-role-description" role="tooltip">Rollenrechte werden geladen.</span></span>
-                  </div>
+                  <div class="profile-role-label">Deine Rolle im System</div>
                 </div>
                 <span class="account-role-pill" id="profile-role-display">Nutzer</span>
               </div>
@@ -15260,6 +15277,7 @@
       const sidebarUserRole = document.getElementById("sidebar-user-role");
       const sidebarQualityButton = document.getElementById("sidebar-quality-button");
       const sidebarImportButton = document.getElementById("sidebar-import-button");
+      const sidebarDataCareSection = document.getElementById("sidebar-data-care-section");
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const detailDrawer = document.getElementById("detail-drawer");
@@ -15416,6 +15434,7 @@
       let importState = createImportState();
       let currentProfile = null;
       let profileDirty = false;
+      let profileFormBaseline = "";
       const contactHistoryCache = new Map();
       const contactHistoryFilters = new Map();
       const contactHistoryOwnerFilters = new Map();
@@ -15515,7 +15534,7 @@
       }
 
       function canAccessView(view) {
-        return !["imports", "quality"].includes(view) || canAdministerData();
+        return !["imports", "quality", "settings"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
@@ -15550,8 +15569,10 @@
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
+        setRoleElementVisible(sidebarDataCareSection, canAdministerData());
         setRoleElementVisible(sidebarQualityButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
+        setRoleElementVisible(sidebarSettingsButton, canAdministerData());
         setRoleElementVisible(accountQualityButton, canAdministerData());
         setRoleElementVisible(careQueueCard, true);
         permissionBanner?.classList.toggle("is-visible", role !== "admin");
@@ -17873,7 +17894,7 @@
           preferences: {
             ...preferences,
             defaultContactTab: preferences.defaultContactTab || "overview",
-            notificationsEnabled: preferences.notificationsEnabled !== false
+            notificationsEnabled: false
           }
         };
       }
@@ -17893,6 +17914,19 @@
       function setProfileDirty(dirty) {
         profileDirty = Boolean(dirty);
         if (profileEditActions) profileEditActions.hidden = !profileDirty;
+      }
+
+      function profileFormSignature() {
+        if (!profileForm) return "";
+        return JSON.stringify({
+          displayName: String(profileForm.elements.displayName?.value || "").trim(),
+          initials: String(profileForm.elements.initials?.value || "").trim().slice(0, 4).toUpperCase(),
+          team: String(profileForm.elements.team?.value || "").trim()
+        });
+      }
+
+      function updateProfileDirtyState() {
+        setProfileDirty(Boolean(profileFormBaseline) && profileFormSignature() !== profileFormBaseline);
       }
 
       function renderProfileForm() {
@@ -17920,8 +17954,10 @@
         refreshCustomSelects(profileForm);
         renderProfileOwnerSummary();
         if (profileForm.elements.notificationsEnabled) {
-          profileForm.elements.notificationsEnabled.checked = settings.preferences.notificationsEnabled !== false;
+          profileForm.elements.notificationsEnabled.checked = false;
+          profileForm.elements.notificationsEnabled.disabled = true;
         }
+        profileFormBaseline = profileFormSignature();
         setProfileDirty(false);
       }
 
@@ -17969,7 +18005,7 @@
           ...userSettings,
           preferences: {
             ...(userSettings?.preferences || {}),
-            notificationsEnabled: Boolean(formData.get("notificationsEnabled"))
+            notificationsEnabled: false
           }
         };
         if (!nextProfile.displayName) {
@@ -22647,8 +22683,8 @@
       accountProfileButton?.addEventListener("click", openProfileModal);
       profileCancel?.addEventListener("click", closeProfileModal);
       profileForm?.addEventListener("submit", saveProfileForm);
-      profileForm?.addEventListener("input", () => setProfileDirty(true));
-      profileForm?.addEventListener("change", () => setProfileDirty(true));
+      profileForm?.addEventListener("input", updateProfileDirtyState);
+      profileForm?.addEventListener("change", updateProfileDirtyState);
       profilePhotoOpen?.addEventListener("click", openProfilePhotoModal);
       profilePhotoClose?.addEventListener("click", closeProfilePhotoModal);
       profilePhotoModal?.addEventListener("click", (event) => {
@@ -22662,6 +22698,7 @@
           profileForm.elements.initials.value = initialsFromProfile({ display_name: profileForm.elements.displayName.value });
         }
         if (profileDisplayTitle) profileDisplayTitle.textContent = profileForm.elements.displayName.value || "Mein Profil";
+        updateProfileDirtyState();
       });
 
       filterPanelButton.addEventListener("click", (event) => {
