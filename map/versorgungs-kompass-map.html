@@ -1500,6 +1500,116 @@
       box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18);
     }
 
+    @media (max-width: 760px) {
+      .map-area,
+      body.embed-mode .map-area {
+        height: min(44dvh, 380px) !important;
+        min-height: 300px !important;
+      }
+
+      #map,
+      .leaflet-container {
+        touch-action: pan-y !important;
+      }
+
+      .map-controls {
+        top: 10px !important;
+        left: 10px !important;
+        right: 10px !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        transform: none !important;
+        align-items: stretch !important;
+      }
+
+      .map-toggle {
+        min-width: 0 !important;
+        min-height: 38px !important;
+        padding: 8px 9px !important;
+        border-radius: 12px !important;
+        font-size: 11px !important;
+        white-space: nowrap !important;
+      }
+
+      #map-reset-toggle {
+        position: static !important;
+        width: auto !important;
+        min-width: 0 !important;
+        padding: 8px 9px !important;
+      }
+
+      #map-reset-label {
+        display: inline !important;
+      }
+
+      .leaflet-top.leaflet-left {
+        top: 100px !important;
+        left: 8px !important;
+      }
+
+      .leaflet-control-zoom a {
+        width: 34px !important;
+        height: 34px !important;
+        line-height: 34px !important;
+      }
+
+      .map-active-filters {
+        top: 96px !important;
+      }
+
+      .map-legend {
+        display: none !important;
+      }
+
+      .mobile-sheet-header,
+      .mobile-map-preview {
+        display: none !important;
+      }
+
+      .panel,
+      body.embed-mode .panel {
+        min-height: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        grid-template-rows: auto auto minmax(0, 1fr) !important;
+      }
+
+      .panel .hdr {
+        padding: 12px 16px 6px !important;
+      }
+
+      .panel .body {
+        padding: 8px 16px 10px !important;
+      }
+
+      .list {
+        padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+        overflow: visible !important;
+      }
+
+      .item {
+        min-height: 54px !important;
+        padding: 10px 16px !important;
+      }
+
+      .item .t {
+        font-size: 13px !important;
+      }
+
+      .item .m {
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+      }
+
+      .cat-marker {
+        width: 10px !important;
+        height: 10px !important;
+        border-width: 2px !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18) !important;
+      }
+    }
+
 </style>
 </head>
 <body>
@@ -2121,8 +2231,8 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     if (isMobileLayout()) {
       map.dragging.disable();
       map.scrollWheelZoom.disable();
-      map.touchZoom.enable();
-      map.doubleClickZoom.enable();
+      map.touchZoom.disable();
+      map.doubleClickZoom.disable();
     } else {
       map.dragging.enable();
       map.scrollWheelZoom.enable();
@@ -2230,6 +2340,11 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   function entryLocation(entry){
     return [entry.postal_code, entry.city].filter(Boolean).join(" ") || entry.location || entry.state || "";
+  }
+
+  function entryListLocation(entry){
+    const city = String(entry.city || entry.location || "").replace(/^\d{5}\s*/, "").trim();
+    return [city, entry.state].filter(Boolean).join(", ");
   }
 
   function missingEntryFields(entry){
@@ -2340,7 +2455,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   function markerFor(d){
     const color = CATEGORY_COLORS[d.category] || '#555';
-    const size = isMobileLayout() ? 15 : 12;
+    const size = isMobileLayout() ? 10 : 12;
     const icon = L.divIcon({
       className: '',
       html: `<div class="cat-marker" style="background:${color};"></div>`,
@@ -2586,10 +2701,15 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   function focusMapContact(d){
     activeMapContactId = d.id;
-    renderMobilePreview(d);
+    if (!isMobileLayout()) renderMobilePreview(d);
     if (!isMobileLayout()) renderMapDetail(d);
     if (isMobileLayout()) setMobileSheetState('full');
     renderList(filteredEntries());
+    if (isMobileLayout()) {
+      requestAnimationFrame(() => {
+        document.querySelector(`[data-map-contact-id="${CSS.escape(d.id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    }
     updateMapResetButton();
   }
 
@@ -2612,8 +2732,9 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       const item = document.createElement('div');
       const isActive = activeMapContactId === d.id;
       item.className = `item${isActive ? " item-active" : ""}`;
+      item.dataset.mapContactId = d.id;
       const color = CATEGORY_COLORS[d.category] || "#555";
-      const meta = [d.organization, entryLocation(d)].filter(Boolean);
+      const meta = [d.organization, entryListLocation(d)].filter(Boolean);
       item.innerHTML = `<span class="item-accent" style="background:${color}"></span>
                         <div class="item-copy">
                           <div class="t">${escapeHtml(d.name)}</div>
