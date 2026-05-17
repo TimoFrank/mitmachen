@@ -11602,11 +11602,11 @@
       }
 
       .team-account-role {
-        justify-self: center;
+        justify-self: end;
         align-self: center;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
         min-width: 74px;
       }
 
@@ -17484,12 +17484,13 @@
                 const ownerCount = ownerContacts.length;
                 const role = String(profile.role || "viewer").toLowerCase();
                 const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
+                const canShowEmail = role === "admin";
                 return `
                   <article class="team-account-row">
                     <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
                     <div class="team-account-copy">
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
-                      <span>${escapeHtml(profile.email || "Keine E-Mail hinterlegt")}</span>
+                      ${canShowEmail ? `<span>${escapeHtml(profile.email || "Keine E-Mail hinterlegt")}</span>` : ""}
                     </div>
                     <div class="team-account-role">
                       <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
