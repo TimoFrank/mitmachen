@@ -12474,6 +12474,19 @@
           margin-left: 84px;
         }
 
+        .app-shell {
+          position: relative;
+          min-height: 100dvh;
+        }
+
+        .app-sidebar {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          height: auto;
+          min-height: 100dvh;
+        }
+
         .wrap {
           padding: 12px 10px 18px 0;
         }
@@ -12544,14 +12557,12 @@
 
         .app-shell[data-active-view="contacts"] .view-select-button::before {
           content: "";
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
           flex: 0 0 auto;
-          border-radius: 999px;
-          background:
-            radial-gradient(circle at 50% 34%, currentColor 0 18%, transparent 19%),
-            radial-gradient(ellipse at 50% 82%, currentColor 0 31%, transparent 32%);
-          opacity: 0.9;
+          background: currentColor;
+          -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9.5' cy='7' r='4'/%3E%3Cpath d='M19 8v6'/%3E%3Cpath d='M22 11h-6'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9.5' cy='7' r='4'/%3E%3Cpath d='M19 8v6'/%3E%3Cpath d='M22 11h-6'/%3E%3C/svg%3E") center / contain no-repeat;
         }
 
         .app-shell[data-active-view="organizations"] .summary.summary--compact .summary-card {
@@ -12564,17 +12575,32 @@
 
         .filter-panel {
           left: 84px;
+          max-width: calc(100vw - 84px);
+          overflow-x: hidden;
           touch-action: pan-y pinch-zoom;
         }
 
+        .filter-panel-grid,
+        .filter-group,
         .filter-field--accordion {
-          overflow: visible;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+        }
+
+        .filter-field--accordion {
+          overflow: hidden;
         }
 
         .filter-field--accordion summary {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 24px;
           gap: 8px;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          font-size: 0.86rem !important;
+          line-height: 1.1;
         }
 
         .filter-field--accordion summary::after {
@@ -12598,8 +12624,10 @@
           flex-flow: row nowrap !important;
           justify-content: flex-start;
           align-items: center;
-          width: auto;
-          max-width: none;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
           margin: 0;
           padding: 8px 10px 10px;
           overflow-x: auto !important;
@@ -16830,18 +16858,18 @@
         if (!owner) return false;
         const profile = ownerProfileForValue(owner);
         if (profile?.id && profile.id === currentProfile.id) return true;
-        const currentValues = new Set(currentProfileOwnerValues().map((item) => item.toLowerCase()));
-        const ownerValues = [
-          owner,
-          ownerOptionLabel(owner),
-          profile?.label,
-          profile?.email,
-          profile?.initials,
-          ...(profile?.matchLabels || [])
-        ]
+        const currentRoleLabel = roleLabel(currentProfile.role || "");
+        const currentDisplayName = String(currentProfile.display_name || currentProfile.displayName || "").trim();
+        const currentEmail = String(currentProfile.email || "").trim().toLowerCase();
+        const currentId = String(currentProfile.id || "").trim().toLowerCase();
+        const currentRoleOwnerLabel = currentDisplayName && currentRoleLabel ? `${currentDisplayName} (${currentRoleLabel})`.toLowerCase() : "";
+        const ownerValues = [owner, ownerOptionLabel(owner), profile?.label]
           .map((item) => String(item || "").trim().toLowerCase())
           .filter(Boolean);
-        return ownerValues.some((item) => currentValues.has(item));
+        if (currentId && ownerValues.includes(currentId)) return true;
+        if (currentEmail && [owner, profile?.email].map((item) => String(item || "").trim().toLowerCase()).includes(currentEmail)) return true;
+        if (currentRoleOwnerLabel && ownerValues.includes(currentRoleOwnerLabel)) return true;
+        return false;
       }
 
       function syncOwnerOptionsFromContacts() {
