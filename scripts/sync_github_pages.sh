@@ -34,8 +34,8 @@ cp "$ROOT_DIR/map/data/state-polygons.js" "$DOCS_DIR/deutschlandkarte-project/da
 
 perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./login/login\.html#./login.html#g' "$DOCS_DIR/versorgungs-kompass.html"
 perl -0pi -e 's#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$DOCS_DIR/versorgungs-kompass.html"
-perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g' "$DOCS_DIR/login.html"
-perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g; s#\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g' "$DOCS_DIR/set-password.html"
+perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$DOCS_DIR/login.html"
+perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g; s#\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$DOCS_DIR/set-password.html"
 perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./public/#./public/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$DOCS_DIR/versorgungs-kompass-map.html"
 perl -0pi -e 's#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$DOCS_DIR/versorgungs-kompass-map-teaser.html" "$DOCS_DIR/versorgungs-kompass-contact-mini-map.html"
 perl -0pi -e 's#loginPath: "../login/login.html"#loginPath: "./login.html"#; s#defaultPath: "../app/versorgungs-kompass.html"#defaultPath: "./versorgungs-kompass.html"#' "$DOCS_DIR/auth-config.js"
