@@ -12462,6 +12462,276 @@
           white-space: nowrap;
         }
       }
+
+      @media (max-width: 760px) {
+        body.mobile-filter-open {
+          touch-action: auto;
+        }
+
+        .app-main {
+          width: calc(100vw - 84px);
+          max-width: calc(100vw - 84px);
+          margin-left: 84px;
+        }
+
+        .wrap {
+          padding: 12px 10px 18px 0;
+        }
+
+        .workspace-header,
+        .controls,
+        .view-shell {
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
+
+        .workspace-header {
+          gap: 10px;
+        }
+
+        .view-card {
+          min-height: calc(100dvh - 176px);
+          display: flex;
+          flex-direction: column;
+        }
+
+        .table-wrap {
+          flex: 1 1 auto;
+        }
+
+        .table-command-row,
+        .table-command-row--organizations {
+          width: 100%;
+          padding: 9px;
+        }
+
+        .table-command-actions .action-button,
+        #new-contact-button,
+        #new-organization-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          line-height: 1;
+        }
+
+        .action-button__icon {
+          display: inline-grid;
+          place-items: center;
+          line-height: 1;
+          transform: translateY(0);
+        }
+
+        .table-command-row > .filter-toolbar,
+        .table-command-row--organizations .organization-column-actions .filter-toolbar {
+          display: block;
+          justify-self: stretch;
+          width: 100%;
+        }
+
+        .table-command-row > .filter-toolbar .filter-shell,
+        .table-command-row--organizations .organization-column-actions .filter-toolbar .filter-shell {
+          width: 100%;
+        }
+
+        .filter-panel-button {
+          justify-content: center;
+        }
+
+        .view-select-button__icon {
+          display: none;
+        }
+
+        .app-shell[data-active-view="contacts"] .view-select-button::before {
+          content: "";
+          width: 18px;
+          height: 18px;
+          flex: 0 0 auto;
+          border-radius: 999px;
+          background:
+            radial-gradient(circle at 50% 34%, currentColor 0 18%, transparent 19%),
+            radial-gradient(ellipse at 50% 82%, currentColor 0 31%, transparent 32%);
+          opacity: 0.9;
+        }
+
+        .app-shell[data-active-view="organizations"] .summary.summary--compact .summary-card {
+          min-width: 166px;
+        }
+
+        .app-shell[data-active-view="organizations"] .summary.summary--compact .summary-value small {
+          font-size: 0.78rem;
+        }
+
+        .filter-panel {
+          left: 84px;
+          touch-action: pan-y pinch-zoom;
+        }
+
+        .filter-field--accordion {
+          overflow: visible;
+        }
+
+        .filter-field--accordion summary {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 24px;
+          gap: 8px;
+        }
+
+        .filter-field--accordion summary::after {
+          content: "⌄" !important;
+          display: grid !important;
+          place-items: center;
+          width: 24px;
+          height: 24px;
+          color: var(--text-muted);
+          font-size: 1rem;
+          transform: rotate(0deg);
+        }
+
+        .filter-field--accordion[open] summary::after {
+          transform: rotate(180deg);
+        }
+
+        .filter-choice-list {
+          position: relative;
+          display: flex !important;
+          flex-flow: row nowrap !important;
+          justify-content: flex-start;
+          align-items: center;
+          width: auto;
+          max-width: none;
+          margin: 0;
+          padding: 8px 10px 10px;
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-x pan-y;
+          overscroll-behavior-x: contain;
+          scroll-snap-type: none;
+        }
+
+        .filter-choice {
+          flex: 0 0 auto !important;
+        }
+
+        #filter-panel-reset {
+          left: 10px !important;
+          width: calc((100vw - 84px - 30px) / 2) !important;
+        }
+
+        .filter-panel-apply {
+          left: calc(20px + ((100vw - 84px - 30px) / 2)) !important;
+          width: calc((100vw - 84px - 30px) / 2) !important;
+        }
+
+        .pagination {
+          display: flex !important;
+          justify-content: flex-start !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-x pan-y;
+          scroll-snap-type: none;
+        }
+
+        .pagination-button {
+          flex: 0 0 38px;
+        }
+
+        .pagination-button.is-active {
+          background: linear-gradient(135deg, #275ee6, #4d90ff) !important;
+          color: #ffffff !important;
+          border-color: transparent !important;
+        }
+
+        .detail-drawer.is-open {
+          left: 84px;
+          width: calc(100vw - 84px);
+        }
+
+        #editor-drawer .contact-editor-panel,
+        #organization-editor-drawer .contact-editor-panel {
+          left: 84px;
+          right: 8px;
+          top: 8px;
+          bottom: 8px;
+          width: auto;
+          max-width: none;
+          border-radius: 16px;
+        }
+
+        #editor-drawer .editor-form,
+        #organization-editor-drawer .editor-form {
+          padding-top: 0;
+          overflow-x: hidden;
+        }
+
+        .contact-editor-steps {
+          display: flex;
+          gap: 8px;
+          margin: 0 0 10px;
+          padding: 2px 0 8px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+
+        .contact-editor-steps::-webkit-scrollbar {
+          display: none;
+        }
+
+        .contact-editor-steps .import-step {
+          min-width: 72px;
+          flex: 0 0 72px;
+        }
+
+        #organization-editor-drawer .contact-editor-steps .import-step {
+          min-width: 86px;
+          flex-basis: 86px;
+        }
+
+        .contact-editor-steps .import-step::after {
+          display: none !important;
+        }
+
+        .contact-editor-steps .import-step span {
+          width: 26px;
+          height: 26px;
+          flex: 0 0 26px;
+        }
+
+        .contact-editor-steps .import-step strong {
+          max-width: 100%;
+          font-size: 0.64rem;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        #editor-drawer .contact-editor-step,
+        #organization-editor-drawer .contact-editor-step {
+          margin-top: 0;
+          padding: 12px;
+          position: relative;
+          z-index: 1;
+        }
+
+        #editor-cancel,
+        #organization-editor-cancel {
+          display: none !important;
+        }
+
+        #editor-drawer .editor-footer,
+        #organization-editor-drawer .editor-footer {
+          gap: 10px;
+        }
+
+        #editor-drawer .editor-actions,
+        #organization-editor-drawer .editor-actions {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -17806,7 +18076,7 @@
               {
                 label: "Organisationen gesamt",
                 value: organizations.length,
-                meta: isMobileLayout() ? "Org." : meta,
+                meta: isMobileLayout() ? "Organisationen" : meta,
                 icon: `
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M4 20h16"></path>
@@ -17820,7 +18090,7 @@
                 iconClass: "summary-icon--blue"
               }
             ],
-            "Org."
+            "Organisationen"
           );
           return;
         }
@@ -21513,6 +21783,41 @@
       });
       filterPanel.addEventListener("click", (event) => {
         event.stopPropagation();
+      });
+      let filterChoiceTouchState = null;
+      filterPanel.addEventListener(
+        "touchstart",
+        (event) => {
+          const scroller = event.target.closest(".filter-choice-list");
+          if (!scroller) {
+            filterChoiceTouchState = null;
+            return;
+          }
+          const touch = event.touches[0];
+          filterChoiceTouchState = {
+            scroller,
+            startX: touch.clientX,
+            startY: touch.clientY,
+            scrollLeft: scroller.scrollLeft
+          };
+        },
+        { passive: true }
+      );
+      filterPanel.addEventListener(
+        "touchmove",
+        (event) => {
+          if (!filterChoiceTouchState) return;
+          const touch = event.touches[0];
+          const deltaX = touch.clientX - filterChoiceTouchState.startX;
+          const deltaY = touch.clientY - filterChoiceTouchState.startY;
+          if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
+          event.preventDefault();
+          filterChoiceTouchState.scroller.scrollLeft = filterChoiceTouchState.scrollLeft - deltaX;
+        },
+        { passive: false }
+      );
+      filterPanel.addEventListener("touchend", () => {
+        filterChoiceTouchState = null;
       });
       filterSearchInput?.addEventListener("input", applyFilterPanelSearch);
       filterPanelCloseButton.addEventListener("click", () => {
