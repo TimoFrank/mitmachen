@@ -15609,8 +15609,8 @@
         setRoleElementVisible(sidebarSettingsButton, canAdministerData());
         setRoleElementVisible(accountQualityButton, canAdministerData());
         setRoleElementVisible(careQueueCard, true);
-        permissionBanner?.classList.toggle("is-visible", role !== "admin");
-        if (permissionBannerText) permissionBannerText.textContent = permissionText(role);
+        permissionBanner?.classList.remove("is-visible");
+        if (permissionBannerText) permissionBannerText.textContent = "";
         if (!canAccessView(activeView)) {
           setActiveView("contacts");
           updateRouteHash("contacts");
