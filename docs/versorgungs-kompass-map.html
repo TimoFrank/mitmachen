@@ -1732,6 +1732,43 @@
         margin-top: 16px !important;
       }
 
+      .workspace.has-map-detail .map-detail-panel,
+      body.embed-mode.has-map-detail .map-detail-panel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 30;
+        display: flex;
+        flex-direction: column;
+        height: 70dvh;
+        max-height: 70dvh;
+        min-height: 0;
+        border-left: 0;
+        border-top: 1px solid var(--border);
+        border-radius: 24px 24px 0 0;
+        background: var(--surface);
+        box-shadow: 0 -18px 44px rgba(38, 52, 105, 0.18);
+        overflow: hidden;
+      }
+
+      .map-detail-toolbar {
+        flex: 0 0 auto;
+        border-radius: 24px 24px 0 0;
+      }
+
+      .map-detail-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: calc(24px + env(safe-area-inset-bottom));
+      }
+
+      .map-detail-head {
+        align-items: flex-start;
+      }
+
       .panel,
       body.embed-mode .panel {
         position: relative;
@@ -2710,6 +2747,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   function renderMobilePreview(entry = null){
     if (!elMobileMapPreview) return;
     if (!entry || !isMobileLayout()) {
+      if (!entry) mobilePreviewContactId = "";
       elMobileMapPreview.hidden = true;
       elMobileMapPreview.innerHTML = "";
       return;
@@ -3003,8 +3041,13 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     if (isMobileLayout() && activeIndex >= 0) {
       currentListPage = Math.floor(activeIndex / mobileListPageSize) + 1;
     }
-    renderMobilePreview(d);
-    if (!isMobileLayout()) renderMapDetail(d);
+    if (isMobileLayout()) {
+      renderMobilePreview(null);
+      renderMapDetail(d);
+    } else {
+      renderMobilePreview(d);
+      renderMapDetail(d);
+    }
     if (isMobileLayout()) setMobileSheetState('full');
     renderList(entries);
     if (isMobileLayout()) {
@@ -3058,11 +3101,9 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       item.addEventListener('click', () => {
         activeMapContactId = d.id;
         if (isMobileLayout()) {
-          renderMobilePreview(d);
+          renderMobilePreview(null);
+          renderMapDetail(d);
           renderList(entries);
-          requestAnimationFrame(() => {
-            elMobileMapPreview?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          });
           updateMapResetButton();
           return;
         }
@@ -3138,7 +3179,12 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     renderMapActiveFilters();
 
     const activePreview = filtered.find((entry) => entry.id === mobilePreviewContactId) || filtered.find((entry) => entry.id === activeMapContactId);
-    renderMobilePreview(activePreview || null);
+    if (isMobileLayout()) {
+      renderMobilePreview(null);
+      if (activePreview) renderMapDetail(activePreview);
+    } else {
+      renderMobilePreview(activePreview || null);
+    }
     if (!activePreview && isMobileLayout() && mobileSheetState === 'half') {
       setMobileSheetState('collapsed');
     }
