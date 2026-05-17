@@ -14821,6 +14821,8 @@
       let detailEditMode = false;
       let detailActiveTab = "overview";
       let organizationDetailActiveTab = "overview";
+      let lastViewportWidth = window.innerWidth;
+      let lastViewportMobileLayout = isMobileLayout();
       let importState = createImportState();
       let currentProfile = null;
       const contactHistoryCache = new Map();
@@ -18291,7 +18293,7 @@
         const imageUrl = escapeHtml(decodeAttributeValue(contact.image));
         return `
           <span class="avatar contact-image contact-thumb ${sizeClass} ${contact.avatarClass}" aria-label="${escapeHtml(contact.displayName)}">
-            <img src="${imageUrl}" alt="" loading="lazy" onerror="this.hidden=true;this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${escapeHtml(contact.initials)}';" />
+            <img src="${imageUrl}" alt="" loading="eager" decoding="async" onerror="this.hidden=true;this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${escapeHtml(contact.initials)}';" />
           </span>
         `;
       }
@@ -22342,7 +22344,12 @@
         if (filterPanel.hidden) document.documentElement.classList.remove("mobile-filter-open");
         else document.documentElement.classList.toggle("mobile-filter-open", isMobileLayout());
         syncBodyScrollLock();
-        updateView();
+        const nextViewportWidth = window.innerWidth;
+        const nextMobileLayout = isMobileLayout();
+        const layoutChanged = nextMobileLayout !== lastViewportMobileLayout || Math.abs(nextViewportWidth - lastViewportWidth) > 1;
+        lastViewportWidth = nextViewportWidth;
+        lastViewportMobileLayout = nextMobileLayout;
+        if (layoutChanged) updateView();
       });
 
       function routeViewFromHash() {
