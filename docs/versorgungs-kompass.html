@@ -9771,6 +9771,16 @@
         color: var(--primary);
       }
 
+      .view-select-option--legacy {
+        color: var(--text-muted);
+        opacity: 0.72;
+      }
+
+      .view-select-option--legacy:hover,
+      .view-select-option--legacy.is-active {
+        opacity: 1;
+      }
+
       .view-select-empty {
         padding: 7px 9px;
         color: var(--text-muted);
@@ -13660,9 +13670,10 @@
                 <div class="view-select-shell">
                   <button class="view-select-button" type="button" id="view-select-button" aria-expanded="false" aria-controls="view-select-menu">
                     <svg class="view-select-button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M4 6h16"></path>
-                      <path d="M8 12h12"></path>
-                      <path d="M12 18h8"></path>
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9.5" cy="7" r="4"></circle>
+                      <path d="M19 8v6"></path>
+                      <path d="M22 11h-6"></path>
                     </svg>
                     <span id="view-select-label">Owner: Alle</span>
                     <span aria-hidden="true">⌄</span>
@@ -18267,7 +18278,8 @@
             return {
               owner,
               label,
-              key: String(label || owner).trim().toLowerCase()
+              key: String(label || owner).trim().toLowerCase(),
+              legacy: isLegacyOwner(owner)
             };
           })
           .filter((item) => {
@@ -18283,7 +18295,7 @@
         const uniqueOwners = uniqueOwnerViewOptions();
         viewSelectOwnerList.innerHTML = uniqueOwners.length
           ? uniqueOwners
-              .map(({ owner, label }) => `<button class="view-select-option" type="button" data-owner-view="${escapeHtml(owner)}">${escapeHtml(label)}</button>`)
+              .map(({ owner, label, legacy }) => `<button class="view-select-option ${legacy ? "view-select-option--legacy" : ""}" type="button" data-owner-view="${escapeHtml(owner)}" ${legacy ? 'title="Kein aktiver Account"' : ""}>${escapeHtml(label)}</button>`)
               .join("")
           : `<div class="view-select-empty">Keine weiteren Owner</div>`;
         viewSelectOwnerList.querySelectorAll("[data-owner-view]").forEach((button) => {
