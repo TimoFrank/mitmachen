@@ -13664,7 +13664,7 @@
                       <path d="M8 12h12"></path>
                       <path d="M12 18h8"></path>
                     </svg>
-                    <span id="view-select-label">Ansicht: Alle Kontakte</span>
+                    <span id="view-select-label">Owner: Alle</span>
                     <span aria-hidden="true">⌄</span>
                   </button>
                   <div class="view-select-menu" id="view-select-menu" hidden>
@@ -13726,7 +13726,7 @@
                 <div class="table-command-actions organization-column-actions" id="organization-column-actions"></div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions" id="organization-command-actions">
-                  <button class="action-button action-button--primary" type="button" id="new-organization-button"><span class="action-button__icon">+</span>Organisation anlegen</button>
+                  <button class="action-button action-button--primary" type="button" id="new-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
                 </div>
               </div>
               <div class="table-wrap">
@@ -15563,6 +15563,10 @@
         return currentRole() === "admin" || currentRole() === "editor";
       }
 
+      function viewerCreateDisabledMessage(kind = "diese Funktion") {
+        return `Dein Account hat aktuell nur Leserechte. Ein Admin kann ${kind} für dich freischalten.`;
+      }
+
       function canAdministerData() {
         return currentRole() === "admin";
       }
@@ -15594,8 +15598,8 @@
       function applyRoleUi() {
         const role = currentRole();
         document.body.dataset.userRole = role;
-        setRoleElementVisible(newContactButton, canEditContacts());
-        setRoleElementVisible(newOrganizationButton, canEditContacts());
+        setRoleElementVisible(newContactButton, true);
+        setRoleElementVisible(newOrganizationButton, true);
         setRoleElementVisible(openImportButton, canAdministerData());
         setRoleElementVisible(importsStartFileButton, canAdministerData());
         setRoleElementVisible(importsOpenTableButton, canEditContacts());
@@ -18246,26 +18250,40 @@
       function updateViewSelectLabel(label = "") {
         if (!viewSelectLabel) return;
         const defaultLabel = activeView === "organizations" ? "Alle Organisationen" : activeView === "map" ? "Karte" : activeView === "analytics" ? "Auswertung" : "Alle Kontakte";
-        if (isMobileLayout() && activeView === "contacts") {
-          const mobileLabel = label || activeSavedViewName || defaultLabel;
-          viewSelectLabel.textContent = mobileLabel === "Alle Kontakte" ? "Owner: Alle" : `Owner: ${mobileLabel.replace(/^Meine Kontakte$/, "Meine").replace(/^Ohne Owner$/, "Ohne")}`;
+        if (activeView === "contacts") {
+          const ownerLabel = label || activeSavedViewName || defaultLabel;
+          viewSelectLabel.textContent = ownerLabel === "Alle Kontakte" ? "Owner: Alle" : `Owner: ${ownerLabel.replace(/^Meine Kontakte$/, "Meine").replace(/^Ohne Owner$/, "Ohne")}`;
           return;
         }
         viewSelectLabel.textContent = `Ansicht: ${label || activeSavedViewName || defaultLabel}`;
       }
 
+      function uniqueOwnerViewOptions() {
+        const seenLabels = new Set();
+        return ownerOptions
+          .filter((owner) => owner && !isCurrentProfileOwnerOption(owner))
+          .map((owner) => {
+            const label = ownerOptionLabel(owner);
+            return {
+              owner,
+              label,
+              key: String(label || owner).trim().toLowerCase()
+            };
+          })
+          .filter((item) => {
+            if (!item.key || seenLabels.has(item.key)) return false;
+            seenLabels.add(item.key);
+            return true;
+          })
+          .sort((a, b) => a.label.localeCompare(b.label, "de"));
+      }
+
       function renderViewSelectOwners() {
         if (!viewSelectOwnerList) return;
-        const uniqueOwners = [
-          ...new Set(
-            ownerOptions.filter((owner) => {
-              return owner && !isCurrentProfileOwnerOption(owner);
-            })
-          )
-        ];
+        const uniqueOwners = uniqueOwnerViewOptions();
         viewSelectOwnerList.innerHTML = uniqueOwners.length
           ? uniqueOwners
-              .map((owner) => `<button class="view-select-option" type="button" data-owner-view="${escapeHtml(owner)}">${escapeHtml(ownerOptionLabel(owner))}</button>`)
+              .map(({ owner, label }) => `<button class="view-select-option" type="button" data-owner-view="${escapeHtml(owner)}">${escapeHtml(label)}</button>`)
               .join("")
           : `<div class="view-select-empty">Keine weiteren Owner</div>`;
         viewSelectOwnerList.querySelectorAll("[data-owner-view]").forEach((button) => {
@@ -21861,7 +21879,7 @@
 
       function openOrganizationEditor(organization = null) {
         if (!canEditContacts()) {
-          showPermissionDenied("Organisationen können nur von Editor- oder Admin-Accounts bearbeitet werden.");
+          showPermissionDenied(viewerCreateDisabledMessage(organization ? "das Bearbeiten von Organisationen" : "das Anlegen neuer Organisationen"));
           return;
         }
         editingOrganizationId = organization?.id || null;
@@ -22192,7 +22210,7 @@
 
       function openEditor(contact = null, options = {}) {
         if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts bearbeitet werden.");
+          showPermissionDenied(viewerCreateDisabledMessage(contact ? "das Bearbeiten von Kontakten" : "das Anlegen neuer Kontakte"));
           return;
         }
         const organizationDefaults = options.organization || null;
