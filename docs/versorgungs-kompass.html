@@ -11929,6 +11929,426 @@
           display: none;
         }
       }
+
+      @media (max-width: 760px) {
+        html,
+        body {
+          max-width: 100%;
+          overflow-x: clip;
+        }
+
+        body {
+          padding-bottom: 0;
+        }
+
+        .app-shell {
+          display: block;
+          width: 100%;
+          max-width: 100vw;
+          min-height: 100dvh;
+          overflow-x: hidden;
+        }
+
+        .app-sidebar {
+          position: fixed;
+          inset: 0 auto 0 0;
+          z-index: 70;
+          display: grid;
+          grid-template-rows: auto auto auto;
+          align-content: start;
+          width: 58px;
+          height: 100dvh;
+          padding: 10px 5px calc(12px + env(safe-area-inset-bottom));
+          overflow: hidden;
+        }
+
+        .sidebar-brand {
+          min-height: 46px;
+          padding-bottom: 8px;
+        }
+
+        .sidebar-brand .brand-mark {
+          width: 36px;
+          height: 36px;
+        }
+
+        .sidebar-nav.primary-nav,
+        .sidebar-secondary {
+          grid-auto-rows: 42px;
+          gap: 5px;
+          margin-top: 12px;
+          padding-top: 12px;
+          padding: 7px 0;
+        }
+
+        .sidebar-nav .primary-tab,
+        .sidebar-link {
+          min-height: 42px;
+          border-radius: 11px;
+        }
+
+        .sidebar-footer {
+          min-height: 44px;
+          margin-top: 8px !important;
+          padding: 0;
+        }
+
+        .sidebar-footer__badge {
+          width: 36px;
+          height: 36px;
+        }
+
+        .app-main {
+          width: calc(100vw - 58px);
+          max-width: calc(100vw - 58px);
+          min-width: 0;
+          margin-left: 58px;
+          overflow-x: hidden;
+        }
+
+        .wrap,
+        .crm-shell,
+        .view-shell,
+        .view-card,
+        .table-wrap,
+        .table,
+        .contacts-table,
+        .organizations-table {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          overflow-x: hidden;
+        }
+
+        .wrap {
+          padding: 12px 10px 24px;
+        }
+
+        .workspace-header {
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 8px;
+          padding-bottom: 10px;
+        }
+
+        .workspace-copy p {
+          display: none;
+        }
+
+        .workspace-copy h2 {
+          min-height: 42px;
+          font-size: 1.24rem;
+        }
+
+        .summary.summary--compact .summary-card {
+          min-height: 46px;
+          min-width: 124px;
+          padding: 6px 9px;
+        }
+
+        .summary.summary--compact .summary-value {
+          font-size: 0.9rem;
+        }
+
+        .summary.summary--compact .summary-value small {
+          font-size: 0.82rem;
+        }
+
+        .controls {
+          padding-bottom: 8px;
+        }
+
+        .search-shell {
+          min-width: 0;
+        }
+
+        .table-command-row,
+        .table-command-row--organizations {
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 8px;
+          padding: 9px;
+        }
+
+        #contact-command-actions,
+        #organization-command-actions {
+          grid-column: 1 / -1;
+          grid-row: 1;
+        }
+
+        .table-command-row > .view-select-shell,
+        .table-command-row--organizations .organization-column-actions .view-select-shell {
+          grid-column: 1;
+          grid-row: 2;
+          width: 100%;
+        }
+
+        .table-command-row > .filter-toolbar,
+        .table-command-row--organizations .organization-column-actions .filter-toolbar {
+          grid-column: 2;
+          grid-row: 2;
+          align-self: stretch;
+          justify-self: end;
+        }
+
+        .view-select-button,
+        .filter-panel-button {
+          width: 100%;
+          min-height: 42px;
+          border-radius: 12px;
+        }
+
+        .filter-results {
+          display: none;
+        }
+
+        .column-menu-shell,
+        .table-command-row--organizations .organization-column-actions .column-menu-shell {
+          display: none !important;
+        }
+
+        .mobile-contact-list {
+          gap: 8px;
+          padding-top: 8px;
+        }
+
+        .mobile-contact-card {
+          min-height: 84px;
+          padding: 10px;
+        }
+
+        .mobile-contact-card .avatar,
+        .mobile-contact-card img.avatar {
+          width: 52px;
+          height: 52px;
+          flex-basis: 52px;
+        }
+
+        .mobile-contact-copy {
+          min-width: 0;
+        }
+
+        .mobile-contact-organization,
+        .mobile-contact-meta {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 1;
+          overflow: hidden;
+          line-height: 1.15;
+        }
+
+        .mobile-contact-organization {
+          margin-top: 2px;
+        }
+
+        .table-footer {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+          margin-top: 10px;
+          padding: 10px 2px 0;
+          border-top: 0;
+        }
+
+        .table-footer__meta {
+          justify-content: center;
+          text-align: center;
+          font-size: 0.82rem;
+          font-weight: 800;
+        }
+
+        .table-footer__controls {
+          display: flex;
+          justify-content: center;
+          width: 100%;
+        }
+
+        .pagination {
+          max-width: 100%;
+          justify-content: center;
+          overflow-x: auto;
+          padding-bottom: 2px;
+          scrollbar-width: none;
+        }
+
+        .pagination::-webkit-scrollbar {
+          display: none;
+        }
+
+        .pagination-button {
+          min-width: 34px;
+          height: 34px;
+        }
+
+        .page-size-shell {
+          display: none !important;
+        }
+
+        .filter-panel {
+          left: 58px;
+          right: 0;
+          width: auto;
+          max-height: min(84dvh, 640px);
+          padding-bottom: calc(68px + env(safe-area-inset-bottom));
+          border-radius: 18px 18px 0 0;
+        }
+
+        .filter-panel-head {
+          min-height: 48px;
+          padding: 12px 48px 9px;
+        }
+
+        .filter-panel-title {
+          width: 100%;
+          text-align: center;
+        }
+
+        .filter-panel-grid {
+          padding: 0 10px 10px;
+          gap: 8px;
+        }
+
+        .filter-group-title {
+          display: none;
+        }
+
+        .filter-group,
+        .filter-field--accordion {
+          min-width: 0;
+        }
+
+        .filter-field--accordion {
+          border-radius: 12px;
+        }
+
+        .filter-field--accordion summary {
+          min-height: 38px;
+          padding: 8px 10px;
+          font-size: 0.86rem;
+        }
+
+        .filter-choice-list {
+          display: flex;
+          flex-wrap: nowrap;
+          gap: 8px;
+          max-height: none;
+          margin: 0 -6px;
+          padding: 4px 6px 8px;
+          overflow-x: auto;
+          overflow-y: hidden;
+          overscroll-behavior-inline: contain;
+          scrollbar-width: none;
+        }
+
+        .filter-choice-list::-webkit-scrollbar {
+          display: none;
+        }
+
+        .filter-choice {
+          flex: 0 0 auto;
+          min-height: 34px;
+          padding: 0 12px;
+          border: 1px solid #cfd9fb;
+          border-radius: 999px;
+          background: #ffffff;
+          white-space: nowrap;
+        }
+
+        .filter-choice input {
+          position: absolute;
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .filter-choice.is-selected {
+          border-color: #8fb0ff;
+          background: var(--primary-soft);
+        }
+
+        #filter-panel-reset {
+          left: 10px !important;
+          right: auto !important;
+          bottom: calc(12px + env(safe-area-inset-bottom));
+          width: 108px !important;
+          min-width: 108px !important;
+          max-width: 108px !important;
+          min-height: 44px;
+          padding: 0 8px;
+          border-radius: 12px;
+          font-size: 0;
+        }
+
+        #filter-panel-reset .filter-reset__icon {
+          display: none;
+        }
+
+        #filter-panel-reset::after {
+          content: "Zurücksetzen";
+          font-size: 0.82rem;
+          font-weight: 850;
+        }
+
+        .filter-panel-apply {
+          left: 128px !important;
+          right: 10px !important;
+          bottom: calc(12px + env(safe-area-inset-bottom));
+          width: auto;
+          min-height: 44px;
+          border-radius: 12px;
+        }
+
+        .detail-drawer.is-open {
+          left: 58px;
+          width: calc(100vw - 58px);
+          overflow-x: hidden;
+        }
+
+        .detail-overlay {
+          display: none;
+        }
+
+        .detail-panel {
+          left: 0;
+          right: 0;
+          width: 100%;
+          max-width: 100%;
+          overflow-x: hidden;
+        }
+
+        .detail-profile-top {
+          display: grid;
+          gap: 10px;
+        }
+
+        .detail-profile-meta {
+          display: flex;
+          width: 100%;
+          min-width: 0;
+          justify-content: stretch;
+        }
+
+        .detail-owner-dropdown,
+        .detail-owner-dropdown .detail-select-shell,
+        .detail-owner-dropdown .custom-select-trigger--detail {
+          width: 100%;
+          max-width: 100%;
+        }
+
+        .detail-tabs {
+          max-width: 100%;
+          padding-inline: 8px;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: none;
+        }
+
+        .detail-tabs::-webkit-scrollbar {
+          display: none;
+        }
+
+        .detail-tab {
+          flex: 0 0 auto;
+          white-space: nowrap;
+        }
+      }
     </style>
   </head>
   <body>
@@ -16881,14 +17301,15 @@
       }
 
       function paginatedItems(items) {
-        const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+        const effectivePageSize = isMobileLayout() ? 6 : pageSize;
+        const totalPages = Math.max(1, Math.ceil(items.length / effectivePageSize));
         currentPage = Math.min(Math.max(1, currentPage), totalPages);
-        const startIndex = (currentPage - 1) * pageSize;
+        const startIndex = (currentPage - 1) * effectivePageSize;
         return {
           totalPages,
           startIndex,
-          endIndex: Math.min(startIndex + pageSize, items.length),
-          pageItems: items.slice(startIndex, startIndex + pageSize)
+          endIndex: Math.min(startIndex + effectivePageSize, items.length),
+          pageItems: items.slice(startIndex, startIndex + effectivePageSize)
         };
       }
 
