@@ -676,16 +676,14 @@
     .item .t { font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.78); margin: 0; line-height: 1.28; }
     .item .m { font-size: 12px; color: rgba(0,0,0,0.55); }
     .item-meta-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
+      display: grid;
+      gap: 5px;
+      align-items: start;
       min-width: 0;
       margin-top: 3px;
     }
     .item-meta-row .m {
       min-width: 0;
-      flex: 1 1 190px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -693,7 +691,7 @@
     .item .sector-pill {
       width: fit-content;
       margin-top: 0;
-      flex: 0 0 auto;
+      justify-self: start;
     }
     .item-chevron {
       color: #667399;
