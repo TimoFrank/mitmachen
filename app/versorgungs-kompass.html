@@ -11483,32 +11483,38 @@
 
       .team-account-row {
         display: grid;
-        grid-template-columns: 46px minmax(0, 1fr) auto minmax(96px, auto);
+        grid-template-columns: 68px minmax(0, 1fr) minmax(128px, auto);
         gap: 12px;
-        align-items: center;
-        min-height: 68px;
-        padding: 10px 12px;
+        align-items: stretch;
+        min-height: 82px;
+        padding: 8px 12px 8px 8px;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--surface);
       }
 
       .team-account-avatar {
-        width: 46px;
-        height: 46px;
+        grid-row: 1 / span 2;
+        width: 68px;
+        height: 100%;
+        min-height: 66px;
         display: grid;
         place-items: center;
-        border-radius: 999px;
+        align-self: stretch;
+        border-radius: var(--radius-md);
         background: var(--primary-soft);
         color: var(--primary);
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-lg);
         font-weight: 950;
         overflow: hidden;
       }
 
       .team-account-copy {
+        grid-row: 1 / span 2;
         display: grid;
         gap: 5px;
+        align-content: center;
+        align-self: center;
         min-width: 0;
       }
 
@@ -11601,13 +11607,18 @@
         --team-badge-text: #334155;
       }
 
+      .team-account-actions {
+        display: contents;
+      }
+
       .team-account-role {
+        grid-column: 3;
         justify-self: end;
         align-self: center;
         display: inline-flex;
         align-items: center;
         justify-content: flex-end;
-        min-width: 74px;
+        width: 128px;
       }
 
       .team-account-role .account-role-pill {
@@ -11615,15 +11626,23 @@
       }
 
       .team-contact-details {
-        grid-column: 2 / -1;
-        width: 100%;
+        grid-column: 3;
+        justify-self: end;
+        align-self: center;
+        width: 128px;
         min-width: 0;
         box-shadow: none;
+      }
+
+      .team-contact-details[open] {
+        grid-column: 1 / -1;
+        width: 100%;
       }
 
       .team-contact-details summary {
         min-width: 0;
         white-space: nowrap;
+        justify-content: flex-end;
       }
 
       .team-contact-details .profile-owner-summary-label {
@@ -11661,13 +11680,24 @@
         }
 
         .team-account-row {
-          grid-template-columns: 42px minmax(0, 1fr);
+          grid-template-columns: 58px minmax(0, 1fr);
+        }
+
+        .team-account-avatar {
+          width: 58px;
+          min-height: 58px;
         }
 
         .team-account-role,
         .team-contact-details {
           grid-column: 2;
           justify-self: start;
+          width: min(160px, 100%);
+        }
+
+        .team-contact-details[open] {
+          grid-column: 1 / -1;
+          width: 100%;
         }
       }
 
@@ -17492,34 +17522,36 @@
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
                       ${canShowEmail ? `<span>${escapeHtml(profile.email || "Keine E-Mail hinterlegt")}</span>` : ""}
                     </div>
-                    <div class="team-account-role">
-                      <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
-                    </div>
-                    <details class="profile-owner-details team-contact-details">
-                      <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt" : "Kontakte"}</span></summary>
-                      <div class="profile-owner-list">
-                        ${
-                          ownerContacts.length
-                            ? ownerContacts
-                                .slice(0, 12)
-                                .map(
-                                  (contact) => `
-                                    <button class="profile-owner-contact" type="button" data-team-owner-contact="${escapeHtml(contact.id)}">
-                                      ${contactAvatarMarkup(contact, "sm")}
-                                      <span>
-                                        <strong>${escapeHtml(contact.displayName || contact.name || "Unbenannter Kontakt")}</strong>
-                                        <span>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</span>
-                                      </span>
-                                      <small>${escapeHtml(formatDateLabel(contact.updatedAt || contact.createdAt) || "kein Datum")}</small>
-                                    </button>
-                                  `
-                                )
-                                .join("") +
-                              (ownerContacts.length > 12 ? `<div class="profile-owner-empty">${ownerContacts.length - 12} weitere Kontakte in der Kontaktliste.</div>` : "")
-                            : `<div class="profile-owner-empty">Keine Kontakte zugeordnet.</div>`
-                        }
+                    <div class="team-account-actions">
+                      <div class="team-account-role">
+                        <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
                       </div>
-                    </details>
+                      <details class="profile-owner-details team-contact-details">
+                        <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt" : "Kontakte"}</span></summary>
+                        <div class="profile-owner-list">
+                          ${
+                            ownerContacts.length
+                              ? ownerContacts
+                                  .slice(0, 12)
+                                  .map(
+                                    (contact) => `
+                                      <button class="profile-owner-contact" type="button" data-team-owner-contact="${escapeHtml(contact.id)}">
+                                        ${contactAvatarMarkup(contact, "sm")}
+                                        <span>
+                                          <strong>${escapeHtml(contact.displayName || contact.name || "Unbenannter Kontakt")}</strong>
+                                          <span>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</span>
+                                        </span>
+                                        <small>${escapeHtml(formatDateLabel(contact.updatedAt || contact.createdAt) || "kein Datum")}</small>
+                                      </button>
+                                    `
+                                  )
+                                  .join("") +
+                                (ownerContacts.length > 12 ? `<div class="profile-owner-empty">${ownerContacts.length - 12} weitere Kontakte in der Kontaktliste.</div>` : "")
+                              : `<div class="profile-owner-empty">Keine Kontakte zugeordnet.</div>`
+                          }
+                        </div>
+                      </details>
+                    </div>
                   </article>
                 `;
               })
