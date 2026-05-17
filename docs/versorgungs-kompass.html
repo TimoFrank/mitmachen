@@ -13057,7 +13057,10 @@
         }
 
         .app-shell.is-mobile-sidebar-expanded .app-sidebar {
-          width: min(300px, calc(100vw - 18px)) !important;
+          width: 300px !important;
+          min-width: 300px !important;
+          max-width: calc(100vw - 18px) !important;
+          inline-size: 300px !important;
           padding-inline: 8px !important;
           overflow-y: auto;
           box-shadow: 16px 0 34px rgba(9, 35, 89, 0.22);
@@ -13110,10 +13113,24 @@
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-footer {
-          grid-template-columns: 36px minmax(0, 1fr);
+          width: 100%;
+          min-height: 42px;
+          display: grid;
+          grid-template-columns: 19px minmax(0, 1fr);
           justify-items: stretch;
-          gap: 9px;
-          padding-inline: 4px;
+          justify-content: stretch;
+          gap: 10px;
+          padding: 0 12px;
+          margin-top: 0 !important;
+          border-radius: 12px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-footer__badge {
+          width: 19px;
+          height: 19px;
+          margin: 0;
+          align-self: center;
+          font-size: 0.55rem;
         }
 
         .wrap {
