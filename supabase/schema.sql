@@ -125,6 +125,17 @@ create table if not exists public.user_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.login_aliases (
+  alias text primary key,
+  email text not null,
+  profile_id uuid references public.profiles(id) on delete cascade,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (alias = lower(trim(alias))),
+  check (alias ~ '^[a-z0-9._-]{2,32}$')
+);
+
 alter table public.user_settings drop constraint if exists user_settings_default_view_type_check;
 alter table public.user_settings
   add constraint user_settings_default_view_type_check
@@ -182,6 +193,11 @@ create trigger user_settings_touch_updated_at
 before update on public.user_settings
 for each row execute function public.touch_updated_at();
 
+drop trigger if exists login_aliases_touch_updated_at on public.login_aliases;
+create trigger login_aliases_touch_updated_at
+before update on public.login_aliases
+for each row execute function public.touch_updated_at();
+
 drop trigger if exists profiles_touch_updated_at on public.profiles;
 create trigger profiles_touch_updated_at
 before update on public.profiles
@@ -193,6 +209,7 @@ alter table public.organizations enable row level security;
 alter table public.changes enable row level security;
 alter table public.saved_views enable row level security;
 alter table public.user_settings enable row level security;
+alter table public.login_aliases enable row level security;
 
 grant usage on schema public to authenticated;
 grant select on public.profiles to authenticated;
@@ -211,6 +228,7 @@ grant select, insert, update, delete on public.organizations to service_role;
 grant select, insert, update, delete on public.changes to service_role;
 grant select, insert, update, delete on public.saved_views to service_role;
 grant select, insert, update, delete on public.user_settings to service_role;
+grant select, insert, update, delete on public.login_aliases to service_role;
 grant usage, select on sequence public.changes_id_seq to service_role;
 
 drop policy if exists "profiles authenticated read" on public.profiles;

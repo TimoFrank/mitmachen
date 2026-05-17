@@ -40,6 +40,7 @@
     const subtitle = document.getElementById("login-subtitle");
     const copy = document.getElementById("login-copy");
     const useSupabase = Boolean(window.dataService?.isConfigured?.());
+    const loginFailureMessage = "Die Anmeldung war nicht erfolgreich. Bitte prüfe Kürzel/E-Mail und Passwort.";
 
     if (title) title.textContent = config.appName || "Versorgungs-Kompass";
     if (subtitle) subtitle.textContent = "Das gematik-Hospitationsnetzwerk";
@@ -70,12 +71,25 @@
 
       try {
         if (useSupabase) {
-          const { error: loginError } = await window.dataService.getClient().auth.signInWithPassword({
-            email: emailInput.value.trim(),
-            password: input.value
+          const supabaseClient = window.dataService.getClient();
+          const { data, error: loginError } = await supabaseClient.functions.invoke("login-with-alias", {
+            body: {
+              identifier: emailInput.value.trim(),
+              password: input.value
+            }
           });
-          if (loginError) {
-            error.textContent = "Die Anmeldung war nicht erfolgreich. Bitte prüfe E-Mail und Passwort.";
+          if (loginError || data?.error || !data?.session?.access_token || !data?.session?.refresh_token) {
+            error.textContent = loginFailureMessage;
+            error.hidden = false;
+            input.focus();
+            return;
+          }
+          const { error: sessionError } = await supabaseClient.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token
+          });
+          if (sessionError) {
+            error.textContent = loginFailureMessage;
             error.hidden = false;
             input.focus();
             return;
