@@ -11174,6 +11174,7 @@
         .profile-grid,
         .profile-settings-grid,
         .profile-role-card,
+        .profile-session-row,
         .profile-photo-remove {
           grid-template-columns: 1fr;
         }
@@ -11291,6 +11292,28 @@
 
       .profile-page .profile-panel__footer {
         justify-content: flex-end;
+      }
+
+      .profile-session-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .profile-session-row strong {
+        display: block;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+      }
+
+      .profile-session-row span {
+        display: block;
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
       }
 
       @media (max-width: 760px) {
@@ -11442,7 +11465,7 @@
 
       .team-account-row {
         display: grid;
-        grid-template-columns: 46px minmax(0, 1fr) auto;
+        grid-template-columns: 46px minmax(0, 1fr) minmax(112px, auto);
         gap: 12px;
         align-items: center;
         min-height: 68px;
@@ -11498,6 +11521,62 @@
         align-items: center;
       }
 
+      .team-badge {
+        width: fit-content;
+        min-height: 24px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border: 1px solid var(--team-badge-border, #d8e4ff);
+        border-radius: 999px;
+        background: var(--team-badge-bg, var(--primary-soft));
+        color: var(--team-badge-text, var(--primary));
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+      }
+
+      .team-badge--0 {
+        --team-badge-bg: var(--primary-soft);
+        --team-badge-border: #bfd3ff;
+        --team-badge-text: var(--primary);
+      }
+
+      .team-badge--1 {
+        --team-badge-bg: var(--success-soft);
+        --team-badge-border: #bde8ca;
+        --team-badge-text: #19713d;
+      }
+
+      .team-badge--2 {
+        --team-badge-bg: var(--warning-soft);
+        --team-badge-border: #f2d7a8;
+        --team-badge-text: #8a5b14;
+      }
+
+      .team-badge--3 {
+        --team-badge-bg: #f0f2ff;
+        --team-badge-border: #cfd6ff;
+        --team-badge-text: #4f5fb8;
+      }
+
+      .team-badge--4 {
+        --team-badge-bg: #f4ecff;
+        --team-badge-border: #dbc6ff;
+        --team-badge-text: #6b35b8;
+      }
+
+      .team-badge--5 {
+        --team-badge-bg: #fff1ed;
+        --team-badge-border: #ffd2c4;
+        --team-badge-text: #a34120;
+      }
+
+      .team-account-side {
+        display: grid;
+        gap: 7px;
+        justify-items: end;
+      }
+
       .team-owner-count {
         min-width: 86px;
         display: grid;
@@ -11548,8 +11627,12 @@
           grid-template-columns: 42px minmax(0, 1fr);
         }
 
-        .team-owner-count {
+        .team-account-side {
           grid-column: 2;
+          justify-items: start;
+        }
+
+        .team-owner-count {
           justify-items: start;
         }
       }
@@ -13634,9 +13717,18 @@
                 <span class="account-role-pill" id="profile-role-display">Nutzer</span>
               </div>
             </section>
+            <section class="profile-section">
+              <h3>Sitzung</h3>
+              <div class="profile-session-row">
+                <div>
+                  <strong>Angemeldete Sitzung</strong>
+                  <span>Beendet die aktuelle Anmeldung und führt zurück zum Login.</span>
+                </div>
+                <button class="action-button action-button--danger" type="button" id="profile-logout">Abmelden</button>
+              </div>
+            </section>
           </div>
-          <div class="profile-panel__footer">
-            <button class="action-button" type="button" id="profile-logout">Abmelden</button>
+          <div class="profile-panel__footer" id="profile-edit-actions" hidden>
             <button class="action-button" type="button" id="profile-cancel">Änderungen verwerfen</button>
             <button class="action-button action-button--primary" type="submit" id="profile-save">Speichern</button>
           </div>
@@ -14950,6 +15042,7 @@
       const profileClose = document.getElementById("profile-close");
       const profileCancel = document.getElementById("profile-cancel");
       const profileLogout = document.getElementById("profile-logout");
+      const profileEditActions = document.getElementById("profile-edit-actions");
       const profileStatus = document.getElementById("profile-status");
       const profileAvatarPreview = document.getElementById("profile-avatar-preview");
       const profileDisplayTitle = document.getElementById("profile-display-title");
@@ -15024,6 +15117,7 @@
       let lastViewportMobileLayout = isMobileLayout();
       let importState = createImportState();
       let currentProfile = null;
+      let profileDirty = false;
       const contactHistoryCache = new Map();
       const contactHistoryFilters = new Map();
       const contactHistoryOwnerFilters = new Map();
@@ -17289,6 +17383,13 @@
         }).length;
       }
 
+      function teamToneClass(team) {
+        const value = String(team || "").trim();
+        if (!value) return "team-badge--0";
+        const hash = [...value].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        return `team-badge--${hash % 6}`;
+      }
+
       function teamProfiles() {
         const byId = new Map();
         ownerProfiles.forEach((profile) => byId.set(profile.id, profile));
@@ -17324,11 +17425,13 @@
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
                       <span>${escapeHtml(profile.email || "Keine E-Mail hinterlegt")}</span>
                       <div class="team-account-meta">
-                        <span class="profile-team-line">${escapeHtml(profile.team || "Team nicht ausgewählt")}</span>
-                        <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
+                        <span class="team-badge ${teamToneClass(profile.team)}">${escapeHtml(profile.team || "Team nicht ausgewählt")}</span>
                       </div>
                     </div>
-                    <div class="team-owner-count">${ownerCount}<span>${ownerCount === 1 ? "Owner-Kontakt" : "Owner-Kontakte"}</span></div>
+                    <div class="team-account-side">
+                      <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
+                      <div class="team-owner-count">${ownerCount}<span>${ownerCount === 1 ? "Owner-Kontakt" : "Owner-Kontakte"}</span></div>
+                    </div>
                   </article>
                 `;
               })
@@ -17423,6 +17526,11 @@
         profilePhotoStatus.classList.toggle("is-error", Boolean(isError));
       }
 
+      function setProfileDirty(dirty) {
+        profileDirty = Boolean(dirty);
+        if (profileEditActions) profileEditActions.hidden = !profileDirty;
+      }
+
       function renderProfileForm() {
         const profile = currentProfile || {};
         const displayName = profile.display_name || profile.email || "Angemeldet";
@@ -17450,6 +17558,7 @@
         if (profileForm.elements.notificationsEnabled) {
           profileForm.elements.notificationsEnabled.checked = settings.preferences.notificationsEnabled !== false;
         }
+        setProfileDirty(false);
       }
 
       function openProfileModal() {
@@ -17512,6 +17621,7 @@
           applyProfiles(await window.dataService.getProfiles());
           applyUserSettingsUi();
           setProfileStatus("Gespeichert.");
+          setProfileDirty(false);
           updateView();
         } catch (error) {
           console.error("Profil konnte nicht gespeichert werden.", error);
@@ -22173,6 +22283,8 @@
       accountProfileButton?.addEventListener("click", openProfileModal);
       profileCancel?.addEventListener("click", closeProfileModal);
       profileForm?.addEventListener("submit", saveProfileForm);
+      profileForm?.addEventListener("input", () => setProfileDirty(true));
+      profileForm?.addEventListener("change", () => setProfileDirty(true));
       profilePhotoOpen?.addEventListener("click", openProfilePhotoModal);
       profilePhotoClose?.addEventListener("click", closeProfilePhotoModal);
       profilePhotoModal?.addEventListener("click", (event) => {
