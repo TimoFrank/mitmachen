@@ -11928,6 +11928,50 @@
         .organizations-table .row .cell--quality {
           display: none;
         }
+
+        .organization-mobile-card {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 8px;
+        }
+
+        .organization-mobile-card .cell--organization {
+          min-width: 0;
+        }
+
+        .organization-mobile-card .organization-cell {
+          min-width: 0;
+        }
+
+        .organization-mobile-card .contact-subline {
+          display: none;
+        }
+
+        .organization-mobile-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          white-space: nowrap;
+        }
+
+        .organization-mobile-sector {
+          flex: 0 0 auto;
+        }
+
+        .organization-mobile-state {
+          min-width: 0;
+          flex: 1 1 auto;
+          overflow: hidden;
+          color: var(--text-muted);
+          font-size: 0.82rem;
+          font-weight: 800;
+          text-overflow: ellipsis;
+        }
+
+        .organization-mobile-count {
+          flex: 0 0 auto;
+          font-size: 0.8rem;
+        }
       }
 
       @media (max-width: 760px) {
@@ -11999,10 +12043,10 @@
         }
 
         .app-main {
-          width: calc(100vw - 58px);
-          max-width: calc(100vw - 58px);
+          width: calc(100vw - 66px);
+          max-width: calc(100vw - 66px);
           min-width: 0;
-          margin-left: 58px;
+          margin-left: 66px;
           overflow-x: hidden;
         }
 
@@ -12021,7 +12065,7 @@
         }
 
         .wrap {
-          padding: 12px 10px 24px;
+          padding: 12px 12px 24px 10px;
         }
 
         .workspace-header {
@@ -12111,7 +12155,7 @@
         }
 
         .mobile-contact-card {
-          min-height: 84px;
+          min-height: 74px;
           padding: 10px;
         }
 
@@ -12137,6 +12181,10 @@
 
         .mobile-contact-organization {
           margin-top: 2px;
+        }
+
+        .mobile-contact-meta {
+          display: none !important;
         }
 
         .table-footer {
@@ -12183,7 +12231,7 @@
         }
 
         .filter-panel {
-          left: 58px;
+          left: 66px;
           right: 0;
           width: auto;
           max-height: min(84dvh, 640px);
@@ -12226,14 +12274,17 @@
         }
 
         .filter-choice-list {
-          display: flex;
+          display: flex !important;
+          width: 100%;
           flex-wrap: nowrap;
+          flex-direction: row;
           gap: 8px;
           max-height: none;
           margin: 0 -6px;
           padding: 4px 6px 8px;
-          overflow-x: auto;
+          overflow-x: scroll !important;
           overflow-y: hidden;
+          -webkit-overflow-scrolling: touch;
           overscroll-behavior-inline: contain;
           scrollbar-width: none;
         }
@@ -12267,9 +12318,9 @@
           left: 10px !important;
           right: auto !important;
           bottom: calc(12px + env(safe-area-inset-bottom));
-          width: 108px !important;
-          min-width: 108px !important;
-          max-width: 108px !important;
+          width: 126px !important;
+          min-width: 126px !important;
+          max-width: 126px !important;
           min-height: 44px;
           padding: 0 8px;
           border-radius: 12px;
@@ -12287,7 +12338,7 @@
         }
 
         .filter-panel-apply {
-          left: 128px !important;
+          left: 146px !important;
           right: 10px !important;
           bottom: calc(12px + env(safe-area-inset-bottom));
           width: auto;
@@ -12296,8 +12347,8 @@
         }
 
         .detail-drawer.is-open {
-          left: 58px;
-          width: calc(100vw - 58px);
+          left: 66px;
+          width: calc(100vw - 66px);
           overflow-x: hidden;
         }
 
@@ -12311,6 +12362,21 @@
           width: 100%;
           max-width: 100%;
           overflow-x: hidden;
+        }
+
+        .detail-toolbar-actions {
+          align-items: center;
+        }
+
+        .detail-toolbar-actions .action-button,
+        .detail-close {
+          min-height: 38px;
+          height: 38px;
+        }
+
+        .detail-close {
+          width: 38px;
+          min-width: 38px;
         }
 
         .detail-profile-top {
@@ -16320,6 +16386,19 @@
         renderOrganizationsTableHead(columns);
         organizationList.innerHTML = pageItems
           .map((organization) => {
+            if (isMobileLayout()) {
+              const contactCount = organizationContacts(organization).length;
+              return `
+                <article class="row organization-mobile-card ${organization.id === activeOrganizationId ? "is-active" : ""}" data-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                  <div class="cell--organization">${organizationTableCellMarkup(organization, "organization")}</div>
+                  <div class="organization-mobile-meta">
+                    <span class="organization-mobile-sector">${sectorBadgeMarkup(organization.sector)}</span>
+                    <span class="organization-mobile-state">${escapeHtml(organization.state || "-")}</span>
+                    <button class="organization-contact-link organization-mobile-count" type="button" data-open-organization="${escapeHtml(organization.id)}">${contactCount} ${contactCount === 1 ? "Kontakt" : "Kontakte"}</button>
+                  </div>
+                </article>
+              `;
+            }
             return `
               <article class="row ${organization.id === activeOrganizationId ? "is-active" : ""}" data-organization-id="${escapeHtml(organization.id)}" tabindex="0">
                 ${columns.map((column) => `<div class="cell--${column.key}">${organizationTableCellMarkup(organization, column.key)}</div>`).join("")}
@@ -16918,12 +16997,26 @@
       function updateViewSelectLabel(label = "") {
         if (!viewSelectLabel) return;
         const defaultLabel = activeView === "organizations" ? "Alle Organisationen" : activeView === "map" ? "Karte" : activeView === "analytics" ? "Auswertung" : "Alle Kontakte";
+        if (isMobileLayout() && activeView === "contacts") {
+          const mobileLabel = label || activeSavedViewName || defaultLabel;
+          viewSelectLabel.textContent = mobileLabel === "Alle Kontakte" ? "Owner: Alle" : `Owner: ${mobileLabel.replace(/^Meine Kontakte$/, "Meine").replace(/^Ohne Owner$/, "Ohne")}`;
+          return;
+        }
         viewSelectLabel.textContent = `Ansicht: ${label || activeSavedViewName || defaultLabel}`;
       }
 
       function renderViewSelectOwners() {
         if (!viewSelectOwnerList) return;
-        const uniqueOwners = [...new Set(ownerOptions.filter((owner) => owner && owner !== currentProfile?.id))];
+        const currentOwnerValues = new Set(currentProfileOwnerValues().map((value) => value.toLowerCase()));
+        const uniqueOwners = [
+          ...new Set(
+            ownerOptions.filter((owner) => {
+              const normalizedOwner = String(owner || "").trim().toLowerCase();
+              const normalizedLabel = ownerOptionLabel(owner).trim().toLowerCase();
+              return owner && !currentOwnerValues.has(normalizedOwner) && !currentOwnerValues.has(normalizedLabel);
+            })
+          )
+        ];
         viewSelectOwnerList.innerHTML = uniqueOwners.length
           ? uniqueOwners
               .map((owner) => `<button class="view-select-option" type="button" data-owner-view="${escapeHtml(owner)}">${escapeHtml(ownerOptionLabel(owner))}</button>`)
@@ -18117,7 +18210,6 @@
                   <div class="mobile-contact-copy">
                     <h3 class="mobile-contact-name">${escapeHtml(contact.name) || "&mdash;"}</h3>
                     <div class="mobile-contact-organization">${escapeHtml(contact.organization || "Nicht dokumentiert")}</div>
-                    <div class="mobile-contact-meta">${escapeHtml([contact.category, specialtyLabel(contact), contact.city || stateLabel(contact)].filter(Boolean).join(" · "))}</div>
                   </div>
                   <span class="mobile-contact-chevron" aria-hidden="true">›</span>
                 </div>
