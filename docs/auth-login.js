@@ -61,8 +61,8 @@
     if (useSupabase) {
       emailField.hidden = false;
       emailInput.required = true;
-      if (copy) copy.textContent = "Melde dich mit deinem Supabase-Konto an, um den gemeinsamen Datenstand zu öffnen.";
-      if (passwordLabel) passwordLabel.textContent = "Supabase-Passwort";
+      if (copy) copy.textContent = "Melde dich an, um den gemeinsamen Datenstand zu öffnen.";
+      if (passwordLabel) passwordLabel.textContent = "Passwort";
       button.textContent = "Anmelden";
       window.dataService
         .getClient()
