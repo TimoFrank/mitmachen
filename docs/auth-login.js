@@ -84,27 +84,36 @@
       try {
         if (useSupabase) {
           const supabaseClient = window.dataService.getClient();
-          const { data, error: loginError } = await supabaseClient.functions.invoke("login-with-alias", {
-            body: {
-              identifier: emailInput.value.trim(),
-              password: input.value
-            }
-          });
+          const identifier = emailInput.value.trim();
+          const isEmailLogin = identifier.includes("@");
+          const { data, error: loginError } = isEmailLogin
+            ? await supabaseClient.auth.signInWithPassword({
+                email: identifier,
+                password: input.value
+              })
+            : await supabaseClient.functions.invoke("login-with-alias", {
+                body: {
+                  identifier,
+                  password: input.value
+                }
+              });
           if (loginError || data?.error || !data?.session?.access_token || !data?.session?.refresh_token) {
             error.textContent = loginFailureMessage;
             error.hidden = false;
             input.focus();
             return;
           }
-          const { error: sessionError } = await supabaseClient.auth.setSession({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token
-          });
-          if (sessionError) {
-            error.textContent = loginFailureMessage;
-            error.hidden = false;
-            input.focus();
-            return;
+          if (!isEmailLogin) {
+            const { error: sessionError } = await supabaseClient.auth.setSession({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token
+            });
+            if (sessionError) {
+              error.textContent = loginFailureMessage;
+              error.hidden = false;
+              input.focus();
+              return;
+            }
           }
           auth.setAuthenticated();
           window.location.replace(getReturnUrl());
