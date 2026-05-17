@@ -11460,7 +11460,32 @@
 
       .team-account-list {
         display: grid;
+        gap: 14px;
+      }
+
+      .team-section {
+        display: grid;
+        gap: 9px;
+      }
+
+      .team-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
+        min-height: 32px;
+      }
+
+      .team-section-count {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .team-section-accounts {
+        display: grid;
+        gap: 8px;
       }
 
       .team-account-row {
@@ -17409,12 +17434,39 @@
         return [...byId.values()].sort((a, b) => a.label.localeCompare(b.label, "de"));
       }
 
+      function groupedTeamProfiles(profiles = teamProfiles()) {
+        const byTeam = new Map();
+        profiles.forEach((profile) => {
+          const team = String(profile.team || "").trim() || "Team nicht ausgewählt";
+          if (!byTeam.has(team)) byTeam.set(team, []);
+          byTeam.get(team).push(profile);
+        });
+        return [...byTeam.entries()]
+          .map(([team, accounts]) => ({
+            team,
+            accounts: accounts.sort((a, b) => a.label.localeCompare(b.label, "de"))
+          }))
+          .sort((a, b) => {
+            if (a.team === "Team nicht ausgewählt") return 1;
+            if (b.team === "Team nicht ausgewählt") return -1;
+            return a.team.localeCompare(b.team, "de");
+          });
+      }
+
       function renderTeamView() {
         if (!teamAccountList) return;
-        const profiles = teamProfiles();
-        teamAccountList.innerHTML = profiles.length
-          ? profiles
-              .map((profile) => {
+        const groups = groupedTeamProfiles();
+        teamAccountList.innerHTML = groups.length
+          ? groups
+              .map(({ team, accounts }) => `
+                <section class="team-section">
+                  <div class="team-section-head">
+                    <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
+                    <span class="team-section-count">${accounts.length} ${accounts.length === 1 ? "Account" : "Accounts"}</span>
+                  </div>
+                  <div class="team-section-accounts">
+                    ${accounts
+                      .map((profile) => {
                 const ownerCount = ownerContactCountForProfile(profile);
                 const role = String(profile.role || "viewer").toLowerCase();
                 const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
@@ -17424,17 +17476,18 @@
                     <div class="team-account-copy">
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
                       <span>${escapeHtml(profile.email || "Keine E-Mail hinterlegt")}</span>
-                      <div class="team-account-meta">
-                        <span class="team-badge ${teamToneClass(profile.team)}">${escapeHtml(profile.team || "Team nicht ausgewählt")}</span>
-                      </div>
                     </div>
                     <div class="team-account-side">
                       <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
-                      <div class="team-owner-count">${ownerCount}<span>${ownerCount === 1 ? "Owner-Kontakt" : "Owner-Kontakte"}</span></div>
+                      <div class="team-owner-count">${ownerCount}<span>${ownerCount === 1 ? "Kontakt" : "Kontakte"}</span></div>
                     </div>
                   </article>
                 `;
               })
+                      .join("")}
+                  </div>
+                </section>
+              `)
               .join("")
           : `<div class="saved-view-empty">Noch keine Accounts geladen.</div>`;
       }
