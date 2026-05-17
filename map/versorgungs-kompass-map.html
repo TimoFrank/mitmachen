@@ -170,6 +170,9 @@
       justify-content: center;
       gap: 8px;
     }
+    .map-menu-button {
+      display: none;
+    }
     .map-toggle {
       min-width: 120px;
       padding: 10px 14px;
@@ -583,9 +586,10 @@
       line-height: 1.4;
     }
     .item {
+      box-sizing: border-box;
       display: grid;
-      grid-template-columns: 8px minmax(0, 1fr);
-      gap: 10px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
       align-items: center;
       padding: 10px 12px;
       border-bottom: 1px solid var(--border);
@@ -596,23 +600,67 @@
     .item-active {
       background: rgba(32,104,148,0.10);
     }
-    .item-accent {
-      width: 8px;
-      height: 8px;
-      margin-top: 2px;
+    .item-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .item-avatar {
+      width: 40px;
+      height: 40px;
       border-radius: 999px;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.14);
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 40px;
+      overflow: hidden;
+      border: 1px solid #d9e2f8;
+      background: #edf3ff;
+      color: #155fe4;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .item-avatar img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      object-position: center;
     }
     .item-copy {
       min-width: 0;
+      flex: 1 1 auto;
     }
     .item .t { font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.78); margin: 0; line-height: 1.28; }
     .item .m { font-size: 12px; color: rgba(0,0,0,0.55); }
+    .item-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      margin-top: 3px;
+    }
+    .item-meta-row .m {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
     .item .sector-pill {
       width: fit-content;
-      margin-top: 5px;
+      margin-top: 0;
+      flex: 0 0 auto;
+    }
+    .item-chevron {
+      color: #667399;
+      font-size: 22px;
+      line-height: 1;
+      flex: 0 0 auto;
     }
     .item a { color: inherit; text-decoration: underline; }
+
+    .map-pagination {
+      display: none;
+    }
 
     .sector-pill {
       display: inline-flex;
@@ -620,9 +668,9 @@
       min-height: 22px;
       padding: 0 8px;
       border-radius: 999px;
-      border: 1px solid #bfd3ff;
-      background: #eaf1ff;
-      color: #155fe4;
+      border: 1px solid var(--sector-color, #155fe4);
+      background: var(--sector-bg, #eaf1ff);
+      color: var(--sector-color, #155fe4);
       font-size: 11px;
       font-weight: 800;
     }
@@ -1513,14 +1561,51 @@
       }
 
       .map-controls {
-        top: 10px !important;
-        left: 10px !important;
+        top: 58px !important;
+        left: auto !important;
         right: 10px !important;
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        width: min(250px, calc(100% - 20px)) !important;
+        display: none !important;
+        grid-template-columns: 1fr !important;
         gap: 6px !important;
         transform: none !important;
         align-items: stretch !important;
+        padding: 8px !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 14px !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        box-shadow: var(--shadow-md) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+
+      .map-controls.map-controls-open {
+        display: grid !important;
+      }
+
+      .map-menu-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1001;
+        width: 42px;
+        height: 42px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.96);
+        color: var(--text-primary);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .map-menu-button span {
+        width: 18px;
+        height: 2px;
+        border-radius: 999px;
+        background: currentColor;
+        box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor;
       }
 
       .map-toggle {
@@ -1544,7 +1629,7 @@
       }
 
       .leaflet-top.leaflet-left {
-        top: 100px !important;
+        top: 8px !important;
         left: 8px !important;
       }
 
@@ -1572,7 +1657,7 @@
         min-height: 0 !important;
         border-radius: 0 !important;
         box-shadow: none !important;
-        grid-template-rows: auto auto minmax(0, 1fr) !important;
+        grid-template-rows: auto auto minmax(0, 1fr) auto !important;
       }
 
       .panel .hdr {
@@ -1586,20 +1671,87 @@
       .list {
         padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
         overflow: visible !important;
+        border-top: 0 !important;
       }
 
       .item {
-        min-height: 54px !important;
-        padding: 10px 16px !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        min-height: 74px !important;
+        margin: 0 14px 8px !important;
+        padding: 10px !important;
+        border: 1px solid rgba(214, 222, 249, 0.96) !important;
+        border-radius: 18px !important;
+        background: rgba(255, 255, 255, 0.97) !important;
+        box-shadow: 0 10px 26px rgba(38, 52, 105, 0.06) !important;
       }
 
       .item .t {
-        font-size: 13px !important;
+        color: #243271 !important;
+        font-size: 0.98rem !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
       }
 
       .item .m {
-        font-size: 11px !important;
-        line-height: 1.25 !important;
+        margin-top: 0 !important;
+        color: #5d6a95 !important;
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+        line-height: 1.15 !important;
+        display: -webkit-box !important;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        overflow: hidden;
+      }
+
+      .item-avatar {
+        width: 52px !important;
+        height: 52px !important;
+        flex-basis: 52px !important;
+      }
+
+      .item .sector-pill {
+        min-height: 26px !important;
+        margin-top: 0 !important;
+        padding: 0 10px !important;
+      }
+
+      .map-pagination {
+        display: flex !important;
+        gap: 8px;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding: 4px 14px calc(18px + env(safe-area-inset-bottom));
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+
+      .map-pagination::-webkit-scrollbar {
+        display: none;
+      }
+
+      .map-page-button {
+        flex: 0 0 38px;
+        min-width: 38px;
+        height: 38px;
+        padding: 0 10px;
+        border: 1px solid #d8e1fb;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #45568a;
+        font-size: 0.86rem;
+        font-weight: 800;
+      }
+
+      .map-page-button.is-active {
+        background: linear-gradient(135deg, #275ee6, #4d90ff) !important;
+        color: #ffffff !important;
+        border-color: transparent !important;
+        box-shadow: 0 8px 18px rgba(54, 94, 191, 0.18);
+      }
+
+      .map-page-button:disabled {
+        opacity: 0.46;
       }
 
       .cat-marker {
@@ -1641,11 +1793,15 @@
           </div>
           <div id="mobile-map-preview" class="mobile-map-preview" hidden></div>
           <div id="list" class="list" style="display:block;"></div>
+          <div id="map-pagination" class="map-pagination" aria-label="Kontaktseiten"></div>
         </div>
       </aside>
 
       <main class="map-area">
         <div class="map-box">
+          <button id="map-menu-toggle" class="map-menu-button" type="button" aria-label="Kartenmenü öffnen" aria-expanded="false">
+            <span aria-hidden="true"></span>
+          </button>
           <div class="map-controls">
             <button id="contact-mode-toggle" class="map-toggle map-toggle-active-home" type="button" aria-pressed="true">
               <span>Kontakte</span>
@@ -2159,10 +2315,15 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   let activeCategoryFilter = "";
   let query = "";
   let activeMapContactId = "";
+  let currentListPage = 1;
+  const mobileListPageSize = 20;
 
+  const elMapControls = document.querySelector('.map-controls');
+  const elMapMenuToggle = document.getElementById('map-menu-toggle');
   const elFilters = document.getElementById('filters');
   const elSearch = document.getElementById('search');
   const elList = document.getElementById('list');
+  const elMapPagination = document.getElementById('map-pagination');
   const elCount = document.getElementById('count');
   const elHeatMapToggle = document.getElementById('heatmap-toggle');
   const elMapResetToggle = document.getElementById('map-reset-toggle');
@@ -2207,6 +2368,20 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }
   function isMobileLayout(){ return window.matchMedia('(max-width: 760px)').matches; }
+
+  function closeMapMenu(){
+    elMapControls?.classList.remove('map-controls-open');
+    elMapMenuToggle?.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleMapMenu(){
+    const isOpen = elMapControls?.classList.toggle('map-controls-open');
+    elMapMenuToggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  function resetListPage(){
+    currentListPage = 1;
+  }
 
   function setMobileSheetState(nextState = 'collapsed'){
     mobileSheetState = nextState;
@@ -2345,6 +2520,22 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   function entryListLocation(entry){
     const city = String(entry.city || entry.location || "").replace(/^\d{5}\s*/, "").trim();
     return [city, entry.state].filter(Boolean).join(", ");
+  }
+
+  function sectorTint(color){
+    const hex = String(color || "#155fe4").replace("#", "");
+    if (hex.length !== 6) return "rgba(21, 95, 228, 0.12)";
+    const r = Number.parseInt(hex.slice(0, 2), 16);
+    const g = Number.parseInt(hex.slice(2, 4), 16);
+    const b = Number.parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.12)`;
+  }
+
+  function avatarHtml(entry){
+    if (entry.image) {
+      return `<span class="item-avatar"><img src="${escapeHtml(entry.image)}" alt="" loading="eager" decoding="async" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(entry.name))}';"></span>`;
+    }
+    return `<span class="item-avatar">${escapeHtml(initials(entry.name))}</span>`;
   }
 
   function missingEntryFields(entry){
@@ -2489,6 +2680,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     Array.from(elStateFilterMenu.querySelectorAll('[data-state]')).forEach((button) => {
       button.addEventListener('click', () => {
         const state = button.getAttribute('data-state') || "";
+        resetListPage();
         setSelectedState(state, { fitBounds: Boolean(state) });
         closeStateFilterMenu();
       });
@@ -2640,6 +2832,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   }
 
   function setSelectedState(name, { fitBounds = false } = {}){
+    if (selectedState !== name) resetListPage();
     selectedState = name;
     activeMapContactId = "";
     elStateFilterLabel.textContent = name || "Bundesländer";
@@ -2678,6 +2871,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     allButton.textContent = 'Alle';
     allButton.addEventListener('click', () => {
       activeCategoryFilter = "";
+      resetListPage();
       render();
     });
     elFilters.appendChild(allButton);
@@ -2691,6 +2885,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       button.textContent = cat;
       button.addEventListener('click', () => {
         activeCategoryFilter = activeCategoryFilter === cat ? "" : cat;
+        resetListPage();
         render();
       });
       elFilters.appendChild(button);
@@ -2701,10 +2896,15 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   function focusMapContact(d){
     activeMapContactId = d.id;
+    const entries = filteredEntries();
+    const activeIndex = entries.findIndex((entry) => entry.id === d.id);
+    if (isMobileLayout() && activeIndex >= 0) {
+      currentListPage = Math.floor(activeIndex / mobileListPageSize) + 1;
+    }
     if (!isMobileLayout()) renderMobilePreview(d);
     if (!isMobileLayout()) renderMapDetail(d);
     if (isMobileLayout()) setMobileSheetState('full');
-    renderList(filteredEntries());
+    renderList(entries);
     if (isMobileLayout()) {
       requestAnimationFrame(() => {
         document.querySelector(`[data-map-contact-id="${CSS.escape(d.id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -2722,24 +2922,36 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       elMobileSheetMeta.textContent = selectedState ? `${selectedState}${activeCategoryFilter ? ` • ${activeCategoryFilter}` : ''}` : `Deutschlandweite Ansicht`;
     }
     elList.innerHTML = "";
+    if (elMapPagination) elMapPagination.innerHTML = "";
     if (!entries.length) {
       elList.innerHTML = `<div class="list-empty">Keine Kontakte im aktuellen Kartenfilter.</div>`;
       renderMapDetail(null);
       return;
     }
 
-    entries.forEach((d) => {
+    const totalPages = isMobileLayout() ? Math.max(1, Math.ceil(entries.length / mobileListPageSize)) : 1;
+    currentListPage = Math.min(Math.max(1, currentListPage), totalPages);
+    const pageEntries = isMobileLayout()
+      ? entries.slice((currentListPage - 1) * mobileListPageSize, currentListPage * mobileListPageSize)
+      : entries;
+
+    pageEntries.forEach((d) => {
       const item = document.createElement('div');
       const isActive = activeMapContactId === d.id;
       item.className = `item${isActive ? " item-active" : ""}`;
       item.dataset.mapContactId = d.id;
       const color = CATEGORY_COLORS[d.category] || "#555";
-      const meta = [d.organization, entryListLocation(d)].filter(Boolean);
-      item.innerHTML = `<span class="item-accent" style="background:${color}"></span>
-                        <div class="item-copy">
-                          <div class="t">${escapeHtml(d.name)}</div>
-                          ${meta.length ? `<div class="m">${escapeHtml(meta.join(" · "))}</div>` : ""}
-                          <span class="sector-pill">${escapeHtml(d.category)}</span>
+      const meta = d.organization || "Organisation nicht dokumentiert";
+      item.innerHTML = `<div class="item-top">
+                          ${avatarHtml(d)}
+                          <div class="item-copy">
+                            <div class="t">${escapeHtml(d.name)}</div>
+                            <div class="item-meta-row">
+                              <div class="m">${escapeHtml(meta)}</div>
+                              <span class="sector-pill" style="--sector-color:${color};--sector-bg:${sectorTint(color)}">${escapeHtml(d.category)}</span>
+                            </div>
+                          </div>
+                          <span class="item-chevron" aria-hidden="true">›</span>
                         </div>`;
       item.addEventListener('click', () => {
         activeMapContactId = d.id;
@@ -2752,6 +2964,29 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       });
       elList.appendChild(item);
     });
+
+    if (elMapPagination && isMobileLayout() && totalPages > 1) {
+      elMapPagination.innerHTML = [
+        `<button class="map-page-button" type="button" data-page-nav="prev" ${currentListPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+        ...Array.from({ length: totalPages }, (_, index) => {
+          const page = index + 1;
+          return `<button class="map-page-button ${page === currentListPage ? "is-active" : ""}" type="button" data-page="${page}">${page}</button>`;
+        }),
+        `<button class="map-page-button" type="button" data-page-nav="next" ${currentListPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+      ].join("");
+      elMapPagination.querySelectorAll("[data-page]").forEach((button) => {
+        button.addEventListener("click", () => {
+          currentListPage = Number(button.dataset.page);
+          renderList(entries);
+        });
+      });
+      elMapPagination.querySelectorAll("[data-page-nav]").forEach((button) => {
+        button.addEventListener("click", () => {
+          currentListPage += button.dataset.pageNav === "next" ? 1 : -1;
+          renderList(entries);
+        });
+      });
+    }
   }
 
   function render(){
@@ -2806,7 +3041,16 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     }
   }
 
-  elSearch.addEventListener('input', (e) => { query = e.target.value; render(); });
+  elSearch.addEventListener('input', (e) => {
+    query = e.target.value;
+    resetListPage();
+    render();
+  });
+
+  elMapMenuToggle?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleMapMenu();
+  });
 
   elStateFilterToggle.addEventListener('click', () => {
     const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
@@ -2840,15 +3084,21 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     if (!event.target.closest('.map-dropdown') && !event.target.closest('.state-view-filter')) {
       closeStateFilterMenu();
     }
+    if (isMobileLayout() && !event.target.closest('.map-controls') && !event.target.closest('#map-menu-toggle')) {
+      closeMapMenu();
+    }
   });
 
   elHeatMapToggle.addEventListener('click', () => {
     heatMapActive = !heatMapActive;
     elHeatMapToggle.classList.toggle('map-toggle-active-heat', heatMapActive);
+    closeMapMenu();
     render();
   });
 
   elMapResetToggle.addEventListener('click', () => {
+    resetListPage();
+    closeMapMenu();
     if (selectedState && activeMapContactId) {
       activeMapContactId = "";
       render();
@@ -2874,6 +3124,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     selectedState = "";
     activeMapContactId = "";
     mobilePreviewContactId = "";
+    resetListPage();
     renderMapDetail(null);
     setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
     render();
