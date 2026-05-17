@@ -12,6 +12,7 @@ Der produktive Datenbestand liegt in Supabase im Schema `public`. Die App nutzt 
 - `changes`
 - `saved_views`
 - `user_settings`
+- `login_aliases`
 
 Nicht im aktuellen Schema vorhanden sind eigene Tabellen fuer `imports`, `activities`, `topics` oder `contact_topics`. Importereignisse werden im Aenderungsverlauf protokolliert, Themen liegen direkt als Array im Kontakt.
 
@@ -28,6 +29,7 @@ erDiagram
   profiles ||--o{ saved_views : "owner_id"
   profiles ||--|| user_settings : "user_id"
   saved_views ||--o{ user_settings : "default_view_id"
+  profiles ||--o{ login_aliases : "profile_id"
 ```
 
 ## Tabelle `profiles`
@@ -326,6 +328,39 @@ Automatisch gesetzt:
 Duerfen Nutzer bearbeiten:
 
 - Jeder angemeldete Nutzer nur die eigenen Einstellungen.
+
+## Tabelle `login_aliases`
+
+Zweck:
+
+- Server-seitige Zuordnung kurzer Login-Kuerzel zu Supabase-Auth-E-Mail-Adressen.
+- Komfort-Login im Versorgungs-Kompass, ohne die E-Mail-Zuordnung in Frontend-Dateien auszuliefern.
+
+Wichtigste Felder:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `alias` | Login-Kuerzel, klein geschrieben, eindeutig, z. B. `timo`. |
+| `email` | Zugehoerige Supabase-Auth-E-Mail-Adresse. |
+| `profile_id` | Optionaler Bezug zum Profil in `public.profiles`. |
+| `active` | Steuert, ob das Kuerzel fuer Login-Aufloesung verwendet wird. |
+| `created_at`, `updated_at` | Zeitstempel. |
+
+UI-Nutzung:
+
+- Das Login-Formular akzeptiert Kuerzel oder E-Mail.
+- Die Supabase Edge Function `login-with-alias` loest Kuerzel serverseitig auf und meldet danach mit E-Mail und Passwort bei Supabase Auth an.
+
+Kritische Felder:
+
+- `alias`, weil es der sichtbare Login-Identifier ist.
+- `email`, weil es auf den echten Supabase Auth User zeigen muss.
+- `active`, weil damit Kuerzel deaktiviert werden koennen, ohne den Auth User oder das Profil zu loeschen.
+
+Duerfen Nutzer bearbeiten:
+
+- Normale Nutzer lesen oder bearbeiten `login_aliases` nicht direkt.
+- Pflege erfolgt administrativ ueber SQL/Supabase Dashboard oder Service-Role-Kontext.
 
 ## Views und Funktionen
 
