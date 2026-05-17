@@ -1653,12 +1653,17 @@
 
       .mobile-map-preview {
         display: block;
-        margin: 0 14px 10px !important;
-        padding: 12px !important;
-        border-radius: 18px !important;
+        position: absolute;
+        inset: 24px 12px calc(12px + env(safe-area-inset-bottom)) 12px;
+        z-index: 8;
+        margin: 0 !important;
+        padding: 16px !important;
+        border-radius: 22px !important;
         border: 1px solid rgba(214, 222, 249, 0.96) !important;
-        background: rgba(246, 249, 255, 0.98) !important;
-        box-shadow: 0 10px 26px rgba(38, 52, 105, 0.06) !important;
+        background: rgba(246, 249, 255, 0.99) !important;
+        box-shadow: 0 18px 44px rgba(38, 52, 105, 0.18) !important;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       .mobile-map-preview[hidden] {
@@ -1667,9 +1672,37 @@
 
       .mobile-map-preview-head {
         display: flex;
-        align-items: start;
+        align-items: flex-start;
         justify-content: space-between;
         gap: 10px;
+      }
+
+      .mobile-map-preview-profile {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        margin-top: 12px;
+      }
+
+      .mobile-map-preview-avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid #d8e1fb;
+        background: #eaf1ff;
+        color: #155fe4;
+        font-size: 0.84rem;
+        font-weight: 900;
+      }
+
+      .mobile-map-preview-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
       .mobile-map-preview-close {
@@ -1687,8 +1720,21 @@
         font-weight: 800;
       }
 
+      .mobile-map-preview-title {
+        font-size: 1.05rem !important;
+      }
+
+      .mobile-map-preview-copy {
+        font-size: 0.86rem !important;
+      }
+
+      .mobile-map-preview-action {
+        margin-top: 16px !important;
+      }
+
       .panel,
       body.embed-mode .panel {
+        position: relative;
         min-height: 0 !important;
         border-radius: 0 !important;
         border-bottom: 1px solid var(--border) !important;
@@ -2670,14 +2716,21 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     }
     mobilePreviewContactId = entry.id;
     const cityLine = [entry.city, entry.state].filter(Boolean).join(", ");
+    const previewAvatar = entry.image
+      ? `<span class="mobile-map-preview-avatar"><img src="${escapeHtml(entry.image)}" alt="" loading="eager" decoding="async" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(entry.name))}';"></span>`
+      : `<span class="mobile-map-preview-avatar">${escapeHtml(initials(entry.name))}</span>`;
     elMobileMapPreview.hidden = false;
     elMobileMapPreview.innerHTML = `
       <div class="mobile-map-preview-head">
+        <span class="map-detail-kicker">Kontaktvorschau</span>
+        <button class="mobile-map-preview-close" type="button" id="mobile-map-preview-close" aria-label="Vorschau schließen">&times;</button>
+      </div>
+      <div class="mobile-map-preview-profile">
+        ${previewAvatar}
         <div>
           <div class="mobile-map-preview-title">${entry.name}</div>
           <div class="mobile-map-preview-copy">${entry.organization || "Organisation nicht dokumentiert"}${cityLine ? ` • ${cityLine}` : ""}</div>
         </div>
-        <button class="mobile-map-preview-close" type="button" id="mobile-map-preview-close" aria-label="Vorschau schließen">&times;</button>
       </div>
       <div class="mobile-map-preview-meta">${previewMetaBadges(entry)}</div>
       <button class="mobile-map-preview-action" type="button" id="mobile-map-preview-open">Details öffnen</button>
