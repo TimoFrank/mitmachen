@@ -11471,16 +11471,9 @@
       .team-section-head {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 10px;
         min-height: 32px;
-      }
-
-      .team-section-count {
-        color: var(--text-muted);
-        font-size: var(--font-size-xs);
-        font-weight: 850;
-        white-space: nowrap;
       }
 
       .team-section-accounts {
@@ -11490,7 +11483,7 @@
 
       .team-account-row {
         display: grid;
-        grid-template-columns: 46px minmax(0, 1fr) minmax(112px, auto);
+        grid-template-columns: 46px minmax(0, 1fr) auto minmax(96px, auto);
         gap: 12px;
         align-items: center;
         min-height: 68px;
@@ -11597,20 +11590,40 @@
       }
 
       .team-account-side {
-        display: grid;
-        gap: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        align-self: center;
+      }
+
+      .team-account-role {
+        justify-self: center;
+        align-self: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 74px;
+      }
+
+      .team-account-role .account-role-pill {
+        margin-top: 0;
+      }
+
+      .team-account-contacts {
+        display: inline-flex;
+        align-items: baseline;
+        justify-content: flex-end;
+        gap: 5px;
         justify-items: end;
       }
 
       .team-owner-count {
-        min-width: 86px;
-        display: grid;
-        justify-items: end;
-        gap: 2px;
+        min-width: 96px;
         color: var(--text-primary);
         font-size: var(--font-size-lg);
         font-weight: 950;
         font-variant-numeric: tabular-nums;
+        white-space: nowrap;
       }
 
       .team-owner-count span {
@@ -11652,13 +11665,14 @@
           grid-template-columns: 42px minmax(0, 1fr);
         }
 
+        .team-account-role,
         .team-account-side {
           grid-column: 2;
-          justify-items: start;
+          justify-self: start;
         }
 
-        .team-owner-count {
-          justify-items: start;
+        .team-account-contacts {
+          justify-content: flex-start;
         }
       }
 
@@ -17462,7 +17476,6 @@
                 <section class="team-section">
                   <div class="team-section-head">
                     <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
-                    <span class="team-section-count">${accounts.length} ${accounts.length === 1 ? "Account" : "Accounts"}</span>
                   </div>
                   <div class="team-section-accounts">
                     ${accounts
@@ -17477,9 +17490,11 @@
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
                       <span>${escapeHtml(profile.email || "Keine E-Mail hinterlegt")}</span>
                     </div>
-                    <div class="team-account-side">
+                    <div class="team-account-role">
                       <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
-                      <div class="team-owner-count">${ownerCount}<span>${ownerCount === 1 ? "Kontakt" : "Kontakte"}</span></div>
+                    </div>
+                    <div class="team-account-side">
+                      <div class="team-owner-count team-account-contacts">${ownerCount}<span>${ownerCount === 1 ? "Kontakt" : "Kontakte"}</span></div>
                     </div>
                   </article>
                 `;
