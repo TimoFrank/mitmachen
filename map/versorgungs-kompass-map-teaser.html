@@ -67,9 +67,24 @@
       Pflege: "#9467bd"
     };
 
+    const TEASER_CONTACTS = [
+      { lat: 53.55, lon: 9.99, category: "Krankenhaus" },
+      { lat: 52.52, lon: 13.4, category: "Praxis" },
+      { lat: 52.37, lon: 9.73, category: "Apotheke" },
+      { lat: 51.51, lon: 7.46, category: "Pflege" },
+      { lat: 50.94, lon: 6.96, category: "Praxis" },
+      { lat: 50.11, lon: 8.68, category: "Krankenhaus" },
+      { lat: 51.34, lon: 12.37, category: "Apotheke" },
+      { lat: 51.05, lon: 13.74, category: "Pflege" },
+      { lat: 49.45, lon: 11.08, category: "Praxis" },
+      { lat: 48.78, lon: 9.18, category: "Apotheke" },
+      { lat: 48.14, lon: 11.58, category: "Krankenhaus" },
+      { lat: 47.99, lon: 7.85, category: "Pflege" }
+    ];
+
     function loadContacts() {
       const contacts = window.VERSORGUNGS_COMPASS_CONTACTS || [];
-      return contacts
+      const mappedContacts = contacts
         .map((entry) => {
           const lat = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
           const lon = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
@@ -81,6 +96,8 @@
           };
         })
         .filter(Boolean);
+
+      return mappedContacts.length ? mappedContacts : TEASER_CONTACTS;
     }
 
     function toLatLngs(ringLngLat) {
