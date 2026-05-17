@@ -61,7 +61,7 @@
     if (useSupabase) {
       emailField.hidden = false;
       emailInput.required = true;
-      if (copy) copy.textContent = "Melde dich an, um den gemeinsamen Datenstand zu öffnen.";
+      if (copy) copy.textContent = "Willkommen zurück. Melde dich an und arbeite direkt im Versorgungs-Kompass weiter.";
       if (passwordLabel) passwordLabel.textContent = "Passwort";
       button.textContent = "Anmelden";
       window.dataService
