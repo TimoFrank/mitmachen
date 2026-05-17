@@ -411,13 +411,37 @@
       .sidebar-nav {
         width: 100%;
         display: grid;
-        gap: 6px;
+        gap: 16px;
         margin-top: 14px;
         padding: 0;
         border: 0;
         border-radius: 0;
         background: transparent;
         box-shadow: none;
+      }
+
+      .sidebar-section,
+      .sidebar-account-section {
+        display: grid;
+        gap: 4px;
+      }
+
+      .sidebar-section + .sidebar-section,
+      .sidebar-secondary,
+      .sidebar-account-section {
+        padding-top: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .sidebar-section-label {
+        display: block;
+        padding: 0 12px 2px;
+        color: rgba(255, 255, 255, 0.46);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        line-height: var(--line-height-tight);
+        text-transform: uppercase;
       }
 
       .sidebar-nav .primary-tab {
@@ -449,9 +473,11 @@
       .sidebar-secondary {
         display: grid;
         gap: 4px;
-        margin-top: 22px;
-        padding-top: 18px;
-        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        margin-top: 16px;
+      }
+
+      .sidebar-account-section {
+        margin-top: auto;
       }
 
       .sidebar-link {
@@ -501,6 +527,15 @@
         background: transparent;
         text-align: left;
         cursor: pointer;
+      }
+
+      .sidebar-account-section .sidebar-footer {
+        margin-top: 4px;
+        padding-top: 4px;
+      }
+
+      .sidebar-account-section + .sidebar-collapse {
+        margin-top: 12px;
       }
 
       .sidebar-footer__badge {
@@ -9040,6 +9075,7 @@
       .app-shell.is-sidebar-collapsed .sidebar-brand strong,
       .app-shell.is-sidebar-collapsed .sidebar-nav .primary-tab span,
       .app-shell.is-sidebar-collapsed .sidebar-link span,
+      .app-shell.is-sidebar-collapsed .sidebar-section-label,
       .app-shell.is-sidebar-collapsed .sidebar-footer div {
         position: absolute;
         width: 1px;
@@ -9125,7 +9161,7 @@
       }
 
       .app-shell.is-sidebar-collapsed .sidebar-collapse {
-        margin-top: auto;
+        margin-top: 12px;
       }
 
       .sidebar-footer__badge,
@@ -9139,6 +9175,10 @@
 
       .sidebar-footer {
         margin-top: 12px;
+      }
+
+      .sidebar-account-section .sidebar-footer {
+        margin-top: 4px;
       }
 
       .app-shell.is-sidebar-collapsed .sidebar-footer {
@@ -11494,6 +11534,7 @@
       }
 
       .team-account-avatar {
+        grid-column: 1;
         grid-row: 1 / span 2;
         width: 68px;
         height: 100%;
@@ -11691,8 +11732,9 @@
         .team-account-avatar {
           grid-row: 1 / span 2;
           width: 64px;
-          min-height: 76px;
-          height: 100%;
+          height: 76px;
+          min-height: 0;
+          align-self: start;
         }
 
         .team-account-copy {
@@ -11732,6 +11774,7 @@
 
         .team-contact-details[open] {
           grid-column: 1 / -1;
+          grid-row: 3;
           width: 100%;
         }
       }
@@ -11772,8 +11815,9 @@
         .team-account-avatar {
           grid-row: 1 / span 2;
           width: 58px;
-          min-height: 72px;
-          height: 100%;
+          height: 72px;
+          min-height: 0;
+          align-self: start;
         }
 
         .team-account-copy {
@@ -11840,6 +11884,7 @@
 
         .team-contact-details[open] {
           grid-column: 1 / -1;
+          grid-row: 3;
           width: 100%;
         }
       }
@@ -11899,13 +11944,14 @@
         }
 
         .sidebar-nav.primary-nav,
-        .sidebar-secondary {
+        .sidebar-secondary,
+        .sidebar-account-section {
           position: static;
           inset: auto;
           width: auto;
           min-width: 0;
           display: grid;
-          grid-auto-rows: 44px;
+          grid-auto-rows: auto;
           gap: 6px;
           padding: 8px 0;
           border-radius: 0;
@@ -11921,6 +11967,22 @@
 
         .sidebar-secondary {
           align-content: start;
+        }
+
+        .sidebar-section {
+          grid-auto-rows: 44px;
+          gap: 6px;
+        }
+
+        .sidebar-section + .sidebar-section,
+        .sidebar-secondary,
+        .sidebar-account-section {
+          margin-top: 0;
+          padding-top: 8px;
+        }
+
+        .sidebar-section-label {
+          display: none;
         }
 
         .sidebar-nav .primary-tab,
@@ -11944,6 +12006,7 @@
           min-height: 48px;
           display: grid;
           justify-items: center;
+          margin-top: 0 !important;
           padding: 5px 0 0;
         }
 
@@ -12444,12 +12507,17 @@
         }
 
         .sidebar-nav.primary-nav,
-        .sidebar-secondary {
-          grid-auto-rows: 42px;
+        .sidebar-secondary,
+        .sidebar-account-section {
+          grid-auto-rows: auto;
           gap: 5px;
           margin-top: 12px;
           padding-top: 12px;
           padding: 7px 0;
+        }
+
+        .sidebar-section {
+          grid-auto-rows: 42px;
         }
 
         .sidebar-nav .primary-tab,
@@ -12460,7 +12528,7 @@
 
         .sidebar-footer {
           min-height: 44px;
-          margin-top: 8px !important;
+          margin-top: 0 !important;
           padding: 0;
         }
 
@@ -12951,9 +13019,9 @@
         }
 
         .app-shell.is-mobile-sidebar-expanded .app-sidebar {
-          width: min(224px, calc(100vw - 18px)) !important;
+          width: min(300px, calc(100vw - 18px)) !important;
           padding-inline: 8px !important;
-          overflow: hidden;
+          overflow-y: auto;
           box-shadow: 16px 0 34px rgba(9, 35, 89, 0.22);
         }
 
@@ -12965,6 +13033,10 @@
           justify-content: flex-start;
           gap: 10px;
           padding-inline: 6px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-brand strong {
+          max-width: none;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand strong,
@@ -12981,6 +13053,15 @@
           clip: auto !important;
           white-space: nowrap !important;
           border: 0 !important;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-section-label {
+          display: block;
+          padding-inline: 12px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-section {
+          grid-auto-rows: auto;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-nav .primary-tab,
@@ -13284,45 +13365,52 @@
           <strong>Versorgungs-Kompass</strong>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
-          <button class="primary-tab is-active" type="button" data-view-tab="contacts" title="Kontakte">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9.5" cy="7" r="4"></circle>
-              <path d="M20 8v6"></path>
-              <path d="M23 11h-6"></path>
-            </svg>
-            <span>Kontakte</span>
-          </button>
-          <button class="primary-tab" type="button" data-view-tab="organizations" title="Organisationen">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-              <path d="M3 21h18"></path>
-              <path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path>
-              <path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path>
-              <path d="M9 7h3"></path>
-              <path d="M9 11h3"></path>
-              <path d="M9 15h3"></path>
-            </svg>
-            <span>Organisationen</span>
-          </button>
-          <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-              <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
-              <path d="M9 3v15"></path>
-              <path d="M15 6v15"></path>
-            </svg>
-            <span>Karte</span>
-          </button>
-          <button class="primary-tab" type="button" data-view-tab="analytics" title="Auswertung">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-              <path d="M4 19h16"></path>
-              <path d="M7 16V9"></path>
-              <path d="M12 16V5"></path>
-              <path d="M17 16v-4"></path>
-            </svg>
-            <span>Auswertung</span>
-          </button>
+          <div class="sidebar-section" aria-label="Kontakte und Organisationen">
+            <span class="sidebar-section-label">Kontakte</span>
+            <button class="primary-tab is-active" type="button" data-view-tab="contacts" title="Kontakte">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9.5" cy="7" r="4"></circle>
+                <path d="M20 8v6"></path>
+                <path d="M23 11h-6"></path>
+              </svg>
+              <span>Kontakte</span>
+            </button>
+            <button class="primary-tab" type="button" data-view-tab="organizations" title="Organisationen">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M3 21h18"></path>
+                <path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path>
+                <path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path>
+                <path d="M9 7h3"></path>
+                <path d="M9 11h3"></path>
+                <path d="M9 15h3"></path>
+              </svg>
+              <span>Organisationen</span>
+            </button>
+          </div>
+          <div class="sidebar-section" aria-label="Karte und Auswertung">
+            <span class="sidebar-section-label">Analyse</span>
+            <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                <path d="M9 3v15"></path>
+                <path d="M15 6v15"></path>
+              </svg>
+              <span>Karte</span>
+            </button>
+            <button class="primary-tab" type="button" data-view-tab="analytics" title="Auswertung">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M4 19h16"></path>
+                <path d="M7 16V9"></path>
+                <path d="M12 16V5"></path>
+                <path d="M17 16v-4"></path>
+              </svg>
+              <span>Auswertung</span>
+            </button>
+          </div>
         </nav>
         <div class="sidebar-secondary" aria-label="Weitere Bereiche">
+          <span class="sidebar-section-label">Datenpflege</span>
           <button class="sidebar-link" type="button" id="sidebar-quality-button" title="Datenqualität">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
@@ -13338,6 +13426,9 @@
             </svg>
             <span>Importe</span>
           </button>
+        </div>
+        <div class="sidebar-account-section" aria-label="Team, Einstellungen und Profil">
+          <span class="sidebar-section-label">Team &amp; Konto</span>
           <button class="sidebar-link" type="button" id="sidebar-team-button" title="Team">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -13354,18 +13445,18 @@
             </svg>
             <span>Einstellungen</span>
           </button>
+          <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
+            <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
+            <div>
+              <strong id="sidebar-user-name">Timo Frank</strong>
+              <span id="sidebar-user-role">Admin</span>
+            </div>
+          </button>
         </div>
         <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" title="Menü einklappen">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="m15 18-6-6 6-6"></path>
           </svg>
-        </button>
-        <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
-          <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
-          <div>
-            <strong id="sidebar-user-name">Timo Frank</strong>
-            <span id="sidebar-user-role">Admin</span>
-          </div>
         </button>
       </aside>
 
