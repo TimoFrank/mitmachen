@@ -969,10 +969,10 @@
 
     .map-detail-panel .detail-counter {
       color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 850;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: none;
     }
 
     .map-detail-panel .detail-toolbar-actions {
@@ -996,6 +996,31 @@
       cursor: pointer;
     }
 
+    .map-detail-panel .action-button {
+      min-height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .map-detail-panel .action-button--danger {
+      width: 100%;
+      min-height: 48px;
+      border-color: #f3cec1;
+      border-radius: 16px;
+      background: #fff1ec;
+      color: #d32727;
+    }
+
     .map-detail-panel .detail-content {
       padding: 16px;
     }
@@ -1010,11 +1035,6 @@
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
       gap: 18px;
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
-      box-shadow: var(--shadow-sm);
     }
 
     .map-detail-panel .detail-profile-main {
@@ -1025,12 +1045,12 @@
     }
 
     .map-detail-panel .avatar {
-      width: 76px;
-      height: 76px;
+      width: 92px;
+      height: 92px;
       border-radius: 999px;
       display: inline-grid;
       place-items: center;
-      flex: 0 0 76px;
+      flex: 0 0 92px;
       overflow: hidden;
       border: 1px solid #d9e2f8;
       background: #edf3ff;
@@ -1055,7 +1075,7 @@
     .map-detail-panel .detail-profile-copy h3 {
       margin: 0;
       color: var(--text-primary);
-      font-size: 20px;
+      font-size: 19px;
       line-height: 1.15;
       letter-spacing: -0.02em;
     }
@@ -1063,16 +1083,16 @@
     .map-detail-panel .detail-profile-role {
       margin-top: 5px;
       color: #4d5d8f;
-      font-size: 14px;
-      font-weight: 800;
+      font-size: 15px;
+      font-weight: 700;
       line-height: 1.35;
       overflow-wrap: anywhere;
     }
 
     .map-detail-panel .detail-profile-subline {
-      margin-top: 5px;
+      margin-top: 4px;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 650;
       line-height: 1.4;
     }
@@ -1088,8 +1108,8 @@
 
     .map-detail-panel .detail-meta-control {
       display: grid;
-      gap: 4px;
-      width: 150px;
+      gap: 2px;
+      width: 190px;
       max-width: 100%;
     }
 
@@ -1100,6 +1120,32 @@
       letter-spacing: 0.03em;
       text-align: center;
       text-transform: uppercase;
+    }
+
+    .map-detail-panel .detail-owner-trigger {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid #bfd3ff;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .map-detail-panel .detail-owner-trigger::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg) translateY(-2px);
+      opacity: 0.65;
+      flex: 0 0 auto;
     }
 
     .map-detail-panel .detail-tabs {
@@ -1134,9 +1180,9 @@
     }
 
     .map-detail-panel .section-block {
-      margin-top: 0;
-      padding-top: 0;
-      border-top: 0;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(26, 37, 89, 0.1);
     }
 
     .map-detail-panel .detail-section-title {
@@ -1154,6 +1200,80 @@
       border-radius: var(--radius-lg);
       overflow: hidden;
       background: #fff;
+    }
+
+    .map-detail-panel .contact-priority-pill {
+      min-width: 84px;
+      min-height: 26px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: transparent;
+      color: #6b7498;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .map-detail-panel .contact-priority-pill::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #9aa4c2;
+    }
+
+    .map-detail-panel .contact-priority-pill--hoch::before,
+    .map-detail-panel .contact-priority-pill--high::before {
+      background: #c8614b;
+    }
+
+    .map-detail-panel .contact-priority-pill--mittel::before,
+    .map-detail-panel .contact-priority-pill--medium::before {
+      background: #c59a32;
+    }
+
+    .map-detail-panel .contact-priority-pill--niedrig::before,
+    .map-detail-panel .contact-priority-pill--low::before {
+      background: #4a9b66;
+    }
+
+    .map-detail-panel .detail-mini-map {
+      position: relative;
+      margin-top: 14px;
+      width: 100%;
+      min-height: 110px;
+      border: 1px solid #dbe4fb;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #f9fbff 0%, #f1f5ff 100%);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .map-detail-panel .detail-mini-map-frame {
+      display: block;
+      width: 100%;
+      height: 110px;
+      border: 0;
+      background: transparent;
+    }
+
+    .map-detail-panel .detail-mini-map-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      color: #7a88b2;
+      font-size: 13px;
+      font-weight: 650;
+      text-align: center;
     }
 
     .map-detail-panel .detail-line {
@@ -1195,8 +1315,18 @@
     .map-detail-panel .detail-info-card {
       padding: 12px;
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      border-radius: 8px;
       background: #fff;
+    }
+
+    .map-detail-panel .detail-info-card--map {
+      padding-bottom: 14px;
+    }
+
+    .map-detail-panel .detail-bottom-actions {
+      margin-top: 14px;
+      display: flex;
+      justify-content: stretch;
     }
 
     .map-detail-panel .detail-empty-note {
@@ -2424,6 +2554,7 @@
       owner: contact.owner || "",
       themes: Array.isArray(contact.themes) ? contact.themes : String(contact.themes || "").split(/\s*\|\s*/).filter(Boolean),
       image: contact.image || "",
+      updatedAt: contact.updatedAt || contact.updated_at || contact.createdAt || contact.created_at || "",
       primary_system: "",
       dq_hint: "",
     };
@@ -3093,6 +3224,47 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     return `<span class="sector-pill" style="--sector-color:${color};--sector-bg:${sectorTint(color)}">${escapeHtml(label)}</span>`;
   }
 
+  function mapPriorityPill(value){
+    if (!hasValue(value)) return "";
+    const normalized = normalize(value).replace(/\s+/g, "-");
+    return `<span class="contact-priority-pill contact-priority-pill--${escapeHtml(normalized)}">${escapeHtml(value)}</span>`;
+  }
+
+  function mapOwnerControl(entry){
+    return `<span class="detail-owner-trigger">${escapeHtml(entry.owner || "Keinen Owner zuweisen")}</span>`;
+  }
+
+  function formatDetailDate(value){
+    if (!hasValue(value)) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("de-DE").format(date);
+  }
+
+  function buildMapDetailMiniMap(entry){
+    const lat = Number.parseFloat(entry.lat);
+    const lon = Number.parseFloat(entry.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return `
+        <div class="detail-mini-map">
+          <div class="detail-mini-map-empty">Noch keine Koordinaten für diesen Kontakt hinterlegt.</div>
+        </div>
+      `;
+    }
+    const src = `./versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+    return `
+      <div class="detail-mini-map">
+        <iframe
+          class="detail-mini-map-frame"
+          title="Standortkarte Deutschland"
+          src="${src}"
+          loading="lazy"
+          tabindex="-1"
+        ></iframe>
+      </div>
+    `;
+  }
+
   function renderMapDetail(entry){
     if (!elMapDetailPanel) return;
     if (!entry) {
@@ -3107,6 +3279,10 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     const themeTags = Array.isArray(entry.themes) ? entry.themes : [];
     const sectorColor = CATEGORY_COLORS[entry.category] || "#155fe4";
     const activeTab = mapDetailActiveTab || "overview";
+    const entries = filteredEntries();
+    const currentIndex = entries.findIndex((item) => item.id === entry.id);
+    const counterText = currentIndex >= 0 ? `${currentIndex + 1} von ${entries.length} Kontakten` : "Kontaktprofil";
+    const updatedLabel = formatDetailDate(entry.updatedAt);
     const avatar = entry.image
       ? `<span class="avatar"><img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.name)}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(entry.name))}';" /></span>`
       : escapeHtml(initials(entry.name));
@@ -3114,8 +3290,9 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     document.body.classList.add('has-map-detail');
     elMapDetailPanel.innerHTML = `
       <div class="detail-toolbar">
-        <div class="detail-counter">Kontaktprofil</div>
+        <div class="detail-counter">${escapeHtml(counterText)}</div>
         <div class="detail-toolbar-actions">
+          <button class="action-button detail-profile-edit" type="button" id="map-detail-edit">Bearbeiten</button>
           <button class="detail-close" type="button" id="map-detail-close" aria-label="Details schließen">&times;</button>
         </div>
       </div>
@@ -3127,15 +3304,13 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
               <div class="detail-profile-copy">
                 <h3>${escapeHtml(entry.name)}</h3>
                 <div class="detail-profile-role">${escapeHtml(entry.organization || "Organisation nicht dokumentiert")}</div>
-                <div class="detail-profile-subline">${escapeHtml([entry.category, entry.person_title, location].filter(Boolean).join(" · ") || "Sektor und Ort nicht dokumentiert")}</div>
               </div>
             </div>
             <div class="detail-profile-meta">
               <div class="detail-meta-control">
                 <span class="detail-meta-control__label">Owner</span>
-                ${mapDetailPill(entry.owner || "Kein Owner", "#155fe4")}
+                ${mapOwnerControl(entry)}
               </div>
-              ${entry.priority ? `<div class="detail-meta-control"><span class="detail-meta-control__label">Priorität</span>${mapDetailPill(entry.priority, entry.priority === "Hoch" ? "#dc2626" : entry.priority === "Mittel" ? "#b7791f" : "#64748b")}</div>` : ""}
             </div>
           </section>
 
@@ -3144,20 +3319,25 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
             ${mapDetailTabButton("contact", "Kontakt", activeTab)}
             ${mapDetailTabButton("themes", "Themen", activeTab)}
             ${mapDetailTabButton("notes", "Notizen", activeTab)}
+            ${mapDetailTabButton("activity", "Aktivitäten", activeTab)}
           </div>
 
           <section ${mapDetailPanelAttrs("overview", activeTab)} id="map-detail-overview">
             <h4 class="detail-section-title">Stammdaten</h4>
             <div class="detail-line-list">
               ${detailLine("Organisation", entry.organization)}
-              ${detailLineHtml("Sektor", mapDetailPill(entry.category, sectorColor), { empty: !hasValue(entry.category) })}
+              ${detailLine("Sektor", entry.category)}
               ${detailLine("Fachrichtung", entry.person_title, { emptyLabel: "Bitte wählen" })}
               ${detailLine("Ort", location)}
               ${detailLine("Bundesland", entry.state)}
-              ${entry.priority ? detailLineHtml("Priorität", mapDetailPill(entry.priority, entry.priority === "Hoch" ? "#dc2626" : entry.priority === "Mittel" ? "#b7791f" : "#64748b")) : ""}
+              ${detailLineHtml("Priorität", mapPriorityPill(entry.priority), { empty: !hasValue(entry.priority) })}
+              ${updatedLabel ? detailLine("Aktualisiert", updatedLabel) : ""}
             </div>
-            <div class="detail-info-card" style="margin-top: 14px;">
-              ${missing.length ? `<div class="detail-empty-note"><strong>Fehlende Angaben:</strong> ${escapeHtml(missing.join(", "))}</div>` : `<div class="detail-empty-note"><strong>Datenstatus:</strong> Die wichtigsten Angaben sind gepflegt.</div>`}
+            <div class="section-block">
+              <h4 class="detail-section-title">Standort</h4>
+              <article class="detail-info-card detail-info-card--map">
+                ${buildMapDetailMiniMap(entry)}
+              </article>
             </div>
           </section>
 
@@ -3190,9 +3370,22 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
               </div>
             </div>
           </section>
+
+          <section ${mapDetailPanelAttrs("activity", activeTab)} id="map-detail-activity">
+            <div class="detail-info-card">
+              <h4 class="detail-section-title">Verlauf</h4>
+              <div class="detail-profile-subline">Änderungen und Importereignisse werden im Kontakte-Tab angezeigt.</div>
+            </div>
+          </section>
+
+          <div class="detail-bottom-actions">
+            <button class="action-button action-button--danger" type="button" id="map-detail-archive">Kontakt archivieren</button>
+          </div>
         </div>
       </div>
     `;
+    document.getElementById('map-detail-edit')?.addEventListener('click', () => openEntryDetail(entry));
+    document.getElementById('map-detail-archive')?.addEventListener('click', () => openEntryDetail(entry));
     document.getElementById('map-detail-close')?.addEventListener('click', () => {
       activeMapContactId = "";
       renderMapDetail(null);
