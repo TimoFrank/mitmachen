@@ -10482,6 +10482,13 @@
         border-collapse: collapse;
       }
 
+      .organization-contact-table-wrap {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
       .organization-contact-table th,
       .organization-contact-table td {
         padding: 10px 12px;
@@ -10817,19 +10824,37 @@
       .detail-panel {
         border-left: 1px solid var(--border);
         box-shadow: var(--shadow-md);
+        overflow-x: hidden;
       }
 
       .detail-toolbar {
         min-height: 58px;
         padding: 10px 16px;
+        z-index: 8;
       }
 
       .detail-content {
         padding: 14px 16px 18px;
+        min-width: 0;
       }
 
       .detail-profile {
         gap: 12px;
+        min-width: 0;
+      }
+
+      .detail-tab-panel,
+      .detail-line-list {
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .detail-panel--organization .detail-profile-top {
+        align-items: start;
+      }
+
+      .detail-panel--organization .detail-tabs {
+        scroll-padding-inline: 16px;
       }
 
       .detail-profile-main {
@@ -12413,6 +12438,8 @@
 
         .detail-toolbar-actions {
           align-items: center;
+          flex: 0 0 auto;
+          max-width: 58%;
         }
 
         .detail-toolbar-actions .action-button,
@@ -12424,6 +12451,9 @@
         .detail-close {
           width: 38px;
           min-width: 38px;
+          display: inline-grid;
+          place-items: center;
+          flex: 0 0 38px;
         }
 
         .detail-profile-top {
@@ -12460,6 +12490,25 @@
         .detail-tab {
           flex: 0 0 auto;
           white-space: nowrap;
+        }
+
+        .detail-panel--organization .detail-content {
+          padding-right: 8px;
+          padding-left: 8px;
+        }
+
+        .detail-panel--organization .detail-profile-top,
+        .detail-panel--organization .section-block {
+          padding-right: 8px;
+          padding-left: 8px;
+        }
+
+        .detail-panel--organization .organization-contact-actions {
+          justify-content: stretch;
+        }
+
+        .detail-panel--organization .organization-contact-actions .action-button {
+          flex: 1 1 100%;
         }
       }
 
@@ -14771,6 +14820,7 @@
       let editorThemes = [];
       let detailEditMode = false;
       let detailActiveTab = "overview";
+      let organizationDetailActiveTab = "overview";
       let importState = createImportState();
       let currentProfile = null;
       const contactHistoryCache = new Map();
@@ -20780,9 +20830,12 @@
         const currentIndex = currentItems.findIndex((item) => item.id === organization.id);
         const locationText = organizationLocation(organization);
         const quality = organizationQualityLabel(organization);
+        if (activeOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
+        const activeTab = organizationDetailActiveTab || "overview";
         activeOrganizationId = organization.id;
         activeId = null;
         renderOrganizationsTable(currentItems);
+        detailPanel.classList.add("detail-panel--organization");
 
         detailPanel.innerHTML = `
           <div class="detail-toolbar">
@@ -20806,15 +20859,15 @@
                 </div>
               </section>
 
-              <div class="detail-tabs" aria-label="Detailbereiche">
-                <button class="detail-tab is-active" type="button" data-scroll-detail="organization-overview">Überblick</button>
-                <button class="detail-tab" type="button" data-scroll-detail="organization-contacts">Kontakte (${linkedContacts.length})</button>
-                <button class="detail-tab" type="button" data-scroll-detail="organization-themes">Themen</button>
-                <button class="detail-tab" type="button" data-scroll-detail="organization-notes">Notizen</button>
-                <button class="detail-tab" type="button" data-scroll-detail="organization-activity">Aktivitäten</button>
+              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+                ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("contacts", `Kontakte (${linkedContacts.length})`, activeTab)}
+                ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("notes", "Notizen", activeTab)}
+                ${detailTabButton("activity", "Aktivitäten", activeTab)}
               </div>
 
-              <section class="section-block" id="organization-overview">
+              <section ${detailPanelAttrs("overview", activeTab)} id="organization-overview">
                 <h4 class="detail-section-title">Stammdaten</h4>
                 <div class="detail-line-list">
                   ${detailLine("Name", organization.name)}
@@ -20830,7 +20883,7 @@
                 </div>
               </section>
 
-              <section class="section-block" id="organization-contacts">
+              <section ${detailPanelAttrs("contacts", activeTab)} id="organization-contacts">
                 <div class="organization-contact-actions">
                   ${canEditContacts() ? `<button class="action-button" type="button" id="organization-link-contact">Kontakt zuordnen</button><button class="action-button action-button--primary" type="button" id="organization-new-contact">Neuen Kontakt anlegen</button>` : ""}
                 </div>
@@ -20838,7 +20891,7 @@
                 <div class="detail-line-list">
                   ${
                     linkedContacts.length
-                      ? `<table class="organization-contact-table">
+                      ? `<div class="organization-contact-table-wrap"><table class="organization-contact-table">
                           <thead><tr><th>Kontakt</th><th>Funktion / Rolle</th><th>Fachbereich / Fokus</th><th>Owner</th><th>Aktualisiert</th><th></th></tr></thead>
                           <tbody>
                             ${linkedContacts
@@ -20856,13 +20909,13 @@
                               )
                               .join("")}
                           </tbody>
-                        </table>`
+                        </table></div>`
                       : `<div class="empty">Dieser Organisation sind noch keine Kontakte zugeordnet.</div>`
                   }
                 </div>
               </section>
 
-              <section class="section-block" id="organization-themes">
+              <section ${detailPanelAttrs("themes", activeTab)} id="organization-themes">
                 <h4 class="detail-section-title">Themen</h4>
                 <div class="detail-chip-row">
                   ${
@@ -20873,12 +20926,12 @@
                 </div>
               </section>
 
-              <section class="section-block" id="organization-notes">
+              <section ${detailPanelAttrs("notes", activeTab)} id="organization-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 <div class="detail-note-block ${organization.notes ? "" : "detail-note-block--empty"}">${escapeHtml(organization.notes || "Noch keine Notiz hinterlegt.")}</div>
               </section>
 
-              <section class="section-block" id="organization-activity">
+              <section ${detailPanelAttrs("activity", activeTab)} id="organization-activity">
                 <div class="history-empty">Aktivitäten werden später organisationsübergreifend aus Kontaktverlauf und Aufgaben aufgebaut.</div>
               </section>
             </div>
@@ -20898,10 +20951,10 @@
             openDetail(button.dataset.openOrgContact, contacts);
           });
         });
-        detailPanel.querySelectorAll("[data-scroll-detail]").forEach((button) => {
+        detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
-            detailPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
-            document.getElementById(button.dataset.scrollDetail)?.scrollIntoView({ behavior: "smooth", block: "start" });
+            organizationDetailActiveTab = button.dataset.detailTab || "overview";
+            openOrganizationDetail(organization.id, currentItems);
           });
         });
       }
@@ -21029,6 +21082,7 @@
 
         activeId = contact.id;
         renderTable(currentItems);
+        detailPanel.classList.remove("detail-panel--organization");
 
         const currentIndex = currentItems.findIndex((item) => item.id === contact.id);
 
@@ -21277,6 +21331,8 @@
         closeAllCustomSelects();
         detailEditMode = false;
         detailActiveTab = "overview";
+        organizationDetailActiveTab = "overview";
+        detailPanel.classList.remove("detail-panel--organization");
         detailDrawer.classList.remove("is-open");
         detailDrawer.setAttribute("aria-hidden", "true");
         syncBodyScrollLock();
