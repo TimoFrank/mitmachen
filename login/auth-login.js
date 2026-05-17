@@ -24,6 +24,18 @@
     return returnTarget;
   }
 
+  function hasPasswordSetupToken() {
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const type = params.get("type") || hashParams.get("type");
+    return params.has("code") || hashParams.has("access_token") || type === "invite" || type === "recovery";
+  }
+
+  if (hasPasswordSetupToken()) {
+    window.location.replace(new URL("set-password.html" + window.location.search + window.location.hash, window.location.href).toString());
+    return;
+  }
+
   if (auth.isAuthenticated()) {
     if (!window.dataService?.isConfigured?.()) window.location.replace(getReturnUrl());
   }

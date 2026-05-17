@@ -66,7 +66,7 @@
     }
   };
 
-  if (currentFileName() === (config.loginFile || "login.html")) {
+  if (currentFileName() === (config.loginFile || "login.html") || currentFileName() === "set-password.html") {
     return;
   }
 
