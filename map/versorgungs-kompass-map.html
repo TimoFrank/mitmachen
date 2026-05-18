@@ -1788,15 +1788,6 @@
     .city-label.capital { font-size: 10px; color: rgba(0,0,0,0.34); }
     .city-label.extra { font-size: 10px; color: rgba(0,0,0,0.28); }
     .city-label.more { font-size: 9.8px; color: rgba(0,0,0,0.24); }
-    .city-label.country {
-      color: rgba(23,39,95,0.28);
-      font-size: 10px;
-      font-weight: 650;
-      letter-spacing: 0.18px;
-      background: rgba(255,255,255,0.26);
-      border: 1px solid rgba(23,39,95,0.08);
-    }
-
     .state-label {
       position: relative;
       display: inline-block;
@@ -2753,24 +2744,11 @@
     interactive: false
   }).addTo(map);
 
-  const stateSurfacePalette = [
-    'rgba(21,95,228,0.055)',
-    'rgba(22,163,74,0.050)',
-    'rgba(124,58,237,0.047)',
-    'rgba(14,165,233,0.047)',
-    'rgba(245,158,11,0.040)'
-  ];
-
-  function stateSurfaceFill(name){
-    const seed = String(name || "").split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    return stateSurfacePalette[seed % stateSurfacePalette.length];
-  }
-
   const stateSurfaceLayer = L.geoJSON(STATE_POLYGONS, {
-    style: (feature) => ({
+    style: () => ({
       color: 'rgba(23,39,95,0.16)',
       weight: 0.8,
-      fillColor: stateSurfaceFill(feature.properties.name),
+      fillColor: 'rgba(238,244,255,0.18)',
       fillOpacity: 1
     }),
     interactive: false
@@ -2789,7 +2767,6 @@
   const majorLabelLayer = L.layerGroup().addTo(map);
   const capitalLabelLayer = L.layerGroup().addTo(map);
   const stateLabelLayer = L.layerGroup().addTo(map);
-  const countryContextLabelLayer = L.layerGroup().addTo(map);
   const extraLabelLayer = L.layerGroup().addTo(map);
   const moreLabelLayer = L.layerGroup().addTo(map);
   let stateHeatLayer = null;
@@ -2797,16 +2774,6 @@
   let stateInteractionLayer = null;
   let heatMapActive = false;
   let selectedState = "";
-  const COUNTRY_CONTEXT_LABELS = [
-    { name: "Dänemark", lat: 55.42, lon: 9.65 },
-    { name: "Polen", lat: 52.35, lon: 15.45 },
-    { name: "Tschechien", lat: 50.05, lon: 14.55 },
-    { name: "Österreich", lat: 47.75, lon: 13.35 },
-    { name: "Schweiz", lat: 47.05, lon: 8.2 },
-    { name: "Frankreich", lat: 48.55, lon: 6.95 },
-    { name: "Belgien", lat: 50.65, lon: 4.9 },
-    { name: "Niederlande", lat: 52.3, lon: 5.25 }
-  ];
 
   function fitMapToState(name){
     const feature = stateFeature(name);
@@ -3002,18 +2969,8 @@
     majorLabelLayer.clearLayers();
     capitalLabelLayer.clearLayers();
     stateLabelLayer.clearLayers();
-    countryContextLabelLayer.clearLayers();
     extraLabelLayer.clearLayers();
     moreLabelLayer.clearLayers();
-
-    COUNTRY_CONTEXT_LABELS.forEach(country => {
-      L.marker([country.lat, country.lon], {
-        icon: labelIcon(country.name, "country"),
-        interactive: false,
-        keyboard: false,
-        zIndexOffset: -80
-      }).addTo(countryContextLabelLayer);
-    });
 
     CITY_LABELS.major.forEach(c => {
       L.marker([c.lat, c.lon], {
@@ -3059,20 +3016,13 @@
 
   function updateLabelVisibility(){
     const z = map.getZoom();
-    const labelLayers = [stateLabelLayer, countryContextLabelLayer, majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer];
+    const labelLayers = [stateLabelLayer, majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer];
 
     if (heatMapActive) {
       [majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer].forEach((layer) => {
         if (map.hasLayer(layer)) map.removeLayer(layer);
       });
-      if (!map.hasLayer(countryContextLabelLayer)) map.addLayer(countryContextLabelLayer);
       return;
-    }
-
-    if (z <= 7) {
-      if (!map.hasLayer(countryContextLabelLayer)) map.addLayer(countryContextLabelLayer);
-    } else {
-      if (map.hasLayer(countryContextLabelLayer)) map.removeLayer(countryContextLabelLayer);
     }
 
     // State labels: only in the overview; city labels take over at closer levels.
