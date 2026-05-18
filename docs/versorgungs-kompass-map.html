@@ -3795,14 +3795,14 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   let markerIndex = [];
 
-  function focusMapContact(d){
+  function focusMapContact(d, { fitState = true } = {}){
     activeMapContactId = d.id;
     const entries = filteredEntries();
     const activeIndex = entries.findIndex((entry) => entry.id === d.id);
     if (isMobileLayout() && activeIndex >= 0) {
       currentListPage = Math.floor(activeIndex / mobileListPageSize) + 1;
     }
-    if (!isMobileLayout() && d.state) {
+    if (fitState && !isMobileLayout() && d.state) {
       fitMapToState(d.state);
     }
     if (isMobileLayout()) {
@@ -3871,7 +3871,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
           updateMapResetButton();
           return;
         }
-        focusMapContact(d);
+        focusMapContact(d, { fitState: false });
       });
       elList.appendChild(item);
     });
