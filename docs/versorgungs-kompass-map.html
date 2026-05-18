@@ -2869,8 +2869,9 @@
         const total = countsByState[stateNameKey(feature.properties.name)] || 0;
         layer.bindTooltip(`${total} ${total === 1 ? "Kontakt" : "Kontakte"}`, {
           className: "state-heat-tooltip",
-          direction: "center",
-          sticky: true,
+          direction: "top",
+          offset: [0, -12],
+          sticky: false,
           opacity: 1
         });
         layer.on('click', () => {
