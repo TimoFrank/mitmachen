@@ -937,18 +937,7 @@
       }
 
       .profile-team-line {
-        width: fit-content;
         margin-top: 4px;
-        min-height: 24px;
-        display: inline-flex;
-        align-items: center;
-        padding: 0 8px;
-        border: 1px solid #d8e4ff;
-        border-radius: 999px;
-        background: var(--primary-soft);
-        color: var(--primary);
-        font-size: var(--font-size-xs);
-        font-weight: 900;
       }
 
       .profile-owner-details {
@@ -10719,6 +10708,12 @@
         border-color: #bfd3ff;
       }
 
+      .account-role-pill--viewer {
+        background: #fff7ed;
+        color: #c2410c;
+        border-color: #fed7aa;
+      }
+
       .contact-sector-pill {
         background: #eef5ff;
         color: #155fe4;
@@ -11611,7 +11606,7 @@
         grid-column: 2;
         grid-row: 1;
         display: grid;
-        gap: 5px;
+        gap: 8px;
         align-content: center;
         align-self: center;
         min-width: 0;
@@ -11662,46 +11657,50 @@
         font-weight: 900;
       }
 
+      .team-account-copy .team-badge {
+        color: var(--team-badge-text, var(--primary));
+      }
+
       .team-badge--0 {
-        --team-badge-bg: var(--primary-soft);
-        --team-badge-border: #bfd3ff;
-        --team-badge-text: var(--primary);
-      }
-
-      .team-badge--1 {
-        --team-badge-bg: var(--success-soft);
-        --team-badge-border: #bde8ca;
-        --team-badge-text: #19713d;
-      }
-
-      .team-badge--2 {
-        --team-badge-bg: var(--warning-soft);
-        --team-badge-border: #f2d7a8;
-        --team-badge-text: #8a5b14;
-      }
-
-      .team-badge--3 {
-        --team-badge-bg: #f0f2ff;
-        --team-badge-border: #cfd6ff;
-        --team-badge-text: #4f5fb8;
-      }
-
-      .team-badge--4 {
         --team-badge-bg: #f4ecff;
         --team-badge-border: #dbc6ff;
         --team-badge-text: #6b35b8;
       }
 
-      .team-badge--5 {
-        --team-badge-bg: #fff1ed;
-        --team-badge-border: #ffd2c4;
-        --team-badge-text: #a34120;
-      }
-
-      .team-badge--6 {
+      .team-badge--1 {
         --team-badge-bg: #ecfeff;
         --team-badge-border: #a5f3fc;
         --team-badge-text: #155e75;
+      }
+
+      .team-badge--2 {
+        --team-badge-bg: #fdf2f8;
+        --team-badge-border: #fbcfe8;
+        --team-badge-text: #9d174d;
+      }
+
+      .team-badge--3 {
+        --team-badge-bg: #eef2ff;
+        --team-badge-border: #c7d2fe;
+        --team-badge-text: #4338ca;
+      }
+
+      .team-badge--4 {
+        --team-badge-bg: #faf5ff;
+        --team-badge-border: #e9d5ff;
+        --team-badge-text: #7e22ce;
+      }
+
+      .team-badge--5 {
+        --team-badge-bg: #fdf4ff;
+        --team-badge-border: #f5d0fe;
+        --team-badge-text: #a21caf;
+      }
+
+      .team-badge--6 {
+        --team-badge-bg: #f5f3ff;
+        --team-badge-border: #ddd6fe;
+        --team-badge-text: #5b21b6;
       }
 
       .team-badge--7 {
@@ -11807,6 +11806,7 @@
           grid-row: 1;
           align-self: end;
           align-content: end;
+          gap: 7px;
         }
 
         .team-account-copy strong {
@@ -11890,7 +11890,7 @@
           grid-row: 1;
           align-self: end;
           align-content: end;
-          gap: 0;
+          gap: 7px;
         }
 
         .team-account-copy strong {
@@ -17772,11 +17772,17 @@
       }
 
       function teamToneClass(team, index = null) {
-        if (Number.isInteger(index)) return `team-badge--${index % 8}`;
         const value = String(team || "").trim();
-        if (!value) return "team-badge--0";
+        if (!value || value === "Team nicht ausgewählt") return "team-badge--7";
         const hash = [...value].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-        return `team-badge--${hash % 8}`;
+        return `team-badge--${hash % 7}`;
+      }
+
+      function setProfileTeamBadge(element, team = "") {
+        if (!element) return;
+        const label = String(team || "").trim() || "Team nicht ausgewählt";
+        element.textContent = label;
+        element.className = `profile-team-line team-badge ${teamToneClass(label)}`;
       }
 
       function teamProfiles() {
@@ -17839,7 +17845,7 @@
                     <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
                     <div class="team-account-copy">
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
-                      <span class="team-badge ${teamToneClass(team, groupIndex)}">${escapeHtml(team)}</span>
+                      <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
                     </div>
                     <div class="team-account-actions">
                       <div class="team-account-role">
@@ -18003,7 +18009,7 @@
         updateAvatarElement(profileAvatarPreview, profile);
         updateAvatarElement(profilePhotoPreview, profile);
         if (profileDisplayTitle) profileDisplayTitle.textContent = displayName;
-        if (profileTeamLine) profileTeamLine.textContent = profile.team || "Team nicht ausgewählt";
+        setProfileTeamBadge(profileTeamLine, profile.team);
         if (profileEmailLabel) profileEmailLabel.textContent = profile.email || "Supabase-Profil";
         [profileRolePill, profileRoleDisplay].forEach((element) => {
           if (!element) return;
@@ -18016,7 +18022,7 @@
         profileForm.elements.initials.value = initialsFromProfile(profile);
         profileForm.elements.email.value = profile.email || "";
         profileForm.elements.team.value = profile.team || "";
-        if (profileTeamLine) profileTeamLine.textContent = profile.team || "Team nicht ausgewählt";
+        setProfileTeamBadge(profileTeamLine, profile.team);
         refreshCustomSelects(profileForm);
         renderProfileOwnerSummary();
         if (profileForm.elements.notificationsEnabled) {
@@ -18079,7 +18085,7 @@
           return;
         }
         setProfileStatus("Profil wird gespeichert...");
-        if (profileTeamLine) profileTeamLine.textContent = nextProfile.team || "Team nicht ausgewählt";
+        setProfileTeamBadge(profileTeamLine, nextProfile.team);
         try {
           const updatedProfile = await window.dataService.updateCurrentProfile(nextProfile);
           userSettings = window.dataService?.upsertUserSettings ? await window.dataService.upsertUserSettings(nextSettings) : nextSettings;
