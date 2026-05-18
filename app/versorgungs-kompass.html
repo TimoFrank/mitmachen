@@ -1211,8 +1211,8 @@
       }
 
       .account-role-pill--viewer {
-        background: #f3f5fb;
-        color: #657099;
+        background: var(--warning-soft);
+        color: #8a5b14;
       }
 
       .account-permission-note {
@@ -11564,6 +11564,14 @@
         min-height: 32px;
       }
 
+      .team-section-title {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+        line-height: var(--line-height-tight);
+      }
+
       .team-section-accounts {
         display: grid;
         gap: 8px;
@@ -11638,9 +11646,13 @@
 
       .team-badge {
         width: fit-content;
+        max-width: 100%;
         min-height: 24px;
         display: inline-flex;
         align-items: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         padding: 0 8px;
         border: 1px solid var(--team-badge-border, #d8e4ff);
         border-radius: 999px;
@@ -17144,7 +17156,7 @@
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
         imports: { title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." },
-        team: { title: "Team", subtitle: "Accounts, Rollen und Owner-Zuständigkeiten im Überblick." },
+        team: { title: "Team", subtitle: "Accounts, Rollen und Zuständigkeiten im Überblick." },
         settings: { title: "Einstellungen", subtitle: "Systemeinstellungen und Konfiguration." },
         profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." }
       };
@@ -17813,7 +17825,7 @@
               .map(({ team, accounts }, groupIndex) => `
                 <section class="team-section">
                   <div class="team-section-head">
-                    <span class="team-badge ${teamToneClass(team, groupIndex)}">${escapeHtml(team)}</span>
+                    <h4 class="team-section-title">${escapeHtml(team)}</h4>
                   </div>
                   <div class="team-section-accounts">
                     ${accounts
@@ -17827,6 +17839,7 @@
                     <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
                     <div class="team-account-copy">
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
+                      <span class="team-badge ${teamToneClass(team, groupIndex)}">${escapeHtml(team)}</span>
                     </div>
                     <div class="team-account-actions">
                       <div class="team-account-role">
