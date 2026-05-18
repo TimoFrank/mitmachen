@@ -3077,13 +3077,31 @@
   // ---- Markers ----
   const markerLayer = L.layerGroup().addTo(map);
 
-const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
-  const owners = Array.from(new Set(BASE_DATA.map(d => d.owner).filter(Boolean))).sort((a, b) => a.localeCompare(b, "de"));
-  const priorities = Array.from(new Set(BASE_DATA.map(d => d.priority).filter(Boolean))).sort((a, b) => {
-    const order = { Hoch: 0, Mittel: 1, Niedrig: 2, High: 0, Medium: 1, Low: 2 };
-    return (order[a] ?? 10) - (order[b] ?? 10) || a.localeCompare(b, "de");
-  });
   const states = STATE_LABELS.map((state) => state.name);
+  const priorityOrder = { Hoch: 0, Mittel: 1, Niedrig: 2, High: 0, Medium: 1, Low: 2 };
+
+  function mapSourceEntries(){
+    return EMBED_MODE ? currentEntries : BASE_DATA;
+  }
+
+  function uniqueSorted(values){
+    return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b, "de"));
+  }
+
+  function availableCategories(){
+    return uniqueSorted(mapSourceEntries().map((entry) => entry.category));
+  }
+
+  function availableOwners(){
+    return uniqueSorted(mapSourceEntries().map((entry) => entry.owner));
+  }
+
+  function availablePriorities(){
+    return uniqueSorted(mapSourceEntries().map((entry) => entry.priority)).sort((a, b) => {
+      return (priorityOrder[a] ?? 10) - (priorityOrder[b] ?? 10) || a.localeCompare(b, "de");
+    });
+  }
+
   let activeCategoryFilter = "";
   let activeOwnerFilter = "";
   let activePriorityFilter = "";
@@ -3234,8 +3252,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   }
 
   function filteredEntries(){
-    const source = EMBED_MODE ? currentEntries : BASE_DATA;
-    return source.filter(passes);
+    return mapSourceEntries().filter(passes);
   }
 
   function matchesQuery(entry){
@@ -3246,7 +3263,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   }
 
   function stateEntries(name){
-    return (EMBED_MODE ? currentEntries : BASE_DATA).filter((entry) => {
+    return mapSourceEntries().filter((entry) => {
       if (entry.state !== name) return false;
       if (activeCategoryFilter && entry.category !== activeCategoryFilter) return false;
       if (activeOwnerFilter && entry.owner !== activeOwnerFilter) return false;
@@ -3256,7 +3273,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   }
 
   function allStateEntriesCount(){
-    return (EMBED_MODE ? currentEntries : BASE_DATA).filter((entry) => (
+    return mapSourceEntries().filter((entry) => (
       (!activeCategoryFilter || entry.category === activeCategoryFilter) &&
       (!activeOwnerFilter || entry.owner === activeOwnerFilter) &&
       (!activePriorityFilter || entry.priority === activePriorityFilter) &&
@@ -3910,8 +3927,10 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   }
 
   function renderFilters(){
-    if (EMBED_MODE) return;
     elFilters.innerHTML = "";
+    const categories = availableCategories();
+    const owners = availableOwners();
+    const priorities = availablePriorities();
 
     const stateSelect = document.createElement('select');
     stateSelect.className = 'map-filter-select';
@@ -4253,10 +4272,8 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     fitMapToGermany();
   });
 
-  if (!EMBED_MODE) {
-    renderFilters();
-    renderStateFilterMenu();
-  }
+  renderFilters();
+  renderStateFilterMenu();
   setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
   map.on('zoomend moveend', () => {
     render();
@@ -4271,17 +4288,19 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     resetListPage();
     renderMapDetail(null);
     setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
+    renderFilters();
+    renderStateFilterMenu();
     render();
     map.invalidateSize();
   });
   window.addEventListener('load', () => {
-    if (!EMBED_MODE) {
-      activeCategoryFilter = "";
-      query = "";
-      elSearch.value = "";
-      renderFilters();
-      renderStateFilterMenu();
-    }
+    activeCategoryFilter = "";
+    activeOwnerFilter = "";
+    activePriorityFilter = "";
+    query = "";
+    elSearch.value = "";
+    renderFilters();
+    renderStateFilterMenu();
     setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
     render();
     map.invalidateSize();
