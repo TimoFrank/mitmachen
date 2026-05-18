@@ -11282,17 +11282,21 @@
       }
 
       .app-shell[data-active-view="contacts"] .controls,
-      .app-shell[data-active-view="organizations"] .controls {
+      .app-shell[data-active-view="organizations"] .controls,
+      .app-shell[data-active-view="map"] .controls {
         display: block;
       }
 
-      .app-shell[data-active-view="map"] .controls,
       .app-shell[data-active-view="analytics"] .controls,
       .app-shell[data-active-view="quality"] .controls,
       .app-shell[data-active-view="imports"] .controls,
       .app-shell[data-active-view="settings"] .controls,
       .app-shell[data-active-view="team"] .controls,
       .app-shell[data-active-view="profile"] .controls {
+        display: none;
+      }
+
+      .app-shell[data-active-view="map"] .filter-toolbar {
         display: none;
       }
 
