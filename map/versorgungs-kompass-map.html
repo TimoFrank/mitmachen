@@ -1956,6 +1956,10 @@
       border-left: 1px solid var(--border) !important;
     }
 
+    body.embed-mode .map-search-shell {
+      display: none;
+    }
+
     .map-toggle,
     .map-dropdown-item,
     .map-active-filter-chip {
@@ -2684,10 +2688,7 @@
         });
         layer.on('click', () => {
           const nextState = selectedState === name ? "" : name;
-          setSelectedState(nextState, { fitBounds: Boolean(nextState) });
-          if (!nextState) {
-            fitMapToGermany();
-          }
+          setSelectedState(nextState);
         });
       }
     });
@@ -2787,10 +2788,7 @@
         const total = countsByState[stateNameKey(feature.properties.name)] || 0;
         layer.on('click', () => {
           const nextState = selectedState === feature.properties.name ? "" : feature.properties.name;
-          setSelectedState(nextState, { fitBounds: Boolean(nextState) });
-          if (!nextState) {
-            fitMapToGermany();
-          }
+          setSelectedState(nextState);
         });
         layer.on('mouseover', () => {
           layer.setStyle({
@@ -3477,7 +3475,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       button.addEventListener('click', () => {
         const state = button.getAttribute('data-state') || "";
         resetListPage();
-        setSelectedState(state, { fitBounds: Boolean(state) });
+        setSelectedState(state);
         closeStateFilterMenu();
       });
     });

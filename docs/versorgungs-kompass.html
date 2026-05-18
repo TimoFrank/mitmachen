@@ -22538,8 +22538,10 @@
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
         searchInput.placeholder = isOrganizationsView
           ? "Organisationen suchen..."
+          : activeView === "map"
+            ? "Kontakte suchen"
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
-        if (searchShell) searchShell.hidden = activeView === "map" || activeView === "analytics";
+        if (searchShell) searchShell.hidden = activeView === "analytics";
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         archiveViewButton.hidden = !isContactsView;
