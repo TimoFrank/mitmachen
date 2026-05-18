@@ -11554,14 +11554,57 @@
       .team-section-head {
         display: flex;
         align-items: center;
-        justify-content: flex-start;
+        justify-content: space-between;
         gap: 10px;
         min-height: 32px;
+      }
+
+      .team-section-toggle {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text-primary);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .team-section-toggle:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 3px;
+        border-radius: var(--radius-sm);
+      }
+
+      .team-section-chevron {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        font-weight: 900;
+        line-height: 1;
+        transition: transform 0.16s ease;
+      }
+
+      .team-section.is-collapsed .team-section-chevron {
+        transform: rotate(-90deg);
       }
 
       .team-section-accounts {
         display: grid;
         gap: 8px;
+      }
+
+      .team-section-accounts[hidden] {
+        display: none;
       }
 
       .team-account-row {
@@ -15489,6 +15532,7 @@
       let legacyOwnerAssignments = new Map();
       let savedViews = [];
       let userSettings = null;
+      const collapsedTeams = new Set();
       let activeCareQueueKey = "";
       const selectedCareIds = new Set();
       const selectedContactIds = new Set();
@@ -17810,17 +17854,24 @@
           });
       }
 
+      function teamSectionId(index) {
+        return `team-section-accounts-${index}`;
+      }
+
       function renderTeamView() {
         if (!teamAccountList) return;
         const groups = groupedTeamProfiles();
         teamAccountList.innerHTML = groups.length
           ? groups
               .map(({ team, accounts }, groupIndex) => `
-                <section class="team-section">
+                <section class="team-section ${collapsedTeams.has(team) ? "is-collapsed" : ""}">
                   <div class="team-section-head">
-                    <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
+                    <button class="team-section-toggle" type="button" data-team-toggle="${escapeHtml(team)}" aria-expanded="${collapsedTeams.has(team) ? "false" : "true"}" aria-controls="${teamSectionId(groupIndex)}">
+                      <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
+                      <span class="team-section-chevron" aria-hidden="true">⌄</span>
+                    </button>
                   </div>
-                  <div class="team-section-accounts">
+                  <div class="team-section-accounts" id="${teamSectionId(groupIndex)}" ${collapsedTeams.has(team) ? "hidden" : ""}>
                     ${accounts
                       .map((profile) => {
                 const ownerContacts = ownerContactsForProfile(profile);
@@ -17872,6 +17923,14 @@
               `)
               .join("")
           : `<div class="saved-view-empty">Noch keine Accounts geladen.</div>`;
+        teamAccountList.querySelectorAll("[data-team-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const team = button.dataset.teamToggle || "";
+            if (collapsedTeams.has(team)) collapsedTeams.delete(team);
+            else collapsedTeams.add(team);
+            renderTeamView();
+          });
+        });
         teamAccountList.querySelectorAll("[data-team-owner-contact]").forEach((button) => {
           button.addEventListener("click", () => {
             setActiveView("contacts");
