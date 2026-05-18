@@ -2823,10 +2823,7 @@
   function stateLabelHtml(name, total = null, heat = false){
     const count = total && total > 0 ? `<span class="state-heat-count">${total}</span>` : "";
     const heatClass = heat ? " state-label-heat" : "";
-    const icon = heat
-      ? `<span class="state-label-icon" aria-hidden="true"><svg viewBox="0 0 12 12" width="10" height="10" xmlns="http://www.w3.org/2000/svg"><path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="rgba(159,38,34,0.9)"/><path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.82)"/></svg></span>`
-      : "";
-    return `<div class="label-anchor"><div class="state-label${heatClass}">${icon}${name}${count}</div></div>`;
+    return `<div class="label-anchor"><div class="state-label${heatClass}">${name}${count}</div></div>`;
   }
 
   function buildStateHeatLayer(entries = currentEntries){
@@ -2843,6 +2840,18 @@
     }, {});
 
     const max = Object.values(countsByState).reduce((acc, total) => Math.max(acc, total), 0);
+    STATE_LABELS.forEach((state) => {
+      L.marker([state.lat, state.lon], {
+        icon: L.divIcon({
+          className: '',
+          html: stateLabelHtml(state.name, null, true),
+          iconSize: null
+        }),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 250
+      }).addTo(stateHeatCountLayer);
+    });
 
     stateHeatLayer = L.geoJSON(STATE_POLYGONS, {
       style: (feature) => {
@@ -2858,8 +2867,7 @@
       },
       onEachFeature: (feature, layer) => {
         const total = countsByState[stateNameKey(feature.properties.name)] || 0;
-        const tooltipCount = total ? ` · ${total} ${total === 1 ? "Kontakt" : "Kontakte"}` : "";
-        layer.bindTooltip(`${feature.properties.name}${tooltipCount}`, {
+        layer.bindTooltip(`${total} ${total === 1 ? "Kontakt" : "Kontakte"}`, {
           className: "state-heat-tooltip",
           direction: "center",
           sticky: true,
@@ -2871,10 +2879,10 @@
         });
         layer.on('mouseover', () => {
           layer.setStyle({
-            weight: 3.1,
-            color: 'rgba(18,96,144,0.96)',
-            fillColor: total > 0 ? 'rgba(53,132,194,0.72)' : 'rgba(53,132,194,0.44)',
-            fillOpacity: total > 0 ? 0.78 : 0.44
+            weight: 3.4,
+            color: 'rgba(30,41,59,0.72)',
+            fillColor: heatColor(total, max),
+            fillOpacity: total > 0 ? 0.58 : 0.12
           });
           layer.openTooltip();
         });
@@ -2955,7 +2963,7 @@
     const labelLayers = [stateLabelLayer, majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer];
 
     if (heatMapActive) {
-      labelLayers.forEach((layer) => {
+      [majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer].forEach((layer) => {
         if (map.hasLayer(layer)) map.removeLayer(layer);
       });
       return;
