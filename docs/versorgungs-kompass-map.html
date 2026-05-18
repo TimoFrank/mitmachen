@@ -2654,7 +2654,7 @@
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd',
     maxZoom: MAP_MAX_ZOOM,
-    opacity: 0.48,
+    opacity: 0.58,
     attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
   }).addTo(map);
 
@@ -2682,22 +2682,45 @@
   const worldRing = [[-90,-180],[-90,180],[90,180],[90,-180]];
   const holes = germanyOuterRings(DE_GEOJSON);
 
-  // De-emphasize everything outside Germany; neighboring countries are not the working context.
+  // Keep neighboring countries as a soft orientation cue without making them the working context.
   const mask = L.polygon([worldRing, ...holes], {
     stroke: false,
-    fillColor: '#eef3fb',
-    fillOpacity: 0.84,
+    fillColor: '#f3f6fb',
+    fillOpacity: 0.58,
     interactive: false
   }).addTo(map);
 
   // Germany outline and soft surface emphasis.
   const germanyLayer = L.geoJSON(DE_GEOJSON, {
     style: {
-      color: 'rgba(23,39,95,0.24)',
-      weight: 1.1,
-      fillColor: 'rgba(255,255,255,0.38)',
-      fillOpacity: 0.18
+      color: 'rgba(23,39,95,0.30)',
+      weight: 1.15,
+      fillColor: 'rgba(238,244,255,0.78)',
+      fillOpacity: 0.34
     },
+    interactive: false
+  }).addTo(map);
+
+  const stateSurfacePalette = [
+    'rgba(21,95,228,0.055)',
+    'rgba(22,163,74,0.050)',
+    'rgba(124,58,237,0.047)',
+    'rgba(14,165,233,0.047)',
+    'rgba(245,158,11,0.040)'
+  ];
+
+  function stateSurfaceFill(name){
+    const seed = String(name || "").split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    return stateSurfacePalette[seed % stateSurfacePalette.length];
+  }
+
+  const stateSurfaceLayer = L.geoJSON(STATE_POLYGONS, {
+    style: (feature) => ({
+      color: 'rgba(23,39,95,0.16)',
+      weight: 0.8,
+      fillColor: stateSurfaceFill(feature.properties.name),
+      fillOpacity: 1
+    }),
     interactive: false
   }).addTo(map);
 
