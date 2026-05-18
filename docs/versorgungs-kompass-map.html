@@ -71,7 +71,7 @@
       background: var(--surface);
     }
     body.embed-mode .panel .body {
-      display: none;
+      display: block;
     }
     body.embed-mode .panel {
       border: 0;
@@ -215,20 +215,22 @@
     .map-controls {
       position: absolute;
       top: 14px;
-      left: 50%;
-      transform: translateX(-50%);
+      right: 14px;
       z-index: 1000;
       display: flex;
       align-items: center;
       flex-wrap: nowrap;
-      justify-content: center;
+      justify-content: flex-end;
       gap: 8px;
+    }
+    .map-controls > .map-dropdown {
+      display: none;
     }
     .map-menu-button {
       display: none;
     }
     .map-toggle {
-      min-width: 120px;
+      min-width: 106px;
       padding: 10px 14px;
       border-radius: 999px;
       border: 1px solid rgba(0,0,0,0.12);
@@ -313,8 +315,7 @@
     .map-active-filters {
       position: absolute;
       top: 64px;
-      left: 50%;
-      transform: translateX(-50%);
+      right: 14px;
       z-index: 995;
       display: none;
       align-items: center;
@@ -1562,10 +1563,10 @@
         bottom: 14px;
       }
       .map-controls {
-        left: 14px;
+        left: auto;
         right: 14px;
         transform: none;
-        justify-content: center;
+        justify-content: flex-end;
         flex-wrap: wrap;
       }
       .list {
@@ -1893,6 +1894,10 @@
 
       #heatmap-toggle {
         order: 2;
+      }
+
+      #cluster-toggle {
+        order: 3;
       }
 
       #map-reset-toggle {
@@ -3119,6 +3124,7 @@
   const elList = document.getElementById('list');
   const elMapPagination = document.getElementById('map-pagination');
   const elCount = document.getElementById('count');
+  const elContactModeToggle = document.getElementById('contact-mode-toggle');
   const elHeatMapToggle = document.getElementById('heatmap-toggle');
   const elClusterToggle = document.getElementById('cluster-toggle');
   const elMapResetToggle = document.getElementById('map-reset-toggle');
@@ -3926,6 +3932,15 @@
     elMapResetToggle.classList.toggle('map-toggle-active-home', hasState);
   }
 
+  function updateMapModeControls(){
+    elContactModeToggle?.classList.toggle('map-toggle-active-home', !heatMapActive && !clusterModeActive);
+    elContactModeToggle?.setAttribute('aria-pressed', (!heatMapActive && !clusterModeActive) ? 'true' : 'false');
+    elHeatMapToggle?.classList.toggle('map-toggle-active-heat', heatMapActive);
+    elHeatMapToggle?.setAttribute('aria-pressed', heatMapActive ? 'true' : 'false');
+    elClusterToggle?.classList.toggle('map-toggle-active-filter', clusterModeActive);
+    elClusterToggle?.setAttribute('aria-pressed', clusterModeActive ? 'true' : 'false');
+  }
+
   function renderFilters(){
     elFilters.innerHTML = "";
     const categories = availableCategories();
@@ -4167,6 +4182,7 @@
 
     renderList(filtered);
     updateMapResetButton();
+    updateMapModeControls();
     renderMapActiveFilters();
 
     const activePreview = filtered.find((entry) => entry.id === mobilePreviewContactId) || filtered.find((entry) => entry.id === activeMapContactId);
@@ -4241,17 +4257,23 @@
     }
   });
 
-  elHeatMapToggle.addEventListener('click', () => {
+  elContactModeToggle?.addEventListener('click', () => {
+    heatMapActive = false;
+    clusterModeActive = false;
+    closeMapMenu();
+    render();
+  });
+
+  elHeatMapToggle?.addEventListener('click', () => {
     heatMapActive = !heatMapActive;
-    elHeatMapToggle.classList.toggle('map-toggle-active-heat', heatMapActive);
+    if (heatMapActive) clusterModeActive = false;
     closeMapMenu();
     render();
   });
 
   elClusterToggle?.addEventListener('click', () => {
     clusterModeActive = !clusterModeActive;
-    elClusterToggle.classList.toggle('map-toggle-active-filter', clusterModeActive);
-    elClusterToggle.setAttribute('aria-pressed', clusterModeActive ? 'true' : 'false');
+    if (clusterModeActive) heatMapActive = false;
     closeMapMenu();
     render();
   });
