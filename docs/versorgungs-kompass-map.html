@@ -654,6 +654,24 @@
       font-size: 13px;
       line-height: 1;
     }
+    .map-filter-select {
+      min-width: 0;
+      max-width: 100%;
+      height: 32px;
+      border: 1px solid rgba(1,14,82,0.14);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.92);
+      color: rgba(0,0,0,0.68);
+      padding: 0 30px 0 11px;
+      font-size: 11px;
+      font-weight: 700;
+      outline: none;
+      box-shadow: none;
+    }
+    .map-filter-select:focus {
+      border-color: rgba(21,95,228,0.38);
+      box-shadow: 0 0 0 3px rgba(21,95,228,0.10);
+    }
     .swatch { width: 10px; height: 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.20); display: inline-block; }
     .btnrow { display:flex; gap: 8px; margin-top: 12px; }
     button {
@@ -694,6 +712,9 @@
     .item:hover { background: rgba(1,14,82,0.06); }
     .item-active {
       background: rgba(32,104,148,0.10);
+    }
+    .item-map-hover {
+      background: rgba(21,95,228,0.08);
     }
     .item-top {
       display: flex;
@@ -1489,6 +1510,29 @@
       width: 12px; height: 12px; border-radius: 999px;
       border: 2px solid rgba(255,255,255,0.95);
       box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+    }
+    .cat-marker-active {
+      transform: scale(1.45);
+      box-shadow: 0 0 0 5px rgba(21,95,228,0.18), 0 5px 12px rgba(16,46,110,0.26);
+    }
+    .map-cluster-marker {
+      min-width: 28px;
+      height: 28px;
+      padding: 0 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.92);
+      background: #17275f;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      box-shadow: 0 8px 18px rgba(16,46,110,0.22);
+    }
+    .map-cluster-active {
+      background: var(--primary);
+      box-shadow: 0 0 0 5px rgba(21,95,228,0.18), 0 10px 22px rgba(16,46,110,0.26);
     }
 
 
@@ -3074,10 +3118,18 @@
   const markerLayer = L.layerGroup().addTo(map);
 
 const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
+  const owners = Array.from(new Set(BASE_DATA.map(d => d.owner).filter(Boolean))).sort((a, b) => a.localeCompare(b, "de"));
+  const priorities = Array.from(new Set(BASE_DATA.map(d => d.priority).filter(Boolean))).sort((a, b) => {
+    const order = { Hoch: 0, Mittel: 1, Niedrig: 2, High: 0, Medium: 1, Low: 2 };
+    return (order[a] ?? 10) - (order[b] ?? 10) || a.localeCompare(b, "de");
+  });
   const states = STATE_LABELS.map((state) => state.name);
   let activeCategoryFilter = "";
+  let activeOwnerFilter = "";
+  let activePriorityFilter = "";
   let query = "";
   let activeMapContactId = "";
+  let mapMovedForActiveContact = false;
   let currentListPage = 1;
   const mobileListPageSize = 5;
 
@@ -3196,13 +3248,15 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   function fitMapToGermany(){
     const bounds = L.geoJSON(DE_GEOJSON).getBounds();
-    map.fitBounds(bounds.pad(0.02), { animate: true });
+    map.fitBounds(bounds.pad(0.2), { animate: true });
   }
 
   function passes(d){
     const q = normalize(query).trim();
     if (activeCategoryFilter && d.category !== activeCategoryFilter) return false;
     if (selectedState && d.state !== selectedState) return false;
+    if (activeOwnerFilter && d.owner !== activeOwnerFilter) return false;
+    if (activePriorityFilter && d.priority !== activePriorityFilter) return false;
     if (!q) return true;
     const hay = [
       d.name,
@@ -3233,12 +3287,19 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     return (EMBED_MODE ? currentEntries : BASE_DATA).filter((entry) => {
       if (entry.state !== name) return false;
       if (activeCategoryFilter && entry.category !== activeCategoryFilter) return false;
+      if (activeOwnerFilter && entry.owner !== activeOwnerFilter) return false;
+      if (activePriorityFilter && entry.priority !== activePriorityFilter) return false;
       return matchesQuery(entry);
     });
   }
 
   function allStateEntriesCount(){
-    return (EMBED_MODE ? currentEntries : BASE_DATA).filter((entry) => (!activeCategoryFilter || entry.category === activeCategoryFilter) && matchesQuery(entry)).length;
+    return (EMBED_MODE ? currentEntries : BASE_DATA).filter((entry) => (
+      (!activeCategoryFilter || entry.category === activeCategoryFilter) &&
+      (!activeOwnerFilter || entry.owner === activeOwnerFilter) &&
+      (!activePriorityFilter || entry.priority === activePriorityFilter) &&
+      matchesQuery(entry)
+    )).length;
   }
 
   function renderMapActiveFilters(){
@@ -3246,6 +3307,8 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     const chips = [];
     if (selectedState) chips.push({ key: 'state', label: selectedState });
     if (activeCategoryFilter) chips.push({ key: 'category', label: activeCategoryFilter });
+    if (activeOwnerFilter) chips.push({ key: 'owner', label: `Owner: ${activeOwnerFilter}` });
+    if (activePriorityFilter) chips.push({ key: 'priority', label: `Priorität: ${activePriorityFilter}` });
     if (query.trim()) chips.push({ key: 'query', label: `Suche: ${query.trim()}` });
 
     if (!chips.length) {
@@ -3275,6 +3338,14 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
           fitMapToGermany();
         } else if (key === 'category') {
           activeCategoryFilter = "";
+          renderFilters();
+          render();
+        } else if (key === 'owner') {
+          activeOwnerFilter = "";
+          renderFilters();
+          render();
+        } else if (key === 'priority') {
+          activePriorityFilter = "";
           renderFilters();
           render();
         } else if (key === 'query') {
@@ -3546,9 +3617,16 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     document.getElementById('map-detail-edit')?.addEventListener('click', () => openEntryDetail(entry));
     document.getElementById('map-detail-archive')?.addEventListener('click', () => openEntryDetail(entry));
     document.getElementById('map-detail-close')?.addEventListener('click', () => {
+      const shouldResetMap = mapMovedForActiveContact;
       activeMapContactId = "";
+      mapMovedForActiveContact = false;
       renderMapDetail(null);
+      render();
       renderList(filteredEntries());
+      if (shouldResetMap) {
+        if (selectedState) fitMapToState(selectedState);
+        else fitMapToGermany();
+      }
       updateMapResetButton();
     });
     elMapDetailPanel.querySelectorAll('[data-map-detail-tab]').forEach((button) => {
@@ -3604,12 +3682,54 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     const size = isMobileLayout() ? 10 : 12;
     const icon = L.divIcon({
       className: '',
-      html: `<div class="cat-marker" style="background:${color};"></div>`,
+      html: `<div class="cat-marker${activeMapContactId === d.id ? " cat-marker-active" : ""}" style="background:${color};"></div>`,
       iconSize: [size,size],
       iconAnchor: [size / 2,size / 2],
       popupAnchor: [0,-8]
     });
     return L.marker([d.lat, d.lon], { icon });
+  }
+
+  function clusterIcon(count, active = false){
+    return L.divIcon({
+      className: '',
+      html: `<div class="map-cluster-marker${active ? " map-cluster-active" : ""}">${count}</div>`,
+      iconSize: null,
+      iconAnchor: [14, 14]
+    });
+  }
+
+  function markerBuckets(entries){
+    if (heatMapActive) return [];
+    const zoom = map.getZoom();
+    const gridSize = zoom >= 10 ? 1 : (zoom >= 8 ? 34 : 46);
+    const buckets = new Map();
+
+    entries.forEach((entry) => {
+      const point = map.latLngToLayerPoint([entry.lat, entry.lon]);
+      const key = gridSize <= 1 ? entry.id : `${Math.round(point.x / gridSize)}:${Math.round(point.y / gridSize)}`;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(entry);
+    });
+
+    return Array.from(buckets.values());
+  }
+
+  function highlightMapContact(id, active){
+    markerIndex
+      .filter((entry) => entry.ids.includes(id))
+      .forEach(({ marker, ids }) => {
+        const element = marker.getElement();
+        if (!element) return;
+        element.querySelector('.cat-marker')?.classList.toggle('cat-marker-active', active);
+        element.querySelector('.map-cluster-marker')?.classList.toggle('map-cluster-active', active || ids.includes(activeMapContactId));
+      });
+  }
+
+  function fitMapToEntries(entries){
+    if (!entries.length) return;
+    const bounds = L.latLngBounds(entries.map((entry) => [entry.lat, entry.lon]));
+    map.fitBounds(bounds.pad(0.22), { animate: true, maxZoom: MAP_MAX_ZOOM });
   }
 
   function renderStateFilterMenu(){
@@ -3798,9 +3918,11 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     if (selectedState !== name) resetListPage();
     selectedState = name;
     activeMapContactId = "";
+    mapMovedForActiveContact = false;
     elStateFilterLabel.textContent = name || "Bundesländer";
     elStateViewFilterLabel.textContent = name || "Bundesländer";
     renderStateFilterMenu();
+    renderFilters();
     updateStateFilterToggle();
     elStateView.classList.remove('state-view-open');
     elStateView.setAttribute('aria-hidden', 'true');
@@ -3827,14 +3949,26 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   function renderFilters(){
     if (EMBED_MODE) return;
     elFilters.innerHTML = "";
+
+    const stateSelect = document.createElement('select');
+    stateSelect.className = 'map-filter-select';
+    stateSelect.setAttribute('aria-label', 'Bundesland filtern');
+    stateSelect.innerHTML = `<option value="">Bundesland: Alle</option>${states.map((state) => `<option value="${escapeHtml(state)}"${selectedState === state ? " selected" : ""}>${escapeHtml(state)}</option>`).join("")}`;
+    stateSelect.addEventListener('change', () => {
+      resetListPage();
+      setSelectedState(stateSelect.value);
+    });
+    elFilters.appendChild(stateSelect);
+
     const allButton = document.createElement('button');
     allButton.type = 'button';
     allButton.className = `category-chip${activeCategoryFilter ? "" : " active"}`;
     allButton.setAttribute('aria-pressed', activeCategoryFilter ? 'false' : 'true');
-    allButton.textContent = 'Alle';
+    allButton.textContent = 'Sektor: Alle';
     allButton.addEventListener('click', () => {
       activeCategoryFilter = "";
       resetListPage();
+      renderFilters();
       render();
     });
     elFilters.appendChild(allButton);
@@ -3849,16 +3983,40 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       button.addEventListener('click', () => {
         activeCategoryFilter = activeCategoryFilter === cat ? "" : cat;
         resetListPage();
+        renderFilters();
         render();
       });
       elFilters.appendChild(button);
     });
+
+    const ownerSelect = document.createElement('select');
+    ownerSelect.className = 'map-filter-select';
+    ownerSelect.setAttribute('aria-label', 'Owner filtern');
+    ownerSelect.innerHTML = `<option value="">Owner: Alle</option>${owners.map((owner) => `<option value="${escapeHtml(owner)}"${activeOwnerFilter === owner ? " selected" : ""}>${escapeHtml(owner)}</option>`).join("")}`;
+    ownerSelect.addEventListener('change', () => {
+      activeOwnerFilter = ownerSelect.value;
+      resetListPage();
+      render();
+    });
+    elFilters.appendChild(ownerSelect);
+
+    const prioritySelect = document.createElement('select');
+    prioritySelect.className = 'map-filter-select';
+    prioritySelect.setAttribute('aria-label', 'Priorität filtern');
+    prioritySelect.innerHTML = `<option value="">Priorität: Alle</option>${priorities.map((priority) => `<option value="${escapeHtml(priority)}"${activePriorityFilter === priority ? " selected" : ""}>${escapeHtml(priority)}</option>`).join("")}`;
+    prioritySelect.addEventListener('change', () => {
+      activePriorityFilter = prioritySelect.value;
+      resetListPage();
+      render();
+    });
+    elFilters.appendChild(prioritySelect);
   }
 
   let markerIndex = [];
 
   function focusMapContact(d, { fitState = true } = {}){
     activeMapContactId = d.id;
+    mapMovedForActiveContact = Boolean(fitState && !isMobileLayout() && d.state);
     const entries = filteredEntries();
     const activeIndex = entries.findIndex((entry) => entry.id === d.id);
     if (isMobileLayout() && activeIndex >= 0) {
@@ -3875,7 +4033,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
       renderMapDetail(d);
     }
     if (isMobileLayout()) setMobileSheetState('full');
-    renderList(entries);
+    render();
     if (isMobileLayout()) {
       requestAnimationFrame(() => {
         document.querySelector(`[data-map-contact-id="${CSS.escape(d.id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -3926,6 +4084,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
                         </div>`;
       item.addEventListener('click', () => {
         activeMapContactId = d.id;
+        mapMovedForActiveContact = false;
         if (isMobileLayout()) {
           renderMobilePreview(null);
           renderMapDetail(d);
@@ -3934,6 +4093,14 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
           return;
         }
         focusMapContact(d, { fitState: false });
+      });
+      item.addEventListener('mouseenter', () => {
+        item.classList.add('item-map-hover');
+        highlightMapContact(d.id, true);
+      });
+      item.addEventListener('mouseleave', () => {
+        item.classList.remove('item-map-hover');
+        highlightMapContact(d.id, false);
       });
       elList.appendChild(item);
     });
@@ -3969,20 +4136,37 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     const filtered = filteredEntries();
     if (activeMapContactId && !filtered.some((entry) => entry.id === activeMapContactId)) {
       activeMapContactId = "";
+      mapMovedForActiveContact = false;
       renderMapDetail(null);
     }
     renderStateFilterMenu();
     buildStateHeatLayer(filtered);
     refreshStateInteractionLayer();
 
-    filtered.forEach(d => {
-      const m = markerFor(d);
-      m.on('click', () => {
-        focusMapContact(d);
+    markerBuckets(filtered).forEach((bucket) => {
+      if (bucket.length === 1) {
+        const d = bucket[0];
+        const m = markerFor(d);
+        m.on('click', () => {
+          focusMapContact(d);
+        });
+        markerIndex.push({ marker: m, ids: [d.id], data: d });
+        if (!heatMapActive) {
+          markerLayer.addLayer(m);
+        }
+        return;
+      }
+
+      const active = bucket.some((entry) => entry.id === activeMapContactId);
+      const lat = bucket.reduce((sum, entry) => sum + entry.lat, 0) / bucket.length;
+      const lon = bucket.reduce((sum, entry) => sum + entry.lon, 0) / bucket.length;
+      const marker = L.marker([lat, lon], { icon: clusterIcon(bucket.length, active) });
+      marker.on('click', () => {
+        fitMapToEntries(bucket);
       });
-      markerIndex.push({ marker: m, data: d });
+      markerIndex.push({ marker, ids: bucket.map((entry) => entry.id), data: bucket[0], entries: bucket });
       if (!heatMapActive) {
-        markerLayer.addLayer(m);
+        markerLayer.addLayer(marker);
       }
     });
 
@@ -4103,6 +4287,9 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     renderStateFilterMenu();
   }
   setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
+  map.on('zoomend moveend', () => {
+    render();
+  });
   render();
   window.addEventListener("message", (event) => {
     if (!event.data || event.data.type !== "versorgungs-kompass-map-data") return;
