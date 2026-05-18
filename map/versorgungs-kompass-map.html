@@ -60,6 +60,12 @@
     body.embed-mode.has-map-detail .workspace {
       grid-template-columns: 380px minmax(0, 1fr) minmax(480px, 34vw);
     }
+    body.embed-mode .workspace.map-list-collapsed {
+      grid-template-columns: 52px minmax(0, 1fr);
+    }
+    body.embed-mode.has-map-detail .workspace.map-list-collapsed {
+      grid-template-columns: 52px minmax(0, 1fr) minmax(480px, 34vw);
+    }
     body.embed-mode .sidebar {
       border-right: 1px solid var(--border);
       background: var(--surface);
@@ -136,7 +142,14 @@
     .workspace.has-map-detail {
       grid-template-columns: 380px minmax(0, 1fr) minmax(480px, 34vw);
     }
+    .workspace.map-list-collapsed {
+      grid-template-columns: 52px minmax(0, 1fr);
+    }
+    .workspace.map-list-collapsed.has-map-detail {
+      grid-template-columns: 52px minmax(0, 1fr) minmax(480px, 34vw);
+    }
     .sidebar {
+      position: relative;
       height: 100%;
       min-height: 0;
       overflow: hidden;
@@ -538,13 +551,54 @@
       grid-template-rows: auto auto minmax(0, 1fr);
     }
     .panel .hdr {
-      display:flex; justify-content: space-between; align-items:center;
+      display:flex; justify-content: space-between; align-items:center; gap: 8px;
       padding: 14px 14px 10px;
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: rgba(27,95,125,0.78);
+    }
+    .map-list-toggle {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      padding: 0;
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: #f7f9ff;
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+    .map-list-toggle svg {
+      width: 16px;
+      height: 16px;
+      transition: transform 140ms ease;
+    }
+    .workspace.map-list-collapsed .panel {
+      display: block;
+    }
+    .workspace.map-list-collapsed .panel .hdr {
+      height: 100%;
+      padding: 10px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .workspace.map-list-collapsed .panel .hdr > div {
+      display: none;
+    }
+    .workspace.map-list-collapsed .map-list-toggle svg {
+      transform: rotate(180deg);
+    }
+    .workspace.map-list-collapsed .panel .body,
+    .workspace.map-list-collapsed .mobile-sheet-header,
+    .workspace.map-list-collapsed .mobile-map-preview,
+    .workspace.map-list-collapsed .list,
+    .workspace.map-list-collapsed .map-pagination {
+      display: none !important;
     }
     .mobile-sheet-header,
     .mobile-map-preview {
@@ -1614,6 +1668,9 @@
         padding: 14px 16px 6px;
         font-size: 10px;
       }
+      .map-list-toggle {
+        display: none;
+      }
       .mobile-sheet-header,
       .mobile-map-preview {
         display: block;
@@ -2392,6 +2449,11 @@
           <div class="hdr">
             <div>Versorgungs-Kontakte</div>
             <div class="muted"><span id="count"></span></div>
+            <button class="map-list-toggle" id="map-list-toggle" type="button" aria-label="Kontaktliste einklappen" aria-expanded="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6"></path>
+              </svg>
+            </button>
           </div>
           <button class="mobile-sheet-header" id="mobile-sheet-toggle" type="button" aria-label="Kontaktliste öffnen">
             <span class="mobile-sheet-grip" aria-hidden="true"></span>
@@ -2968,10 +3030,12 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   const elMapActiveFilters = document.getElementById('map-active-filters');
   const elWorkspace = document.querySelector('.workspace');
   const elMapDetailPanel = document.getElementById('map-detail-panel');
+  const elMapListToggle = document.getElementById('map-list-toggle');
 
   let mobileSheetState = 'collapsed';
   let mobilePreviewContactId = "";
   let mapDetailActiveTab = "overview";
+  let mapListCollapsed = false;
 
   function normalize(s){ return (s || "").toString().toLowerCase(); }
   function escapeHtml(value){
@@ -2990,6 +3054,18 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }
   function isMobileLayout(){ return window.matchMedia('(max-width: 760px)').matches; }
+
+  function setMapListCollapsed(collapsed){
+    mapListCollapsed = Boolean(collapsed) && !isMobileLayout();
+    elWorkspace?.classList.toggle('map-list-collapsed', mapListCollapsed);
+    elMapListToggle?.setAttribute('aria-expanded', mapListCollapsed ? 'false' : 'true');
+    elMapListToggle?.setAttribute('aria-label', mapListCollapsed ? 'Kontaktliste ausklappen' : 'Kontaktliste einklappen');
+    window.setTimeout(() => map.invalidateSize(), 160);
+  }
+
+  function toggleMapList(){
+    setMapListCollapsed(!mapListCollapsed);
+  }
 
   function closeMapMenu(){
     elMapControls?.classList.remove('map-controls-open');
@@ -3884,6 +3960,14 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   elMobileSheetToggle?.addEventListener('click', () => {
     cycleMobileSheetState();
+  });
+
+  elMapListToggle?.addEventListener('click', () => {
+    toggleMapList();
+  });
+
+  window.addEventListener('resize', () => {
+    if (isMobileLayout() && mapListCollapsed) setMapListCollapsed(false);
   });
 
   document.querySelector('.panel')?.addEventListener('pointerdown', (event) => {
