@@ -619,17 +619,34 @@
 
     .filters {
       margin-top: 14px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+    }
+    .map-filter-row {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+    .map-filter-row--sectors {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      align-items: center;
+    }
+    .map-filter-label {
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
     }
     .category-chip {
       appearance: none;
       -webkit-appearance: none;
       flex: 0 0 auto;
-      border: 1px solid rgba(1,14,82,0.14);
-      background: rgba(255,255,255,0.92);
-      color: rgba(0,0,0,0.68);
+      border: 1px solid var(--sector-color, rgba(1,14,82,0.14));
+      background: var(--sector-bg, rgba(255,255,255,0.92));
+      color: var(--sector-text, rgba(0,0,0,0.68));
       border-radius: 999px;
       padding: 8px 11px;
       font-size: 11px;
@@ -643,31 +660,38 @@
       box-shadow: none;
     }
     .category-chip:hover {
-      border-color: rgba(1,14,82,0.28);
-      color: #010E52;
+      border-color: var(--sector-color, rgba(1,14,82,0.28));
+      color: var(--sector-color, #010E52);
     }
     .category-chip.active {
-      background: #010E52;
+      background: var(--sector-color, #010E52);
       color: #fff;
-      border-color: #010E52;
+      border-color: var(--sector-color, #010E52);
+      box-shadow: 0 6px 14px var(--sector-shadow, rgba(1,14,82,0.18));
     }
     .category-chip-emoji {
       font-size: 13px;
       line-height: 1;
     }
     .map-filter-select {
+      appearance: none;
+      -webkit-appearance: none;
       min-width: 0;
       max-width: 100%;
-      height: 32px;
-      border: 1px solid rgba(1,14,82,0.14);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.92);
-      color: rgba(0,0,0,0.68);
-      padding: 0 30px 0 11px;
-      font-size: 11px;
-      font-weight: 700;
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background:
+        linear-gradient(45deg, transparent 50%, var(--text-muted) 50%) calc(100% - 18px) 16px / 6px 6px no-repeat,
+        linear-gradient(135deg, var(--text-muted) 50%, transparent 50%) calc(100% - 14px) 16px / 6px 6px no-repeat,
+        linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+      color: var(--text-primary);
+      padding: 0 34px 0 11px;
+      font-size: 12px;
+      font-weight: 800;
       outline: none;
-      box-shadow: none;
+      box-shadow: var(--shadow-sm);
     }
     .map-filter-select:focus {
       border-color: rgba(21,95,228,0.38);
@@ -1734,13 +1758,9 @@
         font-size: 15px;
       }
       .filters {
-        flex-wrap: nowrap;
-        overflow-x: auto;
+        overflow: visible;
         padding-bottom: 2px;
-        scrollbar-width: none;
-      }
-      .filters::-webkit-scrollbar {
-        display: none;
+        gap: 9px;
       }
       .list {
         height: auto;
@@ -1993,7 +2013,7 @@
       }
 
       .filters {
-        display: none;
+        display: grid;
       }
 
       .item {
@@ -3374,6 +3394,15 @@
     return `rgba(${r}, ${g}, ${b}, 0.12)`;
   }
 
+  function sectorShadow(color){
+    const hex = String(color || "#155fe4").replace("#", "");
+    if (hex.length !== 6) return "rgba(21, 95, 228, 0.18)";
+    const r = Number.parseInt(hex.slice(0, 2), 16);
+    const g = Number.parseInt(hex.slice(2, 4), 16);
+    const b = Number.parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.20)`;
+  }
+
   function avatarHtml(entry){
     if (entry.image) {
       return `<span class="item-avatar"><img src="${escapeHtml(entry.image)}" alt="" loading="eager" decoding="async" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(entry.name))}';"></span>`;
@@ -3947,6 +3976,9 @@
     const owners = availableOwners();
     const priorities = availablePriorities();
 
+    const stateRow = document.createElement('div');
+    stateRow.className = 'map-filter-row';
+    stateRow.innerHTML = `<span class="map-filter-label">Bundesland</span>`;
     const stateSelect = document.createElement('select');
     stateSelect.className = 'map-filter-select';
     stateSelect.setAttribute('aria-label', 'Bundesland filtern');
@@ -3955,12 +3987,19 @@
       resetListPage();
       setSelectedState(stateSelect.value);
     });
-    elFilters.appendChild(stateSelect);
+    stateRow.appendChild(stateSelect);
+    elFilters.appendChild(stateRow);
 
+    const sectorRow = document.createElement('div');
+    sectorRow.className = 'map-filter-row map-filter-row--sectors';
+    sectorRow.innerHTML = `<span class="map-filter-label">Sektor</span>`;
     const allButton = document.createElement('button');
     allButton.type = 'button';
     allButton.className = `category-chip${activeCategoryFilter ? "" : " active"}`;
     allButton.setAttribute('aria-pressed', activeCategoryFilter ? 'false' : 'true');
+    allButton.style.setProperty('--sector-color', '#010E52');
+    allButton.style.setProperty('--sector-bg', 'rgba(1,14,82,0.06)');
+    allButton.style.setProperty('--sector-shadow', 'rgba(1,14,82,0.18)');
     allButton.textContent = 'Sektor: Alle';
     allButton.addEventListener('click', () => {
       activeCategoryFilter = "";
@@ -3968,14 +4007,18 @@
       renderFilters();
       render();
     });
-    elFilters.appendChild(allButton);
+    sectorRow.appendChild(allButton);
 
     categories.forEach(cat => {
       const checked = activeCategoryFilter === cat;
+      const color = CATEGORY_COLORS[cat] || "#155fe4";
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `category-chip${checked ? " active" : ""}`;
       button.setAttribute('aria-pressed', checked ? 'true' : 'false');
+      button.style.setProperty('--sector-color', color);
+      button.style.setProperty('--sector-bg', sectorTint(color));
+      button.style.setProperty('--sector-shadow', sectorShadow(color));
       button.textContent = cat;
       button.addEventListener('click', () => {
         activeCategoryFilter = activeCategoryFilter === cat ? "" : cat;
@@ -3983,9 +4026,13 @@
         renderFilters();
         render();
       });
-      elFilters.appendChild(button);
+      sectorRow.appendChild(button);
     });
+    elFilters.appendChild(sectorRow);
 
+    const ownerRow = document.createElement('div');
+    ownerRow.className = 'map-filter-row';
+    ownerRow.innerHTML = `<span class="map-filter-label">Owner</span>`;
     const ownerSelect = document.createElement('select');
     ownerSelect.className = 'map-filter-select';
     ownerSelect.setAttribute('aria-label', 'Owner filtern');
@@ -3995,8 +4042,12 @@
       resetListPage();
       render();
     });
-    elFilters.appendChild(ownerSelect);
+    ownerRow.appendChild(ownerSelect);
+    elFilters.appendChild(ownerRow);
 
+    const priorityRow = document.createElement('div');
+    priorityRow.className = 'map-filter-row';
+    priorityRow.innerHTML = `<span class="map-filter-label">Priorität</span>`;
     const prioritySelect = document.createElement('select');
     prioritySelect.className = 'map-filter-select';
     prioritySelect.setAttribute('aria-label', 'Priorität filtern');
@@ -4006,7 +4057,8 @@
       resetListPage();
       render();
     });
-    elFilters.appendChild(prioritySelect);
+    priorityRow.appendChild(prioritySelect);
+    elFilters.appendChild(priorityRow);
   }
 
   let markerIndex = [];
