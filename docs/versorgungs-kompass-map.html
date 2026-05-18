@@ -2786,6 +2786,13 @@
       },
       onEachFeature: (feature, layer) => {
         const total = countsByState[stateNameKey(feature.properties.name)] || 0;
+        const tooltipCount = total ? ` · ${total} ${total === 1 ? "Kontakt" : "Kontakte"}` : "";
+        layer.bindTooltip(`${feature.properties.name}${tooltipCount}`, {
+          className: "state-heat-tooltip",
+          direction: "center",
+          sticky: true,
+          opacity: 1
+        });
         layer.on('click', () => {
           const nextState = selectedState === feature.properties.name ? "" : feature.properties.name;
           setSelectedState(nextState);
@@ -2797,22 +2804,12 @@
             fillColor: total > 0 ? 'rgba(53,132,194,0.72)' : 'rgba(53,132,194,0.44)',
             fillOpacity: total > 0 ? 0.78 : 0.44
           });
+          layer.openTooltip();
         });
         layer.on('mouseout', () => {
           stateHeatLayer.resetStyle(layer);
+          layer.closeTooltip();
         });
-        const labelPosition = stateLabelPosition(feature.properties.name);
-        if (!labelPosition) return;
-        L.marker(labelPosition, {
-          icon: L.divIcon({
-            className: '',
-            html: stateLabelHtml(feature.properties.name, total, true),
-            iconSize: null
-          }),
-          interactive: false,
-          keyboard: false,
-          zIndexOffset: 200
-        }).addTo(stateHeatCountLayer);
       }
     });
 
@@ -2883,9 +2880,17 @@
 
   function updateLabelVisibility(){
     const z = map.getZoom();
+    const labelLayers = [stateLabelLayer, majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer];
+
+    if (heatMapActive) {
+      labelLayers.forEach((layer) => {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      });
+      return;
+    }
 
     // State labels: only on far overview (keep very subtle)
-    if (!heatMapActive && z >= 5 && z <= 6) {
+    if (z >= 5 && z <= 6) {
       if (!map.hasLayer(stateLabelLayer)) map.addLayer(stateLabelLayer);
     } else {
       if (map.hasLayer(stateLabelLayer)) map.removeLayer(stateLabelLayer);
