@@ -2552,6 +2552,16 @@
               </span>
               <span>Verteilung</span>
             </button>
+            <button id="cluster-toggle" class="map-toggle" type="button" aria-pressed="false">
+              <span class="map-toggle-icon" aria-hidden="true">
+                <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="4" cy="4" r="1.8" fill="currentColor"/>
+                  <circle cx="8" cy="4.7" r="1.5" fill="currentColor" opacity="0.72"/>
+                  <circle cx="6.3" cy="8" r="1.7" fill="currentColor" opacity="0.84"/>
+                </svg>
+              </span>
+              <span>Cluster</span>
+            </button>
             <button id="map-reset-toggle" class="map-toggle" type="button" aria-label="Karte auf Deutschland zurücksetzen">
               <span class="map-toggle-icon" aria-hidden="true">
                 <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
@@ -3080,6 +3090,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   let query = "";
   let activeMapContactId = "";
   let mapMovedForActiveContact = false;
+  let clusterModeActive = false;
   let currentListPage = 1;
   const mobileListPageSize = 5;
 
@@ -3091,6 +3102,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   const elMapPagination = document.getElementById('map-pagination');
   const elCount = document.getElementById('count');
   const elHeatMapToggle = document.getElementById('heatmap-toggle');
+  const elClusterToggle = document.getElementById('cluster-toggle');
   const elMapResetToggle = document.getElementById('map-reset-toggle');
   const elMapResetLabel = document.getElementById('map-reset-label');
   const elStateFilterToggle = document.getElementById('state-filter-toggle');
@@ -3651,6 +3663,7 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
 
   function markerBuckets(entries){
     if (heatMapActive) return [];
+    if (!clusterModeActive) return entries.map((entry) => [entry]);
     const zoom = map.getZoom();
     const gridSize = zoom >= 10 ? 1 : (zoom >= 8 ? 34 : 46);
     const buckets = new Map();
@@ -4212,6 +4225,14 @@ const categories = Array.from(new Set(BASE_DATA.map(d => d.category))).sort();
   elHeatMapToggle.addEventListener('click', () => {
     heatMapActive = !heatMapActive;
     elHeatMapToggle.classList.toggle('map-toggle-active-heat', heatMapActive);
+    closeMapMenu();
+    render();
+  });
+
+  elClusterToggle?.addEventListener('click', () => {
+    clusterModeActive = !clusterModeActive;
+    elClusterToggle.classList.toggle('map-toggle-active-filter', clusterModeActive);
+    elClusterToggle.setAttribute('aria-pressed', clusterModeActive ? 'true' : 'false');
     closeMapMenu();
     render();
   });
