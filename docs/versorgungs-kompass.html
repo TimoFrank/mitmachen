@@ -11559,14 +11559,6 @@
         min-height: 32px;
       }
 
-      .team-section-title {
-        margin: 0;
-        color: var(--text-primary);
-        font-size: var(--font-size-sm);
-        font-weight: 900;
-        line-height: var(--line-height-tight);
-      }
-
       .team-section-accounts {
         display: grid;
         gap: 8px;
@@ -11606,7 +11598,7 @@
         grid-column: 2;
         grid-row: 1;
         display: grid;
-        gap: 8px;
+        gap: 5px;
         align-content: center;
         align-self: center;
         min-width: 0;
@@ -11655,10 +11647,6 @@
         color: var(--team-badge-text, var(--primary));
         font-size: var(--font-size-xs);
         font-weight: 900;
-      }
-
-      .team-account-copy .team-badge {
-        color: var(--team-badge-text, var(--primary));
       }
 
       .team-badge--0 {
@@ -11806,7 +11794,6 @@
           grid-row: 1;
           align-self: end;
           align-content: end;
-          gap: 7px;
         }
 
         .team-account-copy strong {
@@ -11890,7 +11877,7 @@
           grid-row: 1;
           align-self: end;
           align-content: end;
-          gap: 7px;
+          gap: 0;
         }
 
         .team-account-copy strong {
@@ -17831,7 +17818,7 @@
               .map(({ team, accounts }, groupIndex) => `
                 <section class="team-section">
                   <div class="team-section-head">
-                    <h4 class="team-section-title">${escapeHtml(team)}</h4>
+                    <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
                   </div>
                   <div class="team-section-accounts">
                     ${accounts
@@ -17845,7 +17832,6 @@
                     <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
                     <div class="team-account-copy">
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
-                      <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
                     </div>
                     <div class="team-account-actions">
                       <div class="team-account-role">
