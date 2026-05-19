@@ -13968,24 +13968,54 @@
       }
 
       .format-type-icon {
-        width: 56px;
-        height: 56px;
+        width: 62px;
+        height: 62px;
         display: inline-grid;
         place-items: center;
         border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
+        border-radius: 18px;
+        background: var(--primary-soft);
         color: var(--primary);
         flex: 0 0 auto;
       }
 
+      .format-type-icon--roundtable {
+        border-color: #ddd6fe;
+        background: #f5f3ff;
+        color: #6d28d9;
+      }
+
+      .format-type-icon--fachgespraech {
+        border-color: #99f6e4;
+        background: #f0fdfa;
+        color: #0f766e;
+      }
+
+      .format-type-icon--workshop {
+        border-color: #fecdd3;
+        background: #fff1f2;
+        color: #be123c;
+      }
+
+      .format-type-icon--veranstaltung {
+        border-color: #bfdbfe;
+        background: #eff6ff;
+        color: #1d4ed8;
+      }
+
+      .format-type-icon--diskussion {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        color: #475569;
+      }
+
       .format-type-icon svg {
-        width: 36px;
-        height: 36px;
+        width: 42px;
+        height: 42px;
         display: block;
         fill: none;
         stroke: currentColor;
-        stroke-width: 1.8;
+        stroke-width: 1.7;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
@@ -21792,40 +21822,50 @@
 
       function formatTypeIconMarkup(formatType = "") {
         const normalizedType = String(formatType || "").toLowerCase();
+        let tone = "diskussion";
         let paths = `
-          <circle cx="8" cy="8" r="3.2"></circle>
-          <circle cx="16" cy="8" r="3.2"></circle>
-          <path d="M4.5 18c.9-3 2.9-4.5 5.5-4.5M14 13.5c2.6 0 4.6 1.5 5.5 4.5"></path>
-          <path d="M8 18h8"></path>
+          <path d="M5.5 8.2h7.2a3.2 3.2 0 0 1 0 6.4H10l-4 3.1v-3.1h-.5a3.2 3.2 0 0 1 0-6.4Z"></path>
+          <path d="M13.2 6.5h5.1a3 3 0 0 1 0 6h-.4v2.7l-3.2-2.7h-1.2"></path>
+          <path d="M8 11.2h3.5M15.6 9.5h2.1"></path>
         `;
         if (normalizedType.includes("roundtable")) {
+          tone = "roundtable";
           paths = `
-            <ellipse cx="12" cy="12" rx="5.8" ry="3.9"></ellipse>
-            <circle cx="12" cy="3.8" r="1.8"></circle>
-            <circle cx="20.2" cy="12" r="1.8"></circle>
-            <circle cx="12" cy="20.2" r="1.8"></circle>
-            <circle cx="3.8" cy="12" r="1.8"></circle>
+            <circle cx="12" cy="12" r="5.4"></circle>
+            <path d="M9.2 12h5.6M12 9.2v5.6"></path>
+            <path d="M12 3.5c2.9 0 5.6 1.1 7.6 3.1M20.5 12c0 2.8-1.3 5.3-3.3 6.9M12 20.5a8.4 8.4 0 0 1-7.6-4.8M3.5 12c0-2.9 1.4-5.4 3.6-7"></path>
+            <circle cx="12" cy="3.5" r="1.45"></circle>
+            <circle cx="20.5" cy="12" r="1.45"></circle>
+            <circle cx="12" cy="20.5" r="1.45"></circle>
+            <circle cx="3.5" cy="12" r="1.45"></circle>
           `;
         } else if (normalizedType.includes("fach")) {
+          tone = "fachgespraech";
           paths = `
-            <path d="M5 6.5h9.5a3.5 3.5 0 0 1 0 7H10l-4 3.2v-3.2H5a3.5 3.5 0 0 1 0-7Z"></path>
-            <path d="M14 10.5h2.5a3 3 0 0 1 0 6H16l-2.8 2.2v-2.2h-1.1"></path>
+            <path d="M5.2 7h9.5a3.8 3.8 0 0 1 0 7.6h-3.2L6.2 18v-3.4h-1A3.8 3.8 0 0 1 5.2 7Z"></path>
+            <path d="M13.4 10.8h5.2a2.9 2.9 0 0 1 0 5.8h-.7v2.7l-3.2-2.7h-1.6"></path>
+            <path d="M8 10.6h4.7M8 13h2.4"></path>
           `;
         } else if (normalizedType.includes("workshop")) {
+          tone = "workshop";
           paths = `
-            <path d="M5 5h14v9H5z"></path>
-            <path d="M8 18h8M12 14v4"></path>
-            <path d="M8 8.2h8M8 11h4"></path>
+            <path d="M5 5.8h14v9.4H5z"></path>
+            <path d="M8 18.5h8M12 15.2v3.3"></path>
+            <path d="M8 8.8h3.6M8 11.6h6.8"></path>
+            <path d="m17.4 7.4.45 1.05 1.05.45-1.05.45-.45 1.05-.45-1.05-1.05-.45 1.05-.45Z"></path>
+            <path d="M7.1 19.4 5.5 21M16.9 19.4l1.6 1.6"></path>
           `;
         } else if (normalizedType.includes("veranstaltung")) {
+          tone = "veranstaltung";
           paths = `
-            <rect x="5" y="6" width="14" height="13" rx="2.2"></rect>
-            <path d="M8 4v4M16 4v4M5 10h14"></path>
-            <path d="M8.5 13.5h2M13.5 13.5h2M8.5 16.5h2"></path>
+            <path d="M6 6.5h12a2 2 0 0 1 2 2V18H4V8.5a2 2 0 0 1 2-2Z"></path>
+            <path d="M8 4v4M16 4v4M4 10.2h16"></path>
+            <path d="M8 15.5c1.5-1.7 2.8-2.5 4-2.5s2.5.8 4 2.5"></path>
+            <path d="M8.5 18h7"></path>
           `;
         }
         return `
-          <span class="format-type-icon" aria-hidden="true">
+          <span class="format-type-icon format-type-icon--${tone}" aria-hidden="true">
             <svg viewBox="0 0 24 24">${paths}</svg>
           </span>
         `;
