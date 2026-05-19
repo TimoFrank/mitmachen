@@ -13877,7 +13877,7 @@
 
       .format-detail-title-main {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
         align-items: center;
         gap: 10px;
         min-width: 0;
@@ -13946,6 +13946,10 @@
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
+      }
+
+      .format-detail-actions {
+        justify-content: flex-end;
       }
 
       .format-detail-admin-actions {
@@ -21875,7 +21879,6 @@
                         ${formatTypeIconMarkup(format.formatType)}
                         <h3>${escapeHtml(format.title)}</h3>
                         ${formatTypeBadgeMarkup(format.formatType)}
-                        ${formatStatusBadgeMarkup(format.status)}
                         <span class="format-participant-count" aria-label="${(format.participants || []).length} Teilnehmer">
                           <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -21888,6 +21891,7 @@
                       </div>
                     </div>
                     <div class="format-detail-actions">
+                      ${formatStatusBadgeMarkup(format.status)}
                       <button class="action-button format-detail-toggle" type="button" data-toggle-format-detail="${escapeHtml(format.id)}" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                           <path d="m6 9 6 6 6-6"></path>
