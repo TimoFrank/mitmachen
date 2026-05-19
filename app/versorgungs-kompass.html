@@ -1557,15 +1557,19 @@
       }
 
       .summary.summary--compact {
-        grid-template-columns: minmax(170px, max-content);
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(150px, max-content);
+        grid-template-columns: none;
         gap: 10px;
         padding: 0;
         align-self: center;
         width: auto;
+        max-width: 100%;
+        overflow-x: auto;
       }
 
       .summary.summary--compact .summary-card {
-        min-width: 170px;
+        min-width: 150px;
         min-height: 52px;
         padding: 7px 10px;
         border-radius: 8px;
