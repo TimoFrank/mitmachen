@@ -14257,6 +14257,32 @@
         overflow-wrap: anywhere;
       }
 
+      .format-fact-control {
+        width: 100%;
+        min-height: 36px;
+        margin-top: 6px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 760;
+        padding: 7px 9px;
+      }
+
+      .format-fact-control:focus-visible {
+        border-color: var(--primary);
+        box-shadow: var(--focus-ring);
+        outline: none;
+      }
+
+      .format-fact-date-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
       .format-notes-box {
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
@@ -21379,6 +21405,36 @@
         `;
       }
 
+      function renderFormatFact(label, content) {
+        return `<div class="format-fact"><span>${escapeHtml(label)}</span>${content}</div>`;
+      }
+
+      function renderFormatBasisFacts(format) {
+        if (!canEditContacts()) {
+          return `
+            ${renderFormatFact("Typ", `<strong>${escapeHtml(format.formatType || "Nicht hinterlegt")}</strong>`)}
+            ${renderFormatFact("Datum", `<strong>${escapeHtml(formatDateRange(format))}</strong>`)}
+            ${renderFormatFact("Ort / Online", `<strong>${escapeHtml(format.location || "Ort offen")}</strong>`)}
+            ${renderFormatFact("Owner", `<strong>${escapeHtml(ownerDisplayLabel(format.ownerId || format.owner) || "Nicht zugewiesen")}</strong>`)}
+            ${renderFormatFact("Status", `<strong>${escapeHtml(format.status || "Planung")}</strong>`)}
+            ${renderFormatFact("Teilnehmer", `<strong>${(format.participants || []).length}</strong>`)}
+          `;
+        }
+        return `
+          ${renderFormatFact("Typ", `<select class="format-fact-control" data-format-inline-field="formatType" aria-label="Formattyp">${formatOptionMarkup(formatTypeOptions, format.formatType || "Roundtable")}</select>`)}
+          ${renderFormatFact("Datum", `
+            <div class="format-fact-date-row">
+              <input class="format-fact-control" data-format-inline-field="startsAt" aria-label="Startdatum" type="date" value="${escapeHtml(String(format.startsAt || "").slice(0, 10))}" />
+              <input class="format-fact-control" data-format-inline-field="endsAt" aria-label="Enddatum" type="date" value="${escapeHtml(String(format.endsAt || "").slice(0, 10))}" />
+            </div>
+          `)}
+          ${renderFormatFact("Ort / Online", `<input class="format-fact-control" data-format-inline-field="location" aria-label="Ort oder Online-Hinweis" value="${escapeHtml(format.location || "")}" placeholder="Ort offen" />`)}
+          ${renderFormatFact("Owner", `<select class="format-fact-control" data-format-inline-field="ownerId" aria-label="Owner">${buildOwnerSelectOptions(format.ownerId || format.owner || "")}</select>`)}
+          ${renderFormatFact("Status", `<select class="format-fact-control" data-format-inline-field="status" aria-label="Formatstatus">${formatOptionMarkup(formatStatusOptions, format.status || "Planung")}</select>`)}
+          ${renderFormatFact("Teilnehmer", `<strong>${(format.participants || []).length}</strong>`)}
+        `;
+      }
+
       function renderFormatOverviewTab(format) {
         return `
           <div class="format-tab-panel" role="tabpanel">
@@ -21391,12 +21447,7 @@
                 </div>
               </div>
               <div class="format-facts-grid">
-                <div class="format-fact"><span>Typ</span><strong>${escapeHtml(format.formatType || "Nicht hinterlegt")}</strong></div>
-                <div class="format-fact"><span>Datum</span><strong>${escapeHtml(formatDateRange(format))}</strong></div>
-                <div class="format-fact"><span>Ort / Online</span><strong>${escapeHtml(format.location || "Ort offen")}</strong></div>
-                <div class="format-fact"><span>Owner</span><strong>${escapeHtml(ownerDisplayLabel(format.ownerId || format.owner) || "Nicht zugewiesen")}</strong></div>
-                <div class="format-fact"><span>Status</span><strong>${escapeHtml(format.status || "Planung")}</strong></div>
-                <div class="format-fact"><span>Teilnehmer</span><strong>${(format.participants || []).length}</strong></div>
+                ${renderFormatBasisFacts(format)}
               </div>
             </section>
           </div>
@@ -21863,6 +21914,25 @@
       function bindFormatDetail() {
         const format = activeFormat();
         if (!format) return;
+        const saveFormatInlineField = async (field) => {
+          const key = field?.dataset.formatInlineField;
+          if (!key || !canEditContacts()) return;
+          const value = field.value;
+          const currentValue = key === "startsAt" || key === "endsAt"
+            ? String(format[key] || "").slice(0, 10)
+            : String(format[key] || "");
+          if (value === currentValue) return;
+          try {
+            const updated = await window.dataService.updateFormat(format.id, { [key]: value });
+            replaceFormat(updated);
+            setStorageStatus("Format aktualisiert");
+            renderFormatsView();
+          } catch (error) {
+            console.error("Format-Basisdaten konnten nicht gespeichert werden.", error);
+            window.alert("Die Basisdaten konnten nicht gespeichert werden.");
+            renderFormatsView();
+          }
+        };
         const updateInvitationStatus = async (contactId, invitationStatus) => {
           if (!contactId || !invitationStatus || !canEditContacts()) return;
           try {
@@ -21896,6 +21966,18 @@
             if (formatDetailExpanded) formatActiveTab = "overview";
             renderFormatsView();
           });
+        });
+        formatDetailPanel.querySelectorAll("[data-format-inline-field]").forEach((field) => {
+          if (field.tagName === "SELECT" || field.type === "date") {
+            field.addEventListener("change", () => saveFormatInlineField(field));
+          } else {
+            field.addEventListener("blur", () => saveFormatInlineField(field));
+            field.addEventListener("keydown", (event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              field.blur();
+            });
+          }
         });
         formatDetailPanel.querySelectorAll("[data-edit-format]").forEach((button) => {
           button.addEventListener("click", () => {
