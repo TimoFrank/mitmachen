@@ -14271,12 +14271,6 @@
         outline: none;
       }
 
-      .format-fact-date-row {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
-      }
-
       .format-fact-select-shell {
         margin-top: 6px;
       }
@@ -21258,10 +21252,17 @@
       }
 
       function formatDateRange(format) {
-        const start = formatDateLabel(format.startsAt);
-        const end = formatDateLabel(format.endsAt);
-        if (start && end && start !== end) return `${start} bis ${end}`;
-        return start || end || "Datum offen";
+        const date = formatDateLabel(format.startsAt || format.endsAt);
+        return date || "Datum offen";
+      }
+
+      function formatDateInputValue(format) {
+        return String(format?.startsAt || format?.endsAt || "").slice(0, 10);
+      }
+
+      function normalizeFormatDateInput(value) {
+        const date = String(value || "").trim();
+        return date ? `${date}T00:00:00.000Z` : "";
       }
 
       function formatOptionMarkup(options, selectedValue) {
@@ -21308,12 +21309,8 @@
               </div>
               <div class="format-editor-grid">
                 <div class="format-editor-field">
-                  <label for="format-starts-at">Start</label>
-                  <input id="format-starts-at" name="startsAt" type="date" value="${escapeHtml(String(format?.startsAt || "").slice(0, 10))}" />
-                </div>
-                <div class="format-editor-field">
-                  <label for="format-ends-at">Ende</label>
-                  <input id="format-ends-at" name="endsAt" type="date" value="${escapeHtml(String(format?.endsAt || "").slice(0, 10))}" />
+                  <label for="format-date">Datum</label>
+                  <input id="format-date" name="formatDate" type="date" value="${escapeHtml(formatDateInputValue(format))}" />
                 </div>
                 <div class="format-editor-field">
                   <label for="format-location">Ort / Online</label>
@@ -21604,12 +21601,7 @@
         }
         return `
           ${renderFormatFact("Typ", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-type"><select class="editor-select" data-format-inline-field="formatType" aria-label="Formattyp">${formatOptionMarkup(formatTypeOptions, format.formatType || "Roundtable")}</select></div>`)}
-          ${renderFormatFact("Datum", `
-            <div class="format-fact-date-row">
-              <input class="format-fact-control" data-format-inline-field="startsAt" aria-label="Startdatum" type="date" value="${escapeHtml(String(format.startsAt || "").slice(0, 10))}" />
-              <input class="format-fact-control" data-format-inline-field="endsAt" aria-label="Enddatum" type="date" value="${escapeHtml(String(format.endsAt || "").slice(0, 10))}" />
-            </div>
-          `)}
+          ${renderFormatFact("Datum", `<input class="format-fact-control" data-format-inline-field="formatDate" aria-label="Datum" type="date" value="${escapeHtml(formatDateInputValue(format))}" />`)}
           ${renderFormatFact("Ort / Online", `<input class="format-fact-control" data-format-inline-field="location" aria-label="Ort oder Online-Hinweis" value="${escapeHtml(format.location || "")}" placeholder="Ort offen" />`)}
           ${renderFormatFact("Owner", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-owner"><select class="editor-select" data-format-inline-field="ownerId" aria-label="Owner">${buildOwnerSelectOptions(format.ownerId || format.owner || "")}</select></div>`)}
           ${renderFormatFact("Status", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-status"><select class="editor-select" data-format-inline-field="status" aria-label="Formatstatus">${formatOptionMarkup(formatStatusOptions, format.status || "Planung")}</select></div>`)}
@@ -21874,13 +21866,12 @@
 
       function formatEditorPayload(form) {
         const data = new FormData(form);
-        const startsAt = String(data.get("startsAt") || "").trim();
-        const endsAt = String(data.get("endsAt") || "").trim();
+        const formatDate = normalizeFormatDateInput(data.get("formatDate"));
         return {
           title: String(data.get("title") || "").trim(),
           formatType: String(data.get("formatType") || "Roundtable").trim(),
-          startsAt: startsAt ? `${startsAt}T00:00:00.000Z` : "",
-          endsAt: endsAt ? `${endsAt}T00:00:00.000Z` : "",
+          startsAt: formatDate,
+          endsAt: formatDate,
           location: String(data.get("location") || "").trim(),
           ownerId: String(data.get("ownerId") || "").trim(),
           status: String(data.get("status") || "Planung").trim(),
@@ -22176,12 +22167,17 @@
           const key = field?.dataset.formatInlineField;
           if (!key || !canEditContacts()) return;
           const value = field.value;
-          const currentValue = key === "startsAt" || key === "endsAt"
-            ? String(format[key] || "").slice(0, 10)
+          let patch = { [key]: value };
+          const currentValue = key === "formatDate"
+            ? formatDateInputValue(format)
             : String(format[key] || "");
           if (value === currentValue) return;
+          if (key === "formatDate") {
+            const normalizedDate = normalizeFormatDateInput(value);
+            patch = { startsAt: normalizedDate, endsAt: normalizedDate };
+          }
           try {
-            const updated = await window.dataService.updateFormat(format.id, { [key]: value });
+            const updated = await window.dataService.updateFormat(format.id, patch);
             replaceFormat(updated);
             setStorageStatus("Format aktualisiert");
             renderFormatsView();
