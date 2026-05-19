@@ -11588,31 +11588,7 @@
       }
 
       .about-intro {
-        display: grid;
-        grid-template-columns: 58px minmax(0, 1fr);
-        gap: 16px;
-        align-items: start;
         padding: 18px;
-      }
-
-      .about-intro__icon,
-      .about-version__icon {
-        display: grid;
-        place-items: center;
-        border-radius: var(--radius-md);
-        background: var(--primary-soft);
-        color: var(--primary);
-      }
-
-      .about-intro__icon {
-        width: 58px;
-        height: 58px;
-      }
-
-      .about-intro__icon svg,
-      .about-version__icon svg {
-        width: 26px;
-        height: 26px;
       }
 
       .about-intro h3,
@@ -11635,13 +11611,13 @@
 
       .about-intro__highlight {
         margin-top: 12px;
-        padding: 12px 14px;
+        padding: 14px 16px;
         border: 1px solid var(--border-strong);
         border-radius: var(--radius-md);
         background: var(--primary-soft);
-        color: var(--text-primary);
+        color: var(--primary);
         font-size: var(--font-size-sm);
-        font-weight: 800;
+        font-weight: 900;
         line-height: var(--line-height-normal);
       }
 
@@ -11658,7 +11634,7 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
-        align-items: center;
+        align-items: start;
         padding: 14px 16px;
         cursor: pointer;
         list-style: none;
@@ -11675,23 +11651,12 @@
 
       .about-version__title {
         display: grid;
+        gap: 7px;
         min-width: 0;
       }
 
-      .about-version__title strong {
-        color: var(--text-primary);
-        font-size: var(--font-size-md);
-        line-height: var(--line-height-tight);
-      }
-
-      .about-version__actions {
-        display: inline-flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 9px;
-      }
-
       .about-version__badge {
+        width: max-content;
         min-width: 46px;
         display: inline-flex;
         align-items: center;
@@ -11704,6 +11669,18 @@
         font-size: var(--font-size-xs);
         font-weight: 900;
         line-height: 1;
+      }
+
+      .about-version__title strong {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        line-height: var(--line-height-tight);
+      }
+
+      .about-version__actions {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
       }
 
       .about-version__chevron {
@@ -14293,17 +14270,10 @@
           <section class="view-panel" id="view-about" data-view-panel="about">
             <div class="about-workspace">
               <section class="about-intro">
-                <div class="about-intro__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
-                    <path d="M9 3v15"></path>
-                    <path d="M15 6v15"></path>
-                  </svg>
-                </div>
                 <div>
                   <h3>Versorgungs-Kompass</h3>
-                  <p>Der Versorgungs-Kompass bündelt Kontakte, Organisationen, Karte, Auswertung, Datenpflege und Import in einer ruhigen CRM-Oberfläche für das gematik-Hospitationsnetzwerk.</p>
-                  <div class="about-intro__highlight">Kurz gesagt: weniger Suchen, klarere Zuständigkeiten und ein gemeinsamer Blick auf das Versorgungsnetzwerk.</div>
+                  <div class="about-intro__highlight">Ein gemeinsamer Blick auf Kontakte, Organisationen und regionale Versorgung - klar strukturiert, schnell filterbar und bereit für echte Netzwerkarbeit.</div>
+                  <p>Der Versorgungs-Kompass bündelt CRM, Karte, Auswertung, Datenpflege und Import in einer ruhigen Arbeitsoberfläche für das gematik-Hospitationsnetzwerk.</p>
                 </div>
               </section>
               <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
@@ -17476,6 +17446,7 @@
       const appVersionHistory = [
         {
           version: "0.5.0",
+          date: "19. Mai 2026",
           title: "Kontaktrollen und Karten-Datenbasis",
           icon: "role",
           summary: "Kontakte lassen sich genauer einordnen, und die Karte zeigt verlässlicher den aktuellen Kontaktbestand.",
@@ -17487,6 +17458,7 @@
         },
         {
           version: "0.4.0",
+          date: "18. Mai 2026",
           title: "Reifer Kartenmodus",
           icon: "map",
           summary: "Die Karte wurde von einer Zusatzansicht zu einem klaren Orientierungsbereich ausgebaut.",
@@ -17498,6 +17470,7 @@
         },
         {
           version: "0.3.0",
+          date: "17. Mai 2026",
           title: "CRM-App mit Supabase, Profilen und Teamfunktionen",
           icon: "database",
           summary: "Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zentralem Datenstand.",
@@ -17509,6 +17482,7 @@
         },
         {
           version: "0.2.0",
+          date: "14. Mai 2026",
           title: "CRM-Grundfunktionen und Mobile-Unterstützung",
           icon: "mobile",
           summary: "Die wichtigsten CRM-Arbeitsabläufe wurden geordnet und für kleinere Bildschirme verbessert.",
@@ -17520,6 +17494,7 @@
         },
         {
           version: "0.1.0",
+          date: "8. Mai 2026",
           title: "Erste nutzbare Basis",
           icon: "start",
           summary: "Die erste Version stellte die Grundlage für Kontaktarbeit, Karte und Veröffentlichung bereit.",
@@ -20084,10 +20059,10 @@
               <details class="about-version" ${index === 0 ? "open" : ""}>
                 <summary>
                   <span class="about-version__title">
+                    <span class="about-version__badge">${escapeHtml(compactVersion(release.version))}</span>
                     <strong>${escapeHtml(release.title)}</strong>
                   </span>
                   <span class="about-version__actions">
-                    <span class="about-version__badge">v${escapeHtml(compactVersion(release.version))}</span>
                     <span class="about-version__chevron" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="m6 9 6 6 6-6"></path>
@@ -20096,6 +20071,7 @@
                   </span>
                 </summary>
                 <div class="about-version__body">
+                  <p><em>${escapeHtml(release.date)}</em></p>
                   <p>${escapeHtml(release.summary)}</p>
                   <ul>
                     ${release.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
