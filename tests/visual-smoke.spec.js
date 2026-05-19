@@ -157,6 +157,11 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".participant-card .avatar-lg")).toBeVisible();
   await expect(page.locator(".participant-card .contact-sector-pill")).toBeVisible();
   await expect(page.locator('[data-format-tab="composition"]')).toHaveCount(0);
+  await page.locator('[data-open-format-contact="demo-contact-01"]').first().click();
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "formats");
+  await page.locator("#detail-close").click();
+  await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator(".format-diversity-board")).toHaveCount(0);
   await page.locator('[data-format-tab="invitationStatus"]').click();
   await expect(page.locator(".invitation-status-board")).toBeVisible();

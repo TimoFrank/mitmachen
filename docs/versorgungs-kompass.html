@@ -21428,11 +21428,9 @@
         });
         formatDetailPanel.querySelectorAll("[data-open-format-contact]").forEach((button) => {
           button.addEventListener("click", () => {
-            activeId = button.dataset.openFormatContact;
-            setActiveView("contacts");
-            updateRouteHash("contacts");
-            updateView();
-            openDetail(activeId, contacts);
+            const contactId = button.dataset.openFormatContact;
+            const formatContacts = formatParticipantContacts(format).map(({ contact }) => contact);
+            openDetail(contactId, formatContacts);
           });
         });
         document.getElementById("edit-format-button")?.addEventListener("click", () => {
