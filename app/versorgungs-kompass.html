@@ -13878,6 +13878,45 @@
         flex-wrap: wrap;
       }
 
+      .format-tabs {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+      }
+
+      .format-tab {
+        flex: 0 0 auto;
+        min-height: 40px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.9rem;
+        font-weight: 800;
+        padding: 10px 12px;
+      }
+
+      .format-tab:hover,
+      .format-tab:focus-visible {
+        color: var(--text);
+        outline: none;
+      }
+
+      .format-tab.is-active {
+        border-bottom-color: var(--primary);
+        color: var(--primary);
+      }
+
+      .format-tab-panel {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+      }
+
       .format-metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -13926,6 +13965,56 @@
         margin: 0;
         color: var(--text-muted);
         font-size: 0.86rem;
+      }
+
+      .format-facts-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .format-fact {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        padding: 10px;
+        min-width: 0;
+      }
+
+      .format-fact span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.74rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .format-fact strong {
+        display: block;
+        margin-top: 4px;
+        color: var(--text);
+        font-size: 0.92rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .format-notes-box {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        color: var(--text);
+        line-height: 1.5;
+        padding: 12px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .format-export-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
       }
 
       .format-diversity-board {
@@ -14309,7 +14398,8 @@
 
         .format-diversity-board,
         .format-participant-filter-grid,
-        .format-composition-grid {
+        .format-composition-grid,
+        .format-facts-grid {
           grid-template-columns: 1fr;
         }
 
@@ -14324,6 +14414,24 @@
         .formats-command-row {
           align-items: stretch;
           flex-direction: column;
+        }
+
+        .app-shell[data-active-view="formats"] .workspace-header {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .app-shell[data-active-view="formats"] .workspace-header .workspace-actions {
+          display: none;
+        }
+
+        .format-tabs {
+          flex-wrap: wrap;
+          overflow-x: visible;
+        }
+
+        .format-tab {
+          flex: 1 1 140px;
+          padding-inline: 8px;
         }
 
         .format-editor-grid,
@@ -16308,6 +16416,12 @@
       const formatTypeOptions = ["Roundtable", "Fachgespräch", "Workshop", "Veranstaltung", "Diskussionsformat"];
       const formatStatusOptions = ["Planung", "Aktiv", "Abgeschlossen", "Archiviert"];
       const invitationStatusOptions = ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"];
+      const formatTabItems = [
+        { id: "overview", label: "Überblick" },
+        { id: "participants", label: "Teilnehmer" },
+        { id: "composition", label: "Zusammensetzung" },
+        { id: "notes", label: "Notizen & Export" }
+      ];
 
       const searchInput = document.getElementById("search");
       const searchShell = searchInput?.closest(".search-shell");
@@ -16551,6 +16665,7 @@
       let activeFormatId = null;
       let editingFormatId = null;
       let formatListCollapsed = false;
+      let formatActiveTab = "overview";
       let participantPlannerFormatId = null;
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
@@ -20523,6 +20638,7 @@
           button.addEventListener("click", () => {
             activeFormatId = button.dataset.formatId;
             editingFormatId = null;
+            formatActiveTab = "overview";
             setFormatListCollapsed(true);
             renderFormatsView();
           });
@@ -20650,6 +20766,126 @@
         `;
       }
 
+      function renderFormatMetrics(format) {
+        const participants = format.participants || [];
+        const accepted = participants.filter((participant) => participant.invitationStatus === "Zugesagt").length;
+        const pending = participants.filter((participant) => ["Eingeladen", "Keine Rückmeldung"].includes(participant.invitationStatus)).length;
+        return `
+          <div class="format-metrics">
+            <div class="format-metric"><span>Teilnehmer</span><strong>${participants.length}</strong></div>
+            <div class="format-metric"><span>Zugesagt</span><strong>${accepted}</strong></div>
+            <div class="format-metric"><span>Offen</span><strong>${pending}</strong></div>
+            <div class="format-metric"><span>Status</span><strong>${escapeHtml(format.status)}</strong></div>
+          </div>
+        `;
+      }
+
+      function renderFormatTabs() {
+        return `
+          <div class="format-tabs" role="tablist" aria-label="Formatplanung">
+            ${formatTabItems.map((tab) => `
+              <button class="format-tab ${formatActiveTab === tab.id ? "is-active" : ""}" type="button" role="tab" aria-selected="${formatActiveTab === tab.id ? "true" : "false"}" data-format-tab="${escapeHtml(tab.id)}">
+                ${escapeHtml(tab.label)}
+              </button>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderFormatOverviewTab(format) {
+        return `
+          <div class="format-tab-panel" role="tabpanel">
+            ${renderFormatMetrics(format)}
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Basisdaten</h4>
+                  <p>${escapeHtml(format.goal || "Kein Ziel hinterlegt.")}</p>
+                </div>
+              </div>
+              <div class="format-facts-grid">
+                <div class="format-fact"><span>Typ</span><strong>${escapeHtml(format.formatType || "Nicht hinterlegt")}</strong></div>
+                <div class="format-fact"><span>Datum</span><strong>${escapeHtml(formatDateRange(format))}</strong></div>
+                <div class="format-fact"><span>Ort / Online</span><strong>${escapeHtml(format.location || "Ort offen")}</strong></div>
+                <div class="format-fact"><span>Owner</span><strong>${escapeHtml(ownerDisplayLabel(format.ownerId || format.owner) || "Nicht zugewiesen")}</strong></div>
+                <div class="format-fact"><span>Status</span><strong>${escapeHtml(format.status || "Planung")}</strong></div>
+                <div class="format-fact"><span>Teilnehmer</span><strong>${(format.participants || []).length}</strong></div>
+              </div>
+            </section>
+          </div>
+        `;
+      }
+
+      function renderFormatParticipantsTab(format) {
+        return `
+          <div class="format-tab-panel" role="tabpanel">
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Teilnehmer</h4>
+                  <p>Status, Rolle und Notizen in einer kompakten Arbeitsliste.</p>
+                </div>
+                <div class="format-participant-actions">
+                  ${canEditContacts() ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
+                </div>
+              </div>
+              ${renderParticipantTable(format)}
+            </section>
+          </div>
+        `;
+      }
+
+      function renderFormatCompositionTab(format) {
+        return `
+          <div class="format-tab-panel" role="tabpanel">
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Zusammensetzung</h4>
+                  <p>Vielfalt der Runde nach Sektor, Bundesland und Fachrichtung.</p>
+                </div>
+                <div class="format-participant-actions">
+                  ${canEditContacts() ? `<button class="action-button" type="button" id="open-participant-planner">Teilnehmer ergänzen</button>` : ""}
+                </div>
+              </div>
+              ${renderParticipantBoard(format)}
+            </section>
+          </div>
+        `;
+      }
+
+      function renderFormatNotesTab(format) {
+        return `
+          <div class="format-tab-panel" role="tabpanel">
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Notizen</h4>
+                  <p>Interne Planungsnotizen und Export für Abstimmung oder Mailing-Vorbereitung.</p>
+                </div>
+              </div>
+              <div class="format-notes-box">${escapeHtml(format.notes || "Keine Notiz hinterlegt.")}</div>
+            </section>
+            <section class="format-section">
+              <div class="format-export-row">
+                <div>
+                  <h4>Teilnehmerliste exportieren</h4>
+                  <p>CSV mit Name, Organisation, Sektor, Kontaktweg, Status, Rolle und Notiz.</p>
+                </div>
+                <button class="action-button" type="button" id="export-format-participants">Exportieren</button>
+              </div>
+            </section>
+          </div>
+        `;
+      }
+
+      function renderFormatActiveTab(format) {
+        if (formatActiveTab === "participants") return renderFormatParticipantsTab(format);
+        if (formatActiveTab === "composition") return renderFormatCompositionTab(format);
+        if (formatActiveTab === "notes") return renderFormatNotesTab(format);
+        return renderFormatOverviewTab(format);
+      }
+
       function renderFormatDetail(format = activeFormat()) {
         if (!formatDetailPanel) return;
         if (editingFormatId === "__new__") {
@@ -20689,9 +20925,7 @@
           bindFormatEditor();
           return;
         }
-        const participants = format.participants || [];
-        const accepted = participants.filter((participant) => participant.invitationStatus === "Zugesagt").length;
-        const pending = participants.filter((participant) => ["Eingeladen", "Keine Rückmeldung"].includes(participant.invitationStatus)).length;
+        if (!formatTabItems.some((tab) => tab.id === formatActiveTab)) formatActiveTab = "overview";
         formatDetailPanel.innerHTML = `
           <div class="format-detail">
             <div class="format-detail-head">
@@ -20705,42 +20939,8 @@
                 ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" id="delete-format-button">Löschen</button>` : ""}
               </div>
             </div>
-            <div class="format-metrics">
-              <div class="format-metric"><span>Teilnehmer</span><strong>${participants.length}</strong></div>
-              <div class="format-metric"><span>Zugesagt</span><strong>${accepted}</strong></div>
-              <div class="format-metric"><span>Offen</span><strong>${pending}</strong></div>
-              <div class="format-metric"><span>Status</span><strong>${escapeHtml(format.status)}</strong></div>
-            </div>
-            <section class="format-section">
-              <div class="format-section-head">
-                <div>
-                  <h4>Basisdaten</h4>
-                  <p>${escapeHtml(format.goal || "Kein Ziel hinterlegt.")}</p>
-                </div>
-              </div>
-            </section>
-            <section class="format-section">
-              <div class="format-section-head">
-                <div>
-                  <h4>Teilnehmer-Board</h4>
-                  <p>Vielfalt der Runde nach Sektor, Bundesland und Fachrichtung.</p>
-                </div>
-              </div>
-              ${renderParticipantBoard(format)}
-            </section>
-            <section class="format-section">
-              <div class="format-section-head">
-                <div>
-                  <h4>Teilnehmerliste</h4>
-                  <p>Präzise Arbeitsliste für Status, Rolle und Notizen.</p>
-                </div>
-                <div class="format-participant-actions">
-                  ${canEditContacts() ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
-                  <button class="action-button" type="button" id="export-format-participants">Exportieren</button>
-                </div>
-              </div>
-              ${renderParticipantTable(format)}
-            </section>
+            ${renderFormatTabs()}
+            ${renderFormatActiveTab(format)}
           </div>
         `;
         bindFormatDetail();
@@ -20999,6 +21199,7 @@
             updated = await window.dataService.addFormatParticipant(format.id, contactId, { invitationStatus: "Kandidat" });
           }
           replaceFormat(updated);
+          formatActiveTab = "participants";
           setStorageStatus(`${ids.length} Teilnehmer hinzugefügt`);
           closeParticipantPlanner();
           renderFormatsView();
@@ -21011,6 +21212,12 @@
       function bindFormatDetail() {
         const format = activeFormat();
         if (!format) return;
+        formatDetailPanel.querySelectorAll("[data-format-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            formatActiveTab = button.dataset.formatTab || "overview";
+            renderFormatDetail(format);
+          });
+        });
         formatDetailPanel.querySelectorAll("[data-open-format-contact]").forEach((button) => {
           button.addEventListener("click", () => {
             activeId = button.dataset.openFormatContact;
@@ -24898,6 +25105,7 @@
         }
         activeFormatId = null;
         editingFormatId = "__new__";
+        formatActiveTab = "overview";
         setFormatListCollapsed(true);
         renderFormatDetail(null);
       });
