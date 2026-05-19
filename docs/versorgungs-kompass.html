@@ -14136,19 +14136,19 @@
 
       .invitation-status-board {
         display: grid;
-        grid-template-columns: repeat(4, minmax(190px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(4, minmax(135px, 1fr));
+        gap: 8px;
       }
 
       .invitation-status-column {
         min-width: 0;
         display: grid;
         align-content: start;
-        gap: 10px;
+        gap: 8px;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--surface-muted);
-        padding: 10px;
+        padding: 8px;
       }
 
       .invitation-status-column.is-drop-target {
@@ -14162,22 +14162,21 @@
         justify-content: space-between;
         gap: 8px;
         margin: 0;
-        font-size: 0.82rem;
+        font-size: 0.78rem;
       }
 
       .invitation-status-list {
         display: grid;
-        gap: 8px;
-        min-height: 72px;
+        gap: 6px;
+        min-height: 64px;
       }
 
       .invitation-status-card {
         display: grid;
-        gap: 8px;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         background: var(--surface);
-        padding: 9px;
+        padding: 8px;
       }
 
       .invitation-status-card[draggable="true"] {
@@ -14191,24 +14190,13 @@
       .invitation-status-person {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
-        gap: 8px;
+        gap: 7px;
         border: 0;
         background: transparent;
         color: inherit;
         cursor: pointer;
         padding: 0;
         text-align: left;
-      }
-
-      .invitation-status-select {
-        width: 100%;
-        min-height: 34px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
-        color: var(--text);
-        font: inherit;
-        padding: 6px 8px;
       }
 
       .participant-card {
@@ -16523,7 +16511,7 @@
       ];
       const formatTypeOptions = ["Roundtable", "Fachgespräch", "Workshop", "Veranstaltung", "Diskussionsformat"];
       const formatStatusOptions = ["Planung", "Aktiv", "Abgeschlossen", "Archiviert"];
-      const invitationStatusOptions = ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"];
+      const invitationStatusOptions = ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt"];
       const formatTabItems = [
         { id: "overview", label: "Überblick" },
         { id: "participants", label: "Teilnehmer" },
@@ -20854,6 +20842,13 @@
         `;
       }
 
+      function invitationBoardStatus(participant) {
+        const status = participant?.invitationStatus || "Kandidat";
+        if (status === "Keine Rückmeldung") return "Eingeladen";
+        if (status === "Teilgenommen") return "Zugesagt";
+        return invitationStatusOptions.includes(status) ? status : "Kandidat";
+      }
+
       function renderInvitationStatusBoard(format) {
         const entries = formatParticipantContacts(format);
         if (!entries.length) return `<div class="empty">Noch keine Teilnehmer ausgewählt.</div>`;
@@ -20861,13 +20856,13 @@
           <div class="invitation-status-board">
             ${invitationStatusOptions.map((status) => {
               const statusEntries = entries
-                .filter(({ participant }) => participant.invitationStatus === status)
+                .filter(({ participant }) => invitationBoardStatus(participant) === status)
                 .sort((a, b) => a.contact.name.localeCompare(b.contact.name, "de"));
               return `
                 <section class="invitation-status-column" data-invitation-status-drop="${escapeHtml(status)}">
                   <h5>${escapeHtml(status)} <span class="participant-count">${statusEntries.length}</span></h5>
                   <div class="invitation-status-list">
-                    ${statusEntries.length ? statusEntries.map(({ contact, participant }) => `
+                    ${statusEntries.length ? statusEntries.map(({ contact }) => `
                       <article class="invitation-status-card" draggable="${canEditContacts() ? "true" : "false"}" data-invitation-card="${escapeHtml(contact.id)}">
                         <button class="invitation-status-person" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
                           ${contactAvatarMarkup(contact, "sm")}
@@ -20876,13 +20871,9 @@
                             <span class="participant-card-meta">${escapeHtml(contact.organization || "Keine Organisation")}</span>
                             <span class="participant-card-tags">
                               ${sectorBadgeMarkup(contact.category)}
-                              <span class="format-diversity-chip">${escapeHtml(participant.participantRole || "Rolle offen")}</span>
                             </span>
                           </span>
                         </button>
-                        <select class="invitation-status-select" data-invitation-status-select="${escapeHtml(contact.id)}" ${canEditContacts() ? "" : "disabled"}>
-                          ${formatOptionMarkup(invitationStatusOptions, participant.invitationStatus)}
-                        </select>
                       </article>
                     `).join("") : `<div class="empty">Keine Teilnehmer</div>`}
                   </div>
@@ -21389,11 +21380,6 @@
           openParticipantPlanner(format.id);
         });
         document.getElementById("export-format-participants")?.addEventListener("click", () => downloadFormatParticipants(format));
-        formatDetailPanel.querySelectorAll("[data-invitation-status-select]").forEach((select) => {
-          select.addEventListener("change", () => {
-            updateInvitationStatus(select.dataset.invitationStatusSelect, select.value);
-          });
-        });
         formatDetailPanel.querySelectorAll("[data-invitation-card]").forEach((card) => {
           card.addEventListener("dragstart", (event) => {
             if (!canEditContacts()) {

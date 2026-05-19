@@ -160,8 +160,12 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-diversity-board")).toHaveCount(0);
   await page.locator('[data-format-tab="invitationStatus"]').click();
   await expect(page.locator(".invitation-status-board")).toBeVisible();
-  await page.locator('[data-invitation-status-select="demo-contact-01"]').selectOption("Zugesagt");
-  await expect(page.locator('[data-invitation-status-drop="Zugesagt"] [data-invitation-card="demo-contact-01"]')).toBeVisible();
+  await expect(page.locator(".invitation-status-select")).toHaveCount(0);
+  await expect(page.locator('[data-invitation-status-drop="Teilgenommen"]')).toHaveCount(0);
+  if (testInfo.project.name === "chromium-desktop") {
+    await page.locator('[data-invitation-card="demo-contact-01"]').dragTo(page.locator('[data-invitation-status-drop="Zugesagt"]'));
+    await expect(page.locator('[data-invitation-status-drop="Zugesagt"] [data-invitation-card="demo-contact-01"]')).toBeVisible();
+  }
   await page.locator('[data-format-tab="reporting"]').click();
   await expect(page.locator(".format-diversity-board")).toBeVisible();
 
