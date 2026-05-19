@@ -13906,7 +13906,19 @@
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
-        padding-left: 44px;
+        padding-left: 56px;
+      }
+
+      .format-detail-meta .owner-badge {
+        min-height: 26px;
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
+      .format-detail-meta .owner-badge__avatar {
+        width: 20px;
+        height: 20px;
+        font-size: 0.62rem;
       }
 
       .format-participant-count {
@@ -13936,8 +13948,8 @@
       }
 
       .format-type-icon {
-        width: 34px;
-        height: 34px;
+        width: 46px;
+        height: 46px;
         display: inline-grid;
         place-items: center;
         border: 1px solid var(--border);
@@ -13948,8 +13960,8 @@
       }
 
       .format-type-icon svg {
-        width: 21px;
-        height: 21px;
+        width: 28px;
+        height: 28px;
         display: block;
         fill: none;
         stroke: currentColor;
@@ -14213,6 +14225,16 @@
         justify-self: start;
         padding: 5px 9px;
         font-size: 0.76rem;
+      }
+
+      .format-detail-actions .format-status-badge {
+        padding: 7px 12px;
+        font-size: 0.84rem;
+      }
+
+      .format-detail-actions .format-status-badge svg {
+        width: 16px;
+        height: 16px;
       }
 
       .format-overview-visual {
@@ -21788,6 +21810,13 @@
         return `<span class="format-badge format-status-badge format-badge--${tone}"><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>${escapeHtml(label)}</span>`;
       }
 
+      function formatOwnerBadgeMarkup(format = {}) {
+        const ownerValue = format.ownerId || format.owner;
+        const label = ownerDisplayLabel(ownerValue);
+        if (!label) return ownerBadgeMarkup({ owner: "", ownerId: "" });
+        return ownerBadgeMarkup({ owner: ownerValue, ownerId: format.ownerId || "" });
+      }
+
       function renderFormatTabs() {
         return `
           <div class="format-tabs" role="tablist" aria-label="Formatplanung">
@@ -22097,6 +22126,7 @@
                       </div>
                       <div class="format-detail-meta">
                         ${formatTypeBadgeMarkup(format.formatType)}
+                        ${formatOwnerBadgeMarkup(format)}
                         <span class="format-participant-count" aria-label="${(format.participants || []).length} Teilnehmer">
                           <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
