@@ -17502,6 +17502,7 @@
       let formatEditorCurrentStep = "basis";
       let formatEditingNoteId = null;
       let formatStatusFilter = "";
+      let formatLoadErrorMessage = "";
       let participantPlannerFormatId = null;
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
@@ -22075,8 +22076,8 @@
         if (!items.length) {
           formatDetailPanel.innerHTML = `
             <div class="format-empty-state">
-              <strong>Kein Format ausgewählt</strong>
-              <span>Lege ein Format an oder passe die Suche an.</span>
+              <strong>${formatLoadErrorMessage ? "Formate konnten nicht geladen werden" : "Kein Format ausgewählt"}</strong>
+              <span>${escapeHtml(formatLoadErrorMessage || "Lege ein Format an oder passe die Suche an.")}</span>
             </div>
           `;
           return;
@@ -27023,9 +27024,11 @@
           }
           try {
             formats = window.dataService.loadFormats ? await window.dataService.loadFormats({ includeArchived: canAdministerData() }) : [];
+            formatLoadErrorMessage = "";
             activeFormatId = formats.find((format) => format.status !== "Archiviert")?.id || formats[0]?.id || null;
           } catch (formatError) {
-            console.warn("Formate konnten nicht geladen werden. Lokaler Fallback bleibt leer.", formatError);
+            console.warn("Formate konnten nicht geladen werden.", formatError);
+            formatLoadErrorMessage = String(formatError?.message || "Bitte prüfe die Supabase-Tabellen und RLS-Policies für Formate.");
             formats = [];
           }
           await loadSavedViewsAndSettings();

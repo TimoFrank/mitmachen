@@ -333,6 +333,14 @@
     return /formats|format_participants|relation .* does not exist|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
   }
 
+  function formatSetupError(error) {
+    const setupError = new Error(
+      "Formate sind in Supabase noch nicht eingerichtet. Bitte die Formate-Migrationen in Supabase ausführen, damit Formate nicht nur lokal im Browser gespeichert werden."
+    );
+    setupError.cause = error;
+    return setupError;
+  }
+
   function normalizePriority(value) {
     if (value === "Hoch" || value === "Mittel" || value === "Niedrig") return value;
     return "Mittel";
@@ -1283,9 +1291,7 @@
       .order("title", { ascending: true });
     if (error) {
       if (isMissingFormatsError(error)) {
-        supportsFormats = false;
-        formatCache = localFormats(options);
-        return formatCache;
+        throw formatSetupError(error);
       }
       throw error;
     }
@@ -1299,9 +1305,7 @@
         .order("updated_at", { ascending: false, nullsFirst: false });
       if (participantError) {
         if (isMissingFormatsError(participantError)) {
-          supportsFormats = false;
-          formatCache = localFormats(options);
-          return formatCache;
+          throw formatSetupError(participantError);
         }
         throw participantError;
       }
