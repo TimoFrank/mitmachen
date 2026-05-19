@@ -14007,7 +14007,6 @@
         min-width: 0;
       }
 
-      .format-overview-kicker,
       .format-overview-actions {
         display: flex;
         align-items: center;
@@ -21301,11 +21300,6 @@
         return `
           <section class="format-overview-hero">
             <div class="format-overview-copy">
-              <div class="format-overview-kicker">
-                <span class="format-badge format-badge--primary">${escapeHtml(format.formatType || "Format")}</span>
-                <span class="format-badge format-badge--warm">${escapeHtml(format.status || "Planung")}</span>
-                <span class="format-badge format-badge--calm">${escapeHtml(formatDateRange(format))}</span>
-              </div>
               <div class="format-overview-title">
                 <h4>${escapeHtml(format.title || "Neues Format")}</h4>
                 <p>${escapeHtml(goal)}</p>
