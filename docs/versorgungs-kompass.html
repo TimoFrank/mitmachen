@@ -13867,10 +13867,36 @@
 
       .format-detail-title-main {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
         gap: 10px;
         min-width: 0;
+      }
+
+      .format-participant-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        justify-self: start;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-muted);
+        padding: 5px 9px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .format-participant-count svg {
+        width: 15px;
+        height: 15px;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
       .format-type-icon {
@@ -20812,7 +20838,6 @@
           return;
         }
         if (activeView === "formats") {
-          const participantCount = formats.reduce((sum, format) => sum + (format.participants || []).length, 0);
           renderSummaryCards(
             summaryGrid,
             [
@@ -20829,20 +20854,6 @@
                   </svg>
                 `,
                 iconClass: "summary-icon--blue"
-              },
-              {
-                label: "Teilnehmer",
-                value: participantCount,
-                meta: isMobileLayout() ? "gesamt" : "",
-                icon: `
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                `,
-                iconClass: "summary-icon--amber"
               }
             ],
             "Formate"
@@ -21487,6 +21498,15 @@
                       <div class="format-detail-title-main">
                         ${formatTypeIconMarkup(format.formatType)}
                         <h3>${escapeHtml(format.title)}</h3>
+                        <span class="format-participant-count" aria-label="${(format.participants || []).length} Teilnehmer">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.8"></path>
+                            <path d="M16 3.2a4 4 0 0 1 0 7.6"></path>
+                          </svg>
+                          ${(format.participants || []).length}
+                        </span>
                       </div>
                       <div class="format-detail-admin-actions" aria-label="Format verwalten">
                         ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
