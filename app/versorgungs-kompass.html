@@ -13878,6 +13878,12 @@
         padding: 0;
       }
 
+      .format-accordion-list {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
       .format-empty-state {
         min-height: 280px;
         display: grid;
@@ -17105,7 +17111,7 @@
       let editingFormatId = null;
       let formatOverviewOpen = false;
       let formatActiveTab = "overview";
-      let formatDetailExpanded = true;
+      let formatDetailExpanded = false;
       let participantPlannerFormatId = null;
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
@@ -21476,9 +21482,9 @@
         return renderFormatOverviewTab(format);
       }
 
-      function renderFormatDetail(format = activeFormat()) {
+      function renderFormatDetail(items = filteredFormats()) {
         if (!formatDetailPanel) return;
-        if (!format) {
+        if (!items.length) {
           formatDetailPanel.innerHTML = `
             <div class="format-empty-state">
               <strong>Kein Format ausgewählt</strong>
@@ -21487,40 +21493,35 @@
           `;
           return;
         }
-        if (editingFormatId === format.id) {
-          formatDetailPanel.innerHTML = `
-            <div class="format-detail">
-              <section class="format-section">
-                <div class="format-section-head">
-                  <h4>${editingFormatId === "__new__" ? "Neues Format" : "Format bearbeiten"}</h4>
-                </div>
-                ${renderFormatEditor(editingFormatId === "__new__" ? null : format)}
-              </section>
-            </div>
-          `;
-          bindFormatEditor();
-          return;
-        }
         if (!formatTabItems.some((tab) => tab.id === formatActiveTab)) formatActiveTab = "overview";
         formatDetailPanel.innerHTML = `
-          <div class="format-detail ${formatDetailExpanded ? "is-open" : ""}">
-            <div class="format-detail-head">
-              <div class="format-detail-title">
-                <h3>${escapeHtml(format.title)}</h3>
-                <div class="format-detail-admin-actions" aria-label="Format verwalten">
-                  ${canEditContacts() ? `<button class="action-button" type="button" id="edit-format-button">Bearbeiten</button>` : ""}
-                  ${canEditContacts() ? `<button class="action-button" type="button" id="archive-format-button">Archivieren</button>` : ""}
-                  ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" id="delete-format-button">Löschen</button>` : ""}
+          <div class="format-accordion-list">
+            ${items.map((format) => {
+              const isExpanded = format.id === activeFormatId && formatDetailExpanded;
+              return `
+                <div class="format-detail ${isExpanded ? "is-open" : ""}" data-format-detail="${escapeHtml(format.id)}">
+                  <div class="format-detail-head">
+                    <div class="format-detail-title">
+                      <h3>${escapeHtml(format.title)}</h3>
+                      <div class="format-detail-admin-actions" aria-label="Format verwalten">
+                        ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
+                        ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
+                        ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
+                      </div>
+                    </div>
+                    <div class="format-detail-actions">
+                      <button class="action-button format-detail-toggle" type="button" data-toggle-format-detail="${escapeHtml(format.id)}" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">${isExpanded ? "^" : "v"}</button>
+                    </div>
+                  </div>
+                  ${isExpanded ? `
+                    <div class="format-detail-body" id="format-detail-body-${escapeHtml(format.id)}">
+                      ${renderFormatTabs()}
+                      ${renderFormatActiveTab(format)}
+                    </div>
+                  ` : ""}
                 </div>
-              </div>
-              <div class="format-detail-actions">
-                <button class="action-button format-detail-toggle" type="button" id="toggle-format-detail" aria-label="${formatDetailExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${formatDetailExpanded}" aria-controls="format-detail-body">${formatDetailExpanded ? "^" : "v"}</button>
-              </div>
-            </div>
-            <div class="format-detail-body" id="format-detail-body" ${formatDetailExpanded ? "" : "hidden"}>
-              ${renderFormatTabs()}
-              ${renderFormatActiveTab(format)}
-            </div>
+              `;
+            }).join("")}
           </div>
         `;
         bindFormatDetail();
@@ -21533,7 +21534,7 @@
           if (resultsCount) resultsCount.textContent = hitCountLabel(items);
         }
         renderFormatsList(items);
-        renderFormatDetail(activeFormat());
+        renderFormatDetail(items);
       }
 
       function formatEditorPayload(form) {
@@ -21557,7 +21558,6 @@
         if (!updated) return;
         formats = [updated, ...formats.filter((format) => format.id !== updated.id)];
         activeFormatId = updated.id;
-        formatDetailExpanded = true;
       }
 
       function bindFormatEditor() {
@@ -21575,10 +21575,12 @@
             return;
           }
           try {
+            const creatingFormat = editingFormatId === "__new__";
             const saved = editingFormatId === "__new__"
               ? await window.dataService.createFormat(payload)
               : await window.dataService.updateFormat(editingFormatId, payload);
             replaceFormat(saved);
+            formatDetailExpanded = !creatingFormat;
             editingFormatId = null;
             closeFormatEditorDrawer({ rerender: false });
             setStorageStatus("Format gespeichert");
@@ -21804,7 +21806,7 @@
         formatDetailPanel.querySelectorAll("[data-format-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             formatActiveTab = button.dataset.formatTab || "overview";
-            renderFormatDetail(format);
+            renderFormatsView();
           });
         });
         formatDetailPanel.querySelectorAll("[data-open-format-contact]").forEach((button) => {
@@ -21814,46 +21816,65 @@
             openDetail(contactId, formatContacts);
           });
         });
-        document.getElementById("toggle-format-detail")?.addEventListener("click", () => {
-          formatDetailExpanded = !formatDetailExpanded;
-          renderFormatDetail(format);
-        });
-        document.getElementById("edit-format-button")?.addEventListener("click", () => {
-          openFormatEditorDrawer(format);
-        });
-        document.getElementById("archive-format-button")?.addEventListener("click", async () => {
-          if (!canEditContacts()) {
-            showPermissionDenied(viewerCreateDisabledMessage("das Archivieren von Formaten"));
-            return;
-          }
-          if (!window.confirm(`Format "${format.title}" archivieren?`)) return;
-          try {
-            const archived = await window.dataService.archiveFormat(format.id);
-            formats = formats.map((item) => item.id === format.id ? archived : item);
-            activeFormatId = formats.find((item) => item.status !== "Archiviert")?.id || null;
-            setStorageStatus("Format archiviert");
+        formatDetailPanel.querySelectorAll("[data-toggle-format-detail]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const nextFormatId = button.dataset.toggleFormatDetail;
+            const isCurrentOpen = activeFormatId === nextFormatId && formatDetailExpanded;
+            activeFormatId = nextFormatId;
+            formatDetailExpanded = !isCurrentOpen;
+            if (formatDetailExpanded) formatActiveTab = "overview";
             renderFormatsView();
-          } catch (error) {
-            console.error("Format konnte nicht archiviert werden.", error);
-            window.alert("Das Format konnte nicht archiviert werden.");
-          }
+          });
         });
-        document.getElementById("delete-format-button")?.addEventListener("click", async () => {
-          if (!canAdministerData()) {
-            showPermissionDenied("Nur Admins dürfen Formate löschen.");
-            return;
-          }
-          if (!window.confirm(`Format "${format.title}" endgültig löschen?`)) return;
-          try {
-            await window.dataService.deleteFormat(format.id);
-            formats = formats.filter((item) => item.id !== format.id);
-            activeFormatId = formats[0]?.id || null;
-            setStorageStatus("Format gelöscht");
-            renderFormatsView();
-          } catch (error) {
-            console.error("Format konnte nicht gelöscht werden.", error);
-            window.alert("Das Format konnte nicht gelöscht werden.");
-          }
+        formatDetailPanel.querySelectorAll("[data-edit-format]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const selectedFormat = formats.find((item) => item.id === button.dataset.editFormat);
+            if (selectedFormat) openFormatEditorDrawer(selectedFormat);
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-archive-format]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const selectedFormat = formats.find((item) => item.id === button.dataset.archiveFormat);
+            if (!selectedFormat) return;
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Archivieren von Formaten"));
+              return;
+            }
+            if (!window.confirm(`Format "${selectedFormat.title}" archivieren?`)) return;
+            try {
+              const archived = await window.dataService.archiveFormat(selectedFormat.id);
+              formats = formats.map((item) => item.id === selectedFormat.id ? archived : item);
+              activeFormatId = formats.find((item) => item.status !== "Archiviert")?.id || null;
+              formatDetailExpanded = false;
+              setStorageStatus("Format archiviert");
+              renderFormatsView();
+            } catch (error) {
+              console.error("Format konnte nicht archiviert werden.", error);
+              window.alert("Das Format konnte nicht archiviert werden.");
+            }
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-delete-format]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const selectedFormat = formats.find((item) => item.id === button.dataset.deleteFormat);
+            if (!selectedFormat) return;
+            if (!canAdministerData()) {
+              showPermissionDenied("Nur Admins dürfen Formate löschen.");
+              return;
+            }
+            if (!window.confirm(`Format "${selectedFormat.title}" endgültig löschen?`)) return;
+            try {
+              await window.dataService.deleteFormat(selectedFormat.id);
+              formats = formats.filter((item) => item.id !== selectedFormat.id);
+              activeFormatId = formats[0]?.id || null;
+              formatDetailExpanded = false;
+              setStorageStatus("Format gelöscht");
+              renderFormatsView();
+            } catch (error) {
+              console.error("Format konnte nicht gelöscht werden.", error);
+              window.alert("Das Format konnte nicht gelöscht werden.");
+            }
+          });
         });
         document.getElementById("open-participant-planner")?.addEventListener("click", () => {
           if (!canEditContacts()) {
