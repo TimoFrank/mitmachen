@@ -14273,7 +14273,7 @@
       .participant-table-head,
       .participant-table-row {
         display: grid;
-        grid-template-columns: minmax(200px, 1.15fr) minmax(138px, 0.65fr) minmax(120px, 0.58fr) minmax(130px, 0.75fr) 118px;
+        grid-template-columns: minmax(240px, 1.2fr) minmax(180px, 0.8fr) minmax(220px, 1fr) 118px;
         align-items: center;
         gap: 10px;
         padding: 10px 12px;
@@ -14291,15 +14291,34 @@
         border-top: 1px solid var(--border);
       }
 
-      .participant-table-row select,
-      .participant-table-row input {
-        width: 100%;
-        min-height: 34px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
-        padding: 6px 8px;
+      .participant-table-contact {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .participant-table-name-button {
+        display: block;
+        width: fit-content;
+        max-width: 100%;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
         font: inherit;
+        font-weight: 800;
+        line-height: 1.25;
+        padding: 0;
+        text-align: left;
+        overflow-wrap: anywhere;
+      }
+
+      .participant-table-name-button:hover,
+      .participant-table-name-button:focus-visible {
+        color: var(--primary);
+        outline: none;
       }
 
       .format-participant-drawer {
@@ -20823,24 +20842,30 @@
           <div class="participant-table">
             <div class="participant-table-head">
               <div>Kontakt</div>
-              <div>Status</div>
-              <div>Rolle</div>
-              <div>Notiz</div>
+              <div>Organisation</div>
+              <div>Kontext</div>
               <div>Aktion</div>
             </div>
-            ${entries.map(({ contact, participant }) => `
+            ${entries.map(({ contact }) => `
               <div class="participant-table-row" data-participant-contact="${escapeHtml(contact.id)}">
-                <div>
-                  <span class="participant-table-name">${escapeHtml(contact.name)}</span>
-                  <span class="participant-table-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(contact.email || contact.phone || "Kein Kontaktweg")}</span>
+                <div class="participant-table-contact">
+                  ${contactAvatarMarkup(contact, "sm")}
+                  <div>
+                    <button class="participant-table-name-button" type="button" data-open-format-contact="${escapeHtml(contact.id)}">${escapeHtml(contact.name)}</button>
+                    <span class="participant-table-meta">${escapeHtml(contact.email || contact.phone || "Kein Kontaktweg")}</span>
+                  </div>
                 </div>
                 <div>
-                  <select data-participant-field="invitationStatus" ${canEditContacts() ? "" : "disabled"}>
-                    ${formatOptionMarkup(invitationStatusOptions, participant.invitationStatus)}
-                  </select>
+                  <span class="participant-table-name">${escapeHtml(contact.organization || "Keine Organisation")}</span>
+                  <span class="participant-table-meta">${escapeHtml(formatLocationDisplay(contact) || "Ort offen")}</span>
                 </div>
-                <div><input data-participant-field="participantRole" value="${escapeHtml(participant.participantRole || "")}" placeholder="Rolle" ${canEditContacts() ? "" : "disabled"} /></div>
-                <div><input data-participant-field="notes" value="${escapeHtml(participant.notes || "")}" placeholder="Notiz" ${canEditContacts() ? "" : "disabled"} /></div>
+                <div>
+                  <span class="participant-card-tags">
+                    ${sectorBadgeMarkup(contact.category)}
+                    <span class="format-diversity-chip">${escapeHtml(stateLabel(contact) || "Bundesland offen")}</span>
+                    <span class="format-diversity-chip">${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
+                  </span>
+                </div>
                 <div>
                   <button class="action-button action-button--compact" type="button" data-remove-participant="${escapeHtml(contact.id)}" ${canEditContacts() ? "" : "disabled"}>Entfernen</button>
                 </div>
