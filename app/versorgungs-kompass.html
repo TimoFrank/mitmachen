@@ -13947,8 +13947,32 @@
       }
 
       .format-detail-toggle {
+        width: 38px;
+        height: 38px;
         min-width: 38px;
-        padding-inline: 10px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-muted);
+        padding: 0;
+      }
+
+      .format-detail-toggle:hover,
+      .format-detail-toggle:focus-visible {
+        color: var(--primary);
+        background: var(--primary-soft);
+      }
+
+      .format-detail-toggle svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+        transition: transform 160ms ease;
+      }
+
+      .format-detail-toggle[aria-expanded="true"] svg {
+        transform: rotate(180deg);
       }
 
       .format-tabs {
@@ -21471,7 +21495,11 @@
                       </div>
                     </div>
                     <div class="format-detail-actions">
-                      <button class="action-button format-detail-toggle" type="button" data-toggle-format-detail="${escapeHtml(format.id)}" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">${isExpanded ? "^" : "v"}</button>
+                      <button class="action-button format-detail-toggle" type="button" data-toggle-format-detail="${escapeHtml(format.id)}" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="m6 9 6 6 6-6"></path>
+                        </svg>
+                      </button>
                     </div>
                   </div>
                   ${isExpanded ? `
