@@ -25,6 +25,7 @@ create table if not exists public.contacts (
   organization text,
   sector text,
   specialty text,
+  role text,
   priority text not null default 'Mittel' check (priority in ('Hoch', 'Mittel', 'Niedrig')),
   owner_id uuid references public.profiles(id),
   postal_code text,

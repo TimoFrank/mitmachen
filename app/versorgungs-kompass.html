@@ -4457,8 +4457,12 @@
       }
 
       .detail-line--empty .detail-line__value {
-        color: var(--text-muted);
+        color: #8a641f;
         font-weight: 650;
+      }
+
+      .detail-line--empty {
+        background: #fff8e6;
       }
 
       .detail-line--contact.detail-line--empty {
@@ -4606,6 +4610,30 @@
       .detail-note-block--empty {
         color: var(--text-muted);
         font-weight: 650;
+      }
+
+      .detail-note-block--readonly {
+        background: var(--surface-muted);
+        color: var(--text-muted);
+      }
+
+      .detail-note-input--readonly {
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        cursor: not-allowed;
+        resize: none;
+      }
+
+      .detail-permission-note {
+        margin: 10px 12px 12px;
+        padding: 10px 12px;
+        border: 1px solid #f0d89c;
+        border-radius: var(--radius-md);
+        background: #fff8e6;
+        color: #76561a;
+        font-size: 0.8rem;
+        font-weight: 750;
+        line-height: 1.4;
       }
 
       .detail-theme-editor {
@@ -11286,6 +11314,7 @@
       .app-shell[data-active-view="quality"] .controls,
       .app-shell[data-active-view="imports"] .controls,
       .app-shell[data-active-view="settings"] .controls,
+      .app-shell[data-active-view="about"] .controls,
       .app-shell[data-active-view="team"] .controls,
       .app-shell[data-active-view="profile"] .controls {
         display: none;
@@ -11297,6 +11326,7 @@
 
       .app-shell[data-active-view="imports"] .summary,
       .app-shell[data-active-view="settings"] .summary,
+      .app-shell[data-active-view="about"] .summary,
       .app-shell[data-active-view="team"] .summary,
       .app-shell[data-active-view="profile"] .summary,
       .app-shell[data-active-view="map"] .summary,
@@ -11469,6 +11499,7 @@
           width: 100%;
           grid-template-columns: 1fr;
         }
+
       }
 
       .import-start-grid {
@@ -11541,6 +11572,207 @@
         margin-top: 0;
       }
 
+      .about-workspace {
+        width: min(960px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 14px;
+      }
+
+      .about-intro,
+      .about-version {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .about-intro {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+        padding: 18px;
+      }
+
+      .about-intro__icon,
+      .about-version__icon {
+        display: grid;
+        place-items: center;
+        border-radius: var(--radius-md);
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .about-intro__icon {
+        width: 58px;
+        height: 58px;
+      }
+
+      .about-intro__icon svg,
+      .about-version__icon svg {
+        width: 26px;
+        height: 26px;
+      }
+
+      .about-intro h3,
+      .about-intro p {
+        margin: 0;
+      }
+
+      .about-intro h3 {
+        color: var(--text-primary);
+        font-size: var(--font-size-xl);
+        line-height: var(--line-height-tight);
+      }
+
+      .about-intro p {
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: var(--font-size-md);
+        line-height: var(--line-height-normal);
+      }
+
+      .about-intro__meta,
+      .about-version__badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .about-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 28px;
+        padding: 4px 9px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+      }
+
+      .about-version-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .about-version {
+        overflow: hidden;
+      }
+
+      .about-version summary {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .about-version summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .about-version summary:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: -3px;
+      }
+
+      .about-version__icon {
+        width: 44px;
+        height: 44px;
+      }
+
+      .about-version__title {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .about-version__title strong {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        line-height: var(--line-height-tight);
+      }
+
+      .about-version__title span {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+      }
+
+      .about-version__chevron {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--text-muted);
+        transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease;
+      }
+
+      .about-version__chevron svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .about-version[open] .about-version__chevron {
+        transform: rotate(180deg);
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .about-version__body {
+        display: grid;
+        gap: 14px;
+        padding: 0 16px 16px 72px;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .about-change-group {
+        padding-top: 14px;
+      }
+
+      .about-change-group h4 {
+        margin: 0 0 8px;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+      }
+
+      .about-change-group ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .about-change-group li + li {
+        margin-top: 6px;
+      }
+
+      @media (max-width: 760px) {
+        .about-intro,
+        .about-version summary {
+          grid-template-columns: 1fr;
+        }
+
+        .about-version__body {
+          padding: 0 14px 14px;
+        }
+
+        .about-version__chevron {
+          justify-self: start;
+        }
+      }
+
       .team-account-list {
         display: grid;
         gap: 14px;
@@ -11573,6 +11805,12 @@
         text-align: left;
       }
 
+      .team-section-toggle:hover .team-section-chevron {
+        border-color: var(--border-strong);
+        background: var(--surface-muted);
+        color: var(--primary);
+      }
+
       .team-section-toggle:focus-visible {
         outline: 2px solid var(--primary);
         outline-offset: 3px;
@@ -11580,18 +11818,24 @@
       }
 
       .team-section-chevron {
-        width: 28px;
-        height: 28px;
-        display: grid;
+        width: 30px;
+        height: 30px;
+        display: inline-grid;
         place-items: center;
         flex: 0 0 auto;
         border: 1px solid var(--border);
         border-radius: 999px;
+        background: var(--surface);
         color: var(--text-muted);
-        font-size: 1.1rem;
-        font-weight: 900;
-        line-height: 1;
-        transition: transform 0.16s ease;
+        transform-origin: center;
+        transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+      }
+
+      .team-section-chevron svg {
+        width: 15px;
+        height: 15px;
+        display: block;
+        stroke-width: 2.4;
       }
 
       .team-section.is-collapsed .team-section-chevron {
@@ -13557,6 +13801,14 @@
             </svg>
             <span>Einstellungen</span>
           </button>
+          <button class="sidebar-link" type="button" id="sidebar-about-button" title="Über die App">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4"></path>
+              <path d="M12 8h.01"></path>
+            </svg>
+            <span>Über die App</span>
+          </button>
           <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
             <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
             <div>
@@ -14041,6 +14293,32 @@
               </section>
             </div>
           </section>
+
+          <section class="view-panel" id="view-about" data-view-panel="about">
+            <div class="about-workspace">
+              <section class="about-intro">
+                <div class="about-intro__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                    <path d="M9 3v15"></path>
+                    <path d="M15 6v15"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3>Versorgungs-Kompass</h3>
+                  <p>Der Versorgungs-Kompass ist das CRM für das gematik-Hospitationsnetzwerk. Die App bündelt Kontakte, Organisationen, regionale Orientierung, Auswertung, Datenpflege und Import in einer ruhigen Arbeitsoberfläche.</p>
+                  <p>Dieser Bereich hilft Admins beim Einordnen des Produkts: Was ist neu, was hat sich geändert und welche Version brachte welche Funktionen.</p>
+                  <div class="about-intro__meta" aria-label="Produktmerkmale">
+                    <span class="about-badge">CRM-App</span>
+                    <span class="about-badge">Supabase-Datenbasis</span>
+                    <span class="about-badge">Admin-Information</span>
+                    <span class="about-badge">Version 0.5.0</span>
+                  </div>
+                </div>
+              </section>
+              <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
+            </div>
+          </section>
         </div>
       </section>
 
@@ -14221,6 +14499,10 @@
                   <select class="editor-select" id="field-specialty" name="specialty"></select>
                 </div>
                 <div class="editor-message editor-message--warning" id="field-specialty-warning"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-contact-role">Rolle</label>
+                <input class="editor-input" id="field-contact-role" name="contactRole" placeholder="Funktion, Beruf oder Stelle..." autocomplete="off" />
               </div>
               <div class="editor-field">
                 <label class="editor-label" for="field-owner">Owner</label>
@@ -15212,6 +15494,7 @@
         { value: "organization", label: "Organisation" },
         { value: "category", label: "Sektor" },
         { value: "specialty", label: "Fachrichtung" },
+        { value: "contactRole", label: "Rolle" },
         { value: "location", label: "Standort" },
         { value: "postalCode", label: "PLZ" },
         { value: "city", label: "Ort" },
@@ -15229,7 +15512,8 @@
         name: ["name", "kontakt", "person", "ansprechpartner", "vollstaendiger name", "vollständiger name"],
         organization: ["organisation", "organization", "einrichtung", "firma", "praxis", "klinik", "unternehmen", "mvz"],
         category: ["sektor", "kategorie", "branche", "typ", "category"],
-        specialty: ["fachrichtung", "fachgebiet", "fach", "rolle", "position", "funktion"],
+        specialty: ["fachrichtung", "fachgebiet", "fach"],
+        contactRole: ["rolle", "position", "funktion", "beruf", "stelle", "job title", "jobtitel", "contact role"],
         location: ["standort", "adresse", "location"],
         postalCode: ["plz", "postleitzahl", "zip", "postal"],
         city: ["ort", "stadt", "city"],
@@ -15371,6 +15655,8 @@
       const sidebarDataCareSection = document.getElementById("sidebar-data-care-section");
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
+      const sidebarAboutButton = document.getElementById("sidebar-about-button");
+      const aboutVersionList = document.getElementById("about-version-list");
       const detailDrawer = document.getElementById("detail-drawer");
       const detailPanel = document.getElementById("detail-panel");
       const detailOverlay = document.getElementById("detail-overlay");
@@ -15630,7 +15916,7 @@
       }
 
       function canAccessView(view) {
-        return !["imports", "quality", "settings"].includes(view) || canAdministerData();
+        return !["imports", "quality", "settings", "about"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
@@ -15669,6 +15955,7 @@
         setRoleElementVisible(sidebarQualityButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
         setRoleElementVisible(sidebarSettingsButton, canAdministerData());
+        setRoleElementVisible(sidebarAboutButton, canAdministerData());
         setRoleElementVisible(accountQualityButton, canAdministerData());
         setRoleElementVisible(careQueueCard, true);
         permissionBanner?.classList.remove("is-visible");
@@ -17007,7 +17294,7 @@
             return archivedContact ? sanitizeContact({ ...contact, ...archivedContact }, index) : contact;
           });
           importState.report = { ...report, rollbackAt: new Date().toISOString(), rollbackCount: archived.length };
-          setStorageStatus(`Rollback fuer Batch ${report.batchId || importState.batchId}: ${archived.length} Kontakte archiviert`);
+          setStorageStatus(`Rollback für Batch ${report.batchId || importState.batchId}: ${archived.length} Kontakte archiviert`);
           updateView();
           renderImportReport();
         } catch (error) {
@@ -17045,6 +17332,7 @@
         const name = (entry.name || "").trim();
         const displayName = name || (entry.organization || "").trim() || "Unbenannter Kontakt";
         const specialty = normalizeSpecialty(entry.specialty || entry.title || entry.person_title || entry.Fachrichtung || "");
+        const rawRole = String(entry.role || "").trim();
         const initials = displayName
           .split(/[\s/]+/)
           .filter(Boolean)
@@ -17052,7 +17340,8 @@
           .map((part) => part[0])
           .join("")
           .toUpperCase();
-        const category = normalizeCategory(entry.category || entry.role || defaultCategories[index % defaultCategories.length]);
+        const category = normalizeCategory(entry.category || entry.sector || (defaultCategories.includes(rawRole) ? rawRole : "") || defaultCategories[index % defaultCategories.length]);
+        const contactRole = entry.contactRole || entry.contact_role || entry.functionRole || entry.function_role || entry.jobTitle || entry.job_title || entry.position || (rawRole && !defaultCategories.includes(rawRole) ? rawRole : "");
         const priority = entry.priority || priorityCycle[index % priorityCycle.length];
         const latitude = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
         const longitude = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
@@ -17071,6 +17360,7 @@
           organizationShort: simplifyOrganization(entry.organization || defaultOrganizations[index % defaultOrganizations.length]),
           honorificTitle: entry.honorificTitle || entry.academicTitle || "",
           specialty,
+          contactRole,
           topic: entry.topic || "",
           priority,
           priorityClass:
@@ -17189,8 +17479,70 @@
         imports: { title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." },
         team: { title: "Team", subtitle: "Accounts, Rollen und Zuständigkeiten im Überblick." },
         settings: { title: "Einstellungen", subtitle: "Systemeinstellungen und Konfiguration." },
+        about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
         profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." }
       };
+
+      const appVersionHistory = [
+        {
+          version: "0.5.0",
+          title: "Kontaktrollen und Karten-Datenbasis",
+          date: "2026-05-19",
+          icon: "role",
+          badges: ["Aktuell", "Kontakte", "Karte"],
+          groups: [
+            { title: "Neu", items: ["Kontakte haben ein eigenes Feld Rolle, z. B. für Funktion, Beruf oder Stelle.", "Die Rolle ist von Sektor und Fachrichtung getrennt und erscheint in Kontaktprofilen sowie in Karten-Detailansichten."] },
+            { title: "Geändert", items: ["Notizen werden in Hauptapp und Karte konsistenter angezeigt.", "Owner-Änderungen erscheinen in der Kontakthistorie mit klareren Texten.", "Die Kartenansicht nutzt alle nicht archivierten Kontakte als Datenbasis."] },
+            { title: "Technisch", items: ["Supabase wurde um contacts.role erweitert.", "Der Data-Service funktioniert übergangsweise auch ohne neue role-Spalte."] }
+          ]
+        },
+        {
+          version: "0.4.0",
+          title: "Reifer Kartenmodus",
+          date: "2026-05-18",
+          icon: "map",
+          badges: ["Karte", "Analyse", "Mobile"],
+          groups: [
+            { title: "Neu", items: ["Kartenmodus als eigener Orientierungs- und Analysebereich.", "Live-Daten für Kartenfilter, einklappbare Kontaktliste und optionales Clustering.", "Bundeslandnamen und Verteilungsinformationen werden direkt in der Karte angezeigt."] },
+            { title: "Geändert", items: ["Kartensuche, Filter und Kartenmodi sind klarer voneinander getrennt.", "Karten-Detailansichten folgen dem CRM-Profilmuster der Hauptapp.", "Zoomverhalten, Basiskarte, Nachbar-Kontext und Hover-Tooltips wurden beruhigt."] },
+            { title: "Verbessert", items: ["Mobile Kartenbedienung, Kontaktvorschau und Profil-Sheet wurden verbessert.", "Listen- und Kartenfilter sind besser synchronisiert.", "Veröffentlichte Kartenpfade für GitHub Pages wurden korrigiert."] }
+          ]
+        },
+        {
+          version: "0.3.0",
+          title: "CRM-App mit Supabase, Profilen und Teamfunktionen",
+          date: "2026-05-17",
+          icon: "database",
+          badges: ["Supabase", "Team", "Profile"],
+          groups: [
+            { title: "Neu", items: ["Supabase ist als produktive Datenbasis angebunden.", "Anmeldung, Login-Aliase, Passwort-Setup, Nutzerprofil und Teamansicht wurden eingeführt.", "Organisationen, Kontakthistorie, gespeicherte Ansichten, Datenqualitätsbereich und Bulk-Import-Tabelle wurden angelegt."] },
+            { title: "Geändert", items: ["App-Shell und Sidebar wurden stärker nach CRM-Arbeitsbereichen strukturiert.", "Kontaktprofile wurden auf Lesemodus, klare Detailsektionen und ruhige Profilköpfe umgestellt.", "Owner-Auswahl nutzt Profile-IDs; alte Owner ohne Account werden sichtbar markiert."] },
+            { title: "Sicherheit und Betrieb", items: ["Öffentliche Seed-Daten mit echten Kontaktinformationen wurden aus dem produktiven GitHub-Pages-Pfad entfernt.", "Betrieb, Backups, Rollen, RLS, Onboarding und Sicherheitschecks wurden dokumentiert."] }
+          ]
+        },
+        {
+          version: "0.2.0",
+          title: "CRM-Grundfunktionen und Mobile-Unterstützung",
+          date: "2026-05-14",
+          icon: "mobile",
+          badges: ["Mobile", "Filter", "Kontaktpflege"],
+          groups: [
+            { title: "Neu", items: ["Eine responsive Mobile-Erfahrung wurde eingeführt.", "Eine wiederverwendbare Custom-Select-Komponente wurde angelegt.", "Fachrichtung, Owner, Priorität, Standort und Kommunikationswarnungen wurden in die Kontaktpflege integriert."] },
+            { title: "Geändert", items: ["Navigation und Filterworkflow wurden vereinfacht.", "Kontakt-Detailansichten wurden in Richtung CRM-Profil weiterentwickelt.", "Logout wurde in den Nutzerkontext verschoben."] },
+            { title: "Verbessert", items: ["Tabellenlayout, Detailaktionen, Filter-Popover und Karten-Sidebar wurden stabilisiert.", "Datenqualität bei Fachrichtungen und Organisationen wurde verbessert."] }
+          ]
+        },
+        {
+          version: "0.1.0",
+          title: "Erste nutzbare Basis",
+          date: "2026-05-08",
+          icon: "start",
+          badges: ["Start", "HTML/JS", "GitHub Pages"],
+          groups: [
+            { title: "Neu", items: ["Versorgungs-Kompass als statische HTML-/JS-App für das gematik-Hospitationsnetzwerk angelegt.", "Erste Kontakt-, Karten- und Datenbasis für lokale Entwicklung vorbereitet.", "Projektstruktur und GitHub-Pages-Publish-Ordner aufgebaut."] }
+          ]
+        }
+      ];
 
       function uniqueValues(key) {
         return [...new Set(contacts.map((contact) => contact[key]))].sort((a, b) => a.localeCompare(b, "de"));
@@ -17868,7 +18220,11 @@
                   <div class="team-section-head">
                     <button class="team-section-toggle" type="button" data-team-toggle="${escapeHtml(team)}" aria-expanded="${collapsedTeams.has(team) ? "false" : "true"}" aria-controls="${teamSectionId(groupIndex)}">
                       <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
-                      <span class="team-section-chevron" aria-hidden="true">⌄</span>
+                      <span class="team-section-chevron" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="m6 9 6 6 6-6"></path>
+                        </svg>
+                      </span>
                     </button>
                   </div>
                   <div class="team-section-accounts" id="${teamSectionId(groupIndex)}" ${collapsedTeams.has(team) ? "hidden" : ""}>
@@ -18470,6 +18826,7 @@
             id: contact.id,
             name: contact.name,
             specialty: contact.specialty,
+            contactRole: contact.contactRole,
             category: contact.category,
             organization: contact.organization,
             topic: contact.topic,
@@ -19718,6 +20075,58 @@
           .replace(/'/g, "&#039;");
       }
 
+      function aboutIconSvg(icon) {
+        const icons = {
+          role: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M17 11h4"></path><path d="M19 9v4"></path>`,
+          map: `<path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path><path d="M9 3v15"></path><path d="M15 6v15"></path>`,
+          database: `<ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path>`,
+          mobile: `<rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path>`,
+          start: `<path d="M4 20V6a2 2 0 0 1 2-2h9l5 5v11Z"></path><path d="M14 4v6h6"></path><path d="M8 14h8"></path><path d="M8 17h5"></path>`
+        };
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${icons[icon] || icons.start}</svg>`;
+      }
+
+      function renderAboutApp() {
+        if (!aboutVersionList) return;
+        aboutVersionList.innerHTML = appVersionHistory
+          .map(
+            (release, index) => `
+              <details class="about-version" ${index === 0 ? "open" : ""}>
+                <summary>
+                  <span class="about-version__icon">${aboutIconSvg(release.icon)}</span>
+                  <span class="about-version__title">
+                    <strong>Version ${escapeHtml(release.version)} - ${escapeHtml(release.title)}</strong>
+                    <span>Stand: ${escapeHtml(release.date)}</span>
+                    <span class="about-version__badges">
+                      ${release.badges.map((badge) => `<span class="about-badge">${escapeHtml(badge)}</span>`).join("")}
+                    </span>
+                  </span>
+                  <span class="about-version__chevron" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                  </span>
+                </summary>
+                <div class="about-version__body">
+                  ${release.groups
+                    .map(
+                      (group) => `
+                        <section class="about-change-group">
+                          <h4>${escapeHtml(group.title)}</h4>
+                          <ul>
+                            ${group.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+                          </ul>
+                        </section>
+                      `
+                    )
+                    .join("")}
+                </div>
+              </details>
+            `
+          )
+          .join("");
+      }
+
       function specialtyLabel(contact) {
         return meaningfulOrEmpty(contact.specialty);
       }
@@ -20316,6 +20725,7 @@
 
       function contactRoleSummary(contact) {
         return (
+          meaningfulOrEmpty(contact.contactRole) ||
           meaningfulOrEmpty(contact.specialty) ||
           meaningfulOrEmpty(contact.description) ||
           meaningfulOrEmpty(contact.topic) ||
@@ -20360,6 +20770,8 @@
           organization: "Organisation",
           sector: "Sektor",
           specialty: "Fachrichtung",
+          role: "Rolle",
+          contactRole: "Rolle",
           priority: "Priorität",
           owner_id: "Owner",
           postal_code: "PLZ",
@@ -20392,6 +20804,12 @@
         if (action === "import") return "Kontakt importiert";
         if (action === "archive") return "Kontakt archiviert";
         if (changes.some((change) => change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived")) return "Kontakt wiederhergestellt";
+        if (visible.length && visible.every((change) => change.fieldName === "owner_id" || change.fieldName === "owner")) {
+          const ownerChange = visible[0];
+          if (!String(ownerChange.oldValue || "").trim() && String(ownerChange.newValue || "").trim()) return "Owner hinzugefügt";
+          if (String(ownerChange.oldValue || "").trim() && !String(ownerChange.newValue || "").trim()) return "Owner entfernt";
+          return "Owner gewechselt";
+        }
         if (visible.length === 1) {
           const change = visible[0];
           const field = historyFieldLabel(change.fieldName);
@@ -20406,6 +20824,7 @@
         if (actionKey === "create") return "Neu";
         if (actionKey === "import") return "Import";
         if (actionKey === "archive") return "Archiv";
+        if (actionKey === "owner") return "Owner";
         if (actionKey === "restore") return "Restore";
         return "Update";
       }
@@ -20415,6 +20834,7 @@
         if (change.action === "create") return "create";
         if (change.action === "import") return "import";
         if (change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived") return "restore";
+        if (change.fieldName === "owner_id" || change.fieldName === "owner") return "owner";
         return "update";
       }
 
@@ -20423,6 +20843,7 @@
         if (actionKey === "archive") return "A";
         if (actionKey === "restore") return "R";
         if (actionKey === "import") return "I";
+        if (actionKey === "owner") return "O";
         return "↻";
       }
 
@@ -20480,6 +20901,7 @@
         const filters = [
           { key: "all", label: "Alle" },
           { key: "update", label: "Updates" },
+          { key: "owner", label: "Owner" },
           { key: "archive", label: "Archiv" },
           { key: "restore", label: "Wiederhergestellt" },
           { key: "create", label: "Anlage" },
@@ -20509,7 +20931,8 @@
         const activeFilter = contactHistoryFilters.get(contactId) || "all";
         const activeOwner = contactHistoryOwnerFilters.get(contactId) || "all";
         const visibleChanges = changes.filter((change) => {
-          const matchesAction = activeFilter === "all" || historyActionKey(change) === activeFilter;
+          const actionKey = historyActionKey(change);
+          const matchesAction = activeFilter === "all" || actionKey === activeFilter;
           const ownerKey = String(change.changedBy || change.user?.id || change.user?.displayName || "unknown");
           const matchesOwner = activeOwner === "all" || ownerKey === activeOwner;
           return matchesAction && matchesOwner;
@@ -20750,6 +21173,7 @@
             ${detailEditField("Organisation", "organization", contact.organization, { placeholder: "Organisation" })}
             ${detailEditField("Sektor", "category", contact.category, { type: "select", options: buildCategorySelectOptions(contact.category) })}
             ${detailEditField("Fachrichtung", "specialty", contact.specialty, { type: "select", options: buildSpecialtySelectOptions(contact.specialty) })}
+            ${detailEditField("Rolle", "contactRole", contact.contactRole, { placeholder: "Funktion, Beruf oder Stelle" })}
             ${detailEditField("PLZ", "postalCode", contact.postalCode || splitLocationLabel(locationText).postalCode, { placeholder: "PLZ" })}
             ${detailEditField("Ort", "city", contact.city || splitLocationLabel(locationText).city, { placeholder: "Ort" })}
             ${detailEditField("Bundesland", "state", contact.state, { type: "select", options: buildStateSelectOptions(contact.state) })}
@@ -21708,6 +22132,7 @@
         sidebarImportButton?.classList.toggle("is-active", view === "imports");
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "settings");
+        sidebarAboutButton?.classList.toggle("is-active", view === "about");
         sidebarProfileButton?.classList.toggle("is-active", view === "profile");
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
@@ -21717,12 +22142,17 @@
         renderViewChrome();
         if (view === "profile") renderProfileForm();
         if (view === "team") renderTeamView();
+        if (view === "about") renderAboutApp();
         if (view === "map") {
-          syncMapFrame(filteredContacts());
+          syncMapFrame(mapContacts());
         }
       }
 
-      function syncMapFrame(items = filteredContacts()) {
+      function mapContacts() {
+        return contacts.filter((contact) => contact.status !== "archived");
+      }
+
+      function syncMapFrame(items = mapContacts()) {
         if (!mapViewFrame || !mapViewFrame.contentWindow) return;
         mapViewFrame.contentWindow.postMessage(
           {
@@ -21732,6 +22162,7 @@
               name: contact.name,
               honorificTitle: contact.honorificTitle,
               specialty: contact.specialty,
+              contactRole: contact.contactRole,
               category: contact.category,
               organization: contact.organization,
               topic: contact.topic,
@@ -21751,6 +22182,8 @@
               note: contact.note,
               nextStep: contact.nextStep,
               image: contact.image,
+              owner: ownerDisplayLabel(contact.ownerId || contact.owner) || contact.owner || "",
+              ownerId: contact.ownerId || "",
               sources: contact.sources
             })),
             totalContacts: contacts.length,
@@ -22007,6 +22440,7 @@
         const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
         const ownerLabel = meaningfulOrEmpty(contact.owner);
         const specialtyText = specialtyLabel(contact);
+        const roleText = meaningfulOrEmpty(contact.contactRole);
         const honorificTitle = meaningfulOrEmpty(contact.honorificTitle);
         const noteText = displayNoteText(contact);
         const sourceText = sourceLabel(contact) === "-" ? "" : sourceLabel(contact);
@@ -22066,6 +22500,7 @@
                     }
                     ${honorificTitle ? `<div class="detail-profile-subline">${escapeHtml(honorificTitle)}</div>` : ""}
                     <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
+                    ${roleText ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
                     ${statusLabel ? `<div class="detail-profile-status"><span class="badge badge--status">${escapeHtml(statusLabel)}</span></div>` : ""}
                   </div>
                 </div>
@@ -22098,6 +22533,7 @@
                         )}
                         ${detailLine("Sektor", contact.category)}
                         ${detailLine("Fachrichtung", specialtyText, { emptyLabel: "Bitte wählen" })}
+                        ${detailLine("Rolle", roleText)}
                         ${detailLine("Ort", locationText)}
                         ${detailLine("Bundesland", contact.state || stateLabel(contact))}
                         ${detailLineHtml("Priorität", detailHeaderPriorityControl(contact), { empty: !contact.priority })}
@@ -22137,10 +22573,15 @@
                     <div class="detail-chip-row">
                       ${
                         themeTags.length
-                          ? themeTags.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("")
+                          ? themeTags.map((tag) => `<button class="theme-tag" type="button" data-viewer-theme-blocked>${escapeHtml(tag)}</button>`).join("")
                           : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`
                       }
                     </div>
+                    <div class="detail-theme-add">
+                      <input class="detail-theme-input" type="text" placeholder="Neues Thema hinzufügen" readonly data-viewer-theme-blocked />
+                      <button class="action-button" type="button" data-viewer-theme-blocked>Hinzufügen</button>
+                    </div>
+                    <div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Bearbeiten von Themen"))}</div>
                   `}
                 </div>
               </section>
@@ -22151,7 +22592,7 @@
                   ${
                     canEditContacts()
                       ? renderDirectNoteEditor(contact)
-                      : `<div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">${escapeHtml(noteText || "Keine Notiz hinterlegt")}</div>`
+                      : `<textarea class="detail-note-input detail-note-input--direct detail-note-input--readonly" placeholder="Keine Notiz hinterlegt" readonly disabled>${escapeHtml(noteText)}</textarea><div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Bearbeiten von Notizen"))}</div>`
                   }
                 </div>
               </section>
@@ -22217,6 +22658,12 @@
         const noteInput = document.getElementById("detail-note-input");
         const noteStatus = document.getElementById("detail-note-status");
         document.getElementById("detail-note-save")?.addEventListener("click", () => saveDetailNote(contact, noteInput, noteStatus));
+        detailPanel.querySelectorAll("[data-viewer-theme-blocked]").forEach((element) => {
+          element.addEventListener("click", () => showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen")));
+          element.addEventListener("focus", () => {
+            if (element.matches("input")) showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen"));
+          }, { once: true });
+        });
         noteInput?.addEventListener("input", () => {
           if (noteStatus) noteStatus.textContent = "Nicht gespeicherte Änderung";
         });
@@ -22311,6 +22758,7 @@
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
         editorForm.elements.specialty.value = contact?.specialty || "";
+        editorForm.elements.contactRole.value = contact?.contactRole || "";
         updateOrganizationSuggestions(selectedOrganizationName);
         editorCurrentStep = "quick";
         editorForm.elements.category.value = contact?.category || organizationDefaults?.sector || defaultCategories[0];
@@ -22632,9 +23080,10 @@
         renderActiveFilters();
         renderFilterPanel();
         renderSavedViews();
-        syncMapFrame(filteredContacts());
+        syncMapFrame(mapContacts());
         renderProfileOwnerSummary();
         renderTeamView();
+        renderAboutApp();
 
         if (!isOrganizationsView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
@@ -22726,7 +23175,7 @@
         }
       });
       mapViewFrame.addEventListener("load", () => {
-        syncMapFrame(filteredContacts());
+        syncMapFrame(mapContacts());
       });
       viewTabs.forEach((tab) => {
         tab.addEventListener("click", () => {
@@ -22779,6 +23228,13 @@
         closeMobileSidebar();
         setActiveView("settings");
         updateRouteHash("settings");
+        updateView();
+      });
+      sidebarAboutButton?.addEventListener("click", () => {
+        closeMenus();
+        closeMobileSidebar();
+        setActiveView("about");
+        updateRouteHash("about");
         updateView();
       });
 
@@ -23216,6 +23672,7 @@
           id: formData.get("id") || createId(),
           name: String(formData.get("name") || "").trim(),
           specialty: String(formData.get("specialty") || "").trim(),
+          contactRole: String(formData.get("contactRole") || "").trim(),
           category: String(formData.get("category") || defaultCategories[0]),
           organization: organizationName,
           organizationId,

@@ -226,6 +226,9 @@
     .map-controls > .map-dropdown {
       display: none;
     }
+    .mobile-map-filter-group {
+      display: none;
+    }
     .map-menu-button {
       display: none;
     }
@@ -621,19 +624,27 @@
       margin-top: 14px;
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      gap: 8px;
+      gap: 12px;
     }
     .map-filter-row {
       display: grid;
       gap: 6px;
       min-width: 0;
     }
+    .map-filter-dropdown-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      align-items: end;
+    }
     .map-filter-row--sectors {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
+      gap: 6px;
     }
     .map-filter-label {
+      width: 100%;
       color: var(--text-muted);
       font-size: 10px;
       font-weight: 850;
@@ -696,6 +707,91 @@
     .map-filter-select:focus {
       border-color: rgba(21,95,228,0.38);
       box-shadow: 0 0 0 3px rgba(21,95,228,0.10);
+    }
+    .map-filter-dropdown {
+      position: relative;
+      min-width: 0;
+    }
+    .map-filter-trigger {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 34px 0 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.2;
+      text-align: left;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+    .map-filter-trigger::after {
+      content: "";
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--text-muted);
+      border-bottom: 2px solid var(--text-muted);
+      transform: translateY(-65%) rotate(45deg);
+      transition: transform 0.16s ease;
+    }
+    .map-filter-dropdown.is-open .map-filter-trigger {
+      border-color: rgba(21,95,228,0.38);
+      box-shadow: 0 0 0 3px rgba(21,95,228,0.10), var(--shadow-sm);
+    }
+    .map-filter-dropdown.is-open .map-filter-trigger::after {
+      transform: translateY(-35%) rotate(225deg);
+    }
+    .map-filter-menu {
+      position: absolute;
+      z-index: 1200;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow: auto;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-md);
+    }
+    .map-filter-option {
+      width: 100%;
+      min-height: 34px;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      text-align: left;
+      box-shadow: none;
+    }
+    .map-filter-option:hover,
+    .map-filter-option:focus-visible {
+      background: var(--surface-muted);
+      outline: none;
+    }
+    .map-filter-option.is-active {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+    .map-filter-option.is-active::after {
+      content: "✓";
+      font-weight: 900;
     }
     .swatch { width: 10px; height: 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.20); display: inline-block; }
     .btnrow { display:flex; gap: 8px; margin-top: 12px; }
@@ -1403,6 +1499,15 @@
       overflow-wrap: anywhere;
     }
 
+    .map-detail-panel .detail-line--empty {
+      background: #fff8e6;
+    }
+
+    .map-detail-panel .detail-line--empty .detail-line__value {
+      color: #8a641f;
+      font-weight: 650;
+    }
+
     .map-detail-panel .detail-line__value a {
       color: var(--primary);
       text-decoration: none;
@@ -1761,6 +1866,9 @@
         overflow: visible;
         padding-bottom: 2px;
         gap: 9px;
+      }
+      .map-filter-dropdown-grid {
+        display: none;
       }
       .list {
         height: auto;
@@ -2202,6 +2310,32 @@
         display: grid !important;
       }
 
+      .mobile-map-filter-group {
+        display: grid !important;
+        grid-column: 1 / -1;
+        gap: 7px;
+        padding-top: 7px;
+        border-top: 1px solid var(--border);
+      }
+
+      .mobile-map-filter-group .map-filter-dropdown {
+        display: grid;
+        gap: 4px;
+      }
+
+      .mobile-map-filter-group .map-filter-trigger {
+        min-height: 36px;
+        border-radius: 12px;
+        font-size: 11px;
+      }
+
+      .mobile-map-filter-group .map-filter-menu {
+        position: static;
+        max-height: 190px;
+        margin-top: 4px;
+        box-shadow: none;
+      }
+
       .map-menu-button {
         position: absolute;
         top: 10px;
@@ -2596,6 +2730,7 @@
               </span>
               <span id="map-reset-label">Zurücksetzen</span>
             </button>
+            <div id="mobile-map-filter-group" class="mobile-map-filter-group" aria-label="Kartenfilter"></div>
           </div>
           <div id="map-active-filters" class="map-active-filters" aria-label="Aktive Kartenfilter"></div>
           <aside class="map-legend" aria-label="Legende Kontaktpunkte">
@@ -2689,8 +2824,10 @@
       lon,
       url: firstSource(contact),
       description: contact.description || contact.topic || "",
+      note: contact.note || contact.notes || "",
       person_name: personName,
       person_title: contact.specialty || contact.title || "",
+      contact_role: contact.contactRole || contact.contact_role || contact.role || "",
       email: contact.email || "",
       phone: contact.phone || "",
       linkedin: contact.linkedin || "",
@@ -2791,7 +2928,8 @@
 
   // Fit to Germany bounds and keep focus tight
   const deBounds = germanyLayer.getBounds();
-  map.fitBounds(deBounds.pad(0.2));
+  const initialGermanyPadding = window.matchMedia('(max-width: 760px)').matches ? 0.5 : 0.2;
+  map.fitBounds(deBounds.pad(initialGermanyPadding));
   map.setZoom(Math.min(map.getZoom(), MAP_MAX_ZOOM));
   map.setMaxBounds(deBounds.pad(0.6));
   map.setMinZoom(MAP_MIN_ZOOM);
@@ -3140,6 +3278,7 @@
   const elMapControls = document.querySelector('.map-controls');
   const elMapMenuToggle = document.getElementById('map-menu-toggle');
   const elFilters = document.getElementById('filters');
+  const elMobileMapFilters = document.getElementById('mobile-map-filter-group');
   const elSearch = document.getElementById('search');
   const elList = document.getElementById('list');
   const elMapPagination = document.getElementById('map-pagination');
@@ -3254,7 +3393,7 @@
 
   function fitMapToGermany(){
     const bounds = L.geoJSON(DE_GEOJSON).getBounds();
-    map.fitBounds(bounds.pad(0.2), { animate: true });
+    map.fitBounds(bounds.pad(isMobileLayout() ? 0.5 : 0.2), { animate: true });
   }
 
   function passes(d){
@@ -3527,6 +3666,7 @@
     const currentIndex = entries.findIndex((item) => item.id === entry.id);
     const counterText = currentIndex >= 0 ? `${currentIndex + 1} von ${entries.length} Kontakten` : "Kontaktprofil";
     const updatedLabel = formatDetailDate(entry.updatedAt);
+    const roleText = hasValue(entry.contact_role) ? entry.contact_role : "";
     const avatar = entry.image
       ? `<span class="avatar"><img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.name)}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(entry.name))}';" /></span>`
       : escapeHtml(initials(entry.name));
@@ -3548,6 +3688,7 @@
               <div class="detail-profile-copy">
                 <h3>${escapeHtml(entry.name)}</h3>
                 <div class="detail-profile-role">${escapeHtml(entry.organization || "Organisation nicht dokumentiert")}</div>
+                ${roleText ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
               </div>
             </div>
             <div class="detail-profile-meta">
@@ -3572,6 +3713,7 @@
               ${detailLine("Organisation", entry.organization)}
               ${detailLine("Sektor", entry.category)}
               ${detailLine("Fachrichtung", entry.person_title, { emptyLabel: "Bitte wählen" })}
+              ${detailLine("Rolle", roleText)}
               ${detailLine("Ort", location)}
               ${detailLine("Bundesland", entry.state)}
               ${detailLineHtml("Priorität", mapPriorityPill(entry.priority), { empty: !hasValue(entry.priority) })}
@@ -3610,7 +3752,7 @@
             <h4 class="detail-section-title">Notizen</h4>
             <div class="detail-line-list">
               <div class="detail-info-card">
-                <div class="${entry.description ? "" : "detail-profile-subline"}">${escapeHtml(entry.description || "Keine Notiz hinterlegt")}</div>
+                <div class="${entry.note ? "" : "detail-profile-subline"}">${escapeHtml(entry.note || "Keine Notiz hinterlegt")}</div>
               </div>
             </div>
           </section>
@@ -3970,25 +4112,69 @@
     elClusterToggle?.setAttribute('aria-pressed', clusterModeActive ? 'true' : 'false');
   }
 
+  function closeMapFilterDropdowns(except = null){
+    document.querySelectorAll('.map-filter-dropdown.is-open').forEach((dropdown) => {
+      if (dropdown === except) return;
+      dropdown.classList.remove('is-open');
+      dropdown.querySelector('.map-filter-menu')?.setAttribute('hidden', '');
+      dropdown.querySelector('.map-filter-trigger')?.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function mapFilterDropdown({ label, allLabel, value, options, onChange }){
+    const dropdown = document.createElement('div');
+    dropdown.className = 'map-filter-dropdown';
+
+    const title = document.createElement('span');
+    title.className = 'map-filter-label';
+    title.textContent = label;
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'map-filter-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.textContent = value ? `${label}: ${value}` : allLabel;
+
+    const menu = document.createElement('div');
+    menu.className = 'map-filter-menu';
+    menu.setAttribute('role', 'listbox');
+    menu.hidden = true;
+
+    const entries = [{ value: '', label: allLabel }, ...options.map((option) => ({ value: option, label: option }))];
+    entries.forEach((entry) => {
+      const optionButton = document.createElement('button');
+      optionButton.type = 'button';
+      optionButton.className = `map-filter-option${entry.value === value ? ' is-active' : ''}`;
+      optionButton.setAttribute('role', 'option');
+      optionButton.setAttribute('aria-selected', entry.value === value ? 'true' : 'false');
+      optionButton.textContent = entry.label;
+      optionButton.addEventListener('click', () => {
+        closeMapFilterDropdowns();
+        onChange(entry.value);
+      });
+      menu.appendChild(optionButton);
+    });
+
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const shouldOpen = !dropdown.classList.contains('is-open');
+      closeMapFilterDropdowns(dropdown);
+      dropdown.classList.toggle('is-open', shouldOpen);
+      menu.hidden = !shouldOpen;
+      trigger.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    });
+
+    dropdown.append(title, trigger, menu);
+    return dropdown;
+  }
+
   function renderFilters(){
     elFilters.innerHTML = "";
+    if (elMobileMapFilters) elMobileMapFilters.innerHTML = "";
     const categories = availableCategories();
     const owners = availableOwners();
     const priorities = availablePriorities();
-
-    const stateRow = document.createElement('div');
-    stateRow.className = 'map-filter-row';
-    stateRow.innerHTML = `<span class="map-filter-label">Bundesland</span>`;
-    const stateSelect = document.createElement('select');
-    stateSelect.className = 'map-filter-select';
-    stateSelect.setAttribute('aria-label', 'Bundesland filtern');
-    stateSelect.innerHTML = `<option value="">Bundesland: Alle</option>${states.map((state) => `<option value="${escapeHtml(state)}"${selectedState === state ? " selected" : ""}>${escapeHtml(state)}</option>`).join("")}`;
-    stateSelect.addEventListener('change', () => {
-      resetListPage();
-      setSelectedState(stateSelect.value);
-    });
-    stateRow.appendChild(stateSelect);
-    elFilters.appendChild(stateRow);
 
     const sectorRow = document.createElement('div');
     sectorRow.className = 'map-filter-row map-filter-row--sectors';
@@ -4030,35 +4216,51 @@
     });
     elFilters.appendChild(sectorRow);
 
-    const ownerRow = document.createElement('div');
-    ownerRow.className = 'map-filter-row';
-    ownerRow.innerHTML = `<span class="map-filter-label">Owner</span>`;
-    const ownerSelect = document.createElement('select');
-    ownerSelect.className = 'map-filter-select';
-    ownerSelect.setAttribute('aria-label', 'Owner filtern');
-    ownerSelect.innerHTML = `<option value="">Owner: Alle</option>${owners.map((owner) => `<option value="${escapeHtml(owner)}"${activeOwnerFilter === owner ? " selected" : ""}>${escapeHtml(owner)}</option>`).join("")}`;
-    ownerSelect.addEventListener('change', () => {
-      activeOwnerFilter = ownerSelect.value;
-      resetListPage();
-      render();
-    });
-    ownerRow.appendChild(ownerSelect);
-    elFilters.appendChild(ownerRow);
+    const createDropdownControls = () => [
+      mapFilterDropdown({
+        label: 'Bundesland',
+        allLabel: 'Bundesland: Alle',
+        value: selectedState,
+        options: states,
+        onChange: (nextValue) => {
+          resetListPage();
+          setSelectedState(nextValue);
+        }
+      }),
+      mapFilterDropdown({
+        label: 'Owner',
+        allLabel: 'Owner: Alle',
+        value: activeOwnerFilter,
+        options: owners,
+        onChange: (nextValue) => {
+          activeOwnerFilter = nextValue;
+          resetListPage();
+          renderFilters();
+          render();
+        }
+      }),
+      mapFilterDropdown({
+        label: 'Priorität',
+        allLabel: 'Priorität: Alle',
+        value: activePriorityFilter,
+        options: priorities,
+        onChange: (nextValue) => {
+          activePriorityFilter = nextValue;
+          resetListPage();
+          renderFilters();
+          render();
+        }
+      })
+    ];
 
-    const priorityRow = document.createElement('div');
-    priorityRow.className = 'map-filter-row';
-    priorityRow.innerHTML = `<span class="map-filter-label">Priorität</span>`;
-    const prioritySelect = document.createElement('select');
-    prioritySelect.className = 'map-filter-select';
-    prioritySelect.setAttribute('aria-label', 'Priorität filtern');
-    prioritySelect.innerHTML = `<option value="">Priorität: Alle</option>${priorities.map((priority) => `<option value="${escapeHtml(priority)}"${activePriorityFilter === priority ? " selected" : ""}>${escapeHtml(priority)}</option>`).join("")}`;
-    prioritySelect.addEventListener('change', () => {
-      activePriorityFilter = prioritySelect.value;
-      resetListPage();
-      render();
-    });
-    priorityRow.appendChild(prioritySelect);
-    elFilters.appendChild(priorityRow);
+    const dropdownGrid = document.createElement('div');
+    dropdownGrid.className = 'map-filter-dropdown-grid';
+    dropdownGrid.append(...createDropdownControls());
+    elFilters.appendChild(dropdownGrid);
+
+    if (elMobileMapFilters) {
+      elMobileMapFilters.append(...createDropdownControls());
+    }
   }
 
   let markerIndex = [];
@@ -4301,6 +4503,9 @@
   }, { passive: true });
 
   document.addEventListener('click', (event) => {
+    if (!event.target.closest('.map-filter-dropdown')) {
+      closeMapFilterDropdowns();
+    }
     if (!event.target.closest('.map-dropdown') && !event.target.closest('.state-view-filter')) {
       closeStateFilterMenu();
     }
@@ -4366,6 +4571,7 @@
     renderStateFilterMenu();
     render();
     map.invalidateSize();
+    if (!selectedState && !activeMapContactId) requestAnimationFrame(() => fitMapToGermany());
   });
   window.addEventListener('load', () => {
     activeCategoryFilter = "";
@@ -4378,6 +4584,7 @@
     setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
     render();
     map.invalidateSize();
+    if (!selectedState && !activeMapContactId) requestAnimationFrame(() => fitMapToGermany());
   });
   window.addEventListener('resize', () => {
     setMobileSheetState(isMobileLayout() ? mobileSheetState : 'desktop');

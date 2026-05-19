@@ -7,6 +7,7 @@
     "sector",
     "specialty",
     "priority",
+    "role",
     "owner_id",
     "postal_code",
     "city",
@@ -103,11 +104,13 @@
   let contactCache = [];
   let supportsContactOrganizationId = true;
   let supportsContactImageSources = false;
+  let supportsContactRole = true;
 
   function contactSelectFields() {
     return DB_FIELDS.filter((field) => {
       if (!supportsContactOrganizationId && field === "organization_id") return false;
       if (!supportsContactImageSources && field.startsWith("image_") && field !== "image_url") return false;
+      if (!supportsContactRole && field === "role") return false;
       return true;
     }).join(",");
   }
@@ -118,6 +121,10 @@
 
   function isMissingContactImageSourceError(error) {
     return /image_source_url|image_source_label|image_rights_note|image_updated_at|image_updated_by/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
+
+  function isMissingContactRoleError(error) {
+    return /\brole\b/i.test(String(error?.message || error?.details || error?.hint || ""));
   }
 
   function isConfigured() {
@@ -240,6 +247,7 @@
       organization: row.organization || "",
       category: row.sector || "Praxis",
       specialty: row.specialty || "",
+      contactRole: row.role || "",
       priority: normalizePriority(row.priority),
       owner: profileName(row.owner_id),
       ownerId: row.owner_id || "",
@@ -348,6 +356,7 @@
       organization: String(contact.organization || "").trim() || null,
       sector: String(contact.category || contact.sector || "").trim() || "Praxis",
       specialty: String(contact.specialty || "").trim() || null,
+      role: String(contact.contactRole || contact.role || "").trim() || null,
       priority: normalizePriority(contact.priority),
       owner_id: contact.ownerId || resolveOwnerId(contact.owner),
       postal_code: contact.postalCode || contact.postal_code || null,
@@ -542,6 +551,10 @@
         supportsContactImageSources = false;
         return loadContacts(options);
       }
+      if (supportsContactRole && isMissingContactRoleError(error)) {
+        supportsContactRole = false;
+        return loadContacts(options);
+      }
       throw error;
     }
     contactCache = (data || []).map(dbToUi);
@@ -565,6 +578,10 @@
       }
       if (supportsContactImageSources && isMissingContactImageSourceError(error)) {
         supportsContactImageSources = false;
+        return getContact(id);
+      }
+      if (supportsContactRole && isMissingContactRoleError(error)) {
+        supportsContactRole = false;
         return getContact(id);
       }
       throw error;
@@ -796,7 +813,13 @@
       delete payload.image_updated_at;
       delete payload.image_updated_by;
     }
-    const { data, error } = await supabase.from("contacts").insert(payload).select(contactSelectFields()).single();
+    if (!supportsContactRole) delete payload.role;
+    let { data, error } = await supabase.from("contacts").insert(payload).select(contactSelectFields()).single();
+    if (error && supportsContactRole && isMissingContactRoleError(error)) {
+      supportsContactRole = false;
+      delete payload.role;
+      ({ data, error } = await supabase.from("contacts").insert(payload).select(contactSelectFields()).single());
+    }
     if (error) throw error;
     const { error: logError } = await supabase.from("changes").insert({
       contact_id: data.id,
@@ -815,7 +838,11 @@
   async function updateContact(id, patch) {
     const supabase = getClient();
     const userId = await getCurrentUserId();
-    const { data: oldRow, error: oldError } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single();
+    let { data: oldRow, error: oldError } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single();
+    if (oldError && supportsContactRole && isMissingContactRoleError(oldError)) {
+      supportsContactRole = false;
+      ({ data: oldRow, error: oldError } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single());
+    }
     if (oldError) throw oldError;
     const merged = { ...dbToUi(oldRow), ...patch, id };
     if (Object.prototype.hasOwnProperty.call(patch, "ownerId")) {
@@ -826,6 +853,7 @@
     const dbPatch = uiToDb(merged);
     delete dbPatch.id;
     if (!supportsContactOrganizationId) delete dbPatch.organization_id;
+    if (!supportsContactRole) delete dbPatch.role;
     if (!["image", "image_url"].some((field) => Object.prototype.hasOwnProperty.call(patch, field))) {
       delete dbPatch.image_url;
     }
@@ -845,8 +873,14 @@
     }
     dbPatch.updated_by = userId;
     dbPatch.updated_at = new Date().toISOString();
-    const changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
-    const { data, error } = await supabase.from("contacts").update(dbPatch).eq("id", id).select(contactSelectFields()).single();
+    let changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
+    let { data, error } = await supabase.from("contacts").update(dbPatch).eq("id", id).select(contactSelectFields()).single();
+    if (error && supportsContactRole && isMissingContactRoleError(error)) {
+      supportsContactRole = false;
+      delete dbPatch.role;
+      changedFields = changedFields.filter((field) => field !== "role");
+      ({ data, error } = await supabase.from("contacts").update(dbPatch).eq("id", id).select(contactSelectFields()).single());
+    }
     if (error) throw error;
     if (changedFields.length) {
       const action = dbPatch.status === "archived" ? "archive" : "update";
