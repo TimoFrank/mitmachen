@@ -13803,7 +13803,6 @@
         min-height: 560px;
       }
 
-      .formats-overview-panel,
       .format-section,
       .participant-board-column {
         border: 1px solid var(--border);
@@ -13811,48 +13810,6 @@
         background: var(--surface);
       }
 
-      .formats-overview-panel {
-        display: grid;
-        gap: 10px;
-        padding: 12px;
-      }
-
-      .formats-overview-panel[hidden] {
-        display: none;
-      }
-
-      .formats-list {
-        display: grid;
-        gap: 8px;
-      }
-
-      .format-list-item {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 10px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
-        padding: 12px;
-      }
-
-      .format-list-item:hover {
-        background: var(--surface-muted);
-      }
-
-      .format-list-item.is-active {
-        background: var(--primary-soft);
-        border-color: var(--primary);
-      }
-
-      .format-list-summary {
-        display: grid;
-        gap: 4px;
-        min-width: 0;
-      }
-
-      .format-list-item strong,
       .format-card-title {
         display: block;
         color: var(--text);
@@ -13861,16 +13818,10 @@
         overflow-wrap: anywhere;
       }
 
-      .format-list-item span,
       .format-card-meta,
       .format-empty-state span {
         color: var(--text-muted);
         font-size: 0.83rem;
-      }
-
-      .format-list-actions {
-        display: flex;
-        justify-content: flex-end;
       }
 
       .format-detail-panel {
@@ -15104,7 +15055,6 @@
 
             <div class="formats-search-actions" aria-label="Formataktionen">
               <div class="formats-command-meta" id="formats-count">0 Formate</div>
-              <button class="action-button" type="button" id="toggle-format-overview" aria-expanded="false" aria-controls="formats-overview-panel">Formatübersicht</button>
               <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
             </div>
 
@@ -15301,14 +15251,11 @@
 
           <section class="view-panel" id="view-formats" data-view-panel="formats">
             <div class="formats-workspace">
-              <section class="formats-overview-panel" id="formats-overview-panel" aria-label="Formatübersicht" hidden>
-                <div class="formats-list" id="formats-list"></div>
-              </section>
               <div class="formats-layout">
                 <section class="format-detail-panel" id="format-detail-panel" aria-label="Formatdetail">
                   <div class="format-empty-state">
                     <strong>Kein Format ausgewählt</strong>
-                    <span>Lege ein Format an oder wähle eines über die Formatübersicht.</span>
+                    <span>Lege ein Format an oder nutze die Suche, um vorhandene Formate zu finden.</span>
                   </div>
                 </section>
               </div>
@@ -16898,12 +16845,9 @@
       const searchShell = searchInput?.closest(".search-shell");
       const list = document.getElementById("contact-list");
       const organizationList = document.getElementById("organization-list");
-      const formatsList = document.getElementById("formats-list");
       const formatsCount = document.getElementById("formats-count");
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
-      const toggleFormatOverviewButton = document.getElementById("toggle-format-overview");
-      const formatsOverviewPanel = document.getElementById("formats-overview-panel");
       const formatParticipantDrawer = document.getElementById("format-participant-drawer");
       const formatParticipantOverlay = document.getElementById("format-participant-overlay");
       const formatParticipantClose = document.getElementById("format-participant-close");
@@ -17140,7 +17084,6 @@
       let formats = [];
       let activeFormatId = null;
       let editingFormatId = null;
-      let formatOverviewOpen = false;
       let formatActiveTab = "overview";
       let formatDetailExpanded = false;
       let participantPlannerFormatId = null;
@@ -21092,42 +21035,6 @@
         return options.map((value) => `<option value="${escapeHtml(value)}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
       }
 
-      function renderFormatsList(items = filteredFormats()) {
-        if (!formatsList) return;
-        if (formatsCount) formatsCount.textContent = `${items.length} ${items.length === 1 ? "Format" : "Formate"}`;
-        if (!activeFormatId && items.length) activeFormatId = items[0].id;
-        if (activeFormatId && !items.some((format) => format.id === activeFormatId) && items.length) activeFormatId = items[0].id;
-        if (!items.length) {
-          formatsList.innerHTML = `<div class="empty">Keine Formate gefunden.</div>`;
-          return;
-        }
-        formatsList.innerHTML = items.map((format) => {
-          return `
-            <article class="format-list-item ${format.id === activeFormatId ? "is-active" : ""}">
-              <span class="format-list-summary">
-                <strong>${escapeHtml(format.title)}</strong>
-                <span>${escapeHtml(format.formatType)} · ${escapeHtml(formatDateRange(format))} · ${escapeHtml(format.location || "Ort offen")}</span>
-              </span>
-              <div class="format-list-actions">
-                <button class="action-button action-button--compact ${format.id === activeFormatId ? "action-button--primary" : ""}" type="button" data-format-id="${escapeHtml(format.id)}">
-                  ${format.id === activeFormatId ? "Geöffnet" : "Öffnen"}
-                </button>
-              </div>
-            </article>
-          `;
-        }).join("");
-        formatsList.querySelectorAll("[data-format-id]").forEach((button) => {
-          button.addEventListener("click", () => {
-            activeFormatId = button.dataset.formatId;
-            editingFormatId = null;
-            formatActiveTab = "overview";
-            formatDetailExpanded = true;
-            setFormatOverviewOpen(false);
-            renderFormatsView();
-          });
-        });
-      }
-
       function renderFormatEditor(format = null) {
         const editing = Boolean(format?.id);
         const ownerValue = format?.ownerId || currentProfile?.id || "";
@@ -21560,7 +21467,7 @@
           formatDetailPanel.innerHTML = `
             <div class="format-empty-state">
               <strong>Kein Format ausgewählt</strong>
-              <span>Lege ein Format an oder wähle eines über die Formatübersicht.</span>
+              <span>Lege ein Format an oder passe die Suche an.</span>
             </div>
           `;
           return;
@@ -21604,11 +21511,11 @@
 
       function renderFormatsView() {
         const items = filteredFormats();
+        if (formatsCount) formatsCount.textContent = `${items.length} ${items.length === 1 ? "Format" : "Formate"}`;
         if (activeView === "formats") {
           renderSummary(items);
           if (resultsCount) resultsCount.textContent = hitCountLabel(items);
         }
-        renderFormatsList(items);
         renderFormatDetail(items);
       }
 
@@ -21729,15 +21636,6 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-      }
-
-      function setFormatOverviewOpen(open) {
-        formatOverviewOpen = Boolean(open);
-        if (formatsOverviewPanel) formatsOverviewPanel.hidden = !formatOverviewOpen;
-        if (toggleFormatOverviewButton) {
-          toggleFormatOverviewButton.textContent = formatOverviewOpen ? "Formatübersicht schließen" : "Formatübersicht";
-          toggleFormatOverviewButton.setAttribute("aria-expanded", String(formatOverviewOpen));
-        }
       }
 
       function openParticipantPlanner(formatId = activeFormatId) {
@@ -25817,10 +25715,8 @@
 
       newContactButton.addEventListener("click", () => openEditor());
       newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
-      toggleFormatOverviewButton?.addEventListener("click", () => setFormatOverviewOpen(!formatOverviewOpen));
       newFormatButton?.addEventListener("click", () => {
         formatActiveTab = "overview";
-        setFormatOverviewOpen(false);
         openFormatEditorDrawer(null);
       });
       formatEditorOverlay?.addEventListener("click", () => closeFormatEditorDrawer());

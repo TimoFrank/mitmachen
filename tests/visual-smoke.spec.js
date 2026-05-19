@@ -144,7 +144,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await page.locator("#format-editor-form").getByRole("button", { name: "Format anlegen" }).click();
   await expect(page.locator("#format-editor-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#format-editor-drawer")).not.toHaveClass(/is-open/);
-  await expect(page.locator("#formats-overview-panel")).toBeHidden();
+  await expect(page.locator("#toggle-format-overview")).toHaveCount(0);
   await expect(page.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
   await expect(page.locator(".format-type-icon")).toBeVisible();
   await expect(page.locator(".format-detail.is-open")).toHaveCount(0);
@@ -152,12 +152,8 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await page.locator("[data-toggle-format-detail]").first().click();
   await expect(page.locator(".format-overview-hero")).toBeVisible();
   await expect(page.locator(".format-roundtable-graphic")).toBeVisible();
-  await page.locator("#toggle-format-overview").click();
-  await expect(page.locator(".format-list-item")).toBeVisible();
-  await expect(page.locator(".format-list-item").first()).not.toHaveAttribute("open", "");
+  await expect(page.locator(".format-detail")).toBeVisible();
   await expect(page.locator(".format-list-facts")).toHaveCount(0);
-  await page.locator("#toggle-format-overview").click();
-  await expect(page.locator("#formats-overview-panel")).toBeHidden();
   await expect(page.locator(".format-detail-body")).toBeVisible();
   await page.locator("[data-toggle-format-detail]").first().click();
   await expect(page.locator(".format-detail-body")).toHaveCount(0);
