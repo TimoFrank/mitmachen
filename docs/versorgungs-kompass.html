@@ -13778,25 +13778,6 @@
         flex-wrap: wrap;
       }
 
-      .formats-command-meta {
-        color: var(--text-muted);
-        font-size: 0.86rem;
-      }
-
-      .formats-search-actions .formats-command-meta {
-        flex: 0 0 auto;
-        min-height: 38px;
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface-muted);
-        color: var(--text);
-        font-weight: 800;
-        padding: 0 10px;
-        white-space: nowrap;
-      }
-
       .formats-layout {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -15054,7 +15035,6 @@
             </label>
 
             <div class="formats-search-actions" aria-label="Formataktionen">
-              <div class="formats-command-meta" id="formats-count">0 Formate</div>
               <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
             </div>
 
@@ -16845,7 +16825,6 @@
       const searchShell = searchInput?.closest(".search-shell");
       const list = document.getElementById("contact-list");
       const organizationList = document.getElementById("organization-list");
-      const formatsCount = document.getElementById("formats-count");
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
       const formatParticipantDrawer = document.getElementById("format-participant-drawer");
@@ -21511,7 +21490,6 @@
 
       function renderFormatsView() {
         const items = filteredFormats();
-        if (formatsCount) formatsCount.textContent = `${items.length} ${items.length === 1 ? "Format" : "Formate"}`;
         if (activeView === "formats") {
           renderSummary(items);
           if (resultsCount) resultsCount.textContent = hitCountLabel(items);
