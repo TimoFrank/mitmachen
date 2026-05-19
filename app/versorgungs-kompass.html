@@ -11573,10 +11573,10 @@
       }
 
       .about-workspace {
-        width: min(960px, 100%);
+        width: min(720px, 100%);
         margin: 0 auto;
         display: grid;
-        gap: 14px;
+        gap: 12px;
       }
 
       .about-intro,
@@ -11590,7 +11590,7 @@
       .about-intro {
         border-color: var(--border-strong);
         background: var(--primary-soft);
-        padding: 18px;
+        padding: 16px;
       }
 
       .about-intro h3,
@@ -11622,8 +11622,8 @@
       .about-version-list {
         position: relative;
         display: grid;
-        gap: 12px;
-        padding-left: 18px;
+        gap: 10px;
+        padding-left: 16px;
       }
 
       .about-version-list::before {
@@ -11658,9 +11658,9 @@
       .about-version summary {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        gap: 14px;
+        gap: 10px;
         align-items: start;
-        padding: 16px;
+        padding: 13px 14px;
         cursor: pointer;
         list-style: none;
       }
@@ -11676,7 +11676,7 @@
 
       .about-version__title {
         display: grid;
-        gap: 7px;
+        gap: 6px;
         min-width: 0;
       }
 
@@ -11752,7 +11752,7 @@
 
       .about-version__body {
         display: grid;
-        padding: 0 16px 16px;
+        padding: 0 14px 14px;
         border-top: 1px solid var(--border);
         background: var(--surface);
       }
@@ -17498,7 +17498,7 @@
 
       const appVersionHistory = [
         {
-          version: "0.5.0",
+          version: "0.9.0",
           date: "19. Mai 2026",
           title: "Kontaktrollen und bessere Kartengrundlage",
           icon: "role",
@@ -17510,7 +17510,7 @@
           ]
         },
         {
-          version: "0.4.0",
+          version: "0.8.0",
           date: "18. Mai 2026",
           title: "Reifer Kartenmodus",
           icon: "map",
@@ -17522,27 +17522,75 @@
           ]
         },
         {
-          version: "0.3.0",
+          version: "0.7.0",
           date: "17. Mai 2026",
-          title: "CRM-App mit Login, Profilen und Teamfunktionen",
-          icon: "database",
-          summary: "Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zentralem Datenstand ausgebaut.",
+          title: "Teamfunktionen",
+          icon: "team",
+          summary: "Accounts, Rollen und Zuständigkeiten sind als eigener Team-Bereich sichtbar.",
           items: [
-            "Kontakte, Organisationen, Profile und Teamübersicht sind in einer gemeinsamen Arbeitsoberfläche gebündelt.",
-            "Gespeicherte Ansichten, Import und Datenqualität unterstützen wiederkehrende Pflegeaufgaben.",
-            "Rollen und Berechtigungen sorgen dafür, dass Anwender nur passende Aktionen sehen."
+            "Teammitglieder werden übersichtlich nach Teams gruppiert.",
+            "Rollen wie Admin, Editor und Viewer sind schneller erkennbar.",
+            "Team- und Rollenhinweise sind ruhiger in die App eingebunden."
+          ]
+        },
+        {
+          version: "0.6.0",
+          date: "17. Mai 2026",
+          title: "Login und Nutzerprofile",
+          icon: "profile",
+          summary: "Der Einstieg in die App wurde mit Anmeldung, Profilseite und persönlichen Einstellungen erweitert.",
+          items: [
+            "Anmeldung, Passwort-Setup und Login-Hinweise wurden ergänzt.",
+            "Das eigene Profil ist als eigene Seite in der App erreichbar.",
+            "Profil, Einstellungen und Logout sind klarer voneinander getrennt."
+          ]
+        },
+        {
+          version: "0.5.0",
+          date: "16. Mai 2026",
+          title: "Organisationen und CRM-Profile",
+          icon: "organization",
+          summary: "Kontakte und Organisationen wurden stärker als echte CRM-Profile strukturiert.",
+          items: [
+            "Organisationen haben einen eigenen Arbeitsbereich erhalten.",
+            "Kontaktprofile zeigen Informationen ruhiger und besser lesbar.",
+            "Lesemodus und Bearbeiten sind klarer voneinander getrennt."
+          ]
+        },
+        {
+          version: "0.4.0",
+          date: "15. Mai 2026",
+          title: "Import und Datenpflege",
+          icon: "care",
+          summary: "Wiederkehrende Pflegeaufgaben und Importwege wurden als eigene Arbeitsbereiche gebündelt.",
+          items: [
+            "Kontakte können per Datei oder tabellarischer Erfassung vorbereitet werden.",
+            "Datenqualität wird über konkrete Pflegehinweise sichtbarer.",
+            "Gespeicherte Ansichten unterstützen wiederkehrende Arbeitsabläufe."
+          ]
+        },
+        {
+          version: "0.3.0",
+          date: "14. Mai 2026",
+          title: "Mobile App verfügbar",
+          icon: "mobile",
+          summary: "Die wichtigsten CRM-Ansichten wurden für kleinere Bildschirme nutzbar gemacht.",
+          items: [
+            "Kontaktliste, Filter und Detailansichten funktionieren besser auf Mobilgeräten.",
+            "Navigation und Seitenleiste wurden für schmale Displays angepasst.",
+            "Karte und Kontaktvorschau sind unterwegs leichter bedienbar."
           ]
         },
         {
           version: "0.2.0",
-          date: "14. Mai 2026",
-          title: "CRM-Grundfunktionen und Mobile-Unterstützung",
-          icon: "mobile",
-          summary: "Die wichtigsten CRM-Arbeitsabläufe wurden geordnet und für kleinere Bildschirme verbessert.",
+          date: "11. Mai 2026",
+          title: "Kontaktliste, Filter und Details",
+          icon: "contacts",
+          summary: "Die tägliche Kontaktarbeit wurde übersichtlicher und schneller bedienbar.",
           items: [
-            "Kontaktliste, Detailansicht und Filter wurden übersichtlicher.",
-            "Owner, Priorität, Fachrichtung und Standort wurden besser in die Kontaktpflege eingebunden.",
-            "Die App wurde auf Mobilgeräten nutzbarer und stabiler."
+            "Kontaktliste, Suche und Filter wurden vereinfacht.",
+            "Owner, Priorität, Fachrichtung und Standort wurden besser eingebunden.",
+            "Detailansichten zeigen die wichtigsten Kontaktinformationen klarer."
           ]
         },
         {
