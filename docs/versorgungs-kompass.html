@@ -13788,6 +13788,19 @@
         flex-wrap: wrap;
       }
 
+      .format-status-legend {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .format-status-legend__label {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
       .formats-layout {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -13877,7 +13890,7 @@
 
       .format-detail-title-main {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
         align-items: center;
         gap: 10px;
         min-width: 0;
@@ -14150,7 +14163,14 @@
         color: #4338ca;
       }
 
-      .format-type-badge {
+      .format-badge--quiet {
+        border-color: var(--border);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+      }
+
+      .format-type-badge,
+      .format-status-badge {
         justify-self: start;
         padding: 5px 9px;
         font-size: 0.76rem;
@@ -15116,6 +15136,13 @@
             </label>
 
             <div class="formats-search-actions" aria-label="Formataktionen">
+              <div class="format-status-legend" aria-label="Status-Legende">
+                <span class="format-status-legend__label">Status</span>
+                <span class="format-badge format-status-badge format-badge--primary">Planung</span>
+                <span class="format-badge format-status-badge format-badge--success">Aktiv</span>
+                <span class="format-badge format-status-badge format-badge--calm">Abgeschlossen</span>
+                <span class="format-badge format-status-badge format-badge--quiet">Archiviert</span>
+              </div>
               <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
             </div>
 
@@ -21393,6 +21420,16 @@
         return `<span class="format-badge format-type-badge format-badge--${tone}">${escapeHtml(label)}</span>`;
       }
 
+      function formatStatusBadgeMarkup(status = "") {
+        const label = String(status || "Planung").trim() || "Planung";
+        const normalizedStatus = label.toLowerCase();
+        let tone = "primary";
+        if (normalizedStatus === "aktiv") tone = "success";
+        else if (normalizedStatus === "abgeschlossen") tone = "calm";
+        else if (normalizedStatus === "archiviert") tone = "quiet";
+        return `<span class="format-badge format-status-badge format-badge--${tone}">${escapeHtml(label)}</span>`;
+      }
+
       function renderFormatTabs() {
         return `
           <div class="format-tabs" role="tablist" aria-label="Formatplanung">
@@ -21566,6 +21603,7 @@
                         ${formatTypeIconMarkup(format.formatType)}
                         <h3>${escapeHtml(format.title)}</h3>
                         ${formatTypeBadgeMarkup(format.formatType)}
+                        ${formatStatusBadgeMarkup(format.status)}
                         <span class="format-participant-count" aria-label="${(format.participants || []).length} Teilnehmer">
                           <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
