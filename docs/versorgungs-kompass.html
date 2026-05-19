@@ -13978,41 +13978,6 @@
         justify-content: flex-end;
       }
 
-      .format-detail-admin-actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
-      .format-detail-admin-actions .action-button {
-        min-height: auto;
-        border: 0;
-        background: transparent;
-        color: var(--text-muted);
-        box-shadow: none;
-        padding: 0;
-        font-size: 0.78rem;
-        font-weight: 750;
-      }
-
-      .format-detail-admin-actions .action-button:hover,
-      .format-detail-admin-actions .action-button:focus-visible {
-        background: transparent;
-        color: var(--primary);
-        box-shadow: none;
-      }
-
-      .format-detail-admin-actions .action-button--danger-soft {
-        color: var(--text-muted);
-      }
-
-      .format-detail-admin-actions .action-button--danger-soft:hover,
-      .format-detail-admin-actions .action-button--danger-soft:focus-visible {
-        color: var(--danger);
-      }
-
       .format-detail-toggle {
         width: 38px;
         height: 38px;
@@ -14056,11 +14021,6 @@
         justify-content: space-between;
         gap: 12px;
         border-bottom: 1px solid var(--border);
-      }
-
-      .format-detail-nav .format-detail-admin-actions {
-        flex: 0 0 auto;
-        padding: 0 2px 10px 0;
       }
 
       .format-tab {
@@ -14600,6 +14560,13 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .format-settings-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         flex-wrap: wrap;
       }
 
@@ -15247,11 +15214,6 @@
           align-items: stretch;
           flex-direction: column;
           gap: 4px;
-        }
-
-        .format-detail-nav .format-detail-admin-actions {
-          justify-content: flex-start;
-          padding: 0 8px 10px;
         }
 
         .format-detail-title-main {
@@ -17275,7 +17237,8 @@
         { id: "participants", label: "Teilnehmer" },
         { id: "invitationStatus", label: "Einladungsstatus" },
         { id: "reporting", label: "Auswertung" },
-        { id: "notes", label: "Notizen & Export" }
+        { id: "notes", label: "Notizen" },
+        { id: "settings", label: "Einstellungen" }
       ];
 
       const searchInput = document.getElementById("search");
@@ -21549,7 +21512,7 @@
                 <div class="format-editor-field format-editor-field--wide">
                   <label for="format-notes">Notiz</label>
                   ${notesAreThread
-                    ? `<input type="hidden" name="notes" value="${escapeHtml(notesValue)}" /><textarea id="format-notes" placeholder="Notizen werden im Reiter Notizen & Export als Verlauf gepflegt." disabled></textarea>`
+                    ? `<input type="hidden" name="notes" value="${escapeHtml(notesValue)}" /><textarea id="format-notes" placeholder="Notizen werden im Reiter Notizen als Verlauf gepflegt." disabled></textarea>`
                     : `<textarea id="format-notes" name="notes" placeholder="Interne Planungsnotiz">${escapeHtml(notesValue)}</textarea>`}
                 </div>
               </div>
@@ -22044,6 +22007,13 @@
               </div>
               ${renderFormatNotesThread(format)}
             </section>
+          </div>
+        `;
+      }
+
+      function renderFormatSettingsTab(format) {
+        return `
+          <div class="format-tab-panel" role="tabpanel">
             <section class="format-section">
               <div class="format-export-row">
                 <div>
@@ -22051,6 +22021,18 @@
                   <p>CSV mit Name, Organisation, Sektor, Kontaktweg, Status, Rolle und Notiz.</p>
                 </div>
                 <button class="action-button" type="button" id="export-format-participants">Exportieren</button>
+              </div>
+            </section>
+            <section class="format-section">
+              <div class="format-export-row">
+                <div>
+                  <h4>Format verwalten</h4>
+                  <p>Archivieren blendet das Format aus der aktiven Planung aus. Löschen entfernt es endgültig.</p>
+                </div>
+                <div class="format-settings-actions">
+                  ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
+                  ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
+                </div>
               </div>
             </section>
           </div>
@@ -22062,6 +22044,7 @@
         if (formatActiveTab === "invitationStatus") return renderFormatInvitationStatusTab(format);
         if (formatActiveTab === "reporting") return renderFormatReportingTab(format);
         if (formatActiveTab === "notes") return renderFormatNotesTab(format);
+        if (formatActiveTab === "settings") return renderFormatSettingsTab(format);
         return renderFormatOverviewTab(format);
       }
 
@@ -22115,11 +22098,6 @@
                     <div class="format-detail-body" id="format-detail-body-${escapeHtml(format.id)}">
                       <div class="format-detail-nav">
                         ${renderFormatTabs()}
-                        <div class="format-detail-admin-actions" aria-label="Format verwalten">
-                          ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
-                          ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
-                          ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
-                        </div>
                       </div>
                       ${renderFormatActiveTab(format)}
                     </div>
@@ -22514,12 +22492,6 @@
               field.blur();
             });
           }
-        });
-        formatDetailPanel.querySelectorAll("[data-edit-format]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const selectedFormat = formats.find((item) => item.id === button.dataset.editFormat);
-            if (selectedFormat) openFormatEditorDrawer(selectedFormat);
-          });
         });
         formatDetailPanel.querySelectorAll("[data-archive-format]").forEach((button) => {
           button.addEventListener("click", async () => {

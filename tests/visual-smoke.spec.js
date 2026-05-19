@@ -163,6 +163,9 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-overview-hero")).toBeVisible();
   await expect(page.locator(".format-roundtable-illustration")).toBeVisible();
   await expect(page.locator(".format-detail")).toBeVisible();
+  await expect(page.locator('[data-edit-format]')).toHaveCount(0);
+  await expect(page.locator('[data-format-tab="notes"]')).toHaveText("Notizen");
+  await expect(page.locator('[data-format-tab="settings"]')).toBeVisible();
   await expect(page.locator(".format-list-facts")).toHaveCount(0);
   await expect(page.locator(".format-detail-body")).toBeVisible();
   await page.locator("[data-toggle-format-detail]").first().click();
@@ -217,6 +220,9 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   page.once("dialog", (dialog) => dialog.accept());
   await page.locator("[data-delete-format-note]").first().click();
   await expect(page.locator(".format-chat-message")).toHaveCount(0);
+  await page.locator('[data-format-tab="settings"]').click();
+  await expect(page.locator("#export-format-participants")).toBeVisible();
+  await expect(page.locator("[data-archive-format]")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "formate");
 });
