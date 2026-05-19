@@ -14070,8 +14070,8 @@
 
       .format-overview-hero {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
+        grid-template-columns: minmax(420px, 1fr) minmax(260px, 380px);
+        gap: 24px;
         align-items: center;
         border: 0;
         border-radius: 0;
@@ -14086,6 +14086,7 @@
         align-content: center;
         gap: 12px;
         min-width: 0;
+        justify-items: start;
       }
 
       .format-overview-actions {
@@ -14103,9 +14104,11 @@
       .format-overview-title h4 {
         margin: 0;
         color: var(--text);
-        font-size: clamp(1.28rem, 2vw, 1.8rem);
+        font-size: 2rem;
         line-height: 1.15;
-        overflow-wrap: anywhere;
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
       }
 
       .format-overview-title p {
@@ -14237,7 +14240,7 @@
       }
 
       .format-overview-image {
-        width: min(100%, 280px);
+        width: min(100%, 360px);
         aspect-ratio: 16 / 10;
         display: block;
         object-fit: cover;
@@ -15065,7 +15068,7 @@
         }
 
         .format-overview-hero {
-          grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+          grid-template-columns: minmax(360px, 1fr) minmax(220px, 300px);
         }
 
         .format-diversity-board,
@@ -15127,6 +15130,11 @@
         .participant-board,
         .invitation-status-board {
           grid-template-columns: 1fr;
+        }
+
+        .format-overview-title h4 {
+          font-size: 1.55rem;
+          overflow-wrap: anywhere;
         }
 
         .format-participant-header,
