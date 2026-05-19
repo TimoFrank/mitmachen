@@ -13751,6 +13751,26 @@
         gap: 12px;
       }
 
+      .formats-search-actions {
+        display: none;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .app-shell[data-active-view="formats"] .controls-stack {
+        grid-template-columns: minmax(320px, 1fr) auto;
+      }
+
+      .app-shell[data-active-view="formats"] .controls-stack .filter-toolbar {
+        display: none;
+      }
+
+      .app-shell[data-active-view="formats"] .formats-search-actions {
+        display: flex;
+      }
+
       .formats-command-actions {
         display: flex;
         align-items: center;
@@ -13761,6 +13781,20 @@
       .formats-command-meta {
         color: var(--text-muted);
         font-size: 0.86rem;
+      }
+
+      .formats-search-actions .formats-command-meta {
+        flex: 0 0 auto;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        color: var(--text);
+        font-weight: 800;
+        padding: 0 10px;
+        white-space: nowrap;
       }
 
       .formats-layout {
@@ -14716,9 +14750,14 @@
       @media (max-width: 760px) {
         .format-detail-head,
         .format-section-head,
-        .formats-command-row {
+        .formats-command-row,
+        .formats-search-actions {
           align-items: stretch;
           flex-direction: column;
+        }
+
+        .app-shell[data-active-view="formats"] .controls-stack {
+          grid-template-columns: 1fr;
         }
 
         .app-shell[data-active-view="formats"] .workspace-header {
@@ -14939,6 +14978,12 @@
               />
             </label>
 
+            <div class="formats-search-actions" aria-label="Formataktionen">
+              <div class="formats-command-meta" id="formats-count">0 Formate</div>
+              <button class="action-button" type="button" id="toggle-format-overview" aria-expanded="false" aria-controls="formats-overview-panel">Formatübersicht</button>
+              <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
+            </div>
+
             <div class="filter-toolbar" aria-label="Filter und Ergebnisanzahl">
               <div class="active-filter-row">
                 <div class="active-filter-list" id="active-filter-list"></div>
@@ -15132,13 +15177,6 @@
 
           <section class="view-panel" id="view-formats" data-view-panel="formats">
             <div class="formats-workspace">
-              <div class="formats-command-row">
-                <div class="formats-command-meta" id="formats-count">0 Formate</div>
-                <div class="formats-command-actions">
-                  <button class="action-button" type="button" id="toggle-format-overview" aria-expanded="false" aria-controls="formats-overview-panel">Formatübersicht</button>
-                  <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
-                </div>
-              </div>
               <section class="formats-overview-panel" id="formats-overview-panel" aria-label="Formatübersicht" hidden>
                 <div class="formats-list" id="formats-list"></div>
               </section>
