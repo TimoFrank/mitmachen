@@ -14335,9 +14335,15 @@
         gap: 6px;
       }
 
+      .format-diversity-list--stacked {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
       .format-diversity-chip {
         display: inline-flex;
         align-items: center;
+        justify-content: space-between;
         max-width: 100%;
         gap: 6px;
         border: 1px solid var(--border);
@@ -21152,11 +21158,11 @@
           <div class="format-diversity-board">
             <section class="format-diversity-column">
               <h5>Sektoren</h5>
-              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => contact.category, { sector: true })}</div>
+              <div class="format-diversity-list format-diversity-list--stacked">${renderDiversityChips(entries, (contact) => contact.category, { sector: true })}</div>
             </section>
             <section class="format-diversity-column">
               <h5>Fachrichtungen</h5>
-              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => specialtyLabel(contact))}</div>
+              <div class="format-diversity-list format-diversity-list--stacked">${renderDiversityChips(entries, (contact) => specialtyLabel(contact))}</div>
             </section>
           </div>
         `;
@@ -21203,7 +21209,7 @@
                 const x = point.x + Math.cos(offsetAngle) * offsetRadius;
                 const y = point.y + Math.sin(offsetAngle) * offsetRadius;
                 const color = categoryChartColors[categoryLabel(contact)] || categoryChartColors.Praxis;
-                return `<circle class="format-participant-map-marker" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.2" fill="${escapeHtml(color)}"><title>${escapeHtml(contact.name)} · ${escapeHtml(formatLocationDisplay(contact) || stateLabel(contact) || "Ort offen")} · ${escapeHtml(categoryLabel(contact))}</title></circle>`;
+                return `<circle class="format-participant-map-marker" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5.6" fill="${escapeHtml(color)}"><title>${escapeHtml(contact.name)} · ${escapeHtml(formatLocationDisplay(contact) || stateLabel(contact) || "Ort offen")} · ${escapeHtml(categoryLabel(contact))}</title></circle>`;
               }).join("")}
             </svg>
             <div class="format-diversity-list">${renderDiversityChips(participantEntries, (contact) => stateLabel(contact))}</div>
