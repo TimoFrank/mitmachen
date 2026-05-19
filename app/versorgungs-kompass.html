@@ -13877,7 +13877,7 @@
 
       .format-detail-title-main {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
         align-items: center;
         gap: 10px;
         min-width: 0;
@@ -14134,6 +14134,12 @@
         border-color: #c7d2fe;
         background: #eef2ff;
         color: #4338ca;
+      }
+
+      .format-type-badge {
+        justify-self: start;
+        padding: 5px 9px;
+        font-size: 0.76rem;
       }
 
       .format-overview-visual {
@@ -14892,6 +14898,10 @@
         .format-tabs {
           flex-wrap: wrap;
           overflow-x: visible;
+        }
+
+        .format-detail-title-main {
+          grid-template-columns: auto minmax(0, 1fr);
         }
 
         .format-tab {
@@ -21399,6 +21409,16 @@
         `;
       }
 
+      function formatTypeBadgeMarkup(formatType = "") {
+        const label = String(formatType || "Format").trim() || "Format";
+        const normalizedType = label.toLowerCase();
+        let tone = "primary";
+        if (normalizedType.includes("fach")) tone = "success";
+        else if (normalizedType.includes("workshop")) tone = "warm";
+        else if (normalizedType.includes("veranstaltung")) tone = "calm";
+        return `<span class="format-badge format-type-badge format-badge--${tone}">${escapeHtml(label)}</span>`;
+      }
+
       function renderFormatTabs() {
         return `
           <div class="format-tabs" role="tablist" aria-label="Formatplanung">
@@ -21549,6 +21569,7 @@
                       <div class="format-detail-title-main">
                         ${formatTypeIconMarkup(format.formatType)}
                         <h3>${escapeHtml(format.title)}</h3>
+                        ${formatTypeBadgeMarkup(format.formatType)}
                         <span class="format-participant-count" aria-label="${(format.participants || []).length} Teilnehmer">
                           <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
