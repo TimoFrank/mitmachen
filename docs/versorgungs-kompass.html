@@ -14555,6 +14555,20 @@
         flex-wrap: wrap;
       }
 
+      .format-chat-composer-author {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .format-chat-composer-author .format-chat-avatar {
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
+        font-size: 0.68rem;
+      }
+
       .format-export-row {
         display: flex;
         align-items: center;
@@ -21923,6 +21937,11 @@
         return currentProfile?.display_name || currentProfile?.displayName || currentProfile?.email || currentProfile?.initials || "Angemeldeter Nutzer";
       }
 
+      function renderCurrentFormatAuthorAvatar() {
+        if (currentProfile) return avatarMarkup(currentProfile, "format-chat-avatar-image");
+        return escapeHtml(initialsFromLabel(formatNotesAuthorLabel()));
+      }
+
       function ownsFormatNote(message = {}) {
         if (!currentProfile) return false;
         const values = [
@@ -21987,7 +22006,10 @@
               <form class="format-chat-composer" id="format-notes-composer">
                 <textarea id="format-notes-message" name="message" placeholder="Neue Notiz schreiben..." aria-label="Neue Formatnotiz"></textarea>
                 <div class="format-chat-composer-footer">
-                  <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(formatNotesAuthorLabel())}</strong></span>
+                  <span class="format-chat-composer-author">
+                    <span class="format-chat-avatar" aria-hidden="true">${renderCurrentFormatAuthorAvatar()}</span>
+                    <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(formatNotesAuthorLabel())}</strong></span>
+                  </span>
                   <button class="action-button action-button--primary" type="submit">Notiz senden</button>
                 </div>
               </form>
