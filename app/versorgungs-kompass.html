@@ -21559,11 +21559,6 @@
                           ${(format.participants || []).length}
                         </span>
                       </div>
-                      <div class="format-detail-admin-actions" aria-label="Format verwalten">
-                        ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
-                        ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
-                        ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
-                      </div>
                     </div>
                     <div class="format-detail-actions">
                       <button class="action-button format-detail-toggle" type="button" data-toggle-format-detail="${escapeHtml(format.id)}" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">
@@ -21575,6 +21570,11 @@
                   </div>
                   ${isExpanded ? `
                     <div class="format-detail-body" id="format-detail-body-${escapeHtml(format.id)}">
+                      <div class="format-detail-admin-actions" aria-label="Format verwalten">
+                        ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
+                        ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
+                        ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
+                      </div>
                       ${renderFormatTabs()}
                       ${renderFormatActiveTab(format)}
                     </div>
