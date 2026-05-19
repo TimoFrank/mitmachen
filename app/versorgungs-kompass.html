@@ -13788,12 +13788,6 @@
         flex-wrap: wrap;
       }
 
-      .format-status-legend__label {
-        color: var(--text-muted);
-        font-size: 0.76rem;
-        font-weight: 800;
-      }
-
       .formats-layout {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -14192,28 +14186,33 @@
         color: #475569;
       }
 
+      .format-status-badge {
+        border-color: var(--border);
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      .format-status-badge svg {
+        width: 14px;
+        height: 14px;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
       .format-badge--status-planning {
-        border-color: #fde68a;
-        background: #fffbeb;
         color: #92400e;
       }
 
       .format-badge--status-active {
-        border-color: #bbf7d0;
-        background: #f0fdf4;
         color: #166534;
       }
 
       .format-badge--status-done {
-        border-color: #c7d2fe;
-        background: #eef2ff;
         color: #3730a3;
-      }
-
-      .format-badge--status-archived {
-        border-color: var(--border);
-        background: var(--surface-muted);
-        color: var(--text-muted);
       }
 
       .format-type-badge,
@@ -15512,11 +15511,18 @@
             <div class="formats-workspace">
               <div class="formats-command-row" aria-label="Formataktionen">
                 <div class="format-status-legend" aria-label="Status-Legende">
-                  <span class="format-status-legend__label">Status</span>
-                  <span class="format-badge format-status-badge format-badge--status-planning">Planung</span>
-                  <span class="format-badge format-status-badge format-badge--status-active">Aktiv</span>
-                  <span class="format-badge format-status-badge format-badge--status-done">Abgeschlossen</span>
-                  <span class="format-badge format-status-badge format-badge--status-archived">Archiviert</span>
+                  <span class="format-badge format-status-badge format-badge--status-planning">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10"></path><path d="M4 12h7"></path><path d="M4 18h5"></path><path d="M17 10v6l4 2"></path></svg>
+                    Planung
+                  </span>
+                  <span class="format-badge format-status-badge format-badge--status-active">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12h10"></path><path d="m13 8 4 4-4 4"></path><circle cx="12" cy="12" r="9"></circle></svg>
+                    Aktiv
+                  </span>
+                  <span class="format-badge format-status-badge format-badge--status-done">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path><circle cx="12" cy="12" r="9"></circle></svg>
+                    Abgeschlossen
+                  </span>
                 </div>
                 <div class="formats-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
@@ -17102,7 +17108,7 @@
         { value: "older90", label: "Älter als 90 Tage" }
       ];
       const formatTypeOptions = ["Roundtable", "Fachgespräch", "Workshop", "Veranstaltung", "Diskussionsformat"];
-      const formatStatusOptions = ["Planung", "Aktiv", "Abgeschlossen", "Archiviert"];
+      const formatStatusOptions = ["Planung", "Aktiv", "Abgeschlossen"];
       const invitationStatusOptions = ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt"];
       const formatEditorSteps = [
         { id: "basis", label: "Basis" },
@@ -21613,11 +21619,18 @@
       function formatStatusBadgeMarkup(status = "") {
         const label = String(status || "Planung").trim() || "Planung";
         const normalizedStatus = label.toLowerCase();
+        if (normalizedStatus === "archiviert") return "";
         let tone = "status-planning";
-        if (normalizedStatus === "aktiv") tone = "status-active";
-        else if (normalizedStatus === "abgeschlossen") tone = "status-done";
-        else if (normalizedStatus === "archiviert") tone = "status-archived";
-        return `<span class="format-badge format-status-badge format-badge--${tone}">${escapeHtml(label)}</span>`;
+        let icon = `<path d="M4 6h10"></path><path d="M4 12h7"></path><path d="M4 18h5"></path><path d="M17 10v6l4 2"></path>`;
+        if (normalizedStatus === "aktiv") {
+          tone = "status-active";
+          icon = `<path d="M7 12h10"></path><path d="m13 8 4 4-4 4"></path><circle cx="12" cy="12" r="9"></circle>`;
+        }
+        else if (normalizedStatus === "abgeschlossen") {
+          tone = "status-done";
+          icon = `<path d="m5 12 4 4L19 6"></path><circle cx="12" cy="12" r="9"></circle>`;
+        }
+        return `<span class="format-badge format-status-badge format-badge--${tone}"><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>${escapeHtml(label)}</span>`;
       }
 
       function renderFormatTabs() {
