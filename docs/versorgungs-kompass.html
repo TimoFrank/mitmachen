@@ -13889,16 +13889,24 @@
 
       .format-detail-title {
         display: grid;
-        gap: 8px;
+        gap: 7px;
         min-width: 0;
       }
 
       .format-detail-title-main {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-columns: auto minmax(0, 1fr);
         align-items: center;
         gap: 10px;
         min-width: 0;
+      }
+
+      .format-detail-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-left: 44px;
       }
 
       .format-participant-count {
@@ -15248,6 +15256,10 @@
 
         .format-detail-title-main {
           grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .format-detail-meta {
+          padding-left: 0;
         }
 
         .format-tab {
@@ -22076,6 +22088,8 @@
                       <div class="format-detail-title-main">
                         ${formatTypeIconMarkup(format.formatType)}
                         <h3>${escapeHtml(format.title)}</h3>
+                      </div>
+                      <div class="format-detail-meta">
                         ${formatTypeBadgeMarkup(format.formatType)}
                         <span class="format-participant-count" aria-label="${(format.participants || []).length} Teilnehmer">
                           <svg viewBox="0 0 24 24" aria-hidden="true">
