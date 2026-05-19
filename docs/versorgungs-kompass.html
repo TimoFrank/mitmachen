@@ -14052,7 +14052,7 @@
 
       .format-overview-hero {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.52fr);
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
         align-items: center;
         border: 0;
@@ -14060,7 +14060,7 @@
         background:
           radial-gradient(circle at 92% 8%, var(--primary-soft), transparent 30%),
           linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%);
-        padding: 22px 26px;
+        padding: 16px 20px;
       }
 
       .format-overview-copy {
@@ -14153,7 +14153,8 @@
       }
 
       .format-roundtable-graphic {
-        width: min(100%, 260px);
+        width: 190px;
+        max-width: 100%;
         height: auto;
         display: block;
       }
