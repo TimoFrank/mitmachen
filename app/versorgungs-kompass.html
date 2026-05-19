@@ -13788,6 +13788,24 @@
         flex-wrap: wrap;
       }
 
+      .format-status-filter {
+        cursor: pointer;
+        transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      .format-status-filter:hover,
+      .format-status-filter:focus-visible {
+        border-color: currentColor;
+        box-shadow: var(--focus-ring);
+        outline: none;
+      }
+
+      .format-status-filter.is-active {
+        border-color: currentColor;
+        background: var(--primary-soft);
+        box-shadow: inset 0 0 0 1px currentColor;
+      }
+
       .formats-layout {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -15639,18 +15657,18 @@
                   <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
                 </div>
                 <div class="format-status-legend" aria-label="Status-Legende">
-                  <span class="format-badge format-status-badge format-badge--status-planning">
+                  <button class="format-badge format-status-badge format-status-filter format-badge--status-planning" type="button" data-format-status-filter="Planung" aria-pressed="false">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10"></path><path d="M4 12h7"></path><path d="M4 18h5"></path><path d="M17 10v6l4 2"></path></svg>
                     Planung
-                  </span>
-                  <span class="format-badge format-status-badge format-badge--status-active">
+                  </button>
+                  <button class="format-badge format-status-badge format-status-filter format-badge--status-active" type="button" data-format-status-filter="Aktiv" aria-pressed="false">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12h10"></path><path d="m13 8 4 4-4 4"></path><circle cx="12" cy="12" r="9"></circle></svg>
                     Aktiv
-                  </span>
-                  <span class="format-badge format-status-badge format-badge--status-done">
+                  </button>
+                  <button class="format-badge format-status-badge format-status-filter format-badge--status-done" type="button" data-format-status-filter="Abgeschlossen" aria-pressed="false">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path><circle cx="12" cy="12" r="9"></circle></svg>
                     Abgeschlossen
-                  </span>
+                  </button>
                 </div>
               </div>
               <div class="formats-layout">
@@ -17494,6 +17512,7 @@
       let formatDetailExpanded = false;
       let formatEditorCurrentStep = "basis";
       let formatEditingNoteId = null;
+      let formatStatusFilter = "";
       let participantPlannerFormatId = null;
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
@@ -21375,6 +21394,7 @@
         const query = formatSearchQuery();
         return formats
           .filter((format) => format.status !== "Archiviert" || canAdministerData())
+          .filter((format) => !formatStatusFilter || format.status === formatStatusFilter)
           .filter((format) => {
             if (!query) return true;
             return [
@@ -22104,6 +22124,11 @@
           renderSummary(items);
           if (resultsCount) resultsCount.textContent = hitCountLabel(items);
         }
+        document.querySelectorAll("[data-format-status-filter]").forEach((button) => {
+          const isActive = button.dataset.formatStatusFilter === formatStatusFilter;
+          button.classList.toggle("is-active", isActive);
+          button.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
         renderFormatDetail(items);
       }
 
@@ -26250,6 +26275,15 @@
         activeSavedViewName = "";
         currentPage = 1;
         updateView();
+      });
+      document.querySelectorAll("[data-format-status-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const nextStatus = button.dataset.formatStatusFilter || "";
+          formatStatusFilter = formatStatusFilter === nextStatus ? "" : nextStatus;
+          activeFormatId = filteredFormats()[0]?.id || null;
+          formatDetailExpanded = false;
+          renderFormatsView();
+        });
       });
       pageSizeSelect.addEventListener("change", () => {
         pageSize = Number(pageSizeSelect.value) || 20;
