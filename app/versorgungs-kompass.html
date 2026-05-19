@@ -14945,6 +14945,26 @@
         padding: 8px;
       }
 
+      .invitation-status-column--kandidat {
+        border-color: #e5dccf;
+        background: #fbfaf7;
+      }
+
+      .invitation-status-column--eingeladen {
+        border-color: #d7e3f8;
+        background: #f6f9ff;
+      }
+
+      .invitation-status-column--zugesagt {
+        border-color: #ccebd8;
+        background: #f4fbf6;
+      }
+
+      .invitation-status-column--abgesagt {
+        border-color: #f3d4d4;
+        background: #fff7f7;
+      }
+
       .invitation-status-column.is-drop-target {
         border-color: var(--primary);
         background: var(--primary-soft);
@@ -21844,7 +21864,7 @@
                 .filter(({ participant }) => invitationBoardStatus(participant) === status)
                 .sort((a, b) => a.contact.name.localeCompare(b.contact.name, "de"));
               return `
-                <section class="invitation-status-column" data-invitation-status-drop="${escapeHtml(status)}">
+                <section class="invitation-status-column invitation-status-column--${normalizeClassPart(status)}" data-invitation-status-drop="${escapeHtml(status)}">
                   <h5>${escapeHtml(status)} <span class="participant-count">${statusEntries.length}</span></h5>
                   <div class="invitation-status-list">
                     ${statusEntries.length ? statusEntries.map(({ contact }) => `
