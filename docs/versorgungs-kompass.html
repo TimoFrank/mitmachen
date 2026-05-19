@@ -14420,6 +14420,54 @@
         font-weight: 800;
       }
 
+      .format-diversity-chip--sector {
+        border-radius: 999px;
+      }
+
+      .format-diversity-chip--sector span {
+        color: inherit;
+      }
+
+      .format-diversity-chip--sector .format-diversity-chip__count {
+        opacity: 0.78;
+      }
+
+      .format-diversity-chip--sector.contact-sector-pill--praxis {
+        background: var(--success-soft);
+        color: #177245;
+        border-color: #bde8ca;
+      }
+
+      .format-diversity-chip--sector.contact-sector-pill--krankenhaus {
+        background: var(--info-soft);
+        color: var(--primary);
+        border-color: #bfd3ff;
+      }
+
+      .format-diversity-chip--sector.contact-sector-pill--apotheke {
+        background: #f4ecff;
+        color: #6b35b8;
+        border-color: #dbc6ff;
+      }
+
+      .format-diversity-chip--sector.contact-sector-pill--pflege {
+        background: #fff1ed;
+        color: #a34120;
+        border-color: #ffd2c4;
+      }
+
+      .format-diversity-chip--sector.contact-sector-pill--krankenkasse {
+        background: #f0f2ff;
+        color: #4f5fb8;
+        border-color: #cfd6ff;
+      }
+
+      .format-diversity-chip--sector.contact-sector-pill--notfallversorgung {
+        background: var(--danger-soft);
+        color: var(--danger);
+        border-color: #fecaca;
+      }
+
       .format-editor {
         display: grid;
         gap: 12px;
@@ -21097,9 +21145,22 @@
         const counts = countByValue(entries.map(({ contact }) => contact), getter);
         if (!counts.length) return `<p>Keine Teilnehmer</p>`;
         return counts.map(([label, count]) => sector
-          ? `<span class="format-diversity-chip">${sectorBadgeMarkup(label)} <span>${count}</span></span>`
+          ? `<span class="format-diversity-chip format-diversity-chip--sector contact-sector-pill--${normalizeClassPart(label)}"><span class="format-diversity-chip__label">${escapeHtml(label)}</span><span class="format-diversity-chip__count">${count}</span></span>`
           : `<span class="format-diversity-chip">${escapeHtml(label)} <span>${count}</span></span>`
         ).join("");
+      }
+
+      function sectorMapColor(value) {
+        const normalized = normalizeClassPart(meaningfulOrEmpty(value) || "");
+        const colors = {
+          praxis: "#177245",
+          krankenhaus: "#155fe4",
+          apotheke: "#6b35b8",
+          pflege: "#a34120",
+          krankenkasse: "#4f5fb8",
+          notfallversorgung: "#dc2626"
+        };
+        return colors[normalized] || "#155fe4";
       }
 
       function formatDateRange(format) {
@@ -21286,11 +21347,11 @@
                 const offsetRadius = Math.floor(index / 8) * 1.4;
                 const x = point.x + Math.cos(offsetAngle) * offsetRadius;
                 const y = point.y + Math.sin(offsetAngle) * offsetRadius;
-                const color = categoryChartColors[categoryLabel(contact)] || categoryChartColors.Praxis;
+                const color = sectorMapColor(categoryLabel(contact));
                 return `<circle class="format-participant-map-marker" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5.6" fill="${escapeHtml(color)}"><title>${escapeHtml(contact.name)} · ${escapeHtml(formatLocationDisplay(contact) || stateLabel(contact) || "Ort offen")} · ${escapeHtml(categoryLabel(contact))}</title></circle>`;
               }).join("")}
             </svg>
-            <div class="format-diversity-list">${renderDiversityChips(participantEntries, (contact) => stateLabel(contact))}</div>
+            <div class="format-diversity-list format-diversity-list--stacked">${renderDiversityChips(participantEntries, (contact) => stateLabel(contact))}</div>
           </section>
         `;
       }
