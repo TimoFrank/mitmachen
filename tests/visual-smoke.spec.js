@@ -198,6 +198,12 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-participant-map-marker")).toHaveCount(1);
   await expect(page.locator(".format-participant-map-marker").first()).toHaveAttribute("fill", /#[0-9a-fA-F]{6}/);
   await expect(page.locator(".format-participant-map")).not.toContainText("Personen mit Koordinaten");
+  await page.locator('[data-format-tab="notes"]').click();
+  await expect(page.locator("#format-notes-composer")).toBeVisible();
+  await page.locator("#format-notes-message").fill("Testnotiz aus dem Formate-Visualtest");
+  await page.locator("#format-notes-composer").getByRole("button", { name: "Notiz senden" }).click();
+  await expect(page.locator(".format-chat-message")).toContainText("Testnotiz aus dem Formate-Visualtest");
+  await expect(page.locator(".format-chat-meta time")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "formate");
 });

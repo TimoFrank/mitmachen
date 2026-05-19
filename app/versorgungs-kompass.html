@@ -14314,6 +14314,110 @@
         overflow-wrap: anywhere;
       }
 
+      .format-notes-thread {
+        display: grid;
+        gap: 12px;
+      }
+
+      .format-chat-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .format-chat-message {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        padding: 10px;
+      }
+
+      .format-chat-avatar {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: 0.74rem;
+        font-weight: 850;
+        overflow: hidden;
+      }
+
+      .format-chat-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .format-chat-content {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .format-chat-meta {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+        color: var(--text-muted);
+        font-size: 0.76rem;
+      }
+
+      .format-chat-meta strong {
+        color: var(--text);
+        font-size: 0.84rem;
+      }
+
+      .format-chat-text {
+        margin: 0;
+        color: var(--text);
+        line-height: 1.45;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .format-chat-composer {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        padding: 10px;
+      }
+
+      .format-chat-composer textarea {
+        width: 100%;
+        min-height: 84px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        line-height: 1.45;
+        padding: 10px;
+        resize: vertical;
+      }
+
+      .format-chat-composer textarea:focus-visible {
+        border-color: var(--primary);
+        box-shadow: var(--focus-ring);
+        outline: none;
+      }
+
+      .format-chat-composer-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
       .format-export-row {
         display: flex;
         align-items: center;
@@ -21177,6 +21281,8 @@
       function renderFormatEditor(format = null) {
         const editing = Boolean(format?.id);
         const ownerValue = format?.ownerId || currentProfile?.id || "";
+        const notesValue = String(format?.notes || "");
+        const notesAreThread = notesValue.trim().startsWith("{") && parseFormatNotesThread(notesValue, format).length > 0;
         return `
           <form class="format-editor" id="format-editor-form">
             <div class="import-steps contact-editor-steps" id="format-editor-steps" aria-label="Formatanlage-Schritte"></div>
@@ -21244,7 +21350,9 @@
                 </div>
                 <div class="format-editor-field format-editor-field--wide">
                   <label for="format-notes">Notiz</label>
-                  <textarea id="format-notes" name="notes" placeholder="Interne Planungsnotiz">${escapeHtml(format?.notes || "")}</textarea>
+                  ${notesAreThread
+                    ? `<input type="hidden" name="notes" value="${escapeHtml(notesValue)}" /><textarea id="format-notes" placeholder="Notizen werden im Reiter Notizen & Export als Verlauf gepflegt." disabled></textarea>`
+                    : `<textarea id="format-notes" name="notes" placeholder="Interne Planungsnotiz">${escapeHtml(notesValue)}</textarea>`}
                 </div>
               </div>
             </section>
@@ -21596,6 +21704,92 @@
         `;
       }
 
+      function parseFormatNotesThread(rawNotes = "", format = {}) {
+        const raw = String(rawNotes || "").trim();
+        if (!raw) return [];
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed?.kind === "format-notes-thread-v1" && Array.isArray(parsed.messages)) {
+            return parsed.messages
+              .map((message) => ({
+                id: String(message.id || window.crypto?.randomUUID?.() || Date.now()),
+                text: String(message.text || "").trim(),
+                authorId: String(message.authorId || ""),
+                authorName: String(message.authorName || "Unbekannter Nutzer"),
+                authorRole: String(message.authorRole || ""),
+                createdAt: String(message.createdAt || "")
+              }))
+              .filter((message) => message.text);
+          }
+        } catch (error) {
+          // Legacy freetext notes are rendered below as the first chat entry.
+        }
+        return [{
+          id: `legacy-${format.id || "format"}`,
+          text: raw,
+          authorId: "",
+          authorName: "Bisherige Notiz",
+          authorRole: "",
+          createdAt: format.updatedAt || format.createdAt || ""
+        }];
+      }
+
+      function serializeFormatNotesThread(messages = []) {
+        return JSON.stringify({
+          kind: "format-notes-thread-v1",
+          messages: messages.map((message) => ({
+            id: message.id,
+            text: message.text,
+            authorId: message.authorId,
+            authorName: message.authorName,
+            authorRole: message.authorRole,
+            createdAt: message.createdAt
+          }))
+        });
+      }
+
+      function formatNotesAuthorLabel() {
+        return currentProfile?.display_name || currentProfile?.displayName || currentProfile?.email || currentProfile?.initials || "Angemeldeter Nutzer";
+      }
+
+      function renderFormatChatAvatar(message) {
+        const profile = ownerProfileForValue(message.authorId) || ownerProfileForValue(message.authorName);
+        if (profile) return avatarMarkup(profile, "format-chat-avatar-image");
+        return escapeHtml(initialsFromLabel(message.authorName || "BN"));
+      }
+
+      function renderFormatNotesThread(format) {
+        const messages = parseFormatNotesThread(format.notes, format);
+        return `
+          <div class="format-notes-thread">
+            <div class="format-chat-list" aria-live="polite">
+              ${messages.length ? messages.map((message) => `
+                <article class="format-chat-message">
+                  <span class="format-chat-avatar" aria-hidden="true">${renderFormatChatAvatar(message)}</span>
+                  <div class="format-chat-content">
+                    <div class="format-chat-meta">
+                      <strong>${escapeHtml(message.authorName)}</strong>
+                      ${message.authorRole ? `<span>${escapeHtml(roleLabel(message.authorRole))}</span>` : ""}
+                      <time datetime="${escapeHtml(message.createdAt)}">${escapeHtml(formatDateTimeLabel(message.createdAt) || "Zeitpunkt offen")}</time>
+                    </div>
+                    <p class="format-chat-text">${escapeHtml(message.text)}</p>
+                  </div>
+                </article>
+              `).join("") : `<div class="empty">Noch keine Notiz im Verlauf.</div>`}
+            </div>
+            ${canEditContacts() ? `
+              <form class="format-chat-composer" id="format-notes-composer">
+                <textarea id="format-notes-message" name="message" placeholder="Neue Notiz schreiben..." aria-label="Neue Formatnotiz"></textarea>
+                <div class="format-chat-composer-footer">
+                  <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(formatNotesAuthorLabel())}</strong></span>
+                  <button class="action-button action-button--primary" type="submit">Notiz senden</button>
+                </div>
+              </form>
+            ` : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Schreiben von Notizen"))}</div>`}
+          </div>
+        `;
+      }
+
       function renderFormatNotesTab(format) {
         return `
           <div class="format-tab-panel" role="tabpanel">
@@ -21606,7 +21800,7 @@
                   <p>Interne Planungsnotizen und Export für Abstimmung oder Mailing-Vorbereitung.</p>
                 </div>
               </div>
-              <div class="format-notes-box">${escapeHtml(format.notes || "Keine Notiz hinterlegt.")}</div>
+              ${renderFormatNotesThread(format)}
             </section>
             <section class="format-section">
               <div class="format-export-row">
@@ -22125,6 +22319,39 @@
           openParticipantPlanner(format.id);
         });
         document.getElementById("export-format-participants")?.addEventListener("click", () => downloadFormatParticipants(format));
+        document.getElementById("format-notes-composer")?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
+            return;
+          }
+          const textarea = document.getElementById("format-notes-message");
+          const text = String(textarea?.value || "").trim();
+          if (!text) {
+            textarea?.focus();
+            return;
+          }
+          const messages = parseFormatNotesThread(format.notes, format);
+          const nextMessage = {
+            id: window.crypto?.randomUUID?.() || `note-${Date.now()}`,
+            text,
+            authorId: currentProfile?.id || "",
+            authorName: formatNotesAuthorLabel(),
+            authorRole: currentProfile?.role || "",
+            createdAt: new Date().toISOString()
+          };
+          try {
+            const updated = await window.dataService.updateFormat(format.id, {
+              notes: serializeFormatNotesThread([...messages, nextMessage])
+            });
+            replaceFormat(updated);
+            setStorageStatus("Notiz gespeichert");
+            renderFormatsView();
+          } catch (error) {
+            console.error("Formatnotiz konnte nicht gespeichert werden.", error);
+            window.alert("Die Notiz konnte nicht gespeichert werden.");
+          }
+        });
         formatDetailPanel.querySelectorAll("[data-invitation-card]").forEach((card) => {
           card.addEventListener("dragstart", (event) => {
             if (!canEditContacts()) {
