@@ -1,28 +1,6 @@
 import { expect, test } from "@playwright/test";
 
 const AUTH_KEY = "versorgungs-kompass-auth-v1";
-const CONTACT_FIXTURE = [
-  {
-    id: "visual-test-contact-1",
-    name: "Dr. Lara Beispiel",
-    organization: "MVZ Teststadt",
-    category: "Praxis",
-    specialty: "Allgemeinmedizin",
-    priority: "Mittel",
-    postalCode: "10115",
-    city: "Berlin",
-    state: "Berlin",
-    lat: 52.532,
-    lon: 13.384,
-    email: "lara.beispiel@example.test",
-    phone: "+49 30 123456",
-    linkedin: "",
-    themes: ["Hausarztversorgung", "DMP"],
-    note: "Testkontakt fuer visuelle Smoke-Tests.",
-    source: "Test-Fixture",
-    status: "active"
-  }
-];
 function authSession() {
   return {
     authenticated: true,
@@ -30,7 +8,7 @@ function authSession() {
   };
 }
 
-async function gotoAuthenticated(page, path) {
+async function gotoAuthenticated(page, path, { role = "admin" } = {}) {
   await page.route("**/login/auth-guard.js", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
@@ -50,13 +28,7 @@ async function gotoAuthenticated(page, path) {
   await page.route("**/data/supabase-config.js", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
-      body: 'window.VERSORGUNGS_COMPASS_CONFIG = { dataMode: "local" };'
-    });
-  });
-  await page.route("**/data/versorgungs-kompass-data.js", async (route) => {
-    await route.fulfill({
-      contentType: "application/javascript",
-      body: `window.VERSORGUNGS_COMPASS_CONTACTS = ${JSON.stringify(CONTACT_FIXTURE)};`
+      body: `window.VERSORGUNGS_COMPASS_CONFIG = { dataMode: "demo", demoRole: ${JSON.stringify(role)} };`
     });
   });
   await page.goto("/");
@@ -87,6 +59,16 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await attachScreenshot(page, testInfo, "kontakte");
 });
 
+test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#organizations");
+
+  await expect(page.locator('[data-view-panel="organizations"]')).toBeVisible();
+  await expect(page.locator("#organization-list .row, #organization-list .mobile-contact-card").first()).toBeVisible();
+  await expect(page.locator("#search")).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "organisationen");
+});
+
 test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
 
@@ -105,10 +87,37 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
   await gotoAuthenticated(page, "/map/versorgungs-kompass-map.html");
 
   await expect(page.locator("#map")).toBeVisible();
-  await expect(page.locator(".map-controls")).toBeVisible();
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(page.locator("#map-menu-toggle")).toBeVisible();
+  } else {
+    await expect(page.locator(".map-controls")).toBeVisible();
+  }
   await expect(page.locator(".panel")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "karte");
+});
+
+test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "viewer" });
+
+  await expect(page.locator("#contact-list")).toBeVisible();
+  await expect(page.locator("#sidebar-import-button")).toBeHidden();
+  await expect(page.locator("#archive-view-button")).toBeHidden();
+
+  await attachScreenshot(page, testInfo, "viewer-rolle");
+});
+
+test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "admin" });
+
+  await expect(page.locator("#contact-list")).toBeVisible();
+  await expect(page.locator("#sidebar-import-button")).toBeVisible();
+  await expect(page.locator("#archive-view-button")).toHaveAttribute("aria-hidden", "false");
+  if (!testInfo.project.name.includes("mobile")) {
+    await expect(page.locator("#archive-view-button")).toBeVisible();
+  }
+
+  await attachScreenshot(page, testInfo, "admin-rolle");
 });
 
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
@@ -120,4 +129,22 @@ test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await expect(page.locator(".dashboard-grid")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "auswertung");
+});
+
+test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#formats");
+
+  await expect(page.locator('[data-view-panel="formats"]')).toBeVisible();
+  await expect(page.locator("#new-format-button")).toBeVisible();
+  await page.locator("#new-format-button").click();
+  await expect(page.locator("#format-editor-form")).toBeVisible();
+  await expect(page.locator("#format-title")).toBeVisible();
+  await page.locator("#format-title").fill("Roundtable Testversorgung");
+  await page.locator("#format-editor-form").getByRole("button", { name: "Format anlegen" }).click();
+  await expect(page.locator(".format-list-item")).toContainText("Roundtable Testversorgung");
+  await page.locator("#format-contact-select").selectOption("demo-contact-01");
+  await page.locator("#add-format-contact").click();
+  await expect(page.locator(".participant-card")).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "formate");
 });

@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-title" content="Kompass" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="manifest" href="./public/manifest.webmanifest" />
     <link rel="apple-touch-icon" sizes="180x180" href="./public/app-icon-180.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="./public/app-icon-32.png" />
     <script src="./auth-config.js"></script>
@@ -13733,6 +13733,378 @@
           width: 100%;
         }
       }
+
+      .formats-workspace {
+        display: grid;
+        gap: 14px;
+        min-height: 0;
+      }
+
+      .formats-command-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .formats-command-meta {
+        color: var(--text-muted);
+        font-size: 0.86rem;
+      }
+
+      .formats-layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.38fr) minmax(0, 1fr);
+        gap: 14px;
+        min-height: 560px;
+      }
+
+      .formats-list-panel,
+      .format-section,
+      .participant-board-column {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .formats-list-panel {
+        overflow: hidden;
+      }
+
+      .formats-list {
+        display: grid;
+        gap: 0;
+      }
+
+      .format-list-item {
+        width: 100%;
+        display: grid;
+        gap: 5px;
+        padding: 13px 14px;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .format-list-item:hover,
+      .format-list-item:focus-visible {
+        background: var(--surface-muted);
+        outline: none;
+      }
+
+      .format-list-item.is-active {
+        background: var(--primary-soft);
+        box-shadow: inset 3px 0 0 var(--primary);
+      }
+
+      .format-list-item strong,
+      .format-card-title {
+        color: var(--text);
+        font-size: 0.96rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .format-list-item span,
+      .format-card-meta,
+      .format-empty-state span {
+        color: var(--text-muted);
+        font-size: 0.83rem;
+      }
+
+      .format-detail-panel {
+        min-width: 0;
+        padding: 0;
+      }
+
+      .format-empty-state {
+        min-height: 280px;
+        display: grid;
+        place-content: center;
+        gap: 8px;
+        text-align: center;
+        color: var(--text);
+      }
+
+      .format-detail {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .format-detail-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .format-detail-title {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .format-detail-title h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .format-detail-actions,
+      .format-participant-actions,
+      .format-editor-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .format-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .format-metric {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px;
+        background: var(--surface-muted);
+      }
+
+      .format-metric span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.74rem;
+        text-transform: uppercase;
+      }
+
+      .format-metric strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 1rem;
+      }
+
+      .format-section {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .format-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .format-section h4 {
+        margin: 0;
+        font-size: 0.96rem;
+      }
+
+      .format-section p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.86rem;
+      }
+
+      .format-editor {
+        display: grid;
+        gap: 12px;
+      }
+
+      .format-editor-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .format-editor-field {
+        display: grid;
+        gap: 5px;
+      }
+
+      .format-editor-field--wide {
+        grid-column: 1 / -1;
+      }
+
+      .format-editor-field label {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .format-editor-field input,
+      .format-editor-field select,
+      .format-editor-field textarea,
+      .format-participant-actions select {
+        min-height: 38px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        padding: 8px 10px;
+      }
+
+      .format-editor-field textarea {
+        min-height: 76px;
+        resize: vertical;
+      }
+
+      .participant-board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: 10px;
+      }
+
+      .participant-board-column {
+        min-width: 0;
+        padding: 10px;
+        background: var(--surface-muted);
+      }
+
+      .participant-board-column h5 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0 0 10px;
+        font-size: 0.82rem;
+      }
+
+      .participant-count {
+        color: var(--text-muted);
+        font-weight: 700;
+      }
+
+      .participant-card-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .participant-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        padding: 8px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .participant-card:hover,
+      .participant-card:focus-visible {
+        border-color: var(--primary);
+        outline: none;
+      }
+
+      .participant-card-copy {
+        min-width: 0;
+      }
+
+      .participant-card-name,
+      .participant-table-name {
+        display: block;
+        color: var(--text);
+        font-weight: 700;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .participant-card-meta,
+      .participant-table-meta {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .participant-table {
+        display: grid;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+
+      .participant-table-head,
+      .participant-table-row {
+        display: grid;
+        grid-template-columns: minmax(200px, 1.15fr) minmax(138px, 0.65fr) minmax(120px, 0.58fr) minmax(130px, 0.75fr) 118px;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+
+      .participant-table-head {
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .participant-table-row {
+        border-top: 1px solid var(--border);
+      }
+
+      .participant-table-row select,
+      .participant-table-row input {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        padding: 6px 8px;
+        font: inherit;
+      }
+
+      @media (max-width: 980px) {
+        .formats-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .participant-board {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .format-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .format-detail-head,
+        .format-section-head,
+        .formats-command-row {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .format-editor-grid,
+        .participant-board,
+        .format-metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .participant-table-head {
+          display: none;
+        }
+
+        .participant-table-row {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+      }
     </style>
   </head>
   <body>
@@ -13768,6 +14140,18 @@
                 <path d="M9 15h3"></path>
               </svg>
               <span>Organisationen</span>
+            </button>
+            <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M8 2v4"></path>
+                <path d="M16 2v4"></path>
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M3 10h18"></path>
+                <path d="M8 15h.01"></path>
+                <path d="M12 15h.01"></path>
+                <path d="M16 15h.01"></path>
+              </svg>
+              <span>Formate</span>
             </button>
           </div>
           <div class="sidebar-section" aria-label="Karte und Auswertung">
@@ -14083,6 +14467,26 @@
                 <div class="table-footer__controls">
                   <div class="pagination" id="organizations-pagination"></div>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-formats" data-view-panel="formats">
+            <div class="formats-workspace">
+              <div class="formats-command-row">
+                <div class="formats-command-meta" id="formats-count">0 Formate</div>
+                <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
+              </div>
+              <div class="formats-layout">
+                <section class="formats-list-panel" aria-label="Formate">
+                  <div class="formats-list" id="formats-list"></div>
+                </section>
+                <section class="format-detail-panel" id="format-detail-panel" aria-label="Formatdetail">
+                  <div class="format-empty-state">
+                    <strong>Kein Format ausgewählt</strong>
+                    <span>Lege ein Format an oder wähle links eine bestehende Einladungsliste.</span>
+                  </div>
+                </section>
               </div>
             </div>
           </section>
@@ -14770,6 +15174,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./data/supabase-config.js"></script>
     <script src="./data/data-service.js"></script>
+    <script src="./data/demo-data.js"></script>
     <script src="./data/versorgungs-kompass-data.js"></script>
     <script>
       const avatarPalette = [
@@ -15587,11 +15992,18 @@
         { value: "90", label: "Letzte 90 Tage" },
         { value: "older90", label: "Älter als 90 Tage" }
       ];
+      const formatTypeOptions = ["Roundtable", "Fachgespräch", "Workshop", "Veranstaltung", "Diskussionsformat"];
+      const formatStatusOptions = ["Planung", "Aktiv", "Abgeschlossen", "Archiviert"];
+      const invitationStatusOptions = ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"];
 
       const searchInput = document.getElementById("search");
       const searchShell = searchInput?.closest(".search-shell");
       const list = document.getElementById("contact-list");
       const organizationList = document.getElementById("organization-list");
+      const formatsList = document.getElementById("formats-list");
+      const formatsCount = document.getElementById("formats-count");
+      const formatDetailPanel = document.getElementById("format-detail-panel");
+      const newFormatButton = document.getElementById("new-format-button");
       const organizationsTable = document.querySelector(".organizations-table");
       const organizationsTableHead = document.getElementById("organizations-table-head");
       const organizationsPaginationMeta = document.getElementById("organizations-pagination-meta");
@@ -15806,6 +16218,9 @@
       let selectedSources = [];
       let selectedOrganizationCities = [];
       let selectedOrganizationContactRanges = [];
+      let formats = [];
+      let activeFormatId = null;
+      let editingFormatId = null;
       let pendingFilterDraft = null;
       let activeSavedViewName = "";
       let currentPage = 1;
@@ -15964,6 +16379,7 @@
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
+        setRoleElementVisible(newFormatButton, canEditContacts());
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
         setRoleElementVisible(sidebarQualityButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
@@ -17486,6 +17902,7 @@
       const viewLabels = {
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
+        formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
@@ -19149,6 +19566,7 @@
 
       function hitCountLabel(items) {
         if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
+        if (activeView === "formats") return `${items.length} von ${formats.length} Formaten`;
         return `${items.length} von ${activeContactsTotal()} Kontakten`;
       }
 
@@ -19523,6 +19941,44 @@
           );
           return;
         }
+        if (activeView === "formats") {
+          const participantCount = formats.reduce((sum, format) => sum + (format.participants || []).length, 0);
+          renderSummaryCards(
+            summaryGrid,
+            [
+              {
+                label: "Formate",
+                value: formats.filter((format) => format.status !== "Archiviert").length,
+                meta: isMobileLayout() ? "aktiv" : "",
+                icon: `
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 2v4"></path>
+                    <path d="M16 2v4"></path>
+                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                    <path d="M3 10h18"></path>
+                  </svg>
+                `,
+                iconClass: "summary-icon--blue"
+              },
+              {
+                label: "Teilnehmer",
+                value: participantCount,
+                meta: isMobileLayout() ? "gesamt" : "",
+                icon: `
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                `,
+                iconClass: "summary-icon--amber"
+              }
+            ],
+            "Formate"
+          );
+          return;
+        }
         const cards = [
           {
             label: "Kontakte gesamt",
@@ -19645,6 +20101,496 @@
             <img src="${imageUrl}" alt="" loading="eager" decoding="async" onerror="this.hidden=true;this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${escapeHtml(contact.initials)}';" />
           </span>
         `;
+      }
+
+      function formatSearchQuery() {
+        return String(searchInput?.value || "").trim().toLowerCase();
+      }
+
+      function activeFormat() {
+        return formats.find((format) => format.id === activeFormatId) || formats[0] || null;
+      }
+
+      function filteredFormats() {
+        const query = formatSearchQuery();
+        return formats
+          .filter((format) => format.status !== "Archiviert" || canAdministerData())
+          .filter((format) => {
+            if (!query) return true;
+            return [
+              format.title,
+              format.formatType,
+              format.location,
+              format.goal,
+              format.status,
+              format.notes
+            ].join(" ").toLowerCase().includes(query);
+          });
+      }
+
+      function formatParticipantContacts(format) {
+        const participantByContactId = new Map((format?.participants || []).map((participant) => [participant.contactId, participant]));
+        return contacts
+          .filter((contact) => participantByContactId.has(contact.id))
+          .map((contact) => ({ contact, participant: participantByContactId.get(contact.id) }));
+      }
+
+      function formatDateRange(format) {
+        const start = formatDateLabel(format.startsAt);
+        const end = formatDateLabel(format.endsAt);
+        if (start && end && start !== end) return `${start} bis ${end}`;
+        return start || end || "Datum offen";
+      }
+
+      function formatOptionMarkup(options, selectedValue) {
+        return options.map((value) => `<option value="${escapeHtml(value)}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
+      }
+
+      function renderFormatsList(items = filteredFormats()) {
+        if (!formatsList) return;
+        if (formatsCount) formatsCount.textContent = `${items.length} ${items.length === 1 ? "Format" : "Formate"}`;
+        if (!activeFormatId && items.length) activeFormatId = items[0].id;
+        if (activeFormatId && !items.some((format) => format.id === activeFormatId) && items.length) activeFormatId = items[0].id;
+        if (!items.length) {
+          formatsList.innerHTML = `<div class="empty">Keine Formate gefunden.</div>`;
+          return;
+        }
+        formatsList.innerHTML = items.map((format) => {
+          const participantCount = (format.participants || []).length;
+          return `
+            <button class="format-list-item ${format.id === activeFormatId ? "is-active" : ""}" type="button" data-format-id="${escapeHtml(format.id)}">
+              <strong>${escapeHtml(format.title)}</strong>
+              <span>${escapeHtml(format.formatType)} · ${escapeHtml(formatDateRange(format))}</span>
+              <span>${participantCount} ${participantCount === 1 ? "Teilnehmer" : "Teilnehmer"} · ${escapeHtml(format.status)}</span>
+            </button>
+          `;
+        }).join("");
+        formatsList.querySelectorAll("[data-format-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeFormatId = button.dataset.formatId;
+            editingFormatId = null;
+            renderFormatsView();
+          });
+        });
+      }
+
+      function renderFormatEditor(format = null) {
+        const editing = Boolean(format?.id);
+        const ownerValue = format?.ownerId || currentProfile?.id || "";
+        return `
+          <form class="format-editor" id="format-editor-form">
+            <div class="format-editor-grid">
+              <div class="format-editor-field format-editor-field--wide">
+                <label for="format-title">Titel</label>
+                <input id="format-title" name="title" required value="${escapeHtml(format?.title || "")}" placeholder="z. B. Roundtable Pflegeversorgung Q3" />
+              </div>
+              <div class="format-editor-field">
+                <label for="format-type">Typ</label>
+                <select id="format-type" name="formatType">${formatOptionMarkup(formatTypeOptions, format?.formatType || "Roundtable")}</select>
+              </div>
+              <div class="format-editor-field">
+                <label for="format-status">Status</label>
+                <select id="format-status" name="status">${formatOptionMarkup(formatStatusOptions, format?.status || "Planung")}</select>
+              </div>
+              <div class="format-editor-field">
+                <label for="format-starts-at">Start</label>
+                <input id="format-starts-at" name="startsAt" type="date" value="${escapeHtml(String(format?.startsAt || "").slice(0, 10))}" />
+              </div>
+              <div class="format-editor-field">
+                <label for="format-ends-at">Ende</label>
+                <input id="format-ends-at" name="endsAt" type="date" value="${escapeHtml(String(format?.endsAt || "").slice(0, 10))}" />
+              </div>
+              <div class="format-editor-field">
+                <label for="format-location">Ort / Online</label>
+                <input id="format-location" name="location" value="${escapeHtml(format?.location || "")}" placeholder="Ort, Raum oder Online" />
+              </div>
+              <div class="format-editor-field">
+                <label for="format-owner">Owner</label>
+                <select id="format-owner" name="ownerId">${buildOwnerSelectOptions(ownerValue)}</select>
+              </div>
+              <div class="format-editor-field format-editor-field--wide">
+                <label for="format-goal">Thema / Ziel</label>
+                <textarea id="format-goal" name="goal" placeholder="Fachlicher Anlass und Ziel der Runde">${escapeHtml(format?.goal || "")}</textarea>
+              </div>
+              <div class="format-editor-field format-editor-field--wide">
+                <label for="format-notes">Notiz</label>
+                <textarea id="format-notes" name="notes" placeholder="Interne Planungsnotiz">${escapeHtml(format?.notes || "")}</textarea>
+              </div>
+            </div>
+            <div class="format-editor-actions">
+              <button class="action-button action-button--primary" type="submit">${editing ? "Format speichern" : "Format anlegen"}</button>
+              <button class="action-button" type="button" id="format-editor-cancel">Abbrechen</button>
+            </div>
+          </form>
+        `;
+      }
+
+      function renderParticipantBoard(format) {
+        const entries = formatParticipantContacts(format);
+        return `
+          <div class="participant-board">
+            ${invitationStatusOptions.map((status) => {
+              const statusEntries = entries.filter(({ participant }) => participant.invitationStatus === status);
+              return `
+                <section class="participant-board-column">
+                  <h5><span>${escapeHtml(status)}</span><span class="participant-count">${statusEntries.length}</span></h5>
+                  <div class="participant-card-list">
+                    ${statusEntries.length ? statusEntries.map(({ contact, participant }) => `
+                      <button class="participant-card" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
+                        ${contactAvatarMarkup(contact, "sm")}
+                        <span class="participant-card-copy">
+                          <span class="participant-card-name">${escapeHtml(contact.name)}</span>
+                          <span class="participant-card-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(participant.participantRole || contact.contactRole || contact.category || "Rolle offen")}</span>
+                        </span>
+                      </button>
+                    `).join("") : `<p>Keine Kontakte</p>`}
+                  </div>
+                </section>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
+
+      function participantContactOptions(format) {
+        const participantIds = new Set((format?.participants || []).map((participant) => participant.contactId));
+        return contacts
+          .filter((contact) => contact.status !== "archived" && !participantIds.has(contact.id))
+          .sort((a, b) => a.name.localeCompare(b.name, "de"))
+          .map((contact) => `<option value="${escapeHtml(contact.id)}">${escapeHtml(contact.name)}${contact.organization ? ` · ${escapeHtml(contact.organization)}` : ""}</option>`)
+          .join("");
+      }
+
+      function renderParticipantTable(format) {
+        const entries = formatParticipantContacts(format).sort((a, b) => a.contact.name.localeCompare(b.contact.name, "de"));
+        if (!entries.length) return `<div class="empty">Noch keine Teilnehmer ausgewählt.</div>`;
+        return `
+          <div class="participant-table">
+            <div class="participant-table-head">
+              <div>Kontakt</div>
+              <div>Status</div>
+              <div>Rolle</div>
+              <div>Notiz</div>
+              <div>Aktion</div>
+            </div>
+            ${entries.map(({ contact, participant }) => `
+              <div class="participant-table-row" data-participant-contact="${escapeHtml(contact.id)}">
+                <div>
+                  <span class="participant-table-name">${escapeHtml(contact.name)}</span>
+                  <span class="participant-table-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(contact.email || contact.phone || "Kein Kontaktweg")}</span>
+                </div>
+                <div>
+                  <select data-participant-field="invitationStatus" ${canEditContacts() ? "" : "disabled"}>
+                    ${formatOptionMarkup(invitationStatusOptions, participant.invitationStatus)}
+                  </select>
+                </div>
+                <div><input data-participant-field="participantRole" value="${escapeHtml(participant.participantRole || "")}" placeholder="Rolle" ${canEditContacts() ? "" : "disabled"} /></div>
+                <div><input data-participant-field="notes" value="${escapeHtml(participant.notes || "")}" placeholder="Notiz" ${canEditContacts() ? "" : "disabled"} /></div>
+                <div>
+                  <button class="action-button action-button--compact" type="button" data-remove-participant="${escapeHtml(contact.id)}" ${canEditContacts() ? "" : "disabled"}>Entfernen</button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderFormatDetail(format = activeFormat()) {
+        if (!formatDetailPanel) return;
+        if (editingFormatId === "__new__") {
+          formatDetailPanel.innerHTML = `
+            <div class="format-detail">
+              <section class="format-section">
+                <div class="format-section-head">
+                  <h4>Neues Format</h4>
+                </div>
+                ${renderFormatEditor(null)}
+              </section>
+            </div>
+          `;
+          bindFormatEditor();
+          return;
+        }
+        if (!format) {
+          formatDetailPanel.innerHTML = `
+            <div class="format-empty-state">
+              <strong>Kein Format ausgewählt</strong>
+              <span>Lege ein Format an oder wähle links eine bestehende Einladungsliste.</span>
+            </div>
+          `;
+          return;
+        }
+        if (editingFormatId === format.id) {
+          formatDetailPanel.innerHTML = `
+            <div class="format-detail">
+              <section class="format-section">
+                <div class="format-section-head">
+                  <h4>${editingFormatId === "__new__" ? "Neues Format" : "Format bearbeiten"}</h4>
+                </div>
+                ${renderFormatEditor(editingFormatId === "__new__" ? null : format)}
+              </section>
+            </div>
+          `;
+          bindFormatEditor();
+          return;
+        }
+        const participants = format.participants || [];
+        const accepted = participants.filter((participant) => participant.invitationStatus === "Zugesagt").length;
+        const pending = participants.filter((participant) => ["Eingeladen", "Keine Rückmeldung"].includes(participant.invitationStatus)).length;
+        formatDetailPanel.innerHTML = `
+          <div class="format-detail">
+            <div class="format-detail-head">
+              <div class="format-detail-title">
+                <h3>${escapeHtml(format.title)}</h3>
+                <div class="format-card-meta">${escapeHtml(format.formatType)} · ${escapeHtml(formatDateRange(format))} · ${escapeHtml(format.location || "Ort offen")}</div>
+              </div>
+              <div class="format-detail-actions">
+                ${canEditContacts() ? `<button class="action-button" type="button" id="edit-format-button">Bearbeiten</button>` : ""}
+                ${canEditContacts() ? `<button class="action-button" type="button" id="archive-format-button">Archivieren</button>` : ""}
+                ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" id="delete-format-button">Löschen</button>` : ""}
+              </div>
+            </div>
+            <div class="format-metrics">
+              <div class="format-metric"><span>Teilnehmer</span><strong>${participants.length}</strong></div>
+              <div class="format-metric"><span>Zugesagt</span><strong>${accepted}</strong></div>
+              <div class="format-metric"><span>Offen</span><strong>${pending}</strong></div>
+              <div class="format-metric"><span>Status</span><strong>${escapeHtml(format.status)}</strong></div>
+            </div>
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Basisdaten</h4>
+                  <p>${escapeHtml(format.goal || "Kein Ziel hinterlegt.")}</p>
+                </div>
+              </div>
+            </section>
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Teilnehmer-Board</h4>
+                  <p>Visuelle Übersicht der ausgewählten Kontakte nach Einladungsstatus.</p>
+                </div>
+              </div>
+              ${renderParticipantBoard(format)}
+            </section>
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Teilnehmerliste</h4>
+                  <p>Präzise Arbeitsliste für Status, Rolle und Notizen.</p>
+                </div>
+                <div class="format-participant-actions">
+                  ${canEditContacts() ? `
+                    <select id="format-contact-select" aria-label="Kontakt zum Format hinzufügen">
+                      <option value="">Kontakt hinzufügen...</option>
+                      ${participantContactOptions(format)}
+                    </select>
+                    <button class="action-button" type="button" id="add-format-contact">Hinzufügen</button>
+                  ` : ""}
+                  <button class="action-button" type="button" id="export-format-participants">Exportieren</button>
+                </div>
+              </div>
+              ${renderParticipantTable(format)}
+            </section>
+          </div>
+        `;
+        bindFormatDetail();
+      }
+
+      function renderFormatsView() {
+        const items = filteredFormats();
+        if (activeView === "formats") {
+          renderSummary(items);
+          if (resultsCount) resultsCount.textContent = hitCountLabel(items);
+        }
+        renderFormatsList(items);
+        renderFormatDetail(activeFormat());
+      }
+
+      function formatEditorPayload(form) {
+        const data = new FormData(form);
+        const startsAt = String(data.get("startsAt") || "").trim();
+        const endsAt = String(data.get("endsAt") || "").trim();
+        return {
+          title: String(data.get("title") || "").trim(),
+          formatType: String(data.get("formatType") || "Roundtable").trim(),
+          startsAt: startsAt ? `${startsAt}T00:00:00.000Z` : "",
+          endsAt: endsAt ? `${endsAt}T00:00:00.000Z` : "",
+          location: String(data.get("location") || "").trim(),
+          ownerId: String(data.get("ownerId") || "").trim(),
+          status: String(data.get("status") || "Planung").trim(),
+          goal: String(data.get("goal") || "").trim(),
+          notes: String(data.get("notes") || "").trim()
+        };
+      }
+
+      function replaceFormat(updated) {
+        if (!updated) return;
+        formats = [updated, ...formats.filter((format) => format.id !== updated.id)];
+        activeFormatId = updated.id;
+      }
+
+      function bindFormatEditor() {
+        const form = document.getElementById("format-editor-form");
+        form?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Pflegen von Formaten"));
+            return;
+          }
+          const payload = formatEditorPayload(form);
+          if (!payload.title) {
+            window.alert("Bitte gib einen Titel für das Format ein.");
+            return;
+          }
+          try {
+            const saved = editingFormatId === "__new__"
+              ? await window.dataService.createFormat(payload)
+              : await window.dataService.updateFormat(editingFormatId, payload);
+            replaceFormat(saved);
+            editingFormatId = null;
+            setStorageStatus("Format gespeichert");
+            renderFormatsView();
+          } catch (error) {
+            console.error("Format konnte nicht gespeichert werden.", error);
+            window.alert("Das Format konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          }
+        });
+        document.getElementById("format-editor-cancel")?.addEventListener("click", () => {
+          editingFormatId = null;
+          renderFormatsView();
+        });
+      }
+
+      function downloadFormatParticipants(format) {
+        const rows = formatParticipantContacts(format).map(({ contact, participant }) => [
+          format.title,
+          contact.name,
+          contact.organization,
+          contact.category,
+          contact.specialty,
+          contact.email,
+          contact.phone,
+          participant.invitationStatus,
+          participant.participantRole,
+          participant.notes
+        ]);
+        const header = ["Format", "Name", "Organisation", "Sektor", "Fachrichtung", "E-Mail", "Telefon", "Einladungsstatus", "Rolle im Format", "Notiz"];
+        const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `format-teilnehmer-${normalizeClassPart(format.title) || "export"}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function bindFormatDetail() {
+        const format = activeFormat();
+        if (!format) return;
+        formatDetailPanel.querySelectorAll("[data-open-format-contact]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeId = button.dataset.openFormatContact;
+            setActiveView("contacts");
+            updateRouteHash("contacts");
+            updateView();
+            openDetail(activeId, contacts);
+          });
+        });
+        document.getElementById("edit-format-button")?.addEventListener("click", () => {
+          editingFormatId = format.id;
+          renderFormatDetail(format);
+        });
+        document.getElementById("archive-format-button")?.addEventListener("click", async () => {
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Archivieren von Formaten"));
+            return;
+          }
+          if (!window.confirm(`Format "${format.title}" archivieren?`)) return;
+          try {
+            const archived = await window.dataService.archiveFormat(format.id);
+            formats = formats.map((item) => item.id === format.id ? archived : item);
+            activeFormatId = formats.find((item) => item.status !== "Archiviert")?.id || null;
+            setStorageStatus("Format archiviert");
+            renderFormatsView();
+          } catch (error) {
+            console.error("Format konnte nicht archiviert werden.", error);
+            window.alert("Das Format konnte nicht archiviert werden.");
+          }
+        });
+        document.getElementById("delete-format-button")?.addEventListener("click", async () => {
+          if (!canAdministerData()) {
+            showPermissionDenied("Nur Admins dürfen Formate löschen.");
+            return;
+          }
+          if (!window.confirm(`Format "${format.title}" endgültig löschen?`)) return;
+          try {
+            await window.dataService.deleteFormat(format.id);
+            formats = formats.filter((item) => item.id !== format.id);
+            activeFormatId = formats[0]?.id || null;
+            setStorageStatus("Format gelöscht");
+            renderFormatsView();
+          } catch (error) {
+            console.error("Format konnte nicht gelöscht werden.", error);
+            window.alert("Das Format konnte nicht gelöscht werden.");
+          }
+        });
+        document.getElementById("add-format-contact")?.addEventListener("click", async () => {
+          const select = document.getElementById("format-contact-select");
+          const contactId = select?.value || "";
+          if (!contactId) return;
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Hinzufügen von Teilnehmern"));
+            return;
+          }
+          try {
+            const updated = await window.dataService.addFormatParticipant(format.id, contactId, { invitationStatus: "Kandidat" });
+            replaceFormat(updated);
+            setStorageStatus("Teilnehmer hinzugefügt");
+            renderFormatsView();
+          } catch (error) {
+            console.error("Teilnehmer konnte nicht hinzugefügt werden.", error);
+            window.alert("Der Teilnehmer konnte nicht hinzugefügt werden.");
+          }
+        });
+        document.getElementById("export-format-participants")?.addEventListener("click", () => downloadFormatParticipants(format));
+        formatDetailPanel.querySelectorAll("[data-participant-field]").forEach((field) => {
+          field.addEventListener("change", async () => {
+            const row = field.closest("[data-participant-contact]");
+            const contactId = row?.dataset.participantContact;
+            if (!contactId || !canEditContacts()) return;
+            const patch = {};
+            row.querySelectorAll("[data-participant-field]").forEach((input) => {
+              patch[input.dataset.participantField] = input.value;
+            });
+            try {
+              const updated = await window.dataService.updateFormatParticipant(format.id, contactId, patch);
+              replaceFormat(updated);
+              renderFormatsView();
+            } catch (error) {
+              console.error("Teilnehmerstatus konnte nicht gespeichert werden.", error);
+              window.alert("Die Teilnehmeränderung konnte nicht gespeichert werden.");
+            }
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-remove-participant]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const contactId = button.dataset.removeParticipant;
+            if (!contactId || !canEditContacts()) return;
+            try {
+              const updated = await window.dataService.removeFormatParticipant(format.id, contactId);
+              replaceFormat(updated);
+              setStorageStatus("Teilnehmer entfernt");
+              renderFormatsView();
+            } catch (error) {
+              console.error("Teilnehmer konnte nicht entfernt werden.", error);
+              window.alert("Der Teilnehmer konnte nicht entfernt werden.");
+            }
+          });
+        });
       }
 
       function sectorBadgeMarkup(value) {
@@ -22181,7 +23127,7 @@
           selectedSpecialties = [];
           selectedOwners = [];
           selectedThemes = [];
-        } else {
+        } else if (view !== "formats") {
           selectedOrganizationCities = [];
           selectedOrganizationContactRanges = [];
         }
@@ -22203,6 +23149,7 @@
         if (view === "profile") renderProfileForm();
         if (view === "team") renderTeamView();
         if (view === "about") renderAboutApp();
+        if (view === "formats") renderFormatsView();
         if (view === "map") {
           syncMapFrame(mapContacts());
         }
@@ -23108,24 +24055,30 @@
         syncOwnerOptionsFromContacts();
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
-        const items = isOrganizationsView ? filteredOrganizations() : filteredContacts();
+        const isFormatsView = activeView === "formats";
+        const items = isFormatsView ? filteredFormats() : isOrganizationsView ? filteredOrganizations() : filteredContacts();
         resultsCount.textContent = hitCountLabel(items);
-        resultsCount.hidden = !hasActiveFilters();
+        resultsCount.hidden = isFormatsView ? false : !hasActiveFilters();
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
         searchInput.placeholder = isOrganizationsView
           ? "Organisationen suchen..."
+          : isFormatsView
+            ? "Formate suchen..."
           : activeView === "map"
             ? "Kontakte suchen"
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
         if (searchShell) searchShell.hidden = activeView === "analytics";
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
+        if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
         archiveViewButton.hidden = !isContactsView;
         if (openImportButton) openImportButton.hidden = true;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView);
+        if (filterToolbar) filterToolbar.hidden = isFormatsView;
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isFormatsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
         }
         bulkToolbar.hidden = !isContactsView || selectedContactIds.size === 0;
@@ -23135,17 +24088,21 @@
           renderOrganizationsTable(items);
         } else if (isContactsView) {
           renderTable(items);
+        } else if (isFormatsView) {
+          renderFormatsView();
         }
         renderDashboard(filteredContacts());
-        renderActiveFilters();
-        renderFilterPanel();
+        if (!isFormatsView) {
+          renderActiveFilters();
+          renderFilterPanel();
+        }
         renderSavedViews();
         syncMapFrame(mapContacts());
         renderProfileOwnerSummary();
         renderTeamView();
         renderAboutApp();
 
-        if (!isOrganizationsView && activeId && !items.some((item) => item.id === activeId)) {
+        if (!isOrganizationsView && !isFormatsView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
           activeId = null;
         }
@@ -23423,6 +24380,15 @@
 
       newContactButton.addEventListener("click", () => openEditor());
       newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
+      newFormatButton?.addEventListener("click", () => {
+        if (!canEditContacts()) {
+          showPermissionDenied(viewerCreateDisabledMessage("das Anlegen von Formaten"));
+          return;
+        }
+        activeFormatId = null;
+        editingFormatId = "__new__";
+        renderFormatDetail(null);
+      });
       organizationEditorOverlay?.addEventListener("click", closeOrganizationEditor);
       organizationEditorClose?.addEventListener("click", closeOrganizationEditor);
       organizationEditorCancel?.addEventListener("click", closeOrganizationEditor);
@@ -23878,8 +24844,15 @@
             console.warn("Organisationen konnten nicht aus Supabase geladen werden. Kontaktbasierter Fallback aktiv.", organizationError);
             organizations = deriveOrganizationsFromContacts(contacts);
           }
+          try {
+            formats = window.dataService.loadFormats ? await window.dataService.loadFormats({ includeArchived: canAdministerData() }) : [];
+            activeFormatId = formats.find((format) => format.status !== "Archiviert")?.id || formats[0]?.id || null;
+          } catch (formatError) {
+            console.warn("Formate konnten nicht geladen werden. Lokaler Fallback bleibt leer.", formatError);
+            formats = [];
+          }
           await loadSavedViewsAndSettings();
-          if (!initialRouteView && ["contacts", "organizations", "map", "analytics"].includes(userSettings?.defaultViewType)) {
+          if (!initialRouteView && ["contacts", "organizations", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
             activeView = userSettings.defaultViewType;
           }
           loadedContactsFromStorage = false;

@@ -2778,11 +2778,14 @@
 <script src="./data/city-labels.js"></script>
 <script src="./data/state-labels.js"></script>
 <script src="./data/state-polygons.js"></script>
+<script src="../data/supabase-config.js"></script>
+<script src="../data/demo-data.js"></script>
 <script src="../data/versorgungs-kompass-data.js"></script>
 
 <script>
   function loadCompassContacts() {
-    const seedContacts = window.VERSORGUNGS_COMPASS_CONTACTS || [];
+    const demoContacts = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo" ? window.VERSORGUNGS_COMPASS_DEMO_DATA?.contacts || [] : [];
+    const seedContacts = demoContacts.length ? demoContacts : window.VERSORGUNGS_COMPASS_CONTACTS || [];
     try {
       const raw = window.localStorage.getItem("versorgungs-kompass-contacts-v7");
       if (raw) {

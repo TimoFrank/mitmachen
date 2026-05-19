@@ -9,6 +9,8 @@ Der produktive Datenbestand liegt in Supabase im Schema `public`. Die App nutzt 
 - `profiles`
 - `contacts`
 - `organizations`
+- `formats`
+- `format_participants`
 - `changes`
 - `saved_views`
 - `user_settings`
@@ -24,6 +26,9 @@ erDiagram
   organizations ||--o{ contacts : "organization_id"
   profiles ||--o{ contacts : "created_by"
   profiles ||--o{ contacts : "updated_by"
+  profiles ||--o{ formats : "owner_id"
+  formats ||--o{ format_participants : "format_id"
+  contacts ||--o{ format_participants : "contact_id"
   contacts ||--o{ changes : "contact_id"
   profiles ||--o{ changes : "changed_by"
   profiles ||--o{ saved_views : "owner_id"
@@ -196,6 +201,52 @@ Duerfen Nutzer bearbeiten:
 - Editor/Admin: Organisationen anlegen und bearbeiten, Kontakte zuordnen.
 - Admin: spaeter archivieren/zusammenfuehren; vollstaendige Dublettenpflege ist nicht Teil von Sprint 4.
 
+## Tabelle `formats`
+
+Zweck:
+
+- Planungsobjekte fuer Roundtables, Fachgespraeche, Workshops und Veranstaltungen.
+- Ersetzt externe Excel-Einladungslisten durch CRM-verknuepfte Formate.
+
+Wichtigste Felder:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `id` | UUID, Primaerschluessel. |
+| `title` | Titel des Formats, Pflichtfeld. |
+| `format_type` | Typ, z. B. Roundtable, Fachgespraech, Workshop oder Veranstaltung. |
+| `starts_at`, `ends_at` | Optionaler Zeitraum. |
+| `location` | Ort, Raum oder Online-Hinweis. |
+| `goal` | Thema oder Ziel der Runde. |
+| `owner_id` | Verantwortliches Profil. |
+| `status` | `Planung`, `Aktiv`, `Abgeschlossen` oder `Archiviert`. |
+| `notes` | Interne Planungsnotiz. |
+| `created_by`, `updated_by`, `created_at`, `updated_at` | Nachvollziehbarkeit. |
+
+## Tabelle `format_participants`
+
+Zweck:
+
+- Verknuepft bestehende Kontakte mit einem Format.
+- Speichert nur Einladungs- und Planungsinformationen; Kontakt- und Organisationsdaten bleiben in `contacts` bzw. `organizations`.
+
+Wichtigste Felder:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `id` | UUID, Primaerschluessel. |
+| `format_id` | Verweis auf `formats.id`, wird beim Loeschen des Formats entfernt. |
+| `contact_id` | Verweis auf `contacts.id`. |
+| `invitation_status` | `Kandidat`, `Eingeladen`, `Zugesagt`, `Abgesagt`, `Keine Rückmeldung` oder `Teilgenommen`. |
+| `participant_role` | Rolle im Format, z. B. Sprecherin, Teilnehmer, Moderation. |
+| `notes` | Format-spezifische Teilnehmernotiz. |
+| `created_by`, `updated_by`, `created_at`, `updated_at` | Nachvollziehbarkeit. |
+
+Kritische Regeln:
+
+- `format_id` und `contact_id` sind eindeutig kombiniert; ein Kontakt kann pro Format nur einmal auftauchen.
+- Viewer lesen Formate und Teilnehmer, Editor/Admin pflegen sie, nur Admins loeschen Formate.
+
 ## Tabelle `changes`
 
 Zweck:
@@ -253,7 +304,7 @@ Wichtigste Felder:
 | `owner_id` | Besitzerprofil. |
 | `name`, `description` | Name und Beschreibung. |
 | `scope` | `private` oder `team`. |
-| `view_type` | `contacts`, `organizations`, `map` oder `analytics`. |
+| `view_type` | `contacts`, `organizations`, `formats`, `map` oder `analytics`. |
 | `filters` | Filter als JSON. |
 | `search_query` | Suchtext. |
 | `sort_key`, `sort_direction` | Sortierung. |
@@ -295,7 +346,7 @@ Wichtigste Felder:
 | --- | --- |
 | `user_id` | Verweis auf `profiles.id`, Primaerschluessel. |
 | `default_view_id` | Optionale Standardsicht. |
-| `default_view_type` | `contacts`, `organizations`, `map` oder `analytics`. |
+| `default_view_type` | `contacts`, `organizations`, `formats`, `map` oder `analytics`. |
 | `table_density` | `compact`, `comfortable`, `spacious`. |
 | `theme` | `system`, `light`, `contrast`. |
 | `font_scale` | Schriftgroesse zwischen 0.9 und 1.2. |
@@ -316,7 +367,7 @@ Kritische Felder:
 
 Hinweis:
 
-- `default_view_type` erlaubt `contacts`, `organizations`, `map` und `analytics`.
+- `default_view_type` erlaubt `contacts`, `organizations`, `formats`, `map` und `analytics`.
 - `table_density = compact` reduziert die Tabellenhoehe.
 - Benachrichtigungen sind nur als boolean `notificationsEnabled` vorbereitet; es gibt noch kein Notification-Center, keinen E-Mail-Versand und keine Push-Logik.
 

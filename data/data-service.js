@@ -97,14 +97,48 @@
     "created_at",
     "updated_at"
   ];
+  const FORMAT_FIELDS = [
+    "id",
+    "title",
+    "format_type",
+    "starts_at",
+    "ends_at",
+    "location",
+    "goal",
+    "owner_id",
+    "status",
+    "notes",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
+  const FORMAT_PARTICIPANT_FIELDS = [
+    "id",
+    "format_id",
+    "contact_id",
+    "invitation_status",
+    "participant_role",
+    "notes",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
   const PROFILE_IMAGE_BUCKET = "profile-images";
+  const LOCAL_FORMATS_KEY = "versorgungs-kompass-formats-v1";
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   let client = null;
   let profileCache = new Map();
   let contactCache = [];
+  let organizationCache = [];
+  let formatCache = [];
+  let savedViewCache = [];
+  let userSettingsCache = null;
   let supportsContactOrganizationId = true;
   let supportsContactImageSources = false;
   let supportsContactRole = true;
+  let supportsFormats = true;
 
   function contactSelectFields() {
     return DB_FIELDS.filter((field) => {
@@ -148,10 +182,23 @@
   }
 
   function isLocalMode() {
-    return CONFIG.dataMode === "local";
+    return CONFIG.dataMode === "local" || isDemoMode();
+  }
+
+  function isDemoMode() {
+    return CONFIG.dataMode === "demo";
+  }
+
+  function demoData() {
+    return window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
+  }
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
   }
 
   function localProfile() {
+    if (isDemoMode()) return currentDemoProfile();
     return {
       id: "local-admin",
       email: "local@example.test",
@@ -165,11 +212,125 @@
     };
   }
 
+  function currentDemoProfile() {
+    const profiles = Array.isArray(demoData().profiles) ? demoData().profiles : [];
+    const role = String(CONFIG.demoRole || "admin").toLowerCase();
+    return clone(profiles.find((profile) => String(profile.role || "").toLowerCase() === role) || profiles[0] || {
+      id: "demo-admin",
+      email: "demo.admin@example.test",
+      display_name: "Demo Admin",
+      initials: "DA",
+      role: "admin",
+      active: true,
+      avatar_url: "",
+      team: "",
+      bio: ""
+    });
+  }
+
+  function demoProfiles() {
+    const profiles = Array.isArray(demoData().profiles) ? demoData().profiles : [];
+    return clone(profiles.length ? profiles : [currentDemoProfile()]);
+  }
+
   function localContacts(options = {}) {
-    const rows = Array.isArray(window.VERSORGUNGS_COMPASS_CONTACTS) ? window.VERSORGUNGS_COMPASS_CONTACTS : [];
+    const rows = isDemoMode() && Array.isArray(demoData().contacts)
+      ? demoData().contacts
+      : Array.isArray(window.VERSORGUNGS_COMPASS_CONTACTS)
+        ? window.VERSORGUNGS_COMPASS_CONTACTS
+        : [];
     return rows
       .filter((contact) => options.includeArchived || contact.status !== "archived")
-      .map((contact, index) => ({ ...contact, _index: index }));
+      .map((contact, index) => ({ ...clone(contact), _index: index }));
+  }
+
+  function localOrganizations(options = {}) {
+    const rows = isDemoMode() && Array.isArray(demoData().organizations) ? demoData().organizations : [];
+    const activeContacts = contactCache.length ? contactCache : localContacts({ includeArchived: true });
+    return rows
+      .filter((organization) => options.includeArchived || organization.status !== "archived")
+      .map((organization) => {
+        const contactCount = activeContacts.filter((contact) =>
+          contact.status !== "archived" &&
+          ((organization.id && contact.organizationId === organization.id) || normalizeOrganizationName(contact.organization) === normalizeOrganizationName(organization.name))
+        ).length;
+        return { ...clone(organization), contactCount };
+      });
+  }
+
+  function localSavedViews() {
+    if (savedViewCache.length) return clone(savedViewCache);
+    savedViewCache = clone(Array.isArray(demoData().savedViews) ? demoData().savedViews : []);
+    return clone(savedViewCache);
+  }
+
+  function localUserSettings() {
+    if (userSettingsCache) return clone(userSettingsCache);
+    userSettingsCache = clone(demoData().userSettings || {
+      userId: localProfile().id,
+      defaultViewId: "",
+      defaultViewType: "contacts",
+      tableDensity: "comfortable",
+      theme: "system",
+      fontScale: 1,
+      pageSize: 20,
+      preferences: {}
+    });
+    userSettingsCache.userId = localProfile().id;
+    return clone(userSettingsCache);
+  }
+
+  function readLocalStoredFormats() {
+    try {
+      const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_FORMATS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Lokale Formate konnten nicht gelesen werden.", error);
+      return [];
+    }
+  }
+
+  function writeLocalStoredFormats(items) {
+    try {
+      window.localStorage?.setItem(LOCAL_FORMATS_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.warn("Lokale Formate konnten nicht gespeichert werden.", error);
+    }
+  }
+
+  function localFormats(options = {}) {
+    const rows = isDemoMode() && Array.isArray(demoData().formats)
+      ? demoData().formats
+      : readLocalStoredFormats();
+    return clone(rows)
+      .filter((format) => options.includeArchived || format.status !== "Archiviert")
+      .map((format) => formatDbToUi(format, format.participants || []));
+  }
+
+  function persistLocalFormats(items = formatCache) {
+    if (!isDemoMode()) writeLocalStoredFormats(items.map((format) => formatDbToUi(format, format.participants || [])));
+  }
+
+  function roleCanEdit() {
+    return ["admin", "editor"].includes(String(localProfile().role || "").toLowerCase());
+  }
+
+  function roleCanAdmin() {
+    return String(localProfile().role || "").toLowerCase() === "admin";
+  }
+
+  function requireLocalWrite(action = "Diese Aktion") {
+    if (!isLocalMode()) return;
+    if (!roleCanEdit()) throw new Error(`${action} ist mit Viewer-Rechten nicht erlaubt.`);
+  }
+
+  function requireLocalAdmin(action = "Diese Aktion") {
+    if (!isLocalMode()) return;
+    if (!roleCanAdmin()) throw new Error(`${action} ist nur mit Admin-Rechten erlaubt.`);
+  }
+
+  function isMissingFormatsError(error) {
+    return /formats|format_participants|relation .* does not exist|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
   }
 
   function normalizePriority(value) {
@@ -332,6 +493,79 @@
     };
   }
 
+  function normalizeFormatStatus(value) {
+    const label = String(value || "").trim();
+    if (["Planung", "Aktiv", "Abgeschlossen", "Archiviert"].includes(label)) return label;
+    if (label === "archived") return "Archiviert";
+    return "Planung";
+  }
+
+  function normalizeInvitationStatus(value) {
+    const label = String(value || "").trim();
+    if (["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"].includes(label)) return label;
+    return "Kandidat";
+  }
+
+  function participantDbToUi(row) {
+    return {
+      id: row.id || "",
+      formatId: row.format_id || row.formatId || "",
+      contactId: row.contact_id || row.contactId || "",
+      invitationStatus: normalizeInvitationStatus(row.invitation_status || row.invitationStatus),
+      participantRole: row.participant_role || row.participantRole || "",
+      notes: row.notes || "",
+      createdAt: row.created_at || row.createdAt || "",
+      createdBy: row.created_by || row.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || ""
+    };
+  }
+
+  function participantUiToDb(participant, formatId, contactId) {
+    return {
+      format_id: formatId || participant.formatId || participant.format_id,
+      contact_id: contactId || participant.contactId || participant.contact_id,
+      invitation_status: normalizeInvitationStatus(participant.invitationStatus || participant.invitation_status),
+      participant_role: String(participant.participantRole || participant.participant_role || "").trim() || null,
+      notes: String(participant.notes || "").trim() || null
+    };
+  }
+
+  function formatDbToUi(row, participants = []) {
+    return {
+      id: row.id || "",
+      title: row.title || "Unbenanntes Format",
+      formatType: row.format_type || row.formatType || "Roundtable",
+      startsAt: row.starts_at || row.startsAt || "",
+      endsAt: row.ends_at || row.endsAt || "",
+      location: row.location || "",
+      goal: row.goal || "",
+      ownerId: row.owner_id || row.ownerId || "",
+      owner: profileName(row.owner_id || row.ownerId),
+      status: normalizeFormatStatus(row.status),
+      notes: row.notes || "",
+      createdAt: row.created_at || row.createdAt || "",
+      createdBy: row.created_by || row.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || "",
+      participants: participants.map(participantDbToUi)
+    };
+  }
+
+  function formatUiToDb(format) {
+    return {
+      title: String(format.title || "").trim(),
+      format_type: String(format.formatType || format.format_type || "Roundtable").trim() || "Roundtable",
+      starts_at: format.startsAt || format.starts_at || null,
+      ends_at: format.endsAt || format.ends_at || null,
+      location: String(format.location || "").trim() || null,
+      goal: String(format.goal || "").trim() || null,
+      owner_id: format.ownerId || format.owner_id || resolveOwnerId(format.owner) || null,
+      status: normalizeFormatStatus(format.status),
+      notes: String(format.notes || "").trim() || null
+    };
+  }
+
   function userSettingsToUi(row) {
     if (!row) return null;
     return {
@@ -452,9 +686,9 @@
 
   async function loadProfiles() {
     if (isLocalMode()) {
-      const profile = localProfile();
-      profileCache = new Map([[profile.id, profile]]);
-      return [profile];
+      const profiles = isDemoMode() ? demoProfiles() : [localProfile()];
+      profileCache = new Map(profiles.map((profile) => [profile.id, profile]));
+      return [...profileCache.values()];
     }
     const supabase = getClient();
     const { data, error } = await supabase.from("profiles").select(PROFILE_FIELDS.join(",")).eq("active", true);
@@ -469,7 +703,10 @@
   }
 
   async function getCurrentProfile() {
-    if (isLocalMode()) return localProfile();
+    if (isLocalMode()) {
+      const profile = localProfile();
+      return profileCache.get(profile.id) || profile;
+    }
     const { data, error } = await getClient().auth.getUser();
     if (error) throw error;
     const userId = data.user?.id;
@@ -479,6 +716,22 @@
   }
 
   async function updateCurrentProfile(profile = {}) {
+    if (isLocalMode()) {
+      requireLocalWrite("Profil speichern");
+      const current = localProfile();
+      const updated = {
+        ...current,
+        display_name: String(profile.displayName ?? profile.display_name ?? current.display_name ?? "").trim(),
+        initials: String(profile.initials || current.initials || "").trim().slice(0, 4).toUpperCase(),
+        team: String(profile.team ?? current.team ?? "").trim(),
+        bio: String(profile.bio ?? current.bio ?? "").trim(),
+        avatar_url: profile.avatarUrl ?? profile.avatar_url ?? current.avatar_url ?? "",
+        updated_at: new Date().toISOString()
+      };
+      if (!updated.display_name) throw new Error("Bitte trage einen Anzeigenamen ein.");
+      profileCache.set(updated.id, updated);
+      return updated;
+    }
     const userId = await getCurrentUserId();
     const payload = {
       display_name: String(profile.displayName ?? profile.display_name ?? "").trim(),
@@ -501,6 +754,7 @@
   }
 
   async function uploadCurrentProfileImage(file) {
+    if (isLocalMode()) throw new Error("Profilfoto-Upload ist im Demo-Modus nicht verfuegbar.");
     if (!file) throw new Error("Bitte wähle ein Profilfoto aus.");
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) throw new Error("Bitte nutze ein JPG-, PNG- oder WebP-Bild.");
@@ -521,6 +775,7 @@
   }
 
   async function removeCurrentProfileImage() {
+    if (isLocalMode()) return updateCurrentProfile({ ...(localProfile() || {}), avatar_url: null, avatarUrl: null });
     const userId = await getCurrentUserId();
     const paths = ["jpg", "jpeg", "png", "webp"].map((extension) => `${userId}/avatar.${extension}`);
     await getClient().storage.from(PROFILE_IMAGE_BUCKET).remove(paths);
@@ -569,6 +824,11 @@
   async function getContact(id) {
     const cached = contactCache.find((contact) => contact.id === id);
     if (cached) return cached;
+    if (isLocalMode()) {
+      const contact = localContacts({ includeArchived: true }).find((item) => item.id === id);
+      if (!contact) throw new Error("Kontakt wurde im Demo-Datensatz nicht gefunden.");
+      return contact;
+    }
     const supabase = getClient();
     const { data, error } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single();
     if (error) {
@@ -590,6 +850,23 @@
   }
 
   async function getContactChanges(contactId, options = {}) {
+    if (isLocalMode()) {
+      const rows = Array.isArray(demoData().changes) ? demoData().changes : [];
+      return clone(rows)
+        .filter((change) => (change.contactId || change.contact_id) === contactId)
+        .filter((change) => !options.action || (change.action || "update") === options.action)
+        .map((change) => ({
+          id: change.id,
+          contactId: change.contactId || change.contact_id,
+          action: change.action || "update",
+          fieldName: change.fieldName || change.field_name || "",
+          oldValue: change.oldValue || change.old_value || "",
+          newValue: change.newValue || change.new_value || "",
+          changedAt: change.changedAt || change.changed_at || "",
+          changedBy: change.changedBy || change.changed_by || "",
+          user: profileSummary(change.changedBy || change.changed_by)
+        }));
+    }
     const supabase = getClient();
     if (!profileCache.size) await loadProfiles();
     let query = supabase
@@ -605,7 +882,10 @@
   }
 
   async function loadOrganizations(options = {}) {
-    if (isLocalMode()) return [];
+    if (isLocalMode()) {
+      organizationCache = localOrganizations(options);
+      return clone(organizationCache);
+    }
     const supabase = getClient();
     let query = supabase
       .from("organizations")
@@ -633,6 +913,12 @@
   }
 
   async function getOrganization(id) {
+    if (isLocalMode()) {
+      if (!organizationCache.length) organizationCache = localOrganizations({ includeArchived: true });
+      const organization = organizationCache.find((item) => item.id === id);
+      if (!organization) throw new Error("Organisation wurde im Demo-Datensatz nicht gefunden.");
+      return clone(organization);
+    }
     const supabase = getClient();
     const { data, error } = await supabase.from("organizations").select(ORGANIZATION_FIELDS.join(",")).eq("id", id).single();
     if (error) throw error;
@@ -641,9 +927,10 @@
 
   async function createOrganization(organization) {
     if (isLocalMode()) {
+      requireLocalWrite("Organisation speichern");
       const name = String(organization?.name || "").trim();
       if (!name) throw new Error("Name der Organisation fehlt.");
-      return {
+      const created = {
         id: organization.id || `local-organization-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
         name,
         normalizedName: normalizeOrganizationName(name),
@@ -662,6 +949,8 @@
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      organizationCache = [created, ...organizationCache.filter((item) => item.id !== created.id)];
+      return clone(created);
     }
     const supabase = getClient();
     const userId = await getCurrentUserId();
@@ -673,6 +962,21 @@
   }
 
   async function updateOrganization(id, patch) {
+    if (isLocalMode()) {
+      requireLocalWrite("Organisation speichern");
+      if (!organizationCache.length) organizationCache = localOrganizations({ includeArchived: true });
+      const existing = organizationCache.find((item) => item.id === id);
+      if (!existing) throw new Error("Organisation wurde im Demo-Datensatz nicht gefunden.");
+      const updated = {
+        ...existing,
+        ...patch,
+        id,
+        normalizedName: normalizeOrganizationName(patch.name || existing.name),
+        updatedAt: new Date().toISOString()
+      };
+      organizationCache = organizationCache.map((item) => (item.id === id ? updated : item));
+      return clone(updated);
+    }
     const supabase = getClient();
     const userId = await getCurrentUserId();
     const payload = {};
@@ -707,6 +1011,7 @@
   }
 
   async function getSavedViews() {
+    if (isLocalMode()) return localSavedViews();
     const supabase = getClient();
     if (!profileCache.size) await loadProfiles();
     const { data, error } = await supabase
@@ -719,6 +1024,17 @@
   }
 
   async function createSavedView(view) {
+    if (isLocalMode()) {
+      const created = {
+        ...view,
+        id: view.id || `demo-view-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        ownerId: localProfile().id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      savedViewCache = [created, ...localSavedViews().filter((item) => item.id !== created.id)];
+      return clone(created);
+    }
     const supabase = getClient();
     const userId = await getCurrentUserId();
     const payload = uiToSavedView(view, userId);
@@ -729,6 +1045,12 @@
   }
 
   async function updateSavedView(id, patch) {
+    if (isLocalMode()) {
+      savedViewCache = localSavedViews().map((view) => (view.id === id ? { ...view, ...patch, id, updatedAt: new Date().toISOString() } : view));
+      const updated = savedViewCache.find((view) => view.id === id);
+      if (!updated) throw new Error("Gespeicherte Ansicht wurde im Demo-Modus nicht gefunden.");
+      return clone(updated);
+    }
     const supabase = getClient();
     const payload = {};
     if ("name" in patch) payload.name = String(patch.name || "").trim();
@@ -749,12 +1071,17 @@
   }
 
   async function deleteSavedView(id) {
+    if (isLocalMode()) {
+      savedViewCache = localSavedViews().filter((view) => view.id !== id);
+      return true;
+    }
     const { error } = await getClient().from("saved_views").delete().eq("id", id);
     if (error) throw error;
     return true;
   }
 
   async function getUserSettings() {
+    if (isLocalMode()) return localUserSettings();
     const userId = await getCurrentUserId();
     const { data, error } = await getClient().from("user_settings").select(USER_SETTINGS_FIELDS.join(",")).eq("user_id", userId).maybeSingle();
     if (error) throw error;
@@ -762,6 +1089,15 @@
   }
 
   async function upsertUserSettings(settings = {}) {
+    if (isLocalMode()) {
+      userSettingsCache = {
+        ...localUserSettings(),
+        ...settings,
+        userId: localProfile().id,
+        updatedAt: new Date().toISOString()
+      };
+      return clone(userSettingsCache);
+    }
     const userId = await getCurrentUserId();
     const payload = {
       user_id: userId,
@@ -783,6 +1119,7 @@
   }
 
   async function getCurrentUserId() {
+    if (isLocalMode()) return localProfile().id;
     const { data, error } = await getClient().auth.getUser();
     if (error) throw error;
     if (!data.user?.id) throw new Error("Bitte zuerst mit Supabase anmelden.");
@@ -791,6 +1128,7 @@
 
   async function createContact(contact, options = {}) {
     if (isLocalMode()) {
+      requireLocalWrite("Kontakt speichern");
       const created = {
         ...contact,
         id: contact.id || `local-contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
@@ -836,6 +1174,21 @@
   }
 
   async function updateContact(id, patch) {
+    if (isLocalMode()) {
+      requireLocalWrite("Kontakt speichern");
+      if (!contactCache.length) contactCache = localContacts({ includeArchived: true });
+      const existing = contactCache.find((contact) => contact.id === id);
+      if (!existing) throw new Error("Kontakt wurde im Demo-Datensatz nicht gefunden.");
+      const updated = {
+        ...existing,
+        ...patch,
+        id,
+        priority: normalizePriority(patch.priority || existing.priority),
+        updatedAt: new Date().toISOString()
+      };
+      contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
+      return clone(updated);
+    }
     const supabase = getClient();
     const userId = await getCurrentUserId();
     let { data: oldRow, error: oldError } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single();
@@ -901,6 +1254,7 @@
   }
 
   async function archiveContact(id) {
+    if (isLocalMode()) requireLocalAdmin("Kontakt archivieren");
     return updateContact(id, { status: "archived" }).then((archived) => {
       contactCache = contactCache.filter((contact) => contact.id !== id);
       return archived;
@@ -908,10 +1262,218 @@
   }
 
   async function restoreContact(id) {
+    if (isLocalMode()) requireLocalAdmin("Kontakt wiederherstellen");
     return updateContact(id, { status: "active" }).then((restored) => {
       contactCache = [restored, ...contactCache.filter((contact) => contact.id !== id)];
       return restored;
     });
+  }
+
+  async function loadFormats(options = {}) {
+    if (isLocalMode() || !supportsFormats) {
+      formatCache = localFormats(options);
+      return formatCache;
+    }
+    const supabase = getClient();
+    await loadProfiles();
+    const { data: rows, error } = await supabase
+      .from("formats")
+      .select(FORMAT_FIELDS.join(","))
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .order("title", { ascending: true });
+    if (error) {
+      if (isMissingFormatsError(error)) {
+        supportsFormats = false;
+        formatCache = localFormats(options);
+        return formatCache;
+      }
+      throw error;
+    }
+    const ids = (rows || []).map((row) => row.id);
+    let participants = [];
+    if (ids.length) {
+      const { data: participantRows, error: participantError } = await supabase
+        .from("format_participants")
+        .select(FORMAT_PARTICIPANT_FIELDS.join(","))
+        .in("format_id", ids)
+        .order("updated_at", { ascending: false, nullsFirst: false });
+      if (participantError) {
+        if (isMissingFormatsError(participantError)) {
+          supportsFormats = false;
+          formatCache = localFormats(options);
+          return formatCache;
+        }
+        throw participantError;
+      }
+      participants = participantRows || [];
+    }
+    const participantsByFormat = participants.reduce((map, participant) => {
+      const list = map.get(participant.format_id) || [];
+      list.push(participant);
+      map.set(participant.format_id, list);
+      return map;
+    }, new Map());
+    formatCache = (rows || [])
+      .map((row) => formatDbToUi(row, participantsByFormat.get(row.id) || []))
+      .filter((format) => options.includeArchived || format.status !== "Archiviert");
+    return formatCache;
+  }
+
+  async function createFormat(format) {
+    if (isLocalMode() || !supportsFormats) {
+      requireLocalWrite("Formate anlegen");
+      const now = new Date().toISOString();
+      const created = formatDbToUi({
+        ...format,
+        id: format.id || `local-format-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        ownerId: format.ownerId || localProfile().id,
+        createdAt: now,
+        updatedAt: now
+      }, []);
+      formatCache = [created, ...formatCache.filter((item) => item.id !== created.id)];
+      persistLocalFormats(formatCache);
+      return created;
+    }
+    const supabase = getClient();
+    const userId = await getCurrentUserId();
+    const payload = { ...formatUiToDb(format), created_by: userId, updated_by: userId };
+    if (!payload.title) throw new Error("Titel des Formats fehlt.");
+    const { data, error } = await supabase.from("formats").insert(payload).select(FORMAT_FIELDS.join(",")).single();
+    if (error) throw error;
+    const created = formatDbToUi(data, []);
+    formatCache = [created, ...formatCache.filter((item) => item.id !== created.id)];
+    return created;
+  }
+
+  async function updateFormat(id, patch) {
+    if (isLocalMode() || !supportsFormats) {
+      requireLocalWrite("Formate bearbeiten");
+      const now = new Date().toISOString();
+      formatCache = formatCache.map((format) => format.id === id ? formatDbToUi({ ...format, ...patch, updatedAt: now }, format.participants || []) : format);
+      persistLocalFormats(formatCache);
+      return formatCache.find((format) => format.id === id);
+    }
+    const supabase = getClient();
+    const userId = await getCurrentUserId();
+    const payload = { ...formatUiToDb(patch), updated_by: userId, updated_at: new Date().toISOString() };
+    if (!Object.prototype.hasOwnProperty.call(patch, "title")) delete payload.title;
+    if (!Object.prototype.hasOwnProperty.call(patch, "formatType") && !Object.prototype.hasOwnProperty.call(patch, "format_type")) delete payload.format_type;
+    if (!Object.prototype.hasOwnProperty.call(patch, "startsAt") && !Object.prototype.hasOwnProperty.call(patch, "starts_at")) delete payload.starts_at;
+    if (!Object.prototype.hasOwnProperty.call(patch, "endsAt") && !Object.prototype.hasOwnProperty.call(patch, "ends_at")) delete payload.ends_at;
+    if (!Object.prototype.hasOwnProperty.call(patch, "location")) delete payload.location;
+    if (!Object.prototype.hasOwnProperty.call(patch, "goal")) delete payload.goal;
+    if (!Object.prototype.hasOwnProperty.call(patch, "ownerId") && !Object.prototype.hasOwnProperty.call(patch, "owner_id") && !Object.prototype.hasOwnProperty.call(patch, "owner")) delete payload.owner_id;
+    if (!Object.prototype.hasOwnProperty.call(patch, "status")) delete payload.status;
+    if (!Object.prototype.hasOwnProperty.call(patch, "notes")) delete payload.notes;
+    const { data, error } = await supabase.from("formats").update(payload).eq("id", id).select(FORMAT_FIELDS.join(",")).single();
+    if (error) throw error;
+    const existing = formatCache.find((format) => format.id === id);
+    const updated = formatDbToUi(data, existing?.participants || []);
+    formatCache = formatCache.map((format) => format.id === id ? updated : format);
+    return updated;
+  }
+
+  async function archiveFormat(id) {
+    return updateFormat(id, { status: "Archiviert" });
+  }
+
+  async function deleteFormat(id) {
+    if (isLocalMode() || !supportsFormats) {
+      requireLocalAdmin("Formate löschen");
+      formatCache = formatCache.filter((format) => format.id !== id);
+      persistLocalFormats(formatCache);
+      return true;
+    }
+    const { error } = await getClient().from("formats").delete().eq("id", id);
+    if (error) throw error;
+    formatCache = formatCache.filter((format) => format.id !== id);
+    return true;
+  }
+
+  async function addFormatParticipant(formatId, contactId, patch = {}) {
+    if (isLocalMode() || !supportsFormats) {
+      requireLocalWrite("Teilnehmer pflegen");
+      const now = new Date().toISOString();
+      formatCache = formatCache.map((format) => {
+        if (format.id !== formatId) return format;
+        const existing = format.participants || [];
+        if (existing.some((participant) => participant.contactId === contactId)) return format;
+        return {
+          ...format,
+          participants: [
+            participantDbToUi({
+              id: `local-participant-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+              formatId,
+              contactId,
+              invitationStatus: patch.invitationStatus || "Kandidat",
+              participantRole: patch.participantRole || "",
+              notes: patch.notes || "",
+              createdAt: now,
+              updatedAt: now
+            }),
+            ...existing
+          ],
+          updatedAt: now
+        };
+      });
+      persistLocalFormats(formatCache);
+      return formatCache.find((format) => format.id === formatId);
+    }
+    const userId = await getCurrentUserId();
+    const payload = { ...participantUiToDb(patch, formatId, contactId), created_by: userId, updated_by: userId };
+    const { error } = await getClient()
+      .from("format_participants")
+      .upsert(payload, { onConflict: "format_id,contact_id", ignoreDuplicates: true });
+    if (error) throw error;
+    await updateFormat(formatId, {});
+    await loadFormats({ includeArchived: true });
+    return formatCache.find((format) => format.id === formatId);
+  }
+
+  async function updateFormatParticipant(formatId, contactId, patch = {}) {
+    if (isLocalMode() || !supportsFormats) {
+      requireLocalWrite("Teilnehmer pflegen");
+      const now = new Date().toISOString();
+      formatCache = formatCache.map((format) => {
+        if (format.id !== formatId) return format;
+        return {
+          ...format,
+          participants: (format.participants || []).map((participant) =>
+            participant.contactId === contactId ? participantDbToUi({ ...participant, ...patch, updatedAt: now }) : participant
+          ),
+          updatedAt: now
+        };
+      });
+      persistLocalFormats(formatCache);
+      return formatCache.find((format) => format.id === formatId);
+    }
+    const userId = await getCurrentUserId();
+    const payload = participantUiToDb(patch, formatId, contactId);
+    delete payload.format_id;
+    delete payload.contact_id;
+    payload.updated_by = userId;
+    payload.updated_at = new Date().toISOString();
+    const { error } = await getClient().from("format_participants").update(payload).eq("format_id", formatId).eq("contact_id", contactId);
+    if (error) throw error;
+    await updateFormat(formatId, {});
+    await loadFormats({ includeArchived: true });
+    return formatCache.find((format) => format.id === formatId);
+  }
+
+  async function removeFormatParticipant(formatId, contactId) {
+    if (isLocalMode() || !supportsFormats) {
+      requireLocalWrite("Teilnehmer entfernen");
+      formatCache = formatCache.map((format) =>
+        format.id === formatId ? { ...format, participants: (format.participants || []).filter((participant) => participant.contactId !== contactId) } : format
+      );
+      persistLocalFormats(formatCache);
+      return formatCache.find((format) => format.id === formatId);
+    }
+    const { error } = await getClient().from("format_participants").delete().eq("format_id", formatId).eq("contact_id", contactId);
+    if (error) throw error;
+    await updateFormat(formatId, {});
+    await loadFormats({ includeArchived: true });
+    return formatCache.find((format) => format.id === formatId);
   }
 
   async function getDashboardStats(filters = {}) {
@@ -964,6 +1526,14 @@
     updateContact,
     archiveContact,
     restoreContact,
+    loadFormats,
+    createFormat,
+    updateFormat,
+    archiveFormat,
+    deleteFormat,
+    addFormatParticipant,
+    updateFormatParticipant,
+    removeFormatParticipant,
     getDashboardStats,
     getMapData
   };
