@@ -153,9 +153,10 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator("#format-participant-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#format-participant-drawer")).not.toHaveClass(/is-open/);
   await page.waitForTimeout(300);
-  await expect(page.locator(".participant-table-row")).toBeVisible();
-  await page.locator('[data-format-tab="composition"]').click();
   await expect(page.locator(".participant-card")).toBeVisible();
+  await expect(page.locator(".participant-card .avatar-lg")).toBeVisible();
+  await expect(page.locator(".participant-card .contact-sector-pill")).toBeVisible();
+  await expect(page.locator('[data-format-tab="composition"]')).toHaveCount(0);
   await expect(page.locator(".format-diversity-board")).toHaveCount(0);
   await page.locator('[data-format-tab="invitationStatus"]').click();
   await expect(page.locator(".invitation-status-board")).toBeVisible();
