@@ -14273,24 +14273,29 @@
         display: block;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
-        background: linear-gradient(135deg, #ffffff 0%, #f6f9ff 100%);
+        background: #ffffff;
       }
 
-      .format-roundtable-illustration__table {
+      .format-roundtable-illustration__bubble {
         fill: #ffffff;
-        stroke: var(--primary);
-        stroke-width: 2.8;
+        stroke: #cad7ef;
+        stroke-width: 2.2;
       }
 
-      .format-roundtable-illustration__ring {
+      .format-roundtable-illustration__bubble-line,
+      .format-roundtable-illustration__person {
         fill: none;
-        stroke: #dbe5f8;
-        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .format-roundtable-illustration__bubble-line {
+        stroke: var(--primary);
+        stroke-width: 3;
       }
 
       .format-roundtable-illustration__person {
-        fill: #ffffff;
-        stroke-width: 2.2;
+        stroke-width: 3.2;
       }
 
       .format-roundtable-illustration__person--blue {
@@ -14305,26 +14310,9 @@
         stroke: #b7791f;
       }
 
-      .format-roundtable-illustration__person--violet {
-        stroke: #6d28d9;
-      }
-
-      .format-roundtable-illustration__card {
-        fill: #ffffff;
-        stroke: #cad7ef;
-        stroke-width: 1.8;
-      }
-
-      .format-roundtable-illustration__line {
+      .format-roundtable-illustration__connector {
         fill: none;
-        stroke: #65758f;
-        stroke-linecap: round;
-        stroke-width: 2;
-      }
-
-      .format-roundtable-illustration__accent {
-        fill: none;
-        stroke: var(--primary);
+        stroke: #dbe5f8;
         stroke-linecap: round;
         stroke-width: 2.4;
       }
@@ -21787,25 +21775,15 @@
               </div>
             </div>
             <div class="format-overview-visual">
-              <svg class="format-roundtable-illustration" viewBox="0 0 360 225" role="img" aria-label="Schematische Roundtable-Diskussion">
-                <ellipse class="format-roundtable-illustration__ring" cx="180" cy="112" rx="135" ry="82"></ellipse>
-                <rect class="format-roundtable-illustration__card" x="52" y="44" width="58" height="42" rx="10"></rect>
-                <path class="format-roundtable-illustration__accent" d="M68 61h26M68 73h18"></path>
-                <rect class="format-roundtable-illustration__card" x="250" y="44" width="58" height="42" rx="10"></rect>
-                <path class="format-roundtable-illustration__accent" d="M266 61h26M266 73h18"></path>
-                <rect class="format-roundtable-illustration__card" x="150" y="154" width="60" height="36" rx="10"></rect>
-                <path class="format-roundtable-illustration__accent" d="M166 169h28"></path>
-                <circle class="format-roundtable-illustration__person format-roundtable-illustration__person--blue" cx="180" cy="48" r="14"></circle>
-                <circle class="format-roundtable-illustration__person format-roundtable-illustration__person--green" cx="98" cy="104" r="14"></circle>
-                <circle class="format-roundtable-illustration__person format-roundtable-illustration__person--amber" cx="262" cy="104" r="14"></circle>
-                <circle class="format-roundtable-illustration__person format-roundtable-illustration__person--violet" cx="126" cy="158" r="14"></circle>
-                <circle class="format-roundtable-illustration__person format-roundtable-illustration__person--blue" cx="234" cy="158" r="14"></circle>
-                <ellipse class="format-roundtable-illustration__table" cx="180" cy="114" rx="75" ry="43"></ellipse>
-                <path class="format-roundtable-illustration__line" d="M139 106c23-10 59-10 82 0"></path>
-                <path class="format-roundtable-illustration__line" d="M146 127c20 9 48 11 70 0"></path>
-                <path class="format-roundtable-illustration__line" d="M180 82v63"></path>
-                <path class="format-roundtable-illustration__line" d="M154 94c18 12 33 27 52 48"></path>
-                <path class="format-roundtable-illustration__accent" d="M150 86c22-14 58-14 80 0"></path>
+              <svg class="format-roundtable-illustration" viewBox="0 0 360 225" role="img" aria-label="Drei Personen im Gespräch mit Sprechblasen">
+                <path class="format-roundtable-illustration__connector" d="M123 142c28 18 86 18 114 0"></path>
+                <path class="format-roundtable-illustration__bubble" d="M58 48h102a18 18 0 0 1 18 18v34a18 18 0 0 1-18 18h-39l-28 25 7-25H58a18 18 0 0 1-18-18V66a18 18 0 0 1 18-18Z"></path>
+                <path class="format-roundtable-illustration__bubble-line" d="M70 75h70M70 94h48"></path>
+                <path class="format-roundtable-illustration__bubble" d="M207 38h91a18 18 0 0 1 18 18v32a18 18 0 0 1-18 18h-31l-31 26 8-26h-37a18 18 0 0 1-18-18V56a18 18 0 0 1 18-18Z"></path>
+                <path class="format-roundtable-illustration__bubble-line" d="M219 65h61M219 84h39"></path>
+                <path class="format-roundtable-illustration__person format-roundtable-illustration__person--green" d="M82 178c0-22 18-38 42-38s42 16 42 38M124 125a20 20 0 1 0 0-40 20 20 0 0 0 0 40Z"></path>
+                <path class="format-roundtable-illustration__person format-roundtable-illustration__person--blue" d="M138 188c0-28 22-48 52-48s52 20 52 48M190 122a25 25 0 1 0 0-50 25 25 0 0 0 0 50Z"></path>
+                <path class="format-roundtable-illustration__person format-roundtable-illustration__person--amber" d="M214 178c0-22 18-38 42-38s42 16 42 38M256 125a20 20 0 1 0 0-40 20 20 0 0 0 0 40Z"></path>
               </svg>
             </div>
           </section>
