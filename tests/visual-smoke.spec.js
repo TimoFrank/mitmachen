@@ -139,8 +139,13 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await page.locator("#new-format-button").click();
   await expect(page.locator("#format-editor-drawer.is-open")).toBeVisible();
   await expect(page.locator("#format-editor-form")).toBeVisible();
+  await expect(page.locator("#format-editor-steps")).toBeVisible();
   await expect(page.locator("#format-title")).toBeVisible();
   await page.locator("#format-title").fill("Roundtable Testversorgung");
+  await page.locator("#format-editor-next").click();
+  await expect(page.locator('[data-format-editor-step="planung"]')).toBeVisible();
+  await page.locator("#format-editor-next").click();
+  await expect(page.locator('[data-format-editor-step="inhalt"]')).toBeVisible();
   await page.locator("#format-editor-form").getByRole("button", { name: "Format anlegen" }).click();
   await expect(page.locator("#format-editor-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#format-editor-drawer")).not.toHaveClass(/is-open/);

@@ -7002,7 +7002,8 @@
       }
 
       #editor-drawer .contact-editor-header,
-      #organization-editor-drawer .contact-editor-header {
+      #organization-editor-drawer .contact-editor-header,
+      #format-editor-drawer .format-participant-header {
         align-items: flex-start;
         padding: 18px 24px 8px;
         border-bottom: 0;
@@ -7010,13 +7011,15 @@
       }
 
       #editor-drawer .contact-editor-header h3,
-      #organization-editor-drawer .contact-editor-header h3 {
+      #organization-editor-drawer .contact-editor-header h3,
+      #format-editor-drawer .format-participant-header h3 {
         color: #10236e;
         font-size: 1.25rem;
       }
 
       #editor-drawer .contact-editor-header p,
-      #organization-editor-drawer .contact-editor-header p {
+      #organization-editor-drawer .contact-editor-header p,
+      #format-editor-drawer .format-participant-header p {
         color: #5d6a9c;
         font-size: 0.82rem;
         line-height: 1.4;
@@ -7064,7 +7067,8 @@
       }
 
       #editor-drawer .contact-editor-step,
-      #organization-editor-drawer .contact-editor-step {
+      #organization-editor-drawer .contact-editor-step,
+      #format-editor-drawer .contact-editor-step {
         margin-top: 0;
         padding: 14px 16px 16px;
         border: 1px solid #d8e1fb;
@@ -7073,12 +7077,14 @@
       }
 
       #editor-drawer .contact-editor-step .editor-section-head,
-      #organization-editor-drawer .contact-editor-step .editor-section-head {
+      #organization-editor-drawer .contact-editor-step .editor-section-head,
+      #format-editor-drawer .contact-editor-step .editor-section-head {
         margin-bottom: 12px;
       }
 
       #editor-drawer .contact-editor-step .editor-grid,
-      #organization-editor-drawer .contact-editor-step .editor-grid {
+      #organization-editor-drawer .contact-editor-step .editor-grid,
+      #format-editor-drawer .contact-editor-step .format-editor-grid {
         gap: 10px 12px;
       }
 
@@ -7091,7 +7097,8 @@
       }
 
       #editor-drawer .editor-footer,
-      #organization-editor-drawer .editor-footer {
+      #organization-editor-drawer .editor-footer,
+      #format-editor-drawer .editor-footer {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -7108,7 +7115,10 @@
       #organization-editor-drawer .editor-footer__hint[hidden],
       #organization-editor-drawer #organization-editor-back[hidden],
       #organization-editor-drawer #organization-editor-next[hidden],
-      #organization-editor-drawer #organization-editor-save[hidden] {
+      #organization-editor-drawer #organization-editor-save[hidden],
+      #format-editor-drawer #format-editor-back[hidden],
+      #format-editor-drawer #format-editor-next[hidden],
+      #format-editor-drawer #format-editor-save[hidden] {
         display: none;
       }
 
@@ -14396,6 +14406,11 @@
 
       .format-editor-drawer .format-participant-body {
         grid-template-rows: minmax(0, 1fr);
+        padding: 0 24px 0;
+      }
+
+      .format-editor .contact-editor-steps {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .format-editor-grid {
@@ -16863,6 +16878,11 @@
       const formatTypeOptions = ["Roundtable", "Fachgespräch", "Workshop", "Veranstaltung", "Diskussionsformat"];
       const formatStatusOptions = ["Planung", "Aktiv", "Abgeschlossen", "Archiviert"];
       const invitationStatusOptions = ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt"];
+      const formatEditorSteps = [
+        { id: "basis", label: "Basis" },
+        { id: "planung", label: "Planung" },
+        { id: "inhalt", label: "Inhalt" }
+      ];
       const formatTabItems = [
         { id: "overview", label: "Überblick" },
         { id: "participants", label: "Teilnehmer" },
@@ -17115,6 +17135,7 @@
       let editingFormatId = null;
       let formatActiveTab = "overview";
       let formatDetailExpanded = false;
+      let formatEditorCurrentStep = "basis";
       let participantPlannerFormatId = null;
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
@@ -21054,53 +21075,83 @@
         const ownerValue = format?.ownerId || currentProfile?.id || "";
         return `
           <form class="format-editor" id="format-editor-form">
-            <div class="format-editor-grid">
-              <div class="format-editor-field format-editor-field--wide">
-                <label for="format-title">Titel</label>
-                <input id="format-title" name="title" required value="${escapeHtml(format?.title || "")}" placeholder="z. B. Roundtable Pflegeversorgung Q3" />
+            <div class="import-steps contact-editor-steps" id="format-editor-steps" aria-label="Formatanlage-Schritte"></div>
+
+            <section class="editor-section editor-section--primary contact-editor-step" data-format-editor-step="basis" aria-labelledby="format-section-basis">
+              <div class="editor-section-head">
+                <h4 class="editor-section-title" id="format-section-basis">Basisdaten</h4>
               </div>
-              <div class="format-editor-field">
-                <label for="format-type">Typ</label>
-                <div class="editor-select-shell" data-custom-select data-select-type="format-type">
-                  <select class="editor-select" id="format-type" name="formatType">${formatOptionMarkup(formatTypeOptions, format?.formatType || "Roundtable")}</select>
+              <div class="format-editor-grid">
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="format-title">Titel</label>
+                  <input id="format-title" name="title" required value="${escapeHtml(format?.title || "")}" placeholder="z. B. Roundtable Pflegeversorgung Q3" />
+                </div>
+                <div class="format-editor-field">
+                  <label for="format-type">Typ</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="format-type">
+                    <select class="editor-select" id="format-type" name="formatType">${formatOptionMarkup(formatTypeOptions, format?.formatType || "Roundtable")}</select>
+                  </div>
+                </div>
+                <div class="format-editor-field">
+                  <label for="format-status">Status</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="format-status">
+                    <select class="editor-select" id="format-status" name="status">${formatOptionMarkup(formatStatusOptions, format?.status || "Planung")}</select>
+                  </div>
                 </div>
               </div>
-              <div class="format-editor-field">
-                <label for="format-status">Status</label>
-                <div class="editor-select-shell" data-custom-select data-select-type="format-status">
-                  <select class="editor-select" id="format-status" name="status">${formatOptionMarkup(formatStatusOptions, format?.status || "Planung")}</select>
+            </section>
+
+            <section class="editor-section contact-editor-step" data-format-editor-step="planung" aria-labelledby="format-section-planning" hidden>
+              <div class="editor-section-head">
+                <h4 class="editor-section-title" id="format-section-planning">Planung</h4>
+                <span class="contact-editor-step__meta">Optional</span>
+              </div>
+              <div class="format-editor-grid">
+                <div class="format-editor-field">
+                  <label for="format-starts-at">Start</label>
+                  <input id="format-starts-at" name="startsAt" type="date" value="${escapeHtml(String(format?.startsAt || "").slice(0, 10))}" />
+                </div>
+                <div class="format-editor-field">
+                  <label for="format-ends-at">Ende</label>
+                  <input id="format-ends-at" name="endsAt" type="date" value="${escapeHtml(String(format?.endsAt || "").slice(0, 10))}" />
+                </div>
+                <div class="format-editor-field">
+                  <label for="format-location">Ort / Online</label>
+                  <input id="format-location" name="location" value="${escapeHtml(format?.location || "")}" placeholder="Ort, Raum oder Online" />
+                </div>
+                <div class="format-editor-field">
+                  <label for="format-owner">Owner</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="format-owner">
+                    <select class="editor-select" id="format-owner" name="ownerId">${buildOwnerSelectOptions(ownerValue)}</select>
+                  </div>
                 </div>
               </div>
-              <div class="format-editor-field">
-                <label for="format-starts-at">Start</label>
-                <input id="format-starts-at" name="startsAt" type="date" value="${escapeHtml(String(format?.startsAt || "").slice(0, 10))}" />
+            </section>
+
+            <section class="editor-section contact-editor-step" data-format-editor-step="inhalt" aria-labelledby="format-section-content" hidden>
+              <div class="editor-section-head">
+                <h4 class="editor-section-title" id="format-section-content">Inhalt</h4>
+                <span class="contact-editor-step__meta">Optional</span>
               </div>
-              <div class="format-editor-field">
-                <label for="format-ends-at">Ende</label>
-                <input id="format-ends-at" name="endsAt" type="date" value="${escapeHtml(String(format?.endsAt || "").slice(0, 10))}" />
-              </div>
-              <div class="format-editor-field">
-                <label for="format-location">Ort / Online</label>
-                <input id="format-location" name="location" value="${escapeHtml(format?.location || "")}" placeholder="Ort, Raum oder Online" />
-              </div>
-              <div class="format-editor-field">
-                <label for="format-owner">Owner</label>
-                <div class="editor-select-shell" data-custom-select data-select-type="format-owner">
-                  <select class="editor-select" id="format-owner" name="ownerId">${buildOwnerSelectOptions(ownerValue)}</select>
+              <div class="format-editor-grid">
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="format-goal">Thema / Ziel</label>
+                  <textarea id="format-goal" name="goal" placeholder="Fachlicher Anlass und Ziel der Runde">${escapeHtml(format?.goal || "")}</textarea>
+                </div>
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="format-notes">Notiz</label>
+                  <textarea id="format-notes" name="notes" placeholder="Interne Planungsnotiz">${escapeHtml(format?.notes || "")}</textarea>
                 </div>
               </div>
-              <div class="format-editor-field format-editor-field--wide">
-                <label for="format-goal">Thema / Ziel</label>
-                <textarea id="format-goal" name="goal" placeholder="Fachlicher Anlass und Ziel der Runde">${escapeHtml(format?.goal || "")}</textarea>
+            </section>
+
+            <div class="editor-footer">
+              <button class="action-button" type="button" id="format-editor-back">Zurück</button>
+              <div class="format-editor-actions">
+                <button class="action-button" type="button" id="format-editor-cancel">Abbrechen</button>
+                <button class="action-button" type="button" id="format-editor-next">Weiter</button>
+                <button class="action-button action-button--primary" type="submit" id="format-editor-save">${editing ? "Format speichern" : "Format anlegen"}</button>
               </div>
-              <div class="format-editor-field format-editor-field--wide">
-                <label for="format-notes">Notiz</label>
-                <textarea id="format-notes" name="notes" placeholder="Interne Planungsnotiz">${escapeHtml(format?.notes || "")}</textarea>
-              </div>
-            </div>
-            <div class="format-editor-actions">
-              <button class="action-button action-button--primary" type="submit">${editing ? "Format speichern" : "Format anlegen"}</button>
-              <button class="action-button" type="button" id="format-editor-cancel">Abbrechen</button>
             </div>
           </form>
         `;
@@ -21571,6 +21622,7 @@
       function bindFormatEditor() {
         const form = document.getElementById("format-editor-form");
         refreshCustomSelects(form || document);
+        renderFormatEditorStep();
         form?.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!canEditContacts()) {
@@ -21606,6 +21658,57 @@
             renderFormatsView();
           }
         });
+        document.getElementById("format-editor-back")?.addEventListener("click", () => moveFormatEditorStep(-1));
+        document.getElementById("format-editor-next")?.addEventListener("click", () => {
+          if (formatEditorCurrentStep === "basis" && !String(form?.elements.title?.value || "").trim()) {
+            window.alert("Bitte gib einen Titel für das Format ein.");
+            form?.elements.title?.focus();
+            return;
+          }
+          moveFormatEditorStep(1);
+        });
+      }
+
+      function formatEditorStepMarkup() {
+        const activeIndex = Math.max(0, formatEditorSteps.findIndex((step) => step.id === formatEditorCurrentStep));
+        return formatEditorSteps
+          .map((step, index) => `
+            <div class="import-step ${index <= activeIndex ? "is-active" : ""}">
+              <span>${index + 1}</span>
+              <strong>${step.label}</strong>
+            </div>
+          `)
+          .join("");
+      }
+
+      function renderFormatEditorStep() {
+        const form = document.getElementById("format-editor-form");
+        const stepsNode = document.getElementById("format-editor-steps");
+        const back = document.getElementById("format-editor-back");
+        const next = document.getElementById("format-editor-next");
+        const save = document.getElementById("format-editor-save");
+        if (!form || !stepsNode) return;
+        const activeIndex = Math.max(0, formatEditorSteps.findIndex((step) => step.id === formatEditorCurrentStep));
+        stepsNode.innerHTML = formatEditorStepMarkup();
+        form.querySelectorAll("[data-format-editor-step]").forEach((section) => {
+          section.hidden = section.dataset.formatEditorStep !== formatEditorCurrentStep;
+        });
+        if (back) back.hidden = activeIndex === 0;
+        if (next) next.hidden = activeIndex === formatEditorSteps.length - 1;
+        if (save) save.hidden = activeIndex !== formatEditorSteps.length - 1;
+        refreshCustomSelects(form);
+      }
+
+      function setFormatEditorStep(step) {
+        if (!formatEditorSteps.some((item) => item.id === step)) return;
+        formatEditorCurrentStep = step;
+        renderFormatEditorStep();
+      }
+
+      function moveFormatEditorStep(direction) {
+        const activeIndex = Math.max(0, formatEditorSteps.findIndex((step) => step.id === formatEditorCurrentStep));
+        const nextIndex = Math.min(formatEditorSteps.length - 1, Math.max(0, activeIndex + direction));
+        setFormatEditorStep(formatEditorSteps[nextIndex].id);
       }
 
       function openFormatEditorDrawer(format = null) {
@@ -21614,6 +21717,7 @@
           return;
         }
         editingFormatId = format?.id || "__new__";
+        formatEditorCurrentStep = "basis";
         if (formatEditorDrawerTitle) formatEditorDrawerTitle.textContent = format?.id ? "Format bearbeiten" : "Neues Format";
         if (formatEditorDrawerSubtitle) {
           formatEditorDrawerSubtitle.textContent = format?.id
