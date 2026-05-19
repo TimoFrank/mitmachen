@@ -13747,6 +13747,13 @@
         gap: 12px;
       }
 
+      .formats-command-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
       .formats-command-meta {
         color: var(--text-muted);
         font-size: 0.86rem;
@@ -13757,6 +13764,14 @@
         grid-template-columns: minmax(260px, 0.38fr) minmax(0, 1fr);
         gap: 14px;
         min-height: 560px;
+      }
+
+      .formats-workspace.is-list-collapsed .formats-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .formats-workspace.is-list-collapsed .formats-list-panel {
+        display: none;
       }
 
       .formats-list-panel,
@@ -13913,6 +13928,54 @@
         font-size: 0.86rem;
       }
 
+      .format-diversity-board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .format-diversity-column {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        padding: 10px;
+      }
+
+      .format-diversity-column h5,
+      .format-composition-group h5 {
+        margin: 0 0 8px;
+        font-size: 0.82rem;
+      }
+
+      .format-diversity-list,
+      .format-composition-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .format-diversity-chip,
+      .format-composition-chip {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        gap: 6px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        padding: 5px 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .format-diversity-chip span,
+      .format-composition-chip span {
+        color: var(--text-muted);
+        font-weight: 800;
+      }
+
       .format-editor {
         display: grid;
         gap: 12px;
@@ -14029,6 +14092,13 @@
         overflow-wrap: anywhere;
       }
 
+      .participant-card-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 6px;
+      }
+
       .participant-table {
         display: grid;
         border: 1px solid var(--border);
@@ -14068,6 +14138,166 @@
         font: inherit;
       }
 
+      .format-participant-drawer {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        pointer-events: none;
+      }
+
+      .format-participant-drawer.is-open {
+        pointer-events: auto;
+      }
+
+      .format-participant-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(4, 18, 45, 0.32);
+        opacity: 0;
+        transition: opacity 0.18s ease;
+      }
+
+      .format-participant-drawer.is-open .format-participant-overlay {
+        opacity: 1;
+      }
+
+      .format-participant-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: min(920px, 100vw);
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        background: var(--surface);
+        border-left: 1px solid var(--border);
+        box-shadow: var(--shadow-lg);
+        transform: translateX(100%);
+        transition: transform 0.22s ease;
+      }
+
+      .format-participant-drawer.is-open .format-participant-panel {
+        transform: translateX(0);
+      }
+
+      .format-participant-header,
+      .format-participant-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .format-participant-footer {
+        border-top: 1px solid var(--border);
+        border-bottom: 0;
+      }
+
+      .format-participant-header h3 {
+        margin: 0;
+        font-size: 1.12rem;
+      }
+
+      .format-participant-header p,
+      .format-participant-results-head,
+      #format-participant-selection-count {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 0.86rem;
+      }
+
+      .format-participant-body {
+        display: grid;
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+        gap: 12px;
+        padding: 16px 18px;
+        overflow: auto;
+        min-height: 0;
+      }
+
+      .format-participant-controls {
+        display: grid;
+        gap: 10px;
+      }
+
+      .format-participant-search {
+        width: 100%;
+      }
+
+      .format-participant-filter-grid,
+      .format-composition-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .format-editor-field span {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .format-composition-panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        padding: 12px;
+      }
+
+      .format-participant-results-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0;
+      }
+
+      .format-participant-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .format-participant-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        padding: 10px;
+      }
+
+      .format-participant-row.is-selected {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+      }
+
+      .format-participant-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+      }
+
+      .format-participant-copy {
+        min-width: 0;
+        display: grid;
+        gap: 4px;
+      }
+
+      .format-participant-name {
+        color: var(--text);
+        font-weight: 800;
+        overflow-wrap: anywhere;
+      }
+
+      .format-participant-meta {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        overflow-wrap: anywhere;
+      }
+
       @media (max-width: 980px) {
         .formats-layout {
           grid-template-columns: 1fr;
@@ -14075,6 +14305,12 @@
 
         .participant-board {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .format-diversity-board,
+        .format-participant-filter-grid,
+        .format-composition-grid {
+          grid-template-columns: 1fr;
         }
 
         .format-metrics {
@@ -14094,6 +14330,21 @@
         .participant-board,
         .format-metrics {
           grid-template-columns: 1fr;
+        }
+
+        .format-participant-header,
+        .format-participant-footer,
+        .format-participant-results-head {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .format-participant-row {
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .format-participant-row .action-button {
+          grid-column: 1 / -1;
         }
 
         .participant-table-head {
@@ -14475,7 +14726,10 @@
             <div class="formats-workspace">
               <div class="formats-command-row">
                 <div class="formats-command-meta" id="formats-count">0 Formate</div>
-                <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
+                <div class="formats-command-actions">
+                  <button class="action-button" type="button" id="toggle-format-list">Formatliste einklappen</button>
+                  <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
+                </div>
               </div>
               <div class="formats-layout">
                 <section class="formats-list-panel" aria-label="Formate">
@@ -15166,6 +15420,65 @@
         </div>
         <div class="import-body" id="import-body"></div>
         <div class="import-footer" id="import-footer"></div>
+      </section>
+    </aside>
+
+    <aside class="format-participant-drawer" id="format-participant-drawer" aria-hidden="true">
+      <div class="format-participant-overlay" id="format-participant-overlay"></div>
+      <section class="format-participant-panel" aria-labelledby="format-participant-title" aria-modal="true" role="dialog">
+        <div class="format-participant-header">
+          <div>
+            <h3 id="format-participant-title">Teilnehmer zusammenstellen</h3>
+            <p id="format-participant-subtitle">Kontakte nach Sektor, Bundesland und Fachrichtung auswählen.</p>
+          </div>
+          <button class="import-close" type="button" id="format-participant-close" aria-label="Teilnehmerauswahl schließen">&times;</button>
+        </div>
+        <div class="format-participant-body">
+          <div class="format-participant-controls">
+            <label class="search-shell format-participant-search" aria-label="Teilnehmer suchen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.5-3.5"></path>
+              </svg>
+              <input class="search-input" id="format-participant-search" type="search" placeholder="Nach Name, Organisation, Ort oder Thema suchen" />
+            </label>
+            <div class="format-participant-filter-grid">
+              <label class="format-editor-field">
+                <span>Sektor</span>
+                <select id="format-participant-sector"></select>
+              </label>
+              <label class="format-editor-field">
+                <span>Bundesland</span>
+                <select id="format-participant-state"></select>
+              </label>
+              <label class="format-editor-field">
+                <span>Fachrichtung</span>
+                <select id="format-participant-specialty"></select>
+              </label>
+            </div>
+          </div>
+          <section class="format-composition-panel">
+            <div class="format-section-head">
+              <div>
+                <h4>Aktuelle Zusammensetzung</h4>
+                <p>Bestehende Teilnehmer plus aktuelle Auswahl.</p>
+              </div>
+            </div>
+            <div class="format-composition-grid" id="format-participant-composition"></div>
+          </section>
+          <div class="format-participant-results-head">
+            <span id="format-participant-results">0 Kontakte</span>
+            <button class="action-button action-button--compact" type="button" id="format-participant-clear">Auswahl leeren</button>
+          </div>
+          <div class="format-participant-list" id="format-participant-list"></div>
+        </div>
+        <div class="format-participant-footer">
+          <span id="format-participant-selection-count">0 ausgewählt</span>
+          <div class="format-editor-actions">
+            <button class="action-button" type="button" id="format-participant-cancel">Abbrechen</button>
+            <button class="action-button action-button--primary" type="button" id="format-participant-add">Auswahl hinzufügen</button>
+          </div>
+        </div>
       </section>
     </aside>
 
@@ -16004,6 +16317,22 @@
       const formatsCount = document.getElementById("formats-count");
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
+      const toggleFormatListButton = document.getElementById("toggle-format-list");
+      const formatsWorkspace = document.querySelector(".formats-workspace");
+      const formatParticipantDrawer = document.getElementById("format-participant-drawer");
+      const formatParticipantOverlay = document.getElementById("format-participant-overlay");
+      const formatParticipantClose = document.getElementById("format-participant-close");
+      const formatParticipantCancel = document.getElementById("format-participant-cancel");
+      const formatParticipantAdd = document.getElementById("format-participant-add");
+      const formatParticipantSearch = document.getElementById("format-participant-search");
+      const formatParticipantSector = document.getElementById("format-participant-sector");
+      const formatParticipantState = document.getElementById("format-participant-state");
+      const formatParticipantSpecialty = document.getElementById("format-participant-specialty");
+      const formatParticipantComposition = document.getElementById("format-participant-composition");
+      const formatParticipantResults = document.getElementById("format-participant-results");
+      const formatParticipantList = document.getElementById("format-participant-list");
+      const formatParticipantClear = document.getElementById("format-participant-clear");
+      const formatParticipantSelectionCount = document.getElementById("format-participant-selection-count");
       const organizationsTable = document.querySelector(".organizations-table");
       const organizationsTableHead = document.getElementById("organizations-table-head");
       const organizationsPaginationMeta = document.getElementById("organizations-pagination-meta");
@@ -16221,6 +16550,9 @@
       let formats = [];
       let activeFormatId = null;
       let editingFormatId = null;
+      let formatListCollapsed = false;
+      let participantPlannerFormatId = null;
+      let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
       let activeSavedViewName = "";
       let currentPage = 1;
@@ -20135,6 +20467,28 @@
           .map((contact) => ({ contact, participant: participantByContactId.get(contact.id) }));
       }
 
+      function formatParticipantIds(format) {
+        return new Set((format?.participants || []).map((participant) => participant.contactId));
+      }
+
+      function countByValue(items, getter) {
+        const counts = new Map();
+        items.forEach((item) => {
+          const value = meaningfulOrEmpty(getter(item)) || "Nicht hinterlegt";
+          counts.set(value, (counts.get(value) || 0) + 1);
+        });
+        return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "de"));
+      }
+
+      function renderDiversityChips(entries, getter, { sector = false } = {}) {
+        const counts = countByValue(entries.map(({ contact }) => contact), getter);
+        if (!counts.length) return `<p>Keine Teilnehmer</p>`;
+        return counts.map(([label, count]) => sector
+          ? `<span class="format-diversity-chip">${sectorBadgeMarkup(label)} <span>${count}</span></span>`
+          : `<span class="format-diversity-chip">${escapeHtml(label)} <span>${count}</span></span>`
+        ).join("");
+      }
+
       function formatDateRange(format) {
         const start = formatDateLabel(format.startsAt);
         const end = formatDateLabel(format.endsAt);
@@ -20169,6 +20523,7 @@
           button.addEventListener("click", () => {
             activeFormatId = button.dataset.formatId;
             editingFormatId = null;
+            setFormatListCollapsed(true);
             renderFormatsView();
           });
         });
@@ -20228,37 +20583,37 @@
       function renderParticipantBoard(format) {
         const entries = formatParticipantContacts(format);
         return `
+          <div class="format-diversity-board">
+            <section class="format-diversity-column">
+              <h5>Sektoren</h5>
+              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => contact.category, { sector: true })}</div>
+            </section>
+            <section class="format-diversity-column">
+              <h5>Bundesländer</h5>
+              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => stateLabel(contact))}</div>
+            </section>
+            <section class="format-diversity-column">
+              <h5>Fachrichtungen</h5>
+              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => specialtyLabel(contact))}</div>
+            </section>
+          </div>
           <div class="participant-board">
-            ${invitationStatusOptions.map((status) => {
-              const statusEntries = entries.filter(({ participant }) => participant.invitationStatus === status);
-              return `
-                <section class="participant-board-column">
-                  <h5><span>${escapeHtml(status)}</span><span class="participant-count">${statusEntries.length}</span></h5>
-                  <div class="participant-card-list">
-                    ${statusEntries.length ? statusEntries.map(({ contact, participant }) => `
-                      <button class="participant-card" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
-                        ${contactAvatarMarkup(contact, "sm")}
-                        <span class="participant-card-copy">
-                          <span class="participant-card-name">${escapeHtml(contact.name)}</span>
-                          <span class="participant-card-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(participant.participantRole || contact.contactRole || contact.category || "Rolle offen")}</span>
-                        </span>
-                      </button>
-                    `).join("") : `<p>Keine Kontakte</p>`}
-                  </div>
-                </section>
-              `;
-            }).join("")}
+            ${entries.length ? entries.map(({ contact, participant }) => `
+              <button class="participant-card" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
+                ${contactAvatarMarkup(contact, "sm")}
+                <span class="participant-card-copy">
+                  <span class="participant-card-name">${escapeHtml(contact.name)}</span>
+                  <span class="participant-card-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(participant.invitationStatus)}</span>
+                  <span class="participant-card-tags">
+                    ${sectorBadgeMarkup(contact.category)}
+                    <span class="format-diversity-chip">${escapeHtml(stateLabel(contact) || "Bundesland offen")}</span>
+                    <span class="format-diversity-chip">${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
+                  </span>
+                </span>
+              </button>
+            `).join("") : `<div class="empty">Noch keine Teilnehmer ausgewählt.</div>`}
           </div>
         `;
-      }
-
-      function participantContactOptions(format) {
-        const participantIds = new Set((format?.participants || []).map((participant) => participant.contactId));
-        return contacts
-          .filter((contact) => contact.status !== "archived" && !participantIds.has(contact.id))
-          .sort((a, b) => a.name.localeCompare(b.name, "de"))
-          .map((contact) => `<option value="${escapeHtml(contact.id)}">${escapeHtml(contact.name)}${contact.organization ? ` · ${escapeHtml(contact.organization)}` : ""}</option>`)
-          .join("");
       }
 
       function renderParticipantTable(format) {
@@ -20368,7 +20723,7 @@
               <div class="format-section-head">
                 <div>
                   <h4>Teilnehmer-Board</h4>
-                  <p>Visuelle Übersicht der ausgewählten Kontakte nach Einladungsstatus.</p>
+                  <p>Vielfalt der Runde nach Sektor, Bundesland und Fachrichtung.</p>
                 </div>
               </div>
               ${renderParticipantBoard(format)}
@@ -20380,13 +20735,7 @@
                   <p>Präzise Arbeitsliste für Status, Rolle und Notizen.</p>
                 </div>
                 <div class="format-participant-actions">
-                  ${canEditContacts() ? `
-                    <select id="format-contact-select" aria-label="Kontakt zum Format hinzufügen">
-                      <option value="">Kontakt hinzufügen...</option>
-                      ${participantContactOptions(format)}
-                    </select>
-                    <button class="action-button" type="button" id="add-format-contact">Hinzufügen</button>
-                  ` : ""}
+                  ${canEditContacts() ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
                   <button class="action-button" type="button" id="export-format-participants">Exportieren</button>
                 </div>
               </div>
@@ -20488,6 +20837,177 @@
         URL.revokeObjectURL(url);
       }
 
+      function setFormatListCollapsed(collapsed) {
+        formatListCollapsed = Boolean(collapsed);
+        formatsWorkspace?.classList.toggle("is-list-collapsed", formatListCollapsed);
+        if (toggleFormatListButton) {
+          toggleFormatListButton.textContent = formatListCollapsed ? "Formatliste anzeigen" : "Formatliste einklappen";
+          toggleFormatListButton.setAttribute("aria-expanded", String(!formatListCollapsed));
+        }
+      }
+
+      function openParticipantPlanner(formatId = activeFormatId) {
+        const format = formats.find((item) => item.id === formatId);
+        if (!format || !canEditContacts()) return;
+        participantPlannerFormatId = format.id;
+        participantPlannerSelectedIds = new Set();
+        if (formatParticipantSearch) formatParticipantSearch.value = "";
+        if (formatParticipantSector) formatParticipantSector.value = "";
+        if (formatParticipantState) formatParticipantState.value = "";
+        if (formatParticipantSpecialty) formatParticipantSpecialty.value = "";
+        renderParticipantPlanner();
+        formatParticipantDrawer?.classList.add("is-open");
+        formatParticipantDrawer?.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        formatParticipantSearch?.focus();
+      }
+
+      function closeParticipantPlanner() {
+        formatParticipantDrawer?.classList.remove("is-open");
+        formatParticipantDrawer?.setAttribute("aria-hidden", "true");
+        participantPlannerFormatId = null;
+        participantPlannerSelectedIds = new Set();
+        syncBodyScrollLock();
+      }
+
+      function availablePlannerContacts(format) {
+        const existingIds = formatParticipantIds(format);
+        const query = String(formatParticipantSearch?.value || "").trim().toLowerCase();
+        const sector = formatParticipantSector?.value || "";
+        const state = formatParticipantState?.value || "";
+        const specialty = formatParticipantSpecialty?.value || "";
+        return contacts
+          .filter((contact) => contact.status !== "archived" && !existingIds.has(contact.id))
+          .filter((contact) => !sector || contact.category === sector)
+          .filter((contact) => !state || stateLabel(contact) === state)
+          .filter((contact) => !specialty || specialtyLabel(contact) === specialty)
+          .filter((contact) => {
+            if (!query) return true;
+            return [
+              contact.name,
+              contact.organization,
+              contact.category,
+              stateLabel(contact),
+              specialtyLabel(contact),
+              contact.location,
+              ...(contact.themes || [])
+            ].join(" ").toLowerCase().includes(query);
+          })
+          .sort((a, b) => a.name.localeCompare(b.name, "de"));
+      }
+
+      function plannerCompositionContacts(format) {
+        const existing = formatParticipantContacts(format).map(({ contact }) => contact);
+        const selected = contacts.filter((contact) => participantPlannerSelectedIds.has(contact.id));
+        const byId = new Map([...existing, ...selected].map((contact) => [contact.id, contact]));
+        return [...byId.values()];
+      }
+
+      function renderCompositionGroup(title, contactsForComposition, getter, { sector = false } = {}) {
+        const counts = countByValue(contactsForComposition, getter).slice(0, 8);
+        return `
+          <div class="format-composition-group">
+            <h5>${escapeHtml(title)}</h5>
+            <div class="format-composition-list">
+              ${counts.length ? counts.map(([label, count]) => sector
+                ? `<span class="format-composition-chip">${sectorBadgeMarkup(label)} <span>${count}</span></span>`
+                : `<span class="format-composition-chip">${escapeHtml(label)} <span>${count}</span></span>`
+              ).join("") : `<span class="format-composition-chip">Noch leer <span>0</span></span>`}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderParticipantPlannerOptions(format) {
+        const available = contacts.filter((contact) => contact.status !== "archived" && !formatParticipantIds(format).has(contact.id));
+        const renderOptions = (select, values, placeholder) => {
+          if (!select) return;
+          const selected = select.value;
+          select.innerHTML = [
+            `<option value="">${placeholder}</option>`,
+            ...values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+          ].join("");
+          select.value = values.includes(selected) ? selected : "";
+        };
+        renderOptions(formatParticipantSector, [...new Set(available.map((contact) => contact.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")), "Alle Sektoren");
+        renderOptions(formatParticipantState, [...new Set(available.map((contact) => stateLabel(contact)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")), "Alle Bundesländer");
+        renderOptions(formatParticipantSpecialty, [...new Set(available.map((contact) => specialtyLabel(contact)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")), "Alle Fachrichtungen");
+      }
+
+      function renderParticipantPlanner() {
+        const format = formats.find((item) => item.id === participantPlannerFormatId);
+        if (!format) return;
+        renderParticipantPlannerOptions(format);
+        const items = availablePlannerContacts(format);
+        const composition = plannerCompositionContacts(format);
+        if (formatParticipantComposition) {
+          formatParticipantComposition.innerHTML = [
+            renderCompositionGroup("Sektoren", composition, (contact) => contact.category, { sector: true }),
+            renderCompositionGroup("Bundesländer", composition, (contact) => stateLabel(contact)),
+            renderCompositionGroup("Fachrichtungen", composition, (contact) => specialtyLabel(contact))
+          ].join("");
+        }
+        if (formatParticipantResults) formatParticipantResults.textContent = `${items.length} verfügbare Kontakte`;
+        if (formatParticipantSelectionCount) {
+          const count = participantPlannerSelectedIds.size;
+          formatParticipantSelectionCount.textContent = `${count} ${count === 1 ? "Kontakt" : "Kontakte"} ausgewählt`;
+        }
+        if (!formatParticipantList) return;
+        if (!items.length) {
+          formatParticipantList.innerHTML = `<div class="empty">Keine passenden Kontakte gefunden.</div>`;
+          return;
+        }
+        formatParticipantList.innerHTML = items.map((contact) => {
+          const selected = participantPlannerSelectedIds.has(contact.id);
+          return `
+            <label class="format-participant-row ${selected ? "is-selected" : ""}" data-planner-contact="${escapeHtml(contact.id)}">
+              <input type="checkbox" value="${escapeHtml(contact.id)}" ${selected ? "checked" : ""} />
+              <span class="format-participant-copy">
+                <span class="format-participant-name">${escapeHtml(contact.name)}</span>
+                <span class="format-participant-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(stateLabel(contact) || "Bundesland offen")} · ${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
+                <span class="participant-card-tags">${sectorBadgeMarkup(contact.category)} <span class="format-diversity-chip">${escapeHtml(contact.contactRole || "Rolle offen")}</span></span>
+              </span>
+              <button class="action-button action-button--compact" type="button" data-planner-toggle="${escapeHtml(contact.id)}">${selected ? "Entfernen" : "Auswählen"}</button>
+            </label>
+          `;
+        }).join("");
+        formatParticipantList.querySelectorAll("[data-planner-contact] input").forEach((checkbox) => {
+          checkbox.addEventListener("change", () => {
+            if (checkbox.checked) participantPlannerSelectedIds.add(checkbox.value);
+            else participantPlannerSelectedIds.delete(checkbox.value);
+            renderParticipantPlanner();
+          });
+        });
+        formatParticipantList.querySelectorAll("[data-planner-toggle]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            const id = button.dataset.plannerToggle;
+            if (participantPlannerSelectedIds.has(id)) participantPlannerSelectedIds.delete(id);
+            else participantPlannerSelectedIds.add(id);
+            renderParticipantPlanner();
+          });
+        });
+      }
+
+      async function addSelectedPlannerParticipants() {
+        const format = formats.find((item) => item.id === participantPlannerFormatId);
+        const ids = [...participantPlannerSelectedIds];
+        if (!format || !ids.length) return;
+        try {
+          let updated = format;
+          for (const contactId of ids) {
+            updated = await window.dataService.addFormatParticipant(format.id, contactId, { invitationStatus: "Kandidat" });
+          }
+          replaceFormat(updated);
+          setStorageStatus(`${ids.length} Teilnehmer hinzugefügt`);
+          closeParticipantPlanner();
+          renderFormatsView();
+        } catch (error) {
+          console.error("Teilnehmer konnten nicht hinzugefügt werden.", error);
+          window.alert("Die Teilnehmer konnten nicht hinzugefügt werden.");
+        }
+      }
+
       function bindFormatDetail() {
         const format = activeFormat();
         if (!format) return;
@@ -20538,23 +21058,12 @@
             window.alert("Das Format konnte nicht gelöscht werden.");
           }
         });
-        document.getElementById("add-format-contact")?.addEventListener("click", async () => {
-          const select = document.getElementById("format-contact-select");
-          const contactId = select?.value || "";
-          if (!contactId) return;
+        document.getElementById("open-participant-planner")?.addEventListener("click", () => {
           if (!canEditContacts()) {
             showPermissionDenied(viewerCreateDisabledMessage("das Hinzufügen von Teilnehmern"));
             return;
           }
-          try {
-            const updated = await window.dataService.addFormatParticipant(format.id, contactId, { invitationStatus: "Kandidat" });
-            replaceFormat(updated);
-            setStorageStatus("Teilnehmer hinzugefügt");
-            renderFormatsView();
-          } catch (error) {
-            console.error("Teilnehmer konnte nicht hinzugefügt werden.", error);
-            window.alert("Der Teilnehmer konnte nicht hinzugefügt werden.");
-          }
+          openParticipantPlanner(format.id);
         });
         document.getElementById("export-format-participants")?.addEventListener("click", () => downloadFormatParticipants(format));
         formatDetailPanel.querySelectorAll("[data-participant-field]").forEach((field) => {
@@ -23208,6 +23717,7 @@
           editorDrawer.classList.contains("is-open") ||
           organizationEditorDrawer?.classList.contains("is-open") ||
           importDrawer.classList.contains("is-open") ||
+          formatParticipantDrawer?.classList.contains("is-open") ||
           profilePhotoModal?.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
@@ -24380,6 +24890,7 @@
 
       newContactButton.addEventListener("click", () => openEditor());
       newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
+      toggleFormatListButton?.addEventListener("click", () => setFormatListCollapsed(!formatListCollapsed));
       newFormatButton?.addEventListener("click", () => {
         if (!canEditContacts()) {
           showPermissionDenied(viewerCreateDisabledMessage("das Anlegen von Formaten"));
@@ -24387,7 +24898,20 @@
         }
         activeFormatId = null;
         editingFormatId = "__new__";
+        setFormatListCollapsed(true);
         renderFormatDetail(null);
+      });
+      formatParticipantOverlay?.addEventListener("click", closeParticipantPlanner);
+      formatParticipantClose?.addEventListener("click", closeParticipantPlanner);
+      formatParticipantCancel?.addEventListener("click", closeParticipantPlanner);
+      formatParticipantAdd?.addEventListener("click", addSelectedPlannerParticipants);
+      formatParticipantClear?.addEventListener("click", () => {
+        participantPlannerSelectedIds.clear();
+        renderParticipantPlanner();
+      });
+      [formatParticipantSearch, formatParticipantSector, formatParticipantState, formatParticipantSpecialty].forEach((control) => {
+        control?.addEventListener("input", renderParticipantPlanner);
+        control?.addEventListener("change", renderParticipantPlanner);
       });
       organizationEditorOverlay?.addEventListener("click", closeOrganizationEditor);
       organizationEditorClose?.addEventListener("click", closeOrganizationEditor);
@@ -24782,6 +25306,8 @@
           closeMenus();
           if (importDrawer.classList.contains("is-open")) {
             closeImportWizard();
+          } else if (formatParticipantDrawer?.classList.contains("is-open")) {
+            closeParticipantPlanner();
           } else if (organizationEditorDrawer.classList.contains("is-open")) {
             closeOrganizationEditor();
           } else if (editorDrawer.classList.contains("is-open")) {

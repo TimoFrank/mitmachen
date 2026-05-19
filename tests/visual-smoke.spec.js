@@ -142,9 +142,16 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await page.locator("#format-title").fill("Roundtable Testversorgung");
   await page.locator("#format-editor-form").getByRole("button", { name: "Format anlegen" }).click();
   await expect(page.locator(".format-list-item")).toContainText("Roundtable Testversorgung");
-  await page.locator("#format-contact-select").selectOption("demo-contact-01");
-  await page.locator("#add-format-contact").click();
+  await page.locator("#open-participant-planner").click();
+  await expect(page.locator("#format-participant-drawer.is-open")).toBeVisible();
+  await expect(page.locator("#format-participant-sector")).toBeVisible();
+  await page.locator('[data-planner-toggle="demo-contact-01"]').click();
+  await page.locator("#format-participant-add").click();
+  await expect(page.locator("#format-participant-drawer")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#format-participant-drawer")).not.toHaveClass(/is-open/);
+  await page.waitForTimeout(300);
   await expect(page.locator(".participant-card")).toBeVisible();
+  await expect(page.locator(".format-diversity-board")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "formate");
 });
