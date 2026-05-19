@@ -14962,11 +14962,12 @@
       .participant-card {
         display: grid;
         gap: 10px;
+        position: relative;
         width: 100%;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         background: var(--surface);
-        padding: 12px;
+        padding: 12px 40px 12px 12px;
       }
 
       .participant-card-main {
@@ -14996,7 +14997,40 @@
 
       .participant-card-actions {
         display: flex;
-        justify-content: flex-end;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+      }
+
+      .participant-card-remove {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        border-color: transparent;
+        background: transparent;
+        color: var(--text-muted);
+        padding: 0;
+      }
+
+      .participant-card-remove:hover,
+      .participant-card-remove:focus-visible {
+        border-color: var(--border);
+        background: var(--surface-muted);
+        color: var(--danger);
+      }
+
+      .participant-card-remove svg {
+        width: 15px;
+        height: 15px;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
       .participant-card-copy {
@@ -21663,28 +21697,36 @@
         const entries = formatParticipantContacts(format);
         return `
           <div class="participant-board">
-            ${entries.length ? entries.map(({ contact }) => `
-              <article class="participant-card">
-                <button class="participant-card-main" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
-                  ${contactAvatarMarkup(contact, "lg")}
-                  <span class="participant-card-copy">
-                    <span class="participant-card-name">${escapeHtml(contact.name)}</span>
-                    <span class="participant-card-meta">${escapeHtml(contact.organization || "Keine Organisation")}</span>
-                    <span class="participant-card-meta">${escapeHtml(contact.email || contact.phone || "Kein Kontaktweg")}</span>
-                    <span class="participant-card-tags">
-                      ${sectorBadgeMarkup(contact.category)}
-                      <span class="format-diversity-chip">${escapeHtml(stateLabel(contact) || "Bundesland offen")}</span>
-                      <span class="format-diversity-chip">${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
+            ${entries.length ? entries.map(({ contact }) => {
+              const contactWay = contact.email || contact.phone || "";
+              return `
+                <article class="participant-card">
+                  <button class="participant-card-main" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
+                    ${contactAvatarMarkup(contact, "lg")}
+                    <span class="participant-card-copy">
+                      <span class="participant-card-name">${escapeHtml(contact.name)}</span>
+                      <span class="participant-card-meta">${escapeHtml(contact.organization || "Keine Organisation")}</span>
+                      ${contactWay ? `<span class="participant-card-meta">${escapeHtml(contactWay)}</span>` : ""}
+                      <span class="participant-card-tags">
+                        ${sectorBadgeMarkup(contact.category)}
+                        <span class="format-diversity-chip">${escapeHtml(stateLabel(contact) || "Bundesland offen")}</span>
+                        <span class="format-diversity-chip">${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
+                      </span>
                     </span>
-                  </span>
-                </button>
-                ${canEditContacts() ? `
-                  <div class="participant-card-actions">
-                    <button class="action-button action-button--compact" type="button" data-remove-participant="${escapeHtml(contact.id)}">Entfernen</button>
-                  </div>
-                ` : ""}
-              </article>
-            `).join("") : `<div class="empty">Noch keine Teilnehmer ausgewählt.</div>`}
+                  </button>
+                  ${canEditContacts() ? `
+                    <div class="participant-card-actions">
+                      <button class="action-button participant-card-remove" type="button" data-remove-participant="${escapeHtml(contact.id)}" aria-label="${escapeHtml(contact.name)} aus dem Format entfernen">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M18 6 6 18"></path>
+                          <path d="m6 6 12 12"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  ` : ""}
+                </article>
+              `;
+            }).join("") : `<div class="empty">Noch keine Teilnehmer ausgewählt.</div>`}
           </div>
         `;
       }
