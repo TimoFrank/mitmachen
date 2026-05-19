@@ -14277,6 +14277,23 @@
         gap: 6px;
       }
 
+      .format-fact-select-shell {
+        margin-top: 6px;
+      }
+
+      .format-fact-select-shell .custom-select-trigger {
+        min-height: 38px;
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        font-size: 0.88rem;
+        font-weight: 800;
+        padding: 7px 10px;
+      }
+
+      .format-fact-select-shell .custom-select-panel {
+        border-radius: var(--radius-sm);
+      }
+
       .format-notes-box {
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
@@ -21586,7 +21603,7 @@
           `;
         }
         return `
-          ${renderFormatFact("Typ", `<select class="format-fact-control" data-format-inline-field="formatType" aria-label="Formattyp">${formatOptionMarkup(formatTypeOptions, format.formatType || "Roundtable")}</select>`)}
+          ${renderFormatFact("Typ", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-type"><select class="editor-select" data-format-inline-field="formatType" aria-label="Formattyp">${formatOptionMarkup(formatTypeOptions, format.formatType || "Roundtable")}</select></div>`)}
           ${renderFormatFact("Datum", `
             <div class="format-fact-date-row">
               <input class="format-fact-control" data-format-inline-field="startsAt" aria-label="Startdatum" type="date" value="${escapeHtml(String(format.startsAt || "").slice(0, 10))}" />
@@ -21594,8 +21611,8 @@
             </div>
           `)}
           ${renderFormatFact("Ort / Online", `<input class="format-fact-control" data-format-inline-field="location" aria-label="Ort oder Online-Hinweis" value="${escapeHtml(format.location || "")}" placeholder="Ort offen" />`)}
-          ${renderFormatFact("Owner", `<select class="format-fact-control" data-format-inline-field="ownerId" aria-label="Owner">${buildOwnerSelectOptions(format.ownerId || format.owner || "")}</select>`)}
-          ${renderFormatFact("Status", `<select class="format-fact-control" data-format-inline-field="status" aria-label="Formatstatus">${formatOptionMarkup(formatStatusOptions, format.status || "Planung")}</select>`)}
+          ${renderFormatFact("Owner", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-owner"><select class="editor-select" data-format-inline-field="ownerId" aria-label="Owner">${buildOwnerSelectOptions(format.ownerId || format.owner || "")}</select></div>`)}
+          ${renderFormatFact("Status", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-status"><select class="editor-select" data-format-inline-field="status" aria-label="Formatstatus">${formatOptionMarkup(formatStatusOptions, format.status || "Planung")}</select></div>`)}
           ${renderFormatFact("Teilnehmer", `<strong>${(format.participants || []).length}</strong>`)}
         `;
       }
@@ -22154,6 +22171,7 @@
       function bindFormatDetail() {
         const format = activeFormat();
         if (!format) return;
+        refreshCustomSelects(formatDetailPanel);
         const saveFormatInlineField = async (field) => {
           const key = field?.dataset.formatInlineField;
           if (!key || !canEditContacts()) return;
