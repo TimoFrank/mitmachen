@@ -13923,7 +13923,7 @@
 
       .format-detail-title {
         display: grid;
-        gap: 5px;
+        gap: 8px;
         min-width: 0;
       }
 
@@ -13941,6 +13941,40 @@
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
+      }
+
+      .format-detail-admin-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .format-detail-admin-actions .action-button {
+        min-height: auto;
+        border: 0;
+        background: transparent;
+        color: var(--text-muted);
+        box-shadow: none;
+        padding: 0;
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
+      .format-detail-admin-actions .action-button:hover,
+      .format-detail-admin-actions .action-button:focus-visible {
+        background: transparent;
+        color: var(--primary);
+        box-shadow: none;
+      }
+
+      .format-detail-admin-actions .action-button--danger-soft {
+        color: var(--text-muted);
+      }
+
+      .format-detail-admin-actions .action-button--danger-soft:hover,
+      .format-detail-admin-actions .action-button--danger-soft:focus-visible {
+        color: var(--danger);
       }
 
       .format-detail-toggle {
@@ -21473,12 +21507,14 @@
             <div class="format-detail-head">
               <div class="format-detail-title">
                 <h3>${escapeHtml(format.title)}</h3>
+                <div class="format-detail-admin-actions" aria-label="Format verwalten">
+                  ${canEditContacts() ? `<button class="action-button" type="button" id="edit-format-button">Bearbeiten</button>` : ""}
+                  ${canEditContacts() ? `<button class="action-button" type="button" id="archive-format-button">Archivieren</button>` : ""}
+                  ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" id="delete-format-button">Löschen</button>` : ""}
+                </div>
               </div>
               <div class="format-detail-actions">
                 <button class="action-button format-detail-toggle" type="button" id="toggle-format-detail" aria-label="${formatDetailExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${formatDetailExpanded}" aria-controls="format-detail-body">${formatDetailExpanded ? "^" : "v"}</button>
-                ${canEditContacts() ? `<button class="action-button" type="button" id="edit-format-button">Bearbeiten</button>` : ""}
-                ${canEditContacts() ? `<button class="action-button" type="button" id="archive-format-button">Archivieren</button>` : ""}
-                ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" id="delete-format-button">Löschen</button>` : ""}
               </div>
             </div>
             <div class="format-detail-body" id="format-detail-body" ${formatDetailExpanded ? "" : "hidden"}>
