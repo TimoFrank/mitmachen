@@ -22949,6 +22949,9 @@
           button.addEventListener("click", async () => {
             const contactId = button.dataset.removeParticipant;
             if (!contactId || !canEditContacts()) return;
+            const contact = contacts.find((item) => item.id === contactId);
+            const name = contact?.name || "diesen Teilnehmer";
+            if (!window.confirm(`${name} wirklich aus diesem Format entfernen?`)) return;
             try {
               const updated = await window.dataService.removeFormatParticipant(format.id, contactId);
               replaceFormat(updated);
