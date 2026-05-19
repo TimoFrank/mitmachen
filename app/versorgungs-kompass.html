@@ -21349,13 +21349,11 @@
       }
 
       function renderFormatOverviewHero(format) {
-        const goal = meaningfulOrEmpty(format.goal) || "Planung, Einladung und Zusammensetzung der Runde an einem Ort.";
         return `
           <section class="format-overview-hero">
             <div class="format-overview-copy">
               <div class="format-overview-title">
                 <h4>${escapeHtml(format.title || "Neues Format")}</h4>
-                <p>${escapeHtml(goal)}</p>
               </div>
               <div class="format-overview-actions">
                 ${canEditContacts() ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
@@ -21440,7 +21438,6 @@
               <div class="format-section-head">
                 <div>
                   <h4>Basisdaten</h4>
-                  <p>${escapeHtml(format.goal || "Kein Ziel hinterlegt.")}</p>
                 </div>
               </div>
               <div class="format-facts-grid">
@@ -21482,7 +21479,6 @@
               <div class="format-section-head">
                 <div>
                   <h4>Einladungsstatus</h4>
-                  <p>Teilnehmer nach Anfrage- und Zusagestatus planen.</p>
                 </div>
                 <div class="format-participant-actions">
                   ${canEditContacts() ? `<button class="action-button" type="button" id="open-participant-planner">Teilnehmer ergänzen</button>` : ""}
