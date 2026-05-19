@@ -14179,14 +14179,15 @@
       .format-overview-visual {
         min-width: 0;
         display: grid;
-        place-items: center;
+        align-items: center;
+        justify-items: end;
         border: 0;
         background: transparent;
         padding: 0;
       }
 
       .format-overview-image {
-        width: min(100%, 320px);
+        width: min(100%, 280px);
         aspect-ratio: 16 / 10;
         display: block;
         object-fit: cover;
@@ -15025,9 +15026,12 @@
         }
 
         .format-reporting-layout,
-        .format-overview-hero,
         .participant-board {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .format-overview-hero {
+          grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
         }
 
         .format-diversity-board,
