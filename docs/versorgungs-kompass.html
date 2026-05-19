@@ -14695,27 +14695,27 @@
       }
 
       .format-diversity-chip--sector.contact-sector-pill--praxis {
-        background: var(--success-soft);
-        color: #177245;
-        border-color: #bde8ca;
-      }
-
-      .format-diversity-chip--sector.contact-sector-pill--krankenhaus {
-        background: var(--info-soft);
-        color: var(--primary);
+        background: #eef5ff;
+        color: #155fe4;
         border-color: #bfd3ff;
       }
 
+      .format-diversity-chip--sector.contact-sector-pill--krankenhaus {
+        background: #fff1f2;
+        color: #dc2626;
+        border-color: #fecdd3;
+      }
+
       .format-diversity-chip--sector.contact-sector-pill--apotheke {
-        background: #f4ecff;
-        color: #6b35b8;
-        border-color: #dbc6ff;
+        background: #ecfdf3;
+        color: #16a34a;
+        border-color: #bbf7d0;
       }
 
       .format-diversity-chip--sector.contact-sector-pill--pflege {
-        background: #fff1ed;
-        color: #a34120;
-        border-color: #ffd2c4;
+        background: #f5f3ff;
+        color: #7c3aed;
+        border-color: #ddd6fe;
       }
 
       .format-diversity-chip--sector.contact-sector-pill--krankenkasse {
@@ -21429,10 +21429,10 @@
       function sectorMapColor(value) {
         const normalized = normalizeClassPart(meaningfulOrEmpty(value) || "");
         const colors = {
-          praxis: "#177245",
-          krankenhaus: "#155fe4",
-          apotheke: "#6b35b8",
-          pflege: "#a34120",
+          praxis: "#155fe4",
+          krankenhaus: "#dc2626",
+          apotheke: "#16a34a",
+          pflege: "#7c3aed",
           krankenkasse: "#4f5fb8",
           notfallversorgung: "#dc2626"
         };
