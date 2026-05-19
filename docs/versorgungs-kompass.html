@@ -13759,26 +13759,19 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-      }
-
-      .formats-search-actions {
-        display: none;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 8px;
-        min-width: 0;
+        padding: 10px;
+        flex-wrap: wrap;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
       }
 
       .app-shell[data-active-view="formats"] .controls-stack {
-        grid-template-columns: minmax(320px, 1fr) auto;
+        grid-template-columns: minmax(320px, 1fr);
       }
 
       .app-shell[data-active-view="formats"] .controls-stack .filter-toolbar {
         display: none;
-      }
-
-      .app-shell[data-active-view="formats"] .formats-search-actions {
-        display: flex;
       }
 
       .formats-command-actions {
@@ -14164,6 +14157,60 @@
       }
 
       .format-badge--quiet {
+        border-color: var(--border);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+      }
+
+      .format-badge--type-roundtable {
+        border-color: #ddd6fe;
+        background: #f5f3ff;
+        color: #6d28d9;
+      }
+
+      .format-badge--type-fachgespraech {
+        border-color: #99f6e4;
+        background: #f0fdfa;
+        color: #0f766e;
+      }
+
+      .format-badge--type-workshop {
+        border-color: #fecdd3;
+        background: #fff1f2;
+        color: #be123c;
+      }
+
+      .format-badge--type-veranstaltung {
+        border-color: #bfdbfe;
+        background: #eff6ff;
+        color: #1d4ed8;
+      }
+
+      .format-badge--type-diskussion {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        color: #475569;
+      }
+
+      .format-badge--status-planning {
+        border-color: #fde68a;
+        background: #fffbeb;
+        color: #92400e;
+      }
+
+      .format-badge--status-active {
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+        color: #166534;
+      }
+
+      .format-badge--status-done {
+        border-color: #c7d2fe;
+        background: #eef2ff;
+        color: #3730a3;
+      }
+
+      .format-badge--status-archived {
         border-color: var(--border);
         background: var(--surface-muted);
         color: var(--text-muted);
@@ -15029,8 +15076,7 @@
       @media (max-width: 760px) {
         .format-detail-head,
         .format-section-head,
-        .formats-command-row,
-        .formats-search-actions {
+        .formats-command-row {
           align-items: stretch;
           flex-direction: column;
         }
@@ -15271,17 +15317,6 @@
               />
             </label>
 
-            <div class="formats-search-actions" aria-label="Formataktionen">
-              <div class="format-status-legend" aria-label="Status-Legende">
-                <span class="format-status-legend__label">Status</span>
-                <span class="format-badge format-status-badge format-badge--primary">Planung</span>
-                <span class="format-badge format-status-badge format-badge--success">Aktiv</span>
-                <span class="format-badge format-status-badge format-badge--calm">Abgeschlossen</span>
-                <span class="format-badge format-status-badge format-badge--quiet">Archiviert</span>
-              </div>
-              <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
-            </div>
-
             <div class="filter-toolbar" aria-label="Filter und Ergebnisanzahl">
               <div class="active-filter-row">
                 <div class="active-filter-list" id="active-filter-list"></div>
@@ -15475,6 +15510,18 @@
 
           <section class="view-panel" id="view-formats" data-view-panel="formats">
             <div class="formats-workspace">
+              <div class="formats-command-row" aria-label="Formataktionen">
+                <div class="format-status-legend" aria-label="Status-Legende">
+                  <span class="format-status-legend__label">Status</span>
+                  <span class="format-badge format-status-badge format-badge--status-planning">Planung</span>
+                  <span class="format-badge format-status-badge format-badge--status-active">Aktiv</span>
+                  <span class="format-badge format-status-badge format-badge--status-done">Abgeschlossen</span>
+                  <span class="format-badge format-status-badge format-badge--status-archived">Archiviert</span>
+                </div>
+                <div class="formats-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
+                </div>
+              </div>
               <div class="formats-layout">
                 <section class="format-detail-panel" id="format-detail-panel" aria-label="Formatdetail">
                   <div class="format-empty-state">
@@ -21555,20 +21602,21 @@
       function formatTypeBadgeMarkup(formatType = "") {
         const label = String(formatType || "Format").trim() || "Format";
         const normalizedType = label.toLowerCase();
-        let tone = "primary";
-        if (normalizedType.includes("fach")) tone = "success";
-        else if (normalizedType.includes("workshop")) tone = "warm";
-        else if (normalizedType.includes("veranstaltung")) tone = "calm";
+        let tone = "type-roundtable";
+        if (normalizedType.includes("fach")) tone = "type-fachgespraech";
+        else if (normalizedType.includes("workshop")) tone = "type-workshop";
+        else if (normalizedType.includes("veranstaltung")) tone = "type-veranstaltung";
+        else if (normalizedType.includes("diskussion")) tone = "type-diskussion";
         return `<span class="format-badge format-type-badge format-badge--${tone}">${escapeHtml(label)}</span>`;
       }
 
       function formatStatusBadgeMarkup(status = "") {
         const label = String(status || "Planung").trim() || "Planung";
         const normalizedStatus = label.toLowerCase();
-        let tone = "primary";
-        if (normalizedStatus === "aktiv") tone = "success";
-        else if (normalizedStatus === "abgeschlossen") tone = "calm";
-        else if (normalizedStatus === "archiviert") tone = "quiet";
+        let tone = "status-planning";
+        if (normalizedStatus === "aktiv") tone = "status-active";
+        else if (normalizedStatus === "abgeschlossen") tone = "status-done";
+        else if (normalizedStatus === "archiviert") tone = "status-archived";
         return `<span class="format-badge format-status-badge format-badge--${tone}">${escapeHtml(label)}</span>`;
       }
 
