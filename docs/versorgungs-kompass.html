@@ -13869,7 +13869,7 @@
 
       .format-detail-head {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: space-between;
         gap: 16px;
         padding: 14px 16px;
@@ -13909,15 +13909,16 @@
 
       .format-detail-title {
         display: grid;
-        gap: 7px;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        flex: 1 1 auto;
+        gap: 12px;
         min-width: 0;
       }
 
       .format-detail-title-main {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        align-items: center;
-        gap: 10px;
+        gap: 8px;
         min-width: 0;
       }
 
@@ -13926,7 +13927,7 @@
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
-        padding-left: 66px;
+        padding-left: 0;
       }
 
       .format-detail-meta .owner-badge {
@@ -14037,7 +14038,9 @@
       }
 
       .format-detail-actions {
+        flex: 0 0 auto;
         justify-content: flex-end;
+        flex-wrap: nowrap;
       }
 
       .format-detail-toggle {
@@ -15317,7 +15320,7 @@
           gap: 4px;
         }
 
-        .format-detail-title-main {
+        .format-detail-title {
           grid-template-columns: auto minmax(0, 1fr);
         }
 
@@ -22202,22 +22205,22 @@
                 <div class="format-detail ${isExpanded ? "is-open" : ""}" data-format-detail="${escapeHtml(format.id)}">
                   <div class="format-detail-head" data-toggle-format-row="${escapeHtml(format.id)}" role="button" tabindex="0" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">
                     <div class="format-detail-title">
+                      ${formatTypeIconMarkup(format.formatType)}
                       <div class="format-detail-title-main">
-                        ${formatTypeIconMarkup(format.formatType)}
                         <h3>${escapeHtml(format.title)}</h3>
-                      </div>
-                      <div class="format-detail-meta">
-                        ${formatTypeBadgeMarkup(format.formatType)}
-                        ${formatOwnerBadgeMarkup(format)}
-                        <span class="format-participant-count" aria-label="${(format.participants || []).length} Teilnehmer">
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M22 21v-2a4 4 0 0 0-3-3.8"></path>
-                            <path d="M16 3.2a4 4 0 0 1 0 7.6"></path>
-                          </svg>
-                          ${(format.participants || []).length}
-                        </span>
+                        <div class="format-detail-meta">
+                          ${formatTypeBadgeMarkup(format.formatType)}
+                          ${formatOwnerBadgeMarkup(format)}
+                          <span class="format-participant-count" aria-label="${(format.participants || []).length} Teilnehmer">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                              <circle cx="9" cy="7" r="4"></circle>
+                              <path d="M22 21v-2a4 4 0 0 0-3-3.8"></path>
+                              <path d="M16 3.2a4 4 0 0 1 0 7.6"></path>
+                            </svg>
+                            ${(format.participants || []).length}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div class="format-detail-actions">
