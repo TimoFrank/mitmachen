@@ -14464,6 +14464,35 @@
         font-size: 0.84rem;
       }
 
+      .format-chat-message-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+      }
+
+      .format-chat-message-actions button {
+        border: 0;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.74rem;
+        font-weight: 800;
+        padding: 0;
+      }
+
+      .format-chat-message-actions button:hover,
+      .format-chat-message-actions button:focus-visible {
+        color: var(--primary);
+        outline: none;
+      }
+
+      .format-chat-message-actions button[data-delete-format-note]:hover,
+      .format-chat-message-actions button[data-delete-format-note]:focus-visible {
+        color: var(--danger);
+      }
+
       .format-chat-text {
         margin: 0;
         color: var(--text);
@@ -14498,6 +14527,38 @@
         border-color: var(--primary);
         box-shadow: var(--focus-ring);
         outline: none;
+      }
+
+      .format-chat-edit-form {
+        display: grid;
+        gap: 8px;
+      }
+
+      .format-chat-edit-form textarea {
+        width: 100%;
+        min-height: 82px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        line-height: 1.45;
+        padding: 10px;
+        resize: vertical;
+      }
+
+      .format-chat-edit-form textarea:focus-visible {
+        border-color: var(--primary);
+        box-shadow: var(--focus-ring);
+        outline: none;
+      }
+
+      .format-chat-edit-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
       }
 
       .format-chat-composer-footer {
@@ -17432,6 +17493,7 @@
       let formatActiveTab = "overview";
       let formatDetailExpanded = false;
       let formatEditorCurrentStep = "basis";
+      let formatEditingNoteId = null;
       let participantPlannerFormatId = null;
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
@@ -21828,7 +21890,8 @@
                 authorId: String(message.authorId || ""),
                 authorName: String(message.authorName || "Unbekannter Nutzer"),
                 authorRole: String(message.authorRole || ""),
-                createdAt: String(message.createdAt || "")
+                createdAt: String(message.createdAt || ""),
+                editedAt: String(message.editedAt || "")
               }))
               .filter((message) => message.text);
           }
@@ -21841,7 +21904,8 @@
           authorId: "",
           authorName: "Bisherige Notiz",
           authorRole: "",
-          createdAt: format.updatedAt || format.createdAt || ""
+          createdAt: format.updatedAt || format.createdAt || "",
+          editedAt: ""
         }];
       }
 
@@ -21854,13 +21918,30 @@
             authorId: message.authorId,
             authorName: message.authorName,
             authorRole: message.authorRole,
-            createdAt: message.createdAt
+            createdAt: message.createdAt,
+            editedAt: message.editedAt || ""
           }))
         });
       }
 
       function formatNotesAuthorLabel() {
         return currentProfile?.display_name || currentProfile?.displayName || currentProfile?.email || currentProfile?.initials || "Angemeldeter Nutzer";
+      }
+
+      function ownsFormatNote(message = {}) {
+        if (!currentProfile) return false;
+        const values = [
+          currentProfile.id,
+          currentProfile.display_name,
+          currentProfile.displayName,
+          currentProfile.email,
+          currentProfile.initials
+        ].map((value) => String(value || "").trim().toLowerCase()).filter(Boolean);
+        const authorValues = [
+          message.authorId,
+          message.authorName
+        ].map((value) => String(value || "").trim().toLowerCase()).filter(Boolean);
+        return authorValues.some((value) => values.includes(value));
       }
 
       function renderFormatChatAvatar(message) {
@@ -21874,19 +21955,38 @@
         return `
           <div class="format-notes-thread">
             <div class="format-chat-list" aria-live="polite">
-              ${messages.length ? messages.map((message) => `
-                <article class="format-chat-message">
+              ${messages.length ? messages.map((message) => {
+                const canManageMessage = canEditContacts() && ownsFormatNote(message);
+                const isEditing = canManageMessage && formatEditingNoteId === message.id;
+                return `
+                <article class="format-chat-message" data-format-note="${escapeHtml(message.id)}">
                   <span class="format-chat-avatar" aria-hidden="true">${renderFormatChatAvatar(message)}</span>
                   <div class="format-chat-content">
                     <div class="format-chat-meta">
                       <strong>${escapeHtml(message.authorName)}</strong>
                       ${message.authorRole ? `<span>${escapeHtml(roleLabel(message.authorRole))}</span>` : ""}
                       <time datetime="${escapeHtml(message.createdAt)}">${escapeHtml(formatDateTimeLabel(message.createdAt) || "Zeitpunkt offen")}</time>
+                      ${message.editedAt ? `<span>bearbeitet</span>` : ""}
+                      ${canManageMessage ? `
+                        <span class="format-chat-message-actions">
+                          <button type="button" data-edit-format-note="${escapeHtml(message.id)}">Bearbeiten</button>
+                          <button type="button" data-delete-format-note="${escapeHtml(message.id)}">Löschen</button>
+                        </span>
+                      ` : ""}
                     </div>
-                    <p class="format-chat-text">${escapeHtml(message.text)}</p>
+                    ${isEditing ? `
+                      <form class="format-chat-edit-form" data-format-note-edit-form="${escapeHtml(message.id)}">
+                        <textarea name="message" aria-label="Formatnotiz bearbeiten">${escapeHtml(message.text)}</textarea>
+                        <div class="format-chat-edit-actions">
+                          <button class="action-button" type="button" data-cancel-format-note-edit="${escapeHtml(message.id)}">Abbrechen</button>
+                          <button class="action-button action-button--primary" type="submit">Speichern</button>
+                        </div>
+                      </form>
+                    ` : `<p class="format-chat-text">${escapeHtml(message.text)}</p>`}
                   </div>
                 </article>
-              `).join("") : `<div class="empty">Noch keine Notiz im Verlauf.</div>`}
+              `;
+              }).join("") : `<div class="empty">Noch keine Notiz im Verlauf.</div>`}
             </div>
             ${canEditContacts() ? `
               <form class="format-chat-composer" id="format-notes-composer">
@@ -22434,6 +22534,84 @@
           openParticipantPlanner(format.id);
         });
         document.getElementById("export-format-participants")?.addEventListener("click", () => downloadFormatParticipants(format));
+        formatDetailPanel.querySelectorAll("[data-edit-format-note]").forEach((button) => {
+          button.addEventListener("click", () => {
+            formatEditingNoteId = button.dataset.editFormatNote || null;
+            renderFormatsView();
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-cancel-format-note-edit]").forEach((button) => {
+          button.addEventListener("click", () => {
+            if (formatEditingNoteId === button.dataset.cancelFormatNoteEdit) {
+              formatEditingNoteId = null;
+              renderFormatsView();
+            }
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-format-note-edit-form]").forEach((form) => {
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Notizen"));
+              return;
+            }
+            const noteId = form.dataset.formatNoteEditForm;
+            const textarea = form.querySelector("textarea[name='message']");
+            const text = String(textarea?.value || "").trim();
+            if (!text) {
+              textarea?.focus();
+              return;
+            }
+            const messages = parseFormatNotesThread(format.notes, format);
+            const note = messages.find((message) => message.id === noteId);
+            if (!note || !ownsFormatNote(note)) {
+              showPermissionDenied("Du kannst nur eigene Notizen bearbeiten.");
+              return;
+            }
+            try {
+              const updated = await window.dataService.updateFormat(format.id, {
+                notes: serializeFormatNotesThread(messages.map((message) => (
+                  message.id === noteId ? { ...message, text, editedAt: new Date().toISOString() } : message
+                )))
+              });
+              formatEditingNoteId = null;
+              replaceFormat(updated);
+              setStorageStatus("Notiz aktualisiert");
+              renderFormatsView();
+            } catch (error) {
+              console.error("Formatnotiz konnte nicht aktualisiert werden.", error);
+              window.alert("Die Notiz konnte nicht aktualisiert werden.");
+            }
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-delete-format-note]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Löschen von Notizen"));
+              return;
+            }
+            const noteId = button.dataset.deleteFormatNote;
+            const messages = parseFormatNotesThread(format.notes, format);
+            const note = messages.find((message) => message.id === noteId);
+            if (!note || !ownsFormatNote(note)) {
+              showPermissionDenied("Du kannst nur eigene Notizen löschen.");
+              return;
+            }
+            if (!window.confirm("Diese Notiz löschen?")) return;
+            try {
+              const updated = await window.dataService.updateFormat(format.id, {
+                notes: serializeFormatNotesThread(messages.filter((message) => message.id !== noteId))
+              });
+              if (formatEditingNoteId === noteId) formatEditingNoteId = null;
+              replaceFormat(updated);
+              setStorageStatus("Notiz gelöscht");
+              renderFormatsView();
+            } catch (error) {
+              console.error("Formatnotiz konnte nicht gelöscht werden.", error);
+              window.alert("Die Notiz konnte nicht gelöscht werden.");
+            }
+          });
+        });
         document.getElementById("format-notes-composer")?.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!canEditContacts()) {
@@ -22459,6 +22637,7 @@
             const updated = await window.dataService.updateFormat(format.id, {
               notes: serializeFormatNotesThread([...messages, nextMessage])
             });
+            formatEditingNoteId = null;
             replaceFormat(updated);
             setStorageStatus("Notiz gespeichert");
             renderFormatsView();

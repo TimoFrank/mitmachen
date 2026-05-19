@@ -204,6 +204,14 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await page.locator("#format-notes-composer").getByRole("button", { name: "Notiz senden" }).click();
   await expect(page.locator(".format-chat-message")).toContainText("Testnotiz aus dem Formate-Visualtest");
   await expect(page.locator(".format-chat-meta time")).toBeVisible();
+  await page.locator("[data-edit-format-note]").first().click();
+  await page.locator("[data-format-note-edit-form] textarea").fill("Bearbeitete Testnotiz aus dem Formate-Visualtest");
+  await page.locator("[data-format-note-edit-form]").getByRole("button", { name: "Speichern" }).click();
+  await expect(page.locator(".format-chat-message")).toContainText("Bearbeitete Testnotiz aus dem Formate-Visualtest");
+  await expect(page.locator(".format-chat-message")).toContainText("bearbeitet");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator("[data-delete-format-note]").first().click();
+  await expect(page.locator(".format-chat-message")).toHaveCount(0);
 
   await attachScreenshot(page, testInfo, "formate");
 });
