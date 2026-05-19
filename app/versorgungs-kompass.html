@@ -13761,20 +13761,11 @@
 
       .formats-layout {
         display: grid;
-        grid-template-columns: minmax(260px, 0.38fr) minmax(0, 1fr);
-        gap: 14px;
+        grid-template-columns: minmax(0, 1fr);
         min-height: 560px;
       }
 
-      .formats-workspace.is-list-collapsed .formats-layout {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .formats-workspace.is-list-collapsed .formats-list-panel {
-        display: none;
-      }
-
-      .formats-list-panel,
+      .formats-overview-panel,
       .format-section,
       .participant-board-column {
         border: 1px solid var(--border);
@@ -13782,22 +13773,29 @@
         background: var(--surface);
       }
 
-      .formats-list-panel {
-        overflow: hidden;
+      .formats-overview-panel {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .formats-overview-panel[hidden] {
+        display: none;
       }
 
       .formats-list {
         display: grid;
-        gap: 0;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
       }
 
       .format-list-item {
         width: 100%;
         display: grid;
         gap: 5px;
-        padding: 13px 14px;
-        border: 0;
-        border-bottom: 1px solid var(--border);
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
         background: transparent;
         text-align: left;
         cursor: pointer;
@@ -13811,7 +13809,7 @@
 
       .format-list-item.is-active {
         background: var(--primary-soft);
-        box-shadow: inset 3px 0 0 var(--primary);
+        border-color: var(--primary);
       }
 
       .format-list-item strong,
@@ -14835,18 +14833,18 @@
               <div class="formats-command-row">
                 <div class="formats-command-meta" id="formats-count">0 Formate</div>
                 <div class="formats-command-actions">
-                  <button class="action-button" type="button" id="toggle-format-list">Formatliste einklappen</button>
+                  <button class="action-button" type="button" id="toggle-format-overview" aria-expanded="false" aria-controls="formats-overview-panel">Formatübersicht</button>
                   <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
                 </div>
               </div>
+              <section class="formats-overview-panel" id="formats-overview-panel" aria-label="Formatübersicht" hidden>
+                <div class="formats-list" id="formats-list"></div>
+              </section>
               <div class="formats-layout">
-                <section class="formats-list-panel" aria-label="Formate">
-                  <div class="formats-list" id="formats-list"></div>
-                </section>
                 <section class="format-detail-panel" id="format-detail-panel" aria-label="Formatdetail">
                   <div class="format-empty-state">
                     <strong>Kein Format ausgewählt</strong>
-                    <span>Lege ein Format an oder wähle links eine bestehende Einladungsliste.</span>
+                    <span>Lege ein Format an oder wähle eines über die Formatübersicht.</span>
                   </div>
                 </section>
               </div>
@@ -16420,6 +16418,7 @@
         { id: "overview", label: "Überblick" },
         { id: "participants", label: "Teilnehmer" },
         { id: "composition", label: "Zusammensetzung" },
+        { id: "reporting", label: "Auswertung" },
         { id: "notes", label: "Notizen & Export" }
       ];
 
@@ -16431,8 +16430,8 @@
       const formatsCount = document.getElementById("formats-count");
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
-      const toggleFormatListButton = document.getElementById("toggle-format-list");
-      const formatsWorkspace = document.querySelector(".formats-workspace");
+      const toggleFormatOverviewButton = document.getElementById("toggle-format-overview");
+      const formatsOverviewPanel = document.getElementById("formats-overview-panel");
       const formatParticipantDrawer = document.getElementById("format-participant-drawer");
       const formatParticipantOverlay = document.getElementById("format-participant-overlay");
       const formatParticipantClose = document.getElementById("format-participant-close");
@@ -16664,7 +16663,7 @@
       let formats = [];
       let activeFormatId = null;
       let editingFormatId = null;
-      let formatListCollapsed = false;
+      let formatOverviewOpen = false;
       let formatActiveTab = "overview";
       let participantPlannerFormatId = null;
       let participantPlannerSelectedIds = new Set();
@@ -20639,7 +20638,7 @@
             activeFormatId = button.dataset.formatId;
             editingFormatId = null;
             formatActiveTab = "overview";
-            setFormatListCollapsed(true);
+            setFormatOverviewOpen(false);
             renderFormatsView();
           });
         });
@@ -20696,23 +20695,9 @@
         `;
       }
 
-      function renderParticipantBoard(format) {
+      function renderParticipantCards(format) {
         const entries = formatParticipantContacts(format);
         return `
-          <div class="format-diversity-board">
-            <section class="format-diversity-column">
-              <h5>Sektoren</h5>
-              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => contact.category, { sector: true })}</div>
-            </section>
-            <section class="format-diversity-column">
-              <h5>Bundesländer</h5>
-              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => stateLabel(contact))}</div>
-            </section>
-            <section class="format-diversity-column">
-              <h5>Fachrichtungen</h5>
-              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => specialtyLabel(contact))}</div>
-            </section>
-          </div>
           <div class="participant-board">
             ${entries.length ? entries.map(({ contact, participant }) => `
               <button class="participant-card" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
@@ -20728,6 +20713,26 @@
                 </span>
               </button>
             `).join("") : `<div class="empty">Noch keine Teilnehmer ausgewählt.</div>`}
+          </div>
+        `;
+      }
+
+      function renderParticipantReporting(format) {
+        const entries = formatParticipantContacts(format);
+        return `
+          <div class="format-diversity-board">
+            <section class="format-diversity-column">
+              <h5>Sektoren</h5>
+              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => contact.category, { sector: true })}</div>
+            </section>
+            <section class="format-diversity-column">
+              <h5>Bundesländer</h5>
+              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => stateLabel(contact))}</div>
+            </section>
+            <section class="format-diversity-column">
+              <h5>Fachrichtungen</h5>
+              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => specialtyLabel(contact))}</div>
+            </section>
           </div>
         `;
       }
@@ -20842,13 +20847,29 @@
               <div class="format-section-head">
                 <div>
                   <h4>Zusammensetzung</h4>
-                  <p>Vielfalt der Runde nach Sektor, Bundesland und Fachrichtung.</p>
+                  <p>Alle ausgewählten Teilnehmer als visuelles Board.</p>
                 </div>
                 <div class="format-participant-actions">
                   ${canEditContacts() ? `<button class="action-button" type="button" id="open-participant-planner">Teilnehmer ergänzen</button>` : ""}
                 </div>
               </div>
-              ${renderParticipantBoard(format)}
+              ${renderParticipantCards(format)}
+            </section>
+          </div>
+        `;
+      }
+
+      function renderFormatReportingTab(format) {
+        return `
+          <div class="format-tab-panel" role="tabpanel">
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Auswertung</h4>
+                  <p>Zusammensetzung der Runde nach Sektor, Bundesland und Fachrichtung.</p>
+                </div>
+              </div>
+              ${renderParticipantReporting(format)}
             </section>
           </div>
         `;
@@ -20882,6 +20903,7 @@
       function renderFormatActiveTab(format) {
         if (formatActiveTab === "participants") return renderFormatParticipantsTab(format);
         if (formatActiveTab === "composition") return renderFormatCompositionTab(format);
+        if (formatActiveTab === "reporting") return renderFormatReportingTab(format);
         if (formatActiveTab === "notes") return renderFormatNotesTab(format);
         return renderFormatOverviewTab(format);
       }
@@ -20906,7 +20928,7 @@
           formatDetailPanel.innerHTML = `
             <div class="format-empty-state">
               <strong>Kein Format ausgewählt</strong>
-              <span>Lege ein Format an oder wähle links eine bestehende Einladungsliste.</span>
+              <span>Lege ein Format an oder wähle eines über die Formatübersicht.</span>
             </div>
           `;
           return;
@@ -21037,12 +21059,12 @@
         URL.revokeObjectURL(url);
       }
 
-      function setFormatListCollapsed(collapsed) {
-        formatListCollapsed = Boolean(collapsed);
-        formatsWorkspace?.classList.toggle("is-list-collapsed", formatListCollapsed);
-        if (toggleFormatListButton) {
-          toggleFormatListButton.textContent = formatListCollapsed ? "Formatliste anzeigen" : "Formatliste einklappen";
-          toggleFormatListButton.setAttribute("aria-expanded", String(!formatListCollapsed));
+      function setFormatOverviewOpen(open) {
+        formatOverviewOpen = Boolean(open);
+        if (formatsOverviewPanel) formatsOverviewPanel.hidden = !formatOverviewOpen;
+        if (toggleFormatOverviewButton) {
+          toggleFormatOverviewButton.textContent = formatOverviewOpen ? "Formatübersicht schließen" : "Formatübersicht";
+          toggleFormatOverviewButton.setAttribute("aria-expanded", String(formatOverviewOpen));
         }
       }
 
@@ -25097,7 +25119,7 @@
 
       newContactButton.addEventListener("click", () => openEditor());
       newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
-      toggleFormatListButton?.addEventListener("click", () => setFormatListCollapsed(!formatListCollapsed));
+      toggleFormatOverviewButton?.addEventListener("click", () => setFormatOverviewOpen(!formatOverviewOpen));
       newFormatButton?.addEventListener("click", () => {
         if (!canEditContacts()) {
           showPermissionDenied(viewerCreateDisabledMessage("das Anlegen von Formaten"));
@@ -25106,7 +25128,7 @@
         activeFormatId = null;
         editingFormatId = "__new__";
         formatActiveTab = "overview";
-        setFormatListCollapsed(true);
+        setFormatOverviewOpen(false);
         renderFormatDetail(null);
       });
       formatParticipantOverlay?.addEventListener("click", closeParticipantPlanner);

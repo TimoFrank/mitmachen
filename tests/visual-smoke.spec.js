@@ -141,7 +141,8 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator("#format-title")).toBeVisible();
   await page.locator("#format-title").fill("Roundtable Testversorgung");
   await page.locator("#format-editor-form").getByRole("button", { name: "Format anlegen" }).click();
-  await expect(page.locator(".format-list-item")).toContainText("Roundtable Testversorgung");
+  await expect(page.locator("#formats-overview-panel")).toBeHidden();
+  await expect(page.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
   await page.locator('[data-format-tab="participants"]').click();
   await page.locator("#open-participant-planner").click();
   await expect(page.locator("#format-participant-drawer.is-open")).toBeVisible();
@@ -154,6 +155,8 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".participant-table-row")).toBeVisible();
   await page.locator('[data-format-tab="composition"]').click();
   await expect(page.locator(".participant-card")).toBeVisible();
+  await expect(page.locator(".format-diversity-board")).toHaveCount(0);
+  await page.locator('[data-format-tab="reporting"]').click();
   await expect(page.locator(".format-diversity-board")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "formate");
