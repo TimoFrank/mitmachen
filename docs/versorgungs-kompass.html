@@ -14147,70 +14147,18 @@
         display: grid;
         place-items: center;
         border: 0;
-        border-radius: 0;
         background: transparent;
         padding: 0;
       }
 
-      .format-roundtable-graphic {
-        width: 190px;
-        max-width: 100%;
-        height: auto;
+      .format-overview-image {
+        width: min(100%, 320px);
+        aspect-ratio: 16 / 10;
         display: block;
-      }
-
-      .format-roundtable-surface {
-        fill: color-mix(in srgb, var(--primary-soft) 38%, var(--surface));
-        stroke: var(--border);
-        stroke-width: 2;
-      }
-
-      .format-roundtable-table {
-        fill: var(--surface);
-        stroke: var(--primary);
-        stroke-width: 2.4;
-      }
-
-      .format-roundtable-chair {
-        fill: color-mix(in srgb, var(--surface) 80%, var(--primary-soft));
-        stroke: var(--primary);
-        stroke-width: 1.8;
-      }
-
-      .format-roundtable-person {
-        fill: var(--primary);
-        stroke: var(--surface);
-        stroke-width: 3;
-      }
-
-      .format-roundtable-accent {
-        fill: var(--surface);
-        stroke: var(--primary);
-        stroke-width: 1.8;
-      }
-
-      .format-roundtable-line {
-        fill: none;
-        stroke: var(--text-muted);
-        stroke-width: 2.1;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      .format-roundtable-line--accent {
-        stroke: var(--primary);
-      }
-
-      .format-roundtable-note {
-        fill: var(--surface);
-        stroke: var(--border);
-        stroke-width: 1.6;
-      }
-
-      .format-roundtable-note-line {
-        stroke: var(--primary);
-        stroke-width: 1.8;
-        stroke-linecap: round;
+        object-fit: cover;
+        object-position: center;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
       }
 
       .format-metrics {
@@ -21319,36 +21267,6 @@
         `;
       }
 
-      function renderFormatRoundtableGraphic(format) {
-        const participantCount = (format.participants || []).length;
-        const people = Math.max(5, Math.min(9, participantCount || 7));
-        const center = { x: 170, y: 118 };
-        const chairs = Array.from({ length: people }, (_, index) => {
-          const angle = -Math.PI / 2 + (index / people) * Math.PI * 2;
-          const chairX = center.x + Math.cos(angle) * 100;
-          const chairY = center.y + Math.sin(angle) * 66;
-          const personX = center.x + Math.cos(angle) * 76;
-          const personY = center.y + Math.sin(angle) * 48;
-          return `
-            <path class="format-roundtable-chair" d="M${(chairX - 13).toFixed(1)} ${(chairY - 8).toFixed(1)}q13 -10 26 0v16q-13 10 -26 0z"></path>
-            <circle class="format-roundtable-person" cx="${personX.toFixed(1)}" cy="${personY.toFixed(1)}" r="9.6"></circle>
-          `;
-        }).join("");
-        return `
-          <svg class="format-roundtable-graphic" viewBox="0 0 340 230" role="img" aria-label="Illustration eines Roundtables mit Teilnehmenden">
-            <path class="format-roundtable-surface" d="M44 42c32-23 91-27 139-19 63 10 113 40 123 82 11 46-31 83-92 94-68 13-148-1-177-39-26-34-23-96 7-118z"></path>
-            <path class="format-roundtable-note" d="M239 35h54a10 10 0 0 1 10 10v44a10 10 0 0 1-10 10h-54a10 10 0 0 1-10-10V45a10 10 0 0 1 10-10z"></path>
-            <path class="format-roundtable-note-line" d="M243 52h43M243 66h32M243 80h24"></path>
-            <path class="format-roundtable-accent" d="M67 48h48a12 12 0 0 1 12 12v28H55V60a12 12 0 0 1 12-12z"></path>
-            <path class="format-roundtable-line format-roundtable-line--accent" d="M70 62h38M70 76h24"></path>
-            ${chairs}
-            <ellipse class="format-roundtable-table" cx="${center.x}" cy="${center.y}" rx="84" ry="50"></ellipse>
-            <path class="format-roundtable-line" d="M113 115c27-10 85-10 113 0M128 133c29 9 56 9 84 0M151 91v55M189 91v55"></path>
-            <path class="format-roundtable-line format-roundtable-line--accent" d="M136 102c22-12 46-12 68 0"></path>
-          </svg>
-        `;
-      }
-
       function renderFormatOverviewHero(format) {
         return `
           <section class="format-overview-hero">
@@ -21361,7 +21279,7 @@
               </div>
             </div>
             <div class="format-overview-visual">
-              ${renderFormatRoundtableGraphic(format)}
+              <img class="format-overview-image" src="./public/format-roundtable-hero.jpg" alt="Roundtable mit Versorgungsakteuren" loading="lazy" />
             </div>
           </section>
         `;

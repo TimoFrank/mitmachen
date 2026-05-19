@@ -156,7 +156,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-overview-hero")).toHaveCount(0);
   await page.locator("[data-toggle-format-detail]").first().click();
   await expect(page.locator(".format-overview-hero")).toBeVisible();
-  await expect(page.locator(".format-roundtable-graphic")).toBeVisible();
+  await expect(page.locator(".format-overview-image")).toBeVisible();
   await expect(page.locator(".format-detail")).toBeVisible();
   await expect(page.locator(".format-list-facts")).toHaveCount(0);
   await expect(page.locator(".format-detail-body")).toBeVisible();
