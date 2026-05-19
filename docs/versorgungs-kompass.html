@@ -21698,7 +21698,6 @@
         return `
           <div class="participant-board">
             ${entries.length ? entries.map(({ contact }) => {
-              const contactWay = contact.email || contact.phone || "";
               return `
                 <article class="participant-card">
                   <button class="participant-card-main" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
@@ -21706,11 +21705,9 @@
                     <span class="participant-card-copy">
                       <span class="participant-card-name">${escapeHtml(contact.name)}</span>
                       <span class="participant-card-meta">${escapeHtml(contact.organization || "Keine Organisation")}</span>
-                      ${contactWay ? `<span class="participant-card-meta">${escapeHtml(contactWay)}</span>` : ""}
                       <span class="participant-card-tags">
                         ${sectorBadgeMarkup(contact.category)}
                         <span class="format-diversity-chip">${escapeHtml(stateLabel(contact) || "Bundesland offen")}</span>
-                        <span class="format-diversity-chip">${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
                       </span>
                     </span>
                   </button>
