@@ -13875,6 +13875,16 @@
         padding: 14px 16px;
         background: var(--surface-muted);
         border-bottom: 1px solid var(--border);
+        cursor: pointer;
+      }
+
+      .format-detail-head:hover {
+        background: var(--primary-soft);
+      }
+
+      .format-detail-head:focus-visible {
+        box-shadow: var(--focus-ring);
+        outline: none;
       }
 
       .format-detail:not(.is-open) .format-detail-head {
@@ -22174,7 +22184,7 @@
               const isExpanded = format.id === activeFormatId && formatDetailExpanded;
               return `
                 <div class="format-detail ${isExpanded ? "is-open" : ""}" data-format-detail="${escapeHtml(format.id)}">
-                  <div class="format-detail-head">
+                  <div class="format-detail-head" data-toggle-format-row="${escapeHtml(format.id)}" role="button" tabindex="0" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">
                     <div class="format-detail-title">
                       <div class="format-detail-title-main">
                         ${formatTypeIconMarkup(format.formatType)}
@@ -22622,14 +22632,28 @@
             openDetail(contactId, formatContacts);
           });
         });
+        const toggleFormatDetail = (nextFormatId) => {
+          const isCurrentOpen = activeFormatId === nextFormatId && formatDetailExpanded;
+          activeFormatId = nextFormatId;
+          formatDetailExpanded = !isCurrentOpen;
+          if (formatDetailExpanded) formatActiveTab = "overview";
+          renderFormatsView();
+        };
+        formatDetailPanel.querySelectorAll("[data-toggle-format-row]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, a, input, select, textarea, [role='button']:not([data-toggle-format-row])")) return;
+            toggleFormatDetail(row.dataset.toggleFormatRow);
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            toggleFormatDetail(row.dataset.toggleFormatRow);
+          });
+        });
         formatDetailPanel.querySelectorAll("[data-toggle-format-detail]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const nextFormatId = button.dataset.toggleFormatDetail;
-            const isCurrentOpen = activeFormatId === nextFormatId && formatDetailExpanded;
-            activeFormatId = nextFormatId;
-            formatDetailExpanded = !isCurrentOpen;
-            if (formatDetailExpanded) formatActiveTab = "overview";
-            renderFormatsView();
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            toggleFormatDetail(button.dataset.toggleFormatDetail);
           });
         });
         formatDetailPanel.querySelectorAll("[data-format-inline-field]").forEach((field) => {
