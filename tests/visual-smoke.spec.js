@@ -175,8 +175,12 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await page.locator('[data-format-tab="participants"]').click();
   await page.locator("#open-participant-planner").click();
   await expect(page.locator("#format-participant-drawer.is-open")).toBeVisible();
+  await expect(page.locator("#format-participant-steps")).toBeVisible();
   await expect(page.locator("#format-participant-search")).toBeVisible();
-  await expect(page.locator("#format-participant-sector")).toBeHidden();
+  await expect(page.locator("#format-participant-sector")).toBeVisible();
+  await expect(page.locator('[data-format-participant-step="filters"]')).toBeVisible();
+  await page.locator("#format-participant-next").click();
+  await expect(page.locator('[data-format-participant-step="select"]')).toBeVisible();
   await page.locator('[data-planner-contact="demo-contact-01"] input').check();
   await page.locator("#format-participant-add").click();
   await expect(page.locator("#format-participant-drawer")).toHaveAttribute("aria-hidden", "true");

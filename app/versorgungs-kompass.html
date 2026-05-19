@@ -15067,16 +15067,29 @@
 
       .format-participant-body {
         display: grid;
-        grid-template-rows: auto auto minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
         gap: 12px;
         padding: 16px 18px;
         overflow: auto;
         min-height: 0;
       }
 
+      .format-participant-steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .format-participant-step {
+        align-content: start;
+        min-height: 0;
+      }
+
+      .format-participant-step[hidden] {
+        display: none;
+      }
+
       .format-participant-controls {
         display: grid;
-        gap: 10px;
+        gap: 14px;
       }
 
       .format-participant-search {
@@ -15121,10 +15134,7 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
-      }
-
-      .format-participant-filter-grid {
-        padding: 12px;
+        padding: 0;
       }
 
       .format-participant-filter-grid .format-editor-field {
@@ -16408,16 +16418,22 @@
           <button class="import-close" type="button" id="format-participant-close" aria-label="Teilnehmerauswahl schließen">&times;</button>
         </div>
         <div class="format-participant-body">
-          <div class="format-participant-controls">
-            <label class="search-shell format-participant-search" aria-label="Teilnehmer suchen">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="m20 20-3.5-3.5"></path>
-              </svg>
-              <input class="search-input" id="format-participant-search" type="search" placeholder="Nach Name, Organisation, Ort oder Thema suchen" />
-            </label>
-            <details class="format-participant-filter-toggle">
-              <summary>Filter</summary>
+          <div class="import-steps contact-editor-steps format-participant-steps" id="format-participant-steps" aria-label="Teilnehmerauswahl-Schritte"></div>
+          <section class="editor-section editor-section--primary format-participant-step" data-format-participant-step="filters" aria-labelledby="format-participant-step-filters">
+            <div class="editor-section-head">
+              <div>
+                <h4 id="format-participant-step-filters">Eingrenzen</h4>
+                <p>Suche und Filter helfen, ein passendes Teilnehmerfeld vorzubereiten.</p>
+              </div>
+            </div>
+            <div class="format-participant-controls">
+              <label class="search-shell format-participant-search" aria-label="Teilnehmer suchen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m20 20-3.5-3.5"></path>
+                </svg>
+                <input class="search-input" id="format-participant-search" type="search" placeholder="Nach Name, Organisation, Ort oder Thema suchen" />
+              </label>
               <div class="format-participant-filter-grid">
                 <label class="format-editor-field">
                   <span>Sektor</span>
@@ -16432,18 +16448,28 @@
                   <select id="format-participant-specialty"></select>
                 </label>
               </div>
-            </details>
-          </div>
-          <div class="format-participant-results-head">
-            <span id="format-participant-results">0 Kontakte</span>
-            <button class="action-button action-button--compact" type="button" id="format-participant-clear">Auswahl leeren</button>
-          </div>
-          <div class="format-participant-list" id="format-participant-list"></div>
+            </div>
+          </section>
+          <section class="editor-section editor-section--primary format-participant-step" data-format-participant-step="select" aria-labelledby="format-participant-step-select" hidden>
+            <div class="editor-section-head">
+              <div>
+                <h4 id="format-participant-step-select">Auswählen</h4>
+                <p>Kontakte markieren und gemeinsam zur Einladungsliste hinzufügen.</p>
+              </div>
+            </div>
+            <div class="format-participant-results-head">
+              <span id="format-participant-results">0 Kontakte</span>
+              <button class="action-button action-button--compact" type="button" id="format-participant-clear">Auswahl leeren</button>
+            </div>
+            <div class="format-participant-list" id="format-participant-list"></div>
+          </section>
         </div>
         <div class="format-participant-footer">
           <span id="format-participant-selection-count">0 ausgewählt</span>
           <div class="format-editor-actions">
             <button class="action-button" type="button" id="format-participant-cancel">Abbrechen</button>
+            <button class="action-button" type="button" id="format-participant-back" hidden>Zurück</button>
+            <button class="action-button action-button--primary" type="button" id="format-participant-next">Weiter</button>
             <button class="action-button action-button--primary" type="button" id="format-participant-add">Auswahl hinzufügen</button>
           </div>
         </div>
@@ -17295,6 +17321,10 @@
         { id: "planung", label: "Planung" },
         { id: "inhalt", label: "Inhalt" }
       ];
+      const participantPlannerSteps = [
+        { id: "filters", label: "Eingrenzen" },
+        { id: "select", label: "Auswählen" }
+      ];
       const formatTabItems = [
         { id: "overview", label: "Überblick" },
         { id: "participants", label: "Teilnehmer" },
@@ -17315,6 +17345,9 @@
       const formatParticipantClose = document.getElementById("format-participant-close");
       const formatParticipantCancel = document.getElementById("format-participant-cancel");
       const formatParticipantAdd = document.getElementById("format-participant-add");
+      const formatParticipantBack = document.getElementById("format-participant-back");
+      const formatParticipantNext = document.getElementById("format-participant-next");
+      const formatParticipantStepsNode = document.getElementById("format-participant-steps");
       const formatParticipantSearch = document.getElementById("format-participant-search");
       const formatParticipantSector = document.getElementById("format-participant-sector");
       const formatParticipantState = document.getElementById("format-participant-state");
@@ -17553,6 +17586,7 @@
       let formatStatusFilter = "";
       let formatLoadErrorMessage = "";
       let participantPlannerFormatId = null;
+      let participantPlannerCurrentStep = "filters";
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
       let activeSavedViewName = "";
@@ -22370,10 +22404,50 @@
         URL.revokeObjectURL(url);
       }
 
+      function participantPlannerStepMarkup() {
+        const activeIndex = Math.max(0, participantPlannerSteps.findIndex((step) => step.id === participantPlannerCurrentStep));
+        return participantPlannerSteps
+          .map((step, index) => `
+            <div class="import-step ${index <= activeIndex ? "is-active" : ""}">
+              <span>${index + 1}</span>
+              <strong>${step.label}</strong>
+            </div>
+          `)
+          .join("");
+      }
+
+      function renderParticipantPlannerStep() {
+        const activeIndex = Math.max(0, participantPlannerSteps.findIndex((step) => step.id === participantPlannerCurrentStep));
+        if (formatParticipantStepsNode) formatParticipantStepsNode.innerHTML = participantPlannerStepMarkup();
+        formatParticipantDrawer?.querySelectorAll("[data-format-participant-step]").forEach((section) => {
+          section.hidden = section.dataset.formatParticipantStep !== participantPlannerCurrentStep;
+        });
+        if (formatParticipantBack) formatParticipantBack.hidden = activeIndex === 0;
+        if (formatParticipantNext) formatParticipantNext.hidden = activeIndex === participantPlannerSteps.length - 1;
+        if (formatParticipantAdd) formatParticipantAdd.hidden = activeIndex !== participantPlannerSteps.length - 1;
+      }
+
+      function setParticipantPlannerStep(step) {
+        if (!participantPlannerSteps.some((item) => item.id === step)) return;
+        participantPlannerCurrentStep = step;
+        renderParticipantPlanner();
+        window.setTimeout(() => {
+          if (step === "filters") formatParticipantSearch?.focus();
+          else formatParticipantList?.querySelector("input")?.focus();
+        }, 0);
+      }
+
+      function moveParticipantPlannerStep(direction) {
+        const activeIndex = Math.max(0, participantPlannerSteps.findIndex((step) => step.id === participantPlannerCurrentStep));
+        const nextIndex = Math.min(participantPlannerSteps.length - 1, Math.max(0, activeIndex + direction));
+        setParticipantPlannerStep(participantPlannerSteps[nextIndex].id);
+      }
+
       function openParticipantPlanner(formatId = activeFormatId) {
         const format = formats.find((item) => item.id === formatId);
         if (!format || !canEditContacts()) return;
         participantPlannerFormatId = format.id;
+        participantPlannerCurrentStep = "filters";
         participantPlannerSelectedIds = new Set();
         if (formatParticipantSearch) formatParticipantSearch.value = "";
         if (formatParticipantSector) formatParticipantSector.value = "";
@@ -22390,6 +22464,7 @@
         formatParticipantDrawer?.classList.remove("is-open");
         formatParticipantDrawer?.setAttribute("aria-hidden", "true");
         participantPlannerFormatId = null;
+        participantPlannerCurrentStep = "filters";
         participantPlannerSelectedIds = new Set();
         syncBodyScrollLock();
       }
@@ -22440,6 +22515,7 @@
         const format = formats.find((item) => item.id === participantPlannerFormatId);
         if (!format) return;
         renderParticipantPlannerOptions(format);
+        renderParticipantPlannerStep();
         const items = availablePlannerContacts(format);
         if (formatParticipantResults) formatParticipantResults.textContent = `${items.length} verfügbare Kontakte`;
         if (formatParticipantSelectionCount) {
@@ -26608,6 +26684,8 @@
       formatParticipantOverlay?.addEventListener("click", closeParticipantPlanner);
       formatParticipantClose?.addEventListener("click", closeParticipantPlanner);
       formatParticipantCancel?.addEventListener("click", closeParticipantPlanner);
+      formatParticipantBack?.addEventListener("click", () => moveParticipantPlannerStep(-1));
+      formatParticipantNext?.addEventListener("click", () => moveParticipantPlannerStep(1));
       formatParticipantAdd?.addEventListener("click", addSelectedPlannerParticipants);
       formatParticipantClear?.addEventListener("click", () => {
         participantPlannerSelectedIds.clear();
