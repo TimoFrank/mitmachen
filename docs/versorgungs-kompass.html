@@ -11633,28 +11633,6 @@
         line-height: var(--line-height-normal);
       }
 
-      .about-intro__meta,
-      .about-version__badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 12px;
-      }
-
-      .about-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        min-height: 28px;
-        padding: 4px 9px;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        background: var(--surface-muted);
-        color: var(--text-secondary);
-        font-size: var(--font-size-xs);
-        font-weight: 800;
-      }
-
       .about-version-list {
         display: grid;
         gap: 12px;
@@ -11690,7 +11668,7 @@
 
       .about-version__title {
         display: grid;
-        gap: 4px;
+        gap: 5px;
         min-width: 0;
       }
 
@@ -11703,6 +11681,7 @@
       .about-version__title span {
         color: var(--text-muted);
         font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
       }
 
       .about-version__chevron {
@@ -11729,32 +11708,20 @@
 
       .about-version__body {
         display: grid;
-        gap: 14px;
         padding: 0 16px 16px 72px;
         border-top: 1px solid var(--border);
         background: var(--surface);
       }
 
-      .about-change-group {
-        padding-top: 14px;
-      }
-
-      .about-change-group h4 {
-        margin: 0 0 8px;
-        color: var(--text-primary);
-        font-size: var(--font-size-sm);
-        font-weight: 900;
-      }
-
-      .about-change-group ul {
-        margin: 0;
+      .about-version__body ul {
+        margin: 14px 0 0;
         padding-left: 18px;
         color: var(--text-secondary);
         font-size: var(--font-size-sm);
         line-height: var(--line-height-normal);
       }
 
-      .about-change-group li + li {
+      .about-version__body li + li {
         margin-top: 6px;
       }
 
@@ -14308,12 +14275,6 @@
                   <h3>Versorgungs-Kompass</h3>
                   <p>Der Versorgungs-Kompass ist das CRM für das gematik-Hospitationsnetzwerk. Die App bündelt Kontakte, Organisationen, regionale Orientierung, Auswertung, Datenpflege und Import in einer ruhigen Arbeitsoberfläche.</p>
                   <p>Dieser Bereich hilft Admins beim Einordnen des Produkts: Was ist neu, was hat sich geändert und welche Version brachte welche Funktionen.</p>
-                  <div class="about-intro__meta" aria-label="Produktmerkmale">
-                    <span class="about-badge">CRM-App</span>
-                    <span class="about-badge">Supabase-Datenbasis</span>
-                    <span class="about-badge">Admin-Information</span>
-                    <span class="about-badge">Version 0.5.0</span>
-                  </div>
                 </div>
               </section>
               <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
@@ -17487,59 +17448,55 @@
         {
           version: "0.5.0",
           title: "Kontaktrollen und Karten-Datenbasis",
-          date: "2026-05-19",
           icon: "role",
-          badges: ["Aktuell", "Kontakte", "Karte"],
-          groups: [
-            { title: "Neu", items: ["Kontakte haben ein eigenes Feld Rolle, z. B. für Funktion, Beruf oder Stelle.", "Die Rolle ist von Sektor und Fachrichtung getrennt und erscheint in Kontaktprofilen sowie in Karten-Detailansichten."] },
-            { title: "Geändert", items: ["Notizen werden in Hauptapp und Karte konsistenter angezeigt.", "Owner-Änderungen erscheinen in der Kontakthistorie mit klareren Texten.", "Die Kartenansicht nutzt alle nicht archivierten Kontakte als Datenbasis."] },
-            { title: "Technisch", items: ["Supabase wurde um contacts.role erweitert.", "Der Data-Service funktioniert übergangsweise auch ohne neue role-Spalte."] }
+          summary: "Kontakte lassen sich genauer einordnen, und die Karte zeigt verlässlicher den aktuellen Kontaktbestand.",
+          items: [
+            "Kontakte können jetzt eine eigene Rolle oder Funktion haben.",
+            "Rolle, Notizen und Kontaktinformationen erscheinen einheitlicher in App und Karte.",
+            "Änderungen am Owner sind in der Kontakthistorie leichter nachvollziehbar."
           ]
         },
         {
           version: "0.4.0",
           title: "Reifer Kartenmodus",
-          date: "2026-05-18",
           icon: "map",
-          badges: ["Karte", "Analyse", "Mobile"],
-          groups: [
-            { title: "Neu", items: ["Kartenmodus als eigener Orientierungs- und Analysebereich.", "Live-Daten für Kartenfilter, einklappbare Kontaktliste und optionales Clustering.", "Bundeslandnamen und Verteilungsinformationen werden direkt in der Karte angezeigt."] },
-            { title: "Geändert", items: ["Kartensuche, Filter und Kartenmodi sind klarer voneinander getrennt.", "Karten-Detailansichten folgen dem CRM-Profilmuster der Hauptapp.", "Zoomverhalten, Basiskarte, Nachbar-Kontext und Hover-Tooltips wurden beruhigt."] },
-            { title: "Verbessert", items: ["Mobile Kartenbedienung, Kontaktvorschau und Profil-Sheet wurden verbessert.", "Listen- und Kartenfilter sind besser synchronisiert.", "Veröffentlichte Kartenpfade für GitHub Pages wurden korrigiert."] }
+          summary: "Die Karte wurde von einer Zusatzansicht zu einem klaren Orientierungsbereich ausgebaut.",
+          items: [
+            "Kontakte, Regionen und Verteilungen sind auf der Karte leichter zu erfassen.",
+            "Suche, Filter und Kartendarstellung greifen verständlicher ineinander.",
+            "Die Kartenansicht ist auf Desktop und Mobilgeräten ruhiger und stabiler."
           ]
         },
         {
           version: "0.3.0",
           title: "CRM-App mit Supabase, Profilen und Teamfunktionen",
-          date: "2026-05-17",
           icon: "database",
-          badges: ["Supabase", "Team", "Profile"],
-          groups: [
-            { title: "Neu", items: ["Supabase ist als produktive Datenbasis angebunden.", "Anmeldung, Login-Aliase, Passwort-Setup, Nutzerprofil und Teamansicht wurden eingeführt.", "Organisationen, Kontakthistorie, gespeicherte Ansichten, Datenqualitätsbereich und Bulk-Import-Tabelle wurden angelegt."] },
-            { title: "Geändert", items: ["App-Shell und Sidebar wurden stärker nach CRM-Arbeitsbereichen strukturiert.", "Kontaktprofile wurden auf Lesemodus, klare Detailsektionen und ruhige Profilköpfe umgestellt.", "Owner-Auswahl nutzt Profile-IDs; alte Owner ohne Account werden sichtbar markiert."] },
-            { title: "Sicherheit und Betrieb", items: ["Öffentliche Seed-Daten mit echten Kontaktinformationen wurden aus dem produktiven GitHub-Pages-Pfad entfernt.", "Betrieb, Backups, Rollen, RLS, Onboarding und Sicherheitschecks wurden dokumentiert."] }
+          summary: "Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zentralem Datenstand.",
+          items: [
+            "Kontakte, Organisationen, Profile und Teamübersicht sind in einer gemeinsamen Arbeitsoberfläche gebündelt.",
+            "Gespeicherte Ansichten, Import und Datenqualität unterstützen wiederkehrende Pflegeaufgaben.",
+            "Rollen und Berechtigungen sorgen dafür, dass Anwender nur passende Aktionen sehen."
           ]
         },
         {
           version: "0.2.0",
           title: "CRM-Grundfunktionen und Mobile-Unterstützung",
-          date: "2026-05-14",
           icon: "mobile",
-          badges: ["Mobile", "Filter", "Kontaktpflege"],
-          groups: [
-            { title: "Neu", items: ["Eine responsive Mobile-Erfahrung wurde eingeführt.", "Eine wiederverwendbare Custom-Select-Komponente wurde angelegt.", "Fachrichtung, Owner, Priorität, Standort und Kommunikationswarnungen wurden in die Kontaktpflege integriert."] },
-            { title: "Geändert", items: ["Navigation und Filterworkflow wurden vereinfacht.", "Kontakt-Detailansichten wurden in Richtung CRM-Profil weiterentwickelt.", "Logout wurde in den Nutzerkontext verschoben."] },
-            { title: "Verbessert", items: ["Tabellenlayout, Detailaktionen, Filter-Popover und Karten-Sidebar wurden stabilisiert.", "Datenqualität bei Fachrichtungen und Organisationen wurde verbessert."] }
+          summary: "Die wichtigsten CRM-Arbeitsabläufe wurden geordnet und für kleinere Bildschirme verbessert.",
+          items: [
+            "Kontaktliste, Detailansicht und Filter wurden übersichtlicher.",
+            "Owner, Priorität, Fachrichtung und Standort wurden besser in die Kontaktpflege eingebunden.",
+            "Die App wurde auf Mobilgeräten nutzbarer und stabiler."
           ]
         },
         {
           version: "0.1.0",
           title: "Erste nutzbare Basis",
-          date: "2026-05-08",
           icon: "start",
-          badges: ["Start", "HTML/JS", "GitHub Pages"],
-          groups: [
-            { title: "Neu", items: ["Versorgungs-Kompass als statische HTML-/JS-App für das gematik-Hospitationsnetzwerk angelegt.", "Erste Kontakt-, Karten- und Datenbasis für lokale Entwicklung vorbereitet.", "Projektstruktur und GitHub-Pages-Publish-Ordner aufgebaut."] }
+          summary: "Die erste Version stellte die Grundlage für Kontaktarbeit, Karte und Veröffentlichung bereit.",
+          items: [
+            "Die App wurde als erster nutzbarer Versorgungs-Kompass aufgebaut.",
+            "Kontakt- und Kartengrundlagen wurden für die weitere Entwicklung vorbereitet."
           ]
         }
       ];
@@ -20096,10 +20053,7 @@
                   <span class="about-version__icon">${aboutIconSvg(release.icon)}</span>
                   <span class="about-version__title">
                     <strong>Version ${escapeHtml(release.version)} - ${escapeHtml(release.title)}</strong>
-                    <span>Stand: ${escapeHtml(release.date)}</span>
-                    <span class="about-version__badges">
-                      ${release.badges.map((badge) => `<span class="about-badge">${escapeHtml(badge)}</span>`).join("")}
-                    </span>
+                    <span>${escapeHtml(release.summary)}</span>
                   </span>
                   <span class="about-version__chevron" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -20108,18 +20062,9 @@
                   </span>
                 </summary>
                 <div class="about-version__body">
-                  ${release.groups
-                    .map(
-                      (group) => `
-                        <section class="about-change-group">
-                          <h4>${escapeHtml(group.title)}</h4>
-                          <ul>
-                            ${group.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
-                          </ul>
-                        </section>
-                      `
-                    )
-                    .join("")}
+                  <ul>
+                    ${release.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+                  </ul>
                 </div>
               </details>
             `
