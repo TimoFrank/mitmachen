@@ -13817,6 +13817,7 @@
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--surface);
+        overflow: visible;
       }
 
       .format-card-title {
@@ -13862,6 +13863,10 @@
         overflow: hidden;
       }
 
+      .format-detail.is-open {
+        overflow: visible;
+      }
+
       .format-detail-head {
         display: flex;
         align-items: flex-start;
@@ -13880,7 +13885,12 @@
         display: grid;
         gap: 14px;
         min-width: 0;
+        overflow: visible;
         padding: 14px;
+      }
+
+      .format-detail-body:has(.editor-select-shell.is-open) {
+        padding-bottom: 230px;
       }
 
       .format-detail-body[hidden] {
@@ -14312,7 +14322,13 @@
       .format-section {
         display: grid;
         gap: 12px;
+        overflow: visible;
         padding: 14px;
+      }
+
+      .format-section:has(.editor-select-shell.is-open) {
+        position: relative;
+        z-index: 40;
       }
 
       .format-section-head {
@@ -14345,6 +14361,12 @@
         background: var(--surface-muted);
         padding: 10px;
         min-width: 0;
+        overflow: visible;
+        position: relative;
+      }
+
+      .format-fact:has(.editor-select-shell.is-open) {
+        z-index: 60;
       }
 
       .format-fact span {
@@ -14388,6 +14410,10 @@
         margin-top: 6px;
       }
 
+      .format-fact-select-shell.is-open {
+        z-index: 80;
+      }
+
       .format-fact-select-shell .custom-select-trigger {
         min-height: 38px;
         border-radius: var(--radius-sm);
@@ -14399,6 +14425,7 @@
 
       .format-fact-select-shell .custom-select-panel {
         border-radius: var(--radius-sm);
+        z-index: 120;
       }
 
       .format-notes-box {
