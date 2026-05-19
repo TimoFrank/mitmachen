@@ -13823,26 +13823,19 @@
 
       .formats-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 10px;
+        gap: 8px;
       }
 
       .format-list-item {
-        width: 100%;
-        display: grid;
-        gap: 5px;
-        padding: 12px;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
-        background: transparent;
-        text-align: left;
-        cursor: pointer;
+        background: var(--surface);
+        overflow: hidden;
       }
 
-      .format-list-item:hover,
-      .format-list-item:focus-visible {
+      .format-list-item[open],
+      .format-list-item:hover {
         background: var(--surface-muted);
-        outline: none;
       }
 
       .format-list-item.is-active {
@@ -13850,8 +13843,40 @@
         border-color: var(--primary);
       }
 
+      .format-list-item summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 12px;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .format-list-item summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .format-list-item summary::after {
+        content: "⌄";
+        color: var(--text-muted);
+        font-weight: 900;
+        transition: transform 160ms ease;
+      }
+
+      .format-list-item[open] summary::after {
+        transform: rotate(180deg);
+      }
+
+      .format-list-summary {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
       .format-list-item strong,
       .format-card-title {
+        display: block;
         color: var(--text);
         font-size: 0.96rem;
         line-height: 1.25;
@@ -13863,6 +13888,44 @@
       .format-empty-state span {
         color: var(--text-muted);
         font-size: 0.83rem;
+      }
+
+      .format-list-body {
+        display: grid;
+        gap: 10px;
+        padding: 0 12px 12px;
+      }
+
+      .format-list-facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .format-list-fact {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        padding: 8px;
+      }
+
+      .format-list-fact span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .format-list-fact strong {
+        margin-top: 3px;
+        font-size: 0.84rem;
+      }
+
+      .format-list-actions {
+        display: flex;
+        justify-content: flex-end;
       }
 
       .format-detail-panel {
@@ -14738,6 +14801,7 @@
 
         .format-diversity-board,
         .format-participant-filter-grid,
+        .format-list-facts,
         .format-facts-grid {
           grid-template-columns: 1fr;
         }
@@ -20959,11 +21023,26 @@
         formatsList.innerHTML = items.map((format) => {
           const participantCount = (format.participants || []).length;
           return `
-            <button class="format-list-item ${format.id === activeFormatId ? "is-active" : ""}" type="button" data-format-id="${escapeHtml(format.id)}">
-              <strong>${escapeHtml(format.title)}</strong>
-              <span>${escapeHtml(format.formatType)} · ${escapeHtml(formatDateRange(format))}</span>
-              <span>${participantCount} ${participantCount === 1 ? "Teilnehmer" : "Teilnehmer"} · ${escapeHtml(format.status)}</span>
-            </button>
+            <details class="format-list-item ${format.id === activeFormatId ? "is-active" : ""}" ${format.id === activeFormatId ? "open" : ""}>
+              <summary>
+                <span class="format-list-summary">
+                  <strong>${escapeHtml(format.title)}</strong>
+                  <span>${escapeHtml(format.formatType)} · ${escapeHtml(formatDateRange(format))}</span>
+                </span>
+              </summary>
+              <div class="format-list-body">
+                <div class="format-list-facts">
+                  <div class="format-list-fact"><span>Status</span><strong>${escapeHtml(format.status || "Planung")}</strong></div>
+                  <div class="format-list-fact"><span>Teilnehmer</span><strong>${participantCount}</strong></div>
+                  <div class="format-list-fact"><span>Ort</span><strong>${escapeHtml(format.location || "Ort offen")}</strong></div>
+                </div>
+                <div class="format-list-actions">
+                  <button class="action-button action-button--compact ${format.id === activeFormatId ? "action-button--primary" : ""}" type="button" data-format-id="${escapeHtml(format.id)}">
+                    ${format.id === activeFormatId ? "Geöffnet" : "Format öffnen"}
+                  </button>
+                </div>
+              </div>
+            </details>
           `;
         }).join("");
         formatsList.querySelectorAll("[data-format-id]").forEach((button) => {

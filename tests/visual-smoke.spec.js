@@ -145,6 +145,12 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
   await expect(page.locator(".format-overview-hero")).toBeVisible();
   await expect(page.locator(".format-roundtable-graphic")).toBeVisible();
+  await page.locator("#toggle-format-overview").click();
+  await expect(page.locator(".format-list-item")).toBeVisible();
+  await expect(page.locator(".format-list-item").first()).toHaveAttribute("open", "");
+  await expect(page.locator(".format-list-facts")).toBeVisible();
+  await page.locator("#toggle-format-overview").click();
+  await expect(page.locator("#formats-overview-panel")).toBeHidden();
   await page.locator('[data-format-tab="participants"]').click();
   await page.locator("#open-participant-planner").click();
   await expect(page.locator("#format-participant-drawer.is-open")).toBeVisible();
