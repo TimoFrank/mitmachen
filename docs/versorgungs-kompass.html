@@ -13827,13 +13827,16 @@
       }
 
       .format-list-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         background: var(--surface);
-        overflow: hidden;
+        padding: 12px;
       }
 
-      .format-list-item[open],
       .format-list-item:hover {
         background: var(--surface-muted);
       }
@@ -13841,31 +13844,6 @@
       .format-list-item.is-active {
         background: var(--primary-soft);
         border-color: var(--primary);
-      }
-
-      .format-list-item summary {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 10px;
-        align-items: center;
-        padding: 12px;
-        cursor: pointer;
-        list-style: none;
-      }
-
-      .format-list-item summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .format-list-item summary::after {
-        content: "⌄";
-        color: var(--text-muted);
-        font-weight: 900;
-        transition: transform 160ms ease;
-      }
-
-      .format-list-item[open] summary::after {
-        transform: rotate(180deg);
       }
 
       .format-list-summary {
@@ -13890,39 +13868,6 @@
         font-size: 0.83rem;
       }
 
-      .format-list-body {
-        display: grid;
-        gap: 10px;
-        padding: 0 12px 12px;
-      }
-
-      .format-list-facts {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
-      }
-
-      .format-list-fact {
-        min-width: 0;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
-        padding: 8px;
-      }
-
-      .format-list-fact span {
-        display: block;
-        color: var(--text-muted);
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-      }
-
-      .format-list-fact strong {
-        margin-top: 3px;
-        font-size: 0.84rem;
-      }
-
       .format-list-actions {
         display: flex;
         justify-content: flex-end;
@@ -13944,8 +13889,11 @@
 
       .format-detail {
         display: grid;
-        gap: 14px;
         min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        overflow: hidden;
       }
 
       .format-detail-head {
@@ -13953,6 +13901,24 @@
         align-items: flex-start;
         justify-content: space-between;
         gap: 16px;
+        padding: 14px 16px;
+        background: var(--surface-muted);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .format-detail:not(.is-open) .format-detail-head {
+        border-bottom: 0;
+      }
+
+      .format-detail-body {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+        padding: 14px;
+      }
+
+      .format-detail-body[hidden] {
+        display: none;
       }
 
       .format-detail-title {
@@ -13975,6 +13941,11 @@
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
+      }
+
+      .format-detail-toggle {
+        min-width: 38px;
+        padding-inline: 10px;
       }
 
       .format-tabs {
@@ -14021,8 +13992,8 @@
         grid-template-columns: minmax(0, 1fr) minmax(260px, 0.52fr);
         gap: 16px;
         align-items: stretch;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
+        border: 0;
+        border-radius: 0;
         background:
           radial-gradient(circle at 92% 8%, var(--primary-soft), transparent 30%),
           linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%);
@@ -14037,8 +14008,7 @@
       }
 
       .format-overview-kicker,
-      .format-overview-actions,
-      .format-overview-badges {
+      .format-overview-actions {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -14108,9 +14078,9 @@
         min-width: 0;
         display: grid;
         place-items: center;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.72);
+        border: 0;
+        border-radius: 0;
+        background: transparent;
         padding: 12px;
       }
 
@@ -14121,21 +14091,21 @@
       }
 
       .format-roundtable-surface {
-        fill: var(--surface);
+        fill: color-mix(in srgb, var(--primary-soft) 38%, var(--surface));
         stroke: var(--border);
         stroke-width: 2;
       }
 
       .format-roundtable-table {
-        fill: var(--primary-soft);
+        fill: var(--surface);
         stroke: var(--primary);
-        stroke-width: 2;
+        stroke-width: 2.4;
       }
 
       .format-roundtable-chair {
-        fill: var(--surface);
-        stroke: var(--border);
-        stroke-width: 1.4;
+        fill: color-mix(in srgb, var(--surface) 80%, var(--primary-soft));
+        stroke: var(--primary);
+        stroke-width: 1.8;
       }
 
       .format-roundtable-person {
@@ -14145,15 +14115,32 @@
       }
 
       .format-roundtable-accent {
-        fill: #ecfdf3;
-        stroke: #b7e4c7;
-        stroke-width: 1.4;
+        fill: var(--surface);
+        stroke: var(--primary);
+        stroke-width: 1.8;
       }
 
       .format-roundtable-line {
         fill: none;
-        stroke: #b7e4c7;
-        stroke-width: 2;
+        stroke: var(--text-muted);
+        stroke-width: 2.1;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .format-roundtable-line--accent {
+        stroke: var(--primary);
+      }
+
+      .format-roundtable-note {
+        fill: var(--surface);
+        stroke: var(--border);
+        stroke-width: 1.6;
+      }
+
+      .format-roundtable-note-line {
+        stroke: var(--primary);
+        stroke-width: 1.8;
         stroke-linecap: round;
       }
 
@@ -14805,7 +14792,6 @@
 
         .format-diversity-board,
         .format-participant-filter-grid,
-        .format-list-facts,
         .format-facts-grid {
           grid-template-columns: 1fr;
         }
@@ -17086,6 +17072,7 @@
       let editingFormatId = null;
       let formatOverviewOpen = false;
       let formatActiveTab = "overview";
+      let formatDetailExpanded = true;
       let participantPlannerFormatId = null;
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
@@ -21045,28 +21032,18 @@
           return;
         }
         formatsList.innerHTML = items.map((format) => {
-          const participantCount = (format.participants || []).length;
           return `
-            <details class="format-list-item ${format.id === activeFormatId ? "is-active" : ""}" ${format.id === activeFormatId ? "open" : ""}>
-              <summary>
-                <span class="format-list-summary">
-                  <strong>${escapeHtml(format.title)}</strong>
-                  <span>${escapeHtml(format.formatType)} · ${escapeHtml(formatDateRange(format))}</span>
-                </span>
-              </summary>
-              <div class="format-list-body">
-                <div class="format-list-facts">
-                  <div class="format-list-fact"><span>Status</span><strong>${escapeHtml(format.status || "Planung")}</strong></div>
-                  <div class="format-list-fact"><span>Teilnehmer</span><strong>${participantCount}</strong></div>
-                  <div class="format-list-fact"><span>Ort</span><strong>${escapeHtml(format.location || "Ort offen")}</strong></div>
-                </div>
-                <div class="format-list-actions">
-                  <button class="action-button action-button--compact ${format.id === activeFormatId ? "action-button--primary" : ""}" type="button" data-format-id="${escapeHtml(format.id)}">
-                    ${format.id === activeFormatId ? "Geöffnet" : "Format öffnen"}
-                  </button>
-                </div>
+            <article class="format-list-item ${format.id === activeFormatId ? "is-active" : ""}">
+              <span class="format-list-summary">
+                <strong>${escapeHtml(format.title)}</strong>
+                <span>${escapeHtml(format.formatType)} · ${escapeHtml(formatDateRange(format))} · ${escapeHtml(format.location || "Ort offen")}</span>
+              </span>
+              <div class="format-list-actions">
+                <button class="action-button action-button--compact ${format.id === activeFormatId ? "action-button--primary" : ""}" type="button" data-format-id="${escapeHtml(format.id)}">
+                  ${format.id === activeFormatId ? "Geöffnet" : "Öffnen"}
+                </button>
               </div>
-            </details>
+            </article>
           `;
         }).join("");
         formatsList.querySelectorAll("[data-format-id]").forEach((button) => {
@@ -21074,6 +21051,7 @@
             activeFormatId = button.dataset.formatId;
             editingFormatId = null;
             formatActiveTab = "overview";
+            formatDetailExpanded = true;
             setFormatOverviewOpen(false);
             renderFormatsView();
           });
@@ -21290,35 +21268,35 @@
 
       function renderFormatRoundtableGraphic(format) {
         const participantCount = (format.participants || []).length;
-        const people = Math.max(4, Math.min(8, participantCount || 6));
+        const people = Math.max(5, Math.min(9, participantCount || 7));
         const center = { x: 170, y: 118 };
         const chairs = Array.from({ length: people }, (_, index) => {
           const angle = -Math.PI / 2 + (index / people) * Math.PI * 2;
-          const chairX = center.x + Math.cos(angle) * 86;
-          const chairY = center.y + Math.sin(angle) * 58;
-          const personX = center.x + Math.cos(angle) * 66;
-          const personY = center.y + Math.sin(angle) * 44;
+          const chairX = center.x + Math.cos(angle) * 100;
+          const chairY = center.y + Math.sin(angle) * 66;
+          const personX = center.x + Math.cos(angle) * 76;
+          const personY = center.y + Math.sin(angle) * 48;
           return `
-            <circle class="format-roundtable-chair" cx="${chairX.toFixed(1)}" cy="${chairY.toFixed(1)}" r="15"></circle>
-            <circle class="format-roundtable-person" cx="${personX.toFixed(1)}" cy="${personY.toFixed(1)}" r="10"></circle>
+            <path class="format-roundtable-chair" d="M${(chairX - 13).toFixed(1)} ${(chairY - 8).toFixed(1)}q13 -10 26 0v16q-13 10 -26 0z"></path>
+            <circle class="format-roundtable-person" cx="${personX.toFixed(1)}" cy="${personY.toFixed(1)}" r="9.6"></circle>
           `;
         }).join("");
         return `
           <svg class="format-roundtable-graphic" viewBox="0 0 340 230" role="img" aria-label="Illustration eines Roundtables mit Teilnehmenden">
-            <rect class="format-roundtable-surface" x="18" y="18" width="304" height="194" rx="22"></rect>
-            <rect class="format-roundtable-accent" x="224" y="46" width="52" height="36" rx="8"></rect>
-            <path class="format-roundtable-line" d="M232 58h36M232 70h24"></path>
+            <path class="format-roundtable-surface" d="M44 42c32-23 91-27 139-19 63 10 113 40 123 82 11 46-31 83-92 94-68 13-148-1-177-39-26-34-23-96 7-118z"></path>
+            <path class="format-roundtable-note" d="M239 35h54a10 10 0 0 1 10 10v44a10 10 0 0 1-10 10h-54a10 10 0 0 1-10-10V45a10 10 0 0 1 10-10z"></path>
+            <path class="format-roundtable-note-line" d="M243 52h43M243 66h32M243 80h24"></path>
+            <path class="format-roundtable-accent" d="M67 48h48a12 12 0 0 1 12 12v28H55V60a12 12 0 0 1 12-12z"></path>
+            <path class="format-roundtable-line format-roundtable-line--accent" d="M70 62h38M70 76h24"></path>
             ${chairs}
-            <ellipse class="format-roundtable-table" cx="${center.x}" cy="${center.y}" rx="72" ry="44"></ellipse>
-            <path class="format-roundtable-line" d="M128 118h84M154 96v44M186 96v44"></path>
+            <ellipse class="format-roundtable-table" cx="${center.x}" cy="${center.y}" rx="84" ry="50"></ellipse>
+            <path class="format-roundtable-line" d="M113 115c27-10 85-10 113 0M128 133c29 9 56 9 84 0M151 91v55M189 91v55"></path>
+            <path class="format-roundtable-line format-roundtable-line--accent" d="M136 102c22-12 46-12 68 0"></path>
           </svg>
         `;
       }
 
       function renderFormatOverviewHero(format) {
-        const participants = format.participants || [];
-        const accepted = participants.filter((participant) => participant.invitationStatus === "Zugesagt").length;
-        const pending = participants.filter((participant) => ["Eingeladen", "Keine Rückmeldung"].includes(participant.invitationStatus)).length;
         const goal = meaningfulOrEmpty(format.goal) || "Planung, Einladung und Zusammensetzung der Runde an einem Ort.";
         return `
           <section class="format-overview-hero">
@@ -21332,16 +21310,8 @@
                 <h4>${escapeHtml(format.title || "Neues Format")}</h4>
                 <p>${escapeHtml(goal)}</p>
               </div>
-              <div class="format-overview-badges" aria-label="Format-Kennzahlen">
-                <span class="format-badge">${participants.length} ${participants.length === 1 ? "Teilnehmer" : "Teilnehmer"}</span>
-                <span class="format-badge format-badge--success">${accepted} zugesagt</span>
-                <span class="format-badge format-badge--warm">${pending} offen</span>
-                <span class="format-badge">${escapeHtml(format.location || "Ort offen")}</span>
-              </div>
               <div class="format-overview-actions">
                 ${canEditContacts() ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
-                <button class="action-button" type="button" data-format-tab="invitationStatus">Einladungsstatus</button>
-                <button class="action-button" type="button" data-format-tab="reporting">Auswertung</button>
               </div>
             </div>
             <div class="format-overview-visual">
@@ -21505,20 +21475,23 @@
         }
         if (!formatTabItems.some((tab) => tab.id === formatActiveTab)) formatActiveTab = "overview";
         formatDetailPanel.innerHTML = `
-          <div class="format-detail">
+          <div class="format-detail ${formatDetailExpanded ? "is-open" : ""}">
             <div class="format-detail-head">
               <div class="format-detail-title">
                 <h3>${escapeHtml(format.title)}</h3>
                 <div class="format-card-meta">${escapeHtml(format.formatType)} · ${escapeHtml(formatDateRange(format))} · ${escapeHtml(format.location || "Ort offen")}</div>
               </div>
               <div class="format-detail-actions">
+                <button class="action-button format-detail-toggle" type="button" id="toggle-format-detail" aria-label="${formatDetailExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${formatDetailExpanded}" aria-controls="format-detail-body">${formatDetailExpanded ? "^" : "v"}</button>
                 ${canEditContacts() ? `<button class="action-button" type="button" id="edit-format-button">Bearbeiten</button>` : ""}
                 ${canEditContacts() ? `<button class="action-button" type="button" id="archive-format-button">Archivieren</button>` : ""}
                 ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" id="delete-format-button">Löschen</button>` : ""}
               </div>
             </div>
-            ${renderFormatTabs()}
-            ${renderFormatActiveTab(format)}
+            <div class="format-detail-body" id="format-detail-body" ${formatDetailExpanded ? "" : "hidden"}>
+              ${renderFormatTabs()}
+              ${renderFormatActiveTab(format)}
+            </div>
           </div>
         `;
         bindFormatDetail();
@@ -21555,6 +21528,7 @@
         if (!updated) return;
         formats = [updated, ...formats.filter((format) => format.id !== updated.id)];
         activeFormatId = updated.id;
+        formatDetailExpanded = true;
       }
 
       function bindFormatEditor() {
@@ -21810,6 +21784,10 @@
             const formatContacts = formatParticipantContacts(format).map(({ contact }) => contact);
             openDetail(contactId, formatContacts);
           });
+        });
+        document.getElementById("toggle-format-detail")?.addEventListener("click", () => {
+          formatDetailExpanded = !formatDetailExpanded;
+          renderFormatDetail(format);
         });
         document.getElementById("edit-format-button")?.addEventListener("click", () => {
           openFormatEditorDrawer(format);

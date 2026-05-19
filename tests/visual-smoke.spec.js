@@ -150,10 +150,15 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-roundtable-graphic")).toBeVisible();
   await page.locator("#toggle-format-overview").click();
   await expect(page.locator(".format-list-item")).toBeVisible();
-  await expect(page.locator(".format-list-item").first()).toHaveAttribute("open", "");
-  await expect(page.locator(".format-list-facts")).toBeVisible();
+  await expect(page.locator(".format-list-item").first()).not.toHaveAttribute("open", "");
+  await expect(page.locator(".format-list-facts")).toHaveCount(0);
   await page.locator("#toggle-format-overview").click();
   await expect(page.locator("#formats-overview-panel")).toBeHidden();
+  await expect(page.locator("#format-detail-body")).toBeVisible();
+  await page.locator("#toggle-format-detail").click();
+  await expect(page.locator("#format-detail-body")).toBeHidden();
+  await page.locator("#toggle-format-detail").click();
+  await expect(page.locator("#format-detail-body")).toBeVisible();
   await page.locator('[data-format-tab="participants"]').click();
   await page.locator("#open-participant-planner").click();
   await expect(page.locator("#format-participant-drawer.is-open")).toBeVisible();
