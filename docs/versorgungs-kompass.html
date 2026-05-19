@@ -22206,6 +22206,7 @@
                   <h4>Format verwalten</h4>
                 </div>
                 <div class="format-settings-actions">
+                  ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format-settings="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
                   ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
                   ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
                 </div>
@@ -22725,6 +22726,13 @@
               field.blur();
             });
           }
+        });
+        formatDetailPanel.querySelectorAll("[data-edit-format-settings]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const selectedFormat = formats.find((item) => item.id === button.dataset.editFormatSettings);
+            if (!selectedFormat) return;
+            openFormatEditorDrawer(selectedFormat);
+          });
         });
         formatDetailPanel.querySelectorAll("[data-archive-format]").forEach((button) => {
           button.addEventListener("click", async () => {
