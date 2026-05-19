@@ -14196,33 +14196,6 @@
         border-radius: var(--radius-md);
       }
 
-      .format-metrics {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .format-metric {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        padding: 10px;
-        background: var(--surface-muted);
-        border-left: 4px solid var(--primary);
-      }
-
-      .format-metric span {
-        display: block;
-        color: var(--text-muted);
-        font-size: 0.74rem;
-        text-transform: uppercase;
-      }
-
-      .format-metric strong {
-        display: block;
-        margin-top: 4px;
-        font-size: 1rem;
-      }
-
       .format-section {
         display: grid;
         gap: 12px;
@@ -15040,9 +15013,6 @@
           grid-template-columns: 1fr;
         }
 
-        .format-metrics {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
       }
 
       @media (max-width: 760px) {
@@ -15095,8 +15065,7 @@
         .format-reporting-layout,
         .format-overview-hero,
         .participant-board,
-        .invitation-status-board,
-        .format-metrics {
+        .invitation-status-board {
           grid-template-columns: 1fr;
         }
 
@@ -21510,20 +21479,6 @@
         `;
       }
 
-      function renderFormatMetrics(format) {
-        const participants = format.participants || [];
-        const accepted = participants.filter((participant) => participant.invitationStatus === "Zugesagt").length;
-        const pending = participants.filter((participant) => ["Eingeladen", "Keine Rückmeldung"].includes(participant.invitationStatus)).length;
-        return `
-          <div class="format-metrics">
-            <div class="format-metric"><span>Teilnehmer</span><strong>${participants.length}</strong></div>
-            <div class="format-metric"><span>Zugesagt</span><strong>${accepted}</strong></div>
-            <div class="format-metric"><span>Offen</span><strong>${pending}</strong></div>
-            <div class="format-metric"><span>Status</span><strong>${escapeHtml(format.status)}</strong></div>
-          </div>
-        `;
-      }
-
       function renderFormatOverviewHero(format) {
         return `
           <section class="format-overview-hero">
@@ -21649,7 +21604,6 @@
         return `
           <div class="format-tab-panel" role="tabpanel">
             ${renderFormatOverviewHero(format)}
-            ${renderFormatMetrics(format)}
             <section class="format-section">
               <div class="format-section-head">
                 <div>
