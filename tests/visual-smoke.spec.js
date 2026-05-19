@@ -177,6 +177,8 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-diversity-board")).toBeVisible();
   await expect(page.locator(".format-participant-mini-map")).toBeVisible();
   await expect(page.locator(".format-participant-map-marker")).toHaveCount(1);
+  await expect(page.locator(".format-participant-map-marker").first()).toHaveAttribute("fill", /#[0-9a-fA-F]{6}/);
+  await expect(page.locator(".format-participant-map")).not.toContainText("Personen mit Koordinaten");
 
   await attachScreenshot(page, testInfo, "formate");
 });

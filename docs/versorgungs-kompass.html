@@ -14159,13 +14159,13 @@
 
       .format-diversity-board {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
 
       .format-reporting-layout {
         display: grid;
-        grid-template-columns: minmax(176px, 220px) minmax(0, 1fr);
+        grid-template-columns: minmax(240px, 0.42fr) minmax(0, 1fr);
         gap: 12px;
         align-items: start;
       }
@@ -14192,7 +14192,7 @@
       }
 
       .format-participant-mini-map {
-        width: min(100%, 192px);
+        width: min(100%, 210px);
         height: auto;
         display: block;
         justify-self: center;
@@ -14206,7 +14206,6 @@
       }
 
       .format-participant-map-marker {
-        fill: var(--primary);
         stroke: var(--surface);
         stroke-width: 2;
         vector-effect: non-scaling-stroke;
@@ -21026,10 +21025,6 @@
               <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => contact.category, { sector: true })}</div>
             </section>
             <section class="format-diversity-column">
-              <h5>Bundesländer</h5>
-              <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => stateLabel(contact))}</div>
-            </section>
-            <section class="format-diversity-column">
               <h5>Fachrichtungen</h5>
               <div class="format-diversity-list">${renderDiversityChips(entries, (contact) => specialtyLabel(contact))}</div>
             </section>
@@ -21048,7 +21043,8 @@
       }
 
       function renderParticipantLocationMap(format) {
-        const entries = formatParticipantContacts(format)
+        const participantEntries = formatParticipantContacts(format);
+        const entries = participantEntries
           .map(({ contact }) => ({
             contact,
             lat: Number.parseFloat(contact.lat),
@@ -21076,10 +21072,11 @@
                 const offsetRadius = Math.floor(index / 8) * 1.4;
                 const x = point.x + Math.cos(offsetAngle) * offsetRadius;
                 const y = point.y + Math.sin(offsetAngle) * offsetRadius;
-                return `<circle class="format-participant-map-marker" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.2"><title>${escapeHtml(contact.name)} · ${escapeHtml(formatLocationDisplay(contact) || stateLabel(contact) || "Ort offen")}</title></circle>`;
+                const color = categoryChartColors[categoryLabel(contact)] || categoryChartColors.Praxis;
+                return `<circle class="format-participant-map-marker" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.2" fill="${escapeHtml(color)}"><title>${escapeHtml(contact.name)} · ${escapeHtml(formatLocationDisplay(contact) || stateLabel(contact) || "Ort offen")} · ${escapeHtml(categoryLabel(contact))}</title></circle>`;
               }).join("")}
             </svg>
-            <p>${entries.length || "Keine"} ${entries.length === 1 ? "Person mit Koordinaten" : "Personen mit Koordinaten"}</p>
+            <div class="format-diversity-list">${renderDiversityChips(participantEntries, (contact) => stateLabel(contact))}</div>
           </section>
         `;
       }
