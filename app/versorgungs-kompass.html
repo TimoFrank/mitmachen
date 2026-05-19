@@ -13951,6 +13951,7 @@
       .format-detail-admin-actions {
         display: flex;
         align-items: center;
+        justify-content: flex-end;
         gap: 10px;
         flex-wrap: wrap;
       }
@@ -14015,8 +14016,21 @@
         display: flex;
         align-items: center;
         gap: 4px;
-        border-bottom: 1px solid var(--border);
+        flex: 1 1 auto;
         overflow-x: auto;
+      }
+
+      .format-detail-nav {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .format-detail-nav .format-detail-admin-actions {
+        flex: 0 0 auto;
+        padding: 0 2px 10px 0;
       }
 
       .format-tab {
@@ -14853,6 +14867,17 @@
         .format-tabs {
           flex-wrap: wrap;
           overflow-x: visible;
+        }
+
+        .format-detail-nav {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .format-detail-nav .format-detail-admin-actions {
+          justify-content: flex-start;
+          padding: 0 8px 10px;
         }
 
         .format-detail-title-main {
@@ -21511,12 +21536,14 @@
                   </div>
                   ${isExpanded ? `
                     <div class="format-detail-body" id="format-detail-body-${escapeHtml(format.id)}">
-                      <div class="format-detail-admin-actions" aria-label="Format verwalten">
-                        ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
-                        ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
-                        ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
+                      <div class="format-detail-nav">
+                        ${renderFormatTabs()}
+                        <div class="format-detail-admin-actions" aria-label="Format verwalten">
+                          ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
+                          ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
+                          ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
+                        </div>
                       </div>
-                      ${renderFormatTabs()}
                       ${renderFormatActiveTab(format)}
                     </div>
                   ` : ""}
