@@ -14449,6 +14449,46 @@
         padding: 12px;
       }
 
+      .format-participant-filter-grid .format-editor-field {
+        position: relative;
+      }
+
+      .format-participant-filter-grid .format-editor-field::after {
+        content: "⌄";
+        position: absolute;
+        right: 12px;
+        bottom: 10px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        line-height: 1;
+        pointer-events: none;
+      }
+
+      .format-participant-filter-grid select {
+        min-height: 42px;
+        appearance: none;
+        -webkit-appearance: none;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        font-weight: 700;
+        padding: 9px 34px 9px 11px;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      }
+
+      .format-participant-filter-grid select:hover {
+        border-color: var(--primary);
+        background: var(--surface-muted);
+      }
+
+      .format-participant-filter-grid select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-soft);
+        outline: none;
+      }
+
       .format-editor-field span {
         color: var(--text-muted);
         font-size: 0.78rem;
