@@ -14138,6 +14138,83 @@
         gap: 8px;
       }
 
+      .invitation-status-board {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(190px, 1fr));
+        gap: 10px;
+      }
+
+      .invitation-status-column {
+        min-width: 0;
+        display: grid;
+        align-content: start;
+        gap: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        padding: 10px;
+      }
+
+      .invitation-status-column.is-drop-target {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+      }
+
+      .invitation-status-column h5 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0;
+        font-size: 0.82rem;
+      }
+
+      .invitation-status-list {
+        display: grid;
+        gap: 8px;
+        min-height: 72px;
+      }
+
+      .invitation-status-card {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        padding: 9px;
+      }
+
+      .invitation-status-card[draggable="true"] {
+        cursor: grab;
+      }
+
+      .invitation-status-card.is-dragging {
+        opacity: 0.62;
+      }
+
+      .invitation-status-person {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        padding: 0;
+        text-align: left;
+      }
+
+      .invitation-status-select {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        padding: 6px 8px;
+      }
+
       .participant-card {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
@@ -14434,6 +14511,7 @@
 
         .format-editor-grid,
         .participant-board,
+        .invitation-status-board,
         .format-metrics {
           grid-template-columns: 1fr;
         }
@@ -16418,6 +16496,7 @@
         { id: "overview", label: "Überblick" },
         { id: "participants", label: "Teilnehmer" },
         { id: "composition", label: "Zusammensetzung" },
+        { id: "invitationStatus", label: "Einladungsstatus" },
         { id: "reporting", label: "Auswertung" },
         { id: "notes", label: "Notizen & Export" }
       ];
@@ -20771,6 +20850,45 @@
         `;
       }
 
+      function renderInvitationStatusBoard(format) {
+        const entries = formatParticipantContacts(format);
+        if (!entries.length) return `<div class="empty">Noch keine Teilnehmer ausgewählt.</div>`;
+        return `
+          <div class="invitation-status-board">
+            ${invitationStatusOptions.map((status) => {
+              const statusEntries = entries
+                .filter(({ participant }) => participant.invitationStatus === status)
+                .sort((a, b) => a.contact.name.localeCompare(b.contact.name, "de"));
+              return `
+                <section class="invitation-status-column" data-invitation-status-drop="${escapeHtml(status)}">
+                  <h5>${escapeHtml(status)} <span class="participant-count">${statusEntries.length}</span></h5>
+                  <div class="invitation-status-list">
+                    ${statusEntries.length ? statusEntries.map(({ contact, participant }) => `
+                      <article class="invitation-status-card" draggable="${canEditContacts() ? "true" : "false"}" data-invitation-card="${escapeHtml(contact.id)}">
+                        <button class="invitation-status-person" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
+                          ${contactAvatarMarkup(contact, "sm")}
+                          <span class="participant-card-copy">
+                            <span class="participant-card-name">${escapeHtml(contact.name)}</span>
+                            <span class="participant-card-meta">${escapeHtml(contact.organization || "Keine Organisation")}</span>
+                            <span class="participant-card-tags">
+                              ${sectorBadgeMarkup(contact.category)}
+                              <span class="format-diversity-chip">${escapeHtml(participant.participantRole || "Rolle offen")}</span>
+                            </span>
+                          </span>
+                        </button>
+                        <select class="invitation-status-select" data-invitation-status-select="${escapeHtml(contact.id)}" ${canEditContacts() ? "" : "disabled"}>
+                          ${formatOptionMarkup(invitationStatusOptions, participant.invitationStatus)}
+                        </select>
+                      </article>
+                    `).join("") : `<div class="empty">Keine Teilnehmer</div>`}
+                  </div>
+                </section>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
+
       function renderFormatMetrics(format) {
         const participants = format.participants || [];
         const accepted = participants.filter((participant) => participant.invitationStatus === "Zugesagt").length;
@@ -20859,6 +20977,25 @@
         `;
       }
 
+      function renderFormatInvitationStatusTab(format) {
+        return `
+          <div class="format-tab-panel" role="tabpanel">
+            <section class="format-section">
+              <div class="format-section-head">
+                <div>
+                  <h4>Einladungsstatus</h4>
+                  <p>Teilnehmer nach Anfrage- und Zusagestatus planen.</p>
+                </div>
+                <div class="format-participant-actions">
+                  ${canEditContacts() ? `<button class="action-button" type="button" id="open-participant-planner">Teilnehmer ergänzen</button>` : ""}
+                </div>
+              </div>
+              ${renderInvitationStatusBoard(format)}
+            </section>
+          </div>
+        `;
+      }
+
       function renderFormatReportingTab(format) {
         return `
           <div class="format-tab-panel" role="tabpanel">
@@ -20903,6 +21040,7 @@
       function renderFormatActiveTab(format) {
         if (formatActiveTab === "participants") return renderFormatParticipantsTab(format);
         if (formatActiveTab === "composition") return renderFormatCompositionTab(format);
+        if (formatActiveTab === "invitationStatus") return renderFormatInvitationStatusTab(format);
         if (formatActiveTab === "reporting") return renderFormatReportingTab(format);
         if (formatActiveTab === "notes") return renderFormatNotesTab(format);
         return renderFormatOverviewTab(format);
@@ -21234,6 +21372,17 @@
       function bindFormatDetail() {
         const format = activeFormat();
         if (!format) return;
+        const updateInvitationStatus = async (contactId, invitationStatus) => {
+          if (!contactId || !invitationStatus || !canEditContacts()) return;
+          try {
+            const updated = await window.dataService.updateFormatParticipant(format.id, contactId, { invitationStatus });
+            replaceFormat(updated);
+            renderFormatsView();
+          } catch (error) {
+            console.error("Einladungsstatus konnte nicht gespeichert werden.", error);
+            window.alert("Der Einladungsstatus konnte nicht gespeichert werden.");
+          }
+        };
         formatDetailPanel.querySelectorAll("[data-format-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             formatActiveTab = button.dataset.formatTab || "overview";
@@ -21295,6 +21444,44 @@
           openParticipantPlanner(format.id);
         });
         document.getElementById("export-format-participants")?.addEventListener("click", () => downloadFormatParticipants(format));
+        formatDetailPanel.querySelectorAll("[data-invitation-status-select]").forEach((select) => {
+          select.addEventListener("change", () => {
+            updateInvitationStatus(select.dataset.invitationStatusSelect, select.value);
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-invitation-card]").forEach((card) => {
+          card.addEventListener("dragstart", (event) => {
+            if (!canEditContacts()) {
+              event.preventDefault();
+              return;
+            }
+            event.dataTransfer?.setData("text/plain", card.dataset.invitationCard || "");
+            event.dataTransfer?.setData("application/x-format-contact", card.dataset.invitationCard || "");
+            event.dataTransfer.effectAllowed = "move";
+            card.classList.add("is-dragging");
+          });
+          card.addEventListener("dragend", () => {
+            card.classList.remove("is-dragging");
+            formatDetailPanel.querySelectorAll(".invitation-status-column.is-drop-target").forEach((column) => {
+              column.classList.remove("is-drop-target");
+            });
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-invitation-status-drop]").forEach((column) => {
+          column.addEventListener("dragover", (event) => {
+            if (!canEditContacts()) return;
+            event.preventDefault();
+            column.classList.add("is-drop-target");
+            if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+          });
+          column.addEventListener("dragleave", () => column.classList.remove("is-drop-target"));
+          column.addEventListener("drop", (event) => {
+            event.preventDefault();
+            column.classList.remove("is-drop-target");
+            const contactId = event.dataTransfer?.getData("application/x-format-contact") || event.dataTransfer?.getData("text/plain");
+            updateInvitationStatus(contactId, column.dataset.invitationStatusDrop);
+          });
+        });
         formatDetailPanel.querySelectorAll("[data-participant-field]").forEach((field) => {
           field.addEventListener("change", async () => {
             const row = field.closest("[data-participant-contact]");
