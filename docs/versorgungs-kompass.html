@@ -14029,21 +14029,18 @@
         padding: 10px;
       }
 
-      .format-diversity-column h5,
-      .format-composition-group h5 {
+      .format-diversity-column h5 {
         margin: 0 0 8px;
         font-size: 0.82rem;
       }
 
-      .format-diversity-list,
-      .format-composition-list {
+      .format-diversity-list {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
       }
 
-      .format-diversity-chip,
-      .format-composition-chip {
+      .format-diversity-chip {
         display: inline-flex;
         align-items: center;
         max-width: 100%;
@@ -14057,8 +14054,7 @@
         font-weight: 700;
       }
 
-      .format-diversity-chip span,
-      .format-composition-chip span {
+      .format-diversity-chip span {
         color: var(--text-muted);
         font-weight: 800;
       }
@@ -14393,7 +14389,7 @@
 
       .format-participant-body {
         display: grid;
-        grid-template-rows: auto auto auto minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
         gap: 12px;
         padding: 16px 18px;
         overflow: auto;
@@ -14409,24 +14405,54 @@
         width: 100%;
       }
 
-      .format-participant-filter-grid,
-      .format-composition-grid {
+      .format-participant-filter-toggle {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .format-participant-filter-toggle summary {
+        cursor: pointer;
+        color: var(--text);
+        font-size: 0.86rem;
+        font-weight: 800;
+        list-style: none;
+        padding: 10px 12px;
+      }
+
+      .format-participant-filter-toggle summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .format-participant-filter-toggle summary::after {
+        content: "⌄";
+        float: right;
+        color: var(--text-muted);
+      }
+
+      .format-participant-filter-toggle[open] summary {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .format-participant-filter-toggle[open] summary::after {
+        transform: rotate(180deg);
+      }
+
+      .format-participant-filter-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
+      }
+
+      .format-participant-filter-grid {
+        padding: 12px;
       }
 
       .format-editor-field span {
         color: var(--text-muted);
         font-size: 0.78rem;
         font-weight: 700;
-      }
-
-      .format-composition-panel {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        background: var(--surface-muted);
-        padding: 12px;
       }
 
       .format-participant-results-head {
@@ -14444,13 +14470,14 @@
 
       .format-participant-row {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: auto auto minmax(0, 1fr);
         align-items: center;
         gap: 10px;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         background: var(--surface);
         padding: 10px;
+        cursor: pointer;
       }
 
       .format-participant-row.is-selected {
@@ -14492,7 +14519,6 @@
 
         .format-diversity-board,
         .format-participant-filter-grid,
-        .format-composition-grid,
         .format-facts-grid {
           grid-template-columns: 1fr;
         }
@@ -14546,8 +14572,8 @@
           grid-template-columns: auto minmax(0, 1fr);
         }
 
-        .format-participant-row .action-button {
-          grid-column: 1 / -1;
+        .format-participant-row .avatar {
+          grid-row: span 1;
         }
 
         .participant-table-head {
@@ -15632,7 +15658,7 @@
         <div class="format-participant-header">
           <div>
             <h3 id="format-participant-title">Teilnehmer zusammenstellen</h3>
-            <p id="format-participant-subtitle">Kontakte nach Sektor, Bundesland und Fachrichtung auswählen.</p>
+            <p id="format-participant-subtitle">Kontakte suchen und zur Einladungsliste hinzufügen.</p>
           </div>
           <button class="import-close" type="button" id="format-participant-close" aria-label="Teilnehmerauswahl schließen">&times;</button>
         </div>
@@ -15645,30 +15671,24 @@
               </svg>
               <input class="search-input" id="format-participant-search" type="search" placeholder="Nach Name, Organisation, Ort oder Thema suchen" />
             </label>
-            <div class="format-participant-filter-grid">
-              <label class="format-editor-field">
-                <span>Sektor</span>
-                <select id="format-participant-sector"></select>
-              </label>
-              <label class="format-editor-field">
-                <span>Bundesland</span>
-                <select id="format-participant-state"></select>
-              </label>
-              <label class="format-editor-field">
-                <span>Fachrichtung</span>
-                <select id="format-participant-specialty"></select>
-              </label>
-            </div>
-          </div>
-          <section class="format-composition-panel">
-            <div class="format-section-head">
-              <div>
-                <h4>Aktuelle Zusammensetzung</h4>
-                <p>Bestehende Teilnehmer plus aktuelle Auswahl.</p>
+            <details class="format-participant-filter-toggle">
+              <summary>Filter</summary>
+              <div class="format-participant-filter-grid">
+                <label class="format-editor-field">
+                  <span>Sektor</span>
+                  <select id="format-participant-sector"></select>
+                </label>
+                <label class="format-editor-field">
+                  <span>Bundesland</span>
+                  <select id="format-participant-state"></select>
+                </label>
+                <label class="format-editor-field">
+                  <span>Fachrichtung</span>
+                  <select id="format-participant-specialty"></select>
+                </label>
               </div>
-            </div>
-            <div class="format-composition-grid" id="format-participant-composition"></div>
-          </section>
+            </details>
+          </div>
           <div class="format-participant-results-head">
             <span id="format-participant-results">0 Kontakte</span>
             <button class="action-button action-button--compact" type="button" id="format-participant-clear">Auswahl leeren</button>
@@ -16539,7 +16559,6 @@
       const formatParticipantSector = document.getElementById("format-participant-sector");
       const formatParticipantState = document.getElementById("format-participant-state");
       const formatParticipantSpecialty = document.getElementById("format-participant-specialty");
-      const formatParticipantComposition = document.getElementById("format-participant-composition");
       const formatParticipantResults = document.getElementById("format-participant-results");
       const formatParticipantList = document.getElementById("format-participant-list");
       const formatParticipantClear = document.getElementById("format-participant-clear");
@@ -21281,28 +21300,6 @@
           .sort((a, b) => a.name.localeCompare(b.name, "de"));
       }
 
-      function plannerCompositionContacts(format) {
-        const existing = formatParticipantContacts(format).map(({ contact }) => contact);
-        const selected = contacts.filter((contact) => participantPlannerSelectedIds.has(contact.id));
-        const byId = new Map([...existing, ...selected].map((contact) => [contact.id, contact]));
-        return [...byId.values()];
-      }
-
-      function renderCompositionGroup(title, contactsForComposition, getter, { sector = false } = {}) {
-        const counts = countByValue(contactsForComposition, getter).slice(0, 8);
-        return `
-          <div class="format-composition-group">
-            <h5>${escapeHtml(title)}</h5>
-            <div class="format-composition-list">
-              ${counts.length ? counts.map(([label, count]) => sector
-                ? `<span class="format-composition-chip">${sectorBadgeMarkup(label)} <span>${count}</span></span>`
-                : `<span class="format-composition-chip">${escapeHtml(label)} <span>${count}</span></span>`
-              ).join("") : `<span class="format-composition-chip">Noch leer <span>0</span></span>`}
-            </div>
-          </div>
-        `;
-      }
-
       function renderParticipantPlannerOptions(format) {
         const available = contacts.filter((contact) => contact.status !== "archived" && !formatParticipantIds(format).has(contact.id));
         const renderOptions = (select, values, placeholder) => {
@@ -21324,14 +21321,6 @@
         if (!format) return;
         renderParticipantPlannerOptions(format);
         const items = availablePlannerContacts(format);
-        const composition = plannerCompositionContacts(format);
-        if (formatParticipantComposition) {
-          formatParticipantComposition.innerHTML = [
-            renderCompositionGroup("Sektoren", composition, (contact) => contact.category, { sector: true }),
-            renderCompositionGroup("Bundesländer", composition, (contact) => stateLabel(contact)),
-            renderCompositionGroup("Fachrichtungen", composition, (contact) => specialtyLabel(contact))
-          ].join("");
-        }
         if (formatParticipantResults) formatParticipantResults.textContent = `${items.length} verfügbare Kontakte`;
         if (formatParticipantSelectionCount) {
           const count = participantPlannerSelectedIds.size;
@@ -21347,12 +21336,12 @@
           return `
             <label class="format-participant-row ${selected ? "is-selected" : ""}" data-planner-contact="${escapeHtml(contact.id)}">
               <input type="checkbox" value="${escapeHtml(contact.id)}" ${selected ? "checked" : ""} />
+              ${contactAvatarMarkup(contact, "sm")}
               <span class="format-participant-copy">
                 <span class="format-participant-name">${escapeHtml(contact.name)}</span>
                 <span class="format-participant-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(stateLabel(contact) || "Bundesland offen")} · ${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
-                <span class="participant-card-tags">${sectorBadgeMarkup(contact.category)} <span class="format-diversity-chip">${escapeHtml(contact.contactRole || "Rolle offen")}</span></span>
+                <span class="participant-card-tags">${sectorBadgeMarkup(contact.category)}</span>
               </span>
-              <button class="action-button action-button--compact" type="button" data-planner-toggle="${escapeHtml(contact.id)}">${selected ? "Entfernen" : "Auswählen"}</button>
             </label>
           `;
         }).join("");
@@ -21360,15 +21349,6 @@
           checkbox.addEventListener("change", () => {
             if (checkbox.checked) participantPlannerSelectedIds.add(checkbox.value);
             else participantPlannerSelectedIds.delete(checkbox.value);
-            renderParticipantPlanner();
-          });
-        });
-        formatParticipantList.querySelectorAll("[data-planner-toggle]").forEach((button) => {
-          button.addEventListener("click", (event) => {
-            event.preventDefault();
-            const id = button.dataset.plannerToggle;
-            if (participantPlannerSelectedIds.has(id)) participantPlannerSelectedIds.delete(id);
-            else participantPlannerSelectedIds.add(id);
             renderParticipantPlanner();
           });
         });
