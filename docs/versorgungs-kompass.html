@@ -11620,20 +11620,47 @@
       }
 
       .about-version-list {
+        position: relative;
         display: grid;
         gap: 12px;
+        padding-left: 18px;
+      }
+
+      .about-version-list::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        bottom: 10px;
+        left: 6px;
+        width: 2px;
+        border-radius: 999px;
+        background: var(--border);
       }
 
       .about-version {
+        position: relative;
         overflow: hidden;
+      }
+
+      .about-version::before {
+        content: "";
+        position: absolute;
+        top: 25px;
+        left: -16px;
+        width: 10px;
+        height: 10px;
+        border: 2px solid var(--surface);
+        border-radius: 999px;
+        background: var(--primary);
+        box-shadow: 0 0 0 2px var(--border-strong);
       }
 
       .about-version summary {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
+        gap: 14px;
         align-items: start;
-        padding: 14px 16px;
+        padding: 16px;
         cursor: pointer;
         list-style: none;
       }
@@ -11653,6 +11680,13 @@
         min-width: 0;
       }
 
+      .about-version__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
       .about-version__badge {
         width: max-content;
         min-width: 46px;
@@ -11669,10 +11703,23 @@
         line-height: 1;
       }
 
+      .about-version__date {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-style: italic;
+        font-weight: 750;
+      }
+
       .about-version__title strong {
         color: var(--text-primary);
         font-size: var(--font-size-md);
         line-height: var(--line-height-tight);
+      }
+
+      .about-version__summary {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
       }
 
       .about-version__actions {
@@ -11710,10 +11757,11 @@
         background: var(--surface);
       }
 
-      .about-version__body p {
+      .about-version__body-title {
         margin: 14px 0 0;
-        color: var(--text-secondary);
+        color: var(--text-primary);
         font-size: var(--font-size-sm);
+        font-weight: 900;
         line-height: var(--line-height-normal);
       }
 
@@ -11732,6 +11780,14 @@
       @media (max-width: 760px) {
         .about-intro {
           grid-template-columns: 1fr;
+        }
+
+        .about-version-list {
+          padding-left: 14px;
+        }
+
+        .about-version::before {
+          left: -14px;
         }
 
         .about-version__body {
@@ -17444,7 +17500,7 @@
         {
           version: "0.5.0",
           date: "19. Mai 2026",
-          title: "Kontaktrollen und Karten-Datenbasis",
+          title: "Kontaktrollen und bessere Kartengrundlage",
           icon: "role",
           summary: "Kontakte lassen sich genauer einordnen, und die Karte zeigt verlässlicher den aktuellen Kontaktbestand.",
           items: [
@@ -17468,9 +17524,9 @@
         {
           version: "0.3.0",
           date: "17. Mai 2026",
-          title: "CRM-App mit Supabase, Profilen und Teamfunktionen",
+          title: "CRM-App mit Login, Profilen und Teamfunktionen",
           icon: "database",
-          summary: "Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zentralem Datenstand.",
+          summary: "Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zentralem Datenstand ausgebaut.",
           items: [
             "Kontakte, Organisationen, Profile und Teamübersicht sind in einer gemeinsamen Arbeitsoberfläche gebündelt.",
             "Gespeicherte Ansichten, Import und Datenqualität unterstützen wiederkehrende Pflegeaufgaben.",
@@ -20056,8 +20112,12 @@
               <details class="about-version" ${index === 0 ? "open" : ""}>
                 <summary>
                   <span class="about-version__title">
-                    <span class="about-version__badge">${escapeHtml(compactVersion(release.version))}</span>
+                    <span class="about-version__meta">
+                      <span class="about-version__badge">${escapeHtml(compactVersion(release.version))}</span>
+                      <span class="about-version__date">${escapeHtml(release.date)}</span>
+                    </span>
                     <strong>${escapeHtml(release.title)}</strong>
+                    <span class="about-version__summary">${escapeHtml(release.summary)}</span>
                   </span>
                   <span class="about-version__actions">
                     <span class="about-version__chevron" aria-hidden="true">
@@ -20068,8 +20128,7 @@
                   </span>
                 </summary>
                 <div class="about-version__body">
-                  <p><em>${escapeHtml(release.date)}</em></p>
-                  <p>${escapeHtml(release.summary)}</p>
+                  <p class="about-version__body-title">Was sich für Anwender geändert hat</p>
                   <ul>
                     ${release.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
                   </ul>

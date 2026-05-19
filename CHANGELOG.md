@@ -2,7 +2,7 @@
 
 Kompakte Zusammenfassung der wichtigsten Produktversionen des Versorgungs-Kompass.
 
-## Version 0.5 - Kontaktrollen und Karten-Datenbasis
+## Version 0.5 - Kontaktrollen und bessere Kartengrundlage
 
 Kontakte lassen sich genauer einordnen, und die Karte zeigt verlässlicher den aktuellen Kontaktbestand.
 
@@ -18,9 +18,9 @@ Die Karte wurde von einer Zusatzansicht zu einem klaren Orientierungsbereich aus
 - Suche, Filter und Kartendarstellung greifen verständlicher ineinander.
 - Die Kartenansicht ist auf Desktop und Mobilgeräten ruhiger und stabiler.
 
-## Version 0.3 - CRM-App mit Supabase, Profilen und Teamfunktionen
+## Version 0.3 - CRM-App mit Login, Profilen und Teamfunktionen
 
-Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zentralem Datenstand.
+Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zentralem Datenstand ausgebaut.
 
 - Kontakte, Organisationen, Profile und Teamübersicht sind in einer gemeinsamen Arbeitsoberfläche gebündelt.
 - Gespeicherte Ansichten, Import und Datenqualität unterstützen wiederkehrende Pflegeaufgaben.
