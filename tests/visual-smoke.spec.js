@@ -168,6 +168,8 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   }
   await page.locator('[data-format-tab="reporting"]').click();
   await expect(page.locator(".format-diversity-board")).toBeVisible();
+  await expect(page.locator(".format-participant-mini-map")).toBeVisible();
+  await expect(page.locator(".format-participant-map-marker")).toHaveCount(1);
 
   await attachScreenshot(page, testInfo, "formate");
 });

@@ -14021,6 +14021,55 @@
         gap: 10px;
       }
 
+      .format-reporting-layout {
+        display: grid;
+        grid-template-columns: minmax(176px, 220px) minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+
+      .format-participant-map {
+        min-width: 0;
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        padding: 10px;
+      }
+
+      .format-participant-map h5 {
+        margin: 0;
+        font-size: 0.82rem;
+      }
+
+      .format-participant-map p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.76rem;
+      }
+
+      .format-participant-mini-map {
+        width: min(100%, 192px);
+        height: auto;
+        display: block;
+        justify-self: center;
+      }
+
+      .format-participant-map-state {
+        fill: var(--surface);
+        stroke: var(--border);
+        stroke-width: 1.15;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .format-participant-map-marker {
+        fill: var(--primary);
+        stroke: var(--surface);
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+      }
+
       .format-diversity-column {
         min-width: 0;
         border: 1px solid var(--border);
@@ -14502,6 +14551,7 @@
           grid-template-columns: 1fr;
         }
 
+        .format-reporting-layout,
         .participant-board {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -14544,6 +14594,7 @@
         }
 
         .format-editor-grid,
+        .format-reporting-layout,
         .participant-board,
         .invitation-status-board,
         .format-metrics {
@@ -20842,6 +20893,53 @@
         `;
       }
 
+      function formatMapPoint(lon, lat, bounds, width = 240, height = 292, padding = 8) {
+        const xSpan = bounds.maxX - bounds.minX || 1;
+        const ySpan = bounds.maxY - bounds.minY || 1;
+        const scale = Math.min((width - padding * 2) / xSpan, (height - padding * 2) / ySpan);
+        const [xProjected, yProjected] = coverageProjectPoint([lon, lat]);
+        const x = padding + (xProjected - bounds.minX) * scale + ((width - padding * 2 - xSpan * scale) / 2);
+        const y = padding + (bounds.maxY - yProjected) * scale + ((height - padding * 2 - ySpan * scale) / 2);
+        return { x, y };
+      }
+
+      function renderParticipantLocationMap(format) {
+        const entries = formatParticipantContacts(format)
+          .map(({ contact }) => ({
+            contact,
+            lat: Number.parseFloat(contact.lat),
+            lon: Number.parseFloat(contact.lon)
+          }))
+          .filter((entry) => Number.isFinite(entry.lat) && Number.isFinite(entry.lon));
+        const features = window.MAP_STATE_POLYGONS?.features || [];
+        const bounds = statePolygonBounds(features);
+        if (!features.length || !Number.isFinite(bounds.minX)) {
+          return `
+            <section class="format-participant-map">
+              <h5>Regionale Herkunft</h5>
+              <div class="empty">Kartendaten konnten nicht geladen werden.</div>
+            </section>
+          `;
+        }
+        return `
+          <section class="format-participant-map">
+            <h5>Regionale Herkunft</h5>
+            <svg class="format-participant-mini-map" viewBox="0 0 240 292" role="img" aria-label="Deutschlandkarte mit Markern der ausgewählten Teilnehmer">
+              ${features.map((feature) => `<path class="format-participant-map-state" d="${statePolygonPath(feature, bounds)}"></path>`).join("")}
+              ${entries.map(({ contact, lat, lon }, index) => {
+                const point = formatMapPoint(lon, lat, bounds);
+                const offsetAngle = (index % 8) * (Math.PI / 4);
+                const offsetRadius = Math.floor(index / 8) * 1.4;
+                const x = point.x + Math.cos(offsetAngle) * offsetRadius;
+                const y = point.y + Math.sin(offsetAngle) * offsetRadius;
+                return `<circle class="format-participant-map-marker" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.2"><title>${escapeHtml(contact.name)} · ${escapeHtml(formatLocationDisplay(contact) || stateLabel(contact) || "Ort offen")}</title></circle>`;
+              }).join("")}
+            </svg>
+            <p>${entries.length || "Keine"} ${entries.length === 1 ? "Person mit Koordinaten" : "Personen mit Koordinaten"}</p>
+          </section>
+        `;
+      }
+
       function invitationBoardStatus(participant) {
         const status = participant?.invitationStatus || "Kandidat";
         if (status === "Keine Rückmeldung") return "Eingeladen";
@@ -20982,7 +21080,10 @@
                   <p>Zusammensetzung der Runde nach Sektor, Bundesland und Fachrichtung.</p>
                 </div>
               </div>
-              ${renderParticipantReporting(format)}
+              <div class="format-reporting-layout">
+                ${renderParticipantLocationMap(format)}
+                ${renderParticipantReporting(format)}
+              </div>
             </section>
           </div>
         `;
