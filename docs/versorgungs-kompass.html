@@ -11633,6 +11633,18 @@
         line-height: var(--line-height-normal);
       }
 
+      .about-intro__highlight {
+        margin-top: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-md);
+        background: var(--primary-soft);
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 800;
+        line-height: var(--line-height-normal);
+      }
+
       .about-version-list {
         display: grid;
         gap: 12px;
@@ -11644,7 +11656,7 @@
 
       .about-version summary {
         display: grid;
-        grid-template-columns: 44px minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
         align-items: center;
         padding: 14px 16px;
@@ -11659,11 +11671,6 @@
       .about-version summary:focus-visible {
         outline: 2px solid var(--primary);
         outline-offset: -3px;
-      }
-
-      .about-version__icon {
-        width: 44px;
-        height: 44px;
       }
 
       .about-version__title {
@@ -11723,7 +11730,7 @@
 
       .about-version__body {
         display: grid;
-        padding: 0 16px 16px 72px;
+        padding: 0 16px 16px;
         border-top: 1px solid var(--border);
         background: var(--surface);
       }
@@ -11750,10 +11757,6 @@
       @media (max-width: 760px) {
         .about-intro {
           grid-template-columns: 1fr;
-        }
-
-        .about-version summary {
-          grid-template-columns: 44px minmax(0, 1fr) auto;
         }
 
         .about-version__body {
@@ -14299,8 +14302,8 @@
                 </div>
                 <div>
                   <h3>Versorgungs-Kompass</h3>
-                  <p>Der Versorgungs-Kompass ist das CRM für das gematik-Hospitationsnetzwerk. Die App bündelt Kontakte, Organisationen, regionale Orientierung, Auswertung, Datenpflege und Import in einer ruhigen Arbeitsoberfläche.</p>
-                  <p>Dieser Bereich hilft Admins beim Einordnen des Produkts: Was ist neu, was hat sich geändert und welche Version brachte welche Funktionen.</p>
+                  <p>Der Versorgungs-Kompass bündelt Kontakte, Organisationen, Karte, Auswertung, Datenpflege und Import in einer ruhigen CRM-Oberfläche für das gematik-Hospitationsnetzwerk.</p>
+                  <div class="about-intro__highlight">Kurz gesagt: weniger Suchen, klarere Zuständigkeiten und ein gemeinsamer Blick auf das Versorgungsnetzwerk.</div>
                 </div>
               </section>
               <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
@@ -20080,7 +20083,6 @@
             (release, index) => `
               <details class="about-version" ${index === 0 ? "open" : ""}>
                 <summary>
-                  <span class="about-version__icon">${aboutIconSvg(release.icon)}</span>
                   <span class="about-version__title">
                     <strong>${escapeHtml(release.title)}</strong>
                   </span>
