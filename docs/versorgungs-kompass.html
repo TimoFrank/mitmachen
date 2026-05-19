@@ -14451,6 +14451,33 @@
         overflow-wrap: anywhere;
       }
 
+      .format-fact-participant-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 7px 11px;
+        font-size: 0.94rem;
+        font-weight: 850;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .format-fact-participant-badge svg {
+        width: 17px;
+        height: 17px;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.1;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
       .format-fact-control {
         width: 100%;
         min-height: 36px;
@@ -22026,6 +22053,21 @@
         return `<div class="format-fact"><span>${escapeHtml(label)}</span>${content}</div>`;
       }
 
+      function renderFormatParticipantFact(format) {
+        const count = (format.participants || []).length;
+        return `
+          <span class="format-fact-participant-badge" aria-label="${count} Teilnehmer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.8"></path>
+              <path d="M16 3.2a4 4 0 0 1 0 7.6"></path>
+            </svg>
+            ${count}
+          </span>
+        `;
+      }
+
       function renderFormatBasisFacts(format) {
         if (!canEditContacts()) {
           return `
@@ -22034,7 +22076,7 @@
             ${renderFormatFact("Ort / Online", `<strong>${escapeHtml(format.location || "Ort offen")}</strong>`)}
             ${renderFormatFact("Owner", `<strong>${escapeHtml(ownerDisplayLabel(format.ownerId || format.owner) || "Nicht zugewiesen")}</strong>`)}
             ${renderFormatFact("Status", `<strong>${escapeHtml(format.status || "Planung")}</strong>`)}
-            ${renderFormatFact("Teilnehmer", `<strong>${(format.participants || []).length}</strong>`)}
+            ${renderFormatFact("Teilnehmer", renderFormatParticipantFact(format))}
           `;
         }
         return `
@@ -22043,7 +22085,7 @@
           ${renderFormatFact("Ort / Online", `<input class="format-fact-control" data-format-inline-field="location" aria-label="Ort oder Online-Hinweis" value="${escapeHtml(format.location || "")}" placeholder="Ort offen" />`)}
           ${renderFormatFact("Owner", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-owner"><select class="editor-select" data-format-inline-field="ownerId" aria-label="Owner">${buildOwnerSelectOptions(format.ownerId || format.owner || "")}</select></div>`)}
           ${renderFormatFact("Status", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-status"><select class="editor-select" data-format-inline-field="status" aria-label="Formatstatus">${formatOptionMarkup(formatStatusOptions, format.status || "Planung")}</select></div>`)}
-          ${renderFormatFact("Teilnehmer", `<strong>${(format.participants || []).length}</strong>`)}
+          ${renderFormatFact("Teilnehmer", renderFormatParticipantFact(format))}
         `;
       }
 
