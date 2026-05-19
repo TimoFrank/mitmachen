@@ -14355,6 +14355,10 @@
         gap: 12px;
       }
 
+      .format-editor-drawer .format-participant-body {
+        grid-template-rows: minmax(0, 1fr);
+      }
+
       .format-editor-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -15986,6 +15990,20 @@
       </section>
     </aside>
 
+    <aside class="format-participant-drawer format-editor-drawer" id="format-editor-drawer" aria-hidden="true">
+      <div class="format-participant-overlay" id="format-editor-overlay"></div>
+      <section class="format-participant-panel" aria-labelledby="format-editor-drawer-title" aria-modal="true" role="dialog">
+        <div class="format-participant-header">
+          <div>
+            <h3 id="format-editor-drawer-title">Neues Format</h3>
+            <p id="format-editor-drawer-subtitle">Basisdaten für Roundtable, Workshop oder Fachgespräch erfassen.</p>
+          </div>
+          <button class="import-close" type="button" id="format-editor-drawer-close" aria-label="Format-Editor schließen">&times;</button>
+        </div>
+        <div class="format-participant-body" id="format-editor-drawer-body"></div>
+      </section>
+    </aside>
+
     <script src="../map/data/state-polygons.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16843,6 +16861,12 @@
       const formatParticipantList = document.getElementById("format-participant-list");
       const formatParticipantClear = document.getElementById("format-participant-clear");
       const formatParticipantSelectionCount = document.getElementById("format-participant-selection-count");
+      const formatEditorDrawer = document.getElementById("format-editor-drawer");
+      const formatEditorOverlay = document.getElementById("format-editor-overlay");
+      const formatEditorDrawerClose = document.getElementById("format-editor-drawer-close");
+      const formatEditorDrawerTitle = document.getElementById("format-editor-drawer-title");
+      const formatEditorDrawerSubtitle = document.getElementById("format-editor-drawer-subtitle");
+      const formatEditorDrawerBody = document.getElementById("format-editor-drawer-body");
       const organizationsTable = document.querySelector(".organizations-table");
       const organizationsTableHead = document.getElementById("organizations-table-head");
       const organizationsPaginationMeta = document.getElementById("organizations-pagination-meta");
@@ -21068,11 +21092,15 @@
               </div>
               <div class="format-editor-field">
                 <label for="format-type">Typ</label>
-                <select id="format-type" name="formatType">${formatOptionMarkup(formatTypeOptions, format?.formatType || "Roundtable")}</select>
+                <div class="editor-select-shell" data-custom-select data-select-type="format-type">
+                  <select class="editor-select" id="format-type" name="formatType">${formatOptionMarkup(formatTypeOptions, format?.formatType || "Roundtable")}</select>
+                </div>
               </div>
               <div class="format-editor-field">
                 <label for="format-status">Status</label>
-                <select id="format-status" name="status">${formatOptionMarkup(formatStatusOptions, format?.status || "Planung")}</select>
+                <div class="editor-select-shell" data-custom-select data-select-type="format-status">
+                  <select class="editor-select" id="format-status" name="status">${formatOptionMarkup(formatStatusOptions, format?.status || "Planung")}</select>
+                </div>
               </div>
               <div class="format-editor-field">
                 <label for="format-starts-at">Start</label>
@@ -21088,7 +21116,9 @@
               </div>
               <div class="format-editor-field">
                 <label for="format-owner">Owner</label>
-                <select id="format-owner" name="ownerId">${buildOwnerSelectOptions(ownerValue)}</select>
+                <div class="editor-select-shell" data-custom-select data-select-type="format-owner">
+                  <select class="editor-select" id="format-owner" name="ownerId">${buildOwnerSelectOptions(ownerValue)}</select>
+                </div>
               </div>
               <div class="format-editor-field format-editor-field--wide">
                 <label for="format-goal">Thema / Ziel</label>
@@ -21450,20 +21480,6 @@
 
       function renderFormatDetail(format = activeFormat()) {
         if (!formatDetailPanel) return;
-        if (editingFormatId === "__new__") {
-          formatDetailPanel.innerHTML = `
-            <div class="format-detail">
-              <section class="format-section">
-                <div class="format-section-head">
-                  <h4>Neues Format</h4>
-                </div>
-                ${renderFormatEditor(null)}
-              </section>
-            </div>
-          `;
-          bindFormatEditor();
-          return;
-        }
         if (!format) {
           formatDetailPanel.innerHTML = `
             <div class="format-empty-state">
@@ -21543,6 +21559,7 @@
 
       function bindFormatEditor() {
         const form = document.getElementById("format-editor-form");
+        refreshCustomSelects(form || document);
         form?.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!canEditContacts()) {
@@ -21560,6 +21577,7 @@
               : await window.dataService.updateFormat(editingFormatId, payload);
             replaceFormat(saved);
             editingFormatId = null;
+            closeFormatEditorDrawer({ rerender: false });
             setStorageStatus("Format gespeichert");
             renderFormatsView();
           } catch (error) {
@@ -21569,8 +21587,42 @@
         });
         document.getElementById("format-editor-cancel")?.addEventListener("click", () => {
           editingFormatId = null;
-          renderFormatsView();
+          if (formatEditorDrawer?.classList.contains("is-open")) {
+            closeFormatEditorDrawer();
+          } else {
+            renderFormatsView();
+          }
         });
+      }
+
+      function openFormatEditorDrawer(format = null) {
+        if (!canEditContacts()) {
+          showPermissionDenied(viewerCreateDisabledMessage(format?.id ? "das Bearbeiten von Formaten" : "das Anlegen von Formaten"));
+          return;
+        }
+        editingFormatId = format?.id || "__new__";
+        if (formatEditorDrawerTitle) formatEditorDrawerTitle.textContent = format?.id ? "Format bearbeiten" : "Neues Format";
+        if (formatEditorDrawerSubtitle) {
+          formatEditorDrawerSubtitle.textContent = format?.id
+            ? "Basisdaten und Planungsnotizen des Formats aktualisieren."
+            : "Basisdaten für Roundtable, Workshop oder Fachgespräch erfassen.";
+        }
+        if (formatEditorDrawerBody) formatEditorDrawerBody.innerHTML = renderFormatEditor(format);
+        bindFormatEditor();
+        formatEditorDrawer?.classList.add("is-open");
+        formatEditorDrawer?.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        window.setTimeout(() => document.getElementById("format-title")?.focus(), 0);
+      }
+
+      function closeFormatEditorDrawer({ rerender = true } = {}) {
+        closeAllCustomSelects();
+        formatEditorDrawer?.classList.remove("is-open");
+        formatEditorDrawer?.setAttribute("aria-hidden", "true");
+        if (formatEditorDrawerBody) formatEditorDrawerBody.innerHTML = "";
+        editingFormatId = null;
+        syncBodyScrollLock();
+        if (rerender) renderFormatsView();
       }
 
       function downloadFormatParticipants(format) {
@@ -21760,8 +21812,7 @@
           });
         });
         document.getElementById("edit-format-button")?.addEventListener("click", () => {
-          editingFormatId = format.id;
-          renderFormatDetail(format);
+          openFormatEditorDrawer(format);
         });
         document.getElementById("archive-format-button")?.addEventListener("click", async () => {
           if (!canEditContacts()) {
@@ -24490,6 +24541,7 @@
           organizationEditorDrawer?.classList.contains("is-open") ||
           importDrawer.classList.contains("is-open") ||
           formatParticipantDrawer?.classList.contains("is-open") ||
+          formatEditorDrawer?.classList.contains("is-open") ||
           profilePhotoModal?.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
@@ -25664,16 +25716,12 @@
       newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
       toggleFormatOverviewButton?.addEventListener("click", () => setFormatOverviewOpen(!formatOverviewOpen));
       newFormatButton?.addEventListener("click", () => {
-        if (!canEditContacts()) {
-          showPermissionDenied(viewerCreateDisabledMessage("das Anlegen von Formaten"));
-          return;
-        }
-        activeFormatId = null;
-        editingFormatId = "__new__";
         formatActiveTab = "overview";
         setFormatOverviewOpen(false);
-        renderFormatDetail(null);
+        openFormatEditorDrawer(null);
       });
+      formatEditorOverlay?.addEventListener("click", () => closeFormatEditorDrawer());
+      formatEditorDrawerClose?.addEventListener("click", () => closeFormatEditorDrawer());
       formatParticipantOverlay?.addEventListener("click", closeParticipantPlanner);
       formatParticipantClose?.addEventListener("click", closeParticipantPlanner);
       formatParticipantCancel?.addEventListener("click", closeParticipantPlanner);
