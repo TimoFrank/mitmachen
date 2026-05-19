@@ -146,6 +146,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator("#format-editor-drawer")).not.toHaveClass(/is-open/);
   await expect(page.locator("#formats-overview-panel")).toBeHidden();
   await expect(page.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
+  await expect(page.locator(".format-type-icon")).toBeVisible();
   await expect(page.locator(".format-detail.is-open")).toHaveCount(0);
   await expect(page.locator(".format-overview-hero")).toHaveCount(0);
   await page.locator("[data-toggle-format-detail]").first().click();
