@@ -2,7 +2,7 @@
 
 Kompakte Zusammenfassung der wichtigsten Produktversionen des Versorgungs-Kompass.
 
-## Version 0.5.0 - Kontaktrollen und Karten-Datenbasis
+## Version 0.5 - Kontaktrollen und Karten-Datenbasis
 
 Kontakte lassen sich genauer einordnen, und die Karte zeigt verlässlicher den aktuellen Kontaktbestand.
 
@@ -10,7 +10,7 @@ Kontakte lassen sich genauer einordnen, und die Karte zeigt verlässlicher den a
 - Rolle, Notizen und Kontaktinformationen erscheinen einheitlicher in App und Karte.
 - Änderungen am Owner sind in der Kontakthistorie leichter nachvollziehbar.
 
-## Version 0.4.0 - Reifer Kartenmodus
+## Version 0.4 - Reifer Kartenmodus
 
 Die Karte wurde von einer Zusatzansicht zu einem klaren Orientierungsbereich ausgebaut.
 
@@ -18,7 +18,7 @@ Die Karte wurde von einer Zusatzansicht zu einem klaren Orientierungsbereich aus
 - Suche, Filter und Kartendarstellung greifen verständlicher ineinander.
 - Die Kartenansicht ist auf Desktop und Mobilgeräten ruhiger und stabiler.
 
-## Version 0.3.0 - CRM-App mit Supabase, Profilen und Teamfunktionen
+## Version 0.3 - CRM-App mit Supabase, Profilen und Teamfunktionen
 
 Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zentralem Datenstand.
 
@@ -26,7 +26,7 @@ Der Versorgungs-Kompass wurde zur gemeinsamen CRM-App mit Login, Rollen und zent
 - Gespeicherte Ansichten, Import und Datenqualität unterstützen wiederkehrende Pflegeaufgaben.
 - Rollen und Berechtigungen sorgen dafür, dass Anwender nur passende Aktionen sehen.
 
-## Version 0.2.0 - CRM-Grundfunktionen und Mobile-Unterstützung
+## Version 0.2 - CRM-Grundfunktionen und Mobile-Unterstützung
 
 Die wichtigsten CRM-Arbeitsabläufe wurden geordnet und für kleinere Bildschirme verbessert.
 
@@ -34,7 +34,7 @@ Die wichtigsten CRM-Arbeitsabläufe wurden geordnet und für kleinere Bildschirm
 - Owner, Priorität, Fachrichtung und Standort wurden besser in die Kontaktpflege eingebunden.
 - Die App wurde auf Mobilgeräten nutzbarer und stabiler.
 
-## Version 0.1.0 - Erste nutzbare Basis
+## Version 0.1 - Erste nutzbare Basis
 
 Die erste Version stellte die Grundlage für Kontaktarbeit, Karte und Veröffentlichung bereit.
 

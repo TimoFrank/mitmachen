@@ -11668,7 +11668,6 @@
 
       .about-version__title {
         display: grid;
-        gap: 5px;
         min-width: 0;
       }
 
@@ -11678,10 +11677,26 @@
         line-height: var(--line-height-tight);
       }
 
-      .about-version__title span {
-        color: var(--text-muted);
-        font-size: var(--font-size-sm);
-        line-height: var(--line-height-normal);
+      .about-version__actions {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 9px;
+      }
+
+      .about-version__badge {
+        min-width: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 10px;
+        border: 1px solid var(--border-strong);
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        line-height: 1;
       }
 
       .about-version__chevron {
@@ -11713,8 +11728,15 @@
         background: var(--surface);
       }
 
-      .about-version__body ul {
+      .about-version__body p {
         margin: 14px 0 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .about-version__body ul {
+        margin: 8px 0 0;
         padding-left: 18px;
         color: var(--text-secondary);
         font-size: var(--font-size-sm);
@@ -11726,17 +11748,20 @@
       }
 
       @media (max-width: 760px) {
-        .about-intro,
-        .about-version summary {
+        .about-intro {
           grid-template-columns: 1fr;
+        }
+
+        .about-version summary {
+          grid-template-columns: 44px minmax(0, 1fr) auto;
         }
 
         .about-version__body {
           padding: 0 14px 14px;
         }
 
-        .about-version__chevron {
-          justify-self: start;
+        .about-version__actions {
+          gap: 6px;
         }
       }
 
@@ -20044,6 +20069,10 @@
         return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${icons[icon] || icons.start}</svg>`;
       }
 
+      function compactVersion(version) {
+        return String(version || "").replace(/\.0$/, "");
+      }
+
       function renderAboutApp() {
         if (!aboutVersionList) return;
         aboutVersionList.innerHTML = appVersionHistory
@@ -20053,16 +20082,19 @@
                 <summary>
                   <span class="about-version__icon">${aboutIconSvg(release.icon)}</span>
                   <span class="about-version__title">
-                    <strong>Version ${escapeHtml(release.version)} - ${escapeHtml(release.title)}</strong>
-                    <span>${escapeHtml(release.summary)}</span>
+                    <strong>${escapeHtml(release.title)}</strong>
                   </span>
-                  <span class="about-version__chevron" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="m6 9 6 6 6-6"></path>
-                    </svg>
+                  <span class="about-version__actions">
+                    <span class="about-version__badge">v${escapeHtml(compactVersion(release.version))}</span>
+                    <span class="about-version__chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m6 9 6 6 6-6"></path>
+                      </svg>
+                    </span>
                   </span>
                 </summary>
                 <div class="about-version__body">
+                  <p>${escapeHtml(release.summary)}</p>
                   <ul>
                     ${release.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
                   </ul>
