@@ -13915,6 +13915,147 @@
         min-width: 0;
       }
 
+      .format-overview-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.52fr);
+        gap: 16px;
+        align-items: stretch;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background:
+          radial-gradient(circle at 92% 8%, var(--primary-soft), transparent 30%),
+          linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%);
+        padding: 18px;
+      }
+
+      .format-overview-copy {
+        display: grid;
+        align-content: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .format-overview-kicker,
+      .format-overview-actions,
+      .format-overview-badges {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .format-overview-title {
+        display: grid;
+        gap: 6px;
+      }
+
+      .format-overview-title h4 {
+        margin: 0;
+        color: var(--text);
+        font-size: clamp(1.28rem, 2vw, 1.8rem);
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+      }
+
+      .format-overview-title p {
+        max-width: 68ch;
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+
+      .format-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 6px 10px;
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+
+      .format-badge--primary {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .format-badge--success {
+        border-color: #b7e4c7;
+        background: #ecfdf3;
+        color: #15803d;
+      }
+
+      .format-badge--warm {
+        border-color: #fed7aa;
+        background: #fff7ed;
+        color: #b7791f;
+      }
+
+      .format-badge--calm {
+        border-color: #c7d2fe;
+        background: #eef2ff;
+        color: #4338ca;
+      }
+
+      .format-overview-visual {
+        min-width: 0;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.72);
+        padding: 12px;
+      }
+
+      .format-roundtable-graphic {
+        width: min(100%, 320px);
+        height: auto;
+        display: block;
+      }
+
+      .format-roundtable-surface {
+        fill: var(--surface);
+        stroke: var(--border);
+        stroke-width: 2;
+      }
+
+      .format-roundtable-table {
+        fill: var(--primary-soft);
+        stroke: var(--primary);
+        stroke-width: 2;
+      }
+
+      .format-roundtable-chair {
+        fill: var(--surface);
+        stroke: var(--border);
+        stroke-width: 1.4;
+      }
+
+      .format-roundtable-person {
+        fill: var(--primary);
+        stroke: var(--surface);
+        stroke-width: 3;
+      }
+
+      .format-roundtable-accent {
+        fill: #ecfdf3;
+        stroke: #b7e4c7;
+        stroke-width: 1.4;
+      }
+
+      .format-roundtable-line {
+        fill: none;
+        stroke: #b7e4c7;
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+
       .format-metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -13926,6 +14067,7 @@
         border-radius: var(--radius-sm);
         padding: 10px;
         background: var(--surface-muted);
+        border-left: 4px solid var(--primary);
       }
 
       .format-metric span {
@@ -14552,6 +14694,7 @@
         }
 
         .format-reporting-layout,
+        .format-overview-hero,
         .participant-board {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -14595,6 +14738,7 @@
 
         .format-editor-grid,
         .format-reporting-layout,
+        .format-overview-hero,
         .participant-board,
         .invitation-status-board,
         .format-metrics {
@@ -20996,6 +21140,69 @@
         `;
       }
 
+      function renderFormatRoundtableGraphic(format) {
+        const participantCount = (format.participants || []).length;
+        const people = Math.max(4, Math.min(8, participantCount || 6));
+        const center = { x: 170, y: 118 };
+        const chairs = Array.from({ length: people }, (_, index) => {
+          const angle = -Math.PI / 2 + (index / people) * Math.PI * 2;
+          const chairX = center.x + Math.cos(angle) * 86;
+          const chairY = center.y + Math.sin(angle) * 58;
+          const personX = center.x + Math.cos(angle) * 66;
+          const personY = center.y + Math.sin(angle) * 44;
+          return `
+            <circle class="format-roundtable-chair" cx="${chairX.toFixed(1)}" cy="${chairY.toFixed(1)}" r="15"></circle>
+            <circle class="format-roundtable-person" cx="${personX.toFixed(1)}" cy="${personY.toFixed(1)}" r="10"></circle>
+          `;
+        }).join("");
+        return `
+          <svg class="format-roundtable-graphic" viewBox="0 0 340 230" role="img" aria-label="Illustration eines Roundtables mit Teilnehmenden">
+            <rect class="format-roundtable-surface" x="18" y="18" width="304" height="194" rx="22"></rect>
+            <rect class="format-roundtable-accent" x="224" y="46" width="52" height="36" rx="8"></rect>
+            <path class="format-roundtable-line" d="M232 58h36M232 70h24"></path>
+            ${chairs}
+            <ellipse class="format-roundtable-table" cx="${center.x}" cy="${center.y}" rx="72" ry="44"></ellipse>
+            <path class="format-roundtable-line" d="M128 118h84M154 96v44M186 96v44"></path>
+          </svg>
+        `;
+      }
+
+      function renderFormatOverviewHero(format) {
+        const participants = format.participants || [];
+        const accepted = participants.filter((participant) => participant.invitationStatus === "Zugesagt").length;
+        const pending = participants.filter((participant) => ["Eingeladen", "Keine Rückmeldung"].includes(participant.invitationStatus)).length;
+        const goal = meaningfulOrEmpty(format.goal) || "Planung, Einladung und Zusammensetzung der Runde an einem Ort.";
+        return `
+          <section class="format-overview-hero">
+            <div class="format-overview-copy">
+              <div class="format-overview-kicker">
+                <span class="format-badge format-badge--primary">${escapeHtml(format.formatType || "Format")}</span>
+                <span class="format-badge format-badge--warm">${escapeHtml(format.status || "Planung")}</span>
+                <span class="format-badge format-badge--calm">${escapeHtml(formatDateRange(format))}</span>
+              </div>
+              <div class="format-overview-title">
+                <h4>${escapeHtml(format.title || "Neues Format")}</h4>
+                <p>${escapeHtml(goal)}</p>
+              </div>
+              <div class="format-overview-badges" aria-label="Format-Kennzahlen">
+                <span class="format-badge">${participants.length} ${participants.length === 1 ? "Teilnehmer" : "Teilnehmer"}</span>
+                <span class="format-badge format-badge--success">${accepted} zugesagt</span>
+                <span class="format-badge format-badge--warm">${pending} offen</span>
+                <span class="format-badge">${escapeHtml(format.location || "Ort offen")}</span>
+              </div>
+              <div class="format-overview-actions">
+                ${canEditContacts() ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
+                <button class="action-button" type="button" data-format-tab="invitationStatus">Einladungsstatus</button>
+                <button class="action-button" type="button" data-format-tab="reporting">Auswertung</button>
+              </div>
+            </div>
+            <div class="format-overview-visual">
+              ${renderFormatRoundtableGraphic(format)}
+            </div>
+          </section>
+        `;
+      }
+
       function renderFormatTabs() {
         return `
           <div class="format-tabs" role="tablist" aria-label="Formatplanung">
@@ -21011,6 +21218,7 @@
       function renderFormatOverviewTab(format) {
         return `
           <div class="format-tab-panel" role="tabpanel">
+            ${renderFormatOverviewHero(format)}
             ${renderFormatMetrics(format)}
             <section class="format-section">
               <div class="format-section-head">

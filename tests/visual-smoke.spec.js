@@ -143,6 +143,8 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await page.locator("#format-editor-form").getByRole("button", { name: "Format anlegen" }).click();
   await expect(page.locator("#formats-overview-panel")).toBeHidden();
   await expect(page.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
+  await expect(page.locator(".format-overview-hero")).toBeVisible();
+  await expect(page.locator(".format-roundtable-graphic")).toBeVisible();
   await page.locator('[data-format-tab="participants"]').click();
   await page.locator("#open-participant-planner").click();
   await expect(page.locator("#format-participant-drawer.is-open")).toBeVisible();
