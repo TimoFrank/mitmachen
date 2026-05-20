@@ -8,9 +8,9 @@
     <meta name="apple-mobile-web-app-title" content="Kompass" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="manifest" href="../public/manifest.webmanifest" />
-    <link rel="apple-touch-icon" sizes="180x180" href="../public/app-icon-180.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../public/app-icon-32.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./public/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./public/app-icon-32.png" />
     <script src="./auth-config.js"></script>
     <script src="./auth-guard.js"></script>
     <link
@@ -12014,7 +12014,7 @@
 
       .import-start-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
         gap: 14px;
       }
 
@@ -12058,8 +12058,86 @@
       }
 
       .imports-history-card,
+      .registrations-card,
       .settings-workspace .profile-section {
         margin-top: 14px;
+      }
+
+      .registrations-card {
+        display: grid;
+        gap: 12px;
+      }
+
+      .registrations-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .registrations-summary {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: 700;
+        line-height: var(--line-height-normal);
+      }
+
+      .registrations-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .registration-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+        gap: 10px 12px;
+        align-items: center;
+        min-height: 62px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text-primary);
+      }
+
+      .registration-row__main,
+      .registration-row__meta,
+      .registration-row__message {
+        grid-column: 1 / -1;
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+      }
+
+      .registration-row strong {
+        overflow: hidden;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+        line-height: var(--line-height-tight);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .registration-row span,
+      .registration-row small {
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 650;
+        line-height: var(--line-height-normal);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .registration-row__actions {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 6px;
+        flex-wrap: wrap;
       }
 
       .settings-workspace,
@@ -12842,6 +12920,14 @@
 
         .imports-history-row {
           grid-template-columns: 1fr;
+        }
+
+        .registration-row {
+          grid-template-columns: 1fr;
+        }
+
+        .registration-row__actions {
+          justify-content: flex-start;
         }
 
         .team-account-row {
@@ -16293,6 +16379,14 @@
               </svg>
               <span>Datenqualität</span>
             </button>
+            <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <path d="M7 10l5 5 5-5"></path>
+                <path d="M12 15V3"></path>
+              </svg>
+              <span>Importe</span>
+            </button>
           </div>
           <div class="sidebar-section" aria-label="Planung">
             <span class="sidebar-section-label">Planung</span>
@@ -16856,6 +16950,19 @@
                     <article class="import-format-card">
                       <div class="import-start-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="9" cy="7" r="4"></circle>
+                          <path d="M19 8v6"></path>
+                          <path d="M22 11h-6"></path>
+                        </svg>
+                      </div>
+                      <h3>Registrierungen</h3>
+                      <p>Eingänge aus dem gematik Backend prüfen und kontrolliert übernehmen.</p>
+                      <button class="action-button" type="button" id="imports-show-registrations">Registrierungen prüfen</button>
+                    </article>
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M3 12a9 9 0 1 0 3-6.7"></path>
                           <path d="M3 4v5h5"></path>
                           <path d="M12 7v5l3 2"></path>
@@ -16866,6 +16973,21 @@
                       <button class="action-button" type="button" id="imports-show-history">Importe anzeigen</button>
                     </article>
                   </div>
+                  <section class="import-profile-card registrations-card" id="registrations-section" tabindex="-1">
+                    <div class="dashboard-card-head">
+                      <div>
+                        <h4>Registrierungen aus dem Versorgungs-Netzwerk</h4>
+                        <p>Öffentliche Formularmeldungen werden hier erst geprüft, bevor ein aktiver CRM-Kontakt entsteht.</p>
+                      </div>
+                    </div>
+                    <div class="registrations-toolbar">
+                      <div class="registrations-summary" id="registrations-summary">Registrierungen werden geladen.</div>
+                      <button class="action-button action-button--ghost" type="button" id="registrations-refresh">Aktualisieren</button>
+                    </div>
+                    <div class="registrations-list" id="registrations-list">
+                      <div class="imports-history-empty">Noch keine Registrierungen geladen.</div>
+                    </div>
+                  </section>
                   <section class="import-profile-card imports-history-card" id="imports-history-section" tabindex="-1">
                     <div class="dashboard-card-head">
                       <div>
@@ -18255,7 +18377,7 @@
       ];
       const settingsTabItems = [
         { id: "settings", title: "Einstellungen", subtitle: "Entwurf für spätere App-Einstellungen. Aktuell noch ohne aktive Konfiguration." },
-        { id: "imports", title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." }
+        { id: "imports", title: "Importe", subtitle: "Kontakte per Datei, Online-Tabelle oder geprüfter Registrierung hinzufügen." }
       ];
 
       const searchInput = document.getElementById("search");
@@ -18436,7 +18558,12 @@
       const exportCsvButton = document.getElementById("export-csv-button");
       const importsStartFileButton = document.getElementById("imports-start-file");
       const importsOpenTableButton = document.getElementById("imports-open-table");
+      const importsShowRegistrationsButton = document.getElementById("imports-show-registrations");
       const importsShowHistoryButton = document.getElementById("imports-show-history");
+      const registrationsSection = document.getElementById("registrations-section");
+      const registrationsSummary = document.getElementById("registrations-summary");
+      const registrationsList = document.getElementById("registrations-list");
+      const registrationsRefresh = document.getElementById("registrations-refresh");
       const importsHistorySection = document.getElementById("imports-history-section");
       const csvFileInput = document.getElementById("csv-file-input");
       const profileModal = document.getElementById("profile-page");
@@ -18504,6 +18631,9 @@
       let selectedOrganizationCities = [];
       let selectedOrganizationContactRanges = [];
       let formats = [];
+      let backendRegistrations = [];
+      let registrationsLoaded = false;
+      let registrationsLoading = false;
       let activeFormatId = null;
       let editingFormatId = null;
       let formatActiveTab = "overview";
@@ -18671,6 +18801,8 @@
         setRoleElementVisible(openImportButton, canAdministerData());
         setRoleElementVisible(importsStartFileButton, canAdministerData());
         setRoleElementVisible(importsOpenTableButton, canEditContacts());
+        setRoleElementVisible(importsShowRegistrationsButton, canAdministerData());
+        setRoleElementVisible(registrationsRefresh, canAdministerData());
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
@@ -18822,6 +18954,234 @@
             return entry;
           }, {})
         );
+      }
+
+      function registrationDisplayName(registration) {
+        const person = [registration.title, registration.firstName || registration.first_name, registration.lastName || registration.last_name]
+          .map((part) => String(part || "").trim())
+          .filter(Boolean)
+          .join(" ");
+        return person || registration.organization || registration.email || "Unbenannte Registrierung";
+      }
+
+      function registrationStatusLabel(status) {
+        if (status === "uebernommen") return "Übernommen";
+        if (status === "verknuepft") return "Verknüpft";
+        if (status === "abgelehnt") return "Abgelehnt";
+        if (status === "zurueckgestellt") return "Zurückgestellt";
+        if (status === "in_pruefung") return "In Prüfung";
+        return "Neu";
+      }
+
+      function registrationToContact(registration, organizationId = "") {
+        const name = registrationDisplayName(registration);
+        const location = deriveLocationLabel({ postalCode: "", city: registration.city }) || registration.city || "";
+        const noteLines = [
+          registration.message,
+          `Registrierung: ${registration.id}`,
+          registration.consentTextVersion ? `Datenschutztext: ${registration.consentTextVersion}` : "",
+          registration.consentAcceptedAt ? `Einwilligung: ${formatDateTimeLabel(registration.consentAcceptedAt)}` : ""
+        ].filter(Boolean);
+        return sanitizeContact({
+          id: createId(),
+          name,
+          organization: registration.organization || "",
+          organizationId,
+          category: registration.sector || "",
+          contactRole: registration.role || "",
+          email: registration.email || "",
+          city: registration.city || "",
+          state: registration.federalState || registration.federal_state || "",
+          location,
+          priority: "Mittel",
+          note: noteLines.join("\n"),
+          themes: ["Versorgungs-Netzwerk"],
+          sources: ["Versorgungs-Netzwerk Registrierung", registration.sourceUrl || registration.source_url].filter(Boolean).join(" | "),
+          source: "Versorgungs-Netzwerk Registrierung",
+          ...ownerPatchForValue(currentProfile?.id || ""),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }, contacts.length);
+      }
+
+      async function loadRegistrations({ scroll = false } = {}) {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Registrierungen aus dem gematik Backend prüfen.");
+          return;
+        }
+        registrationsLoading = true;
+        renderRegistrations();
+        try {
+          backendRegistrations = await window.dataService.loadBackendRegistrations({ status: "neu" });
+          registrationsLoaded = true;
+          setStorageStatus(`${backendRegistrations.length} Registrierung${backendRegistrations.length === 1 ? "" : "en"} aus dem gematik Backend geladen`);
+        } catch (error) {
+          console.error("Registrierungen konnten nicht geladen werden.", error);
+          backendRegistrations = [];
+          registrationsLoaded = true;
+          if (registrationsSummary) registrationsSummary.textContent = "Registrierungen konnten nicht geladen werden. Bitte Backend-Verbindung prüfen.";
+        } finally {
+          registrationsLoading = false;
+          renderRegistrations();
+          if (scroll && registrationsSection) {
+            registrationsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+            registrationsSection.focus({ preventScroll: true });
+            registrationsSection.classList.add("is-attention");
+            window.setTimeout(() => registrationsSection.classList.remove("is-attention"), 1400);
+          }
+        }
+      }
+
+      function renderRegistrations() {
+        if (!registrationsList || !registrationsSummary) return;
+        if (registrationsLoading) {
+          registrationsSummary.textContent = "Registrierungen werden geladen.";
+          registrationsList.innerHTML = `<div class="imports-history-empty">Eingänge aus dem gematik Backend werden geladen.</div>`;
+          return;
+        }
+        if (!registrationsLoaded) {
+          registrationsSummary.textContent = "Noch nicht geladen.";
+          registrationsList.innerHTML = `<div class="imports-history-empty">Öffne die Registrierungen, um neue Eingänge aus dem Backend zu prüfen.</div>`;
+          return;
+        }
+        const rows = backendRegistrations.filter((registration) => registration.status === "neu");
+        registrationsSummary.textContent = rows.length
+          ? `${rows.length} neue Registrierung${rows.length === 1 ? "" : "en"} zur Prüfung.`
+          : "Keine neuen Registrierungen zur Prüfung.";
+        registrationsList.innerHTML = rows.length
+          ? rows.map((registration) => {
+              const name = registrationDisplayName(registration);
+              const meta = [registration.organization, registration.sector, registration.city || registration.federalState].filter(Boolean).join(" · ");
+              const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "Zeitpunkt offen";
+              return `
+                <article class="registration-row" data-registration-id="${escapeHtml(registration.id)}">
+                  <div class="registration-row__main">
+                    <strong>${escapeHtml(name)}</strong>
+                    <span>${escapeHtml(registration.email || "E-Mail offen")}</span>
+                  </div>
+                  <div class="registration-row__meta">
+                    <strong>${escapeHtml(registrationStatusLabel(registration.status))}</strong>
+                    <span>${escapeHtml(meta || "Einordnung offen")}</span>
+                    ${registration.duplicateHint ? `<small>${escapeHtml(registration.duplicateHint)}</small>` : ""}
+                  </div>
+                  <div class="registration-row__message">
+                    <strong>${escapeHtml(submitted)}</strong>
+                    <span>${escapeHtml(registration.message || "Keine Nachricht")}</span>
+                  </div>
+                  <div class="registration-row__actions">
+                    <button class="import-row-action" type="button" data-registration-action="accept" data-registration-id="${escapeHtml(registration.id)}">Übernehmen</button>
+                    <button class="import-row-action" type="button" data-registration-action="link" data-registration-id="${escapeHtml(registration.id)}">Verknüpfen</button>
+                    <button class="import-row-action" type="button" data-registration-action="defer" data-registration-id="${escapeHtml(registration.id)}">Zurückstellen</button>
+                    <button class="import-row-action" type="button" data-registration-action="reject" data-registration-id="${escapeHtml(registration.id)}">Ablehnen</button>
+                  </div>
+                </article>
+              `;
+            }).join("")
+          : `<div class="imports-history-empty">Keine neuen Registrierungen. Zurückgestellte oder übernommene Eingänge bleiben im gematik Backend nachvollziehbar.</div>`;
+      }
+
+      function updateRegistrationInList(updated) {
+        backendRegistrations = backendRegistrations.map((registration) => (registration.id === updated.id ? updated : registration));
+        renderRegistrations();
+      }
+
+      async function setRegistrationStatus(registration, status, extra = {}) {
+        const updated = await window.dataService.updateBackendRegistration(registration.id, {
+          ...extra,
+          status,
+          processedBy: currentProfile?.email || currentProfile?.displayName || currentProfile?.id || ""
+        });
+        updateRegistrationInList(updated);
+        return updated;
+      }
+
+      async function acceptRegistration(registration) {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Registrierungen übernehmen.");
+          return;
+        }
+        const duplicate = contacts.find((contact) => {
+          const sameEmail = registration.email && String(contact.email || "").toLowerCase() === registration.email.toLowerCase();
+          const sameOrganization = registration.organization && normalizeOrganizationName(contact.organization) === normalizeOrganizationName(registration.organization);
+          return sameEmail || sameOrganization;
+        });
+        if (duplicate && !window.confirm(`Möglicher bestehender Kontakt: ${duplicate.displayName || duplicate.name}. Trotzdem neuen Kontakt anlegen?`)) return;
+
+        let organizationId = "";
+        if (registration.organization) {
+          const existingOrganization = organizations.find((organization) => normalizeOrganizationName(organization.name) === normalizeOrganizationName(registration.organization));
+          if (existingOrganization?.id && !String(existingOrganization.id).startsWith("derived-org-")) {
+            organizationId = existingOrganization.id;
+          } else {
+            try {
+              const savedOrganization = await window.dataService.createOrganization({
+                name: registration.organization,
+                sector: registration.sector,
+                city: registration.city,
+                state: registration.federalState || registration.federal_state,
+                email: registration.email,
+                source: "Versorgungs-Netzwerk Registrierung",
+                notes: registration.message
+              });
+              organizationId = savedOrganization.id || "";
+              organizations = mergeOrganizations([savedOrganization, ...organizations], deriveOrganizationsFromContacts(contacts));
+            } catch (error) {
+              console.warn("Organisation aus Registrierung konnte nicht angelegt werden. Kontakt wird mit Freitext-Organisation übernommen.", error);
+            }
+          }
+        }
+
+        try {
+          const savedContact = await window.dataService.createContact(registrationToContact(registration, organizationId));
+          contacts = [sanitizeContact(savedContact, contacts.length), ...contacts.filter((contact) => contact.id !== savedContact.id)];
+          await setRegistrationStatus(registration, "uebernommen", { contact_id: savedContact.id });
+          activeId = savedContact.id;
+          setStorageStatus("Registrierung übernommen und Kontakt angelegt");
+          updateView();
+          openDetail(savedContact.id);
+        } catch (error) {
+          console.error("Registrierung konnte nicht übernommen werden.", error);
+          window.alert("Die Registrierung konnte nicht übernommen werden. Bitte prüfe Backend-Verbindung, Rolle und Kontaktanlage.");
+        }
+      }
+
+      async function linkRegistration(registration) {
+        const query = window.prompt("Bestehenden Kontakt per Name, Organisation oder E-Mail suchen:", registration.email || registration.organization || "");
+        if (!query) return;
+        const normalizedQuery = query.trim().toLowerCase();
+        const match = contacts.find((contact) =>
+          [contact.name, contact.displayName, contact.organization, contact.email]
+            .some((value) => String(value || "").toLowerCase().includes(normalizedQuery))
+        );
+        if (!match) {
+          window.alert("Kein passender Kontakt gefunden.");
+          return;
+        }
+        try {
+          await setRegistrationStatus(registration, "verknuepft", { contact_id: match.id });
+          setStorageStatus("Registrierung mit bestehendem Kontakt verknüpft");
+          activeId = match.id;
+          updateView();
+          openDetail(match.id);
+        } catch (error) {
+          console.error("Registrierung konnte nicht verknüpft werden.", error);
+          window.alert("Die Registrierung konnte nicht verknüpft werden. Bitte Backend-Verbindung prüfen.");
+        }
+      }
+
+      async function handleRegistrationAction(action, registrationId) {
+        const registration = backendRegistrations.find((item) => item.id === registrationId);
+        if (!registration) return;
+        if (action === "accept") return acceptRegistration(registration);
+        if (action === "link") return linkRegistration(registration);
+        if (action === "defer") {
+          await setRegistrationStatus(registration, "zurueckgestellt");
+          setStorageStatus("Registrierung zurückgestellt");
+        }
+        if (action === "reject" && window.confirm("Registrierung ablehnen? Es wird kein aktiver Kontakt angelegt.")) {
+          await setRegistrationStatus(registration, "abgelehnt");
+          setStorageStatus("Registrierung abgelehnt");
+        }
       }
 
       function createImportState() {
@@ -26720,6 +27080,11 @@
           const active = panel.dataset.settingsTabPanel === activeSettingsTab;
           panel.hidden = !active;
         });
+        sidebarSettingsButton?.classList.toggle("is-active", activeView === "settings" && activeSettingsTab !== "imports");
+        sidebarImportButton?.classList.toggle("is-active", activeView === "settings" && activeSettingsTab === "imports");
+        if (activeSettingsTab === "imports" && canAdministerData() && !registrationsLoaded && !registrationsLoading) {
+          loadRegistrations({ scroll: false });
+        }
       }
 
       function openSettingsTab(tab = "settings") {
@@ -26795,7 +27160,8 @@
           tab.classList.toggle("is-active", tab.dataset.viewTab === view);
         });
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
-        sidebarSettingsButton?.classList.toggle("is-active", view === "settings");
+        sidebarSettingsButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab !== "imports");
+        sidebarImportButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab === "imports");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
         sidebarProfileButton?.classList.toggle("is-active", view === "profile");
         viewPanels.forEach((panel) => {
@@ -27895,6 +28261,11 @@
         updateRouteHash("settings");
         updateView();
       });
+      sidebarImportButton?.addEventListener("click", () => {
+        closeMenus();
+        closeMobileSidebar();
+        openSettingsTab("imports");
+      });
       settingsTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
           setSettingsTab(button.dataset.settingsTab || "settings");
@@ -28192,6 +28563,17 @@
       importsStartFileButton?.addEventListener("click", openImportWizard);
       importsOpenTableButton?.addEventListener("click", () => {
         openImportWizard({ mode: "bulk" });
+      });
+      importsShowRegistrationsButton?.addEventListener("click", () => {
+        loadRegistrations({ scroll: true });
+      });
+      registrationsRefresh?.addEventListener("click", () => {
+        loadRegistrations({ scroll: false });
+      });
+      registrationsList?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-registration-action]");
+        if (!button) return;
+        handleRegistrationAction(button.dataset.registrationAction, button.dataset.registrationId);
       });
       importsShowHistoryButton?.addEventListener("click", () => {
         if (importsHistorySection) {

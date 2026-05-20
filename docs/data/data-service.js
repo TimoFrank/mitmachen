@@ -127,6 +127,7 @@
   ];
   const PROFILE_IMAGE_BUCKET = "profile-images";
   const LOCAL_FORMATS_KEY = "versorgungs-kompass-formats-v1";
+  const LOCAL_REGISTRATIONS_KEY = "versorgungs-kompass-backend-registrations-v1";
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   let client = null;
   let profileCache = new Map();
@@ -256,6 +257,115 @@
         ).length;
         return { ...clone(organization), contactCount };
       });
+  }
+
+  function sampleRegistrationRows() {
+    const now = new Date();
+    return [
+      {
+        id: "reg-demo-001",
+        submitted_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        status: "neu",
+        email: "praxis.team@example.test",
+        salutation: "Frau",
+        title: "Dr. med.",
+        first_name: "Lea",
+        last_name: "Muster",
+        organization: "Hausarztpraxis Musterstadt",
+        sector: "Praxis",
+        city: "Musterstadt",
+        federal_state: "Nordrhein-Westfalen",
+        role: "Praxisinhaberin",
+        message: "Wir koennen Einblicke in Anmeldung, ePA und E-Rezept im hausarztlichen Alltag geben.",
+        consent_text_version: "mitmachen-versorgungs-netzwerk-v1",
+        consent_accepted_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        source_url: "https://www.gematik.de/mitmachen/versorgungs-netzwerk",
+        duplicate_hint: ""
+      },
+      {
+        id: "reg-demo-002",
+        submitted_at: new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString(),
+        status: "neu",
+        email: "info@apotheke-beispiel.test",
+        salutation: "",
+        title: "",
+        first_name: "Jonas",
+        last_name: "Beispiel",
+        organization: "Apotheke am Markt",
+        sector: "Apotheke",
+        city: "Leipzig",
+        federal_state: "Sachsen",
+        role: "Inhaber",
+        message: "Interesse an Rueckmeldungen zu E-Rezept und digitalen Prozessen.",
+        consent_text_version: "mitmachen-versorgungs-netzwerk-v1",
+        consent_accepted_at: new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString(),
+        source_url: "https://www.gematik.de/mitmachen/versorgungs-netzwerk",
+        duplicate_hint: "Aehnliche Organisation im CRM pruefen"
+      }
+    ];
+  }
+
+  function normalizeRegistration(row = {}) {
+    const submittedAt = row.submittedAt || row.submitted_at || "";
+    const processedAt = row.processedAt || row.processed_at || "";
+    return {
+      id: String(row.id || row.registration_id || "").trim(),
+      submittedAt,
+      submitted_at: submittedAt,
+      status: String(row.status || "neu").trim() || "neu",
+      email: String(row.email || "").trim(),
+      salutation: String(row.salutation || row.anrede || "").trim(),
+      title: String(row.title || row.academic_title || "").trim(),
+      firstName: String(row.firstName || row.first_name || "").trim(),
+      first_name: String(row.firstName || row.first_name || "").trim(),
+      lastName: String(row.lastName || row.last_name || "").trim(),
+      last_name: String(row.lastName || row.last_name || "").trim(),
+      organization: String(row.organization || row.einrichtung || "").trim(),
+      sector: String(row.sector || row.category || "").trim(),
+      city: String(row.city || "").trim(),
+      federalState: String(row.federalState || row.federal_state || row.state || "").trim(),
+      federal_state: String(row.federalState || row.federal_state || row.state || "").trim(),
+      role: String(row.role || row.function || row.position || "").trim(),
+      message: String(row.message || row.nachricht || "").trim(),
+      consentTextVersion: String(row.consentTextVersion || row.consent_text_version || "").trim(),
+      consent_text_version: String(row.consentTextVersion || row.consent_text_version || "").trim(),
+      consentAcceptedAt: String(row.consentAcceptedAt || row.consent_accepted_at || "").trim(),
+      consent_accepted_at: String(row.consentAcceptedAt || row.consent_accepted_at || "").trim(),
+      sourceUrl: String(row.sourceUrl || row.source_url || "").trim(),
+      source_url: String(row.sourceUrl || row.source_url || "").trim(),
+      duplicateHint: String(row.duplicateHint || row.duplicate_hint || "").trim(),
+      duplicate_hint: String(row.duplicateHint || row.duplicate_hint || "").trim(),
+      contactId: String(row.contactId || row.contact_id || "").trim(),
+      contact_id: String(row.contactId || row.contact_id || "").trim(),
+      processedAt,
+      processed_at: processedAt,
+      processedBy: String(row.processedBy || row.processed_by || "").trim(),
+      processed_by: String(row.processedBy || row.processed_by || "").trim()
+    };
+  }
+
+  function localRegistrations() {
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(LOCAL_REGISTRATIONS_KEY) || "null");
+      if (Array.isArray(parsed)) return parsed.map(normalizeRegistration);
+    } catch (_error) {
+      // Fall back to sample data.
+    }
+    return sampleRegistrationRows().map(normalizeRegistration);
+  }
+
+  function persistLocalRegistrations(rows) {
+    window.localStorage.setItem(LOCAL_REGISTRATIONS_KEY, JSON.stringify(rows.map(normalizeRegistration)));
+  }
+
+  function backendBaseUrl() {
+    return String(CONFIG.gematikBackendUrl || CONFIG.registrationBackendUrl || "").replace(/\/+$/, "");
+  }
+
+  function registrationHeaders() {
+    const headers = { "Accept": "application/json", "Content-Type": "application/json" };
+    if (CONFIG.gematikBackendToken) headers.Authorization = `Bearer ${CONFIG.gematikBackendToken}`;
+    return headers;
   }
 
   function localSavedViews() {
@@ -889,6 +999,65 @@
     return (data || []).map(changeToUi);
   }
 
+  async function loadBackendRegistrations(options = {}) {
+    const status = String(options.status || "").trim();
+    if (isLocalMode() || !backendBaseUrl()) {
+      return localRegistrations()
+        .filter((row) => !status || row.status === status)
+        .sort((a, b) => String(b.submittedAt || "").localeCompare(String(a.submittedAt || "")));
+    }
+    const url = new URL(`${backendBaseUrl()}/versorgungs-netzwerk/registrierungen`);
+    if (status) url.searchParams.set("status", status);
+    const response = await fetch(url.href, {
+      method: "GET",
+      headers: registrationHeaders(),
+      credentials: CONFIG.gematikBackendCredentials || "same-origin"
+    });
+    if (!response.ok) throw new Error(`Registrierungen konnten nicht geladen werden (${response.status}).`);
+    const payload = await response.json();
+    const rows = Array.isArray(payload) ? payload : Array.isArray(payload.items) ? payload.items : [];
+    return rows.map(normalizeRegistration);
+  }
+
+  async function updateBackendRegistration(id, patch = {}) {
+    const registrationId = String(id || "").trim();
+    if (!registrationId) throw new Error("Registrierungs-ID fehlt.");
+    const status = String(patch.status || "").trim();
+    if (!status) throw new Error("Registrierungsstatus fehlt.");
+    const processedBy = String(patch.processedBy || patch.processed_by || "").trim();
+    const processedAt = patch.processedAt || patch.processed_at || new Date().toISOString();
+    if (isLocalMode() || !backendBaseUrl()) {
+      const rows = localRegistrations();
+      const existing = rows.find((row) => row.id === registrationId);
+      if (!existing) throw new Error("Registrierung wurde nicht gefunden.");
+      const updated = normalizeRegistration({
+        ...existing,
+        ...patch,
+        status,
+        processed_at: processedAt,
+        processed_by: processedBy
+      });
+      persistLocalRegistrations(rows.map((row) => (row.id === registrationId ? updated : row)));
+      return updated;
+    }
+    const response = await fetch(`${backendBaseUrl()}/versorgungs-netzwerk/registrierungen/${encodeURIComponent(registrationId)}`, {
+      method: "PATCH",
+      headers: registrationHeaders(),
+      credentials: CONFIG.gematikBackendCredentials || "same-origin",
+      body: JSON.stringify({
+        ...patch,
+        status,
+        processed_at: processedAt,
+        processed_by: processedBy
+      })
+    });
+    if (!response.ok) throw new Error(`Registrierung konnte nicht aktualisiert werden (${response.status}).`);
+    if (response.status === 204) {
+      return normalizeRegistration({ id: registrationId, ...patch, status, processed_at: processedAt, processed_by: processedBy });
+    }
+    return normalizeRegistration(await response.json());
+  }
+
   async function loadOrganizations(options = {}) {
     if (isLocalMode()) {
       organizationCache = localOrganizations(options);
@@ -1515,6 +1684,8 @@
     uploadCurrentProfileImage,
     removeCurrentProfileImage,
     getContactChanges,
+    loadBackendRegistrations,
+    updateBackendRegistration,
     loadOrganizations,
     getOrganization,
     createOrganization,
