@@ -16994,12 +16994,33 @@
           <section class="view-panel" id="view-settings" data-view-panel="settings">
             <div class="settings-workspace">
               <div class="settings-tab-nav" role="tablist" aria-label="Importbereiche">
-                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-imports" data-settings-tab="imports">Import</button>
+                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierungen</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Dateiimport</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-online-entry" data-settings-tab="onlineEntry">Online-Erfassung</button>
-                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierungen</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-import-history" data-settings-tab="importHistory">Historie</button>
               </div>
-              <div class="settings-tab-panel" id="settings-tab-imports" role="tabpanel" data-settings-tab-panel="imports">
+              <div class="settings-tab-panel" id="settings-tab-registrations" role="tabpanel" data-settings-tab-panel="registrations">
+                <div class="imports-workspace">
+                  <section class="import-profile-card registrations-card" id="registrations-section" tabindex="-1">
+                    <div class="dashboard-card-head">
+                      <div>
+                        <h4>Registrierungen aus dem Versorgungs-Netzwerk</h4>
+                        <p>Öffentliche Formularmeldungen werden hier erst geprüft, bevor ein aktiver CRM-Kontakt entsteht.</p>
+                      </div>
+                      <a class="action-button" id="public-registration-demo-link" href="./mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Formular ansehen</a>
+                    </div>
+                    <div class="registrations-toolbar">
+                      <div class="registrations-summary" id="registrations-summary">Registrierungen werden geladen.</div>
+                      <button class="action-button action-button--ghost" type="button" id="registrations-reset-demo">Demo zurücksetzen</button>
+                      <button class="action-button action-button--ghost" type="button" id="registrations-refresh">Aktualisieren</button>
+                    </div>
+                    <div class="registrations-list" id="registrations-list">
+                      <div class="imports-history-empty">Noch keine Registrierungen geladen.</div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-imports" role="tabpanel" data-settings-tab-panel="imports" hidden>
                 <div class="imports-workspace">
                   <div class="import-start-grid">
                     <article class="import-format-card">
@@ -17035,27 +17056,6 @@
                       <button class="action-button" type="button" id="imports-open-table">Tabelle öffnen</button>
                     </article>
                   </div>
-                </div>
-              </div>
-              <div class="settings-tab-panel" id="settings-tab-registrations" role="tabpanel" data-settings-tab-panel="registrations" hidden>
-                <div class="imports-workspace">
-                  <section class="import-profile-card registrations-card" id="registrations-section" tabindex="-1">
-                    <div class="dashboard-card-head">
-                      <div>
-                        <h4>Registrierungen aus dem Versorgungs-Netzwerk</h4>
-                        <p>Öffentliche Formularmeldungen werden hier erst geprüft, bevor ein aktiver CRM-Kontakt entsteht.</p>
-                      </div>
-                      <a class="action-button" id="public-registration-demo-link" href="./mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Formular ansehen</a>
-                    </div>
-                    <div class="registrations-toolbar">
-                      <div class="registrations-summary" id="registrations-summary">Registrierungen werden geladen.</div>
-                      <button class="action-button action-button--ghost" type="button" id="registrations-reset-demo">Demo zurücksetzen</button>
-                      <button class="action-button action-button--ghost" type="button" id="registrations-refresh">Aktualisieren</button>
-                    </div>
-                    <div class="registrations-list" id="registrations-list">
-                      <div class="imports-history-empty">Noch keine Registrierungen geladen.</div>
-                    </div>
-                  </section>
                 </div>
               </div>
               <div class="settings-tab-panel" id="settings-tab-import-history" role="tabpanel" data-settings-tab-panel="importHistory" hidden>
@@ -18523,9 +18523,9 @@
         { id: "settings", label: "Einstellungen" }
       ];
       const settingsTabItems = [
-        { id: "imports", title: "Import", subtitle: "Kontakte per Datei hochladen, zuordnen und geprüft importieren." },
-        { id: "onlineEntry", title: "Online-Erfassung", subtitle: "Mehrere Kontakte direkt in einer Tabelle erfassen und gemeinsam speichern." },
         { id: "registrations", title: "Registrierungen", subtitle: "Eingänge aus dem Versorgungs-Netzwerk prüfen und kontrolliert übernehmen." },
+        { id: "imports", title: "Dateiimport", subtitle: "Kontakte per Datei hochladen, zuordnen und geprüft importieren." },
+        { id: "onlineEntry", title: "Online-Erfassung", subtitle: "Mehrere Kontakte direkt in einer Tabelle erfassen und gemeinsam speichern." },
         { id: "importHistory", title: "Importhistorie", subtitle: "Abgeschlossene Importe und Ergebnisse nachvollziehen." }
       ];
       const profileTabItems = [
@@ -27438,11 +27438,11 @@
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
       }
 
-      function normalizeSettingsTab(tab = "imports") {
-        return settingsTabItems.some((item) => item.id === tab) ? tab : "imports";
+      function normalizeSettingsTab(tab = "registrations") {
+        return settingsTabItems.some((item) => item.id === tab) ? tab : "registrations";
       }
 
-      function setSettingsTab(tab = "imports") {
+      function setSettingsTab(tab = "registrations") {
         activeSettingsTab = normalizeSettingsTab(tab);
         settingsTabButtons.forEach((button) => {
           const active = button.dataset.settingsTab === activeSettingsTab;
@@ -27460,7 +27460,7 @@
         }
       }
 
-      function openSettingsTab(tab = "imports") {
+      function openSettingsTab(tab = "registrations") {
         setSettingsTab(tab);
         setActiveView("settings");
         updateRouteHash(activeSettingsTab);
@@ -28666,7 +28666,7 @@
       sidebarImportButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
-        openSettingsTab("imports");
+        openSettingsTab("registrations");
       });
       settingsTabButtons.forEach((button) => {
         button.addEventListener("click", () => {

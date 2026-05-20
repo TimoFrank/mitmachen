@@ -147,7 +147,8 @@ test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ pag
 test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
 
-  await expect(page.locator('[data-settings-tab="imports"]')).toHaveText("Import");
+  await expect(page.locator('[data-settings-tab="registrations"]')).toHaveText("Registrierungen");
+  await expect(page.locator('[data-settings-tab="imports"]')).toHaveText("Dateiimport");
   await expect(page.locator('[data-settings-tab="onlineEntry"]')).toHaveText("Online-Erfassung");
   await expect(page.locator('[data-settings-tab="registrations"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#registrations-section")).toBeVisible();
