@@ -6083,7 +6083,13 @@
         background: var(--surface);
       }
 
-      .care-queue-card--done {
+      .care-queue-card--critical {
+        border-color: #fecaca;
+        background: var(--surface);
+      }
+
+      .care-queue-card--done,
+      .care-queue-card--complete {
         border-color: #cfead7;
         background: var(--surface);
       }
@@ -6106,7 +6112,13 @@
         border-bottom-color: #fed7aa;
       }
 
-      .care-queue-card--done .care-queue-head {
+      .care-queue-card--critical .care-queue-head {
+        background: #fff1f2;
+        border-bottom-color: #fecaca;
+      }
+
+      .care-queue-card--done .care-queue-head,
+      .care-queue-card--complete .care-queue-head {
         background: #f0fdf4;
         border-bottom-color: #bde8ca;
       }
@@ -6128,7 +6140,13 @@
         color: var(--primary);
       }
 
-      .care-queue-card--done .care-queue-icon {
+      .care-queue-card--critical .care-queue-icon {
+        background: #ffe4e6;
+        color: #be123c;
+      }
+
+      .care-queue-card--done .care-queue-icon,
+      .care-queue-card--complete .care-queue-icon {
         background: #e8f8ee;
         color: #1f7a47;
       }
@@ -6164,6 +6182,18 @@
         font-weight: 850;
       }
 
+      .care-queue-status--critical {
+        border-color: #fecaca;
+        background: #fff1f2;
+        color: #be123c;
+      }
+
+      .care-queue-status--open {
+        border-color: #fed7aa;
+        background: #fff7ed;
+        color: #b45309;
+      }
+
       .care-queue-status svg {
         width: 13px;
         height: 13px;
@@ -6186,7 +6216,13 @@
         font-variant-numeric: tabular-nums;
       }
 
-      .care-queue-card--done .care-queue-count {
+      .care-queue-card--critical .care-queue-count {
+        background: #ffe4e6;
+        color: #be123c;
+      }
+
+      .care-queue-card--done .care-queue-count,
+      .care-queue-card--complete .care-queue-count {
         background: #eaf8ef;
         color: #237247;
       }
@@ -24191,6 +24227,19 @@
         ].join("");
       }
 
+      function buildOrganizationAssignmentSelectOptions(selectedOrganizationId = "", selectedOrganizationName = "") {
+        const selectedName = normalizeOrganizationName(selectedOrganizationName);
+        return [
+          `<option value="">Organisation auswählen...</option>`,
+          ...organizationOptions().map((organization) => {
+            const isSelected =
+              (selectedOrganizationId && organization.id === selectedOrganizationId) ||
+              (!selectedOrganizationId && selectedName && normalizeOrganizationName(organization.name) === selectedName);
+            return `<option value="${escapeHtml(organization.id)}" ${isSelected ? "selected" : ""}>${escapeHtml(organization.name)}</option>`;
+          })
+        ].join("");
+      }
+
       function buildStateSelectOptions(selectedState = "") {
         return [
           `<option value="">Bitte wählen...</option>`,
@@ -25808,12 +25857,15 @@
           summary: `<svg viewBox="0 0 24 24"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 16v-5"></path><path d="M12 16V8"></path><path d="M16 16v-3"></path></svg>`,
           list: `<svg viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>`,
           selection: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 8h10"></path><path d="M7 12h6"></path><path d="M7 16h8"></path></svg>`,
+          name: `<svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M4 12h10"></path><path d="M4 17h7"></path></svg>`,
           "missing-owner": `<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>`,
           "missing-email": `<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>`,
           "missing-phone": `<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7A2 2 0 0 1 22 16.9Z"></path></svg>`,
           "missing-location": `<svg viewBox="0 0 24 24"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>`,
           "missing-specialty": `<svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M5 12h14"></path><rect x="4" y="4" width="16" height="16" rx="3"></rect></svg>`,
           "unclear-organization": `<svg viewBox="0 0 24 24"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path><path d="M9 10h.01"></path><path d="M15 10h.01"></path></svg>`,
+          priority: `<svg viewBox="0 0 24 24"><path d="M5 5v14"></path><path d="M5 5h11l-2 4 2 4H5"></path></svg>`,
+          role: `<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path></svg>`,
           duplicates: `<svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 16H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
           archived: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>`,
           stale: `<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>`,
@@ -25846,6 +25898,10 @@
 
       function hasLocation(contact) {
         return hasMeaningfulValue(contact.postalCode) && hasMeaningfulValue(contact.city);
+      }
+
+      function hasOrganizationAssignment(contact) {
+        return hasMeaningfulValue(contact.organizationId);
       }
 
       function isUnclearOrganization(contact) {
@@ -25888,52 +25944,176 @@
         return [...suspects.values()];
       }
 
-      function buildCareQueueItems(items) {
-        const activeItems = contacts.filter((contact) => contact.status !== "archived");
-        const archivedItems = contacts.filter((contact) => contact.status === "archived");
-        const duplicateItems = duplicateSuspects(activeItems);
+      function careQueueStateForRule(rule, completion, missingCount) {
+        if (rule.required && missingCount > 0) return "critical";
+        if (completion < 80 || missingCount > 10) return "critical";
+        return "open";
+      }
 
+      function careQueueStatusLabel(state) {
+        if (state === "critical") return "Kritisch";
+        if (state === "complete") return "Vollständig";
+        if (state === "done") return "Gepflegt";
+        return "Offen";
+      }
+
+      function careQueueStateRank(state) {
+        return state === "critical" ? 0 : state === "open" ? 1 : state === "done" ? 2 : 3;
+      }
+
+      function careQualityFieldRules() {
         return [
           {
-            key: "missing-owner",
+            key: "name",
+            title: "Fehlender Name",
+            completeTitle: "Name vollständig",
+            label: "Name",
+            iconKey: "name",
+            required: true,
+            isComplete: (contact) => hasMeaningfulValue(contact.name || contact.displayName)
+          },
+          {
+            key: "organization",
+            title: "Fehlende Organisation",
+            completeTitle: "Organisation gepflegt",
+            label: "Organisation",
+            iconKey: "unclear-organization",
+            required: true,
+            isComplete: (contact) => hasMeaningfulValue(contact.organization)
+          },
+          {
+            key: "organization-assignment",
+            title: "Organisation nicht zugeordnet",
+            completeTitle: "Organisationszuordnung gepflegt",
+            label: "Organisationszuordnung",
+            iconKey: "unclear-organization",
+            required: false,
+            isComplete: hasOrganizationAssignment
+          },
+          {
+            key: "sector",
+            title: "Fehlender Sektor",
+            completeTitle: "Sektor gepflegt",
+            label: "Sektor",
+            iconKey: "selection",
+            required: true,
+            isComplete: (contact) => hasMeaningfulValue(contact.category)
+          },
+          {
+            key: "role",
+            title: "Fehlende Rolle",
+            completeTitle: "Rolle gepflegt",
+            label: "Rolle",
+            iconKey: "role",
+            required: false,
+            isComplete: (contact) => hasMeaningfulValue(contact.contactRole)
+          },
+          {
+            key: "priority",
+            title: "Fehlende Priorität",
+            completeTitle: "Priorität gepflegt",
+            label: "Priorität",
+            iconKey: "priority",
+            required: true,
+            isComplete: (contact) => hasMeaningfulValue(contact.priority)
+          },
+          {
+            key: "owner",
             title: "Fehlender Owner",
-            state: "open",
-            contacts: activeItems.filter(isMissingOwner)
+            completeTitle: "Owner gepflegt",
+            label: "Owner",
+            iconKey: "missing-owner",
+            required: true,
+            isComplete: hasOwner
           },
           {
-            key: "missing-email",
-            title: "Fehlende E-Mail",
-            state: "open",
-            contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.email))
-          },
-          {
-            key: "missing-phone",
-            title: "Fehlendes Telefon",
-            state: "open",
-            contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.phone))
-          },
-          {
-            key: "missing-location",
+            key: "location",
             title: "Fehlender Standort",
-            state: "open",
-            contacts: activeItems.filter(isMissingLocation)
+            completeTitle: "Standort vollständig",
+            label: "Standort",
+            iconKey: "missing-location",
+            required: true,
+            isComplete: hasLocation
           },
           {
-            key: "missing-specialty",
+            key: "specialty",
             title: "Fehlende Fachrichtung",
-            state: "open",
-            contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.specialty))
+            completeTitle: "Fachrichtung gepflegt",
+            label: "Fachrichtung",
+            iconKey: "missing-specialty",
+            required: false,
+            isComplete: (contact) => hasMeaningfulValue(contact.specialty)
           },
+          {
+            key: "email",
+            title: "Fehlende E-Mail",
+            completeTitle: "E-Mail gepflegt",
+            label: "E-Mail",
+            iconKey: "missing-email",
+            required: false,
+            isComplete: (contact) => hasMeaningfulValue(contact.email)
+          },
+          {
+            key: "phone",
+            title: "Fehlendes Telefon",
+            completeTitle: "Telefon gepflegt",
+            label: "Telefon",
+            iconKey: "missing-phone",
+            required: false,
+            isComplete: (contact) => hasMeaningfulValue(contact.phone)
+          }
+        ];
+      }
+
+      function buildCareQueueItems(items) {
+        const activeItems = items.filter((contact) => contact.status !== "archived");
+        const archivedItems = items.filter((contact) => contact.status === "archived");
+        const duplicateItems = duplicateSuspects(activeItems);
+        const total = Math.max(activeItems.length, 1);
+        const fieldItems = careQualityFieldRules().flatMap((rule) => {
+          const completeContacts = activeItems.filter(rule.isComplete);
+          const missingContacts = activeItems.filter((contact) => !rule.isComplete(contact));
+          const completion = Math.round((completeContacts.length / total) * 100);
+          const entries = [];
+          if (missingContacts.length) {
+            entries.push({
+              key: `missing-${rule.key}`,
+              ruleKey: rule.key,
+              title: rule.title,
+              state: careQueueStateForRule(rule, completion, missingContacts.length),
+              iconKey: rule.iconKey,
+              contacts: missingContacts,
+              completion
+            });
+          }
+          if (completeContacts.length && completion >= 95) {
+            entries.push({
+              key: `complete-${rule.key}`,
+              ruleKey: rule.key,
+              title: rule.completeTitle,
+              state: completion === 100 ? "complete" : "done",
+              iconKey: rule.iconKey,
+              contacts: completeContacts,
+              completion
+            });
+          }
+          return entries;
+        });
+
+        return [
+          ...fieldItems,
           {
             key: "unclear-organization",
+            ruleKey: "organization",
             title: "Unklare Organisation",
             state: "open",
+            iconKey: "unclear-organization",
             contacts: activeItems.filter(isUnclearOrganization)
           },
           {
             key: "duplicates",
             title: "Dublettenverdacht",
-            state: "open",
+            state: duplicateItems.length ? "critical" : "open",
             attention: true,
             contacts: duplicateItems
           },
@@ -25949,46 +26129,11 @@
             title: "Länger nicht aktualisiert",
             state: "open",
             contacts: activeItems.filter(isContactStale)
-          },
-          {
-            key: "complete-email",
-            title: "E-Mail gepflegt",
-            state: "done",
-            iconKey: "missing-email",
-            contacts: activeItems.filter((contact) => hasMeaningfulValue(contact.email))
-          },
-          {
-            key: "complete-phone",
-            title: "Telefon gepflegt",
-            state: "done",
-            iconKey: "missing-phone",
-            contacts: activeItems.filter((contact) => hasMeaningfulValue(contact.phone))
-          },
-          {
-            key: "complete-specialty",
-            title: "Fachrichtung gepflegt",
-            state: "done",
-            iconKey: "missing-specialty",
-            contacts: activeItems.filter((contact) => hasMeaningfulValue(contact.specialty))
-          },
-          {
-            key: "complete-owner",
-            title: "Owner gepflegt",
-            state: "done",
-            iconKey: "missing-owner",
-            contacts: activeItems.filter(hasOwner)
-          },
-          {
-            key: "complete-location",
-            title: "Standort gepflegt",
-            state: "done",
-            iconKey: "missing-location",
-            contacts: activeItems.filter(hasLocation)
           }
         ].sort((left, right) => {
-          const leftIsOpen = left.state !== "done";
-          const rightIsOpen = right.state !== "done";
-          if (leftIsOpen !== rightIsOpen) return leftIsOpen ? -1 : 1;
+          const leftRank = careQueueStateRank(left.state);
+          const rightRank = careQueueStateRank(right.state);
+          if (leftRank !== rightRank) return leftRank - rightRank;
           return right.contacts.length - left.contacts.length || left.title.localeCompare(right.title, "de");
         });
       }
@@ -26007,19 +26152,20 @@
               ? visibleItems
               .map((item) => {
                 const visible = item.contacts.slice(0, 3);
-                const done = item.state === "done";
+                const resolved = item.state === "done" || item.state === "complete";
                 const expanded = activeCareQueueKey === item.key;
+                const cardClass = item.state === "critical" ? "care-queue-card--critical" : resolved ? `care-queue-card--${item.state}` : "care-queue-card--todo";
                 return `
-                  <section class="care-queue-card ${done ? "care-queue-card--done" : "care-queue-card--todo"} ${expanded ? "is-expanded" : ""}" data-care-card="${escapeHtml(item.key)}">
+                  <section class="care-queue-card ${cardClass} ${expanded ? "is-expanded" : ""}" data-care-card="${escapeHtml(item.key)}">
                     <div class="care-queue-head">
-                      <span class="care-queue-icon">${qualityIconSvg(done ? "complete" : item.iconKey || item.key)}</span>
+                      <span class="care-queue-icon">${qualityIconSvg(resolved ? "complete" : item.iconKey || item.key)}</span>
                       <span class="care-queue-copy">
                         <span class="care-queue-title">${escapeHtml(item.title)}</span>
-                        ${done ? `<span class="care-queue-status">${qualityIconSvg("complete")} Vollständig</span>` : ""}
+                        <span class="care-queue-status care-queue-status--${item.state}">${resolved ? qualityIconSvg("complete") : ""}${escapeHtml(careQueueStatusLabel(item.state))}</span>
                       </span>
-                      <span class="care-queue-count">${item.contacts.length}</span>
+                      <span class="care-queue-count">${resolved && Number.isFinite(item.completion) ? `${item.completion}%` : item.contacts.length}</span>
                     </div>
-                    ${done ? "" : expanded ? `
+                    ${resolved ? "" : expanded ? `
                       <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="true">Liste schließen</button></div>
                       ${renderCareQueueInlineList(item)}
                     ` : `
@@ -26054,18 +26200,24 @@
         const id = escapeHtml(contact.id);
         const archived = contact.status === "archived" ? "true" : "false";
         const name = escapeHtml(contact.displayName || contact.name);
+        const ruleKey = item.ruleKey || item.key.replace(/^missing-/, "");
         const field =
-          item.key === "missing-owner" ? `<select class="care-queue-field" data-care-inline-field="owner" data-care-inline-contact="${id}">${buildOwnerSelectOptions(contact.ownerId || contact.owner || "")}</select>`
-          : item.key === "missing-email" ? `<input class="care-queue-field" data-care-inline-field="email" data-care-inline-contact="${id}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail ergänzen" />`
-          : item.key === "missing-phone" ? `<input class="care-queue-field" data-care-inline-field="phone" data-care-inline-contact="${id}" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon ergänzen" />`
-          : item.key === "missing-specialty" ? `<select class="care-queue-field" data-care-inline-field="specialty" data-care-inline-contact="${id}">${buildSpecialtySelectOptions(contact.specialty || "")}</select>`
-          : item.key === "missing-location" ? `
+          ruleKey === "owner" ? `<select class="care-queue-field" data-care-inline-field="owner" data-care-inline-contact="${id}">${buildOwnerSelectOptions(contact.ownerId || contact.owner || "")}</select>`
+          : ruleKey === "email" ? `<input class="care-queue-field" data-care-inline-field="email" data-care-inline-contact="${id}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail ergänzen" />`
+          : ruleKey === "phone" ? `<input class="care-queue-field" data-care-inline-field="phone" data-care-inline-contact="${id}" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon ergänzen" />`
+          : ruleKey === "specialty" ? `<select class="care-queue-field" data-care-inline-field="specialty" data-care-inline-contact="${id}">${buildSpecialtySelectOptions(contact.specialty || "")}</select>`
+          : ruleKey === "location" ? `
               <span class="care-queue-field-grid">
                 <input class="care-queue-field" data-care-inline-field="postalCode" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.postalCode))}" placeholder="PLZ" />
                 <input class="care-queue-field" data-care-inline-field="city" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.city))}" placeholder="Ort" />
               </span>
             `
-          : item.key === "unclear-organization" ? `<input class="care-queue-field" data-care-inline-field="organization" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.organization))}" placeholder="Organisation ergänzen" />`
+          : ruleKey === "organization" ? `<input class="care-queue-field" data-care-inline-field="organization" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.organization))}" placeholder="Organisation ergänzen" />`
+          : ruleKey === "organization-assignment" ? `<select class="care-queue-field" data-care-inline-field="organizationId" data-care-inline-contact="${id}">${buildOrganizationAssignmentSelectOptions(contact.organizationId || "", contact.organization || "")}</select>`
+          : ruleKey === "sector" ? `<select class="care-queue-field" data-care-inline-field="category" data-care-inline-contact="${id}"><option value="">Sektor auswählen...</option>${buildCategorySelectOptions(contact.category || "")}</select>`
+          : ruleKey === "role" ? `<input class="care-queue-field" data-care-inline-field="contactRole" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.contactRole))}" placeholder="Rolle ergänzen" />`
+          : ruleKey === "priority" ? `<select class="care-queue-field" data-care-inline-field="priority" data-care-inline-contact="${id}"><option value="">Priorität auswählen...</option>${buildPrioritySelectOptions(hasMeaningfulValue(contact.priority) ? priorityDisplayLabel(contact.priority) : "")}</select>`
+          : ruleKey === "name" ? `<input class="care-queue-field" data-care-inline-field="name" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.name || contact.displayName))}" placeholder="Name ergänzen" />`
           : `<span class="care-queue-note">Profil prüfen und bei Bedarf aktualisieren.</span>`;
         return `
           <div class="care-queue-edit-row">
