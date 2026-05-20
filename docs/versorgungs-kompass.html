@@ -16286,6 +16286,13 @@
               </svg>
               <span>Auswertung</span>
             </button>
+            <button class="primary-tab" type="button" data-view-tab="quality" id="sidebar-quality-button" title="Datenqualität">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M12 3 5 6v5c0 4.5 2.9 8.4 7 10 4.1-1.6 7-5.5 7-10V6l-7-3Z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+              <span>Datenqualität</span>
+            </button>
           </div>
           <div class="sidebar-section" aria-label="Planung">
             <span class="sidebar-section-label">Planung</span>
@@ -16710,6 +16717,32 @@
             </div>
           </section>
 
+          <section class="view-panel" id="view-quality" data-view-panel="quality">
+            <div class="analytics-shell quality-workspace">
+              <div class="quality-workspace-grid">
+                <article class="dashboard-card dashboard-card--quality-overview">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Daten prüfen</h4>
+                      <p>Die wichtigsten offenen Punkte in den Kontakten.</p>
+                    </div>
+                  </div>
+                  <div id="quality-chart"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Arbeitslisten</h4>
+                      <p>Öffne eine Liste und ergänze die fehlenden Angaben Schritt für Schritt.</p>
+                    </div>
+                  </div>
+                  <div id="care-queue"></div>
+                  <div class="care-workbench" id="care-workbench" tabindex="-1" hidden></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
           <section class="view-panel" id="view-team" data-view-panel="team">
             <div class="team-workspace">
               <section class="profile-section">
@@ -16726,7 +16759,6 @@
               <div class="settings-tab-nav" role="tablist" aria-label="Einstellungsbereiche">
                 <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-settings" data-settings-tab="settings">Einstellungen</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Importe</button>
-                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-quality" data-settings-tab="quality">Datenqualität</button>
               </div>
               <div class="settings-tab-panel" id="settings-tab-settings" role="tabpanel" data-settings-tab-panel="settings">
                 <div class="settings-wip-note">
@@ -16845,31 +16877,6 @@
                       <div class="imports-history-empty">Noch keine abgeschlossenen Importe vorhanden.</div>
                     </div>
                   </section>
-                </div>
-              </div>
-              <div class="settings-tab-panel" id="settings-tab-quality" role="tabpanel" data-settings-tab-panel="quality" hidden>
-                <div class="analytics-shell quality-workspace">
-                  <div class="quality-workspace-grid">
-                    <article class="dashboard-card dashboard-card--quality-overview">
-                      <div class="dashboard-card-head">
-                        <div>
-                          <h4>Daten prüfen</h4>
-                          <p>Die wichtigsten offenen Punkte in den Kontakten.</p>
-                        </div>
-                      </div>
-                      <div id="quality-chart"></div>
-                    </article>
-                    <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
-                      <div class="dashboard-card-head">
-                        <div>
-                          <h4>Arbeitslisten</h4>
-                          <p>Öffne eine Liste und ergänze die fehlenden Angaben Schritt für Schritt.</p>
-                        </div>
-                      </div>
-                      <div id="care-queue"></div>
-                      <div class="care-workbench" id="care-workbench" tabindex="-1" hidden></div>
-                    </article>
-                  </div>
                 </div>
               </div>
             </div>
@@ -18248,8 +18255,7 @@
       ];
       const settingsTabItems = [
         { id: "settings", title: "Einstellungen", subtitle: "Entwurf für spätere App-Einstellungen. Aktuell noch ohne aktive Konfiguration." },
-        { id: "imports", title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." },
-        { id: "quality", title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." }
+        { id: "imports", title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." }
       ];
 
       const searchInput = document.getElementById("search");
@@ -18632,11 +18638,12 @@
       }
 
       function canAccessView(view) {
-        return !["settings", "about"].includes(view) || canAdministerData();
+        return !["settings", "about", "quality"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
-        if (["imports", "quality"].includes(view)) return canAdministerData() ? "settings" : "contacts";
+        if (view === "imports") return canAdministerData() ? "settings" : "contacts";
+        if (view === "quality") return canAdministerData() ? "quality" : "contacts";
         return canAccessView(view) ? view : "contacts";
       }
 
@@ -20196,6 +20203,7 @@
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
+        quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
         team: { title: "Team", subtitle: "Accounts, Rollen und Zuständigkeiten im Überblick." },
         settings: { title: "Einstellungen", subtitle: "Entwurf für spätere App-Einstellungen. Aktuell noch ohne aktive Konfiguration." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
@@ -26764,7 +26772,7 @@
       }
 
       function setActiveView(view) {
-        if (["imports", "quality"].includes(view)) {
+        if (view === "imports") {
           setSettingsTab(view);
           view = "settings";
         }
@@ -27711,7 +27719,7 @@
           : activeView === "map"
             ? "Kontakte suchen"
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
-        if (searchShell) searchShell.hidden = activeView === "analytics";
+        if (searchShell) searchShell.hidden = activeView === "analytics" || activeView === "quality";
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
@@ -28228,13 +28236,17 @@
       });
       accountQualityButton?.addEventListener("click", () => {
         closeMenus();
-        openSettingsTab("quality");
+        setActiveView("quality");
+        updateRouteHash("quality");
+        updateView();
       });
 
       document.addEventListener("click", (event) => {
         if (!event.target.closest("#analytics-quality-open")) return;
         closeMenus();
-        openSettingsTab("quality");
+        setActiveView("quality");
+        updateRouteHash("quality");
+        updateView();
       });
       document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
@@ -28484,7 +28496,7 @@
 
       function routeViewFromHash() {
         const hashView = String(window.location.hash || "").replace(/^#/, "");
-        if (["imports", "quality"].includes(hashView)) {
+        if (hashView === "imports") {
           setSettingsTab(hashView);
           return "settings";
         }
