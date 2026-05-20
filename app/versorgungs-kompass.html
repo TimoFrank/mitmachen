@@ -11586,6 +11586,49 @@
         margin-top: 0;
       }
 
+      .settings-tab-nav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0 0 14px;
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+      }
+
+      .settings-tab-button {
+        flex: 0 0 auto;
+        min-height: 40px;
+        padding: 10px 12px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        font: inherit;
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+      }
+
+      .settings-tab-button:hover,
+      .settings-tab-button:focus-visible {
+        color: var(--text-primary);
+        outline: none;
+      }
+
+      .settings-tab-button.is-active {
+        border-bottom-color: var(--primary);
+        color: var(--primary);
+      }
+
+      .settings-tab-panel {
+        display: grid;
+        gap: 14px;
+      }
+
+      .settings-tab-panel[hidden] {
+        display: none;
+      }
+
       .about-workspace {
         width: min(720px, 100%);
         margin: 0 auto;
@@ -11638,6 +11681,14 @@
         display: grid;
         gap: 10px;
         padding-left: 16px;
+      }
+
+      .about-version-heading {
+        margin: 4px 0 2px 16px;
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+        font-weight: 950;
+        line-height: var(--line-height-tight);
       }
 
       .about-version-list::before {
@@ -11731,6 +11782,7 @@
       }
 
       .about-version__summary {
+        margin: 10px 0 0;
         color: var(--text-secondary);
         font-size: var(--font-size-sm);
         line-height: var(--line-height-normal);
@@ -15522,21 +15574,6 @@
               <span>Organisationen</span>
             </button>
           </div>
-          <div class="sidebar-section" aria-label="Planung">
-            <span class="sidebar-section-label">Planung</span>
-            <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M8 2v4"></path>
-                <path d="M16 2v4"></path>
-                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                <path d="M3 10h18"></path>
-                <path d="M8 15h.01"></path>
-                <path d="M12 15h.01"></path>
-                <path d="M16 15h.01"></path>
-              </svg>
-              <span>Formate</span>
-            </button>
-          </div>
           <div class="sidebar-section" aria-label="Karte und Auswertung">
             <span class="sidebar-section-label">Analyse</span>
             <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
@@ -15557,25 +15594,22 @@
               <span>Auswertung</span>
             </button>
           </div>
+          <div class="sidebar-section" aria-label="Planung">
+            <span class="sidebar-section-label">Planung</span>
+            <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M8 2v4"></path>
+                <path d="M16 2v4"></path>
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M3 10h18"></path>
+                <path d="M8 15h.01"></path>
+                <path d="M12 15h.01"></path>
+                <path d="M16 15h.01"></path>
+              </svg>
+              <span>Formate</span>
+            </button>
+          </div>
         </nav>
-        <div class="sidebar-secondary" id="sidebar-data-care-section" aria-label="Weitere Bereiche">
-          <span class="sidebar-section-label">Datenpflege</span>
-          <button class="sidebar-link" type="button" id="sidebar-quality-button" title="Datenqualität">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
-              <path d="m9 12 2 2 4-5"></path>
-            </svg>
-            <span>Datenqualität</span>
-          </button>
-          <button class="sidebar-link" type="button" id="sidebar-import-button" title="Importe">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <path d="M7 10l5 5 5-5"></path>
-              <path d="M12 15V3"></path>
-            </svg>
-            <span>Importe</span>
-          </button>
-        </div>
         <div class="sidebar-account-section" aria-label="Team, Einstellungen und Profil">
           <span class="sidebar-section-label">Team &amp; Konto</span>
           <button class="sidebar-link" type="button" id="sidebar-team-button" title="Team">
@@ -15973,107 +16007,13 @@
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Datenqualität</h4>
-                      <p>Kompakter Hinweis. Die vollständige Pflege-Queue liegt im eigenen Bereich.</p>
+                      <p>Kompakter Hinweis. Die vollständige Pflege-Queue liegt unter Einstellungen.</p>
                     </div>
                     <span class="dashboard-info" title="Datenqualität ist als eigener Arbeitsbereich verfügbar">i</span>
                   </div>
                   <div id="analytics-quality-summary"></div>
                 </article>
               </div>
-            </div>
-          </section>
-
-          <section class="view-panel" id="view-quality" data-view-panel="quality">
-            <div class="view-card analytics-shell quality-workspace">
-              <div class="analytics-head">
-                <div>
-                  <h3>Datenqualität</h3>
-                </div>
-              </div>
-              <div class="quality-workspace-grid">
-                <article class="dashboard-card dashboard-card--quality-overview">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Pflegehinweise</h4>
-                      <p>Datenlücken in der aktuellen Auswahl nach Problemtyp.</p>
-                    </div>
-                    <span class="dashboard-info" title="Die Zahlen basieren auf den sichtbaren Kontakten und aktiven Filtern.">i</span>
-                  </div>
-                  <div id="quality-chart"></div>
-                </article>
-                <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Pflege-Queue</h4>
-                      <p>Konkrete Arbeitsliste für fehlende Angaben, Dubletten und veraltete Kontakte.</p>
-                    </div>
-                    <span class="dashboard-info" tabindex="0" aria-label="Pflege-Queue erklären">i<span class="dashboard-info__popup" role="tooltip">Die Queue sucht nach fehlenden Ownern, Kontaktwegen, Standortdaten, Fachrichtungen, unklaren Organisationen, Dublettenverdacht, archivierten Kontakten und länger nicht aktualisierten Datensätzen.</span></span>
-                  </div>
-                  <div id="care-queue"></div>
-                  <div class="care-workbench" id="care-workbench" hidden></div>
-                </article>
-              </div>
-            </div>
-          </section>
-
-          <section class="view-panel" id="view-imports" data-view-panel="imports">
-            <div class="view-card imports-workspace">
-              <div class="import-start-grid">
-                <article class="import-format-card">
-                  <div class="import-start-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <path d="M7 10l5 5 5-5"></path>
-                      <path d="M12 15V3"></path>
-                    </svg>
-                  </div>
-                  <h3>Dateiimport</h3>
-                  <p>Kontakte aus CSV, Excel, Word oder PDF importieren.</p>
-                  <button class="action-button action-button--primary" type="button" id="imports-start-file">Import starten</button>
-                </article>
-                <article class="import-format-card">
-                  <div class="import-start-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 3h18v18H3Z"></path>
-                      <path d="M3 9h18"></path>
-                      <path d="M3 15h18"></path>
-                      <path d="M9 3v18"></path>
-                      <path d="M15 3v18"></path>
-                    </svg>
-                  </div>
-                  <h3>Bulk-Anlage per Online-Tabelle</h3>
-                  <p>Mehrere Kontakte direkt in einer Tabelle erfassen und anlegen.</p>
-                  <button class="action-button" type="button" id="imports-open-table">Tabelle öffnen</button>
-                </article>
-                <article class="import-format-card">
-                  <div class="import-start-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 12a9 9 0 1 0 3-6.7"></path>
-                      <path d="M3 4v5h5"></path>
-                      <path d="M12 7v5l3 2"></path>
-                    </svg>
-                  </div>
-                  <h3>Importhistorie</h3>
-                  <p>Vergangene Importe einsehen und Ergebnisse prüfen.</p>
-                  <button class="action-button" type="button" id="imports-show-history">Importe anzeigen</button>
-                </article>
-              </div>
-              <section class="import-profile-card imports-history-card">
-                <div class="dashboard-card-head">
-                  <div>
-                    <h4>Zuletzt ausgeführte Importe</h4>
-                    <p>Die vollständige Importhistorie wird mit der Import-Protokollierung weiter ausgebaut.</p>
-                  </div>
-                </div>
-                <div class="imports-history-list">
-                  <div class="imports-history-row">
-                    <span>Aktueller Dateiimport</span>
-                    <span>CSV / Excel</span>
-                    <span id="imports-current-owner">Angemeldeter Nutzer</span>
-                    <button class="import-row-action" type="button" id="imports-history-open">Import starten</button>
-                  </div>
-                </div>
-              </section>
             </div>
           </section>
 
@@ -16090,33 +16030,127 @@
 
           <section class="view-panel" id="view-settings" data-view-panel="settings">
             <div class="settings-workspace">
-              <section class="profile-section">
-                <h3>Systemeinstellungen</h3>
-                <div class="detail-line-list">
-                  <div class="detail-line">
-                    <span class="detail-line__label">Arbeitsbereiche</span>
-                    <span class="detail-line__value">Konfiguration für Standardansichten, Tabellenzustand und gespeicherte Team-Filter.</span>
+              <div class="settings-tab-nav" role="tablist" aria-label="Einstellungsbereiche">
+                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-settings" data-settings-tab="settings">Einstellungen</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Importe</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-quality" data-settings-tab="quality">Datenqualität</button>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-settings" role="tabpanel" data-settings-tab-panel="settings">
+                <section class="profile-section">
+                  <h3>Systemeinstellungen</h3>
+                  <div class="detail-line-list">
+                    <div class="detail-line">
+                      <span class="detail-line__label">Arbeitsbereiche</span>
+                      <span class="detail-line__value">Konfiguration für Standardansichten, Tabellenzustand und gespeicherte Team-Filter.</span>
+                    </div>
+                    <div class="detail-line">
+                      <span class="detail-line__label">Rollen &amp; Rechte</span>
+                      <span class="detail-line__value">Zentrale Verwaltung von Admin-, Editor- und Viewer-Berechtigungen.</span>
+                    </div>
+                    <div class="detail-line">
+                      <span class="detail-line__label">Benachrichtigungen</span>
+                      <span class="detail-line__value">Regeln für Hinweise zu neuen Kontakten, Pflegeaufgaben und Team-Aktivität.</span>
+                    </div>
+                    <div class="detail-line">
+                      <span class="detail-line__label">Datenpflege</span>
+                      <span class="detail-line__value">Schwellwerte für Aktualitätsprüfungen, Dublettenhinweise und Archivierung.</span>
+                    </div>
                   </div>
-                  <div class="detail-line">
-                    <span class="detail-line__label">Rollen &amp; Rechte</span>
-                    <span class="detail-line__value">Zentrale Verwaltung von Admin-, Editor- und Viewer-Berechtigungen.</span>
+                </section>
+                <section class="profile-section">
+                  <h3>Gespeicherte Ansichten</h3>
+                  <div class="saved-view-list" id="settings-saved-views">
+                    <div class="saved-view-empty">Gespeicherte Ansichten werden nach dem Laden des Profils angezeigt.</div>
                   </div>
-                  <div class="detail-line">
-                    <span class="detail-line__label">Benachrichtigungen</span>
-                    <span class="detail-line__value">Regeln für Hinweise zu neuen Kontakten, Pflegeaufgaben und Team-Aktivität.</span>
+                </section>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-imports" role="tabpanel" data-settings-tab-panel="imports" hidden>
+                <div class="imports-workspace">
+                  <div class="import-start-grid">
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <path d="M7 10l5 5 5-5"></path>
+                          <path d="M12 15V3"></path>
+                        </svg>
+                      </div>
+                      <h3>Dateiimport</h3>
+                      <p>Kontakte aus CSV, Excel, Word oder PDF importieren.</p>
+                      <button class="action-button action-button--primary" type="button" id="imports-start-file">Import starten</button>
+                    </article>
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 3h18v18H3Z"></path>
+                          <path d="M3 9h18"></path>
+                          <path d="M3 15h18"></path>
+                          <path d="M9 3v18"></path>
+                          <path d="M15 3v18"></path>
+                        </svg>
+                      </div>
+                      <h3>Bulk-Anlage per Online-Tabelle</h3>
+                      <p>Mehrere Kontakte direkt in einer Tabelle erfassen und anlegen.</p>
+                      <button class="action-button" type="button" id="imports-open-table">Tabelle öffnen</button>
+                    </article>
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                          <path d="M3 4v5h5"></path>
+                          <path d="M12 7v5l3 2"></path>
+                        </svg>
+                      </div>
+                      <h3>Importhistorie</h3>
+                      <p>Vergangene Importe einsehen und Ergebnisse prüfen.</p>
+                      <button class="action-button" type="button" id="imports-show-history">Importe anzeigen</button>
+                    </article>
                   </div>
-                  <div class="detail-line">
-                    <span class="detail-line__label">Datenpflege</span>
-                    <span class="detail-line__value">Schwellwerte für Aktualitätsprüfungen, Dublettenhinweise und Archivierung.</span>
+                  <section class="import-profile-card imports-history-card">
+                    <div class="dashboard-card-head">
+                      <div>
+                        <h4>Zuletzt ausgeführte Importe</h4>
+                        <p>Die vollständige Importhistorie wird mit der Import-Protokollierung weiter ausgebaut.</p>
+                      </div>
+                    </div>
+                    <div class="imports-history-list">
+                      <div class="imports-history-row">
+                        <span>Aktueller Dateiimport</span>
+                        <span>CSV / Excel</span>
+                        <span id="imports-current-owner">Angemeldeter Nutzer</span>
+                        <button class="import-row-action" type="button" id="imports-history-open">Import starten</button>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-quality" role="tabpanel" data-settings-tab-panel="quality" hidden>
+                <div class="analytics-shell quality-workspace">
+                  <div class="quality-workspace-grid">
+                    <article class="dashboard-card dashboard-card--quality-overview">
+                      <div class="dashboard-card-head">
+                        <div>
+                          <h4>Pflegehinweise</h4>
+                          <p>Datenlücken in der aktuellen Auswahl nach Problemtyp.</p>
+                        </div>
+                        <span class="dashboard-info" title="Die Zahlen basieren auf den sichtbaren Kontakten und aktiven Filtern.">i</span>
+                      </div>
+                      <div id="quality-chart"></div>
+                    </article>
+                    <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
+                      <div class="dashboard-card-head">
+                        <div>
+                          <h4>Pflege-Queue</h4>
+                          <p>Konkrete Arbeitsliste für fehlende Angaben, Dubletten und veraltete Kontakte.</p>
+                        </div>
+                        <span class="dashboard-info" tabindex="0" aria-label="Pflege-Queue erklären">i<span class="dashboard-info__popup" role="tooltip">Die Queue sucht nach fehlenden Ownern, Kontaktwegen, Standortdaten, Fachrichtungen, unklaren Organisationen, Dublettenverdacht, archivierten Kontakten und länger nicht aktualisierten Datensätzen.</span></span>
+                      </div>
+                      <div id="care-queue"></div>
+                      <div class="care-workbench" id="care-workbench" hidden></div>
+                    </article>
                   </div>
                 </div>
-              </section>
-              <section class="profile-section">
-                <h3>Gespeicherte Ansichten</h3>
-                <div class="saved-view-list" id="settings-saved-views">
-                  <div class="saved-view-empty">Gespeicherte Ansichten werden nach dem Laden des Profils angezeigt.</div>
-                </div>
-              </section>
+              </div>
             </div>
           </section>
 
@@ -16128,6 +16162,7 @@
                   <div class="about-intro__highlight">Ein gemeinsamer Blick auf Kontakte, Organisationen und regionale Versorgung - klar strukturiert, schnell filterbar und bereit für echte Netzwerkarbeit.</div>
                 </div>
               </section>
+              <h3 class="about-version-heading">Changelog</h3>
               <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
             </div>
           </section>
@@ -17490,6 +17525,11 @@
         { id: "notes", label: "Notizen" },
         { id: "settings", label: "Einstellungen" }
       ];
+      const settingsTabItems = [
+        { id: "settings", title: "Einstellungen", subtitle: "Systemeinstellungen und Konfiguration." },
+        { id: "imports", title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." },
+        { id: "quality", title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." }
+      ];
 
       const searchInput = document.getElementById("search");
       const searchShell = searchInput?.closest(".search-shell");
@@ -17645,6 +17685,8 @@
       const accountPermissionNote = document.getElementById("account-permission-note");
       const accountSavedViews = document.getElementById("account-saved-views");
       const settingsSavedViews = document.getElementById("settings-saved-views");
+      const settingsTabButtons = [...document.querySelectorAll("[data-settings-tab]")];
+      const settingsTabPanels = [...document.querySelectorAll("[data-settings-tab-panel]")];
       const teamAccountList = document.getElementById("team-account-list");
       const accountAvatar = document.getElementById("account-avatar");
       const sidebarProfileButton = document.getElementById("sidebar-profile-button");
@@ -17718,6 +17760,7 @@
       const organizationEditorSave = document.getElementById("organization-editor-save");
 
       let activeView = "contacts";
+      let activeSettingsTab = "settings";
       let activeId = null;
       let activeOrganizationId = null;
       let activeNameEditorId = null;
@@ -17868,10 +17911,11 @@
       }
 
       function canAccessView(view) {
-        return !["imports", "quality", "settings", "about"].includes(view) || canAdministerData();
+        return !["settings", "about"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
+        if (["imports", "quality"].includes(view)) return canAdministerData() ? "settings" : "contacts";
         return canAccessView(view) ? view : "contacts";
       }
 
@@ -19429,8 +19473,6 @@
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
-        quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
-        imports: { title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." },
         team: { title: "Team", subtitle: "Accounts, Rollen und Zuständigkeiten im Überblick." },
         settings: { title: "Einstellungen", subtitle: "Systemeinstellungen und Konfiguration." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
@@ -23611,8 +23653,8 @@
         if (!aboutVersionList) return;
         aboutVersionList.innerHTML = appVersionHistory
           .map(
-            (release, index) => `
-              <details class="about-version" ${index === 0 ? "open" : ""}>
+            (release) => `
+              <details class="about-version">
                 <summary>
                   <span class="about-version__title">
                     <span class="about-version__meta">
@@ -23620,7 +23662,6 @@
                       <span class="about-version__date">${escapeHtml(release.date)}</span>
                     </span>
                     <strong>${escapeHtml(release.title)}</strong>
-                    <span class="about-version__summary">${escapeHtml(release.summary)}</span>
                   </span>
                   <span class="about-version__actions">
                     <span class="about-version__chevron" aria-hidden="true">
@@ -23631,6 +23672,7 @@
                   </span>
                 </summary>
                 <div class="about-version__body">
+                  <p class="about-version__summary">${escapeHtml(release.summary)}</p>
                   <p class="about-version__body-title">Was sich für Anwender geändert hat</p>
                   <ul>
                     ${release.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
@@ -25575,11 +25617,37 @@
       }
 
       function renderViewChrome() {
-        const view = viewLabels[activeView] || viewLabels.contacts;
+        const view = activeView === "settings"
+          ? settingsTabItems.find((item) => item.id === activeSettingsTab) || viewLabels.settings
+          : viewLabels[activeView] || viewLabels.contacts;
         if (topbarViewTitle) topbarViewTitle.textContent = view.title;
         if (topbarViewMeta) topbarViewMeta.textContent = greetingLabel;
         if (workspaceViewTitle) workspaceViewTitle.textContent = view.title;
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
+      }
+
+      function normalizeSettingsTab(tab = "settings") {
+        return settingsTabItems.some((item) => item.id === tab) ? tab : "settings";
+      }
+
+      function setSettingsTab(tab = "settings") {
+        activeSettingsTab = normalizeSettingsTab(tab);
+        settingsTabButtons.forEach((button) => {
+          const active = button.dataset.settingsTab === activeSettingsTab;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-selected", String(active));
+        });
+        settingsTabPanels.forEach((panel) => {
+          const active = panel.dataset.settingsTabPanel === activeSettingsTab;
+          panel.hidden = !active;
+        });
+      }
+
+      function openSettingsTab(tab = "settings") {
+        setSettingsTab(tab);
+        setActiveView("settings");
+        updateRouteHash("settings");
+        updateView();
       }
 
       function setSidebarCollapsed(collapsed) {
@@ -25625,6 +25693,10 @@
       }
 
       function setActiveView(view) {
+        if (["imports", "quality"].includes(view)) {
+          setSettingsTab(view);
+          view = "settings";
+        }
         if (!viewLabels[view]) view = "contacts";
         const requestedView = view;
         view = safeViewForRole(view);
@@ -25643,8 +25715,6 @@
         viewTabs.forEach((tab) => {
           tab.classList.toggle("is-active", tab.dataset.viewTab === view);
         });
-        sidebarQualityButton?.classList.toggle("is-active", view === "quality");
-        sidebarImportButton?.classList.toggle("is-active", view === "imports");
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "settings");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
@@ -25659,6 +25729,7 @@
         if (view === "team") renderTeamView();
         if (view === "about") renderAboutApp();
         if (view === "formats") renderFormatsView();
+        if (view === "settings") setSettingsTab(activeSettingsTab);
         if (view === "map") {
           syncMapFrame(mapContacts());
         }
@@ -26739,20 +26810,6 @@
         updateRouteHash("contacts");
         updateView();
       });
-      sidebarQualityButton?.addEventListener("click", () => {
-        closeMenus();
-        closeMobileSidebar();
-        setActiveView("quality");
-        updateRouteHash("quality");
-        updateView();
-      });
-      sidebarImportButton?.addEventListener("click", () => {
-        closeMenus();
-        closeMobileSidebar();
-        setActiveView("imports");
-        updateRouteHash("imports");
-        updateView();
-      });
       sidebarTeamButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
@@ -26763,9 +26820,16 @@
       sidebarSettingsButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
+        setSettingsTab("settings");
         setActiveView("settings");
         updateRouteHash("settings");
         updateView();
+      });
+      settingsTabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          setSettingsTab(button.dataset.settingsTab || "settings");
+          renderViewChrome();
+        });
       });
       sidebarAboutButton?.addEventListener("click", () => {
         closeMenus();
@@ -27041,9 +27105,7 @@
         renderCareWorkbench(activeCareQueueKey);
       });
       openImportButton?.addEventListener("click", () => {
-        setActiveView("imports");
-        updateRouteHash("imports");
-        updateView();
+        openSettingsTab("imports");
       });
       importsStartFileButton?.addEventListener("click", openImportWizard);
       importsOpenTableButton?.addEventListener("click", () => {
@@ -27069,9 +27131,7 @@
       deployReminderClose?.addEventListener("click", hideDeployReminder);
       importCsvButton?.addEventListener("click", () => {
         closeMenus();
-        setActiveView("imports");
-        updateRouteHash("imports");
-        updateView();
+        openSettingsTab("imports");
       });
       importOverlay.addEventListener("click", closeImportWizard);
       importClose.addEventListener("click", closeImportWizard);
@@ -27089,17 +27149,13 @@
       });
       accountQualityButton?.addEventListener("click", () => {
         closeMenus();
-        setActiveView("quality");
-        updateRouteHash("quality");
-        updateView();
+        openSettingsTab("quality");
       });
 
       document.addEventListener("click", (event) => {
         if (!event.target.closest("#analytics-quality-open")) return;
         closeMenus();
-        setActiveView("quality");
-        updateRouteHash("quality");
-        updateView();
+        openSettingsTab("quality");
       });
       document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
@@ -27349,6 +27405,10 @@
 
       function routeViewFromHash() {
         const hashView = String(window.location.hash || "").replace(/^#/, "");
+        if (["imports", "quality"].includes(hashView)) {
+          setSettingsTab(hashView);
+          return "settings";
+        }
         return viewLabels[hashView] ? hashView : "";
       }
 
