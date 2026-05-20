@@ -276,7 +276,14 @@
         city: "Musterstadt",
         federal_state: "Nordrhein-Westfalen",
         role: "Praxisinhaberin",
+        preferred_contact: "E-Mail",
         message: "Wir koennen Einblicke in Anmeldung, ePA und E-Rezept im hausarztlichen Alltag geben.",
+        form_version: "mitmachen-versorgungs-netzwerk-form-v1",
+        privacy_check_status: "bereit_zur_pruefung",
+        consent_processing_version: "registrierung-verarbeitung-v1",
+        consent_processing_accepted_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        consent_contact_version: "mitmachen-kontakt-v1",
+        consent_contact_accepted_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
         consent_text_version: "mitmachen-versorgungs-netzwerk-v1",
         consent_accepted_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
         source_url: "https://www.gematik.de/mitmachen/versorgungs-netzwerk",
@@ -296,7 +303,14 @@
         city: "Leipzig",
         federal_state: "Sachsen",
         role: "Inhaber",
+        preferred_contact: "E-Mail",
         message: "Interesse an Rueckmeldungen zu E-Rezept und digitalen Prozessen.",
+        form_version: "mitmachen-versorgungs-netzwerk-form-v1",
+        privacy_check_status: "bereit_zur_pruefung",
+        consent_processing_version: "registrierung-verarbeitung-v1",
+        consent_processing_accepted_at: new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString(),
+        consent_contact_version: "",
+        consent_contact_accepted_at: "",
         consent_text_version: "mitmachen-versorgungs-netzwerk-v1",
         consent_accepted_at: new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString(),
         source_url: "https://www.gematik.de/mitmachen/versorgungs-netzwerk",
@@ -308,6 +322,12 @@
   function normalizeRegistration(row = {}) {
     const submittedAt = row.submittedAt || row.submitted_at || "";
     const processedAt = row.processedAt || row.processed_at || "";
+    const legacyConsentAt = row.consentAcceptedAt || row.consent_accepted_at || "";
+    const legacyConsentVersion = row.consentTextVersion || row.consent_text_version || "";
+    const processingConsentAt = row.consentProcessingAcceptedAt || row.consent_processing_accepted_at || legacyConsentAt || "";
+    const processingConsentVersion = row.consentProcessingVersion || row.consent_processing_version || legacyConsentVersion || "";
+    const contactConsentAt = row.consentContactAcceptedAt || row.consent_contact_accepted_at || "";
+    const contactConsentVersion = row.consentContactVersion || row.consent_contact_version || "";
     return {
       id: String(row.id || row.registration_id || "").trim(),
       submittedAt,
@@ -326,11 +346,25 @@
       federalState: String(row.federalState || row.federal_state || row.state || "").trim(),
       federal_state: String(row.federalState || row.federal_state || row.state || "").trim(),
       role: String(row.role || row.function || row.position || "").trim(),
+      preferredContact: String(row.preferredContact || row.preferred_contact || row.preferredContactWay || row.preferred_contact_way || "").trim(),
+      preferred_contact: String(row.preferredContact || row.preferred_contact || row.preferredContactWay || row.preferred_contact_way || "").trim(),
       message: String(row.message || row.nachricht || "").trim(),
-      consentTextVersion: String(row.consentTextVersion || row.consent_text_version || "").trim(),
-      consent_text_version: String(row.consentTextVersion || row.consent_text_version || "").trim(),
-      consentAcceptedAt: String(row.consentAcceptedAt || row.consent_accepted_at || "").trim(),
-      consent_accepted_at: String(row.consentAcceptedAt || row.consent_accepted_at || "").trim(),
+      formVersion: String(row.formVersion || row.form_version || "").trim(),
+      form_version: String(row.formVersion || row.form_version || "").trim(),
+      privacyCheckStatus: String(row.privacyCheckStatus || row.privacy_check_status || "").trim(),
+      privacy_check_status: String(row.privacyCheckStatus || row.privacy_check_status || "").trim(),
+      consentProcessingVersion: String(processingConsentVersion).trim(),
+      consent_processing_version: String(processingConsentVersion).trim(),
+      consentProcessingAcceptedAt: String(processingConsentAt).trim(),
+      consent_processing_accepted_at: String(processingConsentAt).trim(),
+      consentContactVersion: String(contactConsentVersion).trim(),
+      consent_contact_version: String(contactConsentVersion).trim(),
+      consentContactAcceptedAt: String(contactConsentAt).trim(),
+      consent_contact_accepted_at: String(contactConsentAt).trim(),
+      consentTextVersion: String(legacyConsentVersion).trim(),
+      consent_text_version: String(legacyConsentVersion).trim(),
+      consentAcceptedAt: String(legacyConsentAt).trim(),
+      consent_accepted_at: String(legacyConsentAt).trim(),
       sourceUrl: String(row.sourceUrl || row.source_url || "").trim(),
       source_url: String(row.sourceUrl || row.source_url || "").trim(),
       duplicateHint: String(row.duplicateHint || row.duplicate_hint || "").trim(),

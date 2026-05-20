@@ -163,6 +163,37 @@ test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page },
   await attachScreenshot(page, testInfo, "registrierungen");
 });
 
+test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ page }, testInfo) => {
+  await page.goto("/mitmachen/versorgungs-netzwerk.html");
+
+  await expect(page.locator("#registration-form")).toBeVisible();
+  await page.locator("#email").fill("versorgung@example.test");
+  await page.locator("#first_name").fill("Mara");
+  await page.locator("#last_name").fill("Beispiel");
+  await page.locator("#role").fill("Pflegedienstleitung");
+  await page.locator("#organization").fill("Pflegezentrum Beispielstadt");
+  await page.locator("#sector").selectOption("Pflegeeinrichtung");
+  await page.locator("#city").fill("Beispielstadt");
+  await page.locator("#federal_state").selectOption("Hessen");
+  await page.locator("#message").fill("Wir können Einblicke in Aufnahme, Medikationsprozess und digitale Kommunikation geben.");
+  await page.locator("#consent_processing").check();
+  await page.locator(".submit-button").click();
+
+  await expect(page.locator("#confirmation")).toBeVisible();
+  await expect(page.locator("#confirmation")).toContainText("erst nach fachlicher Prüfung");
+
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
+  await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
+  await expect(page.locator("#registrations-list")).toContainText("Pflegezentrum Beispielstadt");
+  await page.locator("[data-registration-preview]").first().click();
+  await expect(page.locator(".detail-panel--registration")).toBeVisible();
+  await expect(page.locator(".detail-section-title", { hasText: "Datenschutz & Prüfung" })).toBeVisible();
+  await expect(page.locator(".detail-panel--registration")).toContainText("DSGVO bereit zur Prüfung");
+  await expect(page.locator(".detail-panel--registration")).toContainText("Nicht erteilt");
+
+  await attachScreenshot(page, testInfo, "public-registration-import");
+});
+
 test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page }) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
 

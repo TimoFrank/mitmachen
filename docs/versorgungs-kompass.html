@@ -16990,6 +16990,7 @@
                         <h4>Registrierungen aus dem Versorgungs-Netzwerk</h4>
                         <p>Öffentliche Formularmeldungen werden hier erst geprüft, bevor ein aktiver CRM-Kontakt entsteht.</p>
                       </div>
+                      <a class="action-button" id="public-registration-demo-link" href="./mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Formular ansehen</a>
                     </div>
                     <div class="registrations-toolbar">
                       <div class="registrations-summary" id="registrations-summary">Registrierungen werden geladen.</div>
@@ -19075,14 +19076,25 @@
         return "Neu";
       }
 
+      function registrationPrivacyLabel(status) {
+        if (status === "ok" || status === "geprueft") return "DSGVO geprüft";
+        if (status === "unvollstaendig") return "DSGVO unvollständig";
+        if (status === "abgelehnt") return "DSGVO abgelehnt";
+        if (status === "bereit_zur_pruefung") return "DSGVO bereit zur Prüfung";
+        return "DSGVO-Check offen";
+      }
+
       function registrationToContact(registration, organizationId = "") {
         const name = registrationDisplayName(registration);
         const location = deriveLocationLabel({ postalCode: "", city: registration.city }) || registration.city || "";
         const noteLines = [
           registration.message,
           `Registrierung: ${registration.id}`,
-          registration.consentTextVersion ? `Datenschutztext: ${registration.consentTextVersion}` : "",
-          registration.consentAcceptedAt ? `Einwilligung: ${formatDateTimeLabel(registration.consentAcceptedAt)}` : ""
+          registration.formVersion || registration.form_version ? `Formularversion: ${registration.formVersion || registration.form_version}` : "",
+          registration.privacyCheckStatus || registration.privacy_check_status ? `DSGVO-Status: ${registrationPrivacyLabel(registration.privacyCheckStatus || registration.privacy_check_status)}` : "",
+          registration.consentProcessingVersion || registration.consent_processing_version ? `Pflicht-Einwilligung: ${registration.consentProcessingVersion || registration.consent_processing_version}` : "",
+          registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at ? `Pflicht-Einwilligung Zeitpunkt: ${formatDateTimeLabel(registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at)}` : "",
+          registration.consentContactAcceptedAt || registration.consent_contact_accepted_at ? `#Mitmachen-Einwilligung: ${formatDateTimeLabel(registration.consentContactAcceptedAt || registration.consent_contact_accepted_at)}` : ""
         ].filter(Boolean);
         return sanitizeContact({
           id: createId(),
@@ -19204,6 +19216,7 @@
                     <div class="registration-row__status">
                       <span class="registration-row__label">Status</span>
                       <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
+                      <small>${escapeHtml(registrationPrivacyLabel(registration.privacyCheckStatus || registration.privacy_check_status))}</small>
                     </div>
                   </div>
                   <div class="registration-row__actions">
@@ -19230,11 +19243,14 @@
         const previewContact = registrationToContact(registration);
         const name = registrationDisplayName(registration);
         const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "Zeitpunkt offen";
-        const consentAccepted = formatDateTimeLabel(registration.consentAcceptedAt || registration.consent_accepted_at) || "";
-        const consentVersion = registration.consentTextVersion || registration.consent_text_version || "";
+        const processingConsentAccepted = formatDateTimeLabel(registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at || registration.consentAcceptedAt || registration.consent_accepted_at) || "";
+        const processingConsentVersion = registration.consentProcessingVersion || registration.consent_processing_version || registration.consentTextVersion || registration.consent_text_version || "";
+        const contactConsentAccepted = formatDateTimeLabel(registration.consentContactAcceptedAt || registration.consent_contact_accepted_at) || "";
+        const contactConsentVersion = registration.consentContactVersion || registration.consent_contact_version || "";
         const sourceUrl = registration.sourceUrl || registration.source_url || "";
         const duplicateHint = registration.duplicateHint || registration.duplicate_hint || "";
         const location = registrationLocationLabel(registration);
+        const privacyStatus = registration.privacyCheckStatus || registration.privacy_check_status || "";
         const ownerLabel = ownerDisplayLabel(previewContact.owner || previewContact.ownerId);
         activeRegistrationId = registration.id;
         detailEditMode = false;
@@ -19278,6 +19294,7 @@
                   ${detailLine("Einrichtung", registration.organization)}
                   ${detailLine("Sektor", registration.sector)}
                   ${detailLine("Rolle", registration.role)}
+                  ${detailLine("Kontaktweg", registration.preferredContact || registration.preferred_contact)}
                   ${detailLine("Ort", location)}
                   ${detailLine("Quelle", "Versorgungs-Netzwerk Registrierung")}
                 </div>
@@ -19291,8 +19308,6 @@
                 <div class="detail-line-list">
                   ${detailLine("Eingang", submitted)}
                   ${detailLine("Formularversion", registration.formVersion || registration.form_version)}
-                  ${detailLine("Einwilligung", consentAccepted)}
-                  ${detailLine("Consent-Version", consentVersion)}
                   ${detailLineHtml(
                     "Quellseite",
                     sourceUrl ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceUrl)}</a>` : "Nicht hinterlegt",
@@ -19304,9 +19319,14 @@
 
               <section class="section-block">
                 <div class="detail-section-head">
-                  <h4 class="detail-section-title">Prüfung</h4>
+                  <h4 class="detail-section-title">Datenschutz & Prüfung</h4>
                 </div>
                 <div class="detail-line-list">
+                  ${detailLine("DSGVO-Status", registrationPrivacyLabel(privacyStatus))}
+                  ${detailLine("Pflicht-Einwilligung", processingConsentAccepted)}
+                  ${detailLine("Pflicht-Version", processingConsentVersion)}
+                  ${detailLine("Optionale Einwilligung", contactConsentAccepted || "Nicht erteilt")}
+                  ${detailLine("Optionale Version", contactConsentVersion)}
                   ${detailLine("Dublettenhinweis", duplicateHint || "Keine Dublettenhinweise", { emptyLabel: "Keine Dublettenhinweise" })}
                   ${detailLine("Nächster Schritt", "Übernehmen legt einen neuen aktiven Kontakt an. Verknüpfen ordnet die Registrierung einem bestehenden Kontakt zu. Zurückstellen nimmt sie aus der aktuellen Prüfliste, ohne einen CRM-Kontakt zu verändern.")}
                 </div>

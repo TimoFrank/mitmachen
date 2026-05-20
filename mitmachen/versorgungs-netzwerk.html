@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unser Versorgungs-Netzwerk | #Mitmachen</title>
+    <meta name="theme-color" content="#155fe4" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../public/app-icon-32.png" />
+    <style>
+      :root {
+        --primary: #155fe4;
+        --primary-soft: #eaf1ff;
+        --text-primary: #10245c;
+        --text-secondary: #53627d;
+        --text-muted: #72809a;
+        --surface: #ffffff;
+        --surface-muted: #f5f7fb;
+        --border: #d8e0ef;
+        --border-strong: #b8c7e4;
+        --danger: #dc2626;
+        --success: #177245;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --shadow-sm: 0 6px 18px rgba(16, 36, 92, 0.08);
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--surface-muted);
+        color: var(--text-primary);
+      }
+
+      a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .site-header {
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .site-header__inner,
+      .page-shell {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .site-header__inner {
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-primary);
+        font-weight: 900;
+      }
+
+      .brand img {
+        width: 112px;
+        height: auto;
+      }
+
+      .site-nav {
+        display: flex;
+        gap: 18px;
+        color: var(--text-secondary);
+        font-size: 0.94rem;
+        font-weight: 750;
+      }
+
+      .page-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 0.88fr) minmax(360px, 1.12fr);
+        gap: 24px;
+        padding: 34px 0 48px;
+        align-items: start;
+      }
+
+      .intro {
+        display: grid;
+        gap: 18px;
+      }
+
+      .breadcrumb {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 750;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 680px;
+        font-size: clamp(2rem, 4vw, 3.7rem);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        color: var(--text-secondary);
+        font-size: 1.12rem;
+        font-weight: 650;
+        line-height: 1.55;
+      }
+
+      .info-panel,
+      .form-card,
+      .process-panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .info-panel,
+      .process-panel {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .info-panel strong,
+      .process-panel strong {
+        font-size: 1rem;
+      }
+
+      .info-panel p,
+      .process-panel p {
+        color: var(--text-secondary);
+        font-size: 0.96rem;
+        font-weight: 650;
+        line-height: 1.5;
+      }
+
+      .process-steps {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .process-steps li {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        font-weight: 700;
+        line-height: 1.42;
+      }
+
+      .process-steps span {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .form-card {
+        overflow: hidden;
+      }
+
+      .form-head {
+        display: grid;
+        gap: 7px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .form-head h2 {
+        font-size: 1.35rem;
+        line-height: 1.2;
+      }
+
+      .form-head p {
+        color: var(--text-secondary);
+        font-size: 0.94rem;
+        font-weight: 650;
+        line-height: 1.45;
+      }
+
+      form {
+        display: grid;
+        gap: 0;
+      }
+
+      fieldset {
+        display: grid;
+        gap: 14px;
+        margin: 0;
+        padding: 18px 20px;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      legend {
+        padding: 0;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 900;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field--span {
+        grid-column: 1 / -1;
+      }
+
+      label,
+      .field-label {
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        font-weight: 850;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 0.95rem;
+        font-weight: 650;
+        padding: 9px 10px;
+      }
+
+      textarea {
+        min-height: 116px;
+        resize: vertical;
+        line-height: 1.45;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 1px;
+      }
+
+      .checkbox {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        color: var(--text-secondary);
+        font-size: 0.91rem;
+        font-weight: 650;
+        line-height: 1.45;
+      }
+
+      .checkbox input {
+        width: 18px;
+        min-height: 18px;
+        margin: 2px 0 0;
+      }
+
+      .checkbox strong {
+        color: var(--text-primary);
+      }
+
+      .honeypot {
+        position: absolute;
+        left: -10000px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+
+      .form-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 20px;
+      }
+
+      .required-note {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      .submit-button {
+        min-height: 44px;
+        border: 0;
+        border-radius: var(--radius-md);
+        background: var(--primary);
+        color: var(--surface);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 900;
+        padding: 10px 16px;
+      }
+
+      .submit-button:focus-visible {
+        outline: 2px solid var(--text-primary);
+        outline-offset: 2px;
+      }
+
+      .form-status {
+        min-height: 24px;
+        padding: 0 20px 18px;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        font-weight: 750;
+        line-height: 1.45;
+      }
+
+      .form-status.is-success {
+        color: var(--success);
+      }
+
+      .form-status.is-error {
+        color: var(--danger);
+      }
+
+      .confirmation {
+        display: none;
+        gap: 12px;
+        padding: 20px;
+        border-top: 1px solid var(--border);
+        background: var(--primary-soft);
+      }
+
+      .confirmation.is-visible {
+        display: grid;
+      }
+
+      .confirmation strong {
+        color: var(--text-primary);
+        font-size: 1rem;
+      }
+
+      .confirmation p {
+        color: var(--text-secondary);
+        font-size: 0.94rem;
+        font-weight: 650;
+        line-height: 1.45;
+      }
+
+      @media (max-width: 860px) {
+        .site-header__inner,
+        .page-shell {
+          width: min(100% - 24px, 720px);
+        }
+
+        .page-shell,
+        .field-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .site-nav {
+          display: none;
+        }
+
+        .form-actions {
+          align-items: stretch;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="brand" href="https://www.gematik.de/" aria-label="gematik Startseite">
+          <img src="../public/gematik-logo.svg" alt="gematik" />
+          <span>#Mitmachen</span>
+        </a>
+        <nav class="site-nav" aria-label="Seitennavigation">
+          <a href="#registrierung">Registrieren</a>
+          <a href="#datenschutz">Datenschutz</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="intro" aria-labelledby="page-title">
+        <div class="breadcrumb">Home / #Mitmachen / Versorgungs-Netzwerk</div>
+        <h1 id="page-title">Unser Versorgungs-Netzwerk</h1>
+        <p class="lead">Gemeinsam echte Abläufe beobachten und verbessern. Registrieren Sie Ihre Einrichtung, damit wir Sie gezielt kontaktieren können, wenn Ihre Versorgungsperspektive zu aktuellen Fragestellungen passt.</p>
+        <article class="info-panel">
+          <strong>Was eine Registrierung bedeutet</strong>
+          <p>Die Registrierung ist ein Angebot zur Mitwirkung und noch keine Zusage für eine Hospitation. Die gematik prüft eingehende Meldungen fachlich und meldet sich, wenn Thema, Region und Versorgungssituation passen.</p>
+        </article>
+        <article class="process-panel">
+          <strong>So läuft die Verarbeitung</strong>
+          <ul class="process-steps">
+            <li><span>1</span><p>Sie senden Ihre Einrichtung mit Einwilligung ab.</p></li>
+            <li><span>2</span><p>Die Daten gehen an ein gematik Backend als geschützte Eingangsschicht.</p></li>
+            <li><span>3</span><p>Im Versorgungs-Kompass wird die Registrierung erst geprüft, bevor ein aktiver Kontakt entsteht.</p></li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="form-card" id="registrierung" aria-labelledby="form-title">
+        <div class="form-head">
+          <h2 id="form-title">Einrichtung registrieren</h2>
+          <p>Die Angaben helfen uns, passende Gelegenheiten zu identifizieren und bei Bedarf Kontakt aufzunehmen.</p>
+        </div>
+        <form id="registration-form" novalidate>
+          <fieldset>
+            <legend>Kontakt</legend>
+            <div class="field-grid">
+              <div class="field">
+                <label for="email">E-Mail-Adresse*</label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
+              </div>
+              <div class="field">
+                <label for="preferred_contact">Bevorzugter Kontaktweg</label>
+                <select id="preferred_contact" name="preferred_contact">
+                  <option value="E-Mail">E-Mail</option>
+                  <option value="Telefon">Telefon</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="first_name">Vorname</label>
+                <input id="first_name" name="first_name" autocomplete="given-name" />
+              </div>
+              <div class="field">
+                <label for="last_name">Nachname*</label>
+                <input id="last_name" name="last_name" autocomplete="family-name" required />
+              </div>
+              <div class="field">
+                <label for="title">Titel</label>
+                <input id="title" name="title" autocomplete="honorific-prefix" />
+              </div>
+              <div class="field">
+                <label for="role">Rolle/Funktion</label>
+                <input id="role" name="role" placeholder="z. B. Praxisinhaberin, Pflegedienstleitung" />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Einrichtung</legend>
+            <div class="field-grid">
+              <div class="field field--span">
+                <label for="organization">Name der Einrichtung*</label>
+                <input id="organization" name="organization" autocomplete="organization" required />
+              </div>
+              <div class="field">
+                <label for="sector">Sektor*</label>
+                <select id="sector" name="sector" required>
+                  <option value="">Bitte auswählen</option>
+                  <option>Praxis</option>
+                  <option>Zahnarztpraxis</option>
+                  <option>Apotheke</option>
+                  <option>Krankenhaus</option>
+                  <option>Rehaeinrichtung</option>
+                  <option>Pflegeeinrichtung</option>
+                  <option>Rettungsdienst</option>
+                  <option>Andere</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="city">Ort</label>
+                <input id="city" name="city" autocomplete="address-level2" />
+              </div>
+              <div class="field field--span">
+                <label for="federal_state">Bundesland</label>
+                <select id="federal_state" name="federal_state">
+                  <option value="">Bitte auswählen</option>
+                  <option>Baden-Württemberg</option>
+                  <option>Bayern</option>
+                  <option>Berlin</option>
+                  <option>Brandenburg</option>
+                  <option>Bremen</option>
+                  <option>Hamburg</option>
+                  <option>Hessen</option>
+                  <option>Mecklenburg-Vorpommern</option>
+                  <option>Niedersachsen</option>
+                  <option>Nordrhein-Westfalen</option>
+                  <option>Rheinland-Pfalz</option>
+                  <option>Saarland</option>
+                  <option>Sachsen</option>
+                  <option>Sachsen-Anhalt</option>
+                  <option>Schleswig-Holstein</option>
+                  <option>Thüringen</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Mitmach-Interesse</legend>
+            <div class="field">
+              <label for="message">Ihre Nachricht*</label>
+              <textarea id="message" name="message" required placeholder="Welche Einblicke könnten Sie geben? Welche digitalen Prozesse sind für Ihre Einrichtung relevant?"></textarea>
+            </div>
+          </fieldset>
+
+          <fieldset id="datenschutz">
+            <legend>Datenschutz</legend>
+            <label class="checkbox" for="consent_processing">
+              <input id="consent_processing" name="consent_processing" type="checkbox" required />
+              <span><strong>Pflicht:</strong> Ich willige ein, dass die gematik meine Angaben verarbeitet, um meine Registrierung für das Versorgungs-Netzwerk zu prüfen und mich dazu zu kontaktieren.</span>
+            </label>
+            <label class="checkbox" for="consent_contact">
+              <input id="consent_contact" name="consent_contact" type="checkbox" />
+              <span><strong>Optional:</strong> Ich möchte auch zu weiteren passenden #Mitmachen-Möglichkeiten kontaktiert und eingeladen werden.</span>
+            </label>
+            <div class="honeypot" aria-hidden="true">
+              <label for="company">Bitte dieses Feld nicht ausfüllen</label>
+              <input id="company" name="company" tabindex="-1" autocomplete="off" />
+            </div>
+          </fieldset>
+
+          <div class="form-actions">
+            <div class="required-note">Die mit * gekennzeichneten Felder müssen ausgefüllt werden.</div>
+            <button class="submit-button" type="submit">Registrierung senden</button>
+          </div>
+          <div class="form-status" id="form-status" aria-live="polite"></div>
+        </form>
+        <div class="confirmation" id="confirmation" aria-live="polite">
+          <strong>Vielen Dank, Ihre Registrierung wurde übermittelt.</strong>
+          <p>Ihre Angaben werden nun als Eingang geprüft. Daraus entsteht erst nach fachlicher Prüfung ein aktiver Kontakt im Versorgungs-Kompass.</p>
+          <p><a href="../app/versorgungs-kompass.html#registrations">Demo im Versorgungs-Kompass ansehen</a></p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const STORAGE_KEY = "versorgungs-kompass-backend-registrations-v1";
+      const FORM_VERSION = "mitmachen-versorgungs-netzwerk-form-v1";
+      const PROCESSING_CONSENT_VERSION = "registrierung-verarbeitung-v1";
+      const CONTACT_CONSENT_VERSION = "mitmachen-kontakt-v1";
+
+      const form = document.getElementById("registration-form");
+      const statusNode = document.getElementById("form-status");
+      const confirmation = document.getElementById("confirmation");
+
+      function setStatus(message, type = "") {
+        statusNode.textContent = message;
+        statusNode.className = `form-status ${type ? `is-${type}` : ""}`;
+      }
+
+      function readLocalRows() {
+        try {
+          const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_error) {
+          return [];
+        }
+      }
+
+      function storeLocalRegistration(payload) {
+        const rows = readLocalRows();
+        const withoutSameId = rows.filter((row) => row.id !== payload.id);
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify([payload, ...withoutSameId]));
+      }
+
+      function payloadFromForm() {
+        const formData = new FormData(form);
+        const now = new Date().toISOString();
+        const consentContact = formData.get("consent_contact") === "on";
+        return {
+          id: `reg-web-${Date.now().toString(36)}`,
+          submitted_at: now,
+          status: "neu",
+          email: String(formData.get("email") || "").trim(),
+          first_name: String(formData.get("first_name") || "").trim(),
+          last_name: String(formData.get("last_name") || "").trim(),
+          title: String(formData.get("title") || "").trim(),
+          organization: String(formData.get("organization") || "").trim(),
+          sector: String(formData.get("sector") || "").trim(),
+          role: String(formData.get("role") || "").trim(),
+          city: String(formData.get("city") || "").trim(),
+          federal_state: String(formData.get("federal_state") || "").trim(),
+          preferred_contact: String(formData.get("preferred_contact") || "").trim(),
+          message: String(formData.get("message") || "").trim(),
+          consent_processing_version: PROCESSING_CONSENT_VERSION,
+          consent_processing_accepted_at: now,
+          consent_contact_version: consentContact ? CONTACT_CONSENT_VERSION : "",
+          consent_contact_accepted_at: consentContact ? now : "",
+          consent_text_version: PROCESSING_CONSENT_VERSION,
+          consent_accepted_at: now,
+          source_url: "https://www.gematik.de/mitmachen/versorgungs-netzwerk",
+          form_version: FORM_VERSION,
+          language: "de",
+          privacy_check_status: "bereit_zur_pruefung",
+          duplicate_hint: "",
+          transport: "demo-local-intake"
+        };
+      }
+
+      async function submitPayload(payload) {
+        const endpoint = window.GEMATIK_REGISTRATION_ENDPOINT || "";
+        if (endpoint) {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) throw new Error(`Registrierung konnte nicht übermittelt werden (${response.status}).`);
+          return;
+        }
+        storeLocalRegistration(payload);
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setStatus("");
+        confirmation.classList.remove("is-visible");
+
+        if (form.elements.company.value) {
+          setStatus("Die Registrierung konnte nicht übermittelt werden.", "error");
+          return;
+        }
+
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          setStatus("Bitte füllen Sie alle Pflichtfelder aus und bestätigen Sie die notwendige Verarbeitung.", "error");
+          return;
+        }
+
+        const payload = payloadFromForm();
+        try {
+          await submitPayload(payload);
+          form.reset();
+          form.elements.preferred_contact.value = "E-Mail";
+          setStatus("Registrierung übermittelt.", "success");
+          confirmation.classList.add("is-visible");
+        } catch (error) {
+          console.error(error);
+          setStatus(error.message || "Die Registrierung konnte nicht übermittelt werden. Bitte versuchen Sie es später erneut.", "error");
+        }
+      });
+    </script>
+  </body>
+</html>
