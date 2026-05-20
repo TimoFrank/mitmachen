@@ -179,7 +179,7 @@ test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ pa
   await page.locator(".submit-button").click();
 
   await expect(page.locator("#confirmation")).toBeVisible();
-  await expect(page.locator("#confirmation")).toContainText("erst nach fachlicher Prüfung");
+  await expect(page.locator("#confirmation")).toContainText("Eingang geprüft");
 
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);

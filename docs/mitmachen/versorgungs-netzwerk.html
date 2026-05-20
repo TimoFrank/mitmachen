@@ -241,8 +241,7 @@
 
       .form-head {
         display: grid;
-        gap: 7px;
-        padding: 18px 20px;
+        padding: 18px 20px 14px;
         border-bottom: 1px solid var(--border);
         background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
       }
@@ -252,13 +251,6 @@
         line-height: 1.2;
       }
 
-      .form-head p {
-        color: var(--text-secondary);
-        font-size: 0.94rem;
-        font-weight: 650;
-        line-height: 1.45;
-      }
-
       form {
         display: grid;
         gap: 0;
@@ -266,9 +258,9 @@
 
       fieldset {
         display: grid;
-        gap: 12px;
+        gap: 10px;
         margin: 0;
-        padding: 16px 20px;
+        padding: 14px 20px;
         border: 0;
         border-bottom: 1px solid var(--border);
       }
@@ -282,7 +274,7 @@
 
       .field-grid {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px 12px;
       }
 
@@ -342,7 +334,7 @@
       }
 
       textarea {
-        min-height: 108px;
+        min-height: 96px;
         resize: vertical;
         line-height: 1.45;
       }
@@ -369,19 +361,11 @@
 
       .privacy-box {
         display: grid;
-        gap: 12px;
-        padding: 14px;
+        gap: 10px;
+        padding: 12px;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--surface-muted);
-      }
-
-      .privacy-box p {
-        margin: 0;
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-        font-weight: 650;
-        line-height: 1.45;
       }
 
       .checkbox input {
@@ -488,6 +472,10 @@
           grid-template-columns: 1fr;
         }
 
+        .field-grid {
+          grid-template-columns: 1fr;
+        }
+
         .site-nav {
           display: none;
         }
@@ -530,23 +518,11 @@
       <section class="form-card" id="registrierung" aria-labelledby="form-title">
         <div class="form-head">
           <h2 id="form-title">Einrichtung registrieren</h2>
-          <p>Bitte tragen Sie nur die Informationen ein, die wir für die fachliche Prüfung und Kontaktaufnahme benötigen.</p>
         </div>
         <form id="registration-form" novalidate>
           <fieldset>
             <legend>Kontakt</legend>
             <div class="field-grid">
-              <div class="field">
-                <label for="email">E-Mail-Adresse*</label>
-                <input id="email" name="email" type="email" autocomplete="email" required />
-              </div>
-              <div class="field">
-                <label for="preferred_contact">Bevorzugter Kontaktweg</label>
-                <select id="preferred_contact" name="preferred_contact">
-                  <option value="E-Mail">E-Mail</option>
-                  <option value="Telefon">Telefon</option>
-                </select>
-              </div>
               <div class="field">
                 <label for="first_name">Vorname</label>
                 <input id="first_name" name="first_name" autocomplete="given-name" />
@@ -554,6 +530,10 @@
               <div class="field">
                 <label for="last_name">Nachname*</label>
                 <input id="last_name" name="last_name" autocomplete="family-name" required />
+              </div>
+              <div class="field">
+                <label for="email">E-Mail-Adresse*</label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
               </div>
               <div class="field">
                 <label for="role">Rolle/Funktion</label>
@@ -601,7 +581,6 @@
           <fieldset id="datenschutz">
             <legend>Datenschutz</legend>
             <div class="privacy-box">
-              <p>Ihre Angaben werden zweckgebunden für die Prüfung Ihrer Registrierung im Versorgungs-Netzwerk verarbeitet. Ein aktiver CRM-Kontakt entsteht erst nach fachlicher Prüfung.</p>
               <label class="checkbox" for="consent_processing">
                 <input id="consent_processing" name="consent_processing" type="checkbox" required />
                 <span><strong>Pflicht:</strong> Ich willige ein, dass die gematik meine Angaben verarbeitet, um meine Registrierung für das Versorgungs-Netzwerk zu prüfen und mich dazu zu kontaktieren.</span>
@@ -625,7 +604,7 @@
         </form>
         <div class="confirmation" id="confirmation" aria-live="polite">
           <strong>Vielen Dank, Ihre Registrierung wurde übermittelt.</strong>
-          <p>Ihre Angaben werden nun als Eingang geprüft. Daraus entsteht erst nach fachlicher Prüfung ein aktiver Kontakt im Versorgungs-Kompass.</p>
+          <p>Ihre Angaben werden nun als Eingang geprüft.</p>
           <p>Wenn der Versorgungs-Kompass bereits geöffnet ist, wechseln Sie zurück zum Reiter Registrierungen; die Demo lädt neue Eingänge beim Zurückkehren automatisch nach.</p>
           <p><a href="../versorgungs-kompass.html#registrations">Demo im Versorgungs-Kompass ansehen</a></p>
         </div>
@@ -680,7 +659,7 @@
           postal_code: String(formData.get("postal_code") || "").trim(),
           city: "",
           federal_state: "",
-          preferred_contact: String(formData.get("preferred_contact") || "").trim(),
+          preferred_contact: "E-Mail",
           message: String(formData.get("message") || "").trim(),
           consent_processing_version: PROCESSING_CONSENT_VERSION,
           consent_processing_accepted_at: now,
@@ -732,7 +711,6 @@
         try {
           await submitPayload(payload);
           form.reset();
-          form.elements.preferred_contact.value = "E-Mail";
           setStatus("Registrierung übermittelt.", "success");
           confirmation.classList.add("is-visible");
         } catch (error) {
