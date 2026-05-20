@@ -12066,6 +12066,8 @@
       .registrations-card {
         display: grid;
         gap: 12px;
+        width: 100%;
+        max-width: none;
       }
 
       .registrations-toolbar {
@@ -12085,16 +12087,16 @@
 
       .registrations-list {
         display: grid;
-        gap: 8px;
+        gap: 6px;
       }
 
       .registration-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
-        gap: 10px 12px;
+        grid-template-columns: minmax(190px, 1fr) minmax(220px, 1fr) minmax(260px, 1.25fr) auto;
+        gap: 10px 14px;
         align-items: center;
-        min-height: 62px;
-        padding: 10px;
+        min-height: 70px;
+        padding: 10px 12px;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         background: var(--surface);
@@ -12103,11 +12105,11 @@
 
       .registration-row__main,
       .registration-row__meta,
-      .registration-row__message {
-        grid-column: 1 / -1;
+      .registration-row__message,
+      .registration-row__status {
         min-width: 0;
         display: grid;
-        gap: 3px;
+        gap: 4px;
       }
 
       .registration-row strong {
@@ -12137,6 +12139,22 @@
         white-space: normal;
       }
 
+      .registration-row__message small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .registration-row__status {
+        justify-items: start;
+      }
+
+      .registration-row__status .status-pill {
+        min-height: 24px;
+        padding: 4px 8px;
+        font-size: var(--font-size-xs);
+      }
+
       .registration-row__actions {
         grid-column: 1 / -1;
         display: flex;
@@ -12144,6 +12162,25 @@
         justify-content: flex-start;
         gap: 6px;
         flex-wrap: wrap;
+      }
+
+      .registration-row__actions .import-row-action {
+        width: auto;
+        min-width: 108px;
+        min-height: 34px;
+        padding: 6px 10px;
+        font-size: var(--font-size-xs);
+        white-space: nowrap;
+      }
+
+      .registration-row__actions .registration-action--primary {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: var(--surface);
+      }
+
+      .registration-row__actions .registration-action--danger {
+        color: var(--danger);
       }
 
       .settings-workspace {
@@ -12943,6 +12980,10 @@
 
         .registration-row__actions {
           justify-content: flex-start;
+        }
+
+        .registration-row__actions .import-row-action {
+          flex: 1 1 140px;
         }
 
         .team-account-row {
@@ -19075,19 +19116,21 @@
                     <span>${escapeHtml(registration.email || "E-Mail offen")}</span>
                   </div>
                   <div class="registration-row__meta">
-                    <strong>${escapeHtml(registrationStatusLabel(registration.status))}</strong>
                     <span>${escapeHtml(meta || "Einordnung offen")}</span>
                     ${registration.duplicateHint ? `<small>${escapeHtml(registration.duplicateHint)}</small>` : ""}
                   </div>
                   <div class="registration-row__message">
-                    <strong>${escapeHtml(submitted)}</strong>
                     <span>${escapeHtml(registration.message || "Keine Nachricht")}</span>
+                    <small>${escapeHtml(submitted)}</small>
+                  </div>
+                  <div class="registration-row__status">
+                    <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
                   </div>
                   <div class="registration-row__actions">
-                    <button class="import-row-action" type="button" data-registration-action="accept" data-registration-id="${escapeHtml(registration.id)}">Übernehmen</button>
+                    <button class="import-row-action registration-action--primary" type="button" data-registration-action="accept" data-registration-id="${escapeHtml(registration.id)}">Übernehmen</button>
                     <button class="import-row-action" type="button" data-registration-action="link" data-registration-id="${escapeHtml(registration.id)}">Verknüpfen</button>
                     <button class="import-row-action" type="button" data-registration-action="defer" data-registration-id="${escapeHtml(registration.id)}">Zurückstellen</button>
-                    <button class="import-row-action" type="button" data-registration-action="reject" data-registration-id="${escapeHtml(registration.id)}">Ablehnen</button>
+                    <button class="import-row-action registration-action--danger" type="button" data-registration-action="reject" data-registration-id="${escapeHtml(registration.id)}">Ablehnen</button>
                   </div>
                 </article>
               `;
