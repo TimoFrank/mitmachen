@@ -6038,10 +6038,11 @@
         display: grid;
         gap: 12px;
         min-height: 0;
-        padding: 14px;
+        padding: 0;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         background: var(--surface);
+        overflow: hidden;
       }
 
       .care-queue-card--todo {
@@ -6051,7 +6052,11 @@
 
       .care-queue-card--done {
         border-color: #cfead7;
-        background: #f7fcf8;
+        background: var(--surface);
+      }
+
+      .care-queue-card.is-expanded {
+        border-color: #fed7aa;
       }
 
       .care-queue-head {
@@ -6059,6 +6064,18 @@
         grid-template-columns: 34px minmax(0, 1fr) auto;
         gap: 9px;
         align-items: center;
+        padding: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .care-queue-card--todo .care-queue-head {
+        background: #fff8eb;
+        border-bottom-color: #fed7aa;
+      }
+
+      .care-queue-card--done .care-queue-head {
+        background: #f0fdf4;
+        border-bottom-color: #bde8ca;
       }
 
       .care-queue-icon {
@@ -6144,6 +6161,7 @@
       .care-queue-list {
         display: grid;
         gap: 7px;
+        padding: 0 14px;
       }
 
       .care-queue-contact {
@@ -6192,6 +6210,77 @@
         display: flex;
         gap: 8px;
         margin-top: auto;
+        padding: 0 14px 14px;
+      }
+
+      .care-queue-inline-list {
+        display: grid;
+        gap: 8px;
+        padding: 0 14px;
+      }
+
+      .care-queue-edit-row {
+        display: grid;
+        grid-template-columns: 28px minmax(130px, 0.7fr) minmax(180px, 1fr);
+        gap: 8px;
+        align-items: center;
+        min-height: 42px;
+        padding: 8px;
+        border: 1px solid #e3eaff;
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+      }
+
+      .care-queue-edit-name {
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 750;
+        text-align: left;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .care-queue-field {
+        min-width: 0;
+        min-height: 34px;
+        width: 100%;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 0.78rem;
+        padding: 0 9px;
+      }
+
+      .care-queue-field-grid {
+        display: grid;
+        grid-template-columns: minmax(74px, 0.45fr) minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      .care-queue-note {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 650;
+      }
+
+      @media (max-width: 760px) {
+        .care-queue-edit-row {
+          grid-template-columns: 28px minmax(0, 1fr);
+        }
+
+        .care-queue-edit-row .care-queue-field,
+        .care-queue-edit-row .care-queue-field-grid,
+        .care-queue-edit-row .care-queue-note {
+          grid-column: 2;
+        }
       }
 
       .care-queue-open {
@@ -25792,8 +25881,9 @@
               .map((item) => {
                 const visible = item.contacts.slice(0, 3);
                 const done = item.state === "done";
+                const expanded = activeCareQueueKey === item.key;
                 return `
-                  <section class="care-queue-card ${done ? "care-queue-card--done" : "care-queue-card--todo"}">
+                  <section class="care-queue-card ${done ? "care-queue-card--done" : "care-queue-card--todo"} ${expanded ? "is-expanded" : ""}" data-care-card="${escapeHtml(item.key)}">
                     <div class="care-queue-head">
                       <span class="care-queue-icon">${qualityIconSvg(done ? "complete" : item.iconKey || item.key)}</span>
                       <span class="care-queue-copy">
@@ -25802,19 +25892,24 @@
                       </span>
                       <span class="care-queue-count">${item.contacts.length}</span>
                     </div>
-                    <div class="care-queue-list">
-                      ${visible
-                        .map(
-                          (contact) => `
-                            <button class="care-queue-contact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">
-                              ${contactAvatarMarkup(contact, "sm")}
-                              <span>${escapeHtml(contact.displayName || contact.name)}</span>
-                            </button>
-                          `
-                        )
-                        .join("")}
-                    </div>
-                    <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}">${done ? "Liste ansehen" : "Liste öffnen"}</button></div>
+                    ${done ? "" : expanded ? `
+                      <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="true">Liste schließen</button></div>
+                      ${renderCareQueueInlineList(item)}
+                    ` : `
+                      <div class="care-queue-list">
+                        ${visible
+                          .map(
+                            (contact) => `
+                              <button class="care-queue-contact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">
+                                ${contactAvatarMarkup(contact, "sm")}
+                                <span>${escapeHtml(contact.displayName || contact.name)}</span>
+                              </button>
+                            `
+                          )
+                          .join("")}
+                      </div>
+                      <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="false">Liste öffnen</button></div>
+                    `}
                   </section>
                 `;
               })
@@ -25822,17 +25917,44 @@
               : `<div class="dashboard-empty">Aktuell gibt es keine offenen Arbeitslisten.</div>`}
           </div>
         `;
-        if (activeCareQueueKey) renderCareWorkbench(activeCareQueueKey);
       }
 
       function careQueueItemByKey(key) {
         return buildCareQueueItems(filteredContacts()).find((item) => item.key === key);
       }
 
-      function focusCareWorkbench() {
-        if (!careWorkbench || careWorkbench.hidden) return;
-        careWorkbench.scrollIntoView({ behavior: "smooth", block: "start" });
-        careWorkbench.focus({ preventScroll: true });
+      function careQueueInlineFieldMarkup(item, contact) {
+        const id = escapeHtml(contact.id);
+        const archived = contact.status === "archived" ? "true" : "false";
+        const name = escapeHtml(contact.displayName || contact.name);
+        const field =
+          item.key === "missing-owner" ? `<select class="care-queue-field" data-care-inline-field="owner" data-care-inline-contact="${id}">${buildOwnerSelectOptions(contact.ownerId || contact.owner || "")}</select>`
+          : item.key === "missing-email" ? `<input class="care-queue-field" data-care-inline-field="email" data-care-inline-contact="${id}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail ergänzen" />`
+          : item.key === "missing-phone" ? `<input class="care-queue-field" data-care-inline-field="phone" data-care-inline-contact="${id}" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon ergänzen" />`
+          : item.key === "missing-specialty" ? `<select class="care-queue-field" data-care-inline-field="specialty" data-care-inline-contact="${id}">${buildSpecialtySelectOptions(contact.specialty || "")}</select>`
+          : item.key === "missing-location" ? `
+              <span class="care-queue-field-grid">
+                <input class="care-queue-field" data-care-inline-field="postalCode" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.postalCode))}" placeholder="PLZ" />
+                <input class="care-queue-field" data-care-inline-field="city" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.city))}" placeholder="Ort" />
+              </span>
+            `
+          : item.key === "unclear-organization" ? `<input class="care-queue-field" data-care-inline-field="organization" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.organization))}" placeholder="Organisation ergänzen" />`
+          : `<span class="care-queue-note">Profil prüfen und bei Bedarf aktualisieren.</span>`;
+        return `
+          <div class="care-queue-edit-row">
+            ${contactAvatarMarkup(contact, "sm")}
+            <button class="care-queue-edit-name" type="button" data-care-contact="${id}" data-care-archived="${archived}">${name}</button>
+            ${field}
+          </div>
+        `;
+      }
+
+      function renderCareQueueInlineList(item) {
+        return `
+          <div class="care-queue-inline-list">
+            ${item.contacts.map((contact) => careQueueInlineFieldMarkup(item, contact)).join("")}
+          </div>
+        `;
       }
 
       function renderCareWorkbench(key) {
@@ -27357,13 +27479,20 @@
       careQueue?.addEventListener("click", (event) => {
         const openButton = event.target.closest("[data-care-open]");
         if (openButton) {
-          renderCareWorkbench(openButton.dataset.careOpen);
-          focusCareWorkbench();
+          activeCareQueueKey = activeCareQueueKey === openButton.dataset.careOpen ? "" : openButton.dataset.careOpen;
+          renderCareQueue(filteredContacts());
           return;
         }
         const button = event.target.closest("[data-care-contact]");
         if (!button) return;
         openCareQueueContact(button.dataset.careContact, button.dataset.careArchived === "true");
+      });
+      careQueue?.addEventListener("change", async (event) => {
+        const field = event.target.closest("[data-care-inline-field]");
+        if (!field) return;
+        await updateContactField(field.dataset.careInlineContact, field.dataset.careInlineField, field.value, { silent: true });
+        setStorageStatus("Kontakt aktualisiert");
+        updateView();
       });
       careWorkbench?.addEventListener("click", async (event) => {
         if (event.target.closest("#care-workbench-close")) {
