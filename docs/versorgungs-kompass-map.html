@@ -224,7 +224,7 @@
       gap: 8px;
     }
     .map-controls > .map-dropdown {
-      display: none;
+      display: block;
     }
     .mobile-map-filter-group {
       display: none;
@@ -662,7 +662,7 @@
     }
     .map-filter-dropdown-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr);
       gap: 8px;
       align-items: end;
     }
@@ -709,6 +709,85 @@
       color: #fff;
       border-color: var(--sector-color, #010E52);
       box-shadow: 0 6px 14px var(--sector-shadow, rgba(1,14,82,0.18));
+    }
+    .owner-filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .owner-filter-chip,
+    .owner-pill {
+      appearance: none;
+      -webkit-appearance: none;
+      max-width: 100%;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #f8faff;
+      color: var(--text-primary);
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .owner-filter-chip {
+      min-height: 30px;
+      padding: 3px 9px 3px 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .owner-filter-chip:hover {
+      border-color: var(--border-strong);
+      background: #eef4ff;
+    }
+    .owner-filter-chip.active {
+      border-color: rgba(21,95,228,0.28);
+      background: var(--primary-soft);
+      color: var(--primary);
+      box-shadow: 0 6px 14px rgba(21,95,228,0.13);
+    }
+    .owner-filter-avatar,
+    .owner-pill-avatar {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      display: inline-grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--primary);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+    .owner-filter-avatar img,
+    .owner-pill-avatar img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+    .owner-filter-label,
+    .owner-pill-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .owner-pill {
+      min-height: 22px;
+      padding: 1px 7px 1px 2px;
+      font-size: 11px;
+      color: #43558c;
+    }
+    .owner-pill-avatar {
+      width: 18px;
+      height: 18px;
+      flex-basis: 18px;
+      font-size: 8px;
     }
     .category-chip-emoji {
       font-size: 13px;
@@ -918,6 +997,13 @@
       width: fit-content;
       margin-top: 0;
       justify-self: start;
+    }
+    .item-badge-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
     }
     .item-chevron {
       color: #667399;
@@ -2728,7 +2814,7 @@
                     <path d="M1.5 2.1h9L7.2 5.9v3.1l-2.4.9V5.9z" fill="currentColor"/>
                   </svg>
                 </span>
-                <span id="state-filter-label">Bundesländer</span>
+                <span id="state-filter-label">Bundesland</span>
               </button>
               <div id="state-filter-menu" class="map-dropdown-menu"></div>
             </div>
@@ -2788,7 +2874,7 @@
                       <path d="M1.5 2.1h9L7.2 5.9v3.1l-2.4.9V5.9z" fill="currentColor"/>
                     </svg>
                   </span>
-                  <span id="state-view-filter-label">Bundesländer</span>
+                  <span id="state-view-filter-label">Bundesland</span>
                 </button>
               </div>
               <button id="state-view-close" class="state-view-close" type="button">Zurück</button>
@@ -2866,6 +2952,8 @@
       linkedin: contact.linkedin || "",
       priority: contact.priority || "",
       owner: contact.owner || "",
+      ownerId: contact.ownerId || contact.owner_id || "",
+      ownerAvatar: contact.ownerAvatar || contact.owner_avatar || contact.ownerAvatarUrl || "",
       themes: Array.isArray(contact.themes) ? contact.themes : String(contact.themes || "").split(/\s*\|\s*/).filter(Boolean),
       image: contact.image || "",
       updatedAt: contact.updatedAt || contact.updated_at || contact.createdAt || contact.created_at || "",
@@ -3294,6 +3382,50 @@
 
   function availableOwners(){
     return uniqueSorted(mapSourceEntries().map((entry) => entry.owner));
+  }
+
+  function initialsFromLabel(value) {
+    const parts = String(value || "").replace(/\([^)]*\)/g, "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "OW";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
+  function ownerEntryForValue(value) {
+    const owner = String(value || "").trim();
+    if (!owner) return null;
+    return mapSourceEntries().find((entry) => entry.owner === owner || entry.ownerId === owner) || null;
+  }
+
+  function ownerAvatarContent(owner) {
+    const entry = ownerEntryForValue(owner);
+    const label = entry?.owner || owner;
+    const avatarUrl = String(entry?.ownerAvatar || "").trim();
+    if (avatarUrl) {
+      return `<img src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" onerror="this.remove()">`;
+    }
+    return escapeHtml(initialsFromLabel(label));
+  }
+
+  function ownerFilterChip(owner) {
+    const active = activeOwnerFilter === owner;
+    const label = owner || "Alle";
+    return `
+      <button class="owner-filter-chip${active ? " active" : ""}" type="button" data-owner-filter="${escapeHtml(owner)}" aria-pressed="${active ? "true" : "false"}">
+        <span class="owner-filter-avatar" aria-hidden="true">${owner ? ownerAvatarContent(owner) : "A"}</span>
+        <span class="owner-filter-label">${escapeHtml(label)}</span>
+      </button>
+    `;
+  }
+
+  function ownerPillHtml(entry) {
+    if (!entry?.owner) return "";
+    return `
+      <span class="owner-pill">
+        <span class="owner-pill-avatar" aria-hidden="true">${ownerAvatarContent(entry.owner)}</span>
+        <span class="owner-pill-label">${escapeHtml(entry.owner)}</span>
+      </span>
+    `;
   }
 
   function availablePriorities(){
@@ -4106,8 +4238,8 @@
     selectedState = name;
     activeMapContactId = "";
     mapMovedForActiveContact = false;
-    elStateFilterLabel.textContent = name || "Bundesländer";
-    elStateViewFilterLabel.textContent = name || "Bundesländer";
+    elStateFilterLabel.textContent = name || "Bundesland";
+    elStateViewFilterLabel.textContent = name || "Bundesland";
     renderStateFilterMenu();
     renderFilters();
     updateStateFilterToggle();
@@ -4246,39 +4378,18 @@
     });
     elFilters.appendChild(sectorRow);
 
-    const createDropdownControls = () => [
-      mapFilterDropdown({
-        label: 'Bundesland',
-        allLabel: 'Alle',
-        value: selectedState,
-        options: states,
-        onChange: (nextValue) => {
-          resetListPage();
-          setSelectedState(nextValue);
-        }
-      }),
-      mapFilterDropdown({
-        label: 'Owner',
-        allLabel: 'Alle',
-        value: activeOwnerFilter,
-        options: owners,
-        onChange: (nextValue) => {
-          activeOwnerFilter = nextValue;
-          resetListPage();
-          renderFilters();
-          render();
-        }
-      })
-    ];
-
-    const dropdownGrid = document.createElement('div');
-    dropdownGrid.className = 'map-filter-dropdown-grid';
-    dropdownGrid.append(...createDropdownControls());
-    elFilters.appendChild(dropdownGrid);
-
-    if (elMobileMapFilters) {
-      elMobileMapFilters.append(...createDropdownControls());
-    }
+    const ownerRow = document.createElement('div');
+    ownerRow.className = 'map-filter-row owner-filter-row';
+    ownerRow.innerHTML = `<span class="map-filter-label">Owner</span>${ownerFilterChip("")}${owners.map(ownerFilterChip).join("")}`;
+    ownerRow.querySelectorAll('[data-owner-filter]').forEach((button) => {
+      button.addEventListener('click', () => {
+        activeOwnerFilter = button.dataset.ownerFilter || "";
+        resetListPage();
+        renderFilters();
+        render();
+      });
+    });
+    elFilters.appendChild(ownerRow);
   }
 
   let markerIndex = [];
@@ -4340,13 +4451,17 @@
       item.dataset.mapContactId = d.id;
       const color = CATEGORY_COLORS[d.category] || "#555";
       const meta = d.organization || "Organisation nicht dokumentiert";
+      const ownerPill = ownerPillHtml(d);
       item.innerHTML = `<div class="item-top">
                           ${avatarHtml(d)}
                           <div class="item-copy">
                             <div class="t">${escapeHtml(d.name)}</div>
                             <div class="item-meta-row">
                               <div class="m">${escapeHtml(meta)}</div>
-                              <span class="sector-pill" style="--sector-color:${color};--sector-bg:${sectorTint(color)}">${escapeHtml(d.category)}</span>
+                              <div class="item-badge-row">
+                                <span class="sector-pill" style="--sector-color:${color};--sector-bg:${sectorTint(color)}">${escapeHtml(d.category)}</span>
+                                ${ownerPill}
+                              </div>
                             </div>
                           </div>
                           <span class="item-chevron" aria-hidden="true">›</span>
