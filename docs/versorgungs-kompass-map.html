@@ -559,8 +559,10 @@
       grid-template-columns: minmax(0, 1fr) auto auto;
       align-items: center;
       gap: 8px;
-      min-height: 42px;
-      padding: 10px 14px 4px;
+      min-height: 50px;
+      padding: 10px 12px 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(248,250,255,0.98) 0%, rgba(255,255,255,0.96) 100%);
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 0.08em;
@@ -574,12 +576,21 @@
       white-space: nowrap;
     }
     .panel-count {
-      color: rgba(0,0,0,0.58);
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text-primary);
       font-size: 12px;
       font-weight: 800;
       letter-spacing: 0.02em;
       text-transform: none;
       white-space: nowrap;
+      box-shadow: var(--shadow-sm);
     }
     .map-list-toggle {
       width: 32px;
@@ -626,7 +637,7 @@
     .mobile-map-preview {
       display: none;
     }
-    .panel .body { padding: 2px 14px 10px 14px; }
+    .panel .body { padding: 12px 14px 10px 14px; }
     .muted { color: rgba(0,0,0,0.55); font-weight: 500; }
 
     input[type="search"]{
@@ -639,10 +650,10 @@
     }
 
     .filters {
-      margin-top: 4px;
+      margin-top: 0;
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      gap: 10px;
+      gap: 12px;
     }
     .map-filter-row {
       display: grid;
@@ -651,8 +662,8 @@
     }
     .map-filter-dropdown-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 7px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
       align-items: end;
     }
     .map-filter-row--sectors {
@@ -3428,7 +3439,6 @@
     if (activeCategoryFilter && d.category !== activeCategoryFilter) return false;
     if (selectedState && d.state !== selectedState) return false;
     if (activeOwnerFilter && d.owner !== activeOwnerFilter) return false;
-    if (activePriorityFilter && d.priority !== activePriorityFilter) return false;
     if (!q) return true;
     const hay = [
       d.name,
@@ -3459,7 +3469,6 @@
       if (entry.state !== name) return false;
       if (activeCategoryFilter && entry.category !== activeCategoryFilter) return false;
       if (activeOwnerFilter && entry.owner !== activeOwnerFilter) return false;
-      if (activePriorityFilter && entry.priority !== activePriorityFilter) return false;
       return matchesQuery(entry);
     });
   }
@@ -3468,7 +3477,6 @@
     return mapSourceEntries().filter((entry) => (
       (!activeCategoryFilter || entry.category === activeCategoryFilter) &&
       (!activeOwnerFilter || entry.owner === activeOwnerFilter) &&
-      (!activePriorityFilter || entry.priority === activePriorityFilter) &&
       matchesQuery(entry)
     )).length;
   }
@@ -3479,7 +3487,6 @@
     if (selectedState) chips.push({ key: 'state', label: selectedState });
     if (activeCategoryFilter) chips.push({ key: 'category', label: activeCategoryFilter });
     if (activeOwnerFilter) chips.push({ key: 'owner', label: `Owner: ${activeOwnerFilter}` });
-    if (activePriorityFilter) chips.push({ key: 'priority', label: `Priorität: ${activePriorityFilter}` });
     if (query.trim()) chips.push({ key: 'query', label: `Suche: ${query.trim()}` });
 
     if (!chips.length) {
@@ -3513,10 +3520,6 @@
           render();
         } else if (key === 'owner') {
           activeOwnerFilter = "";
-          renderFilters();
-          render();
-        } else if (key === 'priority') {
-          activePriorityFilter = "";
           renderFilters();
           render();
         } else if (key === 'query') {
@@ -4201,7 +4204,7 @@
     if (elMobileMapFilters) elMobileMapFilters.innerHTML = "";
     const categories = availableCategories();
     const owners = availableOwners();
-    const priorities = availablePriorities();
+    activePriorityFilter = "";
 
     const sectorRow = document.createElement('div');
     sectorRow.className = 'map-filter-row map-filter-row--sectors';
@@ -4261,18 +4264,6 @@
         options: owners,
         onChange: (nextValue) => {
           activeOwnerFilter = nextValue;
-          resetListPage();
-          renderFilters();
-          render();
-        }
-      }),
-      mapFilterDropdown({
-        label: 'Priorität',
-        allLabel: 'Alle',
-        value: activePriorityFilter,
-        options: priorities,
-        onChange: (nextValue) => {
-          activePriorityFilter = nextValue;
           resetListPage();
           renderFilters();
           render();
