@@ -143,6 +143,7 @@
       .hero-media {
         overflow: hidden;
         width: min(640px, 100%);
+        margin: 0;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--surface);
@@ -257,20 +258,28 @@
         gap: 0;
       }
 
-      fieldset {
+      .form-section {
         display: grid;
         gap: 16px;
         margin: 0;
-        padding: 30px 24px 26px;
-        border: 0;
+        padding: 0 24px 26px;
         border-bottom: 1px solid var(--border);
       }
 
-      legend {
-        padding: 0;
+      .form-section:first-of-type {
+        padding-top: 30px;
+      }
+
+      .form-section + .form-section {
+        padding-top: 30px;
+      }
+
+      .form-section-title {
+        margin: 0;
         color: var(--text-primary);
         font-size: 0.96rem;
         font-weight: 900;
+        line-height: 1.25;
       }
 
       .field-grid {
@@ -521,8 +530,8 @@
           <h2 id="form-title">Einrichtung registrieren</h2>
         </div>
         <form id="registration-form" novalidate>
-          <fieldset>
-            <legend>Kontakt</legend>
+          <section class="form-section" aria-labelledby="registration-contact-title">
+            <h3 class="form-section-title" id="registration-contact-title">Kontakt</h3>
             <div class="field-grid">
               <div class="field">
                 <label for="first_name">Vorname</label>
@@ -541,10 +550,10 @@
                 <input id="role" name="role" placeholder="z. B. Praxisinhaberin, Pflegedienstleitung" />
               </div>
             </div>
-          </fieldset>
+          </section>
 
-          <fieldset>
-            <legend>Einrichtung</legend>
+          <section class="form-section" aria-labelledby="registration-organization-title">
+            <h3 class="form-section-title" id="registration-organization-title">Einrichtung</h3>
             <div class="field-grid">
               <div class="field field--span">
                 <label for="organization">Name der Einrichtung*</label>
@@ -569,18 +578,18 @@
                 <input id="postal_code" name="postal_code" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" maxlength="5" placeholder="z. B. 10117" />
               </div>
             </div>
-          </fieldset>
+          </section>
 
-          <fieldset>
-            <legend>Mitmach-Interesse</legend>
+          <section class="form-section" aria-labelledby="registration-interest-title">
+            <h3 class="form-section-title" id="registration-interest-title">Mitmach-Interesse</h3>
             <div class="field">
               <label for="message">Ihre Nachricht*</label>
               <textarea id="message" name="message" required placeholder="Welche Einblicke könnten Sie geben? Welche digitalen Prozesse sind für Ihre Einrichtung relevant? Gibt es Themen wie ePA, E-Rezept, Anmeldung, Kommunikation oder Medikationsprozesse?"></textarea>
             </div>
-          </fieldset>
+          </section>
 
-          <fieldset id="datenschutz">
-            <legend>Datenschutz</legend>
+          <section class="form-section" id="datenschutz" aria-labelledby="registration-privacy-title">
+            <h3 class="form-section-title" id="registration-privacy-title">Datenschutz</h3>
             <div class="privacy-box">
               <label class="checkbox" for="consent_processing">
                 <input id="consent_processing" name="consent_processing" type="checkbox" required />
@@ -595,7 +604,7 @@
               <label for="company">Bitte dieses Feld nicht ausfüllen</label>
               <input id="company" name="company" tabindex="-1" autocomplete="off" />
             </div>
-          </fieldset>
+          </section>
 
           <div class="form-actions">
             <div class="required-note">Die mit * gekennzeichneten Felder müssen ausgefüllt werden.</div>
