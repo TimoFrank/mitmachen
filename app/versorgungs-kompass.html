@@ -5913,7 +5913,7 @@
 
       .quality-workspace-grid {
         display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: 14px;
       }
 
@@ -5924,26 +5924,26 @@
 
       .quality-row {
         min-height: 0;
-        grid-template-columns: 34px minmax(0, 1fr) auto;
+        grid-template-columns: 30px minmax(0, 1fr) auto;
         justify-items: stretch;
         align-content: center;
         gap: 9px;
-        padding: 10px;
-        border: 1px solid #e0e7fb;
-        border-radius: 13px;
-        background: #ffffff;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
         text-align: left;
       }
 
       .quality-icon {
-        width: 34px;
-        height: 34px;
+        width: 30px;
+        height: 30px;
         display: grid;
         place-items: center;
         border-radius: 999px;
-        background: #eef4ff;
-        color: #2d71f0;
-        font-size: 1rem;
+        background: var(--surface-muted);
+        color: var(--primary);
+        font-size: 0.78rem;
         font-weight: 900;
       }
 
@@ -5958,10 +5958,10 @@
       }
 
       .quality-percent {
-        color: #10236e;
-        font-size: 0.98rem;
+        color: var(--text-primary);
+        font-size: 0.9rem;
         font-weight: 900;
-        letter-spacing: -0.03em;
+        letter-spacing: 0;
       }
 
       .quality-copy span,
@@ -5972,9 +5972,9 @@
       .quality-copy small {
         display: block;
         margin-top: 2px;
-        color: var(--muted);
+        color: var(--text-muted);
         font-size: 0.72rem;
-        font-weight: 800;
+        font-weight: 600;
       }
 
       .dashboard-empty {
@@ -5988,23 +5988,23 @@
 
       .care-queue-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 10px;
       }
 
       .care-queue-card {
         display: grid;
-        gap: 10px;
-        min-height: 188px;
-        padding: 12px;
-        border: 1px solid #dfe7ff;
-        border-radius: 14px;
-        background: #ffffff;
+        gap: 12px;
+        min-height: 0;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
       }
 
       .care-queue-card--todo {
-        border-color: #ffdcb8;
-        background: #fffaf4;
+        border-color: var(--border);
+        background: var(--surface);
       }
 
       .care-queue-card--done {
@@ -6050,9 +6050,9 @@
       .care-queue-title {
         min-width: 0;
         display: block;
-        color: #243271;
-        font-size: 0.82rem;
-        font-weight: 950;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 850;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -6060,9 +6060,9 @@
 
       .care-queue-hint {
         margin-top: 2px;
-        color: #7480a9;
+        color: var(--text-muted);
         font-size: 0.72rem;
-        font-weight: 800;
+        font-weight: 600;
       }
 
       .care-queue-count {
@@ -6121,11 +6121,11 @@
         min-height: 34px;
         padding: 7px 8px;
         border: 1px solid #e3eaff;
-        border-radius: 10px;
-        background: #fbfcff;
-        color: #243271;
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text-primary);
         font-size: 0.78rem;
-        font-weight: 900;
+        font-weight: 750;
         text-align: left;
         cursor: pointer;
       }
@@ -6143,9 +6143,9 @@
       }
 
       .care-queue-contact small {
-        color: #7480a9;
+        color: var(--text-muted);
         font-size: 0.7rem;
-        font-weight: 850;
+        font-weight: 650;
         white-space: nowrap;
       }
 
@@ -6171,10 +6171,10 @@
       .care-queue-open {
         width: 100%;
         min-height: 32px;
-        border: 1px solid #d6def9;
-        border-radius: 10px;
-        background: #ffffff;
-        color: #285bd6;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--primary);
         font-size: 0.78rem;
         font-weight: 900;
         cursor: pointer;
@@ -6183,9 +6183,14 @@
       .care-workbench {
         margin-top: 14px;
         padding: 14px;
-        border: 1px solid #dfe7ff;
-        border-radius: 16px;
-        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .care-workbench:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--primary) 24%, transparent);
+        outline-offset: 3px;
       }
 
       .care-workbench[hidden] {
@@ -11666,6 +11671,47 @@
         font-weight: 900;
       }
 
+      .settings-feature-list .detail-line {
+        grid-template-columns: 30px minmax(130px, 0.34fr) minmax(0, 1fr);
+        align-items: flex-start;
+      }
+
+      .settings-feature-icon {
+        width: 30px;
+        height: 30px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--primary);
+      }
+
+      .settings-feature-icon svg {
+        width: 15px;
+        height: 15px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .settings-feature-list .detail-line__value {
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
+
+      @media (max-width: 760px) {
+        .settings-feature-list .detail-line {
+          grid-template-columns: 30px minmax(0, 1fr);
+        }
+
+        .settings-feature-list .detail-line__value {
+          grid-column: 2;
+        }
+      }
+
       .settings-tab-panel .imports-workspace {
         display: grid;
         gap: 14px;
@@ -11724,6 +11770,11 @@
         width: min(100%, 620px);
         max-width: none;
         min-width: 0;
+      }
+
+      .settings-tab-panel .imports-history-card.is-attention {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
       }
 
       .settings-tab-panel .imports-history-row {
@@ -12266,6 +12317,17 @@
       .imports-history-list {
         display: grid;
         gap: 8px;
+      }
+
+      .imports-history-empty {
+        padding: 14px;
+        border: 1px dashed var(--border-strong);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        line-height: var(--line-height-normal);
       }
 
       .imports-history-row {
@@ -16179,34 +16241,63 @@
                 <div class="settings-wip-note">
                   <span class="settings-status-pill">Entwurf</span>
                   <strong>Dieser Bereich ist noch in Arbeit.</strong>
-                  <p>Im Moment gibt es hier noch keine Einstellung, die du aktiv ändern musst. Die nutzbaren Werkzeuge liegen aktuell in den Reitern <strong>Importe</strong> und <strong>Datenqualität</strong>.</p>
+                  <p>Im Moment gibt es hier noch keine Einstellung, die du aktiv ändern musst. Die Punkte unten zeigen nur, was später in diesen Bereich passen könnte.</p>
                 </div>
                 <section class="profile-section">
                   <h3>Was hier später entstehen könnte</h3>
-                  <div class="detail-line-list">
+                  <div class="detail-line-list settings-feature-list">
                     <div class="detail-line">
+                      <span class="settings-feature-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M3 10.5 12 3l9 7.5"></path>
+                          <path d="M5 10v10h14V10"></path>
+                          <path d="M9 20v-6h6v6"></path>
+                        </svg>
+                      </span>
                       <span class="detail-line__label">Startansicht</span>
                       <span class="detail-line__value">Später könnte hier festgelegt werden, mit welchem Bereich die App startet, zum Beispiel Kontakte, Karte oder Auswertung.</span>
                     </div>
                     <div class="detail-line">
+                      <span class="settings-feature-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                          <path d="M4 10h16"></path>
+                          <path d="M9 5v14"></path>
+                          <path d="M15 5v14"></path>
+                        </svg>
+                      </span>
                       <span class="detail-line__label">Tabellenansicht</span>
-                      <span class="detail-line__value">Hier könnten Standardspalten, Dichte der Tabelle und gespeicherte Ansichten verwaltet werden.</span>
+                      <span class="detail-line__value">Hier könnten Standardspalten und die Dichte der Tabelle verwaltet werden.</span>
                     </div>
                     <div class="detail-line">
+                      <span class="settings-feature-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                          <path d="M10 21h4"></path>
+                        </svg>
+                      </span>
                       <span class="detail-line__label">Benachrichtigungen</span>
                       <span class="detail-line__value">Hier könnten später Hinweise per E-Mail oder in der App ein- und ausgeschaltet werden.</span>
                     </div>
                     <div class="detail-line">
+                      <span class="settings-feature-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M12 3 5 6v5c0 4.5 2.9 8.4 7 10 4.1-1.6 7-5.5 7-10V6l-7-3Z"></path>
+                          <path d="m9 12 2 2 4-4"></path>
+                        </svg>
+                      </span>
                       <span class="detail-line__label">Rechte und Freigaben</span>
                       <span class="detail-line__value">Die Verwaltung von Admin-, Editor- und Viewer-Rechten gehört fachlich hierher, ist aber noch nicht als Oberfläche umgesetzt.</span>
                     </div>
-                  </div>
-                </section>
-                <section class="profile-section">
-                  <h3>Gespeicherte Ansichten</h3>
-                  <p class="import-muted">Dieser Teil ist bereits teilweise nutzbar: gespeicherte Filter und Ansichten werden hier angezeigt, sobald sie vorhanden sind.</p>
-                  <div class="saved-view-list" id="settings-saved-views">
-                    <div class="saved-view-empty">Gespeicherte Ansichten werden nach dem Laden des Profils angezeigt.</div>
+                    <div class="detail-line">
+                      <span class="settings-feature-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M6 4h12v16l-6-3-6 3V4Z"></path>
+                        </svg>
+                      </span>
+                      <span class="detail-line__label">Gespeicherte Ansichten</span>
+                      <span class="detail-line__value">Später könnten hier gespeicherte Filter und Ansichten verwaltet werden. Im aktuellen Frontend ist diese Funktion noch ausgeblendet.</span>
+                    </div>
                   </div>
                 </section>
               </div>
@@ -16252,20 +16343,15 @@
                       <button class="action-button" type="button" id="imports-show-history">Importe anzeigen</button>
                     </article>
                   </div>
-                  <section class="import-profile-card imports-history-card">
+                  <section class="import-profile-card imports-history-card" id="imports-history-section" tabindex="-1">
                     <div class="dashboard-card-head">
                       <div>
-                        <h4>Zuletzt ausgeführte Importe</h4>
-                        <p>Die vollständige Importhistorie wird mit der Import-Protokollierung weiter ausgebaut.</p>
+                        <h4>Abgeschlossene Importe</h4>
+                        <p>Hier erscheinen nur Importe, die wirklich abgeschlossen wurden. Abgebrochene Importentwürfe werden nicht angezeigt.</p>
                       </div>
                     </div>
                     <div class="imports-history-list">
-                      <div class="imports-history-row">
-                        <span>Aktueller Dateiimport</span>
-                        <span>CSV / Excel</span>
-                        <span id="imports-current-owner">Angemeldeter Nutzer</span>
-                        <button class="import-row-action" type="button" id="imports-history-open">Import starten</button>
-                      </div>
+                      <div class="imports-history-empty">Noch keine abgeschlossenen Importe vorhanden.</div>
                     </div>
                   </section>
                 </div>
@@ -16276,23 +16362,21 @@
                     <article class="dashboard-card dashboard-card--quality-overview">
                       <div class="dashboard-card-head">
                         <div>
-                          <h4>Pflegehinweise</h4>
-                          <p>Datenlücken in der aktuellen Auswahl nach Problemtyp.</p>
+                          <h4>Daten prüfen</h4>
+                          <p>Die wichtigsten offenen Punkte in den Kontakten.</p>
                         </div>
-                        <span class="dashboard-info" title="Die Zahlen basieren auf den sichtbaren Kontakten und aktiven Filtern.">i</span>
                       </div>
                       <div id="quality-chart"></div>
                     </article>
                     <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
                       <div class="dashboard-card-head">
                         <div>
-                          <h4>Pflege-Queue</h4>
-                          <p>Konkrete Arbeitsliste für fehlende Angaben, Dubletten und veraltete Kontakte.</p>
+                          <h4>Arbeitslisten</h4>
+                          <p>Öffne eine Liste und ergänze die fehlenden Angaben Schritt für Schritt.</p>
                         </div>
-                        <span class="dashboard-info" tabindex="0" aria-label="Pflege-Queue erklären">i<span class="dashboard-info__popup" role="tooltip">Die Queue sucht nach fehlenden Ownern, Kontaktwegen, Standortdaten, Fachrichtungen, unklaren Organisationen, Dublettenverdacht, archivierten Kontakten und länger nicht aktualisierten Datensätzen.</span></span>
                       </div>
                       <div id="care-queue"></div>
-                      <div class="care-workbench" id="care-workbench" hidden></div>
+                      <div class="care-workbench" id="care-workbench" tabindex="-1" hidden></div>
                     </article>
                   </div>
                 </div>
@@ -17855,8 +17939,7 @@
       const importsStartFileButton = document.getElementById("imports-start-file");
       const importsOpenTableButton = document.getElementById("imports-open-table");
       const importsShowHistoryButton = document.getElementById("imports-show-history");
-      const importsHistoryOpenButton = document.getElementById("imports-history-open");
-      const importsCurrentOwner = document.getElementById("imports-current-owner");
+      const importsHistorySection = document.getElementById("imports-history-section");
       const csvFileInput = document.getElementById("csv-file-input");
       const profileModal = document.getElementById("profile-page");
       const profileForm = document.getElementById("profile-form");
@@ -18089,7 +18172,6 @@
         setRoleElementVisible(openImportButton, canAdministerData());
         setRoleElementVisible(importsStartFileButton, canAdministerData());
         setRoleElementVisible(importsOpenTableButton, canEditContacts());
-        setRoleElementVisible(importsHistoryOpenButton, canAdministerData());
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
@@ -20536,7 +20618,6 @@
         if (sidebarUserRole) sidebarUserRole.textContent = roleLabel(role);
         updateAvatarElement(accountAvatar, profile);
         if (name) name.textContent = displayName;
-        if (importsCurrentOwner) importsCurrentOwner.textContent = displayName;
         if (accountEmail) accountEmail.textContent = profile?.email || "Supabase-Profil";
         if (accountRole) {
           accountRole.textContent = roleLabel(role);
@@ -25442,14 +25523,18 @@
         const activeItems = contacts.filter((contact) => contact.status !== "archived");
         const duplicateItems = duplicateSuspects(activeItems);
         const checks = [
-          { label: "Fehlende E-Mail", icon: "@", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.email)) },
-          { label: "Fehlendes Telefon", icon: "TEL", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !hasMeaningfulValue(contact.phone)) },
-          { label: "Fehlende Fachrichtung", icon: "FA", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.specialty)) },
-          { label: "Fehlender Owner", icon: "OW", iconClass: "quality-icon--amber", contacts: items.filter(isMissingOwner) },
-          { label: "Fehlender Standort", icon: "LOC", iconClass: "quality-icon--amber", contacts: items.filter(isMissingLocation) },
-          { label: "Mögliche Dubletten", icon: "DUP", iconClass: "quality-icon--purple", contacts: duplicateItems.filter((contact) => items.some((item) => item.id === contact.id)) },
-          { label: "Veraltete Kontakte", icon: "ALT", iconClass: "", contacts: items.filter(isContactStale) }
+          { label: "Ohne Telefon", hint: "Telefonnummer fehlt", icon: "TEL", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !hasMeaningfulValue(contact.phone)) },
+          { label: "Ohne Fachrichtung", hint: "Fachliche Einordnung fehlt", icon: "FA", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.specialty)) },
+          { label: "Ohne E-Mail", hint: "E-Mail-Adresse fehlt", icon: "@", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.email)) },
+          { label: "Ohne Owner", hint: "Niemand ist zuständig", icon: "OW", iconClass: "quality-icon--amber", contacts: items.filter(isMissingOwner) },
+          { label: "Ohne Standort", hint: "Ort oder PLZ fehlt", icon: "LOC", iconClass: "quality-icon--amber", contacts: items.filter(isMissingLocation) },
+          { label: "Dubletten prüfen", hint: "Ähnliche Kontakte gefunden", icon: "DUP", iconClass: "quality-icon--purple", contacts: duplicateItems.filter((contact) => items.some((item) => item.id === contact.id)) },
+          { label: "Länger nicht geprüft", hint: "Seit 6 Monaten nicht aktualisiert", icon: "ALT", iconClass: "", contacts: items.filter(isContactStale) }
         ];
+        const visibleChecks = checks
+          .filter((item) => item.contacts.length > 0)
+          .sort((left, right) => right.contacts.length - left.contacts.length)
+          .slice(0, 5);
         const affectedIds = new Set();
         checks.forEach((check) => check.contacts.forEach((contact) => affectedIds.add(contact.id)));
         if (analyticsQualitySummary) {
@@ -25466,20 +25551,24 @@
         if (qualityChart) {
           qualityChart.innerHTML = `
             <div class="quality-list">
-              ${checks
-                .map(
-                  (item) => `
-                    <div class="quality-row">
-                      <span class="quality-icon ${item.iconClass}">${escapeHtml(item.icon)}</span>
-                      <span class="quality-copy">
-                        <span>${escapeHtml(item.label)}</span>
-                        <small>${item.contacts.length} Kontakte</small>
-                      </span>
-                      <span class="quality-percent">${formatPercent(item.contacts.length, total)}</span>
-                    </div>
-                  `
-                )
-                .join("")}
+              ${
+                visibleChecks.length
+                  ? visibleChecks
+                      .map(
+                        (item) => `
+                          <div class="quality-row">
+                            <span class="quality-icon ${item.iconClass}">${escapeHtml(item.icon)}</span>
+                            <span class="quality-copy">
+                              <span>${escapeHtml(item.label)}</span>
+                              <small>${escapeHtml(item.hint)}</small>
+                            </span>
+                            <span class="quality-percent">${item.contacts.length}</span>
+                          </div>
+                        `
+                      )
+                      .join("")
+                  : `<div class="dashboard-empty">Aktuell gibt es keine offenen Datenlücken in der Auswahl.</div>`
+              }
             </div>
           `;
         }
@@ -25634,13 +25723,15 @@
       function renderCareQueue(items) {
         if (!careQueue) return;
         if (!canEditContacts()) {
-          careQueue.innerHTML = `<div class="dashboard-empty">Die Pflege-Queue ist für Editors und Admins vorgesehen. Datenqualitäts-Hinweise bleiben oben sichtbar.</div>`;
+          careQueue.innerHTML = `<div class="dashboard-empty">Arbeitslisten können von Editor- und Admin-Accounts geöffnet werden.</div>`;
           return;
         }
         const queueItems = buildCareQueueItems(items);
+        const openItems = queueItems.filter((item) => item.contacts.length > 0);
         careQueue.innerHTML = `
           <div class="care-queue-grid">
-            ${queueItems
+            ${openItems.length
+              ? openItems
               .map((item) => {
                 const visible = item.contacts.slice(0, 3);
                 return `
@@ -25654,31 +25745,24 @@
                       </span>
                       <span class="care-queue-count">${item.contacts.length}</span>
                     </div>
-                    ${
-                      visible.length
-                        ? `<div class="care-queue-list">
-                            ${visible
-                              .map(
-                                (contact) => `
-                                  <button class="care-queue-contact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">
-                                    <span>${escapeHtml(contact.displayName || contact.name)}</span>
-                                    <small>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</small>
-                                  </button>
-                                `
-                              )
-                              .join("")}
-                          </div>`
-                        : `<div class="care-queue-empty">Aktuell kein Handlungsbedarf.</div>`
-                    }
-                    ${
-                      item.contacts.length
-                        ? `<div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}">Alle ${item.contacts.length} bearbeiten</button></div>`
-                        : ""
-                    }
+                    <div class="care-queue-list">
+                      ${visible
+                        .map(
+                          (contact) => `
+                            <button class="care-queue-contact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">
+                              <span>${escapeHtml(contact.displayName || contact.name)}</span>
+                              <small>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</small>
+                            </button>
+                          `
+                        )
+                        .join("")}
+                    </div>
+                    <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}">Liste öffnen</button></div>
                   </section>
                 `;
               })
-              .join("")}
+              .join("")
+              : `<div class="dashboard-empty">Aktuell gibt es keine offenen Arbeitslisten.</div>`}
           </div>
         `;
         if (activeCareQueueKey) renderCareWorkbench(activeCareQueueKey);
@@ -25686,6 +25770,12 @@
 
       function careQueueItemByKey(key) {
         return buildCareQueueItems(filteredContacts()).find((item) => item.key === key);
+      }
+
+      function focusCareWorkbench() {
+        if (!careWorkbench || careWorkbench.hidden) return;
+        careWorkbench.scrollIntoView({ behavior: "smooth", block: "start" });
+        careWorkbench.focus({ preventScroll: true });
       }
 
       function renderCareWorkbench(key) {
@@ -25703,7 +25793,7 @@
           <div class="care-workbench-head">
             <div>
               <h4 class="care-workbench-title">${escapeHtml(item.title)}</h4>
-              <div class="care-workbench-copy">${rows.length} Kontakte in dieser Pflegeansicht. Hier kannst du die komplette Liste bearbeiten, nicht nur die Vorschau.</div>
+              <div class="care-workbench-copy">${rows.length} Kontakte in dieser Liste. Öffne ein Profil oder ergänze Angaben direkt in der Tabelle.</div>
             </div>
             <button class="detail-close" type="button" id="care-workbench-close" aria-label="Pflegeansicht schließen">&times;</button>
           </div>
@@ -25756,10 +25846,7 @@
             return;
           }
         }
-        activeId = id;
-        setActiveView("contacts");
-        updateView();
-        openDetail(id, filteredContacts());
+        openDetail(id, contacts);
       }
 
       function renderViewChrome() {
@@ -27214,6 +27301,7 @@
         const openButton = event.target.closest("[data-care-open]");
         if (openButton) {
           renderCareWorkbench(openButton.dataset.careOpen);
+          focusCareWorkbench();
           return;
         }
         const button = event.target.closest("[data-care-contact]");
@@ -27262,9 +27350,14 @@
         openImportWizard({ mode: "bulk" });
       });
       importsShowHistoryButton?.addEventListener("click", () => {
-        setStorageStatus("Importhistorie wird in Sprint E weiter ausgebaut");
+        if (importsHistorySection) {
+          importsHistorySection.scrollIntoView({ behavior: "smooth", block: "start" });
+          importsHistorySection.focus({ preventScroll: true });
+          importsHistorySection.classList.add("is-attention");
+          window.setTimeout(() => importsHistorySection.classList.remove("is-attention"), 1400);
+        }
+        setStorageStatus("Importhistorie: aktuell keine abgeschlossenen Importe vorhanden.");
       });
-      importsHistoryOpenButton?.addEventListener("click", openImportWizard);
       exportCsvButton?.addEventListener("click", () => {
         if (!canAdministerData()) {
           showPermissionDenied("Nur Admins dürfen Kontaktdaten exportieren.");
