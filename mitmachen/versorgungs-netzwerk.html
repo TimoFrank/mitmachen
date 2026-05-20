@@ -142,6 +142,7 @@
 
       .hero-media {
         overflow: hidden;
+        width: min(640px, 100%);
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--surface);
@@ -151,7 +152,7 @@
       .hero-media img {
         display: block;
         width: 100%;
-        aspect-ratio: 16 / 10;
+        aspect-ratio: 16 / 7;
         object-fit: cover;
       }
 
@@ -258,9 +259,9 @@
 
       fieldset {
         display: grid;
-        gap: 10px;
+        gap: 16px;
         margin: 0;
-        padding: 14px 20px;
+        padding: 22px 24px 24px;
         border: 0;
         border-bottom: 1px solid var(--border);
       }
@@ -275,7 +276,7 @@
       .field-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px 12px;
+        gap: 14px 16px;
       }
 
       .field {
@@ -361,8 +362,8 @@
 
       .privacy-box {
         display: grid;
-        gap: 10px;
-        padding: 12px;
+        gap: 14px;
+        padding: 16px;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--surface-muted);
