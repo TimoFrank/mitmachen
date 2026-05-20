@@ -6227,16 +6227,62 @@
         color: #237247;
       }
 
+      .care-queue-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-self: end;
+      }
+
+      .care-queue-toggle {
+        min-width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border: 1px solid var(--border-strong);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--primary);
+        font-size: 0.76rem;
+        font-weight: 900;
+        cursor: pointer;
+        transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+      }
+
+      .care-queue-toggle:hover {
+        border-color: #b9c9ff;
+        background: #f6f9ff;
+      }
+
+      .care-queue-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        transition: transform 0.16s ease;
+      }
+
+      .care-queue-toggle[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+      }
+
       .care-queue-list {
         position: relative;
         display: grid;
         gap: 8px;
-        padding: 0 14px;
+        padding: 12px 14px 14px;
       }
 
       .care-queue-list--preview {
-        max-height: 122px;
+        max-height: 148px;
         overflow: hidden;
+        -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 82%, rgba(0, 0, 0, 0.7) 92%, transparent 100%);
+        mask-image: linear-gradient(180deg, #000 0%, #000 82%, rgba(0, 0, 0, 0.7) 92%, transparent 100%);
       }
 
       .care-queue-list--preview::after {
@@ -6245,10 +6291,9 @@
         left: 14px;
         right: 14px;
         bottom: 0;
-        height: 54px;
+        height: 32px;
         border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.56) 46%, rgba(255, 255, 255, 0.95) 100%);
-        backdrop-filter: blur(2.5px);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 72%, rgba(255, 255, 255, 0.96) 100%);
         pointer-events: none;
       }
 
@@ -6298,17 +6343,10 @@
         text-align: center;
       }
 
-      .care-queue-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: auto;
-        padding: 0 14px 14px;
-      }
-
       .care-queue-inline-list {
         display: grid;
         gap: 8px;
-        padding: 0 14px;
+        padding: 12px 14px 14px;
       }
 
       .care-queue-edit-row {
@@ -6435,18 +6473,6 @@
         .care-queue-edit-row .care-queue-confirm {
           width: 100%;
         }
-      }
-
-      .care-queue-open {
-        width: 100%;
-        min-height: 32px;
-        border: 1px solid var(--border-strong);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
-        color: var(--primary);
-        font-size: 0.78rem;
-        font-weight: 900;
-        cursor: pointer;
       }
 
       .care-workbench {
@@ -25846,10 +25872,12 @@
           { key: "missing-phone", label: "Telefon", hint: "fehlt", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !hasMeaningfulValue(contact.phone)) },
           { key: "missing-specialty", label: "Fachrichtung", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.specialty)) },
           { key: "missing-email", label: "E-Mail", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.email)) },
+          { key: "unclear-name", label: "Kontaktnamen", hint: "prüfen", iconClass: "", contacts: items.filter(isUnclearName) },
+          { key: "unclear-organization", label: "Organisationen", hint: "prüfen", iconClass: "quality-icon--amber", contacts: items.filter(isUnclearOrganization) },
           { key: "missing-owner", label: "Owner", hint: "fehlt", iconClass: "quality-icon--amber", contacts: items.filter(isMissingOwner) },
           { key: "missing-location", label: "Standort", hint: "fehlt", iconClass: "quality-icon--amber", contacts: items.filter(isMissingLocation) },
           { key: "duplicates", label: "Dubletten", hint: "prüfen", iconClass: "quality-icon--purple", contacts: duplicateItems.filter((contact) => items.some((item) => item.id === contact.id)) },
-          { key: "stale", label: "Aktualität", hint: "prüfen", iconClass: "", contacts: items.filter(isContactStale) }
+          { key: "stale", label: "Aktualität", hint: "prüfen", iconClass: "", contacts: items.filter((contact) => isContactStale(contact)) }
         ];
         const openChecks = checks.filter((item) => item.contacts.length > 0);
         const visibleChecks = openChecks
@@ -25862,7 +25890,7 @@
             <div class="analytics-quality-link">
               <div class="analytics-quality-link__metric">
                 <strong>${affectedIds.size}</strong>
-                <span>Kontakte mit fehlenden Angaben</span>
+                <span>Kontakte mit Prüfhinweisen</span>
               </div>
               <button class="analytics-quality-link__button" type="button" id="analytics-quality-open">Datenqualität prüfen</button>
             </div>
@@ -25874,7 +25902,7 @@
               <div class="quality-summary-main">
                 <span class="quality-icon">${qualityIconSvg("summary")}</span>
                 <span class="quality-summary-copy">
-                  <strong>${affectedIds.size ? `${affectedIds.size} Kontakte brauchen Pflege` : "Alles sieht gut aus"}</strong>
+                  <strong>${affectedIds.size ? `${affectedIds.size} Kontakte brauchen Prüfung` : "Alles sieht gut aus"}</strong>
                 </span>
               </div>
             </div>
@@ -25888,6 +25916,7 @@
           list: `<svg viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>`,
           selection: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 8h10"></path><path d="M7 12h6"></path><path d="M7 16h8"></path></svg>`,
           name: `<svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M4 12h10"></path><path d="M4 17h7"></path></svg>`,
+          "unclear-name": `<svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"></path><path d="M4 21a8 8 0 0 1 16 0"></path><path d="M19 5l-4 4"></path><path d="M15 5l4 4"></path></svg>`,
           "missing-owner": `<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>`,
           "missing-email": `<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>`,
           "missing-phone": `<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7A2 2 0 0 1 22 16.9Z"></path></svg>`,
@@ -25934,18 +25963,40 @@
         return hasMeaningfulValue(contact.organizationId);
       }
 
+      function hasSuspiciousQualityValue(value, { minLength = 3, personName = false } = {}) {
+        const raw = meaningfulOrEmpty(value);
+        if (!raw) return false;
+        const normalized = normalizedQualityKey(raw);
+        const compact = normalized.replace(/\s/g, "");
+        const genericPattern = /^(privat|private|sonstige|sonstiges|unbekannt|unknown|keine|kein|keine organisation|nicht bekannt|n a|na|k a|ka|test|dummy|x|xx|xxx|\?)$/;
+        if (genericPattern.test(normalized)) return true;
+        if (compact.length < minLength) return true;
+        if (/^[a-z]\s+[a-z]$/.test(normalized)) return true;
+        if (personName && /^[a-z]\.?(\s+[a-z]\.?){0,2}$/.test(normalized)) return true;
+        if (personName && normalized.split(" ").length === 1 && compact.length < 5) return true;
+        return false;
+      }
+
+      function isUnclearName(contact) {
+        return hasSuspiciousQualityValue(contact.name || contact.displayName, { minLength: 4, personName: true });
+      }
+
       function isUnclearOrganization(contact) {
         const organization = meaningfulOrEmpty(contact.organization);
         if (!organization) return true;
-        return /^(-|n\.?a\.?|unbekannt|keine organisation|privat|sonstige)$/i.test(organization) || organization.length < 3;
+        return hasSuspiciousQualityValue(organization, { minLength: 4 });
       }
 
-      function isContactStale(contact) {
-        if (!contact.updatedAt) return true;
+      function monthsSinceContactUpdate(contact) {
+        if (!contact.updatedAt) return Infinity;
         const parsed = new Date(contact.updatedAt);
-        if (Number.isNaN(parsed.getTime())) return true;
-        const sixMonths = 1000 * 60 * 60 * 24 * 180;
-        return Date.now() - parsed.getTime() > sixMonths;
+        if (Number.isNaN(parsed.getTime())) return Infinity;
+        const monthMs = 1000 * 60 * 60 * 24 * 30;
+        return Math.floor((Date.now() - parsed.getTime()) / monthMs);
+      }
+
+      function isContactStale(contact, months = 6) {
+        return monthsSinceContactUpdate(contact) >= months;
       }
 
       function duplicateSuspects(items) {
@@ -26097,8 +26148,10 @@
 
       function buildCareQueueItems(items) {
         const activeItems = items.filter((contact) => contact.status !== "archived");
-        const archivedItems = items.filter((contact) => contact.status === "archived");
+        const archivedItems = contacts.filter((contact) => contact.status === "archived");
         const duplicateItems = duplicateSuspects(activeItems);
+        const staleCriticalItems = activeItems.filter((contact) => isContactStale(contact, 12));
+        const staleOpenItems = activeItems.filter((contact) => isContactStale(contact, 6) && !isContactStale(contact, 12));
         const total = Math.max(activeItems.length, 1);
         const fieldItems = careQualityFieldRules().flatMap((rule) => {
           const completeContacts = activeItems.filter(rule.isComplete);
@@ -26133,9 +26186,17 @@
         return [
           ...fieldItems,
           {
+            key: "unclear-name",
+            ruleKey: "name",
+            title: "Unklare Kontaktnamen",
+            state: "open",
+            iconKey: "unclear-name",
+            contacts: activeItems.filter(isUnclearName)
+          },
+          {
             key: "unclear-organization",
             ruleKey: "organization",
-            title: "Unklare Organisation",
+            title: "Unklare Organisationsnamen",
             state: "open",
             iconKey: "unclear-organization",
             contacts: activeItems.filter(isUnclearOrganization)
@@ -26155,10 +26216,18 @@
             contacts: canAdministerData() ? archivedItems : []
           },
           {
-            key: "stale",
-            title: "Länger nicht aktualisiert",
+            key: "stale-12",
+            title: "Seit 12 Monaten nicht aktualisiert",
+            state: "critical",
+            iconKey: "stale",
+            contacts: staleCriticalItems
+          },
+          {
+            key: "stale-6",
+            title: "Seit 6 Monaten nicht aktualisiert",
             state: "open",
-            contacts: activeItems.filter(isContactStale)
+            iconKey: "stale",
+            contacts: staleOpenItems
           }
         ].sort((left, right) => {
           const leftRank = careQueueStateRank(left.state);
@@ -26193,13 +26262,14 @@
                         <span class="care-queue-title">${escapeHtml(item.title)}</span>
                         <span class="care-queue-status care-queue-status--${item.state}">${resolved ? qualityIconSvg("complete") : ""}${escapeHtml(careQueueStatusLabel(item.state))}</span>
                       </span>
-                      <span class="care-queue-count">${resolved && Number.isFinite(item.completion) ? `${item.completion}%` : item.contacts.length}</span>
+                      <span class="care-queue-meta">
+                        <span class="care-queue-count">${resolved && Number.isFinite(item.completion) ? `${item.completion}%` : item.contacts.length}</span>
+                        ${resolved ? "" : `<button class="care-queue-toggle" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Liste schließen" : "Liste öffnen"}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>`}
+                      </span>
                     </div>
                     ${resolved ? "" : expanded ? `
-                      <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="true">Liste schließen</button></div>
                       ${renderCareQueueInlineList(item)}
                     ` : `
-                      <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="false">Liste öffnen</button></div>
                       <div class="care-queue-list care-queue-list--preview">
                         ${visible
                           .map(
@@ -26249,12 +26319,13 @@
           : ruleKey === "priority" ? `<select class="care-queue-field" data-care-inline-field="priority" data-care-inline-contact="${id}"><option value="">Priorität auswählen...</option>${buildPrioritySelectOptions(hasMeaningfulValue(contact.priority) ? priorityDisplayLabel(contact.priority) : "")}</select>`
           : ruleKey === "name" ? `<input class="care-queue-field" data-care-inline-field="name" data-care-inline-contact="${id}" value="${escapeHtml(meaningfulOrEmpty(contact.name || contact.displayName))}" placeholder="Name ergänzen" />`
           : `<span class="care-queue-note">Profil prüfen und bei Bedarf aktualisieren.</span>`;
+        const hasInlineFields = field.includes("data-care-inline-field");
         return `
           <div class="care-queue-edit-row">
             ${contactAvatarMarkup(contact, "sm")}
             <button class="care-queue-edit-name" type="button" data-care-contact="${id}" data-care-archived="${archived}">${name}</button>
             ${field}
-            <button class="care-queue-confirm" type="button" data-care-inline-save="${id}" aria-label="Eingabe bestätigen">${qualityIconSvg("complete")}</button>
+            ${hasInlineFields ? `<button class="care-queue-confirm" type="button" data-care-inline-save="${id}" aria-label="Eingabe bestätigen">${qualityIconSvg("complete")}</button>` : ""}
           </div>
         `;
       }
