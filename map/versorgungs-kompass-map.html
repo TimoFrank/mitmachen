@@ -217,16 +217,17 @@
       top: 14px;
       right: 14px;
       z-index: 1000;
-      display: flex;
-      align-items: center;
+      display: grid;
+      align-items: stretch;
       flex-wrap: nowrap;
       justify-content: flex-end;
       gap: 8px;
+      width: 156px;
     }
     .map-mode-controls {
       position: absolute;
-      top: 86px;
-      left: 14px;
+      top: 14px;
+      left: 64px;
       z-index: 1000;
       display: grid;
       gap: 8px;
@@ -2456,8 +2457,8 @@
       }
 
       .map-mode-controls {
-        top: 84px !important;
-        left: 8px !important;
+        top: 8px !important;
+        left: 50px !important;
         width: 118px !important;
         gap: 6px !important;
       }
@@ -3681,6 +3682,23 @@
     currentListPage = 1;
   }
 
+  function resetMapFilters(){
+    activeMapContactId = "";
+    mobilePreviewContactId = "";
+    activeCategoryFilter = "";
+    activeOwnerFilter = "";
+    activePriorityFilter = "";
+    query = "";
+    if (elSearch) elSearch.value = "";
+    if (selectedState) {
+      setSelectedState("");
+    } else {
+      renderFilters();
+      renderStateFilterMenu();
+      render();
+    }
+  }
+
   function setMobileSheetState(nextState = 'collapsed'){
     mobileSheetState = nextState;
     if (!elSidebar) return;
@@ -4414,8 +4432,9 @@
   function updateMapResetButton(){
     const hasState = Boolean(selectedState);
     const hasFocusedContact = Boolean(activeMapContactId);
+    const hasListFilters = Boolean(activeCategoryFilter || activeOwnerFilter || activePriorityFilter || query.trim());
     elMapResetLabel.textContent = hasState && hasFocusedContact ? "Zum Bundesland" : "Zurücksetzen";
-    elMapResetToggle.classList.toggle('map-toggle-active-neutral', hasState || hasFocusedContact);
+    elMapResetToggle.classList.toggle('map-toggle-active-neutral', hasState || hasFocusedContact || hasListFilters);
     elMapResetToggle.classList.toggle('map-toggle-active-home', hasState);
   }
 
@@ -4822,10 +4841,7 @@
       fitMapToState(selectedState);
       return;
     }
-    activeMapContactId = "";
-    if (selectedState) {
-      setSelectedState("");
-    }
+    resetMapFilters();
     fitMapToGermany();
   });
 
