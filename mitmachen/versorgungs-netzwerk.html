@@ -237,14 +237,14 @@
 
       .form-head {
         display: grid;
-        gap: 9px;
-        padding: 22px 24px;
+        gap: 7px;
+        padding: 18px 20px;
         border-bottom: 1px solid var(--border);
         background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
       }
 
       .form-head h2 {
-        font-size: 1.35rem;
+        font-size: 1.26rem;
         line-height: 1.2;
       }
 
@@ -262,9 +262,9 @@
 
       fieldset {
         display: grid;
-        gap: 15px;
+        gap: 12px;
         margin: 0;
-        padding: 20px 24px;
+        padding: 16px 20px;
         border: 0;
         border-bottom: 1px solid var(--border);
       }
@@ -272,14 +272,14 @@
       legend {
         padding: 0;
         color: var(--text-primary);
-        font-size: 1rem;
+        font-size: 0.96rem;
         font-weight: 900;
       }
 
       .field-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        gap: 10px 12px;
       }
 
       .field {
@@ -302,7 +302,7 @@
       select,
       textarea {
         width: 100%;
-        min-height: 46px;
+        min-height: 42px;
         border: 1px solid var(--border-strong);
         border-radius: var(--radius-sm);
         background: var(--surface);
@@ -313,8 +313,34 @@
         padding: 9px 10px;
       }
 
+      select {
+        appearance: none;
+        cursor: pointer;
+        padding-right: 42px;
+        background-color: var(--surface);
+        background-image:
+          linear-gradient(45deg, transparent 50%, #10245c 50%),
+          linear-gradient(135deg, #10245c 50%, transparent 50%),
+          linear-gradient(to right, var(--border), var(--border));
+        background-position:
+          calc(100% - 22px) calc(50% + 1px),
+          calc(100% - 16px) calc(50% + 1px),
+          calc(100% - 38px) 50%;
+        background-size:
+          6px 6px,
+          6px 6px,
+          1px 24px;
+        background-repeat: no-repeat;
+      }
+
+      input:hover,
+      select:hover,
+      textarea:hover {
+        border-color: var(--primary);
+      }
+
       textarea {
-        min-height: 132px;
+        min-height: 108px;
         resize: vertical;
         line-height: 1.45;
       }
@@ -377,7 +403,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 20px 24px;
+        padding: 16px 20px;
       }
 
       .required-note {
@@ -531,10 +557,6 @@
                 <input id="last_name" name="last_name" autocomplete="family-name" required />
               </div>
               <div class="field">
-                <label for="title">Titel</label>
-                <input id="title" name="title" autocomplete="honorific-prefix" />
-              </div>
-              <div class="field">
                 <label for="role">Rolle/Funktion</label>
                 <input id="role" name="role" placeholder="z. B. Praxisinhaberin, Pflegedienstleitung" />
               </div>
@@ -564,33 +586,7 @@
               </div>
               <div class="field">
                 <label for="postal_code">PLZ</label>
-                <input id="postal_code" name="postal_code" inputmode="numeric" autocomplete="postal-code" placeholder="z. B. 10117" />
-              </div>
-              <div class="field">
-                <label for="city">Ort</label>
-                <input id="city" name="city" autocomplete="address-level2" />
-              </div>
-              <div class="field field--span">
-                <label for="federal_state">Bundesland</label>
-                <select id="federal_state" name="federal_state">
-                  <option value="">Bitte auswählen</option>
-                  <option>Baden-Württemberg</option>
-                  <option>Bayern</option>
-                  <option>Berlin</option>
-                  <option>Brandenburg</option>
-                  <option>Bremen</option>
-                  <option>Hamburg</option>
-                  <option>Hessen</option>
-                  <option>Mecklenburg-Vorpommern</option>
-                  <option>Niedersachsen</option>
-                  <option>Nordrhein-Westfalen</option>
-                  <option>Rheinland-Pfalz</option>
-                  <option>Saarland</option>
-                  <option>Sachsen</option>
-                  <option>Sachsen-Anhalt</option>
-                  <option>Schleswig-Holstein</option>
-                  <option>Thüringen</option>
-                </select>
+                <input id="postal_code" name="postal_code" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" maxlength="5" placeholder="z. B. 10117" />
               </div>
             </div>
           </fieldset>
@@ -678,13 +674,13 @@
           email: String(formData.get("email") || "").trim(),
           first_name: String(formData.get("first_name") || "").trim(),
           last_name: String(formData.get("last_name") || "").trim(),
-          title: String(formData.get("title") || "").trim(),
+          title: "",
           organization: String(formData.get("organization") || "").trim(),
           sector: String(formData.get("sector") || "").trim(),
           role: String(formData.get("role") || "").trim(),
           postal_code: String(formData.get("postal_code") || "").trim(),
-          city: String(formData.get("city") || "").trim(),
-          federal_state: String(formData.get("federal_state") || "").trim(),
+          city: "",
+          federal_state: "",
           preferred_contact: String(formData.get("preferred_contact") || "").trim(),
           message: String(formData.get("message") || "").trim(),
           consent_processing_version: PROCESSING_CONSENT_VERSION,
