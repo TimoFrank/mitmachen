@@ -12131,6 +12131,12 @@
         white-space: nowrap;
       }
 
+      .registration-row__message span {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+      }
+
       .registration-row__actions {
         grid-column: 1 / -1;
         display: flex;
@@ -12140,7 +12146,16 @@
         flex-wrap: wrap;
       }
 
-      .settings-workspace,
+      .settings-workspace {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
       .team-workspace {
         width: min(760px, 100%);
         margin: 0 auto;
