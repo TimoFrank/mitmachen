@@ -124,11 +124,24 @@ test("Mein Profil: Einstellungen sind als Profil-Reiter erreichbar", async ({ pa
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#profile-settings", { role: "admin" });
 
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+  await expect(page.locator("#sidebar-settings-button")).toHaveCount(0);
+  await expect(page.locator("#sidebar-about-button")).toHaveCount(0);
   await expect(page.locator('[data-profile-tab="settings"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#profile-tab-settings")).toBeVisible();
   await expect(page.locator("#profile-tab-settings .settings-wip-note")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "profil-einstellungen");
+});
+
+test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#profile-about", { role: "admin" });
+
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+  await expect(page.locator('[data-profile-tab="about"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#profile-tab-about")).toBeVisible();
+  await expect(page.locator("#about-version-list .about-version").first()).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "profil-about");
 });
 
 test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page }, testInfo) => {

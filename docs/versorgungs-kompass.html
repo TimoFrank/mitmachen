@@ -16480,6 +16480,9 @@
               </svg>
               <span>Datenqualität</span>
             </button>
+          </div>
+          <div class="sidebar-section" aria-label="Importe und Eingänge">
+            <span class="sidebar-section-label">Import</span>
             <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -16515,22 +16518,6 @@
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             <span>Team</span>
-          </button>
-          <button class="sidebar-link" type="button" id="sidebar-settings-button" title="Einstellungen">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
-              <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2 2 0 1 1-2.83 2.83l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21a2 2 0 1 1-4 0v-.06a1.8 1.8 0 0 0-1.1-1.65 1.8 1.8 0 0 0-1.98.36l-.04.04a2 2 0 1 1-2.83-2.83l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H3a2 2 0 1 1 0-4h.06a1.8 1.8 0 0 0 1.65-1.1 1.8 1.8 0 0 0-.36-1.98l-.04-.04a2 2 0 1 1 2.83-2.83l.04.04A1.8 1.8 0 0 0 9 4.6a1.8 1.8 0 0 0 1.1-1.65V3a2 2 0 1 1 4 0v.06a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.04-.04a2 2 0 1 1 2.83 2.83l-.04.04A1.8 1.8 0 0 0 19.4 9c.72.18 1.54.06 1.6.06a2 2 0 1 1 0 4h-.06A1.8 1.8 0 0 0 19.4 15Z"></path>
-            </svg>
-            <span>Einstellungen</span>
-          </button>
-          <button class="sidebar-link" type="button" id="sidebar-about-button" title="Über die App">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15Z"></path>
-              <path d="M9 7h6"></path>
-              <path d="M9 11h5"></path>
-            </svg>
-            <span>Über die App</span>
           </button>
           <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
             <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
@@ -17047,18 +17034,6 @@
             </div>
           </section>
 
-          <section class="view-panel" id="view-about" data-view-panel="about">
-            <div class="about-workspace">
-              <section class="about-intro">
-                <div>
-                  <h3>Versorgungs-Kompass</h3>
-                  <div class="about-intro__highlight">Ein gemeinsamer Blick auf Kontakte, Organisationen und regionale Versorgung - klar strukturiert, schnell filterbar und bereit für echte Netzwerkarbeit.</div>
-                </div>
-              </section>
-              <h3 class="about-version-heading">Changelog</h3>
-              <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
-            </div>
-          </section>
         </div>
       </section>
 
@@ -17073,6 +17048,7 @@
             <div class="settings-tab-nav" role="tablist" aria-label="Profilbereiche">
               <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-profile" data-profile-tab="profile">Profil</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-settings" data-profile-tab="settings">Einstellungen</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-about" data-profile-tab="about">Über die App</button>
             </div>
             <div class="profile-tab-panel" id="profile-tab-profile" role="tabpanel" data-profile-tab-panel="profile">
               <section class="profile-section">
@@ -17210,6 +17186,18 @@
                   </div>
                 </div>
               </section>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-about" role="tabpanel" data-profile-tab-panel="about" hidden>
+              <div class="about-workspace">
+                <section class="about-intro">
+                  <div>
+                    <h3>Versorgungs-Kompass</h3>
+                    <div class="about-intro__highlight">Ein gemeinsamer Blick auf Kontakte, Organisationen und regionale Versorgung - klar strukturiert, schnell filterbar und bereit für echte Netzwerkarbeit.</div>
+                  </div>
+                </section>
+                <h3 class="about-version-heading">Changelog</h3>
+                <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
+              </div>
             </div>
           </div>
           <div class="profile-panel__footer" id="profile-edit-actions" hidden>
@@ -18486,7 +18474,8 @@
       ];
       const profileTabItems = [
         { id: "profile", title: "Mein Profil", subtitle: "Persönliche Informationen und Zuständigkeiten verwalten." },
-        { id: "settings", title: "Einstellungen", subtitle: "Persönliche App-Einstellungen und spätere Konfigurationen." }
+        { id: "settings", title: "Einstellungen", subtitle: "Persönliche App-Einstellungen und spätere Konfigurationen." },
+        { id: "about", title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." }
       ];
 
       const searchInput = document.getElementById("search");
@@ -21835,7 +21824,7 @@
         setProfileStatus("");
         setProfileTab(activeProfileTab);
         setActiveView("profile");
-        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : "profile");
+        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : activeProfileTab === "about" ? "profile-about" : "profile");
         updateView();
         profileModal?.setAttribute("aria-hidden", "false");
       }
@@ -27359,14 +27348,15 @@
           panel.hidden = !active;
         });
         sidebarSettingsButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "settings");
-        sidebarProfileButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "profile");
+        sidebarProfileButton?.classList.toggle("is-active", activeView === "profile");
         if (profileEditActions) profileEditActions.hidden = activeProfileTab !== "profile" || !profileDirty;
+        if (activeProfileTab === "about") renderAboutApp();
       }
 
       function openProfileTab(tab = "profile") {
         setProfileTab(tab);
         openProfileModal();
-        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : "profile");
+        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : activeProfileTab === "about" ? "profile-about" : "profile");
       }
 
       function setSidebarCollapsed(collapsed) {
@@ -27438,7 +27428,7 @@
         sidebarSettingsButton?.classList.toggle("is-active", view === "profile" && activeProfileTab === "settings");
         sidebarImportButton?.classList.toggle("is-active", view === "settings");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
-        sidebarProfileButton?.classList.toggle("is-active", view === "profile" && activeProfileTab === "profile");
+        sidebarProfileButton?.classList.toggle("is-active", view === "profile");
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
           panel.setAttribute("aria-hidden", panel.dataset.viewPanel === view ? "false" : "true");
@@ -27450,7 +27440,6 @@
           setProfileTab(activeProfileTab);
         }
         if (view === "team") renderTeamView();
-        if (view === "about") renderAboutApp();
         if (view === "formats") renderFormatsView();
         if (view === "settings") setSettingsTab(activeSettingsTab);
         if (view === "map") {
@@ -28554,16 +28543,14 @@
       profileTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
           setProfileTab(button.dataset.profileTab || "profile");
-          updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : "profile");
+          updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : activeProfileTab === "about" ? "profile-about" : "profile");
           renderViewChrome();
         });
       });
       sidebarAboutButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
-        setActiveView("about");
-        updateRouteHash("about");
-        updateView();
+        openProfileTab("about");
       });
 
       moreActionsButton?.addEventListener("click", (event) => {
@@ -29185,6 +29172,10 @@
         const hashView = String(window.location.hash || "").replace(/^#/, "");
         if (hashView === "settings" || hashView === "profile-settings") {
           setProfileTab("settings");
+          return "profile";
+        }
+        if (hashView === "about" || hashView === "profile-about") {
+          setProfileTab("about");
           return "profile";
         }
         if (hashView === "profile") {
