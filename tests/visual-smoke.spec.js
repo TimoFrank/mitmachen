@@ -121,12 +121,12 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
 });
 
 test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#settings", { role: "admin" });
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
 
-  await page.locator('[data-settings-tab="imports"]').click();
+  await expect(page.locator('[data-settings-tab="imports"]')).toHaveText("Dateiimport");
+  await expect(page.locator('[data-settings-tab="onlineEntry"]')).toHaveText("Online-Erfassung");
+  await expect(page.locator('[data-settings-tab="registrations"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#registrations-section")).toBeVisible();
-  await expect(page.locator("#imports-show-registrations")).toBeVisible();
-  await page.locator("#imports-show-registrations").click();
   await expect(page.locator("#registrations-list .registration-row").first()).toBeVisible();
   await expect(page.locator('[data-registration-action="accept"]').first()).toBeVisible();
 

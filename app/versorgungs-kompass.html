@@ -16908,7 +16908,10 @@
             <div class="settings-workspace">
               <div class="settings-tab-nav" role="tablist" aria-label="Einstellungsbereiche">
                 <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-settings" data-settings-tab="settings">Einstellungen</button>
-                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Importe</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Dateiimport</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-online-entry" data-settings-tab="onlineEntry">Online-Erfassung</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierungen</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-import-history" data-settings-tab="importHistory">Historie</button>
               </div>
               <div class="settings-tab-panel" id="settings-tab-settings" role="tabpanel" data-settings-tab-panel="settings">
                 <div class="settings-wip-note">
@@ -16989,6 +16992,12 @@
                       <p>Kontakte aus CSV, Excel, Word oder PDF importieren.</p>
                       <button class="action-button action-button--primary" type="button" id="imports-start-file">Import starten</button>
                     </article>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-online-entry" role="tabpanel" data-settings-tab-panel="onlineEntry" hidden>
+                <div class="imports-workspace">
+                  <div class="import-start-grid">
                     <article class="import-format-card">
                       <div class="import-start-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -16999,36 +17008,15 @@
                           <path d="M15 3v18"></path>
                         </svg>
                       </div>
-                      <h3>Bulk-Anlage per Online-Tabelle</h3>
+                      <h3>Online-Erfassung</h3>
                       <p>Mehrere Kontakte direkt in einer Tabelle erfassen und anlegen.</p>
                       <button class="action-button" type="button" id="imports-open-table">Tabelle öffnen</button>
                     </article>
-                    <article class="import-format-card">
-                      <div class="import-start-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                          <circle cx="9" cy="7" r="4"></circle>
-                          <path d="M19 8v6"></path>
-                          <path d="M22 11h-6"></path>
-                        </svg>
-                      </div>
-                      <h3>Registrierungen</h3>
-                      <p>Eingänge aus dem gematik Backend prüfen und kontrolliert übernehmen.</p>
-                      <button class="action-button" type="button" id="imports-show-registrations">Registrierungen prüfen</button>
-                    </article>
-                    <article class="import-format-card">
-                      <div class="import-start-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M3 12a9 9 0 1 0 3-6.7"></path>
-                          <path d="M3 4v5h5"></path>
-                          <path d="M12 7v5l3 2"></path>
-                        </svg>
-                      </div>
-                      <h3>Importhistorie</h3>
-                      <p>Vergangene Importe einsehen und Ergebnisse prüfen.</p>
-                      <button class="action-button" type="button" id="imports-show-history">Importe anzeigen</button>
-                    </article>
                   </div>
+                </div>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-registrations" role="tabpanel" data-settings-tab-panel="registrations" hidden>
+                <div class="imports-workspace">
                   <section class="import-profile-card registrations-card" id="registrations-section" tabindex="-1">
                     <div class="dashboard-card-head">
                       <div>
@@ -17044,6 +17032,24 @@
                       <div class="imports-history-empty">Noch keine Registrierungen geladen.</div>
                     </div>
                   </section>
+                </div>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-import-history" role="tabpanel" data-settings-tab-panel="importHistory" hidden>
+                <div class="imports-workspace">
+                  <div class="import-start-grid">
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                          <path d="M3 4v5h5"></path>
+                          <path d="M12 7v5l3 2"></path>
+                        </svg>
+                      </div>
+                      <h3>Importhistorie</h3>
+                      <p>Vergangene Importe einsehen und Ergebnisse prüfen.</p>
+                      <button class="action-button" type="button" id="imports-show-history">Importe anzeigen</button>
+                    </article>
+                  </div>
                   <section class="import-profile-card imports-history-card" id="imports-history-section" tabindex="-1">
                     <div class="dashboard-card-head">
                       <div>
@@ -18433,7 +18439,10 @@
       ];
       const settingsTabItems = [
         { id: "settings", title: "Einstellungen", subtitle: "Entwurf für spätere App-Einstellungen. Aktuell noch ohne aktive Konfiguration." },
-        { id: "imports", title: "Importe", subtitle: "Kontakte per Datei, Online-Tabelle oder geprüfter Registrierung hinzufügen." }
+        { id: "imports", title: "Dateiimport", subtitle: "Kontakte per Datei hochladen, zuordnen und geprüft importieren." },
+        { id: "onlineEntry", title: "Online-Erfassung", subtitle: "Mehrere Kontakte direkt in einer Tabelle erfassen und gemeinsam speichern." },
+        { id: "registrations", title: "Registrierungen", subtitle: "Eingänge aus dem Versorgungs-Netzwerk prüfen und kontrolliert übernehmen." },
+        { id: "importHistory", title: "Importhistorie", subtitle: "Abgeschlossene Importe und Ergebnisse nachvollziehen." }
       ];
 
       const searchInput = document.getElementById("search");
@@ -18614,7 +18623,6 @@
       const exportCsvButton = document.getElementById("export-csv-button");
       const importsStartFileButton = document.getElementById("imports-start-file");
       const importsOpenTableButton = document.getElementById("imports-open-table");
-      const importsShowRegistrationsButton = document.getElementById("imports-show-registrations");
       const importsShowHistoryButton = document.getElementById("imports-show-history");
       const registrationsSection = document.getElementById("registrations-section");
       const registrationsSummary = document.getElementById("registrations-summary");
@@ -18857,7 +18865,6 @@
         setRoleElementVisible(openImportButton, canAdministerData());
         setRoleElementVisible(importsStartFileButton, canAdministerData());
         setRoleElementVisible(importsOpenTableButton, canEditContacts());
-        setRoleElementVisible(importsShowRegistrationsButton, canAdministerData());
         setRoleElementVisible(registrationsRefresh, canAdministerData());
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
@@ -19757,7 +19764,7 @@
         const parsed = importState.parsed;
         importTitle.textContent =
           importState.step === "entry"
-            ? "Bulk-Anlage per Online-Tabelle"
+            ? "Online-Erfassung"
             : importState.step === "report"
               ? "Batch-Protokoll"
               : "Dateiimport";
@@ -19794,7 +19801,7 @@
             <div>
               <span class="import-upload-icon">↥</span>
               <strong>Datei hier ablegen</strong>
-              <small>CSV oder Excel. Die Online-Tabelle ist ein eigener Anlageweg im Importbereich.</small>
+              <small>CSV oder Excel. Die Online-Erfassung ist ein eigener Anlageweg.</small>
             </div>
           </label>
           <button class="filter-reset import-template-button" type="button" id="import-template-button">↧ Import-Vorlage herunterladen</button>
@@ -19802,7 +19809,7 @@
             <ul>
               <li>Name ist Pflichtfeld</li>
               <li>CSV/Excel nutzt Spaltenzuordnung und Importprüfung</li>
-              <li>Manuelle Bulk-Anlage wird separat über „Online-Tabelle öffnen“ gestartet</li>
+              <li>Manuelle Mehrfachanlage wird separat über „Online-Erfassung“ gestartet</li>
             </ul>
           </div>
         `;
@@ -27138,9 +27145,9 @@
           const active = panel.dataset.settingsTabPanel === activeSettingsTab;
           panel.hidden = !active;
         });
-        sidebarSettingsButton?.classList.toggle("is-active", activeView === "settings" && activeSettingsTab !== "imports");
-        sidebarImportButton?.classList.toggle("is-active", activeView === "settings" && activeSettingsTab === "imports");
-        if (activeSettingsTab === "imports" && canAdministerData() && !registrationsLoaded && !registrationsLoading) {
+        sidebarSettingsButton?.classList.toggle("is-active", activeView === "settings" && activeSettingsTab === "settings");
+        sidebarImportButton?.classList.toggle("is-active", activeView === "settings" && activeSettingsTab !== "settings");
+        if (activeSettingsTab === "registrations" && canAdministerData() && !registrationsLoaded && !registrationsLoading) {
           loadRegistrations({ scroll: false });
         }
       }
@@ -27148,7 +27155,7 @@
       function openSettingsTab(tab = "settings") {
         setSettingsTab(tab);
         setActiveView("settings");
-        updateRouteHash("settings");
+        updateRouteHash(activeSettingsTab === "settings" ? "settings" : activeSettingsTab);
         updateView();
       }
 
@@ -27195,7 +27202,7 @@
       }
 
       function setActiveView(view) {
-        if (view === "imports") {
+        if (settingsTabItems.some((item) => item.id === view) && view !== "settings") {
           setSettingsTab(view);
           view = "settings";
         }
@@ -27218,8 +27225,8 @@
           tab.classList.toggle("is-active", tab.dataset.viewTab === view);
         });
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
-        sidebarSettingsButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab !== "imports");
-        sidebarImportButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab === "imports");
+        sidebarSettingsButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab === "settings");
+        sidebarImportButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab !== "settings");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
         sidebarProfileButton?.classList.toggle("is-active", view === "profile");
         viewPanels.forEach((panel) => {
@@ -28327,6 +28334,7 @@
       settingsTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
           setSettingsTab(button.dataset.settingsTab || "settings");
+          updateRouteHash(activeSettingsTab === "settings" ? "settings" : activeSettingsTab);
           renderViewChrome();
         });
       });
@@ -28621,9 +28629,6 @@
       importsStartFileButton?.addEventListener("click", openImportWizard);
       importsOpenTableButton?.addEventListener("click", () => {
         openImportWizard({ mode: "bulk" });
-      });
-      importsShowRegistrationsButton?.addEventListener("click", () => {
-        loadRegistrations({ scroll: true });
       });
       registrationsRefresh?.addEventListener("click", () => {
         loadRegistrations({ scroll: false });
@@ -28936,7 +28941,7 @@
 
       function routeViewFromHash() {
         const hashView = String(window.location.hash || "").replace(/^#/, "");
-        if (hashView === "imports") {
+        if (settingsTabItems.some((item) => item.id === hashView) && hashView !== "settings") {
           setSettingsTab(hashView);
           return "settings";
         }
