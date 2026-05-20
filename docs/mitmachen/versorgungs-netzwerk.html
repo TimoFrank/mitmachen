@@ -106,7 +106,7 @@
 
       .intro {
         display: grid;
-        gap: 20px;
+        gap: 18px;
         min-width: 0;
       }
 
@@ -140,9 +140,16 @@
         line-height: 1.55;
       }
 
+      .intro-compact {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+        gap: 20px;
+        align-items: start;
+      }
+
       .hero-media {
         overflow: hidden;
-        width: min(640px, 100%);
+        width: 100%;
         margin: 0;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
@@ -153,14 +160,14 @@
       .hero-media img {
         display: block;
         width: 100%;
-        aspect-ratio: 16 / 7;
+        aspect-ratio: 4 / 3;
         object-fit: cover;
       }
 
       .hero-media figcaption {
         display: grid;
         gap: 4px;
-        padding: 14px 16px;
+        padding: 12px 14px;
         color: var(--text-secondary);
         font-size: 0.9rem;
         font-weight: 650;
@@ -169,7 +176,7 @@
 
       .hero-media figcaption strong {
         color: var(--text-primary);
-        font-size: 1rem;
+        font-size: 0.94rem;
       }
 
       .info-panel,
@@ -486,6 +493,18 @@
           grid-template-columns: 1fr;
         }
 
+        .intro-compact {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-media {
+          width: min(420px, 100%);
+        }
+
+        .hero-media img {
+          aspect-ratio: 16 / 7;
+        }
+
         .site-nav {
           display: none;
         }
@@ -515,14 +534,16 @@
       <section class="intro" aria-labelledby="page-title">
         <div class="breadcrumb">Home / #Mitmachen / Versorgungs-Netzwerk</div>
         <h1 id="page-title">Versorgungsperspektiven einbringen</h1>
-        <p class="lead">Gemeinsam echte Abläufe beobachten und digitale Anwendungen praxisnah verbessern. Registrieren Sie Ihre Einrichtung, damit wir Sie gezielt kontaktieren können, wenn Ihre Perspektive zu aktuellen Fragestellungen passt.</p>
-        <figure class="hero-media">
-          <img src="../public/format-roundtable-hero.jpg" alt="Gesundheitsfachkräfte und gematik-Team im Austausch an einem runden Tisch" />
-          <figcaption>
-            <strong>Hospitationen und Praxiseinblicke</strong>
-            <span>Wir möchten verstehen, wie digitale Prozesse im Alltag wirklich funktionieren: in Praxen, Apotheken, Kliniken, Pflege und weiteren Versorgungssettings.</span>
-          </figcaption>
-        </figure>
+        <div class="intro-compact">
+          <p class="lead">Gemeinsam echte Abläufe beobachten und digitale Anwendungen praxisnah verbessern. Registrieren Sie Ihre Einrichtung, damit wir Sie gezielt kontaktieren können, wenn Ihre Perspektive zu aktuellen Fragestellungen passt.</p>
+          <figure class="hero-media">
+            <img src="../public/format-roundtable-hero.jpg" alt="Gesundheitsfachkräfte und gematik-Team im Austausch an einem runden Tisch" />
+            <figcaption>
+              <strong>Hospitationen und Praxiseinblicke</strong>
+              <span>Digitale Prozesse dort verstehen, wo sie im Alltag wirken.</span>
+            </figcaption>
+          </figure>
+        </div>
       </section>
 
       <section class="form-card" id="registrierung" aria-labelledby="form-title">
