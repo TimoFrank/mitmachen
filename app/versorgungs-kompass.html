@@ -6302,6 +6302,21 @@
         border-bottom: 1px solid var(--border);
       }
 
+      .care-queue-head[data-care-open] {
+        cursor: pointer;
+      }
+
+      .care-queue-head[data-care-open]:hover .care-queue-toggle,
+      .care-queue-head[data-care-open]:focus-visible .care-queue-toggle {
+        border-color: #b9c9ff;
+        background: #f6f9ff;
+      }
+
+      .care-queue-head[data-care-open]:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--primary) 22%, transparent);
+        outline-offset: -3px;
+      }
+
       .care-queue-card--todo .care-queue-head {
         background: #fff8eb;
         border-bottom-color: #fed7aa;
@@ -6442,13 +6457,7 @@
         color: var(--primary);
         font-size: 0.76rem;
         font-weight: 900;
-        cursor: pointer;
         transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
-      }
-
-      .care-queue-toggle:hover {
-        border-color: #b9c9ff;
-        background: #f6f9ff;
       }
 
       .care-queue-toggle svg {
@@ -6464,32 +6473,6 @@
 
       .care-queue-toggle[aria-expanded="true"] svg {
         transform: rotate(180deg);
-      }
-
-      .care-queue-list {
-        position: relative;
-        display: grid;
-        gap: 8px;
-        padding: 12px 14px 14px;
-      }
-
-      .care-queue-list--preview {
-        max-height: 148px;
-        overflow: hidden;
-        -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 82%, rgba(0, 0, 0, 0.7) 92%, transparent 100%);
-        mask-image: linear-gradient(180deg, #000 0%, #000 82%, rgba(0, 0, 0, 0.7) 92%, transparent 100%);
-      }
-
-      .care-queue-list--preview::after {
-        content: "";
-        position: absolute;
-        left: 14px;
-        right: 14px;
-        bottom: 0;
-        height: 32px;
-        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 72%, rgba(255, 255, 255, 0.96) 100%);
-        pointer-events: none;
       }
 
       .care-queue-contact {
@@ -11874,6 +11857,15 @@
         background: var(--surface);
       }
 
+      .profile-tab-panel {
+        display: grid;
+        gap: 14px;
+      }
+
+      .profile-tab-panel[hidden] {
+        display: none;
+      }
+
       .profile-page .profile-section {
         border-color: var(--border);
         border-radius: var(--radius-md);
@@ -16959,78 +16951,13 @@
 
           <section class="view-panel" id="view-settings" data-view-panel="settings">
             <div class="settings-workspace">
-              <div class="settings-tab-nav" role="tablist" aria-label="Einstellungsbereiche">
-                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-settings" data-settings-tab="settings">Einstellungen</button>
-                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Dateiimport</button>
+              <div class="settings-tab-nav" role="tablist" aria-label="Importbereiche">
+                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-imports" data-settings-tab="imports">Import</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-online-entry" data-settings-tab="onlineEntry">Online-Erfassung</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierungen</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-import-history" data-settings-tab="importHistory">Historie</button>
               </div>
-              <div class="settings-tab-panel" id="settings-tab-settings" role="tabpanel" data-settings-tab-panel="settings">
-                <div class="settings-wip-note">
-                  <span class="settings-status-pill">Entwurf</span>
-                  <strong>Dieser Bereich ist noch in Arbeit.</strong>
-                  <p>Im Moment gibt es hier noch keine Einstellung, die du aktiv ändern musst. Die Punkte unten zeigen nur, was später in diesen Bereich passen könnte.</p>
-                </div>
-                <section class="profile-section">
-                  <h3>Was hier später entstehen könnte</h3>
-                  <div class="detail-line-list settings-feature-list">
-                    <div class="detail-line">
-                      <span class="settings-feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                          <path d="M3 10.5 12 3l9 7.5"></path>
-                          <path d="M5 10v10h14V10"></path>
-                          <path d="M9 20v-6h6v6"></path>
-                        </svg>
-                      </span>
-                      <span class="detail-line__label">Startansicht</span>
-                      <span class="detail-line__value">Später könnte hier festgelegt werden, mit welchem Bereich die App startet, zum Beispiel Kontakte, Karte oder Auswertung.</span>
-                    </div>
-                    <div class="detail-line">
-                      <span class="settings-feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                          <rect x="4" y="5" width="16" height="14" rx="2"></rect>
-                          <path d="M4 10h16"></path>
-                          <path d="M9 5v14"></path>
-                          <path d="M15 5v14"></path>
-                        </svg>
-                      </span>
-                      <span class="detail-line__label">Tabellenansicht</span>
-                      <span class="detail-line__value">Hier könnten Standardspalten und die Dichte der Tabelle verwaltet werden.</span>
-                    </div>
-                    <div class="detail-line">
-                      <span class="settings-feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
-                          <path d="M10 21h4"></path>
-                        </svg>
-                      </span>
-                      <span class="detail-line__label">Benachrichtigungen</span>
-                      <span class="detail-line__value">Hier könnten später Hinweise per E-Mail oder in der App ein- und ausgeschaltet werden.</span>
-                    </div>
-                    <div class="detail-line">
-                      <span class="settings-feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                          <path d="M12 3 5 6v5c0 4.5 2.9 8.4 7 10 4.1-1.6 7-5.5 7-10V6l-7-3Z"></path>
-                          <path d="m9 12 2 2 4-4"></path>
-                        </svg>
-                      </span>
-                      <span class="detail-line__label">Rechte und Freigaben</span>
-                      <span class="detail-line__value">Die Verwaltung von Admin-, Editor- und Viewer-Rechten gehört fachlich hierher, ist aber noch nicht als Oberfläche umgesetzt.</span>
-                    </div>
-                    <div class="detail-line">
-                      <span class="settings-feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                          <path d="M6 4h12v16l-6-3-6 3V4Z"></path>
-                        </svg>
-                      </span>
-                      <span class="detail-line__label">Gespeicherte Ansichten</span>
-                      <span class="detail-line__value">Später könnten hier gespeicherte Filter und Ansichten verwaltet werden. Im aktuellen Frontend ist diese Funktion noch ausgeblendet.</span>
-                    </div>
-                  </div>
-                </section>
-              </div>
-              <div class="settings-tab-panel" id="settings-tab-imports" role="tabpanel" data-settings-tab-panel="imports" hidden>
+              <div class="settings-tab-panel" id="settings-tab-imports" role="tabpanel" data-settings-tab-panel="imports">
                 <div class="imports-workspace">
                   <div class="import-start-grid">
                     <article class="import-format-card">
@@ -17143,87 +17070,147 @@
       <section class="profile-panel" aria-label="Profilformular">
         <form id="profile-form">
           <div class="profile-panel__body">
-            <section class="profile-section">
-              <div class="profile-hero">
-                <div class="profile-photo-action">
-                  <div class="profile-avatar" id="profile-avatar-preview">TF</div>
-                  <button class="action-button" type="button" id="profile-photo-open">Foto ändern</button>
-                </div>
-                <div class="profile-identity-copy">
-                  <h3 id="profile-display-title">Timo Frank</h3>
-                  <div class="profile-team-line" id="profile-team-line">Team nicht ausgewählt</div>
-                  <div class="profile-status" id="profile-status" aria-live="polite"></div>
-                </div>
-              </div>
-            </section>
-            <section class="profile-section">
-              <h3>Basisdaten</h3>
-              <div class="profile-grid">
-                <div class="profile-field">
-                  <label for="profile-display-name">Anzeigename</label>
-                  <input id="profile-display-name" name="displayName" autocomplete="name" required />
-                </div>
-                <div class="profile-field">
-                  <label for="profile-initials">Initialen</label>
-                  <input id="profile-initials" name="initials" maxlength="4" />
-                </div>
-                <div class="profile-field">
-                  <label for="profile-email">E-Mail</label>
-                  <input id="profile-email" name="email" type="email" readonly />
-                </div>
-                <div class="profile-field">
-                  <label for="profile-team">Team</label>
-                  <div class="select-shell" data-custom-select>
-                    <select id="profile-team" name="team">
-                      <option value="">Bitte auswählen</option>
-                      <option value="Stabsstelle Versorgung">Stabsstelle Versorgung</option>
-                      <option value="Produktmanagement">Produktmanagement</option>
-                      <option value="Kommunikation">Kommunikation</option>
-                      <option value="Strategie">Strategie</option>
-                    </select>
+            <div class="settings-tab-nav" role="tablist" aria-label="Profilbereiche">
+              <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-profile" data-profile-tab="profile">Profil</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-settings" data-profile-tab="settings">Einstellungen</button>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-profile" role="tabpanel" data-profile-tab-panel="profile">
+              <section class="profile-section">
+                <div class="profile-hero">
+                  <div class="profile-photo-action">
+                    <div class="profile-avatar" id="profile-avatar-preview">TF</div>
+                    <button class="action-button" type="button" id="profile-photo-open">Foto ändern</button>
+                  </div>
+                  <div class="profile-identity-copy">
+                    <h3 id="profile-display-title">Timo Frank</h3>
+                    <div class="profile-team-line" id="profile-team-line">Team nicht ausgewählt</div>
+                    <div class="profile-status" id="profile-status" aria-live="polite"></div>
                   </div>
                 </div>
-              </div>
-            </section>
-            <section class="profile-section">
-              <h3>Meine Zuständigkeiten</h3>
-              <details class="profile-owner-details" id="profile-owner-details">
-                <summary id="profile-owner-summary">Du bist Owner von 0 Kontakten.</summary>
-                <div class="profile-owner-list" id="profile-owner-list"></div>
-              </details>
-            </section>
-            <section class="profile-section">
-              <h3>Benachrichtigungen</h3>
-              <div class="profile-setting-toggle profile-setting-toggle--disabled">
-                <label class="profile-switch" for="profile-notifications">
-                  <input id="profile-notifications" name="notificationsEnabled" type="checkbox" disabled />
-                  <span></span>
-                </label>
-                <div>
-                  <div class="profile-setting__label">Benachrichtigungen per E-Mail erhalten</div>
-                  <div class="profile-setting__note">Diese Funktion ist noch nicht verfügbar.</div>
+              </section>
+              <section class="profile-section">
+                <h3>Basisdaten</h3>
+                <div class="profile-grid">
+                  <div class="profile-field">
+                    <label for="profile-display-name">Anzeigename</label>
+                    <input id="profile-display-name" name="displayName" autocomplete="name" required />
+                  </div>
+                  <div class="profile-field">
+                    <label for="profile-initials">Initialen</label>
+                    <input id="profile-initials" name="initials" maxlength="4" />
+                  </div>
+                  <div class="profile-field">
+                    <label for="profile-email">E-Mail</label>
+                    <input id="profile-email" name="email" type="email" readonly />
+                  </div>
+                  <div class="profile-field">
+                    <label for="profile-team">Team</label>
+                    <div class="select-shell" data-custom-select>
+                      <select id="profile-team" name="team">
+                        <option value="">Bitte auswählen</option>
+                        <option value="Stabsstelle Versorgung">Stabsstelle Versorgung</option>
+                        <option value="Produktmanagement">Produktmanagement</option>
+                        <option value="Kommunikation">Kommunikation</option>
+                        <option value="Strategie">Strategie</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </section>
-            <section class="profile-section">
-              <h3>Rolle &amp; Berechtigungen</h3>
-              <div class="profile-role-card">
-                <div>
-                  <div class="profile-role-label">Deine Rolle im System</div>
+              </section>
+              <section class="profile-section">
+                <h3>Meine Zuständigkeiten</h3>
+                <details class="profile-owner-details" id="profile-owner-details">
+                  <summary id="profile-owner-summary">Du bist Owner von 0 Kontakten.</summary>
+                  <div class="profile-owner-list" id="profile-owner-list"></div>
+                </details>
+              </section>
+              <section class="profile-section">
+                <h3>Rolle &amp; Berechtigungen</h3>
+                <div class="profile-role-card">
+                  <div>
+                    <div class="profile-role-label">Deine Rolle im System</div>
+                  </div>
+                  <span class="account-role-pill" id="profile-role-display">Nutzer</span>
                 </div>
-                <span class="account-role-pill" id="profile-role-display">Nutzer</span>
-              </div>
-            </section>
-            <section class="profile-section">
-              <h3>Sitzung</h3>
-              <div class="profile-session-row">
-                <div>
-                  <strong>Angemeldete Sitzung</strong>
-                  <span>Beendet die aktuelle Anmeldung und führt zurück zum Login.</span>
+              </section>
+              <section class="profile-section">
+                <h3>Sitzung</h3>
+                <div class="profile-session-row">
+                  <div>
+                    <strong>Angemeldete Sitzung</strong>
+                    <span>Beendet die aktuelle Anmeldung und führt zurück zum Login.</span>
+                  </div>
+                  <button class="action-button action-button--danger" type="button" id="profile-logout">Abmelden</button>
                 </div>
-                <button class="action-button action-button--danger" type="button" id="profile-logout">Abmelden</button>
+              </section>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-settings" role="tabpanel" data-profile-tab-panel="settings" hidden>
+              <section class="profile-section">
+                <h3>Benachrichtigungen</h3>
+                <div class="profile-setting-toggle profile-setting-toggle--disabled">
+                  <label class="profile-switch" for="profile-notifications">
+                    <input id="profile-notifications" name="notificationsEnabled" type="checkbox" disabled />
+                    <span></span>
+                  </label>
+                  <div>
+                    <div class="profile-setting__label">Benachrichtigungen per E-Mail erhalten</div>
+                    <div class="profile-setting__note">Diese Funktion ist noch nicht verfügbar.</div>
+                  </div>
+                </div>
+              </section>
+              <div class="settings-wip-note">
+                <span class="settings-status-pill">Entwurf</span>
+                <strong>Dieser Bereich ist noch in Arbeit.</strong>
+                <p>Im Moment gibt es hier noch keine Einstellung, die du aktiv ändern musst. Die Punkte unten zeigen nur, was später in diesen Bereich passen könnte.</p>
               </div>
-            </section>
+              <section class="profile-section">
+                <h3>Was hier später entstehen könnte</h3>
+                <div class="detail-line-list settings-feature-list">
+                  <div class="detail-line">
+                    <span class="settings-feature-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M3 10.5 12 3l9 7.5"></path>
+                        <path d="M5 10v10h14V10"></path>
+                        <path d="M9 20v-6h6v6"></path>
+                      </svg>
+                    </span>
+                    <span class="detail-line__label">Startansicht</span>
+                    <span class="detail-line__value">Später könnte hier festgelegt werden, mit welchem Bereich die App startet, zum Beispiel Kontakte, Karte oder Auswertung.</span>
+                  </div>
+                  <div class="detail-line">
+                    <span class="settings-feature-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                        <path d="M4 10h16"></path>
+                        <path d="M9 5v14"></path>
+                        <path d="M15 5v14"></path>
+                      </svg>
+                    </span>
+                    <span class="detail-line__label">Tabellenansicht</span>
+                    <span class="detail-line__value">Hier könnten Standardspalten und die Dichte der Tabelle verwaltet werden.</span>
+                  </div>
+                  <div class="detail-line">
+                    <span class="settings-feature-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M12 3 5 6v5c0 4.5 2.9 8.4 7 10 4.1-1.6 7-5.5 7-10V6l-7-3Z"></path>
+                        <path d="m9 12 2 2 4-4"></path>
+                      </svg>
+                    </span>
+                    <span class="detail-line__label">Rechte und Freigaben</span>
+                    <span class="detail-line__value">Die Verwaltung von Admin-, Editor- und Viewer-Rechten gehört fachlich hierher, ist aber noch nicht als Oberfläche umgesetzt.</span>
+                  </div>
+                  <div class="detail-line">
+                    <span class="settings-feature-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M6 4h12v16l-6-3-6 3V4Z"></path>
+                      </svg>
+                    </span>
+                    <span class="detail-line__label">Gespeicherte Ansichten</span>
+                    <span class="detail-line__value">Später könnten hier gespeicherte Filter und Ansichten verwaltet werden. Im aktuellen Frontend ist diese Funktion noch ausgeblendet.</span>
+                  </div>
+                </div>
+              </section>
+            </div>
           </div>
           <div class="profile-panel__footer" id="profile-edit-actions" hidden>
             <button class="action-button" type="button" id="profile-cancel">Änderungen verwerfen</button>
@@ -18492,11 +18479,14 @@
         { id: "settings", label: "Einstellungen" }
       ];
       const settingsTabItems = [
-        { id: "settings", title: "Einstellungen", subtitle: "Entwurf für spätere App-Einstellungen. Aktuell noch ohne aktive Konfiguration." },
-        { id: "imports", title: "Dateiimport", subtitle: "Kontakte per Datei hochladen, zuordnen und geprüft importieren." },
+        { id: "imports", title: "Import", subtitle: "Kontakte per Datei hochladen, zuordnen und geprüft importieren." },
         { id: "onlineEntry", title: "Online-Erfassung", subtitle: "Mehrere Kontakte direkt in einer Tabelle erfassen und gemeinsam speichern." },
         { id: "registrations", title: "Registrierungen", subtitle: "Eingänge aus dem Versorgungs-Netzwerk prüfen und kontrolliert übernehmen." },
         { id: "importHistory", title: "Importhistorie", subtitle: "Abgeschlossene Importe und Ergebnisse nachvollziehen." }
+      ];
+      const profileTabItems = [
+        { id: "profile", title: "Mein Profil", subtitle: "Persönliche Informationen und Zuständigkeiten verwalten." },
+        { id: "settings", title: "Einstellungen", subtitle: "Persönliche App-Einstellungen und spätere Konfigurationen." }
       ];
 
       const searchInput = document.getElementById("search");
@@ -18656,6 +18646,8 @@
       const settingsSavedViews = document.getElementById("settings-saved-views");
       const settingsTabButtons = [...document.querySelectorAll("[data-settings-tab]")];
       const settingsTabPanels = [...document.querySelectorAll("[data-settings-tab-panel]")];
+      const profileTabButtons = [...document.querySelectorAll("[data-profile-tab]")];
+      const profileTabPanels = [...document.querySelectorAll("[data-profile-tab-panel]")];
       const teamAccountList = document.getElementById("team-account-list");
       const accountAvatar = document.getElementById("account-avatar");
       const sidebarProfileButton = document.getElementById("sidebar-profile-button");
@@ -18733,7 +18725,8 @@
       const organizationEditorSave = document.getElementById("organization-editor-save");
 
       let activeView = "contacts";
-      let activeSettingsTab = "settings";
+      let activeSettingsTab = "imports";
+      let activeProfileTab = "profile";
       let activeId = null;
       let activeOrganizationId = null;
       let activeNameEditorId = null;
@@ -20832,7 +20825,7 @@
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
         team: { title: "Team", subtitle: "Accounts, Rollen und Zuständigkeiten im Überblick." },
-        settings: { title: "Einstellungen", subtitle: "Entwurf für spätere App-Einstellungen. Aktuell noch ohne aktive Konfiguration." },
+        settings: { title: "Import", subtitle: "Kontakte erfassen, importieren und Backend-Eingänge prüfen." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
         profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." }
       };
@@ -21788,7 +21781,7 @@
 
       function setProfileDirty(dirty) {
         profileDirty = Boolean(dirty);
-        if (profileEditActions) profileEditActions.hidden = !profileDirty;
+        if (profileEditActions) profileEditActions.hidden = !profileDirty || activeProfileTab !== "profile";
       }
 
       function profileFormSignature() {
@@ -21840,8 +21833,9 @@
         closeMenus();
         renderProfileForm();
         setProfileStatus("");
+        setProfileTab(activeProfileTab);
         setActiveView("profile");
-        updateRouteHash("profile");
+        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : "profile");
         updateView();
         profileModal?.setAttribute("aria-hidden", "false");
       }
@@ -27163,13 +27157,12 @@
             ${visibleItems.length
               ? visibleItems
               .map((item) => {
-                const visible = item.contacts.slice(0, 3);
                 const resolved = item.state === "done" || item.state === "complete" || item.state === "checked";
                 const expanded = activeCareQueueKey === item.key;
                 const cardClass = item.state === "critical" ? "care-queue-card--critical" : resolved ? `care-queue-card--${item.state === "checked" ? "done" : item.state}` : "care-queue-card--todo";
                 return `
                   <section class="care-queue-card ${cardClass} ${expanded ? "is-expanded" : ""}" data-care-card="${escapeHtml(item.key)}">
-                    <div class="care-queue-head">
+                    <div class="care-queue-head" ${resolved ? "" : `data-care-open="${escapeHtml(item.key)}" role="button" tabindex="0" aria-expanded="${expanded ? "true" : "false"}"`}>
                       <span class="care-queue-icon">${qualityIconSvg(resolved ? "complete" : item.iconKey || item.key)}</span>
                       <span class="care-queue-copy">
                         <span class="care-queue-title">${escapeHtml(item.title)}</span>
@@ -27177,25 +27170,12 @@
                       </span>
                       <span class="care-queue-meta">
                         <span class="care-queue-count">${resolved && Number.isFinite(item.completion) ? `${item.completion}%` : item.contacts.length}</span>
-                        ${resolved ? "" : `<button class="care-queue-toggle" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Liste schließen" : "Liste öffnen"}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>`}
+                        ${resolved ? "" : `<span class="care-queue-toggle" aria-label="${expanded ? "Liste schließen" : "Liste öffnen"}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>`}
                       </span>
                     </div>
                     ${resolved ? "" : expanded ? `
                       ${renderCareQueueInlineList(item)}
-                    ` : `
-                      <div class="care-queue-list care-queue-list--preview">
-                        ${visible
-                          .map(
-                            (contact) => `
-                              <div class="care-queue-contact" aria-hidden="true">
-                                ${contactAvatarMarkup(contact, "sm")}
-                                <span>${escapeHtml(contact.displayName || contact.name)}</span>
-                              </div>
-                            `
-                          )
-                          .join("")}
-                      </div>
-                    `}
+                    ` : ""}
                   </section>
                 `;
               })
@@ -27325,18 +27305,20 @@
       function renderViewChrome() {
         const view = activeView === "settings"
           ? settingsTabItems.find((item) => item.id === activeSettingsTab) || viewLabels.settings
-          : viewLabels[activeView] || viewLabels.contacts;
+          : activeView === "profile"
+            ? profileTabItems.find((item) => item.id === activeProfileTab) || viewLabels.profile
+            : viewLabels[activeView] || viewLabels.contacts;
         if (topbarViewTitle) topbarViewTitle.textContent = view.title;
         if (topbarViewMeta) topbarViewMeta.textContent = greetingLabel;
         if (workspaceViewTitle) workspaceViewTitle.textContent = view.title;
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
       }
 
-      function normalizeSettingsTab(tab = "settings") {
-        return settingsTabItems.some((item) => item.id === tab) ? tab : "settings";
+      function normalizeSettingsTab(tab = "imports") {
+        return settingsTabItems.some((item) => item.id === tab) ? tab : "imports";
       }
 
-      function setSettingsTab(tab = "settings") {
+      function setSettingsTab(tab = "imports") {
         activeSettingsTab = normalizeSettingsTab(tab);
         settingsTabButtons.forEach((button) => {
           const active = button.dataset.settingsTab === activeSettingsTab;
@@ -27347,18 +27329,44 @@
           const active = panel.dataset.settingsTabPanel === activeSettingsTab;
           panel.hidden = !active;
         });
-        sidebarSettingsButton?.classList.toggle("is-active", activeView === "settings" && activeSettingsTab === "settings");
-        sidebarImportButton?.classList.toggle("is-active", activeView === "settings" && activeSettingsTab !== "settings");
+        sidebarSettingsButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "settings");
+        sidebarImportButton?.classList.toggle("is-active", activeView === "settings");
         if (activeSettingsTab === "registrations" && canAdministerData() && !registrationsLoaded && !registrationsLoading) {
           loadRegistrations({ scroll: false });
         }
       }
 
-      function openSettingsTab(tab = "settings") {
+      function openSettingsTab(tab = "imports") {
         setSettingsTab(tab);
         setActiveView("settings");
-        updateRouteHash(activeSettingsTab === "settings" ? "settings" : activeSettingsTab);
+        updateRouteHash(activeSettingsTab);
         updateView();
+      }
+
+      function normalizeProfileTab(tab = "profile") {
+        return profileTabItems.some((item) => item.id === tab) ? tab : "profile";
+      }
+
+      function setProfileTab(tab = "profile") {
+        activeProfileTab = normalizeProfileTab(tab);
+        profileTabButtons.forEach((button) => {
+          const active = button.dataset.profileTab === activeProfileTab;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-selected", String(active));
+        });
+        profileTabPanels.forEach((panel) => {
+          const active = panel.dataset.profileTabPanel === activeProfileTab;
+          panel.hidden = !active;
+        });
+        sidebarSettingsButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "settings");
+        sidebarProfileButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "profile");
+        if (profileEditActions) profileEditActions.hidden = activeProfileTab !== "profile" || !profileDirty;
+      }
+
+      function openProfileTab(tab = "profile") {
+        setProfileTab(tab);
+        openProfileModal();
+        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : "profile");
       }
 
       function setSidebarCollapsed(collapsed) {
@@ -27404,7 +27412,7 @@
       }
 
       function setActiveView(view) {
-        if (settingsTabItems.some((item) => item.id === view) && view !== "settings") {
+        if (settingsTabItems.some((item) => item.id === view)) {
           setSettingsTab(view);
           view = "settings";
         }
@@ -27427,17 +27435,20 @@
           tab.classList.toggle("is-active", tab.dataset.viewTab === view);
         });
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
-        sidebarSettingsButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab === "settings");
-        sidebarImportButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab !== "settings");
+        sidebarSettingsButton?.classList.toggle("is-active", view === "profile" && activeProfileTab === "settings");
+        sidebarImportButton?.classList.toggle("is-active", view === "settings");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
-        sidebarProfileButton?.classList.toggle("is-active", view === "profile");
+        sidebarProfileButton?.classList.toggle("is-active", view === "profile" && activeProfileTab === "profile");
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
           panel.setAttribute("aria-hidden", panel.dataset.viewPanel === view ? "false" : "true");
         });
         if (appShell) appShell.dataset.activeView = view;
         renderViewChrome();
-        if (view === "profile") renderProfileForm();
+        if (view === "profile") {
+          renderProfileForm();
+          setProfileTab(activeProfileTab);
+        }
         if (view === "team") renderTeamView();
         if (view === "about") renderAboutApp();
         if (view === "formats") renderFormatsView();
@@ -28526,10 +28537,7 @@
       sidebarSettingsButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
-        setSettingsTab("settings");
-        setActiveView("settings");
-        updateRouteHash("settings");
-        updateView();
+        openProfileTab("settings");
       });
       sidebarImportButton?.addEventListener("click", () => {
         closeMenus();
@@ -28538,8 +28546,15 @@
       });
       settingsTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          setSettingsTab(button.dataset.settingsTab || "settings");
-          updateRouteHash(activeSettingsTab === "settings" ? "settings" : activeSettingsTab);
+          setSettingsTab(button.dataset.settingsTab || "imports");
+          updateRouteHash(activeSettingsTab);
+          renderViewChrome();
+        });
+      });
+      profileTabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          setProfileTab(button.dataset.profileTab || "profile");
+          updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : "profile");
           renderViewChrome();
         });
       });
@@ -28581,9 +28596,9 @@
       });
       sidebarProfileButton?.addEventListener("click", () => {
         closeMobileSidebar();
-        openProfileModal();
+        openProfileTab("profile");
       });
-      accountProfileButton?.addEventListener("click", openProfileModal);
+      accountProfileButton?.addEventListener("click", () => openProfileTab("profile"));
       profileCancel?.addEventListener("click", closeProfileModal);
       profileForm?.addEventListener("submit", saveProfileForm);
       profileForm?.addEventListener("input", updateProfileDirtyState);
@@ -28793,6 +28808,14 @@
         const button = event.target.closest("[data-care-contact]");
         if (!button) return;
         openCareQueueContact(button.dataset.careContact, button.dataset.careArchived === "true");
+      });
+      careQueue?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const openButton = event.target.closest("[data-care-open]");
+        if (!openButton) return;
+        event.preventDefault();
+        activeCareQueueKey = activeCareQueueKey === openButton.dataset.careOpen ? "" : openButton.dataset.careOpen;
+        renderCareQueue(filteredContacts());
       });
       careWorkbench?.addEventListener("click", async (event) => {
         if (event.target.closest("#care-workbench-close")) {
@@ -29160,7 +29183,15 @@
 
       function routeViewFromHash() {
         const hashView = String(window.location.hash || "").replace(/^#/, "");
-        if (settingsTabItems.some((item) => item.id === hashView) && hashView !== "settings") {
+        if (hashView === "settings" || hashView === "profile-settings") {
+          setProfileTab("settings");
+          return "profile";
+        }
+        if (hashView === "profile") {
+          setProfileTab("profile");
+          return "profile";
+        }
+        if (settingsTabItems.some((item) => item.id === hashView)) {
           setSettingsTab(hashView);
           return "settings";
         }
