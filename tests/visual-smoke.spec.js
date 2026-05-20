@@ -120,10 +120,21 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
   await attachScreenshot(page, testInfo, "admin-rolle");
 });
 
+test("Mein Profil: Einstellungen sind als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#profile-settings", { role: "admin" });
+
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+  await expect(page.locator('[data-profile-tab="settings"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#profile-tab-settings")).toBeVisible();
+  await expect(page.locator("#profile-tab-settings .settings-wip-note")).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "profil-einstellungen");
+});
+
 test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
 
-  await expect(page.locator('[data-settings-tab="imports"]')).toHaveText("Dateiimport");
+  await expect(page.locator('[data-settings-tab="imports"]')).toHaveText("Import");
   await expect(page.locator('[data-settings-tab="onlineEntry"]')).toHaveText("Online-Erfassung");
   await expect(page.locator('[data-settings-tab="registrations"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#registrations-section")).toBeVisible();

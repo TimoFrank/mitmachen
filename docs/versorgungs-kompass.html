@@ -8,9 +8,9 @@
     <meta name="apple-mobile-web-app-title" content="Kompass" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="manifest" href="../public/manifest.webmanifest" />
-    <link rel="apple-touch-icon" sizes="180x180" href="../public/app-icon-180.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../public/app-icon-32.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./public/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./public/app-icon-32.png" />
     <script src="./auth-config.js"></script>
     <script src="./auth-guard.js"></script>
     <link
@@ -18923,7 +18923,7 @@
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
         setRoleElementVisible(sidebarQualityButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
-        setRoleElementVisible(sidebarSettingsButton, canAdministerData());
+        setRoleElementVisible(sidebarSettingsButton, true);
         setRoleElementVisible(sidebarAboutButton, canAdministerData());
         setRoleElementVisible(accountQualityButton, canAdministerData());
         setRoleElementVisible(analyticsQualityCard, canAdministerData());
@@ -21781,7 +21781,7 @@
 
       function setProfileDirty(dirty) {
         profileDirty = Boolean(dirty);
-        if (profileEditActions) profileEditActions.hidden = !profileDirty;
+        if (profileEditActions) profileEditActions.hidden = !profileDirty || activeProfileTab !== "profile";
       }
 
       function profileFormSignature() {
@@ -21833,8 +21833,9 @@
         closeMenus();
         renderProfileForm();
         setProfileStatus("");
+        setProfileTab(activeProfileTab);
         setActiveView("profile");
-        updateRouteHash("profile");
+        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : "profile");
         updateView();
         profileModal?.setAttribute("aria-hidden", "false");
       }
@@ -27411,7 +27412,7 @@
       }
 
       function setActiveView(view) {
-        if (settingsTabItems.some((item) => item.id === view) && view !== "settings") {
+        if (settingsTabItems.some((item) => item.id === view)) {
           setSettingsTab(view);
           view = "settings";
         }
@@ -27434,17 +27435,20 @@
           tab.classList.toggle("is-active", tab.dataset.viewTab === view);
         });
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
-        sidebarSettingsButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab === "settings");
-        sidebarImportButton?.classList.toggle("is-active", view === "settings" && activeSettingsTab !== "settings");
+        sidebarSettingsButton?.classList.toggle("is-active", view === "profile" && activeProfileTab === "settings");
+        sidebarImportButton?.classList.toggle("is-active", view === "settings");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
-        sidebarProfileButton?.classList.toggle("is-active", view === "profile");
+        sidebarProfileButton?.classList.toggle("is-active", view === "profile" && activeProfileTab === "profile");
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
           panel.setAttribute("aria-hidden", panel.dataset.viewPanel === view ? "false" : "true");
         });
         if (appShell) appShell.dataset.activeView = view;
         renderViewChrome();
-        if (view === "profile") renderProfileForm();
+        if (view === "profile") {
+          renderProfileForm();
+          setProfileTab(activeProfileTab);
+        }
         if (view === "team") renderTeamView();
         if (view === "about") renderAboutApp();
         if (view === "formats") renderFormatsView();
@@ -28533,10 +28537,7 @@
       sidebarSettingsButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
-        setSettingsTab("settings");
-        setActiveView("settings");
-        updateRouteHash("settings");
-        updateView();
+        openProfileTab("settings");
       });
       sidebarImportButton?.addEventListener("click", () => {
         closeMenus();
@@ -28545,8 +28546,15 @@
       });
       settingsTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          setSettingsTab(button.dataset.settingsTab || "settings");
-          updateRouteHash(activeSettingsTab === "settings" ? "settings" : activeSettingsTab);
+          setSettingsTab(button.dataset.settingsTab || "imports");
+          updateRouteHash(activeSettingsTab);
+          renderViewChrome();
+        });
+      });
+      profileTabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          setProfileTab(button.dataset.profileTab || "profile");
+          updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : "profile");
           renderViewChrome();
         });
       });
@@ -28588,9 +28596,9 @@
       });
       sidebarProfileButton?.addEventListener("click", () => {
         closeMobileSidebar();
-        openProfileModal();
+        openProfileTab("profile");
       });
-      accountProfileButton?.addEventListener("click", openProfileModal);
+      accountProfileButton?.addEventListener("click", () => openProfileTab("profile"));
       profileCancel?.addEventListener("click", closeProfileModal);
       profileForm?.addEventListener("submit", saveProfileForm);
       profileForm?.addEventListener("input", updateProfileDirtyState);
@@ -29175,7 +29183,15 @@
 
       function routeViewFromHash() {
         const hashView = String(window.location.hash || "").replace(/^#/, "");
-        if (settingsTabItems.some((item) => item.id === hashView) && hashView !== "settings") {
+        if (hashView === "settings" || hashView === "profile-settings") {
+          setProfileTab("settings");
+          return "profile";
+        }
+        if (hashView === "profile") {
+          setProfileTab("profile");
+          return "profile";
+        }
+        if (settingsTabItems.some((item) => item.id === hashView)) {
           setSettingsTab(hashView);
           return "settings";
         }
