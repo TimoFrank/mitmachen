@@ -17026,6 +17026,7 @@
                     </div>
                     <div class="registrations-toolbar">
                       <div class="registrations-summary" id="registrations-summary">Registrierungen werden geladen.</div>
+                      <button class="action-button action-button--ghost" type="button" id="registrations-reset-demo">Demo zurücksetzen</button>
                       <button class="action-button action-button--ghost" type="button" id="registrations-refresh">Aktualisieren</button>
                     </div>
                     <div class="registrations-list" id="registrations-list">
@@ -18628,6 +18629,7 @@
       const registrationsSummary = document.getElementById("registrations-summary");
       const registrationsList = document.getElementById("registrations-list");
       const registrationsRefresh = document.getElementById("registrations-refresh");
+      const registrationsResetDemo = document.getElementById("registrations-reset-demo");
       const importsHistorySection = document.getElementById("imports-history-section");
       const csvFileInput = document.getElementById("csv-file-input");
       const profileModal = document.getElementById("profile-page");
@@ -18866,6 +18868,7 @@
         setRoleElementVisible(importsStartFileButton, canAdministerData());
         setRoleElementVisible(importsOpenTableButton, canEditContacts());
         setRoleElementVisible(registrationsRefresh, canAdministerData());
+        setRoleElementVisible(registrationsResetDemo, canAdministerData());
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
@@ -19093,6 +19096,22 @@
             window.setTimeout(() => registrationsSection.classList.remove("is-attention"), 1400);
           }
         }
+      }
+
+      async function resetDemoRegistrations() {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen die Demo-Registrierungen zurücksetzen.");
+          return;
+        }
+        if (!window.dataService.resetLocalBackendRegistrations) {
+          setStorageStatus("Demo-Zurücksetzen ist nur im lokalen Demo-Fallback verfügbar.");
+          return;
+        }
+        backendRegistrations = window.dataService.resetLocalBackendRegistrations();
+        registrationsLoaded = true;
+        registrationsLoading = false;
+        renderRegistrations();
+        setStorageStatus("Demo-Registrierungen zurückgesetzt");
       }
 
       function renderRegistrations() {
@@ -28632,6 +28651,9 @@
       });
       registrationsRefresh?.addEventListener("click", () => {
         loadRegistrations({ scroll: false });
+      });
+      registrationsResetDemo?.addEventListener("click", () => {
+        resetDemoRegistrations();
       });
       registrationsList?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-registration-action]");

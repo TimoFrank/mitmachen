@@ -129,8 +129,19 @@ test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page },
   await expect(page.locator("#registrations-section")).toBeVisible();
   await expect(page.locator("#registrations-list .registration-row").first()).toBeVisible();
   await expect(page.locator('[data-registration-action="accept"]').first()).toBeVisible();
+  await expect(page.locator("#registrations-reset-demo")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "registrierungen");
+});
+
+test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
+
+  await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
+  await page.locator('[data-registration-action="defer"]').first().click();
+  await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
+  await page.locator("#registrations-reset-demo").click();
+  await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
 });
 
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {

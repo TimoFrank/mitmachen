@@ -358,6 +358,11 @@
     window.localStorage.setItem(LOCAL_REGISTRATIONS_KEY, JSON.stringify(rows.map(normalizeRegistration)));
   }
 
+  function resetLocalBackendRegistrations() {
+    persistLocalRegistrations(sampleRegistrationRows());
+    return localRegistrations();
+  }
+
   function backendBaseUrl() {
     return String(CONFIG.gematikBackendUrl || CONFIG.registrationBackendUrl || "").replace(/\/+$/, "");
   }
@@ -1686,6 +1691,7 @@
     getContactChanges,
     loadBackendRegistrations,
     updateBackendRegistration,
+    resetLocalBackendRegistrations,
     loadOrganizations,
     getOrganization,
     createOrganization,
