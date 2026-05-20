@@ -2636,12 +2636,13 @@
         position: fixed;
         left: 0;
         right: 0;
+        top: 30dvh;
         bottom: 0;
         z-index: 30;
         display: flex;
         flex-direction: column;
-        height: 70dvh;
-        max-height: 70dvh;
+        height: auto;
+        max-height: none;
         min-height: 0;
         border-left: 0;
         border-top: 1px solid var(--border);
@@ -2654,18 +2655,104 @@
       .map-detail-toolbar {
         flex: 0 0 auto;
         border-radius: 24px 24px 0 0;
+        min-height: 56px !important;
+        padding: 10px 12px !important;
+        gap: 8px !important;
       }
 
-      .map-detail-body {
+      .map-detail-panel .detail-counter {
+        min-width: 0;
+        font-size: 0.98rem !important;
+        line-height: 1.2 !important;
+      }
+
+      .map-detail-panel .detail-toolbar-actions {
+        flex: 0 0 auto;
+        gap: 6px !important;
+      }
+
+      .map-detail-panel .action-button {
+        min-height: 38px !important;
+        padding: 0 12px !important;
+      }
+
+      .map-detail-panel .detail-close {
+        width: 38px !important;
+        height: 38px !important;
+        flex: 0 0 38px !important;
+      }
+
+      .map-detail-panel .detail-content {
         flex: 1 1 auto;
         min-height: 0;
-        overflow-y: auto;
+        overflow-y: auto !important;
         -webkit-overflow-scrolling: touch;
-        padding-bottom: calc(24px + env(safe-area-inset-bottom));
+        padding: 14px 12px calc(24px + env(safe-area-inset-bottom)) !important;
       }
 
-      .map-detail-head {
-        align-items: flex-start;
+      .map-detail-panel .detail-profile {
+        gap: 12px !important;
+      }
+
+      .map-detail-panel .detail-profile-top {
+        grid-template-columns: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+      }
+
+      .map-detail-panel .detail-profile-main {
+        display: grid !important;
+        grid-template-columns: 72px minmax(0, 1fr) !important;
+        align-items: center !important;
+        gap: 12px !important;
+        min-width: 0 !important;
+        width: 100% !important;
+      }
+
+      .map-detail-panel .avatar {
+        width: 72px !important;
+        height: 72px !important;
+        flex-basis: 72px !important;
+        font-size: 0.92rem !important;
+      }
+
+      .map-detail-panel .detail-profile-copy {
+        min-width: 0 !important;
+        width: 100% !important;
+      }
+
+      .map-detail-panel .detail-profile-copy h3 {
+        font-size: 1.18rem !important;
+        line-height: 1.16 !important;
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+        hyphens: auto;
+      }
+
+      .map-detail-panel .detail-profile-role,
+      .map-detail-panel .detail-profile-subline {
+        max-width: 100% !important;
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+        hyphens: auto;
+      }
+
+      .map-detail-panel .detail-profile-role {
+        font-size: 0.9rem !important;
+        line-height: 1.25 !important;
+      }
+
+      .map-detail-panel .detail-profile-meta {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      .map-detail-panel .detail-meta-control {
+        width: 100% !important;
+      }
+
+      .map-detail-panel .detail-tabs {
+        margin-inline: -2px;
       }
 
       .panel,
