@@ -8,9 +8,9 @@
     <meta name="apple-mobile-web-app-title" content="Kompass" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="manifest" href="./public/manifest.webmanifest" />
-    <link rel="apple-touch-icon" sizes="180x180" href="./public/app-icon-180.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="./public/app-icon-32.png" />
+    <link rel="manifest" href="../public/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../public/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../public/app-icon-32.png" />
     <script src="./auth-config.js"></script>
     <script src="./auth-guard.js"></script>
     <link
@@ -16696,7 +16696,7 @@
                   </div>
                   <div id="gap-analysis"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--quality-link dashboard-card--subtle">
+                <article class="dashboard-card dashboard-card--quality-link dashboard-card--subtle" id="analytics-quality-card">
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Datenqualität</h4>
@@ -18394,6 +18394,7 @@
       const coverageMap = document.getElementById("coverage-map");
       const gapAnalysis = document.getElementById("gap-analysis");
       const topRegions = document.getElementById("top-regions");
+      const analyticsQualityCard = document.getElementById("analytics-quality-card");
       const analyticsQualitySummary = document.getElementById("analytics-quality-summary");
       const qualityChart = document.getElementById("quality-chart");
       const careQueueCard = document.getElementById("care-queue-card");
@@ -18673,6 +18674,7 @@
         setRoleElementVisible(sidebarSettingsButton, canAdministerData());
         setRoleElementVisible(sidebarAboutButton, canAdministerData());
         setRoleElementVisible(accountQualityButton, canAdministerData());
+        setRoleElementVisible(analyticsQualityCard, canAdministerData());
         setRoleElementVisible(careQueueCard, true);
         permissionBanner?.classList.remove("is-visible");
         if (permissionBannerText) permissionBannerText.textContent = "";
@@ -26127,6 +26129,13 @@
       }
 
       function renderQualitySummary(items) {
+        if (!canAdministerData()) {
+          if (analyticsQualityCard) setRoleElementVisible(analyticsQualityCard, false);
+          if (analyticsQualitySummary) analyticsQualitySummary.innerHTML = "";
+          if (qualityChart) qualityChart.innerHTML = "";
+          return;
+        }
+        if (analyticsQualityCard) setRoleElementVisible(analyticsQualityCard, true);
         const total = items.length;
         const activeItems = contacts.filter((contact) => contact.status !== "archived");
         const duplicateItems = duplicateSuspects(activeItems);
