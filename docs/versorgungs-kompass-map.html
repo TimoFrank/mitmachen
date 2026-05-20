@@ -555,13 +555,31 @@
       grid-template-rows: auto auto minmax(0, 1fr);
     }
     .panel .hdr {
-      display:flex; justify-content: space-between; align-items:center; gap: 8px;
-      padding: 14px 14px 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 10px 14px 4px;
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: rgba(27,95,125,0.78);
+    }
+    .panel-title {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .panel-count {
+      color: rgba(0,0,0,0.58);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: none;
+      white-space: nowrap;
     }
     .map-list-toggle {
       width: 32px;
@@ -608,7 +626,7 @@
     .mobile-map-preview {
       display: none;
     }
-    .panel .body { padding: 8px 14px 14px 14px; }
+    .panel .body { padding: 2px 14px 10px 14px; }
     .muted { color: rgba(0,0,0,0.55); font-weight: 500; }
 
     input[type="search"]{
@@ -621,10 +639,10 @@
     }
 
     .filters {
-      margin-top: 14px;
+      margin-top: 4px;
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      gap: 12px;
+      gap: 10px;
     }
     .map-filter-row {
       display: grid;
@@ -634,7 +652,7 @@
     .map-filter-dropdown-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
+      gap: 7px;
       align-items: end;
     }
     .map-filter-row--sectors {
@@ -642,6 +660,7 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 6px;
+      margin-bottom: 2px;
     }
     .map-filter-label {
       width: 100%;
@@ -2649,8 +2668,8 @@
       <aside class="sidebar">
         <div class="panel">
           <div class="hdr">
-            <div>Versorgungs-Kontakte</div>
-            <div class="muted"><span id="count"></span></div>
+            <div class="panel-title">Kontakte</div>
+            <div class="panel-count"><span id="count"></span></div>
             <button class="map-list-toggle" id="map-list-toggle" type="button" aria-label="Kontaktliste einklappen" aria-expanded="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m15 18-6-6 6-6"></path>
@@ -2778,11 +2797,14 @@
 <script src="./deutschlandkarte-project/data/city-labels.js"></script>
 <script src="./deutschlandkarte-project/data/state-labels.js"></script>
 <script src="./deutschlandkarte-project/data/state-polygons.js"></script>
+<script src="./data/supabase-config.js"></script>
+<script src="./data/demo-data.js"></script>
 <script src="./data/versorgungs-kompass-data.js"></script>
 
 <script>
   function loadCompassContacts() {
-    const seedContacts = window.VERSORGUNGS_COMPASS_CONTACTS || [];
+    const demoContacts = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo" ? window.VERSORGUNGS_COMPASS_DEMO_DATA?.contacts || [] : [];
+    const seedContacts = demoContacts.length ? demoContacts : window.VERSORGUNGS_COMPASS_CONTACTS || [];
     try {
       const raw = window.localStorage.getItem("versorgungs-kompass-contacts-v7");
       if (raw) {
