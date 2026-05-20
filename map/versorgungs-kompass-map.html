@@ -3844,9 +3844,12 @@
 
   function openEntryDetail(entry){
     if (!entry) return;
-    if (window.parent && window.parent !== window) {
+    if (EMBED_MODE && window.parent && window.parent !== window) {
       window.parent.postMessage({ type: "versorgungs-kompass-open-detail", id: entry.id }, "*");
+      renderMapDetail(null);
+      return;
     }
+    renderMapDetail(entry);
   }
 
   function entryLocation(entry){
@@ -4576,6 +4579,14 @@
     if (fitState && !isMobileLayout() && d.state) {
       fitMapToState(d.state);
     }
+    if (EMBED_MODE) {
+      renderMobilePreview(null);
+      renderMapDetail(null);
+      openEntryDetail(d);
+      renderList(entries);
+      updateMapResetButton();
+      return;
+    }
     if (isMobileLayout()) {
       renderMobilePreview(null);
       renderMapDetail(d);
@@ -4640,6 +4651,14 @@
       item.addEventListener('click', () => {
         activeMapContactId = d.id;
         mapMovedForActiveContact = false;
+        if (EMBED_MODE) {
+          renderMobilePreview(null);
+          renderMapDetail(null);
+          openEntryDetail(d);
+          renderList(entries);
+          updateMapResetButton();
+          return;
+        }
         if (isMobileLayout()) {
           renderMobilePreview(null);
           renderMapDetail(d);
@@ -4744,7 +4763,10 @@
     renderMapActiveFilters();
 
     const activePreview = filtered.find((entry) => entry.id === mobilePreviewContactId) || filtered.find((entry) => entry.id === activeMapContactId);
-    if (isMobileLayout()) {
+    if (EMBED_MODE) {
+      renderMobilePreview(null);
+      renderMapDetail(null);
+    } else if (isMobileLayout()) {
       renderMobilePreview(null);
       if (activePreview) renderMapDetail(activePreview);
     } else {
