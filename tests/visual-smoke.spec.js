@@ -153,13 +153,15 @@ test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page },
   await expect(page.locator('[data-settings-tab="registrations"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#registrations-section")).toBeVisible();
   await expect(page.locator("#registrations-list .registration-row").first()).toBeVisible();
-  await expect(page.locator('[data-registration-action="accept"]').first()).toBeVisible();
+  await expect(page.locator("#registrations-list [data-registration-preview]").first()).toBeVisible();
   await expect(page.locator("#registrations-reset-demo")).toBeVisible();
   await page.locator("[data-registration-preview]").first().click();
   await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   await expect(page.locator(".detail-panel--registration")).toBeVisible();
-  await expect(page.locator(".detail-section-title", { hasText: "Kontaktvorschau" })).toBeVisible();
-  await expect(page.locator(".detail-section-title", { hasText: "Originalmeldung" })).toBeVisible();
+  await expect(page.locator('[data-registration-detail-tab="contact"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".detail-section-title", { hasText: "Kontakt" })).toBeVisible();
+  await page.locator('[data-registration-detail-tab="notes"]').click();
+  await expect(page.locator(".detail-section-title", { hasText: "Notizen" })).toBeVisible();
 
   await attachScreenshot(page, testInfo, "registrierungen");
 });
@@ -187,9 +189,10 @@ test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ pa
   await expect(page.locator("#registrations-list")).toContainText("Pflegezentrum Beispielstadt");
   await page.locator("[data-registration-preview]").first().click();
   await expect(page.locator(".detail-panel--registration")).toBeVisible();
-  await expect(page.locator(".detail-section-title", { hasText: "Datenschutz & Prüfung" })).toBeVisible();
-  await expect(page.locator(".detail-panel--registration")).toContainText("DSGVO bereit zur Prüfung");
   await expect(page.locator(".detail-panel--registration")).toContainText("60311");
+  await page.locator('[data-registration-detail-tab="privacy"]').click();
+  await expect(page.locator(".detail-section-title", { hasText: "Datenschutz" })).toBeVisible();
+  await expect(page.locator(".detail-panel--registration")).toContainText("DSGVO bereit zur Prüfung");
   await expect(page.locator(".detail-panel--registration")).toContainText("Nicht erteilt");
 
   await attachScreenshot(page, testInfo, "public-registration-import");
@@ -228,7 +231,9 @@ test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page })
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
 
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
-  await page.locator('[data-registration-action="defer"]').first().click();
+  await page.locator("[data-registration-preview]").first().click();
+  await expect(page.locator(".detail-panel--registration")).toBeVisible();
+  await page.locator('.detail-panel--registration [data-registration-action="defer"]').click();
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
   await page.locator("#registrations-reset-demo").click();
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);

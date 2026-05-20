@@ -12093,7 +12093,7 @@
       .registration-table-head,
       .registration-row {
         display: grid;
-        grid-template-columns: minmax(260px, 1.45fr) minmax(245px, 1.25fr) minmax(155px, 0.75fr) minmax(190px, 0.9fr) minmax(210px, auto);
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.35fr) minmax(78px, 0.65fr) minmax(0, 1fr) minmax(76px, auto);
         align-items: center;
       }
 
@@ -12113,7 +12113,7 @@
         min-height: 100%;
         display: flex;
         align-items: center;
-        padding: 10px 14px;
+        padding: 10px;
         border-right: 1px solid var(--border);
       }
 
@@ -12123,7 +12123,7 @@
       }
 
       .registration-row {
-        min-height: 74px;
+        min-height: 62px;
         border-bottom: 1px solid var(--border);
         color: var(--text-primary);
       }
@@ -12153,6 +12153,7 @@
       .registration-row__main,
       .registration-row__meta,
       .registration-row__location,
+      .registration-row__sector,
       .registration-row__status {
         min-width: 0;
         display: grid;
@@ -12205,16 +12206,16 @@
       }
 
       .registration-row > .registration-row__actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        display: flex;
         gap: 6px;
+        justify-content: flex-end;
       }
 
       .registration-row__actions .import-row-action {
-        width: 100%;
+        width: auto;
         min-width: auto;
         min-height: 32px;
-        padding: 6px 8px;
+        padding: 6px 9px;
         font-size: var(--font-size-xs);
         white-space: nowrap;
       }
@@ -12229,12 +12230,8 @@
         color: var(--danger);
       }
 
-      .detail-panel--registration .detail-tabs {
-        display: none;
-      }
-
       .detail-panel--registration {
-        width: min(560px, 100vw);
+        width: min(520px, 100vw);
       }
 
       .detail-panel--registration .detail-content {
@@ -18824,6 +18821,7 @@
       let formats = [];
       let backendRegistrations = [];
       let activeRegistrationId = null;
+      let registrationDetailTab = "contact";
       let registrationsLoaded = false;
       let registrationsLoading = false;
       let lastRegistrationsRefreshAt = 0;
@@ -19310,18 +19308,16 @@
               <div class="registration-table-head" aria-hidden="true">
                 <div>Kontakt</div>
                 <div>Einrichtung</div>
+                <div>Sektor</div>
                 <div>Standort</div>
-                <div>Eingang</div>
                 <div>Aktionen</div>
               </div>
               ${rows.map((registration) => {
               const name = registrationDisplayName(registration);
-              const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "Zeitpunkt offen";
               const location = registrationLocationLabel(registration);
               const postalCode = registrationPostalCode(registration);
-              const contactLine = [registration.role, registration.email].filter(Boolean).join(" · ") || "Kontaktangaben offen";
-              const organizationLine = [registration.sector, registration.duplicateHint || registration.duplicate_hint].filter(Boolean).join(" · ") || "Einordnung offen";
-              const locationLine = location || postalCode || "Standort offen";
+              const sectorLine = registration.sector || "Offen";
+              const locationLine = location || postalCode || "Offen";
               const avatarMarkup = `<span class="avatar avatar-fallback avatar-sm avatar--network" aria-hidden="true">${escapeHtml(initialsFromLabel(name))}</span>`;
               return `
                 <article class="registration-row" data-registration-id="${escapeHtml(registration.id)}">
@@ -19329,27 +19325,19 @@
                     ${avatarMarkup}
                     <div class="registration-row__identity">
                       <strong>${escapeHtml(name)}</strong>
-                      <span>${escapeHtml(contactLine)}</span>
                     </div>
                   </div>
                   <div class="registration-row__meta">
                     <strong>${escapeHtml(registration.organization || "Einrichtung offen")}</strong>
-                    <span>${escapeHtml(organizationLine)}</span>
+                  </div>
+                  <div class="registration-row__sector">
+                    <span>${escapeHtml(sectorLine)}</span>
                   </div>
                   <div class="registration-row__location">
                     <strong>${escapeHtml(locationLine)}</strong>
-                    <span>${escapeHtml(postalCode ? "PLZ vorhanden" : "PLZ offen")}</span>
-                  </div>
-                  <div class="registration-row__status">
-                    <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
-                    <small>${escapeHtml(registrationPrivacyLabel(registration.privacyCheckStatus || registration.privacy_check_status))}</small>
-                    <small>${escapeHtml(submitted)}</small>
                   </div>
                   <div class="registration-row__actions">
-                    <button class="import-row-action registration-action--primary" type="button" data-registration-action="accept" data-registration-id="${escapeHtml(registration.id)}">Übernehmen</button>
-                    <button class="import-row-action" type="button" data-registration-action="link" data-registration-id="${escapeHtml(registration.id)}">Verknüpfen</button>
-                    <button class="import-row-action" type="button" data-registration-action="defer" data-registration-id="${escapeHtml(registration.id)}">Zurückstellen</button>
-                    <button class="import-row-action registration-action--danger" type="button" data-registration-action="reject" data-registration-id="${escapeHtml(registration.id)}">Ablehnen</button>
+                    <button class="import-row-action" type="button" data-registration-preview="${escapeHtml(registration.id)}">Prüfen</button>
                   </div>
                 </article>
               `;
@@ -19380,11 +19368,85 @@
         const postalCode = registrationPostalCode(registration);
         const privacyStatus = registration.privacyCheckStatus || registration.privacy_check_status || "";
         const ownerLabel = ownerDisplayLabel(previewContact.owner || previewContact.ownerId);
+        if (activeRegistrationId !== registration.id) registrationDetailTab = "contact";
         activeRegistrationId = registration.id;
         detailEditMode = false;
-        detailActiveTab = "overview";
         detailPanel.classList.remove("detail-panel--organization");
         detailPanel.classList.add("detail-panel--registration");
+        const activeTab = registrationDetailTab || "contact";
+        const registrationTabButton = (tab, label) => {
+          const active = tab === activeTab;
+          return `<button class="detail-tab ${active ? "is-active" : ""}" type="button" data-registration-detail-tab="${escapeHtml(tab)}" aria-selected="${active ? "true" : "false"}">${escapeHtml(label)}</button>`;
+        };
+        const registrationPanelAttrs = (tab) => `class="section-block detail-tab-panel" data-registration-detail-panel="${escapeHtml(tab)}" ${tab === activeTab ? "" : "hidden"}`;
+        const sourceLinkMarkup = sourceUrl
+          ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceUrl)}</a>`
+          : "Nicht hinterlegt";
+        const themes = [...new Set(["Versorgungs-Netzwerk", registration.sector, registration.role].filter(Boolean))];
+        const tabPanels = `
+          <section ${registrationPanelAttrs("contact")} id="registration-contact">
+            <h4 class="detail-section-title">Kontakt</h4>
+            <div class="detail-line-list">
+              ${detailLine("Name", name)}
+              ${detailContactLine("E-Mail", registration.email, registration.email ? `mailto:${registration.email}` : "")}
+              ${detailLine("Rolle", registration.role)}
+              ${detailLine("Einrichtung", registration.organization)}
+              ${detailLine("Sektor", registration.sector)}
+              ${detailLine("PLZ", postalCode)}
+              ${detailLine("Ort", location)}
+              ${detailLine("Owner", ownerLabel || "Nach Übernahme zuweisen")}
+            </div>
+          </section>
+
+          <section ${registrationPanelAttrs("themes")} id="registration-themes">
+            <h4 class="detail-section-title">Themen${themes.length ? ` (${themes.length})` : ""}</h4>
+            <div class="detail-line-list">
+              <div class="detail-theme-viewer">
+                ${themes.map((theme) => `<span class="theme-tag">${escapeHtml(theme)}</span>`).join("") || `<span class="detail-empty-state">Noch keine Themen aus der Registrierung ableitbar.</span>`}
+              </div>
+            </div>
+          </section>
+
+          <section ${registrationPanelAttrs("notes")} id="registration-notes">
+            <h4 class="detail-section-title">Notizen</h4>
+            <div class="detail-line-list">
+              <textarea class="detail-note-input detail-note-input--direct detail-note-input--readonly" readonly disabled>${escapeHtml(registration.message || "Keine Nachricht")}</textarea>
+            </div>
+          </section>
+
+          <section ${registrationPanelAttrs("activity")} id="registration-activity">
+            <div class="detail-info-card history-card">
+              <div class="history-head">
+                <div>
+                  <h4>Verlauf</h4>
+                  <p>Intake-Quelle und Prüfentscheidung.</p>
+                </div>
+              </div>
+              <div class="detail-line-list">
+                ${detailLine("Eingang", submitted)}
+                ${detailLine("Status", registrationStatusLabel(registration.status))}
+                ${detailLine("Formularversion", registration.formVersion || registration.form_version)}
+                ${detailLineHtml("Quellseite", sourceLinkMarkup, { empty: !sourceUrl })}
+                ${detailLine("Registrierung", registration.id)}
+                ${detailLine("Dublettenhinweis", duplicateHint || "Keine Dublettenhinweise", { emptyLabel: "Keine Dublettenhinweise" })}
+                ${detailLine("Nächster Schritt", "Übernehmen legt einen neuen Kontakt an. Verknüpfen schreibt die Meldung an einen bestehenden Kontakt. Zurückstellen oder Ablehnen verändert den Kontaktbestand nicht.")}
+              </div>
+            </div>
+          </section>
+
+          <section ${registrationPanelAttrs("privacy")} id="registration-privacy">
+            <h4 class="detail-section-title">Datenschutz</h4>
+            <div class="detail-line-list">
+              ${detailLine("DSGVO-Status", registrationPrivacyLabel(privacyStatus))}
+              ${detailLine("Pflicht-Einwilligung", processingConsentAccepted)}
+              ${detailLine("Pflicht-Version", processingConsentVersion)}
+              ${detailLine("Optionale Einwilligung", contactConsentAccepted || "Nicht erteilt")}
+              ${detailLine("Optionale Version", contactConsentVersion)}
+              ${detailLine("Zweckbindung", "#Mitmachen / Versorgungs-Netzwerk")}
+            </div>
+            <p class="registration-preview-note">Die Registrierung bleibt Intake-Datensatz, bis sie fachlich übernommen oder mit einem bestehenden Kontakt verbunden wird.</p>
+          </section>
+        `;
 
         detailPanel.innerHTML = `
           <div class="detail-toolbar">
@@ -19412,63 +19474,15 @@
                 </div>
               </section>
 
-              <section class="section-block">
-                <div class="detail-section-head">
-                  <h4 class="detail-section-title">Kontaktvorschau</h4>
-                </div>
-                <div class="registration-preview-card">
-                  ${contactAvatarMarkup(previewContact, "md")}
-                  <div>
-                    <strong>${escapeHtml(previewContact.displayName || previewContact.name)}</strong>
-                    <span>${escapeHtml([previewContact.contactRole, previewContact.organization].filter(Boolean).join(" · ") || "Kontaktrolle nach Prüfung ergänzen")}</span>
-                    <span>${escapeHtml([previewContact.email, previewContact.location, previewContact.state].filter(Boolean).join(" · ") || "Kontaktweg und Standort prüfen")}</span>
-                  </div>
-                </div>
-                <div class="detail-line-list">
-                  ${detailLine("Name", name)}
-                  ${detailLine("E-Mail", registration.email)}
-                  ${detailLine("Einrichtung", registration.organization)}
-                  ${detailLine("Sektor", registration.sector)}
-                  ${detailLine("Rolle", registration.role)}
-                  ${detailLine("Kontaktweg", registration.preferredContact || registration.preferred_contact)}
-                  ${detailLine("PLZ", postalCode)}
-                  ${detailLine("Ort", location)}
-                  ${detailLine("Quelle", "Versorgungs-Netzwerk Registrierung")}
-                </div>
-              </section>
+              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+                ${registrationTabButton("contact", "Kontakt")}
+                ${registrationTabButton("themes", "Themen")}
+                ${registrationTabButton("notes", "Notizen")}
+                ${registrationTabButton("activity", "Aktivitäten")}
+                ${registrationTabButton("privacy", "Datenschutz")}
+              </div>
 
-              <section class="section-block">
-                <div class="detail-section-head">
-                  <h4 class="detail-section-title">Originalmeldung</h4>
-                </div>
-                <p class="registration-preview-message">${escapeHtml(registration.message || "Keine Nachricht")}</p>
-                <div class="detail-line-list">
-                  ${detailLine("Eingang", submitted)}
-                  ${detailLine("Formularversion", registration.formVersion || registration.form_version)}
-                  ${detailLineHtml(
-                    "Quellseite",
-                    sourceUrl ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceUrl)}</a>` : "Nicht hinterlegt",
-                    { empty: !sourceUrl }
-                  )}
-                  ${detailLine("Registrierung", registration.id)}
-                </div>
-              </section>
-
-              <section class="section-block">
-                <div class="detail-section-head">
-                  <h4 class="detail-section-title">Datenschutz & Prüfung</h4>
-                </div>
-                <div class="detail-line-list">
-                  ${detailLine("DSGVO-Status", registrationPrivacyLabel(privacyStatus))}
-                  ${detailLine("Pflicht-Einwilligung", processingConsentAccepted)}
-                  ${detailLine("Pflicht-Version", processingConsentVersion)}
-                  ${detailLine("Optionale Einwilligung", contactConsentAccepted || "Nicht erteilt")}
-                  ${detailLine("Optionale Version", contactConsentVersion)}
-                  ${detailLine("Dublettenhinweis", duplicateHint || "Keine Dublettenhinweise", { emptyLabel: "Keine Dublettenhinweise" })}
-                  ${detailLine("Nächster Schritt", "Übernehmen legt einen neuen aktiven Kontakt an. Verknüpfen ordnet die Registrierung einem bestehenden Kontakt zu. Zurückstellen nimmt sie aus der aktuellen Prüfliste, ohne einen CRM-Kontakt zu verändern.")}
-                </div>
-                <p class="registration-preview-note">Die öffentliche Meldung bleibt Intake-Datensatz, bis sie fachlich übernommen oder mit einem bestehenden Kontakt verbunden wird.</p>
-              </section>
+              ${tabPanels}
 
               <div class="detail-bottom-actions">
                 <button class="action-button action-button--primary" type="button" data-registration-action="accept" data-registration-id="${escapeHtml(registration.id)}">Übernehmen</button>
@@ -19484,6 +19498,12 @@
         detailDrawer.setAttribute("aria-hidden", "false");
         syncBodyScrollLock();
         document.getElementById("registration-detail-close")?.addEventListener("click", closeDetail);
+        detailPanel.querySelectorAll("[data-registration-detail-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            registrationDetailTab = button.dataset.registrationDetailTab || "contact";
+            openRegistrationPreview(registration.id);
+          });
+        });
         detailPanel.querySelectorAll("[data-registration-action]").forEach((button) => {
           button.addEventListener("click", () => handleRegistrationAction(button.dataset.registrationAction, button.dataset.registrationId));
         });
@@ -28202,6 +28222,7 @@
         detailActiveTab = "overview";
         organizationDetailActiveTab = "overview";
         activeRegistrationId = null;
+        registrationDetailTab = "contact";
         detailPanel.classList.remove("detail-panel--organization");
         detailPanel.classList.remove("detail-panel--registration");
         detailDrawer.classList.remove("is-open");
