@@ -25295,7 +25295,7 @@
         `;
       }
 
-      function renderDetailThemeEditor(themeTags) {
+      function detailThemeSuggestions() {
         const preferred = [
           "E-Überweisung",
           "Krankenhausentlassbrief",
@@ -25308,7 +25308,11 @@
           "Prävention",
           "Pflege"
         ];
-        const suggestions = [...new Set([...preferred, ...themeSuggestions()])].slice(0, 18);
+        return [...new Set([...preferred, ...themeSuggestions()])].slice(0, 18);
+      }
+
+      function renderDetailThemeEditor(themeTags) {
+        const suggestions = detailThemeSuggestions();
         const active = new Set(themeTags);
         return `
           <div class="detail-theme-editor">
@@ -25342,6 +25346,32 @@
               <input class="detail-theme-input" id="detail-theme-input" type="text" placeholder="Neues Thema hinzufügen" />
               <button class="action-button" type="button" id="detail-theme-add">Hinzufügen</button>
             </div>
+          </div>
+        `;
+      }
+
+      function renderViewerThemePanel(themeTags) {
+        const suggestions = detailThemeSuggestions();
+        const active = new Set(themeTags);
+        return `
+          <div class="detail-theme-editor">
+            <div class="detail-chip-row">
+              ${
+                themeTags.length
+                  ? themeTags.map((tag) => `<span class="theme-tag theme-tag--preset is-active">${escapeHtml(tag)}</span>`).join("")
+                  : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`
+              }
+            </div>
+            <div class="detail-theme-presets" aria-label="Mögliche Themen">
+              ${suggestions
+                .map((tag) => `<span class="theme-tag theme-tag--preset ${active.has(tag) ? "is-active" : ""}">${escapeHtml(tag)}</span>`)
+                .join("")}
+            </div>
+            <div class="detail-theme-add">
+              <input class="detail-theme-input" type="text" placeholder="Neues Thema hinzufügen" readonly data-viewer-theme-blocked />
+              <button class="action-button" type="button" data-viewer-theme-blocked>Hinzufügen</button>
+            </div>
+            <div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Hinzufügen von Themen"))}</div>
           </div>
         `;
       }
@@ -26854,20 +26884,7 @@
               <section ${detailPanelAttrs("themes", activeTab)} id="detail-themes">
                 <h4 class="detail-section-title">Themen${themeTags.length ? ` (${themeTags.length})` : ""}</h4>
                 <div class="detail-line-list">
-                  ${canEditContacts() ? renderDetailThemeEditor(themeTags) : `
-                    <div class="detail-chip-row">
-                      ${
-                        themeTags.length
-                          ? themeTags.map((tag) => `<button class="theme-tag" type="button" data-viewer-theme-blocked>${escapeHtml(tag)}</button>`).join("")
-                          : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`
-                      }
-                    </div>
-                    <div class="detail-theme-add">
-                      <input class="detail-theme-input" type="text" placeholder="Neues Thema hinzufügen" readonly data-viewer-theme-blocked />
-                      <button class="action-button" type="button" data-viewer-theme-blocked>Hinzufügen</button>
-                    </div>
-                    <div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Bearbeiten von Themen"))}</div>
-                  `}
+                  ${canEditContacts() ? renderDetailThemeEditor(themeTags) : renderViewerThemePanel(themeTags)}
                 </div>
               </section>
 
