@@ -5292,6 +5292,29 @@
         grid-column: span 6;
       }
 
+      .dashboard-card--insight {
+        grid-column: span 8;
+      }
+
+      .dashboard-card--quality-link {
+        grid-column: span 4;
+        padding: 12px;
+      }
+
+      .dashboard-card--quality-link .dashboard-card-head {
+        margin-bottom: 8px;
+      }
+
+      .dashboard-card--quality-link h4 {
+        font-size: 0.9rem;
+      }
+
+      .dashboard-card--quality-link p {
+        margin-top: 3px;
+        font-size: 0.74rem;
+        line-height: 1.3;
+      }
+
       .dashboard-card--care-queue {
         grid-column: span 12;
       }
@@ -5765,6 +5788,16 @@
         font-weight: 950;
       }
 
+      .gap-panel-icon svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
       .gap-panel-icon--blue {
         background: #edf4ff;
         color: #2d66ed;
@@ -5865,7 +5898,7 @@
 
       .analytics-quality-link {
         display: grid;
-        gap: 10px;
+        gap: 8px;
       }
 
       .analytics-quality-link__metric {
@@ -5873,33 +5906,33 @@
         align-items: baseline;
         justify-content: space-between;
         gap: 12px;
-        padding: 10px 12px;
+        padding: 8px 10px;
         border: 1px solid #dfe7ff;
-        border-radius: 12px;
+        border-radius: 10px;
         background: #ffffff;
       }
 
       .analytics-quality-link__metric strong {
         color: #10236e;
-        font-size: 1.15rem;
+        font-size: 1rem;
         font-weight: 950;
         letter-spacing: -0.03em;
       }
 
       .analytics-quality-link__metric span {
         color: #657099;
-        font-size: 0.76rem;
+        font-size: 0.7rem;
         font-weight: 850;
         text-align: right;
       }
 
       .analytics-quality-link__button {
-        min-height: 34px;
+        min-height: 30px;
         border: 1px solid #d6def9;
-        border-radius: 10px;
+        border-radius: 9px;
         background: #ffffff;
         color: #285bd6;
-        font-size: 0.8rem;
+        font-size: 0.74rem;
         font-weight: 900;
         cursor: pointer;
       }
@@ -6159,9 +6192,28 @@
       }
 
       .care-queue-list {
+        position: relative;
         display: grid;
         gap: 7px;
         padding: 0 14px;
+      }
+
+      .care-queue-list--preview {
+        max-height: 102px;
+        overflow: hidden;
+      }
+
+      .care-queue-list--preview::after {
+        content: "";
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        bottom: 0;
+        height: 34px;
+        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.78) 58%, #ffffff 100%);
+        backdrop-filter: blur(2px);
+        pointer-events: none;
       }
 
       .care-queue-contact {
@@ -6178,10 +6230,14 @@
         font-size: 0.78rem;
         font-weight: 750;
         text-align: left;
+        cursor: default;
+      }
+
+      button.care-queue-contact {
         cursor: pointer;
       }
 
-      .care-queue-contact:hover {
+      button.care-queue-contact:hover {
         border-color: #b9c9ff;
         background: #f6f9ff;
       }
@@ -6221,7 +6277,7 @@
 
       .care-queue-edit-row {
         display: grid;
-        grid-template-columns: 28px minmax(130px, 0.7fr) minmax(180px, 1fr);
+        grid-template-columns: 28px minmax(130px, 0.7fr) minmax(180px, 1fr) 34px;
         gap: 8px;
         align-items: center;
         min-height: 42px;
@@ -6271,6 +6327,35 @@
         font-weight: 650;
       }
 
+      .care-queue-confirm {
+        width: 34px;
+        height: 34px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid #bde8ca;
+        border-radius: var(--radius-sm);
+        background: #ecfdf3;
+        color: #15803d;
+        cursor: pointer;
+      }
+
+      .care-queue-confirm:hover,
+      .care-queue-confirm:focus-visible {
+        border-color: #86d39a;
+        background: #dcfce7;
+        outline: none;
+      }
+
+      .care-queue-confirm svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
       @media (max-width: 760px) {
         .care-queue-edit-row {
           grid-template-columns: 28px minmax(0, 1fr);
@@ -6278,8 +6363,13 @@
 
         .care-queue-edit-row .care-queue-field,
         .care-queue-edit-row .care-queue-field-grid,
-        .care-queue-edit-row .care-queue-note {
+        .care-queue-edit-row .care-queue-note,
+        .care-queue-edit-row .care-queue-confirm {
           grid-column: 2;
+        }
+
+        .care-queue-edit-row .care-queue-confirm {
+          width: 100%;
         }
       }
 
@@ -9450,6 +9540,10 @@
 
       .dashboard-card {
         padding: var(--card-padding);
+      }
+
+      .dashboard-card.dashboard-card--quality-link {
+        padding: 12px;
       }
 
       .dashboard-card--subtle,
@@ -16321,7 +16415,7 @@
                   <div class="dashboard-card-head">
                     <div>
                       <h4>Datenqualität</h4>
-                      <p>Kompakter Hinweis. Die vollständige Pflege-Queue liegt unter Einstellungen.</p>
+                      <p>Offene Datenpflege im Blick.</p>
                     </div>
                     <span class="dashboard-info" title="Datenqualität ist als eigener Arbeitsbereich verfügbar">i</span>
                   </div>
@@ -25524,7 +25618,14 @@
         gapAnalysis.innerHTML = `
           <div class="gap-panel">
             <div class="gap-panel-head">
-              <span class="gap-panel-icon" aria-hidden="true">KH</span>
+              <span class="gap-panel-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="4" y="4" width="6" height="6" rx="1.5"></rect>
+                  <rect x="14" y="4" width="6" height="6" rx="1.5"></rect>
+                  <rect x="4" y="14" width="6" height="6" rx="1.5"></rect>
+                  <rect x="14" y="14" width="6" height="6" rx="1.5"></rect>
+                </svg>
+              </span>
               <div>
                 <div class="gap-panel-title">Sektoren</div>
                 <div class="gap-panel-kicker">Niedrigster Anteil</div>
@@ -25649,7 +25750,6 @@
           .slice(0, 3);
         const affectedIds = new Set();
         checks.forEach((check) => check.contacts.forEach((contact) => affectedIds.add(contact.id)));
-        const biggestIssue = visibleChecks[0];
         if (analyticsQualitySummary) {
           analyticsQualitySummary.innerHTML = `
             <div class="analytics-quality-link">
@@ -25668,7 +25768,6 @@
                 <span class="quality-icon">${qualityIconSvg("summary")}</span>
                 <span class="quality-summary-copy">
                   <strong>${affectedIds.size ? `${affectedIds.size} Kontakte brauchen Pflege` : "Alles sieht gut aus"}</strong>
-                  <span>${biggestIssue ? `Größter offener Punkt: ${escapeHtml(biggestIssue.label)}` : "In der aktuellen Auswahl sind keine Datenlücken sichtbar."}</span>
                 </span>
               </div>
             </div>
@@ -25896,19 +25995,19 @@
                       <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="true">Liste schließen</button></div>
                       ${renderCareQueueInlineList(item)}
                     ` : `
-                      <div class="care-queue-list">
+                      <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="false">Liste öffnen</button></div>
+                      <div class="care-queue-list care-queue-list--preview">
                         ${visible
                           .map(
                             (contact) => `
-                              <button class="care-queue-contact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">
+                              <div class="care-queue-contact" aria-hidden="true">
                                 ${contactAvatarMarkup(contact, "sm")}
                                 <span>${escapeHtml(contact.displayName || contact.name)}</span>
-                              </button>
+                              </div>
                             `
                           )
                           .join("")}
                       </div>
-                      <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}" aria-expanded="false">Liste öffnen</button></div>
                     `}
                   </section>
                 `;
@@ -25945,6 +26044,7 @@
             ${contactAvatarMarkup(contact, "sm")}
             <button class="care-queue-edit-name" type="button" data-care-contact="${id}" data-care-archived="${archived}">${name}</button>
             ${field}
+            <button class="care-queue-confirm" type="button" data-care-inline-save="${id}" aria-label="Eingabe bestätigen">${qualityIconSvg("complete")}</button>
           </div>
         `;
       }
@@ -27476,23 +27576,27 @@
         }
         updateView();
       });
-      careQueue?.addEventListener("click", (event) => {
+      careQueue?.addEventListener("click", async (event) => {
         const openButton = event.target.closest("[data-care-open]");
         if (openButton) {
           activeCareQueueKey = activeCareQueueKey === openButton.dataset.careOpen ? "" : openButton.dataset.careOpen;
           renderCareQueue(filteredContacts());
           return;
         }
+        const saveButton = event.target.closest("[data-care-inline-save]");
+        if (saveButton) {
+          const row = saveButton.closest(".care-queue-edit-row");
+          const fields = [...(row?.querySelectorAll("[data-care-inline-field]") || [])];
+          for (const field of fields) {
+            await updateContactField(saveButton.dataset.careInlineSave, field.dataset.careInlineField, field.value, { silent: true });
+          }
+          setStorageStatus("Kontakt aktualisiert");
+          updateView();
+          return;
+        }
         const button = event.target.closest("[data-care-contact]");
         if (!button) return;
         openCareQueueContact(button.dataset.careContact, button.dataset.careArchived === "true");
-      });
-      careQueue?.addEventListener("change", async (event) => {
-        const field = event.target.closest("[data-care-inline-field]");
-        if (!field) return;
-        await updateContactField(field.dataset.careInlineContact, field.dataset.careInlineField, field.value, { silent: true });
-        setStorageStatus("Kontakt aktualisiert");
-        updateView();
       });
       careWorkbench?.addEventListener("click", async (event) => {
         if (event.target.closest("#care-workbench-close")) {
