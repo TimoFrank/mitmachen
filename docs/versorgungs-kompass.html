@@ -6047,7 +6047,7 @@
 
       .care-queue-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: 10px;
       }
 
@@ -7821,9 +7821,6 @@
           grid-column: span 6;
         }
 
-        .care-queue-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
       }
 
       @media (min-width: 761px) and (max-width: 1180px) {
