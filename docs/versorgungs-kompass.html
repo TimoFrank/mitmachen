@@ -11623,10 +11623,114 @@
       .settings-tab-panel {
         display: grid;
         gap: 14px;
+        min-width: 0;
       }
 
       .settings-tab-panel[hidden] {
         display: none;
+      }
+
+      .settings-tab-panel .imports-workspace {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .settings-tab-panel .import-start-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .settings-tab-panel .import-start-grid .import-format-card {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+        align-items: start;
+        justify-items: start;
+        gap: 8px 14px;
+        padding: 16px;
+        text-align: left;
+      }
+
+      .settings-tab-panel .import-start-grid .import-start-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        width: 52px;
+        height: 52px;
+      }
+
+      .settings-tab-panel .import-start-grid h3,
+      .settings-tab-panel .import-start-grid p {
+        grid-column: 2;
+        min-width: 0;
+      }
+
+      .settings-tab-panel .import-start-grid h3 {
+        overflow-wrap: anywhere;
+      }
+
+      .settings-tab-panel .import-start-grid p {
+        min-height: 0;
+      }
+
+      .settings-tab-panel .import-start-grid .action-button {
+        grid-column: 2;
+        justify-self: start;
+        max-width: 100%;
+        white-space: normal;
+      }
+
+      .settings-tab-panel .imports-history-card {
+        width: min(100%, 620px);
+        max-width: none;
+        min-width: 0;
+      }
+
+      .settings-tab-panel .imports-history-row {
+        grid-template-columns: minmax(0, 1.15fr) minmax(72px, 0.55fr) minmax(90px, 0.7fr) auto;
+        align-items: center;
+      }
+
+      .settings-tab-panel .imports-history-row span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 760px) {
+        .settings-tab-button {
+          padding-inline: 8px;
+          font-size: var(--font-size-xs);
+        }
+
+        .settings-tab-panel .import-start-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .settings-tab-panel .import-start-grid .import-format-card {
+          grid-template-columns: 48px minmax(0, 1fr);
+          padding: 14px;
+        }
+
+        .settings-tab-panel .import-start-grid .import-start-icon {
+          width: 48px;
+          height: 48px;
+        }
+
+        .settings-tab-panel .import-start-grid .action-button,
+        .settings-tab-panel .imports-history-row .import-row-action {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .settings-tab-panel .imports-history-row {
+          grid-template-columns: 1fr;
+          gap: 8px;
+          align-items: stretch;
+        }
       }
 
       .about-workspace {
