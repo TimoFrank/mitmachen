@@ -130,6 +130,11 @@ test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page },
   await expect(page.locator("#registrations-list .registration-row").first()).toBeVisible();
   await expect(page.locator('[data-registration-action="accept"]').first()).toBeVisible();
   await expect(page.locator("#registrations-reset-demo")).toBeVisible();
+  await page.locator("[data-registration-preview]").first().click();
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await expect(page.locator(".detail-panel--registration")).toBeVisible();
+  await expect(page.locator(".detail-section-title", { hasText: "Kontaktvorschau" })).toBeVisible();
+  await expect(page.locator(".detail-section-title", { hasText: "Originalmeldung" })).toBeVisible();
 
   await attachScreenshot(page, testInfo, "registrierungen");
 });

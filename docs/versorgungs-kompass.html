@@ -12092,15 +12092,35 @@
 
       .registration-row {
         display: grid;
-        grid-template-columns: minmax(190px, 1fr) minmax(220px, 1fr) minmax(260px, 1.25fr) auto;
-        gap: 10px 14px;
-        align-items: center;
+        gap: 8px;
         min-height: 70px;
-        padding: 10px 12px;
+        padding: 8px;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         background: var(--surface);
         color: var(--text-primary);
+      }
+
+      .registration-row:hover,
+      .registration-row:focus-within {
+        border-color: var(--border-strong);
+        background: var(--surface-muted);
+      }
+
+      .registration-row__preview {
+        display: grid;
+        grid-template-columns: minmax(170px, 1fr) minmax(210px, 1fr) minmax(260px, 1.35fr) minmax(110px, auto);
+        gap: 8px 14px;
+        align-items: center;
+        min-width: 0;
+        padding: 4px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+      }
+
+      .registration-row__preview:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
       }
 
       .registration-row__main,
@@ -12120,6 +12140,14 @@
         line-height: var(--line-height-tight);
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .registration-row .registration-row__label {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        line-height: 1.1;
+        text-transform: uppercase;
       }
 
       .registration-row span,
@@ -12156,12 +12184,12 @@
       }
 
       .registration-row__actions {
-        grid-column: 1 / -1;
         display: flex;
         align-items: center;
         justify-content: flex-start;
         gap: 6px;
         flex-wrap: wrap;
+        padding: 0 4px 2px;
       }
 
       .registration-row__actions .import-row-action {
@@ -12181,6 +12209,27 @@
 
       .registration-row__actions .registration-action--danger {
         color: var(--danger);
+      }
+
+      .detail-panel--registration .detail-tabs {
+        display: none;
+      }
+
+      .registration-preview-message {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 700;
+        line-height: var(--line-height-normal);
+        white-space: pre-wrap;
+      }
+
+      .registration-preview-note {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 650;
+        line-height: var(--line-height-normal);
       }
 
       .settings-workspace {
@@ -12975,6 +13024,10 @@
         }
 
         .registration-row {
+          grid-template-columns: 1fr;
+        }
+
+        .registration-row__preview {
           grid-template-columns: 1fr;
         }
 
@@ -18698,6 +18751,7 @@
       let selectedOrganizationContactRanges = [];
       let formats = [];
       let backendRegistrations = [];
+      let activeRegistrationId = null;
       let registrationsLoaded = false;
       let registrationsLoading = false;
       let activeFormatId = null;
@@ -19070,6 +19124,16 @@
         }, contacts.length);
       }
 
+      function registrationLocationLabel(registration) {
+        return [registration.city, registration.federalState || registration.federal_state].filter(Boolean).join(", ");
+      }
+
+      function registrationRowLabel(registration) {
+        const name = registrationDisplayName(registration);
+        const organization = registration.organization ? ` bei ${registration.organization}` : "";
+        return `Registrierung von ${name}${organization} öffnen`;
+      }
+
       async function loadRegistrations({ scroll = false } = {}) {
         if (!canAdministerData()) {
           showPermissionDenied("Nur Admins dürfen Registrierungen aus dem gematik Backend prüfen.");
@@ -19110,6 +19174,7 @@
         backendRegistrations = window.dataService.resetLocalBackendRegistrations();
         registrationsLoaded = true;
         registrationsLoading = false;
+        if (activeRegistrationId) closeDetail();
         renderRegistrations();
         setStorageStatus("Demo-Registrierungen zurückgesetzt");
       }
@@ -19133,24 +19198,31 @@
         registrationsList.innerHTML = rows.length
           ? rows.map((registration) => {
               const name = registrationDisplayName(registration);
-              const meta = [registration.organization, registration.sector, registration.city || registration.federalState].filter(Boolean).join(" · ");
               const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "Zeitpunkt offen";
+              const location = registrationLocationLabel(registration);
               return `
                 <article class="registration-row" data-registration-id="${escapeHtml(registration.id)}">
-                  <div class="registration-row__main">
-                    <strong>${escapeHtml(name)}</strong>
-                    <span>${escapeHtml(registration.email || "E-Mail offen")}</span>
-                  </div>
-                  <div class="registration-row__meta">
-                    <span>${escapeHtml(meta || "Einordnung offen")}</span>
-                    ${registration.duplicateHint ? `<small>${escapeHtml(registration.duplicateHint)}</small>` : ""}
-                  </div>
-                  <div class="registration-row__message">
-                    <span>${escapeHtml(registration.message || "Keine Nachricht")}</span>
-                    <small>${escapeHtml(submitted)}</small>
-                  </div>
-                  <div class="registration-row__status">
-                    <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
+                  <div class="registration-row__preview" data-registration-preview="${escapeHtml(registration.id)}" tabindex="0" role="button" aria-label="${escapeHtml(registrationRowLabel(registration))}">
+                    <div class="registration-row__main">
+                      <span class="registration-row__label">Kontakt</span>
+                      <strong>${escapeHtml(name)}</strong>
+                      <span>${escapeHtml(registration.email || "E-Mail offen")}</span>
+                    </div>
+                    <div class="registration-row__meta">
+                      <span class="registration-row__label">Einrichtung</span>
+                      <strong>${escapeHtml(registration.organization || "Einrichtung offen")}</strong>
+                      <span>${escapeHtml([registration.sector, location].filter(Boolean).join(" · ") || "Einordnung offen")}</span>
+                      ${registration.duplicateHint ? `<small>${escapeHtml(registration.duplicateHint)}</small>` : ""}
+                    </div>
+                    <div class="registration-row__message">
+                      <span class="registration-row__label">Meldung</span>
+                      <span>${escapeHtml(registration.message || "Keine Nachricht")}</span>
+                      <small>${escapeHtml(submitted)}</small>
+                    </div>
+                    <div class="registration-row__status">
+                      <span class="registration-row__label">Status</span>
+                      <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
+                    </div>
                   </div>
                   <div class="registration-row__actions">
                     <button class="import-row-action registration-action--primary" type="button" data-registration-action="accept" data-registration-id="${escapeHtml(registration.id)}">Übernehmen</button>
@@ -19167,6 +19239,115 @@
       function updateRegistrationInList(updated) {
         backendRegistrations = backendRegistrations.map((registration) => (registration.id === updated.id ? updated : registration));
         renderRegistrations();
+      }
+
+      function openRegistrationPreview(registrationId) {
+        const registration = backendRegistrations.find((item) => item.id === registrationId);
+        if (!registration) return;
+
+        const previewContact = registrationToContact(registration);
+        const name = registrationDisplayName(registration);
+        const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "Zeitpunkt offen";
+        const consentAccepted = formatDateTimeLabel(registration.consentAcceptedAt || registration.consent_accepted_at) || "";
+        const consentVersion = registration.consentTextVersion || registration.consent_text_version || "";
+        const sourceUrl = registration.sourceUrl || registration.source_url || "";
+        const duplicateHint = registration.duplicateHint || registration.duplicate_hint || "";
+        const location = registrationLocationLabel(registration);
+        const ownerLabel = ownerDisplayLabel(previewContact.owner || previewContact.ownerId);
+        activeRegistrationId = registration.id;
+        detailEditMode = false;
+        detailActiveTab = "overview";
+        detailPanel.classList.remove("detail-panel--organization");
+        detailPanel.classList.add("detail-panel--registration");
+
+        detailPanel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">Registrierung aus dem Versorgungs-Netzwerk</div>
+            <div class="detail-toolbar-actions">
+              <button class="detail-close" type="button" id="registration-detail-close" aria-label="Details schlie&szlig;en">&times;</button>
+            </div>
+          </div>
+          <div class="detail-content">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${contactAvatarMarkup(previewContact, "lg")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(registration.organization || "Organisation nicht dokumentiert")}</div>
+                    ${registration.role ? `<div class="detail-profile-subline">${escapeHtml(registration.role)}</div>` : ""}
+                    <div class="detail-profile-status"><span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span></div>
+                  </div>
+                </div>
+                <div class="detail-profile-meta">
+                  <span class="owner-badge owner-badge--empty">
+                    <span class="owner-badge__label">${escapeHtml(ownerLabel || "Owner nach Übernahme")}</span>
+                  </span>
+                </div>
+              </section>
+
+              <section class="section-block">
+                <div class="detail-section-head">
+                  <h4 class="detail-section-title">Kontaktvorschau</h4>
+                </div>
+                <div class="detail-line-list">
+                  ${detailLine("Name", name)}
+                  ${detailLine("E-Mail", registration.email)}
+                  ${detailLine("Einrichtung", registration.organization)}
+                  ${detailLine("Sektor", registration.sector)}
+                  ${detailLine("Rolle", registration.role)}
+                  ${detailLine("Ort", location)}
+                  ${detailLine("Quelle", "Versorgungs-Netzwerk Registrierung")}
+                </div>
+              </section>
+
+              <section class="section-block">
+                <div class="detail-section-head">
+                  <h4 class="detail-section-title">Originalmeldung</h4>
+                </div>
+                <p class="registration-preview-message">${escapeHtml(registration.message || "Keine Nachricht")}</p>
+                <div class="detail-line-list">
+                  ${detailLine("Eingang", submitted)}
+                  ${detailLine("Formularversion", registration.formVersion || registration.form_version)}
+                  ${detailLine("Einwilligung", consentAccepted)}
+                  ${detailLine("Consent-Version", consentVersion)}
+                  ${detailLineHtml(
+                    "Quellseite",
+                    sourceUrl ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceUrl)}</a>` : "Nicht hinterlegt",
+                    { empty: !sourceUrl }
+                  )}
+                  ${detailLine("Registrierung", registration.id)}
+                </div>
+              </section>
+
+              <section class="section-block">
+                <div class="detail-section-head">
+                  <h4 class="detail-section-title">Prüfung</h4>
+                </div>
+                <div class="detail-line-list">
+                  ${detailLine("Dublettenhinweis", duplicateHint || "Keine Dublettenhinweise", { emptyLabel: "Keine Dublettenhinweise" })}
+                  ${detailLine("Nächster Schritt", "Übernehmen legt einen neuen aktiven Kontakt an. Verknüpfen ordnet die Registrierung einem bestehenden Kontakt zu. Zurückstellen nimmt sie aus der aktuellen Prüfliste, ohne einen CRM-Kontakt zu verändern.")}
+                </div>
+                <p class="registration-preview-note">Die öffentliche Meldung bleibt Intake-Datensatz, bis sie fachlich übernommen oder mit einem bestehenden Kontakt verbunden wird.</p>
+              </section>
+
+              <div class="detail-bottom-actions">
+                <button class="action-button action-button--primary" type="button" data-registration-action="accept" data-registration-id="${escapeHtml(registration.id)}">Übernehmen</button>
+                <button class="action-button" type="button" data-registration-action="link" data-registration-id="${escapeHtml(registration.id)}">Verknüpfen</button>
+                <button class="action-button" type="button" data-registration-action="defer" data-registration-id="${escapeHtml(registration.id)}">Zurückstellen</button>
+                <button class="action-button action-button--danger" type="button" data-registration-action="reject" data-registration-id="${escapeHtml(registration.id)}">Ablehnen</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        document.getElementById("registration-detail-close")?.addEventListener("click", closeDetail);
+        detailPanel.querySelectorAll("[data-registration-action]").forEach((button) => {
+          button.addEventListener("click", () => handleRegistrationAction(button.dataset.registrationAction, button.dataset.registrationId));
+        });
       }
 
       async function setRegistrationStatus(registration, status, extra = {}) {
@@ -19261,10 +19442,12 @@
         if (action === "defer") {
           await setRegistrationStatus(registration, "zurueckgestellt");
           setStorageStatus("Registrierung zurückgestellt");
+          if (activeRegistrationId === registration.id) closeDetail();
         }
         if (action === "reject" && window.confirm("Registrierung ablehnen? Es wird kein aktiver Kontakt angelegt.")) {
           await setRegistrationStatus(registration, "abgelehnt");
           setStorageStatus("Registrierung abgelehnt");
+          if (activeRegistrationId === registration.id) closeDetail();
         }
       }
 
@@ -27589,6 +27772,7 @@
         activeId = contact.id;
         renderTable(currentItems);
         detailPanel.classList.remove("detail-panel--organization");
+        detailPanel.classList.remove("detail-panel--registration");
 
         const currentIndex = currentItems.findIndex((item) => item.id === contact.id);
 
@@ -27838,7 +28022,9 @@
         detailEditMode = false;
         detailActiveTab = "overview";
         organizationDetailActiveTab = "overview";
+        activeRegistrationId = null;
         detailPanel.classList.remove("detail-panel--organization");
+        detailPanel.classList.remove("detail-panel--registration");
         detailDrawer.classList.remove("is-open");
         detailDrawer.setAttribute("aria-hidden", "true");
         syncBodyScrollLock();
@@ -28657,8 +28843,19 @@
       });
       registrationsList?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-registration-action]");
-        if (!button) return;
-        handleRegistrationAction(button.dataset.registrationAction, button.dataset.registrationId);
+        if (button) {
+          handleRegistrationAction(button.dataset.registrationAction, button.dataset.registrationId);
+          return;
+        }
+        const preview = event.target.closest("[data-registration-preview]");
+        if (preview) openRegistrationPreview(preview.dataset.registrationPreview);
+      });
+      registrationsList?.addEventListener("keydown", (event) => {
+        if (!["Enter", " "].includes(event.key)) return;
+        const preview = event.target.closest("[data-registration-preview]");
+        if (!preview) return;
+        event.preventDefault();
+        openRegistrationPreview(preview.dataset.registrationPreview);
       });
       importsShowHistoryButton?.addEventListener("click", () => {
         if (importsHistorySection) {
