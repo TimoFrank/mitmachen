@@ -9,7 +9,10 @@
     <style>
       :root {
         --primary: #155fe4;
+        --primary-hover: #0d4fc4;
         --primary-soft: #eaf1ff;
+        --accent: #e60028;
+        --accent-soft: #fff1f3;
         --text-primary: #10245c;
         --text-secondary: #53627d;
         --text-muted: #72809a;
@@ -21,7 +24,8 @@
         --success: #177245;
         --radius-sm: 6px;
         --radius-md: 8px;
-        --shadow-sm: 0 6px 18px rgba(16, 36, 92, 0.08);
+        --shadow-sm: 0 1px 3px rgba(16, 36, 92, 0.08);
+        --shadow-md: 0 14px 36px rgba(16, 36, 92, 0.12);
         font-family: Inter, "Segoe UI", Arial, sans-serif;
       }
 
@@ -31,7 +35,7 @@
 
       body {
         margin: 0;
-        background: var(--surface-muted);
+        background: #f7f9fd;
         color: var(--text-primary);
       }
 
@@ -47,11 +51,14 @@
       .site-header {
         border-bottom: 1px solid var(--border);
         background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 10;
       }
 
       .site-header__inner,
       .page-shell {
-        width: min(1120px, calc(100% - 32px));
+        width: min(1180px, calc(100% - 32px));
         margin: 0 auto;
       }
 
@@ -86,15 +93,16 @@
 
       .page-shell {
         display: grid;
-        grid-template-columns: minmax(0, 0.88fr) minmax(360px, 1.12fr);
-        gap: 24px;
-        padding: 34px 0 48px;
+        grid-template-columns: minmax(0, 0.92fr) minmax(420px, 1.08fr);
+        gap: 28px;
+        padding: 38px 0 56px;
         align-items: start;
       }
 
       .intro {
         display: grid;
-        gap: 18px;
+        gap: 20px;
+        min-width: 0;
       }
 
       .breadcrumb {
@@ -112,16 +120,48 @@
 
       h1 {
         max-width: 680px;
-        font-size: clamp(2rem, 4vw, 3.7rem);
-        line-height: 0.98;
+        font-size: clamp(2.15rem, 4.2vw, 4rem);
+        line-height: 1;
         letter-spacing: 0;
+        overflow-wrap: anywhere;
+        hyphens: auto;
       }
 
       .lead {
         color: var(--text-secondary);
-        font-size: 1.12rem;
+        font-size: 1.14rem;
         font-weight: 650;
         line-height: 1.55;
+      }
+
+      .hero-media {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-md);
+      }
+
+      .hero-media img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+      }
+
+      .hero-media figcaption {
+        display: grid;
+        gap: 4px;
+        padding: 14px 16px;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        font-weight: 650;
+        line-height: 1.45;
+      }
+
+      .hero-media figcaption strong {
+        color: var(--text-primary);
+        font-size: 1rem;
       }
 
       .info-panel,
@@ -131,6 +171,10 @@
         border-radius: var(--radius-md);
         background: var(--surface);
         box-shadow: var(--shadow-sm);
+      }
+
+      .info-panel {
+        border-left: 5px solid var(--accent);
       }
 
       .info-panel,
@@ -186,13 +230,17 @@
 
       .form-card {
         overflow: hidden;
+        position: sticky;
+        top: 92px;
+        min-width: 0;
       }
 
       .form-head {
         display: grid;
-        gap: 7px;
-        padding: 18px 20px;
+        gap: 9px;
+        padding: 22px 24px;
         border-bottom: 1px solid var(--border);
+        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
       }
 
       .form-head h2 {
@@ -214,9 +262,9 @@
 
       fieldset {
         display: grid;
-        gap: 14px;
+        gap: 15px;
         margin: 0;
-        padding: 18px 20px;
+        padding: 20px 24px;
         border: 0;
         border-bottom: 1px solid var(--border);
       }
@@ -254,7 +302,7 @@
       select,
       textarea {
         width: 100%;
-        min-height: 42px;
+        min-height: 46px;
         border: 1px solid var(--border-strong);
         border-radius: var(--radius-sm);
         background: var(--surface);
@@ -266,7 +314,7 @@
       }
 
       textarea {
-        min-height: 116px;
+        min-height: 132px;
         resize: vertical;
         line-height: 1.45;
       }
@@ -285,6 +333,23 @@
         align-items: start;
         color: var(--text-secondary);
         font-size: 0.91rem;
+        font-weight: 650;
+        line-height: 1.45;
+      }
+
+      .privacy-box {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+      }
+
+      .privacy-box p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
         font-weight: 650;
         line-height: 1.45;
       }
@@ -312,7 +377,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 18px 20px;
+        padding: 20px 24px;
       }
 
       .required-note {
@@ -330,7 +395,11 @@
         cursor: pointer;
         font: inherit;
         font-weight: 900;
-        padding: 10px 16px;
+        padding: 11px 18px;
+      }
+
+      .submit-button:hover {
+        background: var(--primary-hover);
       }
 
       .submit-button:focus-visible {
@@ -358,7 +427,7 @@
       .confirmation {
         display: none;
         gap: 12px;
-        padding: 20px;
+        padding: 20px 24px;
         border-top: 1px solid var(--border);
         background: var(--primary-soft);
       }
@@ -379,7 +448,7 @@
         line-height: 1.45;
       }
 
-      @media (max-width: 860px) {
+      @media (max-width: 920px) {
         .site-header__inner,
         .page-shell {
           width: min(100% - 24px, 720px);
@@ -388,6 +457,10 @@
         .page-shell,
         .field-grid {
           grid-template-columns: 1fr;
+        }
+
+        .form-card {
+          position: static;
         }
 
         .site-nav {
@@ -418,18 +491,25 @@
     <main class="page-shell">
       <section class="intro" aria-labelledby="page-title">
         <div class="breadcrumb">Home / #Mitmachen / Versorgungs-Netzwerk</div>
-        <h1 id="page-title">Unser Versorgungs-Netzwerk</h1>
-        <p class="lead">Gemeinsam echte Abläufe beobachten und verbessern. Registrieren Sie Ihre Einrichtung, damit wir Sie gezielt kontaktieren können, wenn Ihre Versorgungsperspektive zu aktuellen Fragestellungen passt.</p>
+        <h1 id="page-title">Versorgungsperspektiven einbringen</h1>
+        <p class="lead">Gemeinsam echte Abläufe beobachten und digitale Anwendungen praxisnah verbessern. Registrieren Sie Ihre Einrichtung, damit wir Sie gezielt kontaktieren können, wenn Ihre Perspektive zu aktuellen Fragestellungen passt.</p>
+        <figure class="hero-media">
+          <img src="../public/format-roundtable-hero.jpg" alt="Gesundheitsfachkräfte und gematik-Team im Austausch an einem runden Tisch" />
+          <figcaption>
+            <strong>Hospitationen und Praxiseinblicke</strong>
+            <span>Wir möchten verstehen, wie digitale Prozesse im Alltag wirklich funktionieren: in Praxen, Apotheken, Kliniken, Pflege und weiteren Versorgungssettings.</span>
+          </figcaption>
+        </figure>
         <article class="info-panel">
           <strong>Was eine Registrierung bedeutet</strong>
-          <p>Die Registrierung ist ein Angebot zur Mitwirkung und noch keine Zusage für eine Hospitation. Die gematik prüft eingehende Meldungen fachlich und meldet sich, wenn Thema, Region und Versorgungssituation passen.</p>
+          <p>Die Registrierung ist ein Angebot zur Mitwirkung und noch keine Zusage für eine Hospitation. Wir prüfen eingehende Meldungen fachlich und melden uns, wenn Thema, Region und Versorgungssituation passen.</p>
         </article>
         <article class="process-panel">
-          <strong>So läuft die Verarbeitung</strong>
+          <strong>So geht es nach dem Absenden weiter</strong>
           <ul class="process-steps">
             <li><span>1</span><p>Sie senden Ihre Einrichtung mit Einwilligung ab.</p></li>
-            <li><span>2</span><p>Die Daten gehen an ein gematik Backend als geschützte Eingangsschicht.</p></li>
-            <li><span>3</span><p>Im Versorgungs-Kompass wird die Registrierung erst geprüft, bevor ein aktiver Kontakt entsteht.</p></li>
+            <li><span>2</span><p>Die Angaben werden als geschützter Eingang im gematik Backend verarbeitet.</p></li>
+            <li><span>3</span><p>Im Versorgungs-Kompass wird die Registrierung geprüft, bevor ein aktiver Kontakt entsteht.</p></li>
           </ul>
         </article>
       </section>
@@ -437,7 +517,7 @@
       <section class="form-card" id="registrierung" aria-labelledby="form-title">
         <div class="form-head">
           <h2 id="form-title">Einrichtung registrieren</h2>
-          <p>Die Angaben helfen uns, passende Gelegenheiten zu identifizieren und bei Bedarf Kontakt aufzunehmen.</p>
+          <p>Bitte tragen Sie nur die Informationen ein, die wir für die fachliche Prüfung und Kontaktaufnahme benötigen.</p>
         </div>
         <form id="registration-form" novalidate>
           <fieldset>
@@ -495,6 +575,10 @@
                 </select>
               </div>
               <div class="field">
+                <label for="postal_code">PLZ</label>
+                <input id="postal_code" name="postal_code" inputmode="numeric" autocomplete="postal-code" placeholder="z. B. 10117" />
+              </div>
+              <div class="field">
                 <label for="city">Ort</label>
                 <input id="city" name="city" autocomplete="address-level2" />
               </div>
@@ -527,20 +611,23 @@
             <legend>Mitmach-Interesse</legend>
             <div class="field">
               <label for="message">Ihre Nachricht*</label>
-              <textarea id="message" name="message" required placeholder="Welche Einblicke könnten Sie geben? Welche digitalen Prozesse sind für Ihre Einrichtung relevant?"></textarea>
+              <textarea id="message" name="message" required placeholder="Welche Einblicke könnten Sie geben? Welche digitalen Prozesse sind für Ihre Einrichtung relevant? Gibt es Themen wie ePA, E-Rezept, Anmeldung, Kommunikation oder Medikationsprozesse?"></textarea>
             </div>
           </fieldset>
 
           <fieldset id="datenschutz">
             <legend>Datenschutz</legend>
-            <label class="checkbox" for="consent_processing">
-              <input id="consent_processing" name="consent_processing" type="checkbox" required />
-              <span><strong>Pflicht:</strong> Ich willige ein, dass die gematik meine Angaben verarbeitet, um meine Registrierung für das Versorgungs-Netzwerk zu prüfen und mich dazu zu kontaktieren.</span>
-            </label>
-            <label class="checkbox" for="consent_contact">
-              <input id="consent_contact" name="consent_contact" type="checkbox" />
-              <span><strong>Optional:</strong> Ich möchte auch zu weiteren passenden #Mitmachen-Möglichkeiten kontaktiert und eingeladen werden.</span>
-            </label>
+            <div class="privacy-box">
+              <p>Ihre Angaben werden zweckgebunden für die Prüfung Ihrer Registrierung im Versorgungs-Netzwerk verarbeitet. Ein aktiver CRM-Kontakt entsteht erst nach fachlicher Prüfung.</p>
+              <label class="checkbox" for="consent_processing">
+                <input id="consent_processing" name="consent_processing" type="checkbox" required />
+                <span><strong>Pflicht:</strong> Ich willige ein, dass die gematik meine Angaben verarbeitet, um meine Registrierung für das Versorgungs-Netzwerk zu prüfen und mich dazu zu kontaktieren.</span>
+              </label>
+              <label class="checkbox" for="consent_contact">
+                <input id="consent_contact" name="consent_contact" type="checkbox" />
+                <span><strong>Optional:</strong> Ich möchte auch zu weiteren passenden #Mitmachen-Möglichkeiten kontaktiert und eingeladen werden.</span>
+              </label>
+            </div>
             <div class="honeypot" aria-hidden="true">
               <label for="company">Bitte dieses Feld nicht ausfüllen</label>
               <input id="company" name="company" tabindex="-1" autocomplete="off" />
@@ -607,6 +694,7 @@
           organization: String(formData.get("organization") || "").trim(),
           sector: String(formData.get("sector") || "").trim(),
           role: String(formData.get("role") || "").trim(),
+          postal_code: String(formData.get("postal_code") || "").trim(),
           city: String(formData.get("city") || "").trim(),
           federal_state: String(formData.get("federal_state") || "").trim(),
           preferred_contact: String(formData.get("preferred_contact") || "").trim(),

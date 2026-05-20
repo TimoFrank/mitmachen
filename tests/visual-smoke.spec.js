@@ -173,6 +173,7 @@ test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ pa
   await page.locator("#role").fill("Pflegedienstleitung");
   await page.locator("#organization").fill("Pflegezentrum Beispielstadt");
   await page.locator("#sector").selectOption("Pflegeeinrichtung");
+  await page.locator("#postal_code").fill("60311");
   await page.locator("#city").fill("Beispielstadt");
   await page.locator("#federal_state").selectOption("Hessen");
   await page.locator("#message").fill("Wir können Einblicke in Aufnahme, Medikationsprozess und digitale Kommunikation geben.");
@@ -189,6 +190,7 @@ test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ pa
   await expect(page.locator(".detail-panel--registration")).toBeVisible();
   await expect(page.locator(".detail-section-title", { hasText: "Datenschutz & Prüfung" })).toBeVisible();
   await expect(page.locator(".detail-panel--registration")).toContainText("DSGVO bereit zur Prüfung");
+  await expect(page.locator(".detail-panel--registration")).toContainText("60311");
   await expect(page.locator(".detail-panel--registration")).toContainText("Nicht erteilt");
 
   await attachScreenshot(page, testInfo, "public-registration-import");
@@ -210,6 +212,7 @@ test("Importe: geöffneter Registrierungs-Reiter aktualisiert neue Demo-Eingaeng
   await formPage.locator("#role").fill("Praxismanagerin");
   await formPage.locator("#organization").fill("Hausarztpraxis Rueckkehr");
   await formPage.locator("#sector").selectOption("Praxis");
+  await formPage.locator("#postal_code").fill("34117");
   await formPage.locator("#city").fill("Kassel");
   await formPage.locator("#federal_state").selectOption("Hessen");
   await formPage.locator("#message").fill("Wir koennen Einblicke in Anmeldung, ePA und E-Rezept im hausärztlichen Alltag geben.");

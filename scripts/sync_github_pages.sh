@@ -22,6 +22,7 @@ cp "$ROOT_DIR/data/versorgungs-kompass-data.csv" "$DOCS_DIR/data/versorgungs-kom
 cp "$ROOT_DIR/data/supabase-config.js" "$DOCS_DIR/data/supabase-config.js"
 cp "$ROOT_DIR/data/data-service.js" "$DOCS_DIR/data/data-service.js"
 cp "$ROOT_DIR/public/gematik-logo.svg" "$DOCS_DIR/public/gematik-logo.svg"
+cp "$ROOT_DIR/public/format-roundtable-hero.jpg" "$DOCS_DIR/public/format-roundtable-hero.jpg"
 cp "$ROOT_DIR/public/versorgungs-kompass-logo.png" "$DOCS_DIR/public/versorgungs-kompass-logo.png"
 cp "$ROOT_DIR/public/manifest.webmanifest" "$DOCS_DIR/manifest.webmanifest"
 cp "$ROOT_DIR/public/app-icon-32.png" "$DOCS_DIR/public/app-icon-32.png"

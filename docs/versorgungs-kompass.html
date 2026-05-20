@@ -12207,8 +12207,63 @@
         display: none;
       }
 
+      .detail-panel--registration {
+        width: min(560px, 100vw);
+      }
+
+      .detail-panel--registration .detail-content {
+        background: var(--surface-muted);
+      }
+
+      .detail-panel--registration .detail-profile {
+        gap: 12px;
+      }
+
+      .detail-panel--registration .section-block {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .registration-preview-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+      }
+
+      .registration-preview-card strong,
+      .registration-preview-card span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .registration-preview-card strong {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        font-weight: 850;
+      }
+
+      .registration-preview-card span {
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 650;
+        line-height: var(--line-height-normal);
+      }
+
       .registration-preview-message {
         margin: 0;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
         color: var(--text-primary);
         font-size: var(--font-size-sm);
         font-weight: 700;
@@ -19085,18 +19140,33 @@
         return "DSGVO-Check offen";
       }
 
-      function registrationToContact(registration, organizationId = "") {
-        const name = registrationDisplayName(registration);
-        const location = deriveLocationLabel({ postalCode: "", city: registration.city }) || registration.city || "";
+      function registrationPostalCode(registration) {
+        return String(registration.postalCode || registration.postal_code || registration.zip || registration.plz || "").trim();
+      }
+
+      function registrationNote(registration) {
+        const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "";
+        const sourceUrl = registration.sourceUrl || registration.source_url || "";
         const noteLines = [
-          registration.message,
+          "Originalmeldung aus der Versorgungs-Netzwerk-Registrierung:",
+          registration.message || "Keine Nachricht hinterlegt.",
+          "",
           `Registrierung: ${registration.id}`,
+          submitted ? `Eingang: ${submitted}` : "",
           registration.formVersion || registration.form_version ? `Formularversion: ${registration.formVersion || registration.form_version}` : "",
+          sourceUrl ? `Quelle: ${sourceUrl}` : "",
           registration.privacyCheckStatus || registration.privacy_check_status ? `DSGVO-Status: ${registrationPrivacyLabel(registration.privacyCheckStatus || registration.privacy_check_status)}` : "",
           registration.consentProcessingVersion || registration.consent_processing_version ? `Pflicht-Einwilligung: ${registration.consentProcessingVersion || registration.consent_processing_version}` : "",
           registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at ? `Pflicht-Einwilligung Zeitpunkt: ${formatDateTimeLabel(registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at)}` : "",
           registration.consentContactAcceptedAt || registration.consent_contact_accepted_at ? `#Mitmachen-Einwilligung: ${formatDateTimeLabel(registration.consentContactAcceptedAt || registration.consent_contact_accepted_at)}` : ""
-        ].filter(Boolean);
+        ];
+        return noteLines.filter((line, index, lines) => line || (lines[index - 1] && lines[index + 1])).join("\n").trim();
+      }
+
+      function registrationToContact(registration, organizationId = "") {
+        const name = registrationDisplayName(registration);
+        const postalCode = registrationPostalCode(registration);
+        const location = deriveLocationLabel({ postalCode, city: registration.city }) || registration.city || "";
         return sanitizeContact({
           id: createId(),
           name,
@@ -19105,11 +19175,12 @@
           category: registration.sector || "",
           contactRole: registration.role || "",
           email: registration.email || "",
+          postalCode,
           city: registration.city || "",
           state: registration.federalState || registration.federal_state || "",
           location,
           priority: "Mittel",
-          note: noteLines.join("\n"),
+          note: registrationNote(registration),
           themes: ["Versorgungs-Netzwerk"],
           sources: ["Versorgungs-Netzwerk Registrierung", registration.sourceUrl || registration.source_url].filter(Boolean).join(" | "),
           source: "Versorgungs-Netzwerk Registrierung",
@@ -19120,7 +19191,8 @@
       }
 
       function registrationLocationLabel(registration) {
-        return [registration.city, registration.federalState || registration.federal_state].filter(Boolean).join(", ");
+        const cityLine = deriveLocationLabel({ postalCode: registrationPostalCode(registration), city: registration.city }) || registration.city || "";
+        return [cityLine, registration.federalState || registration.federal_state].filter(Boolean).join(", ");
       }
 
       function registrationRowLabel(registration) {
@@ -19204,13 +19276,14 @@
               const name = registrationDisplayName(registration);
               const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "Zeitpunkt offen";
               const location = registrationLocationLabel(registration);
+              const roleLine = [registration.role, registration.email].filter(Boolean).join(" · ") || "Kontaktangaben offen";
               return `
                 <article class="registration-row" data-registration-id="${escapeHtml(registration.id)}">
                   <div class="registration-row__preview" data-registration-preview="${escapeHtml(registration.id)}" tabindex="0" role="button" aria-label="${escapeHtml(registrationRowLabel(registration))}">
                     <div class="registration-row__main">
                       <span class="registration-row__label">Kontakt</span>
                       <strong>${escapeHtml(name)}</strong>
-                      <span>${escapeHtml(registration.email || "E-Mail offen")}</span>
+                      <span>${escapeHtml(roleLine)}</span>
                     </div>
                     <div class="registration-row__meta">
                       <span class="registration-row__label">Einrichtung</span>
@@ -19260,6 +19333,7 @@
         const sourceUrl = registration.sourceUrl || registration.source_url || "";
         const duplicateHint = registration.duplicateHint || registration.duplicate_hint || "";
         const location = registrationLocationLabel(registration);
+        const postalCode = registrationPostalCode(registration);
         const privacyStatus = registration.privacyCheckStatus || registration.privacy_check_status || "";
         const ownerLabel = ownerDisplayLabel(previewContact.owner || previewContact.ownerId);
         activeRegistrationId = registration.id;
@@ -19298,6 +19372,14 @@
                 <div class="detail-section-head">
                   <h4 class="detail-section-title">Kontaktvorschau</h4>
                 </div>
+                <div class="registration-preview-card">
+                  ${contactAvatarMarkup(previewContact, "md")}
+                  <div>
+                    <strong>${escapeHtml(previewContact.displayName || previewContact.name)}</strong>
+                    <span>${escapeHtml([previewContact.contactRole, previewContact.organization].filter(Boolean).join(" · ") || "Kontaktrolle nach Prüfung ergänzen")}</span>
+                    <span>${escapeHtml([previewContact.email, previewContact.location, previewContact.state].filter(Boolean).join(" · ") || "Kontaktweg und Standort prüfen")}</span>
+                  </div>
+                </div>
                 <div class="detail-line-list">
                   ${detailLine("Name", name)}
                   ${detailLine("E-Mail", registration.email)}
@@ -19305,6 +19387,7 @@
                   ${detailLine("Sektor", registration.sector)}
                   ${detailLine("Rolle", registration.role)}
                   ${detailLine("Kontaktweg", registration.preferredContact || registration.preferred_contact)}
+                  ${detailLine("PLZ", postalCode)}
                   ${detailLine("Ort", location)}
                   ${detailLine("Quelle", "Versorgungs-Netzwerk Registrierung")}
                 </div>
@@ -19394,6 +19477,7 @@
               const savedOrganization = await window.dataService.createOrganization({
                 name: registration.organization,
                 sector: registration.sector,
+                postalCode: registrationPostalCode(registration),
                 city: registration.city,
                 state: registration.federalState || registration.federal_state,
                 email: registration.email,
@@ -19435,6 +19519,27 @@
           return;
         }
         try {
+          const registrationSource = "Versorgungs-Netzwerk Registrierung";
+          const nextNote = [match.note, registrationNote(registration)].filter(Boolean).join("\n\n---\n\n");
+          const nextSources = [...new Set([...normalizeSources(match.sources), registrationSource, registration.sourceUrl || registration.source_url].filter(Boolean))];
+          const nextThemes = [...new Set([...normalizeThemes(match.themes), "Versorgungs-Netzwerk"])];
+          const contactPatch = {
+            note: nextNote,
+            sources: nextSources,
+            themes: nextThemes,
+            updatedAt: new Date().toISOString()
+          };
+          if (!match.contactRole && registration.role) contactPatch.contactRole = registration.role;
+          if (!match.postalCode && registrationPostalCode(registration)) contactPatch.postalCode = registrationPostalCode(registration);
+          if (!match.city && registration.city) contactPatch.city = registration.city;
+          if (!match.state && (registration.federalState || registration.federal_state)) contactPatch.state = registration.federalState || registration.federal_state;
+          if (!match.location && (contactPatch.postalCode || contactPatch.city)) {
+            contactPatch.location = deriveLocationLabel({ postalCode: contactPatch.postalCode || "", city: contactPatch.city || "" });
+          }
+          const updatedContact = await window.dataService.updateContact(match.id, contactPatch);
+          contacts = contacts.map((contact, index) =>
+            contact.id === match.id ? sanitizeContact({ ...contact, ...updatedContact, id: match.id }, index) : contact
+          );
           await setRegistrationStatus(registration, "verknuepft", { contact_id: match.id });
           setStorageStatus("Registrierung mit bestehendem Kontakt verknüpft");
           activeId = match.id;
