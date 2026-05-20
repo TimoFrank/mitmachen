@@ -194,6 +194,36 @@ test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ pa
   await attachScreenshot(page, testInfo, "public-registration-import");
 });
 
+test("Importe: geöffneter Registrierungs-Reiter aktualisiert neue Demo-Eingaenge", async ({ page, context }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
+  await page.evaluate(() => {
+    window.localStorage.setItem("versorgungs-kompass-backend-registrations-v1", JSON.stringify([]));
+  });
+  await page.locator("#registrations-refresh").click();
+  await expect(page.locator("#registrations-list .registration-row")).toHaveCount(0);
+
+  const formPage = await context.newPage();
+  await formPage.goto("/mitmachen/versorgungs-netzwerk.html");
+  await formPage.locator("#email").fill("offener-tab@example.test");
+  await formPage.locator("#first_name").fill("Nina");
+  await formPage.locator("#last_name").fill("Rueckkehr");
+  await formPage.locator("#role").fill("Praxismanagerin");
+  await formPage.locator("#organization").fill("Hausarztpraxis Rueckkehr");
+  await formPage.locator("#sector").selectOption("Praxis");
+  await formPage.locator("#city").fill("Kassel");
+  await formPage.locator("#federal_state").selectOption("Hessen");
+  await formPage.locator("#message").fill("Wir koennen Einblicke in Anmeldung, ePA und E-Rezept im hausärztlichen Alltag geben.");
+  await formPage.locator("#consent_processing").check();
+  await formPage.locator(".submit-button").click();
+  await expect(formPage.locator("#confirmation")).toBeVisible();
+  await formPage.close();
+
+  await page.bringToFront();
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
+  await expect(page.locator("#registrations-list")).toContainText("Hausarztpraxis Rueckkehr");
+});
+
 test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page }) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
 

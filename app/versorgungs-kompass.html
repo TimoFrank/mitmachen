@@ -18737,6 +18737,7 @@
       let activeRegistrationId = null;
       let registrationsLoaded = false;
       let registrationsLoading = false;
+      let lastRegistrationsRefreshAt = 0;
       let activeFormatId = null;
       let editingFormatId = null;
       let formatActiveTab = "overview";
@@ -19154,6 +19155,15 @@
             window.setTimeout(() => registrationsSection.classList.remove("is-attention"), 1400);
           }
         }
+      }
+
+      function refreshRegistrationsIfVisible() {
+        if (activeView !== "settings" || activeSettingsTab !== "registrations") return;
+        if (!canAdministerData() || registrationsLoading) return;
+        const now = Date.now();
+        if (now - lastRegistrationsRefreshAt < 800) return;
+        lastRegistrationsRefreshAt = now;
+        loadRegistrations({ scroll: false });
       }
 
       async function resetDemoRegistrations() {
@@ -28870,6 +28880,17 @@
       });
       registrationsResetDemo?.addEventListener("click", () => {
         resetDemoRegistrations();
+      });
+      window.addEventListener("focus", () => {
+        refreshRegistrationsIfVisible();
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) refreshRegistrationsIfVisible();
+      });
+      window.addEventListener("storage", (event) => {
+        if (event.key === "versorgungs-kompass-backend-registrations-v1") {
+          refreshRegistrationsIfVisible();
+        }
       });
       registrationsList?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-registration-action]");
