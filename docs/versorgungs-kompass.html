@@ -5965,7 +5965,7 @@
 
       .quality-summary-main {
         display: grid;
-        grid-template-columns: 40px minmax(0, 1fr) auto;
+        grid-template-columns: 40px minmax(0, 1fr);
         gap: 12px;
         align-items: center;
         padding: 14px;
@@ -5987,23 +5987,6 @@
         color: var(--text-muted);
         font-size: var(--font-size-sm);
         font-weight: 600;
-      }
-
-      .quality-summary-count {
-        min-width: 44px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: var(--surface);
-        color: var(--primary);
-        font-weight: 900;
-        text-align: center;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .quality-summary-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 8px;
       }
 
       .quality-icon--purple {
@@ -6113,6 +6096,32 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .care-queue-status {
+        width: fit-content;
+        min-height: 22px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 4px;
+        padding: 0 7px;
+        border: 1px solid #bde8ca;
+        border-radius: 999px;
+        background: #ecfdf3;
+        color: #15803d;
+        font-size: 0.68rem;
+        font-weight: 850;
+      }
+
+      .care-queue-status svg {
+        width: 13px;
+        height: 13px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
       .care-queue-count {
@@ -25572,30 +25581,6 @@
                   <strong>${affectedIds.size ? `${affectedIds.size} Kontakte brauchen Pflege` : "Alles sieht gut aus"}</strong>
                   <span>${biggestIssue ? `Größter offener Punkt: ${escapeHtml(biggestIssue.label)}` : "In der aktuellen Auswahl sind keine Datenlücken sichtbar."}</span>
                 </span>
-                <span class="quality-summary-count">${openChecks.length} Themen</span>
-              </div>
-              <div class="quality-summary-grid">
-                <div class="quality-row">
-                  <span class="quality-icon">${qualityIconSvg("summary")}</span>
-                  <span class="quality-copy">
-                    <span>${affectedIds.size} betroffene Kontakte</span>
-                    <small>mindestens ein offener Punkt</small>
-                  </span>
-                </div>
-                <div class="quality-row">
-                  <span class="quality-icon">${qualityIconSvg("list")}</span>
-                  <span class="quality-copy">
-                    <span>${openChecks.length} offene Themen</span>
-                    <small>werden unten als Arbeitslisten angezeigt</small>
-                  </span>
-                </div>
-                <div class="quality-row">
-                  <span class="quality-icon">${qualityIconSvg("selection")}</span>
-                  <span class="quality-copy">
-                    <span>${total} Kontakte in Auswahl</span>
-                    <small>Basis der aktuellen Prüfung</small>
-                  </span>
-                </div>
               </div>
             </div>
           `;
@@ -25615,7 +25600,8 @@
           "unclear-organization": `<svg viewBox="0 0 24 24"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path><path d="M9 10h.01"></path><path d="M15 10h.01"></path></svg>`,
           duplicates: `<svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 16H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
           archived: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>`,
-          stale: `<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>`
+          stale: `<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>`,
+          complete: `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>`
         };
         return icons[key] || icons.summary;
       }
@@ -25636,6 +25622,14 @@
 
       function isMissingLocation(contact) {
         return !hasMeaningfulValue(contact.postalCode) || !hasMeaningfulValue(contact.city);
+      }
+
+      function hasOwner(contact) {
+        return hasMeaningfulValue(contact.owner) || hasMeaningfulValue(contact.ownerId);
+      }
+
+      function hasLocation(contact) {
+        return hasMeaningfulValue(contact.postalCode) && hasMeaningfulValue(contact.city);
       }
 
       function isUnclearOrganization(contact) {
@@ -25687,54 +25681,98 @@
           {
             key: "missing-owner",
             title: "Fehlender Owner",
+            state: "open",
             contacts: activeItems.filter(isMissingOwner)
           },
           {
             key: "missing-email",
             title: "Fehlende E-Mail",
+            state: "open",
             contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.email))
           },
           {
             key: "missing-phone",
             title: "Fehlendes Telefon",
+            state: "open",
             contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.phone))
           },
           {
             key: "missing-location",
             title: "Fehlender Standort",
+            state: "open",
             contacts: activeItems.filter(isMissingLocation)
           },
           {
             key: "missing-specialty",
             title: "Fehlende Fachrichtung",
+            state: "open",
             contacts: activeItems.filter((contact) => !hasMeaningfulValue(contact.specialty))
           },
           {
             key: "unclear-organization",
             title: "Unklare Organisation",
+            state: "open",
             contacts: activeItems.filter(isUnclearOrganization)
           },
           {
             key: "duplicates",
             title: "Dublettenverdacht",
+            state: "open",
             attention: true,
             contacts: duplicateItems
           },
           {
             key: "archived",
             title: "Archivierte Kontakte",
+            state: "open",
             attention: true,
             contacts: canAdministerData() ? archivedItems : []
           },
           {
             key: "stale",
             title: "Länger nicht aktualisiert",
+            state: "open",
             contacts: activeItems.filter(isContactStale)
+          },
+          {
+            key: "complete-email",
+            title: "E-Mail gepflegt",
+            state: "done",
+            iconKey: "missing-email",
+            contacts: activeItems.filter((contact) => hasMeaningfulValue(contact.email))
+          },
+          {
+            key: "complete-phone",
+            title: "Telefon gepflegt",
+            state: "done",
+            iconKey: "missing-phone",
+            contacts: activeItems.filter((contact) => hasMeaningfulValue(contact.phone))
+          },
+          {
+            key: "complete-specialty",
+            title: "Fachrichtung gepflegt",
+            state: "done",
+            iconKey: "missing-specialty",
+            contacts: activeItems.filter((contact) => hasMeaningfulValue(contact.specialty))
+          },
+          {
+            key: "complete-owner",
+            title: "Owner gepflegt",
+            state: "done",
+            iconKey: "missing-owner",
+            contacts: activeItems.filter(hasOwner)
+          },
+          {
+            key: "complete-location",
+            title: "Standort gepflegt",
+            state: "done",
+            iconKey: "missing-location",
+            contacts: activeItems.filter(hasLocation)
           }
         ].sort((left, right) => {
-          const leftOpen = left.contacts.length > 0;
-          const rightOpen = right.contacts.length > 0;
-          if (leftOpen !== rightOpen) return leftOpen ? -1 : 1;
+          const leftIsOpen = left.state !== "done";
+          const rightIsOpen = right.state !== "done";
+          if (leftIsOpen !== rightIsOpen) return leftIsOpen ? -1 : 1;
           return right.contacts.length - left.contacts.length || left.title.localeCompare(right.title, "de");
         });
       }
@@ -25746,19 +25784,21 @@
           return;
         }
         const queueItems = buildCareQueueItems(items);
-        const openItems = queueItems.filter((item) => item.contacts.length > 0);
+        const visibleItems = queueItems.filter((item) => item.contacts.length > 0);
         careQueue.innerHTML = `
           <div class="care-queue-grid">
-            ${openItems.length
-              ? openItems
+            ${visibleItems.length
+              ? visibleItems
               .map((item) => {
                 const visible = item.contacts.slice(0, 3);
+                const done = item.state === "done";
                 return `
-                  <section class="care-queue-card ${item.contacts.length ? "care-queue-card--todo" : "care-queue-card--done"}">
+                  <section class="care-queue-card ${done ? "care-queue-card--done" : "care-queue-card--todo"}">
                     <div class="care-queue-head">
-                      <span class="care-queue-icon">${qualityIconSvg(item.key)}</span>
+                      <span class="care-queue-icon">${qualityIconSvg(done ? "complete" : item.iconKey || item.key)}</span>
                       <span class="care-queue-copy">
                         <span class="care-queue-title">${escapeHtml(item.title)}</span>
+                        ${done ? `<span class="care-queue-status">${qualityIconSvg("complete")} Vollständig</span>` : ""}
                       </span>
                       <span class="care-queue-count">${item.contacts.length}</span>
                     </div>
@@ -25774,7 +25814,7 @@
                         )
                         .join("")}
                     </div>
-                    <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}">Liste öffnen</button></div>
+                    <div class="care-queue-actions"><button class="care-queue-open" type="button" data-care-open="${escapeHtml(item.key)}">${done ? "Liste ansehen" : "Liste öffnen"}</button></div>
                   </section>
                 `;
               })
@@ -25810,7 +25850,7 @@
           <div class="care-workbench-head">
             <div>
               <h4 class="care-workbench-title">${escapeHtml(item.title)}</h4>
-              <div class="care-workbench-copy">${rows.length} Kontakte in dieser Liste. Öffne ein Profil oder ergänze Angaben direkt in der Tabelle.</div>
+              <div class="care-workbench-copy">${item.state === "done" ? `${rows.length} Kontakte sind hier bereits vollständig gepflegt.` : `${rows.length} Kontakte in dieser Liste. Öffne ein Profil oder ergänze Angaben direkt in der Tabelle.`}</div>
             </div>
             <button class="detail-close" type="button" id="care-workbench-close" aria-label="Pflegeansicht schließen">&times;</button>
           </div>
