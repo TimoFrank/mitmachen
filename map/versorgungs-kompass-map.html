@@ -689,15 +689,16 @@
       background: var(--sector-bg, rgba(255,255,255,0.92));
       color: var(--sector-text, rgba(0,0,0,0.68));
       border-radius: 999px;
-      padding: 8px 11px;
+      min-height: 30px;
+      padding: 3px 9px 3px 4px;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       line-height: 1;
       cursor: pointer;
       transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
       display: inline-flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
       box-shadow: none;
     }
     .category-chip:hover {
@@ -709,6 +710,35 @@
       color: #fff;
       border-color: var(--sector-color, #010E52);
       box-shadow: 0 6px 14px var(--sector-shadow, rgba(1,14,82,0.18));
+    }
+    .category-chip-icon {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      display: inline-grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--sector-color, #155fe4) 14%, #ffffff);
+      color: var(--sector-color, #155fe4);
+    }
+    .category-chip.active .category-chip-icon {
+      background: rgba(255,255,255,0.22);
+      color: #ffffff;
+    }
+    .category-chip-icon svg {
+      width: 13px;
+      height: 13px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .category-chip-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .owner-filter-row {
       display: flex;
@@ -3428,6 +3458,27 @@
     `;
   }
 
+  function sectorIconSvg(category) {
+    const key = String(category || "").toLowerCase();
+    if (key.includes("krankenhaus")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"></path><path d="M6 20V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"></path><path d="M9 10h6"></path><path d="M12 7v6"></path><path d="M9 20v-4h6v4"></path></svg>`;
+    }
+    if (key.includes("apotheke")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21h10"></path><path d="M8 21V8h8v13"></path><path d="M10 4h4v4h-4z"></path><path d="M10 14h4"></path><path d="M12 12v4"></path></svg>`;
+    }
+    if (key.includes("pflege")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11c0-2 1.5-3.5 3.5-3.5 1.1 0 2.1.5 2.8 1.3.7-.8 1.7-1.3 2.8-1.3 2 0 3.5 1.5 3.5 3.5 0 4-6.3 7.5-6.3 7.5S7 15 7 11Z"></path><path d="M4 13h3"></path><path d="M17 13h3"></path></svg>`;
+    }
+    if (key.includes("praxis")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M4 20c0-3 2.2-5 5-5"></path><path d="M16 11v6"></path><path d="M13 14h6"></path></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>`;
+  }
+
+  function sectorFilterContent(label) {
+    return `<span class="category-chip-icon" aria-hidden="true">${sectorIconSvg(label)}</span><span class="category-chip-label">${escapeHtml(label)}</span>`;
+  }
+
   function availablePriorities(){
     return uniqueSorted(mapSourceEntries().map((entry) => entry.priority)).sort((a, b) => {
       return (priorityOrder[a] ?? 10) - (priorityOrder[b] ?? 10) || a.localeCompare(b, "de");
@@ -4348,7 +4399,7 @@
     allButton.style.setProperty('--sector-color', '#010E52');
     allButton.style.setProperty('--sector-bg', 'rgba(1,14,82,0.06)');
     allButton.style.setProperty('--sector-shadow', 'rgba(1,14,82,0.18)');
-    allButton.textContent = 'Alle';
+    allButton.innerHTML = sectorFilterContent("Alle");
     allButton.addEventListener('click', () => {
       activeCategoryFilter = "";
       resetListPage();
@@ -4367,7 +4418,7 @@
       button.style.setProperty('--sector-color', color);
       button.style.setProperty('--sector-bg', sectorTint(color));
       button.style.setProperty('--sector-shadow', sectorShadow(color));
-      button.textContent = cat;
+      button.innerHTML = sectorFilterContent(cat);
       button.addEventListener('click', () => {
         activeCategoryFilter = activeCategoryFilter === cat ? "" : cat;
         resetListPage();
