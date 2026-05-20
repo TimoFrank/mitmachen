@@ -26033,13 +26033,14 @@
 
       function careQueueStatusLabel(state) {
         if (state === "critical") return "Kritisch";
+        if (state === "checked") return "Geprüft";
         if (state === "complete") return "Vollständig";
         if (state === "done") return "Gepflegt";
         return "Offen";
       }
 
       function careQueueStateRank(state) {
-        return state === "critical" ? 0 : state === "open" ? 1 : state === "done" ? 2 : 3;
+        return state === "critical" ? 0 : state === "open" ? 1 : state === "done" ? 2 : state === "complete" ? 3 : 4;
       }
 
       function careQualityFieldRules() {
@@ -26189,45 +26190,51 @@
             key: "unclear-name",
             ruleKey: "name",
             title: "Unklare Kontaktnamen",
-            state: "open",
+            state: activeItems.some(isUnclearName) ? "open" : "checked",
             iconKey: "unclear-name",
-            contacts: activeItems.filter(isUnclearName)
+            contacts: activeItems.filter(isUnclearName),
+            showWhenEmpty: true
           },
           {
             key: "unclear-organization",
             ruleKey: "organization",
             title: "Unklare Organisationsnamen",
-            state: "open",
+            state: activeItems.some(isUnclearOrganization) ? "open" : "checked",
             iconKey: "unclear-organization",
-            contacts: activeItems.filter(isUnclearOrganization)
+            contacts: activeItems.filter(isUnclearOrganization),
+            showWhenEmpty: true
           },
           {
             key: "duplicates",
             title: "Dublettenverdacht",
-            state: duplicateItems.length ? "critical" : "open",
+            state: duplicateItems.length ? "critical" : "checked",
             attention: true,
-            contacts: duplicateItems
+            contacts: duplicateItems,
+            showWhenEmpty: true
           },
           {
             key: "archived",
             title: "Archivierte Kontakte",
-            state: "open",
+            state: canAdministerData() && archivedItems.length ? "open" : "checked",
             attention: true,
-            contacts: canAdministerData() ? archivedItems : []
+            contacts: canAdministerData() ? archivedItems : [],
+            showWhenEmpty: canAdministerData()
           },
           {
             key: "stale-12",
             title: "Seit 12 Monaten nicht aktualisiert",
-            state: "critical",
+            state: staleCriticalItems.length ? "critical" : "checked",
             iconKey: "stale",
-            contacts: staleCriticalItems
+            contacts: staleCriticalItems,
+            showWhenEmpty: true
           },
           {
             key: "stale-6",
             title: "Seit 6 Monaten nicht aktualisiert",
-            state: "open",
+            state: staleOpenItems.length ? "open" : "checked",
             iconKey: "stale",
-            contacts: staleOpenItems
+            contacts: staleOpenItems,
+            showWhenEmpty: true
           }
         ].sort((left, right) => {
           const leftRank = careQueueStateRank(left.state);
@@ -26244,16 +26251,16 @@
           return;
         }
         const queueItems = buildCareQueueItems(items);
-        const visibleItems = queueItems.filter((item) => item.contacts.length > 0);
+        const visibleItems = queueItems.filter((item) => item.contacts.length > 0 || item.showWhenEmpty);
         careQueue.innerHTML = `
           <div class="care-queue-grid">
             ${visibleItems.length
               ? visibleItems
               .map((item) => {
                 const visible = item.contacts.slice(0, 3);
-                const resolved = item.state === "done" || item.state === "complete";
+                const resolved = item.state === "done" || item.state === "complete" || item.state === "checked";
                 const expanded = activeCareQueueKey === item.key;
-                const cardClass = item.state === "critical" ? "care-queue-card--critical" : resolved ? `care-queue-card--${item.state}` : "care-queue-card--todo";
+                const cardClass = item.state === "critical" ? "care-queue-card--critical" : resolved ? `care-queue-card--${item.state === "checked" ? "done" : item.state}` : "care-queue-card--todo";
                 return `
                   <section class="care-queue-card ${cardClass} ${expanded ? "is-expanded" : ""}" data-care-card="${escapeHtml(item.key)}">
                     <div class="care-queue-head">
