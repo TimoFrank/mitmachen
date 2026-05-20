@@ -223,6 +223,21 @@
       justify-content: flex-end;
       gap: 8px;
     }
+    .map-mode-controls {
+      position: absolute;
+      top: 86px;
+      left: 14px;
+      z-index: 1000;
+      display: grid;
+      gap: 8px;
+      width: 132px;
+    }
+    .map-mode-controls .map-toggle {
+      min-width: 0;
+      width: 100%;
+      padding-inline: 12px;
+      justify-content: flex-start;
+    }
     .map-controls > .map-dropdown {
       display: block;
     }
@@ -432,7 +447,7 @@
     .state-mode #map .leaflet-control-zoom {
       display: none;
     }
-    .state-mode #heatmap-toggle,
+    .state-mode .map-mode-controls,
     .state-mode .map-dropdown {
       display: none;
     }
@@ -2158,19 +2173,7 @@
         gap: 6px;
       }
 
-      #contact-mode-toggle {
-        order: 1;
-      }
-
       .map-dropdown {
-        order: 3;
-      }
-
-      #heatmap-toggle {
-        order: 2;
-      }
-
-      #cluster-toggle {
         order: 3;
       }
 
@@ -2450,6 +2453,21 @@
         box-shadow: var(--shadow-md) !important;
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
+      }
+
+      .map-mode-controls {
+        top: 84px !important;
+        left: 8px !important;
+        width: 118px !important;
+        gap: 6px !important;
+      }
+
+      .map-mode-controls .map-toggle {
+        min-height: 34px !important;
+        padding: 7px 9px !important;
+        border-radius: 11px !important;
+        font-size: 10px !important;
+        box-shadow: var(--shadow-sm) !important;
       }
 
       .map-controls.map-controls-open {
@@ -2920,21 +2938,7 @@
           <button id="map-menu-toggle" class="map-menu-button" type="button" aria-label="Kartenmenü öffnen" aria-expanded="false">
             <span aria-hidden="true"></span>
           </button>
-          <div class="map-controls">
-            <button id="contact-mode-toggle" class="map-toggle map-toggle-active-home" type="button" aria-pressed="true">
-              <span>Kontakte</span>
-            </button>
-            <div class="map-dropdown">
-              <button id="state-filter-toggle" class="map-toggle" type="button">
-                <span class="map-toggle-icon" aria-hidden="true">
-                  <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1.5 2.1h9L7.2 5.9v3.1l-2.4.9V5.9z" fill="currentColor"/>
-                  </svg>
-                </span>
-                <span id="state-filter-label">Bundesland</span>
-              </button>
-              <div id="state-filter-menu" class="map-dropdown-menu"></div>
-            </div>
+          <div class="map-mode-controls" aria-label="Kartenmodus">
             <button id="heatmap-toggle" class="map-toggle" type="button">
               <span class="map-toggle-icon" aria-hidden="true">
                 <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
@@ -2954,6 +2958,19 @@
               </span>
               <span>Cluster</span>
             </button>
+          </div>
+          <div class="map-controls">
+            <div class="map-dropdown">
+              <button id="state-filter-toggle" class="map-toggle" type="button">
+                <span class="map-toggle-icon" aria-hidden="true">
+                  <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1.5 2.1h9L7.2 5.9v3.1l-2.4.9V5.9z" fill="currentColor"/>
+                  </svg>
+                </span>
+                <span id="state-filter-label">Bundesland</span>
+              </button>
+              <div id="state-filter-menu" class="map-dropdown-menu"></div>
+            </div>
             <button id="map-reset-toggle" class="map-toggle" type="button" aria-label="Karte auf Deutschland zurücksetzen">
               <span class="map-toggle-icon" aria-hidden="true">
                 <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
@@ -3590,7 +3607,6 @@
   const elList = document.getElementById('list');
   const elMapPagination = document.getElementById('map-pagination');
   const elCount = document.getElementById('count');
-  const elContactModeToggle = document.getElementById('contact-mode-toggle');
   const elHeatMapToggle = document.getElementById('heatmap-toggle');
   const elClusterToggle = document.getElementById('cluster-toggle');
   const elMapResetToggle = document.getElementById('map-reset-toggle');
@@ -4404,8 +4420,6 @@
   }
 
   function updateMapModeControls(){
-    elContactModeToggle?.classList.toggle('map-toggle-active-home', !heatMapActive && !clusterModeActive);
-    elContactModeToggle?.setAttribute('aria-pressed', (!heatMapActive && !clusterModeActive) ? 'true' : 'false');
     elHeatMapToggle?.classList.toggle('map-toggle-active-heat', heatMapActive);
     elHeatMapToggle?.setAttribute('aria-pressed', heatMapActive ? 'true' : 'false');
     elClusterToggle?.classList.toggle('map-toggle-active-filter', clusterModeActive);
@@ -4783,13 +4797,6 @@
     if (isMobileLayout() && !event.target.closest('.map-controls') && !event.target.closest('#map-menu-toggle')) {
       closeMapMenu();
     }
-  });
-
-  elContactModeToggle?.addEventListener('click', () => {
-    heatMapActive = false;
-    clusterModeActive = false;
-    closeMapMenu();
-    render();
   });
 
   elHeatMapToggle?.addEventListener('click', () => {
