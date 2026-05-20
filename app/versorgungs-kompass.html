@@ -12079,34 +12079,69 @@
 
       .registrations-list {
         display: grid;
-        gap: 6px;
+        gap: 0;
+      }
+
+      .registrations-table {
+        display: grid;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: var(--surface);
+      }
+
+      .registration-table-head,
+      .registration-row {
+        display: grid;
+        grid-template-columns: minmax(260px, 1.45fr) minmax(245px, 1.25fr) minmax(155px, 0.75fr) minmax(190px, 0.9fr) minmax(210px, auto);
+        align-items: center;
+      }
+
+      .registration-table-head {
+        min-height: 42px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        text-transform: uppercase;
+      }
+
+      .registration-table-head > div,
+      .registration-row > div {
+        min-width: 0;
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
+        border-right: 1px solid var(--border);
+      }
+
+      .registration-table-head > div:last-child,
+      .registration-row > div:last-child {
+        border-right: 0;
       }
 
       .registration-row {
-        display: grid;
-        gap: 8px;
-        min-height: 70px;
-        padding: 8px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
+        min-height: 74px;
+        border-bottom: 1px solid var(--border);
         color: var(--text-primary);
+      }
+
+      .registration-row:last-child {
+        border-bottom: 0;
       }
 
       .registration-row:hover,
       .registration-row:focus-within {
-        border-color: var(--border-strong);
         background: var(--surface-muted);
       }
 
       .registration-row__preview {
-        display: grid;
-        grid-template-columns: minmax(170px, 1fr) minmax(210px, 1fr) minmax(260px, 1.35fr) minmax(110px, auto);
-        gap: 8px 14px;
+        display: flex;
+        gap: 10px;
         align-items: center;
         min-width: 0;
-        padding: 4px;
-        border-radius: var(--radius-sm);
         cursor: pointer;
       }
 
@@ -12117,11 +12152,17 @@
 
       .registration-row__main,
       .registration-row__meta,
-      .registration-row__message,
+      .registration-row__location,
       .registration-row__status {
         min-width: 0;
         display: grid;
-        gap: 4px;
+        gap: 3px;
+      }
+
+      .registration-row__identity {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
       }
 
       .registration-row strong {
@@ -12153,18 +12194,6 @@
         white-space: nowrap;
       }
 
-      .registration-row__message span {
-        overflow: visible;
-        text-overflow: clip;
-        white-space: normal;
-      }
-
-      .registration-row__message small {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
       .registration-row__status {
         justify-items: start;
       }
@@ -12175,20 +12204,17 @@
         font-size: var(--font-size-xs);
       }
 
-      .registration-row__actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
+      .registration-row > .registration-row__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px;
-        flex-wrap: wrap;
-        padding: 0 4px 2px;
       }
 
       .registration-row__actions .import-row-action {
-        width: auto;
-        min-width: 108px;
-        min-height: 34px;
-        padding: 6px 10px;
+        width: 100%;
+        min-width: auto;
+        min-height: 32px;
+        padding: 6px 8px;
         font-size: var(--font-size-xs);
         white-space: nowrap;
       }
@@ -13074,8 +13100,17 @@
           grid-template-columns: 1fr;
         }
 
-        .registration-row__preview {
-          grid-template-columns: 1fr;
+        .registration-table-head {
+          display: none;
+        }
+
+        .registration-row > div {
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .registration-row > div:last-child {
+          border-bottom: 0;
         }
 
         .registration-row__actions {
@@ -17005,7 +17040,6 @@
                     <div class="dashboard-card-head">
                       <div>
                         <h4>Registrierungen aus dem Versorgungs-Netzwerk</h4>
-                        <p>Öffentliche Formularmeldungen werden hier erst geprüft, bevor ein aktiver CRM-Kontakt entsteht.</p>
                       </div>
                       <a class="action-button" id="public-registration-demo-link" href="../mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Formular ansehen</a>
                     </div>
@@ -19272,35 +19306,44 @@
           ? `${rows.length} neue Registrierung${rows.length === 1 ? "" : "en"} zur Prüfung.`
           : "Keine neuen Registrierungen zur Prüfung.";
         registrationsList.innerHTML = rows.length
-          ? rows.map((registration) => {
+          ? `<div class="registrations-table">
+              <div class="registration-table-head" aria-hidden="true">
+                <div>Kontakt</div>
+                <div>Einrichtung</div>
+                <div>Standort</div>
+                <div>Eingang</div>
+                <div>Aktionen</div>
+              </div>
+              ${rows.map((registration) => {
               const name = registrationDisplayName(registration);
               const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "Zeitpunkt offen";
               const location = registrationLocationLabel(registration);
-              const roleLine = [registration.role, registration.email].filter(Boolean).join(" · ") || "Kontaktangaben offen";
+              const postalCode = registrationPostalCode(registration);
+              const contactLine = [registration.role, registration.email].filter(Boolean).join(" · ") || "Kontaktangaben offen";
+              const organizationLine = [registration.sector, registration.duplicateHint || registration.duplicate_hint].filter(Boolean).join(" · ") || "Einordnung offen";
+              const locationLine = location || postalCode || "Standort offen";
+              const avatarMarkup = `<span class="avatar avatar-fallback avatar-sm avatar--network" aria-hidden="true">${escapeHtml(initialsFromLabel(name))}</span>`;
               return `
                 <article class="registration-row" data-registration-id="${escapeHtml(registration.id)}">
                   <div class="registration-row__preview" data-registration-preview="${escapeHtml(registration.id)}" tabindex="0" role="button" aria-label="${escapeHtml(registrationRowLabel(registration))}">
-                    <div class="registration-row__main">
-                      <span class="registration-row__label">Kontakt</span>
+                    ${avatarMarkup}
+                    <div class="registration-row__identity">
                       <strong>${escapeHtml(name)}</strong>
-                      <span>${escapeHtml(roleLine)}</span>
+                      <span>${escapeHtml(contactLine)}</span>
                     </div>
-                    <div class="registration-row__meta">
-                      <span class="registration-row__label">Einrichtung</span>
-                      <strong>${escapeHtml(registration.organization || "Einrichtung offen")}</strong>
-                      <span>${escapeHtml([registration.sector, location].filter(Boolean).join(" · ") || "Einordnung offen")}</span>
-                      ${registration.duplicateHint ? `<small>${escapeHtml(registration.duplicateHint)}</small>` : ""}
-                    </div>
-                    <div class="registration-row__message">
-                      <span class="registration-row__label">Meldung</span>
-                      <span>${escapeHtml(registration.message || "Keine Nachricht")}</span>
-                      <small>${escapeHtml(submitted)}</small>
-                    </div>
-                    <div class="registration-row__status">
-                      <span class="registration-row__label">Status</span>
-                      <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
-                      <small>${escapeHtml(registrationPrivacyLabel(registration.privacyCheckStatus || registration.privacy_check_status))}</small>
-                    </div>
+                  </div>
+                  <div class="registration-row__meta">
+                    <strong>${escapeHtml(registration.organization || "Einrichtung offen")}</strong>
+                    <span>${escapeHtml(organizationLine)}</span>
+                  </div>
+                  <div class="registration-row__location">
+                    <strong>${escapeHtml(locationLine)}</strong>
+                    <span>${escapeHtml(postalCode ? "PLZ vorhanden" : "PLZ offen")}</span>
+                  </div>
+                  <div class="registration-row__status">
+                    <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
+                    <small>${escapeHtml(registrationPrivacyLabel(registration.privacyCheckStatus || registration.privacy_check_status))}</small>
+                    <small>${escapeHtml(submitted)}</small>
                   </div>
                   <div class="registration-row__actions">
                     <button class="import-row-action registration-action--primary" type="button" data-registration-action="accept" data-registration-id="${escapeHtml(registration.id)}">Übernehmen</button>
@@ -19310,7 +19353,8 @@
                   </div>
                 </article>
               `;
-            }).join("")
+              }).join("")}
+            </div>`
           : `<div class="imports-history-empty">Keine neuen Registrierungen. Zurückgestellte oder übernommene Eingänge bleiben im gematik Backend nachvollziehbar.</div>`;
       }
 
