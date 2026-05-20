@@ -11630,6 +11630,42 @@
         display: none;
       }
 
+      .settings-wip-note {
+        display: grid;
+        gap: 8px;
+        padding: 14px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        color: var(--text-secondary);
+      }
+
+      .settings-wip-note strong {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        line-height: var(--line-height-tight);
+      }
+
+      .settings-wip-note p {
+        margin: 0;
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .settings-status-pill {
+        width: fit-content;
+        min-height: 24px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border: 1px solid #fed7aa;
+        border-radius: 999px;
+        background: #fff7ed;
+        color: #c2410c;
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+      }
+
       .settings-tab-panel .imports-workspace {
         display: grid;
         gap: 14px;
@@ -16140,29 +16176,35 @@
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-quality" data-settings-tab="quality">Datenqualität</button>
               </div>
               <div class="settings-tab-panel" id="settings-tab-settings" role="tabpanel" data-settings-tab-panel="settings">
+                <div class="settings-wip-note">
+                  <span class="settings-status-pill">Entwurf</span>
+                  <strong>Dieser Bereich ist noch in Arbeit.</strong>
+                  <p>Im Moment gibt es hier noch keine Einstellung, die du aktiv ändern musst. Die nutzbaren Werkzeuge liegen aktuell in den Reitern <strong>Importe</strong> und <strong>Datenqualität</strong>.</p>
+                </div>
                 <section class="profile-section">
-                  <h3>Systemeinstellungen</h3>
+                  <h3>Was hier später entstehen könnte</h3>
                   <div class="detail-line-list">
                     <div class="detail-line">
-                      <span class="detail-line__label">Arbeitsbereiche</span>
-                      <span class="detail-line__value">Konfiguration für Standardansichten, Tabellenzustand und gespeicherte Team-Filter.</span>
+                      <span class="detail-line__label">Startansicht</span>
+                      <span class="detail-line__value">Später könnte hier festgelegt werden, mit welchem Bereich die App startet, zum Beispiel Kontakte, Karte oder Auswertung.</span>
                     </div>
                     <div class="detail-line">
-                      <span class="detail-line__label">Rollen &amp; Rechte</span>
-                      <span class="detail-line__value">Zentrale Verwaltung von Admin-, Editor- und Viewer-Berechtigungen.</span>
+                      <span class="detail-line__label">Tabellenansicht</span>
+                      <span class="detail-line__value">Hier könnten Standardspalten, Dichte der Tabelle und gespeicherte Ansichten verwaltet werden.</span>
                     </div>
                     <div class="detail-line">
                       <span class="detail-line__label">Benachrichtigungen</span>
-                      <span class="detail-line__value">Regeln für Hinweise zu neuen Kontakten, Pflegeaufgaben und Team-Aktivität.</span>
+                      <span class="detail-line__value">Hier könnten später Hinweise per E-Mail oder in der App ein- und ausgeschaltet werden.</span>
                     </div>
                     <div class="detail-line">
-                      <span class="detail-line__label">Datenpflege</span>
-                      <span class="detail-line__value">Schwellwerte für Aktualitätsprüfungen, Dublettenhinweise und Archivierung.</span>
+                      <span class="detail-line__label">Rechte und Freigaben</span>
+                      <span class="detail-line__value">Die Verwaltung von Admin-, Editor- und Viewer-Rechten gehört fachlich hierher, ist aber noch nicht als Oberfläche umgesetzt.</span>
                     </div>
                   </div>
                 </section>
                 <section class="profile-section">
                   <h3>Gespeicherte Ansichten</h3>
+                  <p class="import-muted">Dieser Teil ist bereits teilweise nutzbar: gespeicherte Filter und Ansichten werden hier angezeigt, sobald sie vorhanden sind.</p>
                   <div class="saved-view-list" id="settings-saved-views">
                     <div class="saved-view-empty">Gespeicherte Ansichten werden nach dem Laden des Profils angezeigt.</div>
                   </div>
@@ -17630,7 +17672,7 @@
         { id: "settings", label: "Einstellungen" }
       ];
       const settingsTabItems = [
-        { id: "settings", title: "Einstellungen", subtitle: "Systemeinstellungen und Konfiguration." },
+        { id: "settings", title: "Einstellungen", subtitle: "Entwurf für spätere App-Einstellungen. Aktuell noch ohne aktive Konfiguration." },
         { id: "imports", title: "Importe", subtitle: "Kontakte per Datei oder tabellarischer Erfassung hinzufügen." },
         { id: "quality", title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." }
       ];
@@ -19578,7 +19620,7 @@
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         team: { title: "Team", subtitle: "Accounts, Rollen und Zuständigkeiten im Überblick." },
-        settings: { title: "Einstellungen", subtitle: "Systemeinstellungen und Konfiguration." },
+        settings: { title: "Einstellungen", subtitle: "Entwurf für spätere App-Einstellungen. Aktuell noch ohne aktive Konfiguration." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
         profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." }
       };
