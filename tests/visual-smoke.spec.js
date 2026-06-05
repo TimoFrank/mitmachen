@@ -8,7 +8,7 @@ function authSession() {
   };
 }
 
-async function gotoAuthenticated(page, path, { role = "admin" } = {}) {
+async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "" } = {}) {
   await page.route("**/login/auth-guard.js", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
@@ -28,9 +28,25 @@ async function gotoAuthenticated(page, path, { role = "admin" } = {}) {
   await page.route("**/data/supabase-config.js", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
-      body: `window.VERSORGUNGS_COMPASS_CONFIG = { dataMode: "demo", demoRole: ${JSON.stringify(role)} };`
+      body: `window.VERSORGUNGS_COMPASS_CONFIG = { dataMode: ${JSON.stringify(dataMode)}, demoRole: ${JSON.stringify(role)} };`
     });
   });
+  if (contactsScript) {
+    await page.route("**/data/versorgungs-kompass-data.js", async (route) => {
+      await route.fulfill({
+        contentType: "application/javascript",
+        body: contactsScript
+      });
+    });
+  }
+  if (expertsScript) {
+    await page.route("**/data/expertenkreis-data.js", async (route) => {
+      await route.fulfill({
+        contentType: "application/javascript",
+        body: expertsScript
+      });
+    });
+  }
   await page.goto("/");
   await page.evaluate(
     ({ key, session }) => {
@@ -85,6 +101,38 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator("#experts-pagination-meta")).toContainText("Organisationen");
 
   await attachScreenshot(page, testInfo, "expertenkreis");
+});
+
+test("Expertenkreis: Admin-Matching-Ansicht zeigt beide Richtungen", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts", {
+    dataMode: "local",
+    contactsScript: `window.VERSORGUNGS_COMPASS_CONTACTS = [
+      { id: "contact-peter", name: "Peter Gocke", organization: "Charite", sector: "Krankenhaus", category: "Krankenhaus", city: "Berlin", state: "Berlin", status: "active" },
+      { id: "contact-florian", name: "Florian Rau", organization: "Praxis im Zentrum Harsefeld", sector: "Praxis", category: "Praxis", status: "active" }
+    ];`,
+    expertsScript: `window.VERSORGUNGS_COMPASS_EXPERT_GROUPS = [
+      { id: "expert-group-wissenschaft", name: "Wissenschaftliche Einrichtung und Patientenorganisation", sortOrder: 10 }
+    ];
+    window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS = [
+      { id: "expert-peter", name: "Dr. Peter Gocke", groupId: "expert-group-wissenschaft", group: "Wissenschaftliche Einrichtung und Patientenorganisation", category: "Wissenschaftliche Einrichtung und Patientenorganisation", organizationId: "expert-org-charite", organization: "Charite", status: "active" },
+      { id: "expert-florian", name: "Florian Rau", groupId: "expert-group-wissenschaft", group: "Wissenschaftliche Einrichtung und Patientenorganisation", category: "Wissenschaftliche Einrichtung und Patientenorganisation", organizationId: "expert-org-selbst", organization: "selbststaendig", status: "active" }
+    ];
+    window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS = [
+      { id: "expert-org-charite", name: "Charite", groupId: "expert-group-wissenschaft", group: "Wissenschaftliche Einrichtung und Patientenorganisation", category: "Wissenschaftliche Einrichtung und Patientenorganisation", organizationType: "Universitaetsmedizin", status: "active" }
+    ];`
+  });
+
+  await page.locator('[data-expert-mode="matching"]').click();
+
+  await expect(page.locator('[data-expert-table="matching"]')).toBeVisible();
+  await expect(page.locator("#expert-matching-meta")).toContainText("2 von 2");
+  await expect(page.locator("#expert-matching-list .row, #expert-matching-list .expert-match-mobile-card")).toHaveCount(2);
+  await expect(page.locator("#expert-matching-list [data-confirm-expert-link]")).toHaveCount(2);
+
+  await page.locator('[data-expert-match-direction="expertToCare"]').click();
+  await expect(page.locator('[data-expert-match-direction="expertToCare"]')).toHaveClass(/is-active/);
+
+  await attachScreenshot(page, testInfo, "expertenkreis-matching");
 });
 
 test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInfo) => {

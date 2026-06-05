@@ -1400,6 +1400,10 @@
         display: none !important;
       }
 
+      body:not([data-user-role="admin"]) [data-expert-mode="matching"] {
+        display: none !important;
+      }
+
       .readonly-control {
         opacity: 0.72;
       }
@@ -10839,6 +10843,150 @@
         border-bottom: 0;
       }
 
+      .expert-matching-workspace {
+        display: grid;
+        gap: 10px;
+      }
+
+      .expert-matching-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-muted);
+      }
+
+      .expert-matching-direction-nav {
+        margin: 0;
+        border-bottom: 0;
+      }
+
+      .expert-matching-meta {
+        flex: 0 0 auto;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .expert-matching-table {
+        min-width: 1040px;
+      }
+
+      .expert-matching-table .thead,
+      .expert-matching-table .row {
+        grid-template-columns:
+          minmax(105px, 0.45fr)
+          minmax(230px, 1fr)
+          minmax(230px, 1fr)
+          minmax(170px, 0.7fr)
+          minmax(84px, 0.36fr)
+          minmax(116px, 0.45fr);
+      }
+
+      .expert-matching-table .thead > div,
+      .expert-matching-table .row > div {
+        min-width: 0;
+        padding: 6px 10px;
+      }
+
+      .expert-match-type {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+      }
+
+      .expert-match-entity {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+      }
+
+      .expert-match-copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .expert-match-name {
+        width: fit-content;
+        max-width: 100%;
+      }
+
+      .expert-match-meta-line {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 750;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .expert-match-reason {
+        min-width: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        line-height: 1.32;
+      }
+
+      .expert-match-score {
+        justify-content: flex-end;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+        font-weight: 900;
+      }
+
+      .expert-match-actions {
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .expert-match-mobile-card {
+        gap: 10px;
+      }
+
+      .expert-match-mobile-kind,
+      .expert-match-mobile-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .expert-match-mobile-block {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .expert-match-mobile-footer {
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+      }
+
+      .expert-match-mobile-footer .expert-match-reason {
+        flex: 1 1 auto;
+      }
+
+      .app-shell[data-active-view="experts"][data-expert-mode="matching"] .expert-column-actions .filter-toolbar,
+      .app-shell[data-active-view="experts"][data-expert-mode="matching"] .expert-column-actions .column-menu-shell {
+        display: none !important;
+      }
+
       .bulk-toolbar {
         min-height: 38px;
         display: inline-flex;
@@ -13922,8 +14070,35 @@
           width: 100%;
         }
 
-        .organizations-table {
+        .organizations-table,
+        .expert-matching-table {
           min-width: 0;
+        }
+
+        .expert-matching-toolbar {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          align-items: stretch;
+        }
+
+        .expert-matching-direction-nav {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          width: 100%;
+          overflow: visible;
+        }
+
+        .expert-matching-direction-nav .settings-tab-button {
+          justify-content: center;
+          min-width: 0;
+          min-height: 42px;
+          text-align: center;
+          white-space: normal;
+          line-height: 1.2;
+        }
+
+        .expert-matching-meta {
+          white-space: normal;
         }
 
         .organizations-table .thead {
@@ -17061,6 +17236,7 @@
                   <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="Expertenkreis-Ansichten">
                     <button class="settings-tab-button is-active" type="button" data-expert-mode="contacts" aria-selected="true">Kontakte</button>
                     <button class="settings-tab-button" type="button" data-expert-mode="organizations" aria-selected="false">Organisationen</button>
+                    <button class="settings-tab-button" type="button" data-expert-mode="matching" aria-selected="false">Matching</button>
                   </div>
                 </div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
@@ -17074,6 +17250,26 @@
                 <section class="table organizations-table expert-organizations-table" aria-label="Expertenkreis-Organisationen" data-expert-table="organizations" hidden>
                   <div class="thead" id="expert-organizations-table-head"></div>
                   <div id="expert-organization-list"></div>
+                </section>
+                <section class="expert-matching-workspace" aria-label="Expertenkreis-Matching" data-expert-table="matching" hidden>
+                  <div class="expert-matching-toolbar">
+                    <div class="settings-tab-nav expert-matching-direction-nav" role="tablist" aria-label="Matching-Richtung">
+                      <button class="settings-tab-button is-active" type="button" data-expert-match-direction="careToExpert" aria-selected="true">Versorgung -&gt; Expertenkreis</button>
+                      <button class="settings-tab-button" type="button" data-expert-match-direction="expertToCare" aria-selected="false">Expertenkreis -&gt; Versorgung</button>
+                    </div>
+                    <div class="expert-matching-meta" id="expert-matching-meta">0 Kandidaten</div>
+                  </div>
+                  <section class="table expert-matching-table" aria-label="Offene Matching-Kandidaten">
+                    <div class="thead" id="expert-matching-table-head">
+                      <div>Art</div>
+                      <div>Ausgangspunkt</div>
+                      <div>Kandidat</div>
+                      <div>Grund</div>
+                      <div>Score</div>
+                      <div>Aktion</div>
+                    </div>
+                    <div id="expert-matching-list"></div>
+                  </section>
                 </section>
               </div>
               <div class="table-footer">
@@ -18840,9 +19036,14 @@
       const expertList = document.getElementById("expert-list");
       const expertOrganizationsTableHead = document.getElementById("expert-organizations-table-head");
       const expertOrganizationList = document.getElementById("expert-organization-list");
+      const expertMatchingTableHead = document.getElementById("expert-matching-table-head");
+      const expertMatchingList = document.getElementById("expert-matching-list");
+      const expertMatchingMeta = document.getElementById("expert-matching-meta");
       const expertPaginationMeta = document.getElementById("experts-pagination-meta");
       const expertPagination = document.getElementById("experts-pagination");
       const expertModeButtons = [...document.querySelectorAll("[data-expert-mode]")];
+      const expertMatchingModeButton = document.querySelector('[data-expert-mode="matching"]');
+      const expertMatchDirectionButtons = [...document.querySelectorAll("[data-expert-match-direction]")];
       const expertTables = [...document.querySelectorAll("[data-expert-table]")];
       const contactsTable = document.querySelector(".contacts-table");
       const contactsTableHead = document.getElementById("contacts-table-head");
@@ -19052,6 +19253,7 @@
       let activeSettingsTab = "imports";
       let activeProfileTab = "profile";
       let activeExpertMode = "contacts";
+      let activeExpertMatchDirection = "careToExpert";
       let activeId = null;
       let activeOrganizationId = null;
       let activeExpertId = null;
@@ -19256,7 +19458,9 @@
         setRoleElementVisible(sidebarAboutButton, canAdministerData());
         setRoleElementVisible(accountQualityButton, canAdministerData());
         setRoleElementVisible(analyticsQualityCard, canAdministerData());
+        setRoleElementVisible(expertMatchingModeButton, canAdministerData());
         setRoleElementVisible(careQueueCard, true);
+        if (!canAdministerData() && activeExpertMode === "matching") activeExpertMode = "contacts";
         permissionBanner?.classList.remove("is-visible");
         if (permissionBannerText) permissionBannerText.textContent = "";
         if (!canAccessView(activeView)) {
@@ -21647,6 +21851,158 @@
           .slice(0, 3);
       }
 
+      function expertEntityLinkExists(linkType, fields = {}) {
+        return expertEntityLinks.some((link) => expertEntityLinkMatches(link, { linkType, ...fields }));
+      }
+
+      function expertMatchEntityName(item, linkType) {
+        if (linkType === "contact") return item.displayName || item.name || "Unbenannter Kontakt";
+        return item.name || "Unbenannte Organisation";
+      }
+
+      function expertMatchEntityMeta(item, linkType, expertSide = false) {
+        if (linkType === "contact") {
+          return [
+            meaningfulOrEmpty(item.organization),
+            meaningfulOrEmpty(item.category),
+            meaningfulOrEmpty(item.city || item.location || item.state)
+          ].filter(Boolean).slice(0, 2).join(" · ");
+        }
+        return [
+          meaningfulOrEmpty(expertSide ? item.sector : item.sector),
+          meaningfulOrEmpty(item.organizationType),
+          meaningfulOrEmpty(expertSide ? expertOrganizationLocation(item) : organizationLocation(item))
+        ].filter(Boolean).slice(0, 2).join(" · ");
+      }
+
+      function expertMatchCandidates() {
+        const contactCandidates = contacts
+          .filter((contact) => contact.status !== "archived")
+          .flatMap((contact) =>
+            expertContacts
+              .filter((expertContact) => expertContact.status !== "archived")
+              .filter((expertContact) => !expertEntityLinkExists("contact", { contactId: contact.id, expertContactId: expertContact.id }))
+              .map((expertContact) => {
+                const suggestion = contactExpertMatchSuggestion(contact, expertContact);
+                return suggestion
+                  ? {
+                      id: `contact:${contact.id}:${expertContact.id}`,
+                      linkType: "contact",
+                      typeLabel: "Kontakt",
+                      careItem: contact,
+                      expertItem: expertContact,
+                      reason: suggestion.reason,
+                      score: suggestion.score,
+                      matchReason: suggestion.reason,
+                      confidence: suggestion.score,
+                      contactId: contact.id,
+                      expertContactId: expertContact.id,
+                      organizationId: "",
+                      expertOrganizationId: ""
+                    }
+                  : null;
+              })
+              .filter(Boolean)
+          );
+        const organizationCandidates = organizations
+          .filter((organization) => organization.status !== "archived" && !String(organization.id || "").startsWith("derived-org-"))
+          .flatMap((organization) =>
+            expertOrganizations
+              .filter((expertOrganization) => expertOrganization.status !== "archived")
+              .filter((expertOrganization) => !expertEntityLinkExists("organization", { organizationId: organization.id, expertOrganizationId: expertOrganization.id }))
+              .map((expertOrganization) => {
+                const suggestion = organizationExpertMatchSuggestion(organization, expertOrganization);
+                return suggestion
+                  ? {
+                      id: `organization:${organization.id}:${expertOrganization.id}`,
+                      linkType: "organization",
+                      typeLabel: "Organisation",
+                      careItem: organization,
+                      expertItem: expertOrganization,
+                      reason: suggestion.reason,
+                      score: suggestion.score,
+                      matchReason: suggestion.reason,
+                      confidence: suggestion.score,
+                      contactId: "",
+                      expertContactId: "",
+                      organizationId: organization.id,
+                      expertOrganizationId: expertOrganization.id
+                    }
+                  : null;
+              })
+              .filter(Boolean)
+          );
+        return [...contactCandidates, ...organizationCandidates].sort((a, b) => {
+          const typeOrder = (a.linkType === "contact" ? 0 : 1) - (b.linkType === "contact" ? 0 : 1);
+          if (typeOrder) return typeOrder;
+          return b.score - a.score || expertMatchEntityName(a.careItem, a.linkType).localeCompare(expertMatchEntityName(b.careItem, b.linkType), "de");
+        });
+      }
+
+      function filteredExpertMatchCandidates() {
+        const search = searchInput.value.trim().toLowerCase();
+        return expertMatchCandidates().filter((candidate) => {
+          if (!search) return true;
+          return [
+            candidate.typeLabel,
+            expertMatchEntityName(candidate.careItem, candidate.linkType),
+            expertMatchEntityName(candidate.expertItem, candidate.linkType),
+            expertMatchEntityMeta(candidate.careItem, candidate.linkType, false),
+            expertMatchEntityMeta(candidate.expertItem, candidate.linkType, true),
+            candidate.reason
+          ].join(" ").toLowerCase().includes(search);
+        });
+      }
+
+      function expertMatchSide(candidate, side) {
+        const item = side === "expert" ? candidate.expertItem : candidate.careItem;
+        return {
+          item,
+          realm: side,
+          kind: candidate.linkType,
+          name: expertMatchEntityName(item, candidate.linkType),
+          meta: expertMatchEntityMeta(item, candidate.linkType, side === "expert")
+        };
+      }
+
+      function expertMatchEntityMarkup(candidate, side) {
+        const entity = expertMatchSide(candidate, side);
+        const visual = candidate.linkType === "contact"
+          ? contactAvatarMarkup(entity.item, "sm")
+          : organizationLogoMarkup(entity.item, "sm");
+        return `
+          <div class="expert-match-entity">
+            ${visual}
+            <div class="expert-match-copy">
+              <button
+                class="organization-name-button expert-match-name"
+                type="button"
+                data-open-expert-match-realm="${escapeHtml(entity.realm)}"
+                data-open-expert-match-kind="${escapeHtml(entity.kind)}"
+                data-open-expert-match-id="${escapeHtml(entity.item.id)}"
+              >${escapeHtml(entity.name)}</button>
+              ${entity.meta ? `<div class="expert-match-meta-line">${escapeHtml(entity.meta)}</div>` : ""}
+            </div>
+          </div>
+        `;
+      }
+
+      function expertMatchConfirmButtonMarkup(candidate) {
+        return `
+          <button
+            class="detail-link detail-link--compact"
+            type="button"
+            data-confirm-expert-link="${escapeHtml(candidate.linkType)}"
+            data-link-contact="${escapeHtml(candidate.contactId || "")}"
+            data-link-expert-contact="${escapeHtml(candidate.expertContactId || "")}"
+            data-link-organization="${escapeHtml(candidate.organizationId || "")}"
+            data-link-expert-organization="${escapeHtml(candidate.expertOrganizationId || "")}"
+            data-link-reason="${escapeHtml(candidate.matchReason || "Manuell bestätigt")}"
+            data-link-confidence="${String(candidate.confidence || 0)}"
+          >Bestätigen</button>
+        `;
+      }
+
       function expertConfidenceLabel(score) {
         if (score >= 0.95) return "sehr hoch";
         if (score >= 0.86) return "hoch";
@@ -22419,6 +22775,8 @@
       }
 
       function renderExpertTablesVisibility() {
+        if (activeExpertMode === "matching" && !canAdministerData()) activeExpertMode = "contacts";
+        if (appShell) appShell.dataset.expertMode = activeExpertMode;
         expertModeButtons.forEach((button) => {
           const active = button.dataset.expertMode === activeExpertMode;
           button.classList.toggle("is-active", active);
@@ -22641,6 +22999,170 @@
             renderExpertOrganizationsTable(items);
           });
         });
+      }
+
+      function renderExpertMatchDirectionControls() {
+        expertMatchDirectionButtons.forEach((button) => {
+          const active = button.dataset.expertMatchDirection === activeExpertMatchDirection;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-selected", String(active));
+        });
+      }
+
+      function renderExpertMatchingTableHead() {
+        if (!expertMatchingTableHead) return;
+        const sourceLabel = activeExpertMatchDirection === "expertToCare" ? "Expertenkreis" : "Versorgung";
+        const targetLabel = activeExpertMatchDirection === "expertToCare" ? "Versorgung" : "Expertenkreis";
+        expertMatchingTableHead.innerHTML = `
+          <div>Art</div>
+          <div>${sourceLabel}</div>
+          <div>${targetLabel}</div>
+          <div>Grund</div>
+          <div>Score</div>
+          <div>Aktion</div>
+        `;
+      }
+
+      function expertMatchingRowMarkup(candidate) {
+        const sourceSide = activeExpertMatchDirection === "expertToCare" ? "expert" : "care";
+        const targetSide = activeExpertMatchDirection === "expertToCare" ? "care" : "expert";
+        return `
+          <article class="row" data-expert-match-id="${escapeHtml(candidate.id)}">
+            <div><span class="expert-match-type">${escapeHtml(candidate.typeLabel)}</span></div>
+            <div>${expertMatchEntityMarkup(candidate, sourceSide)}</div>
+            <div>${expertMatchEntityMarkup(candidate, targetSide)}</div>
+            <div><span class="expert-match-reason">${escapeHtml(candidate.reason)}</span></div>
+            <div class="expert-match-score">${Math.round(candidate.score * 100)}%</div>
+            <div class="expert-match-actions">${expertMatchConfirmButtonMarkup(candidate)}</div>
+          </article>
+        `;
+      }
+
+      function expertMatchingMobileCardMarkup(candidate) {
+        const sourceSide = activeExpertMatchDirection === "expertToCare" ? "expert" : "care";
+        const targetSide = activeExpertMatchDirection === "expertToCare" ? "care" : "expert";
+        return `
+          <article class="mobile-contact-card expert-match-mobile-card" data-expert-match-id="${escapeHtml(candidate.id)}">
+            <div class="expert-match-mobile-kind">
+              <span class="expert-match-type">${escapeHtml(candidate.typeLabel)}</span>
+              <span class="expert-match-score">${Math.round(candidate.score * 100)}%</span>
+            </div>
+            <div class="expert-match-mobile-block">
+              <div class="detail-line__label">Ausgangspunkt</div>
+              ${expertMatchEntityMarkup(candidate, sourceSide)}
+            </div>
+            <div class="expert-match-mobile-block">
+              <div class="detail-line__label">Kandidat</div>
+              ${expertMatchEntityMarkup(candidate, targetSide)}
+            </div>
+            <div class="expert-match-mobile-footer">
+              <span class="expert-match-reason">${escapeHtml(candidate.reason)} · ${escapeHtml(expertConfidenceLabel(candidate.score))}</span>
+              ${expertMatchConfirmButtonMarkup(candidate)}
+            </div>
+          </article>
+        `;
+      }
+
+      function openExpertMatchEntity(button) {
+        const realm = button.dataset.openExpertMatchRealm || "";
+        const kind = button.dataset.openExpertMatchKind || "";
+        const id = button.dataset.openExpertMatchId || "";
+        if (!id) return;
+        closeDetail();
+        if (realm === "expert" && kind === "contact") {
+          activeExpertMode = "contacts";
+          setActiveView("experts");
+          updateView();
+          openExpertDetail(id, expertContacts);
+          return;
+        }
+        if (realm === "expert" && kind === "organization") {
+          activeExpertMode = "organizations";
+          setActiveView("experts");
+          updateView();
+          openExpertOrganizationDetail(id, expertOrganizations);
+          return;
+        }
+        if (kind === "organization") {
+          setActiveView("organizations");
+          updateView();
+          openOrganizationDetail(id, organizations);
+          return;
+        }
+        setActiveView("contacts");
+        updateView();
+        openDetail(id, contacts);
+      }
+
+      function bindExpertMatchingControls(items) {
+        expertMatchingList?.querySelectorAll("[data-open-expert-match-id]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openExpertMatchEntity(button);
+          });
+        });
+        expertMatchingList?.querySelectorAll("[data-confirm-expert-link]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            confirmExpertEntityLink(button, () => renderExpertMatchingTable(filteredExpertMatchCandidates()));
+          });
+        });
+        expertPagination.querySelectorAll("[data-expert-match-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.expertMatchPage);
+            renderExpertMatchingTable(items);
+          });
+        });
+        expertPagination.querySelectorAll("[data-expert-match-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.expertMatchPageNav === "next" ? 1 : -1;
+            renderExpertMatchingTable(items);
+          });
+        });
+      }
+
+      function renderExpertMatchingTable(items = filteredExpertMatchCandidates()) {
+        if (!expertMatchingList || !expertPagination || !expertPaginationMeta) return;
+        activeExpertMode = "matching";
+        renderExpertTablesVisibility();
+        renderExpertMatchDirectionControls();
+        const totalCandidates = expertMatchCandidates().length;
+        if (!canAdministerData()) {
+          if (expertMatchingTableHead) expertMatchingTableHead.innerHTML = "";
+          expertMatchingList.innerHTML = `<div class="empty">Matching-Kandidaten sind nur für Admins sichtbar.</div>`;
+          expertPaginationMeta.textContent = "0-0 von 0 Kandidaten";
+          expertPagination.innerHTML = "";
+          if (expertMatchingMeta) expertMatchingMeta.textContent = "Admin-Ansicht";
+          return;
+        }
+        if (!items.length) {
+          renderExpertMatchingTableHead();
+          expertMatchingList.innerHTML = `<div class="empty">Keine offenen Matching-Kandidaten. Suche oder bestätigte Verknüpfungen prüfen.</div>`;
+          expertPaginationMeta.textContent = "0-0 von 0 Kandidaten";
+          expertPagination.innerHTML = "";
+          if (expertMatchingMeta) expertMatchingMeta.textContent = totalCandidates ? `0 von ${totalCandidates} Kandidaten` : "Keine Kandidaten";
+          return;
+        }
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        const countLabel = items.length === 1 ? "Kandidat" : "Kandidaten";
+        expertPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} ${countLabel}`;
+        if (expertMatchingMeta) expertMatchingMeta.textContent = `${items.length} von ${totalCandidates} offen`;
+        if (isMobileLayout()) {
+          if (expertMatchingTableHead) expertMatchingTableHead.innerHTML = "";
+          expertMatchingList.innerHTML = `<div class="mobile-contact-list">${pageItems.map(expertMatchingMobileCardMarkup).join("")}</div>`;
+        } else {
+          renderExpertMatchingTableHead();
+          expertMatchingList.innerHTML = pageItems.map(expertMatchingRowMarkup).join("");
+        }
+        expertPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-expert-match-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-expert-match-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-expert-match-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+        bindExpertMatchingControls(items);
       }
 
       function applyProfiles(profiles = []) {
@@ -23812,6 +24334,7 @@
       function hitCountLabel(items) {
         if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
         if (activeView === "experts") {
+          if (activeExpertMode === "matching") return `${items.length} von ${expertMatchCandidates().length} Kandidaten`;
           if (activeExpertMode === "organizations") return `${items.length} von ${expertOrganizations.length} Organisationen`;
           return `${items.length} von ${activeExpertContactsTotal()} Kontakten`;
         }
@@ -24221,6 +24744,33 @@
           return;
         }
         if (activeView === "experts") {
+          if (activeExpertMode === "matching") {
+            const total = expertMatchCandidates().length;
+            const meta = items.length === total ? "" : `${items.length} Treffer`;
+            renderSummaryCards(
+              summaryGrid,
+              [
+                {
+                  label: "Offene Matching-Kandidaten",
+                  value: total,
+                  meta: isMobileLayout() ? "offen" : meta,
+                  icon: `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M8 7h8"></path>
+                      <path d="M8 17h8"></path>
+                      <path d="M7 7a3 3 0 1 1-3-3"></path>
+                      <path d="M17 17a3 3 0 1 0 3 3"></path>
+                      <path d="M4 4v3h3"></path>
+                      <path d="M20 20v-3h-3"></path>
+                    </svg>
+                  `,
+                  iconClass: "summary-icon--blue"
+                }
+              ],
+              "offen"
+            );
+            return;
+          }
           const isOrganizationsMode = activeExpertMode === "organizations";
           const total = isOrganizationsMode ? expertOrganizations.length : activeExpertContactsTotal();
           const meta = items.length === total ? "" : `${items.length} Treffer`;
@@ -30084,20 +30634,24 @@
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
         const isExpertsView = activeView === "experts";
+        if (isExpertsView && activeExpertMode === "matching" && !canAdministerData()) activeExpertMode = "contacts";
         const isExpertOrganizationsMode = isExpertsView && activeExpertMode === "organizations";
+        const isExpertMatchingMode = isExpertsView && activeExpertMode === "matching";
         const isFormatsView = activeView === "formats";
         const items = isFormatsView
           ? filteredFormats()
           : isOrganizationsView
             ? filteredOrganizations()
             : isExpertsView
-              ? isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
+              ? isExpertMatchingMode ? filteredExpertMatchCandidates() : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
-        resultsCount.hidden = isInitialDataLoading && isContactsView ? false : isFormatsView ? false : !hasActiveFilters();
+        resultsCount.hidden = isInitialDataLoading && isContactsView ? false : isFormatsView || isExpertMatchingMode ? false : !hasActiveFilters();
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
         searchInput.placeholder = isOrganizationsView
           ? "Organisationen suchen..."
+          : isExpertMatchingMode
+            ? "Matching-Kandidaten suchen..."
           : isExpertOrganizationsMode
             ? "Expertenkreis-Organisationen suchen..."
           : isExpertsView
@@ -30113,10 +30667,11 @@
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
         archiveViewButton.hidden = !isContactsView;
         if (openImportButton) openImportButton.hidden = true;
-        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView);
+        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isExpertMatchingMode;
         if (viewSelectShell) viewSelectShell.hidden = isExpertsView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView;
+        if (filterToolbar) filterToolbar.hidden = isFormatsView || isExpertMatchingMode;
+        if (isExpertMatchingMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -30129,6 +30684,8 @@
         renderSummary(items);
         if (isOrganizationsView) {
           renderOrganizationsTable(items);
+        } else if (isExpertsView && isExpertMatchingMode) {
+          renderExpertMatchingTable(items);
         } else if (isExpertsView && isExpertOrganizationsMode) {
           renderExpertOrganizationsTable(items);
         } else if (isExpertsView) {
@@ -30139,7 +30696,7 @@
           renderFormatsView();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView) {
+        if (!isFormatsView && !isExpertMatchingMode) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -30270,7 +30827,12 @@
       });
       expertModeButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          activeExpertMode = button.dataset.expertMode || "contacts";
+          const nextExpertMode = button.dataset.expertMode || "contacts";
+          if (nextExpertMode === "matching" && !canAdministerData()) {
+            showPermissionDenied("Nur Admins können Matching-Kandidaten prüfen.");
+            return;
+          }
+          activeExpertMode = nextExpertMode;
           selectedOwners = [];
           selectedOrganizationCities = [];
           selectedOrganizationContactRanges = [];
@@ -30278,9 +30840,26 @@
             selectedPriorities = [];
             selectedSpecialties = [];
             selectedThemes = [];
+          } else if (activeExpertMode === "matching") {
+            selectedPriorities = [];
+            selectedCategories = [];
+            selectedStates = [];
+            selectedSpecialties = [];
+            selectedThemes = [];
+            selectedQualities = [];
+            selectedMissingFields = [];
+            selectedUpdatedRanges = [];
+            selectedSources = [];
           }
           currentPage = 1;
           closeDetail();
+          updateView();
+        });
+      });
+      expertMatchDirectionButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          activeExpertMatchDirection = button.dataset.expertMatchDirection || "careToExpert";
+          currentPage = 1;
           updateView();
         });
       });
