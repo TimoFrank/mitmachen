@@ -106,6 +106,57 @@ create table if not exists public.format_participants (
   unique (format_id, contact_id)
 );
 
+create table if not exists public.expert_groups (
+  id text primary key,
+  name text not null unique,
+  sort_order integer not null default 100,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.expert_organizations (
+  id text primary key,
+  name text not null,
+  normalized_name text not null,
+  group_id text references public.expert_groups(id) on delete set null,
+  group_name text,
+  organization_type text,
+  city text,
+  federal_state text,
+  website text,
+  phone text,
+  email text,
+  notes text,
+  source text,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.expert_contacts (
+  id text primary key,
+  name text not null,
+  organization_id text references public.expert_organizations(id) on delete set null,
+  organization text,
+  group_id text not null references public.expert_groups(id) on delete restrict,
+  group_name text not null,
+  specialty text,
+  role text,
+  city text,
+  federal_state text,
+  email text,
+  phone text,
+  linkedin text,
+  topics text[] not null default '{}',
+  notes text,
+  source text,
+  profile_url text,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.contacts
   drop constraint if exists contacts_organization_id_fkey,
   add constraint contacts_organization_id_fkey foreign key (organization_id) references public.organizations(id) on delete set null;
@@ -133,7 +184,7 @@ create table if not exists public.saved_views (
   name text not null,
   description text,
   scope text not null default 'private' check (scope in ('private', 'team')),
-  view_type text not null default 'contacts' check (view_type in ('contacts', 'organizations', 'formats', 'map', 'analytics')),
+  view_type text not null default 'contacts' check (view_type in ('contacts', 'organizations', 'experts', 'formats', 'map', 'analytics')),
   filters jsonb not null default '{}'::jsonb,
   search_query text not null default '',
   sort_key text not null default 'updated_at',
@@ -147,7 +198,7 @@ create table if not exists public.saved_views (
 create table if not exists public.user_settings (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   default_view_id uuid references public.saved_views(id) on delete set null,
-  default_view_type text not null default 'contacts' check (default_view_type in ('contacts', 'organizations', 'formats', 'map', 'analytics')),
+  default_view_type text not null default 'contacts' check (default_view_type in ('contacts', 'organizations', 'experts', 'formats', 'map', 'analytics')),
   table_density text not null default 'comfortable' check (table_density in ('compact', 'comfortable', 'spacious')),
   theme text not null default 'system' check (theme in ('system', 'light', 'contrast')),
   font_scale numeric not null default 1 check (font_scale between 0.9 and 1.2),
@@ -171,12 +222,12 @@ create table if not exists public.login_aliases (
 alter table public.saved_views drop constraint if exists saved_views_view_type_check;
 alter table public.saved_views
   add constraint saved_views_view_type_check
-  check (view_type in ('contacts', 'organizations', 'formats', 'map', 'analytics'));
+  check (view_type in ('contacts', 'organizations', 'experts', 'formats', 'map', 'analytics'));
 
 alter table public.user_settings drop constraint if exists user_settings_default_view_type_check;
 alter table public.user_settings
   add constraint user_settings_default_view_type_check
-  check (default_view_type in ('contacts', 'organizations', 'formats', 'map', 'analytics'));
+  check (default_view_type in ('contacts', 'organizations', 'experts', 'formats', 'map', 'analytics'));
 
 create index if not exists contacts_status_idx on public.contacts(status);
 create index if not exists contacts_owner_idx on public.contacts(owner_id);
@@ -192,6 +243,13 @@ create index if not exists formats_starts_at_idx on public.formats(starts_at);
 create index if not exists format_participants_format_idx on public.format_participants(format_id);
 create index if not exists format_participants_contact_idx on public.format_participants(contact_id);
 create index if not exists format_participants_status_idx on public.format_participants(invitation_status);
+create index if not exists expert_groups_status_idx on public.expert_groups(status);
+create index if not exists expert_organizations_normalized_name_idx on public.expert_organizations(normalized_name);
+create index if not exists expert_organizations_group_idx on public.expert_organizations(group_id);
+create index if not exists expert_organizations_status_idx on public.expert_organizations(status);
+create index if not exists expert_contacts_group_idx on public.expert_contacts(group_id);
+create index if not exists expert_contacts_organization_idx on public.expert_contacts(organization_id);
+create index if not exists expert_contacts_status_idx on public.expert_contacts(status);
 create index if not exists changes_contact_idx on public.changes(contact_id);
 create index if not exists saved_views_owner_idx on public.saved_views(owner_id);
 create index if not exists saved_views_scope_idx on public.saved_views(scope);
@@ -236,6 +294,21 @@ create trigger format_participants_touch_updated_at
 before update on public.format_participants
 for each row execute function public.touch_updated_at();
 
+drop trigger if exists expert_groups_touch_updated_at on public.expert_groups;
+create trigger expert_groups_touch_updated_at
+before update on public.expert_groups
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists expert_organizations_touch_updated_at on public.expert_organizations;
+create trigger expert_organizations_touch_updated_at
+before update on public.expert_organizations
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists expert_contacts_touch_updated_at on public.expert_contacts;
+create trigger expert_contacts_touch_updated_at
+before update on public.expert_contacts
+for each row execute function public.touch_updated_at();
+
 drop trigger if exists saved_views_touch_updated_at on public.saved_views;
 create trigger saved_views_touch_updated_at
 before update on public.saved_views
@@ -261,6 +334,9 @@ alter table public.contacts enable row level security;
 alter table public.organizations enable row level security;
 alter table public.formats enable row level security;
 alter table public.format_participants enable row level security;
+alter table public.expert_groups enable row level security;
+alter table public.expert_organizations enable row level security;
+alter table public.expert_contacts enable row level security;
 alter table public.changes enable row level security;
 alter table public.saved_views enable row level security;
 alter table public.user_settings enable row level security;
@@ -273,6 +349,9 @@ grant select, insert, update on public.contacts to authenticated;
 grant select, insert, update on public.organizations to authenticated;
 grant select, insert, update, delete on public.formats to authenticated;
 grant select, insert, update, delete on public.format_participants to authenticated;
+grant select on public.expert_groups to authenticated;
+grant select on public.expert_organizations to authenticated;
+grant select on public.expert_contacts to authenticated;
 grant select, insert on public.changes to authenticated;
 grant select, insert, update, delete on public.saved_views to authenticated;
 grant select, insert, update, delete on public.user_settings to authenticated;
@@ -284,6 +363,9 @@ grant select, insert, update, delete on public.contacts to service_role;
 grant select, insert, update, delete on public.organizations to service_role;
 grant select, insert, update, delete on public.formats to service_role;
 grant select, insert, update, delete on public.format_participants to service_role;
+grant select, insert, update, delete on public.expert_groups to service_role;
+grant select, insert, update, delete on public.expert_organizations to service_role;
+grant select, insert, update, delete on public.expert_contacts to service_role;
 grant select, insert, update, delete on public.changes to service_role;
 grant select, insert, update, delete on public.saved_views to service_role;
 grant select, insert, update, delete on public.user_settings to service_role;
@@ -391,6 +473,24 @@ with check (
   public.current_profile_role() = 'admin'
   and updated_by = auth.uid()
 );
+
+drop policy if exists "expert groups authenticated read active" on public.expert_groups;
+create policy "expert groups authenticated read active"
+on public.expert_groups for select
+to authenticated
+using (status <> 'archived' or public.current_profile_role() = 'admin');
+
+drop policy if exists "expert organizations authenticated read active" on public.expert_organizations;
+create policy "expert organizations authenticated read active"
+on public.expert_organizations for select
+to authenticated
+using (status <> 'archived' or public.current_profile_role() = 'admin');
+
+drop policy if exists "expert contacts authenticated read active" on public.expert_contacts;
+create policy "expert contacts authenticated read active"
+on public.expert_contacts for select
+to authenticated
+using (status <> 'archived' or public.current_profile_role() = 'admin');
 
 drop policy if exists "formats authenticated read active" on public.formats;
 create policy "formats authenticated read active"

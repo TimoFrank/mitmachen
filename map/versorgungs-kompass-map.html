@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Versorgungs-Kompass – Karten-Modus</title>
   <script src="../login/auth-config.js"></script>
+  <script>
+    if (new URLSearchParams(window.location.search).get("demo") === "1") {
+      window.VK_AUTH_DEMO_BYPASS = true;
+    }
+  </script>
   <script src="../login/auth-guard.js"></script>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -3034,7 +3039,31 @@
 <script src="../data/versorgungs-kompass-data.js"></script>
 
 <script>
+  const MAP_PARAMS = new URLSearchParams(window.location.search);
+  const MAP_DEMO_MODE = MAP_PARAMS.get("demo") === "1";
+  const MAP_DEMO_CONTACTS_KEY = "versorgungs-kompass-demo-mode-contacts-v1";
+
+  function hasMapCoordinates(entry) {
+    return Number.isFinite(Number.parseFloat(entry?.lat ?? entry?.latitude ?? ""));
+  }
+
   function loadCompassContacts() {
+    if (MAP_DEMO_MODE) {
+      const fallbackDemoContacts = window.VERSORGUNGS_COMPASS_DEMO_DATA?.contacts || [];
+      try {
+        const raw = window.localStorage.getItem(MAP_DEMO_CONTACTS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.some(hasMapCoordinates)) {
+            return parsed;
+          }
+        }
+      } catch (error) {
+        console.warn("Konnte lokale Demo-Daten fuer den Karten-Modus nicht lesen.", error);
+      }
+      return fallbackDemoContacts;
+    }
+
     const demoContacts = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo" ? window.VERSORGUNGS_COMPASS_DEMO_DATA?.contacts || [] : [];
     const seedContacts = demoContacts.length ? demoContacts : window.VERSORGUNGS_COMPASS_CONTACTS || [];
     try {
@@ -3056,6 +3085,12 @@
     if (Array.isArray(contact.sources) && contact.sources.length) return contact.sources[0];
     if (typeof contact.sources === "string" && contact.sources.trim()) return contact.sources.trim().split(/\s*\|\s*/)[0];
     return "";
+  }
+
+  function ownerLabelFromProfiles(ownerId) {
+    const profiles = window.VERSORGUNGS_COMPASS_DEMO_DATA?.profiles || [];
+    const profile = profiles.find((entry) => entry.id === ownerId);
+    return profile?.display_name || "";
   }
 
   function toMapEntry(contact) {
@@ -3086,7 +3121,7 @@
       phone: contact.phone || "",
       linkedin: contact.linkedin || "",
       priority: contact.priority || "",
-      owner: contact.owner || "",
+      owner: contact.owner || ownerLabelFromProfiles(contact.ownerId || contact.owner_id) || "",
       ownerId: contact.ownerId || contact.owner_id || "",
       ownerAvatar: contact.ownerAvatar || contact.owner_avatar || contact.ownerAvatarUrl || "",
       themes: Array.isArray(contact.themes) ? contact.themes : String(contact.themes || "").split(/\s*\|\s*/).filter(Boolean),
@@ -3097,7 +3132,7 @@
     };
   }
 
-  const EMBED_MODE = new URLSearchParams(window.location.search).get("embed") === "1";
+  const EMBED_MODE = MAP_PARAMS.get("embed") === "1";
   if (EMBED_MODE) document.body.classList.add("embed-mode");
 
   const BASE_DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);

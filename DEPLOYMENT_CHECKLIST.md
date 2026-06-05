@@ -2,6 +2,8 @@
 
 Kurze Checkliste fuer Aenderungen am Versorgungs-Kompass.
 
+Fuer das interne Jenkins-/GCP-Zieldeployment siehe `DEPLOYMENT_GCP_GEMATIK.md`.
+
 ## Vor Deployment
 
 - [ ] Aktuellen Stand sichern: `git status --short`.

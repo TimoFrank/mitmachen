@@ -68,3 +68,13 @@ RLS-Regeln:
 - Team-Views sind fuer authentifizierte Nutzer lesbar.
 - Team-Views koennen nur Admins anlegen oder verwalten.
 - `user_settings` gehoert immer genau dem eingeloggten User.
+
+## 7. Expertenkreis
+
+Der Expertenkreis liegt fachlich getrennt von `contacts` und `organizations` in:
+
+- `expert_groups`
+- `expert_contacts`
+- `expert_organizations`
+
+Die Seed-Migration `supabase/migrations/20260605_create_expertenkreis.sql` legt die sieben INA-Gruppen an und spiegelt die oeffentlichen INA-Expertenkreisprofile als separaten Interoperabilitaetsdatenstand. Die Tabellen sind per RLS nur fuer authentifizierte Nutzer lesbar; Schreibrechte sind nicht Teil des Browser- oder API-Kontrakts.

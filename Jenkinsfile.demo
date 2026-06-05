@@ -1,0 +1,53 @@
+pipeline {
+  agent any
+
+  environment {
+    PROJECT_ID = credentials('gcp-project-id')
+    REGION = 'europe-west3'
+    REPOSITORY = 'versorgungs-kompass'
+    DEMO_SERVICE = 'versorgungs-kompass-demo'
+    CLOUD_RUN_INGRESS = 'internal-and-cloud-load-balancing'
+    DEMO_IMAGE = "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${DEMO_SERVICE}:${env.BUILD_NUMBER}"
+  }
+
+  stages {
+    stage('Install') {
+      steps {
+        sh 'npm ci'
+      }
+    }
+
+    stage('Demo checks') {
+      steps {
+        sh 'npm run check:demo'
+      }
+    }
+
+    stage('Build demo container') {
+      steps {
+        sh 'docker build -f Dockerfile.demo -t "$DEMO_IMAGE" .'
+      }
+    }
+
+    stage('Push demo container') {
+      steps {
+        sh 'gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet'
+        sh 'docker push "$DEMO_IMAGE"'
+      }
+    }
+
+    stage('Deploy demo') {
+      steps {
+        sh '''
+          gcloud run deploy "$DEMO_SERVICE" \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --image "$DEMO_IMAGE" \
+            --platform managed \
+            --allow-unauthenticated \
+            --ingress "$CLOUD_RUN_INGRESS"
+        '''
+      }
+    }
+  }
+}

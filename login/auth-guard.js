@@ -70,6 +70,10 @@
     return;
   }
 
+  if (window.VK_AUTH_DEMO_BYPASS === true && new URLSearchParams(window.location.search).get("demo") === "1") {
+    return;
+  }
+
   if (!window.VKAuth.isAuthenticated()) {
     window.location.replace(buildLoginUrl());
   }

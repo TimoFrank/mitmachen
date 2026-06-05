@@ -69,6 +69,24 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
   await attachScreenshot(page, testInfo, "organisationen");
 });
 
+test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts");
+
+  await expect(page.locator('[data-view-panel="experts"]')).toBeVisible();
+  await expect(page.locator('[data-view-tab="experts"]')).toHaveClass(/is-active/);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Expertenkreis");
+  await expect(page.locator('[data-filter-field="category"] summary')).toHaveText("Gruppe");
+  await expect(page.locator("#expert-list .row, #expert-list .mobile-contact-card").first()).toBeVisible();
+  await expect(page.locator("#experts-pagination-meta")).toContainText("Kontakten");
+  await expect(page.locator("#view-select-button")).toBeHidden();
+
+  await page.locator('[data-expert-mode="organizations"]').click();
+  await expect(page.locator("#expert-organization-list .row").first()).toBeVisible();
+  await expect(page.locator("#experts-pagination-meta")).toContainText("Organisationen");
+
+  await attachScreenshot(page, testInfo, "expertenkreis");
+});
+
 test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
 

@@ -10765,6 +10765,30 @@
         justify-content: flex-start;
       }
 
+      .table-command-row--experts #expert-mode-actions {
+        order: 1;
+        justify-content: flex-start;
+      }
+
+      .table-command-row--experts .expert-column-actions {
+        order: 3;
+        justify-content: flex-end;
+      }
+
+      .table-command-row--experts .expert-column-actions .filter-toolbar {
+        width: auto;
+        flex: 0 0 auto;
+      }
+
+      .table-command-row--experts .expert-column-actions .filter-toolbar:has(.active-filter-row:not([hidden])) {
+        flex: 1 1 520px;
+      }
+
+      .experts-mode-nav {
+        margin: 0;
+        border-bottom: 0;
+      }
+
       .bulk-toolbar {
         min-height: 38px;
         display: inline-flex;
@@ -13732,16 +13756,40 @@
           padding-inline: 9px;
         }
 
-        .table-command-row--organizations {
+        .app-shell[data-active-view="experts"] .workspace-header {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .app-shell[data-active-view="experts"] .workspace-header .workspace-actions {
+          justify-content: stretch;
+          width: 100%;
+        }
+
+        .app-shell[data-active-view="experts"] .summary.summary--compact {
+          grid-auto-flow: row;
+          grid-template-columns: minmax(0, 1fr);
+          width: 100%;
+          overflow-x: hidden;
+        }
+
+        .app-shell[data-active-view="experts"] .summary.summary--compact .summary-card {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .table-command-row--organizations,
+        .table-command-row--experts {
           grid-template-columns: 1fr;
         }
 
-        .table-command-row--organizations #organization-command-actions {
+        .table-command-row--organizations #organization-command-actions,
+        .table-command-row--experts #expert-mode-actions {
           grid-column: 1 / -1;
           grid-row: 1;
         }
 
-        .table-command-row--organizations .organization-column-actions {
+        .table-command-row--organizations .organization-column-actions,
+        .table-command-row--experts .expert-column-actions {
           grid-column: 1 / -1;
           grid-row: 2;
           display: grid;
@@ -13750,25 +13798,29 @@
           width: 100%;
         }
 
-        .table-command-row--organizations .organization-column-actions .view-select-shell {
+        .table-command-row--organizations .organization-column-actions .view-select-shell,
+        .table-command-row--experts .expert-column-actions .view-select-shell {
           grid-column: 1;
           grid-row: 1;
           min-width: 0;
         }
 
-        .table-command-row--organizations .organization-column-actions .filter-toolbar {
+        .table-command-row--organizations .organization-column-actions .filter-toolbar,
+        .table-command-row--experts .expert-column-actions .filter-toolbar {
           grid-column: 2;
           grid-row: 1;
           justify-self: end;
         }
 
-        .table-command-row--organizations .organization-column-actions .column-menu-shell {
+        .table-command-row--organizations .organization-column-actions .column-menu-shell,
+        .table-command-row--experts .expert-column-actions .column-menu-shell {
           grid-column: 1 / -1;
           grid-row: 2;
           width: 100%;
         }
 
-        .table-command-row--organizations .organization-column-actions .column-menu-shell .action-button {
+        .table-command-row--organizations .organization-column-actions .column-menu-shell .action-button,
+        .table-command-row--experts .expert-column-actions .column-menu-shell .action-button {
           width: 100%;
         }
 
@@ -13837,13 +13889,24 @@
         .organization-mobile-meta {
           display: flex;
           align-items: center;
+          flex-wrap: wrap;
           gap: 8px;
           min-width: 0;
-          white-space: nowrap;
         }
 
         .organization-mobile-sector {
-          flex: 0 0 auto;
+          flex: 1 1 100%;
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .organization-mobile-sector .contact-sector-pill {
+          display: inline-block;
+          max-width: 100%;
+          min-width: 0;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          line-height: 1.2;
         }
 
         .organization-mobile-state {
@@ -13967,6 +14030,27 @@
           padding-bottom: 10px;
         }
 
+        .app-shell[data-active-view="experts"] .workspace-header {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .app-shell[data-active-view="experts"] .workspace-header .workspace-actions {
+          justify-content: stretch;
+          width: 100%;
+        }
+
+        .app-shell[data-active-view="experts"] .summary.summary--compact {
+          grid-auto-flow: row;
+          grid-template-columns: minmax(0, 1fr);
+          width: 100%;
+          overflow-x: hidden;
+        }
+
+        .app-shell[data-active-view="experts"] .summary.summary--compact .summary-card {
+          width: 100%;
+          min-width: 0;
+        }
+
         .workspace-copy p {
           display: none;
         }
@@ -13999,27 +14083,31 @@
         }
 
         .table-command-row,
-        .table-command-row--organizations {
+        .table-command-row--organizations,
+        .table-command-row--experts {
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 8px;
           padding: 9px;
         }
 
         #contact-command-actions,
-        #organization-command-actions {
+        #organization-command-actions,
+        #expert-mode-actions {
           grid-column: 1 / -1;
           grid-row: 1;
         }
 
         .table-command-row > .view-select-shell,
-        .table-command-row--organizations .organization-column-actions .view-select-shell {
+        .table-command-row--organizations .organization-column-actions .view-select-shell,
+        .table-command-row--experts .expert-column-actions .view-select-shell {
           grid-column: 1;
           grid-row: 2;
           width: 100%;
         }
 
         .table-command-row > .filter-toolbar,
-        .table-command-row--organizations .organization-column-actions .filter-toolbar {
+        .table-command-row--organizations .organization-column-actions .filter-toolbar,
+        .table-command-row--experts .expert-column-actions .filter-toolbar {
           grid-column: 2;
           grid-row: 2;
           align-self: stretch;
@@ -16540,6 +16628,17 @@
               </svg>
               <span>Organisationen</span>
             </button>
+            <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="7" r="3"></circle>
+                <circle cx="6" cy="17" r="3"></circle>
+                <circle cx="18" cy="17" r="3"></circle>
+                <path d="m10.2 9.4-2.4 4.2"></path>
+                <path d="m13.8 9.4 2.4 4.2"></path>
+                <path d="M9 17h6"></path>
+              </svg>
+              <span>Expertenkreis</span>
+            </button>
           </div>
           <div class="sidebar-section" aria-label="Karte und Auswertung">
             <span class="sidebar-section-label">Analyse</span>
@@ -16852,6 +16951,37 @@
                 <div class="table-footer__meta" id="organizations-pagination-meta">0-0 von 0 Organisationen</div>
                 <div class="table-footer__controls">
                   <div class="pagination" id="organizations-pagination"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-experts" data-view-panel="experts">
+            <div class="view-card experts-workspace">
+              <div class="table-command-row table-command-row--experts">
+                <div class="table-command-actions" id="expert-mode-actions">
+                  <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="Expertenkreis-Ansichten">
+                    <button class="settings-tab-button is-active" type="button" data-expert-mode="contacts" aria-selected="true">Kontakte</button>
+                    <button class="settings-tab-button" type="button" data-expert-mode="organizations" aria-selected="false">Organisationen</button>
+                  </div>
+                </div>
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions expert-column-actions" id="expert-column-actions"></div>
+              </div>
+              <div class="table-wrap">
+                <section class="table contacts-table experts-table" aria-label="Expertenkreis-Kontakte" data-expert-table="contacts">
+                  <div class="thead" id="experts-table-head"></div>
+                  <div id="expert-list"></div>
+                </section>
+                <section class="table organizations-table expert-organizations-table" aria-label="Expertenkreis-Organisationen" data-expert-table="organizations" hidden>
+                  <div class="thead" id="expert-organizations-table-head"></div>
+                  <div id="expert-organization-list"></div>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="experts-pagination-meta">0-0 von 0 Kontakten</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="experts-pagination"></div>
                 </div>
               </div>
             </div>
@@ -17717,6 +17847,7 @@
     <script src="./data/data-service.js"></script>
     <script src="./data/demo-data.js"></script>
     <script src="./data/versorgungs-kompass-data.js"></script>
+    <script src="./data/expertenkreis-data.js"></script>
     <script>
       const avatarPalette = [
         "avatar--faculty",
@@ -18514,6 +18645,14 @@
         { key: "updated", label: "Aktualisiert", template: "minmax(128px, 0.56fr)" },
         { key: "website", label: "Website", template: "minmax(170px, 0.78fr)" }
       ];
+      const expertContactTableColumns = contactTableColumns.map((column) => {
+        if (column.key === "category") return { ...column, label: "Gruppe" };
+        if (column.key === "specialty") return { ...column, label: "Expertise", template: "minmax(190px, 0.88fr)" };
+        return column;
+      });
+      const expertOrganizationTableColumns = organizationTableColumns.map((column) =>
+        column.key === "sector" ? { ...column, label: "Gruppe" } : column
+      );
       const organizationContactRangeFilterOptions = [
         { value: "with", label: "Mit Kontakten" },
         { value: "without", label: "Ohne Kontakte" },
@@ -18597,6 +18736,16 @@
       const organizationsTableHead = document.getElementById("organizations-table-head");
       const organizationsPaginationMeta = document.getElementById("organizations-pagination-meta");
       const organizationsPagination = document.getElementById("organizations-pagination");
+      const expertContactsTable = document.querySelector(".experts-table");
+      const expertOrganizationsTable = document.querySelector(".expert-organizations-table");
+      const expertTableHead = document.getElementById("experts-table-head");
+      const expertList = document.getElementById("expert-list");
+      const expertOrganizationsTableHead = document.getElementById("expert-organizations-table-head");
+      const expertOrganizationList = document.getElementById("expert-organization-list");
+      const expertPaginationMeta = document.getElementById("experts-pagination-meta");
+      const expertPagination = document.getElementById("experts-pagination");
+      const expertModeButtons = [...document.querySelectorAll("[data-expert-mode]")];
+      const expertTables = [...document.querySelectorAll("[data-expert-table]")];
       const contactsTable = document.querySelector(".contacts-table");
       const contactsTableHead = document.getElementById("contacts-table-head");
       const bulkToolbar = document.getElementById("bulk-toolbar");
@@ -18698,6 +18847,7 @@
       const contactCommandRow = document.querySelector("#view-contacts .table-command-row");
       const organizationColumnActions = document.getElementById("organization-column-actions");
       const organizationCommandActions = document.getElementById("organization-command-actions");
+      const expertColumnActions = document.getElementById("expert-column-actions");
       const newContactButton = document.getElementById("new-contact-button");
       const newOrganizationButton = document.getElementById("new-organization-button");
       const archiveViewButton = document.getElementById("archive-view-button");
@@ -18803,8 +18953,11 @@
       let activeView = "contacts";
       let activeSettingsTab = "imports";
       let activeProfileTab = "profile";
+      let activeExpertMode = "contacts";
       let activeId = null;
       let activeOrganizationId = null;
+      let activeExpertId = null;
+      let activeExpertOrganizationId = null;
       let activeNameEditorId = null;
       let selectedPriorities = [];
       let selectedCategories = [];
@@ -20930,6 +21083,99 @@
       }
 
       const seedContacts = (window.VERSORGUNGS_COMPASS_CONTACTS || []).map((entry, index) => sanitizeContact(entry, index));
+
+      function normalizeExpertGroupEntry(entry, index = 0) {
+        const name = typeof entry === "string"
+          ? entry
+          : entry.name || entry.label || entry.group || entry.group_name || "";
+        const groupName = String(name || "").trim();
+        return {
+          id: String((typeof entry === "object" && (entry.id || entry.groupId || entry.group_id)) || "").trim() || `expert-group-${index + 1}`,
+          name: groupName,
+          sortOrder: Number((typeof entry === "object" && (entry.sortOrder ?? entry.sort_order)) ?? (index + 1) * 10),
+          status: String((typeof entry === "object" && entry.status) || "active").trim() || "active"
+        };
+      }
+
+      const seedExpertGroupRecords = (window.VERSORGUNGS_COMPASS_EXPERT_GROUPS || [])
+        .map((entry, index) => normalizeExpertGroupEntry(entry, index))
+        .filter((group) => group.name);
+
+      function seedExpertGroups(sourceGroups = seedExpertGroupRecords) {
+        return [...new Set(sourceGroups
+          .map((group) => String(group.name || group || "").trim())
+          .filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "de"));
+      }
+
+      function normalizeExpertGroup(value, index = 0) {
+        const raw = String(value || "").trim();
+        if (raw) return raw;
+        const groups = seedExpertGroups();
+        return groups[index % groups.length] || "";
+      }
+
+      function sanitizeExpertContact(entry, index = 0) {
+        const group = normalizeExpertGroup(entry.group || entry.category || entry.sector, index);
+        const organizationName = String(entry.organization || entry.organisation || "").trim();
+        const sanitized = sanitizeContact(
+          {
+            ...entry,
+            category: group,
+            sector: group,
+            organization: organizationName,
+            location: entry.location || deriveLocationLabel({ postalCode: entry.postalCode || entry.postal_code, city: entry.city })
+          },
+          index
+        );
+        return {
+          ...sanitized,
+          id: entry.id || `expert-contact-${String(index + 1).padStart(2, "0")}`,
+          category: group,
+          categoryEmoji: "•",
+          roleBadgeClass: "role-badge role--netzwerk",
+          organization: organizationName,
+          organizationId: entry.organizationId || entry.organization_id || "",
+          organizationShort: simplifyOrganization(organizationName),
+          priority: entry.priority || "",
+          priorityClass: "",
+          owner: entry.owner || "",
+          ownerId: entry.ownerId || entry.owner_id || "",
+          status: entry.status || "active"
+        };
+      }
+
+      function sanitizeExpertOrganization(entry, index = 0) {
+        const name = String(entry.name || entry.organization || entry.organisation || "").trim();
+        const group = normalizeExpertGroup(entry.group || entry.sector || entry.category, index);
+        const normalizedName = normalizeOrganizationName(name);
+        return {
+          id: entry.id || `expert-org-${normalizedName || String(index + 1).padStart(2, "0")}`,
+          name,
+          normalizedName,
+          sector: group,
+          organizationType: String(entry.organizationType || entry.organization_type || entry.type || "").trim(),
+          postalCode: String(entry.postalCode || entry.postal_code || "").trim(),
+          city: String(entry.city || "").trim(),
+          state: String(entry.state || entry.federal_state || "").trim(),
+          website: String(entry.website || entry.url || "").trim(),
+          phone: String(entry.phone || "").trim(),
+          email: String(entry.email || "").trim(),
+          notes: String(entry.notes || entry.note || "").trim(),
+          source: String(entry.source || "").trim(),
+          status: entry.status || "active",
+          contactCount: Number(entry.contactCount || entry.contact_count || 0),
+          createdAt: entry.createdAt || entry.created_at || "",
+          updatedAt: entry.updatedAt || entry.updated_at || ""
+        };
+      }
+
+      const seedExpertContacts = (window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS || []).map((entry, index) =>
+        sanitizeExpertContact(entry, index)
+      );
+      const seedExpertOrganizations = (window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS || []).map((entry, index) =>
+        sanitizeExpertOrganization(entry, index)
+      );
       const deprecatedImageUrls = new Map([
         [
           "https://www.saxoforn.net/assets/images/3/gerlach_ferdinand-353e54fc.jpg",
@@ -20999,6 +21245,9 @@
 
       let contacts = loadStoredContacts();
       let organizations = deriveOrganizationsFromContacts(contacts);
+      let expertGroups = seedExpertGroupRecords;
+      let expertContacts = seedExpertContacts;
+      let expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
       let isInitialDataLoading = true;
       let initialDataLoadingSlow = false;
       let organizationLogoMapCache = null;
@@ -21008,6 +21257,7 @@
       const viewLabels = {
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
+        experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
@@ -21313,6 +21563,196 @@
         return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, "de"));
       }
 
+      function expertGroupOptions() {
+        return [...new Set([
+          ...seedExpertGroups(expertGroups),
+          ...expertContacts.map((contact) => contact.category),
+          ...expertOrganizations.map((organization) => organization.sector)
+        ].filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "de"));
+      }
+
+      function activeExpertContactsTotal() {
+        return expertContacts.filter((contact) => contact.status !== "archived").length;
+      }
+
+      function expertOrganizationLocation(organization) {
+        return [organization.postalCode, organization.city].filter(Boolean).join(" ");
+      }
+
+      function expertOrganizationContacts(organization) {
+        const normalized = normalizeOrganizationName(organization.name);
+        return expertContacts
+          .filter((contact) => contact.status !== "archived")
+          .filter((contact) => {
+            if (organization.id && contact.organizationId && contact.organizationId === organization.id) return true;
+            return normalized && normalizeOrganizationName(contact.organization) === normalized;
+          });
+      }
+
+      function deriveExpertOrganizationsFromContacts(sourceContacts = expertContacts) {
+        const byName = new Map();
+        sourceContacts
+          .filter((contact) => contact.status !== "archived")
+          .forEach((contact) => {
+            const name = meaningfulOrEmpty(contact.organization);
+            const normalizedName = normalizeOrganizationName(name);
+            if (!name || !normalizedName) return;
+            const existing = byName.get(normalizedName);
+            const next = existing || {
+              id: contact.organizationId || `expert-derived-org-${normalizedName.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+              name,
+              normalizedName,
+              sector: contact.category || "",
+              organizationType: contact.category || "",
+              postalCode: contact.postalCode || "",
+              city: contact.city || "",
+              state: stateLabel(contact) === "Unbekannt" ? "" : stateLabel(contact),
+              website: contact.url || "",
+              phone: "",
+              email: "",
+              notes: "",
+              source: "Aus Expertenkreis-Kontakten abgeleitet",
+              status: "active",
+              contactCount: 0,
+              updatedAt: contact.updatedAt || contact.createdAt || ""
+            };
+            next.contactCount += 1;
+            if (!next.sector && contact.category) next.sector = contact.category;
+            if (!next.postalCode && contact.postalCode) next.postalCode = contact.postalCode;
+            if (!next.city && contact.city) next.city = contact.city;
+            if (!next.state && stateLabel(contact) !== "Unbekannt") next.state = stateLabel(contact);
+            if (!next.updatedAt || String(contact.updatedAt || contact.createdAt || "") > next.updatedAt) next.updatedAt = contact.updatedAt || contact.createdAt || "";
+            byName.set(normalizedName, next);
+          });
+        return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, "de"));
+      }
+
+      function mergeExpertOrganizations(remoteOrganizations = [], derivedOrganizations = deriveExpertOrganizationsFromContacts()) {
+        const byKey = new Map();
+        const organizationKey = (organization) => organization.id ? `id:${organization.id}` : `name:${normalizeOrganizationName(organization.name)}`;
+        derivedOrganizations.forEach((organization) => byKey.set(organizationKey(organization), organization));
+        remoteOrganizations
+          .filter((organization) => organization.name)
+          .forEach((organization) => {
+            const key = organizationKey(organization);
+            const derived = byKey.get(key);
+            byKey.set(key, {
+              ...(derived || {}),
+              ...organization,
+              contactCount: organization.contactCount || derived?.contactCount || expertOrganizationContacts(organization).length
+            });
+          });
+        return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, "de"));
+      }
+
+      function filteredExpertContacts() {
+        const search = searchInput.value.trim().toLowerCase();
+        return expertContacts
+          .filter((contact) => contact.status !== "archived")
+          .filter((contact) => {
+            const matchesSearch =
+              !search ||
+              [
+                contact.name,
+                contact.displayName,
+                contact.organization,
+                contact.category,
+                contact.topic,
+                ...(contact.themes || []),
+                contact.specialty,
+                contact.contactRole,
+                contact.nextStep,
+                contact.location,
+                contact.city,
+                contact.state
+              ]
+                .join(" ")
+                .toLowerCase()
+                .includes(search);
+            const matchesGroup = !selectedCategories.length || selectedCategories.includes(contact.category);
+            const matchesPriority = !selectedPriorities.length || selectedPriorities.includes(contact.priority);
+            const matchesState = !selectedStates.length || selectedStates.includes(stateLabel(contact));
+            const matchesSpecialty = !selectedSpecialties.length || selectedSpecialties.includes(specialtyLabel(contact));
+            const matchesTheme =
+              !selectedThemes.length || selectedThemes.some((theme) => normalizeThemes(contact.themes).includes(theme));
+            const matchesQuality = !selectedQualities.length || selectedQualities.includes(dataQualityLabel(contact).label);
+            const missingFields = contactMissingFields(contact).map((field) => field.value);
+            const matchesMissing =
+              !selectedMissingFields.length || selectedMissingFields.every((field) => missingFields.includes(field));
+            const matchesUpdated =
+              !selectedUpdatedRanges.length || selectedUpdatedRanges.some((range) => contactMatchesUpdatedRange(contact, range));
+            const contactSources = normalizeSources(contact.sources);
+            const matchesSource =
+              !selectedSources.length || selectedSources.some((source) => contactSources.includes(source));
+            return matchesSearch && matchesGroup && matchesPriority && matchesState && matchesSpecialty && matchesTheme && matchesQuality && matchesMissing && matchesUpdated && matchesSource;
+          });
+      }
+
+      function expertOrganizationQualityLabel(organization) {
+        const contactsForOrganization = expertOrganizationContacts(organization);
+        const missing = [
+          organization.sector,
+          organization.city || organization.postalCode,
+          organization.source,
+          contactsForOrganization.length ? "contacts" : ""
+        ].filter((value) => !hasMeaningfulValue(value)).length;
+        if (missing === 0) return { label: "Vollständig", tone: "good" };
+        if (missing <= 2) return { label: "Prüfen", tone: "medium" };
+        return { label: "Lücken", tone: "low" };
+      }
+
+      function expertOrganizationSourceLabel(organization) {
+        return meaningfulOrEmpty(organization.source) || "-";
+      }
+
+      function expertOrganizationMatchesContactRange(organization, range) {
+        const count = expertOrganizationContacts(organization).length;
+        if (range === "with") return count > 0;
+        if (range === "without") return count === 0;
+        if (range === "1-5") return count >= 1 && count <= 5;
+        if (range === "6plus") return count >= 6;
+        return false;
+      }
+
+      function filteredExpertOrganizations() {
+        const search = searchInput.value.trim().toLowerCase();
+        return expertOrganizations.filter((organization) => {
+          const contactsForOrganization = expertOrganizationContacts(organization);
+          const haystack = [
+            organization.name,
+            organization.sector,
+            organization.organizationType,
+            organization.city,
+            organization.state,
+            organization.website,
+            ...contactsForOrganization.map((contact) => contact.name)
+          ].join(" ").toLowerCase();
+          const matchesSearch = !search || haystack.includes(search);
+          const matchesGroup = !selectedCategories.length || selectedCategories.includes(organization.sector);
+          const matchesState = !selectedStates.length || selectedStates.includes(organization.state);
+          const matchesCity = !selectedOrganizationCities.length || selectedOrganizationCities.includes(organization.city || expertOrganizationLocation(organization));
+          const matchesContactRange =
+            !selectedOrganizationContactRanges.length ||
+            selectedOrganizationContactRanges.some((range) => expertOrganizationMatchesContactRange(organization, range));
+          const matchesUpdated =
+            !selectedUpdatedRanges.length || selectedUpdatedRanges.some((range) => organizationMatchesUpdatedRange(organization, range));
+          const matchesSource = !selectedSources.length || selectedSources.includes(expertOrganizationSourceLabel(organization));
+          const matchesQuality = !selectedQualities.length || selectedQualities.includes(expertOrganizationQualityLabel(organization).label);
+          const missingFields = [];
+          if (!hasMeaningfulValue(organization.sector)) missingFields.push("sector");
+          if (!hasMeaningfulValue(organization.city) && !hasMeaningfulValue(organization.postalCode)) missingFields.push("location");
+          if (!contactsForOrganization.length) missingFields.push("contacts");
+          if (!hasMeaningfulValue(organization.source)) missingFields.push("source");
+          const matchesMissing =
+            !selectedMissingFields.length || selectedMissingFields.every((field) => {
+              const mapped = field === "organization" ? "contacts" : field === "specialty" ? "sector" : field;
+              return missingFields.includes(mapped);
+            });
+          return matchesSearch && matchesGroup && matchesState && matchesCity && matchesContactRange && matchesUpdated && matchesSource && matchesQuality && matchesMissing;
+        });
+      }
+
       function filteredOrganizations() {
         const search = searchInput.value.trim().toLowerCase();
         return organizations.filter((organization) => {
@@ -21499,6 +21939,230 @@
           button.addEventListener("click", () => {
             currentPage += button.dataset.orgPageNav === "next" ? 1 : -1;
             renderOrganizationsTable(items);
+          });
+        });
+      }
+
+      function renderExpertTablesVisibility() {
+        expertModeButtons.forEach((button) => {
+          const active = button.dataset.expertMode === activeExpertMode;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-selected", String(active));
+        });
+        expertTables.forEach((table) => {
+          table.hidden = table.dataset.expertTable !== activeExpertMode;
+        });
+      }
+
+      function renderExpertContactsTableHead(columns = visibleExpertContactTableColumns()) {
+        if (!expertTableHead) return;
+        expertTableHead.innerHTML = columns
+          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "experts")}</div>`)
+          .join("");
+        bindHeaderFilterMenus(expertTableHead);
+      }
+
+      function renderExpertContactsTable(items) {
+        if (!expertList || !expertPagination || !expertPaginationMeta) return;
+        activeExpertMode = "contacts";
+        renderExpertTablesVisibility();
+        const columns = visibleExpertContactTableColumns();
+        updateExpertContactTableGrid(columns);
+        renderColumnMenu();
+        if (!items.length) {
+          renderExpertContactsTableHead(columns);
+          expertList.innerHTML = `<div class="empty">Noch keine Kontakte im Expertenkreis. Sobald du die sieben Gruppen und Datensätze ergänzt, erscheinen sie hier.</div>`;
+          expertPaginationMeta.textContent = "0-0 von 0 Kontakten";
+          expertPagination.innerHTML = "";
+          return;
+        }
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        expertPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Kontakten`;
+        if (isMobileLayout()) {
+          expertTableHead.innerHTML = "";
+          expertList.innerHTML = `<div class="mobile-contact-list">${pageItems
+            .map(
+              (contact) => `
+              <article class="mobile-contact-card ${contact.id === activeExpertId ? "is-active" : ""}" data-expert-id="${escapeHtml(contact.id)}" tabindex="0">
+                <div class="mobile-contact-top">
+                  ${contactAvatarMarkup(contact, "sm")}
+                  <div class="mobile-contact-copy">
+                    <h3 class="mobile-contact-name">${escapeHtml(contact.name) || "&mdash;"}</h3>
+                    <div class="mobile-contact-organization">${escapeHtml(contact.organization || "Nicht dokumentiert")}</div>
+                  </div>
+                  <span class="mobile-contact-chevron" aria-hidden="true">›</span>
+                </div>
+              </article>
+            `
+            )
+            .join("")}</div>`;
+        } else {
+          renderExpertContactsTableHead(columns);
+          expertList.innerHTML = pageItems
+            .map(
+              (contact) => `
+              <article class="row ${contact.id === activeExpertId ? "is-active" : ""}" data-expert-id="${escapeHtml(contact.id)}" tabindex="0">
+                ${columns.map((column) => `<div class="cell--${column.key}">${tableCellMarkup(contact, column.key)}</div>`).join("")}
+              </article>
+            `
+            )
+            .join("");
+        }
+
+        expertPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-expert-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-expert-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-expert-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+
+        expertList.querySelectorAll("[data-expert-id]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, input, label, a, select, textarea")) return;
+            openExpertDetail(row.dataset.expertId, items);
+          });
+          row.addEventListener("keydown", (event) => {
+            if ((event.key === "Enter" || event.key === " ") && !event.target.closest("button, input, label, a, select, textarea")) {
+              event.preventDefault();
+              openExpertDetail(row.dataset.expertId, items);
+            }
+          });
+        });
+        expertList.querySelectorAll("[data-open-detail]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openExpertDetail(button.dataset.openDetail, items);
+          });
+        });
+        expertPagination.querySelectorAll("[data-expert-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.expertPage);
+            renderExpertContactsTable(items);
+          });
+        });
+        expertPagination.querySelectorAll("[data-expert-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.expertPageNav === "next" ? 1 : -1;
+            renderExpertContactsTable(items);
+          });
+        });
+      }
+
+      function expertOrganizationTableCellMarkup(organization, key) {
+        const contactCount = expertOrganizationContacts(organization).length;
+        if (key === "organization") {
+          return `
+            <div class="organization-cell">
+              ${organizationLogoMarkup(organization, "sm")}
+              <div class="contact-meta">
+                <button class="organization-name-button" type="button" data-open-expert-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
+                ${organization.organizationType || organization.website ? `<div class="contact-subline">${escapeHtml(organization.organizationType || organization.website)}</div>` : ""}
+              </div>
+            </div>
+          `;
+        }
+        if (key === "sector") return sectorBadgeMarkup(organization.sector);
+        if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(expertOrganizationLocation(organization) || "-")}</div>`;
+        if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.state || "-")}</div>`;
+        if (key === "contacts") return `<button class="organization-contact-link" type="button" data-open-expert-organization="${escapeHtml(organization.id)}">${contactCount} ${contactCount === 1 ? "Kontakt" : "Kontakte"}</button>`;
+        if (key === "updated") return `<span class="contact-date">${escapeHtml(formatDateLabel(organization.updatedAt || organization.createdAt) || "-")}</span>`;
+        if (key === "website") {
+          const website = normalizedWebsiteUrl(organization.website);
+          return website ? `<a class="contact-subline contact-subline--primary" href="${escapeHtml(website)}" target="_blank" rel="noopener">${escapeHtml(website.replace(/^https?:\/\//i, ""))}</a>` : `<div class="contact-subline contact-subline--primary">-</div>`;
+        }
+        if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(expertOrganizationSourceLabel(organization))}</div>`;
+        if (key === "quality") {
+          const quality = expertOrganizationQualityLabel(organization);
+          return `<span class="quality-badge quality-badge--${quality.tone}">${quality.label}</span>`;
+        }
+        return "";
+      }
+
+      function renderExpertOrganizationsTableHead(columns = visibleExpertOrganizationTableColumns()) {
+        if (!expertOrganizationsTableHead) return;
+        expertOrganizationsTableHead.innerHTML = columns
+          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "expert-organizations")}</div>`)
+          .join("");
+        bindHeaderFilterMenus(expertOrganizationsTableHead);
+      }
+
+      function renderExpertOrganizationsTable(items) {
+        if (!expertOrganizationList || !expertPagination || !expertPaginationMeta) return;
+        activeExpertMode = "organizations";
+        renderExpertTablesVisibility();
+        const columns = visibleExpertOrganizationTableColumns();
+        updateExpertOrganizationTableGrid(columns);
+        renderColumnMenu();
+        if (!items.length) {
+          renderExpertOrganizationsTableHead(columns);
+          expertOrganizationList.innerHTML = `<div class="empty">Noch keine Organisationen im Expertenkreis. Organisationen können später explizit gepflegt oder aus Kontakten abgeleitet werden.</div>`;
+          expertPaginationMeta.textContent = "0-0 von 0 Organisationen";
+          expertPagination.innerHTML = "";
+          return;
+        }
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        expertPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Organisationen`;
+        renderExpertOrganizationsTableHead(columns);
+        expertOrganizationList.innerHTML = pageItems
+          .map((organization) => {
+            if (isMobileLayout()) {
+              const contactCount = expertOrganizationContacts(organization).length;
+              return `
+                <article class="row organization-mobile-card ${organization.id === activeExpertOrganizationId ? "is-active" : ""}" data-expert-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                  <div class="cell--organization">${expertOrganizationTableCellMarkup(organization, "organization")}</div>
+                  <div class="organization-mobile-meta">
+                    <span class="organization-mobile-sector">${sectorBadgeMarkup(organization.sector)}</span>
+                    <span class="organization-mobile-state">${escapeHtml(organization.state || "-")}</span>
+                    <button class="organization-contact-link organization-mobile-count" type="button" data-open-expert-organization="${escapeHtml(organization.id)}">${contactCount} ${contactCount === 1 ? "Kontakt" : "Kontakte"}</button>
+                  </div>
+                </article>
+              `;
+            }
+            return `
+              <article class="row ${organization.id === activeExpertOrganizationId ? "is-active" : ""}" data-expert-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                ${columns.map((column) => `<div class="cell--${column.key}">${expertOrganizationTableCellMarkup(organization, column.key)}</div>`).join("")}
+              </article>
+            `;
+          })
+          .join("");
+        expertPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-expert-org-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-expert-org-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-expert-org-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+        expertOrganizationList.querySelectorAll("[data-expert-organization-id]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, input, label, a, select, textarea")) return;
+            openExpertOrganizationDetail(row.dataset.expertOrganizationId, items);
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openExpertOrganizationDetail(row.dataset.expertOrganizationId, items);
+            }
+          });
+        });
+        expertOrganizationList.querySelectorAll("[data-open-expert-organization]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openExpertOrganizationDetail(button.dataset.openExpertOrganization, items);
+          });
+        });
+        expertPagination.querySelectorAll("[data-expert-org-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.expertOrgPage);
+            renderExpertOrganizationsTable(items);
+          });
+        });
+        expertPagination.querySelectorAll("[data-expert-org-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.expertOrgPageNav === "next" ? 1 : -1;
+            renderExpertOrganizationsTable(items);
           });
         });
       }
@@ -22671,6 +23335,10 @@
 
       function hitCountLabel(items) {
         if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
+        if (activeView === "experts") {
+          if (activeExpertMode === "organizations") return `${items.length} von ${expertOrganizations.length} Organisationen`;
+          return `${items.length} von ${activeExpertContactsTotal()} Kontakten`;
+        }
         if (activeView === "formats") return `${items.length} von ${formats.length} Formaten`;
         return `${items.length} von ${activeContactsTotal()} Kontakten`;
       }
@@ -22810,7 +23478,13 @@
 
       function renderFilterPanel() {
         if (!pendingFilterDraft || filterPanel.hidden) pendingFilterDraft = filterDraftFromSelection();
-        const categorySource = activeView === "organizations" ? organizations.map((organization) => organization.sector).filter(Boolean) : uniqueValues("category");
+        const isExpertsView = activeView === "experts";
+        const isExpertOrganizationsMode = isExpertsView && activeExpertMode === "organizations";
+        const categorySource = isExpertOrganizationsMode
+          ? expertOrganizations.map((organization) => organization.sector).filter(Boolean)
+          : isExpertsView
+            ? expertGroupOptions()
+            : activeView === "organizations" ? organizations.map((organization) => organization.sector).filter(Boolean) : uniqueValues("category");
         const categories = [...new Set(categorySource)].sort((a, b) => a.localeCompare(b, "de")).map((value) => ({
           value,
           label: value
@@ -22819,24 +23493,26 @@
           value,
           label: value
         }));
-        const stateCounts = (activeView === "organizations" ? organizations : contacts).reduce((acc, item) => {
-          const label = activeView === "organizations" ? item.state : stateLabel(item);
+        const stateSource = isExpertOrganizationsMode ? expertOrganizations : isExpertsView ? expertContacts : activeView === "organizations" ? organizations : contacts;
+        const stateCounts = stateSource.reduce((acc, item) => {
+          const label = activeView === "organizations" || isExpertOrganizationsMode ? item.state : stateLabel(item);
           if (label) acc[label] = (acc[label] || 0) + 1;
           return acc;
         }, {});
-        const states = [...new Map((activeView === "organizations" ? organizations : contacts).map((item) => {
-          const label = activeView === "organizations" ? item.state : stateLabel(item);
+        const states = [...new Map(stateSource.map((item) => {
+          const label = activeView === "organizations" || isExpertOrganizationsMode ? item.state : stateLabel(item);
           return [label, label];
         })).values()]
           .filter(Boolean)
           .sort((a, b) => isMobileLayout() ? ((stateCounts[b] || 0) - (stateCounts[a] || 0)) || a.localeCompare(b, "de") : a.localeCompare(b, "de"))
           .map((value) => ({ value, label: value }));
-        const specialtyCounts = contacts.reduce((acc, contact) => {
+        const specialtySource = isExpertsView ? expertContacts : contacts;
+        const specialtyCounts = specialtySource.reduce((acc, contact) => {
           const label = specialtyLabel(contact);
           if (label) acc[label] = (acc[label] || 0) + 1;
           return acc;
         }, {});
-        const specialties = specialtyOptions()
+        const specialties = (isExpertsView ? [...new Set(expertContacts.map((contact) => specialtyLabel(contact)).filter(Boolean))] : specialtyOptions())
           .sort((a, b) => isMobileLayout() ? ((specialtyCounts[b] || 0) - (specialtyCounts[a] || 0)) || a.localeCompare(b, "de") : 0)
           .map((value) => ({ value, label: value }));
         const owners = ownerOptions
@@ -22847,9 +23523,16 @@
             legacy: isLegacyOwner(value)
           }));
         owners.unshift({ value: "__none__", label: "Kein Owner" });
-        const themes = themeSuggestions().map((value) => ({ value, label: value }));
+        const themes = (isExpertsView
+          ? [...new Set(expertContacts.flatMap((contact) => normalizeThemes(contact.themes)))].sort((a, b) => a.localeCompare(b, "de"))
+          : themeSuggestions()
+        ).map((value) => ({ value, label: value }));
         const qualities = ["Vollständig", "Prüfen", "Lücken"].map((value) => ({ value, label: value }));
-        const sourceSource = activeView === "organizations"
+        const sourceSource = isExpertOrganizationsMode
+          ? expertOrganizations.map((organization) => expertOrganizationSourceLabel(organization)).filter((value) => value && value !== "-")
+          : isExpertsView
+            ? expertContacts.flatMap((contact) => normalizeSources(contact.sources))
+            : activeView === "organizations"
           ? organizations.map((organization) => organizationSourceLabel(organization)).filter((value) => value && value !== "-")
           : contacts.flatMap((contact) => normalizeSources(contact.sources));
         const sources = [...new Set(sourceSource)]
@@ -22869,9 +23552,9 @@
         renderSelectOptions(themeFilterInput, themes, pendingFilterDraft.theme, "Alle");
 
         const specialtyField = filterPanel.querySelector('[data-filter-field="specialty"]');
-        if (specialtyField) specialtyField.hidden = activeView === "organizations";
+        if (specialtyField) specialtyField.hidden = activeView === "organizations" || isExpertOrganizationsMode;
         const ownerField = filterPanel.querySelector('[data-filter-field="owner"]');
-        if (ownerField) ownerField.hidden = activeView === "organizations";
+        if (ownerField) ownerField.hidden = activeView === "organizations" || isExpertsView;
         const qualityField = filterPanel.querySelector('[data-filter-field="quality"]');
         if (qualityField) qualityField.hidden = !canAdministerData();
 
@@ -22892,8 +23575,9 @@
       }
 
       function renderActiveFilters() {
+        const categoryFilterTitle = activeView === "experts" ? "Gruppe" : "Sektor";
         const groupedFilters = [
-          { key: "category", title: "Sektor", values: selectedCategories.map((value) => ({ value, label: value })) },
+          { key: "category", title: categoryFilterTitle, values: selectedCategories.map((value) => ({ value, label: value })) },
           { key: "priority", title: "Priorität", values: selectedPriorities.map((value) => ({ value, label: value })) },
           { key: "state", title: "Bundesland", values: selectedStates.map((value) => ({ value, label: value })) },
           { key: "specialty", title: "Fachrichtung", values: selectedSpecialties.map((value) => ({ value, label: value })) },
@@ -23060,6 +23744,34 @@
           );
           return;
         }
+        if (activeView === "experts") {
+          const isOrganizationsMode = activeExpertMode === "organizations";
+          const total = isOrganizationsMode ? expertOrganizations.length : activeExpertContactsTotal();
+          const meta = items.length === total ? "" : `${items.length} Treffer`;
+          renderSummaryCards(
+            summaryGrid,
+            [
+              {
+                label: isOrganizationsMode ? "Organisationen im Expertenkreis" : "Kontakte im Expertenkreis",
+                value: total,
+                meta: isMobileLayout() ? (isOrganizationsMode ? "Organisationen" : "Kontakte") : meta,
+                icon: `
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="7" r="3"></circle>
+                    <circle cx="6" cy="17" r="3"></circle>
+                    <circle cx="18" cy="17" r="3"></circle>
+                    <path d="m10.2 9.4-2.4 4.2"></path>
+                    <path d="m13.8 9.4 2.4 4.2"></path>
+                    <path d="M9 17h6"></path>
+                  </svg>
+                `,
+                iconClass: "summary-icon--blue"
+              }
+            ],
+            isOrganizationsMode ? "Organisationen" : "Kontakte"
+          );
+          return;
+        }
         if (activeView === "formats") {
           renderSummaryCards(
             summaryGrid,
@@ -23113,6 +23825,16 @@
         return organizationTableColumns.filter((column) => column.required || visible.has(column.key));
       }
 
+      function visibleExpertContactTableColumns() {
+        const visible = new Set(visibleContactColumns);
+        return expertContactTableColumns.filter((column) => column.required || visible.has(column.key));
+      }
+
+      function visibleExpertOrganizationTableColumns() {
+        const visible = new Set(visibleOrganizationColumns);
+        return expertOrganizationTableColumns.filter((column) => column.required || visible.has(column.key));
+      }
+
       function updateContactTableGrid(columns = visibleTableColumns()) {
         const template = ["42px", ...columns.map((column) => column.template)].join(" ");
         contactsTable?.style.setProperty("--contacts-grid-template", template);
@@ -23121,6 +23843,16 @@
       function updateOrganizationTableGrid(columns = visibleOrganizationTableColumns()) {
         const template = columns.map((column) => column.template).join(" ");
         organizationsTable?.style.setProperty("--organizations-grid-template", template);
+      }
+
+      function updateExpertContactTableGrid(columns = visibleExpertContactTableColumns()) {
+        const template = columns.map((column) => column.template).join(" ");
+        expertContactsTable?.style.setProperty("--contacts-grid-template", template);
+      }
+
+      function updateExpertOrganizationTableGrid(columns = visibleExpertOrganizationTableColumns()) {
+        const template = columns.map((column) => column.template).join(" ");
+        expertOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
       }
 
       function normalizeClassPart(value) {
@@ -24797,6 +25529,16 @@
           source: { filterKey: "source", label: "Quelle" },
           quality: { filterKey: "quality", label: "Datenqualität" }
         };
+        const expertContactConfigs = {
+          ...contactConfigs,
+          category: { filterKey: "category", label: "Gruppe" }
+        };
+        const expertOrganizationConfigs = {
+          ...organizationConfigs,
+          sector: { filterKey: "category", label: "Gruppe" }
+        };
+        if (context === "expert-organizations") return expertOrganizationConfigs[columnKey] || null;
+        if (context === "experts") return expertContactConfigs[columnKey] || null;
         return (context === "organizations" ? organizationConfigs : contactConfigs)[columnKey] || null;
       }
 
@@ -24817,19 +25559,45 @@
       }
 
       function headerFilterOptions(filterKey) {
+        if (activeView === "experts" && filterKey === "category") {
+          const source = activeExpertMode === "organizations"
+            ? expertOrganizations.map((organization) => organization.sector).filter(Boolean)
+            : expertGroupOptions();
+          return [...new Set(source)]
+            .sort((a, b) => a.localeCompare(b, "de"))
+            .map((value) => ({ value, label: value }));
+        }
         if (activeView === "organizations" && filterKey === "category") {
           return [...new Set(organizations.map((organization) => organization.sector).filter(Boolean))]
             .sort((a, b) => a.localeCompare(b, "de"))
             .map((value) => ({ value, label: value }));
         }
         if (filterKey === "category") return uniqueValues("category").map((value) => ({ value, label: value }));
-        if (filterKey === "specialty") return specialtyOptions().map((value) => ({ value, label: value }));
+        if (filterKey === "specialty") {
+          const source = activeView === "experts"
+            ? [...new Set(expertContacts.map((contact) => specialtyLabel(contact)).filter(Boolean))]
+            : specialtyOptions();
+          return source.map((value) => ({ value, label: value }));
+        }
+        if (activeView === "experts" && filterKey === "organizationCity") {
+          return [...new Set(expertOrganizations.map((organization) => organization.city || expertOrganizationLocation(organization)).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, "de"))
+            .map((value) => ({ value, label: value }));
+        }
         if (activeView === "organizations" && filterKey === "organizationCity") {
           return [...new Set(organizations.map((organization) => organization.city || organizationLocation(organization)).filter(Boolean))]
             .sort((a, b) => a.localeCompare(b, "de"))
             .map((value) => ({ value, label: value }));
         }
         if (filterKey === "state") {
+          if (activeView === "experts") {
+            const source = activeExpertMode === "organizations"
+              ? expertOrganizations.map((organization) => organization.state).filter(Boolean)
+              : expertContacts.map((contact) => stateLabel(contact)).filter(Boolean);
+            return [...new Set(source)]
+              .sort((a, b) => a.localeCompare(b, "de"))
+              .map((value) => ({ value, label: value }));
+          }
           if (activeView === "organizations") {
             return [...new Set(organizations.map((organization) => organization.state).filter(Boolean))]
               .sort((a, b) => a.localeCompare(b, "de"))
@@ -24850,6 +25618,15 @@
         if (filterKey === "updated") return updatedRangeFilterOptions;
         if (filterKey === "quality") return ["Vollständig", "Prüfen", "Lücken"].map((value) => ({ value, label: value }));
         if (filterKey === "source") {
+          if (activeView === "experts") {
+            const source = activeExpertMode === "organizations"
+              ? expertOrganizations.map((organization) => expertOrganizationSourceLabel(organization)).filter((value) => value && value !== "-")
+              : expertContacts.flatMap((contact) => normalizeSources(contact.sources));
+            return [...new Set(source)]
+              .filter(Boolean)
+              .sort((a, b) => a.localeCompare(b, "de"))
+              .map((value) => ({ value, label: value }));
+          }
           if (activeView === "organizations") {
             return [...new Set(organizations.map((organization) => organizationSourceLabel(organization)).filter((value) => value && value !== "-"))]
               .sort((a, b) => a.localeCompare(b, "de"))
@@ -24975,8 +25752,10 @@
 
       function renderColumnMenu() {
         if (!columnOptions) return;
-        const isOrganizationsView = activeView === "organizations";
-        const columns = isOrganizationsView ? organizationTableColumns : contactTableColumns;
+        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
+        const columns = activeView === "experts"
+          ? activeExpertMode === "organizations" ? expertOrganizationTableColumns : expertContactTableColumns
+          : isOrganizationsView ? organizationTableColumns : contactTableColumns;
         const visible = new Set(isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns);
         columnOptions.innerHTML = columns
           .map(
@@ -27616,6 +28395,16 @@
           selectedSpecialties = [];
           selectedOwners = [];
           selectedThemes = [];
+        } else if (view === "experts") {
+          selectedOwners = [];
+          if (activeExpertMode === "organizations") {
+            selectedPriorities = [];
+            selectedSpecialties = [];
+            selectedThemes = [];
+          } else {
+            selectedOrganizationCities = [];
+            selectedOrganizationContactRanges = [];
+          }
         } else if (view !== "formats") {
           selectedOrganizationCities = [];
           selectedOrganizationContactRanges = [];
@@ -27639,6 +28428,7 @@
           setProfileTab(activeProfileTab);
         }
         if (view === "team") renderTeamView();
+        if (view === "experts") renderExpertTablesVisibility();
         if (view === "formats") renderFormatsView();
         if (view === "settings") setSettingsTab(activeSettingsTab);
         if (view === "map") {
@@ -27707,6 +28497,268 @@
           formatEditorDrawer?.classList.contains("is-open") ||
           profilePhotoModal?.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
+      }
+
+      function openExpertDetail(id, items = filteredExpertContacts()) {
+        const currentItems = items.length ? items : filteredExpertContacts();
+        const contact = currentItems.find((item) => item.id === id) || expertContacts.find((item) => item.id === id);
+        if (!contact) return;
+        if (activeExpertId !== contact.id) detailActiveTab = "overview";
+        const currentIndex = currentItems.findIndex((item) => item.id === contact.id);
+        const locationText = formatLocationDisplay(contact);
+        const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
+        const specialtyText = specialtyLabel(contact);
+        const roleText = meaningfulOrEmpty(contact.contactRole);
+        const noteText = displayNoteText(contact);
+        const sourceText = sourceLabel(contact) === "-" ? "" : sourceLabel(contact);
+        const websiteText = meaningfulOrEmpty(contact.url) || (sourceText && isValidOptionalUrl(sourceText) ? sourceText : "");
+        const websiteHref = isValidOptionalUrl(websiteText) ? websiteText : "";
+        const organizationLabel = meaningfulOrEmpty(contact.organization);
+        const linkedOrganization = expertOrganizations.find((organization) =>
+          (contact.organizationId && organization.id === contact.organizationId) ||
+          (organizationLabel && normalizeOrganizationName(organization.name) === normalizeOrganizationName(organizationLabel))
+        );
+        const themeTags = normalizeThemes(contact.themes);
+        const activeTab = detailActiveTab || "overview";
+
+        activeExpertId = contact.id;
+        activeExpertOrganizationId = null;
+        activeId = null;
+        activeOrganizationId = null;
+        renderExpertContactsTable(currentItems);
+        detailPanel.classList.remove("detail-panel--organization");
+        detailPanel.classList.remove("detail-panel--registration");
+
+        detailPanel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>
+            <div class="detail-toolbar-actions">
+              <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
+            </div>
+          </div>
+          <div class="detail-content">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${contactAvatarMarkup(contact, "lg")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(contact.displayName)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
+                    ${roleText ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
+                    <div class="detail-profile-status">${sectorBadgeMarkup(contact.category)}</div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+                ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("contact", "Kontakt", activeTab)}
+                ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("notes", "Notizen", activeTab)}
+                ${detailTabButton("activity", "Aktivitäten", activeTab)}
+              </div>
+
+              <section ${detailPanelAttrs("overview", activeTab)} id="expert-detail-overview">
+                <h4 class="detail-section-title">Stammdaten</h4>
+                <div class="detail-line-list">
+                  ${detailLineHtml(
+                    "Organisation",
+                    linkedOrganization
+                      ? `<button class="organization-contact-link" type="button" data-open-linked-expert-organization="${escapeHtml(linkedOrganization.id)}">${escapeHtml(linkedOrganization.name)}</button>`
+                      : escapeHtml(organizationLabel || "Keine Organisation hinterlegt"),
+                    { empty: !organizationLabel && !linkedOrganization }
+                  )}
+                  ${detailLine("Gruppe", contact.category)}
+                  ${detailLine("Fachbereich / Fokus", specialtyText, { emptyLabel: "Nicht hinterlegt" })}
+                  ${detailLine("Rolle", roleText)}
+                  ${detailLine("Ort", locationText)}
+                  ${detailLine("Bundesland", contact.state || stateLabel(contact))}
+                  ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
+                </div>
+                <div class="section-block">
+                  <h4 class="detail-section-title">Standort</h4>
+                  <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
+                    ${buildDetailMiniMap(contact, locationText)}
+                  </article>
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("contact", activeTab)} id="expert-detail-contactways">
+                <h4 class="detail-section-title">Kontakt</h4>
+                <div class="detail-line-list">
+                  ${detailContactLine("E-Mail", meaningfulOrEmpty(contact.email), `mailto:${meaningfulOrEmpty(contact.email)}`)}
+                  ${detailContactLine("Telefon", meaningfulOrEmpty(contact.phone), `tel:${meaningfulOrEmpty(contact.phone)}`)}
+                  ${detailContactLine("LinkedIn", linkedinUrl ? "Profil öffnen" : "", linkedinUrl)}
+                  ${detailContactLine("Website", websiteText, websiteHref)}
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("themes", activeTab)} id="expert-detail-themes">
+                <h4 class="detail-section-title">Themen${themeTags.length ? ` (${themeTags.length})` : ""}</h4>
+                <div class="detail-chip-row">
+                  ${themeTags.length ? themeTags.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`}
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("notes", activeTab)} id="expert-detail-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                <div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}</div>
+              </section>
+
+              <section ${detailPanelAttrs("activity", activeTab)} id="expert-detail-activity">
+                <div class="history-empty">Noch kein Verlauf für diesen Expertenkreis-Kontakt vorhanden.</div>
+              </section>
+            </div>
+          </div>
+        `;
+
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        document.getElementById("detail-close").addEventListener("click", closeDetail);
+        detailPanel.querySelector("[data-open-linked-expert-organization]")?.addEventListener("click", (event) => {
+          activeExpertMode = "organizations";
+          openExpertOrganizationDetail(event.currentTarget.dataset.openLinkedExpertOrganization);
+        });
+        detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            detailActiveTab = button.dataset.detailTab || "overview";
+            openExpertDetail(contact.id, currentItems);
+          });
+        });
+      }
+
+      function openExpertOrganizationDetail(id, items = filteredExpertOrganizations()) {
+        const currentItems = items.length ? items : filteredExpertOrganizations();
+        const organization = currentItems.find((item) => item.id === id) || expertOrganizations.find((item) => item.id === id);
+        if (!organization) return;
+        const linkedContacts = expertOrganizationContacts(organization);
+        const currentIndex = currentItems.findIndex((item) => item.id === organization.id);
+        const locationText = expertOrganizationLocation(organization);
+        const quality = expertOrganizationQualityLabel(organization);
+        if (activeExpertOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
+        const activeTab = organizationDetailActiveTab || "overview";
+
+        activeExpertOrganizationId = organization.id;
+        activeExpertId = null;
+        activeId = null;
+        activeOrganizationId = null;
+        renderExpertOrganizationsTable(currentItems);
+        detailPanel.classList.add("detail-panel--organization");
+        detailPanel.classList.remove("detail-panel--registration");
+
+        detailPanel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Organisationen</div>
+            <div class="detail-toolbar-actions">
+              <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
+            </div>
+          </div>
+          <div class="detail-content">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${organizationLogoMarkup(organization, "lg", "organization-profile-logo")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(organization.name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(organization.organizationType || organization.sector || "Organisation")}</div>
+                    <div class="detail-profile-subline">${escapeHtml([locationText, organization.state].filter(Boolean).join(" · ") || "Standort nicht dokumentiert")}</div>
+                    <div class="detail-profile-status">${sectorBadgeMarkup(organization.sector)} <span class="quality-badge quality-badge--${quality.tone}">${quality.label}</span></div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+                ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("contacts", `Kontakte (${linkedContacts.length})`, activeTab)}
+                ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("notes", "Notizen", activeTab)}
+                ${detailTabButton("activity", "Aktivitäten", activeTab)}
+              </div>
+
+              <section ${detailPanelAttrs("overview", activeTab)} id="expert-organization-overview">
+                <h4 class="detail-section-title">Stammdaten</h4>
+                <div class="detail-line-list">
+                  ${detailLine("Name", organization.name)}
+                  ${detailLine("Gruppe", organization.sector)}
+                  ${detailLine("Organisationstyp", organization.organizationType)}
+                  ${detailLine("Standort", locationText)}
+                  ${detailLine("Bundesland", organization.state)}
+                  ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
+                  ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
+                  ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
+                  ${detailLine("Quelle", organization.source)}
+                  ${detailLine("Zugeordnete Kontakte", `${linkedContacts.length} ${linkedContacts.length === 1 ? "Kontakt" : "Kontakte"}`)}
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("contacts", activeTab)} id="expert-organization-contacts">
+                <h4 class="detail-section-title">Zugeordnete Kontakte</h4>
+                <div class="detail-line-list">
+                  ${
+                    linkedContacts.length
+                      ? `<div class="organization-contact-table-wrap"><table class="organization-contact-table">
+                          <thead><tr><th>Kontakt</th><th>Rolle</th><th>Fachbereich / Fokus</th><th>Aktualisiert</th><th></th></tr></thead>
+                          <tbody>
+                            ${linkedContacts
+                              .map(
+                                (contact) => `
+                                  <tr>
+                                    <td><strong>${escapeHtml(contact.displayName || contact.name)}</strong></td>
+                                    <td>${escapeHtml(contact.contactRole || "-")}</td>
+                                    <td>${escapeHtml(specialtyLabel(contact) || normalizeThemes(contact.themes).slice(0, 2).join(", ") || "-")}</td>
+                                    <td>${escapeHtml(formatDateLabel(contact.updatedAt || contact.createdAt) || "-")}</td>
+                                    <td><button class="detail-link detail-link--compact" type="button" data-open-expert-org-contact="${escapeHtml(contact.id)}">Kontakt öffnen</button></td>
+                                  </tr>
+                                `
+                              )
+                              .join("")}
+                          </tbody>
+                        </table></div>`
+                      : `<div class="empty">Dieser Organisation sind noch keine Expertenkreis-Kontakte zugeordnet.</div>`
+                  }
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("themes", activeTab)} id="expert-organization-themes">
+                <h4 class="detail-section-title">Themen</h4>
+                <div class="detail-chip-row">
+                  ${
+                    [...new Set(linkedContacts.flatMap((contact) => normalizeThemes(contact.themes)))].length
+                      ? [...new Set(linkedContacts.flatMap((contact) => normalizeThemes(contact.themes)))].slice(0, 12).map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("")
+                      : `<span class="detail-secondary">Noch keine Themen aus zugeordneten Kontakten sichtbar.</span>`
+                  }
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("notes", activeTab)} id="expert-organization-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                <div class="detail-note-block ${organization.notes ? "" : "detail-note-block--empty"}">${escapeHtml(organization.notes || "Noch keine Notiz hinterlegt.")}</div>
+              </section>
+
+              <section ${detailPanelAttrs("activity", activeTab)} id="expert-organization-activity">
+                <div class="history-empty">Noch kein Verlauf für diese Expertenkreis-Organisation vorhanden.</div>
+              </section>
+            </div>
+          </div>
+        `;
+
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        document.getElementById("detail-close").addEventListener("click", closeDetail);
+        detailPanel.querySelectorAll("[data-open-expert-org-contact]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeExpertMode = "contacts";
+            openExpertDetail(button.dataset.openExpertOrgContact, expertContacts);
+          });
+        });
+        detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            organizationDetailActiveTab = button.dataset.detailTab || "overview";
+            openExpertOrganizationDetail(organization.id, currentItems);
+          });
+        });
       }
 
       function openOrganizationDetail(id, items = filteredOrganizations()) {
@@ -28222,6 +29274,8 @@
         detailActiveTab = "overview";
         organizationDetailActiveTab = "overview";
         activeRegistrationId = null;
+        activeExpertId = null;
+        activeExpertOrganizationId = null;
         registrationDetailTab = "contact";
         detailPanel.classList.remove("detail-panel--organization");
         detailPanel.classList.remove("detail-panel--registration");
@@ -28539,17 +29593,30 @@
       function updateView() {
         applyLegacyOwnerAssignments();
         organizations = mergeOrganizations(organizations, deriveOrganizationsFromContacts(contacts));
+        expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
         organizationLogoMapCache = null;
         syncOwnerOptionsFromContacts();
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
+        const isExpertsView = activeView === "experts";
+        const isExpertOrganizationsMode = isExpertsView && activeExpertMode === "organizations";
         const isFormatsView = activeView === "formats";
-        const items = isFormatsView ? filteredFormats() : isOrganizationsView ? filteredOrganizations() : filteredContacts();
+        const items = isFormatsView
+          ? filteredFormats()
+          : isOrganizationsView
+            ? filteredOrganizations()
+            : isExpertsView
+              ? isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
+              : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.hidden = isInitialDataLoading && isContactsView ? false : isFormatsView ? false : !hasActiveFilters();
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
         searchInput.placeholder = isOrganizationsView
           ? "Organisationen suchen..."
+          : isExpertOrganizationsMode
+            ? "Expertenkreis-Organisationen suchen..."
+          : isExpertsView
+            ? "Expertenkreis suchen..."
           : isFormatsView
             ? "Formate suchen..."
           : activeView === "map"
@@ -28561,10 +29628,13 @@
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
         archiveViewButton.hidden = !isContactsView;
         if (openImportButton) openImportButton.hidden = true;
-        columnMenuShell.hidden = !(isContactsView || isOrganizationsView);
+        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView);
+        if (viewSelectShell) viewSelectShell.hidden = isExpertsView;
+        filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
         if (filterToolbar) filterToolbar.hidden = isFormatsView;
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isFormatsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
@@ -28574,6 +29644,10 @@
         renderSummary(items);
         if (isOrganizationsView) {
           renderOrganizationsTable(items);
+        } else if (isExpertsView && isExpertOrganizationsMode) {
+          renderExpertOrganizationsTable(items);
+        } else if (isExpertsView) {
+          renderExpertContactsTable(items);
         } else if (isContactsView) {
           renderTable(items);
         } else if (isFormatsView) {
@@ -28590,9 +29664,15 @@
         renderTeamView();
         renderAboutApp();
 
-        if (!isOrganizationsView && !isFormatsView && activeId && !items.some((item) => item.id === activeId)) {
+        if (!isOrganizationsView && !isFormatsView && !isExpertsView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
           activeId = null;
+        }
+        if (isExpertsView && activeExpertMode === "contacts" && activeExpertId && !items.some((item) => item.id === activeExpertId)) {
+          closeDetail();
+        }
+        if (isExpertsView && activeExpertMode === "organizations" && activeExpertOrganizationId && !items.some((item) => item.id === activeExpertOrganizationId)) {
+          closeDetail();
         }
       }
 
@@ -28657,8 +29737,10 @@
         const toggle = event.target.closest("[data-column-toggle]");
         if (!toggle) return;
         const key = toggle.dataset.columnToggle;
-        const isOrganizationsView = activeView === "organizations";
-        const columns = isOrganizationsView ? organizationTableColumns : contactTableColumns;
+        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
+        const columns = activeView === "experts"
+          ? activeExpertMode === "organizations" ? expertOrganizationTableColumns : expertContactTableColumns
+          : isOrganizationsView ? organizationTableColumns : contactTableColumns;
         const column = columns.find((item) => item.key === key);
         if (!column || column.required) return;
         const visible = new Set(isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns);
@@ -28669,13 +29751,15 @@
             .filter((item) => item.required || visible.has(item.key))
             .map((item) => item.key);
           persistVisibleOrganizationColumns();
-          renderOrganizationsTable(filteredOrganizations());
+          if (activeView === "experts") renderExpertOrganizationsTable(filteredExpertOrganizations());
+          else renderOrganizationsTable(filteredOrganizations());
         } else {
           visibleContactColumns = contactTableColumns
             .filter((item) => item.required || visible.has(item.key))
             .map((item) => item.key);
           persistVisibleContactColumns();
-          renderTable(filteredContacts());
+          if (activeView === "experts") renderExpertContactsTable(filteredExpertContacts());
+          else renderTable(filteredContacts());
         }
       });
       filterPanelResetButton.addEventListener("click", () => {
@@ -28696,6 +29780,22 @@
           closeMobileSidebar();
           setActiveView(tab.dataset.viewTab);
           updateRouteHash(tab.dataset.viewTab);
+          updateView();
+        });
+      });
+      expertModeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          activeExpertMode = button.dataset.expertMode || "contacts";
+          selectedOwners = [];
+          selectedOrganizationCities = [];
+          selectedOrganizationContactRanges = [];
+          if (activeExpertMode === "organizations") {
+            selectedPriorities = [];
+            selectedSpecialties = [];
+            selectedThemes = [];
+          }
+          currentPage = 1;
+          closeDetail();
           updateView();
         });
       });
@@ -29406,6 +30506,46 @@
         updateView();
       });
 
+      async function loadExpertData({ includeArchived = false } = {}) {
+        try {
+          if (window.dataService?.loadExpertGroups) {
+            expertGroups = (await window.dataService.loadExpertGroups({ includeArchived })).map((group, index) =>
+              normalizeExpertGroupEntry(group, index)
+            );
+          }
+        } catch (groupError) {
+          console.warn("Expertenkreis-Gruppen konnten nicht geladen werden. Seed-Fallback aktiv.", groupError);
+          expertGroups = seedExpertGroupRecords;
+        }
+
+        try {
+          if (window.dataService?.loadExpertContacts) {
+            expertContacts = (await window.dataService.loadExpertContacts({ includeArchived })).map((contact, index) =>
+              sanitizeExpertContact(contact, index)
+            );
+          } else {
+            expertContacts = seedExpertContacts;
+          }
+        } catch (contactError) {
+          console.warn("Expertenkreis-Kontakte konnten nicht geladen werden. Seed-Fallback aktiv.", contactError);
+          expertContacts = seedExpertContacts;
+        }
+
+        try {
+          if (window.dataService?.loadExpertOrganizations) {
+            const loadedOrganizations = (await window.dataService.loadExpertOrganizations({ includeArchived })).map((organization, index) =>
+              sanitizeExpertOrganization(organization, index)
+            );
+            expertOrganizations = mergeExpertOrganizations(loadedOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+          } else {
+            expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+          }
+        } catch (organizationError) {
+          console.warn("Expertenkreis-Organisationen konnten nicht geladen werden. Seed-Fallback aktiv.", organizationError);
+          expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+        }
+      }
+
       async function initializeData() {
         const initialRouteView = routeViewFromHash();
         loadLegacyOwnerAssignments();
@@ -29434,8 +30574,9 @@
             formatLoadErrorMessage = String(formatError?.message || "Bitte prüfe die Supabase-Tabellen und RLS-Policies für Formate.");
             formats = [];
           }
+          await loadExpertData({ includeArchived: canAdministerData() });
           await loadSavedViewsAndSettings();
-          if (!initialRouteView && ["contacts", "organizations", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
+          if (!initialRouteView && ["contacts", "organizations", "experts", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
             activeView = userSettings.defaultViewType;
           }
           loadedContactsFromStorage = false;
