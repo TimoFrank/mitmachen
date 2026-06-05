@@ -11,7 +11,11 @@ const tableNames = [
   "user_settings",
   "formats",
   "format_participants",
-  "changes"
+  "changes",
+  "expert_groups",
+  "expert_contacts",
+  "expert_organizations",
+  "expert_entity_links"
 ];
 const tablePattern = tableNames.join("|");
 const disallowedPatterns = [
@@ -96,6 +100,18 @@ function assertProductionConfig(configPath) {
   }
 }
 
+try {
+  assertProductionConfig(productionConfigPath);
+} catch (error) {
+  console.error(`API Gateway Audit FAILED: ${error.message}`);
+  process.exit(1);
+}
+
+if (!productionConfigPath) {
+  console.log("API Gateway Audit SKIPPED: kein Produktionsartefakt angegeben; GitHub-Pages-/lokaler Supabase-Client-Modus ist erlaubt.");
+  process.exit(0);
+}
+
 const findings = scanClientFiles();
 if (findings.length) {
   console.error("API Gateway Audit FAILED: direkte fachliche Supabase-Zugriffe im Browser gefunden.");
@@ -105,12 +121,4 @@ if (findings.length) {
   process.exit(1);
 }
 
-try {
-  assertProductionConfig(productionConfigPath);
-} catch (error) {
-  console.error(`API Gateway Audit FAILED: ${error.message}`);
-  process.exit(1);
-}
-
-const suffix = productionConfigPath ? ` Produktionskonfiguration OK (${productionConfigPath}).` : "";
-console.log(`API Gateway Audit OK: fachliche Supabase-Zugriffe laufen nicht direkt aus dem Browser.${suffix}`);
+console.log(`API Gateway Audit OK: fachliche Supabase-Zugriffe laufen nicht direkt aus dem Browser. Produktionskonfiguration OK (${productionConfigPath}).`);

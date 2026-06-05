@@ -166,8 +166,23 @@
     "created_at",
     "updated_at"
   ];
+  const EXPERT_ENTITY_LINK_FIELDS = [
+    "id",
+    "link_type",
+    "contact_id",
+    "expert_contact_id",
+    "organization_id",
+    "expert_organization_id",
+    "match_reason",
+    "confidence",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
   const PROFILE_IMAGE_BUCKET = "profile-images";
   const LOCAL_FORMATS_KEY = "versorgungs-kompass-formats-v1";
+  const LOCAL_EXPERT_ENTITY_LINKS_KEY = "versorgungs-kompass-expert-entity-links-v1";
   const LOCAL_REGISTRATIONS_KEY = "versorgungs-kompass-backend-registrations-v1";
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   let client = null;
@@ -177,6 +192,7 @@
   let expertGroupCache = [];
   let expertContactCache = [];
   let expertOrganizationCache = [];
+  let expertEntityLinkCache = [];
   let formatCache = [];
   let savedViewCache = [];
   let userSettingsCache = null;
@@ -395,6 +411,37 @@
     return rows
       .filter((organization) => options.includeArchived || organization.status !== "archived")
       .map((organization) => clone(organization));
+  }
+
+  function readLocalExpertEntityLinks() {
+    try {
+      const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_EXPERT_ENTITY_LINKS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Lokale Expertenkreis-Verknuepfungen konnten nicht gelesen werden.", error);
+      return [];
+    }
+  }
+
+  function writeLocalExpertEntityLinks(items) {
+    try {
+      window.localStorage?.setItem(LOCAL_EXPERT_ENTITY_LINKS_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.warn("Lokale Expertenkreis-Verknuepfungen konnten nicht gespeichert werden.", error);
+    }
+  }
+
+  function localExpertEntityLinks() {
+    if (!expertEntityLinkCache.length) {
+      expertEntityLinkCache = readLocalExpertEntityLinks().map(expertEntityLinkDbToUi);
+    }
+    return clone(expertEntityLinkCache);
+  }
+
+  function persistLocalExpertEntityLinks(items = expertEntityLinkCache) {
+    expertEntityLinkCache = items.map(expertEntityLinkDbToUi);
+    writeLocalExpertEntityLinks(expertEntityLinkCache);
+    return clone(expertEntityLinkCache);
   }
 
   function sampleRegistrationRows() {
@@ -1034,6 +1081,36 @@
     };
   }
 
+  function expertEntityLinkDbToUi(row = {}) {
+    return {
+      id: row.id || "",
+      linkType: row.link_type || row.linkType || "",
+      contactId: row.contact_id || row.contactId || "",
+      expertContactId: row.expert_contact_id || row.expertContactId || "",
+      organizationId: row.organization_id || row.organizationId || "",
+      expertOrganizationId: row.expert_organization_id || row.expertOrganizationId || "",
+      matchReason: row.match_reason || row.matchReason || "",
+      confidence: Number(row.confidence ?? row.score ?? 0),
+      createdAt: row.created_at || row.createdAt || "",
+      createdBy: row.created_by || row.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || ""
+    };
+  }
+
+  function expertEntityLinkUiToDb(link = {}) {
+    const linkType = String(link.linkType || link.link_type || "").trim();
+    return {
+      link_type: linkType,
+      contact_id: link.contactId || link.contact_id || null,
+      expert_contact_id: link.expertContactId || link.expert_contact_id || null,
+      organization_id: link.organizationId || link.organization_id || null,
+      expert_organization_id: link.expertOrganizationId || link.expert_organization_id || null,
+      match_reason: String(link.matchReason || link.match_reason || "").trim() || null,
+      confidence: Number.isFinite(Number(link.confidence ?? link.score)) ? Number(link.confidence ?? link.score) : null
+    };
+  }
+
   function organizationUiToDb(organization) {
     const name = String(organization.name || "").trim();
     return {
@@ -1067,7 +1144,13 @@
       profileCache = new Map(profiles.map((profile) => [profile.id, profile]));
       return [...profileCache.values()];
     }
-    throw apiGatewayRequiredError();
+    const { data, error } = await getClient()
+      .from("profiles")
+      .select(PROFILE_FIELDS.join(","))
+      .eq("active", true);
+    if (error) throw error;
+    profileCache = new Map((data || []).map((profile) => [profile.id, profile]));
+    return [...profileCache.values()];
   }
 
   async function getProfiles() {
@@ -1089,7 +1172,8 @@
       if (profile?.id) profileCache.set(profile.id, profile);
       return profile;
     }
-    throw apiGatewayRequiredError();
+    if (!profileCache.size) await loadProfiles();
+    return profileCache.get(userId) || null;
   }
 
   async function updateCurrentProfile(profile = {}) {
@@ -1117,7 +1201,25 @@
       if (updated?.id) profileCache.set(updated.id, updated);
       return updated;
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = {
+      display_name: String(profile.displayName ?? profile.display_name ?? "").trim(),
+      initials: String(profile.initials || "").trim().slice(0, 4).toUpperCase() || null,
+      team: String(profile.team || "").trim() || null,
+      bio: String(profile.bio || "").trim() || null,
+      avatar_url: profile.avatarUrl ?? profile.avatar_url ?? null,
+      updated_at: new Date().toISOString()
+    };
+    if (!payload.display_name) throw new Error("Bitte trage einen Anzeigenamen ein.");
+    const { data, error } = await getClient()
+      .from("profiles")
+      .update(payload)
+      .eq("id", userId)
+      .select(PROFILE_FIELDS.join(","))
+      .single();
+    if (error) throw error;
+    profileCache.set(userId, data);
+    return data;
   }
 
   async function uploadCurrentProfileImage(file) {
@@ -1139,7 +1241,17 @@
       });
       return payload.publicUrl || "";
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = `${userId}/avatar.${extension}`;
+    const { error } = await getClient().storage.from(PROFILE_IMAGE_BUCKET).upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: true
+    });
+    if (error) throw error;
+    const { data } = getClient().storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(path);
+    return data?.publicUrl || "";
   }
 
   async function removeCurrentProfileImage() {
@@ -1149,7 +1261,10 @@
       if (updated?.id) profileCache.set(updated.id, updated);
       return updated;
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const paths = ["jpg", "jpeg", "png", "webp"].map((extension) => `${userId}/avatar.${extension}`);
+    await getClient().storage.from(PROFILE_IMAGE_BUCKET).remove(paths);
+    return updateCurrentProfile({ ...(profileCache.get(userId) || {}), avatar_url: null });
   }
 
   async function loadContacts(options = {}) {
@@ -1165,7 +1280,33 @@
       contactCache = Array.isArray(payload.items) ? payload.items : [];
       return contactCache;
     }
-    throw apiGatewayRequiredError();
+    const supabase = getClient();
+    await loadProfiles();
+    let query = supabase
+      .from("contacts")
+      .select(contactSelectFields())
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    if (options.status) query = query.eq("status", options.status);
+    const { data, error } = await query;
+    if (error) {
+      if (supportsContactOrganizationId && isMissingOrganizationIdError(error)) {
+        supportsContactOrganizationId = false;
+        return loadContacts(options);
+      }
+      if (supportsContactImageSources && isMissingContactImageSourceError(error)) {
+        supportsContactImageSources = false;
+        return loadContacts(options);
+      }
+      if (supportsContactRole && isMissingContactRoleError(error)) {
+        supportsContactRole = false;
+        return loadContacts(options);
+      }
+      throw error;
+    }
+    contactCache = (data || []).map(dbToUi);
+    return contactCache;
   }
 
   async function getContacts(filters = {}) {
@@ -1184,7 +1325,23 @@
     if (usesApiGateway()) {
       return apiGet(`/api/contacts/${encodeURIComponent(id)}`);
     }
-    throw apiGatewayRequiredError();
+    const { data, error } = await getClient().from("contacts").select(contactSelectFields()).eq("id", id).single();
+    if (error) {
+      if (supportsContactOrganizationId && isMissingOrganizationIdError(error)) {
+        supportsContactOrganizationId = false;
+        return getContact(id);
+      }
+      if (supportsContactImageSources && isMissingContactImageSourceError(error)) {
+        supportsContactImageSources = false;
+        return getContact(id);
+      }
+      if (supportsContactRole && isMissingContactRoleError(error)) {
+        supportsContactRole = false;
+        return getContact(id);
+      }
+      throw error;
+    }
+    return dbToUi(data);
   }
 
   async function getContactChanges(contactId, options = {}) {
@@ -1211,7 +1368,17 @@
       });
       return Array.isArray(payload.items) ? payload.items : [];
     }
-    throw apiGatewayRequiredError();
+    if (!profileCache.size) await loadProfiles();
+    let query = getClient()
+      .from("changes")
+      .select(CHANGE_FIELDS.join(","))
+      .eq("contact_id", contactId)
+      .order("changed_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (options.action) query = query.eq("action", options.action);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(changeToUi);
   }
 
   async function loadBackendRegistrations(options = {}) {
@@ -1285,7 +1452,31 @@
       organizationCache = Array.isArray(payload.items) ? payload.items : [];
       return clone(organizationCache);
     }
-    throw apiGatewayRequiredError();
+    const supabase = getClient();
+    let query = supabase
+      .from("organizations")
+      .select(ORGANIZATION_FIELDS.join(","))
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const ids = (data || []).map((row) => row.id);
+    const counts = new Map();
+    if (ids.length) {
+      const { data: linkedContacts, error: countError } = await supabase
+        .from("contacts")
+        .select("organization_id")
+        .in("organization_id", ids)
+        .neq("status", "archived");
+      if (countError) throw countError;
+      (linkedContacts || []).forEach((row) => {
+        if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
+      });
+    }
+    organizationCache = (data || []).map((row) => organizationDbToUi(row, counts.get(row.id) || 0));
+    return clone(organizationCache);
   }
 
   async function getOrganization(id) {
@@ -1298,7 +1489,9 @@
     if (usesApiGateway()) {
       return apiGet(`/api/organizations/${encodeURIComponent(id)}`);
     }
-    throw apiGatewayRequiredError();
+    const { data, error } = await getClient().from("organizations").select(ORGANIZATION_FIELDS.join(",")).eq("id", id).single();
+    if (error) throw error;
+    return organizationDbToUi(data);
   }
 
   async function loadExpertGroups(options = {}) {
@@ -1313,7 +1506,16 @@
       expertGroupCache = Array.isArray(payload.items) ? payload.items.map(expertGroupDbToUi) : [];
       return clone(expertGroupCache);
     }
-    throw apiGatewayRequiredError();
+    let query = getClient()
+      .from("expert_groups")
+      .select(EXPERT_GROUP_FIELDS.join(","))
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    const { data, error } = await query;
+    if (error) throw error;
+    expertGroupCache = (data || []).map(expertGroupDbToUi);
+    return clone(expertGroupCache);
   }
 
   async function loadExpertContacts(options = {}) {
@@ -1331,7 +1533,17 @@
       expertContactCache = Array.isArray(payload.items) ? payload.items.map(expertContactDbToUi) : [];
       return clone(expertContactCache);
     }
-    throw apiGatewayRequiredError();
+    if (!expertGroupCache.length) await loadExpertGroups({ includeArchived: true });
+    let query = getClient()
+      .from("expert_contacts")
+      .select(EXPERT_CONTACT_FIELDS.join(","))
+      .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    if (options.status) query = query.eq("status", options.status);
+    const { data, error } = await query;
+    if (error) throw error;
+    expertContactCache = (data || []).map(expertContactDbToUi);
+    return clone(expertContactCache);
   }
 
   async function loadExpertOrganizations(options = {}) {
@@ -1348,7 +1560,108 @@
       expertOrganizationCache = Array.isArray(payload.items) ? payload.items.map(expertOrganizationDbToUi) : [];
       return clone(expertOrganizationCache);
     }
-    throw apiGatewayRequiredError();
+    if (!expertGroupCache.length) await loadExpertGroups({ includeArchived: true });
+    const supabase = getClient();
+    let query = supabase
+      .from("expert_organizations")
+      .select(EXPERT_ORGANIZATION_FIELDS.join(","))
+      .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const ids = (data || []).map((row) => row.id);
+    const counts = new Map();
+    if (ids.length) {
+      const { data: linkedContacts, error: countError } = await supabase
+        .from("expert_contacts")
+        .select("organization_id")
+        .in("organization_id", ids)
+        .neq("status", "archived");
+      if (countError) throw countError;
+      (linkedContacts || []).forEach((row) => {
+        if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
+      });
+    }
+    expertOrganizationCache = (data || []).map((row) => expertOrganizationDbToUi(row, counts.get(row.id) || 0));
+    return clone(expertOrganizationCache);
+  }
+
+  async function loadExpertEntityLinks() {
+    if (isLocalMode()) return localExpertEntityLinks();
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/expert-entity-links");
+      expertEntityLinkCache = Array.isArray(payload.items) ? payload.items.map(expertEntityLinkDbToUi) : [];
+      return clone(expertEntityLinkCache);
+    }
+    const { data, error } = await getClient()
+      .from("expert_entity_links")
+      .select(EXPERT_ENTITY_LINK_FIELDS.join(","))
+      .order("updated_at", { ascending: false, nullsFirst: false });
+    if (error) throw error;
+    expertEntityLinkCache = (data || []).map(expertEntityLinkDbToUi);
+    return clone(expertEntityLinkCache);
+  }
+
+  async function createExpertEntityLink(link = {}) {
+    if (isLocalMode()) {
+      requireLocalAdmin("Expertenkreis-Verknuepfung bestätigen");
+      const created = expertEntityLinkDbToUi({
+        ...link,
+        id: link.id || `local-expert-link-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      const exists = expertEntityLinkCache.some((item) =>
+        item.linkType === created.linkType &&
+        item.contactId === created.contactId &&
+        item.expertContactId === created.expertContactId &&
+        item.organizationId === created.organizationId &&
+        item.expertOrganizationId === created.expertOrganizationId
+      );
+      if (!exists) persistLocalExpertEntityLinks([created, ...expertEntityLinkCache]);
+      return created;
+    }
+    if (usesApiGateway()) {
+      const created = await apiRequest("/api/expert-entity-links", {
+        method: "POST",
+        body: link
+      });
+      expertEntityLinkCache = [created, ...expertEntityLinkCache.filter((item) => item.id !== created.id)];
+      return expertEntityLinkDbToUi(created);
+    }
+    const userId = await getCurrentUserId();
+    const payload = {
+      ...expertEntityLinkUiToDb(link),
+      created_by: userId,
+      updated_by: userId
+    };
+    const { data, error } = await getClient()
+      .from("expert_entity_links")
+      .insert(payload)
+      .select(EXPERT_ENTITY_LINK_FIELDS.join(","))
+      .single();
+    if (error) throw error;
+    const created = expertEntityLinkDbToUi(data);
+    expertEntityLinkCache = [created, ...expertEntityLinkCache.filter((item) => item.id !== created.id)];
+    return created;
+  }
+
+  async function deleteExpertEntityLink(id) {
+    if (isLocalMode()) {
+      requireLocalAdmin("Expertenkreis-Verknuepfung entfernen");
+      persistLocalExpertEntityLinks(expertEntityLinkCache.filter((item) => item.id !== id));
+      return true;
+    }
+    if (usesApiGateway()) {
+      await apiRequest(`/api/expert-entity-links/${encodeURIComponent(id)}`, { method: "DELETE" });
+      expertEntityLinkCache = expertEntityLinkCache.filter((item) => item.id !== id);
+      return true;
+    }
+    const { error } = await getClient().from("expert_entity_links").delete().eq("id", id);
+    if (error) throw error;
+    expertEntityLinkCache = expertEntityLinkCache.filter((item) => item.id !== id);
+    return true;
   }
 
   async function createOrganization(organization) {
@@ -1386,7 +1699,14 @@
       organizationCache = [created, ...organizationCache.filter((item) => item.id !== created.id)];
       return created;
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = { ...organizationUiToDb(organization), created_by: userId, updated_by: userId };
+    if (!payload.name) throw new Error("Name der Organisation fehlt.");
+    const { data, error } = await getClient().from("organizations").insert(payload).select(ORGANIZATION_FIELDS.join(",")).single();
+    if (error) throw error;
+    const created = organizationDbToUi(data);
+    organizationCache = [created, ...organizationCache.filter((item) => item.id !== created.id)];
+    return created;
   }
 
   async function updateOrganization(id, patch) {
@@ -1413,7 +1733,32 @@
       organizationCache = organizationCache.map((item) => (item.id === id ? updated : item));
       return updated;
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = {};
+    if ("name" in patch) {
+      payload.name = String(patch.name || "").trim();
+      payload.normalized_name = normalizeOrganizationName(patch.name);
+    }
+    if ("sector" in patch) payload.sector = String(patch.sector || "").trim() || null;
+    if ("organizationType" in patch || "organization_type" in patch) payload.organization_type = String(patch.organizationType || patch.organization_type || "").trim() || null;
+    if ("postalCode" in patch || "postal_code" in patch) payload.postal_code = patch.postalCode || patch.postal_code || null;
+    if ("city" in patch) payload.city = patch.city || null;
+    if ("state" in patch || "federal_state" in patch) payload.federal_state = patch.state || patch.federal_state || null;
+    if ("latitude" in patch || "lat" in patch) payload.latitude = Number.isFinite(Number(patch.lat ?? patch.latitude)) ? Number(patch.lat ?? patch.latitude) : null;
+    if ("longitude" in patch || "lon" in patch) payload.longitude = Number.isFinite(Number(patch.lon ?? patch.longitude)) ? Number(patch.lon ?? patch.longitude) : null;
+    if ("website" in patch) payload.website = String(patch.website || "").trim() || null;
+    if ("phone" in patch) payload.phone = String(patch.phone || "").trim() || null;
+    if ("email" in patch) payload.email = String(patch.email || "").trim() || null;
+    if ("notes" in patch || "note" in patch) payload.notes = String(patch.notes || patch.note || "").trim() || null;
+    if ("source" in patch) payload.source = String(patch.source || "").trim() || null;
+    if ("status" in patch) payload.status = patch.status || "active";
+    payload.updated_by = userId;
+    payload.updated_at = new Date().toISOString();
+    const { data, error } = await getClient().from("organizations").update(payload).eq("id", id).select(ORGANIZATION_FIELDS.join(",")).single();
+    if (error) throw error;
+    const updated = organizationDbToUi(data);
+    organizationCache = organizationCache.map((item) => (item.id === id ? updated : item));
+    return updated;
   }
 
   async function linkContactToOrganization(contactId, organization) {
@@ -1428,7 +1773,14 @@
       const payload = await apiGet("/api/saved-views");
       return Array.isArray(payload.items) ? payload.items : [];
     }
-    throw apiGatewayRequiredError();
+    if (!profileCache.size) await loadProfiles();
+    const { data, error } = await getClient()
+      .from("saved_views")
+      .select(SAVED_VIEW_FIELDS.join(","))
+      .order("is_default", { ascending: false })
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(savedViewToUi);
   }
 
   async function createSavedView(view) {
@@ -1449,7 +1801,12 @@
         body: view
       });
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = uiToSavedView(view, userId);
+    if (!payload.name) throw new Error("Name fuer gespeicherte Suche fehlt.");
+    const { data, error } = await getClient().from("saved_views").insert(payload).select(SAVED_VIEW_FIELDS.join(",")).single();
+    if (error) throw error;
+    return savedViewToUi(data);
   }
 
   async function updateSavedView(id, patch) {
@@ -1465,7 +1822,22 @@
         body: patch
       });
     }
-    throw apiGatewayRequiredError();
+    const payload = {};
+    if ("name" in patch) payload.name = String(patch.name || "").trim();
+    if ("description" in patch) payload.description = String(patch.description || "").trim() || null;
+    if ("scope" in patch) payload.scope = patch.scope === "team" ? "team" : "private";
+    if ("viewType" in patch || "view_type" in patch) payload.view_type = patch.viewType || patch.view_type || "contacts";
+    if ("filters" in patch) payload.filters = patch.filters || {};
+    if ("searchQuery" in patch || "search_query" in patch) payload.search_query = String(patch.searchQuery || patch.search_query || "").trim();
+    if ("sortKey" in patch || "sort_key" in patch) payload.sort_key = patch.sortKey || patch.sort_key || "updated_at";
+    if ("sortDirection" in patch || "sort_direction" in patch) {
+      payload.sort_direction = patch.sortDirection === "asc" || patch.sort_direction === "asc" ? "asc" : "desc";
+    }
+    if ("pageSize" in patch || "page_size" in patch) payload.page_size = Number(patch.pageSize || patch.page_size || 20);
+    if ("isDefault" in patch || "is_default" in patch) payload.is_default = Boolean(patch.isDefault || patch.is_default);
+    const { data, error } = await getClient().from("saved_views").update(payload).eq("id", id).select(SAVED_VIEW_FIELDS.join(",")).single();
+    if (error) throw error;
+    return savedViewToUi(data);
   }
 
   async function deleteSavedView(id) {
@@ -1477,13 +1849,18 @@
       await apiRequest(`/api/saved-views/${encodeURIComponent(id)}`, { method: "DELETE" });
       return true;
     }
-    throw apiGatewayRequiredError();
+    const { error } = await getClient().from("saved_views").delete().eq("id", id);
+    if (error) throw error;
+    return true;
   }
 
   async function getUserSettings() {
     if (isLocalMode()) return localUserSettings();
     if (usesApiGateway()) return apiGet("/api/user-settings");
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const { data, error } = await getClient().from("user_settings").select(USER_SETTINGS_FIELDS.join(",")).eq("user_id", userId).maybeSingle();
+    if (error) throw error;
+    return userSettingsToUi(data);
   }
 
   async function upsertUserSettings(settings = {}) {
@@ -1502,7 +1879,24 @@
         body: settings
       });
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = {
+      user_id: userId,
+      default_view_id: settings.defaultViewId || settings.default_view_id || null,
+      default_view_type: settings.defaultViewType || settings.default_view_type || "contacts",
+      table_density: settings.tableDensity || settings.table_density || "comfortable",
+      theme: settings.theme || "system",
+      font_scale: Number(settings.fontScale || settings.font_scale || 1),
+      page_size: Number(settings.pageSize || settings.page_size || 20),
+      preferences: settings.preferences || {}
+    };
+    const { data, error } = await getClient()
+      .from("user_settings")
+      .upsert(payload, { onConflict: "user_id" })
+      .select(USER_SETTINGS_FIELDS.join(","))
+      .single();
+    if (error) throw error;
+    return userSettingsToUi(data);
   }
 
   async function getCurrentUserId() {
@@ -1535,7 +1929,37 @@
       contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
       return created;
     }
-    throw apiGatewayRequiredError();
+    const supabase = getClient();
+    const userId = await getCurrentUserId();
+    const payload = { ...uiToDb(contact), created_by: userId, updated_by: userId };
+    if (!supportsContactOrganizationId) delete payload.organization_id;
+    if (!supportsContactImageSources) {
+      delete payload.image_source_url;
+      delete payload.image_source_label;
+      delete payload.image_rights_note;
+      delete payload.image_updated_at;
+      delete payload.image_updated_by;
+    }
+    if (!supportsContactRole) delete payload.role;
+    let { data, error } = await supabase.from("contacts").insert(payload).select(contactSelectFields()).single();
+    if (error && supportsContactRole && isMissingContactRoleError(error)) {
+      supportsContactRole = false;
+      delete payload.role;
+      ({ data, error } = await supabase.from("contacts").insert(payload).select(contactSelectFields()).single());
+    }
+    if (error) throw error;
+    const { error: logError } = await supabase.from("changes").insert({
+      contact_id: data.id,
+      action: options.action === "import" ? "import" : "create",
+      field_name: null,
+      old_value: "",
+      new_value: options.batchId ? `${data.name || data.id} · Batch ${options.batchId}` : data.name || data.id,
+      changed_by: userId
+    });
+    if (logError) throw logError;
+    const created = dbToUi(data);
+    contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
+    return created;
   }
 
   async function updateContact(id, patch) {
@@ -1562,7 +1986,68 @@
       contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
       return updated;
     }
-    throw apiGatewayRequiredError();
+    const supabase = getClient();
+    const userId = await getCurrentUserId();
+    let { data: oldRow, error: oldError } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single();
+    if (oldError && supportsContactRole && isMissingContactRoleError(oldError)) {
+      supportsContactRole = false;
+      ({ data: oldRow, error: oldError } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single());
+    }
+    if (oldError) throw oldError;
+    const merged = { ...dbToUi(oldRow), ...patch, id };
+    if (Object.prototype.hasOwnProperty.call(patch, "ownerId")) {
+      merged.ownerId = resolveOwnerId(patch.ownerId);
+    } else if (Object.prototype.hasOwnProperty.call(patch, "owner")) {
+      merged.ownerId = resolveOwnerId(patch.owner);
+    }
+    const dbPatch = uiToDb(merged);
+    delete dbPatch.id;
+    if (!supportsContactOrganizationId) delete dbPatch.organization_id;
+    if (!supportsContactRole) delete dbPatch.role;
+    if (!["image", "image_url"].some((field) => Object.prototype.hasOwnProperty.call(patch, field))) {
+      delete dbPatch.image_url;
+    }
+    if (!["imageSourceUrl", "image_source_url", "imageSourceLabel", "image_source_label", "imageRightsNote", "image_rights_note"].some((field) => Object.prototype.hasOwnProperty.call(patch, field))) {
+      delete dbPatch.image_source_url;
+      delete dbPatch.image_source_label;
+      delete dbPatch.image_rights_note;
+      delete dbPatch.image_updated_at;
+      delete dbPatch.image_updated_by;
+    }
+    if (!supportsContactImageSources) {
+      delete dbPatch.image_source_url;
+      delete dbPatch.image_source_label;
+      delete dbPatch.image_rights_note;
+      delete dbPatch.image_updated_at;
+      delete dbPatch.image_updated_by;
+    }
+    dbPatch.updated_by = userId;
+    dbPatch.updated_at = new Date().toISOString();
+    let changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
+    let { data, error } = await supabase.from("contacts").update(dbPatch).eq("id", id).select(contactSelectFields()).single();
+    if (error && supportsContactRole && isMissingContactRoleError(error)) {
+      supportsContactRole = false;
+      delete dbPatch.role;
+      changedFields = changedFields.filter((field) => field !== "role");
+      ({ data, error } = await supabase.from("contacts").update(dbPatch).eq("id", id).select(contactSelectFields()).single());
+    }
+    if (error) throw error;
+    if (changedFields.length) {
+      const action = dbPatch.status === "archived" ? "archive" : "update";
+      const rows = changedFields.map((field) => ({
+        contact_id: id,
+        action,
+        field_name: field,
+        old_value: stringifyValue(oldRow[field]),
+        new_value: stringifyValue(dbPatch[field]),
+        changed_by: userId
+      }));
+      const { error: logError } = await supabase.from("changes").insert(rows);
+      if (logError) throw logError;
+    }
+    const updated = dbToUi(data);
+    contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
+    return updated;
   }
 
   async function archiveContact(id) {
@@ -1593,7 +2078,40 @@
       formatCache = Array.isArray(payload.items) ? payload.items : [];
       return formatCache;
     }
-    throw apiGatewayRequiredError();
+    await loadProfiles();
+    const { data: rows, error } = await getClient()
+      .from("formats")
+      .select(FORMAT_FIELDS.join(","))
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .order("title", { ascending: true });
+    if (error) {
+      if (isMissingFormatsError(error)) throw formatSetupError(error);
+      throw error;
+    }
+    const ids = (rows || []).map((row) => row.id);
+    let participants = [];
+    if (ids.length) {
+      const { data: participantRows, error: participantError } = await getClient()
+        .from("format_participants")
+        .select(FORMAT_PARTICIPANT_FIELDS.join(","))
+        .in("format_id", ids)
+        .order("updated_at", { ascending: false, nullsFirst: false });
+      if (participantError) {
+        if (isMissingFormatsError(participantError)) throw formatSetupError(participantError);
+        throw participantError;
+      }
+      participants = participantRows || [];
+    }
+    const participantsByFormat = participants.reduce((map, participant) => {
+      const list = map.get(participant.format_id) || [];
+      list.push(participant);
+      map.set(participant.format_id, list);
+      return map;
+    }, new Map());
+    formatCache = (rows || [])
+      .map((row) => formatDbToUi(row, participantsByFormat.get(row.id) || []))
+      .filter((format) => options.includeArchived || format.status !== "Archiviert");
+    return formatCache;
   }
 
   async function createFormat(format) {
@@ -1619,7 +2137,14 @@
       formatCache = [created, ...formatCache.filter((item) => item.id !== created.id)];
       return created;
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = { ...formatUiToDb(format), created_by: userId, updated_by: userId };
+    if (!payload.title) throw new Error("Titel des Formats fehlt.");
+    const { data, error } = await getClient().from("formats").insert(payload).select(FORMAT_FIELDS.join(",")).single();
+    if (error) throw error;
+    const created = formatDbToUi(data, []);
+    formatCache = [created, ...formatCache.filter((item) => item.id !== created.id)];
+    return created;
   }
 
   async function updateFormat(id, patch) {
@@ -1638,7 +2163,23 @@
       formatCache = formatCache.map((format) => format.id === id ? updated : format);
       return updated;
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = { ...formatUiToDb(patch), updated_by: userId, updated_at: new Date().toISOString() };
+    if (!Object.prototype.hasOwnProperty.call(patch, "title")) delete payload.title;
+    if (!Object.prototype.hasOwnProperty.call(patch, "formatType") && !Object.prototype.hasOwnProperty.call(patch, "format_type")) delete payload.format_type;
+    if (!Object.prototype.hasOwnProperty.call(patch, "startsAt") && !Object.prototype.hasOwnProperty.call(patch, "starts_at")) delete payload.starts_at;
+    if (!Object.prototype.hasOwnProperty.call(patch, "endsAt") && !Object.prototype.hasOwnProperty.call(patch, "ends_at")) delete payload.ends_at;
+    if (!Object.prototype.hasOwnProperty.call(patch, "location")) delete payload.location;
+    if (!Object.prototype.hasOwnProperty.call(patch, "goal")) delete payload.goal;
+    if (!Object.prototype.hasOwnProperty.call(patch, "ownerId") && !Object.prototype.hasOwnProperty.call(patch, "owner_id") && !Object.prototype.hasOwnProperty.call(patch, "owner")) delete payload.owner_id;
+    if (!Object.prototype.hasOwnProperty.call(patch, "status")) delete payload.status;
+    if (!Object.prototype.hasOwnProperty.call(patch, "notes")) delete payload.notes;
+    const { data, error } = await getClient().from("formats").update(payload).eq("id", id).select(FORMAT_FIELDS.join(",")).single();
+    if (error) throw error;
+    const existing = formatCache.find((format) => format.id === id);
+    const updated = formatDbToUi(data, existing?.participants || []);
+    formatCache = formatCache.map((format) => format.id === id ? updated : format);
+    return updated;
   }
 
   async function archiveFormat(id) {
@@ -1657,7 +2198,10 @@
       formatCache = formatCache.filter((format) => format.id !== id);
       return true;
     }
-    throw apiGatewayRequiredError();
+    const { error } = await getClient().from("formats").delete().eq("id", id);
+    if (error) throw error;
+    formatCache = formatCache.filter((format) => format.id !== id);
+    return true;
   }
 
   async function addFormatParticipant(formatId, contactId, patch = {}) {
@@ -1697,7 +2241,15 @@
       formatCache = formatCache.map((format) => format.id === formatId ? updated : format);
       return updated;
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = { ...participantUiToDb(patch, formatId, contactId), created_by: userId, updated_by: userId };
+    const { error } = await getClient()
+      .from("format_participants")
+      .upsert(payload, { onConflict: "format_id,contact_id", ignoreDuplicates: true });
+    if (error) throw error;
+    await updateFormat(formatId, {});
+    await loadFormats({ includeArchived: true });
+    return formatCache.find((format) => format.id === formatId);
   }
 
   async function updateFormatParticipant(formatId, contactId, patch = {}) {
@@ -1725,7 +2277,17 @@
       formatCache = formatCache.map((format) => format.id === formatId ? updated : format);
       return updated;
     }
-    throw apiGatewayRequiredError();
+    const userId = await getCurrentUserId();
+    const payload = participantUiToDb(patch, formatId, contactId);
+    delete payload.format_id;
+    delete payload.contact_id;
+    payload.updated_by = userId;
+    payload.updated_at = new Date().toISOString();
+    const { error } = await getClient().from("format_participants").update(payload).eq("format_id", formatId).eq("contact_id", contactId);
+    if (error) throw error;
+    await updateFormat(formatId, {});
+    await loadFormats({ includeArchived: true });
+    return formatCache.find((format) => format.id === formatId);
   }
 
   async function removeFormatParticipant(formatId, contactId) {
@@ -1744,7 +2306,11 @@
       formatCache = formatCache.map((format) => format.id === formatId ? updated : format);
       return updated;
     }
-    throw apiGatewayRequiredError();
+    const { error } = await getClient().from("format_participants").delete().eq("format_id", formatId).eq("contact_id", contactId);
+    if (error) throw error;
+    await updateFormat(formatId, {});
+    await loadFormats({ includeArchived: true });
+    return formatCache.find((format) => format.id === formatId);
   }
 
   async function getDashboardStats(filters = {}) {
@@ -1790,6 +2356,9 @@
     loadExpertGroups,
     loadExpertContacts,
     loadExpertOrganizations,
+    loadExpertEntityLinks,
+    createExpertEntityLink,
+    deleteExpertEntityLink,
     createOrganization,
     updateOrganization,
     linkContactToOrganization,

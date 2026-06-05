@@ -4593,6 +4593,56 @@
         text-decoration: none;
       }
 
+      .expert-context-section {
+        display: grid;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .expert-context-line .detail-line__value {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .expert-context-copy {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+      }
+
+      .expert-context-copy strong {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .expert-context-copy span {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 700;
+      }
+
+      .expert-context-actions {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .expert-context-score {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
       .detail-line__value a:hover {
         text-decoration: underline;
       }
@@ -11299,6 +11349,54 @@
         background: var(--danger-soft);
         color: var(--danger);
         border-color: #fecaca;
+      }
+
+      .contact-sector-pill--expert {
+        border-color: var(--expert-group-border, var(--border));
+        background: var(--expert-group-bg, var(--surface-muted));
+        color: var(--expert-group-text, var(--text-primary));
+      }
+
+      .contact-sector-pill--expert-anwender-informationstechnischer-systeme {
+        --expert-group-bg: var(--info-soft);
+        --expert-group-border: #bfd3ff;
+        --expert-group-text: var(--primary);
+      }
+
+      .contact-sector-pill--expert-bundesland {
+        --expert-group-bg: var(--success-soft);
+        --expert-group-border: #bde8ca;
+        --expert-group-text: #177245;
+      }
+
+      .contact-sector-pill--expert-fachgesellschaft {
+        --expert-group-bg: #f4ecff;
+        --expert-group-border: #dbc6ff;
+        --expert-group-text: #6b35b8;
+      }
+
+      .contact-sector-pill--expert-industrieverband {
+        --expert-group-bg: var(--warning-soft);
+        --expert-group-border: #f2d7a8;
+        --expert-group-text: #8a5b14;
+      }
+
+      .contact-sector-pill--expert-standardisierungs-und-normungsorganisationen {
+        --expert-group-bg: #ecfeff;
+        --expert-group-border: #a5f3fc;
+        --expert-group-text: #155e75;
+      }
+
+      .contact-sector-pill--expert-verband {
+        --expert-group-bg: #f0f2ff;
+        --expert-group-border: #cfd6ff;
+        --expert-group-text: #4f5fb8;
+      }
+
+      .contact-sector-pill--expert-wissenschaftliche-einrichtung-und-patientenorganisation {
+        --expert-group-bg: var(--danger-soft);
+        --expert-group-border: #fecaca;
+        --expert-group-text: #b42318;
       }
 
       .owner-badge {
@@ -21248,6 +21346,7 @@
       let expertGroups = seedExpertGroupRecords;
       let expertContacts = seedExpertContacts;
       let expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+      let expertEntityLinks = [];
       let isInitialDataLoading = true;
       let initialDataLoadingSlow = false;
       let organizationLogoMapCache = null;
@@ -21387,6 +21486,382 @@
           .trim()
           .replace(/\s+/g, " ")
           .toLowerCase();
+      }
+
+      function normalizeEntityMatchName(value) {
+        return String(value || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\b(prof|professor|dr|med|rer|nat|phil|ing|dipl|msc|m\.sc|mba|ma|m\.a)\.?\b/g, " ")
+          .replace(/[^a-z0-9\s-]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function organizationNameMatchScore(first, second) {
+        const left = normalizeOrganizationName(first);
+        const right = normalizeOrganizationName(second);
+        if (!left || !right) return 0;
+        if (left === right) return 1;
+        const shorter = left.length < right.length ? left : right;
+        const longer = left.length < right.length ? right : left;
+        if (shorter.length >= 8 && longer.includes(shorter)) return 0.86;
+        return 0;
+      }
+
+      function contactNameMatchScore(first, second) {
+        const left = normalizeEntityMatchName(first);
+        const right = normalizeEntityMatchName(second);
+        if (!left || !right) return 0;
+        if (left === right) return 0.74;
+        const leftParts = left.split(" ").filter(Boolean);
+        const rightParts = right.split(" ").filter(Boolean);
+        if (leftParts.length >= 2 && rightParts.length >= 2) {
+          const sameFirst = leftParts[0] === rightParts[0];
+          const sameLast = leftParts.at(-1) === rightParts.at(-1);
+          if (sameFirst && sameLast) return 0.7;
+        }
+        return 0;
+      }
+
+      function expertGroupClassSuffix(value) {
+        const label = meaningfulOrEmpty(value);
+        if (!label) return "";
+        const groupNames = new Set(seedExpertGroups(expertGroups));
+        return groupNames.has(label) ? ` contact-sector-pill--expert contact-sector-pill--expert-${normalizeClassPart(label)}` : "";
+      }
+
+      function expertOrganizationTypeLabel(organization) {
+        const type = meaningfulOrEmpty(organization?.organizationType);
+        if (!type) return "";
+        return normalizeOrganizationName(type) === "expertenkreis-organisation" ? "" : type;
+      }
+
+      function expertEntityLinkMatches(link, fields = {}) {
+        return Object.entries(fields).every(([key, value]) => String(link[key] || "") === String(value || ""));
+      }
+
+      function expertContactLinksForContact(contact) {
+        return expertEntityLinks.filter((link) => expertEntityLinkMatches(link, { linkType: "contact", contactId: contact.id }));
+      }
+
+      function contactLinksForExpertContact(contact) {
+        return expertEntityLinks.filter((link) => expertEntityLinkMatches(link, { linkType: "contact", expertContactId: contact.id }));
+      }
+
+      function expertOrganizationLinksForOrganization(organization) {
+        return expertEntityLinks.filter((link) => expertEntityLinkMatches(link, { linkType: "organization", organizationId: organization.id }));
+      }
+
+      function organizationLinksForExpertOrganization(organization) {
+        return expertEntityLinks.filter((link) => expertEntityLinkMatches(link, { linkType: "organization", expertOrganizationId: organization.id }));
+      }
+
+      function linkedExpertContactsForContact(contact) {
+        const ids = new Set(expertContactLinksForContact(contact).map((link) => link.expertContactId));
+        return expertContacts.filter((item) => ids.has(item.id));
+      }
+
+      function linkedContactsForExpertContact(contact) {
+        const ids = new Set(contactLinksForExpertContact(contact).map((link) => link.contactId));
+        return contacts.filter((item) => ids.has(item.id));
+      }
+
+      function linkedExpertOrganizationsForOrganization(organization) {
+        const ids = new Set(expertOrganizationLinksForOrganization(organization).map((link) => link.expertOrganizationId));
+        return expertOrganizations.filter((item) => ids.has(item.id));
+      }
+
+      function linkedOrganizationsForExpertOrganization(organization) {
+        const ids = new Set(organizationLinksForExpertOrganization(organization).map((link) => link.organizationId));
+        return organizations.filter((item) => ids.has(item.id));
+      }
+
+      function contactExpertMatchSuggestion(contact, expertContact) {
+        const nameScore = contactNameMatchScore(contact.name || contact.displayName, expertContact.name || expertContact.displayName);
+        if (!nameScore) return null;
+        const organizationScore = organizationNameMatchScore(contact.organization, expertContact.organization);
+        const score = Math.min(1, nameScore + (organizationScore ? organizationScore * 0.26 : 0.08));
+        if (score < 0.8) return null;
+        return {
+          item: expertContact,
+          score,
+          reason: organizationScore >= 1 ? "Name und Organisation passen" : organizationScore ? "Name passt, Organisation ähnlich" : "Name passt"
+        };
+      }
+
+      function organizationExpertMatchSuggestion(organization, expertOrganization) {
+        const score = organizationNameMatchScore(organization.name, expertOrganization.name);
+        if (score < 0.86) return null;
+        return {
+          item: expertOrganization,
+          score,
+          reason: score >= 1 ? "Organisationsname identisch" : "Organisationsname ähnlich"
+        };
+      }
+
+      function expertContactSuggestionsForContact(contact) {
+        const linkedIds = new Set(expertContactLinksForContact(contact).map((link) => link.expertContactId));
+        return expertContacts
+          .filter((item) => !linkedIds.has(item.id))
+          .map((item) => contactExpertMatchSuggestion(contact, item))
+          .filter(Boolean)
+          .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, "de"))
+          .slice(0, 3);
+      }
+
+      function contactSuggestionsForExpertContact(expertContact) {
+        const linkedIds = new Set(contactLinksForExpertContact(expertContact).map((link) => link.contactId));
+        return contacts
+          .filter((item) => !linkedIds.has(item.id) && item.status !== "archived")
+          .map((item) => {
+            const suggestion = contactExpertMatchSuggestion(item, expertContact);
+            return suggestion ? { ...suggestion, item } : null;
+          })
+          .filter(Boolean)
+          .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, "de"))
+          .slice(0, 3);
+      }
+
+      function expertOrganizationSuggestionsForOrganization(organization) {
+        const linkedIds = new Set(expertOrganizationLinksForOrganization(organization).map((link) => link.expertOrganizationId));
+        return expertOrganizations
+          .filter((item) => !linkedIds.has(item.id))
+          .map((item) => organizationExpertMatchSuggestion(organization, item))
+          .filter(Boolean)
+          .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, "de"))
+          .slice(0, 3);
+      }
+
+      function organizationSuggestionsForExpertOrganization(expertOrganization) {
+        const linkedIds = new Set(organizationLinksForExpertOrganization(expertOrganization).map((link) => link.organizationId));
+        return organizations
+          .filter((item) => !linkedIds.has(item.id) && item.status !== "archived" && !String(item.id || "").startsWith("derived-org-"))
+          .map((item) => {
+            const suggestion = organizationExpertMatchSuggestion(item, expertOrganization);
+            return suggestion ? { ...suggestion, item } : null;
+          })
+          .filter(Boolean)
+          .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, "de"))
+          .slice(0, 3);
+      }
+
+      function expertConfidenceLabel(score) {
+        if (score >= 0.95) return "sehr hoch";
+        if (score >= 0.86) return "hoch";
+        return "prüfen";
+      }
+
+      function expertContextRowMarkup({ label, item, meta, openAttr, openId }) {
+        return `
+          <div class="detail-line expert-context-line">
+            <div class="detail-line__label">${escapeHtml(label)}</div>
+            <div class="detail-line__value">
+              <button class="organization-contact-link" type="button" ${openAttr}="${escapeHtml(openId)}">
+                <span class="expert-context-copy"><strong>${escapeHtml(item.name || item.displayName || "Unbenannt")}</strong>${meta ? `<span>${escapeHtml(meta)}</span>` : ""}</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      function expertSuggestionRowMarkup({ label, suggestion, linkType, ids }) {
+        return `
+          <div class="detail-line expert-context-line">
+            <div class="detail-line__label">${escapeHtml(label)}</div>
+            <div class="detail-line__value">
+              <span class="expert-context-copy">
+                <strong>${escapeHtml(suggestion.item.name || suggestion.item.displayName || "Unbenannt")}</strong>
+                <span>${escapeHtml(suggestion.reason)} · Übereinstimmung ${escapeHtml(expertConfidenceLabel(suggestion.score))}</span>
+              </span>
+              <span class="expert-context-actions">
+                <span class="expert-context-score">${Math.round(suggestion.score * 100)}%</span>
+                <button
+                  class="detail-link detail-link--compact"
+                  type="button"
+                  data-confirm-expert-link="${escapeHtml(linkType)}"
+                  data-link-contact="${escapeHtml(ids.contactId || "")}"
+                  data-link-expert-contact="${escapeHtml(ids.expertContactId || "")}"
+                  data-link-organization="${escapeHtml(ids.organizationId || "")}"
+                  data-link-expert-organization="${escapeHtml(ids.expertOrganizationId || "")}"
+                  data-link-reason="${escapeHtml(suggestion.reason)}"
+                  data-link-confidence="${String(suggestion.score)}"
+                >Bestätigen</button>
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
+      function expertContextSectionMarkup(title, rows = [], suggestions = []) {
+        if (!rows.length && !suggestions.length) return "";
+        return `
+          <div class="expert-context-section">
+            <h4 class="detail-section-title">${escapeHtml(title)}</h4>
+            <div class="detail-line-list">
+              ${rows.join("")}
+              ${suggestions.join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      function contactExpertContextMarkup(contact) {
+        const linkedRows = linkedExpertContactsForContact(contact).map((item) =>
+          expertContextRowMarkup({
+            label: "Verknüpft",
+            item,
+            meta: item.organization || item.category || "",
+            openAttr: "data-open-cross-expert-contact",
+            openId: item.id
+          })
+        );
+        const suggestionRows = canAdministerData()
+          ? expertContactSuggestionsForContact(contact).map((suggestion) =>
+              expertSuggestionRowMarkup({
+                label: "Vorschlag",
+                suggestion,
+                linkType: "contact",
+                ids: { contactId: contact.id, expertContactId: suggestion.item.id }
+              })
+            )
+          : [];
+        return expertContextSectionMarkup("Auch im Expertenkreis", linkedRows, suggestionRows);
+      }
+
+      function expertContactContextMarkup(contact) {
+        const linkedRows = linkedContactsForExpertContact(contact).map((item) =>
+          expertContextRowMarkup({
+            label: "Verknüpft",
+            item,
+            meta: item.organization || item.category || "",
+            openAttr: "data-open-cross-contact",
+            openId: item.id
+          })
+        );
+        const suggestionRows = canAdministerData()
+          ? contactSuggestionsForExpertContact(contact).map((suggestion) =>
+              expertSuggestionRowMarkup({
+                label: "Vorschlag",
+                suggestion,
+                linkType: "contact",
+                ids: { contactId: suggestion.item.id, expertContactId: contact.id }
+              })
+            )
+          : [];
+        return expertContextSectionMarkup("Auch in Versorgungskontakten", linkedRows, suggestionRows);
+      }
+
+      function organizationExpertContextMarkup(organization) {
+        const linkedRows = linkedExpertOrganizationsForOrganization(organization).map((item) =>
+          expertContextRowMarkup({
+            label: "Verknüpft",
+            item,
+            meta: item.sector || item.website || "",
+            openAttr: "data-open-cross-expert-organization",
+            openId: item.id
+          })
+        );
+        const suggestionRows = canAdministerData() && !String(organization.id || "").startsWith("derived-org-")
+          ? expertOrganizationSuggestionsForOrganization(organization).map((suggestion) =>
+              expertSuggestionRowMarkup({
+                label: "Vorschlag",
+                suggestion,
+                linkType: "organization",
+                ids: { organizationId: organization.id, expertOrganizationId: suggestion.item.id }
+              })
+            )
+          : [];
+        return expertContextSectionMarkup("Auch im Expertenkreis", linkedRows, suggestionRows);
+      }
+
+      function expertOrganizationContextMarkup(organization) {
+        const linkedRows = linkedOrganizationsForExpertOrganization(organization).map((item) =>
+          expertContextRowMarkup({
+            label: "Verknüpft",
+            item,
+            meta: item.sector || organizationLocation(item) || "",
+            openAttr: "data-open-cross-organization",
+            openId: item.id
+          })
+        );
+        const suggestionRows = canAdministerData()
+          ? organizationSuggestionsForExpertOrganization(organization).map((suggestion) =>
+              expertSuggestionRowMarkup({
+                label: "Vorschlag",
+                suggestion,
+                linkType: "organization",
+                ids: { organizationId: suggestion.item.id, expertOrganizationId: organization.id }
+              })
+            )
+          : [];
+        return expertContextSectionMarkup("Auch in Organisationen", linkedRows, suggestionRows);
+      }
+
+      async function confirmExpertEntityLink(button, refreshCallback) {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins können Expertenkreis-Verknüpfungen bestätigen.");
+          return;
+        }
+        const linkType = button.dataset.confirmExpertLink || "";
+        const payload = {
+          linkType,
+          contactId: button.dataset.linkContact || "",
+          expertContactId: button.dataset.linkExpertContact || "",
+          organizationId: button.dataset.linkOrganization || "",
+          expertOrganizationId: button.dataset.linkExpertOrganization || "",
+          matchReason: button.dataset.linkReason || "Manuell bestätigt",
+          confidence: Number(button.dataset.linkConfidence || 0)
+        };
+        button.disabled = true;
+        try {
+          const created = await window.dataService.createExpertEntityLink(payload);
+          expertEntityLinks = [created, ...expertEntityLinks.filter((link) => link.id !== created.id)];
+          setStorageStatus("Expertenkreis-Verknüpfung gespeichert");
+          updateView();
+          refreshCallback?.();
+        } catch (error) {
+          console.error("Expertenkreis-Verknüpfung konnte nicht gespeichert werden.", error);
+          window.alert("Die Verknüpfung konnte nicht gespeichert werden. Bitte prüfe Rolle, Anmeldung und Supabase-RLS.");
+          button.disabled = false;
+        }
+      }
+
+      function bindExpertEntityLinkControls(refreshCallback) {
+        detailPanel.querySelectorAll("[data-open-cross-expert-contact]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeExpertMode = "contacts";
+            setActiveView("experts");
+            updateView();
+            openExpertDetail(button.dataset.openCrossExpertContact, expertContacts);
+          });
+        });
+        detailPanel.querySelectorAll("[data-open-cross-contact]").forEach((button) => {
+          button.addEventListener("click", () => {
+            setActiveView("contacts");
+            updateView();
+            openDetail(button.dataset.openCrossContact, contacts);
+          });
+        });
+        detailPanel.querySelectorAll("[data-open-cross-expert-organization]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeExpertMode = "organizations";
+            setActiveView("experts");
+            updateView();
+            openExpertOrganizationDetail(button.dataset.openCrossExpertOrganization, expertOrganizations);
+          });
+        });
+        detailPanel.querySelectorAll("[data-open-cross-organization]").forEach((button) => {
+          button.addEventListener("click", () => {
+            setActiveView("organizations");
+            updateView();
+            openOrganizationDetail(button.dataset.openCrossOrganization, organizations);
+          });
+        });
+        detailPanel.querySelectorAll("[data-confirm-expert-link]").forEach((button) => {
+          button.addEventListener("click", () => confirmExpertEntityLink(button, refreshCallback));
+        });
       }
 
       function organizationInitials(name) {
@@ -22052,13 +22527,14 @@
 
       function expertOrganizationTableCellMarkup(organization, key) {
         const contactCount = expertOrganizationContacts(organization).length;
+        const typeLabel = expertOrganizationTypeLabel(organization);
         if (key === "organization") {
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm")}
               <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-expert-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
-                ${organization.organizationType || organization.website ? `<div class="contact-subline">${escapeHtml(organization.organizationType || organization.website)}</div>` : ""}
+                ${typeLabel || organization.website ? `<div class="contact-subline">${escapeHtml(typeLabel || organization.website)}</div>` : ""}
               </div>
             </div>
           `;
@@ -25431,7 +25907,7 @@
 
       function sectorBadgeMarkup(value) {
         const label = meaningfulOrEmpty(value) || "Nicht dokumentiert";
-        return `<span class="contact-sector-pill contact-sector-pill--${normalizeClassPart(label)}">${escapeHtml(label)}</span>`;
+        return `<span class="contact-sector-pill contact-sector-pill--${normalizeClassPart(label)}${expertGroupClassSuffix(label)}">${escapeHtml(label)}</span>`;
       }
 
       function sourceLabel(contact) {
@@ -28575,6 +29051,7 @@
                   ${detailLine("Bundesland", contact.state || stateLabel(contact))}
                   ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
                 </div>
+                ${expertContactContextMarkup(contact)}
                 <div class="section-block">
                   <h4 class="detail-section-title">Standort</h4>
                   <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
@@ -28620,6 +29097,7 @@
           activeExpertMode = "organizations";
           openExpertOrganizationDetail(event.currentTarget.dataset.openLinkedExpertOrganization);
         });
+        bindExpertEntityLinkControls(() => openExpertDetail(contact.id, currentItems));
         detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             detailActiveTab = button.dataset.detailTab || "overview";
@@ -28636,6 +29114,7 @@
         const currentIndex = currentItems.findIndex((item) => item.id === organization.id);
         const locationText = expertOrganizationLocation(organization);
         const quality = expertOrganizationQualityLabel(organization);
+        const typeLabel = expertOrganizationTypeLabel(organization);
         if (activeExpertOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
         const activeTab = organizationDetailActiveTab || "overview";
 
@@ -28661,7 +29140,7 @@
                   ${organizationLogoMarkup(organization, "lg", "organization-profile-logo")}
                   <div class="detail-profile-copy">
                     <h3>${escapeHtml(organization.name)}</h3>
-                    <div class="detail-profile-role">${escapeHtml(organization.organizationType || organization.sector || "Organisation")}</div>
+                    <div class="detail-profile-role">${escapeHtml(typeLabel || organization.sector || "Organisation")}</div>
                     <div class="detail-profile-subline">${escapeHtml([locationText, organization.state].filter(Boolean).join(" · ") || "Standort nicht dokumentiert")}</div>
                     <div class="detail-profile-status">${sectorBadgeMarkup(organization.sector)} <span class="quality-badge quality-badge--${quality.tone}">${quality.label}</span></div>
                   </div>
@@ -28681,7 +29160,7 @@
                 <div class="detail-line-list">
                   ${detailLine("Name", organization.name)}
                   ${detailLine("Gruppe", organization.sector)}
-                  ${detailLine("Organisationstyp", organization.organizationType)}
+                  ${typeLabel ? detailLine("Organisationstyp", typeLabel) : ""}
                   ${detailLine("Standort", locationText)}
                   ${detailLine("Bundesland", organization.state)}
                   ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
@@ -28690,6 +29169,7 @@
                   ${detailLine("Quelle", organization.source)}
                   ${detailLine("Zugeordnete Kontakte", `${linkedContacts.length} ${linkedContacts.length === 1 ? "Kontakt" : "Kontakte"}`)}
                 </div>
+                ${expertOrganizationContextMarkup(organization)}
               </section>
 
               <section ${detailPanelAttrs("contacts", activeTab)} id="expert-organization-contacts">
@@ -28753,6 +29233,7 @@
             openExpertDetail(button.dataset.openExpertOrgContact, expertContacts);
           });
         });
+        bindExpertEntityLinkControls(() => openExpertOrganizationDetail(organization.id, currentItems));
         detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             organizationDetailActiveTab = button.dataset.detailTab || "overview";
@@ -28820,6 +29301,7 @@
                   ${detailLine("Quelle", organization.source)}
                   ${detailLine("Zugeordnete Kontakte", `${linkedContacts.length} ${linkedContacts.length === 1 ? "Kontakt" : "Kontakte"}`)}
                 </div>
+                ${organizationExpertContextMarkup(organization)}
               </section>
 
               <section ${detailPanelAttrs("contacts", activeTab)} id="organization-contacts">
@@ -28890,6 +29372,7 @@
             openDetail(button.dataset.openOrgContact, contacts);
           });
         });
+        bindExpertEntityLinkControls(() => openOrganizationDetail(organization.id, currentItems));
         detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             organizationDetailActiveTab = button.dataset.detailTab || "overview";
@@ -29099,6 +29582,7 @@
                       `
                   }
                 </div>
+                ${editingDetail ? "" : contactExpertContextMarkup(contact)}
                 <div class="section-block">
                   <h4 class="detail-section-title">Standort</h4>
                   <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
@@ -29253,6 +29737,7 @@
           setActiveView("organizations");
           openOrganizationDetail(event.currentTarget.dataset.openLinkedOrganization);
         });
+        bindExpertEntityLinkControls(() => openDetail(contact.id, currentItems));
         document.getElementById("detail-assign-organization")?.addEventListener("click", () => assignOrganizationToContact(contact));
         [...detailPanel.querySelectorAll("[data-detail-tab]")].forEach((button) => {
           button.addEventListener("click", () => {
@@ -30543,6 +31028,17 @@
         } catch (organizationError) {
           console.warn("Expertenkreis-Organisationen konnten nicht geladen werden. Seed-Fallback aktiv.", organizationError);
           expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+        }
+
+        try {
+          if (window.dataService?.loadExpertEntityLinks) {
+            expertEntityLinks = await window.dataService.loadExpertEntityLinks();
+          } else {
+            expertEntityLinks = [];
+          }
+        } catch (linkError) {
+          console.warn("Expertenkreis-Verknüpfungen konnten nicht geladen werden. Link-Fallback aktiv.", linkError);
+          expertEntityLinks = [];
         }
       }
 

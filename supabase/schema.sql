@@ -157,6 +157,37 @@ create table if not exists public.expert_contacts (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.expert_entity_links (
+  id uuid primary key default gen_random_uuid(),
+  link_type text not null check (link_type in ('contact', 'organization')),
+  contact_id text references public.contacts(id) on delete cascade,
+  expert_contact_id text references public.expert_contacts(id) on delete cascade,
+  organization_id uuid references public.organizations(id) on delete cascade,
+  expert_organization_id text references public.expert_organizations(id) on delete cascade,
+  match_reason text,
+  confidence numeric(4, 3) check (confidence is null or (confidence >= 0 and confidence <= 1)),
+  created_at timestamptz not null default now(),
+  created_by uuid references public.profiles(id),
+  updated_at timestamptz not null default now(),
+  updated_by uuid references public.profiles(id),
+  check (
+    (
+      link_type = 'contact'
+      and contact_id is not null
+      and expert_contact_id is not null
+      and organization_id is null
+      and expert_organization_id is null
+    )
+    or (
+      link_type = 'organization'
+      and organization_id is not null
+      and expert_organization_id is not null
+      and contact_id is null
+      and expert_contact_id is null
+    )
+  )
+);
+
 alter table public.contacts
   drop constraint if exists contacts_organization_id_fkey,
   add constraint contacts_organization_id_fkey foreign key (organization_id) references public.organizations(id) on delete set null;
@@ -250,6 +281,16 @@ create index if not exists expert_organizations_status_idx on public.expert_orga
 create index if not exists expert_contacts_group_idx on public.expert_contacts(group_id);
 create index if not exists expert_contacts_organization_idx on public.expert_contacts(organization_id);
 create index if not exists expert_contacts_status_idx on public.expert_contacts(status);
+create unique index if not exists expert_entity_links_contact_unique
+on public.expert_entity_links(contact_id, expert_contact_id)
+where link_type = 'contact';
+create unique index if not exists expert_entity_links_organization_unique
+on public.expert_entity_links(organization_id, expert_organization_id)
+where link_type = 'organization';
+create index if not exists expert_entity_links_contact_idx on public.expert_entity_links(contact_id);
+create index if not exists expert_entity_links_expert_contact_idx on public.expert_entity_links(expert_contact_id);
+create index if not exists expert_entity_links_organization_idx on public.expert_entity_links(organization_id);
+create index if not exists expert_entity_links_expert_organization_idx on public.expert_entity_links(expert_organization_id);
 create index if not exists changes_contact_idx on public.changes(contact_id);
 create index if not exists saved_views_owner_idx on public.saved_views(owner_id);
 create index if not exists saved_views_scope_idx on public.saved_views(scope);
@@ -309,6 +350,11 @@ create trigger expert_contacts_touch_updated_at
 before update on public.expert_contacts
 for each row execute function public.touch_updated_at();
 
+drop trigger if exists expert_entity_links_touch_updated_at on public.expert_entity_links;
+create trigger expert_entity_links_touch_updated_at
+before update on public.expert_entity_links
+for each row execute function public.touch_updated_at();
+
 drop trigger if exists saved_views_touch_updated_at on public.saved_views;
 create trigger saved_views_touch_updated_at
 before update on public.saved_views
@@ -337,6 +383,7 @@ alter table public.format_participants enable row level security;
 alter table public.expert_groups enable row level security;
 alter table public.expert_organizations enable row level security;
 alter table public.expert_contacts enable row level security;
+alter table public.expert_entity_links enable row level security;
 alter table public.changes enable row level security;
 alter table public.saved_views enable row level security;
 alter table public.user_settings enable row level security;
@@ -352,9 +399,11 @@ grant select, insert, update, delete on public.format_participants to authentica
 revoke all on public.expert_groups from anon, authenticated, service_role;
 revoke all on public.expert_organizations from anon, authenticated, service_role;
 revoke all on public.expert_contacts from anon, authenticated, service_role;
+revoke all on public.expert_entity_links from anon, authenticated, service_role;
 grant select on public.expert_groups to authenticated;
 grant select on public.expert_organizations to authenticated;
 grant select on public.expert_contacts to authenticated;
+grant select, insert, update, delete on public.expert_entity_links to authenticated;
 grant select, insert on public.changes to authenticated;
 grant select, insert, update, delete on public.saved_views to authenticated;
 grant select, insert, update, delete on public.user_settings to authenticated;
@@ -369,6 +418,7 @@ grant select, insert, update, delete on public.format_participants to service_ro
 grant select, insert, update, delete on public.expert_groups to service_role;
 grant select, insert, update, delete on public.expert_organizations to service_role;
 grant select, insert, update, delete on public.expert_contacts to service_role;
+grant select, insert, update, delete on public.expert_entity_links to service_role;
 grant select, insert, update, delete on public.changes to service_role;
 grant select, insert, update, delete on public.saved_views to service_role;
 grant select, insert, update, delete on public.user_settings to service_role;
@@ -494,6 +544,38 @@ create policy "expert contacts authenticated read active"
 on public.expert_contacts for select
 to authenticated
 using (status <> 'archived' or public.current_profile_role() = 'admin');
+
+drop policy if exists "expert entity links authenticated read" on public.expert_entity_links;
+create policy "expert entity links authenticated read"
+on public.expert_entity_links for select
+to authenticated
+using (true);
+
+drop policy if exists "expert entity links admin insert" on public.expert_entity_links;
+create policy "expert entity links admin insert"
+on public.expert_entity_links for insert
+to authenticated
+with check (
+  public.current_profile_role() = 'admin'
+  and created_by = auth.uid()
+  and updated_by = auth.uid()
+);
+
+drop policy if exists "expert entity links admin update" on public.expert_entity_links;
+create policy "expert entity links admin update"
+on public.expert_entity_links for update
+to authenticated
+using (public.current_profile_role() = 'admin')
+with check (
+  public.current_profile_role() = 'admin'
+  and updated_by = auth.uid()
+);
+
+drop policy if exists "expert entity links admin delete" on public.expert_entity_links;
+create policy "expert entity links admin delete"
+on public.expert_entity_links for delete
+to authenticated
+using (public.current_profile_role() = 'admin');
 
 drop policy if exists "formats authenticated read active" on public.formats;
 create policy "formats authenticated read active"

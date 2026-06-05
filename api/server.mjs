@@ -161,6 +161,20 @@ const EXPERT_ORGANIZATION_FIELDS = [
   "created_at",
   "updated_at"
 ];
+const EXPERT_ENTITY_LINK_FIELDS = [
+  "id",
+  "link_type",
+  "contact_id",
+  "expert_contact_id",
+  "organization_id",
+  "expert_organization_id",
+  "match_reason",
+  "confidence",
+  "created_at",
+  "created_by",
+  "updated_at",
+  "updated_by"
+];
 const PORT = Number(process.env.PORT || 8081);
 const SUPABASE_URL = withoutTrailingSlash(process.env.SUPABASE_URL || "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
@@ -299,6 +313,22 @@ const FORMAT_INPUT_FIELDS = [
   "notes"
 ];
 const FORMAT_PARTICIPANT_INPUT_FIELDS = ["contactId", "contact_id", "invitationStatus", "invitation_status", "participantRole", "participant_role", "notes"];
+const EXPERT_ENTITY_LINK_INPUT_FIELDS = [
+  "linkType",
+  "link_type",
+  "contactId",
+  "contact_id",
+  "expertContactId",
+  "expert_contact_id",
+  "organizationId",
+  "organization_id",
+  "expertOrganizationId",
+  "expert_organization_id",
+  "matchReason",
+  "match_reason",
+  "confidence",
+  "score"
+];
 
 let profileCache = { expiresAt: 0, byId: new Map() };
 
@@ -508,6 +538,23 @@ function expertOrganizationToDto(row, contactCount = 0) {
   };
 }
 
+function expertEntityLinkToDto(row = {}) {
+  return {
+    id: row.id || "",
+    linkType: row.link_type || "",
+    contactId: row.contact_id || "",
+    expertContactId: row.expert_contact_id || "",
+    organizationId: row.organization_id || "",
+    expertOrganizationId: row.expert_organization_id || "",
+    matchReason: row.match_reason || "",
+    confidence: Number(row.confidence || 0),
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || ""
+  };
+}
+
 function savedViewToDto(row) {
   return {
     id: row.id,
@@ -697,6 +744,31 @@ function formatParticipantPatchToDb(patch = {}) {
   if ("participantRole" in patch || "participant_role" in patch) db.participant_role = String(patch.participantRole || patch.participant_role || "").trim() || null;
   if ("notes" in patch) db.notes = String(patch.notes || "").trim() || null;
   return db;
+}
+
+function expertEntityLinkToDb(link = {}, userId = "") {
+  const linkType = String(link.linkType || link.link_type || "").trim();
+  const payload = {
+    link_type: linkType,
+    contact_id: link.contactId || link.contact_id || null,
+    expert_contact_id: link.expertContactId || link.expert_contact_id || null,
+    organization_id: link.organizationId || link.organization_id || null,
+    expert_organization_id: link.expertOrganizationId || link.expert_organization_id || null,
+    match_reason: String(link.matchReason || link.match_reason || "").trim() || null,
+    confidence: Number.isFinite(Number(link.confidence ?? link.score)) ? Number(link.confidence ?? link.score) : null,
+    created_by: userId || null,
+    updated_by: userId || null
+  };
+  if (!["contact", "organization"].includes(payload.link_type)) {
+    throw validationError("Link-Typ muss contact oder organization sein.");
+  }
+  if (payload.link_type === "contact" && (!payload.contact_id || !payload.expert_contact_id || payload.organization_id || payload.expert_organization_id)) {
+    throw validationError("Kontakt-Verknuepfung benoetigt contactId und expertContactId.");
+  }
+  if (payload.link_type === "organization" && (!payload.organization_id || !payload.expert_organization_id || payload.contact_id || payload.expert_contact_id)) {
+    throw validationError("Organisations-Verknuepfung benoetigt organizationId und expertOrganizationId.");
+  }
+  return payload;
 }
 
 function organizationPatchToDb(patch = {}) {
@@ -1151,6 +1223,43 @@ async function listExpertOrganizations(request, url) {
   const rows = await supabaseRest("expert_organizations", request, params);
   const counts = await expertOrganizationContactCounts(request, (rows || []).map((row) => row.id));
   return { items: (rows || []).map((row) => expertOrganizationToDto(row, counts.get(row.id) || 0)) };
+}
+
+async function listExpertEntityLinks(request) {
+  const rows = await supabaseRest("expert_entity_links", request, new URLSearchParams({
+    select: EXPERT_ENTITY_LINK_FIELDS.join(","),
+    order: "updated_at.desc.nullslast"
+  }));
+  return { items: (rows || []).map(expertEntityLinkToDto) };
+}
+
+async function createExpertEntityLink(request) {
+  const userId = userIdFromToken(request);
+  if (!userId) {
+    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    error.status = 401;
+    throw error;
+  }
+  const payload = expertEntityLinkToDb(
+    await readValidatedJsonBody(request, EXPERT_ENTITY_LINK_INPUT_FIELDS, "Expertenkreis-Verknuepfung"),
+    userId
+  );
+  const rows = await supabaseRest("expert_entity_links", request, new URLSearchParams({
+    select: EXPERT_ENTITY_LINK_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  return expertEntityLinkToDto(rows?.[0]);
+}
+
+async function deleteExpertEntityLink(request, id) {
+  await supabaseRest("expert_entity_links", request, new URLSearchParams({ id: `eq.${id}` }), {
+    method: "DELETE",
+    headers: { prefer: "return=minimal" }
+  });
+  return { ok: true };
 }
 
 async function getOrganization(request, id) {
@@ -1672,6 +1781,12 @@ async function handle(request, response) {
     if (request.method === "GET" && url.pathname === "/api/expert-organizations") {
       return jsonResponse(response, 200, await listExpertOrganizations(request, url));
     }
+    if (request.method === "GET" && url.pathname === "/api/expert-entity-links") {
+      return jsonResponse(response, 200, await listExpertEntityLinks(request));
+    }
+    if (request.method === "POST" && url.pathname === "/api/expert-entity-links") {
+      return jsonResponse(response, 201, await createExpertEntityLink(request));
+    }
     if (request.method === "GET" && url.pathname === "/api/profiles") {
       return jsonResponse(response, 200, await listProfiles(request));
     }
@@ -1706,6 +1821,10 @@ async function handle(request, response) {
     }
     if (request.method === "DELETE" && savedViewMatch) {
       return jsonResponse(response, 200, await deleteSavedView(request, decodeURIComponent(savedViewMatch[1])));
+    }
+    const expertEntityLinkMatch = /^\/api\/expert-entity-links\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "DELETE" && expertEntityLinkMatch) {
+      return jsonResponse(response, 200, await deleteExpertEntityLink(request, decodeURIComponent(expertEntityLinkMatch[1])));
     }
     if (request.method === "GET" && url.pathname === "/api/user-settings") {
       return jsonResponse(response, 200, await getUserSettings(request));
