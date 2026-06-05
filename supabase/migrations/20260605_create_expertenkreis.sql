@@ -89,6 +89,10 @@ alter table public.expert_groups enable row level security;
 alter table public.expert_organizations enable row level security;
 alter table public.expert_contacts enable row level security;
 
+revoke all on public.expert_groups from anon, authenticated, service_role;
+revoke all on public.expert_organizations from anon, authenticated, service_role;
+revoke all on public.expert_contacts from anon, authenticated, service_role;
+
 grant select on public.expert_groups to authenticated;
 grant select on public.expert_organizations to authenticated;
 grant select on public.expert_contacts to authenticated;
