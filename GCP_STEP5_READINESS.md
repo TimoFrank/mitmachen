@@ -8,6 +8,8 @@ Update nach Start von Schritt 5.1: Die Kern-CRM-API wurde am 2026-06-06 privat u
 
 Update nach Start von Schritt 5.2: Betriebssicherheit wurde als naechster Schritt gewaehlt. Details stehen in `GCP_STEP5_2_OPERATIONS.md`.
 
+Update nach Start von Schritt 5.3: Kontaktbilder werden ueber Cloud Storage vorbereitet. Details stehen in `GCP_STEP5_3_CONTACT_IMAGES.md`.
+
 ## Ergebnis
 
 ```text
@@ -22,9 +24,9 @@ Live-Service:
 
 ```text
 Cloud Run: versorgungs-kompass-gcp-demo
-Revision: versorgungs-kompass-gcp-demo-00005-gnd
+Revision: versorgungs-kompass-gcp-demo-00007-l68
 URL: https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app
-Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:4a31a53b-5c33-4876-8517-e2d248d7865b
+Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:1438cdd7-be09-4d78-8995-64b30e803731
 ```
 
 Live-Daten:
@@ -108,11 +110,17 @@ Warum vor Kontaktbildern/Import:
 
 ### Schritt 5.3: Kontaktbilder zentralisieren
 
+Status:
+
+- Privat umgesetzt und live getestet.
+- Details: `GCP_STEP5_3_CONTACT_IMAGES.md`.
+
 Ziel:
 
 - Cloud Storage Bucket fuer Kontaktbilder.
 - Bildpfad/URL in `contacts.image_url` speichern.
 - Rechte- und Quellenfelder beibehalten.
+- Upload, Auslieferung und Entfernen ueber Cloud Run bereitstellen.
 
 Voraussetzung:
 

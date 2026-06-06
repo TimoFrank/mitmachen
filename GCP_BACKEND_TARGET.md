@@ -112,7 +112,7 @@ Moegliche Quellen:
 - freigegebene Bild-URLs
 - spaeter Cloud Storage URLs
 
-Cloud Storage wird erst benoetigt, wenn Bilder oder Importdateien wirklich zentral hochgeladen und verwaltet werden sollen.
+Update nach Step 5.3: Fuer Kontaktbilder wurde ein privater Cloud Storage Bucket vorbereitet. Die App speichert `gs://`-Objektpfade in `contacts.image_url` und liefert Bilder ueber Cloud Run aus. Details stehen in `GCP_STEP5_3_CONTACT_IMAGES.md`.
 
 ## Kartendaten
 
@@ -151,6 +151,12 @@ Seit Step 5.2 ist fuer den privaten GCP-Test aktiviert:
 - Deletion Protection fuer die Cloud-SQL-Instanz.
 - API-Betriebsstatus ueber `GET /api/ops/summary`.
 - JSON-Export ueber `GET /api/export`.
+
+Seit Step 5.3 ist fuer den privaten GCP-Test vorbereitet:
+
+- Privater Cloud Storage Bucket fuer Kontaktbilder.
+- Upload, Auslieferung und Entfernen ueber Cloud Run.
+- Speicherung privater `gs://`-Objektpfade in `contacts.image_url`.
 
 Fuer echten Organisationsbetrieb fehlen noch:
 

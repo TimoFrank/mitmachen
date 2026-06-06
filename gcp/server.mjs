@@ -13,14 +13,20 @@ const AUTO_SCHEMA = process.env.GCP_DEMO_AUTO_SCHEMA !== "0";
 const AUTO_SEED = process.env.GCP_DEMO_AUTO_SEED !== "0";
 const DEFAULT_DB_NAME = "versorgungs_kompass";
 const DEFAULT_DB_USER = "vk_app";
+const CONTACT_IMAGE_BUCKET = process.env.CONTACT_IMAGE_BUCKET || "";
+const MAX_CONTACT_IMAGE_BYTES = Number(process.env.CONTACT_IMAGE_MAX_BYTES || 2 * 1024 * 1024);
+const CONTACT_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/svg+xml"]);
 
 const MIME_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
+  [".jpeg", "image/jpeg"],
+  [".jpg", "image/jpeg"],
   [".js", "text/javascript; charset=utf-8"],
   [".json", "application/json; charset=utf-8"],
   [".png", "image/png"],
-  [".svg", "image/svg+xml; charset=utf-8"]
+  [".svg", "image/svg+xml; charset=utf-8"],
+  [".webp", "image/webp"]
 ]);
 
 const SCHEMA_LOCK_ID = 2026060605;
@@ -64,6 +70,7 @@ const ORGANIZATION_FIELD_MAP = [
 
 let pool;
 let readyPromise;
+let tokenCache = { accessToken: "", expiresAt: 0 };
 
 function dbConfig() {
   if (process.env.DATABASE_URL) {
@@ -92,6 +99,10 @@ function getPool() {
     pool = new Pool(config);
   }
   return pool;
+}
+
+function storageEnabled() {
+  return Boolean(CONTACT_IMAGE_BUCKET);
 }
 
 async function ensureReady() {
@@ -318,6 +329,120 @@ function inputValueForField(dbField, value) {
   return String(value ?? "").trim();
 }
 
+function isGcsUri(value) {
+  return String(value || "").startsWith("gs://");
+}
+
+function parseGcsUri(value) {
+  const match = /^gs:\/\/([^/]+)\/(.+)$/.exec(String(value || ""));
+  if (!match) return null;
+  return { bucket: match[1], object: match[2] };
+}
+
+function objectSegment(value) {
+  return String(value || "contact")
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96) || "contact";
+}
+
+function imageExtension(contentType) {
+  if (contentType === "image/png") return "png";
+  if (contentType === "image/webp") return "webp";
+  if (contentType === "image/svg+xml") return "svg";
+  return "jpg";
+}
+
+function parseImagePayload(input) {
+  const dataUrl = String(input.dataUrl || input.data_url || "");
+  const dataUrlMatch = /^data:([^;,]+);base64,(.+)$/s.exec(dataUrl);
+  const contentType = String(input.contentType || input.content_type || dataUrlMatch?.[1] || "").trim().toLowerCase();
+  const base64 = String(input.base64 || dataUrlMatch?.[2] || "");
+  if (!CONTACT_IMAGE_TYPES.has(contentType)) {
+    throw new Error("Erlaubt sind JPEG, PNG, WebP oder SVG.");
+  }
+  if (!base64) throw new Error("Bilddaten fehlen.");
+  const buffer = Buffer.from(base64, "base64");
+  if (!buffer.length) throw new Error("Bilddaten sind leer.");
+  if (buffer.length > MAX_CONTACT_IMAGE_BYTES) {
+    throw new Error(`Bild ist zu gross. Maximum: ${Math.round(MAX_CONTACT_IMAGE_BYTES / 1024 / 1024)} MB.`);
+  }
+  return { buffer, contentType };
+}
+
+function contactImageUrl(row) {
+  const imageUrl = row.image_url || "";
+  return isGcsUri(imageUrl) ? `/api/contacts/${encodeURIComponent(row.id)}/image` : imageUrl;
+}
+
+async function googleAccessToken() {
+  const envToken = process.env.GOOGLE_OAUTH_ACCESS_TOKEN || "";
+  if (envToken) return envToken;
+  const now = Date.now();
+  if (tokenCache.accessToken && tokenCache.expiresAt > now + 60_000) return tokenCache.accessToken;
+  const response = await fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", {
+    headers: { "Metadata-Flavor": "Google" }
+  });
+  if (!response.ok) {
+    throw new Error(`Google-Metadata-Token konnte nicht geladen werden (${response.status}).`);
+  }
+  const payload = await response.json();
+  tokenCache = {
+    accessToken: payload.access_token || "",
+    expiresAt: now + Math.max(60, Number(payload.expires_in || 300) - 60) * 1000
+  };
+  if (!tokenCache.accessToken) throw new Error("Google-Metadata-Token fehlt.");
+  return tokenCache.accessToken;
+}
+
+async function storageFetch(url, options = {}) {
+  const token = await googleAccessToken();
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {})
+    }
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Cloud Storage API ${response.status}: ${text.slice(0, 240)}`);
+  }
+  return response;
+}
+
+function storageObjectApiUrl(bucket, object, params = "") {
+  return `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(object)}${params}`;
+}
+
+async function saveStorageObject(objectName, buffer, contentType) {
+  const url = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(CONTACT_IMAGE_BUCKET)}/o?uploadType=media&name=${encodeURIComponent(objectName)}`;
+  await storageFetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": contentType
+    },
+    body: buffer
+  });
+}
+
+async function deleteStorageObject(bucket, object) {
+  try {
+    await storageFetch(storageObjectApiUrl(bucket, object), { method: "DELETE" });
+  } catch (error) {
+    if (!String(error.message || "").includes("Cloud Storage API 404")) throw error;
+  }
+}
+
+async function readStorageObject(bucket, object) {
+  const metadataResponse = await storageFetch(storageObjectApiUrl(bucket, object));
+  const metadata = await metadataResponse.json();
+  const mediaResponse = await storageFetch(storageObjectApiUrl(bucket, object, "?alt=media"));
+  const buffer = Buffer.from(await mediaResponse.arrayBuffer());
+  return { buffer, contentType: metadata.contentType || "application/octet-stream" };
+}
+
 function mapProfile(row) {
   return {
     id: row.id,
@@ -380,7 +505,8 @@ function mapContact(row) {
     note: row.notes,
     nextStep: row.next_step,
     sources: row.source ? String(row.source).split(";").map((item) => item.trim()).filter(Boolean) : [],
-    image: row.image_url,
+    image: contactImageUrl(row),
+    imageStoragePath: isGcsUri(row.image_url) ? row.image_url : "",
     imageSourceUrl: row.image_source_url,
     imageSourceLabel: row.image_source_label,
     imageRightsNote: row.image_rights_note,
@@ -437,6 +563,11 @@ async function getContact(id) {
   return rows[0] ? mapContact(rows[0]) : null;
 }
 
+async function getContactRow(id, client = getPool()) {
+  const { rows } = await client.query("select * from contacts where id = $1", [id]);
+  return rows[0] || null;
+}
+
 async function getContactHistory(id) {
   const { rows } = await getPool().query(
     `select changes.*, profiles.display_name as changed_by_label
@@ -475,7 +606,8 @@ function runtimeMetadata() {
     service: process.env.K_SERVICE || "local-gcp-demo",
     revision: process.env.K_REVISION || "local",
     configuration: process.env.K_CONFIGURATION || "local",
-    database: process.env.DB_NAME || process.env.PGDATABASE || DEFAULT_DB_NAME
+    database: process.env.DB_NAME || process.env.PGDATABASE || DEFAULT_DB_NAME,
+    contactImageBucket: CONTACT_IMAGE_BUCKET || null
   };
 }
 
@@ -527,6 +659,136 @@ async function exportDemoData() {
     contacts,
     changes
   };
+}
+
+async function deleteStorageObjectIfNeeded(imageUrl) {
+  const parsed = parseGcsUri(imageUrl);
+  if (!parsed || parsed.bucket !== CONTACT_IMAGE_BUCKET) return;
+  try {
+    await deleteStorageObject(parsed.bucket, parsed.object);
+  } catch (error) {
+    console.warn("Kontaktbild konnte nicht aus Cloud Storage geloescht werden.", error.message);
+  }
+}
+
+async function updateContactImage(id, input) {
+  if (!storageEnabled()) throw new Error("CONTACT_IMAGE_BUCKET ist nicht konfiguriert.");
+  const { buffer, contentType } = parseImagePayload(input);
+  const client = await getPool().connect();
+  let uploadedImageUrl = "";
+  try {
+    await client.query("begin");
+    const { rows } = await client.query("select * from contacts where id = $1 for update", [id]);
+    const oldRow = rows[0];
+    if (!oldRow) {
+      await client.query("rollback");
+      return null;
+    }
+    const actorId = oldRow.owner_id || (await firstProfileId(client));
+    const objectName = [
+      "contact-images",
+      objectSegment(id),
+      `${Date.now()}.${imageExtension(contentType)}`
+    ].join("/");
+    await saveStorageObject(objectName, buffer, contentType);
+    const nextImageUrl = `gs://${CONTACT_IMAGE_BUCKET}/${objectName}`;
+    uploadedImageUrl = nextImageUrl;
+    const sourceLabel = String(input.imageSourceLabel || input.image_source_label || input.sourceLabel || "Cloud Storage").trim();
+    const sourceUrl = String(input.imageSourceUrl || input.image_source_url || input.sourceUrl || "").trim();
+    const rightsNote = String(input.imageRightsNote || input.image_rights_note || input.rightsNote || "").trim();
+    const updated = await client.query(
+      `update contacts
+       set image_url = $2,
+           image_source_url = $3,
+           image_source_label = $4,
+           image_rights_note = $5,
+           image_updated_at = now(),
+           image_updated_by = $6,
+           updated_by = $6
+       where id = $1
+       returning *`,
+      [id, nextImageUrl, sourceUrl, sourceLabel, rightsNote, actorId]
+    );
+    await client.query(
+      `insert into changes (contact_id, action, field_name, old_value, new_value, changed_by)
+       values ($1, 'image_update', 'image', $2, $3, $4)`,
+      [id, stringifyValue(oldRow.image_url), nextImageUrl, actorId]
+    );
+    await client.query("commit");
+    await deleteStorageObjectIfNeeded(oldRow.image_url);
+    return {
+      contact: mapContact(updated.rows[0]),
+      changes: await getContactHistory(id)
+    };
+  } catch (error) {
+    await client.query("rollback");
+    await deleteStorageObjectIfNeeded(uploadedImageUrl);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function removeContactImage(id) {
+  const client = await getPool().connect();
+  try {
+    await client.query("begin");
+    const { rows } = await client.query("select * from contacts where id = $1 for update", [id]);
+    const oldRow = rows[0];
+    if (!oldRow) {
+      await client.query("rollback");
+      return null;
+    }
+    const actorId = oldRow.owner_id || (await firstProfileId(client));
+    const updated = await client.query(
+      `update contacts
+       set image_url = '',
+           image_source_url = '',
+           image_source_label = '',
+           image_rights_note = '',
+           image_updated_at = now(),
+           image_updated_by = $2,
+           updated_by = $2
+       where id = $1
+       returning *`,
+      [id, actorId]
+    );
+    await client.query(
+      `insert into changes (contact_id, action, field_name, old_value, new_value, changed_by)
+       values ($1, 'image_remove', 'image', $2, '', $3)`,
+      [id, stringifyValue(oldRow.image_url), actorId]
+    );
+    await client.query("commit");
+    await deleteStorageObjectIfNeeded(oldRow.image_url);
+    return {
+      contact: mapContact(updated.rows[0]),
+      changes: await getContactHistory(id)
+    };
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function readContactImage(id, response) {
+  if (!storageEnabled()) {
+    sendJson(response, 404, { error: "Kontaktbild-Bucket ist nicht konfiguriert" });
+    return;
+  }
+  const row = await getContactRow(id);
+  const parsed = parseGcsUri(row?.image_url);
+  if (!row || !parsed || parsed.bucket !== CONTACT_IMAGE_BUCKET) {
+    sendJson(response, 404, { error: "Kontaktbild nicht gefunden" });
+    return;
+  }
+  const { buffer, contentType } = await readStorageObject(parsed.bucket, parsed.object);
+  response.writeHead(200, {
+    "content-type": contentType,
+    "cache-control": "private, max-age=300"
+  });
+  response.end(buffer);
 }
 
 async function createOrganization(input) {
@@ -933,6 +1195,33 @@ async function handleApi(request, response, url) {
     const historyMatch = /^\/api\/contacts\/([^/]+)\/history$/.exec(url.pathname);
     if (request.method === "GET" && historyMatch) {
       sendJson(response, 200, { items: await getContactHistory(decodeURIComponent(historyMatch[1])) });
+      return;
+    }
+
+    const imageMatch = /^\/api\/contacts\/([^/]+)\/image$/.exec(url.pathname);
+    if (imageMatch && request.method === "GET") {
+      await readContactImage(decodeURIComponent(imageMatch[1]), response);
+      return;
+    }
+
+    if (imageMatch && request.method === "POST") {
+      const body = await readJson(request);
+      const result = await updateContactImage(decodeURIComponent(imageMatch[1]), body.image || body);
+      if (!result) {
+        sendJson(response, 404, { error: "Kontakt nicht gefunden" });
+        return;
+      }
+      sendJson(response, 200, result);
+      return;
+    }
+
+    if (imageMatch && request.method === "DELETE") {
+      const result = await removeContactImage(decodeURIComponent(imageMatch[1]));
+      if (!result) {
+        sendJson(response, 404, { error: "Kontakt nicht gefunden" });
+        return;
+      }
+      sendJson(response, 200, result);
       return;
     }
 

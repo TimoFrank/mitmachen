@@ -146,6 +146,15 @@
     return payload;
   }
 
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => resolve(String(reader.result || "")));
+      reader.addEventListener("error", () => reject(reader.error || new Error("Datei konnte nicht gelesen werden.")));
+      reader.readAsDataURL(file);
+    });
+  }
+
   function seedChanges() {
     const source = Array.isArray(data.changes) ? data.changes : [];
     const mapped = source.map((change, index) => ({
@@ -427,7 +436,22 @@
         <div class="meta-grid">
           ${detailRow("Quelle", contact.imageSourceLabel || (contact.image ? "Demo-Asset" : ""))}
           ${detailRow("Hinweis", contact.imageRightsNote)}
+          ${detailRow("Ablage", contact.imageStoragePath ? "Cloud Storage" : contact.image ? "App-Asset" : "")}
         </div>
+        ${API_MODE ? `
+          <form class="form-grid" id="contact-image-form">
+            <div class="form-field">
+              <label for="field-contact-image">Bilddatei</label>
+              <input class="input" id="field-contact-image" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml">
+            </div>
+            ${inputField("imageSourceLabel", "Quelle", contact.imageSourceLabel || "Cloud Storage")}
+            ${inputField("imageRightsNote", "Rechtehinweis", contact.imageRightsNote || "Demo-/freigegebenes Bild")}
+            <div class="detail-actions">
+              <button class="button button--primary" type="submit">Bild hochladen</button>
+              ${contact.image ? '<button class="button button--secondary" type="button" id="remove-contact-image">Bild entfernen</button>' : ""}
+            </div>
+          </form>
+        ` : ""}
       </section>
       <section class="detail-section">
         <h3>Änderungsverlauf</h3>
@@ -963,6 +987,7 @@
 
     document.getElementById("quick-owner")?.addEventListener("click", cycleOwner);
     document.getElementById("archive-contact")?.addEventListener("click", toggleArchiveContact);
+    document.getElementById("remove-contact-image")?.addEventListener("click", removeContactImage);
     document.getElementById("cancel-edit")?.addEventListener("click", () => {
       state.editMode = false;
       renderDetail();
@@ -988,6 +1013,7 @@
     document.getElementById("contact-form")?.addEventListener("submit", saveContactForm);
     document.getElementById("contact-create-form")?.addEventListener("submit", saveNewContactForm);
     document.getElementById("organization-form")?.addEventListener("submit", saveOrganizationForm);
+    document.getElementById("contact-image-form")?.addEventListener("submit", saveContactImageForm);
   }
 
   function updateFilter(name, value) {
@@ -1181,6 +1207,66 @@
     } finally {
       state.opsLoading = false;
       if (state.view === "ops") render();
+    }
+  }
+
+  async function saveContactImageForm(event) {
+    event.preventDefault();
+    if (!API_MODE) return;
+    const contact = currentContact();
+    const fileInput = event.currentTarget.elements.file;
+    const file = fileInput?.files?.[0];
+    if (!contact || !file) {
+      elements.status.textContent = "Bitte zuerst eine Bilddatei auswählen";
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp", "image/svg+xml"].includes(file.type)) {
+      elements.status.textContent = "Erlaubt sind JPEG, PNG, WebP oder SVG";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      elements.status.textContent = "Bild ist zu groß. Maximum: 2 MB";
+      return;
+    }
+    elements.status.textContent = "Lade Bild in Cloud Storage hoch ...";
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const result = await apiRequest(`/api/contacts/${encodeURIComponent(contact.id)}/image`, {
+        method: "POST",
+        body: JSON.stringify({
+          dataUrl,
+          contentType: file.type,
+          fileName: file.name,
+          imageSourceLabel: String(event.currentTarget.elements.imageSourceLabel?.value || "").trim(),
+          imageRightsNote: String(event.currentTarget.elements.imageRightsNote?.value || "").trim()
+        })
+      });
+      await loadBackendState();
+      state.selectedId = result.contact?.id || contact.id;
+      elements.status.textContent = "Bild in Cloud Storage gespeichert";
+      render();
+    } catch (error) {
+      console.error(error);
+      elements.status.textContent = `Bildupload fehlgeschlagen: ${error.message}`;
+    }
+  }
+
+  async function removeContactImage() {
+    if (!API_MODE) return;
+    const contact = currentContact();
+    if (!contact) return;
+    elements.status.textContent = "Entferne Kontaktbild ...";
+    try {
+      const result = await apiRequest(`/api/contacts/${encodeURIComponent(contact.id)}/image`, {
+        method: "DELETE"
+      });
+      await loadBackendState();
+      state.selectedId = result.contact?.id || contact.id;
+      elements.status.textContent = "Kontaktbild entfernt";
+      render();
+    } catch (error) {
+      console.error(error);
+      elements.status.textContent = `Bild konnte nicht entfernt werden: ${error.message}`;
     }
   }
 

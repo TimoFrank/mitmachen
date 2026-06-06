@@ -81,6 +81,11 @@ create table if not exists changes (
   changed_by text references profiles(id) on delete set null
 );
 
+alter table changes drop constraint if exists changes_action_check;
+alter table changes
+  add constraint changes_action_check
+  check (action in ('create', 'update', 'archive', 'restore', 'owner_change', 'seed', 'image_update', 'image_remove'));
+
 create index if not exists profiles_active_idx on profiles(active);
 create index if not exists organizations_status_idx on organizations(status);
 create index if not exists organizations_normalized_name_idx on organizations(normalized_name);

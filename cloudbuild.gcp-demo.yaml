@@ -6,6 +6,7 @@ substitutions:
   _DATABASE: versorgungs_kompass
   _DB_USER: vk_app
   _DB_PASS_SECRET: versorgungs-kompass-gcp-demo-db-password
+  _CONTACT_IMAGE_BUCKET: versorgungs-kompass-gcp-demo-images-765190393967
   _INGRESS: all
 
 steps:
@@ -36,7 +37,7 @@ steps:
       - --allow-unauthenticated
       - --ingress=${_INGRESS}
       - --add-cloudsql-instances=${PROJECT_ID}:${_REGION}:${_INSTANCE}
-      - --set-env-vars=DB_HOST=/cloudsql/${PROJECT_ID}:${_REGION}:${_INSTANCE},DB_NAME=${_DATABASE},DB_USER=${_DB_USER},GCP_DEMO_AUTO_SCHEMA=1,GCP_DEMO_AUTO_SEED=1
+      - --set-env-vars=DB_HOST=/cloudsql/${PROJECT_ID}:${_REGION}:${_INSTANCE},DB_NAME=${_DATABASE},DB_USER=${_DB_USER},GCP_DEMO_AUTO_SCHEMA=1,GCP_DEMO_AUTO_SEED=1,CONTACT_IMAGE_BUCKET=${_CONTACT_IMAGE_BUCKET}
       - --set-secrets=DB_PASSWORD=${_DB_PASS_SECRET}:latest
 
 images:

@@ -181,3 +181,5 @@ Step 5.3 Kontaktbilder ueber Cloud Storage vorbereiten
 ```
 
 Import sollte weiterhin erst nach Backup-/Export-Sicherheitsnetz umgesetzt werden.
+
+Step 5.3 wurde danach gestartet. Details: `GCP_STEP5_3_CONTACT_IMAGES.md`.
