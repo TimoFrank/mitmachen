@@ -10920,15 +10920,14 @@
       }
 
       .expert-matching-table {
-        min-width: 1040px;
+        min-width: 900px;
       }
 
       .expert-matching-table .thead,
       .expert-matching-table .row {
         grid-template-columns:
-          minmax(105px, 0.45fr)
-          minmax(230px, 1fr)
-          minmax(230px, 1fr)
+          minmax(250px, 1fr)
+          minmax(250px, 1fr)
           minmax(170px, 0.7fr)
           minmax(84px, 0.36fr)
           minmax(116px, 0.45fr);
@@ -11012,6 +11011,10 @@
         justify-content: space-between;
         gap: 8px;
         min-width: 0;
+      }
+
+      .expert-match-mobile-kind {
+        justify-content: flex-end;
       }
 
       .expert-match-mobile-block {
@@ -16967,7 +16970,7 @@
           </div>
           <div class="sidebar-section" aria-label="IOP">
             <span class="sidebar-section-label">IOP</span>
-            <button class="primary-tab" type="button" data-view-tab="experts" title="IOP">
+            <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="7" r="3"></circle>
                 <circle cx="6" cy="17" r="3"></circle>
@@ -16976,7 +16979,7 @@
                 <path d="m13.8 9.4 2.4 4.2"></path>
                 <path d="M9 17h6"></path>
               </svg>
-              <span>IOP</span>
+              <span>Expertenkreis</span>
             </button>
           </div>
           <div class="sidebar-section" aria-label="Karte und Auswertung">
@@ -17247,9 +17250,8 @@
                   <div class="thead" id="contacts-table-head"></div>
                   <div id="contact-list"></div>
                 </section>
-                <section class="expert-matching-workspace care-duplicates-workspace" aria-label="Dubletten Versorgung zu IOP" id="contact-duplicates-workspace" hidden>
+                <section class="expert-matching-workspace care-duplicates-workspace" aria-label="Kontakt-Dubletten" id="contact-duplicates-workspace" hidden>
                   <div class="expert-matching-toolbar">
-                    <div class="expert-matching-scope">Versorgung -&gt; IOP</div>
                     <div class="expert-matching-meta" id="contact-duplicates-meta">0 offen</div>
                   </div>
                   <section class="table expert-matching-table" aria-label="Offene Dubletten">
@@ -17304,9 +17306,8 @@
                   </div>
                   <div id="organization-list"></div>
                 </section>
-                <section class="expert-matching-workspace care-duplicates-workspace" aria-label="Dubletten Versorgung zu IOP" id="organization-duplicates-workspace" hidden>
+                <section class="expert-matching-workspace care-duplicates-workspace" aria-label="Organisations-Dubletten" id="organization-duplicates-workspace" hidden>
                   <div class="expert-matching-toolbar">
-                    <div class="expert-matching-scope">Versorgung -&gt; IOP</div>
                     <div class="expert-matching-meta" id="organization-duplicates-meta">0 offen</div>
                   </div>
                   <section class="table expert-matching-table" aria-label="Offene Dubletten">
@@ -17335,7 +17336,7 @@
             <div class="view-card experts-workspace">
               <div class="table-command-row table-command-row--experts table-command-row--expert-tabs">
                 <div class="table-command-actions" id="expert-mode-actions">
-                  <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="IOP-Listen">
+                  <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="Expertenkreis-Listen">
                     <button class="settings-tab-button is-active" type="button" role="tab" data-expert-mode="contacts" aria-selected="true" aria-controls="expert-contacts-table">Kontakte</button>
                     <button class="settings-tab-button" type="button" role="tab" data-expert-mode="organizations" aria-selected="false" aria-controls="expert-organizations-table">Organisationen</button>
                   </div>
@@ -17351,17 +17352,16 @@
                 <div class="table-command-actions expert-column-actions" id="expert-column-actions"></div>
               </div>
               <div class="table-wrap">
-                <section class="table contacts-table experts-table" id="expert-contacts-table" aria-label="IOP-Kontakte" data-expert-table="contacts" role="tabpanel">
+                <section class="table contacts-table experts-table" id="expert-contacts-table" aria-label="Expertenkreis-Kontakte" data-expert-table="contacts" role="tabpanel">
                   <div class="thead" id="experts-table-head"></div>
                   <div id="expert-list"></div>
                 </section>
-                <section class="table organizations-table expert-organizations-table" id="expert-organizations-table" aria-label="IOP-Organisationen" data-expert-table="organizations" role="tabpanel" hidden>
+                <section class="table organizations-table expert-organizations-table" id="expert-organizations-table" aria-label="Expertenkreis-Organisationen" data-expert-table="organizations" role="tabpanel" hidden>
                   <div class="thead" id="expert-organizations-table-head"></div>
                   <div id="expert-organization-list"></div>
                 </section>
-                <section class="expert-matching-workspace" id="expert-duplicates-workspace" aria-label="IOP-Dubletten" data-expert-table="duplicates" role="tabpanel" hidden>
+                <section class="expert-matching-workspace" id="expert-duplicates-workspace" aria-label="Expertenkreis-Dubletten" data-expert-table="duplicates" role="tabpanel" hidden>
                   <div class="expert-matching-toolbar">
-                    <div class="expert-matching-scope">IOP -&gt; Versorgung</div>
                     <div class="expert-matching-meta" id="expert-matching-meta">0 offen</div>
                   </div>
                   <section class="table expert-matching-table" aria-label="Offene Dubletten">
@@ -21692,7 +21692,7 @@
       const viewLabels = {
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
-        experts: { title: "IOP", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
+        experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
@@ -22071,34 +22071,40 @@
         });
       }
 
-      function filteredExpertMatchCandidates() {
+      function expertMatchCandidatesByType(linkType = "") {
+        const type = String(linkType || "").trim();
+        return type ? expertMatchCandidates().filter((candidate) => candidate.linkType === type) : expertMatchCandidates();
+      }
+
+      function filteredExpertMatchCandidates(linkType = "") {
         const search = searchInput.value.trim().toLowerCase();
-        return expertMatchCandidates().filter((candidate) => {
+        return expertMatchCandidatesByType(linkType).filter((candidate) => {
           if (!search) return true;
           return [
             candidate.typeLabel,
             expertMatchEntityName(candidate.careItem, candidate.linkType),
             expertMatchEntityName(candidate.expertItem, candidate.linkType),
-            expertMatchEntityMeta(candidate.careItem, candidate.linkType, false),
-            expertMatchEntityMeta(candidate.expertItem, candidate.linkType, true),
             candidate.reason
           ].join(" ").toLowerCase().includes(search);
         });
       }
 
       function syncExpertMatchWorklistButtons() {
-        const count = canAdministerData() ? expertMatchCandidates().length : 0;
-        const label = count ? `Dubletten (${count})` : "Dubletten";
-        [
-          { button: contactMatchingWorklistButton, active: activeCareDuplicateView === "contacts" },
-          { button: organizationMatchingWorklistButton, active: activeCareDuplicateView === "organizations" },
-          { button: expertDuplicatesButton, active: activeExpertDuplicates }
-        ].forEach(({ button, active }) => {
+        const contactCount = canAdministerData() ? expertMatchCandidatesByType("contact").length : 0;
+        const organizationCount = canAdministerData() ? expertMatchCandidatesByType("organization").length : 0;
+        const expertCount = activeExpertMode === "organizations" ? organizationCount : contactCount;
+        const buttonConfigs = [
+          { button: contactMatchingWorklistButton, active: activeCareDuplicateView === "contacts", count: contactCount, ariaBase: "Kontakt-Dubletten" },
+          { button: organizationMatchingWorklistButton, active: activeCareDuplicateView === "organizations", count: organizationCount, ariaBase: "Organisations-Dubletten" },
+          { button: expertDuplicatesButton, active: activeExpertDuplicates, count: expertCount, ariaBase: activeExpertMode === "organizations" ? "Organisations-Dubletten" : "Kontakt-Dubletten" }
+        ];
+        buttonConfigs.forEach(({ button, active, count, ariaBase }) => {
           if (!button) return;
+          const label = count ? `Dubletten (${count})` : "Dubletten";
           button.textContent = label;
           button.classList.toggle("is-active", active);
           button.setAttribute("aria-pressed", String(active));
-          button.setAttribute("aria-label", count ? `${count} offene Dubletten öffnen` : "Dubletten öffnen");
+          button.setAttribute("aria-label", count ? `${count} offene ${ariaBase} öffnen` : `${ariaBase} öffnen`);
         });
       }
 
@@ -22130,14 +22136,14 @@
 
       function showExpertCreateNotice(kind) {
         if (!canEditContacts()) {
-          showPermissionDenied(viewerCreateDisabledMessage(`${kind} im IOP`));
+          showPermissionDenied(viewerCreateDisabledMessage(`${kind} im Expertenkreis`));
           return;
         }
         window.alert(
           [
-            `${kind} im IOP wird separat von Versorgungskontakten gespeichert.`,
+            `${kind} im Expertenkreis wird separat von Versorgungskontakten gespeichert.`,
             "",
-            "Der Button ist schon im richtigen Kontext platziert. Für das direkte Anlegen fehlen noch die IOP-Schreibstrecke, API-Endpunkte und ein eigener Editor, damit diese Daten nicht versehentlich im Kontakte-Tab landen."
+            "Der Button ist schon im richtigen Kontext platziert. Für das direkte Anlegen fehlen noch die Expertenkreis-Schreibstrecke, API-Endpunkte und ein eigener Editor, damit diese Daten nicht versehentlich im Kontakte-Tab landen."
           ].join("\n")
         );
       }
@@ -22155,22 +22161,15 @@
 
       function expertMatchEntityMarkup(candidate, side) {
         const entity = expertMatchSide(candidate, side);
-        const visual = candidate.linkType === "contact"
-          ? contactAvatarMarkup(entity.item, "sm")
-          : organizationLogoMarkup(entity.item, "sm");
         return `
-          <div class="expert-match-entity">
-            ${visual}
-            <div class="expert-match-copy">
-              <button
-                class="organization-name-button expert-match-name"
-                type="button"
-                data-open-expert-match-realm="${escapeHtml(entity.realm)}"
-                data-open-expert-match-kind="${escapeHtml(entity.kind)}"
-                data-open-expert-match-id="${escapeHtml(entity.item.id)}"
-              >${escapeHtml(entity.name)}</button>
-              ${entity.meta ? `<div class="expert-match-meta-line">${escapeHtml(entity.meta)}</div>` : ""}
-            </div>
+          <div class="expert-match-entity expert-match-entity--name-only">
+            <button
+              class="organization-name-button expert-match-name"
+              type="button"
+              data-open-expert-match-realm="${escapeHtml(entity.realm)}"
+              data-open-expert-match-kind="${escapeHtml(entity.kind)}"
+              data-open-expert-match-id="${escapeHtml(entity.item.id)}"
+            >${escapeHtml(entity.name)}</button>
           </div>
         `;
       }
@@ -22271,7 +22270,7 @@
               })
             )
           : [];
-        return expertContextSectionMarkup("Auch im IOP", linkedRows, suggestionRows);
+        return expertContextSectionMarkup("Auch im Expertenkreis", linkedRows, suggestionRows);
       }
 
       function expertContactContextMarkup(contact) {
@@ -22317,7 +22316,7 @@
               })
             )
           : [];
-        return expertContextSectionMarkup("Auch im IOP", linkedRows, suggestionRows);
+        return expertContextSectionMarkup("Auch im Expertenkreis", linkedRows, suggestionRows);
       }
 
       function expertOrganizationContextMarkup(organization) {
@@ -22345,7 +22344,7 @@
 
       async function confirmExpertEntityLink(button, refreshCallback) {
         if (!canAdministerData()) {
-          showPermissionDenied("Nur Admins können IOP-Verknüpfungen bestätigen.");
+          showPermissionDenied("Nur Admins können Expertenkreis-Verknüpfungen bestätigen.");
           return;
         }
         const linkType = button.dataset.confirmExpertLink || "";
@@ -22362,11 +22361,11 @@
         try {
           const created = await window.dataService.createExpertEntityLink(payload);
           expertEntityLinks = [created, ...expertEntityLinks.filter((link) => link.id !== created.id)];
-          setStorageStatus("IOP-Verknüpfung gespeichert");
+          setStorageStatus("Expertenkreis-Verknüpfung gespeichert");
           updateView();
           refreshCallback?.();
         } catch (error) {
-          console.error("IOP-Verknüpfung konnte nicht gespeichert werden.", error);
+          console.error("Expertenkreis-Verknüpfung konnte nicht gespeichert werden.", error);
           window.alert("Die Verknüpfung konnte nicht gespeichert werden. Bitte prüfe Rolle, Anmeldung und Supabase-RLS.");
           button.disabled = false;
         }
@@ -22639,7 +22638,7 @@
               phone: "",
               email: "",
               notes: "",
-              source: "Aus IOP-Kontakten abgeleitet",
+              source: "Aus Expertenkreis-Kontakten abgeleitet",
               status: "active",
               contactCount: 0,
               updatedAt: contact.updatedAt || contact.createdAt || ""
@@ -23004,7 +23003,7 @@
         renderColumnMenu();
         if (!items.length) {
           renderExpertContactsTableHead(columns);
-          expertList.innerHTML = `<div class="empty">Noch keine Kontakte im IOP. Sobald du die sieben Gruppen und Datensätze ergänzt, erscheinen sie hier.</div>`;
+          expertList.innerHTML = `<div class="empty">Noch keine Kontakte im Expertenkreis. Sobald du die sieben Gruppen und Datensätze ergänzt, erscheinen sie hier.</div>`;
           expertPaginationMeta.textContent = "0-0 von 0 Kontakten";
           expertPagination.innerHTML = "";
           return;
@@ -23131,7 +23130,7 @@
         renderColumnMenu();
         if (!items.length) {
           renderExpertOrganizationsTableHead(columns);
-          expertOrganizationList.innerHTML = `<div class="empty">Noch keine Organisationen im IOP. Organisationen können später explizit gepflegt oder aus Kontakten abgeleitet werden.</div>`;
+          expertOrganizationList.innerHTML = `<div class="empty">Noch keine Organisationen im Expertenkreis. Organisationen können später explizit gepflegt oder aus Kontakten abgeleitet werden.</div>`;
           expertPaginationMeta.textContent = "0-0 von 0 Organisationen";
           expertPagination.innerHTML = "";
           return;
@@ -23206,7 +23205,6 @@
         const sourceLabel = direction === "expertToCare" ? "IOP" : "Versorgung";
         const targetLabel = direction === "expertToCare" ? "Versorgung" : "IOP";
         tableHead.innerHTML = `
-          <div>Art</div>
           <div>${sourceLabel}</div>
           <div>${targetLabel}</div>
           <div>Grund</div>
@@ -23220,7 +23218,6 @@
         const targetSide = direction === "expertToCare" ? "care" : "expert";
         return `
           <article class="row" data-expert-match-id="${escapeHtml(candidate.id)}">
-            <div><span class="expert-match-type">${escapeHtml(candidate.typeLabel)}</span></div>
             <div>${expertMatchEntityMarkup(candidate, sourceSide)}</div>
             <div>${expertMatchEntityMarkup(candidate, targetSide)}</div>
             <div><span class="expert-match-reason">${escapeHtml(candidate.reason)}</span></div>
@@ -23236,7 +23233,6 @@
         return `
           <article class="mobile-contact-card expert-match-mobile-card" data-expert-match-id="${escapeHtml(candidate.id)}">
             <div class="expert-match-mobile-kind">
-              <span class="expert-match-type">${escapeHtml(candidate.typeLabel)}</span>
               <span class="expert-match-score">${Math.round(candidate.score * 100)}%</span>
             </div>
             <div class="expert-match-mobile-block">
@@ -23323,6 +23319,7 @@
 
       function renderDuplicateTable({
         items = filteredExpertMatchCandidates(),
+        linkType = "",
         direction = activeExpertMatchDirection,
         tableHead,
         listElement,
@@ -23333,7 +23330,7 @@
       }) {
         if (!listElement || !paginationElement || !paginationMetaElement) return;
         activeExpertMatchDirection = direction;
-        const totalCandidates = expertMatchCandidates().length;
+        const totalCandidates = expertMatchCandidatesByType(linkType).length;
         if (!canAdministerData()) {
           if (tableHead) tableHead.innerHTML = "";
           listElement.innerHTML = `<div class="empty">Dubletten sind nur für Admins sichtbar.</div>`;
@@ -23372,33 +23369,45 @@
         bindExpertMatchingControls({ listElement, paginationElement, items, render });
       }
 
-      function renderCareDuplicateTable(view, items = filteredExpertMatchCandidates()) {
+      function duplicateLinkTypeForCareView(view) {
+        return view === "organizations" ? "organization" : "contact";
+      }
+
+      function duplicateLinkTypeForExpertView() {
+        return activeExpertMode === "organizations" ? "organization" : "contact";
+      }
+
+      function renderCareDuplicateTable(view, items = filteredExpertMatchCandidates(duplicateLinkTypeForCareView(view))) {
         const isOrganizationView = view === "organizations";
+        const linkType = duplicateLinkTypeForCareView(view);
         renderDuplicateTable({
           items,
+          linkType,
           direction: "careToExpert",
           tableHead: isOrganizationView ? organizationDuplicatesTableHead : contactDuplicatesTableHead,
           listElement: isOrganizationView ? organizationDuplicatesList : contactDuplicatesList,
           metaElement: isOrganizationView ? organizationDuplicatesMeta : contactDuplicatesMeta,
           paginationMetaElement: isOrganizationView ? organizationsPaginationMeta : paginationMeta,
           paginationElement: isOrganizationView ? organizationsPagination : pagination,
-          render: (nextItems = filteredExpertMatchCandidates()) => renderCareDuplicateTable(view, nextItems)
+          render: (nextItems = filteredExpertMatchCandidates(linkType)) => renderCareDuplicateTable(view, nextItems)
         });
       }
 
-      function renderExpertMatchingTable(items = filteredExpertMatchCandidates()) {
+      function renderExpertMatchingTable(items = filteredExpertMatchCandidates(duplicateLinkTypeForExpertView())) {
+        const linkType = duplicateLinkTypeForExpertView();
         activeExpertDuplicates = true;
         activeExpertMatchDirection = "expertToCare";
         renderExpertTablesVisibility();
         renderDuplicateTable({
           items,
+          linkType,
           direction: "expertToCare",
           tableHead: expertMatchingTableHead,
           listElement: expertMatchingList,
           metaElement: expertMatchingMeta,
           paginationMetaElement: expertPaginationMeta,
           paginationElement: expertPagination,
-          render: (nextItems = filteredExpertMatchCandidates()) => renderExpertMatchingTable(nextItems)
+          render: (nextItems = filteredExpertMatchCandidates(linkType)) => renderExpertMatchingTable(nextItems)
         });
       }
 
@@ -24588,8 +24597,15 @@
         return isCareDuplicateMode() || isExpertDuplicateMode();
       }
 
+      function activeDuplicateLinkType() {
+        if (isOrganizationsDuplicateMode()) return "organization";
+        if (isContactsDuplicateMode()) return "contact";
+        if (isExpertDuplicateMode()) return duplicateLinkTypeForExpertView();
+        return "";
+      }
+
       function hitCountLabel(items) {
-        if (isDuplicateMode()) return `${items.length} von ${expertMatchCandidates().length} Dubletten`;
+        if (isDuplicateMode()) return `${items.length} von ${expertMatchCandidatesByType(activeDuplicateLinkType()).length} Dubletten`;
         if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
         if (activeView === "experts") {
           if (activeExpertMode === "organizations") return `${items.length} von ${expertOrganizations.length} Organisationen`;
@@ -24975,7 +24991,7 @@
         }
 
         if (isDuplicateMode()) {
-          const total = expertMatchCandidates().length;
+          const total = expertMatchCandidatesByType(activeDuplicateLinkType()).length;
           const meta = items.length === total ? "" : `${items.length} Treffer`;
           renderSummaryCards(
             summaryGrid,
@@ -25036,7 +25052,7 @@
             summaryGrid,
             [
               {
-                label: isOrganizationsMode ? "Organisationen im IOP" : "Kontakte im IOP",
+                label: isOrganizationsMode ? "Organisationen im Expertenkreis" : "Kontakte im Expertenkreis",
                 value: total,
                 meta: isMobileLayout() ? (isOrganizationsMode ? "Organisationen" : "Kontakte") : meta,
                 icon: `
@@ -27444,8 +27460,8 @@
           ? options.filter((organization) => organization.name.toLowerCase().includes(query)).slice(0, 30)
           : options.slice(0, 60);
         const createLabel = selectedOrganization
-          ? `${editorScope === "expert" ? "Neue IOP-Organisation" : "Neue Organisation"} anlegen: ${selectedOrganization}`
-          : editorScope === "expert" ? "+ Neue IOP-Organisation anlegen" : "+ Neue Organisation anlegen";
+          ? `${editorScope === "expert" ? "Neue Expertenkreis-Organisation" : "Neue Organisation"} anlegen: ${selectedOrganization}`
+          : editorScope === "expert" ? "+ Neue Expertenkreis-Organisation anlegen" : "+ Neue Organisation anlegen";
         return [
           `<button class="custom-select-option custom-select-option--create" type="button" data-organization-create>${escapeHtml(createLabel)}</button>`,
           ...filteredOptions.map(
@@ -27678,13 +27694,13 @@
         const sourceTitle = document.getElementById("editor-section-sources");
         const saveButton = document.getElementById("editor-save");
         if (categoryLabel) categoryLabel.innerHTML = expert ? 'Gruppe <span class="editor-label__required">*</span>' : "Sektor";
-        if (organizationLabel) organizationLabel.textContent = expert ? "IOP-Organisation" : "Organisation";
+        if (organizationLabel) organizationLabel.textContent = expert ? "Expertenkreis-Organisation" : "Organisation";
         if (specialtyLabelNode) specialtyLabelNode.textContent = expert ? "Fachbereich / Fokus" : "Fachrichtung";
         if (imageLabel) imageLabel.textContent = expert ? "Profil-URL" : "Bild-URL";
         if (imageInput) imageInput.placeholder = expert ? "Profil-URL der Person..." : "Bild-URL...";
         if (imageSourceInput) imageSourceInput.placeholder = "z. B. Website der Praxis";
         if (sourceTitle) sourceTitle.textContent = expert ? "Quelle ergänzen" : "Bild ergänzen";
-        if (saveButton) saveButton.textContent = expert ? "IOP-Kontakt speichern" : "Kontakt speichern";
+        if (saveButton) saveButton.textContent = expert ? "Expertenkreis-Kontakt speichern" : "Kontakt speichern";
         setEditorFieldHidden("owner", expert);
         setEditorFieldHidden("priority", expert);
         setEditorFieldHidden("street", expert);
@@ -27700,10 +27716,10 @@
         const saveButton = document.getElementById("organization-editor-save");
         const hint = document.getElementById("organization-editor-hint");
         if (sectorLabel) sectorLabel.innerHTML = expert ? 'Gruppe <span class="editor-label__required">*</span>' : "Sektor";
-        if (sourceInput) sourceInput.placeholder = expert ? "z. B. Manuell angelegt, INA-IOP" : "z. B. Kontaktdatenbestand, Recherche";
-        if (saveButton) saveButton.textContent = expert ? "IOP-Organisation speichern" : "Organisation speichern";
+        if (sourceInput) sourceInput.placeholder = expert ? "z. B. Manuell angelegt, INA-Expertenkreis" : "z. B. Kontaktdatenbestand, Recherche";
+        if (saveButton) saveButton.textContent = expert ? "Expertenkreis-Organisation speichern" : "Organisation speichern";
         if (hint) hint.textContent = expert
-          ? "Speichern schreibt getrennt in das IOP."
+          ? "Speichern schreibt getrennt in den Expertenkreis."
           : "Speichern schreibt in die Organisationen-Tabelle, sofern die Sprint-4-Migration aktiv ist.";
       }
 
@@ -27728,7 +27744,7 @@
           return;
         }
         editorDuplicateHint.textContent = editorScope === "expert"
-          ? `Möglicher bestehender IOP-Kontakt: ${hit.displayName || hit.name} – ${hit.organization || "ohne Organisation"}`
+          ? `Möglicher bestehender Expertenkreis-Kontakt: ${hit.displayName || hit.name} – ${hit.organization || "ohne Organisation"}`
           : `Möglicher bestehender Kontakt: ${hit.displayName} – ${hit.organization}`;
         editorDuplicateHint.classList.add("is-visible");
       }
@@ -27753,7 +27769,7 @@
             sector: group?.name || currentGroup,
             city: String(editorForm.elements.city.value || "").trim(),
             state: String(editorForm.elements.state.value || "").trim(),
-            source: "Kontaktanlage IOP"
+            source: "Kontaktanlage Expertenkreis"
           };
           if (!payload.name) return null;
           try {
@@ -27769,7 +27785,7 @@
             validateEditorValues();
             return { organization: saved, created: !existing, freetext: false };
           } catch (error) {
-            console.warn("IOP-Organisation konnte nicht angelegt werden. Freitext wird am Kontakt übernommen.", error);
+            console.warn("Expertenkreis-Organisation konnte nicht angelegt werden. Freitext wird am Kontakt übernommen.", error);
             pendingEditorOrganizationId = "";
             updateOrganizationSuggestions(payload.name);
             updateEditorDuplicateHint();
@@ -27909,7 +27925,7 @@
           errors.push({ field: "phone", message: "Telefonnummer bitte grob im üblichen Format eingeben." });
         }
 
-        if (!values.organization) warnings.push({ field: "organization", message: editorScope === "expert" ? "IOP-Organisation kann später ergänzt werden." : "Organisation kann später ergänzt werden." });
+        if (!values.organization) warnings.push({ field: "organization", message: editorScope === "expert" ? "Expertenkreis-Organisation kann später ergänzt werden." : "Organisation kann später ergänzt werden." });
         if (editorScope !== "expert" && !values.category) warnings.push({ field: "category", message: "Sektor kann später ergänzt werden." });
         if (!values.specialty) warnings.push({ field: "specialty", message: editorScope === "expert" ? "Fokus fehlt noch." : "Fachrichtung fehlt noch." });
         if (editorScope !== "expert" && !values.owner) warnings.push({ field: "owner", message: "Noch kein Owner zugewiesen." });
@@ -30053,7 +30069,7 @@
               </section>
 
               <section ${detailPanelAttrs("activity", activeTab)} id="expert-detail-activity">
-                <div class="history-empty">Noch kein Verlauf für diesen IOP-Kontakt vorhanden.</div>
+                <div class="history-empty">Noch kein Verlauf für diesen Expertenkreis-Kontakt vorhanden.</div>
               </section>
             </div>
           </div>
@@ -30168,7 +30184,7 @@
                               .join("")}
                           </tbody>
                         </table></div>`
-                      : `<div class="empty">Dieser Organisation sind noch keine IOP-Kontakte zugeordnet.</div>`
+                      : `<div class="empty">Dieser Organisation sind noch keine Expertenkreis-Kontakte zugeordnet.</div>`
                   }
                 </div>
               </section>
@@ -30200,7 +30216,7 @@
               </section>
 
               <section ${detailPanelAttrs("activity", activeTab)} id="expert-organization-activity">
-                <div class="history-empty">Noch kein Verlauf für diese IOP-Organisation vorhanden.</div>
+                <div class="history-empty">Noch kein Verlauf für diese Expertenkreis-Organisation vorhanden.</div>
               </section>
             </div>
           </div>
@@ -30422,7 +30438,7 @@
         editingOrganizationId = organization?.id || null;
         organizationEditorCurrentStep = "quick";
         organizationEditorTitle.textContent = isExpertEditor
-          ? organization ? "IOP-Organisation bearbeiten" : "IOP-Organisation anlegen"
+          ? organization ? "Expertenkreis-Organisation bearbeiten" : "Expertenkreis-Organisation anlegen"
           : organization ? "Organisation bearbeiten" : "Organisation anlegen";
         organizationEditorSubtitle.textContent = isExpertEditor
           ? "Organisation aus der Interoperabilität getrennt vom Versorgungsdatenbestand erfassen."
@@ -30777,7 +30793,7 @@
         const splitLocation = splitLocationLabel(contact?.location || "");
         editorForm.dataset.submitAction = "save";
         editorTitle.textContent = isExpertEditor
-          ? contact ? "IOP-Kontakt bearbeiten" : "IOP-Kontakt anlegen"
+          ? contact ? "Expertenkreis-Kontakt bearbeiten" : "Expertenkreis-Kontakt anlegen"
           : contact ? "Kontakt bearbeiten" : "Neuen Kontakt anlegen";
         editorSubtitle.textContent = isExpertEditor
           ? "Interoperabilitätskontakt getrennt vom Versorgungsdatenbestand erfassen."
@@ -30785,7 +30801,7 @@
             ? "Basisdaten zuerst, Details können laufend ergänzt werden."
             : "Nur Name ist Pflicht. Details kannst du später ergänzen.";
         editorHint.textContent = isExpertEditor
-          ? "Neue IOP-Kontakte werden separat gespeichert."
+          ? "Neue Expertenkreis-Kontakte werden separat gespeichert."
           : contact
             ? "Änderungen werden im gemeinsamen Supabase-Datenstand gespeichert und protokolliert."
             : "Neue Kontakte werden im gemeinsamen Supabase-Datenstand angelegt.";
@@ -31099,14 +31115,15 @@
         const isCareDuplicatesMode = isContactsDuplicatesMode || isOrganizationsDuplicatesMode;
         const isExpertMatchingMode = isExpertDuplicateMode();
         const isAnyDuplicateMode = isCareDuplicatesMode || isExpertMatchingMode;
+        const expertDuplicateLinkType = duplicateLinkTypeForExpertView();
         const isFormatsView = activeView === "formats";
         const items = isFormatsView
           ? filteredFormats()
           : isOrganizationsView
-            ? isOrganizationsDuplicatesMode ? filteredExpertMatchCandidates() : filteredOrganizations()
+            ? isOrganizationsDuplicatesMode ? filteredExpertMatchCandidates("organization") : filteredOrganizations()
             : isExpertsView
-              ? isExpertMatchingMode ? filteredExpertMatchCandidates() : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
-              : isContactsDuplicatesMode ? filteredExpertMatchCandidates() : filteredContacts();
+              ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
+              : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.hidden = isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveFilters();
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
@@ -31115,9 +31132,9 @@
           : isOrganizationsView
           ? "Organisationen suchen..."
           : isExpertOrganizationsMode
-            ? "IOP-Organisationen suchen..."
+            ? "Expertenkreis-Organisationen suchen..."
           : isExpertsView
-            ? "IOP suchen..."
+            ? "Expertenkreis suchen..."
           : isFormatsView
             ? "Formate suchen..."
           : activeView === "map"
@@ -31129,8 +31146,8 @@
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
         if (organizationMatchingWorklistButton) organizationMatchingWorklistButton.hidden = !isOrganizationsView;
         if (expertCommandActions) expertCommandActions.hidden = !isExpertsView;
-        if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertMatchingMode || isExpertOrganizationsMode;
-        if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView || isExpertMatchingMode || !isExpertOrganizationsMode;
+        if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertOrganizationsMode;
+        if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView || !isExpertOrganizationsMode;
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
         archiveViewButton.hidden = !isContactsView;
         if (openImportButton) openImportButton.hidden = true;
@@ -31591,7 +31608,7 @@
               [saved, ...expertOrganizations.filter((organization) => organization.id !== saved.id)],
               deriveExpertOrganizationsFromContacts(expertContacts)
             );
-            setStorageStatus("IOP-Organisation gespeichert");
+            setStorageStatus("Expertenkreis-Organisation gespeichert");
             closeOrganizationEditor();
             activeExpertMode = "organizations";
             activeExpertDuplicates = false;
@@ -31601,8 +31618,8 @@
             updateView();
             openExpertOrganizationDetail(saved.id);
           } catch (error) {
-            console.error("IOP-Organisation konnte nicht gespeichert werden.", error);
-            organizationEditorStatus.textContent = "IOP-Organisation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
+            console.error("Expertenkreis-Organisation konnte nicht gespeichert werden.", error);
+            organizationEditorStatus.textContent = "Expertenkreis-Organisation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
             organizationEditorStatus.className = "editor-status is-visible editor-status--error";
           }
           return;
@@ -31964,7 +31981,7 @@
             const savedExpertContact = sanitizeExpertContact(await window.dataService.createExpertContact(expertEntry), expertContacts.length);
             expertContacts = [savedExpertContact, ...expertContacts.filter((contact) => contact.id !== savedExpertContact.id)];
             expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
-            setStorageStatus("IOP-Kontakt gespeichert");
+            setStorageStatus("Expertenkreis-Kontakt gespeichert");
             activeExpertId = savedExpertContact.id;
             activeExpertMode = "contacts";
             activeExpertDuplicates = false;
@@ -31976,8 +31993,8 @@
             updateView();
             openExpertDetail(savedExpertContact.id);
           } catch (error) {
-            console.error("IOP-Kontakt konnte nicht gespeichert werden.", error);
-            editorStatus.textContent = "IOP-Kontakt konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
+            console.error("Expertenkreis-Kontakt konnte nicht gespeichert werden.", error);
+            editorStatus.textContent = "Expertenkreis-Kontakt konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
             editorStatus.className = "editor-status is-visible editor-status--error";
           }
           return;
@@ -32139,7 +32156,7 @@
             );
           }
         } catch (groupError) {
-          console.warn("IOP-Gruppen konnten nicht geladen werden. Seed-Fallback aktiv.", groupError);
+          console.warn("Expertenkreis-Gruppen konnten nicht geladen werden. Seed-Fallback aktiv.", groupError);
           expertGroups = seedExpertGroupRecords;
         }
 
@@ -32152,7 +32169,7 @@
             expertContacts = seedExpertContacts;
           }
         } catch (contactError) {
-          console.warn("IOP-Kontakte konnten nicht geladen werden. Seed-Fallback aktiv.", contactError);
+          console.warn("Expertenkreis-Kontakte konnten nicht geladen werden. Seed-Fallback aktiv.", contactError);
           expertContacts = seedExpertContacts;
         }
 
@@ -32166,7 +32183,7 @@
             expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
           }
         } catch (organizationError) {
-          console.warn("IOP-Organisationen konnten nicht geladen werden. Seed-Fallback aktiv.", organizationError);
+          console.warn("Expertenkreis-Organisationen konnten nicht geladen werden. Seed-Fallback aktiv.", organizationError);
           expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
         }
 
@@ -32177,7 +32194,7 @@
             expertEntityLinks = [];
           }
         } catch (linkError) {
-          console.warn("IOP-Verknüpfungen konnten nicht geladen werden. Link-Fallback aktiv.", linkError);
+          console.warn("Expertenkreis-Verknüpfungen konnten nicht geladen werden. Link-Fallback aktiv.", linkError);
           expertEntityLinks = [];
         }
       }
