@@ -96,11 +96,13 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator('[data-view-panel="experts"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="experts"]')).toHaveClass(/is-active/);
   await expect(page.locator("#workspace-view-title")).toHaveText("Expertenkreis");
+  await expect(page.locator("#workspace-view-title")).not.toBeVisible();
   await expect(page.locator('[data-filter-field="category"] summary')).toHaveText("Gruppe");
   await expect(page.locator("#new-expert-contact-button")).toBeVisible();
   await expect(page.locator("#new-expert-organization-button")).toBeHidden();
   await expect(page.locator("#expert-duplicates-button")).toBeVisible();
   await expect(page.locator(".workspace-header #expert-mode-actions")).toBeVisible();
+  await expect(page.locator(".workspace-header #expert-mode-actions .experts-mode-count")).toHaveCount(2);
   await expect(page.locator(".table-command-row--expert-tabs")).toHaveCount(0);
   await expect(page.locator("#expert-mode-actions [data-expert-mode]")).toHaveCount(2);
   await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"]')).toContainText("Kontakte (");
