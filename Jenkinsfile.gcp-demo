@@ -1,0 +1,73 @@
+pipeline {
+  agent any
+
+  environment {
+    PROJECT_ID = credentials('gcp-project-id')
+    DB_PASS_SECRET = credentials('gcp-db-password-secret-name')
+    REGION = 'europe-west3'
+    REPOSITORY = 'versorgungs-kompass'
+    SERVICE = 'versorgungs-kompass'
+    INSTANCE = 'versorgungs-kompass-db'
+    DATABASE = 'versorgungs_kompass'
+    DB_USER = 'vk_app'
+    CONTACT_IMAGE_BUCKET = "versorgungs-kompass-contact-images-${PROJECT_ID}"
+    CLOUD_RUN_INGRESS = 'internal-and-cloud-load-balancing'
+    IMAGE = "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE}:${env.BUILD_NUMBER}"
+  }
+
+  stages {
+    stage('Install') {
+      steps {
+        sh 'npm ci'
+      }
+    }
+
+    stage('Checks') {
+      steps {
+        sh 'npm run check:gcp-demo'
+        sh 'npm run check'
+        sh 'npm run security:audit'
+      }
+    }
+
+    stage('Build container') {
+      steps {
+        sh 'docker build -f Dockerfile.gcp-demo -t "$IMAGE" .'
+      }
+    }
+
+    stage('Push container') {
+      steps {
+        sh 'gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet'
+        sh 'docker push "$IMAGE"'
+      }
+    }
+
+    stage('Deploy Cloud Run') {
+      steps {
+        sh '''
+          gcloud run deploy "$SERVICE" \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --image "$IMAGE" \
+            --platform managed \
+            --allow-unauthenticated \
+            --ingress "$CLOUD_RUN_INGRESS" \
+            --add-cloudsql-instances "${PROJECT_ID}:${REGION}:${INSTANCE}" \
+            --set-env-vars "DB_HOST=/cloudsql/${PROJECT_ID}:${REGION}:${INSTANCE},DB_NAME=${DATABASE},DB_USER=${DB_USER},GCP_DEMO_AUTO_SCHEMA=1,GCP_DEMO_AUTO_SEED=1,CONTACT_IMAGE_BUCKET=${CONTACT_IMAGE_BUCKET}" \
+            --set-secrets "DB_PASSWORD=${DB_PASS_SECRET}:latest"
+        '''
+      }
+    }
+
+    stage('Smoke test') {
+      steps {
+        sh '''
+          SERVICE_URL="$(gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" --format='value(status.url)')"
+          curl -fsS "${SERVICE_URL}/api/healthz"
+          curl -fsS "${SERVICE_URL}/api/ops/checks"
+        '''
+      }
+    }
+  }
+}

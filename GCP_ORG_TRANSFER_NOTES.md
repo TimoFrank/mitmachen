@@ -2,6 +2,8 @@
 
 Stand: 2026-06-06
 
+Hinweis: Das aktuelle fuehrende Migrationspaket steht in `ORGANISATIONS_GCP_MIGRATIONSPAKET.md`. Diese Notiz enthaelt auch historische Beschreibungen des fruehen statischen Demo-Stands und ist nicht mehr allein ausreichend fuer die aktuelle GCP-Backend-Version.
+
 Diese Notiz fasst den aktuellen privaten GCP-Demostand des Versorgungs-Kompass zusammen. Sie ist als Gespraechsgrundlage fuer die spaetere Ueberfuehrung in die Organisations-IT gedacht.
 
 ## Kurzfassung
