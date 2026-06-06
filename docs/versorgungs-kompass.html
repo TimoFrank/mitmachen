@@ -1569,6 +1569,32 @@
         display: none;
       }
 
+      .workspace-header-search[hidden] {
+        display: none !important;
+      }
+
+      .workspace-header-search {
+        display: flex;
+        justify-content: flex-end;
+        min-width: 0;
+        width: 100%;
+      }
+
+      .workspace-header-search .search-shell {
+        width: min(100%, 640px);
+        min-height: 56px;
+        border-color: var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: none;
+      }
+
+      .workspace-header-search .search-shell svg {
+        width: 18px;
+        height: 18px;
+        color: var(--primary);
+      }
+
       .workspace-expert-switcher {
         display: flex;
         justify-content: flex-start;
@@ -1638,6 +1664,11 @@
 
       .app-shell[data-active-view="experts"] #summary-grid {
         display: none;
+      }
+
+      .app-shell[data-active-view="experts"] .workspace-header {
+        grid-template-columns: minmax(280px, 390px) minmax(320px, 1fr);
+        gap: 12px;
       }
 
       .summary.summary--compact {
@@ -12195,6 +12226,7 @@
       }
 
       .app-shell[data-active-view="analytics"] .controls,
+      .app-shell[data-active-view="experts"] .controls,
       .app-shell[data-active-view="quality"] .controls,
       .app-shell[data-active-view="imports"] .controls,
       .app-shell[data-active-view="settings"] .controls,
@@ -17183,6 +17215,7 @@
               </button>
             </div>
           </div>
+          <div class="workspace-header-search" id="expert-header-search" hidden></div>
           <div class="workspace-actions">
             <div class="summary summary--compact" id="summary-grid"></div>
             <div class="permission-banner" id="permission-banner" aria-live="polite">
@@ -19197,6 +19230,7 @@
 
       const searchInput = document.getElementById("search");
       const searchShell = searchInput?.closest(".search-shell");
+      const controlsStack = document.querySelector(".controls-stack");
       const list = document.getElementById("contact-list");
       const organizationList = document.getElementById("organization-list");
       const formatDetailPanel = document.getElementById("format-detail-panel");
@@ -19350,6 +19384,7 @@
       const organizationColumnActions = document.getElementById("organization-column-actions");
       const organizationCommandActions = document.getElementById("organization-command-actions");
       const expertModeActions = document.getElementById("expert-mode-actions");
+      const expertHeaderSearch = document.getElementById("expert-header-search");
       const expertCommandActions = document.getElementById("expert-command-actions");
       const expertColumnActions = document.getElementById("expert-column-actions");
       const newContactButton = document.getElementById("new-contact-button");
@@ -31243,7 +31278,19 @@
           : activeView === "map"
             ? "Kontakte suchen"
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
-        if (searchShell) searchShell.hidden = activeView === "analytics" || activeView === "quality";
+        const searchHidden = activeView === "analytics" || activeView === "quality";
+        if (searchShell) {
+          if (isExpertsView && !searchHidden && expertHeaderSearch) {
+            expertHeaderSearch.hidden = false;
+            if (searchShell.parentElement !== expertHeaderSearch) expertHeaderSearch.append(searchShell);
+          } else {
+            if (expertHeaderSearch) expertHeaderSearch.hidden = true;
+            if (controlsStack && searchShell.parentElement !== controlsStack) controlsStack.prepend(searchShell);
+          }
+          searchShell.hidden = searchHidden;
+        } else if (expertHeaderSearch) {
+          expertHeaderSearch.hidden = true;
+        }
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;

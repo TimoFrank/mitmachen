@@ -102,6 +102,9 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator("#new-expert-organization-button")).toBeHidden();
   await expect(page.locator("#expert-duplicates-button")).toBeVisible();
   await expect(page.locator(".workspace-header #expert-mode-actions")).toBeVisible();
+  await expect(page.locator(".workspace-header #search")).toBeVisible();
+  await expect(page.locator(".controls")).not.toBeVisible();
+  await expect(page.locator(".controls #search")).toHaveCount(0);
   await expect(page.locator(".workspace-header #expert-mode-actions .experts-mode-count")).toHaveCount(2);
   await expect(page.locator(".workspace-header #summary-grid")).not.toBeVisible();
   await expect(page.locator(".table-command-row--expert-tabs")).toHaveCount(0);
