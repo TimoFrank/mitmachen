@@ -1400,10 +1400,6 @@
         display: none !important;
       }
 
-      body:not([data-user-role="admin"]) [data-expert-mode="matching"] {
-        display: none !important;
-      }
-
       .readonly-control {
         opacity: 0.72;
       }
@@ -9959,6 +9955,13 @@
         color: var(--danger);
       }
 
+      .action-button.is-active,
+      .action-button[aria-pressed="true"] {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
       .menu-button,
       .detail-close,
       .import-close,
@@ -10819,21 +10822,21 @@
         justify-content: flex-start;
       }
 
-      .table-command-row--experts #expert-command-actions {
+      .table-command-row--experts #expert-mode-actions {
         order: 1;
         justify-content: flex-start;
       }
 
-      .table-command-row--experts .table-command-spacer {
+      .table-command-row--experts #expert-command-actions {
         order: 2;
+        justify-content: flex-start;
+      }
+
+      .table-command-row--experts .table-command-spacer {
+        order: 3;
       }
 
       .table-command-row--experts .expert-column-actions {
-        order: 3;
-        justify-content: flex-end;
-      }
-
-      .table-command-row--experts #expert-mode-actions {
         order: 4;
         justify-content: flex-end;
       }
@@ -10873,9 +10876,12 @@
         background: var(--surface-muted);
       }
 
-      .expert-matching-direction-nav {
-        margin: 0;
-        border-bottom: 0;
+      .expert-matching-scope {
+        min-width: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+        line-height: var(--line-height-tight);
       }
 
       .expert-matching-meta {
@@ -10996,8 +11002,8 @@
         flex: 1 1 auto;
       }
 
-      .app-shell[data-active-view="experts"][data-expert-mode="matching"] .expert-column-actions .filter-toolbar,
-      .app-shell[data-active-view="experts"][data-expert-mode="matching"] .expert-column-actions .column-menu-shell {
+      .app-shell[data-active-view="experts"][data-expert-mode="duplicates"] .expert-column-actions .filter-toolbar,
+      .app-shell[data-active-view="experts"][data-expert-mode="duplicates"] .expert-column-actions .column-menu-shell {
         display: none !important;
       }
 
@@ -14045,25 +14051,24 @@
         }
 
         .table-command-row--organizations #organization-command-actions,
-        .table-command-row--experts #expert-command-actions {
+        .table-command-row--experts #expert-mode-actions {
           grid-column: 1 / -1;
           grid-row: 1;
+        }
+
+        .table-command-row--experts #expert-command-actions {
+          grid-column: 1 / -1;
+          grid-row: 2;
         }
 
         .table-command-row--organizations .organization-column-actions,
         .table-command-row--experts .expert-column-actions {
           grid-column: 1 / -1;
-          grid-row: 2;
+          grid-row: 3;
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 8px;
           width: 100%;
-        }
-
-        .table-command-row--experts #expert-mode-actions {
-          grid-column: 1 / -1;
-          grid-row: 3;
-          justify-content: stretch;
         }
 
         .table-command-row--experts .experts-mode-nav {
@@ -14105,22 +14110,6 @@
           display: grid;
           grid-template-columns: minmax(0, 1fr);
           align-items: stretch;
-        }
-
-        .expert-matching-direction-nav {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          width: 100%;
-          overflow: visible;
-        }
-
-        .expert-matching-direction-nav .settings-tab-button {
-          justify-content: center;
-          min-width: 0;
-          min-height: 42px;
-          text-align: center;
-          white-space: normal;
-          line-height: 1.2;
         }
 
         .expert-matching-meta {
@@ -14391,14 +14380,14 @@
 
         #contact-command-actions,
         #organization-command-actions,
-        #expert-command-actions {
+        #expert-mode-actions {
           grid-column: 1 / -1;
           grid-row: 1;
         }
 
-        #expert-mode-actions {
+        #expert-command-actions {
           grid-column: 1 / -1;
-          grid-row: 3;
+          grid-row: 2;
         }
 
         .table-command-row > .view-select-shell,
@@ -17171,7 +17160,7 @@
                 <div class="table-command-actions" id="contact-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
                   <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
-                  <button class="action-button" type="button" id="contact-matching-worklist-button">Arbeitsliste</button>
+                  <button class="action-button" type="button" id="contact-matching-worklist-button">Dubletten</button>
                 </div>
                 <div class="view-select-shell">
                   <button class="view-select-button" type="button" id="view-select-button" aria-expanded="false" aria-controls="view-select-menu">
@@ -17219,6 +17208,23 @@
                   <div class="thead" id="contacts-table-head"></div>
                   <div id="contact-list"></div>
                 </section>
+                <section class="expert-matching-workspace care-duplicates-workspace" aria-label="Dubletten Versorgung zu Expertenkreis" id="contact-duplicates-workspace" hidden>
+                  <div class="expert-matching-toolbar">
+                    <div class="expert-matching-scope">Versorgung -&gt; Expertenkreis</div>
+                    <div class="expert-matching-meta" id="contact-duplicates-meta">0 offen</div>
+                  </div>
+                  <section class="table expert-matching-table" aria-label="Offene Dubletten">
+                    <div class="thead" id="contact-duplicates-table-head">
+                      <div>Art</div>
+                      <div>Ausgangspunkt</div>
+                      <div>Kandidat</div>
+                      <div>Grund</div>
+                      <div>Score</div>
+                      <div>Aktion</div>
+                    </div>
+                    <div id="contact-duplicates-list"></div>
+                  </section>
+                </section>
               </div>
               <div class="table-footer">
                 <div class="table-footer__meta" id="pagination-meta">0–0 von 0 Kontakten</div>
@@ -17244,7 +17250,7 @@
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions" id="organization-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
-                  <button class="action-button" type="button" id="organization-matching-worklist-button">Arbeitsliste</button>
+                  <button class="action-button" type="button" id="organization-matching-worklist-button">Dubletten</button>
                 </div>
               </div>
               <div class="table-wrap">
@@ -17259,6 +17265,23 @@
                   </div>
                   <div id="organization-list"></div>
                 </section>
+                <section class="expert-matching-workspace care-duplicates-workspace" aria-label="Dubletten Versorgung zu Expertenkreis" id="organization-duplicates-workspace" hidden>
+                  <div class="expert-matching-toolbar">
+                    <div class="expert-matching-scope">Versorgung -&gt; Expertenkreis</div>
+                    <div class="expert-matching-meta" id="organization-duplicates-meta">0 offen</div>
+                  </div>
+                  <section class="table expert-matching-table" aria-label="Offene Dubletten">
+                    <div class="thead" id="organization-duplicates-table-head">
+                      <div>Art</div>
+                      <div>Ausgangspunkt</div>
+                      <div>Kandidat</div>
+                      <div>Grund</div>
+                      <div>Score</div>
+                      <div>Aktion</div>
+                    </div>
+                    <div id="organization-duplicates-list"></div>
+                  </section>
+                </section>
               </div>
               <div class="table-footer">
                 <div class="table-footer__meta" id="organizations-pagination-meta">0-0 von 0 Organisationen</div>
@@ -17272,19 +17295,19 @@
           <section class="view-panel" id="view-experts" data-view-panel="experts">
             <div class="view-card experts-workspace">
               <div class="table-command-row table-command-row--experts">
+                <div class="table-command-actions" id="expert-mode-actions">
+                  <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="Expertenkreis-Listen">
+                    <button class="settings-tab-button is-active" type="button" data-expert-mode="contacts" aria-selected="true">Kontakte</button>
+                    <button class="settings-tab-button" type="button" data-expert-mode="organizations" aria-selected="false">Organisationen</button>
+                  </div>
+                </div>
                 <div class="table-command-actions" id="expert-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-expert-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
                   <button class="action-button" type="button" id="new-expert-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
+                  <button class="action-button" type="button" id="expert-duplicates-button">Dubletten</button>
                 </div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions expert-column-actions" id="expert-column-actions"></div>
-                <div class="table-command-actions" id="expert-mode-actions">
-                  <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="Expertenkreis-Ansichten">
-                    <button class="settings-tab-button is-active" type="button" data-expert-mode="contacts" aria-selected="true">Kontakte</button>
-                    <button class="settings-tab-button" type="button" data-expert-mode="organizations" aria-selected="false">Organisationen</button>
-                    <button class="settings-tab-button" type="button" data-expert-mode="matching" aria-selected="false">Matching</button>
-                  </div>
-                </div>
               </div>
               <div class="table-wrap">
                 <section class="table contacts-table experts-table" aria-label="Expertenkreis-Kontakte" data-expert-table="contacts">
@@ -17295,15 +17318,12 @@
                   <div class="thead" id="expert-organizations-table-head"></div>
                   <div id="expert-organization-list"></div>
                 </section>
-                <section class="expert-matching-workspace" aria-label="Expertenkreis-Matching" data-expert-table="matching" hidden>
+                <section class="expert-matching-workspace" aria-label="Expertenkreis-Dubletten" data-expert-table="duplicates" hidden>
                   <div class="expert-matching-toolbar">
-                    <div class="settings-tab-nav expert-matching-direction-nav" role="tablist" aria-label="Matching-Richtung">
-                      <button class="settings-tab-button is-active" type="button" data-expert-match-direction="careToExpert" aria-selected="true">Versorgung -&gt; Expertenkreis</button>
-                      <button class="settings-tab-button" type="button" data-expert-match-direction="expertToCare" aria-selected="false">Expertenkreis -&gt; Versorgung</button>
-                    </div>
-                    <div class="expert-matching-meta" id="expert-matching-meta">0 Kandidaten</div>
+                    <div class="expert-matching-scope">Expertenkreis -&gt; Versorgung</div>
+                    <div class="expert-matching-meta" id="expert-matching-meta">0 offen</div>
                   </div>
-                  <section class="table expert-matching-table" aria-label="Offene Matching-Kandidaten">
+                  <section class="table expert-matching-table" aria-label="Offene Dubletten">
                     <div class="thead" id="expert-matching-table-head">
                       <div>Art</div>
                       <div>Ausgangspunkt</div>
@@ -19083,11 +19103,17 @@
       const expertMatchingTableHead = document.getElementById("expert-matching-table-head");
       const expertMatchingList = document.getElementById("expert-matching-list");
       const expertMatchingMeta = document.getElementById("expert-matching-meta");
+      const contactDuplicatesWorkspace = document.getElementById("contact-duplicates-workspace");
+      const contactDuplicatesTableHead = document.getElementById("contact-duplicates-table-head");
+      const contactDuplicatesList = document.getElementById("contact-duplicates-list");
+      const contactDuplicatesMeta = document.getElementById("contact-duplicates-meta");
+      const organizationDuplicatesWorkspace = document.getElementById("organization-duplicates-workspace");
+      const organizationDuplicatesTableHead = document.getElementById("organization-duplicates-table-head");
+      const organizationDuplicatesList = document.getElementById("organization-duplicates-list");
+      const organizationDuplicatesMeta = document.getElementById("organization-duplicates-meta");
       const expertPaginationMeta = document.getElementById("experts-pagination-meta");
       const expertPagination = document.getElementById("experts-pagination");
       const expertModeButtons = [...document.querySelectorAll("[data-expert-mode]")];
-      const expertMatchingModeButton = document.querySelector('[data-expert-mode="matching"]');
-      const expertMatchDirectionButtons = [...document.querySelectorAll("[data-expert-match-direction]")];
       const expertTables = [...document.querySelectorAll("[data-expert-table]")];
       const contactsTable = document.querySelector(".contacts-table");
       const contactsTableHead = document.getElementById("contacts-table-head");
@@ -19199,6 +19225,7 @@
       const organizationMatchingWorklistButton = document.getElementById("organization-matching-worklist-button");
       const newExpertContactButton = document.getElementById("new-expert-contact-button");
       const newExpertOrganizationButton = document.getElementById("new-expert-organization-button");
+      const expertDuplicatesButton = document.getElementById("expert-duplicates-button");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
       const priorityChart = document.getElementById("priority-chart");
@@ -19307,6 +19334,8 @@
       let activeProfileTab = "profile";
       let activeExpertMode = "contacts";
       let activeExpertMatchDirection = "careToExpert";
+      let activeCareDuplicateView = "";
+      let activeExpertDuplicates = false;
       let activeId = null;
       let activeOrganizationId = null;
       let activeExpertId = null;
@@ -19507,6 +19536,7 @@
         setRoleElementVisible(organizationMatchingWorklistButton, canAdministerData());
         setRoleElementVisible(newExpertContactButton, canEditContacts());
         setRoleElementVisible(newExpertOrganizationButton, canEditContacts());
+        setRoleElementVisible(expertDuplicatesButton, canAdministerData());
         setRoleElementVisible(newFormatButton, canEditContacts());
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
         setRoleElementVisible(sidebarQualityButton, canAdministerData());
@@ -19515,9 +19545,7 @@
         setRoleElementVisible(sidebarAboutButton, canAdministerData());
         setRoleElementVisible(accountQualityButton, canAdministerData());
         setRoleElementVisible(analyticsQualityCard, canAdministerData());
-        setRoleElementVisible(expertMatchingModeButton, canAdministerData());
         setRoleElementVisible(careQueueCard, true);
-        if (!canAdministerData() && activeExpertMode === "matching") activeExpertMode = "contacts";
         permissionBanner?.classList.remove("is-visible");
         if (permissionBannerText) permissionBannerText.textContent = "";
         if (!canAccessView(activeView)) {
@@ -22013,25 +22041,43 @@
 
       function syncExpertMatchWorklistButtons() {
         const count = canAdministerData() ? expertMatchCandidates().length : 0;
-        const label = count ? `Arbeitsliste (${count})` : "Arbeitsliste";
-        [contactMatchingWorklistButton, organizationMatchingWorklistButton].forEach((button) => {
+        const label = count ? `Dubletten (${count})` : "Dubletten";
+        [
+          { button: contactMatchingWorklistButton, active: activeCareDuplicateView === "contacts" },
+          { button: organizationMatchingWorklistButton, active: activeCareDuplicateView === "organizations" },
+          { button: expertDuplicatesButton, active: activeExpertDuplicates }
+        ].forEach(({ button, active }) => {
           if (!button) return;
           button.textContent = label;
-          button.setAttribute("aria-label", count ? `${count} offene Matching-Kandidaten öffnen` : "Matching-Arbeitsliste öffnen");
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-pressed", String(active));
+          button.setAttribute("aria-label", count ? `${count} offene Dubletten öffnen` : "Dubletten öffnen");
         });
       }
 
-      function openExpertMatchingWorklist(direction = "careToExpert") {
+      function openCareDuplicates(view) {
         if (!canAdministerData()) {
-          showPermissionDenied("Nur Admins können Matching-Kandidaten prüfen.");
+          showPermissionDenied("Nur Admins können Dubletten prüfen.");
           return;
         }
-        activeExpertMode = "matching";
-        activeExpertMatchDirection = direction;
+        activeCareDuplicateView = activeCareDuplicateView === view ? "" : view;
+        activeExpertDuplicates = false;
+        activeExpertMatchDirection = "careToExpert";
         currentPage = 1;
         closeDetail();
-        setActiveView("experts");
-        updateRouteHash("experts");
+        updateView();
+      }
+
+      function openExpertDuplicates() {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins können Dubletten prüfen.");
+          return;
+        }
+        activeExpertDuplicates = !activeExpertDuplicates;
+        activeCareDuplicateView = "";
+        activeExpertMatchDirection = "expertToCare";
+        currentPage = 1;
+        closeDetail();
         updateView();
       }
 
@@ -22282,6 +22328,8 @@
       function bindExpertEntityLinkControls(refreshCallback) {
         detailPanel.querySelectorAll("[data-open-cross-expert-contact]").forEach((button) => {
           button.addEventListener("click", () => {
+            activeExpertDuplicates = false;
+            activeCareDuplicateView = "";
             activeExpertMode = "contacts";
             setActiveView("experts");
             updateView();
@@ -22290,6 +22338,8 @@
         });
         detailPanel.querySelectorAll("[data-open-cross-contact]").forEach((button) => {
           button.addEventListener("click", () => {
+            activeExpertDuplicates = false;
+            activeCareDuplicateView = "";
             setActiveView("contacts");
             updateView();
             openDetail(button.dataset.openCrossContact, contacts);
@@ -22297,6 +22347,8 @@
         });
         detailPanel.querySelectorAll("[data-open-cross-expert-organization]").forEach((button) => {
           button.addEventListener("click", () => {
+            activeExpertDuplicates = false;
+            activeCareDuplicateView = "";
             activeExpertMode = "organizations";
             setActiveView("experts");
             updateView();
@@ -22305,6 +22357,8 @@
         });
         detailPanel.querySelectorAll("[data-open-cross-organization]").forEach((button) => {
           button.addEventListener("click", () => {
+            activeExpertDuplicates = false;
+            activeCareDuplicateView = "";
             setActiveView("organizations");
             updateView();
             openOrganizationDetail(button.dataset.openCrossOrganization, organizations);
@@ -22870,15 +22924,15 @@
       }
 
       function renderExpertTablesVisibility() {
-        if (activeExpertMode === "matching" && !canAdministerData()) activeExpertMode = "contacts";
-        if (appShell) appShell.dataset.expertMode = activeExpertMode;
+        if (activeExpertDuplicates && !canAdministerData()) activeExpertDuplicates = false;
+        if (appShell) appShell.dataset.expertMode = activeExpertDuplicates ? "duplicates" : activeExpertMode;
         expertModeButtons.forEach((button) => {
-          const active = button.dataset.expertMode === activeExpertMode;
+          const active = !activeExpertDuplicates && button.dataset.expertMode === activeExpertMode;
           button.classList.toggle("is-active", active);
           button.setAttribute("aria-selected", String(active));
         });
         expertTables.forEach((table) => {
-          table.hidden = table.dataset.expertTable !== activeExpertMode;
+          table.hidden = activeExpertDuplicates ? table.dataset.expertTable !== "duplicates" : table.dataset.expertTable !== activeExpertMode;
         });
       }
 
@@ -23096,19 +23150,11 @@
         });
       }
 
-      function renderExpertMatchDirectionControls() {
-        expertMatchDirectionButtons.forEach((button) => {
-          const active = button.dataset.expertMatchDirection === activeExpertMatchDirection;
-          button.classList.toggle("is-active", active);
-          button.setAttribute("aria-selected", String(active));
-        });
-      }
-
-      function renderExpertMatchingTableHead() {
-        if (!expertMatchingTableHead) return;
-        const sourceLabel = activeExpertMatchDirection === "expertToCare" ? "Expertenkreis" : "Versorgung";
-        const targetLabel = activeExpertMatchDirection === "expertToCare" ? "Versorgung" : "Expertenkreis";
-        expertMatchingTableHead.innerHTML = `
+      function renderExpertMatchingTableHead(tableHead = expertMatchingTableHead, direction = activeExpertMatchDirection) {
+        if (!tableHead) return;
+        const sourceLabel = direction === "expertToCare" ? "Expertenkreis" : "Versorgung";
+        const targetLabel = direction === "expertToCare" ? "Versorgung" : "Expertenkreis";
+        tableHead.innerHTML = `
           <div>Art</div>
           <div>${sourceLabel}</div>
           <div>${targetLabel}</div>
@@ -23118,9 +23164,9 @@
         `;
       }
 
-      function expertMatchingRowMarkup(candidate) {
-        const sourceSide = activeExpertMatchDirection === "expertToCare" ? "expert" : "care";
-        const targetSide = activeExpertMatchDirection === "expertToCare" ? "care" : "expert";
+      function expertMatchingRowMarkup(candidate, direction = activeExpertMatchDirection) {
+        const sourceSide = direction === "expertToCare" ? "expert" : "care";
+        const targetSide = direction === "expertToCare" ? "care" : "expert";
         return `
           <article class="row" data-expert-match-id="${escapeHtml(candidate.id)}">
             <div><span class="expert-match-type">${escapeHtml(candidate.typeLabel)}</span></div>
@@ -23133,9 +23179,9 @@
         `;
       }
 
-      function expertMatchingMobileCardMarkup(candidate) {
-        const sourceSide = activeExpertMatchDirection === "expertToCare" ? "expert" : "care";
-        const targetSide = activeExpertMatchDirection === "expertToCare" ? "care" : "expert";
+      function expertMatchingMobileCardMarkup(candidate, direction = activeExpertMatchDirection) {
+        const sourceSide = direction === "expertToCare" ? "expert" : "care";
+        const targetSide = direction === "expertToCare" ? "care" : "expert";
         return `
           <article class="mobile-contact-card expert-match-mobile-card" data-expert-match-id="${escapeHtml(candidate.id)}">
             <div class="expert-match-mobile-kind">
@@ -23165,6 +23211,8 @@
         if (!id) return;
         closeDetail();
         if (realm === "expert" && kind === "contact") {
+          activeExpertDuplicates = false;
+          activeCareDuplicateView = "";
           activeExpertMode = "contacts";
           setActiveView("experts");
           updateView();
@@ -23172,6 +23220,8 @@
           return;
         }
         if (realm === "expert" && kind === "organization") {
+          activeExpertDuplicates = false;
+          activeCareDuplicateView = "";
           activeExpertMode = "organizations";
           setActiveView("experts");
           updateView();
@@ -23179,85 +23229,126 @@
           return;
         }
         if (kind === "organization") {
+          activeExpertDuplicates = false;
+          activeCareDuplicateView = "";
           setActiveView("organizations");
           updateView();
           openOrganizationDetail(id, organizations);
           return;
         }
+        activeExpertDuplicates = false;
+        activeCareDuplicateView = "";
         setActiveView("contacts");
         updateView();
         openDetail(id, contacts);
       }
 
-      function bindExpertMatchingControls(items) {
-        expertMatchingList?.querySelectorAll("[data-open-expert-match-id]").forEach((button) => {
+      function bindExpertMatchingControls({ listElement, paginationElement, items, render }) {
+        listElement?.querySelectorAll("[data-open-expert-match-id]").forEach((button) => {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
             openExpertMatchEntity(button);
           });
         });
-        expertMatchingList?.querySelectorAll("[data-confirm-expert-link]").forEach((button) => {
+        listElement?.querySelectorAll("[data-confirm-expert-link]").forEach((button) => {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
-            confirmExpertEntityLink(button, () => renderExpertMatchingTable(filteredExpertMatchCandidates()));
+            confirmExpertEntityLink(button, render);
           });
         });
-        expertPagination.querySelectorAll("[data-expert-match-page]").forEach((button) => {
+        paginationElement?.querySelectorAll("[data-duplicate-page]").forEach((button) => {
           button.addEventListener("click", () => {
-            currentPage = Number(button.dataset.expertMatchPage);
-            renderExpertMatchingTable(items);
+            currentPage = Number(button.dataset.duplicatePage);
+            render(items);
           });
         });
-        expertPagination.querySelectorAll("[data-expert-match-page-nav]").forEach((button) => {
+        paginationElement?.querySelectorAll("[data-duplicate-page-nav]").forEach((button) => {
           button.addEventListener("click", () => {
-            currentPage += button.dataset.expertMatchPageNav === "next" ? 1 : -1;
-            renderExpertMatchingTable(items);
+            currentPage += button.dataset.duplicatePageNav === "next" ? 1 : -1;
+            render(items);
           });
         });
       }
 
-      function renderExpertMatchingTable(items = filteredExpertMatchCandidates()) {
-        if (!expertMatchingList || !expertPagination || !expertPaginationMeta) return;
-        activeExpertMode = "matching";
-        renderExpertTablesVisibility();
-        renderExpertMatchDirectionControls();
+      function renderDuplicateTable({
+        items = filteredExpertMatchCandidates(),
+        direction = activeExpertMatchDirection,
+        tableHead,
+        listElement,
+        metaElement,
+        paginationMetaElement,
+        paginationElement,
+        render
+      }) {
+        if (!listElement || !paginationElement || !paginationMetaElement) return;
+        activeExpertMatchDirection = direction;
         const totalCandidates = expertMatchCandidates().length;
         if (!canAdministerData()) {
-          if (expertMatchingTableHead) expertMatchingTableHead.innerHTML = "";
-          expertMatchingList.innerHTML = `<div class="empty">Matching-Kandidaten sind nur für Admins sichtbar.</div>`;
-          expertPaginationMeta.textContent = "0-0 von 0 Kandidaten";
-          expertPagination.innerHTML = "";
-          if (expertMatchingMeta) expertMatchingMeta.textContent = "Admin-Ansicht";
+          if (tableHead) tableHead.innerHTML = "";
+          listElement.innerHTML = `<div class="empty">Dubletten sind nur für Admins sichtbar.</div>`;
+          paginationMetaElement.textContent = "0-0 von 0 Dubletten";
+          paginationElement.innerHTML = "";
+          if (metaElement) metaElement.textContent = "Admin-Ansicht";
           return;
         }
         if (!items.length) {
-          renderExpertMatchingTableHead();
-          expertMatchingList.innerHTML = `<div class="empty">Keine offenen Matching-Kandidaten. Suche oder bestätigte Verknüpfungen prüfen.</div>`;
-          expertPaginationMeta.textContent = "0-0 von 0 Kandidaten";
-          expertPagination.innerHTML = "";
-          if (expertMatchingMeta) expertMatchingMeta.textContent = totalCandidates ? `0 von ${totalCandidates} Kandidaten` : "Keine Kandidaten";
+          renderExpertMatchingTableHead(tableHead, direction);
+          listElement.innerHTML = `<div class="empty">Keine offenen Dubletten. Suche oder bestätigte Verknüpfungen prüfen.</div>`;
+          paginationMetaElement.textContent = "0-0 von 0 Dubletten";
+          paginationElement.innerHTML = "";
+          if (metaElement) metaElement.textContent = totalCandidates ? `0 von ${totalCandidates} offen` : "Keine Dubletten";
           return;
         }
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
-        const countLabel = items.length === 1 ? "Kandidat" : "Kandidaten";
-        expertPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} ${countLabel}`;
-        if (expertMatchingMeta) expertMatchingMeta.textContent = `${items.length} von ${totalCandidates} offen`;
+        const countLabel = items.length === 1 ? "Dublette" : "Dubletten";
+        paginationMetaElement.textContent = `${startIndex + 1}-${endIndex} von ${items.length} ${countLabel}`;
+        if (metaElement) metaElement.textContent = `${items.length} von ${totalCandidates} offen`;
         if (isMobileLayout()) {
-          if (expertMatchingTableHead) expertMatchingTableHead.innerHTML = "";
-          expertMatchingList.innerHTML = `<div class="mobile-contact-list">${pageItems.map(expertMatchingMobileCardMarkup).join("")}</div>`;
+          if (tableHead) tableHead.innerHTML = "";
+          listElement.innerHTML = `<div class="mobile-contact-list">${pageItems.map((candidate) => expertMatchingMobileCardMarkup(candidate, direction)).join("")}</div>`;
         } else {
-          renderExpertMatchingTableHead();
-          expertMatchingList.innerHTML = pageItems.map(expertMatchingRowMarkup).join("");
+          renderExpertMatchingTableHead(tableHead, direction);
+          listElement.innerHTML = pageItems.map((candidate) => expertMatchingRowMarkup(candidate, direction)).join("");
         }
-        expertPagination.innerHTML = [
-          `<button class="pagination-button" type="button" data-expert-match-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+        paginationElement.innerHTML = [
+          `<button class="pagination-button" type="button" data-duplicate-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
           ...Array.from({ length: totalPages }, (_, index) => {
             const page = index + 1;
-            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-expert-match-page="${page}">${page}</button>`;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-duplicate-page="${page}">${page}</button>`;
           }),
-          `<button class="pagination-button" type="button" data-expert-match-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+          `<button class="pagination-button" type="button" data-duplicate-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
         ].join("");
-        bindExpertMatchingControls(items);
+        bindExpertMatchingControls({ listElement, paginationElement, items, render });
+      }
+
+      function renderCareDuplicateTable(view, items = filteredExpertMatchCandidates()) {
+        const isOrganizationView = view === "organizations";
+        renderDuplicateTable({
+          items,
+          direction: "careToExpert",
+          tableHead: isOrganizationView ? organizationDuplicatesTableHead : contactDuplicatesTableHead,
+          listElement: isOrganizationView ? organizationDuplicatesList : contactDuplicatesList,
+          metaElement: isOrganizationView ? organizationDuplicatesMeta : contactDuplicatesMeta,
+          paginationMetaElement: isOrganizationView ? organizationsPaginationMeta : paginationMeta,
+          paginationElement: isOrganizationView ? organizationsPagination : pagination,
+          render: (nextItems = filteredExpertMatchCandidates()) => renderCareDuplicateTable(view, nextItems)
+        });
+      }
+
+      function renderExpertMatchingTable(items = filteredExpertMatchCandidates()) {
+        activeExpertDuplicates = true;
+        activeExpertMatchDirection = "expertToCare";
+        renderExpertTablesVisibility();
+        renderDuplicateTable({
+          items,
+          direction: "expertToCare",
+          tableHead: expertMatchingTableHead,
+          listElement: expertMatchingList,
+          metaElement: expertMatchingMeta,
+          paginationMetaElement: expertPaginationMeta,
+          paginationElement: expertPagination,
+          render: (nextItems = filteredExpertMatchCandidates()) => renderExpertMatchingTable(nextItems)
+        });
       }
 
       function applyProfiles(profiles = []) {
@@ -24426,10 +24517,30 @@
         return contacts.filter((contact) => contact.status !== "archived").length;
       }
 
+      function isContactsDuplicateMode() {
+        return activeView === "contacts" && activeCareDuplicateView === "contacts";
+      }
+
+      function isOrganizationsDuplicateMode() {
+        return activeView === "organizations" && activeCareDuplicateView === "organizations";
+      }
+
+      function isCareDuplicateMode() {
+        return isContactsDuplicateMode() || isOrganizationsDuplicateMode();
+      }
+
+      function isExpertDuplicateMode() {
+        return activeView === "experts" && activeExpertDuplicates;
+      }
+
+      function isDuplicateMode() {
+        return isCareDuplicateMode() || isExpertDuplicateMode();
+      }
+
       function hitCountLabel(items) {
+        if (isDuplicateMode()) return `${items.length} von ${expertMatchCandidates().length} Dubletten`;
         if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
         if (activeView === "experts") {
-          if (activeExpertMode === "matching") return `${items.length} von ${expertMatchCandidates().length} Kandidaten`;
           if (activeExpertMode === "organizations") return `${items.length} von ${expertOrganizations.length} Organisationen`;
           return `${items.length} von ${activeExpertContactsTotal()} Kontakten`;
         }
@@ -24812,6 +24923,34 @@
           return;
         }
 
+        if (isDuplicateMode()) {
+          const total = expertMatchCandidates().length;
+          const meta = items.length === total ? "" : `${items.length} Treffer`;
+          renderSummaryCards(
+            summaryGrid,
+            [
+              {
+                label: "Offene Dubletten",
+                value: total,
+                meta: isMobileLayout() ? "offen" : meta,
+                icon: `
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 7h8"></path>
+                    <path d="M8 17h8"></path>
+                    <path d="M7 7a3 3 0 1 1-3-3"></path>
+                    <path d="M17 17a3 3 0 1 0 3 3"></path>
+                    <path d="M4 4v3h3"></path>
+                    <path d="M20 20v-3h-3"></path>
+                  </svg>
+                `,
+                iconClass: "summary-icon--blue"
+              }
+            ],
+            "offen"
+          );
+          return;
+        }
+
         if (activeView === "organizations") {
           const meta = items.length === organizations.length ? "" : `${items.length} Treffer`;
           renderSummaryCards(
@@ -24839,33 +24978,6 @@
           return;
         }
         if (activeView === "experts") {
-          if (activeExpertMode === "matching") {
-            const total = expertMatchCandidates().length;
-            const meta = items.length === total ? "" : `${items.length} Treffer`;
-            renderSummaryCards(
-              summaryGrid,
-              [
-                {
-                  label: "Offene Matching-Kandidaten",
-                  value: total,
-                  meta: isMobileLayout() ? "offen" : meta,
-                  icon: `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M8 7h8"></path>
-                      <path d="M8 17h8"></path>
-                      <path d="M7 7a3 3 0 1 1-3-3"></path>
-                      <path d="M17 17a3 3 0 1 0 3 3"></path>
-                      <path d="M4 4v3h3"></path>
-                      <path d="M20 20v-3h-3"></path>
-                    </svg>
-                  `,
-                  iconClass: "summary-icon--blue"
-                }
-              ],
-              "offen"
-            );
-            return;
-          }
           const isOrganizationsMode = activeExpertMode === "organizations";
           const total = isOrganizationsMode ? expertOrganizations.length : activeExpertContactsTotal();
           const meta = items.length === total ? "" : `${items.length} Treffer`;
@@ -30729,24 +30841,31 @@
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
         const isExpertsView = activeView === "experts";
-        if (isExpertsView && activeExpertMode === "matching" && !canAdministerData()) activeExpertMode = "contacts";
+        if (!canAdministerData()) {
+          activeCareDuplicateView = "";
+          activeExpertDuplicates = false;
+        }
         const isExpertOrganizationsMode = isExpertsView && activeExpertMode === "organizations";
-        const isExpertMatchingMode = isExpertsView && activeExpertMode === "matching";
+        const isContactsDuplicatesMode = isContactsDuplicateMode();
+        const isOrganizationsDuplicatesMode = isOrganizationsDuplicateMode();
+        const isCareDuplicatesMode = isContactsDuplicatesMode || isOrganizationsDuplicatesMode;
+        const isExpertMatchingMode = isExpertDuplicateMode();
+        const isAnyDuplicateMode = isCareDuplicatesMode || isExpertMatchingMode;
         const isFormatsView = activeView === "formats";
         const items = isFormatsView
           ? filteredFormats()
           : isOrganizationsView
-            ? filteredOrganizations()
+            ? isOrganizationsDuplicatesMode ? filteredExpertMatchCandidates() : filteredOrganizations()
             : isExpertsView
               ? isExpertMatchingMode ? filteredExpertMatchCandidates() : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
-              : filteredContacts();
+              : isContactsDuplicatesMode ? filteredExpertMatchCandidates() : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
-        resultsCount.hidden = isInitialDataLoading && isContactsView ? false : isFormatsView || isExpertMatchingMode ? false : !hasActiveFilters();
+        resultsCount.hidden = isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveFilters();
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
-        searchInput.placeholder = isOrganizationsView
+        searchInput.placeholder = isAnyDuplicateMode
+          ? "Dubletten suchen..."
+          : isOrganizationsView
           ? "Organisationen suchen..."
-          : isExpertMatchingMode
-            ? "Matching-Kandidaten suchen..."
           : isExpertOrganizationsMode
             ? "Expertenkreis-Organisationen suchen..."
           : isExpertsView
@@ -30767,11 +30886,15 @@
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
         archiveViewButton.hidden = !isContactsView;
         if (openImportButton) openImportButton.hidden = true;
-        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isExpertMatchingMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView;
+        if (contactsTable) contactsTable.hidden = isContactsDuplicatesMode;
+        if (contactDuplicatesWorkspace) contactDuplicatesWorkspace.hidden = !isContactsDuplicatesMode;
+        if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
+        if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
+        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isAnyDuplicateMode;
+        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isCareDuplicatesMode;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isExpertMatchingMode;
-        if (isExpertMatchingMode) setFilterPanelOpen(false);
+        if (filterToolbar) filterToolbar.hidden = isFormatsView || isAnyDuplicateMode;
+        if (isAnyDuplicateMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -30779,11 +30902,13 @@
           else if (isFormatsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
         }
-        bulkToolbar.hidden = !isContactsView || selectedContactIds.size === 0;
+        bulkToolbar.hidden = !isContactsView || isContactsDuplicatesMode || selectedContactIds.size === 0;
         updateViewSelectLabel();
         renderSummary(items);
         syncExpertMatchWorklistButtons();
-        if (isOrganizationsView) {
+        if (isOrganizationsDuplicatesMode) {
+          renderCareDuplicateTable("organizations", items);
+        } else if (isOrganizationsView) {
           renderOrganizationsTable(items);
         } else if (isExpertsView && isExpertMatchingMode) {
           renderExpertMatchingTable(items);
@@ -30791,13 +30916,15 @@
           renderExpertOrganizationsTable(items);
         } else if (isExpertsView) {
           renderExpertContactsTable(items);
+        } else if (isContactsDuplicatesMode) {
+          renderCareDuplicateTable("contacts", items);
         } else if (isContactsView) {
           renderTable(items);
         } else if (isFormatsView) {
           renderFormatsView();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isExpertMatchingMode) {
+        if (!isFormatsView && !isAnyDuplicateMode) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -30929,11 +31056,8 @@
       expertModeButtons.forEach((button) => {
         button.addEventListener("click", () => {
           const nextExpertMode = button.dataset.expertMode || "contacts";
-          if (nextExpertMode === "matching" && !canAdministerData()) {
-            showPermissionDenied("Nur Admins können Matching-Kandidaten prüfen.");
-            return;
-          }
           activeExpertMode = nextExpertMode;
+          activeExpertDuplicates = false;
           selectedOwners = [];
           selectedOrganizationCities = [];
           selectedOrganizationContactRanges = [];
@@ -30941,26 +31065,9 @@
             selectedPriorities = [];
             selectedSpecialties = [];
             selectedThemes = [];
-          } else if (activeExpertMode === "matching") {
-            selectedPriorities = [];
-            selectedCategories = [];
-            selectedStates = [];
-            selectedSpecialties = [];
-            selectedThemes = [];
-            selectedQualities = [];
-            selectedMissingFields = [];
-            selectedUpdatedRanges = [];
-            selectedSources = [];
           }
           currentPage = 1;
           closeDetail();
-          updateView();
-        });
-      });
-      expertMatchDirectionButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          activeExpertMatchDirection = button.dataset.expertMatchDirection || "careToExpert";
-          currentPage = 1;
           updateView();
         });
       });
@@ -31143,10 +31250,11 @@
 
       newContactButton.addEventListener("click", () => openEditor());
       newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
-      contactMatchingWorklistButton?.addEventListener("click", () => openExpertMatchingWorklist("careToExpert"));
-      organizationMatchingWorklistButton?.addEventListener("click", () => openExpertMatchingWorklist("careToExpert"));
+      contactMatchingWorklistButton?.addEventListener("click", () => openCareDuplicates("contacts"));
+      organizationMatchingWorklistButton?.addEventListener("click", () => openCareDuplicates("organizations"));
       newExpertContactButton?.addEventListener("click", () => showExpertCreateNotice("Kontakt"));
       newExpertOrganizationButton?.addEventListener("click", () => showExpertCreateNotice("Organisation"));
+      expertDuplicatesButton?.addEventListener("click", openExpertDuplicates);
       newFormatButton?.addEventListener("click", () => {
         formatActiveTab = "overview";
         openFormatEditorDrawer(null);
@@ -31231,6 +31339,7 @@
           return;
         }
         showingArchive = !showingArchive;
+        activeCareDuplicateView = "";
         activeId = null;
         closeDetail();
         currentPage = 1;
