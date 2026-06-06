@@ -2991,8 +2991,9 @@
         position: absolute;
         top: calc(100% + 6px);
         right: 0;
-        min-width: 180px;
-        max-width: 240px;
+        width: min(360px, calc(100vw - 32px));
+        min-width: 240px;
+        max-width: min(360px, calc(100vw - 32px));
         max-height: min(58dvh, 420px);
         padding: 6px;
         border: 1px solid var(--line);
@@ -3028,7 +3029,7 @@
       .filter-option {
         width: 100%;
         min-height: 30px;
-        padding: 0 8px;
+        padding: 7px 8px;
         border: 0;
         border-radius: var(--radius-sm);
         display: flex;
@@ -3039,9 +3040,16 @@
         color: var(--text);
         font-size: var(--font-size-xs);
         font-weight: 800;
+        line-height: 1.25;
         text-align: left;
         cursor: pointer;
-        white-space: nowrap;
+        white-space: normal;
+      }
+
+      .filter-option span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        hyphens: auto;
       }
 
       .filter-option:hover {
@@ -11041,6 +11049,10 @@
         justify-content: flex-start;
       }
 
+      .table-command-row--experts .expert-bulk-toolbar {
+        order: 1;
+      }
+
       .table-command-row--experts .table-command-spacer {
         order: 3;
       }
@@ -14036,6 +14048,13 @@
           width: 100%;
         }
 
+        .table-command-row--experts .expert-bulk-toolbar {
+          grid-column: 1 / -1;
+          grid-row: 1;
+          width: 100%;
+          justify-content: space-between;
+        }
+
         .table-command-actions .action-button {
           width: 100%;
           min-height: 38px;
@@ -14282,7 +14301,18 @@
           grid-row: 2;
         }
 
+        .table-command-row--experts .expert-bulk-toolbar {
+          grid-column: 1 / -1;
+          grid-row: 1;
+          width: 100%;
+          justify-content: space-between;
+        }
+
         .table-command-row--expert-actions #expert-command-actions {
+          grid-row: 2;
+        }
+
+        .table-command-row--experts .expert-bulk-toolbar[hidden] + #expert-command-actions {
           grid-row: 1;
         }
 
@@ -14298,6 +14328,10 @@
 
         .table-command-row--expert-actions .expert-column-actions {
           grid-row: 2;
+        }
+
+        .table-command-row--expert-actions:has(.expert-bulk-toolbar:not([hidden])) .expert-column-actions {
+          grid-row: 3;
         }
 
         .table-command-row--experts .experts-mode-nav {
@@ -14628,7 +14662,18 @@
           grid-row: 2;
         }
 
+        .table-command-row--experts .expert-bulk-toolbar {
+          grid-column: 1 / -1;
+          grid-row: 1;
+          width: 100%;
+          justify-content: space-between;
+        }
+
         .table-command-row--expert-actions #expert-command-actions {
+          grid-row: 2;
+        }
+
+        .table-command-row--experts .expert-bulk-toolbar[hidden] + #expert-command-actions {
           grid-row: 1;
         }
 
@@ -17556,6 +17601,12 @@
           <section class="view-panel" id="view-experts" data-view-panel="experts">
             <div class="view-card experts-workspace">
               <div class="table-command-row table-command-row--experts table-command-row--expert-actions">
+                <div class="bulk-toolbar expert-bulk-toolbar" id="expert-bulk-toolbar" hidden>
+                  <span class="bulk-toolbar__count" id="expert-bulk-selection-count">0 Kontakte ausgewählt</span>
+                  <button class="bulk-toolbar__link" type="button" id="expert-bulk-clear-selection">Auswahl aufheben</button>
+                  <span class="bulk-toolbar__divider" aria-hidden="true"></span>
+                  <button class="action-button action-button--compact" type="button" id="expert-bulk-export">Exportieren</button>
+                </div>
                 <div class="table-command-actions" id="expert-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-expert-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
                   <button class="action-button" type="button" id="new-expert-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
@@ -19387,6 +19438,10 @@
       const bulkOwnerSelect = document.getElementById("bulk-owner-select");
       const bulkAssignOwnerButton = document.getElementById("bulk-assign-owner");
       const bulkArchiveButton = document.getElementById("bulk-archive");
+      const expertBulkToolbar = document.getElementById("expert-bulk-toolbar");
+      const expertBulkSelectionCount = document.getElementById("expert-bulk-selection-count");
+      const expertBulkClearSelection = document.getElementById("expert-bulk-clear-selection");
+      const expertBulkExportButton = document.getElementById("expert-bulk-export");
       const columnMenuShell = document.getElementById("column-menu-shell");
       const columnsButton = document.getElementById("columns-button");
       const columnsMenu = document.getElementById("columns-menu");
@@ -19682,6 +19737,7 @@
       let activeCareQueueKey = "";
       const selectedCareIds = new Set();
       const selectedContactIds = new Set();
+      const selectedExpertContactIds = new Set();
       const favorites = new Set(JSON.parse(window.localStorage.getItem("versorgungs-kompass-favorites-v4") || "[]"));
       const customSelectInstances = new WeakMap();
       let loadedContactsFromStorage = false;
@@ -23237,23 +23293,39 @@
         });
       }
 
-      function renderExpertContactsTableHead(columns = visibleExpertContactTableColumns()) {
+      function renderExpertContactsTableHead(pageItems = [], columns = visibleExpertContactTableColumns()) {
         if (!expertTableHead) return;
-        expertTableHead.innerHTML = columns
-          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "experts")}</div>`)
-          .join("");
+        const pageIds = pageItems.map((contact) => contact.id);
+        const selectedOnPage = pageIds.filter((id) => selectedExpertContactIds.has(id)).length;
+        expertTableHead.innerHTML = [
+          `<div class="cell--select"><input class="table-checkbox" type="checkbox" id="select-visible-expert-contacts" aria-label="Alle sichtbaren Expertenkreis-Kontakte auswählen" ${pageIds.length && selectedOnPage === pageIds.length ? "checked" : ""}></div>`,
+          ...columns.map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "experts")}</div>`)
+        ].join("");
         bindHeaderFilterMenus(expertTableHead);
+        const headerCheckbox = document.getElementById("select-visible-expert-contacts");
+        if (headerCheckbox) {
+          headerCheckbox.indeterminate = selectedOnPage > 0 && selectedOnPage < pageIds.length;
+          headerCheckbox.addEventListener("change", () => {
+            pageIds.forEach((id) => {
+              if (headerCheckbox.checked) selectedExpertContactIds.add(id);
+              else selectedExpertContactIds.delete(id);
+            });
+            renderExpertContactsTable(filteredExpertContacts());
+          });
+        }
       }
 
       function renderExpertContactsTable(items) {
         if (!expertList || !expertPagination || !expertPaginationMeta) return;
         activeExpertMode = "contacts";
         renderExpertTablesVisibility();
+        syncSelectedExpertContacts(items);
+        renderExpertBulkToolbar();
         const columns = visibleExpertContactTableColumns();
         updateExpertContactTableGrid(columns);
         renderColumnMenu();
         if (!items.length) {
-          renderExpertContactsTableHead(columns);
+          renderExpertContactsTableHead([], columns);
           expertList.innerHTML = `<div class="empty">Noch keine Kontakte im Expertenkreis. Sobald du die sieben Gruppen und Datensätze ergänzt, erscheinen sie hier.</div>`;
           expertPaginationMeta.textContent = "0-0 von 0 Kontakten";
           expertPagination.innerHTML = "";
@@ -23280,11 +23352,14 @@
             )
             .join("")}</div>`;
         } else {
-          renderExpertContactsTableHead(columns);
+          renderExpertContactsTableHead(pageItems, columns);
           expertList.innerHTML = pageItems
             .map(
               (contact) => `
-              <article class="row ${contact.id === activeExpertId ? "is-active" : ""}" data-expert-id="${escapeHtml(contact.id)}" tabindex="0">
+              <article class="row ${contact.id === activeExpertId ? "is-active" : ""} ${selectedExpertContactIds.has(contact.id) ? "is-bulk-selected" : ""}" data-expert-id="${escapeHtml(contact.id)}" tabindex="0">
+                <div class="cell--select">
+                  <input class="table-checkbox" type="checkbox" data-expert-row-select="${escapeHtml(contact.id)}" aria-label="${escapeHtml(contact.displayName)} auswählen" ${selectedExpertContactIds.has(contact.id) ? "checked" : ""}>
+                </div>
                 ${columns.map((column) => `<div class="cell--${column.key}">${tableCellMarkup(contact, column.key)}</div>`).join("")}
               </article>
             `
@@ -23304,19 +23379,27 @@
         expertList.querySelectorAll("[data-expert-id]").forEach((row) => {
           row.addEventListener("click", (event) => {
             if (event.target.closest("button, input, label, a, select, textarea")) return;
-            openExpertDetail(row.dataset.expertId, items);
+            openDetail(row.dataset.expertId, items, { scope: "expert" });
           });
           row.addEventListener("keydown", (event) => {
             if ((event.key === "Enter" || event.key === " ") && !event.target.closest("button, input, label, a, select, textarea")) {
               event.preventDefault();
-              openExpertDetail(row.dataset.expertId, items);
+              openDetail(row.dataset.expertId, items, { scope: "expert" });
             }
+          });
+        });
+        expertList.querySelectorAll("[data-expert-row-select]").forEach((checkbox) => {
+          checkbox.addEventListener("click", (event) => event.stopPropagation());
+          checkbox.addEventListener("change", () => {
+            if (checkbox.checked) selectedExpertContactIds.add(checkbox.dataset.expertRowSelect);
+            else selectedExpertContactIds.delete(checkbox.dataset.expertRowSelect);
+            renderExpertContactsTable(items);
           });
         });
         expertList.querySelectorAll("[data-open-detail]").forEach((button) => {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
-            openExpertDetail(button.dataset.openDetail, items);
+            openDetail(button.dataset.openDetail, items, { scope: "expert" });
           });
         });
         expertPagination.querySelectorAll("[data-expert-page]").forEach((button) => {
@@ -25397,7 +25480,7 @@
       }
 
       function updateExpertContactTableGrid(columns = visibleExpertContactTableColumns()) {
-        const template = columns.map((column) => column.template).join(" ");
+        const template = ["42px", ...columns.map((column) => column.template)].join(" ");
         expertContactsTable?.style.setProperty("--contacts-grid-template", template);
       }
 
@@ -27301,6 +27384,40 @@
         bulkOwnerSelect.value = [...bulkOwnerSelect.options].some((option) => option.value === selectedValue) ? selectedValue : "";
       }
 
+      function selectedExpertContacts() {
+        return expertContacts.filter((contact) => selectedExpertContactIds.has(contact.id));
+      }
+
+      function syncSelectedExpertContacts(items) {
+        const availableIds = new Set(items.map((contact) => contact.id));
+        [...selectedExpertContactIds].forEach((id) => {
+          if (!availableIds.has(id)) selectedExpertContactIds.delete(id);
+        });
+      }
+
+      function renderExpertBulkToolbar() {
+        if (!expertBulkToolbar || !expertBulkSelectionCount) return;
+        const count = selectedExpertContactIds.size;
+        const visible = activeView === "experts" && activeExpertMode === "contacts" && !activeExpertDuplicates && count > 0;
+        expertBulkToolbar.hidden = !visible;
+        expertBulkSelectionCount.textContent = `${count} ${count === 1 ? "Kontakt" : "Kontakte"} ausgewählt`;
+      }
+
+      function downloadSelectedExpertCsv() {
+        const items = selectedExpertContacts();
+        if (!items.length) return;
+        const csv = serializeContactsToCsv(items);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `expertenkreis-auswahl-${items.length}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
       function renderColumnMenu() {
         if (!columnOptions) return;
         const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
@@ -28961,6 +29078,23 @@
         `;
       }
 
+      function renderReadOnlyThemePanel(themeTags) {
+        return `
+          <div class="detail-theme-editor">
+            <div class="detail-theme-group detail-theme-group--selected">
+              <div class="detail-theme-label">Ausgewählte Themen</div>
+              <div class="detail-chip-row">
+                ${
+                  themeTags.length
+                    ? themeTags.map((tag) => `<span class="theme-tag theme-tag--editable">${escapeHtml(tag)}</span>`).join("")
+                    : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       function detailContactLine(label, value, href = "") {
         const hasValue = hasMeaningfulValue(value);
         return `
@@ -30199,6 +30333,8 @@
       }
 
       function openExpertDetail(id, items = filteredExpertContacts()) {
+        openDetail(id, items, { scope: "expert" });
+        return;
         const currentItems = items.length ? items : filteredExpertContacts();
         const contact = currentItems.find((item) => item.id === id) || expertContacts.find((item) => item.id === id);
         if (!contact) return;
@@ -30729,11 +30865,15 @@
         syncBodyScrollLock();
       }
 
-      function openDetail(id, items = filteredContacts()) {
-        const currentItems = items.length ? items : filteredContacts();
-        const contact = currentItems.find((item) => item.id === id) || contacts.find((item) => item.id === id);
+      function openDetail(id, items = filteredContacts(), options = {}) {
+        const expertScope = options.scope === "expert";
+        const sourceContacts = expertScope ? expertContacts : contacts;
+        const fallbackItems = expertScope ? filteredExpertContacts() : filteredContacts();
+        const currentItems = items.length ? items : fallbackItems;
+        const contact = currentItems.find((item) => item.id === id) || sourceContacts.find((item) => item.id === id);
         if (!contact) return;
-        if (activeId !== contact.id) detailActiveTab = "overview";
+        if (expertScope ? activeExpertId !== contact.id : activeId !== contact.id) detailActiveTab = "overview";
+        if (expertScope) detailEditMode = false;
 
         const locationText = formatLocationDisplay(contact);
         const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
@@ -30746,13 +30886,16 @@
         const websiteText = meaningfulOrEmpty(contact.url) || (sourceText && isValidOptionalUrl(sourceText) ? sourceText : "");
         const websiteHref = isValidOptionalUrl(websiteText) ? websiteText : "";
         const organizationLabel = meaningfulOrEmpty(contact.organization);
-        const linkedOrganization = organizations.find((organization) =>
+        const organizationPool = expertScope ? expertOrganizations : organizations;
+        const linkedOrganization = organizationPool.find((organization) =>
           (contact.organizationId && organization.id === contact.organizationId) ||
           (organizationLabel && normalizeOrganizationName(organization.name) === normalizeOrganizationName(organizationLabel))
         );
         const themeTags = normalizeThemes(contact.themes);
-        const editingDetail = detailEditMode && canEditContacts();
-        const admin = canAdministerData();
+        const linkedCareContacts = expertScope ? linkedContactsForExpertContact(contact) : [];
+        const editingDetail = !expertScope && detailEditMode && canEditContacts();
+        const editableDetail = !expertScope && canEditContacts();
+        const admin = !expertScope && canAdministerData();
         const portraitMarkup = contactAvatarMarkup(contact, "lg");
         const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
         const normalizedStatus = String(contact.status || "").trim().toLowerCase();
@@ -30762,9 +30905,24 @@
           : normalizedStatus && !["active", "aktiv"].includes(normalizedStatus)
             ? contact.status
             : "";
+        const profileStatusMarkup = expertScope
+          ? sectorBadgeMarkup(contact.category)
+          : statusLabel
+            ? `<span class="badge badge--status">${escapeHtml(statusLabel)}</span>`
+            : "";
 
-        activeId = contact.id;
-        renderTable(currentItems);
+        if (expertScope) {
+          activeExpertId = contact.id;
+          activeExpertOrganizationId = null;
+          activeId = null;
+          activeOrganizationId = null;
+          renderExpertContactsTable(currentItems);
+        } else {
+          activeId = contact.id;
+          activeExpertId = null;
+          activeExpertOrganizationId = null;
+          renderTable(currentItems);
+        }
         detailPanel.classList.remove("detail-panel--organization");
         detailPanel.classList.remove("detail-panel--registration");
 
@@ -30780,7 +30938,7 @@
                     <button class="action-button" type="button" id="detail-cancel-edit">Abbrechen</button>
                     <button class="action-button action-button--primary detail-profile-edit" type="button" id="detail-save-edit">Speichern</button>
                   `
-                  : canEditContacts()
+                  : editableDetail
                     ? `<button class="action-button detail-profile-edit" type="button" id="detail-edit">Bearbeiten</button>`
                     : ""
               }
@@ -30801,24 +30959,23 @@
                     ${honorificTitle ? `<div class="detail-profile-subline">${escapeHtml(honorificTitle)}</div>` : ""}
                     <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
                     ${roleText ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
-                    ${statusLabel ? `<div class="detail-profile-status"><span class="badge badge--status">${escapeHtml(statusLabel)}</span></div>` : ""}
+                    ${profileStatusMarkup ? `<div class="detail-profile-status">${profileStatusMarkup}</div>` : ""}
                   </div>
                 </div>
-                <div class="detail-profile-meta">
-                  ${detailHeaderOwnerControl(contact)}
-                </div>
+                ${expertScope ? "" : `<div class="detail-profile-meta">${detailHeaderOwnerControl(contact)}</div>`}
               </section>
 
               <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
                 ${detailTabButton("overview", "Überblick", activeTab)}
                 ${detailTabButton("contact", "Kontakt", activeTab)}
                 ${detailTabButton("themes", "Themen", activeTab)}
+                ${expertScope ? detailTabButton("links", "Verbindungen", activeTab) : ""}
                 ${detailTabButton("notes", "Notizen", activeTab)}
                 ${detailTabButton("activity", "Aktivitäten", activeTab)}
               </div>
 
               <section ${detailPanelAttrs("overview", activeTab)} id="detail-overview">
-                ${sectionTitleMarkup("Stammdaten", "overview", editingDetail)}
+                ${expertScope ? `<h4 class="detail-section-title">Stammdaten</h4>` : sectionTitleMarkup("Stammdaten", "overview", editingDetail)}
                 <div class="detail-line-list">
                   ${
                     editingDetail
@@ -30827,22 +30984,24 @@
                         ${detailLineHtml(
                           "Organisation",
                           linkedOrganization
-                            ? `<button class="organization-contact-link" type="button" data-open-linked-organization="${escapeHtml(linkedOrganization.id)}">${escapeHtml(linkedOrganization.name)}</button>`
-                            : escapeHtml(organizationLabel || "Keine Organisation hinterlegt") + (canEditContacts() ? ` <button class="detail-inline-action" type="button" id="detail-assign-organization">Organisation zuordnen</button>` : ""),
+                            ? `<button class="organization-contact-link" type="button" ${expertScope ? "data-open-linked-expert-organization" : "data-open-linked-organization"}="${escapeHtml(linkedOrganization.id)}">${escapeHtml(linkedOrganization.name)}</button>`
+                            : escapeHtml(organizationLabel || "Keine Organisation hinterlegt") + (editableDetail ? ` <button class="detail-inline-action" type="button" id="detail-assign-organization">Organisation zuordnen</button>` : ""),
                           { empty: !organizationLabel && !linkedOrganization }
                         )}
-                        ${detailLine("Sektor", contact.category)}
-                        ${detailLine("Fachrichtung", specialtyText, { emptyLabel: "Bitte wählen" })}
+                        ${detailLine(expertScope ? "Gruppe" : "Sektor", contact.category)}
+                        ${detailLine(expertScope ? "Fachbereich / Fokus" : "Fachrichtung", specialtyText, { emptyLabel: expertScope ? "Nicht hinterlegt" : "Bitte wählen" })}
                         ${detailLine("Rolle", roleText)}
                         ${detailLine("Ort", locationText)}
                         ${detailLine("Bundesland", contact.state || stateLabel(contact))}
-                        ${detailLineHtml("Priorität", detailHeaderPriorityControl(contact), { empty: !contact.priority })}
+                        ${expertScope ? "" : detailLineHtml("Priorität", detailHeaderPriorityControl(contact), { empty: !contact.priority })}
                         ${honorificTitle ? detailLine("Titel", honorificTitle) : ""}
+                        ${expertScope ? detailLine("Quelle", sourceText, { emptyLabel: "Nicht hinterlegt" }) : ""}
+                        ${expertScope ? detailLine("Versorgung", `${linkedCareContacts.length} ${linkedCareContacts.length === 1 ? "Verknüpfung" : "Verknüpfungen"}`) : ""}
                         ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
                       `
                   }
                 </div>
-                ${editingDetail ? "" : contactExpertContextMarkup(contact)}
+                ${editingDetail || expertScope ? "" : contactExpertContextMarkup(contact)}
                 <div class="section-block">
                   <h4 class="detail-section-title">Standort</h4>
                   <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
@@ -30852,7 +31011,7 @@
               </section>
 
               <section ${detailPanelAttrs("contact", activeTab)} id="detail-contactways">
-                ${sectionTitleMarkup("Kontakt", "contactways", editingDetail)}
+                ${expertScope ? `<h4 class="detail-section-title">Kontakt</h4>` : sectionTitleMarkup("Kontakt", "contactways", editingDetail)}
                 <div class="detail-line-list">
                   ${
                     editingDetail
@@ -30870,45 +31029,75 @@
               <section ${detailPanelAttrs("themes", activeTab)} id="detail-themes">
                 <h4 class="detail-section-title">Themen${themeTags.length ? ` (${themeTags.length})` : ""}</h4>
                 <div class="detail-line-list">
-                  ${canEditContacts() ? renderDetailThemeEditor(themeTags) : renderViewerThemePanel(themeTags)}
+                  ${editableDetail ? renderDetailThemeEditor(themeTags) : expertScope ? renderReadOnlyThemePanel(themeTags) : renderViewerThemePanel(themeTags)}
                 </div>
               </section>
+
+              ${
+                expertScope
+                  ? `
+                    <section ${detailPanelAttrs("links", activeTab)} id="detail-links">
+                      ${
+                        expertContactContextMarkup(contact) ||
+                        `<div class="expert-context-section">
+                          <h4 class="detail-section-title">Auch in Versorgungskontakten</h4>
+                          <div class="empty">Noch keine Verknüpfung zu Versorgungskontakten vorhanden.</div>
+                        </div>`
+                      }
+                    </section>
+                  `
+                  : ""
+              }
 
               <section ${detailPanelAttrs("notes", activeTab)} id="detail-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 <div class="detail-line-list">
                   ${
-                    canEditContacts()
+                    editableDetail
                       ? renderDirectNoteEditor(contact)
-                      : `<textarea class="detail-note-input detail-note-input--direct detail-note-input--readonly" placeholder="Keine Notiz hinterlegt" readonly disabled>${escapeHtml(noteText)}</textarea><div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Bearbeiten von Notizen"))}</div>`
+                      : expertScope
+                        ? `<div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}</div>`
+                        : `<textarea class="detail-note-input detail-note-input--direct detail-note-input--readonly" placeholder="Keine Notiz hinterlegt" readonly disabled>${escapeHtml(noteText)}</textarea><div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Bearbeiten von Notizen"))}</div>`
                   }
                 </div>
               </section>
 
               <section ${detailPanelAttrs("activity", activeTab)} id="detail-activity">
-                <div class="detail-info-card history-card">
-                  <div class="history-head">
-                    <div>
-                      <h4>Verlauf</h4>
-                      <p>Änderungen und Importereignisse.</p>
-                    </div>
-                  </div>
-                  <div class="history-filters" id="history-filters">${renderHistoryFilters(contact.id, [])}</div>
-                  <div class="history-timeline" id="history-timeline">
-                    <div class="history-loading">Verlauf wird geladen...</div>
-                  </div>
-                </div>
+                ${
+                  expertScope
+                    ? `<div class="history-empty">Noch kein Verlauf für diesen Expertenkreis-Kontakt vorhanden.</div>`
+                    : `
+                      <div class="detail-info-card history-card">
+                        <div class="history-head">
+                          <div>
+                            <h4>Verlauf</h4>
+                            <p>Änderungen und Importereignisse.</p>
+                          </div>
+                        </div>
+                        <div class="history-filters" id="history-filters">${renderHistoryFilters(contact.id, [])}</div>
+                        <div class="history-timeline" id="history-timeline">
+                          <div class="history-loading">Verlauf wird geladen...</div>
+                        </div>
+                      </div>
+                    `
+                }
               </section>
 
-              <div class="detail-bottom-actions">
-                ${
-                  admin && contact.status === "archived"
-                    ? `<button class="action-button action-button--primary" type="button" id="detail-restore">Kontakt wiederherstellen</button>`
-                    : admin
-                      ? `<button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt archivieren</button>`
-                      : ""
-                }
-              </div>
+              ${
+                expertScope
+                  ? ""
+                  : `
+                    <div class="detail-bottom-actions">
+                      ${
+                        admin && contact.status === "archived"
+                          ? `<button class="action-button action-button--primary" type="button" id="detail-restore">Kontakt wiederherstellen</button>`
+                          : admin
+                            ? `<button class="action-button action-button--danger" type="button" id="detail-delete">Kontakt archivieren</button>`
+                            : ""
+                      }
+                    </div>
+                  `
+              }
             </div>
           </div>
         `;
@@ -30917,24 +31106,24 @@
         detailDrawer.setAttribute("aria-hidden", "false");
         syncBodyScrollLock();
         refreshCustomSelects(detailDrawer);
-        loadContactHistory(contact.id);
+        if (!expertScope) loadContactHistory(contact.id);
 
         document.getElementById("detail-close").addEventListener("click", closeDetail);
         document.getElementById("detail-edit")?.addEventListener("click", () => {
           detailEditMode = true;
-          openDetail(contact.id, currentItems);
+          openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
         });
         detailPanel.querySelectorAll("[data-detail-edit-section]").forEach((button) => {
           button.addEventListener("click", () => {
             detailEditMode = true;
             detailActiveTab = button.dataset.detailEditSection === "contactways" ? "contact" : button.dataset.detailEditSection || detailActiveTab;
-            openDetail(contact.id, currentItems);
+            openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
             window.setTimeout(() => document.getElementById(`detail-${button.dataset.detailEditSection}`)?.scrollIntoView({ block: "start" }), 0);
           });
         });
         document.getElementById("detail-cancel-edit")?.addEventListener("click", () => {
           detailEditMode = false;
-          openDetail(contact.id, currentItems);
+          openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
         });
         document.getElementById("detail-save-edit")?.addEventListener("click", () => saveDetailInline(contact));
         detailPanel.querySelectorAll("[data-detail-header-field]").forEach((select) => {
@@ -30997,12 +31186,16 @@
           setActiveView("organizations");
           openOrganizationDetail(event.currentTarget.dataset.openLinkedOrganization);
         });
-        bindExpertEntityLinkControls(() => openDetail(contact.id, currentItems));
+        detailPanel.querySelector("[data-open-linked-expert-organization]")?.addEventListener("click", (event) => {
+          activeExpertMode = "organizations";
+          openExpertOrganizationDetail(event.currentTarget.dataset.openLinkedExpertOrganization);
+        });
+        bindExpertEntityLinkControls(() => openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" }));
         document.getElementById("detail-assign-organization")?.addEventListener("click", () => assignOrganizationToContact(contact));
         [...detailPanel.querySelectorAll("[data-detail-tab]")].forEach((button) => {
           button.addEventListener("click", () => {
             detailActiveTab = button.dataset.detailTab || "overview";
-            openDetail(contact.id, currentItems);
+            openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
           });
         });
         [...detailPanel.querySelectorAll("[data-scroll-detail]")].forEach((button) => {
@@ -31432,6 +31625,7 @@
           else filterToolbar?.prepend(viewSelectShell);
         }
         bulkToolbar.hidden = !isContactsView || isContactsDuplicatesMode || selectedContactIds.size === 0;
+        renderExpertBulkToolbar();
         updateViewSelectLabel();
         renderSummary(items);
         syncExpertMatchWorklistButtons();
@@ -31515,6 +31709,17 @@
         }
         downloadSelectedCsv();
       });
+      expertBulkClearSelection?.addEventListener("click", () => {
+        selectedExpertContactIds.clear();
+        renderExpertContactsTable(filteredExpertContacts());
+      });
+      expertBulkExportButton?.addEventListener("click", () => {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Kontaktdaten exportieren.");
+          return;
+        }
+        downloadSelectedExpertCsv();
+      });
       bulkAssignOwnerButton?.addEventListener("click", assignOwnerToSelectedContacts);
       bulkArchiveButton?.addEventListener("click", archiveSelectedContacts);
       columnsButton?.addEventListener("click", (event) => {
@@ -31586,6 +31791,7 @@
           selectedOrganizationCities = [];
           selectedOrganizationContactRanges = [];
           if (activeExpertMode === "organizations") {
+            selectedExpertContactIds.clear();
             selectedPriorities = [];
             selectedSpecialties = [];
             selectedThemes = [];

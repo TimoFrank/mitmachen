@@ -157,7 +157,30 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expectPageSizeDropdownUsable(page, "#view-experts .page-size-shell");
   await expect(page.locator("#experts-pagination-meta")).toContainText("1-50 von");
   await expect(page.locator("#view-select-button")).toBeHidden();
+  if (testInfo.project.name === "chromium-desktop") {
+    const firstExpertCheckbox = page.locator("#expert-list [data-expert-row-select]").first();
+    await firstExpertCheckbox.check();
+    await expect(page.locator("#expert-bulk-toolbar")).toBeVisible();
+    await expect(page.locator("#expert-bulk-selection-count")).toHaveText("1 Kontakt ausgewählt");
+    await page.locator("#expert-bulk-clear-selection").click();
+    await expect(page.locator("#expert-bulk-toolbar")).toBeHidden();
+
+    await page.locator('[aria-controls="header-filter-experts-category"]').click();
+    const groupFilterMenu = page.locator("#header-filter-experts-category");
+    await expect(groupFilterMenu).toBeVisible();
+    const longGroupOption = groupFilterMenu.locator(".filter-option", { hasText: "Wissenschaftliche Einrichtung" });
+    await expect(longGroupOption).toBeVisible();
+    await expect(longGroupOption).toHaveCSS("white-space", "normal");
+    const longGroupMetrics = await longGroupOption.locator("span").evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth
+    }));
+    expect(longGroupMetrics.scrollWidth).toBeLessThanOrEqual(longGroupMetrics.clientWidth + 2);
+    await page.locator("body").click({ position: { x: 4, y: 4 } });
+  }
   await page.locator("#expert-list .row, #expert-list .mobile-contact-card").first().click();
+  await expect(page.locator("#detail-overview")).toBeVisible();
+  await expect(page.locator("#expert-detail-overview")).toHaveCount(0);
   await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
   await page.locator("#detail-close").click();
 
