@@ -118,6 +118,12 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
   await expect(page.locator("#expert-list .row, #expert-list .mobile-contact-card").first()).toBeVisible();
   await expect(page.locator("#experts-pagination-meta")).toContainText("Kontakten");
+  await expect(page.locator('#view-experts .page-size-shell')).toBeVisible();
+  await page.locator("#experts-page-size-select").evaluate((select) => {
+    select.value = "50";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await expect(page.locator("#experts-pagination-meta")).toContainText("1-50 von");
   await expect(page.locator("#view-select-button")).toBeHidden();
   await page.locator("#expert-list .row, #expert-list .mobile-contact-card").first().click();
   await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();

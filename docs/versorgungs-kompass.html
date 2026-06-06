@@ -1575,24 +1575,40 @@
 
       .workspace-header-search {
         display: flex;
-        justify-content: flex-end;
+        grid-column: 1 / -1;
+        justify-content: stretch;
         min-width: 0;
         width: 100%;
       }
 
       .workspace-header-search .search-shell {
-        width: min(100%, 640px);
-        min-height: 56px;
-        border-color: var(--border);
+        width: 100%;
+        min-height: 66px;
+        padding: 0 18px;
+        gap: 14px;
+        border-color: var(--border-strong);
         border-radius: var(--radius-md);
         background: var(--surface);
-        box-shadow: none;
+        box-shadow: var(--shadow-sm);
       }
 
       .workspace-header-search .search-shell svg {
-        width: 18px;
-        height: 18px;
+        width: 34px;
+        height: 34px;
+        padding: 8px;
+        border-radius: var(--radius-sm);
+        background: var(--primary-soft);
         color: var(--primary);
+      }
+
+      .workspace-header-search .search-input {
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .workspace-header-search .search-input::placeholder {
+        color: var(--text-muted);
+        font-weight: 650;
       }
 
       .workspace-expert-switcher {
@@ -1668,7 +1684,7 @@
 
       .app-shell[data-active-view="experts"] .workspace-header {
         grid-template-columns: minmax(280px, 390px) minmax(320px, 1fr);
-        gap: 12px;
+        gap: 12px 14px;
       }
 
       .summary.summary--compact {
@@ -14683,6 +14699,10 @@
           display: none !important;
         }
 
+        .app-shell[data-active-view="experts"] #view-experts .page-size-shell {
+          display: flex !important;
+        }
+
         .filter-panel {
           left: 76px;
           right: 0;
@@ -17506,6 +17526,14 @@
                 <div class="table-footer__meta" id="experts-pagination-meta">0-0 von 0 Kontakten</div>
                 <div class="table-footer__controls">
                   <div class="pagination" id="experts-pagination"></div>
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
+                    <select id="experts-page-size-select" aria-label="Einträge im Expertenkreis pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
                 </div>
               </div>
             </div>
@@ -19302,6 +19330,7 @@
       const paginationMeta = document.getElementById("pagination-meta");
       const pagination = document.getElementById("pagination");
       const pageSizeSelect = document.getElementById("page-size-select");
+      const expertPageSizeSelect = document.getElementById("experts-page-size-select");
       const activeFilterList = document.getElementById("active-filter-list");
       const filterPanelButton = document.getElementById("filter-panel-button");
       const filterButtonBadge = document.getElementById("filter-button-badge");
@@ -19544,6 +19573,22 @@
       let activeSavedViewName = "";
       let currentPage = 1;
       let pageSize = 20;
+      function syncPageSizeSelects() {
+        [pageSizeSelect, expertPageSizeSelect].forEach((select) => {
+          if (!select) return;
+          select.value = String(pageSize);
+          syncCustomSelect(select);
+        });
+      }
+
+      function applyPageSize(nextPageSize) {
+        pageSize = Number(nextPageSize) || 20;
+        currentPage = 1;
+        syncPageSizeSelects();
+        persistUserSettingPatch({ pageSize });
+        updateView();
+      }
+
       let editorMode = "create";
       let editingId = null;
       let pendingEditorOrganizationId = "";
@@ -24277,7 +24322,7 @@
 
         if (userSettings?.pageSize) {
           pageSize = Number(userSettings.pageSize) || pageSize;
-          if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
+          syncPageSizeSelects();
         }
         applyUserSettingsUi();
 
@@ -24403,7 +24448,7 @@
         selectedOrganizationContactRanges = Array.isArray(filters.organizationContactRanges) ? filters.organizationContactRanges : [];
         searchInput.value = view.searchQuery || "";
         pageSize = Number(view.pageSize || 20);
-        if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
+        syncPageSizeSelects();
         currentPage = 1;
         setActiveView(view.viewType || "contacts");
         activeSavedViewName = view.name;
@@ -24758,7 +24803,7 @@
       }
 
       function paginatedItems(items) {
-        const effectivePageSize = isMobileLayout() ? 6 : pageSize;
+        const effectivePageSize = isMobileLayout() && activeView !== "experts" ? 6 : pageSize;
         const totalPages = Math.max(1, Math.ceil(items.length / effectivePageSize));
         currentPage = Math.min(Math.max(1, currentPage), totalPages);
         const startIndex = (currentPage - 1) * effectivePageSize;
@@ -31386,11 +31431,10 @@
           renderFormatsView();
         });
       });
-      pageSizeSelect.addEventListener("change", () => {
-        pageSize = Number(pageSizeSelect.value) || 20;
-        currentPage = 1;
-        persistUserSettingPatch({ pageSize });
-        updateView();
+      [pageSizeSelect, expertPageSizeSelect].forEach((select) => {
+        select?.addEventListener("change", () => {
+          applyPageSize(select.value);
+        });
       });
       bulkClearSelection?.addEventListener("click", () => {
         selectedContactIds.clear();
