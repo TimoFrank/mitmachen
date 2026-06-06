@@ -23,8 +23,8 @@ const ROLE_MATRIX = [
   {
     role: "admin",
     label: "Admin",
-    scope: "Datenpflege, Import, Export und Demo-Reset",
-    note: "In der privaten Demo sichtbar, aber noch kein echter Zugriffsschutz."
+    scope: "Datenpflege, Import, Export und Testdaten-Reset",
+    note: "Im privaten Pilot sichtbar, aber noch kein echter Zugriffsschutz."
   },
   {
     role: "editor",
@@ -732,7 +732,7 @@ async function importPreview(input) {
     topErrors.push("CSV benoetigt eine Spalte 'name'.");
   }
   if (parsed.rows.length > IMPORT_MAX_ROWS) {
-    topErrors.push(`Maximal ${IMPORT_MAX_ROWS} Zeilen pro Demo-Import erlaubt.`);
+    topErrors.push(`Maximal ${IMPORT_MAX_ROWS} Zeilen pro Pilot-Import erlaubt.`);
   }
   const [profiles, organizations, contacts] = await Promise.all([
     listAllProfiles(),
@@ -957,7 +957,7 @@ async function getDemoSession() {
   const profile = await getDemoProfile();
   return {
     authMode: "demo-profile",
-    authModeLabel: "Demo-Profil ohne Login",
+    authModeLabel: "Pilot-Profil ohne Login",
     identitySource: DEMO_PROFILE_ID ? "GCP_DEMO_PROFILE_ID" : "erstes aktives Cloud-SQL-Profil",
     enforcement: "display-only",
     enforcementLabel: "Rollen werden angezeigt, aber noch nicht als Zugriffsschutz erzwungen.",
@@ -1034,7 +1034,7 @@ function mapChange(row) {
     oldValue: row.old_value,
     newValue: row.new_value,
     changedAt: row.changed_at,
-    changedBy: row.changed_by_label || row.changed_by || "GCP Demo"
+    changedBy: row.changed_by_label || row.changed_by || "GCP Pilot"
   };
 }
 
@@ -1485,7 +1485,7 @@ async function createOrganization(input) {
     input.phone || "",
     input.email || "",
     input.notes || input.note || "",
-    input.source || "GCP-Demo",
+    input.source || "GCP-Pilot",
     input.status || "active",
     actorId,
     actorId
@@ -1596,7 +1596,7 @@ async function createContact(input) {
       Array.isArray(input.themes) ? input.themes : Array.isArray(input.topics) ? input.topics : [],
       input.note || input.notes || "",
       input.nextStep || input.next_step || "",
-      Array.isArray(input.sources) ? input.sources.join("; ") : input.source || "GCP-Demo",
+      Array.isArray(input.sources) ? input.sources.join("; ") : input.source || "GCP-Pilot",
       normalizeImagePath(input.image || input.image_url || ""),
       input.imageSourceUrl || input.image_source_url || "",
       input.imageSourceLabel || input.image_source_label || "",
@@ -1770,9 +1770,9 @@ async function serveGcpIndex(response) {
   html = html
     .replace('<link rel="stylesheet" href="./demo.css">', `<link rel="stylesheet" href="/demo/demo.css?v=${assetVersion}">`)
     .replace('<a class="sidebar-brand" href="./index.html"', '<a class="sidebar-brand" href="/"')
-    .replace("Backendlose Demo-Version für internen Testbetrieb.", "GCP-Demo mit Cloud-SQL-Backend.")
+    .replace("Lokale Pilot-Version für internen Testbetrieb.", "GCP-Pilot mit Cloud-SQL-Backend.")
     .replace("Lokaler Browserstand", "Cloud SQL Backend")
-    .replace("Demo-Daten geladen", "Verbinde mit Cloud SQL ...")
+    .replace("Testdaten geladen", "Verbinde mit Cloud SQL ...")
     .replace('<script src="/data/demo-data.js"></script>', '<script>window.VK_DEMO_BACKEND = "api";</script>\n    <script src="/data/demo-data.js"></script>')
     .replace('<script src="./demo-app.js"></script>', `<script src="/demo/demo-app.js?v=${assetVersion}"></script>`);
   sendText(response, 200, html, "text/html; charset=utf-8");

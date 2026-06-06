@@ -2,9 +2,22 @@
   const CONTACTS_KEY = "versorgungs-kompass-demo-mode-contacts-v1";
   const CHANGES_KEY = "versorgungs-kompass-demo-mode-changes-v1";
   const SELECTED_KEY = "versorgungs-kompass-demo-mode-selected-contact-v1";
+  const CONTACT_COLUMNS_KEY = "versorgungs-kompass-gcp-pilot-contact-columns-v1";
   const ACTOR = "Demo-Testzugang";
   const API_MODE = window.VK_DEMO_BACKEND === "api";
   const data = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
+  const defaultContactColumnKeys = ["name", "organization", "category", "specialty", "location", "owner", "priority"];
+  const contactTableColumns = [
+    { key: "name", label: "Kontakt", template: "minmax(210px, 1.25fr)", required: true },
+    { key: "organization", label: "Organisation", template: "minmax(170px, 1fr)" },
+    { key: "category", label: "Sektor", template: "minmax(112px, 0.68fr)" },
+    { key: "specialty", label: "Fachrichtung", template: "minmax(150px, 0.82fr)" },
+    { key: "location", label: "Ort", template: "minmax(130px, 0.72fr)" },
+    { key: "state", label: "Bundesland", template: "minmax(142px, 0.72fr)" },
+    { key: "owner", label: "Owner", template: "minmax(128px, 0.72fr)" },
+    { key: "priority", label: "Priorität", template: "minmax(106px, 0.56fr)" },
+    { key: "updated", label: "Aktualisiert", template: "minmax(122px, 0.58fr)" }
+  ];
 
   const state = {
     view: "contacts",
@@ -33,8 +46,12 @@
       query: "",
       sector: "",
       state: "",
+      specialty: "",
       ownerId: ""
     },
+    visibleContactColumns: loadVisibleContactColumns(),
+    filterPanelOpen: false,
+    columnMenuOpen: false,
     editMode: false,
     createMode: false,
     organizationEditMode: false,
@@ -74,6 +91,26 @@
 
   function organizationItems() {
     return state.organizations.length ? state.organizations : data.organizations || [];
+  }
+
+  function loadVisibleContactColumns() {
+    try {
+      const allowed = new Set(contactTableColumns.map((column) => column.key));
+      const saved = JSON.parse(window.localStorage.getItem(CONTACT_COLUMNS_KEY) || "null");
+      const normalized = Array.isArray(saved) ? saved.filter((key) => allowed.has(key)) : [];
+      if (normalized.length) {
+        return contactTableColumns
+          .filter((column) => column.required || normalized.includes(column.key))
+          .map((column) => column.key);
+      }
+    } catch (error) {
+      console.warn("Spalteneinstellungen konnten nicht geladen werden.", error);
+    }
+    return [...defaultContactColumnKeys];
+  }
+
+  function persistVisibleContactColumns() {
+    window.localStorage.setItem(CONTACT_COLUMNS_KEY, JSON.stringify(state.visibleContactColumns));
   }
 
   function readStored(key) {
@@ -120,7 +157,7 @@
   }
 
   function roleDescription(role) {
-    if (role === "admin") return "Datenpflege, Import, Export und Demo-Reset";
+    if (role === "admin") return "Datenpflege, Import, Export und Testdaten-Reset";
     if (role === "editor") return "Kontakte und Organisationen pflegen";
     if (role === "viewer") return "Lesen, suchen, filtern und Karte nutzen";
     return "Nicht hinterlegt";
@@ -133,7 +170,7 @@
 
   function roleMatrixItems() {
     return state.session?.roleMatrix || [
-      { role: "admin", label: "Admin", scope: roleDescription("admin"), note: "In der Demo sichtbar, aber nicht erzwungen." },
+      { role: "admin", label: "Admin", scope: roleDescription("admin"), note: "Im Pilot sichtbar, aber nicht erzwungen." },
       { role: "editor", label: "Editor", scope: roleDescription("editor"), note: "Später für normale CRM-Pflege geeignet." },
       { role: "viewer", label: "Viewer", scope: roleDescription("viewer"), note: "Später für reine Leserechte geeignet." }
     ];
@@ -146,8 +183,8 @@
   function buildLocalSession() {
     return {
       authMode: API_MODE ? "demo-profile" : "local-demo-profile",
-      authModeLabel: API_MODE ? "Demo-Profil ohne Login" : "Lokales Demo-Profil",
-      identitySource: API_MODE ? "Cloud SQL" : "Demo-Daten",
+      authModeLabel: API_MODE ? "Pilot-Profil ohne Login" : "Lokales Pilot-Profil",
+      identitySource: API_MODE ? "Cloud SQL" : "Testdaten",
       enforcement: "display-only",
       enforcementLabel: "Rollen werden angezeigt, aber noch nicht als Zugriffsschutz erzwungen.",
       profile: currentDemoProfile(),
@@ -382,6 +419,7 @@
       if (query && !haystack.includes(query)) return false;
       if (state.filters.sector && contact.category !== state.filters.sector) return false;
       if (state.filters.state && contact.state !== state.filters.state) return false;
+      if (state.filters.specialty && contact.specialty !== state.filters.specialty) return false;
       if (state.filters.ownerId && contact.ownerId !== state.filters.ownerId) return false;
       return true;
     });
@@ -396,25 +434,171 @@
     return `<span class="avatar avatar-${size}" aria-hidden="true">${escapeHtml(initials(contact.name))}</span>`;
   }
 
-  function renderToolbar() {
+  function visibleContactTableColumns() {
+    const visible = new Set(state.visibleContactColumns);
+    return contactTableColumns.filter((column) => column.required || visible.has(column.key));
+  }
+
+  function contactGridTemplate(columns = visibleContactTableColumns()) {
+    return columns.map((column) => column.template).join(" ");
+  }
+
+  function activeFilterItems() {
+    const items = [];
+    if (state.filters.query.trim()) items.push({ key: "query", label: "Suche", value: state.filters.query.trim() });
+    if (state.filters.sector) items.push({ key: "sector", label: "Sektor", value: state.filters.sector });
+    if (state.filters.state) items.push({ key: "state", label: "Bundesland", value: state.filters.state });
+    if (state.filters.specialty) items.push({ key: "specialty", label: "Fachrichtung", value: state.filters.specialty });
+    if (state.filters.ownerId) items.push({ key: "ownerId", label: "Owner", value: profileLabel(state.filters.ownerId) });
+    if (state.showArchived) items.push({ key: "archived", label: "Archiv", value: "sichtbar" });
+    return items;
+  }
+
+  function resetContactFilters() {
+    state.filters = {
+      query: "",
+      sector: "",
+      state: "",
+      specialty: "",
+      ownerId: ""
+    };
+    state.showArchived = false;
+    const visible = filteredContacts();
+    state.selectedId = visible[0]?.id || "";
+  }
+
+  function formatShortDate(value) {
+    if (!value) return "Nicht hinterlegt";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Nicht hinterlegt";
+    return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(date);
+  }
+
+  function contactLocation(contact) {
+    return [contact.city, contact.state].filter(Boolean).join(", ");
+  }
+
+  function columnHeaderMarkup(column) {
+    return `<span class="column-head__label">${escapeHtml(column.label)}</span>`;
+  }
+
+  function renderColumnMenu() {
+    return `
+      <div class="column-menu-shell">
+        <button class="button button--secondary button--compact" type="button" id="columns-toggle" aria-expanded="${state.columnMenuOpen ? "true" : "false"}" aria-controls="columns-menu">
+          <span class="button-icon" aria-hidden="true">▦</span>
+          <span>Spalten</span>
+        </button>
+        <div class="column-menu" id="columns-menu" ${state.columnMenuOpen ? "" : "hidden"}>
+          <div class="column-menu__title">Sichtbare Spalten</div>
+          <div class="column-menu__options">
+            ${contactTableColumns.map((column) => `
+              <label class="column-option">
+                <input type="checkbox" data-column-key="${escapeHtml(column.key)}" ${state.visibleContactColumns.includes(column.key) || column.required ? "checked" : ""} ${column.required ? "disabled" : ""}>
+                <span>${escapeHtml(column.label)}</span>
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderActiveFilterRow(contacts) {
+    const items = activeFilterItems();
+    return `
+      <div class="active-filter-row">
+        <span class="filter-results">${contacts.length} Kontakt${contacts.length === 1 ? "" : "e"}</span>
+        <div class="active-filter-list" aria-label="Aktive Filter">
+          ${items.length ? items.map((item) => `
+            <span class="active-filter-chip">
+              ${escapeHtml(`${item.label}: ${item.value}`)}
+              <button type="button" data-clear-filter="${escapeHtml(item.key)}" aria-label="${escapeHtml(`${item.label} entfernen`)}">×</button>
+            </span>
+          `).join("") : '<span class="active-filter-empty">Keine aktiven Filter</span>'}
+        </div>
+        <button class="button button--ghost filter-reset" type="button" id="filter-reset-all" ${items.length ? "" : "hidden"}>Zurücksetzen</button>
+      </div>
+    `;
+  }
+
+  function renderFilterPanel() {
     const sectors = uniqueValues("category");
     const states = uniqueValues("state");
+    const specialties = uniqueValues("specialty");
     const owners = profileItems().filter((profile) => profile.active !== false);
     return `
-      <div class="toolbar">
-        <input class="input" id="filter-query" type="search" value="${escapeHtml(state.filters.query)}" placeholder="Kontakte suchen">
-        <select class="select" id="filter-sector" aria-label="Sektor">
-          <option value="">Alle Sektoren</option>
-          ${sectors.map((sector) => `<option value="${escapeHtml(sector)}" ${sector === state.filters.sector ? "selected" : ""}>${escapeHtml(sector)}</option>`).join("")}
-        </select>
-        <select class="select" id="filter-state" aria-label="Bundesland">
-          <option value="">Alle Bundesländer</option>
-          ${states.map((item) => `<option value="${escapeHtml(item)}" ${item === state.filters.state ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}
-        </select>
-        <select class="select" id="filter-owner" aria-label="Owner">
-          <option value="">Alle Owner</option>
-          ${owners.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === state.filters.ownerId ? "selected" : ""}>${escapeHtml(profile.display_name)}</option>`).join("")}
-        </select>
+      <div class="filter-popover" id="filter-panel" ${state.filterPanelOpen ? "" : "hidden"}>
+        <div class="filter-panel-head">
+          <div>
+            <h2>Filter</h2>
+            <p>Sektor, Bundesland, Fachrichtung und Owner eingrenzen.</p>
+          </div>
+          <button class="icon-button" type="button" id="filter-close" aria-label="Filter schließen">×</button>
+        </div>
+        <div class="filter-panel-grid">
+          <div class="form-field">
+            <label for="filter-sector">Sektor</label>
+            <select class="select" id="filter-sector" aria-label="Sektor">
+              <option value="">Alle Sektoren</option>
+              ${sectors.map((sector) => `<option value="${escapeHtml(sector)}" ${sector === state.filters.sector ? "selected" : ""}>${escapeHtml(sector)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="filter-state">Bundesland</label>
+            <select class="select" id="filter-state" aria-label="Bundesland">
+              <option value="">Alle Bundesländer</option>
+              ${states.map((item) => `<option value="${escapeHtml(item)}" ${item === state.filters.state ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="filter-specialty">Fachrichtung</label>
+            <select class="select" id="filter-specialty" aria-label="Fachrichtung">
+              <option value="">Alle Fachrichtungen</option>
+              ${specialties.map((item) => `<option value="${escapeHtml(item)}" ${item === state.filters.specialty ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="filter-owner">Owner</label>
+            <select class="select" id="filter-owner" aria-label="Owner">
+              <option value="">Alle Owner</option>
+              ${owners.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === state.filters.ownerId ? "selected" : ""}>${escapeHtml(profile.display_name)}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="filter-panel-footer">
+          <button class="button button--secondary" type="button" id="filter-panel-reset">Zurücksetzen</button>
+          <button class="button button--primary" type="button" id="filter-apply">Anwenden</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderContactCommandBar(contacts) {
+    const filterCount = activeFilterItems().length;
+    const archivedCount = state.contacts.filter((contact) => contact.status === "archived").length;
+    return `
+      <div class="contact-command">
+        <div class="contact-command__top">
+          <label class="search-shell" for="filter-query">
+            <span class="search-shell__icon" aria-hidden="true">⌕</span>
+            <input class="search-input" id="filter-query" type="search" value="${escapeHtml(state.filters.query)}" placeholder="Kontakte, Organisationen, Orte suchen">
+          </label>
+          <div class="contact-command__actions">
+            ${API_MODE ? `<button class="button button--primary" type="button" id="create-contact">Kontakt anlegen</button>` : ""}
+            ${API_MODE ? `<button class="button button--secondary" type="button" id="toggle-archived">${state.showArchived ? "Aktive anzeigen" : `Archiv (${archivedCount})`}</button>` : ""}
+            <div class="filter-shell">
+              <button class="button button--secondary button--compact" type="button" id="filter-toggle" aria-expanded="${state.filterPanelOpen ? "true" : "false"}" aria-controls="filter-panel">
+                <span class="button-icon" aria-hidden="true">☰</span>
+                <span>Filter</span>
+                ${filterCount ? `<span class="button-badge">${filterCount}</span>` : ""}
+              </button>
+              ${renderFilterPanel()}
+            </div>
+            ${renderColumnMenu()}
+          </div>
+        </div>
+        ${renderActiveFilterRow(contacts)}
       </div>
     `;
   }
@@ -436,31 +620,26 @@
     const contacts = filteredContacts();
     const highCount = contacts.filter((contact) => contact.priority === "Hoch").length;
     const missingOwner = contacts.filter((contact) => !contact.ownerId).length;
-    const archivedCount = state.contacts.filter((contact) => contact.status === "archived").length;
+    const columns = visibleContactTableColumns();
+    const gridTemplate = contactGridTemplate(columns);
     elements.title.textContent = "Kontakte";
     elements.subtitle.textContent = API_MODE
-      ? "Kontakte suchen, filtern, lesen und Änderungen in Cloud SQL speichern."
-      : "Kontakte suchen, filtern, lesen und Demo-Änderungen lokal simulieren.";
+      ? "Kontakte suchen, filtern, lesen und in Cloud SQL pflegen."
+      : "Kontakte suchen, filtern, lesen und Teständerungen lokal simulieren.";
     elements.main.innerHTML = `
-      ${renderToolbar()}
+      ${renderContactCommandBar(contacts)}
       <div class="summary-strip">
         <span class="metric"><strong>${contacts.length}</strong> Kontakte</span>
         <span class="metric"><strong>${highCount}</strong> hohe Priorität</span>
         <span class="metric"><strong>${missingOwner}</strong> ohne Owner</span>
-        ${API_MODE ? `<button class="button button--secondary" type="button" id="create-contact">Kontakt anlegen</button>` : ""}
-        ${API_MODE ? `<button class="button button--secondary" type="button" id="toggle-archived">${state.showArchived ? "Aktive anzeigen" : `Archiv anzeigen (${archivedCount})`}</button>` : ""}
       </div>
-      <div class="contact-list">
+      <div class="contact-list contact-table" style="--contact-grid-template: ${escapeHtml(gridTemplate)}">
         <div class="list-head" aria-hidden="true">
-          <span>Kontakt</span>
-          <span>Organisation</span>
-          <span>Sektor</span>
-          <span>Owner</span>
-          <span>Priorität</span>
+          ${columns.map((column) => `<span class="cell cell--${escapeHtml(column.key)}">${columnHeaderMarkup(column)}</span>`).join("")}
         </div>
         ${
           contacts.length
-            ? contacts.map(renderContactRow).join("")
+            ? contacts.map((contact) => renderContactRow(contact, columns)).join("")
             : '<div class="empty-state">Keine Kontakte für diese Filter.</div>'
         }
       </div>
@@ -468,11 +647,10 @@
     setTimeout(syncMapFrame, 0);
   }
 
-  function renderContactRow(contact) {
-    const active = contact.id === state.selectedId ? " is-active" : "";
+  function contactTableCellMarkup(contact, key) {
     const priority = contact.status === "archived" ? "Archiviert" : contact.priority;
-    return `
-      <button class="contact-row${active}" type="button" data-contact-id="${escapeHtml(contact.id)}">
+    if (key === "name") {
+      return `
         <span class="person-cell">
           ${avatar(contact)}
           <span>
@@ -480,12 +658,52 @@
             <span>${escapeHtml(contact.contactRole || "Rolle nicht hinterlegt")}</span>
           </span>
         </span>
-        <span class="cell">${escapeHtml(contact.organization || "Nicht hinterlegt")}</span>
-        <span class="cell">${escapeHtml(contact.category || "Nicht hinterlegt")}</span>
-        <span class="cell">${escapeHtml(profileLabel(contact.ownerId))}</span>
-        <span class="cell"><span class="${priorityClass(priority)}">${escapeHtml(priority)}</span></span>
+      `;
+    }
+    if (key === "organization") return escapeHtml(contact.organization || "Nicht hinterlegt");
+    if (key === "category") return escapeHtml(contact.category || "Nicht hinterlegt");
+    if (key === "specialty") return escapeHtml(contact.specialty || "Nicht hinterlegt");
+    if (key === "location") return escapeHtml(contactLocation(contact) || "Nicht hinterlegt");
+    if (key === "state") return escapeHtml(contact.state || "Nicht hinterlegt");
+    if (key === "owner") return escapeHtml(profileLabel(contact.ownerId));
+    if (key === "priority") return `<span class="${priorityClass(priority)}">${escapeHtml(priority)}</span>`;
+    if (key === "updated") return `<span class="contact-date">${escapeHtml(formatShortDate(contact.updatedAt || contact.createdAt))}</span>`;
+    return "";
+  }
+
+  function renderContactRow(contact, columns = visibleContactTableColumns()) {
+    const active = contact.id === state.selectedId ? " is-active" : "";
+    return `
+      <button class="contact-row${active}" type="button" data-contact-id="${escapeHtml(contact.id)}">
+        ${columns.map((column) => `
+          <span class="cell cell--${escapeHtml(column.key)}" data-label="${escapeHtml(column.label)}">
+            ${contactTableCellMarkup(contact, column.key)}
+          </span>
+        `).join("")}
       </button>
     `;
+  }
+
+  function detailLine(label, value, { html = false } = {}) {
+    const isEmpty = value == null || value === "";
+    return `
+      <div class="detail-line${isEmpty ? " detail-line--empty" : ""}">
+        <span class="detail-line__label">${escapeHtml(label)}</span>
+        <span class="detail-line__value${isEmpty ? " detail-line__value--muted" : ""}">${isEmpty ? "Nicht hinterlegt" : html ? value : escapeHtml(value)}</span>
+      </div>
+    `;
+  }
+
+  function detailLink(value, hrefPrefix = "") {
+    if (!value) return "";
+    const text = String(value);
+    return `<a href="${escapeHtml(`${hrefPrefix}${text}`)}">${escapeHtml(text)}</a>`;
+  }
+
+  function externalDetailLink(value) {
+    if (!value) return "";
+    const url = String(value).startsWith("http") ? String(value) : `https://${value}`;
+    return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
   }
 
   function renderDetail() {
@@ -510,35 +728,44 @@
 
     const changes = changesForContact(contact.id).slice(0, 5);
     elements.detail.innerHTML = `
-      <div class="detail-top">
-        ${avatar(contact, "lg")}
-        <div class="detail-title">
-          <h2>${escapeHtml(contact.name)}</h2>
-          <p>${escapeHtml(contact.organization || "Organisation nicht hinterlegt")}</p>
-          <p>${escapeHtml([contact.city, contact.state].filter(Boolean).join(", ") || "Standort nicht hinterlegt")}</p>
+      <div class="detail-profile">
+        <div class="detail-profile-top">
+          <div class="detail-profile-main">
+            ${avatar(contact, "lg")}
+            <div class="detail-profile-copy">
+              <h2>${escapeHtml(contact.name)}</h2>
+              <p class="detail-profile-role">${escapeHtml(contact.contactRole || "Rolle nicht hinterlegt")}</p>
+              <p>${escapeHtml(contact.organization || "Organisation nicht hinterlegt")}</p>
+              <p>${escapeHtml(contactLocation(contact) || "Standort nicht hinterlegt")}</p>
+            </div>
+          </div>
+          <div class="detail-profile-meta">
+            <span class="${priorityClass(contact.status === "archived" ? "Archiviert" : contact.priority)}">${escapeHtml(contact.status === "archived" ? "Archiviert" : contact.priority)}</span>
+            <span class="chip">${escapeHtml(profileLabel(contact.ownerId))}</span>
+          </div>
         </div>
-      </div>
-      <div class="detail-actions">
-        <button class="button button--primary" type="button" id="edit-contact">Bearbeiten</button>
-        <button class="button button--secondary" type="button" id="quick-owner">Owner wechseln</button>
-        ${API_MODE ? `<button class="button button--secondary" type="button" id="archive-contact">${contact.status === "archived" ? "Wiederherstellen" : "Archivieren"}</button>` : ""}
+        <div class="detail-profile-actions">
+          <button class="button button--primary" type="button" id="edit-contact">Bearbeiten</button>
+          <button class="button button--secondary" type="button" id="quick-owner">Owner wechseln</button>
+          ${API_MODE ? `<button class="button button--secondary" type="button" id="archive-contact">${contact.status === "archived" ? "Wiederherstellen" : "Archivieren"}</button>` : ""}
+        </div>
       </div>
       <section class="detail-section">
         <h3>Einordnung</h3>
-        <div class="meta-grid">
-          ${detailRow("Rolle", contact.contactRole)}
-          ${detailRow("Fachrichtung", contact.specialty)}
-          ${detailRow("Sektor", contact.category)}
-          ${detailRow("Priorität", contact.priority)}
-          ${detailRow("Owner", profileLabel(contact.ownerId))}
+        <div class="detail-line-list">
+          ${detailLine("Rolle", contact.contactRole)}
+          ${detailLine("Fachrichtung", contact.specialty)}
+          ${detailLine("Sektor", contact.category)}
+          ${detailLine("Standort", contactLocation(contact))}
+          ${detailLine("Owner", profileLabel(contact.ownerId))}
         </div>
       </section>
       <section class="detail-section">
         <h3>Kontaktwege</h3>
-        <div class="meta-grid">
-          ${detailRow("E-Mail", contact.email)}
-          ${detailRow("Telefon", contact.phone)}
-          ${detailRow("LinkedIn", contact.linkedin)}
+        <div class="detail-line-list">
+          ${detailLine("E-Mail", detailLink(contact.email, "mailto:"), { html: true })}
+          ${detailLine("Telefon", detailLink(contact.phone, "tel:"), { html: true })}
+          ${detailLine("LinkedIn", externalDetailLink(contact.linkedin), { html: true })}
         </div>
       </section>
       <section class="detail-section">
@@ -549,24 +776,27 @@
       </section>
       <section class="detail-section">
         <h3>Notiz</h3>
-        <p class="muted">${escapeHtml(contact.note || "Nicht hinterlegt")}</p>
+        <div class="detail-note-stack">
+          <p class="detail-note">${escapeHtml(contact.note || "Nicht hinterlegt")}</p>
+          ${contact.nextStep ? `<p class="detail-note"><strong>Nächster Schritt:</strong> ${escapeHtml(contact.nextStep)}</p>` : ""}
+        </div>
       </section>
       <section class="detail-section">
         <h3>Bild & Quelle</h3>
-        <div class="meta-grid">
-          ${detailRow("Quelle", contact.imageSourceLabel || (contact.image ? "Demo-Asset" : ""))}
-          ${detailRow("Hinweis", contact.imageRightsNote)}
-          ${detailRow("Ablage", contact.imageStoragePath ? "Cloud Storage" : contact.image ? "App-Asset" : "")}
+        <div class="detail-line-list">
+          ${detailLine("Quelle", contact.imageSourceLabel || (contact.image ? "App-Asset" : ""))}
+          ${detailLine("Hinweis", contact.imageRightsNote)}
+          ${detailLine("Ablage", contact.imageStoragePath ? "Cloud Storage" : contact.image ? "App-Asset" : "")}
         </div>
         ${API_MODE ? `
-          <form class="form-grid" id="contact-image-form">
+          <form class="form-grid image-form" id="contact-image-form">
             <div class="form-field">
               <label for="field-contact-image">Bilddatei</label>
               <input class="input" id="field-contact-image" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml">
             </div>
             ${inputField("imageSourceLabel", "Quelle", contact.imageSourceLabel || "Cloud Storage")}
-            ${inputField("imageRightsNote", "Rechtehinweis", contact.imageRightsNote || "Demo-/freigegebenes Bild")}
-            <div class="detail-actions">
+            ${inputField("imageRightsNote", "Rechtehinweis", contact.imageRightsNote || "Freigegebenes Bild")}
+            <div class="image-form__actions">
               <button class="button button--primary" type="submit">Bild hochladen</button>
               ${contact.image ? '<button class="button button--secondary" type="button" id="remove-contact-image">Bild entfernen</button>' : ""}
             </div>
@@ -849,7 +1079,7 @@
     elements.title.textContent = "Organisationen";
     elements.subtitle.textContent = API_MODE
       ? "Organisationen und Kontaktverteilung aus Cloud SQL."
-      : "Organisationen und Kontaktverteilung aus dem Demo-Datenbestand.";
+      : "Organisationen und Kontaktverteilung aus dem lokalen Testdatenbestand.";
     const orgs = organizationItems().map((organization) => ({
       ...organization,
       contactCount: state.contacts.filter((contact) => contact.organizationId === organization.id && contact.status !== "archived").length
@@ -887,7 +1117,7 @@
     elements.title.textContent = "Aktivität";
     elements.subtitle.textContent = API_MODE
       ? "Serverseitiger Änderungsverlauf für Bearbeitung und Ownerwechsel."
-      : "Lokaler Änderungsverlauf für Demo-Bearbeitung und Ownerwechsel.";
+      : "Lokaler Änderungsverlauf für Testbearbeitung und Ownerwechsel.";
     const rows = [...state.changes]
       .sort((left, right) => new Date(right.changedAt).getTime() - new Date(left.changedAt).getTime())
       .slice(0, 30);
@@ -903,7 +1133,7 @@
           return `
             <div class="activity-row">
               <span>${escapeHtml(asDate(change.changedAt))}</span>
-              <strong>${escapeHtml(contact?.name || "Demo-Kontakt")}</strong>
+              <strong>${escapeHtml(contact?.name || "Kontakt")}</strong>
               <span>${escapeHtml(field)}: ${escapeHtml(displayValue(change.fieldName, change.newValue))}</span>
             </div>
           `;
@@ -916,8 +1146,8 @@
     elements.title.textContent = "Karte";
     elements.subtitle.textContent = API_MODE
       ? "Original-Kartenmodus mit Kontakten aus Cloud SQL."
-      : "Original-Kartenmodus mit denselben Demo-Kontakten.";
-    elements.status.textContent = API_MODE ? "Original-Kartenmodus mit Cloud-SQL-Daten" : "Original-Kartenmodus mit Demo-Daten";
+      : "Original-Kartenmodus mit denselben Testkontakten.";
+    elements.status.textContent = API_MODE ? "Original-Kartenmodus mit Cloud-SQL-Daten" : "Original-Kartenmodus mit Testdaten";
     saveState();
     elements.main.innerHTML = `
       <div class="map-frame-shell">
@@ -934,8 +1164,8 @@
   function renderOpsView() {
     elements.title.textContent = "Betrieb";
     elements.subtitle.textContent = API_MODE
-      ? "Kompakter Status für die private Cloud-Run-Demo."
-      : "Lokaler Demo-Status für den Browserstand.";
+      ? "Kompakter Status für den privaten Cloud-Run-Pilot."
+      : "Lokaler Pilot-Status für den Browserstand.";
     if (!API_MODE) {
       const activeContacts = state.contacts.filter((contact) => contact.status !== "archived").length;
       elements.main.innerHTML = `
@@ -951,7 +1181,7 @@
           </div>
         </div>
       `;
-      elements.detail.innerHTML = '<div class="detail-empty">Betriebschecks sind in der GCP-Demo aktiv.</div>';
+      elements.detail.innerHTML = '<div class="detail-empty">Betriebschecks sind im GCP-Pilot aktiv.</div>';
       return;
     }
 
@@ -1039,13 +1269,13 @@
     const role = profile?.role || "editor";
     elements.title.textContent = "Mein Profil";
     elements.subtitle.textContent = API_MODE
-      ? "Demo-Akteur und Rollenmodell aus Cloud SQL."
-      : "Lokales Demo-Profil ohne zentrale Anmeldung.";
+      ? "Pilot-Akteur und Rollenmodell aus Cloud SQL."
+      : "Lokales Pilot-Profil ohne zentrale Anmeldung.";
     elements.main.innerHTML = `
       <div class="summary-strip">
-        <span class="metric"><strong>${escapeHtml(profile?.display_name || "Demo-Profil")}</strong></span>
+        <span class="metric"><strong>${escapeHtml(profile?.display_name || "Pilot-Profil")}</strong></span>
         <span class="metric"><strong>${escapeHtml(roleLabel(role))}</strong> Rolle</span>
-        <span class="metric"><strong>${escapeHtml(session.authModeLabel || "Demo-Profil")}</strong></span>
+        <span class="metric"><strong>${escapeHtml(session.authModeLabel || "Pilot-Profil")}</strong></span>
         <span class="metric"><strong>${escapeHtml(profiles.length)}</strong> aktive Profile</span>
       </div>
       <div class="profile-workbench">
@@ -1053,11 +1283,11 @@
           <div class="profile-identity">
             ${profileAvatar(profile)}
             <div class="profile-copy">
-              <h2>${escapeHtml(profile?.display_name || "Demo-Profil")}</h2>
+              <h2>${escapeHtml(profile?.display_name || "Pilot-Profil")}</h2>
               <p>${escapeHtml(profile?.email || "Keine E-Mail hinterlegt")}</p>
               <div class="chip-list">
                 <span class="chip">${escapeHtml(roleLabel(role))}</span>
-                <span class="chip">${escapeHtml(profile?.team || "Demo-Team")}</span>
+                <span class="chip">${escapeHtml(profile?.team || "Pilot-Team")}</span>
               </div>
             </div>
           </div>
@@ -1119,7 +1349,7 @@
       </section>
       <section class="detail-section">
         <h3>Audit</h3>
-        <p class="muted">Schreibende Aktionen werden in Cloud SQL weiterhin dem Demo-Akteur zugeordnet. Diese Zuordnung ist fachlich sichtbar, aber noch keine echte Nutzeranmeldung.</p>
+        <p class="muted">Schreibende Aktionen werden in Cloud SQL weiterhin dem Pilot-Akteur zugeordnet. Diese Zuordnung ist fachlich sichtbar, aber noch keine echte Nutzeranmeldung.</p>
       </section>
       <section class="detail-section">
         <h3>Späterer Anschluss</h3>
@@ -1136,7 +1366,7 @@
     elements.title.textContent = "Importe";
     elements.subtitle.textContent = API_MODE
       ? "Kontakte kontrolliert in Cloud SQL übernehmen."
-      : "Lokaler Importentwurf für die spätere GCP-Demo.";
+      : "Lokaler Importentwurf für die spätere GCP-Pilotversion.";
     const preview = state.importPreview;
     const summary = preview?.summary || {};
     const rows = Array.isArray(preview?.rows) ? preview.rows : [];
@@ -1280,11 +1510,74 @@
     const query = document.getElementById("filter-query");
     const sector = document.getElementById("filter-sector");
     const stateSelect = document.getElementById("filter-state");
+    const specialty = document.getElementById("filter-specialty");
     const owner = document.getElementById("filter-owner");
     if (query) query.addEventListener("input", (event) => updateFilter("query", event.target.value));
     if (sector) sector.addEventListener("change", (event) => updateFilter("sector", event.target.value));
     if (stateSelect) stateSelect.addEventListener("change", (event) => updateFilter("state", event.target.value));
+    if (specialty) specialty.addEventListener("change", (event) => updateFilter("specialty", event.target.value));
     if (owner) owner.addEventListener("change", (event) => updateFilter("ownerId", event.target.value));
+
+    document.getElementById("filter-toggle")?.addEventListener("click", () => {
+      state.filterPanelOpen = !state.filterPanelOpen;
+      state.columnMenuOpen = false;
+      render();
+    });
+
+    document.getElementById("filter-close")?.addEventListener("click", () => {
+      state.filterPanelOpen = false;
+      render();
+    });
+
+    document.getElementById("filter-apply")?.addEventListener("click", () => {
+      state.filterPanelOpen = false;
+      render();
+    });
+
+    document.getElementById("filter-reset-all")?.addEventListener("click", () => {
+      resetContactFilters();
+      state.filterPanelOpen = false;
+      render();
+    });
+
+    document.getElementById("filter-panel-reset")?.addEventListener("click", () => {
+      resetContactFilters();
+      render();
+    });
+
+    document.querySelectorAll("[data-clear-filter]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        const key = event.currentTarget.dataset.clearFilter;
+        if (key === "archived") state.showArchived = false;
+        else if (key && key in state.filters) state.filters[key] = "";
+        const visible = filteredContacts();
+        state.selectedId = visible[0]?.id || "";
+        render();
+      });
+    });
+
+    document.getElementById("columns-toggle")?.addEventListener("click", () => {
+      state.columnMenuOpen = !state.columnMenuOpen;
+      state.filterPanelOpen = false;
+      render();
+    });
+
+    document.querySelectorAll("[data-column-key]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        const key = event.currentTarget.dataset.columnKey;
+        const column = contactTableColumns.find((item) => item.key === key);
+        if (!column || column.required) return;
+        if (event.currentTarget.checked) {
+          state.visibleContactColumns = contactTableColumns
+            .filter((item) => item.required || state.visibleContactColumns.includes(item.key) || item.key === key)
+            .map((item) => item.key);
+        } else {
+          state.visibleContactColumns = state.visibleContactColumns.filter((item) => item !== key);
+        }
+        persistVisibleContactColumns();
+        render();
+      });
+    });
 
     document.getElementById("refresh-ops")?.addEventListener("click", () => {
       state.opsError = "";
@@ -1302,7 +1595,7 @@
 
     document.getElementById("insert-import-sample")?.addEventListener("click", () => {
       state.importText = sampleImportCsv();
-      state.importFileName = "demo-import.csv";
+      state.importFileName = "pilot-import.csv";
       state.importPreview = null;
       state.importResult = null;
       state.importError = "";
@@ -1373,6 +1666,8 @@
         state.selectedId = button.dataset.contactId;
         state.editMode = false;
         state.createMode = false;
+        state.filterPanelOpen = false;
+        state.columnMenuOpen = false;
         saveState();
         render();
       });
@@ -1497,7 +1792,7 @@
     state.contacts = state.contacts.map((item) => (item.id === contact.id ? normalizeContact(next) : item));
     state.editMode = false;
     saveState();
-    elements.status.textContent = `${changed.length} Demo-Änderung${changed.length === 1 ? "" : "en"} lokal gespeichert`;
+    elements.status.textContent = `${changed.length} Teständerung${changed.length === 1 ? "" : "en"} lokal gespeichert`;
     render();
   }
 
@@ -1822,6 +2117,8 @@
         state.organizationCreateMode = false;
         state.organizationEditMode = false;
         state.opsError = "";
+        state.filterPanelOpen = false;
+        state.columnMenuOpen = false;
         render();
       });
     });
@@ -1833,12 +2130,14 @@
       state.organizationCreateMode = false;
       state.organizationEditMode = false;
       state.opsError = "";
+      state.filterPanelOpen = false;
+      state.columnMenuOpen = false;
       render();
     });
 
     elements.reset.addEventListener("click", async () => {
       if (API_MODE) {
-        elements.status.textContent = "Setze Cloud-SQL-Demo zurück ...";
+        elements.status.textContent = "Setze Cloud-SQL-Testdaten zurück ...";
         try {
           await apiRequest("/api/reset-demo", { method: "POST", body: "{}" });
           await loadBackendState();
@@ -1853,7 +2152,7 @@
           state.importRuns = [];
           clearImportDraft();
           state.view = "contacts";
-          elements.status.textContent = "Cloud-SQL-Demo zurückgesetzt";
+          elements.status.textContent = "Cloud-SQL-Testdaten zurückgesetzt";
           render();
         } catch (error) {
           console.error(error);
@@ -1876,7 +2175,7 @@
       state.importRuns = [];
       clearImportDraft();
       state.view = "contacts";
-      elements.status.textContent = "Demo-Daten zurückgesetzt";
+      elements.status.textContent = "Testdaten zurückgesetzt";
       render();
     });
 
@@ -1920,8 +2219,14 @@
       const statusButton = document.getElementById("sidebar-demo-status");
       const statusTitle = statusButton?.querySelector("strong");
       const statusHint = statusButton?.querySelector("span:last-child");
-      if (statusTitle) statusTitle.textContent = "GCP Demo";
+      const statusBadge = statusButton?.querySelector(".sidebar-footer__badge");
+      if (statusTitle) statusTitle.textContent = "GCP Pilot";
       if (statusHint) statusHint.textContent = "Cloud SQL Backend";
+      if (statusBadge) statusBadge.textContent = "GP";
+      if (elements.reset) {
+        elements.reset.textContent = "Testdaten zurücksetzen";
+        elements.reset.setAttribute("title", "Cloud-SQL-Testdaten zurücksetzen");
+      }
     }
     attachGlobalEvents();
     render();
