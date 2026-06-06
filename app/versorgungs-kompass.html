@@ -1561,7 +1561,7 @@
       }
 
       .app-shell[data-active-view="experts"] .workspace-header {
-        grid-template-columns: minmax(300px, max-content) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         align-items: start;
       }
 
@@ -1585,7 +1585,7 @@
         padding: 5px;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
-        background: var(--surface);
+        background: var(--surface-muted);
       }
 
       .experts-mode-nav--header .settings-tab-button {
@@ -1597,8 +1597,10 @@
         min-height: 46px;
         padding: 7px 14px;
         border: 1px solid transparent;
-        border-bottom: 0;
+        border-bottom: 1px solid transparent;
         border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-secondary);
         font-size: var(--font-size-md);
         font-weight: 900;
         line-height: 1.05;
@@ -1608,13 +1610,14 @@
       .experts-mode-nav--header .settings-tab-button:hover,
       .experts-mode-nav--header .settings-tab-button:focus-visible {
         border-color: var(--border-strong);
-        background: var(--surface-muted);
+        background: var(--surface);
+        color: var(--text-primary);
       }
 
       .experts-mode-nav--header .settings-tab-button.is-active {
         border-color: var(--primary);
-        background: var(--primary);
-        color: var(--surface);
+        background: var(--primary-soft);
+        color: var(--primary);
       }
 
       .experts-mode-label,
@@ -1629,8 +1632,12 @@
       }
 
       .experts-mode-nav--header .settings-tab-button.is-active .experts-mode-count {
-        color: var(--surface);
-        opacity: 0.86;
+        color: var(--primary);
+        opacity: 0.78;
+      }
+
+      .app-shell[data-active-view="experts"] #summary-grid {
+        display: none;
       }
 
       .summary.summary--compact {
@@ -17168,11 +17175,11 @@
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Expertenkreis-Listen">
               <button class="settings-tab-button is-active" type="button" role="tab" data-expert-mode="contacts" aria-selected="true" aria-controls="expert-contacts-table">
                 <span class="experts-mode-label">Kontakte </span>
-                <span class="experts-mode-count">(0)</span>
+                <span class="experts-mode-count">0</span>
               </button>
               <button class="settings-tab-button" type="button" role="tab" data-expert-mode="organizations" aria-selected="false" aria-controls="expert-organizations-table">
                 <span class="experts-mode-label">Organisationen </span>
-                <span class="experts-mode-count">(0)</span>
+                <span class="experts-mode-count">0</span>
               </button>
             </div>
           </div>
@@ -23070,7 +23077,7 @@
           labelNode.textContent = `${label} `;
           const countNode = document.createElement("span");
           countNode.className = "experts-mode-count";
-          countNode.textContent = `(${count})`;
+          countNode.textContent = String(count);
           button.append(labelNode, countNode);
           button.setAttribute("aria-label", `${label}: ${count}`);
           button.classList.toggle("is-active", active);

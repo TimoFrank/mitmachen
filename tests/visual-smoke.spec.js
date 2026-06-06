@@ -103,10 +103,13 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator("#expert-duplicates-button")).toBeVisible();
   await expect(page.locator(".workspace-header #expert-mode-actions")).toBeVisible();
   await expect(page.locator(".workspace-header #expert-mode-actions .experts-mode-count")).toHaveCount(2);
+  await expect(page.locator(".workspace-header #summary-grid")).not.toBeVisible();
   await expect(page.locator(".table-command-row--expert-tabs")).toHaveCount(0);
   await expect(page.locator("#expert-mode-actions [data-expert-mode]")).toHaveCount(2);
-  await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"]')).toContainText("Kontakte (");
-  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"]')).toContainText("Organisationen (");
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"] .experts-mode-label')).toHaveText("Kontakte");
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"] .experts-mode-count')).toHaveText(/\d+/);
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"] .experts-mode-label')).toHaveText("Organisationen");
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"] .experts-mode-count')).toHaveText(/\d+/);
   await expect(page.locator('#expert-mode-actions [data-expert-mode="matching"]')).toHaveCount(0);
   await expect(page.locator("[data-expert-match-direction]")).toHaveCount(0);
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
@@ -154,13 +157,13 @@ test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async (
   await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   await expect(page.locator(".detail-profile h3")).toContainText("Tessa Interop");
   await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
-  await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"]')).toContainText("Kontakte (1)");
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"] .experts-mode-count')).toHaveText("1");
   await expect(page.locator("#new-expert-contact-button")).toBeVisible();
   await expect(page.locator("#new-expert-organization-button")).toBeHidden();
   await page.locator("#detail-close").click();
 
   await page.locator('#expert-mode-actions [data-expert-mode="organizations"]').click();
-  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"]')).toContainText("Organisationen (1)");
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"] .experts-mode-count')).toHaveText("1");
   await expect(page.locator("#new-expert-contact-button")).toBeHidden();
   await expect(page.locator("#new-expert-organization-button")).toBeVisible();
   await page.locator("#new-expert-organization-button").click();
@@ -172,7 +175,7 @@ test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async (
   await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   await expect(page.locator(".detail-profile h3")).toContainText("FHIR Forum Test");
   await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
-  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"]')).toContainText("Organisationen (2)");
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"] .experts-mode-count')).toHaveText("2");
 
   await attachScreenshot(page, testInfo, "expertenkreis-anlage");
 });
