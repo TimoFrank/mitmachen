@@ -313,6 +313,63 @@ const FORMAT_INPUT_FIELDS = [
   "notes"
 ];
 const FORMAT_PARTICIPANT_INPUT_FIELDS = ["contactId", "contact_id", "invitationStatus", "invitation_status", "participantRole", "participant_role", "notes"];
+const EXPERT_CONTACT_INPUT_FIELDS = [
+  "id",
+  "name",
+  "organizationId",
+  "organization_id",
+  "organization",
+  "groupId",
+  "group_id",
+  "group",
+  "groupName",
+  "group_name",
+  "category",
+  "specialty",
+  "contactRole",
+  "role",
+  "city",
+  "state",
+  "federal_state",
+  "email",
+  "phone",
+  "linkedin",
+  "themes",
+  "topics",
+  "note",
+  "notes",
+  "sources",
+  "source",
+  "url",
+  "sourceUrl",
+  "profileUrl",
+  "profile_url",
+  "status"
+];
+const EXPERT_ORGANIZATION_INPUT_FIELDS = [
+  "id",
+  "name",
+  "normalizedName",
+  "normalized_name",
+  "groupId",
+  "group_id",
+  "group",
+  "groupName",
+  "group_name",
+  "sector",
+  "category",
+  "organizationType",
+  "organization_type",
+  "city",
+  "state",
+  "federal_state",
+  "website",
+  "phone",
+  "email",
+  "notes",
+  "source",
+  "status"
+];
 const EXPERT_ENTITY_LINK_INPUT_FIELDS = [
   "linkType",
   "link_type",
@@ -847,6 +904,78 @@ function contactCreateToDb(contact = {}) {
   return db;
 }
 
+function generatedId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function expertGroupFields(input = {}) {
+  const groupName = String(input.group || input.groupName || input.group_name || input.category || input.sector || "").trim();
+  const groupId = String(input.groupId || input.group_id || "").trim();
+  return { groupName, groupId };
+}
+
+function expertContactCreateToDb(contact = {}) {
+  const { groupName, groupId } = expertGroupFields(contact);
+  const db = {
+    id: String(contact.id || generatedId("expert-contact")).trim(),
+    name: String(contact.name || "").trim(),
+    organization_id: contact.organizationId || contact.organization_id || null,
+    organization: String(contact.organization || "").trim() || null,
+    group_id: groupId,
+    group_name: groupName,
+    specialty: String(contact.specialty || "").trim() || null,
+    role: String(contact.contactRole || contact.role || "").trim() || null,
+    city: String(contact.city || "").trim() || null,
+    federal_state: String(contact.state || contact.federal_state || "").trim() || null,
+    email: String(contact.email || "").trim() || null,
+    phone: String(contact.phone || "").trim() || null,
+    linkedin: String(contact.linkedin || "").trim() || null,
+    topics: splitList(contact.themes || contact.topics),
+    notes: String(contact.note || contact.notes || "").trim() || null,
+    source: splitList(contact.sources || contact.source).join("; ") || "Manuell angelegt",
+    profile_url: String(contact.url || contact.sourceUrl || contact.profileUrl || contact.profile_url || "").trim() || null,
+    status: contact.status || "active"
+  };
+  if (!db.name) {
+    const error = new Error("Name des Expertenkreis-Kontakts fehlt.");
+    error.status = 400;
+    throw error;
+  }
+  if (!db.group_id || !db.group_name) {
+    const error = new Error("Gruppe des Expertenkreis-Kontakts fehlt.");
+    error.status = 400;
+    throw error;
+  }
+  return db;
+}
+
+function expertOrganizationCreateToDb(organization = {}) {
+  const { groupName, groupId } = expertGroupFields(organization);
+  const name = String(organization.name || "").trim();
+  const db = {
+    id: String(organization.id || generatedId("expert-org")).trim(),
+    name,
+    normalized_name: normalizeOrganizationName(organization.normalizedName || organization.normalized_name || name),
+    group_id: groupId || null,
+    group_name: groupName || null,
+    organization_type: String(organization.organizationType || organization.organization_type || "").trim() || null,
+    city: String(organization.city || "").trim() || null,
+    federal_state: String(organization.state || organization.federal_state || "").trim() || null,
+    website: String(organization.website || "").trim() || null,
+    phone: String(organization.phone || "").trim() || null,
+    email: String(organization.email || "").trim() || null,
+    notes: String(organization.notes || "").trim() || null,
+    source: String(organization.source || "").trim() || "Manuell angelegt",
+    status: organization.status || "active"
+  };
+  if (!db.name) {
+    const error = new Error("Name der Expertenkreis-Organisation fehlt.");
+    error.status = 400;
+    throw error;
+  }
+  return db;
+}
+
 function jsonResponse(response, status, payload, headers = {}) {
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
@@ -1200,6 +1329,20 @@ async function listExpertContacts(request, url) {
   return { items: (rows || []).map(expertContactToDto) };
 }
 
+async function createExpertContact(request) {
+  const payload = expertContactCreateToDb(
+    await readValidatedJsonBody(request, EXPERT_CONTACT_INPUT_FIELDS, "Expertenkreis-Kontakt")
+  );
+  const rows = await supabaseRest("expert_contacts", request, new URLSearchParams({
+    select: EXPERT_CONTACT_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  return expertContactToDto(rows?.[0]);
+}
+
 async function expertOrganizationContactCounts(request, ids = []) {
   if (!ids.length) return new Map();
   const params = new URLSearchParams({
@@ -1223,6 +1366,20 @@ async function listExpertOrganizations(request, url) {
   const rows = await supabaseRest("expert_organizations", request, params);
   const counts = await expertOrganizationContactCounts(request, (rows || []).map((row) => row.id));
   return { items: (rows || []).map((row) => expertOrganizationToDto(row, counts.get(row.id) || 0)) };
+}
+
+async function createExpertOrganization(request) {
+  const payload = expertOrganizationCreateToDb(
+    await readValidatedJsonBody(request, EXPERT_ORGANIZATION_INPUT_FIELDS, "Expertenkreis-Organisation")
+  );
+  const rows = await supabaseRest("expert_organizations", request, new URLSearchParams({
+    select: EXPERT_ORGANIZATION_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  return expertOrganizationToDto(rows?.[0], 0);
 }
 
 async function listExpertEntityLinks(request) {
@@ -1778,8 +1935,14 @@ async function handle(request, response) {
     if (request.method === "GET" && url.pathname === "/api/expert-contacts") {
       return jsonResponse(response, 200, await listExpertContacts(request, url));
     }
+    if (request.method === "POST" && url.pathname === "/api/expert-contacts") {
+      return jsonResponse(response, 201, await createExpertContact(request));
+    }
     if (request.method === "GET" && url.pathname === "/api/expert-organizations") {
       return jsonResponse(response, 200, await listExpertOrganizations(request, url));
+    }
+    if (request.method === "POST" && url.pathname === "/api/expert-organizations") {
+      return jsonResponse(response, 201, await createExpertOrganization(request));
     }
     if (request.method === "GET" && url.pathname === "/api/expert-entity-links") {
       return jsonResponse(response, 200, await listExpertEntityLinks(request));

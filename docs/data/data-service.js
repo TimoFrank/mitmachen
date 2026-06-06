@@ -182,6 +182,8 @@
   ];
   const PROFILE_IMAGE_BUCKET = "profile-images";
   const LOCAL_FORMATS_KEY = "versorgungs-kompass-formats-v1";
+  const LOCAL_EXPERT_CONTACTS_KEY = "versorgungs-kompass-expert-contacts-v1";
+  const LOCAL_EXPERT_ORGANIZATIONS_KEY = "versorgungs-kompass-expert-organizations-v1";
   const LOCAL_EXPERT_ENTITY_LINKS_KEY = "versorgungs-kompass-expert-entity-links-v1";
   const LOCAL_REGISTRATIONS_KEY = "versorgungs-kompass-backend-registrations-v1";
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
@@ -399,15 +401,47 @@
       .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "de"));
   }
 
+  function readLocalCollection(key, label = "lokale Daten") {
+    try {
+      const parsed = JSON.parse(window.localStorage?.getItem(key) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn(`${label} konnten nicht gelesen werden.`, error);
+      return [];
+    }
+  }
+
+  function writeLocalCollection(key, items, label = "lokale Daten") {
+    try {
+      window.localStorage?.setItem(key, JSON.stringify(items));
+    } catch (error) {
+      console.warn(`${label} konnten nicht gespeichert werden.`, error);
+    }
+  }
+
+  function mergeLocalRows(seedRows = [], storedRows = []) {
+    const byId = new Map();
+    seedRows.forEach((row, index) => byId.set(row.id || `seed-${index}`, clone(row)));
+    storedRows.forEach((row, index) => {
+      const key = row.id || `stored-${index}`;
+      byId.set(key, { ...(byId.get(key) || {}), ...clone(row) });
+    });
+    return [...byId.values()];
+  }
+
   function localExpertContacts(options = {}) {
-    const rows = Array.isArray(window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS) ? window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS : [];
+    const seedRows = Array.isArray(window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS) ? window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS : [];
+    const storedRows = readLocalCollection(LOCAL_EXPERT_CONTACTS_KEY, "Lokale Expertenkreis-Kontakte");
+    const rows = mergeLocalRows(seedRows, storedRows);
     return rows
       .filter((contact) => options.includeArchived || contact.status !== "archived")
       .map((contact, index) => ({ ...clone(contact), _index: index }));
   }
 
   function localExpertOrganizations(options = {}) {
-    const rows = Array.isArray(window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS) ? window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS : [];
+    const seedRows = Array.isArray(window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS) ? window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS : [];
+    const storedRows = readLocalCollection(LOCAL_EXPERT_ORGANIZATIONS_KEY, "Lokale Expertenkreis-Organisationen");
+    const rows = mergeLocalRows(seedRows, storedRows);
     return rows
       .filter((organization) => options.includeArchived || organization.status !== "archived")
       .map((organization) => clone(organization));
@@ -442,6 +476,18 @@
     expertEntityLinkCache = items.map(expertEntityLinkDbToUi);
     writeLocalExpertEntityLinks(expertEntityLinkCache);
     return clone(expertEntityLinkCache);
+  }
+
+  function persistLocalExpertContacts(items = expertContactCache) {
+    expertContactCache = items.map(expertContactDbToUi);
+    writeLocalCollection(LOCAL_EXPERT_CONTACTS_KEY, expertContactCache, "Lokale Expertenkreis-Kontakte");
+    return clone(expertContactCache);
+  }
+
+  function persistLocalExpertOrganizations(items = expertOrganizationCache) {
+    expertOrganizationCache = items.map(expertOrganizationDbToUi);
+    writeLocalCollection(LOCAL_EXPERT_ORGANIZATIONS_KEY, expertOrganizationCache, "Lokale Expertenkreis-Organisationen");
+    return clone(expertOrganizationCache);
   }
 
   function sampleRegistrationRows() {
@@ -1111,6 +1157,60 @@
     };
   }
 
+  function expertGroupIdForName(name = "", fallbackId = "") {
+    const normalized = String(name || "").trim().toLowerCase();
+    if (!normalized) return fallbackId || "";
+    const group = expertGroupCache.find((item) => String(item.name || "").trim().toLowerCase() === normalized);
+    return group?.id || fallbackId || "";
+  }
+
+  function expertContactUiToDb(contact = {}) {
+    const groupName = String(contact.group || contact.category || contact.groupName || "").trim();
+    const groupId = String(contact.groupId || contact.group_id || expertGroupIdForName(groupName)).trim();
+    return {
+      id: contact.id || `expert-contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      name: String(contact.name || "").trim(),
+      organization_id: contact.organizationId || contact.organization_id || null,
+      organization: String(contact.organization || "").trim() || null,
+      group_id: groupId,
+      group_name: groupName || expertGroupName(groupId),
+      specialty: String(contact.specialty || "").trim() || null,
+      role: String(contact.contactRole || contact.role || "").trim() || null,
+      city: String(contact.city || "").trim() || null,
+      federal_state: String(contact.state || contact.federal_state || "").trim() || null,
+      email: String(contact.email || "").trim() || null,
+      phone: String(contact.phone || "").trim() || null,
+      linkedin: String(contact.linkedin || "").trim() || null,
+      topics: splitList(contact.themes || contact.topics),
+      notes: String(contact.note || contact.notes || "").trim() || null,
+      source: splitList(contact.sources || contact.source).join("; ") || "Manuell angelegt",
+      profile_url: String(contact.url || contact.sourceUrl || contact.profileUrl || "").trim() || null,
+      status: contact.status || "active"
+    };
+  }
+
+  function expertOrganizationUiToDb(organization = {}) {
+    const groupName = String(organization.group || organization.sector || organization.category || organization.groupName || "").trim();
+    const groupId = String(organization.groupId || organization.group_id || expertGroupIdForName(groupName)).trim();
+    const name = String(organization.name || "").trim();
+    return {
+      id: organization.id || `expert-org-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      normalized_name: normalizeOrganizationName(organization.normalizedName || name),
+      group_id: groupId || null,
+      group_name: groupName || expertGroupName(groupId) || null,
+      organization_type: String(organization.organizationType || organization.organization_type || "").trim() || null,
+      city: String(organization.city || "").trim() || null,
+      federal_state: String(organization.state || organization.federal_state || "").trim() || null,
+      website: String(organization.website || "").trim() || null,
+      phone: String(organization.phone || "").trim() || null,
+      email: String(organization.email || "").trim() || null,
+      notes: String(organization.notes || "").trim() || null,
+      source: String(organization.source || "").trim() || "Manuell angelegt",
+      status: organization.status || "active"
+    };
+  }
+
   function organizationUiToDb(organization) {
     const name = String(organization.name || "").trim();
     return {
@@ -1585,6 +1685,75 @@
     }
     expertOrganizationCache = (data || []).map((row) => expertOrganizationDbToUi(row, counts.get(row.id) || 0));
     return clone(expertOrganizationCache);
+  }
+
+  async function createExpertContact(contact = {}) {
+    if (!expertGroupCache.length) await loadExpertGroups({ includeArchived: true });
+    const payload = expertContactUiToDb(contact);
+    if (!payload.name) throw new Error("Name des Expertenkreis-Kontakts fehlt.");
+    if (!payload.group_id || !payload.group_name) throw new Error("Bitte wähle eine Gruppe für den Expertenkreis-Kontakt.");
+    if (isLocalMode()) {
+      requireLocalWrite("Expertenkreis-Kontakt speichern");
+      const created = expertContactDbToUi({
+        ...payload,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      persistLocalExpertContacts([created, ...expertContactCache.filter((item) => item.id !== created.id)]);
+      return created;
+    }
+    if (usesApiGateway()) {
+      const created = await apiRequest("/api/expert-contacts", {
+        method: "POST",
+        body: contact
+      });
+      const normalized = expertContactDbToUi(created);
+      expertContactCache = [normalized, ...expertContactCache.filter((item) => item.id !== normalized.id)];
+      return normalized;
+    }
+    const { data, error } = await getClient()
+      .from("expert_contacts")
+      .insert(payload)
+      .select(EXPERT_CONTACT_FIELDS.join(","))
+      .single();
+    if (error) throw error;
+    const created = expertContactDbToUi(data);
+    expertContactCache = [created, ...expertContactCache.filter((item) => item.id !== created.id)];
+    return created;
+  }
+
+  async function createExpertOrganization(organization = {}) {
+    if (!expertGroupCache.length) await loadExpertGroups({ includeArchived: true });
+    const payload = expertOrganizationUiToDb(organization);
+    if (!payload.name) throw new Error("Name der Expertenkreis-Organisation fehlt.");
+    if (isLocalMode()) {
+      requireLocalWrite("Expertenkreis-Organisation speichern");
+      const created = expertOrganizationDbToUi({
+        ...payload,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      persistLocalExpertOrganizations([created, ...expertOrganizationCache.filter((item) => item.id !== created.id)]);
+      return created;
+    }
+    if (usesApiGateway()) {
+      const created = await apiRequest("/api/expert-organizations", {
+        method: "POST",
+        body: organization
+      });
+      const normalized = expertOrganizationDbToUi(created);
+      expertOrganizationCache = [normalized, ...expertOrganizationCache.filter((item) => item.id !== normalized.id)];
+      return normalized;
+    }
+    const { data, error } = await getClient()
+      .from("expert_organizations")
+      .insert(payload)
+      .select(EXPERT_ORGANIZATION_FIELDS.join(","))
+      .single();
+    if (error) throw error;
+    const created = expertOrganizationDbToUi(data);
+    expertOrganizationCache = [created, ...expertOrganizationCache.filter((item) => item.id !== created.id)];
+    return created;
   }
 
   async function loadExpertEntityLinks() {
@@ -2357,6 +2526,8 @@
     loadExpertContacts,
     loadExpertOrganizations,
     loadExpertEntityLinks,
+    createExpertContact,
+    createExpertOrganization,
     createExpertEntityLink,
     deleteExpertEntityLink,
     createOrganization,

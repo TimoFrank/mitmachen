@@ -100,19 +100,70 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator("#new-expert-organization-button")).toBeVisible();
   await expect(page.locator("#expert-duplicates-button")).toBeVisible();
   await expect(page.locator("#expert-mode-actions [data-expert-mode]")).toHaveCount(2);
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"]')).toContainText("Kontakte (");
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"]')).toContainText("Organisationen (");
   await expect(page.locator('#expert-mode-actions [data-expert-mode="matching"]')).toHaveCount(0);
   await expect(page.locator("[data-expert-match-direction]")).toHaveCount(0);
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
   await expect(page.locator("#expert-list .row, #expert-list .mobile-contact-card").first()).toBeVisible();
   await expect(page.locator("#experts-pagination-meta")).toContainText("Kontakten");
   await expect(page.locator("#view-select-button")).toBeHidden();
+  await page.locator("#expert-list .row, #expert-list .mobile-contact-card").first().click();
+  await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
+  await page.locator("#detail-close").click();
 
-  await page.locator('[data-expert-mode="organizations"]').click();
+  await page.locator('#expert-mode-actions [data-expert-mode="organizations"]').click();
   await expect(page.locator("#expert-organization-list .row").first()).toBeVisible();
   await expect(page.locator("#experts-pagination-meta")).toContainText("Organisationen");
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
+  await page.locator("#expert-organization-list .row").first().click();
+  await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
+  await page.locator("#detail-close").click();
 
   await attachScreenshot(page, testInfo, "expertenkreis");
+});
+
+test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts", {
+    dataMode: "local",
+    contactsScript: `window.VERSORGUNGS_COMPASS_CONTACTS = [];`,
+    expertsScript: `window.VERSORGUNGS_COMPASS_EXPERT_GROUPS = [
+      { id: "expert-group-anwender", name: "Anwender informationstechnischer Systeme", sortOrder: 10 },
+      { id: "expert-group-wissenschaft", name: "Wissenschaftliche Einrichtung und Patientenorganisation", sortOrder: 20 }
+    ];
+    window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS = [];
+    window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS = [];`
+  });
+
+  await page.locator("#new-expert-contact-button").click();
+  await expect(page.locator("#editor-drawer.is-open")).toBeVisible();
+  await expect(page.locator('label[for="field-category"]')).toContainText("Gruppe");
+  await expect(page.locator('label[for="field-specialty"]')).toHaveText("Fachbereich / Fokus");
+  await expect(page.locator("#field-owner").locator("xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' editor-field ')][1]")).toBeHidden();
+  await page.locator("#field-name").fill("Tessa Interop");
+  await page.locator("#field-organization").fill("Interop Allianz Test");
+  await page.locator("#editor-save").click();
+
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await expect(page.locator(".detail-profile h3")).toContainText("Tessa Interop");
+  await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"]')).toContainText("Kontakte (1)");
+  await page.locator("#detail-close").click();
+
+  await page.locator('#expert-mode-actions [data-expert-mode="organizations"]').click();
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"]')).toContainText("Organisationen (1)");
+  await page.locator("#new-expert-organization-button").click();
+  await expect(page.locator("#organization-editor-drawer.is-open")).toBeVisible();
+  await expect(page.locator('label[for="organization-field-sector"]')).toContainText("Gruppe");
+  await page.locator("#organization-field-name").fill("FHIR Forum Test");
+  await page.locator("#organization-editor-save").click();
+
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await expect(page.locator(".detail-profile h3")).toContainText("FHIR Forum Test");
+  await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
+  await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"]')).toContainText("Organisationen (2)");
+
+  await attachScreenshot(page, testInfo, "expertenkreis-anlage");
 });
 
 test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, testInfo) => {
@@ -175,7 +226,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 
   await attachScreenshot(page, testInfo, "expertenkreis-dubletten");
 
-  await page.locator('[data-expert-mode="organizations"]').click();
+  await page.locator('#expert-mode-actions [data-expert-mode="organizations"]').click();
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
   await expect(page.locator("#expert-organization-list .row").first()).toBeVisible();
   await expect(page.locator("#expert-duplicates-button")).not.toHaveClass(/is-active/);
@@ -345,7 +396,9 @@ test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page })
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
   await page.locator("[data-registration-preview]").first().click();
   await expect(page.locator(".detail-panel--registration")).toBeVisible();
-  await page.locator('.detail-panel--registration [data-registration-action="defer"]').click();
+  const deferRegistrationButton = page.locator('.detail-panel--registration [data-registration-action="defer"]');
+  await deferRegistrationButton.scrollIntoViewIfNeeded();
+  await deferRegistrationButton.click();
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
   await page.locator("#registrations-reset-demo").click();
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);

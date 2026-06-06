@@ -6962,6 +6962,10 @@
         align-content: start;
       }
 
+      .editor-field[hidden] {
+        display: none;
+      }
+
       .editor-field--full {
         grid-column: 1 / -1;
       }
@@ -9196,6 +9200,13 @@
         .detail-footer-meta,
         .detail-bottom-actions {
           display: none;
+        }
+
+        .detail-panel--registration .detail-bottom-actions {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+          padding: 0 12px 16px;
         }
 
         .detail-facts-grid,
@@ -17297,8 +17308,8 @@
               <div class="table-command-row table-command-row--experts">
                 <div class="table-command-actions" id="expert-mode-actions">
                   <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="Expertenkreis-Listen">
-                    <button class="settings-tab-button is-active" type="button" data-expert-mode="contacts" aria-selected="true">Kontakte</button>
-                    <button class="settings-tab-button" type="button" data-expert-mode="organizations" aria-selected="false">Organisationen</button>
+                    <button class="settings-tab-button is-active" type="button" role="tab" data-expert-mode="contacts" aria-selected="true" aria-controls="expert-contacts-table">Kontakte</button>
+                    <button class="settings-tab-button" type="button" role="tab" data-expert-mode="organizations" aria-selected="false" aria-controls="expert-organizations-table">Organisationen</button>
                   </div>
                 </div>
                 <div class="table-command-actions" id="expert-command-actions">
@@ -17310,15 +17321,15 @@
                 <div class="table-command-actions expert-column-actions" id="expert-column-actions"></div>
               </div>
               <div class="table-wrap">
-                <section class="table contacts-table experts-table" aria-label="Expertenkreis-Kontakte" data-expert-table="contacts">
+                <section class="table contacts-table experts-table" id="expert-contacts-table" aria-label="Expertenkreis-Kontakte" data-expert-table="contacts" role="tabpanel">
                   <div class="thead" id="experts-table-head"></div>
                   <div id="expert-list"></div>
                 </section>
-                <section class="table organizations-table expert-organizations-table" aria-label="Expertenkreis-Organisationen" data-expert-table="organizations" hidden>
+                <section class="table organizations-table expert-organizations-table" id="expert-organizations-table" aria-label="Expertenkreis-Organisationen" data-expert-table="organizations" role="tabpanel" hidden>
                   <div class="thead" id="expert-organizations-table-head"></div>
                   <div id="expert-organization-list"></div>
                 </section>
-                <section class="expert-matching-workspace" aria-label="Expertenkreis-Dubletten" data-expert-table="duplicates" hidden>
+                <section class="expert-matching-workspace" id="expert-duplicates-workspace" aria-label="Expertenkreis-Dubletten" data-expert-table="duplicates" role="tabpanel" hidden>
                   <div class="expert-matching-toolbar">
                     <div class="expert-matching-scope">Expertenkreis -&gt; Versorgung</div>
                     <div class="expert-matching-meta" id="expert-matching-meta">0 offen</div>
@@ -21518,6 +21529,8 @@
         return {
           ...sanitized,
           id: entry.id || `expert-contact-${String(index + 1).padStart(2, "0")}`,
+          groupId: entry.groupId || entry.group_id || "",
+          group,
           category: group,
           categoryEmoji: "•",
           roleBadgeClass: "role-badge role--netzwerk",
@@ -21540,6 +21553,8 @@
           id: entry.id || `expert-org-${normalizedName || String(index + 1).padStart(2, "0")}`,
           name,
           normalizedName,
+          groupId: entry.groupId || entry.group_id || "",
+          group,
           sector: group,
           organizationType: String(entry.organizationType || entry.organization_type || entry.type || "").trim(),
           postalCode: String(entry.postalCode || entry.postal_code || "").trim(),
@@ -21640,6 +21655,8 @@
       let initialDataLoadingSlow = false;
       let organizationLogoMapCache = null;
       let editingOrganizationId = null;
+      let editorScope = "care";
+      let organizationEditorScope = "care";
       let showingArchive = false;
       let greetingLabel = "Willkommen, Timo";
       const viewLabels = {
@@ -22926,10 +22943,14 @@
       function renderExpertTablesVisibility() {
         if (activeExpertDuplicates && !canAdministerData()) activeExpertDuplicates = false;
         if (appShell) appShell.dataset.expertMode = activeExpertDuplicates ? "duplicates" : activeExpertMode;
+        const organizationCount = expertOrganizations.filter((organization) => organization.status !== "archived").length;
         expertModeButtons.forEach((button) => {
           const active = !activeExpertDuplicates && button.dataset.expertMode === activeExpertMode;
+          const mode = button.dataset.expertMode || "contacts";
+          button.textContent = mode === "organizations" ? `Organisationen (${organizationCount})` : `Kontakte (${activeExpertContactsTotal()})`;
           button.classList.toggle("is-active", active);
           button.setAttribute("aria-selected", String(active));
+          button.setAttribute("tabindex", active ? "0" : "-1");
         });
         expertTables.forEach((table) => {
           table.hidden = activeExpertDuplicates ? table.dataset.expertTable !== "duplicates" : table.dataset.expertTable !== activeExpertMode;
@@ -27306,6 +27327,15 @@
         return specialtyTargetCatalog;
       }
 
+      function expertFocusOptions(selectedSpecialty = "") {
+        return [...new Set([
+          selectedSpecialty,
+          ...expertContacts.map((contact) => specialtyLabel(contact)),
+          ...expertContacts.flatMap((contact) => normalizeThemes(contact.themes))
+        ].map((value) => String(value || "").trim()).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "de"));
+      }
+
       function buildOwnerSelectOptions(selectedOwner = "") {
         const selectedProfile = ownerProfiles.find(
           (profile) => profile.id === selectedOwner || profile.label === selectedOwner || profile.matchLabels.includes(selectedOwner)
@@ -27330,6 +27360,15 @@
           `<option value="">Bitte wählen...</option>`,
           ...specialtyOptions().map(
             (specialty) => `<option value="${specialty}" ${selectedSpecialty === specialty ? "selected" : ""}>${specialty}</option>`
+          )
+        ].join("");
+      }
+
+      function buildExpertFocusSelectOptions(selectedSpecialty = "") {
+        return [
+          `<option value="">Bitte wählen...</option>`,
+          ...expertFocusOptions(selectedSpecialty).map(
+            (specialty) => `<option value="${escapeHtml(specialty)}" ${selectedSpecialty === specialty ? "selected" : ""}>${escapeHtml(specialty)}</option>`
           )
         ].join("");
       }
@@ -27359,13 +27398,24 @@
           .sort((a, b) => a.name.localeCompare(b.name, "de"));
       }
 
+      function expertOrganizationOptions() {
+        return [...new Map(expertOrganizations.filter((organization) => organization.name).map((organization) => [organization.name, organization])).values()]
+          .sort((a, b) => a.name.localeCompare(b.name, "de"));
+      }
+
+      function editorOrganizationOptions() {
+        return editorScope === "expert" ? expertOrganizationOptions() : organizationOptions();
+      }
+
       function buildOrganizationSelectOptions(selectedOrganization = "") {
-        const options = organizationOptions();
+        const options = editorOrganizationOptions();
         const query = String(selectedOrganization || "").trim().toLowerCase();
         const filteredOptions = query
           ? options.filter((organization) => organization.name.toLowerCase().includes(query)).slice(0, 30)
           : options.slice(0, 60);
-        const createLabel = selectedOrganization ? `Neue Organisation anlegen: ${selectedOrganization}` : "+ Neue Organisation anlegen";
+        const createLabel = selectedOrganization
+          ? `${editorScope === "expert" ? "Neue Expertenkreis-Organisation" : "Neue Organisation"} anlegen: ${selectedOrganization}`
+          : editorScope === "expert" ? "+ Neue Expertenkreis-Organisation anlegen" : "+ Neue Organisation anlegen";
         return [
           `<button class="custom-select-option custom-select-option--create" type="button" data-organization-create>${escapeHtml(createLabel)}</button>`,
           ...filteredOptions.map(
@@ -27379,7 +27429,7 @@
       function selectedEditorOrganization() {
         const name = String(editorForm.elements.organization.value || "").trim();
         if (!name) return null;
-        return organizationOptions().find((organization) => organization.name === name) || null;
+        return editorOrganizationOptions().find((organization) => organization.name === name) || null;
       }
 
       function editorOrganizationValue() {
@@ -27547,7 +27597,9 @@
       }
 
       function renderEditorSpecialtyOptions(selectedSpecialty = "") {
-        editorForm.elements.specialty.innerHTML = buildSpecialtySelectOptions(selectedSpecialty);
+        editorForm.elements.specialty.innerHTML = editorScope === "expert"
+          ? buildExpertFocusSelectOptions(selectedSpecialty)
+          : buildSpecialtySelectOptions(selectedSpecialty);
         refreshEditorCustomSelects();
       }
 
@@ -27574,6 +27626,57 @@
         renderEditorThemes();
       }
 
+      function editorFieldFor(name) {
+        return editorForm.elements[name]?.closest(".editor-field") || null;
+      }
+
+      function setEditorFieldHidden(name, hidden) {
+        const field = editorFieldFor(name);
+        if (field) field.hidden = hidden;
+      }
+
+      function setEditorScope(nextScope = "care") {
+        editorScope = nextScope === "expert" ? "expert" : "care";
+        editorDrawer.dataset.editorScope = editorScope;
+        const expert = editorScope === "expert";
+        const categoryLabel = editorForm.querySelector('label[for="field-category"]');
+        const organizationLabel = editorForm.querySelector('label[for="field-organization"]');
+        const specialtyLabelNode = editorForm.querySelector('label[for="field-specialty"]');
+        const imageLabel = editorForm.querySelector('label[for="field-image"]');
+        const imageInput = editorForm.elements.image;
+        const imageSourceInput = editorForm.elements.imageSourceLabel;
+        const sourceTitle = document.getElementById("editor-section-sources");
+        const saveButton = document.getElementById("editor-save");
+        if (categoryLabel) categoryLabel.innerHTML = expert ? 'Gruppe <span class="editor-label__required">*</span>' : "Sektor";
+        if (organizationLabel) organizationLabel.textContent = expert ? "Expertenkreis-Organisation" : "Organisation";
+        if (specialtyLabelNode) specialtyLabelNode.textContent = expert ? "Fachbereich / Fokus" : "Fachrichtung";
+        if (imageLabel) imageLabel.textContent = expert ? "Profil-URL" : "Bild-URL";
+        if (imageInput) imageInput.placeholder = expert ? "Profil-URL der Person..." : "Bild-URL...";
+        if (imageSourceInput) imageSourceInput.placeholder = "z. B. Website der Praxis";
+        if (sourceTitle) sourceTitle.textContent = expert ? "Quelle ergänzen" : "Bild ergänzen";
+        if (saveButton) saveButton.textContent = expert ? "Expertenkreis-Kontakt speichern" : "Kontakt speichern";
+        setEditorFieldHidden("owner", expert);
+        setEditorFieldHidden("priority", expert);
+        setEditorFieldHidden("street", expert);
+        setEditorFieldHidden("imageSourceLabel", expert);
+      }
+
+      function setOrganizationEditorScope(nextScope = "care") {
+        organizationEditorScope = nextScope === "expert" ? "expert" : "care";
+        organizationEditorDrawer.dataset.editorScope = organizationEditorScope;
+        const expert = organizationEditorScope === "expert";
+        const sectorLabel = organizationEditorForm.querySelector('label[for="organization-field-sector"]');
+        const sourceInput = organizationEditorForm.elements.source;
+        const saveButton = document.getElementById("organization-editor-save");
+        const hint = document.getElementById("organization-editor-hint");
+        if (sectorLabel) sectorLabel.innerHTML = expert ? 'Gruppe <span class="editor-label__required">*</span>' : "Sektor";
+        if (sourceInput) sourceInput.placeholder = expert ? "z. B. Manuell angelegt, INA-Expertenkreis" : "z. B. Kontaktdatenbestand, Recherche";
+        if (saveButton) saveButton.textContent = expert ? "Expertenkreis-Organisation speichern" : "Organisation speichern";
+        if (hint) hint.textContent = expert
+          ? "Speichern schreibt getrennt in den Expertenkreis."
+          : "Speichern schreibt in die Organisationen-Tabelle, sofern die Sprint-4-Migration aktiv ist.";
+      }
+
       function updateEditorDuplicateHint() {
         const nameValue = String(editorForm.elements.name.value || "").trim().toLowerCase();
         const organizationValue = editorOrganizationValue().toLowerCase();
@@ -27582,7 +27685,8 @@
           editorDuplicateHint.classList.remove("is-visible");
           return;
         }
-        const hit = contacts.find((contact) => {
+        const sourceItems = editorScope === "expert" ? expertContacts : contacts;
+        const hit = sourceItems.find((contact) => {
           if (editingId && contact.id === editingId) return false;
           const sameName = String(contact.name || "").trim().toLowerCase() === nameValue;
           const sameOrganization = organizationValue && String(contact.organization || "").trim().toLowerCase() === organizationValue;
@@ -27593,7 +27697,9 @@
           editorDuplicateHint.classList.remove("is-visible");
           return;
         }
-        editorDuplicateHint.textContent = `Möglicher bestehender Kontakt: ${hit.displayName} – ${hit.organization}`;
+        editorDuplicateHint.textContent = editorScope === "expert"
+          ? `Möglicher bestehender Expertenkreis-Kontakt: ${hit.displayName || hit.name} – ${hit.organization || "ohne Organisation"}`
+          : `Möglicher bestehender Kontakt: ${hit.displayName} – ${hit.organization}`;
         editorDuplicateHint.classList.add("is-visible");
       }
 
@@ -27607,9 +27713,48 @@
       }
 
       async function createEditorOrganizationByName(name) {
+        const currentGroup = String(editorForm.elements.category.value || "").trim();
+        if (editorScope === "expert") {
+          const group = expertGroupByName(currentGroup);
+          const payload = {
+            name: String(name || "").trim(),
+            group: group?.name || currentGroup,
+            groupId: group?.id || "",
+            sector: group?.name || currentGroup,
+            city: String(editorForm.elements.city.value || "").trim(),
+            state: String(editorForm.elements.state.value || "").trim(),
+            source: "Kontaktanlage Expertenkreis"
+          };
+          if (!payload.name) return null;
+          try {
+            const existing = expertOrganizationOptions().find((organization) => normalizeOrganizationName(organization.name) === normalizeOrganizationName(payload.name));
+            const saved = existing || sanitizeExpertOrganization(await window.dataService.createExpertOrganization(payload), expertOrganizations.length);
+            expertOrganizations = mergeExpertOrganizations(
+              [saved, ...expertOrganizations.filter((organization) => organization.id !== saved.id)],
+              deriveExpertOrganizationsFromContacts(expertContacts)
+            );
+            pendingEditorOrganizationId = saved.id && !saved.id.startsWith("expert-derived-org-") ? saved.id : "";
+            updateOrganizationSuggestions(saved.name);
+            updateEditorDuplicateHint();
+            validateEditorValues();
+            return { organization: saved, created: !existing, freetext: false };
+          } catch (error) {
+            console.warn("Expertenkreis-Organisation konnte nicht angelegt werden. Freitext wird am Kontakt übernommen.", error);
+            pendingEditorOrganizationId = "";
+            updateOrganizationSuggestions(payload.name);
+            updateEditorDuplicateHint();
+            validateEditorValues();
+            return {
+              organization: { id: "", name: payload.name },
+              created: false,
+              freetext: true,
+              error
+            };
+          }
+        }
         const payload = {
           name: String(name || "").trim(),
-          sector: String(editorForm.elements.category.value || "").trim(),
+          sector: currentGroup,
           postalCode: String(editorForm.elements.postalCode.value || "").trim(),
           city: String(editorForm.elements.city.value || "").trim(),
           state: String(editorForm.elements.state.value || "").trim(),
@@ -27642,7 +27787,8 @@
 
       function handleEditorOrganizationInput() {
         const selectedOrganization = selectedEditorOrganization();
-        pendingEditorOrganizationId = selectedOrganization?.id && !selectedOrganization.id.startsWith("derived-org-") ? selectedOrganization.id : "";
+        const derivedPrefix = editorScope === "expert" ? "expert-derived-org-" : "derived-org-";
+        pendingEditorOrganizationId = selectedOrganization?.id && !selectedOrganization.id.startsWith(derivedPrefix) ? selectedOrganization.id : "";
         updateOrganizationSuggestions(editorOrganizationValue());
         updateEditorDuplicateHint();
         validateEditorValues();
@@ -27722,6 +27868,7 @@
         const warnings = [];
 
         if (!values.name) errors.push({ field: "name", message: "Bitte Namen eingeben." });
+        if (editorScope === "expert" && !values.category) errors.push({ field: "category", message: "Bitte Gruppe auswählen." });
         if (values.postalCode && !/^\d{5}$/.test(values.postalCode)) {
           errors.push({ field: "postalCode", message: "PLZ muss 5-stellig sein." });
         }
@@ -27732,10 +27879,10 @@
           errors.push({ field: "phone", message: "Telefonnummer bitte grob im üblichen Format eingeben." });
         }
 
-        if (!values.organization) warnings.push({ field: "organization", message: "Organisation kann später ergänzt werden." });
-        if (!values.category) warnings.push({ field: "category", message: "Sektor kann später ergänzt werden." });
-        if (!values.specialty) warnings.push({ field: "specialty", message: "Fachrichtung fehlt noch." });
-        if (!values.owner) warnings.push({ field: "owner", message: "Noch kein Owner zugewiesen." });
+        if (!values.organization) warnings.push({ field: "organization", message: editorScope === "expert" ? "Expertenkreis-Organisation kann später ergänzt werden." : "Organisation kann später ergänzt werden." });
+        if (editorScope !== "expert" && !values.category) warnings.push({ field: "category", message: "Sektor kann später ergänzt werden." });
+        if (!values.specialty) warnings.push({ field: "specialty", message: editorScope === "expert" ? "Fokus fehlt noch." : "Fachrichtung fehlt noch." });
+        if (editorScope !== "expert" && !values.owner) warnings.push({ field: "owner", message: "Noch kein Owner zugewiesen." });
         if (!values.location && !(values.postalCode && values.city)) warnings.push({ field: "location", message: "Standort sollte klar benannt sein." });
 
         [
@@ -27786,6 +27933,28 @@
               `<option value="${value}" ${selectedCategory === value ? "selected" : ""}>${value}</option>`
           )
           .join("");
+      }
+
+      function expertGroupByName(name = "") {
+        const normalized = String(name || "").trim().toLowerCase();
+        return expertGroups.find((group) => String(group.name || "").trim().toLowerCase() === normalized) || null;
+      }
+
+      function expertGroupById(id = "") {
+        return expertGroups.find((group) => group.id === id) || null;
+      }
+
+      function buildExpertGroupSelectOptions(selectedGroup = "") {
+        const selected = String(selectedGroup || "").trim();
+        return expertGroups
+          .filter((group) => group.name && group.status !== "archived")
+          .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || a.name.localeCompare(b.name, "de"))
+          .map((group) => `<option value="${escapeHtml(group.name)}" ${selected === group.name ? "selected" : ""}>${escapeHtml(group.name)}</option>`)
+          .join("");
+      }
+
+      function buildContextCategorySelectOptions(selectedCategory = "", scope = editorScope) {
+        return scope === "expert" ? buildExpertGroupSelectOptions(selectedCategory) : buildCategorySelectOptions(selectedCategory);
       }
 
       function themeSuggestions() {
@@ -29752,6 +29921,8 @@
           (organizationLabel && normalizeOrganizationName(organization.name) === normalizeOrganizationName(organizationLabel))
         );
         const themeTags = normalizeThemes(contact.themes);
+        const linkedCareContacts = linkedContactsForExpertContact(contact);
+        const connectionMarkup = expertContactContextMarkup(contact);
         const activeTab = detailActiveTab || "overview";
 
         activeExpertId = contact.id;
@@ -29787,6 +29958,7 @@
                 ${detailTabButton("overview", "Überblick", activeTab)}
                 ${detailTabButton("contact", "Kontakt", activeTab)}
                 ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("links", "Verbindungen", activeTab)}
                 ${detailTabButton("notes", "Notizen", activeTab)}
                 ${detailTabButton("activity", "Aktivitäten", activeTab)}
               </div>
@@ -29806,9 +29978,10 @@
                   ${detailLine("Rolle", roleText)}
                   ${detailLine("Ort", locationText)}
                   ${detailLine("Bundesland", contact.state || stateLabel(contact))}
+                  ${detailLine("Quelle", sourceText, { emptyLabel: "Nicht hinterlegt" })}
+                  ${detailLine("Versorgung", `${linkedCareContacts.length} ${linkedCareContacts.length === 1 ? "Verknüpfung" : "Verknüpfungen"}`)}
                   ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
                 </div>
-                ${expertContactContextMarkup(contact)}
                 <div class="section-block">
                   <h4 class="detail-section-title">Standort</h4>
                   <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
@@ -29832,6 +30005,16 @@
                 <div class="detail-chip-row">
                   ${themeTags.length ? themeTags.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`}
                 </div>
+              </section>
+
+              <section ${detailPanelAttrs("links", activeTab)} id="expert-detail-links">
+                ${
+                  connectionMarkup ||
+                  `<div class="expert-context-section">
+                    <h4 class="detail-section-title">Auch in Versorgungskontakten</h4>
+                    <div class="empty">Noch keine Verknüpfung zu Versorgungskontakten vorhanden.</div>
+                  </div>`
+                }
               </section>
 
               <section ${detailPanelAttrs("notes", activeTab)} id="expert-detail-notes">
@@ -29872,6 +30055,8 @@
         const locationText = expertOrganizationLocation(organization);
         const quality = expertOrganizationQualityLabel(organization);
         const typeLabel = expertOrganizationTypeLabel(organization);
+        const linkedCareOrganizations = linkedOrganizationsForExpertOrganization(organization);
+        const connectionMarkup = expertOrganizationContextMarkup(organization);
         if (activeExpertOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
         const activeTab = organizationDetailActiveTab || "overview";
 
@@ -29908,6 +30093,7 @@
                 ${detailTabButton("overview", "Überblick", activeTab)}
                 ${detailTabButton("contacts", `Kontakte (${linkedContacts.length})`, activeTab)}
                 ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("links", "Verbindungen", activeTab)}
                 ${detailTabButton("notes", "Notizen", activeTab)}
                 ${detailTabButton("activity", "Aktivitäten", activeTab)}
               </div>
@@ -29925,8 +30111,8 @@
                   ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
                   ${detailLine("Quelle", organization.source)}
                   ${detailLine("Zugeordnete Kontakte", `${linkedContacts.length} ${linkedContacts.length === 1 ? "Kontakt" : "Kontakte"}`)}
+                  ${detailLine("Versorgung", `${linkedCareOrganizations.length} ${linkedCareOrganizations.length === 1 ? "Verknüpfung" : "Verknüpfungen"}`)}
                 </div>
-                ${expertOrganizationContextMarkup(organization)}
               </section>
 
               <section ${detailPanelAttrs("contacts", activeTab)} id="expert-organization-contacts">
@@ -29966,6 +30152,16 @@
                       : `<span class="detail-secondary">Noch keine Themen aus zugeordneten Kontakten sichtbar.</span>`
                   }
                 </div>
+              </section>
+
+              <section ${detailPanelAttrs("links", activeTab)} id="expert-organization-links">
+                ${
+                  connectionMarkup ||
+                  `<div class="expert-context-section">
+                    <h4 class="detail-section-title">Auch in Organisationen</h4>
+                    <div class="empty">Noch keine Verknüpfung zu Versorgungsorganisationen vorhanden.</div>
+                  </div>`
+                }
               </section>
 
               <section ${detailPanelAttrs("notes", activeTab)} id="expert-organization-notes">
@@ -30186,18 +30382,27 @@
         }
       }
 
-      function openOrganizationEditor(organization = null) {
+      function openOrganizationEditor(organization = null, options = {}) {
         if (!canEditContacts()) {
           showPermissionDenied(viewerCreateDisabledMessage(organization ? "das Bearbeiten von Organisationen" : "das Anlegen neuer Organisationen"));
           return;
         }
+        const isExpertEditor = options.scope === "expert";
+        setOrganizationEditorScope(isExpertEditor ? "expert" : "care");
         editingOrganizationId = organization?.id || null;
         organizationEditorCurrentStep = "quick";
-        organizationEditorTitle.textContent = organization ? "Organisation bearbeiten" : "Organisation anlegen";
-        organizationEditorSubtitle.textContent = organization ? "Stammdaten der Organisation aktualisieren." : "Neue Einrichtung, Institution oder Organisation anlegen.";
+        organizationEditorTitle.textContent = isExpertEditor
+          ? organization ? "Expertenkreis-Organisation bearbeiten" : "Expertenkreis-Organisation anlegen"
+          : organization ? "Organisation bearbeiten" : "Organisation anlegen";
+        organizationEditorSubtitle.textContent = isExpertEditor
+          ? "Organisation aus der Interoperabilität getrennt vom Versorgungsdatenbestand erfassen."
+          : organization ? "Stammdaten der Organisation aktualisieren." : "Neue Einrichtung, Institution oder Organisation anlegen.";
+        const defaultExpertGroup = expertGroups.find((group) => group.status !== "archived")?.name || seedExpertGroups()[0] || "";
+        const selectedSector = organization?.sector || (isExpertEditor ? defaultExpertGroup : defaultCategories[0]);
         organizationEditorForm.elements.id.value = organization?.id || "";
         organizationEditorForm.elements.name.value = organization?.name || "";
-        organizationEditorForm.elements.sector.value = organization?.sector || defaultCategories[0];
+        organizationEditorForm.elements.sector.innerHTML = buildContextCategorySelectOptions(selectedSector, organizationEditorScope);
+        organizationEditorForm.elements.sector.value = selectedSector;
         organizationEditorForm.elements.organizationType.value = organization?.organizationType || "";
         organizationEditorForm.elements.postalCode.value = organization?.postalCode || "";
         organizationEditorForm.elements.city.value = organization?.city || "";
@@ -30219,6 +30424,7 @@
 
       function closeOrganizationEditor() {
         editingOrganizationId = null;
+        organizationEditorScope = "care";
         organizationEditorCurrentStep = "quick";
         closeAllCustomSelects();
         organizationEditorDrawer.classList.remove("is-open");
@@ -30531,30 +30737,42 @@
           showPermissionDenied(viewerCreateDisabledMessage(contact ? "das Bearbeiten von Kontakten" : "das Anlegen neuer Kontakte"));
           return;
         }
+        const isExpertEditor = options.scope === "expert";
+        setEditorScope(isExpertEditor ? "expert" : "care");
         const organizationDefaults = options.organization || null;
-        pendingEditorOrganizationId = organizationDefaults?.id && !organizationDefaults.id.startsWith("derived-org-") ? organizationDefaults.id : "";
+        const derivedPrefix = isExpertEditor ? "expert-derived-org-" : "derived-org-";
+        pendingEditorOrganizationId = organizationDefaults?.id && !organizationDefaults.id.startsWith(derivedPrefix) ? organizationDefaults.id : "";
         editorMode = contact ? "edit" : "create";
         editingId = contact?.id || null;
         const splitLocation = splitLocationLabel(contact?.location || "");
         editorForm.dataset.submitAction = "save";
-        editorTitle.textContent = contact ? "Kontakt bearbeiten" : "Neuen Kontakt anlegen";
-        editorSubtitle.textContent = contact
-          ? "Basisdaten zuerst, Details können laufend ergänzt werden."
-          : "Nur Name ist Pflicht. Details kannst du später ergänzen.";
-        editorHint.textContent = contact
-          ? "Änderungen werden im gemeinsamen Supabase-Datenstand gespeichert und protokolliert."
-          : "Neue Kontakte werden im gemeinsamen Supabase-Datenstand angelegt.";
+        editorTitle.textContent = isExpertEditor
+          ? contact ? "Expertenkreis-Kontakt bearbeiten" : "Expertenkreis-Kontakt anlegen"
+          : contact ? "Kontakt bearbeiten" : "Neuen Kontakt anlegen";
+        editorSubtitle.textContent = isExpertEditor
+          ? "Interoperabilitätskontakt getrennt vom Versorgungsdatenbestand erfassen."
+          : contact
+            ? "Basisdaten zuerst, Details können laufend ergänzt werden."
+            : "Nur Name ist Pflicht. Details kannst du später ergänzen.";
+        editorHint.textContent = isExpertEditor
+          ? "Neue Expertenkreis-Kontakte werden separat gespeichert."
+          : contact
+            ? "Änderungen werden im gemeinsamen Supabase-Datenstand gespeichert und protokolliert."
+            : "Neue Kontakte werden im gemeinsamen Supabase-Datenstand angelegt.";
         const selectedOrganizationName = contact?.organization || organizationDefaults?.name || "";
+        const defaultExpertGroup = expertGroups.find((group) => group.status !== "archived")?.name || seedExpertGroups()[0] || "";
+        const selectedCategory = contact?.category || organizationDefaults?.sector || (isExpertEditor ? defaultExpertGroup : defaultCategories[0]);
 
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
         editorForm.elements.specialty.value = contact?.specialty || "";
         editorForm.elements.contactRole.value = contact?.contactRole || "";
-        updateOrganizationSuggestions(selectedOrganizationName);
         editorCurrentStep = "quick";
-        editorForm.elements.category.value = contact?.category || organizationDefaults?.sector || defaultCategories[0];
+        editorForm.elements.category.innerHTML = buildContextCategorySelectOptions(selectedCategory, editorScope);
+        editorForm.elements.category.value = selectedCategory;
         editorForm.elements.priority.value = contact?.priority || "Mittel";
         editorForm.elements.organization.value = selectedOrganizationName;
+        updateOrganizationSuggestions(selectedOrganizationName);
         editorForm.elements.email.value = contact?.email || "";
         editorForm.elements.phone.value = contact?.phone || "";
         editorForm.elements.linkedin.value = contact?.linkedin || "";
@@ -30567,8 +30785,8 @@
         editorForm.elements.state.value = contact?.state || organizationDefaults?.state || "";
         editorForm.elements.street.value = contact?.street || "";
         editorForm.elements.note.value = contact?.note || "";
-        editorForm.elements.image.value = contact?.image || "";
-        editorForm.elements.imageSourceLabel.value = contact?.imageSourceLabel || "";
+        editorForm.elements.image.value = isExpertEditor ? contact?.url || contact?.image || "" : contact?.image || "";
+        editorForm.elements.imageSourceLabel.value = isExpertEditor ? "" : contact?.imageSourceLabel || "";
         renderEditorSpecialtyOptions(contact?.specialty || "");
         setEditorThemes(contact?.themes || []);
         refreshEditorCustomSelects();
@@ -30946,12 +31164,8 @@
         }
       }
 
-      editorForm.elements.category.innerHTML = defaultCategories
-        .map((category) => `<option value="${category}">${category}</option>`)
-        .join("");
-      organizationEditorForm.elements.sector.innerHTML = defaultCategories
-        .map((category) => `<option value="${category}">${category}</option>`)
-        .join("");
+      editorForm.elements.category.innerHTML = buildCategorySelectOptions("");
+      organizationEditorForm.elements.sector.innerHTML = buildCategorySelectOptions("");
       organizationEditorForm.elements.state.innerHTML = buildStateSelectOptions("");
       updateOrganizationSuggestions("");
       editorForm.elements.owner.innerHTML = buildOwnerSelectOptions("");
@@ -31238,8 +31452,9 @@
       editorBack.addEventListener("click", () => moveEditorStep(-1));
       editorNext.addEventListener("click", () => {
         const validation = validateEditorValues({ showWarnings: false });
-        if (validation.errors.some((error) => error.field === "name")) {
-          focusEditorFieldByName("name");
+        const blockingError = validation.errors.find((error) => ["name", "category"].includes(error.field));
+        if (blockingError) {
+          focusEditorFieldByName(blockingError.field);
           return;
         }
         moveEditorStep(1);
@@ -31252,8 +31467,8 @@
       newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
       contactMatchingWorklistButton?.addEventListener("click", () => openCareDuplicates("contacts"));
       organizationMatchingWorklistButton?.addEventListener("click", () => openCareDuplicates("organizations"));
-      newExpertContactButton?.addEventListener("click", () => showExpertCreateNotice("Kontakt"));
-      newExpertOrganizationButton?.addEventListener("click", () => showExpertCreateNotice("Organisation"));
+      newExpertContactButton?.addEventListener("click", () => openEditor(null, { scope: "expert" }));
+      newExpertOrganizationButton?.addEventListener("click", () => openOrganizationEditor(null, { scope: "expert" }));
       expertDuplicatesButton?.addEventListener("click", openExpertDuplicates);
       newFormatButton?.addEventListener("click", () => {
         formatActiveTab = "overview";
@@ -31287,6 +31502,13 @@
           organizationEditorForm.elements.name.focus();
           return;
         }
+        if (organizationEditorScope === "expert" && !String(organizationEditorForm.elements.sector.value || "").trim()) {
+          organizationEditorStatus.textContent = "Bitte wähle eine Gruppe aus.";
+          organizationEditorStatus.className = "editor-status is-visible editor-status--error";
+          setOrganizationEditorStep("quick");
+          organizationEditorForm.elements.sector.focus();
+          return;
+        }
         organizationEditorStatus.textContent = "";
         organizationEditorStatus.className = "editor-status";
         moveOrganizationEditorStep(1);
@@ -31315,6 +31537,44 @@
           organizationEditorStatus.textContent = "Bitte trage einen Namen ein.";
           organizationEditorStatus.className = "editor-status is-visible editor-status--error";
           organizationEditorForm.elements.name.focus();
+          return;
+        }
+        if (organizationEditorScope === "expert") {
+          if (!payload.sector) {
+            organizationEditorStatus.textContent = "Bitte wähle eine Gruppe aus.";
+            organizationEditorStatus.className = "editor-status is-visible editor-status--error";
+            setOrganizationEditorStep("quick");
+            organizationEditorForm.elements.sector.focus();
+            return;
+          }
+          const group = expertGroupByName(payload.sector);
+          const expertPayload = {
+            ...payload,
+            group: group?.name || payload.sector,
+            groupId: group?.id || "",
+            sector: group?.name || payload.sector,
+            source: payload.source || "Manuell angelegt"
+          };
+          try {
+            const saved = sanitizeExpertOrganization(await window.dataService.createExpertOrganization(expertPayload), expertOrganizations.length);
+            expertOrganizations = mergeExpertOrganizations(
+              [saved, ...expertOrganizations.filter((organization) => organization.id !== saved.id)],
+              deriveExpertOrganizationsFromContacts(expertContacts)
+            );
+            setStorageStatus("Expertenkreis-Organisation gespeichert");
+            closeOrganizationEditor();
+            activeExpertMode = "organizations";
+            activeExpertDuplicates = false;
+            activeCareDuplicateView = "";
+            setActiveView("experts");
+            updateRouteHash("experts");
+            updateView();
+            openExpertOrganizationDetail(saved.id);
+          } catch (error) {
+            console.error("Expertenkreis-Organisation konnte nicht gespeichert werden.", error);
+            organizationEditorStatus.textContent = "Expertenkreis-Organisation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
+            organizationEditorStatus.className = "editor-status is-visible editor-status--error";
+          }
           return;
         }
         try {
@@ -31635,6 +31895,63 @@
         const organizationId = selectedOrganization?.id && !selectedOrganization.id.startsWith("derived-org-")
           ? selectedOrganization.id
           : pendingEditorOrganizationId || existingContact?.organizationId || "";
+        if (editorScope === "expert") {
+          const group = expertGroupByName(String(formData.get("category") || "").trim());
+          if (!group?.id) {
+            editorStatus.textContent = "Bitte wähle eine Gruppe aus.";
+            editorStatus.className = "editor-status is-visible editor-status--error";
+            setEditorStep("quick");
+            focusEditorFieldByName("category");
+            return;
+          }
+          const expertEntry = {
+            id: String(formData.get("id") || "").trim() || undefined,
+            name: String(formData.get("name") || "").trim(),
+            specialty: String(formData.get("specialty") || "").trim(),
+            contactRole: String(formData.get("contactRole") || "").trim(),
+            group: group.name,
+            groupId: group.id,
+            category: group.name,
+            organization: organizationName,
+            organizationId: selectedOrganization?.id && !selectedOrganization.id.startsWith("expert-derived-org-")
+              ? selectedOrganization.id
+              : pendingEditorOrganizationId || "",
+            email: String(formData.get("email") || "").trim(),
+            phone: String(formData.get("phone") || "").trim(),
+            linkedin: String(formData.get("linkedin") || "").trim(),
+            city,
+            state: String(formData.get("state") || "").trim(),
+            note: String(formData.get("note") || "").trim(),
+            themes: editorThemes,
+            sources: ["Manuell angelegt"],
+            source: "Manuell angelegt",
+            url: String(formData.get("image") || "").trim(),
+            status: "active",
+            createdAt: timestamp,
+            updatedAt: timestamp
+          };
+          try {
+            const savedExpertContact = sanitizeExpertContact(await window.dataService.createExpertContact(expertEntry), expertContacts.length);
+            expertContacts = [savedExpertContact, ...expertContacts.filter((contact) => contact.id !== savedExpertContact.id)];
+            expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+            setStorageStatus("Expertenkreis-Kontakt gespeichert");
+            activeExpertId = savedExpertContact.id;
+            activeExpertMode = "contacts";
+            activeExpertDuplicates = false;
+            activeCareDuplicateView = "";
+            editorForm.dataset.submitAction = "save";
+            closeEditor();
+            setActiveView("experts");
+            updateRouteHash("experts");
+            updateView();
+            openExpertDetail(savedExpertContact.id);
+          } catch (error) {
+            console.error("Expertenkreis-Kontakt konnte nicht gespeichert werden.", error);
+            editorStatus.textContent = "Expertenkreis-Kontakt konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
+            editorStatus.className = "editor-status is-visible editor-status--error";
+          }
+          return;
+        }
         const entry = {
           id: formData.get("id") || createId(),
           name: String(formData.get("name") || "").trim(),
