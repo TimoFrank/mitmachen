@@ -2285,12 +2285,15 @@
 
       .table-footer {
         display: flex;
+        position: relative;
+        z-index: 8;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
         padding: 14px 18px 16px;
         border-top: 1px solid var(--line);
         background: rgba(248, 250, 255, 0.82);
+        overflow: visible;
       }
 
       .table-footer__meta {
@@ -2306,6 +2309,7 @@
         margin-left: auto;
         flex-wrap: wrap;
         justify-content: flex-end;
+        overflow: visible;
       }
 
       .pagination {
@@ -2345,7 +2349,13 @@
       }
 
       .page-size-shell {
-        min-width: 132px;
+        flex: 0 0 156px;
+        min-width: 156px;
+        overflow: visible;
+      }
+
+      .page-size-shell.is-open {
+        z-index: 60;
       }
 
       .page-size-shell select {
@@ -2353,6 +2363,31 @@
         padding-right: 34px;
         font-size: 0.86rem;
         font-weight: 700;
+      }
+
+      .page-size-shell .custom-select-trigger--compact {
+        min-height: 38px;
+        padding: 0 10px 0 12px;
+        border-radius: var(--radius-sm);
+        font-size: 0.86rem;
+        font-weight: 800;
+      }
+
+      .page-size-shell .custom-select-trigger__label {
+        text-overflow: clip;
+      }
+
+      .page-size-shell .custom-select-panel--compact {
+        top: auto;
+        bottom: calc(100% + 8px);
+        left: auto;
+        right: 0;
+        z-index: 52;
+        min-width: max(100%, 180px);
+      }
+
+      .view-card:has(.page-size-shell.is-open) {
+        overflow: visible;
       }
 
       .contacts-table .thead,
@@ -14730,6 +14765,10 @@
 
         .app-shell[data-active-view="experts"] #view-experts .page-size-shell {
           display: flex !important;
+        }
+
+        .app-shell[data-active-view="experts"] #view-experts .table-footer__controls {
+          overflow: visible;
         }
 
         .filter-panel {

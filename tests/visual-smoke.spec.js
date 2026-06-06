@@ -65,6 +65,42 @@ async function attachScreenshot(page, testInfo, name) {
   });
 }
 
+async function expectPageSizeDropdownUsable(page, shellSelector, nextValue = "50 pro Seite") {
+  const shell = page.locator(shellSelector);
+  await expect(shell).toBeVisible();
+  const trigger = shell.locator(".custom-select-trigger");
+  const label = trigger.locator(".custom-select-trigger__label");
+  await expect(label).toHaveText("20 pro Seite");
+  const labelMetrics = await label.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth
+  }));
+  expect(labelMetrics.scrollWidth).toBeLessThanOrEqual(labelMetrics.clientWidth + 1);
+
+  await trigger.click();
+  await expect(shell).toHaveClass(/is-open/);
+  const panel = shell.locator(".custom-select-panel--compact");
+  await expect(panel).toBeVisible();
+  const panelMetrics = await panel.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      bottom: rect.bottom,
+      height: rect.height,
+      left: rect.left,
+      right: rect.right,
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth
+    };
+  });
+  expect(panelMetrics.left).toBeGreaterThanOrEqual(0);
+  expect(panelMetrics.right).toBeLessThanOrEqual(panelMetrics.viewportWidth + 1);
+  expect(panelMetrics.bottom).toBeLessThanOrEqual(panelMetrics.viewportHeight + 1);
+  expect(panelMetrics.height).toBeGreaterThan(120);
+
+  await shell.locator(".custom-select-option", { hasText: nextValue }).click();
+  await expect(label).toHaveText(nextValue);
+}
+
 test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
 
@@ -118,11 +154,7 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
   await expect(page.locator("#expert-list .row, #expert-list .mobile-contact-card").first()).toBeVisible();
   await expect(page.locator("#experts-pagination-meta")).toContainText("Kontakten");
-  await expect(page.locator('#view-experts .page-size-shell')).toBeVisible();
-  await page.locator("#experts-page-size-select").evaluate((select) => {
-    select.value = "50";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-  });
+  await expectPageSizeDropdownUsable(page, "#view-experts .page-size-shell");
   await expect(page.locator("#experts-pagination-meta")).toContainText("1-50 von");
   await expect(page.locator("#view-select-button")).toBeHidden();
   await page.locator("#expert-list .row, #expert-list .mobile-contact-card").first().click();
