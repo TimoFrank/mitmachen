@@ -101,6 +101,119 @@ create table if not exists import_runs (
   created_by text references profiles(id) on delete set null
 );
 
+create table if not exists formats (
+  id text primary key,
+  title text not null,
+  format_type text not null default 'Roundtable',
+  starts_at timestamptz,
+  ends_at timestamptz,
+  location text,
+  goal text,
+  owner_id text references profiles(id) on delete set null,
+  status text not null default 'Planung' check (status in ('Planung', 'Aktiv', 'Abgeschlossen', 'Archiviert')),
+  notes text,
+  created_at timestamptz not null default now(),
+  created_by text references profiles(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  updated_by text references profiles(id) on delete set null
+);
+
+create table if not exists format_participants (
+  id text primary key,
+  format_id text not null references formats(id) on delete cascade,
+  contact_id text not null references contacts(id) on delete cascade,
+  invitation_status text not null default 'Kandidat' check (invitation_status in ('Kandidat', 'Eingeladen', 'Zugesagt', 'Abgesagt', 'Keine Rückmeldung', 'Teilgenommen')),
+  participant_role text,
+  notes text,
+  created_at timestamptz not null default now(),
+  created_by text references profiles(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  updated_by text references profiles(id) on delete set null,
+  unique (format_id, contact_id)
+);
+
+create table if not exists expert_groups (
+  id text primary key,
+  name text not null unique,
+  sort_order integer not null default 100,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists expert_organizations (
+  id text primary key,
+  name text not null,
+  normalized_name text not null,
+  group_id text references expert_groups(id) on delete set null,
+  group_name text,
+  organization_type text,
+  city text,
+  federal_state text,
+  website text,
+  phone text,
+  email text,
+  notes text,
+  source text,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists expert_contacts (
+  id text primary key,
+  name text not null,
+  organization_id text references expert_organizations(id) on delete set null,
+  organization text,
+  group_id text not null references expert_groups(id) on delete restrict,
+  group_name text not null,
+  specialty text,
+  role text,
+  city text,
+  federal_state text,
+  email text,
+  phone text,
+  linkedin text,
+  topics text[] not null default '{}',
+  notes text,
+  source text,
+  profile_url text,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists expert_entity_links (
+  id text primary key,
+  link_type text not null check (link_type in ('contact', 'organization')),
+  contact_id text references contacts(id) on delete cascade,
+  expert_contact_id text references expert_contacts(id) on delete cascade,
+  organization_id text references organizations(id) on delete cascade,
+  expert_organization_id text references expert_organizations(id) on delete cascade,
+  match_reason text,
+  confidence numeric(4, 3) check (confidence is null or (confidence >= 0 and confidence <= 1)),
+  created_at timestamptz not null default now(),
+  created_by text references profiles(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  updated_by text references profiles(id) on delete set null,
+  check (
+    (
+      link_type = 'contact'
+      and contact_id is not null
+      and expert_contact_id is not null
+      and organization_id is null
+      and expert_organization_id is null
+    )
+    or (
+      link_type = 'organization'
+      and organization_id is not null
+      and expert_organization_id is not null
+      and contact_id is null
+      and expert_contact_id is null
+    )
+  )
+);
+
 create index if not exists profiles_active_idx on profiles(active);
 create index if not exists organizations_status_idx on organizations(status);
 create index if not exists organizations_normalized_name_idx on organizations(normalized_name);
@@ -114,6 +227,29 @@ create index if not exists contacts_priority_idx on contacts(priority);
 create index if not exists changes_contact_idx on changes(contact_id);
 create index if not exists changes_changed_at_idx on changes(changed_at desc);
 create index if not exists import_runs_created_at_idx on import_runs(created_at desc);
+create index if not exists formats_owner_idx on formats(owner_id);
+create index if not exists formats_status_idx on formats(status);
+create index if not exists formats_starts_at_idx on formats(starts_at);
+create index if not exists format_participants_format_idx on format_participants(format_id);
+create index if not exists format_participants_contact_idx on format_participants(contact_id);
+create index if not exists format_participants_status_idx on format_participants(invitation_status);
+create index if not exists expert_groups_status_idx on expert_groups(status);
+create index if not exists expert_organizations_normalized_name_idx on expert_organizations(normalized_name);
+create index if not exists expert_organizations_group_idx on expert_organizations(group_id);
+create index if not exists expert_organizations_status_idx on expert_organizations(status);
+create index if not exists expert_contacts_group_idx on expert_contacts(group_id);
+create index if not exists expert_contacts_organization_idx on expert_contacts(organization_id);
+create index if not exists expert_contacts_status_idx on expert_contacts(status);
+create unique index if not exists expert_entity_links_contact_unique
+on expert_entity_links(contact_id, expert_contact_id)
+where link_type = 'contact';
+create unique index if not exists expert_entity_links_organization_unique
+on expert_entity_links(organization_id, expert_organization_id)
+where link_type = 'organization';
+create index if not exists expert_entity_links_contact_idx on expert_entity_links(contact_id);
+create index if not exists expert_entity_links_expert_contact_idx on expert_entity_links(expert_contact_id);
+create index if not exists expert_entity_links_organization_idx on expert_entity_links(organization_id);
+create index if not exists expert_entity_links_expert_organization_idx on expert_entity_links(expert_organization_id);
 
 create or replace function touch_updated_at()
 returns trigger
@@ -138,4 +274,34 @@ for each row execute function touch_updated_at();
 drop trigger if exists contacts_touch_updated_at on contacts;
 create trigger contacts_touch_updated_at
 before update on contacts
+for each row execute function touch_updated_at();
+
+drop trigger if exists formats_touch_updated_at on formats;
+create trigger formats_touch_updated_at
+before update on formats
+for each row execute function touch_updated_at();
+
+drop trigger if exists format_participants_touch_updated_at on format_participants;
+create trigger format_participants_touch_updated_at
+before update on format_participants
+for each row execute function touch_updated_at();
+
+drop trigger if exists expert_groups_touch_updated_at on expert_groups;
+create trigger expert_groups_touch_updated_at
+before update on expert_groups
+for each row execute function touch_updated_at();
+
+drop trigger if exists expert_organizations_touch_updated_at on expert_organizations;
+create trigger expert_organizations_touch_updated_at
+before update on expert_organizations
+for each row execute function touch_updated_at();
+
+drop trigger if exists expert_contacts_touch_updated_at on expert_contacts;
+create trigger expert_contacts_touch_updated_at
+before update on expert_contacts
+for each row execute function touch_updated_at();
+
+drop trigger if exists expert_entity_links_touch_updated_at on expert_entity_links;
+create trigger expert_entity_links_touch_updated_at
+before update on expert_entity_links
 for each row execute function touch_updated_at();

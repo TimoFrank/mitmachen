@@ -258,10 +258,45 @@ function loadDemoData() {
   });
 }
 
+function loadExpertData() {
+  const codePath = path.join(ROOT, "data", "expertenkreis-data.js");
+  return readFile(codePath, "utf8").then((source) => {
+    const sandbox = { window: {} };
+    vm.createContext(sandbox);
+    vm.runInContext(source, sandbox, { filename: codePath });
+    return {
+      groups: Array.isArray(sandbox.window.VERSORGUNGS_COMPASS_EXPERT_GROUPS) ? sandbox.window.VERSORGUNGS_COMPASS_EXPERT_GROUPS : [],
+      contacts: Array.isArray(sandbox.window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS) ? sandbox.window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS : [],
+      organizations: Array.isArray(sandbox.window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS) ? sandbox.window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS : []
+    };
+  });
+}
+
 async function seedIfEmpty() {
   const { rows } = await getPool().query("select count(*)::int as count from contacts");
-  if (rows[0]?.count > 0) return;
+  if (rows[0]?.count > 0) {
+    await seedSupplementalDataIfEmpty();
+    return;
+  }
   await resetDemoData();
+}
+
+async function seedSupplementalDataIfEmpty() {
+  const client = await getPool().connect();
+  try {
+    await client.query("begin");
+    const { rows: expertRows } = await client.query("select count(*)::int as count from expert_groups");
+    const { rows: formatRows } = await client.query("select count(*)::int as count from formats");
+    const actorId = await firstProfileId(client);
+    if ((expertRows[0]?.count || 0) === 0) await seedExpertData(client);
+    if ((formatRows[0]?.count || 0) === 0) await seedDemoFormats(client, actorId);
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function resetDemoData() {
@@ -269,7 +304,9 @@ async function resetDemoData() {
   const client = await getPool().connect();
   try {
     await client.query("begin");
-    await client.query("truncate import_runs, changes, contacts, organizations, profiles restart identity cascade");
+    await client.query(
+      "truncate import_runs, changes, format_participants, formats, expert_entity_links, expert_contacts, expert_organizations, expert_groups, contacts, organizations, profiles restart identity cascade"
+    );
 
     const profiles = Array.isArray(demo.profiles) ? demo.profiles : [];
     for (const profile of profiles) {
@@ -394,12 +431,281 @@ async function resetDemoData() {
       );
     }
 
+    await seedExpertData(client);
+    await seedDemoFormats(client, actorId);
+
     await client.query("commit");
   } catch (error) {
     await client.query("rollback");
     throw error;
   } finally {
     client.release();
+  }
+}
+
+function slugId(prefix, value) {
+  const slug = String(value || "")
+    .trim()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 110);
+  return `${prefix}-${slug || Date.now().toString(36)}`;
+}
+
+function expertGroupSeed(entry = {}, index = 0) {
+  const name = String(entry.name || entry.group || entry.group_name || "").trim();
+  return {
+    id: String(entry.id || entry.groupId || entry.group_id || slugId("expert-group", name || index + 1)).trim(),
+    name,
+    sortOrder: Number(entry.sortOrder ?? entry.sort_order ?? (index + 1) * 10),
+    status: entry.status || "active"
+  };
+}
+
+async function seedExpertData(client) {
+  const expert = await loadExpertData();
+  const groupsById = new Map();
+  const groupsByName = new Map();
+
+  expert.groups.forEach((entry, index) => {
+    const group = expertGroupSeed(entry, index);
+    if (!group.name) return;
+    groupsById.set(group.id, group);
+    groupsByName.set(normalizeName(group.name), group);
+  });
+
+  const ensureGroup = (entry = {}) => {
+    const name = String(entry.group || entry.groupName || entry.group_name || entry.category || entry.sector || "").trim();
+    const explicitId = String(entry.groupId || entry.group_id || "").trim();
+    if (explicitId && groupsById.has(explicitId)) return groupsById.get(explicitId);
+    if (name && groupsByName.has(normalizeName(name))) return groupsByName.get(normalizeName(name));
+    if (!name) return null;
+    const group = {
+      id: explicitId || slugId("expert-group", name),
+      name,
+      sortOrder: (groupsById.size + 1) * 10,
+      status: "active"
+    };
+    groupsById.set(group.id, group);
+    groupsByName.set(normalizeName(group.name), group);
+    return group;
+  };
+
+  expert.organizations.forEach(ensureGroup);
+  expert.contacts.forEach(ensureGroup);
+
+  for (const group of [...groupsById.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "de"))) {
+    await client.query(
+      `insert into expert_groups (id, name, sort_order, status)
+       values ($1, $2, $3, $4)
+       on conflict (id) do update
+       set name = excluded.name,
+           sort_order = excluded.sort_order,
+           status = excluded.status`,
+      [group.id, group.name, group.sortOrder, group.status || "active"]
+    );
+  }
+
+  const organizationIds = new Set();
+  for (const organization of expert.organizations) {
+    const name = String(organization.name || "").trim();
+    if (!name) continue;
+    const group = ensureGroup(organization);
+    const id = String(organization.id || slugId("expert-org", name)).trim();
+    organizationIds.add(id);
+    await client.query(
+      `insert into expert_organizations
+        (id, name, normalized_name, group_id, group_name, organization_type, city, federal_state,
+         website, phone, email, notes, source, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       on conflict (id) do update
+       set name = excluded.name,
+           normalized_name = excluded.normalized_name,
+           group_id = excluded.group_id,
+           group_name = excluded.group_name,
+           organization_type = excluded.organization_type,
+           city = excluded.city,
+           federal_state = excluded.federal_state,
+           website = excluded.website,
+           phone = excluded.phone,
+           email = excluded.email,
+           notes = excluded.notes,
+           source = excluded.source,
+           status = excluded.status`,
+      [
+        id,
+        name,
+        normalizeName(organization.normalizedName || organization.normalized_name || name),
+        group?.id || null,
+        group?.name || organization.group || organization.sector || "",
+        organization.organizationType || organization.organization_type || "Expertenkreis-Organisation",
+        organization.city || "",
+        organization.state || organization.federal_state || "",
+        organization.website || "",
+        organization.phone || "",
+        organization.email || "",
+        organization.notes || organization.note || "Aus öffentlichen INA-Expertenkreisprofilen aggregiert.",
+        organization.source || "INA Expertenkreis",
+        organization.status || "active"
+      ]
+    );
+  }
+
+  for (const contact of expert.contacts) {
+    const name = String(contact.name || "").trim();
+    const group = ensureGroup(contact);
+    if (!name || !group?.id) continue;
+    const organizationId = organizationIds.has(contact.organizationId || contact.organization_id) ? contact.organizationId || contact.organization_id : null;
+    await client.query(
+      `insert into expert_contacts
+        (id, name, organization_id, organization, group_id, group_name, specialty, role, city,
+         federal_state, email, phone, linkedin, topics, notes, source, profile_url, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+       on conflict (id) do update
+       set name = excluded.name,
+           organization_id = excluded.organization_id,
+           organization = excluded.organization,
+           group_id = excluded.group_id,
+           group_name = excluded.group_name,
+           specialty = excluded.specialty,
+           role = excluded.role,
+           city = excluded.city,
+           federal_state = excluded.federal_state,
+           email = excluded.email,
+           phone = excluded.phone,
+           linkedin = excluded.linkedin,
+           topics = excluded.topics,
+           notes = excluded.notes,
+           source = excluded.source,
+           profile_url = excluded.profile_url,
+           status = excluded.status`,
+      [
+        String(contact.id || slugId("expert-contact", name)).trim(),
+        name,
+        organizationId,
+        contact.organization || "",
+        group.id,
+        group.name,
+        contact.specialty || "",
+        contact.contactRole || contact.role || "",
+        contact.city || "",
+        contact.state || contact.federal_state || "",
+        contact.email || "",
+        contact.phone || "",
+        contact.linkedin || "",
+        splitList(contact.themes || contact.topics),
+        contact.note || contact.notes || "",
+        splitList(contact.sources || contact.source).join("; ") || "INA Expertenkreis",
+        contact.url || contact.sourceUrl || contact.profileUrl || contact.profile_url || "",
+        contact.status || "active"
+      ]
+    );
+  }
+}
+
+async function seedDemoFormats(client, actorId = null) {
+  const { rows: contacts } = await client.query(
+    `select id, sector, federal_state
+     from contacts
+     where status <> 'archived'
+     order by updated_at desc, name asc
+     limit 18`
+  );
+  if (!contacts.length) return;
+
+  const contactId = (index) => contacts[index % contacts.length]?.id;
+  const now = new Date().toISOString();
+  const formats = [
+    {
+      id: "gcp-format-roundtable-epa-regional",
+      title: "Roundtable ePA in der Versorgung",
+      formatType: "Roundtable",
+      startsAt: "2026-07-02T12:00:00.000Z",
+      endsAt: "2026-07-02T14:00:00.000Z",
+      location: "Berlin / hybrid",
+      goal: "Praxisnahe Rückmeldungen zu ePA-Abläufen aus unterschiedlichen Versorgungskontexten sammeln.",
+      status: "Planung",
+      notes: "Pilotformat in Cloud SQL; Teilnehmer stammen aus dem Demo-Datensatz.",
+      participants: [
+        [contactId(0), "Eingeladen", "Praxisperspektive"],
+        [contactId(1), "Kandidat", "Klinikperspektive"],
+        [contactId(2), "Zugesagt", "Apothekenperspektive"]
+      ]
+    },
+    {
+      id: "gcp-format-workshop-entlassmanagement",
+      title: "Workshop Entlassmanagement und Anschlussversorgung",
+      formatType: "Workshop",
+      startsAt: "2026-07-16T08:30:00.000Z",
+      endsAt: "2026-07-16T11:00:00.000Z",
+      location: "Remote",
+      goal: "Schnittstellen zwischen Krankenhaus, Praxis, Pflege und Reha konkretisieren.",
+      status: "Aktiv",
+      notes: "Dient als realistischer Testfall für Teilnehmerpflege und Statuswechsel.",
+      participants: [
+        [contactId(3), "Zugesagt", "Krankenhaus"],
+        [contactId(4), "Eingeladen", "Pflege"],
+        [contactId(5), "Keine Rückmeldung", "Reha"]
+      ]
+    },
+    {
+      id: "gcp-format-interviewreihe-e-rezept",
+      title: "Interviewreihe E-Rezept im Alltag",
+      formatType: "Interviewreihe",
+      startsAt: "2026-08-06T09:00:00.000Z",
+      endsAt: "2026-08-06T15:00:00.000Z",
+      location: "Telefon / Video",
+      goal: "Hürden und Routinen bei E-Rezept-Prozessen im Versorgungsalltag verstehen.",
+      status: "Planung",
+      notes: "Leichtgewichtige Formatreihe für mehrere Einzelgespräche.",
+      participants: [
+        [contactId(6), "Kandidat", "Apotheke"],
+        [contactId(7), "Eingeladen", "Praxis"],
+        [contactId(8), "Kandidat", "Krankenkasse"]
+      ]
+    }
+  ];
+
+  for (const format of formats) {
+    await client.query(
+      `insert into formats
+        (id, title, format_type, starts_at, ends_at, location, goal, owner_id, status, notes, created_at, created_by, updated_at, updated_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $8, $11, $8)
+       on conflict (id) do nothing`,
+      [
+        format.id,
+        format.title,
+        format.formatType,
+        format.startsAt,
+        format.endsAt,
+        format.location,
+        format.goal,
+        actorId,
+        format.status,
+        format.notes,
+        now
+      ]
+    );
+    for (const [id, invitationStatus, participantRole] of format.participants.filter(([id]) => Boolean(id))) {
+      await client.query(
+        `insert into format_participants
+          (id, format_id, contact_id, invitation_status, participant_role, notes, created_at, created_by, updated_at, updated_by)
+         values ($1, $2, $3, $4, $5, '', $6, $7, $6, $7)
+         on conflict (format_id, contact_id) do nothing`,
+        [
+          `${format.id}-${id}`,
+          format.id,
+          id,
+          invitationStatus,
+          participantRole,
+          now,
+          actorId
+        ]
+      );
+    }
   }
 }
 
@@ -418,6 +724,14 @@ function stringifyValue(value) {
   return String(value ?? "");
 }
 
+function splitList(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  return String(value || "")
+    .split(/\s*;\s*|\s*\|\s*|\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function generateId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
 }
@@ -427,6 +741,27 @@ function normalizeName(value) {
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();
+}
+
+function normalizeFormatStatus(value) {
+  const label = String(value || "").trim();
+  if (["Planung", "Aktiv", "Abgeschlossen", "Archiviert"].includes(label)) return label;
+  if (label === "archived") return "Archiviert";
+  if (label === "active") return "Aktiv";
+  return "Planung";
+}
+
+function normalizeInvitationStatus(value) {
+  const label = String(value || "").trim();
+  if (["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"].includes(label)) return label;
+  return "Kandidat";
+}
+
+function maybeIsoDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function inputValueForField(dbField, value) {
@@ -1172,6 +1507,538 @@ async function listImportRuns() {
   return rows.map(mapImportRun);
 }
 
+function mapFormatParticipant(row) {
+  return {
+    id: row.id || "",
+    formatId: row.format_id || "",
+    contactId: row.contact_id || "",
+    invitationStatus: normalizeInvitationStatus(row.invitation_status),
+    participantRole: row.participant_role || "",
+    notes: row.notes || "",
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || ""
+  };
+}
+
+function mapFormat(row, participants = []) {
+  return {
+    id: row.id || "",
+    title: row.title || "Unbenanntes Format",
+    formatType: row.format_type || "Roundtable",
+    startsAt: row.starts_at || "",
+    endsAt: row.ends_at || "",
+    location: row.location || "",
+    goal: row.goal || "",
+    ownerId: row.owner_id || "",
+    owner: row.owner_display_name || "",
+    status: normalizeFormatStatus(row.status),
+    notes: row.notes || "",
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || "",
+    participants: participants.map(mapFormatParticipant)
+  };
+}
+
+function mapExpertGroup(row, index = 0) {
+  return {
+    id: row.id || `expert-group-${index + 1}`,
+    name: row.name || "",
+    sortOrder: Number(row.sort_order ?? (index + 1) * 10),
+    status: row.status || "active",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function mapExpertContact(row, index = 0) {
+  return {
+    id: row.id || `expert-contact-${index + 1}`,
+    name: row.name || "",
+    organizationId: row.organization_id || "",
+    organization: row.organization || "",
+    groupId: row.group_id || "",
+    group: row.group_name || "",
+    category: row.group_name || "",
+    specialty: row.specialty || "",
+    contactRole: row.role || "",
+    city: row.city || "",
+    state: row.federal_state || "",
+    email: row.email || "",
+    phone: row.phone || "",
+    linkedin: row.linkedin || "",
+    themes: Array.isArray(row.topics) ? row.topics : [],
+    note: row.notes || "",
+    sources: splitList(row.source || "INA Expertenkreis"),
+    url: row.profile_url || "",
+    sourceUrl: row.profile_url || "",
+    status: row.status || "active",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    _index: index
+  };
+}
+
+function mapExpertOrganization(row, contactCount = 0) {
+  return {
+    id: row.id || "",
+    name: row.name || "",
+    normalizedName: row.normalized_name || normalizeName(row.name),
+    groupId: row.group_id || "",
+    group: row.group_name || "",
+    sector: row.group_name || "",
+    organizationType: row.organization_type || "",
+    city: row.city || "",
+    state: row.federal_state || "",
+    website: row.website || "",
+    phone: row.phone || "",
+    email: row.email || "",
+    notes: row.notes || "",
+    source: row.source || "",
+    status: row.status || "active",
+    contactCount: Number(row.contact_count ?? contactCount ?? 0),
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function mapExpertEntityLink(row = {}) {
+  return {
+    id: row.id || "",
+    linkType: row.link_type || "",
+    contactId: row.contact_id || "",
+    expertContactId: row.expert_contact_id || "",
+    organizationId: row.organization_id || "",
+    expertOrganizationId: row.expert_organization_id || "",
+    matchReason: row.match_reason || "",
+    confidence: Number(row.confidence || 0),
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || ""
+  };
+}
+
+async function profileIdForInput(value, client = getPool()) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const { rows } = await client.query(
+    `select id from profiles
+     where id = $1
+        or lower(display_name) = lower($1)
+        or lower(email) = lower($1)
+        or lower(initials) = lower($1)
+     limit 1`,
+    [raw]
+  );
+  return rows[0]?.id || null;
+}
+
+async function formatParticipantsByFormat(ids = [], client = getPool()) {
+  if (!ids.length) return new Map();
+  const { rows } = await client.query(
+    `select *
+     from format_participants
+     where format_id = any($1::text[])
+     order by updated_at desc, contact_id asc`,
+    [ids]
+  );
+  return rows.reduce((groups, row) => {
+    const list = groups.get(row.format_id) || [];
+    list.push(row);
+    groups.set(row.format_id, list);
+    return groups;
+  }, new Map());
+}
+
+async function listFormats({ includeArchived = false } = {}) {
+  const where = includeArchived ? "" : "where formats.status <> 'Archiviert'";
+  const { rows } = await getPool().query(
+    `select formats.*, profiles.display_name as owner_display_name
+     from formats
+     left join profiles on profiles.id = formats.owner_id
+     ${where}
+     order by formats.updated_at desc, formats.title asc`
+  );
+  const participantGroups = await formatParticipantsByFormat(rows.map((row) => row.id));
+  return rows.map((row) => mapFormat(row, participantGroups.get(row.id) || []));
+}
+
+async function getFormat(id, client = getPool()) {
+  const { rows } = await client.query(
+    `select formats.*, profiles.display_name as owner_display_name
+     from formats
+     left join profiles on profiles.id = formats.owner_id
+     where formats.id = $1`,
+    [id]
+  );
+  if (!rows[0]) return null;
+  const participantGroups = await formatParticipantsByFormat([id], client);
+  return mapFormat(rows[0], participantGroups.get(id) || []);
+}
+
+async function createFormat(input = {}) {
+  const title = String(input.title || "").trim();
+  if (!title) throw new Error("Titel des Formats fehlt.");
+  const client = await getPool().connect();
+  try {
+    const actorId = await firstProfileId(client);
+    const ownerId = input.ownerId || input.owner_id || (input.owner ? await profileIdForInput(input.owner, client) : null) || actorId;
+    const id = String(input.id || "").trim() || generateId("gcp-format");
+    await client.query(
+      `insert into formats
+        (id, title, format_type, starts_at, ends_at, location, goal, owner_id, status, notes, created_by, updated_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)`,
+      [
+        id,
+        title,
+        String(input.formatType || input.format_type || "Roundtable").trim() || "Roundtable",
+        maybeIsoDate(input.startsAt || input.starts_at),
+        maybeIsoDate(input.endsAt || input.ends_at),
+        String(input.location || "").trim() || null,
+        String(input.goal || "").trim() || null,
+        ownerId,
+        normalizeFormatStatus(input.status),
+        String(input.notes || "").trim() || null,
+        actorId
+      ]
+    );
+    return await getFormat(id, client);
+  } finally {
+    client.release();
+  }
+}
+
+async function patchFormat(id, input = {}) {
+  const client = await getPool().connect();
+  try {
+    const old = await getFormat(id, client);
+    if (!old) return null;
+    const dbPatch = {};
+    if (Object.prototype.hasOwnProperty.call(input, "title")) dbPatch.title = String(input.title || "").trim();
+    if (Object.prototype.hasOwnProperty.call(input, "formatType") || Object.prototype.hasOwnProperty.call(input, "format_type")) {
+      dbPatch.format_type = String(input.formatType || input.format_type || "Roundtable").trim() || "Roundtable";
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "startsAt") || Object.prototype.hasOwnProperty.call(input, "starts_at")) dbPatch.starts_at = maybeIsoDate(input.startsAt || input.starts_at);
+    if (Object.prototype.hasOwnProperty.call(input, "endsAt") || Object.prototype.hasOwnProperty.call(input, "ends_at")) dbPatch.ends_at = maybeIsoDate(input.endsAt || input.ends_at);
+    if (Object.prototype.hasOwnProperty.call(input, "location")) dbPatch.location = String(input.location || "").trim() || null;
+    if (Object.prototype.hasOwnProperty.call(input, "goal")) dbPatch.goal = String(input.goal || "").trim() || null;
+    if (Object.prototype.hasOwnProperty.call(input, "ownerId") || Object.prototype.hasOwnProperty.call(input, "owner_id")) dbPatch.owner_id = input.ownerId || input.owner_id || null;
+    if (!Object.prototype.hasOwnProperty.call(input, "ownerId") && !Object.prototype.hasOwnProperty.call(input, "owner_id") && Object.prototype.hasOwnProperty.call(input, "owner")) {
+      dbPatch.owner_id = await profileIdForInput(input.owner, client);
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "status")) dbPatch.status = normalizeFormatStatus(input.status);
+    if (Object.prototype.hasOwnProperty.call(input, "notes")) dbPatch.notes = String(input.notes || "").trim() || null;
+    dbPatch.updated_by = await firstProfileId(client);
+    if (Object.keys(dbPatch).length) {
+      const fields = Object.keys(dbPatch);
+      const values = fields.map((field) => dbPatch[field]);
+      const assignments = fields.map((field, index) => `${field} = $${index + 2}`).join(", ");
+      await client.query(`update formats set ${assignments} where id = $1`, [id, ...values]);
+    }
+    return await getFormat(id, client);
+  } finally {
+    client.release();
+  }
+}
+
+async function deleteFormat(id) {
+  const { rowCount } = await getPool().query("delete from formats where id = $1", [id]);
+  return { ok: rowCount > 0 };
+}
+
+async function addFormatParticipant(formatId, input = {}) {
+  const contactId = input.contactId || input.contact_id;
+  if (!contactId) throw new Error("Kontakt-ID fuer Teilnehmer fehlt.");
+  const client = await getPool().connect();
+  try {
+    const actorId = await firstProfileId(client);
+    await client.query(
+      `insert into format_participants
+        (id, format_id, contact_id, invitation_status, participant_role, notes, created_by, updated_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $7)
+       on conflict (format_id, contact_id) do update
+       set invitation_status = excluded.invitation_status,
+           participant_role = excluded.participant_role,
+           notes = excluded.notes,
+           updated_by = excluded.updated_by`,
+      [
+        String(input.id || "").trim() || generateId("gcp-format-participant"),
+        formatId,
+        contactId,
+        normalizeInvitationStatus(input.invitationStatus || input.invitation_status),
+        String(input.participantRole || input.participant_role || "").trim() || null,
+        String(input.notes || "").trim() || null,
+        actorId
+      ]
+    );
+    await client.query("update formats set updated_by = $2 where id = $1", [formatId, actorId]);
+    return await getFormat(formatId, client);
+  } finally {
+    client.release();
+  }
+}
+
+async function patchFormatParticipant(formatId, contactId, input = {}) {
+  const client = await getPool().connect();
+  try {
+    const dbPatch = {};
+    if (Object.prototype.hasOwnProperty.call(input, "invitationStatus") || Object.prototype.hasOwnProperty.call(input, "invitation_status")) {
+      dbPatch.invitation_status = normalizeInvitationStatus(input.invitationStatus || input.invitation_status);
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "participantRole") || Object.prototype.hasOwnProperty.call(input, "participant_role")) {
+      dbPatch.participant_role = String(input.participantRole || input.participant_role || "").trim() || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "notes")) dbPatch.notes = String(input.notes || "").trim() || null;
+    dbPatch.updated_by = await firstProfileId(client);
+    const fields = Object.keys(dbPatch);
+    const values = fields.map((field) => dbPatch[field]);
+    const assignments = fields.map((field, index) => `${field} = $${index + 3}`).join(", ");
+    await client.query(
+      `update format_participants set ${assignments} where format_id = $1 and contact_id = $2`,
+      [formatId, contactId, ...values]
+    );
+    await client.query("update formats set updated_by = $2 where id = $1", [formatId, dbPatch.updated_by]);
+    return await getFormat(formatId, client);
+  } finally {
+    client.release();
+  }
+}
+
+async function removeFormatParticipant(formatId, contactId) {
+  const client = await getPool().connect();
+  try {
+    await client.query("delete from format_participants where format_id = $1 and contact_id = $2", [formatId, contactId]);
+    await client.query("update formats set updated_by = $2 where id = $1", [formatId, await firstProfileId(client)]);
+    return await getFormat(formatId, client);
+  } finally {
+    client.release();
+  }
+}
+
+async function listExpertGroups({ includeArchived = false } = {}) {
+  const where = includeArchived ? "" : "where status <> 'archived'";
+  const { rows } = await getPool().query(`select * from expert_groups ${where} order by sort_order asc, name asc`);
+  return rows.map(mapExpertGroup);
+}
+
+async function listExpertContacts({ includeArchived = false, status = "" } = {}) {
+  const filters = [];
+  const values = [];
+  if (!includeArchived) filters.push("status <> 'archived'");
+  if (status) {
+    values.push(status);
+    filters.push(`status = $${values.length}`);
+  }
+  const where = filters.length ? `where ${filters.join(" and ")}` : "";
+  const { rows } = await getPool().query(`select * from expert_contacts ${where} order by name asc`, values);
+  return rows.map(mapExpertContact);
+}
+
+async function listExpertOrganizations({ includeArchived = false } = {}) {
+  const where = includeArchived ? "" : "where expert_organizations.status <> 'archived'";
+  const { rows } = await getPool().query(
+    `select expert_organizations.*,
+            (
+              select count(*)::int
+              from expert_contacts
+              where expert_contacts.status <> 'archived'
+                and expert_contacts.organization_id = expert_organizations.id
+            ) as contact_count
+     from expert_organizations
+     ${where}
+     order by expert_organizations.name asc`
+  );
+  return rows.map((row) => mapExpertOrganization(row, row.contact_count || 0));
+}
+
+async function ensureExpertGroupForInput(input = {}, client = getPool()) {
+  const groupName = String(input.group || input.groupName || input.group_name || input.category || input.sector || "").trim();
+  const groupId = String(input.groupId || input.group_id || "").trim();
+  if (groupId) {
+    const { rows } = await client.query("select * from expert_groups where id = $1", [groupId]);
+    if (rows[0]) return rows[0];
+  }
+  if (groupName) {
+    const { rows } = await client.query("select * from expert_groups where lower(name) = lower($1)", [groupName]);
+    if (rows[0]) return rows[0];
+    const id = groupId || slugId("expert-group", groupName);
+    const inserted = await client.query(
+      `insert into expert_groups (id, name, sort_order, status)
+       values ($1, $2, 100, 'active')
+       on conflict (id) do update set name = excluded.name
+       returning *`,
+      [id, groupName]
+    );
+    return inserted.rows[0];
+  }
+  return null;
+}
+
+async function createExpertContact(input = {}) {
+  const client = await getPool().connect();
+  try {
+    const group = await ensureExpertGroupForInput(input, client);
+    const name = String(input.name || "").trim();
+    if (!name) throw new Error("Name des Expertenkreis-Kontakts fehlt.");
+    if (!group?.id) throw new Error("Gruppe des Expertenkreis-Kontakts fehlt.");
+    const id = String(input.id || "").trim() || generateId("expert-contact");
+    const { rows } = await client.query(
+      `insert into expert_contacts
+        (id, name, organization_id, organization, group_id, group_name, specialty, role, city,
+         federal_state, email, phone, linkedin, topics, notes, source, profile_url, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+       returning *`,
+      [
+        id,
+        name,
+        input.organizationId || input.organization_id || null,
+        String(input.organization || "").trim() || null,
+        group.id,
+        group.name,
+        String(input.specialty || "").trim() || null,
+        String(input.contactRole || input.role || "").trim() || null,
+        String(input.city || "").trim() || null,
+        String(input.state || input.federal_state || "").trim() || null,
+        String(input.email || "").trim() || null,
+        String(input.phone || "").trim() || null,
+        String(input.linkedin || "").trim() || null,
+        splitList(input.themes || input.topics),
+        String(input.note || input.notes || "").trim() || null,
+        splitList(input.sources || input.source).join("; ") || "Manuell angelegt",
+        String(input.url || input.sourceUrl || input.profileUrl || input.profile_url || "").trim() || null,
+        input.status || "active"
+      ]
+    );
+    return mapExpertContact(rows[0]);
+  } finally {
+    client.release();
+  }
+}
+
+async function createExpertOrganization(input = {}) {
+  const client = await getPool().connect();
+  try {
+    const group = await ensureExpertGroupForInput(input, client);
+    const name = String(input.name || "").trim();
+    if (!name) throw new Error("Name der Expertenkreis-Organisation fehlt.");
+    const id = String(input.id || "").trim() || generateId("expert-org");
+    const { rows } = await client.query(
+      `insert into expert_organizations
+        (id, name, normalized_name, group_id, group_name, organization_type, city, federal_state,
+         website, phone, email, notes, source, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       returning *`,
+      [
+        id,
+        name,
+        normalizeName(input.normalizedName || input.normalized_name || name),
+        group?.id || null,
+        group?.name || String(input.group || input.groupName || input.group_name || input.sector || "").trim() || null,
+        String(input.organizationType || input.organization_type || "").trim() || null,
+        String(input.city || "").trim() || null,
+        String(input.state || input.federal_state || "").trim() || null,
+        String(input.website || "").trim() || null,
+        String(input.phone || "").trim() || null,
+        String(input.email || "").trim() || null,
+        String(input.notes || "").trim() || null,
+        String(input.source || "").trim() || "Manuell angelegt",
+        input.status || "active"
+      ]
+    );
+    return mapExpertOrganization(rows[0], 0);
+  } finally {
+    client.release();
+  }
+}
+
+async function listExpertEntityLinks() {
+  const { rows } = await getPool().query("select * from expert_entity_links order by updated_at desc");
+  return rows.map(mapExpertEntityLink);
+}
+
+function expertEntityLinkInputToDb(input = {}) {
+  const linkType = String(input.linkType || input.link_type || "").trim();
+  const payload = {
+    link_type: linkType,
+    contact_id: input.contactId || input.contact_id || null,
+    expert_contact_id: input.expertContactId || input.expert_contact_id || null,
+    organization_id: input.organizationId || input.organization_id || null,
+    expert_organization_id: input.expertOrganizationId || input.expert_organization_id || null,
+    match_reason: String(input.matchReason || input.match_reason || "").trim() || null,
+    confidence: Number.isFinite(Number(input.confidence ?? input.score)) ? Number(input.confidence ?? input.score) : null
+  };
+  if (!["contact", "organization"].includes(payload.link_type)) throw new Error("Link-Typ muss contact oder organization sein.");
+  if (payload.link_type === "contact" && (!payload.contact_id || !payload.expert_contact_id || payload.organization_id || payload.expert_organization_id)) {
+    throw new Error("Kontakt-Verknuepfung benoetigt contactId und expertContactId.");
+  }
+  if (payload.link_type === "organization" && (!payload.organization_id || !payload.expert_organization_id || payload.contact_id || payload.expert_contact_id)) {
+    throw new Error("Organisations-Verknuepfung benoetigt organizationId und expertOrganizationId.");
+  }
+  return payload;
+}
+
+async function createExpertEntityLink(input = {}) {
+  const db = expertEntityLinkInputToDb(input);
+  const actorId = await firstProfileId(getPool());
+  if (db.link_type === "organization") {
+    const { rows } = await getPool().query(
+      `insert into expert_entity_links
+        (id, link_type, contact_id, expert_contact_id, organization_id, expert_organization_id,
+         match_reason, confidence, created_by, updated_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+       on conflict (organization_id, expert_organization_id) where link_type = 'organization' do update
+       set match_reason = excluded.match_reason,
+           confidence = excluded.confidence,
+           updated_by = excluded.updated_by
+       returning *`,
+      [
+        String(input.id || "").trim() || generateId("expert-link"),
+        db.link_type,
+        db.contact_id,
+        db.expert_contact_id,
+        db.organization_id,
+        db.expert_organization_id,
+        db.match_reason,
+        db.confidence,
+        actorId
+      ]
+    );
+    return mapExpertEntityLink(rows[0]);
+  }
+  const { rows } = await getPool().query(
+    `insert into expert_entity_links
+      (id, link_type, contact_id, expert_contact_id, organization_id, expert_organization_id,
+       match_reason, confidence, created_by, updated_by)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+     on conflict (contact_id, expert_contact_id) where link_type = 'contact' do update
+     set match_reason = excluded.match_reason,
+         confidence = excluded.confidence,
+         updated_by = excluded.updated_by
+     returning *`,
+    [
+      String(input.id || "").trim() || generateId("expert-link"),
+      db.link_type,
+      db.contact_id,
+      db.expert_contact_id,
+      db.organization_id,
+      db.expert_organization_id,
+      db.match_reason,
+      db.confidence,
+      actorId
+    ]
+  );
+  return mapExpertEntityLink(rows[0]);
+}
+
+async function deleteExpertEntityLink(id) {
+  const { rowCount } = await getPool().query("delete from expert_entity_links where id = $1", [id]);
+  return { ok: rowCount > 0 };
+}
+
 function runtimeMetadata() {
   return {
     service: process.env.K_SERVICE || "local-gcp-demo",
@@ -1191,6 +2058,13 @@ async function getOpsSummary() {
        (select count(*)::int from contacts where status <> 'archived') as active_contacts,
        (select count(*)::int from contacts where status = 'archived') as archived_contacts,
        (select count(*)::int from import_runs) as import_runs,
+       (select count(*)::int from formats where status <> 'Archiviert') as active_formats,
+       (select count(*)::int from formats where status = 'Archiviert') as archived_formats,
+       (select count(*)::int from format_participants) as format_participants,
+       (select count(*)::int from expert_groups where status <> 'archived') as expert_groups,
+       (select count(*)::int from expert_contacts where status <> 'archived') as expert_contacts,
+       (select count(*)::int from expert_organizations where status <> 'archived') as expert_organizations,
+       (select count(*)::int from expert_entity_links) as expert_entity_links,
        (select count(*)::int from changes) as changes,
        (select max(changed_at) from changes) as last_change_at,
        (select max(updated_at) from contacts) as last_contact_update_at`
@@ -1208,6 +2082,13 @@ async function getOpsSummary() {
       activeContacts: row.active_contacts || 0,
       archivedContacts: row.archived_contacts || 0,
       importRuns: row.import_runs || 0,
+      activeFormats: row.active_formats || 0,
+      archivedFormats: row.archived_formats || 0,
+      formatParticipants: row.format_participants || 0,
+      expertGroups: row.expert_groups || 0,
+      expertContacts: row.expert_contacts || 0,
+      expertOrganizations: row.expert_organizations || 0,
+      expertEntityLinks: row.expert_entity_links || 0,
       changes: row.changes || 0
     },
     lastChangeAt: row.last_change_at || null,
@@ -1294,6 +2175,20 @@ async function getOpsChecks() {
     { lastChangeAt: summary?.lastChangeAt || null }
   ));
   checks.push(opsCheck(
+    "formats",
+    "Formate",
+    summaryError ? "error" : counts.activeFormats > 0 ? "ok" : "warn",
+    summaryError || `${counts.activeFormats || 0} aktive Formate, ${counts.formatParticipants || 0} Teilnehmerzuordnungen in Cloud SQL.`,
+    { activeFormats: counts.activeFormats || 0, participants: counts.formatParticipants || 0 }
+  ));
+  checks.push(opsCheck(
+    "expert-network",
+    "Expertenkreis",
+    summaryError ? "error" : counts.expertContacts > 0 && counts.expertOrganizations > 0 ? "ok" : "warn",
+    summaryError || `${counts.expertContacts || 0} Expertenkreis-Kontakte, ${counts.expertOrganizations || 0} Organisationen, ${counts.expertGroups || 0} Gruppen in Cloud SQL.`,
+    { contacts: counts.expertContacts || 0, organizations: counts.expertOrganizations || 0, groups: counts.expertGroups || 0, links: counts.expertEntityLinks || 0 }
+  ));
+  checks.push(opsCheck(
     "contact-images",
     "Kontaktbilder",
     CONTACT_IMAGE_BUCKET ? "ok" : "warn",
@@ -1304,7 +2199,7 @@ async function getOpsChecks() {
     "export",
     "JSON-Export",
     "ok",
-    "Export-Endpunkt ist verfügbar und enthält Profile, Organisationen, Kontakte, Verlauf und Importläufe.",
+    "Export-Endpunkt ist verfügbar und enthält Profile, Organisationen, Kontakte, Verlauf, Importläufe, Formate und Expertenkreis.",
     { endpoint: "/api/export" }
   ));
   checks.push(opsCheck(
@@ -1352,7 +2247,21 @@ async function getOpsChecks() {
 }
 
 async function exportDemoData() {
-  const [summary, opsChecks, session, profiles, organizations, contacts, changes, importRuns] = await Promise.all([
+  const [
+    summary,
+    opsChecks,
+    session,
+    profiles,
+    organizations,
+    contacts,
+    changes,
+    importRuns,
+    formats,
+    expertGroups,
+    expertContacts,
+    expertOrganizations,
+    expertEntityLinks
+  ] = await Promise.all([
     getOpsSummary(),
     getOpsChecks(),
     getDemoSession(),
@@ -1360,7 +2269,12 @@ async function exportDemoData() {
     listOrganizations({ includeArchived: true }),
     listContacts({ includeArchived: true }),
     listAllChanges(),
-    listImportRuns()
+    listImportRuns(),
+    listFormats({ includeArchived: true }),
+    listExpertGroups({ includeArchived: true }),
+    listExpertContacts({ includeArchived: true }),
+    listExpertOrganizations({ includeArchived: true }),
+    listExpertEntityLinks()
   ]);
   return {
     exportedAt: new Date().toISOString(),
@@ -1372,7 +2286,12 @@ async function exportDemoData() {
     organizations,
     contacts,
     changes,
-    importRuns
+    importRuns,
+    formats,
+    expertGroups,
+    expertContacts,
+    expertOrganizations,
+    expertEntityLinks
   };
 }
 
@@ -1902,14 +2821,19 @@ async function handleApi(request, response, url) {
 
     if (request.method === "GET" && url.pathname === "/api/bootstrap") {
       const includeArchived = url.searchParams.get("includeArchived") === "true";
-      const [session, profiles, organizations, contacts, changes] = await Promise.all([
+      const [session, profiles, organizations, contacts, changes, formats, expertGroups, expertContacts, expertOrganizations, expertEntityLinks] = await Promise.all([
         getDemoSession(),
         listProfiles(),
         listOrganizations({ includeArchived }),
         listContacts({ includeArchived }),
-        listChanges()
+        listChanges(),
+        listFormats({ includeArchived }),
+        listExpertGroups({ includeArchived }),
+        listExpertContacts({ includeArchived }),
+        listExpertOrganizations({ includeArchived }),
+        listExpertEntityLinks()
       ]);
-      sendJson(response, 200, { session, profiles, organizations, contacts, changes });
+      sendJson(response, 200, { session, profiles, organizations, contacts, changes, formats, expertGroups, expertContacts, expertOrganizations, expertEntityLinks });
       return;
     }
 
@@ -1945,6 +2869,118 @@ async function handleApi(request, response, url) {
       const body = await readJson(request);
       const result = await createContact(body.contact || body);
       sendJson(response, 201, result);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/formats") {
+      sendJson(response, 200, { items: await listFormats({ includeArchived: url.searchParams.get("includeArchived") === "true" }) });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/formats") {
+      const body = await readJson(request);
+      sendJson(response, 201, await createFormat(body.format || body));
+      return;
+    }
+
+    const formatParticipantMatch = /^\/api\/formats\/([^/]+)\/participants(?:\/([^/]+))?$/.exec(url.pathname);
+    if (formatParticipantMatch && request.method === "POST" && !formatParticipantMatch[2]) {
+      const body = await readJson(request);
+      sendJson(response, 200, await addFormatParticipant(decodeURIComponent(formatParticipantMatch[1]), body.participant || body));
+      return;
+    }
+
+    if (formatParticipantMatch && request.method === "PATCH" && formatParticipantMatch[2]) {
+      const body = await readJson(request);
+      sendJson(response, 200, await patchFormatParticipant(
+        decodeURIComponent(formatParticipantMatch[1]),
+        decodeURIComponent(formatParticipantMatch[2]),
+        body.participant || body
+      ));
+      return;
+    }
+
+    if (formatParticipantMatch && request.method === "DELETE" && formatParticipantMatch[2]) {
+      sendJson(response, 200, await removeFormatParticipant(
+        decodeURIComponent(formatParticipantMatch[1]),
+        decodeURIComponent(formatParticipantMatch[2])
+      ));
+      return;
+    }
+
+    const formatMatch = /^\/api\/formats\/([^/]+)$/.exec(url.pathname);
+    if (formatMatch && request.method === "GET") {
+      const format = await getFormat(decodeURIComponent(formatMatch[1]));
+      if (!format) {
+        sendJson(response, 404, { error: "Format nicht gefunden" });
+        return;
+      }
+      sendJson(response, 200, format);
+      return;
+    }
+
+    if (formatMatch && request.method === "PATCH") {
+      const body = await readJson(request);
+      const format = await patchFormat(decodeURIComponent(formatMatch[1]), body.format || body);
+      if (!format) {
+        sendJson(response, 404, { error: "Format nicht gefunden" });
+        return;
+      }
+      sendJson(response, 200, format);
+      return;
+    }
+
+    if (formatMatch && request.method === "DELETE") {
+      sendJson(response, 200, await deleteFormat(decodeURIComponent(formatMatch[1])));
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/expert-groups") {
+      sendJson(response, 200, { items: await listExpertGroups({ includeArchived: url.searchParams.get("includeArchived") === "true" }) });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/expert-contacts") {
+      sendJson(response, 200, {
+        items: await listExpertContacts({
+          includeArchived: url.searchParams.get("includeArchived") === "true",
+          status: url.searchParams.get("status") || ""
+        })
+      });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/expert-contacts") {
+      const body = await readJson(request);
+      sendJson(response, 201, await createExpertContact(body.contact || body));
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/expert-organizations") {
+      sendJson(response, 200, { items: await listExpertOrganizations({ includeArchived: url.searchParams.get("includeArchived") === "true" }) });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/expert-organizations") {
+      const body = await readJson(request);
+      sendJson(response, 201, await createExpertOrganization(body.organization || body));
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/expert-entity-links") {
+      sendJson(response, 200, { items: await listExpertEntityLinks() });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/expert-entity-links") {
+      const body = await readJson(request);
+      sendJson(response, 201, await createExpertEntityLink(body.link || body));
+      return;
+    }
+
+    const expertEntityLinkMatch = /^\/api\/expert-entity-links\/([^/]+)$/.exec(url.pathname);
+    if (expertEntityLinkMatch && request.method === "DELETE") {
+      sendJson(response, 200, await deleteExpertEntityLink(decodeURIComponent(expertEntityLinkMatch[1])));
       return;
     }
 

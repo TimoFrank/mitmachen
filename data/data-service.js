@@ -1645,7 +1645,7 @@
   }
 
   async function loadExpertGroups(options = {}) {
-    if (isLocalMode() || isGcpMode()) {
+    if (isLocalMode()) {
       expertGroupCache = localExpertGroups(options);
       return clone(expertGroupCache);
     }
@@ -1669,7 +1669,7 @@
   }
 
   async function loadExpertContacts(options = {}) {
-    if (isLocalMode() || isGcpMode()) {
+    if (isLocalMode()) {
       if (!expertGroupCache.length) expertGroupCache = localExpertGroups({ includeArchived: true });
       expertContactCache = localExpertContacts(options).map(expertContactDbToUi);
       return clone(expertContactCache);
@@ -1697,7 +1697,7 @@
   }
 
   async function loadExpertOrganizations(options = {}) {
-    if (isLocalMode() || isGcpMode()) {
+    if (isLocalMode()) {
       if (!expertGroupCache.length) expertGroupCache = localExpertGroups({ includeArchived: true });
       expertOrganizationCache = localExpertOrganizations(options).map(expertOrganizationDbToUi);
       return clone(expertOrganizationCache);
@@ -1742,7 +1742,7 @@
     const payload = expertContactUiToDb(contact);
     if (!payload.name) throw new Error("Name des Expertenkreis-Kontakts fehlt.");
     if (!payload.group_id || !payload.group_name) throw new Error("Bitte wähle eine Gruppe für den Expertenkreis-Kontakt.");
-    if (isLocalMode() || isGcpMode()) {
+    if (isLocalMode()) {
       requireLocalWrite("Expertenkreis-Kontakt speichern");
       const created = expertContactDbToUi({
         ...payload,
@@ -1776,7 +1776,7 @@
     if (!expertGroupCache.length) await loadExpertGroups({ includeArchived: true });
     const payload = expertOrganizationUiToDb(organization);
     if (!payload.name) throw new Error("Name der Expertenkreis-Organisation fehlt.");
-    if (isLocalMode() || isGcpMode()) {
+    if (isLocalMode()) {
       requireLocalWrite("Expertenkreis-Organisation speichern");
       const created = expertOrganizationDbToUi({
         ...payload,
@@ -1807,7 +1807,7 @@
   }
 
   async function loadExpertEntityLinks() {
-    if (isLocalMode() || isGcpMode()) return localExpertEntityLinks();
+    if (isLocalMode()) return localExpertEntityLinks();
     if (usesApiGateway()) {
       const payload = await apiGet("/api/expert-entity-links");
       expertEntityLinkCache = Array.isArray(payload.items) ? payload.items.map(expertEntityLinkDbToUi) : [];
@@ -1823,7 +1823,7 @@
   }
 
   async function createExpertEntityLink(link = {}) {
-    if (isLocalMode() || isGcpMode()) {
+    if (isLocalMode()) {
       requireLocalAdmin("Expertenkreis-Verknuepfung bestätigen");
       const created = expertEntityLinkDbToUi({
         ...link,
@@ -1867,7 +1867,7 @@
   }
 
   async function deleteExpertEntityLink(id) {
-    if (isLocalMode() || isGcpMode()) {
+    if (isLocalMode()) {
       requireLocalAdmin("Expertenkreis-Verknuepfung entfernen");
       persistLocalExpertEntityLinks(expertEntityLinkCache.filter((item) => item.id !== id));
       return true;
@@ -2294,10 +2294,6 @@
   }
 
   async function loadFormats(options = {}) {
-    if (isGcpMode()) {
-      formatCache = localFormats(options);
-      return formatCache;
-    }
     if (isLocalMode() || !supportsFormats) {
       formatCache = localFormats(options);
       return formatCache;
@@ -2346,14 +2342,13 @@
   }
 
   async function createFormat(format) {
-    if (isLocalMode() || isGcpMode() || !supportsFormats) {
+    if (isLocalMode() || !supportsFormats) {
       requireLocalWrite("Formate anlegen");
       const now = new Date().toISOString();
-      const profile = isGcpMode() ? await getCurrentProfile() : localProfile();
       const created = formatDbToUi({
         ...format,
         id: format.id || `local-format-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-        ownerId: format.ownerId || profile?.id || "gcp-pilot",
+        ownerId: format.ownerId || localProfile().id,
         createdAt: now,
         updatedAt: now
       }, []);
@@ -2380,7 +2375,7 @@
   }
 
   async function updateFormat(id, patch) {
-    if (isLocalMode() || isGcpMode() || !supportsFormats) {
+    if (isLocalMode() || !supportsFormats) {
       requireLocalWrite("Formate bearbeiten");
       const now = new Date().toISOString();
       formatCache = formatCache.map((format) => format.id === id ? formatDbToUi({ ...format, ...patch, updatedAt: now }, format.participants || []) : format);
@@ -2419,7 +2414,7 @@
   }
 
   async function deleteFormat(id) {
-    if (isLocalMode() || isGcpMode() || !supportsFormats) {
+    if (isLocalMode() || !supportsFormats) {
       requireLocalAdmin("Formate löschen");
       formatCache = formatCache.filter((format) => format.id !== id);
       persistLocalFormats(formatCache);
@@ -2437,7 +2432,7 @@
   }
 
   async function addFormatParticipant(formatId, contactId, patch = {}) {
-    if (isLocalMode() || isGcpMode() || !supportsFormats) {
+    if (isLocalMode() || !supportsFormats) {
       requireLocalWrite("Teilnehmer pflegen");
       const now = new Date().toISOString();
       formatCache = formatCache.map((format) => {
@@ -2485,7 +2480,7 @@
   }
 
   async function updateFormatParticipant(formatId, contactId, patch = {}) {
-    if (isLocalMode() || isGcpMode() || !supportsFormats) {
+    if (isLocalMode() || !supportsFormats) {
       requireLocalWrite("Teilnehmer pflegen");
       const now = new Date().toISOString();
       formatCache = formatCache.map((format) => {
@@ -2523,7 +2518,7 @@
   }
 
   async function removeFormatParticipant(formatId, contactId) {
-    if (isLocalMode() || isGcpMode() || !supportsFormats) {
+    if (isLocalMode() || !supportsFormats) {
       requireLocalWrite("Teilnehmer entfernen");
       formatCache = formatCache.map((format) =>
         format.id === formatId ? { ...format, participants: (format.participants || []).filter((participant) => participant.contactId !== contactId) } : format

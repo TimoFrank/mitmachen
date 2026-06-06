@@ -103,8 +103,9 @@ Weiterhin nicht produktionsreif:
 - keine echte Authentifizierung
 - keine serverseitige Rollenpruefung
 - keine GCP-Persistenz fuer gespeicherte Ansichten
-- keine GCP-Persistenz fuer Formate und Expertenkreis
 - Profilfoto-Upload fuer das eigene Nutzerprofil noch nicht aktiv
+
+Update nach Step 9: Formate und Expertenkreis sind inzwischen in Cloud SQL umgesetzt. Details stehen in `GCP_STEP9_FORMATS_EXPERTS_TABLES.md`.
 
 Fuer den Organisationsbetrieb muessen Zugriffsschutz, Rollenpruefung, Monitoring-Alerts und Restore-Test vor Go-live festgelegt werden.
 

@@ -12,6 +12,8 @@ Update nach Schritt 7: Die GCP-Version wurde frontendseitig naeher an die Origin
 
 Update nach Schritt 8: Die private GCP-Version liefert jetzt die Original-App aus `app/versorgungs-kompass.html` aus und nutzt GCP als Datenadapter. Der Demo-UI-Nachbau ist damit abgeloest. Details stehen in `GCP_STEP8_ORIGINAL_UI_PORT.md`.
 
+Update nach Schritt 9: Formate und Expertenkreis nutzen im privaten GCP-Modus jetzt echte Cloud-SQL-Tabellen statt lokale Fallbacks. Details stehen in `GCP_STEP9_FORMATS_EXPERTS_TABLES.md`.
+
 ## Entscheidung
 
 Fuer den privaten Step-4-Test wird dieses Zielbild gewaehlt:
@@ -190,6 +192,13 @@ Seit Step 5.6 ist fuer den privaten GCP-Test vorbereitet:
 - Einzelchecks fuer Cloud Run, Cloud SQL, Kern-Daten, Aenderungsverlauf, Kontaktbilder, Export und Backup-Basis.
 - Dokumentierte offene Punkte fuer Zugriffsschutz, Restore-Test und echte Cloud Monitoring Alerts.
 
+Seit Step 9 ist fuer den privaten GCP-Test vorbereitet:
+
+- Formate in Cloud SQL inklusive Teilnehmerzuordnungen.
+- Expertenkreis-Gruppen, -Kontakte und -Organisationen in Cloud SQL.
+- Expertenkreis-Verknuepfungen zu CRM-Kontakten und Organisationen in Cloud SQL.
+- Initialer INA-Expertenkreis-Datensatz als GCP-Seed.
+
 Fuer echten Organisationsbetrieb fehlen noch:
 
 - Zugriffsschutz vor Export und schreibenden Endpunkten.
@@ -216,11 +225,18 @@ Minimal benoetigte Endpunkte:
 | `POST` | `/api/import/preview` | CSV-Import pruefen |
 | `POST` | `/api/import/commit` | Import nach Export-Bestaetigung schreiben |
 | `GET` | `/api/import/runs` | Importhistorie laden |
+| `GET` | `/api/formats` | Formate inklusive Teilnehmer laden |
+| `POST` | `/api/formats` | Format anlegen |
+| `PATCH` | `/api/formats/:id` | Format bearbeiten |
+| `POST` | `/api/formats/:id/participants` | Format-Teilnehmer hinzufuegen |
+| `GET` | `/api/expert-groups` | Expertenkreis-Gruppen laden |
+| `GET` | `/api/expert-contacts` | Expertenkreis-Kontakte laden |
+| `GET` | `/api/expert-organizations` | Expertenkreis-Organisationen laden |
+| `GET` | `/api/expert-entity-links` | Expertenkreis-Verknuepfungen laden |
 
 Noch nicht notwendig:
 
 - Saved-Views-Endpunkte
-- Profil-/Avatar-Endpunkte
 - Rollen-/Admin-Endpunkte
 
 ## Schritt 4 Umsetzung privat
