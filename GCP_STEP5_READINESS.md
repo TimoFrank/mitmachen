@@ -6,6 +6,8 @@ Diese Notiz bewertet, ob der Versorgungs-Kompass nach dem privaten Step-4-Test m
 
 Update nach Start von Schritt 5.1: Die Kern-CRM-API wurde am 2026-06-06 privat umgesetzt und live getestet. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`.
 
+Update nach Start von Schritt 5.2: Betriebssicherheit wurde als naechster Schritt gewaehlt. Details stehen in `GCP_STEP5_2_OPERATIONS.md`.
+
 ## Ergebnis
 
 ```text
@@ -20,9 +22,9 @@ Live-Service:
 
 ```text
 Cloud Run: versorgungs-kompass-gcp-demo
-Revision: versorgungs-kompass-gcp-demo-00003-j9d
-URL: https://versorgungs-kompass-gcp-demo-qosoetrj7a-ey.a.run.app
-Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:433b4a06-f29d-453f-a827-06d52efbc3fe
+Revision: versorgungs-kompass-gcp-demo-00005-gnd
+URL: https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app
+Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:4a31a53b-5c33-4876-8517-e2d248d7865b
 ```
 
 Live-Daten:
@@ -32,7 +34,8 @@ Healthcheck: ok
 Profile: 3
 Organisationen: 14
 Aktive Kontakte: 35
-Seed-Aenderungen: 8
+Archivierte Kontakte: 1
+Aenderungen: 8
 ```
 
 Stabilitaetscheck:
@@ -84,7 +87,26 @@ Warum zuerst:
 - Kein neuer GCP-Dienst notwendig.
 - Erhoeht die fachliche Nutzbarkeit, ohne Import, Auth oder Storage-Komplexitaet.
 
-### Schritt 5.2: Kontaktbilder zentralisieren
+### Schritt 5.2: Betriebssicherheit
+
+Status:
+
+- Privat umgesetzt und live getestet.
+- Details: `GCP_STEP5_2_OPERATIONS.md`.
+
+Ziel:
+
+- Backups aktivieren.
+- Point-in-Time-Recovery aktivieren.
+- Deletion Protection aktivieren.
+- Betriebsstatus und Export ergaenzen.
+
+Warum vor Kontaktbildern/Import:
+
+- Ab Step 5.1 schreibt die Demo echte Daten in Cloud SQL.
+- Import und Uploads sollten erst nach Backup- und Export-Sicherheitsnetz kommen.
+
+### Schritt 5.3: Kontaktbilder zentralisieren
 
 Ziel:
 
@@ -96,7 +118,7 @@ Voraussetzung:
 
 - Zugriffsschutz und Upload-Regeln klaeren.
 
-### Schritt 5.3: Gespeicherte Ansichten
+### Schritt 5.4: Gespeicherte Ansichten
 
 Ziel:
 
@@ -107,7 +129,7 @@ Voraussetzung:
 
 - Nutzer-/Owner-Konzept muss mindestens technisch festgelegt sein.
 
-### Schritt 5.4: Importfunktion
+### Schritt 5.5: Importfunktion
 
 Ziel:
 
@@ -120,7 +142,7 @@ Voraussetzung:
 - Backups aktiv.
 - Fehler-/Rollback-Konzept vorhanden.
 
-### Schritt 5.5: Auth, Rollen und Admin
+### Schritt 5.6: Auth, Rollen und Admin
 
 Ziel:
 
@@ -142,4 +164,4 @@ Nicht starten mit:
 
 ## Empfehlung
 
-Start mit Schritt 5.1. Danach erst Cloud Storage fuer Bilder oder gespeicherte Ansichten.
+Nach 5.1 zuerst Betriebssicherheit. Danach erst Cloud Storage fuer Bilder oder gespeicherte Ansichten.

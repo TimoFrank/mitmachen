@@ -120,9 +120,11 @@ Ergebnis: alle gruen.
 
 ## Naechster sinnvoller Schritt
 
-Step 5.2 sollte separat entschieden werden:
+Step 5.2 wurde danach als Betriebssicherheitsstufe gewaehlt:
 
-- Kontaktbilder ueber Cloud Storage zentralisieren, oder
-- gespeicherte Ansichten in Cloud SQL einfuehren.
+- Backups aktivieren.
+- Point-in-Time-Recovery aktivieren.
+- Deletion Protection aktivieren.
+- Betriebsstatus und JSON-Export ergaenzen.
 
-Vor echten Live-Daten sollten Backups und Deletion Protection fuer Cloud SQL aktiviert werden.
+Details: `GCP_STEP5_2_OPERATIONS.md`.

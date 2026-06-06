@@ -15,6 +15,9 @@
     selectedId: "",
     selectedOrganizationId: "",
     showArchived: false,
+    opsSummary: null,
+    opsLoading: false,
+    opsError: "",
     filters: {
       query: "",
       sector: "",
@@ -784,6 +787,92 @@
     `;
   }
 
+  function renderOpsView() {
+    elements.title.textContent = "Betrieb";
+    elements.subtitle.textContent = API_MODE
+      ? "Kompakter Status für die private Cloud-Run-Demo."
+      : "Lokaler Demo-Status für den Browserstand.";
+    if (!API_MODE) {
+      const activeContacts = state.contacts.filter((contact) => contact.status !== "archived").length;
+      elements.main.innerHTML = `
+        <div class="summary-strip">
+          <span class="metric"><strong>${activeContacts}</strong> lokale Kontakte</span>
+          <span class="metric"><strong>${state.changes.length}</strong> lokale Änderungen</span>
+        </div>
+        <div class="activity-panel">
+          <div class="activity-row">
+            <span>Backend</span>
+            <strong>localStorage</strong>
+            <span>Kein Cloud-SQL-Betrieb aktiv.</span>
+          </div>
+        </div>
+      `;
+      elements.detail.innerHTML = '<div class="detail-empty">Betriebschecks sind in der GCP-Demo aktiv.</div>';
+      return;
+    }
+
+    const summary = state.opsSummary;
+    const counts = summary?.counts || {};
+    elements.main.innerHTML = `
+      <div class="summary-strip">
+        <span class="metric"><strong>${counts.activeContacts ?? "..."}</strong> aktive Kontakte</span>
+        <span class="metric"><strong>${counts.archivedContacts ?? "..."}</strong> archiviert</span>
+        <span class="metric"><strong>${counts.activeOrganizations ?? "..."}</strong> Organisationen</span>
+        <span class="metric"><strong>${counts.changes ?? "..."}</strong> Änderungen</span>
+      </div>
+      <div class="summary-strip">
+        <button class="button button--secondary" type="button" id="refresh-ops">Status aktualisieren</button>
+        <button class="button button--secondary" type="button" id="download-export">JSON exportieren</button>
+      </div>
+      <div class="activity-panel">
+        ${state.opsError ? `
+          <div class="activity-row">
+            <span>Status</span>
+            <strong>Fehler</strong>
+            <span>${escapeHtml(state.opsError)}</span>
+          </div>
+        ` : ""}
+        <div class="activity-row">
+          <span>Backend</span>
+          <strong>${escapeHtml(summary?.backend || "Cloud SQL")}</strong>
+          <span>${state.opsLoading ? "Status wird geladen ..." : "API erreichbar"}</span>
+        </div>
+        <div class="activity-row">
+          <span>Letzte Änderung</span>
+          <strong>${escapeHtml(asDate(summary?.lastChangeAt))}</strong>
+          <span>Änderungsverlauf in Cloud SQL</span>
+        </div>
+        <div class="activity-row">
+          <span>Revision</span>
+          <strong>${escapeHtml(summary?.runtime?.revision || "Nicht geladen")}</strong>
+          <span>${escapeHtml(summary?.runtime?.service || "Cloud Run")}</span>
+        </div>
+      </div>
+    `;
+    elements.detail.innerHTML = `
+      <div class="detail-top">
+        <span class="avatar avatar-lg" aria-hidden="true">GCP</span>
+        <div class="detail-title">
+          <h2>Betriebssicherheit</h2>
+          <p>Step 5.2</p>
+        </div>
+      </div>
+      <section class="detail-section">
+        <h3>Aktiver Schutz</h3>
+        <div class="meta-grid">
+          ${detailRow("Backups", "Täglich, 7 Backups")}
+          ${detailRow("PITR", "7 Tage")}
+          ${detailRow("Deletion Protection", "Aktiv")}
+        </div>
+      </section>
+      <section class="detail-section">
+        <h3>Export</h3>
+        <p class="muted">Der JSON-Export enthält Profile, Organisationen, Kontakte und Verlauf als Rückfallpunkt vor Importen oder größeren Tests.</p>
+      </section>
+    `;
+    if (!summary && !state.opsLoading && !state.opsError) refreshOpsSummary();
+  }
+
   function render() {
     document.querySelectorAll(".primary-tab").forEach((item) => {
       item.classList.toggle("is-active", item.dataset.view === state.view);
@@ -792,10 +881,11 @@
     if (state.view === "organizations") renderOrganizations();
     else if (state.view === "map") renderMapView();
     else if (state.view === "activity") renderActivity();
+    else if (state.view === "ops") renderOpsView();
     else renderContacts();
     if (state.view === "map") {
       elements.detail.innerHTML = "";
-    } else {
+    } else if (state.view !== "ops") {
       renderDetail();
     }
     attachMainEvents();
@@ -811,6 +901,15 @@
     if (sector) sector.addEventListener("change", (event) => updateFilter("sector", event.target.value));
     if (stateSelect) stateSelect.addEventListener("change", (event) => updateFilter("state", event.target.value));
     if (owner) owner.addEventListener("change", (event) => updateFilter("ownerId", event.target.value));
+
+    document.getElementById("refresh-ops")?.addEventListener("click", () => {
+      state.opsError = "";
+      refreshOpsSummary();
+    });
+
+    document.getElementById("download-export")?.addEventListener("click", () => {
+      window.location.assign("/api/export");
+    });
 
     document.getElementById("create-contact")?.addEventListener("click", () => {
       state.createMode = true;
@@ -1067,6 +1166,24 @@
     }
   }
 
+  async function refreshOpsSummary() {
+    if (!API_MODE || state.opsLoading) return;
+    state.opsLoading = true;
+    elements.status.textContent = "Lade Betriebsstatus ...";
+    try {
+      state.opsSummary = await apiRequest("/api/ops/summary");
+      state.opsError = "";
+      elements.status.textContent = "Betriebsstatus geladen";
+    } catch (error) {
+      console.error(error);
+      state.opsError = error.message;
+      elements.status.textContent = `Betriebsstatus fehlgeschlagen: ${error.message}`;
+    } finally {
+      state.opsLoading = false;
+      if (state.view === "ops") render();
+    }
+  }
+
   async function cycleOwner() {
     const contact = currentContact();
     const owners = profileItems().filter((profile) => profile.active !== false);
@@ -1113,8 +1230,19 @@
         state.createMode = false;
         state.organizationCreateMode = false;
         state.organizationEditMode = false;
+        state.opsError = "";
         render();
       });
+    });
+
+    document.getElementById("sidebar-demo-status")?.addEventListener("click", () => {
+      state.view = "ops";
+      state.editMode = false;
+      state.createMode = false;
+      state.organizationCreateMode = false;
+      state.organizationEditMode = false;
+      state.opsError = "";
+      render();
     });
 
     elements.reset.addEventListener("click", async () => {
@@ -1127,6 +1255,8 @@
           state.createMode = false;
           state.organizationCreateMode = false;
           state.organizationEditMode = false;
+          state.opsSummary = null;
+          state.opsError = "";
           state.view = "contacts";
           elements.status.textContent = "Cloud-SQL-Demo zurückgesetzt";
           render();
@@ -1144,6 +1274,8 @@
       state.createMode = false;
       state.organizationCreateMode = false;
       state.organizationEditMode = false;
+      state.opsSummary = null;
+      state.opsError = "";
       state.view = "contacts";
       elements.status.textContent = "Demo-Daten zurückgesetzt";
       render();

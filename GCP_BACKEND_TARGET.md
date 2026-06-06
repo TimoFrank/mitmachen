@@ -57,6 +57,7 @@ Optional spaeter:
 
 - Cloud Storage: Kontaktbilder, Importdateien und Backup-Artefakte.
 - Identity-Aware Proxy oder interne Zugriffsschicht: Zugriffsschutz ohne eigene App-Accounts.
+- Cloud Monitoring: Alerting fuer produktionsnahen Betrieb.
 
 Nicht fuer Schritt 4 privat geplant:
 
@@ -140,6 +141,23 @@ Organisationsziel:
 
 - Zugriffsschutz wird ueber interne Umgebung, Load Balancer, IAP oder SSO geklaert.
 - Erst wenn echte Nutzerverantwortung noetig ist, werden Nutzeridentitaet und Rollenmodell wieder eingefuehrt.
+
+## Betriebssicherheit
+
+Seit Step 5.2 ist fuer den privaten GCP-Test aktiviert:
+
+- Cloud SQL Backups.
+- Point-in-Time-Recovery fuer 7 Tage.
+- Deletion Protection fuer die Cloud-SQL-Instanz.
+- API-Betriebsstatus ueber `GET /api/ops/summary`.
+- JSON-Export ueber `GET /api/export`.
+
+Fuer echten Organisationsbetrieb fehlen noch:
+
+- Zugriffsschutz vor Export und schreibenden Endpunkten.
+- Monitoring Alerts.
+- Restore-Test mit dokumentiertem Ablauf.
+- Entscheidung, ob Cloud SQL regional/HA betrieben werden soll.
 
 ## API fuer Schritt 4
 

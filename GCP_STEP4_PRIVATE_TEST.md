@@ -51,6 +51,15 @@ Backups: deaktiviert
 Deletion Protection: deaktiviert
 ```
 
+Update nach Step 5.2:
+
+```text
+Backups: aktiviert
+Point-in-Time-Recovery: aktiviert
+Deletion Protection: aktiviert
+Details: GCP_STEP5_2_OPERATIONS.md
+```
+
 Kostenhinweis: Cloud SQL verursacht laufende Kosten, solange die Instanz existiert. Dieser Step-4-Test ist bewusst klein dimensioniert, aber nicht kostenlos.
 
 ## Neue Projektdateien

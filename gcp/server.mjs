@@ -410,6 +410,11 @@ async function listProfiles() {
   return rows.map(mapProfile);
 }
 
+async function listAllProfiles() {
+  const { rows } = await getPool().query("select * from profiles order by display_name");
+  return rows.map(mapProfile);
+}
+
 async function listOrganizations({ includeArchived = false } = {}) {
   const where = includeArchived ? "" : "where status <> 'archived'";
   const { rows } = await getPool().query(`select * from organizations ${where} order by name`);
@@ -453,6 +458,75 @@ async function listChanges() {
      limit 200`
   );
   return rows.map(mapChange);
+}
+
+async function listAllChanges() {
+  const { rows } = await getPool().query(
+    `select changes.*, profiles.display_name as changed_by_label
+     from changes
+     left join profiles on profiles.id = changes.changed_by
+     order by changes.changed_at desc, changes.id desc`
+  );
+  return rows.map(mapChange);
+}
+
+function runtimeMetadata() {
+  return {
+    service: process.env.K_SERVICE || "local-gcp-demo",
+    revision: process.env.K_REVISION || "local",
+    configuration: process.env.K_CONFIGURATION || "local",
+    database: process.env.DB_NAME || process.env.PGDATABASE || DEFAULT_DB_NAME
+  };
+}
+
+async function getOpsSummary() {
+  const { rows } = await getPool().query(
+    `select
+       (select count(*)::int from profiles) as profiles,
+       (select count(*)::int from organizations where status <> 'archived') as active_organizations,
+       (select count(*)::int from organizations where status = 'archived') as archived_organizations,
+       (select count(*)::int from contacts where status <> 'archived') as active_contacts,
+       (select count(*)::int from contacts where status = 'archived') as archived_contacts,
+       (select count(*)::int from changes) as changes,
+       (select max(changed_at) from changes) as last_change_at,
+       (select max(updated_at) from contacts) as last_contact_update_at`
+  );
+  const row = rows[0] || {};
+  return {
+    ok: true,
+    backend: "cloud-sql",
+    generatedAt: new Date().toISOString(),
+    runtime: runtimeMetadata(),
+    counts: {
+      profiles: row.profiles || 0,
+      activeOrganizations: row.active_organizations || 0,
+      archivedOrganizations: row.archived_organizations || 0,
+      activeContacts: row.active_contacts || 0,
+      archivedContacts: row.archived_contacts || 0,
+      changes: row.changes || 0
+    },
+    lastChangeAt: row.last_change_at || null,
+    lastContactUpdateAt: row.last_contact_update_at || null
+  };
+}
+
+async function exportDemoData() {
+  const [summary, profiles, organizations, contacts, changes] = await Promise.all([
+    getOpsSummary(),
+    listAllProfiles(),
+    listOrganizations({ includeArchived: true }),
+    listContacts({ includeArchived: true }),
+    listAllChanges()
+  ]);
+  return {
+    exportedAt: new Date().toISOString(),
+    exportType: "versorgungs-kompass-gcp-demo",
+    summary,
+    profiles,
+    organizations,
+    contacts,
+    changes
+  };
 }
 
 async function createOrganization(input) {
@@ -737,6 +811,15 @@ function sendJson(response, status, payload) {
   response.end(JSON.stringify(payload));
 }
 
+function sendJsonDownload(response, filename, payload) {
+  response.writeHead(200, {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    "content-disposition": `attachment; filename="${filename}"`
+  });
+  response.end(JSON.stringify(payload, null, 2));
+}
+
 function sendText(response, status, body, contentType = "text/plain; charset=utf-8") {
   response.writeHead(status, {
     "content-type": contentType,
@@ -783,11 +866,22 @@ async function handleApi(request, response, url) {
   try {
     if (request.method === "GET" && url.pathname === "/api/healthz") {
       await ensureReady();
-      sendJson(response, 200, { ok: true, backend: "cloud-sql" });
+      sendJson(response, 200, { ok: true, backend: "cloud-sql", runtime: runtimeMetadata() });
       return;
     }
 
     await ensureReady();
+
+    if (request.method === "GET" && url.pathname === "/api/ops/summary") {
+      sendJson(response, 200, await getOpsSummary());
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/export") {
+      const stamp = new Date().toISOString().slice(0, 10);
+      sendJsonDownload(response, `versorgungs-kompass-gcp-demo-export-${stamp}.json`, await exportDemoData());
+      return;
+    }
 
     if (request.method === "GET" && url.pathname === "/api/bootstrap") {
       const includeArchived = url.searchParams.get("includeArchived") === "true";
