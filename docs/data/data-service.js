@@ -225,6 +225,7 @@
   }
 
   function isConfigured() {
+    if (isGcpMode()) return true;
     return Boolean(
       CONFIG.dataMode === "supabase" &&
         CONFIG.supabaseUrl &&
@@ -234,8 +235,20 @@
     );
   }
 
+  function isGcpMode() {
+    return CONFIG.dataMode === "gcp" || CONFIG.dataMode === "gcp-demo";
+  }
+
   function getClient() {
     if (client) return client;
+    if (isGcpMode()) {
+      client = {
+        auth: {
+          signOut: async () => ({ error: null })
+        }
+      };
+      return client;
+    }
     if (!isConfigured()) throw new Error("Supabase ist noch nicht konfiguriert.");
     if (!window.supabase?.createClient) throw new Error("Supabase Client konnte nicht geladen werden.");
     client = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, {
@@ -253,7 +266,7 @@
   }
 
   function usesApiGateway() {
-    return Boolean(apiBaseUrl()) || requiresApiGateway();
+    return isGcpMode() || Boolean(apiBaseUrl()) || requiresApiGateway();
   }
 
   function apiGatewayRequiredError() {
@@ -261,31 +274,41 @@
   }
 
   async function apiRequest(path, { method = "GET", params = {}, body } = {}) {
-    const { data, error } = await getClient().auth.getSession();
-    if (error) throw error;
-    const token = data?.session?.access_token;
-    if (!token) throw new Error("Bitte zuerst anmelden.");
     const url = new URL(`${apiBaseUrl()}${path}`, window.location.origin);
     Object.entries(params).forEach(([key, value]) => {
       if (value === undefined || value === null || value === "") return;
       url.searchParams.set(key, String(value));
     });
     const headers = {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`
+      Accept: "application/json"
     };
-    if (body) headers["Content-Type"] = "application/json";
+    if (!isGcpMode()) {
+      const { data, error } = await getClient().auth.getSession();
+      if (error) throw error;
+      const token = data?.session?.access_token;
+      if (!token) throw new Error("Bitte zuerst anmelden.");
+      headers.Authorization = `Bearer ${token}`;
+    }
+    if (body !== undefined) headers["Content-Type"] = "application/json";
     const response = await fetch(url.href, {
       method,
       headers: {
         ...headers
       },
       credentials: CONFIG.apiCredentials || "same-origin",
-      body: body ? JSON.stringify(body) : undefined
+      body: body !== undefined ? JSON.stringify(body) : undefined
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || `API-Anfrage fehlgeschlagen (${response.status}).`);
     return payload;
+  }
+
+  function apiContactPayload(payload) {
+    return payload?.contact || payload;
+  }
+
+  function apiOrganizationPayload(payload) {
+    return payload?.organization || payload;
   }
 
   async function apiGet(path, params = {}) {
@@ -1263,6 +1286,12 @@
       const profile = localProfile();
       return profileCache.get(profile.id) || profile;
     }
+    if (isGcpMode()) {
+      const session = await apiGet("/api/session");
+      const profile = session?.profile || null;
+      if (profile?.id) profileCache.set(profile.id, profile);
+      return profile;
+    }
     const { data, error } = await getClient().auth.getUser();
     if (error) throw error;
     const userId = data.user?.id;
@@ -1280,6 +1309,22 @@
     if (isLocalMode()) {
       requireLocalWrite("Profil speichern");
       const current = localProfile();
+      const updated = {
+        ...current,
+        display_name: String(profile.displayName ?? profile.display_name ?? current.display_name ?? "").trim(),
+        initials: String(profile.initials || current.initials || "").trim().slice(0, 4).toUpperCase(),
+        team: String(profile.team ?? current.team ?? "").trim(),
+        bio: String(profile.bio ?? current.bio ?? "").trim(),
+        avatar_url: profile.avatarUrl ?? profile.avatar_url ?? current.avatar_url ?? "",
+        updated_at: new Date().toISOString()
+      };
+      if (!updated.display_name) throw new Error("Bitte trage einen Anzeigenamen ein.");
+      profileCache.set(updated.id, updated);
+      return updated;
+    }
+    if (isGcpMode()) {
+      const current = await getCurrentProfile();
+      if (!current?.id) throw new Error("Im GCP-Pilot ist kein Profil aktiv.");
       const updated = {
         ...current,
         display_name: String(profile.displayName ?? profile.display_name ?? current.display_name ?? "").trim(),
@@ -1323,6 +1368,7 @@
   }
 
   async function uploadCurrentProfileImage(file) {
+    if (isGcpMode()) throw new Error("Profilfoto-Upload ist im GCP-Pilot noch nicht aktiv.");
     if (isLocalMode()) throw new Error("Profilfoto-Upload ist im Demo-Modus nicht verfuegbar.");
     if (!file) throw new Error("Bitte wähle ein Profilfoto aus.");
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -1355,6 +1401,10 @@
   }
 
   async function removeCurrentProfileImage() {
+    if (isGcpMode()) {
+      const current = await getCurrentProfile();
+      return updateCurrentProfile({ ...(current || {}), avatar_url: null, avatarUrl: null });
+    }
     if (isLocalMode()) return updateCurrentProfile({ ...(localProfile() || {}), avatar_url: null, avatarUrl: null });
     if (usesApiGateway()) {
       const updated = await apiRequest("/api/profile/avatar", { method: "DELETE" });
@@ -1595,7 +1645,7 @@
   }
 
   async function loadExpertGroups(options = {}) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       expertGroupCache = localExpertGroups(options);
       return clone(expertGroupCache);
     }
@@ -1619,7 +1669,7 @@
   }
 
   async function loadExpertContacts(options = {}) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       if (!expertGroupCache.length) expertGroupCache = localExpertGroups({ includeArchived: true });
       expertContactCache = localExpertContacts(options).map(expertContactDbToUi);
       return clone(expertContactCache);
@@ -1647,7 +1697,7 @@
   }
 
   async function loadExpertOrganizations(options = {}) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       if (!expertGroupCache.length) expertGroupCache = localExpertGroups({ includeArchived: true });
       expertOrganizationCache = localExpertOrganizations(options).map(expertOrganizationDbToUi);
       return clone(expertOrganizationCache);
@@ -1692,7 +1742,7 @@
     const payload = expertContactUiToDb(contact);
     if (!payload.name) throw new Error("Name des Expertenkreis-Kontakts fehlt.");
     if (!payload.group_id || !payload.group_name) throw new Error("Bitte wähle eine Gruppe für den Expertenkreis-Kontakt.");
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       requireLocalWrite("Expertenkreis-Kontakt speichern");
       const created = expertContactDbToUi({
         ...payload,
@@ -1726,7 +1776,7 @@
     if (!expertGroupCache.length) await loadExpertGroups({ includeArchived: true });
     const payload = expertOrganizationUiToDb(organization);
     if (!payload.name) throw new Error("Name der Expertenkreis-Organisation fehlt.");
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       requireLocalWrite("Expertenkreis-Organisation speichern");
       const created = expertOrganizationDbToUi({
         ...payload,
@@ -1757,7 +1807,7 @@
   }
 
   async function loadExpertEntityLinks() {
-    if (isLocalMode()) return localExpertEntityLinks();
+    if (isLocalMode() || isGcpMode()) return localExpertEntityLinks();
     if (usesApiGateway()) {
       const payload = await apiGet("/api/expert-entity-links");
       expertEntityLinkCache = Array.isArray(payload.items) ? payload.items.map(expertEntityLinkDbToUi) : [];
@@ -1773,7 +1823,7 @@
   }
 
   async function createExpertEntityLink(link = {}) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       requireLocalAdmin("Expertenkreis-Verknuepfung bestätigen");
       const created = expertEntityLinkDbToUi({
         ...link,
@@ -1817,7 +1867,7 @@
   }
 
   async function deleteExpertEntityLink(id) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       requireLocalAdmin("Expertenkreis-Verknuepfung entfernen");
       persistLocalExpertEntityLinks(expertEntityLinkCache.filter((item) => item.id !== id));
       return true;
@@ -1861,10 +1911,10 @@
       return clone(created);
     }
     if (usesApiGateway()) {
-      const created = await apiRequest("/api/organizations", {
+      const created = apiOrganizationPayload(await apiRequest("/api/organizations", {
         method: "POST",
         body: organization
-      });
+      }));
       organizationCache = [created, ...organizationCache.filter((item) => item.id !== created.id)];
       return created;
     }
@@ -1895,10 +1945,10 @@
       return clone(updated);
     }
     if (usesApiGateway()) {
-      const updated = await apiRequest(`/api/organizations/${encodeURIComponent(id)}`, {
+      const updated = apiOrganizationPayload(await apiRequest(`/api/organizations/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: patch
-      });
+      }));
       organizationCache = organizationCache.map((item) => (item.id === id ? updated : item));
       return updated;
     }
@@ -1937,6 +1987,7 @@
   }
 
   async function getSavedViews() {
+    if (isGcpMode()) return localSavedViews();
     if (isLocalMode()) return localSavedViews();
     if (usesApiGateway()) {
       const payload = await apiGet("/api/saved-views");
@@ -1953,11 +2004,11 @@
   }
 
   async function createSavedView(view) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       const created = {
         ...view,
         id: view.id || `demo-view-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-        ownerId: localProfile().id,
+        ownerId: isGcpMode() ? (await getCurrentProfile())?.id || "gcp-pilot" : localProfile().id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -1979,7 +2030,7 @@
   }
 
   async function updateSavedView(id, patch) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       savedViewCache = localSavedViews().map((view) => (view.id === id ? { ...view, ...patch, id, updatedAt: new Date().toISOString() } : view));
       const updated = savedViewCache.find((view) => view.id === id);
       if (!updated) throw new Error("Gespeicherte Ansicht wurde im Demo-Modus nicht gefunden.");
@@ -2010,7 +2061,7 @@
   }
 
   async function deleteSavedView(id) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
       savedViewCache = localSavedViews().filter((view) => view.id !== id);
       return true;
     }
@@ -2024,6 +2075,7 @@
   }
 
   async function getUserSettings() {
+    if (isGcpMode()) return localUserSettings();
     if (isLocalMode()) return localUserSettings();
     if (usesApiGateway()) return apiGet("/api/user-settings");
     const userId = await getCurrentUserId();
@@ -2033,11 +2085,12 @@
   }
 
   async function upsertUserSettings(settings = {}) {
-    if (isLocalMode()) {
+    if (isLocalMode() || isGcpMode()) {
+      const profile = isGcpMode() ? await getCurrentProfile() : localProfile();
       userSettingsCache = {
         ...localUserSettings(),
         ...settings,
-        userId: localProfile().id,
+        userId: profile?.id || "gcp-pilot",
         updatedAt: new Date().toISOString()
       };
       return clone(userSettingsCache);
@@ -2070,6 +2123,11 @@
 
   async function getCurrentUserId() {
     if (isLocalMode()) return localProfile().id;
+    if (isGcpMode()) {
+      const profile = await getCurrentProfile();
+      if (!profile?.id) throw new Error("Im GCP-Pilot ist kein Profil aktiv.");
+      return profile.id;
+    }
     const { data, error } = await getClient().auth.getUser();
     if (error) throw error;
     if (!data.user?.id) throw new Error("Bitte zuerst mit Supabase anmelden.");
@@ -2091,10 +2149,10 @@
       return created;
     }
     if (usesApiGateway()) {
-      const created = await apiRequest("/api/contacts", {
+      const created = apiContactPayload(await apiRequest("/api/contacts", {
         method: "POST",
         body: { contact, options }
-      });
+      }));
       contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
       return created;
     }
@@ -2148,10 +2206,10 @@
       return clone(updated);
     }
     if (usesApiGateway()) {
-      const updated = await apiRequest(`/api/contacts/${encodeURIComponent(id)}`, {
+      const updated = apiContactPayload(await apiRequest(`/api/contacts/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: patch
-      });
+      }));
       contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
       return updated;
     }
@@ -2236,6 +2294,10 @@
   }
 
   async function loadFormats(options = {}) {
+    if (isGcpMode()) {
+      formatCache = localFormats(options);
+      return formatCache;
+    }
     if (isLocalMode() || !supportsFormats) {
       formatCache = localFormats(options);
       return formatCache;
@@ -2284,13 +2346,14 @@
   }
 
   async function createFormat(format) {
-    if (isLocalMode() || !supportsFormats) {
+    if (isLocalMode() || isGcpMode() || !supportsFormats) {
       requireLocalWrite("Formate anlegen");
       const now = new Date().toISOString();
+      const profile = isGcpMode() ? await getCurrentProfile() : localProfile();
       const created = formatDbToUi({
         ...format,
         id: format.id || `local-format-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-        ownerId: format.ownerId || localProfile().id,
+        ownerId: format.ownerId || profile?.id || "gcp-pilot",
         createdAt: now,
         updatedAt: now
       }, []);
@@ -2317,7 +2380,7 @@
   }
 
   async function updateFormat(id, patch) {
-    if (isLocalMode() || !supportsFormats) {
+    if (isLocalMode() || isGcpMode() || !supportsFormats) {
       requireLocalWrite("Formate bearbeiten");
       const now = new Date().toISOString();
       formatCache = formatCache.map((format) => format.id === id ? formatDbToUi({ ...format, ...patch, updatedAt: now }, format.participants || []) : format);
@@ -2356,7 +2419,7 @@
   }
 
   async function deleteFormat(id) {
-    if (isLocalMode() || !supportsFormats) {
+    if (isLocalMode() || isGcpMode() || !supportsFormats) {
       requireLocalAdmin("Formate löschen");
       formatCache = formatCache.filter((format) => format.id !== id);
       persistLocalFormats(formatCache);
@@ -2374,7 +2437,7 @@
   }
 
   async function addFormatParticipant(formatId, contactId, patch = {}) {
-    if (isLocalMode() || !supportsFormats) {
+    if (isLocalMode() || isGcpMode() || !supportsFormats) {
       requireLocalWrite("Teilnehmer pflegen");
       const now = new Date().toISOString();
       formatCache = formatCache.map((format) => {
@@ -2422,7 +2485,7 @@
   }
 
   async function updateFormatParticipant(formatId, contactId, patch = {}) {
-    if (isLocalMode() || !supportsFormats) {
+    if (isLocalMode() || isGcpMode() || !supportsFormats) {
       requireLocalWrite("Teilnehmer pflegen");
       const now = new Date().toISOString();
       formatCache = formatCache.map((format) => {
@@ -2460,7 +2523,7 @@
   }
 
   async function removeFormatParticipant(formatId, contactId) {
-    if (isLocalMode() || !supportsFormats) {
+    if (isLocalMode() || isGcpMode() || !supportsFormats) {
       requireLocalWrite("Teilnehmer entfernen");
       formatCache = formatCache.map((format) =>
         format.id === formatId ? { ...format, participants: (format.participants || []).filter((participant) => participant.contactId !== contactId) } : format

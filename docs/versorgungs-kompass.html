@@ -1556,6 +1556,44 @@
         justify-content: flex-end;
       }
 
+      .workspace-expert-switcher[hidden] {
+        display: none !important;
+      }
+
+      .app-shell[data-active-view="experts"] .workspace-header {
+        grid-template-columns: minmax(180px, 1fr) minmax(280px, auto) minmax(180px, 1fr);
+      }
+
+      .workspace-expert-switcher {
+        display: flex;
+        justify-content: center;
+        min-width: 0;
+      }
+
+      .experts-mode-nav--header {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: min(100%, 430px);
+        min-height: 46px;
+        padding: 4px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+      }
+
+      .experts-mode-nav--header .settings-tab-button {
+        flex: 1 1 0;
+        min-width: 132px;
+        min-height: 38px;
+        justify-content: center;
+        padding-inline: 18px;
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-md);
+        font-weight: 900;
+      }
+
       .summary.summary--compact {
         grid-auto-flow: column;
         grid-auto-columns: minmax(150px, max-content);
@@ -10837,21 +10875,8 @@
         justify-content: flex-start;
       }
 
-      .table-command-row--experts #expert-mode-actions {
-        order: 1;
-        justify-content: flex-start;
-      }
-
-      .table-command-row--expert-tabs {
-        padding-bottom: 0;
-      }
-
-      .table-command-row--expert-tabs #expert-mode-actions {
-        width: 100%;
-      }
-
       .table-command-row--expert-actions {
-        padding-top: 8px;
+        padding-top: 10px;
       }
 
       .table-command-row--experts #expert-command-actions {
@@ -14063,6 +14088,15 @@
           width: 100%;
         }
 
+        .app-shell[data-active-view="experts"] .workspace-expert-switcher,
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header {
+          width: 100%;
+        }
+
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button {
+          min-width: 0;
+        }
+
         .app-shell[data-active-view="experts"] .summary.summary--compact {
           grid-auto-flow: row;
           grid-template-columns: minmax(0, 1fr);
@@ -14080,8 +14114,7 @@
           grid-template-columns: 1fr;
         }
 
-        .table-command-row--organizations #organization-command-actions,
-        .table-command-row--experts #expert-mode-actions {
+        .table-command-row--organizations #organization-command-actions {
           grid-column: 1 / -1;
           grid-row: 1;
         }
@@ -14365,6 +14398,15 @@
           width: 100%;
         }
 
+        .app-shell[data-active-view="experts"] .workspace-expert-switcher,
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header {
+          width: 100%;
+        }
+
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button {
+          min-width: 0;
+        }
+
         .app-shell[data-active-view="experts"] .summary.summary--compact {
           grid-auto-flow: row;
           grid-template-columns: minmax(0, 1fr);
@@ -14418,7 +14460,7 @@
 
         #contact-command-actions,
         #organization-command-actions,
-        #expert-mode-actions {
+        #expert-command-actions {
           grid-column: 1 / -1;
           grid-row: 1;
         }
@@ -17083,6 +17125,12 @@
             <h2 id="workspace-view-title">Kontakte</h2>
             <p id="workspace-view-subtitle">Willkommen, Timo</p>
           </div>
+          <div class="workspace-expert-switcher" id="expert-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Expertenkreis-Listen">
+              <button class="settings-tab-button is-active" type="button" role="tab" data-expert-mode="contacts" aria-selected="true" aria-controls="expert-contacts-table">Kontakte</button>
+              <button class="settings-tab-button" type="button" role="tab" data-expert-mode="organizations" aria-selected="false" aria-controls="expert-organizations-table">Organisationen</button>
+            </div>
+          </div>
           <div class="workspace-actions">
             <div class="summary summary--compact" id="summary-grid"></div>
             <div class="permission-banner" id="permission-banner" aria-live="polite">
@@ -17334,14 +17382,6 @@
 
           <section class="view-panel" id="view-experts" data-view-panel="experts">
             <div class="view-card experts-workspace">
-              <div class="table-command-row table-command-row--experts table-command-row--expert-tabs">
-                <div class="table-command-actions" id="expert-mode-actions">
-                  <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="Expertenkreis-Listen">
-                    <button class="settings-tab-button is-active" type="button" role="tab" data-expert-mode="contacts" aria-selected="true" aria-controls="expert-contacts-table">Kontakte</button>
-                    <button class="settings-tab-button" type="button" role="tab" data-expert-mode="organizations" aria-selected="false" aria-controls="expert-organizations-table">Organisationen</button>
-                  </div>
-                </div>
-              </div>
               <div class="table-command-row table-command-row--experts table-command-row--expert-actions">
                 <div class="table-command-actions" id="expert-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-expert-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
@@ -19257,6 +19297,7 @@
       const contactCommandRow = document.querySelector("#view-contacts .table-command-row");
       const organizationColumnActions = document.getElementById("organization-column-actions");
       const organizationCommandActions = document.getElementById("organization-command-actions");
+      const expertModeActions = document.getElementById("expert-mode-actions");
       const expertCommandActions = document.getElementById("expert-command-actions");
       const expertColumnActions = document.getElementById("expert-column-actions");
       const newContactButton = document.getElementById("new-contact-button");
@@ -31145,6 +31186,7 @@
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
         if (organizationMatchingWorklistButton) organizationMatchingWorklistButton.hidden = !isOrganizationsView;
+        if (expertModeActions) expertModeActions.hidden = !isExpertsView;
         if (expertCommandActions) expertCommandActions.hidden = !isExpertsView;
         if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertOrganizationsMode;
         if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView || !isExpertOrganizationsMode;
