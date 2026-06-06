@@ -16,8 +16,29 @@ const DEFAULT_DB_USER = "vk_app";
 const CONTACT_IMAGE_BUCKET = process.env.CONTACT_IMAGE_BUCKET || "";
 const MAX_CONTACT_IMAGE_BYTES = Number(process.env.CONTACT_IMAGE_MAX_BYTES || 2 * 1024 * 1024);
 const CONTACT_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/svg+xml"]);
+const DEMO_PROFILE_ID = process.env.GCP_DEMO_PROFILE_ID || "";
 const IMPORT_MAX_ROWS = Number(process.env.GCP_DEMO_IMPORT_MAX_ROWS || 100);
 const IMPORT_PRIORITIES = new Set(["Hoch", "Mittel", "Niedrig", "Keine / Unbekannt"]);
+const ROLE_MATRIX = [
+  {
+    role: "admin",
+    label: "Admin",
+    scope: "Datenpflege, Import, Export und Demo-Reset",
+    note: "In der privaten Demo sichtbar, aber noch kein echter Zugriffsschutz."
+  },
+  {
+    role: "editor",
+    label: "Editor",
+    scope: "Kontakte und Organisationen pflegen",
+    note: "Später für normale CRM-Pflege geeignet."
+  },
+  {
+    role: "viewer",
+    label: "Viewer",
+    scope: "Lesen, suchen, filtern und Karte nutzen",
+    note: "Später für reine Leserechte geeignet."
+  }
+];
 
 const IMPORT_FIELD_ALIASES = new Map([
   ["id", "id"],
@@ -916,6 +937,28 @@ function mapProfile(row) {
   };
 }
 
+async function getDemoProfile(client = getPool()) {
+  if (DEMO_PROFILE_ID) {
+    const { rows } = await client.query("select * from profiles where id = $1 and active = true limit 1", [DEMO_PROFILE_ID]);
+    if (rows[0]) return mapProfile(rows[0]);
+  }
+  const { rows } = await client.query("select * from profiles where active = true order by display_name limit 1");
+  return rows[0] ? mapProfile(rows[0]) : null;
+}
+
+async function getDemoSession() {
+  const profile = await getDemoProfile();
+  return {
+    authMode: "demo-profile",
+    authModeLabel: "Demo-Profil ohne Login",
+    identitySource: DEMO_PROFILE_ID ? "GCP_DEMO_PROFILE_ID" : "erstes aktives Cloud-SQL-Profil",
+    enforcement: "display-only",
+    enforcementLabel: "Rollen werden angezeigt, aber noch nicht als Zugriffsschutz erzwungen.",
+    profile,
+    roleMatrix: ROLE_MATRIX
+  };
+}
+
 function mapOrganization(row) {
   return {
     id: row.id,
@@ -1124,8 +1167,9 @@ async function getOpsSummary() {
 }
 
 async function exportDemoData() {
-  const [summary, profiles, organizations, contacts, changes, importRuns] = await Promise.all([
+  const [summary, session, profiles, organizations, contacts, changes, importRuns] = await Promise.all([
     getOpsSummary(),
+    getDemoSession(),
     listAllProfiles(),
     listOrganizations({ includeArchived: true }),
     listContacts({ includeArchived: true }),
@@ -1136,6 +1180,7 @@ async function exportDemoData() {
     exportedAt: new Date().toISOString(),
     exportType: "versorgungs-kompass-gcp-demo",
     summary,
+    session,
     profiles,
     organizations,
     contacts,
@@ -1530,8 +1575,8 @@ async function patchContact(id, input) {
 }
 
 async function firstProfileId(client) {
-  const { rows } = await client.query("select id from profiles where active = true order by display_name limit 1");
-  return rows[0]?.id || null;
+  const profile = await getDemoProfile(client);
+  return profile?.id || null;
 }
 
 function contactChangeAction(fieldName, oldValue, newValue) {
@@ -1575,15 +1620,16 @@ function sendText(response, status, body, contentType = "text/plain; charset=utf
 
 async function serveGcpIndex(response) {
   const indexPath = path.join(ROOT, "demo", "index.html");
+  const assetVersion = encodeURIComponent(process.env.K_REVISION || "local");
   let html = await readFile(indexPath, "utf8");
   html = html
-    .replace('<link rel="stylesheet" href="./demo.css">', '<link rel="stylesheet" href="/demo/demo.css">')
+    .replace('<link rel="stylesheet" href="./demo.css">', `<link rel="stylesheet" href="/demo/demo.css?v=${assetVersion}">`)
     .replace('<a class="sidebar-brand" href="./index.html"', '<a class="sidebar-brand" href="/"')
     .replace("Backendlose Demo-Version für internen Testbetrieb.", "GCP-Demo mit Cloud-SQL-Backend.")
     .replace("Lokaler Browserstand", "Cloud SQL Backend")
     .replace("Demo-Daten geladen", "Verbinde mit Cloud SQL ...")
     .replace('<script src="/data/demo-data.js"></script>', '<script>window.VK_DEMO_BACKEND = "api";</script>\n    <script src="/data/demo-data.js"></script>')
-    .replace('<script src="./demo-app.js"></script>', '<script src="/demo/demo-app.js"></script>');
+    .replace('<script src="./demo-app.js"></script>', `<script src="/demo/demo-app.js?v=${assetVersion}"></script>`);
   sendText(response, 200, html, "text/html; charset=utf-8");
 }
 
@@ -1622,6 +1668,11 @@ async function handleApi(request, response, url) {
       return;
     }
 
+    if (request.method === "GET" && url.pathname === "/api/session") {
+      sendJson(response, 200, await getDemoSession());
+      return;
+    }
+
     if (request.method === "GET" && url.pathname === "/api/export") {
       const stamp = new Date().toISOString().slice(0, 10);
       sendJsonDownload(response, `versorgungs-kompass-gcp-demo-export-${stamp}.json`, await exportDemoData());
@@ -1647,13 +1698,14 @@ async function handleApi(request, response, url) {
 
     if (request.method === "GET" && url.pathname === "/api/bootstrap") {
       const includeArchived = url.searchParams.get("includeArchived") === "true";
-      const [profiles, organizations, contacts, changes] = await Promise.all([
+      const [session, profiles, organizations, contacts, changes] = await Promise.all([
+        getDemoSession(),
         listProfiles(),
         listOrganizations({ includeArchived }),
         listContacts({ includeArchived }),
         listChanges()
       ]);
-      sendJson(response, 200, { profiles, organizations, contacts, changes });
+      sendJson(response, 200, { session, profiles, organizations, contacts, changes });
       return;
     }
 

@@ -6,7 +6,7 @@ Dieses Dokument schliesst Schritt 3 der GCP-Ueberfuehrung ab. Es legt fest, wie 
 
 Umsetzungsstand: Schritt 4 wurde privat am 2026-06-06 umgesetzt. Details stehen in `GCP_STEP4_PRIVATE_TEST.md`.
 
-Update nach Schritt 5: Kern-CRM-API, Betriebssicherheit, Kontaktbilder in Cloud Storage und Importvorbereitung wurden schrittweise privat umgesetzt. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`, `GCP_STEP5_2_OPERATIONS.md`, `GCP_STEP5_3_CONTACT_IMAGES.md` und `GCP_STEP5_4_IMPORT.md`.
+Update nach Schritt 5: Kern-CRM-API, Betriebssicherheit, Kontaktbilder in Cloud Storage, Importvorbereitung sowie Profil/Rollenmodell light wurden schrittweise privat umgesetzt. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`, `GCP_STEP5_2_OPERATIONS.md`, `GCP_STEP5_3_CONTACT_IMAGES.md`, `GCP_STEP5_4_IMPORT.md` und `GCP_STEP5_5_PROFILE_ROLES.md`.
 
 ## Entscheidung
 
@@ -169,6 +169,14 @@ Seit Step 5.4 ist fuer den privaten GCP-Test vorbereitet:
 - Importlauf in `import_runs`.
 - Aenderungsverlauf je importiertem Kontakt mit `changes.action = import`.
 
+Seit Step 5.5 ist fuer den privaten GCP-Test vorbereitet:
+
+- Demo-Akteur ueber `GET /api/session`.
+- Eigene Profilseite `Mein Profil`.
+- Read-only Rollenmatrix fuer `Admin`, `Editor`, `Viewer`.
+- Optionaler technischer Akteur ueber `GCP_DEMO_PROFILE_ID`.
+- Noch keine echte Auth und keine serverseitige Rollenpruefung.
+
 Fuer echten Organisationsbetrieb fehlen noch:
 
 - Zugriffsschutz vor Export und schreibenden Endpunkten.
@@ -190,6 +198,7 @@ Minimal benoetigte Endpunkte:
 | `GET` | `/api/contacts/:id/history` | Aenderungsverlauf laden |
 | `GET` | `/api/organizations` | Organisationen laden |
 | `GET` | `/api/profiles` | Demo-Owner laden |
+| `GET` | `/api/session` | Demo-Akteur und Rollenmodell laden |
 | `POST` | `/api/import/preview` | CSV-Import pruefen |
 | `POST` | `/api/import/commit` | Import nach Export-Bestaetigung schreiben |
 | `GET` | `/api/import/runs` | Importhistorie laden |

@@ -14,6 +14,10 @@ Update nach Entscheidung zu Schritt 5.4: Gespeicherte Ansichten werden ueberspru
 
 Update nach Umsetzung von Schritt 5.4: Importvorbereitung wurde privat live deployed und getestet. Live-Revision: `versorgungs-kompass-gcp-demo-00009-7pn`.
 
+Update nach Start von Schritt 5.5: Profil und Rollenmodell werden als Light-Variante umgesetzt. Kein echtes Login, keine Nutzerverwaltung, keine serverseitige Rollenpruefung. Details stehen in `GCP_STEP5_5_PROFILE_ROLES.md`.
+
+Update nach Umsetzung von Schritt 5.5: Profil und Rollenmodell light wurden privat live deployed und getestet. Live-Revision: `versorgungs-kompass-gcp-demo-00012-8kz`.
+
 ## Ergebnis
 
 ```text
@@ -28,9 +32,9 @@ Live-Service:
 
 ```text
 Cloud Run: versorgungs-kompass-gcp-demo
-Revision: versorgungs-kompass-gcp-demo-00009-7pn
+Revision: versorgungs-kompass-gcp-demo-00012-8kz
 URL: https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app
-Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:2b94b7e4-8f60-43f2-ac0e-1e37799c5e14
+Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:17df1434-cd9c-49ba-a1f5-fa8175a97299
 ```
 
 Live-Daten:
@@ -153,16 +157,24 @@ Voraussetzung:
 - Export-Sicherheitsnetz aktiv.
 - Fehler-/Dublettenpruefung vorhanden.
 
-### Schritt 5.5: Nutzerprofile, Rollenmodell und Admin pruefen
+### Schritt 5.5: Profil und Rollenmodell light
+
+Status:
+
+- Privat umgesetzt und live getestet.
+- Details: `GCP_STEP5_5_PROFILE_ROLES.md`.
 
 Ziel:
 
-- Nutzerprofil, Rollenmodell und Admin-Funktionen nur dann reaktivieren, wenn sie fuer den naechsten Test wirklich benoetigt werden.
-- Zugriffsschutz und Nutzeridentitaet zuerst klaeren.
+- Demo-Akteur sichtbar machen.
+- Rollenmodell read-only anzeigen.
+- `Mein Profil` als eigene App-Seite bereitstellen.
+- Spaeteren Auth-Anschluss vorbereiten, ohne ihn vorwegzunehmen.
 
 Voraussetzung:
 
-- Entscheidung zu IAP, SSO, interner Auth oder App-Login.
+- Keine neue GCP-Komponente.
+- Echte Auth bleibt spaeter zu klaeren.
 
 ### Uebersprungen: Gespeicherte Ansichten
 

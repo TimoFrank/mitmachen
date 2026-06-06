@@ -9,6 +9,7 @@
   const state = {
     view: "contacts",
     profiles: [],
+    session: null,
     organizations: [],
     contacts: [],
     changes: [],
@@ -108,6 +109,58 @@
   function profileLabel(ownerId) {
     const profile = profileItems().find((item) => item.id === ownerId);
     return profile?.display_name || profile?.email || "Nicht zugeordnet";
+  }
+
+  function roleLabel(role) {
+    if (role === "admin") return "Admin";
+    if (role === "editor") return "Editor";
+    if (role === "viewer") return "Viewer";
+    return "Unbekannt";
+  }
+
+  function roleDescription(role) {
+    if (role === "admin") return "Datenpflege, Import, Export und Demo-Reset";
+    if (role === "editor") return "Kontakte und Organisationen pflegen";
+    if (role === "viewer") return "Lesen, suchen, filtern und Karte nutzen";
+    return "Nicht hinterlegt";
+  }
+
+  function enforcementLabel(value) {
+    if (value === "display-only") return "Nur Anzeige";
+    return value || "Nur Anzeige";
+  }
+
+  function roleMatrixItems() {
+    return state.session?.roleMatrix || [
+      { role: "admin", label: "Admin", scope: roleDescription("admin"), note: "In der Demo sichtbar, aber nicht erzwungen." },
+      { role: "editor", label: "Editor", scope: roleDescription("editor"), note: "Später für normale CRM-Pflege geeignet." },
+      { role: "viewer", label: "Viewer", scope: roleDescription("viewer"), note: "Später für reine Leserechte geeignet." }
+    ];
+  }
+
+  function currentDemoProfile() {
+    return state.session?.profile || profileItems().find((profile) => profile.active !== false) || profileItems()[0] || null;
+  }
+
+  function buildLocalSession() {
+    return {
+      authMode: API_MODE ? "demo-profile" : "local-demo-profile",
+      authModeLabel: API_MODE ? "Demo-Profil ohne Login" : "Lokales Demo-Profil",
+      identitySource: API_MODE ? "Cloud SQL" : "Demo-Daten",
+      enforcement: "display-only",
+      enforcementLabel: "Rollen werden angezeigt, aber noch nicht als Zugriffsschutz erzwungen.",
+      profile: currentDemoProfile(),
+      roleMatrix: roleMatrixItems()
+    };
+  }
+
+  function profileAvatar(profile, size = "lg") {
+    if (!profile) return `<span class="avatar avatar-${size}" aria-hidden="true">?</span>`;
+    const image = profile.avatar_url || profile.avatarUrl || "";
+    if (image) {
+      return `<img class="avatar avatar-${size}" src="${escapeHtml(image)}" alt="${escapeHtml(`Bild von ${profile.display_name || "Profil"}`)}" data-initials="${escapeHtml(profile.initials || initials(profile.display_name))}">`;
+    }
+    return `<span class="avatar avatar-${size}" aria-hidden="true">${escapeHtml(profile.initials || initials(profile.display_name))}</span>`;
   }
 
   function priorityClass(priority) {
@@ -235,6 +288,7 @@
   async function loadBackendState() {
     const payload = await apiRequest("/api/bootstrap?includeArchived=true");
     state.profiles = Array.isArray(payload.profiles) ? payload.profiles : [];
+    state.session = payload.session || buildLocalSession();
     state.organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
     state.contacts = (Array.isArray(payload.contacts) ? payload.contacts : []).map(normalizeContact);
     state.changes = Array.isArray(payload.changes) ? payload.changes : [];
@@ -258,6 +312,7 @@
     }
 
     state.profiles = data.profiles || [];
+    state.session = buildLocalSession();
     state.organizations = data.organizations || [];
     const storedContacts = readStored(CONTACTS_KEY);
     const storedChanges = readStored(CHANGES_KEY);
@@ -947,6 +1002,106 @@
     if (!summary && !state.opsLoading && !state.opsError) refreshOpsSummary();
   }
 
+  function renderProfileView() {
+    const profile = currentDemoProfile();
+    const session = state.session || buildLocalSession();
+    const profiles = profileItems().filter((item) => item.active !== false);
+    const role = profile?.role || "editor";
+    elements.title.textContent = "Mein Profil";
+    elements.subtitle.textContent = API_MODE
+      ? "Demo-Akteur und Rollenmodell aus Cloud SQL."
+      : "Lokales Demo-Profil ohne zentrale Anmeldung.";
+    elements.main.innerHTML = `
+      <div class="summary-strip">
+        <span class="metric"><strong>${escapeHtml(profile?.display_name || "Demo-Profil")}</strong></span>
+        <span class="metric"><strong>${escapeHtml(roleLabel(role))}</strong> Rolle</span>
+        <span class="metric"><strong>${escapeHtml(session.authModeLabel || "Demo-Profil")}</strong></span>
+        <span class="metric"><strong>${escapeHtml(profiles.length)}</strong> aktive Profile</span>
+      </div>
+      <div class="profile-workbench">
+        <section class="profile-section">
+          <div class="profile-identity">
+            ${profileAvatar(profile)}
+            <div class="profile-copy">
+              <h2>${escapeHtml(profile?.display_name || "Demo-Profil")}</h2>
+              <p>${escapeHtml(profile?.email || "Keine E-Mail hinterlegt")}</p>
+              <div class="chip-list">
+                <span class="chip">${escapeHtml(roleLabel(role))}</span>
+                <span class="chip">${escapeHtml(profile?.team || "Demo-Team")}</span>
+              </div>
+            </div>
+          </div>
+          <div class="meta-grid">
+            ${detailRow("Rolle", roleLabel(role))}
+            ${detailRow("Team", profile?.team)}
+            ${detailRow("Profil-ID", profile?.id)}
+            ${detailRow("Aktiv", profile?.active === false ? "Nein" : "Ja")}
+          </div>
+        </section>
+        <section class="profile-section">
+          <div class="profile-section__head">
+            <h2>Rollenmodell light</h2>
+            <span class="badge">${escapeHtml(enforcementLabel(session.enforcement))}</span>
+          </div>
+          <div class="activity-panel profile-role-list">
+            ${roleMatrixItems().map((item) => `
+              <div class="activity-row profile-role-row">
+                <span>${escapeHtml(item.label || roleLabel(item.role))}</span>
+                <strong>${escapeHtml(item.scope || roleDescription(item.role))}</strong>
+                <span>${escapeHtml(item.note || "Noch nicht als Zugriffsschutz aktiv.")}</span>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+        <section class="profile-section">
+          <div class="profile-section__head">
+            <h2>Aktive Profile</h2>
+            <span class="badge">${escapeHtml(profiles.length)} Profile</span>
+          </div>
+          <div class="activity-panel">
+            ${profiles.map((item) => `
+              <div class="activity-row profile-row">
+                <span>${profileAvatar(item, "sm")}</span>
+                <strong>${escapeHtml(item.display_name || item.email)}</strong>
+                <span>${escapeHtml(roleLabel(item.role))} · ${escapeHtml(item.team || "Kein Team")}</span>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+      </div>
+    `;
+    elements.detail.innerHTML = `
+      <div class="detail-top">
+        ${profileAvatar(profile)}
+        <div class="detail-title">
+          <h2>Profil & Rollen</h2>
+          <p>Step 5.5</p>
+        </div>
+      </div>
+      <section class="detail-section">
+        <h3>Aktueller Modus</h3>
+        <div class="meta-grid">
+          ${detailRow("Identität", session.authModeLabel)}
+          ${detailRow("Quelle", session.identitySource)}
+          ${detailRow("Zugriff", "Noch kein App-Login")}
+          ${detailRow("Rollen", "Nur Anzeige")}
+        </div>
+      </section>
+      <section class="detail-section">
+        <h3>Audit</h3>
+        <p class="muted">Schreibende Aktionen werden in Cloud SQL weiterhin dem Demo-Akteur zugeordnet. Diese Zuordnung ist fachlich sichtbar, aber noch keine echte Nutzeranmeldung.</p>
+      </section>
+      <section class="detail-section">
+        <h3>Späterer Anschluss</h3>
+        <div class="meta-grid">
+          ${detailRow("SSO/IAP", "Offen")}
+          ${detailRow("Nutzerverwaltung", "Nicht aktiv")}
+          ${detailRow("Rechteprüfung", "Noch nicht erzwungen")}
+        </div>
+      </section>
+    `;
+  }
+
   function renderImportView() {
     elements.title.textContent = "Importe";
     elements.subtitle.textContent = API_MODE
@@ -1079,11 +1234,12 @@
     else if (state.view === "map") renderMapView();
     else if (state.view === "activity") renderActivity();
     else if (state.view === "ops") renderOpsView();
+    else if (state.view === "profile") renderProfileView();
     else if (state.view === "imports") renderImportView();
     else renderContacts();
     if (state.view === "map") {
       elements.detail.innerHTML = "";
-    } else if (!["ops", "imports"].includes(state.view)) {
+    } else if (!["ops", "imports", "profile"].includes(state.view)) {
       renderDetail();
     }
     attachMainEvents();

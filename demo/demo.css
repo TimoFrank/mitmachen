@@ -802,6 +802,73 @@ img.avatar {
   font-weight: 800;
 }
 
+.profile-workbench {
+  display: grid;
+}
+
+.profile-section {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-section:last-child {
+  border-bottom: 0;
+}
+
+.profile-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-section__head h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+}
+
+.profile-identity {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.profile-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.profile-copy h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+}
+
+.profile-copy p {
+  margin: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.profile-role-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.profile-role-row {
+  grid-template-columns: 110px minmax(180px, 0.9fr) minmax(0, 1.2fr);
+}
+
+.profile-row {
+  grid-template-columns: 44px minmax(160px, 0.9fr) minmax(0, 1.2fr);
+}
+
 .import-workbench {
   display: grid;
 }
@@ -1077,6 +1144,17 @@ img.avatar {
   .import-section__head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .profile-section__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .profile-identity,
+  .profile-role-row,
+  .profile-row {
+    grid-template-columns: 1fr;
   }
 
   .import-preview-row {
