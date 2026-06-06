@@ -2,6 +2,8 @@
 
 Diese Anleitung beschreibt die schlanke Demo-Version des Versorgungs-Kompass fuer ein internes Test-Deployment auf GCP.
 
+Fuer die spaetere Uebergabe an die Organisations-IT stehen Kurzfassung, Voraussetzungen, verwendete Dienste, Datenablage und Gespraechsformulierungen in `GCP_ORG_TRANSFER_NOTES.md`. Das GCP-Backend-Zielbild fuer die Erweiterung zur zentral gespeicherten Version steht in `GCP_BACKEND_TARGET.md`. Der privat umgesetzte Step-4-Test mit Cloud SQL steht in `GCP_STEP4_PRIVATE_TEST.md`.
+
 ## Zweck
 
 Der Demo Mode ist eine bewusst reduzierte Version:
@@ -79,6 +81,21 @@ http://127.0.0.1:8080/
 ```
 
 ## GCP Deployment manuell
+
+### Variante A: Cloud Build ohne lokalen Docker-Daemon
+
+Fuer den privaten Test ist dieser Weg am einfachsten:
+
+```bash
+gcloud builds submit \
+  --config cloudbuild.demo.yaml \
+  --substitutions _REGION=europe-west3,_REPOSITORY=versorgungs-kompass,_SERVICE=versorgungs-kompass-demo,_INGRESS=all \
+  .
+```
+
+Details stehen in `PRIVATE_GCP_TEST.md`.
+
+### Variante B: Lokal mit Docker bauen
 
 Platzhalter ersetzen:
 

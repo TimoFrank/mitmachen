@@ -1,0 +1,49 @@
+substitutions:
+  _REGION: europe-west3
+  _REPOSITORY: versorgungs-kompass
+  _SERVICE: versorgungs-kompass-demo
+  _INGRESS: all
+
+steps:
+  - name: node:24
+    id: demo-checks
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        npm ci
+        npm run check:demo
+
+  - name: gcr.io/cloud-builders/docker
+    id: build-demo-image
+    args:
+      - build
+      - -f
+      - Dockerfile.demo
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$BUILD_ID
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: push-demo-image
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$BUILD_ID
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: deploy-demo-cloud-run
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        gcloud run deploy "${_SERVICE}" \
+          --project "$PROJECT_ID" \
+          --region "${_REGION}" \
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$BUILD_ID" \
+          --platform managed \
+          --allow-unauthenticated \
+          --ingress "${_INGRESS}" \
+          --quiet
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$BUILD_ID

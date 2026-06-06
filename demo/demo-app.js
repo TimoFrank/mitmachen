@@ -3,10 +3,13 @@
   const CHANGES_KEY = "versorgungs-kompass-demo-mode-changes-v1";
   const SELECTED_KEY = "versorgungs-kompass-demo-mode-selected-contact-v1";
   const ACTOR = "Demo-Testzugang";
+  const API_MODE = window.VK_DEMO_BACKEND === "api";
   const data = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
 
   const state = {
     view: "contacts",
+    profiles: [],
+    organizations: [],
     contacts: [],
     changes: [],
     selectedId: "",
@@ -46,6 +49,14 @@
     sidebarCollapse: document.getElementById("sidebar-collapse-button")
   };
 
+  function profileItems() {
+    return state.profiles.length ? state.profiles : data.profiles || [];
+  }
+
+  function organizationItems() {
+    return state.organizations.length ? state.organizations : data.organizations || [];
+  }
+
   function readStored(key) {
     try {
       return JSON.parse(window.localStorage.getItem(key) || "null");
@@ -78,7 +89,7 @@
   }
 
   function profileLabel(ownerId) {
-    const profile = (data.profiles || []).find((item) => item.id === ownerId);
+    const profile = profileItems().find((item) => item.id === ownerId);
     return profile?.display_name || profile?.email || "Nicht zugeordnet";
   }
 
@@ -112,6 +123,21 @@
     };
   }
 
+  async function apiRequest(path, options = {}) {
+    const response = await fetch(path, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || `API-Fehler ${response.status}`);
+    }
+    return payload;
+  }
+
   function seedChanges() {
     const source = Array.isArray(data.changes) ? data.changes : [];
     const mapped = source.map((change, index) => ({
@@ -139,7 +165,34 @@
     return [...mapped, ...extra];
   }
 
-  function loadState() {
+  async function loadBackendState() {
+    const payload = await apiRequest("/api/bootstrap");
+    state.profiles = Array.isArray(payload.profiles) ? payload.profiles : [];
+    state.organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
+    state.contacts = (Array.isArray(payload.contacts) ? payload.contacts : [])
+      .map(normalizeContact)
+      .filter((contact) => contact.status !== "archived");
+    state.changes = Array.isArray(payload.changes) ? payload.changes : [];
+    state.selectedId = window.localStorage.getItem(SELECTED_KEY) || state.contacts[0]?.id || "";
+    if (state.selectedId && !state.contacts.some((contact) => contact.id === state.selectedId)) {
+      state.selectedId = state.contacts[0]?.id || "";
+    }
+  }
+
+  async function loadState() {
+    if (API_MODE) {
+      try {
+        await loadBackendState();
+        elements.status.textContent = `${state.contacts.length} Kontakte aus Cloud SQL geladen`;
+        return;
+      } catch (error) {
+        console.error(error);
+        elements.status.textContent = `Cloud-SQL-Backend nicht erreichbar: ${error.message}`;
+      }
+    }
+
+    state.profiles = data.profiles || [];
+    state.organizations = data.organizations || [];
     const storedContacts = readStored(CONTACTS_KEY);
     const storedChanges = readStored(CHANGES_KEY);
     state.contacts = (storedContacts || data.contacts || [])
@@ -150,6 +203,10 @@
   }
 
   function saveState() {
+    if (API_MODE) {
+      if (state.selectedId) window.localStorage.setItem(SELECTED_KEY, state.selectedId);
+      return;
+    }
     writeStored(CONTACTS_KEY, state.contacts);
     writeStored(CHANGES_KEY, state.changes);
     if (state.selectedId) window.localStorage.setItem(SELECTED_KEY, state.selectedId);
@@ -201,7 +258,7 @@
   function renderToolbar() {
     const sectors = uniqueValues("category");
     const states = uniqueValues("state");
-    const owners = (data.profiles || []).filter((profile) => profile.active !== false);
+    const owners = profileItems().filter((profile) => profile.active !== false);
     return `
       <div class="toolbar">
         <input class="input" id="filter-query" type="search" value="${escapeHtml(state.filters.query)}" placeholder="Kontakte suchen">
@@ -221,12 +278,27 @@
     `;
   }
 
+  function syncMapFrame() {
+    const frame = document.querySelector(".map-frame");
+    if (!frame) return;
+    const send = () => {
+      frame.contentWindow?.postMessage({
+        type: "versorgungs-kompass-map-data",
+        contacts: state.contacts
+      }, "*");
+    };
+    frame.addEventListener("load", send, { once: true });
+    setTimeout(send, 400);
+  }
+
   function renderContacts() {
     const contacts = filteredContacts();
     const highCount = contacts.filter((contact) => contact.priority === "Hoch").length;
     const missingOwner = contacts.filter((contact) => !contact.ownerId).length;
     elements.title.textContent = "Kontakte";
-    elements.subtitle.textContent = "Kontakte suchen, filtern, lesen und Demo-Änderungen lokal simulieren.";
+    elements.subtitle.textContent = API_MODE
+      ? "Kontakte suchen, filtern, lesen und Änderungen in Cloud SQL speichern."
+      : "Kontakte suchen, filtern, lesen und Demo-Änderungen lokal simulieren.";
     elements.main.innerHTML = `
       ${renderToolbar()}
       <div class="summary-strip">
@@ -249,6 +321,7 @@
         }
       </div>
     `;
+    setTimeout(syncMapFrame, 0);
   }
 
   function renderContactRow(contact) {
@@ -350,7 +423,7 @@
   }
 
   function renderEditDetail(contact) {
-    const owners = (data.profiles || []).filter((profile) => profile.active !== false);
+    const owners = profileItems().filter((profile) => profile.active !== false);
     elements.detail.innerHTML = `
       <form class="edit-form" id="contact-form">
         <div class="detail-top">
@@ -456,8 +529,10 @@
 
   function renderOrganizations() {
     elements.title.textContent = "Organisationen";
-    elements.subtitle.textContent = "Organisationen und Kontaktverteilung aus dem Demo-Datenbestand.";
-    const orgs = (data.organizations || []).map((organization) => ({
+    elements.subtitle.textContent = API_MODE
+      ? "Organisationen und Kontaktverteilung aus Cloud SQL."
+      : "Organisationen und Kontaktverteilung aus dem Demo-Datenbestand.";
+    const orgs = organizationItems().map((organization) => ({
       ...organization,
       contactCount: state.contacts.filter((contact) => contact.organizationId === organization.id).length
     }));
@@ -490,14 +565,16 @@
 
   function renderActivity() {
     elements.title.textContent = "Aktivität";
-    elements.subtitle.textContent = "Lokaler Änderungsverlauf für Demo-Bearbeitung und Ownerwechsel.";
+    elements.subtitle.textContent = API_MODE
+      ? "Serverseitiger Änderungsverlauf für Bearbeitung und Ownerwechsel."
+      : "Lokaler Änderungsverlauf für Demo-Bearbeitung und Ownerwechsel.";
     const rows = [...state.changes]
       .sort((left, right) => new Date(right.changedAt).getTime() - new Date(left.changedAt).getTime())
       .slice(0, 30);
     elements.main.innerHTML = `
       <div class="summary-strip">
-        <span class="metric"><strong>${state.changes.length}</strong> Demo-Änderungen</span>
-        <span class="metric"><strong>${ACTOR}</strong></span>
+        <span class="metric"><strong>${state.changes.length}</strong> Änderungen</span>
+        <span class="metric"><strong>${API_MODE ? "Cloud SQL" : ACTOR}</strong></span>
       </div>
       <div class="activity-panel">
         ${rows.map((change) => {
@@ -517,8 +594,10 @@
 
   function renderMapView() {
     elements.title.textContent = "Karte";
-    elements.subtitle.textContent = "Original-Kartenmodus mit denselben Demo-Kontakten.";
-    elements.status.textContent = "Original-Kartenmodus mit Demo-Daten";
+    elements.subtitle.textContent = API_MODE
+      ? "Original-Kartenmodus mit Kontakten aus Cloud SQL."
+      : "Original-Kartenmodus mit denselben Demo-Kontakten.";
+    elements.status.textContent = API_MODE ? "Original-Kartenmodus mit Cloud-SQL-Daten" : "Original-Kartenmodus mit Demo-Daten";
     saveState();
     elements.main.innerHTML = `
       <div class="map-frame-shell">
@@ -609,7 +688,7 @@
     });
   }
 
-  function saveContactForm(event) {
+  async function saveContactForm(event) {
     event.preventDefault();
     const contact = currentContact();
     if (!contact) return;
@@ -627,6 +706,31 @@
       return;
     }
 
+    if (API_MODE) {
+      elements.status.textContent = "Speichere Änderung in Cloud SQL ...";
+      try {
+        const payload = await apiRequest(`/api/contacts/${encodeURIComponent(contact.id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ contact: next })
+        });
+        if (payload.contact) {
+          state.contacts = state.contacts.map((item) => (item.id === contact.id ? normalizeContact(payload.contact) : item));
+        }
+        if (Array.isArray(payload.changes)) {
+          const otherChanges = state.changes.filter((change) => change.contactId !== contact.id);
+          state.changes = [...payload.changes, ...otherChanges];
+        }
+        state.editMode = false;
+        saveState();
+        elements.status.textContent = `${changed.length} Änderung${changed.length === 1 ? "" : "en"} in Cloud SQL gespeichert`;
+        render();
+      } catch (error) {
+        console.error(error);
+        elements.status.textContent = `Speichern fehlgeschlagen: ${error.message}`;
+      }
+      return;
+    }
+
     changed.forEach((field) => addChange(contact.id, field, contact[field] || "", next[field] || ""));
     next.updatedAt = new Date().toISOString();
     state.contacts = state.contacts.map((item) => (item.id === contact.id ? normalizeContact(next) : item));
@@ -636,12 +740,35 @@
     render();
   }
 
-  function cycleOwner() {
+  async function cycleOwner() {
     const contact = currentContact();
-    const owners = (data.profiles || []).filter((profile) => profile.active !== false);
+    const owners = profileItems().filter((profile) => profile.active !== false);
     if (!contact || !owners.length) return;
     const currentIndex = owners.findIndex((profile) => profile.id === contact.ownerId);
     const nextOwner = owners[(currentIndex + 1) % owners.length];
+    if (API_MODE) {
+      elements.status.textContent = "Speichere Ownerwechsel in Cloud SQL ...";
+      try {
+        const payload = await apiRequest(`/api/contacts/${encodeURIComponent(contact.id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ contact: { ownerId: nextOwner.id } })
+        });
+        if (payload.contact) {
+          state.contacts = state.contacts.map((item) => (item.id === contact.id ? normalizeContact(payload.contact) : item));
+        }
+        if (Array.isArray(payload.changes)) {
+          const otherChanges = state.changes.filter((change) => change.contactId !== contact.id);
+          state.changes = [...payload.changes, ...otherChanges];
+        }
+        saveState();
+        elements.status.textContent = `Owner auf ${nextOwner.display_name} gesetzt`;
+        render();
+      } catch (error) {
+        console.error(error);
+        elements.status.textContent = `Ownerwechsel fehlgeschlagen: ${error.message}`;
+      }
+      return;
+    }
     addChange(contact.id, "ownerId", contact.ownerId || "", nextOwner.id);
     state.contacts = state.contacts.map((item) =>
       item.id === contact.id ? { ...item, ownerId: nextOwner.id, updatedAt: new Date().toISOString() } : item
@@ -660,7 +787,22 @@
       });
     });
 
-    elements.reset.addEventListener("click", () => {
+    elements.reset.addEventListener("click", async () => {
+      if (API_MODE) {
+        elements.status.textContent = "Setze Cloud-SQL-Demo zurück ...";
+        try {
+          await apiRequest("/api/reset-demo", { method: "POST", body: "{}" });
+          await loadBackendState();
+          state.editMode = false;
+          state.view = "contacts";
+          elements.status.textContent = "Cloud-SQL-Demo zurückgesetzt";
+          render();
+        } catch (error) {
+          console.error(error);
+          elements.status.textContent = `Zurücksetzen fehlgeschlagen: ${error.message}`;
+        }
+        return;
+      }
       window.localStorage.removeItem(CONTACTS_KEY);
       window.localStorage.removeItem(CHANGES_KEY);
       window.localStorage.removeItem(SELECTED_KEY);
@@ -705,7 +847,18 @@
     });
   }
 
-  loadState();
-  attachGlobalEvents();
-  render();
+  async function start() {
+    await loadState();
+    if (API_MODE) {
+      const statusButton = document.getElementById("sidebar-demo-status");
+      const statusTitle = statusButton?.querySelector("strong");
+      const statusHint = statusButton?.querySelector("span:last-child");
+      if (statusTitle) statusTitle.textContent = "GCP Demo";
+      if (statusHint) statusHint.textContent = "Cloud SQL Backend";
+    }
+    attachGlobalEvents();
+    render();
+  }
+
+  start();
 })();

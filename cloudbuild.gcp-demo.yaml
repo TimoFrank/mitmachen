@@ -1,0 +1,43 @@
+substitutions:
+  _REGION: europe-west3
+  _REPOSITORY: versorgungs-kompass
+  _SERVICE: versorgungs-kompass-gcp-demo
+  _INSTANCE: versorgungs-kompass-gcp-demo-db
+  _DATABASE: versorgungs_kompass
+  _DB_USER: vk_app
+  _DB_PASS_SECRET: versorgungs-kompass-gcp-demo-db-password
+  _INGRESS: all
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - Dockerfile.gcp-demo
+      - -t
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --project=${PROJECT_ID}
+      - --region=${_REGION}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --ingress=${_INGRESS}
+      - --add-cloudsql-instances=${PROJECT_ID}:${_REGION}:${_INSTANCE}
+      - --set-env-vars=DB_HOST=/cloudsql/${PROJECT_ID}:${_REGION}:${_INSTANCE},DB_NAME=${_DATABASE},DB_USER=${_DB_USER},GCP_DEMO_AUTO_SCHEMA=1,GCP_DEMO_AUTO_SEED=1
+      - --set-secrets=DB_PASSWORD=${_DB_PASS_SECRET}:latest
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
