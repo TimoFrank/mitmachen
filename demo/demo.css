@@ -652,6 +652,11 @@ img.avatar {
   color: var(--danger);
 }
 
+.badge--info {
+  border-color: var(--info-soft);
+  color: var(--info);
+}
+
 .button {
   min-height: 38px;
   padding: 0 12px;
@@ -1031,6 +1036,10 @@ img.avatar {
   gap: 12px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
+}
+
+.ops-check-row {
+  grid-template-columns: 92px minmax(160px, 0.9fr) minmax(0, 1.3fr);
 }
 
 .activity-row strong,

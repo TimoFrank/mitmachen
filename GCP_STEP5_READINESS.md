@@ -18,6 +18,10 @@ Update nach Start von Schritt 5.5: Profil und Rollenmodell werden als Light-Vari
 
 Update nach Umsetzung von Schritt 5.5: Profil und Rollenmodell light wurden privat live deployed und getestet. Live-Revision: `versorgungs-kompass-gcp-demo-00012-8kz`.
 
+Update nach Start von Schritt 5.6: Monitoring und Betrieb light werden in der App vorbereitet. Keine echten Cloud Monitoring Alerts, aber ein kompakter Diagnose-Endpunkt und eine Betriebsansicht. Details stehen in `GCP_STEP5_6_MONITORING.md`.
+
+Update nach Umsetzung von Schritt 5.6: Monitoring und Betrieb light wurden privat live deployed und getestet. Live-Revision: `versorgungs-kompass-gcp-demo-00013-l6j`.
+
 ## Ergebnis
 
 ```text
@@ -32,9 +36,9 @@ Live-Service:
 
 ```text
 Cloud Run: versorgungs-kompass-gcp-demo
-Revision: versorgungs-kompass-gcp-demo-00012-8kz
+Revision: versorgungs-kompass-gcp-demo-00013-l6j
 URL: https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app
-Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:17df1434-cd9c-49ba-a1f5-fa8175a97299
+Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:6c191f3c-0dde-400f-9017-91dffac8ae1b
 ```
 
 Live-Daten:
@@ -47,6 +51,7 @@ Aktive Kontakte: 35
 Archivierte Kontakte: 1
 Importlaeufe: 0
 Aenderungen: 8
+Monitoring: OK, 9 Checks
 ```
 
 Stabilitaetscheck:
@@ -54,6 +59,7 @@ Stabilitaetscheck:
 ```text
 10 parallele Healthchecks: 10/10 ok
 10 parallele Bootstrap-Aufrufe: 10/10 ok
+10 parallele Ops-Checks: 10/10 ok
 ```
 
 Lokale Checks:
@@ -176,6 +182,25 @@ Voraussetzung:
 - Keine neue GCP-Komponente.
 - Echte Auth bleibt spaeter zu klaeren.
 
+### Schritt 5.6: Monitoring und Betrieb light
+
+Status:
+
+- Privat umgesetzt und live getestet.
+- Details: `GCP_STEP5_6_MONITORING.md`.
+
+Ziel:
+
+- App-nahe Diagnose fuer Cloud Run und Cloud SQL.
+- Sichtbarer Systemstatus in der Betriebsseite.
+- Checkliste fuer Datenbestand, Aenderungsverlauf, Kontaktbilder, Export und Backup-Basis.
+- Offene Punkte fuer echten Organisationsbetrieb sichtbar machen.
+
+Voraussetzung:
+
+- Keine neue GCP-Komponente.
+- Echte Cloud Monitoring Alerts brauchen spaeter einen freigegebenen Benachrichtigungskanal.
+
 ### Uebersprungen: Gespeicherte Ansichten
 
 Grund:
@@ -201,4 +226,4 @@ Nicht starten mit:
 
 ## Empfehlung
 
-Nach 5.3 zuerst Import kontrolliert vorbereiten. Gespeicherte Ansichten bleiben bis auf Weiteres uebersprungen.
+Nach 5.6 zuerst Zugriffsschutz, Restore-Test und echte Cloud-Monitoring-Alerts klaeren. Gespeicherte Ansichten bleiben bis auf Weiteres uebersprungen.

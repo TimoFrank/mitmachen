@@ -39,6 +39,13 @@ const ROLE_MATRIX = [
     note: "Später für reine Leserechte geeignet."
   }
 ];
+const OPERATIONS_BASELINE = {
+  backupWindow: "02:00 UTC",
+  retainedBackups: 7,
+  pointInTimeRecoveryDays: 7,
+  deletionProtection: true,
+  availability: "ZONAL"
+};
 
 const IMPORT_FIELD_ALIASES = new Map([
   ["id", "id"],
@@ -1166,9 +1173,146 @@ async function getOpsSummary() {
   };
 }
 
+function opsStatusLabel(status) {
+  if (status === "ok") return "OK";
+  if (status === "warn") return "Warnung";
+  if (status === "error") return "Fehler";
+  return "Info";
+}
+
+function overallOpsStatus(checks) {
+  if (checks.some((check) => check.status === "error")) return "error";
+  if (checks.some((check) => check.status === "warn")) return "warn";
+  return "ok";
+}
+
+function opsCheck(key, label, status, detail, meta = {}) {
+  return {
+    key,
+    label,
+    status,
+    statusLabel: opsStatusLabel(status),
+    detail,
+    meta
+  };
+}
+
+async function getOpsChecks() {
+  const startedAt = Date.now();
+  const checks = [];
+  let dbLatencyMs = null;
+  let dbTime = null;
+  let dbError = "";
+  let summary = null;
+  let summaryError = "";
+
+  try {
+    const dbStartedAt = Date.now();
+    const { rows } = await getPool().query("select now() as db_time");
+    dbLatencyMs = Date.now() - dbStartedAt;
+    dbTime = rows[0]?.db_time || null;
+  } catch (error) {
+    dbError = error.message || "Cloud-SQL-Abfrage fehlgeschlagen";
+  }
+
+  if (!dbError) {
+    try {
+      summary = await getOpsSummary();
+    } catch (error) {
+      summaryError = error.message || "Kern-Daten konnten nicht gelesen werden";
+    }
+  }
+  const counts = summary?.counts || {};
+  checks.push(opsCheck(
+    "cloud-run",
+    "Cloud Run API",
+    "ok",
+    "Service antwortet und liefert diese Diagnose.",
+    { revision: runtimeMetadata().revision, service: runtimeMetadata().service }
+  ));
+  checks.push(opsCheck(
+    "cloud-sql",
+    "Cloud SQL",
+    dbError ? "error" : "ok",
+    dbError || `Datenbank antwortet in ${dbLatencyMs} ms.`,
+    { latencyMs: dbLatencyMs, dbTime }
+  ));
+  checks.push(opsCheck(
+    "core-data",
+    "Kern-Daten",
+    summaryError ? "error" : counts.profiles > 0 && counts.activeContacts > 0 && counts.activeOrganizations > 0 ? "ok" : "warn",
+    summaryError || `${counts.profiles || 0} Profile, ${counts.activeContacts || 0} aktive Kontakte, ${counts.activeOrganizations || 0} aktive Organisationen.`,
+    counts
+  ));
+  checks.push(opsCheck(
+    "audit-log",
+    "Änderungsverlauf",
+    summaryError ? "error" : counts.changes > 0 ? "ok" : "warn",
+    summaryError || `${counts.changes || 0} Änderungsereignisse in Cloud SQL.`,
+    { lastChangeAt: summary?.lastChangeAt || null }
+  ));
+  checks.push(opsCheck(
+    "contact-images",
+    "Kontaktbilder",
+    CONTACT_IMAGE_BUCKET ? "ok" : "warn",
+    CONTACT_IMAGE_BUCKET ? "Cloud Storage Bucket ist konfiguriert." : "Kein Kontaktbild-Bucket konfiguriert.",
+    { bucket: CONTACT_IMAGE_BUCKET || null }
+  ));
+  checks.push(opsCheck(
+    "export",
+    "JSON-Export",
+    "ok",
+    "Export-Endpunkt ist verfügbar und enthält Profile, Organisationen, Kontakte, Verlauf und Importläufe.",
+    { endpoint: "/api/export" }
+  ));
+  checks.push(opsCheck(
+    "backup-policy",
+    "Backups und PITR",
+    "ok",
+    "Schutz aus Step 5.2 ist dokumentiert: tägliche Backups, PITR und Deletion Protection.",
+    OPERATIONS_BASELINE
+  ));
+  checks.push(opsCheck(
+    "access-boundary",
+    "Zugriffsschutz",
+    "info",
+    "Privater Test nutzt weiterhin öffentlichen Cloud-Run-Zugriff. Organisationsbetrieb braucht IAP, SSO oder interne Zugriffsschicht.",
+    { enforcedByApp: false }
+  ));
+  checks.push(opsCheck(
+    "alerting",
+    "Cloud Monitoring Alerts",
+    "info",
+    "Noch nicht eingerichtet. Dafür braucht es später einen freigegebenen Benachrichtigungskanal.",
+    { configured: false }
+  ));
+
+  const status = overallOpsStatus(checks);
+  return {
+    ok: status !== "error",
+    status,
+    statusLabel: opsStatusLabel(status),
+    generatedAt: new Date().toISOString(),
+    durationMs: Date.now() - startedAt,
+    runtime: runtimeMetadata(),
+    summary,
+    errors: {
+      database: dbError || null,
+      summary: summaryError || null
+    },
+    checks,
+    nextActions: [
+      "Benachrichtigungskanal fuer echte Cloud-Monitoring-Alerts klaeren.",
+      "Restore-Test mit Cloud-SQL-Backup dokumentieren.",
+      "Organisationszugriff ueber IAP, SSO oder interne Zugriffsschicht entscheiden."
+    ]
+  };
+}
+
 async function exportDemoData() {
-  const [summary, session, profiles, organizations, contacts, changes, importRuns] = await Promise.all([
+  const [summary, opsChecks, session, profiles, organizations, contacts, changes, importRuns] = await Promise.all([
     getOpsSummary(),
+    getOpsChecks(),
     getDemoSession(),
     listAllProfiles(),
     listOrganizations({ includeArchived: true }),
@@ -1180,6 +1324,7 @@ async function exportDemoData() {
     exportedAt: new Date().toISOString(),
     exportType: "versorgungs-kompass-gcp-demo",
     summary,
+    opsChecks,
     session,
     profiles,
     organizations,
@@ -1665,6 +1810,11 @@ async function handleApi(request, response, url) {
 
     if (request.method === "GET" && url.pathname === "/api/ops/summary") {
       sendJson(response, 200, await getOpsSummary());
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/ops/checks") {
+      sendJson(response, 200, await getOpsChecks());
       return;
     }
 

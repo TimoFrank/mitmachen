@@ -6,7 +6,7 @@ Dieses Dokument schliesst Schritt 3 der GCP-Ueberfuehrung ab. Es legt fest, wie 
 
 Umsetzungsstand: Schritt 4 wurde privat am 2026-06-06 umgesetzt. Details stehen in `GCP_STEP4_PRIVATE_TEST.md`.
 
-Update nach Schritt 5: Kern-CRM-API, Betriebssicherheit, Kontaktbilder in Cloud Storage, Importvorbereitung sowie Profil/Rollenmodell light wurden schrittweise privat umgesetzt. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`, `GCP_STEP5_2_OPERATIONS.md`, `GCP_STEP5_3_CONTACT_IMAGES.md`, `GCP_STEP5_4_IMPORT.md` und `GCP_STEP5_5_PROFILE_ROLES.md`.
+Update nach Schritt 5: Kern-CRM-API, Betriebssicherheit, Kontaktbilder in Cloud Storage, Importvorbereitung, Profil/Rollenmodell light sowie Monitoring light wurden schrittweise privat umgesetzt. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`, `GCP_STEP5_2_OPERATIONS.md`, `GCP_STEP5_3_CONTACT_IMAGES.md`, `GCP_STEP5_4_IMPORT.md`, `GCP_STEP5_5_PROFILE_ROLES.md` und `GCP_STEP5_6_MONITORING.md`.
 
 ## Entscheidung
 
@@ -177,6 +177,13 @@ Seit Step 5.5 ist fuer den privaten GCP-Test vorbereitet:
 - Optionaler technischer Akteur ueber `GCP_DEMO_PROFILE_ID`.
 - Noch keine echte Auth und keine serverseitige Rollenpruefung.
 
+Seit Step 5.6 ist fuer den privaten GCP-Test vorbereitet:
+
+- Monitoring-light ueber `GET /api/ops/checks`.
+- Systemstatus in der Betriebsseite.
+- Einzelchecks fuer Cloud Run, Cloud SQL, Kern-Daten, Aenderungsverlauf, Kontaktbilder, Export und Backup-Basis.
+- Dokumentierte offene Punkte fuer Zugriffsschutz, Restore-Test und echte Cloud Monitoring Alerts.
+
 Fuer echten Organisationsbetrieb fehlen noch:
 
 - Zugriffsschutz vor Export und schreibenden Endpunkten.
@@ -191,6 +198,7 @@ Minimal benoetigte Endpunkte:
 | Methode | Pfad | Zweck |
 | --- | --- | --- |
 | `GET` | `/api/healthz` | Backend-Healthcheck |
+| `GET` | `/api/ops/checks` | Monitoring-light und Betriebsdiagnose |
 | `GET` | `/api/bootstrap` | Profile, Organisationen, Kontakte und initiale Historie laden |
 | `GET` | `/api/contacts` | Kontakte laden |
 | `GET` | `/api/contacts/:id` | Einzelkontakt laden |

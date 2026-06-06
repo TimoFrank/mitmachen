@@ -17,6 +17,7 @@
     selectedOrganizationId: "",
     showArchived: false,
     opsSummary: null,
+    opsChecks: null,
     opsLoading: false,
     opsError: "",
     importText: "",
@@ -167,6 +168,20 @@
     if (priority === "Hoch") return "badge badge--high";
     if (priority === "Mittel") return "badge badge--medium";
     return "badge";
+  }
+
+  function opsStatusLabel(status) {
+    if (status === "ok") return "OK";
+    if (status === "warn") return "Warnung";
+    if (status === "error") return "Fehler";
+    return "Info";
+  }
+
+  function opsStatusClass(status) {
+    if (status === "ok") return "badge badge--success";
+    if (status === "warn") return "badge badge--medium";
+    if (status === "error") return "badge badge--danger";
+    return "badge badge--info";
   }
 
   function asDate(value) {
@@ -940,10 +955,14 @@
       return;
     }
 
-    const summary = state.opsSummary;
+    const diagnostics = state.opsChecks;
+    const summary = diagnostics?.summary || state.opsSummary;
     const counts = summary?.counts || {};
+    const checks = Array.isArray(diagnostics?.checks) ? diagnostics.checks : [];
+    const status = diagnostics?.status || (state.opsError ? "error" : "info");
     elements.main.innerHTML = `
       <div class="summary-strip">
+        <span class="metric"><strong>${escapeHtml(diagnostics?.statusLabel || opsStatusLabel(status))}</strong> Systemstatus</span>
         <span class="metric"><strong>${counts.activeContacts ?? "..."}</strong> aktive Kontakte</span>
         <span class="metric"><strong>${counts.archivedContacts ?? "..."}</strong> archiviert</span>
         <span class="metric"><strong>${counts.activeOrganizations ?? "..."}</strong> Organisationen</span>
@@ -955,37 +974,44 @@
       </div>
       <div class="activity-panel">
         ${state.opsError ? `
-          <div class="activity-row">
-            <span>Status</span>
+          <div class="activity-row ops-check-row">
+            <span class="badge badge--danger">Fehler</span>
             <strong>Fehler</strong>
             <span>${escapeHtml(state.opsError)}</span>
           </div>
         ` : ""}
-        <div class="activity-row">
-          <span>Backend</span>
-          <strong>${escapeHtml(summary?.backend || "Cloud SQL")}</strong>
-          <span>${state.opsLoading ? "Status wird geladen ..." : "API erreichbar"}</span>
-        </div>
-        <div class="activity-row">
-          <span>Letzte Änderung</span>
-          <strong>${escapeHtml(asDate(summary?.lastChangeAt))}</strong>
-          <span>Änderungsverlauf in Cloud SQL</span>
-        </div>
-        <div class="activity-row">
-          <span>Revision</span>
-          <strong>${escapeHtml(summary?.runtime?.revision || "Nicht geladen")}</strong>
-          <span>${escapeHtml(summary?.runtime?.service || "Cloud Run")}</span>
-        </div>
+        ${checks.length ? checks.map((check) => `
+          <div class="activity-row ops-check-row">
+            <span class="${opsStatusClass(check.status)}">${escapeHtml(check.statusLabel || opsStatusLabel(check.status))}</span>
+            <strong>${escapeHtml(check.label)}</strong>
+            <span>${escapeHtml(check.detail)}</span>
+          </div>
+        `).join("") : `
+          <div class="activity-row ops-check-row">
+            <span class="badge">...</span>
+            <strong>Monitoring</strong>
+            <span>${state.opsLoading ? "Status wird geladen ..." : "Noch nicht geladen."}</span>
+          </div>
+        `}
       </div>
     `;
     elements.detail.innerHTML = `
       <div class="detail-top">
         <span class="avatar avatar-lg" aria-hidden="true">GCP</span>
         <div class="detail-title">
-          <h2>Betriebssicherheit</h2>
-          <p>Step 5.2</p>
+          <h2>Monitoring light</h2>
+          <p>Step 5.6</p>
         </div>
       </div>
+      <section class="detail-section">
+        <h3>Diagnose</h3>
+        <div class="meta-grid">
+          ${detailRow("Status", diagnostics?.statusLabel || opsStatusLabel(status))}
+          ${detailRow("Laufzeit", diagnostics?.durationMs != null ? `${diagnostics.durationMs} ms` : "")}
+          ${detailRow("Stand", asDate(diagnostics?.generatedAt))}
+          ${detailRow("Revision", diagnostics?.runtime?.revision || summary?.runtime?.revision)}
+        </div>
+      </section>
       <section class="detail-section">
         <h3>Aktiver Schutz</h3>
         <div class="meta-grid">
@@ -995,11 +1021,15 @@
         </div>
       </section>
       <section class="detail-section">
-        <h3>Export</h3>
-        <p class="muted">Der JSON-Export enthält Profile, Organisationen, Kontakte und Verlauf als Rückfallpunkt vor Importen oder größeren Tests.</p>
+        <h3>Offen</h3>
+        <div class="meta-grid">
+          ${detailRow("Cloud Alerts", "Noch nicht aktiv")}
+          ${detailRow("Restore-Test", "Noch zu dokumentieren")}
+          ${detailRow("Zugriffsschutz", "Für Organisation klären")}
+        </div>
       </section>
     `;
-    if (!summary && !state.opsLoading && !state.opsError) refreshOpsSummary();
+    if (!diagnostics && !state.opsLoading && !state.opsError) refreshOpsSummary();
   }
 
   function renderProfileView() {
@@ -1258,6 +1288,7 @@
 
     document.getElementById("refresh-ops")?.addEventListener("click", () => {
       state.opsError = "";
+      state.opsChecks = null;
       refreshOpsSummary();
     });
 
@@ -1574,15 +1605,16 @@
   async function refreshOpsSummary() {
     if (!API_MODE || state.opsLoading) return;
     state.opsLoading = true;
-    elements.status.textContent = "Lade Betriebsstatus ...";
+    elements.status.textContent = "Lade Monitoring-Status ...";
     try {
-      state.opsSummary = await apiRequest("/api/ops/summary");
+      state.opsChecks = await apiRequest("/api/ops/checks");
+      state.opsSummary = state.opsChecks.summary || null;
       state.opsError = "";
-      elements.status.textContent = "Betriebsstatus geladen";
+      elements.status.textContent = `Monitoring-Status: ${state.opsChecks.statusLabel || opsStatusLabel(state.opsChecks.status)}`;
     } catch (error) {
       console.error(error);
       state.opsError = error.message;
-      elements.status.textContent = `Betriebsstatus fehlgeschlagen: ${error.message}`;
+      elements.status.textContent = `Monitoring fehlgeschlagen: ${error.message}`;
     } finally {
       state.opsLoading = false;
       if (state.view === "ops") render();
@@ -1668,6 +1700,7 @@
       state.importExportConfirmed = false;
       state.importRunsLoaded = false;
       state.opsSummary = null;
+      state.opsChecks = null;
       await loadBackendState();
       await loadImportRuns({ force: true });
       state.selectedId = result.importedContacts?.[0]?.id || state.selectedId;
@@ -1814,6 +1847,7 @@
           state.organizationCreateMode = false;
           state.organizationEditMode = false;
           state.opsSummary = null;
+          state.opsChecks = null;
           state.opsError = "";
           state.importRunsLoaded = false;
           state.importRuns = [];
@@ -1836,6 +1870,7 @@
       state.organizationCreateMode = false;
       state.organizationEditMode = false;
       state.opsSummary = null;
+      state.opsChecks = null;
       state.opsError = "";
       state.importRunsLoaded = false;
       state.importRuns = [];
