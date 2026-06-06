@@ -2,7 +2,7 @@
 
 Stand: 2026-06-06
 
-Status: erster Frontend-Paritaets-Slice privat umgesetzt, deployed und live getestet.
+Status: erster Frontend-Paritaets-Slice privat umgesetzt, deployed und live getestet. Seit Step 8 ist dieser Ansatz durch den Original-UI-Port abgeloest; Details stehen in `GCP_STEP8_ORIGINAL_UI_PORT.md`.
 
 ## Ziel
 

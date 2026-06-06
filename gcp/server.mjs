@@ -984,6 +984,7 @@ function mapOrganization(row) {
     notes: row.notes,
     source: row.source,
     status: row.status,
+    contactCount: Number(row.contact_count || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -999,6 +1000,7 @@ function mapContact(row) {
     specialty: row.specialty,
     contactRole: row.role,
     priority: row.priority,
+    owner: row.owner_display_name || "",
     ownerId: row.owner_id,
     postalCode: row.postal_code,
     city: row.city,
@@ -1066,24 +1068,64 @@ async function listAllProfiles() {
 }
 
 async function listOrganizations({ includeArchived = false } = {}) {
-  const where = includeArchived ? "" : "where status <> 'archived'";
-  const { rows } = await getPool().query(`select * from organizations ${where} order by name`);
+  const where = includeArchived ? "" : "where organizations.status <> 'archived'";
+  const { rows } = await getPool().query(
+    `select organizations.*,
+            (
+              select count(*)::int
+              from contacts
+              where contacts.status <> 'archived'
+                and (
+                  contacts.organization_id = organizations.id
+                  or lower(trim(contacts.organization)) = lower(trim(organizations.name))
+                )
+            ) as contact_count
+     from organizations
+     ${where}
+     order by organizations.name`
+  );
   return rows.map(mapOrganization);
 }
 
 async function getOrganization(id, client = getPool()) {
-  const { rows } = await client.query("select * from organizations where id = $1", [id]);
+  const { rows } = await client.query(
+    `select organizations.*,
+            (
+              select count(*)::int
+              from contacts
+              where contacts.status <> 'archived'
+                and (
+                  contacts.organization_id = organizations.id
+                  or lower(trim(contacts.organization)) = lower(trim(organizations.name))
+                )
+            ) as contact_count
+     from organizations
+     where organizations.id = $1`,
+    [id]
+  );
   return rows[0] || null;
 }
 
 async function listContacts({ includeArchived = false } = {}) {
-  const where = includeArchived ? "" : "where status <> 'archived'";
-  const { rows } = await getPool().query(`select * from contacts ${where} order by name`);
+  const where = includeArchived ? "" : "where contacts.status <> 'archived'";
+  const { rows } = await getPool().query(
+    `select contacts.*, profiles.display_name as owner_display_name
+     from contacts
+     left join profiles on profiles.id = contacts.owner_id
+     ${where}
+     order by contacts.name`
+  );
   return rows.map(mapContact);
 }
 
 async function getContact(id) {
-  const { rows } = await getPool().query("select * from contacts where id = $1", [id]);
+  const { rows } = await getPool().query(
+    `select contacts.*, profiles.display_name as owner_display_name
+     from contacts
+     left join profiles on profiles.id = contacts.owner_id
+     where contacts.id = $1`,
+    [id]
+  );
   return rows[0] ? mapContact(rows[0]) : null;
 }
 
@@ -1390,7 +1432,7 @@ async function updateContactImage(id, input) {
     await client.query("commit");
     await deleteStorageObjectIfNeeded(oldRow.image_url);
     return {
-      contact: mapContact(updated.rows[0]),
+      contact: await getContact(id),
       changes: await getContactHistory(id)
     };
   } catch (error) {
@@ -1434,7 +1476,7 @@ async function removeContactImage(id) {
     await client.query("commit");
     await deleteStorageObjectIfNeeded(oldRow.image_url);
     return {
-      contact: mapContact(updated.rows[0]),
+      contact: await getContact(id),
       changes: await getContactHistory(id)
     };
   } catch (error) {
@@ -1623,7 +1665,7 @@ async function createContact(input) {
     );
     await client.query("commit");
     return {
-      contact: mapContact(inserted.rows[0]),
+      contact: await getContact(id),
       changes: await getContactHistory(id)
     };
   } catch (error) {
@@ -1676,7 +1718,7 @@ async function patchContact(id, input) {
     if (!changes.length) {
       await client.query("commit");
       return {
-        contact: mapContact(oldRow),
+        contact: await getContact(id),
         changes: await getContactHistory(id)
       };
     }
@@ -1708,7 +1750,7 @@ async function patchContact(id, input) {
 
     await client.query("commit");
     return {
-      contact: mapContact(updated.rows[0]),
+      contact: await getContact(id),
       changes: await getContactHistory(id)
     };
   } catch (error) {
@@ -1764,17 +1806,29 @@ function sendText(response, status, body, contentType = "text/plain; charset=utf
 }
 
 async function serveGcpIndex(response) {
-  const indexPath = path.join(ROOT, "demo", "index.html");
+  const indexPath = path.join(ROOT, "app", "versorgungs-kompass.html");
   const assetVersion = encodeURIComponent(process.env.K_REVISION || "local");
   let html = await readFile(indexPath, "utf8");
   html = html
-    .replace('<link rel="stylesheet" href="./demo.css">', `<link rel="stylesheet" href="/demo/demo.css?v=${assetVersion}">`)
-    .replace('<a class="sidebar-brand" href="./index.html"', '<a class="sidebar-brand" href="/"')
-    .replace("Lokale Pilot-Version für internen Testbetrieb.", "GCP-Pilot mit Cloud-SQL-Backend.")
-    .replace("Lokaler Browserstand", "Cloud SQL Backend")
-    .replace("Testdaten geladen", "Verbinde mit Cloud SQL ...")
-    .replace('<script src="/data/demo-data.js"></script>', '<script>window.VK_DEMO_BACKEND = "api";</script>\n    <script src="/data/demo-data.js"></script>')
-    .replace('<script src="./demo-app.js"></script>', `<script src="/demo/demo-app.js?v=${assetVersion}"></script>`);
+    .replace('<link rel="manifest" href="../public/manifest.webmanifest" />', '<link rel="manifest" href="/public/manifest.webmanifest" />')
+    .replace('<link rel="apple-touch-icon" sizes="180x180" href="../public/app-icon-180.png" />', '<link rel="apple-touch-icon" sizes="180x180" href="/public/app-icon-180.png" />')
+    .replace('<link rel="icon" type="image/png" sizes="32x32" href="../public/app-icon-32.png" />', '<link rel="icon" type="image/png" sizes="32x32" href="/public/app-icon-32.png" />')
+    .replace('    <script src="../login/auth-config.js"></script>\n    <script src="../login/auth-guard.js"></script>\n', "")
+    .replace('src="../map/versorgungs-kompass-map.html?embed=1"', 'src="/map/versorgungs-kompass-map.html?embed=1&demo=1"')
+    .replace('href="../mitmachen/versorgungs-netzwerk.html"', 'href="/mitmachen/versorgungs-netzwerk.html"')
+    .replace('src="../map/data/state-polygons.js"', `src="/map/data/state-polygons.js?v=${assetVersion}"`)
+    .replace('    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n', "")
+    .replace(
+      '    <script src="../data/supabase-config.js"></script>',
+      `    <script>window.VERSORGUNGS_COMPASS_CONFIG = { dataMode: "gcp", apiBaseUrl: "", requireApiGateway: false };</script>`
+    )
+    .replace('src="../data/data-service.js"', `src="/data/data-service.js?v=${assetVersion}"`)
+    .replace('src="../data/demo-data.js"', `src="/data/demo-data.js?v=${assetVersion}"`)
+    .replace('src="../data/versorgungs-kompass-data.js"', `src="/data/versorgungs-kompass-data.js?v=${assetVersion}"`)
+    .replace('src="../data/expertenkreis-data.js"', `src="/data/expertenkreis-data.js?v=${assetVersion}"`)
+    .replaceAll("../map/versorgungs-kompass-contact-mini-map.html", "/map/versorgungs-kompass-contact-mini-map.html")
+    .replaceAll("../login/login.html", "/")
+    .replaceAll("Supabase", "GCP");
   sendText(response, 200, html, "text/html; charset=utf-8");
 }
 
@@ -1988,7 +2042,14 @@ const server = http.createServer(async (request, response) => {
     sendText(response, 405, "Method not allowed");
     return;
   }
-  if (url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/demo/" || url.pathname === "/demo/index.html") {
+  if (
+    url.pathname === "/" ||
+    url.pathname === "/index.html" ||
+    url.pathname === "/demo/" ||
+    url.pathname === "/demo/index.html" ||
+    url.pathname === "/versorgungs-kompass.html" ||
+    url.pathname === "/app/versorgungs-kompass.html"
+  ) {
     await serveGcpIndex(response);
     return;
   }

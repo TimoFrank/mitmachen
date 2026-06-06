@@ -8,7 +8,9 @@ Umsetzungsstand: Schritt 4 wurde privat am 2026-06-06 umgesetzt. Details stehen 
 
 Update nach Schritt 5: Kern-CRM-API, Betriebssicherheit, Kontaktbilder in Cloud Storage, Importvorbereitung, Profil/Rollenmodell light sowie Monitoring light wurden schrittweise privat umgesetzt. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`, `GCP_STEP5_2_OPERATIONS.md`, `GCP_STEP5_3_CONTACT_IMAGES.md`, `GCP_STEP5_4_IMPORT.md`, `GCP_STEP5_5_PROFILE_ROLES.md` und `GCP_STEP5_6_MONITORING.md`.
 
-Update nach Schritt 7: Die GCP-Version wird frontendseitig naeher an die Original-App herangefuehrt, ohne Supabase wieder einzufuehren. Details stehen in `GCP_STEP7_FRONTEND_PARITY.md`.
+Update nach Schritt 7: Die GCP-Version wurde frontendseitig naeher an die Original-App herangefuehrt, ohne Supabase wieder einzufuehren. Details stehen in `GCP_STEP7_FRONTEND_PARITY.md`.
+
+Update nach Schritt 8: Die private GCP-Version liefert jetzt die Original-App aus `app/versorgungs-kompass.html` aus und nutzt GCP als Datenadapter. Der Demo-UI-Nachbau ist damit abgeloest. Details stehen in `GCP_STEP8_ORIGINAL_UI_PORT.md`.
 
 ## Entscheidung
 
@@ -72,6 +74,8 @@ Nicht fuer Schritt 4 privat geplant:
 - gespeicherte Ansichten
 - Profilbild-Upload
 - Admin-Konsole
+
+Update nach Step 8: Die urspruengliche reduzierte Demo bleibt als Referenz erhalten. Der aktuelle private GCP-Service nutzt aber die Original-App-Shell und keine separate Demo-Oberflaeche mehr.
 
 ## Service-Schnitt
 

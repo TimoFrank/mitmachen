@@ -7,8 +7,11 @@ RUN npm ci --omit=dev
 
 COPY data ./data
 COPY demo ./demo
+COPY app ./app
 COPY gcp ./gcp
+COPY login ./login
 COPY map ./map
+COPY mitmachen ./mitmachen
 COPY public ./public
 
 ENV NODE_ENV=production
