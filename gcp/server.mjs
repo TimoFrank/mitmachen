@@ -27,15 +27,39 @@ const SCHEMA_LOCK_ID = 2026060605;
 
 const CONTACT_FIELD_MAP = [
   ["name", "name"],
+  ["organizationId", "organization_id"],
   ["organization", "organization"],
+  ["category", "sector"],
   ["contactRole", "role"],
   ["specialty", "specialty"],
+  ["postalCode", "postal_code"],
+  ["city", "city"],
+  ["state", "federal_state"],
+  ["lat", "latitude"],
+  ["lon", "longitude"],
   ["email", "email"],
   ["phone", "phone"],
   ["priority", "priority"],
   ["ownerId", "owner_id"],
   ["note", "notes"],
-  ["nextStep", "next_step"]
+  ["nextStep", "next_step"],
+  ["status", "status"]
+];
+
+const ORGANIZATION_FIELD_MAP = [
+  ["name", "name"],
+  ["sector", "sector"],
+  ["organizationType", "organization_type"],
+  ["postalCode", "postal_code"],
+  ["city", "city"],
+  ["state", "federal_state"],
+  ["lat", "latitude"],
+  ["lon", "longitude"],
+  ["website", "website"],
+  ["phone", "phone"],
+  ["email", "email"],
+  ["notes", "notes"],
+  ["status", "status"]
 ];
 
 let pool;
@@ -277,6 +301,23 @@ function stringifyValue(value) {
   return String(value ?? "");
 }
 
+function generateId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function normalizeName(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function inputValueForField(dbField, value) {
+  if (["owner_id", "organization_id"].includes(dbField)) return value || null;
+  if (["latitude", "longitude"].includes(dbField)) return numberOrNull(value);
+  return String(value ?? "").trim();
+}
+
 function mapProfile(row) {
   return {
     id: row.id,
@@ -369,9 +410,15 @@ async function listProfiles() {
   return rows.map(mapProfile);
 }
 
-async function listOrganizations() {
-  const { rows } = await getPool().query("select * from organizations where status <> 'archived' order by name");
+async function listOrganizations({ includeArchived = false } = {}) {
+  const where = includeArchived ? "" : "where status <> 'archived'";
+  const { rows } = await getPool().query(`select * from organizations ${where} order by name`);
   return rows.map(mapOrganization);
+}
+
+async function getOrganization(id, client = getPool()) {
+  const { rows } = await client.query("select * from organizations where id = $1", [id]);
+  return rows[0] || null;
 }
 
 async function listContacts({ includeArchived = false } = {}) {
@@ -408,6 +455,176 @@ async function listChanges() {
   return rows.map(mapChange);
 }
 
+async function createOrganization(input) {
+  const name = String(input.name || "").trim();
+  if (!name) throw new Error("Organisationsname ist erforderlich.");
+  const actorId = await firstProfileId(getPool());
+  const id = String(input.id || "").trim() || generateId("gcp-org");
+  const normalizedName = normalizeName(input.normalizedName || input.normalized_name || name);
+  const values = [
+    id,
+    name,
+    normalizedName,
+    input.sector || "",
+    input.organizationType || input.organization_type || "",
+    input.postalCode || input.postal_code || "",
+    input.city || "",
+    input.state || input.federal_state || "",
+    numberOrNull(input.lat ?? input.latitude),
+    numberOrNull(input.lon ?? input.longitude),
+    input.website || "",
+    input.phone || "",
+    input.email || "",
+    input.notes || input.note || "",
+    input.source || "GCP-Demo",
+    input.status || "active",
+    actorId,
+    actorId
+  ];
+  const { rows } = await getPool().query(
+    `insert into organizations
+      (id, name, normalized_name, sector, organization_type, postal_code, city, federal_state,
+       latitude, longitude, website, phone, email, notes, source, status, created_by, updated_by)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+     returning *`,
+    values
+  );
+  return mapOrganization(rows[0]);
+}
+
+async function patchOrganization(id, input) {
+  const client = await getPool().connect();
+  try {
+    await client.query("begin");
+    const { rows } = await client.query("select * from organizations where id = $1 for update", [id]);
+    const oldRow = rows[0];
+    if (!oldRow) {
+      await client.query("rollback");
+      return null;
+    }
+    const dbPatch = {};
+    for (const [uiField, dbField] of ORGANIZATION_FIELD_MAP) {
+      if (!Object.prototype.hasOwnProperty.call(input, uiField)) continue;
+      const nextValue = inputValueForField(dbField, input[uiField]);
+      const oldValue = oldRow[dbField] ?? "";
+      if (String(oldValue ?? "") === String(nextValue ?? "")) continue;
+      dbPatch[dbField] = nextValue;
+    }
+    if (Object.prototype.hasOwnProperty.call(dbPatch, "name")) {
+      dbPatch.normalized_name = normalizeName(dbPatch.name);
+    }
+    if (!Object.keys(dbPatch).length) {
+      await client.query("commit");
+      return mapOrganization(oldRow);
+    }
+    dbPatch.updated_by = await firstProfileId(client);
+    const fields = Object.keys(dbPatch);
+    const values = fields.map((field) => dbPatch[field]);
+    const assignments = fields.map((field, index) => `${field} = $${index + 2}`).join(", ");
+    const updated = await client.query(
+      `update organizations set ${assignments} where id = $1 returning *`,
+      [id, ...values]
+    );
+    await client.query(
+      `update contacts
+       set organization = $2,
+           sector = $3,
+           postal_code = $4,
+           city = $5,
+           federal_state = $6,
+           latitude = $7,
+           longitude = $8
+       where organization_id = $1`,
+      [
+        id,
+        updated.rows[0].name,
+        updated.rows[0].sector || "",
+        updated.rows[0].postal_code || "",
+        updated.rows[0].city || "",
+        updated.rows[0].federal_state || "",
+        updated.rows[0].latitude,
+        updated.rows[0].longitude
+      ]
+    );
+    await client.query("commit");
+    return mapOrganization(updated.rows[0]);
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function createContact(input) {
+  const name = String(input.name || "").trim();
+  if (!name) throw new Error("Kontaktname ist erforderlich.");
+  const client = await getPool().connect();
+  try {
+    await client.query("begin");
+    const actorId = input.ownerId || input.owner_id || (await firstProfileId(client));
+    const organizationId = input.organizationId || input.organization_id || null;
+    const organization = organizationId ? await getOrganization(organizationId, client) : null;
+    const id = String(input.id || "").trim() || generateId("gcp-contact");
+    const values = [
+      id,
+      name,
+      organizationId,
+      organization?.name || input.organization || "",
+      organization?.sector || input.category || input.sector || "",
+      input.specialty || "",
+      input.contactRole || input.role || "",
+      input.priority || "Mittel",
+      actorId,
+      organization?.postal_code || input.postalCode || input.postal_code || "",
+      organization?.city || input.city || "",
+      organization?.federal_state || input.state || input.federal_state || "",
+      numberOrNull(input.lat ?? input.latitude ?? organization?.latitude),
+      numberOrNull(input.lon ?? input.longitude ?? organization?.longitude),
+      input.email || "",
+      input.phone || "",
+      input.linkedin || "",
+      Array.isArray(input.themes) ? input.themes : Array.isArray(input.topics) ? input.topics : [],
+      input.note || input.notes || "",
+      input.nextStep || input.next_step || "",
+      Array.isArray(input.sources) ? input.sources.join("; ") : input.source || "GCP-Demo",
+      normalizeImagePath(input.image || input.image_url || ""),
+      input.imageSourceUrl || input.image_source_url || "",
+      input.imageSourceLabel || input.image_source_label || "",
+      input.imageRightsNote || input.image_rights_note || "",
+      input.status || "active",
+      actorId,
+      actorId
+    ];
+    const inserted = await client.query(
+      `insert into contacts
+        (id, name, organization_id, organization, sector, specialty, role, priority, owner_id,
+         postal_code, city, federal_state, latitude, longitude, email, phone, linkedin, topics,
+         notes, next_step, source, image_url, image_source_url, image_source_label, image_rights_note,
+         status, created_by, updated_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+         $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+       returning *`,
+      values
+    );
+    await client.query(
+      `insert into changes (contact_id, action, field_name, old_value, new_value, changed_by)
+       values ($1, 'create', '', '', $2, $3)`,
+      [id, name, actorId]
+    );
+    await client.query("commit");
+    return {
+      contact: mapContact(inserted.rows[0]),
+      changes: await getContactHistory(id)
+    };
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function patchContact(id, input) {
   const client = await getPool().connect();
   try {
@@ -423,7 +640,7 @@ async function patchContact(id, input) {
     const changes = [];
     for (const [uiField, dbField] of CONTACT_FIELD_MAP) {
       if (!Object.prototype.hasOwnProperty.call(input, uiField)) continue;
-      const nextValue = dbField === "owner_id" ? input[uiField] || null : String(input[uiField] ?? "").trim();
+      const nextValue = inputValueForField(dbField, input[uiField]);
       const oldValue = oldRow[dbField] ?? "";
       if (String(oldValue ?? "") === String(nextValue ?? "")) continue;
       dbPatch[dbField] = nextValue;
@@ -432,6 +649,19 @@ async function patchContact(id, input) {
         oldValue,
         newValue: nextValue
       });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(dbPatch, "organization_id") && dbPatch.organization_id) {
+      const organization = await getOrganization(dbPatch.organization_id, client);
+      if (organization) {
+        dbPatch.organization = organization.name;
+        dbPatch.sector = organization.sector || dbPatch.sector || "";
+        dbPatch.postal_code = organization.postal_code || dbPatch.postal_code || "";
+        dbPatch.city = organization.city || dbPatch.city || "";
+        dbPatch.federal_state = organization.federal_state || dbPatch.federal_state || "";
+        dbPatch.latitude = organization.latitude ?? dbPatch.latitude ?? null;
+        dbPatch.longitude = organization.longitude ?? dbPatch.longitude ?? null;
+      }
     }
 
     if (!changes.length) {
@@ -458,7 +688,7 @@ async function patchContact(id, input) {
          values ($1, $2, $3, $4, $5, $6)`,
         [
           id,
-          change.fieldName === "ownerId" ? "owner_change" : "update",
+          contactChangeAction(change.fieldName, change.oldValue, change.newValue),
           change.fieldName,
           stringifyValue(change.oldValue),
           stringifyValue(change.newValue),
@@ -483,6 +713,13 @@ async function patchContact(id, input) {
 async function firstProfileId(client) {
   const { rows } = await client.query("select id from profiles where active = true order by display_name limit 1");
   return rows[0]?.id || null;
+}
+
+function contactChangeAction(fieldName, oldValue, newValue) {
+  if (fieldName === "ownerId") return "owner_change";
+  if (fieldName === "status" && oldValue === "active" && newValue === "archived") return "archive";
+  if (fieldName === "status" && oldValue === "archived" && newValue === "active") return "restore";
+  return "update";
 }
 
 async function readJson(request) {
@@ -553,10 +790,11 @@ async function handleApi(request, response, url) {
     await ensureReady();
 
     if (request.method === "GET" && url.pathname === "/api/bootstrap") {
+      const includeArchived = url.searchParams.get("includeArchived") === "true";
       const [profiles, organizations, contacts, changes] = await Promise.all([
         listProfiles(),
-        listOrganizations(),
-        listContacts(),
+        listOrganizations({ includeArchived }),
+        listContacts({ includeArchived }),
         listChanges()
       ]);
       sendJson(response, 200, { profiles, organizations, contacts, changes });
@@ -575,12 +813,26 @@ async function handleApi(request, response, url) {
     }
 
     if (request.method === "GET" && url.pathname === "/api/organizations") {
-      sendJson(response, 200, { items: await listOrganizations() });
+      sendJson(response, 200, { items: await listOrganizations({ includeArchived: url.searchParams.get("includeArchived") === "true" }) });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/organizations") {
+      const body = await readJson(request);
+      const organization = await createOrganization(body.organization || body);
+      sendJson(response, 201, { organization });
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/api/contacts") {
       sendJson(response, 200, { items: await listContacts({ includeArchived: url.searchParams.get("includeArchived") === "true" }) });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/contacts") {
+      const body = await readJson(request);
+      const result = await createContact(body.contact || body);
+      sendJson(response, 201, result);
       return;
     }
 
@@ -609,6 +861,28 @@ async function handleApi(request, response, url) {
         return;
       }
       sendJson(response, 200, result);
+      return;
+    }
+
+    const organizationMatch = /^\/api\/organizations\/([^/]+)$/.exec(url.pathname);
+    if (organizationMatch && request.method === "GET") {
+      const organization = await getOrganization(decodeURIComponent(organizationMatch[1]));
+      if (!organization) {
+        sendJson(response, 404, { error: "Organisation nicht gefunden" });
+        return;
+      }
+      sendJson(response, 200, mapOrganization(organization));
+      return;
+    }
+
+    if (organizationMatch && request.method === "PATCH") {
+      const body = await readJson(request);
+      const organization = await patchOrganization(decodeURIComponent(organizationMatch[1]), body.organization || body);
+      if (!organization) {
+        sendJson(response, 404, { error: "Organisation nicht gefunden" });
+        return;
+      }
+      sendJson(response, 200, { organization });
       return;
     }
 

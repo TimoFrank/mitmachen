@@ -13,13 +13,18 @@
     contacts: [],
     changes: [],
     selectedId: "",
+    selectedOrganizationId: "",
+    showArchived: false,
     filters: {
       query: "",
       sector: "",
       state: "",
       ownerId: ""
     },
-    editMode: false
+    editMode: false,
+    createMode: false,
+    organizationEditMode: false,
+    organizationCreateMode: false
   };
 
   const fieldLabels = {
@@ -166,17 +171,16 @@
   }
 
   async function loadBackendState() {
-    const payload = await apiRequest("/api/bootstrap");
+    const payload = await apiRequest("/api/bootstrap?includeArchived=true");
     state.profiles = Array.isArray(payload.profiles) ? payload.profiles : [];
     state.organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
-    state.contacts = (Array.isArray(payload.contacts) ? payload.contacts : [])
-      .map(normalizeContact)
-      .filter((contact) => contact.status !== "archived");
+    state.contacts = (Array.isArray(payload.contacts) ? payload.contacts : []).map(normalizeContact);
     state.changes = Array.isArray(payload.changes) ? payload.changes : [];
     state.selectedId = window.localStorage.getItem(SELECTED_KEY) || state.contacts[0]?.id || "";
     if (state.selectedId && !state.contacts.some((contact) => contact.id === state.selectedId)) {
       state.selectedId = state.contacts[0]?.id || "";
     }
+    state.selectedOrganizationId = state.selectedOrganizationId || state.organizations[0]?.id || "";
   }
 
   async function loadState() {
@@ -216,6 +220,10 @@
     return state.contacts.find((contact) => contact.id === state.selectedId) || state.contacts[0] || null;
   }
 
+  function currentOrganization() {
+    return state.organizations.find((organization) => organization.id === state.selectedOrganizationId) || state.organizations[0] || null;
+  }
+
   function uniqueValues(field) {
     return [...new Set(state.contacts.map((contact) => contact[field]).filter(Boolean))].sort((a, b) =>
       String(a).localeCompare(String(b), "de")
@@ -225,6 +233,7 @@
   function filteredContacts() {
     const query = state.filters.query.trim().toLowerCase();
     return state.contacts.filter((contact) => {
+      if (!state.showArchived && contact.status === "archived") return false;
       const haystack = [
         contact.name,
         contact.organization,
@@ -284,7 +293,7 @@
     const send = () => {
       frame.contentWindow?.postMessage({
         type: "versorgungs-kompass-map-data",
-        contacts: state.contacts
+        contacts: state.contacts.filter((contact) => contact.status !== "archived")
       }, "*");
     };
     frame.addEventListener("load", send, { once: true });
@@ -295,6 +304,7 @@
     const contacts = filteredContacts();
     const highCount = contacts.filter((contact) => contact.priority === "Hoch").length;
     const missingOwner = contacts.filter((contact) => !contact.ownerId).length;
+    const archivedCount = state.contacts.filter((contact) => contact.status === "archived").length;
     elements.title.textContent = "Kontakte";
     elements.subtitle.textContent = API_MODE
       ? "Kontakte suchen, filtern, lesen und Änderungen in Cloud SQL speichern."
@@ -305,6 +315,8 @@
         <span class="metric"><strong>${contacts.length}</strong> Kontakte</span>
         <span class="metric"><strong>${highCount}</strong> hohe Priorität</span>
         <span class="metric"><strong>${missingOwner}</strong> ohne Owner</span>
+        ${API_MODE ? `<button class="button button--secondary" type="button" id="create-contact">Kontakt anlegen</button>` : ""}
+        ${API_MODE ? `<button class="button button--secondary" type="button" id="toggle-archived">${state.showArchived ? "Aktive anzeigen" : `Archiv anzeigen (${archivedCount})`}</button>` : ""}
       </div>
       <div class="contact-list">
         <div class="list-head" aria-hidden="true">
@@ -326,6 +338,7 @@
 
   function renderContactRow(contact) {
     const active = contact.id === state.selectedId ? " is-active" : "";
+    const priority = contact.status === "archived" ? "Archiviert" : contact.priority;
     return `
       <button class="contact-row${active}" type="button" data-contact-id="${escapeHtml(contact.id)}">
         <span class="person-cell">
@@ -338,12 +351,20 @@
         <span class="cell">${escapeHtml(contact.organization || "Nicht hinterlegt")}</span>
         <span class="cell">${escapeHtml(contact.category || "Nicht hinterlegt")}</span>
         <span class="cell">${escapeHtml(profileLabel(contact.ownerId))}</span>
-        <span class="cell"><span class="${priorityClass(contact.priority)}">${escapeHtml(contact.priority)}</span></span>
+        <span class="cell"><span class="${priorityClass(priority)}">${escapeHtml(priority)}</span></span>
       </button>
     `;
   }
 
   function renderDetail() {
+    if (state.view === "organizations") {
+      renderOrganizationDetail();
+      return;
+    }
+    if (state.createMode) {
+      renderCreateContactDetail();
+      return;
+    }
     const contact = currentContact();
     if (!contact) {
       elements.detail.innerHTML = '<div class="detail-empty">Kein Kontakt ausgewählt.</div>';
@@ -368,6 +389,7 @@
       <div class="detail-actions">
         <button class="button button--primary" type="button" id="edit-contact">Bearbeiten</button>
         <button class="button button--secondary" type="button" id="quick-owner">Owner wechseln</button>
+        ${API_MODE ? `<button class="button button--secondary" type="button" id="archive-contact">${contact.status === "archived" ? "Wiederherstellen" : "Archivieren"}</button>` : ""}
       </div>
       <section class="detail-section">
         <h3>Einordnung</h3>
@@ -472,6 +494,155 @@
     `;
   }
 
+  function renderCreateContactDetail() {
+    const owners = profileItems().filter((profile) => profile.active !== false);
+    const orgs = organizationItems().filter((organization) => organization.status !== "archived");
+    elements.detail.innerHTML = `
+      <form class="edit-form" id="contact-create-form">
+        <div class="detail-top">
+          <span class="avatar avatar-lg" aria-hidden="true">+</span>
+          <div class="detail-title">
+            <h2>Kontakt anlegen</h2>
+            <p>Neuer Cloud-SQL-Kontakt</p>
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button class="button button--primary" type="submit">Anlegen</button>
+          <button class="button button--secondary" type="button" id="cancel-create">Abbrechen</button>
+        </div>
+        <section class="detail-section">
+          <h3>Stammdaten</h3>
+          <div class="form-grid">
+            ${inputField("name", "Name", "")}
+            <div class="form-field">
+              <label for="field-organizationId">Organisation</label>
+              <select class="select" id="field-organizationId" name="organizationId">
+                <option value="">Nicht zugeordnet</option>
+                ${orgs.map((org) => `<option value="${escapeHtml(org.id)}">${escapeHtml(org.name)}</option>`).join("")}
+              </select>
+            </div>
+            ${inputField("contactRole", "Rolle", "")}
+            ${inputField("specialty", "Fachrichtung", "")}
+            ${selectField("priority", "Priorität", ["Hoch", "Mittel", "Niedrig", "Keine / Unbekannt"], "Mittel")}
+            <div class="form-field">
+              <label for="field-ownerId">Owner</label>
+              <select class="select" id="field-ownerId" name="ownerId">
+                ${owners.map((profile) => `<option value="${escapeHtml(profile.id)}">${escapeHtml(profile.display_name)}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+        </section>
+        <section class="detail-section">
+          <h3>Kontaktwege</h3>
+          <div class="form-grid">
+            ${inputField("email", "E-Mail", "", "email")}
+            ${inputField("phone", "Telefon", "")}
+          </div>
+        </section>
+        <section class="detail-section">
+          <h3>Notiz</h3>
+          <div class="form-grid">
+            ${textareaField("note", "Notiz", "")}
+            ${textareaField("nextStep", "Nächster Schritt", "")}
+          </div>
+        </section>
+      </form>
+    `;
+  }
+
+  function renderOrganizationDetail() {
+    const organization = currentOrganization();
+    if (state.organizationCreateMode || state.organizationEditMode) {
+      const model = state.organizationCreateMode ? {} : organization || {};
+      elements.detail.innerHTML = renderOrganizationForm(model);
+      return;
+    }
+    if (!organization) {
+      elements.detail.innerHTML = '<div class="detail-empty">Keine Organisation ausgewählt.</div>';
+      return;
+    }
+    const contactCount = state.contacts.filter((contact) => contact.organizationId === organization.id && contact.status !== "archived").length;
+    elements.detail.innerHTML = `
+      <div class="detail-top">
+        <span class="avatar avatar-lg" aria-hidden="true">${escapeHtml(initials(organization.name))}</span>
+        <div class="detail-title">
+          <h2>${escapeHtml(organization.name)}</h2>
+          <p>${escapeHtml([organization.city, organization.state].filter(Boolean).join(", ") || "Standort nicht hinterlegt")}</p>
+          <p>${contactCount} aktive Kontakte</p>
+        </div>
+      </div>
+      ${API_MODE ? `
+        <div class="detail-actions">
+          <button class="button button--primary" type="button" id="edit-organization">Bearbeiten</button>
+        </div>
+      ` : ""}
+      <section class="detail-section">
+        <h3>Einordnung</h3>
+        <div class="meta-grid">
+          ${detailRow("Sektor", organization.sector)}
+          ${detailRow("Typ", organization.organizationType)}
+          ${detailRow("Status", organization.status)}
+        </div>
+      </section>
+      <section class="detail-section">
+        <h3>Kontaktwege</h3>
+        <div class="meta-grid">
+          ${detailRow("Website", organization.website)}
+          ${detailRow("E-Mail", organization.email)}
+          ${detailRow("Telefon", organization.phone)}
+        </div>
+      </section>
+      <section class="detail-section">
+        <h3>Notiz</h3>
+        <p class="muted">${escapeHtml(organization.notes || "Nicht hinterlegt")}</p>
+      </section>
+    `;
+  }
+
+  function renderOrganizationForm(organization) {
+    const isCreate = state.organizationCreateMode;
+    return `
+      <form class="edit-form" id="organization-form">
+        <div class="detail-top">
+          <span class="avatar avatar-lg" aria-hidden="true">${isCreate ? "+" : escapeHtml(initials(organization.name))}</span>
+          <div class="detail-title">
+            <h2>${isCreate ? "Organisation anlegen" : escapeHtml(organization.name || "Organisation bearbeiten")}</h2>
+            <p>${isCreate ? "Neue Cloud-SQL-Organisation" : "Bearbeitungsmodus"}</p>
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button class="button button--primary" type="submit">${isCreate ? "Anlegen" : "Speichern"}</button>
+          <button class="button button--secondary" type="button" id="cancel-organization-edit">Abbrechen</button>
+        </div>
+        <section class="detail-section">
+          <h3>Stammdaten</h3>
+          <div class="form-grid">
+            ${inputField("name", "Name", organization.name)}
+            ${inputField("sector", "Sektor", organization.sector)}
+            ${inputField("organizationType", "Typ", organization.organizationType)}
+            ${inputField("postalCode", "PLZ", organization.postalCode)}
+            ${inputField("city", "Ort", organization.city)}
+            ${inputField("state", "Bundesland", organization.state)}
+          </div>
+        </section>
+        <section class="detail-section">
+          <h3>Kontaktwege</h3>
+          <div class="form-grid">
+            ${inputField("website", "Website", organization.website)}
+            ${inputField("email", "E-Mail", organization.email, "email")}
+            ${inputField("phone", "Telefon", organization.phone)}
+          </div>
+        </section>
+        <section class="detail-section">
+          <h3>Notiz</h3>
+          <div class="form-grid">
+            ${textareaField("notes", "Notiz", organization.notes)}
+          </div>
+        </section>
+      </form>
+    `;
+  }
+
   function inputField(name, label, value, type = "text") {
     return `
       <div class="form-field">
@@ -534,12 +705,14 @@
       : "Organisationen und Kontaktverteilung aus dem Demo-Datenbestand.";
     const orgs = organizationItems().map((organization) => ({
       ...organization,
-      contactCount: state.contacts.filter((contact) => contact.organizationId === organization.id).length
+      contactCount: state.contacts.filter((contact) => contact.organizationId === organization.id && contact.status !== "archived").length
     }));
+    const activeContactCount = state.contacts.filter((contact) => contact.status !== "archived").length;
     elements.main.innerHTML = `
       <div class="summary-strip">
         <span class="metric"><strong>${orgs.length}</strong> Organisationen</span>
-        <span class="metric"><strong>${state.contacts.length}</strong> aktive Kontakte</span>
+        <span class="metric"><strong>${activeContactCount}</strong> aktive Kontakte</span>
+        ${API_MODE ? '<button class="button button--secondary" type="button" id="create-organization">Organisation anlegen</button>' : ""}
       </div>
       <div class="org-list">
         <div class="list-head" aria-hidden="true">
@@ -549,7 +722,7 @@
           <span>Kontakte</span>
         </div>
         ${orgs.map((org) => `
-          <div class="org-row">
+          <button class="org-row" type="button" data-organization-id="${escapeHtml(org.id)}">
             <span>
               <strong>${escapeHtml(org.name)}</strong>
               <span>${escapeHtml([org.city, org.postalCode].filter(Boolean).join(" · "))}</span>
@@ -557,7 +730,7 @@
             <span>${escapeHtml(org.sector || "Nicht hinterlegt")}</span>
             <span>${escapeHtml(org.state || "Nicht hinterlegt")}</span>
             <span><strong>${org.contactCount}</strong></span>
-          </div>
+          </button>
         `).join("")}
       </div>
     `;
@@ -639,11 +812,44 @@
     if (stateSelect) stateSelect.addEventListener("change", (event) => updateFilter("state", event.target.value));
     if (owner) owner.addEventListener("change", (event) => updateFilter("ownerId", event.target.value));
 
+    document.getElementById("create-contact")?.addEventListener("click", () => {
+      state.createMode = true;
+      state.editMode = false;
+      renderDetail();
+      attachDetailEvents();
+    });
+
+    document.getElementById("toggle-archived")?.addEventListener("click", () => {
+      state.showArchived = !state.showArchived;
+      state.editMode = false;
+      state.createMode = false;
+      const visible = filteredContacts();
+      state.selectedId = visible[0]?.id || "";
+      render();
+    });
+
+    document.getElementById("create-organization")?.addEventListener("click", () => {
+      state.organizationCreateMode = true;
+      state.organizationEditMode = false;
+      renderDetail();
+      attachDetailEvents();
+    });
+
     document.querySelectorAll("[data-contact-id]").forEach((button) => {
       button.addEventListener("click", () => {
         state.selectedId = button.dataset.contactId;
         state.editMode = false;
+        state.createMode = false;
         saveState();
+        render();
+      });
+    });
+
+    document.querySelectorAll("[data-organization-id]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.selectedOrganizationId = button.dataset.organizationId;
+        state.organizationCreateMode = false;
+        state.organizationEditMode = false;
         render();
       });
     });
@@ -657,12 +863,32 @@
     });
 
     document.getElementById("quick-owner")?.addEventListener("click", cycleOwner);
+    document.getElementById("archive-contact")?.addEventListener("click", toggleArchiveContact);
     document.getElementById("cancel-edit")?.addEventListener("click", () => {
       state.editMode = false;
       renderDetail();
       attachDetailEvents();
     });
+    document.getElementById("cancel-create")?.addEventListener("click", () => {
+      state.createMode = false;
+      renderDetail();
+      attachDetailEvents();
+    });
+    document.getElementById("edit-organization")?.addEventListener("click", () => {
+      state.organizationEditMode = true;
+      state.organizationCreateMode = false;
+      renderDetail();
+      attachDetailEvents();
+    });
+    document.getElementById("cancel-organization-edit")?.addEventListener("click", () => {
+      state.organizationEditMode = false;
+      state.organizationCreateMode = false;
+      renderDetail();
+      attachDetailEvents();
+    });
     document.getElementById("contact-form")?.addEventListener("submit", saveContactForm);
+    document.getElementById("contact-create-form")?.addEventListener("submit", saveNewContactForm);
+    document.getElementById("organization-form")?.addEventListener("submit", saveOrganizationForm);
   }
 
   function updateFilter(name, value) {
@@ -740,6 +966,107 @@
     render();
   }
 
+  async function saveNewContactForm(event) {
+    event.preventDefault();
+    if (!API_MODE) return;
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      name: String(form.get("name") || "").trim(),
+      organizationId: String(form.get("organizationId") || "").trim(),
+      contactRole: String(form.get("contactRole") || "").trim(),
+      specialty: String(form.get("specialty") || "").trim(),
+      priority: String(form.get("priority") || "Mittel").trim(),
+      ownerId: String(form.get("ownerId") || "").trim(),
+      email: String(form.get("email") || "").trim(),
+      phone: String(form.get("phone") || "").trim(),
+      note: String(form.get("note") || "").trim(),
+      nextStep: String(form.get("nextStep") || "").trim()
+    };
+    if (!payload.name) {
+      elements.status.textContent = "Name ist erforderlich";
+      return;
+    }
+    elements.status.textContent = "Lege Kontakt in Cloud SQL an ...";
+    try {
+      const result = await apiRequest("/api/contacts", {
+        method: "POST",
+        body: JSON.stringify({ contact: payload })
+      });
+      state.selectedId = result.contact?.id || state.selectedId;
+      state.createMode = false;
+      await loadBackendState();
+      elements.status.textContent = "Kontakt in Cloud SQL angelegt";
+      render();
+    } catch (error) {
+      console.error(error);
+      elements.status.textContent = `Anlegen fehlgeschlagen: ${error.message}`;
+    }
+  }
+
+  async function toggleArchiveContact() {
+    if (!API_MODE) return;
+    const contact = currentContact();
+    if (!contact) return;
+    const nextStatus = contact.status === "archived" ? "active" : "archived";
+    elements.status.textContent = nextStatus === "archived" ? "Archiviere Kontakt ..." : "Stelle Kontakt wieder her ...";
+    try {
+      const result = await apiRequest(`/api/contacts/${encodeURIComponent(contact.id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ contact: { status: nextStatus } })
+      });
+      await loadBackendState();
+      state.selectedId = result.contact?.id || state.contacts.find((item) => item.status !== "archived")?.id || "";
+      if (nextStatus === "archived" && !state.showArchived) {
+        state.selectedId = state.contacts.find((item) => item.status !== "archived")?.id || "";
+      }
+      elements.status.textContent = nextStatus === "archived" ? "Kontakt archiviert" : "Kontakt wiederhergestellt";
+      render();
+    } catch (error) {
+      console.error(error);
+      elements.status.textContent = `Statuswechsel fehlgeschlagen: ${error.message}`;
+    }
+  }
+
+  async function saveOrganizationForm(event) {
+    event.preventDefault();
+    if (!API_MODE) return;
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      name: String(form.get("name") || "").trim(),
+      sector: String(form.get("sector") || "").trim(),
+      organizationType: String(form.get("organizationType") || "").trim(),
+      postalCode: String(form.get("postalCode") || "").trim(),
+      city: String(form.get("city") || "").trim(),
+      state: String(form.get("state") || "").trim(),
+      website: String(form.get("website") || "").trim(),
+      email: String(form.get("email") || "").trim(),
+      phone: String(form.get("phone") || "").trim(),
+      notes: String(form.get("notes") || "").trim()
+    };
+    if (!payload.name) {
+      elements.status.textContent = "Organisationsname ist erforderlich";
+      return;
+    }
+    const isCreate = state.organizationCreateMode;
+    const organization = currentOrganization();
+    elements.status.textContent = isCreate ? "Lege Organisation in Cloud SQL an ..." : "Speichere Organisation in Cloud SQL ...";
+    try {
+      const result = await apiRequest(isCreate ? "/api/organizations" : `/api/organizations/${encodeURIComponent(organization.id)}`, {
+        method: isCreate ? "POST" : "PATCH",
+        body: JSON.stringify({ organization: payload })
+      });
+      state.selectedOrganizationId = result.organization?.id || state.selectedOrganizationId;
+      state.organizationCreateMode = false;
+      state.organizationEditMode = false;
+      await loadBackendState();
+      elements.status.textContent = isCreate ? "Organisation angelegt" : "Organisation gespeichert";
+      render();
+    } catch (error) {
+      console.error(error);
+      elements.status.textContent = `Organisation speichern fehlgeschlagen: ${error.message}`;
+    }
+  }
+
   async function cycleOwner() {
     const contact = currentContact();
     const owners = profileItems().filter((profile) => profile.active !== false);
@@ -783,6 +1110,9 @@
       button.addEventListener("click", () => {
         state.view = button.dataset.view || "contacts";
         state.editMode = false;
+        state.createMode = false;
+        state.organizationCreateMode = false;
+        state.organizationEditMode = false;
         render();
       });
     });
@@ -794,6 +1124,9 @@
           await apiRequest("/api/reset-demo", { method: "POST", body: "{}" });
           await loadBackendState();
           state.editMode = false;
+          state.createMode = false;
+          state.organizationCreateMode = false;
+          state.organizationEditMode = false;
           state.view = "contacts";
           elements.status.textContent = "Cloud-SQL-Demo zurückgesetzt";
           render();
@@ -808,6 +1141,9 @@
       window.localStorage.removeItem(SELECTED_KEY);
       loadState();
       state.editMode = false;
+      state.createMode = false;
+      state.organizationCreateMode = false;
+      state.organizationEditMode = false;
       state.view = "contacts";
       elements.status.textContent = "Demo-Daten zurückgesetzt";
       render();

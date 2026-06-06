@@ -4,6 +4,8 @@ Stand: 2026-06-06
 
 Diese Notiz bewertet, ob der Versorgungs-Kompass nach dem privaten Step-4-Test mit Schritt 5 starten kann.
 
+Update nach Start von Schritt 5.1: Die Kern-CRM-API wurde am 2026-06-06 privat umgesetzt und live getestet. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`.
+
 ## Ergebnis
 
 ```text
@@ -63,6 +65,11 @@ Vor der ersten groesseren Step-5-Umsetzung:
 ## Empfohlene Step-5-Reihenfolge
 
 ### Schritt 5.1: Kern-CRM-API vervollstaendigen
+
+Status:
+
+- Privat umgesetzt und live getestet.
+- Details: `GCP_STEP5_1_PRIVATE_TEST.md`.
 
 Ziel:
 

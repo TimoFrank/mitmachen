@@ -2,7 +2,7 @@
 
 Diese Anleitung beschreibt die schlanke Demo-Version des Versorgungs-Kompass fuer ein internes Test-Deployment auf GCP.
 
-Fuer die spaetere Uebergabe an die Organisations-IT stehen Kurzfassung, Voraussetzungen, verwendete Dienste, Datenablage und Gespraechsformulierungen in `GCP_ORG_TRANSFER_NOTES.md`. Das GCP-Backend-Zielbild fuer die Erweiterung zur zentral gespeicherten Version steht in `GCP_BACKEND_TARGET.md`. Der privat umgesetzte Step-4-Test mit Cloud SQL steht in `GCP_STEP4_PRIVATE_TEST.md`.
+Fuer die spaetere Uebergabe an die Organisations-IT stehen Kurzfassung, Voraussetzungen, verwendete Dienste, Datenablage und Gespraechsformulierungen in `GCP_ORG_TRANSFER_NOTES.md`. Das GCP-Backend-Zielbild fuer die Erweiterung zur zentral gespeicherten Version steht in `GCP_BACKEND_TARGET.md`. Der privat umgesetzte Step-4-Test mit Cloud SQL steht in `GCP_STEP4_PRIVATE_TEST.md`. Der private Step-5.1-Ausbau steht in `GCP_STEP5_1_PRIVATE_TEST.md`.
 
 ## Zweck
 
