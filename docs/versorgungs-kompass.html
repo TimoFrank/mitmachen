@@ -10819,13 +10819,22 @@
         justify-content: flex-start;
       }
 
-      .table-command-row--experts #expert-mode-actions {
+      .table-command-row--experts #expert-command-actions {
         order: 1;
         justify-content: flex-start;
       }
 
+      .table-command-row--experts .table-command-spacer {
+        order: 2;
+      }
+
       .table-command-row--experts .expert-column-actions {
         order: 3;
+        justify-content: flex-end;
+      }
+
+      .table-command-row--experts #expert-mode-actions {
+        order: 4;
         justify-content: flex-end;
       }
 
@@ -10846,6 +10855,11 @@
       .expert-matching-workspace {
         display: grid;
         gap: 10px;
+      }
+
+      [data-expert-table][hidden],
+      .expert-matching-workspace[hidden] {
+        display: none !important;
       }
 
       .expert-matching-toolbar {
@@ -13775,7 +13789,8 @@
         }
 
         .table-command-row,
-        .table-command-row--organizations {
+        .table-command-row--organizations,
+        .table-command-row--experts {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           align-items: start;
@@ -13792,7 +13807,8 @@
 
         .table-command-actions,
         #contact-command-actions,
-        #organization-command-actions {
+        #organization-command-actions,
+        #expert-command-actions {
           grid-column: 1 / 2;
           display: grid;
           grid-template-columns: 1fr;
@@ -14029,7 +14045,7 @@
         }
 
         .table-command-row--organizations #organization-command-actions,
-        .table-command-row--experts #expert-mode-actions {
+        .table-command-row--experts #expert-command-actions {
           grid-column: 1 / -1;
           grid-row: 1;
         }
@@ -14041,6 +14057,16 @@
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 8px;
+          width: 100%;
+        }
+
+        .table-command-row--experts #expert-mode-actions {
+          grid-column: 1 / -1;
+          grid-row: 3;
+          justify-content: stretch;
+        }
+
+        .table-command-row--experts .experts-mode-nav {
           width: 100%;
         }
 
@@ -14365,9 +14391,14 @@
 
         #contact-command-actions,
         #organization-command-actions,
-        #expert-mode-actions {
+        #expert-command-actions {
           grid-column: 1 / -1;
           grid-row: 1;
+        }
+
+        #expert-mode-actions {
+          grid-column: 1 / -1;
+          grid-row: 3;
         }
 
         .table-command-row > .view-select-shell,
@@ -14399,7 +14430,8 @@
         }
 
         .column-menu-shell,
-        .table-command-row--organizations .organization-column-actions .column-menu-shell {
+        .table-command-row--organizations .organization-column-actions .column-menu-shell,
+        .table-command-row--experts .expert-column-actions .column-menu-shell {
           display: none !important;
         }
 
@@ -14880,7 +14912,8 @@
         }
 
         .table-command-row,
-        .table-command-row--organizations {
+        .table-command-row--organizations,
+        .table-command-row--experts {
           width: 100%;
           padding: 9px;
         }
@@ -14903,14 +14936,16 @@
         }
 
         .table-command-row > .filter-toolbar,
-        .table-command-row--organizations .organization-column-actions .filter-toolbar {
+        .table-command-row--organizations .organization-column-actions .filter-toolbar,
+        .table-command-row--experts .expert-column-actions .filter-toolbar {
           display: block;
           justify-self: stretch;
           width: 100%;
         }
 
         .table-command-row > .filter-toolbar .filter-shell,
-        .table-command-row--organizations .organization-column-actions .filter-toolbar .filter-shell {
+        .table-command-row--organizations .organization-column-actions .filter-toolbar .filter-shell,
+        .table-command-row--experts .expert-column-actions .filter-toolbar .filter-shell {
           width: 100%;
         }
 
@@ -16880,7 +16915,7 @@
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
           <div class="sidebar-section" aria-label="Kontakte und Organisationen">
-            <span class="sidebar-section-label">Kontakte</span>
+            <span class="sidebar-section-label">Versorgung</span>
             <button class="primary-tab is-active" type="button" data-view-tab="contacts" title="Kontakte">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
@@ -16901,6 +16936,9 @@
               </svg>
               <span>Organisationen</span>
             </button>
+          </div>
+          <div class="sidebar-section" aria-label="Expertenkreis">
+            <span class="sidebar-section-label">Expertenkreis</span>
             <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="7" r="3"></circle>
@@ -17133,6 +17171,7 @@
                 <div class="table-command-actions" id="contact-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
                   <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
+                  <button class="action-button" type="button" id="contact-matching-worklist-button">Arbeitsliste</button>
                 </div>
                 <div class="view-select-shell">
                   <button class="view-select-button" type="button" id="view-select-button" aria-expanded="false" aria-controls="view-select-menu">
@@ -17205,6 +17244,7 @@
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions" id="organization-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
+                  <button class="action-button" type="button" id="organization-matching-worklist-button">Arbeitsliste</button>
                 </div>
               </div>
               <div class="table-wrap">
@@ -17232,6 +17272,12 @@
           <section class="view-panel" id="view-experts" data-view-panel="experts">
             <div class="view-card experts-workspace">
               <div class="table-command-row table-command-row--experts">
+                <div class="table-command-actions" id="expert-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-expert-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+                  <button class="action-button" type="button" id="new-expert-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
+                </div>
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions expert-column-actions" id="expert-column-actions"></div>
                 <div class="table-command-actions" id="expert-mode-actions">
                   <div class="settings-tab-nav experts-mode-nav" role="tablist" aria-label="Expertenkreis-Ansichten">
                     <button class="settings-tab-button is-active" type="button" data-expert-mode="contacts" aria-selected="true">Kontakte</button>
@@ -17239,8 +17285,6 @@
                     <button class="settings-tab-button" type="button" data-expert-mode="matching" aria-selected="false">Matching</button>
                   </div>
                 </div>
-                <div class="table-command-spacer" aria-hidden="true"></div>
-                <div class="table-command-actions expert-column-actions" id="expert-column-actions"></div>
               </div>
               <div class="table-wrap">
                 <section class="table contacts-table experts-table" aria-label="Expertenkreis-Kontakte" data-expert-table="contacts">
@@ -19146,10 +19190,15 @@
       const contactCommandRow = document.querySelector("#view-contacts .table-command-row");
       const organizationColumnActions = document.getElementById("organization-column-actions");
       const organizationCommandActions = document.getElementById("organization-command-actions");
+      const expertCommandActions = document.getElementById("expert-command-actions");
       const expertColumnActions = document.getElementById("expert-column-actions");
       const newContactButton = document.getElementById("new-contact-button");
       const newOrganizationButton = document.getElementById("new-organization-button");
       const archiveViewButton = document.getElementById("archive-view-button");
+      const contactMatchingWorklistButton = document.getElementById("contact-matching-worklist-button");
+      const organizationMatchingWorklistButton = document.getElementById("organization-matching-worklist-button");
+      const newExpertContactButton = document.getElementById("new-expert-contact-button");
+      const newExpertOrganizationButton = document.getElementById("new-expert-organization-button");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
       const priorityChart = document.getElementById("priority-chart");
@@ -19227,8 +19276,12 @@
       const profileOwnerSummary = document.getElementById("profile-owner-summary");
       const profileOwnerList = document.getElementById("profile-owner-list");
       viewShell?.appendChild(profileModal);
-      contactCommandActions?.append(newContactButton, archiveViewButton);
-      organizationCommandActions?.append(newOrganizationButton);
+      if (newContactButton && archiveViewButton && contactMatchingWorklistButton) {
+        contactCommandActions?.append(newContactButton, archiveViewButton, contactMatchingWorklistButton);
+      }
+      if (newOrganizationButton && organizationMatchingWorklistButton) {
+        organizationCommandActions?.append(newOrganizationButton, organizationMatchingWorklistButton);
+      }
       const importDrawer = document.getElementById("import-drawer");
       const importOverlay = document.getElementById("import-overlay");
       const importClose = document.getElementById("import-close");
@@ -19450,6 +19503,10 @@
         setRoleElementVisible(importCsvButton, canAdministerData());
         setRoleElementVisible(exportCsvButton, canAdministerData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
+        setRoleElementVisible(contactMatchingWorklistButton, canAdministerData());
+        setRoleElementVisible(organizationMatchingWorklistButton, canAdministerData());
+        setRoleElementVisible(newExpertContactButton, canEditContacts());
+        setRoleElementVisible(newExpertOrganizationButton, canEditContacts());
         setRoleElementVisible(newFormatButton, canEditContacts());
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
         setRoleElementVisible(sidebarQualityButton, canAdministerData());
@@ -21952,6 +22009,44 @@
             candidate.reason
           ].join(" ").toLowerCase().includes(search);
         });
+      }
+
+      function syncExpertMatchWorklistButtons() {
+        const count = canAdministerData() ? expertMatchCandidates().length : 0;
+        const label = count ? `Arbeitsliste (${count})` : "Arbeitsliste";
+        [contactMatchingWorklistButton, organizationMatchingWorklistButton].forEach((button) => {
+          if (!button) return;
+          button.textContent = label;
+          button.setAttribute("aria-label", count ? `${count} offene Matching-Kandidaten öffnen` : "Matching-Arbeitsliste öffnen");
+        });
+      }
+
+      function openExpertMatchingWorklist(direction = "careToExpert") {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins können Matching-Kandidaten prüfen.");
+          return;
+        }
+        activeExpertMode = "matching";
+        activeExpertMatchDirection = direction;
+        currentPage = 1;
+        closeDetail();
+        setActiveView("experts");
+        updateRouteHash("experts");
+        updateView();
+      }
+
+      function showExpertCreateNotice(kind) {
+        if (!canEditContacts()) {
+          showPermissionDenied(viewerCreateDisabledMessage(`${kind} im Expertenkreis`));
+          return;
+        }
+        window.alert(
+          [
+            `${kind} im Expertenkreis wird separat von Versorgungskontakten gespeichert.`,
+            "",
+            "Der Button ist schon im richtigen Kontext platziert. Für das direkte Anlegen fehlen noch die Expertenkreis-Schreibstrecke, API-Endpunkte und ein eigener Editor, damit diese Daten nicht versehentlich im Kontakte-Tab landen."
+          ].join("\n")
+        );
       }
 
       function expertMatchSide(candidate, side) {
@@ -30664,6 +30759,11 @@
         if (searchShell) searchShell.hidden = activeView === "analytics" || activeView === "quality";
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
+        if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
+        if (organizationMatchingWorklistButton) organizationMatchingWorklistButton.hidden = !isOrganizationsView;
+        if (expertCommandActions) expertCommandActions.hidden = !isExpertsView;
+        if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView;
+        if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView;
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
         archiveViewButton.hidden = !isContactsView;
         if (openImportButton) openImportButton.hidden = true;
@@ -30682,6 +30782,7 @@
         bulkToolbar.hidden = !isContactsView || selectedContactIds.size === 0;
         updateViewSelectLabel();
         renderSummary(items);
+        syncExpertMatchWorklistButtons();
         if (isOrganizationsView) {
           renderOrganizationsTable(items);
         } else if (isExpertsView && isExpertMatchingMode) {
@@ -31042,6 +31143,10 @@
 
       newContactButton.addEventListener("click", () => openEditor());
       newOrganizationButton?.addEventListener("click", () => openOrganizationEditor());
+      contactMatchingWorklistButton?.addEventListener("click", () => openExpertMatchingWorklist("careToExpert"));
+      organizationMatchingWorklistButton?.addEventListener("click", () => openExpertMatchingWorklist("careToExpert"));
+      newExpertContactButton?.addEventListener("click", () => showExpertCreateNotice("Kontakt"));
+      newExpertOrganizationButton?.addEventListener("click", () => showExpertCreateNotice("Organisation"));
       newFormatButton?.addEventListener("click", () => {
         formatActiveTab = "overview";
         openFormatEditorDrawer(null);

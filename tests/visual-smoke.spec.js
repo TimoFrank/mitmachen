@@ -71,6 +71,9 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#filter-panel-button")).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
+  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Versorgung" })).toHaveCount(1);
+  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Expertenkreis" })).toHaveCount(1);
+  await expect(page.locator("#contact-matching-worklist-button")).toContainText("Arbeitsliste");
 
   await attachScreenshot(page, testInfo, "kontakte");
 });
@@ -81,6 +84,7 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
   await expect(page.locator('[data-view-panel="organizations"]')).toBeVisible();
   await expect(page.locator("#organization-list .row, #organization-list .mobile-contact-card").first()).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
+  await expect(page.locator("#organization-matching-worklist-button")).toContainText("Arbeitsliste");
 
   await attachScreenshot(page, testInfo, "organisationen");
 });
@@ -92,6 +96,9 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator('[data-view-tab="experts"]')).toHaveClass(/is-active/);
   await expect(page.locator("#workspace-view-title")).toHaveText("Expertenkreis");
   await expect(page.locator('[data-filter-field="category"] summary')).toHaveText("Gruppe");
+  await expect(page.locator("#new-expert-contact-button")).toBeVisible();
+  await expect(page.locator("#new-expert-organization-button")).toBeVisible();
+  await expect(page.locator('[data-expert-table="matching"]')).toBeHidden();
   await expect(page.locator("#expert-list .row, #expert-list .mobile-contact-card").first()).toBeVisible();
   await expect(page.locator("#experts-pagination-meta")).toContainText("Kontakten");
   await expect(page.locator("#view-select-button")).toBeHidden();
@@ -99,12 +106,13 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await page.locator('[data-expert-mode="organizations"]').click();
   await expect(page.locator("#expert-organization-list .row").first()).toBeVisible();
   await expect(page.locator("#experts-pagination-meta")).toContainText("Organisationen");
+  await expect(page.locator('[data-expert-table="matching"]')).toBeHidden();
 
   await attachScreenshot(page, testInfo, "expertenkreis");
 });
 
 test("Expertenkreis: Admin-Matching-Ansicht zeigt beide Richtungen", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts", {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", {
     dataMode: "local",
     contactsScript: `window.VERSORGUNGS_COMPASS_CONTACTS = [
       { id: "contact-peter", name: "Peter Gocke", organization: "Charite", sector: "Krankenhaus", category: "Krankenhaus", city: "Berlin", state: "Berlin", status: "active" },
@@ -122,7 +130,8 @@ test("Expertenkreis: Admin-Matching-Ansicht zeigt beide Richtungen", async ({ pa
     ];`
   });
 
-  await page.locator('[data-expert-mode="matching"]').click();
+  await expect(page.locator("#contact-matching-worklist-button")).toContainText("Arbeitsliste (2)");
+  await page.locator("#contact-matching-worklist-button").click();
 
   await expect(page.locator('[data-expert-table="matching"]')).toBeVisible();
   await expect(page.locator("#expert-matching-meta")).toContainText("2 von 2");
