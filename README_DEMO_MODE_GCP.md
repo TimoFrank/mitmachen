@@ -2,7 +2,7 @@
 
 Diese Anleitung beschreibt die schlanke Demo-Version des Versorgungs-Kompass fuer ein internes Test-Deployment auf GCP.
 
-Fuer die spaetere Uebergabe an die Organisations-IT stehen Kurzfassung, Voraussetzungen, verwendete Dienste, Datenablage und Gespraechsformulierungen in `GCP_ORG_TRANSFER_NOTES.md`. Das GCP-Backend-Zielbild fuer die Erweiterung zur zentral gespeicherten Version steht in `GCP_BACKEND_TARGET.md`. Der privat umgesetzte Step-4-Test mit Cloud SQL steht in `GCP_STEP4_PRIVATE_TEST.md`. Der private Step-5.1-Ausbau steht in `GCP_STEP5_1_PRIVATE_TEST.md`. Die Betriebssicherheitsstufe steht in `GCP_STEP5_2_OPERATIONS.md`. Kontaktbilder in Cloud Storage stehen in `GCP_STEP5_3_CONTACT_IMAGES.md`.
+Fuer die spaetere Uebergabe an die Organisations-IT stehen Kurzfassung, Voraussetzungen, verwendete Dienste, Datenablage und Gespraechsformulierungen in `GCP_ORG_TRANSFER_NOTES.md`. Das GCP-Backend-Zielbild fuer die Erweiterung zur zentral gespeicherten Version steht in `GCP_BACKEND_TARGET.md`. Der privat umgesetzte Step-4-Test mit Cloud SQL steht in `GCP_STEP4_PRIVATE_TEST.md`. Der private Step-5.1-Ausbau steht in `GCP_STEP5_1_PRIVATE_TEST.md`. Die Betriebssicherheitsstufe steht in `GCP_STEP5_2_OPERATIONS.md`. Kontaktbilder in Cloud Storage stehen in `GCP_STEP5_3_CONTACT_IMAGES.md`. Die Importvorbereitung steht in `GCP_STEP5_4_IMPORT.md`.
 
 ## Zweck
 
@@ -27,6 +27,8 @@ Nicht enthalten:
 - zentrale Datenbank
 
 Wichtig: Bearbeitung und Aenderungsverlauf werden mit `localStorage` im Browser gespeichert. Das ist fuer Demo und interne Validierung geeignet, aber kein gemeinsamer CRM-Betrieb.
+
+Hinweis: Die private Cloud-SQL-GCP-Demo geht weiter als diese lokale Demo. Dort sind zentrale Speicherung, Kontaktbilder und ein kontrollierter CSV-Import bereits schrittweise vorbereitet.
 
 ## Lokaler Test
 

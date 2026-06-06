@@ -10,6 +10,10 @@ Update nach Start von Schritt 5.2: Betriebssicherheit wurde als naechster Schrit
 
 Update nach Start von Schritt 5.3: Kontaktbilder werden ueber Cloud Storage vorbereitet. Details stehen in `GCP_STEP5_3_CONTACT_IMAGES.md`.
 
+Update nach Entscheidung zu Schritt 5.4: Gespeicherte Ansichten werden uebersprungen, weil das Feature im aktuellen Frontend nicht genutzt wird. Schritt 5.4 ist stattdessen die kontrollierte Importvorbereitung. Details stehen in `GCP_STEP5_4_IMPORT.md`.
+
+Update nach Umsetzung von Schritt 5.4: Importvorbereitung wurde privat live deployed und getestet. Live-Revision: `versorgungs-kompass-gcp-demo-00009-7pn`.
+
 ## Ergebnis
 
 ```text
@@ -24,9 +28,9 @@ Live-Service:
 
 ```text
 Cloud Run: versorgungs-kompass-gcp-demo
-Revision: versorgungs-kompass-gcp-demo-00007-l68
+Revision: versorgungs-kompass-gcp-demo-00009-7pn
 URL: https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app
-Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:1438cdd7-be09-4d78-8995-64b30e803731
+Image: europe-west3-docker.pkg.dev/steam-capsule-341212/versorgungs-kompass/versorgungs-kompass-gcp-demo:2b94b7e4-8f60-43f2-ac0e-1e37799c5e14
 ```
 
 Live-Daten:
@@ -37,6 +41,7 @@ Profile: 3
 Organisationen: 14
 Aktive Kontakte: 35
 Archivierte Kontakte: 1
+Importlaeufe: 0
 Aenderungen: 8
 ```
 
@@ -53,6 +58,7 @@ Lokale Checks:
 npm run check:gcp-demo
 npm run check:demo
 npm run check
+npm run security:audit
 git diff --check
 ```
 
@@ -126,39 +132,50 @@ Voraussetzung:
 
 - Zugriffsschutz und Upload-Regeln klaeren.
 
-### Schritt 5.4: Gespeicherte Ansichten
+### Schritt 5.4: Importfunktion vorbereiten
+
+Status:
+
+- Privat umgesetzt und live getestet.
+- Details: `GCP_STEP5_4_IMPORT.md`.
 
 Ziel:
 
-- Tabellen `saved_views` und optional `user_settings`.
-- API-Endpunkte fuer Lesen/Speichern/Loeschen.
-
-Voraussetzung:
-
-- Nutzer-/Owner-Konzept muss mindestens technisch festgelegt sein.
-
-### Schritt 5.5: Importfunktion
-
-Ziel:
-
-- CSV/Excel-Import kontrolliert wieder einfuehren.
-- Importlauf im Aenderungsverlauf protokollieren.
-- Vor Import Backup oder Export erzwingen.
+- CSV-Import kontrolliert wieder einfuehren.
+- Importvorschau vor dem Schreiben.
+- Importlauf in `import_runs` speichern.
+- Je importiertem Kontakt einen Aenderungsverlaufseintrag schreiben.
+- Vor Import JSON-Export bestaetigen.
 
 Voraussetzung:
 
 - Backups aktiv.
-- Fehler-/Rollback-Konzept vorhanden.
+- Export-Sicherheitsnetz aktiv.
+- Fehler-/Dublettenpruefung vorhanden.
 
-### Schritt 5.6: Auth, Rollen und Admin
+### Schritt 5.5: Nutzerprofile, Rollenmodell und Admin pruefen
 
 Ziel:
 
-- Zugriffsschutz, Rollenmodell und Admin-Funktionen passend zur Organisations-IT.
+- Nutzerprofil, Rollenmodell und Admin-Funktionen nur dann reaktivieren, wenn sie fuer den naechsten Test wirklich benoetigt werden.
+- Zugriffsschutz und Nutzeridentitaet zuerst klaeren.
 
 Voraussetzung:
 
 - Entscheidung zu IAP, SSO, interner Auth oder App-Login.
+
+### Uebersprungen: Gespeicherte Ansichten
+
+Grund:
+
+- Feature wird im aktuellen Frontend nicht aktiv verwendet.
+- Buttons sind ausgeblendet bzw. spielen fuer Demo und Pitch keine Rolle.
+- Umsetzung wuerde Nutzer-/Scope-Fragen aufwerfen, ohne direkten Nutzen fuer den naechsten Test.
+
+Moegliche spaetere Rueckkehr:
+
+- Wenn gespeicherte Filter wieder sichtbar genutzt werden.
+- Wenn Team-/Privat-Scope und Nutzeridentitaet festgelegt sind.
 
 ## No-Go fuer Schritt 5
 
@@ -172,4 +189,4 @@ Nicht starten mit:
 
 ## Empfehlung
 
-Nach 5.1 zuerst Betriebssicherheit. Danach erst Cloud Storage fuer Bilder oder gespeicherte Ansichten.
+Nach 5.3 zuerst Import kontrolliert vorbereiten. Gespeicherte Ansichten bleiben bis auf Weiteres uebersprungen.

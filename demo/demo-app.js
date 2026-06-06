@@ -18,6 +18,15 @@
     opsSummary: null,
     opsLoading: false,
     opsError: "",
+    importText: "",
+    importFileName: "",
+    importPreview: null,
+    importRuns: [],
+    importRunsLoaded: false,
+    importLoading: false,
+    importError: "",
+    importExportConfirmed: false,
+    importResult: null,
     filters: {
       query: "",
       sector: "",
@@ -153,6 +162,47 @@
       reader.addEventListener("error", () => reject(reader.error || new Error("Datei konnte nicht gelesen werden.")));
       reader.readAsDataURL(file);
     });
+  }
+
+  function fileToText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => resolve(String(reader.result || "")));
+      reader.addEventListener("error", () => reject(reader.error || new Error("Datei konnte nicht gelesen werden.")));
+      reader.readAsText(file);
+    });
+  }
+
+  function sampleImportCsv() {
+    return [
+      "name;organization;category;specialty;role;priority;owner;email;phone;city;state;postalCode;lat;lon;themes;note;nextStep",
+      "Dr. Mira Hoffmann;MVZ Demo West;Ambulante Versorgung;Pädiatrie;Ärztliche Leitung;Mittel;Demo Admin;mira.hoffmann@example.test;+49 221 000000;Köln;Nordrhein-Westfalen;50667;50.9375;6.9603;Pilot|Kinder;Demo-Import;Kontakt prüfen",
+      "Jonas Richter;Klinikum Demo Nord;Krankenhaus;Entlassmanagement;Koordination;Hoch;Demo Admin;jonas.richter@example.test;+49 40 000000;Hamburg;Hamburg;20095;53.5511;9.9937;Nachsorge|Kooperation;Demo-Import;Termin abstimmen"
+    ].join("\n");
+  }
+
+  function importActionLabel(action) {
+    if (action === "create") return "Neu";
+    if (action === "skip_existing") return "Dubletten-Skip";
+    if (action === "error") return "Fehler";
+    return "Prüfen";
+  }
+
+  function importActionClass(action) {
+    if (action === "create") return "badge badge--success";
+    if (action === "skip_existing") return "badge badge--medium";
+    if (action === "error") return "badge badge--danger";
+    return "badge";
+  }
+
+  function clearImportDraft() {
+    state.importText = "";
+    state.importFileName = "";
+    state.importPreview = null;
+    state.importLoading = false;
+    state.importError = "";
+    state.importExportConfirmed = false;
+    state.importResult = null;
   }
 
   function seedChanges() {
@@ -897,6 +947,129 @@
     if (!summary && !state.opsLoading && !state.opsError) refreshOpsSummary();
   }
 
+  function renderImportView() {
+    elements.title.textContent = "Importe";
+    elements.subtitle.textContent = API_MODE
+      ? "Kontakte kontrolliert in Cloud SQL übernehmen."
+      : "Lokaler Importentwurf für die spätere GCP-Demo.";
+    const preview = state.importPreview;
+    const summary = preview?.summary || {};
+    const rows = Array.isArray(preview?.rows) ? preview.rows : [];
+    const topMessages = [...(preview?.errors || []), ...(preview?.warnings || [])];
+    const canCommit = API_MODE && preview?.canCommit && state.importExportConfirmed && !state.importLoading;
+    elements.main.innerHTML = `
+      <div class="summary-strip">
+        <span class="metric"><strong>${summary.totalRows ?? "-"}</strong> Zeilen</span>
+        <span class="metric"><strong>${summary.importableRows ?? "-"}</strong> importierbar</span>
+        <span class="metric"><strong>${summary.skippedRows ?? "-"}</strong> Dubletten</span>
+        <span class="metric"><strong>${summary.errorRows ?? "-"}</strong> Fehler</span>
+        <span class="metric"><strong>${summary.newOrganizations ?? "-"}</strong> neue Organisationen</span>
+      </div>
+      <div class="import-workbench">
+        <section class="import-section">
+          <div class="import-section__head">
+            <div>
+              <h2>CSV-Import</h2>
+              <p>${escapeHtml(state.importFileName || "Keine Datei ausgewählt")}</p>
+            </div>
+            <button class="button button--secondary" type="button" id="insert-import-sample">Beispiel einfügen</button>
+          </div>
+          <div class="form-grid">
+            <label class="form-field">
+              <span>Datei</span>
+              <input class="input" type="file" id="import-file" accept=".csv,text/csv">
+            </label>
+            <label class="form-field">
+              <span>CSV-Daten</span>
+              <textarea class="textarea import-textarea" id="import-text" spellcheck="false">${escapeHtml(state.importText)}</textarea>
+            </label>
+          </div>
+          ${state.importError ? `<div class="import-message import-message--error">${escapeHtml(state.importError)}</div>` : ""}
+          ${topMessages.length ? `
+            <div class="import-message import-message--warning">
+              ${topMessages.map((message) => `<span>${escapeHtml(message)}</span>`).join("")}
+            </div>
+          ` : ""}
+          <div class="import-actions">
+            <button class="button button--secondary" type="button" id="preview-import" ${state.importLoading ? "disabled" : ""}>Vorschau prüfen</button>
+            <button class="button button--secondary" type="button" id="download-before-import" ${API_MODE ? "" : "disabled"}>JSON exportieren</button>
+            <label class="import-confirm">
+              <input type="checkbox" id="confirm-import-export" ${state.importExportConfirmed ? "checked" : ""} ${API_MODE ? "" : "disabled"}>
+              <span>Export liegt vor</span>
+            </label>
+            <button class="button button--primary" type="button" id="commit-import" ${canCommit ? "" : "disabled"}>Import übernehmen</button>
+          </div>
+        </section>
+        <section class="import-section import-section--preview">
+          <div class="import-section__head">
+            <div>
+              <h2>Vorschau</h2>
+              <p>${preview ? `${escapeHtml(preview.headers?.length || 0)} erkannte Spalten` : "Noch nicht geprüft"}</p>
+            </div>
+            ${state.importLoading ? '<span class="badge">Lädt</span>' : ""}
+          </div>
+          ${state.importResult ? `
+            <div class="import-message import-message--success">
+              <span>${escapeHtml(state.importResult.importedContacts?.length || 0)} Kontakte importiert.</span>
+              <span>Importlauf: ${escapeHtml(state.importResult.importRun?.id || "")}</span>
+            </div>
+          ` : ""}
+          <div class="activity-panel import-preview-list">
+            ${rows.length ? rows.slice(0, 30).map((row) => {
+              const messages = [...(row.errors || []), ...(row.warnings || [])];
+              return `
+                <div class="activity-row import-preview-row">
+                  <span>Zeile ${escapeHtml(row.rowNumber)}</span>
+                  <strong>${escapeHtml(row.contact?.name || "Ohne Name")}</strong>
+                  <span>${escapeHtml(row.contact?.organization || "Keine Organisation")}</span>
+                  <span class="${importActionClass(row.action)}">${escapeHtml(importActionLabel(row.action))}</span>
+                  ${messages.length ? `<small>${messages.map(escapeHtml).join(" · ")}</small>` : "<small>Bereit</small>"}
+                </div>
+              `;
+            }).join("") : '<div class="empty-state">Noch keine Importvorschau vorhanden.</div>'}
+          </div>
+        </section>
+      </div>
+    `;
+    elements.detail.innerHTML = `
+      <div class="detail-top">
+        <span class="avatar avatar-lg" aria-hidden="true">IM</span>
+        <div class="detail-title">
+          <h2>Import-Schutz</h2>
+          <p>Step 5.4</p>
+        </div>
+      </div>
+      <section class="detail-section">
+        <h3>Grenzen</h3>
+        <div class="meta-grid">
+          ${detailRow("Modus", API_MODE ? "Cloud SQL" : "Lokal")}
+          ${detailRow("Format", "CSV")}
+          ${detailRow("Zeilen", `${summary.maxRows || 100} pro Lauf`)}
+          ${detailRow("Schreiben", "Erst nach Vorschau")}
+        </div>
+      </section>
+      <section class="detail-section">
+        <h3>Importhistorie</h3>
+        <div class="history-list">
+          ${state.importRuns.length ? state.importRuns.slice(0, 6).map((run) => `
+            <div class="history-item">
+              <span class="history-dot" aria-hidden="true"></span>
+              <div class="history-body">
+                <strong>${escapeHtml(run.fileName || "CSV-Import")}</strong>
+                <span>${escapeHtml(run.importedContacts || 0)} Kontakte · ${escapeHtml(asDate(run.createdAt))}</span>
+              </div>
+            </div>
+          `).join("") : '<span class="muted">Noch keine abgeschlossenen Importe.</span>'}
+        </div>
+      </section>
+      <section class="detail-section">
+        <h3>Audit</h3>
+        <p class="muted">Jeder übernommene Kontakt bekommt einen Importeintrag im Änderungsverlauf. Der Importlauf wird separat gespeichert.</p>
+      </section>
+    `;
+    if (API_MODE && !state.importRunsLoaded && !state.importLoading) loadImportRuns();
+  }
+
   function render() {
     document.querySelectorAll(".primary-tab").forEach((item) => {
       item.classList.toggle("is-active", item.dataset.view === state.view);
@@ -906,10 +1079,11 @@
     else if (state.view === "map") renderMapView();
     else if (state.view === "activity") renderActivity();
     else if (state.view === "ops") renderOpsView();
+    else if (state.view === "imports") renderImportView();
     else renderContacts();
     if (state.view === "map") {
       elements.detail.innerHTML = "";
-    } else if (state.view !== "ops") {
+    } else if (!["ops", "imports"].includes(state.view)) {
       renderDetail();
     }
     attachMainEvents();
@@ -934,6 +1108,55 @@
     document.getElementById("download-export")?.addEventListener("click", () => {
       window.location.assign("/api/export");
     });
+
+    document.getElementById("download-before-import")?.addEventListener("click", () => {
+      window.location.assign("/api/export");
+    });
+
+    document.getElementById("insert-import-sample")?.addEventListener("click", () => {
+      state.importText = sampleImportCsv();
+      state.importFileName = "demo-import.csv";
+      state.importPreview = null;
+      state.importResult = null;
+      state.importError = "";
+      elements.status.textContent = "Importbeispiel eingefügt";
+      render();
+    });
+
+    document.getElementById("import-file")?.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        state.importText = await fileToText(file);
+        state.importFileName = file.name;
+        state.importPreview = null;
+        state.importResult = null;
+        state.importError = "";
+        elements.status.textContent = `${file.name} geladen`;
+        render();
+      } catch (error) {
+        console.error(error);
+        state.importError = error.message;
+        elements.status.textContent = `Datei konnte nicht gelesen werden: ${error.message}`;
+        render();
+      }
+    });
+
+    document.getElementById("import-text")?.addEventListener("input", (event) => {
+      state.importText = event.target.value;
+      state.importPreview = null;
+      state.importResult = null;
+      state.importError = "";
+    });
+
+    document.getElementById("preview-import")?.addEventListener("click", previewImportCsv);
+
+    document.getElementById("confirm-import-export")?.addEventListener("change", (event) => {
+      state.importExportConfirmed = event.target.checked;
+      render();
+    });
+
+    document.getElementById("commit-import")?.addEventListener("click", commitImportCsv);
 
     document.getElementById("create-contact")?.addEventListener("click", () => {
       state.createMode = true;
@@ -1210,6 +1433,99 @@
     }
   }
 
+  async function loadImportRuns({ force = false } = {}) {
+    if (!API_MODE || (!force && state.importRunsLoaded)) return;
+    try {
+      const payload = await apiRequest("/api/import/runs");
+      state.importRuns = Array.isArray(payload.items) ? payload.items : [];
+      state.importRunsLoaded = true;
+      if (state.view === "imports") render();
+    } catch (error) {
+      console.error(error);
+      state.importRunsLoaded = true;
+      state.importError = error.message;
+      if (state.view === "imports") render();
+    }
+  }
+
+  async function previewImportCsv() {
+    if (!API_MODE) {
+      state.importError = "Die Vorschau schreibt später gegen die GCP-API. Lokal ist nur der Entwurf sichtbar.";
+      elements.status.textContent = "Importvorschau benötigt die GCP-API";
+      render();
+      return;
+    }
+    if (!state.importText.trim()) {
+      state.importError = "Bitte CSV-Daten einfügen oder eine CSV-Datei wählen.";
+      elements.status.textContent = "CSV fehlt";
+      render();
+      return;
+    }
+    state.importLoading = true;
+    state.importError = "";
+    state.importResult = null;
+    elements.status.textContent = "Prüfe Importvorschau ...";
+    render();
+    try {
+      state.importPreview = await apiRequest("/api/import/preview", {
+        method: "POST",
+        body: JSON.stringify({
+          csvText: state.importText,
+          fileName: state.importFileName || "kontakt-import.csv"
+        })
+      });
+      const count = state.importPreview.summary?.importableRows || 0;
+      elements.status.textContent = `${count} Kontakt${count === 1 ? "" : "e"} importierbar`;
+    } catch (error) {
+      console.error(error);
+      state.importError = error.message;
+      elements.status.textContent = `Importvorschau fehlgeschlagen: ${error.message}`;
+    } finally {
+      state.importLoading = false;
+      if (state.view === "imports") render();
+    }
+  }
+
+  async function commitImportCsv() {
+    if (!API_MODE || !state.importPreview?.canCommit) return;
+    if (!state.importExportConfirmed) {
+      state.importError = "Bitte vor dem Import den JSON-Export bestätigen.";
+      elements.status.textContent = "Export-Bestätigung fehlt";
+      render();
+      return;
+    }
+    state.importLoading = true;
+    state.importError = "";
+    elements.status.textContent = "Übernehme Import in Cloud SQL ...";
+    render();
+    try {
+      const result = await apiRequest("/api/import/commit", {
+        method: "POST",
+        body: JSON.stringify({
+          csvText: state.importText,
+          fileName: state.importFileName || "kontakt-import.csv",
+          exportConfirmed: true
+        })
+      });
+      state.importResult = result;
+      state.importPreview = result.preview || state.importPreview;
+      state.importExportConfirmed = false;
+      state.importRunsLoaded = false;
+      state.opsSummary = null;
+      await loadBackendState();
+      await loadImportRuns({ force: true });
+      state.selectedId = result.importedContacts?.[0]?.id || state.selectedId;
+      elements.status.textContent = `${result.importedContacts?.length || 0} Kontakt${result.importedContacts?.length === 1 ? "" : "e"} importiert`;
+    } catch (error) {
+      console.error(error);
+      state.importError = error.message;
+      elements.status.textContent = `Import fehlgeschlagen: ${error.message}`;
+    } finally {
+      state.importLoading = false;
+      if (state.view === "imports") render();
+    }
+  }
+
   async function saveContactImageForm(event) {
     event.preventDefault();
     if (!API_MODE) return;
@@ -1343,6 +1659,9 @@
           state.organizationEditMode = false;
           state.opsSummary = null;
           state.opsError = "";
+          state.importRunsLoaded = false;
+          state.importRuns = [];
+          clearImportDraft();
           state.view = "contacts";
           elements.status.textContent = "Cloud-SQL-Demo zurückgesetzt";
           render();
@@ -1362,6 +1681,9 @@
       state.organizationEditMode = false;
       state.opsSummary = null;
       state.opsError = "";
+      state.importRunsLoaded = false;
+      state.importRuns = [];
+      clearImportDraft();
       state.view = "contacts";
       elements.status.textContent = "Demo-Daten zurückgesetzt";
       render();

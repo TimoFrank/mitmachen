@@ -642,12 +642,28 @@ img.avatar {
   color: var(--warning);
 }
 
+.badge--success {
+  border-color: var(--success-soft);
+  color: var(--success);
+}
+
+.badge--danger {
+  border-color: var(--danger-soft);
+  color: var(--danger);
+}
+
 .button {
   min-height: 38px;
   padding: 0 12px;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   font-weight: 800;
+}
+
+.button:disabled,
+.input:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .button--primary {
@@ -778,6 +794,124 @@ img.avatar {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
   font-weight: 800;
+}
+
+.form-field > span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.import-workbench {
+  display: grid;
+}
+
+.import-section {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.import-section:last-child {
+  border-bottom: 0;
+}
+
+.import-section__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.import-section__head h2 {
+  margin: 0 0 3px;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+}
+
+.import-section__head p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.import-textarea {
+  min-height: 180px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--font-size-sm);
+}
+
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.import-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.import-confirm input {
+  width: 16px;
+  height: 16px;
+}
+
+.import-message {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.import-message--success {
+  border-color: var(--success-soft);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.import-message--warning {
+  border-color: var(--warning-soft);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.import-message--error {
+  border-color: var(--danger-soft);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.import-preview-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.import-preview-row {
+  grid-template-columns: 74px minmax(160px, 0.9fr) minmax(160px, 1fr) 120px;
+}
+
+.import-preview-row small {
+  grid-column: 2 / -1;
+  min-width: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .history-list {
@@ -938,6 +1072,19 @@ img.avatar {
   .activity-row {
     grid-template-columns: 1fr;
     gap: 5px;
+  }
+
+  .import-section__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .import-preview-row {
+    grid-template-columns: 1fr;
+  }
+
+  .import-preview-row small {
+    grid-column: auto;
   }
 
   .map-frame-shell {

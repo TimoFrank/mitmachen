@@ -6,6 +6,8 @@ Dieses Dokument schliesst Schritt 3 der GCP-Ueberfuehrung ab. Es legt fest, wie 
 
 Umsetzungsstand: Schritt 4 wurde privat am 2026-06-06 umgesetzt. Details stehen in `GCP_STEP4_PRIVATE_TEST.md`.
 
+Update nach Schritt 5: Kern-CRM-API, Betriebssicherheit, Kontaktbilder in Cloud Storage und Importvorbereitung wurden schrittweise privat umgesetzt. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`, `GCP_STEP5_2_OPERATIONS.md`, `GCP_STEP5_3_CONTACT_IMAGES.md` und `GCP_STEP5_4_IMPORT.md`.
+
 ## Entscheidung
 
 Fuer den privaten Step-4-Test wird dieses Zielbild gewaehlt:
@@ -95,6 +97,7 @@ In Cloud SQL werden fuer Schritt 4 nur die Kernobjekte gespeichert:
 - `organizations`: Organisationen/Einrichtungen.
 - `contacts`: Personen/Kontakte mit Standort, Owner, Prioritaet, Bild-URL und Themen.
 - `changes`: Aenderungsverlauf je Kontakt.
+- `import_runs`: abgeschlossene Importlaeufe mit Zaehlern und Report.
 
 Das konkrete Startschema liegt in:
 
@@ -158,6 +161,14 @@ Seit Step 5.3 ist fuer den privaten GCP-Test vorbereitet:
 - Upload, Auslieferung und Entfernen ueber Cloud Run.
 - Speicherung privater `gs://`-Objektpfade in `contacts.image_url`.
 
+Seit Step 5.4 ist fuer den privaten GCP-Test vorbereitet:
+
+- CSV-Importvorschau ueber Cloud Run.
+- Import-Commit nach JSON-Export-Bestaetigung.
+- Importierte Kontakte und neue Organisationen in Cloud SQL.
+- Importlauf in `import_runs`.
+- Aenderungsverlauf je importiertem Kontakt mit `changes.action = import`.
+
 Fuer echten Organisationsbetrieb fehlen noch:
 
 - Zugriffsschutz vor Export und schreibenden Endpunkten.
@@ -179,11 +190,12 @@ Minimal benoetigte Endpunkte:
 | `GET` | `/api/contacts/:id/history` | Aenderungsverlauf laden |
 | `GET` | `/api/organizations` | Organisationen laden |
 | `GET` | `/api/profiles` | Demo-Owner laden |
+| `POST` | `/api/import/preview` | CSV-Import pruefen |
+| `POST` | `/api/import/commit` | Import nach Export-Bestaetigung schreiben |
+| `GET` | `/api/import/runs` | Importhistorie laden |
 
 Noch nicht notwendig:
 
-- `POST /api/contacts`
-- Import-Endpunkte
 - Saved-Views-Endpunkte
 - Profil-/Avatar-Endpunkte
 - Rollen-/Admin-Endpunkte

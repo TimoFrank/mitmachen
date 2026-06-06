@@ -84,7 +84,22 @@ create table if not exists changes (
 alter table changes drop constraint if exists changes_action_check;
 alter table changes
   add constraint changes_action_check
-  check (action in ('create', 'update', 'archive', 'restore', 'owner_change', 'seed', 'image_update', 'image_remove'));
+  check (action in ('create', 'update', 'archive', 'restore', 'owner_change', 'seed', 'image_update', 'image_remove', 'import'));
+
+create table if not exists import_runs (
+  id text primary key,
+  file_name text,
+  status text not null default 'completed' check (status in ('previewed', 'completed', 'failed')),
+  total_rows integer not null default 0,
+  valid_rows integer not null default 0,
+  imported_contacts integer not null default 0,
+  skipped_rows integer not null default 0,
+  error_count integer not null default 0,
+  warning_count integer not null default 0,
+  report jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  created_by text references profiles(id) on delete set null
+);
 
 create index if not exists profiles_active_idx on profiles(active);
 create index if not exists organizations_status_idx on organizations(status);
@@ -98,6 +113,7 @@ create index if not exists contacts_state_idx on contacts(federal_state);
 create index if not exists contacts_priority_idx on contacts(priority);
 create index if not exists changes_contact_idx on changes(contact_id);
 create index if not exists changes_changed_at_idx on changes(changed_at desc);
+create index if not exists import_runs_created_at_idx on import_runs(created_at desc);
 
 create or replace function touch_updated_at()
 returns trigger
