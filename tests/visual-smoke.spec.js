@@ -72,7 +72,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator("#filter-panel-button")).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator(".sidebar-section-label").filter({ hasText: "Versorgung" })).toHaveCount(1);
-  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Expertenkreis" })).toHaveCount(1);
+  await expect(page.locator(".sidebar-section-label").filter({ hasText: "IOP" })).toHaveCount(1);
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
 
   await attachScreenshot(page, testInfo, "kontakte");
@@ -89,15 +89,15 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
   await attachScreenshot(page, testInfo, "organisationen");
 });
 
-test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async ({ page }, testInfo) => {
+test("IOP: getrennte Kontakt- und Organisationsansicht rendert", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts");
 
   await expect(page.locator('[data-view-panel="experts"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="experts"]')).toHaveClass(/is-active/);
-  await expect(page.locator("#workspace-view-title")).toHaveText("Expertenkreis");
+  await expect(page.locator("#workspace-view-title")).toHaveText("IOP");
   await expect(page.locator('[data-filter-field="category"] summary')).toHaveText("Gruppe");
   await expect(page.locator("#new-expert-contact-button")).toBeVisible();
-  await expect(page.locator("#new-expert-organization-button")).toBeVisible();
+  await expect(page.locator("#new-expert-organization-button")).toBeHidden();
   await expect(page.locator("#expert-duplicates-button")).toBeVisible();
   await expect(page.locator("#expert-mode-actions [data-expert-mode]")).toHaveCount(2);
   await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"]')).toContainText("Kontakte (");
@@ -116,14 +116,16 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator("#expert-organization-list .row").first()).toBeVisible();
   await expect(page.locator("#experts-pagination-meta")).toContainText("Organisationen");
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
+  await expect(page.locator("#new-expert-contact-button")).toBeHidden();
+  await expect(page.locator("#new-expert-organization-button")).toBeVisible();
   await page.locator("#expert-organization-list .row").first().click();
   await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
   await page.locator("#detail-close").click();
 
-  await attachScreenshot(page, testInfo, "expertenkreis");
+  await attachScreenshot(page, testInfo, "iop");
 });
 
-test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async ({ page }, testInfo) => {
+test("IOP: Kontakt und Organisation werden getrennt angelegt", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts", {
     dataMode: "local",
     contactsScript: `window.VERSORGUNGS_COMPASS_CONTACTS = [];`,
@@ -148,10 +150,14 @@ test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async (
   await expect(page.locator(".detail-profile h3")).toContainText("Tessa Interop");
   await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
   await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"]')).toContainText("Kontakte (1)");
+  await expect(page.locator("#new-expert-contact-button")).toBeVisible();
+  await expect(page.locator("#new-expert-organization-button")).toBeHidden();
   await page.locator("#detail-close").click();
 
   await page.locator('#expert-mode-actions [data-expert-mode="organizations"]').click();
   await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"]')).toContainText("Organisationen (1)");
+  await expect(page.locator("#new-expert-contact-button")).toBeHidden();
+  await expect(page.locator("#new-expert-organization-button")).toBeVisible();
   await page.locator("#new-expert-organization-button").click();
   await expect(page.locator("#organization-editor-drawer.is-open")).toBeVisible();
   await expect(page.locator('label[for="organization-field-sector"]')).toContainText("Gruppe");
@@ -163,7 +169,7 @@ test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async (
   await expect(page.locator(".detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
   await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"]')).toContainText("Organisationen (2)");
 
-  await attachScreenshot(page, testInfo, "expertenkreis-anlage");
+  await attachScreenshot(page, testInfo, "iop-anlage");
 });
 
 test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, testInfo) => {
@@ -194,7 +200,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
   await expect(page.locator("#contact-duplicates-meta")).toContainText("2 von 2");
   await expect(page.locator("#contact-duplicates-list .row, #contact-duplicates-list .expert-match-mobile-card")).toHaveCount(2);
   await expect(page.locator("#contact-duplicates-list [data-confirm-expert-link]")).toHaveCount(2);
-  await expect(page.locator("#contact-duplicates-workspace .expert-matching-scope")).toContainText("Versorgung -> Expertenkreis");
+  await expect(page.locator("#contact-duplicates-workspace .expert-matching-scope")).toContainText("Versorgung -> IOP");
   await expect(page.locator("[data-expert-match-direction]")).toHaveCount(0);
 
   await attachScreenshot(page, testInfo, "kontakte-dubletten");
@@ -206,7 +212,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
   await expect(page.locator("#organization-list")).toBeHidden();
   await expect(page.locator("#organization-duplicates-meta")).toContainText("2 von 2");
   await expect(page.locator("#organization-duplicates-list .row, #organization-duplicates-list .expert-match-mobile-card")).toHaveCount(2);
-  await expect(page.locator("#organization-duplicates-workspace .expert-matching-scope")).toContainText("Versorgung -> Expertenkreis");
+  await expect(page.locator("#organization-duplicates-workspace .expert-matching-scope")).toContainText("Versorgung -> IOP");
 
   await attachScreenshot(page, testInfo, "organisationen-dubletten");
 
@@ -221,10 +227,10 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
   await expect(page.locator("#expert-matching-meta")).toContainText("2 von 2");
   await expect(page.locator("#expert-matching-list .row, #expert-matching-list .expert-match-mobile-card")).toHaveCount(2);
   await expect(page.locator("#expert-matching-list [data-confirm-expert-link]")).toHaveCount(2);
-  await expect(page.locator('[data-expert-table="duplicates"] .expert-matching-scope')).toContainText("Expertenkreis -> Versorgung");
+  await expect(page.locator('[data-expert-table="duplicates"] .expert-matching-scope')).toContainText("IOP -> Versorgung");
   await expect(page.locator("#expert-duplicates-button")).toHaveClass(/is-active/);
 
-  await attachScreenshot(page, testInfo, "expertenkreis-dubletten");
+  await attachScreenshot(page, testInfo, "iop-dubletten");
 
   await page.locator('#expert-mode-actions [data-expert-mode="organizations"]').click();
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
