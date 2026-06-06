@@ -409,7 +409,7 @@
       .sidebar-brand strong {
         display: block;
         max-width: 150px;
-        font-size: 1rem;
+        font-size: inherit;
         line-height: 1.08;
         font-weight: 900;
         letter-spacing: -0.03em;
@@ -666,7 +666,7 @@
         border-radius: 999px;
         background: linear-gradient(135deg, #2f68ef, #6aa5ff);
         color: #ffffff;
-        font-size: 1rem;
+        font-size: inherit;
         font-weight: 950;
         box-shadow: 0 12px 22px rgba(45, 102, 237, 0.22);
         overflow: hidden;
@@ -1621,31 +1621,33 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 5px;
+        gap: 6px;
         width: min(100%, 390px);
-        min-height: 56px;
+        min-height: 66px;
         padding: 5px;
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-strong);
         border-radius: var(--radius-md);
-        background: var(--surface-muted);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
       }
 
       .experts-mode-nav--header .settings-tab-button {
-        display: grid;
-        place-items: center;
-        gap: 2px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         flex: 1 1 0;
         min-width: 0;
-        min-height: 46px;
-        padding: 7px 14px;
+        min-height: 54px;
+        padding: 0 16px;
         border: 1px solid transparent;
         border-bottom: 1px solid transparent;
         border-radius: var(--radius-sm);
         background: transparent;
         color: var(--text-secondary);
-        font-size: var(--font-size-md);
-        font-weight: 900;
-        line-height: 1.05;
+        font-size: inherit;
+        font-weight: 750;
+        line-height: 1.1;
         text-align: center;
       }
 
@@ -1664,18 +1666,45 @@
 
       .experts-mode-label,
       .experts-mode-count {
-        display: block;
+        display: inline-flex;
+        align-items: center;
       }
 
       .experts-mode-count {
+        justify-content: center;
+        min-width: 30px;
+        min-height: 26px;
+        padding: 0 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
         color: var(--text-muted);
-        font-size: var(--font-size-xs);
-        font-weight: 850;
+        font-size: var(--font-size-sm);
+        font-weight: 750;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
       }
 
       .experts-mode-nav--header .settings-tab-button.is-active .experts-mode-count {
+        border-color: var(--primary);
+        background: var(--surface);
         color: var(--primary);
-        opacity: 0.78;
+      }
+
+      @media (max-width: 760px) {
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button {
+          flex: 1 1 auto;
+          gap: 4px;
+          padding-inline: 8px;
+          font-size: var(--font-size-sm);
+        }
+
+        .app-shell[data-active-view="experts"] .experts-mode-count {
+          min-width: 34px;
+          min-height: 22px;
+          padding-inline: 4px;
+          font-size: var(--font-size-xs);
+        }
       }
 
       .app-shell[data-active-view="experts"] #summary-grid {
