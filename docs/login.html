@@ -33,6 +33,8 @@
         --blue: #2788f6;
         --orange: #ff7f3f;
         --deep: #10236e;
+        --danger: #dc2626;
+        --danger-soft: #fff1ec;
       }
 
       * { box-sizing: border-box; }
@@ -86,7 +88,6 @@
       }
 
       .login-card p { margin: 10px 0 0; color: var(--muted); line-height: 1.5; }
-
       form { margin-top: 22px; display: grid; gap: 14px; }
       label { font-size: 0.85rem; font-weight: 800; color: #3b4978; }
 
@@ -125,10 +126,32 @@
       .login-error {
         padding: 12px 14px;
         border-radius: 14px;
-        background: #fff1ec;
-        color: #a14d3b;
         font-size: 0.88rem;
         font-weight: 700;
+        line-height: 1.4;
+      }
+
+      .login-error {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .login-helper {
+        margin: -2px 0 0;
+        text-align: center;
+        font-size: 0.86rem;
+        font-weight: 700;
+      }
+
+      .login-helper a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      .login-helper a:focus,
+      .login-helper a:hover {
+        color: var(--deep);
+        text-decoration: underline;
       }
 
       .teaser-card {
@@ -174,7 +197,7 @@
           ></iframe>
         </section>
 
-        <section class="login-card" aria-labelledby="login-title">
+        <section class="login-card" id="login-card" aria-labelledby="login-title">
           <p id="login-copy">Gib das gemeinsame Passwort ein, um den geschützten Bereich zu öffnen.</p>
 
           <form id="login-form">
@@ -188,6 +211,9 @@
             </div>
             <div class="login-error" id="login-error" hidden>Das Passwort ist nicht korrekt.</div>
             <button class="login-button" id="login-submit" type="submit">Öffnen</button>
+            <p class="login-helper">
+              <a href="./set-password.html?mode=recovery" id="forgot-password-link">Passwort vergessen?</a>
+            </p>
           </form>
         </section>
       </div>

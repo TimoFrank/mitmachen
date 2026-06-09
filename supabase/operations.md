@@ -58,8 +58,17 @@ Wichtige Erwartungen:
 In Supabase unter `Authentication > URL Configuration` pflegen:
 
 - Site URL: `https://timofrank.github.io/mitmachen`
-- Redirect URL: `https://timofrank.github.io/mitmachen/login.html`
-- optional fuer lokale Tests: `http://127.0.0.1:PORT/login/login.html` oder der konkret genutzte lokale Pfad
+- Redirect URL fuer Invite und Passwort-Reset: `https://timofrank.github.io/mitmachen/set-password.html`
+- Redirect URL fuer normalen Login: `https://timofrank.github.io/mitmachen/login.html`
+- optional fuer lokale Tests: `http://127.0.0.1:PORT/login/login.html`, `http://127.0.0.1:PORT/login/set-password.html` oder der konkret genutzte lokale Pfad
+
+Damit Invite-Mails direkt auf die Passwortseite zeigen, in `Authentication > Email Templates > Invite user` keinen reinen Login-Link verwenden, sondern den Token-Hash an die Passwortseite geben:
+
+```html
+<a href="{{ .SiteURL }}/set-password.html?token_hash={{ .TokenHash }}&type=invite&return=./versorgungs-kompass.html">Einladung annehmen</a>
+```
+
+Die Seite `set-password.html` verarbeitet `code`, Hash-Session-Tokens und `token_hash`.
 
 Nach Aenderungen testen:
 

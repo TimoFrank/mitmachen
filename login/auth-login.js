@@ -16,19 +16,36 @@
     return hex(digest);
   }
 
+  function getHashParams() {
+    return new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  }
+
   function getReturnUrl() {
     const params = new URLSearchParams(window.location.search);
     const returnTarget = params.get("return");
     if (!returnTarget) return auth.getDefaultUrl();
-    if (/^https?:\/\//i.test(returnTarget)) return auth.getDefaultUrl();
+    if (/^https?:\/\//i.test(returnTarget) || returnTarget.startsWith("//")) return auth.getDefaultUrl();
     return returnTarget;
+  }
+
+  function getPasswordSetupType() {
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = getHashParams();
+    return params.get("type") || hashParams.get("type") || "";
   }
 
   function hasPasswordSetupToken() {
     const params = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const type = params.get("type") || hashParams.get("type");
-    return params.has("code") || hashParams.has("access_token") || type === "invite" || type === "recovery";
+    const hashParams = getHashParams();
+    const type = getPasswordSetupType();
+    return (
+      params.has("code") ||
+      params.has("token_hash") ||
+      params.has("token") ||
+      hashParams.has("access_token") ||
+      type === "invite" ||
+      type === "recovery"
+    );
   }
 
   if (hasPasswordSetupToken()) {
@@ -56,6 +73,7 @@
 
     if (title) title.textContent = config.appName || "Versorgungs-Kompass";
     if (subtitle) subtitle.textContent = "Das gematik-Hospitationsnetzwerk";
+
     if (!form || !input || !error || !button) return;
 
     if (useSupabase) {
