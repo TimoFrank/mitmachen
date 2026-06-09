@@ -4022,6 +4022,252 @@
         font-weight: 900;
       }
 
+      .activities-workspace {
+        display: grid;
+        gap: var(--section-gap);
+      }
+
+      .activities-command-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .activities-filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .activities-filter {
+        min-height: 38px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        color: var(--text-secondary);
+        padding: 0 10px;
+        font-size: var(--font-size-sm);
+        font-weight: 800;
+      }
+
+      .activities-filter:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .activities-meta {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .activities-feed-shell {
+        display: grid;
+        gap: 14px;
+        padding: 16px;
+      }
+
+      .activities-timeline {
+        display: grid;
+        gap: 18px;
+        max-width: 980px;
+      }
+
+      .activity-day-group {
+        display: grid;
+        gap: 10px;
+      }
+
+      .activity-day-label {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .activity-feed {
+        display: grid;
+        gap: 12px;
+      }
+
+      .activity-item {
+        position: relative;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .activity-item::before {
+        content: "";
+        position: absolute;
+        left: 18px;
+        top: 42px;
+        bottom: -12px;
+        width: 2px;
+        background: var(--border);
+      }
+
+      .activity-item:last-child::before {
+        display: none;
+      }
+
+      .activity-actor-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .activity-actor-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .activity-entry {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .activity-entry-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .activity-title {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        font-weight: 900;
+        line-height: var(--line-height-tight);
+      }
+
+      .activity-meta-line,
+      .activity-contact-context {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 750;
+        line-height: 1.35;
+      }
+
+      .activity-contact-button {
+        border: 0;
+        background: transparent;
+        color: var(--primary);
+        padding: 0;
+        font: inherit;
+        font-weight: 900;
+        text-align: left;
+      }
+
+      .activity-contact-button:hover,
+      .activity-contact-button:focus-visible {
+        color: var(--primary-hover);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .activity-contact-avatar {
+        flex: 0 0 auto;
+      }
+
+      .activities-load-more-row {
+        display: flex;
+        justify-content: center;
+        padding-top: 2px;
+      }
+
+      .activities-load-more-row[hidden] {
+        display: none;
+      }
+
+      .activities-load-more {
+        min-width: 160px;
+        justify-content: center;
+      }
+
+      .history-action-pill--owner {
+        background: var(--primary-soft);
+        border-color: var(--border-strong);
+        color: var(--primary);
+      }
+
+      @media (max-width: 760px) {
+        .activities-command-row {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .activities-filters {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .activities-filter {
+          width: 100%;
+        }
+
+        .activities-meta {
+          white-space: normal;
+        }
+
+        .activities-feed-shell {
+          padding: 12px;
+        }
+
+        .activity-item {
+          grid-template-columns: 34px minmax(0, 1fr);
+          gap: 10px;
+        }
+
+        .activity-actor-avatar {
+          width: 34px;
+          height: 34px;
+        }
+
+        .activity-item::before {
+          left: 16px;
+          top: 38px;
+        }
+
+        .activity-entry-head {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .activities-workspace .history-values {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .activities-workspace .history-arrow {
+          display: none;
+        }
+      }
+
       .detail-actions {
         display: flex;
         gap: 10px;
@@ -17220,6 +17466,15 @@
               </svg>
               <span>Organisationen</span>
             </button>
+            <button class="primary-tab" type="button" data-view-tab="activities" title="Aktivitäten">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M12 8v5l3 2"></path>
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M4 4 2 6"></path>
+                <path d="m20 4 2 2"></path>
+              </svg>
+              <span>Aktivitäten</span>
+            </button>
           </div>
           <div class="sidebar-section" aria-label="IOP">
             <span class="sidebar-section-label">IOP</span>
@@ -17593,6 +17848,42 @@
                 <div class="table-footer__meta" id="organizations-pagination-meta">0-0 von 0 Organisationen</div>
                 <div class="table-footer__controls">
                   <div class="pagination" id="organizations-pagination"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-activities" data-view-panel="activities">
+            <div class="view-card activities-workspace">
+              <div class="activities-command-row">
+                <div class="activities-filters" aria-label="Aktivitäten filtern">
+                  <select class="activities-filter" id="activity-kind-filter" aria-label="Aktivitätstyp filtern">
+                    <option value="all">Alle Aktivitäten</option>
+                    <option value="update">Updates</option>
+                    <option value="owner">Owner</option>
+                    <option value="archive">Archiv</option>
+                    <option value="restore">Wiederhergestellt</option>
+                    <option value="create">Anlage</option>
+                    <option value="import">Import</option>
+                  </select>
+                  <select class="activities-filter" id="activity-user-filter" aria-label="Bearbeiter filtern">
+                    <option value="all">Alle Nutzer</option>
+                  </select>
+                  <select class="activities-filter" id="activity-range-filter" aria-label="Zeitraum filtern">
+                    <option value="all">Alle Zeiten</option>
+                    <option value="today">Heute</option>
+                    <option value="7d">Letzte 7 Tage</option>
+                    <option value="30d">Letzte 30 Tage</option>
+                  </select>
+                </div>
+                <div class="activities-meta" id="activities-meta">Aktivitäten werden geladen</div>
+              </div>
+              <div class="activities-feed-shell">
+                <div class="activities-timeline" id="activities-list" aria-live="polite">
+                  <div class="history-loading">Aktivitäten werden geladen...</div>
+                </div>
+                <div class="activities-load-more-row" id="activities-load-more-row" hidden>
+                  <button class="action-button activities-load-more" type="button" id="activities-load-more">Mehr laden</button>
                 </div>
               </div>
             </div>
@@ -19380,6 +19671,13 @@
       const controlsStack = document.querySelector(".controls-stack");
       const list = document.getElementById("contact-list");
       const organizationList = document.getElementById("organization-list");
+      const activitiesList = document.getElementById("activities-list");
+      const activitiesMeta = document.getElementById("activities-meta");
+      const activityKindFilter = document.getElementById("activity-kind-filter");
+      const activityUserFilter = document.getElementById("activity-user-filter");
+      const activityRangeFilter = document.getElementById("activity-range-filter");
+      const activitiesLoadMoreRow = document.getElementById("activities-load-more-row");
+      const activitiesLoadMoreButton = document.getElementById("activities-load-more");
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
       const formatParticipantDrawer = document.getElementById("format-participant-drawer");
@@ -19696,6 +19994,13 @@
       let activeSavedViewName = "";
       let currentPage = 1;
       let pageSize = 20;
+      let activities = [];
+      let activitiesLoaded = false;
+      let activitiesLoading = false;
+      let activitiesHasMore = false;
+      let activitiesNextOffset = 0;
+      let activitiesRequestKey = "";
+      const activitiesPageSize = 30;
       function syncPageSizeSelects() {
         [pageSizeSelect, expertPageSizeSelect].forEach((select) => {
           if (!select) return;
@@ -21989,6 +22294,7 @@
       const viewLabels = {
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
+        activities: { title: "Aktivitäten", subtitle: "Chronologisches Protokoll der Kontaktänderungen im Versorgungs-Kompass." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
@@ -24907,6 +25213,273 @@
         });
       }
 
+      function activityRangeBounds(range = "all") {
+        const now = new Date();
+        if (range === "today") {
+          const start = new Date(now);
+          start.setHours(0, 0, 0, 0);
+          return { from: start.toISOString(), to: "" };
+        }
+        if (range === "7d" || range === "30d") {
+          const days = range === "7d" ? 7 : 30;
+          return { from: new Date(now.getTime() - days * 86400000).toISOString(), to: "" };
+        }
+        return { from: "", to: "" };
+      }
+
+      function activityRequestOptions(offset = 0) {
+        const range = activityRangeFilter?.value || "all";
+        const bounds = activityRangeBounds(range);
+        const kind = activityKindFilter?.value === "all" ? "" : activityKindFilter?.value || "";
+        const changedBy = activityUserFilter?.value === "all" ? "" : activityUserFilter?.value || "";
+        return {
+          limit: activitiesPageSize,
+          offset,
+          kind,
+          changedBy,
+          from: bounds.from,
+          to: bounds.to,
+          q: searchInput.value.trim()
+        };
+      }
+
+      function activityRequestKey() {
+        const options = activityRequestOptions(0);
+        return JSON.stringify({
+          kind: options.kind,
+          changedBy: options.changedBy,
+          from: options.from,
+          to: options.to,
+          q: options.q
+        });
+      }
+
+      function activityContact(change = {}) {
+        const existing = contacts.find((contact) => contact.id === change.contactId);
+        if (existing) return existing;
+        const contact = change.contact || {};
+        const name = contact.name || change.contactId || "Kontakt";
+        return {
+          id: contact.id || change.contactId || "",
+          name,
+          displayName: name,
+          organization: contact.organization || "",
+          category: contact.sector || "",
+          specialty: contact.specialty || "",
+          city: contact.city || "",
+          state: contact.state || "",
+          image: contact.image || "",
+          status: contact.status || "active",
+          initials: initialsFromLabel(name),
+          avatarClass: ""
+        };
+      }
+
+      function activityUserKey(change = {}) {
+        return String(change.changedBy || change.user?.id || change.user?.displayName || "unknown");
+      }
+
+      function activityUserLabel(change = {}) {
+        return change.user?.displayName || ownerOptionLabel(change.changedBy || "") || "Unbekannter Nutzer";
+      }
+
+      function activityDayLabel(value = "") {
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return "Zeitpunkt offen";
+        return new Intl.DateTimeFormat("de-DE", {
+          weekday: "long",
+          day: "2-digit",
+          month: "long",
+          year: "numeric"
+        }).format(parsed);
+      }
+
+      function groupActivitiesByDay(groups = []) {
+        const dayGroups = [];
+        groups.forEach((group) => {
+          const parsed = new Date(group.changedAt);
+          const key = Number.isNaN(parsed.getTime()) ? "unknown" : parsed.toISOString().slice(0, 10);
+          let day = dayGroups[dayGroups.length - 1];
+          if (!day || day.key !== key) {
+            day = { key, label: activityDayLabel(group.changedAt), groups: [] };
+            dayGroups.push(day);
+          }
+          day.groups.push(group);
+        });
+        return dayGroups;
+      }
+
+      function activityContactContextMarkup(contact) {
+        const organization = meaningfulOrEmpty(contact.organization);
+        const location = formatLocationDisplay(contact);
+        return `
+          <div class="activity-contact-context">
+            <span class="activity-contact-avatar" aria-hidden="true">${contactAvatarMarkup(contact, "sm")}</span>
+            <button class="activity-contact-button" type="button" data-activity-contact="${escapeHtml(contact.id)}">${escapeHtml(contact.displayName || contact.name || "Kontakt öffnen")}</button>
+            ${organization ? `<span>${escapeHtml(organization)}</span>` : ""}
+            ${location ? `<span>${escapeHtml(location)}</span>` : ""}
+          </div>
+        `;
+      }
+
+      function activityGroupMarkup(group) {
+        const actionKey = historyActionKey(group.changes[0]);
+        const contact = activityContact(group.changes[0]);
+        const visibleChanges = group.changes.filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by");
+        return `
+          <article class="activity-item" data-activity-contact="${escapeHtml(contact.id)}">
+            <span class="activity-actor-avatar" aria-hidden="true">${avatarMarkup(group.user)}</span>
+            <div class="activity-entry">
+              <div class="activity-entry-head">
+                <div>
+                  <div class="activity-title">${historyActionLabel(group.action, group.changes)}</div>
+                  <div class="activity-meta-line">
+                    <time datetime="${escapeHtml(group.changedAt)}">${escapeHtml(formatDateTimeLabel(group.changedAt) || "Zeitpunkt offen")}</time>
+                    <span>${escapeHtml(activityUserLabel(group))}</span>
+                    ${group.user?.role ? `<span>${escapeHtml(roleLabel(group.user.role))}</span>` : ""}
+                  </div>
+                </div>
+                <span class="history-action-pill history-action-pill--${actionKey}">${escapeHtml(historyActionBadgeLabel(actionKey))}</span>
+              </div>
+              ${activityContactContextMarkup(contact)}
+              ${
+                visibleChanges.length
+                  ? `<details class="history-details">
+                      <summary>Details anzeigen</summary>
+                      <div class="history-change-list">
+                        ${visibleChanges
+                          .map(
+                            (change) => `
+                              <div class="history-change">
+                                <div class="history-field">${escapeHtml(historyFieldLabel(change.fieldName))}</div>
+                                <div class="history-values">
+                                  <span class="history-value history-value--old">${escapeHtml(formatHistoryValue(change.fieldName, change.oldValue))}</span>
+                                  <span class="history-arrow">→</span>
+                                  <span class="history-value history-value--new">${escapeHtml(formatHistoryValue(change.fieldName, change.newValue))}</span>
+                                </div>
+                              </div>
+                            `
+                          )
+                          .join("")}
+                      </div>
+                    </details>`
+                  : ""
+              }
+            </div>
+          </article>
+        `;
+      }
+
+      function renderActivityUserFilter() {
+        if (!activityUserFilter) return;
+        const activeValue = activityUserFilter.value || "all";
+        const feedUsers = [...new Map(activities.map((change) => [activityUserKey(change), activityUserLabel(change)]))]
+          .filter(([key]) => key && key !== "unknown")
+          .map(([value, label]) => ({ value, label }));
+        const profileUsers = ownerProfiles.map((profile) => ({ value: profile.id, label: profile.label }));
+        const users = [...new Map([...profileUsers, ...feedUsers].map((user) => [user.value, user]))].map(([, user]) => user)
+          .sort((left, right) => left.label.localeCompare(right.label, "de"));
+        activityUserFilter.innerHTML = [
+          `<option value="all">Alle Nutzer</option>`,
+          ...users.map((user) => `<option value="${escapeHtml(user.value)}">${escapeHtml(user.label)}</option>`)
+        ].join("");
+        activityUserFilter.value = users.some((user) => user.value === activeValue) ? activeValue : "all";
+      }
+
+      function renderActivitiesLoading() {
+        if (activitiesList) activitiesList.innerHTML = `<div class="history-loading">Aktivitäten werden geladen...</div>`;
+        if (activitiesMeta) activitiesMeta.textContent = "Aktivitäten werden geladen";
+        if (activitiesLoadMoreRow) activitiesLoadMoreRow.hidden = true;
+      }
+
+      function renderActivitiesError() {
+        if (activitiesList) activitiesList.innerHTML = `<div class="history-error">Die Aktivitäten konnten nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
+        if (activitiesMeta) activitiesMeta.textContent = "Laden fehlgeschlagen";
+        if (activitiesLoadMoreRow) activitiesLoadMoreRow.hidden = true;
+      }
+
+      async function loadActivities({ reset = false } = {}) {
+        if (activitiesLoading || !window.dataService?.getActivities) return;
+        const key = activityRequestKey();
+        const offset = reset ? 0 : activitiesNextOffset;
+        activitiesLoading = true;
+        if (reset) {
+          activities = [];
+          activitiesLoaded = false;
+          activitiesHasMore = false;
+          activitiesNextOffset = 0;
+          renderActivitiesLoading();
+        }
+        try {
+          const payload = await window.dataService.getActivities(activityRequestOptions(offset));
+          if (key !== activityRequestKey()) return;
+          const nextItems = Array.isArray(payload?.items) ? payload.items : [];
+          activities = reset ? nextItems : [...activities, ...nextItems];
+          activitiesHasMore = Boolean(payload?.hasMore);
+          activitiesNextOffset = Number(payload?.nextOffset) || activities.length;
+          activitiesLoaded = true;
+          activitiesLoading = false;
+          renderActivitiesView();
+        } catch (error) {
+          console.error("Aktivitäten konnten nicht geladen werden.", error);
+          if (key === activityRequestKey()) {
+            activitiesLoaded = true;
+            activitiesLoading = false;
+            renderActivitiesError();
+          }
+        } finally {
+          activitiesLoading = false;
+        }
+      }
+
+      function renderActivitiesView() {
+        if (activeView !== "activities" || !activitiesList) return;
+        renderActivityUserFilter();
+        renderSummary(activities);
+        const key = activityRequestKey();
+        if (!activitiesLoaded || key !== activitiesRequestKey) {
+          activitiesRequestKey = key;
+          loadActivities({ reset: true });
+          return;
+        }
+        const groups = groupHistoryChanges(activities);
+        const dayGroups = groupActivitiesByDay(groups);
+        if (!activities.length) {
+          activitiesList.innerHTML = `<div class="history-empty">Noch keine Aktivitäten vorhanden. Sobald Kontakte angelegt, geändert, importiert oder archiviert werden, erscheint hier ein chronologisches Protokoll.</div>`;
+        } else if (!dayGroups.length) {
+          activitiesList.innerHTML = `<div class="history-empty">Für diese Auswahl gibt es noch keine Einträge.</div>`;
+        } else {
+          activitiesList.innerHTML = dayGroups
+            .map((day) => `
+              <section class="activity-day-group" aria-label="${escapeHtml(day.label)}">
+                <div class="activity-day-label">${escapeHtml(day.label)}</div>
+                <div class="activity-feed">
+                  ${day.groups.map(activityGroupMarkup).join("")}
+                </div>
+              </section>
+            `)
+            .join("");
+        }
+        if (activitiesMeta) {
+          const suffix = activitiesHasMore ? "geladen" : "gesamt";
+          activitiesMeta.textContent = `${activities.length} ${activities.length === 1 ? "Aktivität" : "Aktivitäten"} ${suffix}`;
+        }
+        if (activitiesLoadMoreRow) activitiesLoadMoreRow.hidden = !activitiesHasMore;
+        if (activitiesLoadMoreButton) {
+          activitiesLoadMoreButton.disabled = activitiesLoading;
+          activitiesLoadMoreButton.textContent = activitiesLoading ? "Lädt..." : "Mehr laden";
+        }
+        activitiesList.querySelectorAll("[data-activity-contact]").forEach((element) => {
+          element.addEventListener("click", (event) => {
+            if (element.matches(".activity-item") && event.target.closest("button, a, summary, details")) return;
+            const id = element.dataset.activityContact;
+            if (!id) return;
+            event.stopPropagation();
+            openDetail(id, contacts);
+          });
+        });
+      }
+
       function activeContactsTotal() {
         return contacts.filter((contact) => contact.status !== "archived").length;
       }
@@ -24940,6 +25513,7 @@
 
       function hitCountLabel(items) {
         if (isDuplicateMode()) return `${items.length} von ${expertMatchCandidatesByType(activeDuplicateLinkType()).length} Dubletten`;
+        if (activeView === "activities") return `${activities.length} Aktivitäten`;
         if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
         if (activeView === "experts") {
           if (activeExpertMode === "organizations") return `${items.length} von ${expertOrganizations.length} Organisationen`;
@@ -25426,6 +26000,27 @@
               }
             ],
             "Formate"
+          );
+          return;
+        }
+        if (activeView === "activities") {
+          renderSummaryCards(
+            summaryGrid,
+            [
+              {
+                label: "Aktivitäten",
+                value: activities.length,
+                meta: activitiesHasMore ? "geladen" : "",
+                icon: `
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 8v5l3 2"></path>
+                    <circle cx="12" cy="12" r="9"></circle>
+                  </svg>
+                `,
+                iconClass: "summary-icon--blue"
+              }
+            ],
+            "Aktivitäten"
           );
           return;
         }
@@ -28587,6 +29182,7 @@
       }
 
       function historyActionKey(change) {
+        if (change.kind) return change.kind;
         if (change.action === "archive") return "archive";
         if (change.action === "create") return "create";
         if (change.action === "import") return "import";
@@ -28632,6 +29228,7 @@
           const sameBatch =
             lastGroup &&
             lastGroup.action === change.action &&
+            lastGroup.contactId === change.contactId &&
             lastGroup.changedBy === change.changedBy &&
             Number.isFinite(lastTime) &&
             Number.isFinite(currentTime) &&
@@ -28643,6 +29240,7 @@
           groups.push({
             id: `${change.id}`,
             action: change.action,
+            contactId: change.contactId,
             changedAt: change.changedAt,
             changedBy: change.changedBy,
             user: change.user,
@@ -31548,6 +32146,7 @@
         syncOwnerOptionsFromContacts();
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
+        const isActivitiesView = activeView === "activities";
         const isExpertsView = activeView === "experts";
         if (!canAdministerData()) {
           activeCareDuplicateView = "";
@@ -31563,6 +32162,8 @@
         const isFormatsView = activeView === "formats";
         const items = isFormatsView
           ? filteredFormats()
+          : isActivitiesView
+            ? activities
           : isOrganizationsView
             ? isOrganizationsDuplicatesMode ? filteredExpertMatchCandidates("organization") : filteredOrganizations()
             : isExpertsView
@@ -31581,6 +32182,8 @@
             ? "Expertenkreis suchen..."
           : isFormatsView
             ? "Formate suchen..."
+          : isActivitiesView
+            ? "Aktivitäten nach Kontakt, Organisation, Nutzer oder Feld suchen"
           : activeView === "map"
             ? "Kontakte suchen"
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
@@ -31613,15 +32216,15 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isAnyDuplicateMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isCareDuplicatesMode;
+        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isActivitiesView || isCareDuplicatesMode;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isAnyDuplicateMode;
-        if (isAnyDuplicateMode) setFilterPanelOpen(false);
+        if (filterToolbar) filterToolbar.hidden = isFormatsView || isActivitiesView || isAnyDuplicateMode;
+        if (isActivitiesView || isAnyDuplicateMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
-          else if (isFormatsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isFormatsView || isActivitiesView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
         }
         bulkToolbar.hidden = !isContactsView || isContactsDuplicatesMode || selectedContactIds.size === 0;
@@ -31643,11 +32246,13 @@
           renderCareDuplicateTable("contacts", items);
         } else if (isContactsView) {
           renderTable(items);
+        } else if (isActivitiesView) {
+          renderActivitiesView();
         } else if (isFormatsView) {
           renderFormatsView();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isAnyDuplicateMode) {
+        if (!isFormatsView && !isActivitiesView && !isAnyDuplicateMode) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -31683,6 +32288,16 @@
         activeSavedViewName = "";
         currentPage = 1;
         updateView();
+      });
+      [activityKindFilter, activityUserFilter, activityRangeFilter].forEach((filter) => {
+        filter?.addEventListener("change", () => {
+          activitiesLoaded = false;
+          activitiesRequestKey = "";
+          updateView();
+        });
+      });
+      activitiesLoadMoreButton?.addEventListener("click", () => {
+        loadActivities({ reset: false });
       });
       document.querySelectorAll("[data-format-status-filter]").forEach((button) => {
         button.addEventListener("click", () => {
@@ -32698,7 +33313,7 @@
           }
           await loadExpertData({ includeArchived: canAdministerData() });
           await loadSavedViewsAndSettings();
-          if (!initialRouteView && ["contacts", "organizations", "experts", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
+          if (!initialRouteView && ["contacts", "organizations", "activities", "experts", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
             activeView = userSettings.defaultViewType;
           }
           loadedContactsFromStorage = false;

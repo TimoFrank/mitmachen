@@ -23,6 +23,7 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `GET` | `/api/contacts/:id` | Einzelkontakt laden |
 | `PATCH` | `/api/contacts/:id` | Kontakt aktualisieren, inklusive Archivieren/Wiederherstellen ueber `status` |
 | `GET` | `/api/contacts/:id/history` | Aenderungshistorie laden, optional `action=...` |
+| `GET` | `/api/activities` | Globalen Kontakt-Aenderungsverlauf laden, optional `limit`, `offset`, `action`/`kind`, `changedBy`, `from`, `to`, `q` |
 | `GET` | `/api/organizations` | Organisationen laden, optional `includeArchived=true` |
 | `POST` | `/api/organizations` | Organisation anlegen |
 | `GET` | `/api/organizations/:id` | Einzelorganisation laden |

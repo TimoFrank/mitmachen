@@ -859,7 +859,7 @@
   }
 
   function changeToUi(row) {
-    return {
+    const change = {
       id: row.id,
       contactId: row.contact_id,
       action: row.action || "update",
@@ -870,6 +870,32 @@
       changedBy: row.changed_by || "",
       user: profileSummary(row.changed_by)
     };
+    return { ...change, kind: changeKind(change) };
+  }
+
+  function normalizeChange(change = {}) {
+    const normalized = {
+      id: change.id,
+      contactId: change.contactId || change.contact_id || "",
+      action: change.action || "update",
+      fieldName: change.fieldName || change.field_name || "",
+      oldValue: change.oldValue || change.old_value || "",
+      newValue: change.newValue || change.new_value || "",
+      changedAt: change.changedAt || change.changed_at || "",
+      changedBy: change.changedBy || change.changed_by || "",
+      user: change.user || profileSummary(change.changedBy || change.changed_by),
+      contact: change.contact || null
+    };
+    return { ...normalized, kind: change.kind || changeKind(normalized) };
+  }
+
+  function changeKind(change = {}) {
+    if (change.action === "archive") return "archive";
+    if (change.action === "create") return "create";
+    if (change.action === "import") return "import";
+    if (change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived") return "restore";
+    if (["owner_id", "owner", "ownerId"].includes(change.fieldName)) return "owner";
+    return "update";
   }
 
   function savedViewToUi(row) {
@@ -1500,17 +1526,7 @@
       return clone(rows)
         .filter((change) => (change.contactId || change.contact_id) === contactId)
         .filter((change) => !options.action || (change.action || "update") === options.action)
-        .map((change) => ({
-          id: change.id,
-          contactId: change.contactId || change.contact_id,
-          action: change.action || "update",
-          fieldName: change.fieldName || change.field_name || "",
-          oldValue: change.oldValue || change.old_value || "",
-          newValue: change.newValue || change.new_value || "",
-          changedAt: change.changedAt || change.changed_at || "",
-          changedBy: change.changedBy || change.changed_by || "",
-          user: profileSummary(change.changedBy || change.changed_by)
-        }));
+        .map(normalizeChange);
     }
     if (usesApiGateway()) {
       const payload = await apiGet(`/api/contacts/${encodeURIComponent(contactId)}/history`, {
@@ -1529,6 +1545,103 @@
     const { data, error } = await query;
     if (error) throw error;
     return (data || []).map(changeToUi);
+  }
+
+  function activityMatchesFilters(change, options = {}) {
+    const action = String(options.action || options.kind || "").trim();
+    const changedBy = String(options.changedBy || "").trim();
+    const from = String(options.from || "").trim();
+    const to = String(options.to || "").trim();
+    const query = String(options.q || "").trim().toLowerCase();
+    if (action && change.kind !== action && change.action !== action) return false;
+    if (changedBy && change.changedBy !== changedBy && change.user?.id !== changedBy) return false;
+    if (from && new Date(change.changedAt).getTime() < new Date(from).getTime()) return false;
+    if (to && new Date(change.changedAt).getTime() > new Date(to).getTime()) return false;
+    if (!query) return true;
+    return [
+      change.contactId,
+      change.action,
+      change.kind,
+      change.fieldName,
+      change.oldValue,
+      change.newValue,
+      change.user?.displayName,
+      change.user?.email,
+      change.user?.role,
+      change.contact?.name,
+      change.contact?.organization,
+      change.contact?.city,
+      change.contact?.state
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(query);
+  }
+
+  function pagedActivityPayload(items, options = {}) {
+    const limit = Math.min(Math.max(Number(options.limit) || 30, 1), 100);
+    const offset = Math.max(Number(options.offset) || 0, 0);
+    const page = items.slice(offset, offset + limit + 1);
+    return {
+      items: page.slice(0, limit),
+      nextOffset: offset + Math.min(page.length, limit),
+      hasMore: page.length > limit
+    };
+  }
+
+  async function getActivities(options = {}) {
+    const limit = Math.min(Math.max(Number(options.limit) || 30, 1), 100);
+    const offset = Math.max(Number(options.offset) || 0, 0);
+    if (isLocalMode()) {
+      if (!profileCache.size) await loadProfiles();
+      const rows = Array.isArray(demoData().changes) ? demoData().changes : [];
+      const items = clone(rows)
+        .map(normalizeChange)
+        .filter((change) => activityMatchesFilters(change, options))
+        .sort((left, right) => {
+          const time = new Date(right.changedAt).getTime() - new Date(left.changedAt).getTime();
+          return time || Number(right.id || 0) - Number(left.id || 0);
+        });
+      return pagedActivityPayload(items, { limit, offset });
+    }
+    if (usesApiGateway()) {
+      return apiGet("/api/activities", {
+        limit,
+        offset,
+        action: options.action || "",
+        kind: options.kind || "",
+        changedBy: options.changedBy || "",
+        from: options.from || "",
+        to: options.to || "",
+        q: options.q || ""
+      });
+    }
+    if (!profileCache.size) await loadProfiles();
+    let query = getClient()
+      .from("changes")
+      .select(CHANGE_FIELDS.join(","))
+      .order("changed_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (options.changedBy) query = query.eq("changed_by", options.changedBy);
+    if (options.from) query = query.gte("changed_at", options.from);
+    if (options.to) query = query.lte("changed_at", options.to);
+    const rawAction = String(options.action || options.kind || "").trim();
+    if (["create", "import", "archive"].includes(rawAction)) query = query.eq("action", rawAction);
+    if (!["owner", "restore", "update"].includes(rawAction) && !options.q) {
+      query = query.range(offset, offset + limit);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    const items = (data || [])
+      .map(changeToUi)
+      .filter((change) => activityMatchesFilters(change, options));
+    return options.q || ["owner", "restore", "update"].includes(rawAction)
+      ? pagedActivityPayload(items, { limit, offset })
+      : {
+        items: items.slice(0, limit),
+        nextOffset: offset + Math.min(items.length, limit),
+        hasMore: items.length > limit
+      };
   }
 
   async function loadBackendRegistrations(options = {}) {
@@ -2575,6 +2688,7 @@
     uploadCurrentProfileImage,
     removeCurrentProfileImage,
     getContactChanges,
+    getActivities,
     loadBackendRegistrations,
     updateBackendRegistration,
     resetLocalBackendRegistrations,

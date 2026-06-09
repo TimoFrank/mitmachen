@@ -684,8 +684,33 @@ function formatToDto(row, participants = []) {
   };
 }
 
-function changeToDto(row) {
+function changeKind(change = {}) {
+  if (change.action === "archive") return "archive";
+  if (change.action === "create") return "create";
+  if (change.action === "import") return "import";
+  if (change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived") return "restore";
+  if (["owner_id", "owner", "ownerId"].includes(change.fieldName)) return "owner";
+  return "update";
+}
+
+function changeContactSummary(row) {
+  const contact = row.contacts || row.contact || null;
+  if (!contact) return null;
   return {
+    id: contact.id || row.contact_id || "",
+    name: contact.name || "",
+    organization: contact.organization || "",
+    sector: contact.sector || "",
+    specialty: contact.specialty || "",
+    city: contact.city || "",
+    state: contact.federal_state || contact.state || "",
+    image: contact.image_url || "",
+    status: contact.status || "active"
+  };
+}
+
+function changeToDto(row) {
+  const change = {
     id: row.id,
     contactId: row.contact_id,
     action: row.action || "update",
@@ -694,8 +719,10 @@ function changeToDto(row) {
     newValue: row.new_value || "",
     changedAt: row.changed_at || "",
     changedBy: row.changed_by || "",
-    user: profileSummary(row.changed_by)
+    user: profileSummary(row.changed_by),
+    contact: changeContactSummary(row)
   };
+  return { ...change, kind: changeKind(change) };
 }
 
 function savedViewToDb(view = {}, ownerId) {
@@ -1081,7 +1108,7 @@ async function supabaseRest(path, request, searchParams = new URLSearchParams(),
   }
 
   const url = new URL(`${SUPABASE_URL}/rest/v1/${path}`);
-  searchParams.forEach((value, key) => url.searchParams.set(key, value));
+  searchParams.forEach((value, key) => url.searchParams.append(key, value));
 
   const headers = {
     apikey: SUPABASE_ANON_KEY,
@@ -1842,6 +1869,69 @@ async function getContactHistory(request, id, url) {
   return { items: (rows || []).map(changeToDto) };
 }
 
+function activityMatchesFilters(change, filters = {}) {
+  const kind = String(filters.kind || filters.action || "").trim();
+  const query = String(filters.q || "").trim().toLowerCase();
+  if (kind && change.kind !== kind && change.action !== kind) return false;
+  if (!query) return true;
+  return [
+    change.contactId,
+    change.action,
+    change.kind,
+    change.fieldName,
+    change.oldValue,
+    change.newValue,
+    change.changedBy,
+    change.user?.displayName,
+    change.user?.role,
+    change.contact?.name,
+    change.contact?.organization,
+    change.contact?.sector,
+    change.contact?.specialty,
+    change.contact?.city,
+    change.contact?.state
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(query);
+}
+
+async function getActivities(request, url) {
+  await loadProfiles(request);
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 30, 1), 100);
+  const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
+  const kind = String(url.searchParams.get("kind") || url.searchParams.get("action") || "").trim();
+  const changedBy = String(url.searchParams.get("changedBy") || "").trim();
+  const from = String(url.searchParams.get("from") || "").trim();
+  const to = String(url.searchParams.get("to") || "").trim();
+  const q = String(url.searchParams.get("q") || "").trim();
+  const needsClientFilter = Boolean(q) || ["owner", "restore", "update"].includes(kind);
+  const params = new URLSearchParams({
+    select: `${CHANGE_FIELDS.join(",")},contacts(id,name,organization,sector,specialty,city,federal_state,image_url,status)`,
+    order: "changed_at.desc,id.desc"
+  });
+  if (changedBy) params.set("changed_by", `eq.${changedBy}`);
+  if (from) params.append("changed_at", `gte.${from}`);
+  if (to) params.append("changed_at", `lte.${to}`);
+  if (["create", "import", "archive"].includes(kind)) params.set("action", `eq.${kind}`);
+  if (needsClientFilter) {
+    params.set("limit", "1000");
+  } else {
+    params.set("limit", String(limit + 1));
+    params.set("offset", String(offset));
+  }
+  const rows = await supabaseRest("changes", request, params);
+  const allItems = (rows || [])
+    .map(changeToDto)
+    .filter((change) => activityMatchesFilters(change, { kind, q }));
+  const page = needsClientFilter ? allItems.slice(offset, offset + limit + 1) : allItems;
+  return {
+    items: page.slice(0, limit),
+    nextOffset: offset + Math.min(page.length, limit),
+    hasMore: page.length > limit
+  };
+}
+
 async function patchContact(request, id) {
   await loadProfiles(request);
   const userId = userIdFromToken(request);
@@ -2028,6 +2118,9 @@ async function handle(request, response) {
     }
     if (request.method === "DELETE" && formatMatch) {
       return jsonResponse(response, 200, await deleteFormat(request, decodeURIComponent(formatMatch[1])));
+    }
+    if (request.method === "GET" && url.pathname === "/api/activities") {
+      return jsonResponse(response, 200, await getActivities(request, url));
     }
     const historyMatch = /^\/api\/contacts\/([^/]+)\/history$/.exec(url.pathname);
     if (request.method === "GET" && historyMatch) {

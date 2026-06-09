@@ -8,7 +8,7 @@ function authSession() {
   };
 }
 
-async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "" } = {}) {
+async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "", demoDataScript = "" } = {}) {
   await page.route("**/login/auth-guard.js", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
@@ -47,6 +47,14 @@ async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo"
       });
     });
   }
+  if (demoDataScript) {
+    await page.route("**/data/demo-data.js", async (route) => {
+      await route.fulfill({
+        contentType: "application/javascript",
+        body: demoDataScript
+      });
+    });
+  }
   await page.goto("/");
   await page.evaluate(
     ({ key, session }) => {
@@ -63,6 +71,73 @@ async function attachScreenshot(page, testInfo, name) {
     path: testInfo.outputPath(`${name}.png`),
     fullPage: true
   });
+}
+
+function activitiesDemoDataScript() {
+  return `
+    (() => {
+      const now = new Date("2026-06-09T10:00:00.000Z");
+      const profiles = [
+        { id: "11111111-1111-4111-8111-111111111111", email: "demo.admin@example.test", display_name: "Demo Admin", initials: "DA", role: "admin", active: true, avatar_url: "", team: "Versorgung", created_at: now.toISOString(), updated_at: now.toISOString() },
+        { id: "22222222-2222-4222-8222-222222222222", email: "demo.editor@example.test", display_name: "Demo Editor", initials: "DE", role: "editor", active: true, avatar_url: "", team: "Kontaktpflege", created_at: now.toISOString(), updated_at: now.toISOString() }
+      ];
+      const contacts = Array.from({ length: 36 }, (_, index) => {
+        const n = index + 1;
+        return {
+          id: "activity-contact-" + String(n).padStart(2, "0"),
+          name: "Aktivitätskontakt " + n,
+          organization: n % 2 ? "MVZ Aktiv Nord" : "Pflegeverbund Aktiv Süd",
+          category: n % 2 ? "Praxis" : "Pflege",
+          specialty: n % 3 ? "Allgemeinmedizin" : "Geriatrie",
+          contactRole: "Ansprechperson",
+          priority: n % 2 ? "Hoch" : "Mittel",
+          ownerId: profiles[index % profiles.length].id,
+          owner: profiles[index % profiles.length].display_name,
+          postalCode: "10115",
+          city: n % 2 ? "Berlin" : "Potsdam",
+          state: n % 2 ? "Berlin" : "Brandenburg",
+          email: "aktivitaet-" + n + "@example.test",
+          phone: "+49 000 1000" + n,
+          themes: ["Versorgung", "Audit"],
+          note: "Fiktiver Kontakt für Aktivitäten-Smoke.",
+          sources: ["Smoke-Test"],
+          status: "active",
+          createdAt: new Date(now.getTime() - n * 86400000).toISOString(),
+          updatedAt: new Date(now.getTime() - n * 600000).toISOString()
+        };
+      });
+      const changes = contacts.map((contact, index) => {
+        const n = index + 1;
+        const kind = n % 9 === 0 ? "archive" : n % 7 === 0 ? "import" : n % 5 === 0 ? "create" : "update";
+        const fieldName = kind === "create" || kind === "import" ? "" : n % 4 === 0 ? "owner_id" : "priority";
+        return {
+          id: n,
+          contactId: contact.id,
+          contact_id: contact.id,
+          action: kind,
+          fieldName,
+          field_name: fieldName,
+          oldValue: fieldName === "owner_id" ? profiles[(index + 1) % profiles.length].id : fieldName === "priority" ? "Mittel" : "",
+          old_value: fieldName === "owner_id" ? profiles[(index + 1) % profiles.length].id : fieldName === "priority" ? "Mittel" : "",
+          newValue: fieldName === "owner_id" ? contact.ownerId : fieldName === "priority" ? contact.priority : contact.name,
+          new_value: fieldName === "owner_id" ? contact.ownerId : fieldName === "priority" ? contact.priority : contact.name,
+          changedAt: new Date(now.getTime() - index * 300000).toISOString(),
+          changed_at: new Date(now.getTime() - index * 300000).toISOString(),
+          changedBy: profiles[index % profiles.length].id,
+          changed_by: profiles[index % profiles.length].id
+        };
+      });
+      window.VERSORGUNGS_COMPASS_DEMO_DATA = {
+        profiles,
+        contacts,
+        organizations: [],
+        changes,
+        savedViews: [],
+        userSettings: { defaultViewType: "contacts", pageSize: 20, tableDensity: "comfortable", theme: "system", fontScale: 1, preferences: {} },
+        formats: []
+      };
+    })();
+  `;
 }
 
 async function expectPageSizeDropdownUsable(page, shellSelector, nextValue = "50 pro Seite") {
@@ -124,6 +199,32 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten");
 
   await attachScreenshot(page, testInfo, "organisationen");
+});
+
+test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#activities", {
+    demoDataScript: activitiesDemoDataScript()
+  });
+
+  await expect(page.locator('[data-view-panel="activities"]')).toBeVisible();
+  await expect(page.locator('[data-view-tab="activities"]')).toHaveClass(/is-active/);
+  await expect(page.locator("#search")).toHaveAttribute("placeholder", /Aktivitäten nach Kontakt/);
+  await expect(page.locator("#activities-list .activity-item")).toHaveCount(30);
+  await expect(page.locator("#activities-load-more-row")).toBeVisible();
+
+  await page.locator("#activities-load-more").click();
+  await expect(page.locator("#activities-list .activity-item")).toHaveCount(36);
+
+  await page.selectOption("#activity-kind-filter", "owner");
+  await expect(page.locator("#activities-list .activity-item").first()).toBeVisible();
+  await expect(page.locator(".history-action-pill--owner").first()).toBeVisible();
+  await page.locator(".history-details summary").first().click();
+  await expect(page.locator(".history-change").first()).toBeVisible();
+
+  await page.locator(".activity-contact-button").first().click();
+  await expect(page.locator("#detail-overview")).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "aktivitaeten");
 });
 
 test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async ({ page }, testInfo) => {
