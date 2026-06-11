@@ -1565,7 +1565,36 @@
         align-items: start;
       }
 
+      .app-shell[data-active-view="stakeholders"] .workspace-header {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .app-shell[data-active-view="experts"] .workspace-header .workspace-actions,
+      .app-shell[data-active-view="stakeholders"] .workspace-header .workspace-actions {
+        justify-content: stretch;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .app-shell[data-active-view="experts"] .workspace-expert-switcher,
+      .app-shell[data-active-view="experts"] .experts-mode-nav--header,
+      .app-shell[data-active-view="stakeholders"] .workspace-expert-switcher,
+      .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button,
+      .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
+        min-width: 0;
+      }
+
       .app-shell[data-active-view="experts"] .workspace-copy {
+        display: none;
+      }
+
+      .app-shell[data-active-view="stakeholders"] .workspace-copy {
         display: none;
       }
 
@@ -1711,9 +1740,25 @@
         display: none;
       }
 
+      .app-shell[data-active-view="stakeholders"] #summary-grid {
+        display: none;
+      }
+
       .app-shell[data-active-view="experts"] .workspace-header {
         grid-template-columns: minmax(280px, 390px) minmax(320px, 1fr);
         gap: 12px 14px;
+      }
+
+      .app-shell[data-active-view="stakeholders"] .workspace-header {
+        grid-template-columns: minmax(340px, 480px) minmax(320px, 1fr);
+        gap: 12px 14px;
+      }
+
+      @media (max-width: 980px) {
+        .app-shell[data-active-view="experts"] .workspace-header,
+        .app-shell[data-active-view="stakeholders"] .workspace-header {
+          grid-template-columns: minmax(0, 1fr);
+        }
       }
 
       .summary.summary--compact {
@@ -11317,6 +11362,19 @@
         flex: 1 1 520px;
       }
 
+      .table-command-row--stakeholders {
+        padding-top: 10px;
+      }
+
+      .table-command-row--stakeholders .table-command-spacer {
+        order: 1;
+      }
+
+      .table-command-row--stakeholders .stakeholder-column-actions {
+        order: 2;
+        justify-content: flex-end;
+      }
+
       .experts-mode-nav {
         margin: 0;
         border-bottom: 0;
@@ -11328,8 +11386,20 @@
       }
 
       [data-expert-table][hidden],
+      [data-stakeholder-table][hidden],
       .expert-matching-workspace[hidden] {
         display: none !important;
+      }
+
+      .stakeholder-map-panel {
+        min-height: min(68vh, 720px);
+        display: grid;
+      }
+
+      .stakeholder-map-panel .map-embed-frame {
+        min-height: 560px;
+        border: 0;
+        border-radius: var(--radius-md);
       }
 
       .expert-matching-toolbar {
@@ -12535,6 +12605,7 @@
         .profile-settings-grid,
         .profile-role-card,
         .profile-session-row,
+        .profile-onboarding-card,
         .profile-photo-remove {
           grid-template-columns: 1fr;
         }
@@ -12546,6 +12617,15 @@
 
         .profile-setting-toggle {
           justify-content: flex-start;
+        }
+
+        .profile-onboarding-actions {
+          justify-content: stretch;
+        }
+
+        .profile-onboarding-actions .action-button {
+          width: 100%;
+          justify-content: center;
         }
 
         .profile-panel__footer {
@@ -12692,6 +12772,311 @@
         line-height: var(--line-height-normal);
       }
 
+      .profile-onboarding-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+      }
+
+      .profile-onboarding-copy {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .profile-onboarding-copy strong {
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+      }
+
+      .profile-onboarding-copy span,
+      .profile-onboarding-status {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .profile-onboarding-status {
+        color: var(--text-muted);
+        font-weight: 750;
+      }
+
+      .profile-onboarding-status.is-ready {
+        color: var(--success);
+      }
+
+      .profile-onboarding-status.is-missing {
+        color: var(--warning);
+      }
+
+      .profile-onboarding-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .onboarding-page {
+        display: none;
+      }
+
+      .onboarding-page.is-active {
+        display: block;
+      }
+
+      .onboarding-workspace {
+        width: min(820px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 14px;
+      }
+
+      .onboarding-panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
+      .onboarding-panel__body {
+        display: grid;
+        gap: 16px;
+        padding: 18px;
+      }
+
+      .onboarding-stepper {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        padding: 14px 18px;
+        background: var(--surface-muted);
+      }
+
+      .onboarding-step-dot {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+      }
+
+      .onboarding-step-dot::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--border-strong);
+      }
+
+      .onboarding-step-dot.is-active {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .onboarding-step-dot.is-active::before {
+        background: var(--primary);
+      }
+
+      .onboarding-heading {
+        display: grid;
+        gap: 7px;
+      }
+
+      .onboarding-heading h3,
+      .onboarding-heading p {
+        margin: 0;
+      }
+
+      .onboarding-heading h3 {
+        color: var(--text-primary);
+        font-size: var(--font-size-xl);
+        line-height: var(--line-height-tight);
+      }
+
+      .onboarding-heading p {
+        color: var(--text-secondary);
+        font-size: var(--font-size-md);
+        line-height: var(--line-height-normal);
+      }
+
+      .onboarding-profile {
+        display: grid;
+        grid-template-columns: 148px minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
+      }
+
+      .onboarding-photo {
+        display: grid;
+        gap: 12px;
+        justify-items: center;
+      }
+
+      .onboarding-avatar {
+        width: 128px;
+        height: 128px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: 1.95rem;
+        font-weight: 900;
+        overflow: hidden;
+      }
+
+      .onboarding-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+      }
+
+      .onboarding-fields {
+        display: grid;
+        gap: 14px;
+      }
+
+      .onboarding-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+        padding-top: 2px;
+      }
+
+      .onboarding-tour-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .onboarding-tour-item {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+      }
+
+      .onboarding-tour-index {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+      }
+
+      .onboarding-tour-item strong {
+        display: block;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+      }
+
+      .onboarding-tour-item span {
+        display: block;
+        margin-top: 3px;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .product-tour[hidden] {
+        display: none;
+      }
+
+      .product-tour {
+        position: fixed;
+        inset: 0;
+        z-index: 210;
+        pointer-events: none;
+      }
+
+      .product-tour__backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.34);
+        pointer-events: auto;
+      }
+
+      .product-tour__panel {
+        position: fixed;
+        width: min(380px, calc(100vw - 24px));
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+        color: var(--text-primary);
+        pointer-events: auto;
+        z-index: 212;
+      }
+
+      .product-tour__meta {
+        color: var(--primary);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .product-tour__panel h3,
+      .product-tour__panel p {
+        margin: 0;
+      }
+
+      .product-tour__panel h3 {
+        font-size: var(--font-size-lg);
+        line-height: var(--line-height-tight);
+      }
+
+      .product-tour__panel p {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .product-tour__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .product-tour-highlight {
+        position: relative;
+        z-index: 211;
+        border-radius: var(--radius-md);
+        outline: 3px solid var(--primary);
+        outline-offset: 4px;
+        box-shadow: 0 0 0 8px rgba(21, 95, 228, 0.16);
+      }
+
       @media (max-width: 760px) {
         .app-shell {
           display: grid;
@@ -12761,6 +13146,44 @@
         .bulk-summary {
           width: 100%;
           grid-template-columns: 1fr;
+        }
+
+        .onboarding-panel__body,
+        .onboarding-stepper {
+          padding-inline: 14px;
+        }
+
+        .onboarding-stepper {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .onboarding-profile {
+          grid-template-columns: 1fr;
+          text-align: center;
+          justify-items: center;
+        }
+
+        .onboarding-fields {
+          width: 100%;
+          text-align: left;
+        }
+
+        .onboarding-actions {
+          justify-content: stretch;
+        }
+
+        .onboarding-actions .action-button {
+          flex: 1 1 100%;
+          justify-content: center;
+        }
+
+        .product-tour__panel {
+          right: 12px !important;
+          bottom: 12px !important;
+          left: 12px !important;
+          top: auto !important;
+          width: auto;
         }
 
       }
@@ -14267,7 +14690,8 @@
 
         .table-command-row,
         .table-command-row--organizations,
-        .table-command-row--experts {
+        .table-command-row--experts,
+        .table-command-row--stakeholders {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           align-items: start;
@@ -14285,7 +14709,8 @@
         .table-command-actions,
         #contact-command-actions,
         #organization-command-actions,
-        #expert-command-actions {
+        #expert-command-actions,
+        #stakeholder-command-actions {
           grid-column: 1 / 2;
           display: grid;
           grid-template-columns: 1fr;
@@ -14502,21 +14927,26 @@
           padding-inline: 9px;
         }
 
-        .app-shell[data-active-view="experts"] .workspace-header {
+        .app-shell[data-active-view="experts"] .workspace-header,
+        .app-shell[data-active-view="stakeholders"] .workspace-header {
           grid-template-columns: minmax(0, 1fr);
         }
 
-        .app-shell[data-active-view="experts"] .workspace-header .workspace-actions {
+        .app-shell[data-active-view="experts"] .workspace-header .workspace-actions,
+        .app-shell[data-active-view="stakeholders"] .workspace-header .workspace-actions {
           justify-content: stretch;
           width: 100%;
         }
 
         .app-shell[data-active-view="experts"] .workspace-expert-switcher,
-        .app-shell[data-active-view="experts"] .experts-mode-nav--header {
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header,
+        .app-shell[data-active-view="stakeholders"] .workspace-expert-switcher,
+        .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header {
           width: 100%;
         }
 
-        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button {
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button,
+        .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
           min-width: 0;
         }
 
@@ -14533,7 +14963,8 @@
         }
 
         .table-command-row--organizations,
-        .table-command-row--experts {
+        .table-command-row--experts,
+        .table-command-row--stakeholders {
           grid-template-columns: 1fr;
         }
 
@@ -14545,6 +14976,11 @@
         .table-command-row--experts #expert-command-actions {
           grid-column: 1 / -1;
           grid-row: 2;
+        }
+
+        .table-command-row--stakeholders #stakeholder-command-actions {
+          grid-column: 1 / -1;
+          grid-row: 1;
         }
 
         .table-command-row--experts .expert-bulk-toolbar {
@@ -14563,7 +14999,8 @@
         }
 
         .table-command-row--organizations .organization-column-actions,
-        .table-command-row--experts .expert-column-actions {
+        .table-command-row--experts .expert-column-actions,
+        .table-command-row--stakeholders .stakeholder-column-actions {
           grid-column: 1 / -1;
           grid-row: 3;
           display: grid;
@@ -14827,21 +15264,26 @@
           padding-bottom: 10px;
         }
 
-        .app-shell[data-active-view="experts"] .workspace-header {
+        .app-shell[data-active-view="experts"] .workspace-header,
+        .app-shell[data-active-view="stakeholders"] .workspace-header {
           grid-template-columns: minmax(0, 1fr);
         }
 
-        .app-shell[data-active-view="experts"] .workspace-header .workspace-actions {
+        .app-shell[data-active-view="experts"] .workspace-header .workspace-actions,
+        .app-shell[data-active-view="stakeholders"] .workspace-header .workspace-actions {
           justify-content: stretch;
           width: 100%;
         }
 
         .app-shell[data-active-view="experts"] .workspace-expert-switcher,
-        .app-shell[data-active-view="experts"] .experts-mode-nav--header {
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header,
+        .app-shell[data-active-view="stakeholders"] .workspace-expert-switcher,
+        .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header {
           width: 100%;
         }
 
-        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button {
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button,
+        .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
           min-width: 0;
         }
 
@@ -14890,7 +15332,8 @@
 
         .table-command-row,
         .table-command-row--organizations,
-        .table-command-row--experts {
+        .table-command-row--experts,
+        .table-command-row--stakeholders {
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 8px;
           padding: 9px;
@@ -14898,7 +15341,8 @@
 
         #contact-command-actions,
         #organization-command-actions,
-        #expert-command-actions {
+        #expert-command-actions,
+        #stakeholder-command-actions {
           grid-column: 1 / -1;
           grid-row: 1;
         }
@@ -14906,6 +15350,10 @@
         #expert-command-actions {
           grid-column: 1 / -1;
           grid-row: 2;
+        }
+
+        #stakeholder-command-actions {
+          grid-row: 1;
         }
 
         .table-command-row--experts .expert-bulk-toolbar {
@@ -14925,7 +15373,8 @@
 
         .table-command-row > .view-select-shell,
         .table-command-row--organizations .organization-column-actions .view-select-shell,
-        .table-command-row--experts .expert-column-actions .view-select-shell {
+        .table-command-row--experts .expert-column-actions .view-select-shell,
+        .table-command-row--stakeholders .stakeholder-column-actions .view-select-shell {
           grid-column: 1;
           grid-row: 2;
           width: 100%;
@@ -14933,7 +15382,8 @@
 
         .table-command-row > .filter-toolbar,
         .table-command-row--organizations .organization-column-actions .filter-toolbar,
-        .table-command-row--experts .expert-column-actions .filter-toolbar {
+        .table-command-row--experts .expert-column-actions .filter-toolbar,
+        .table-command-row--stakeholders .stakeholder-column-actions .filter-toolbar {
           grid-column: 2;
           grid-row: 2;
           align-self: stretch;
@@ -14953,7 +15403,8 @@
 
         .column-menu-shell,
         .table-command-row--organizations .organization-column-actions .column-menu-shell,
-        .table-command-row--experts .expert-column-actions .column-menu-shell {
+        .table-command-row--experts .expert-column-actions .column-menu-shell,
+        .table-command-row--stakeholders .stakeholder-column-actions .column-menu-shell {
           display: none !important;
         }
 
@@ -16569,7 +17020,9 @@
       }
 
       .format-chat-message-actions button[data-delete-format-note]:hover,
-      .format-chat-message-actions button[data-delete-format-note]:focus-visible {
+      .format-chat-message-actions button[data-delete-format-note]:focus-visible,
+      .format-chat-message-actions button[data-delete-contact-note]:hover,
+      .format-chat-message-actions button[data-delete-contact-note]:focus-visible {
         color: var(--danger);
       }
 
@@ -17098,7 +17551,12 @@
         position: fixed;
         inset: 0;
         z-index: 80;
+        overflow: hidden;
         pointer-events: none;
+      }
+
+      .format-participant-drawer:not(.is-open) {
+        display: none;
       }
 
       .format-participant-drawer.is-open {
@@ -17444,7 +17902,7 @@
           <strong>Versorgungs-Kompass</strong>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
-          <div class="sidebar-section" aria-label="Kontakte und Organisationen">
+          <div class="sidebar-section" aria-label="Kontakte und Organisationen" data-sidebar-section="care">
             <span class="sidebar-section-label">Versorgung</span>
             <button class="primary-tab is-active" type="button" data-view-tab="contacts" title="Kontakte">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -17476,7 +17934,7 @@
               <span>Aktivitäten</span>
             </button>
           </div>
-          <div class="sidebar-section" aria-label="IOP">
+          <div class="sidebar-section" aria-label="IOP" data-sidebar-section="iop">
             <span class="sidebar-section-label">IOP</span>
             <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -17490,7 +17948,21 @@
               <span>Expertenkreis</span>
             </button>
           </div>
-          <div class="sidebar-section" aria-label="Karte und Auswertung">
+          <div class="sidebar-section" aria-label="Stakeholder" data-sidebar-section="stakeholders">
+            <span class="sidebar-section-label">Stakeholder</span>
+            <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Kassenärztliche Vereinigungen">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M3 21h18"></path>
+                <path d="M5 21V7l7-4 7 4v14"></path>
+                <path d="M9 21v-7h6v7"></path>
+                <path d="M9 9h.01"></path>
+                <path d="M12 9h.01"></path>
+                <path d="M15 9h.01"></path>
+              </svg>
+              <span>KVn</span>
+            </button>
+          </div>
+          <div class="sidebar-section" aria-label="Karte und Auswertung" data-sidebar-section="analysis">
             <span class="sidebar-section-label">Analyse</span>
             <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -17517,7 +17989,7 @@
               <span>Datenqualität</span>
             </button>
           </div>
-          <div class="sidebar-section" aria-label="Importe und Eingänge">
+          <div class="sidebar-section" aria-label="Importe und Eingänge" data-sidebar-section="import">
             <span class="sidebar-section-label">Import</span>
             <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -17528,7 +18000,7 @@
               <span>Importe</span>
             </button>
           </div>
-          <div class="sidebar-section" aria-label="Planung">
+          <div class="sidebar-section" aria-label="Planung" data-sidebar-section="planning">
             <span class="sidebar-section-label">Planung</span>
             <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -17544,7 +18016,7 @@
             </button>
           </div>
         </nav>
-        <div class="sidebar-account-section" aria-label="Team, Einstellungen und Profil">
+        <div class="sidebar-account-section" aria-label="Team, Einstellungen und Profil" data-sidebar-section="account">
           <span class="sidebar-section-label">Team &amp; Konto</span>
           <button class="sidebar-link" type="button" id="sidebar-team-button" title="Team">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -17572,7 +18044,9 @@
 
       <div class="app-main">
         <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,.xlsx,.xls,.doc,.docx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+        <input class="visually-hidden" type="file" id="stakeholder-file-input" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
         <input class="visually-hidden" type="file" id="profile-photo-input" accept="image/jpeg,image/png,image/webp" />
+        <input class="visually-hidden" type="file" id="onboarding-photo-input" accept="image/jpeg,image/png,image/webp" />
 
     <aside class="deploy-reminder" id="deploy-reminder" aria-live="polite" hidden>
       <button class="deploy-reminder__close" type="button" id="deploy-reminder-close" aria-label="Hinweis schließen">×</button>
@@ -17603,7 +18077,24 @@
               </button>
             </div>
           </div>
+          <div class="workspace-expert-switcher" id="stakeholder-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Stakeholder-Listen">
+              <button class="settings-tab-button is-active" type="button" role="tab" data-stakeholder-mode="organizations" aria-selected="true" aria-controls="stakeholder-organizations-table">
+                <span class="experts-mode-label">Organisationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-stakeholder-mode="people" aria-selected="false" aria-controls="stakeholder-people-table">
+                <span class="experts-mode-label">Personen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-stakeholder-mode="map" aria-selected="false" aria-controls="stakeholder-map-panel">
+                <span class="experts-mode-label">Karte </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+            </div>
+          </div>
           <div class="workspace-header-search" id="expert-header-search" hidden></div>
+          <div class="workspace-header-search" id="stakeholder-header-search" hidden></div>
           <div class="workspace-actions">
             <div class="summary summary--compact" id="summary-grid"></div>
             <div class="permission-banner" id="permission-banner" aria-live="polite">
@@ -17949,6 +18440,40 @@
             </div>
           </section>
 
+          <section class="view-panel" id="view-stakeholders" data-view-panel="stakeholders">
+            <div class="view-card stakeholders-workspace">
+              <div class="table-command-row table-command-row--stakeholders">
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions stakeholder-column-actions" id="stakeholder-command-actions"></div>
+              </div>
+              <div class="table-wrap">
+                <section class="table organizations-table stakeholder-organizations-table" id="stakeholder-organizations-table" aria-label="Stakeholder-Organisationen" data-stakeholder-table="organizations" role="tabpanel">
+                  <div class="thead" id="stakeholder-organizations-table-head"></div>
+                  <div id="stakeholder-organization-list"></div>
+                </section>
+                <section class="table contacts-table stakeholder-people-table" id="stakeholder-people-table" aria-label="Stakeholder-Personen" data-stakeholder-table="people" role="tabpanel" hidden>
+                  <div class="thead" id="stakeholder-people-table-head"></div>
+                  <div id="stakeholder-people-list"></div>
+                </section>
+                <section class="stakeholder-map-panel" id="stakeholder-map-panel" aria-label="Vertreterversammlungsmitglieder auf der Karte" data-stakeholder-table="map" role="tabpanel" hidden>
+                  <iframe
+                    class="map-embed-frame"
+                    id="stakeholder-map-frame"
+                    title="Karte der KV-Vertreterversammlungsmitglieder"
+                    src="./versorgungs-kompass-map.html?embed=1&context=stakeholders"
+                    loading="lazy"
+                  ></iframe>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="stakeholders-pagination-meta">0-0 von 0 Organisationen</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="stakeholders-pagination"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="view-panel" id="view-formats" data-view-panel="formats">
             <div class="formats-workspace">
               <div class="formats-command-row" aria-label="Formataktionen">
@@ -18115,6 +18640,81 @@
             </div>
           </section>
 
+          <section class="view-panel onboarding-page" id="view-onboarding" data-view-panel="onboarding" aria-hidden="true">
+            <div class="onboarding-workspace">
+              <section class="onboarding-panel" aria-labelledby="onboarding-title">
+                <div class="onboarding-stepper" aria-label="Onboarding-Schritte">
+                  <span class="onboarding-step-dot is-active" data-onboarding-step-dot="profile">Profil</span>
+                  <span class="onboarding-step-dot" data-onboarding-step-dot="tour">Tour</span>
+                </div>
+                <div class="onboarding-panel__body">
+                  <form class="profile-tab-panel" id="onboarding-profile-form" data-onboarding-step-panel="profile" novalidate>
+                    <div class="onboarding-heading">
+                      <h3 id="onboarding-title">Willkommen im Versorgungs-Kompass</h3>
+                      <p>Richte kurz dein Profil ein, damit Zuständigkeiten, Team-Ansichten und Owner-Zuweisungen sauber angezeigt werden.</p>
+                    </div>
+                    <div class="onboarding-profile">
+                      <div class="onboarding-photo">
+                        <div class="onboarding-avatar" id="onboarding-avatar-preview" aria-hidden="true">VK</div>
+                        <button class="action-button" type="button" id="onboarding-photo-button">Foto hochladen</button>
+                        <div class="profile-status" id="onboarding-photo-status" aria-live="polite"></div>
+                      </div>
+                      <div class="onboarding-fields">
+                        <div class="profile-grid">
+                          <div class="profile-field profile-field--wide">
+                            <label for="onboarding-display-name">Anzeigename</label>
+                            <input id="onboarding-display-name" name="displayName" autocomplete="name" required />
+                          </div>
+                          <div class="profile-field">
+                            <label for="onboarding-email">E-Mail</label>
+                            <input id="onboarding-email" name="email" type="email" readonly />
+                          </div>
+                          <div class="profile-field">
+                            <label for="onboarding-team">Team</label>
+                            <div class="select-shell" data-custom-select>
+                              <select id="onboarding-team" name="team" required>
+                                <option value="">Bitte auswählen</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="profile-status" id="onboarding-status" aria-live="polite"></div>
+                        <div class="onboarding-actions">
+                          <button class="action-button action-button--primary" type="submit" id="onboarding-profile-submit">Profil speichern und weiter</button>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                  <section class="profile-tab-panel" id="onboarding-tour-panel" data-onboarding-step-panel="tour" hidden>
+                    <div class="onboarding-heading">
+                      <h3>Kurze Tour durch die App</h3>
+                      <p>Die Tour zeigt dir die wichtigsten Arbeitsbereiche direkt in der Oberfläche. Du kannst sie jederzeit über dein Konto erneut starten.</p>
+                    </div>
+                    <div class="onboarding-tour-list" aria-label="Tour-Inhalte">
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">1</span>
+                        <span><strong>Kontakte und Schnellaktionen</strong><span>Die Kontaktliste ist der tägliche Ausgangspunkt für Suche, Pflege und neue Einträge.</span></span>
+                      </div>
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">2</span>
+                        <span><strong>Filter, Owner und Profile</strong><span>Ansichten, Filter und CRM-Profile helfen dir, wiederkehrende Arbeit schneller zu erledigen.</span></span>
+                      </div>
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">3</span>
+                        <span><strong>Karte, Auswertung, Team</strong><span>Regionale Orientierung, operative Kennzahlen und Team-Zuständigkeiten bleiben nah beieinander.</span></span>
+                      </div>
+                    </div>
+                    <div class="profile-status" id="onboarding-tour-status" aria-live="polite"></div>
+                    <div class="onboarding-actions">
+                      <button class="action-button" type="button" id="onboarding-tour-skip">Tour überspringen</button>
+                      <button class="action-button action-button--primary" type="button" id="onboarding-tour-start">Tour starten</button>
+                    </div>
+                  </section>
+                </div>
+              </section>
+            </div>
+          </section>
+
           <section class="view-panel" id="view-settings" data-view-panel="settings">
             <div class="settings-workspace">
               <div class="settings-tab-nav" role="tablist" aria-label="Importbereiche">
@@ -18157,6 +18757,21 @@
                       <h3>Dateiimport</h3>
                       <p>Kontakte aus CSV, Excel, Word oder PDF importieren.</p>
                       <button class="action-button action-button--primary" type="button" id="imports-start-file">Import starten</button>
+                    </article>
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 21h18"></path>
+                          <path d="M5 21V7l7-4 7 4v14"></path>
+                          <path d="M9 21v-7h6v7"></path>
+                          <path d="M8 10h.01"></path>
+                          <path d="M12 10h.01"></path>
+                          <path d="M16 10h.01"></path>
+                        </svg>
+                      </div>
+                      <h3>Stakeholder-Import</h3>
+                      <p>KV-Organisationen und Vertreterversammlungsmitglieder aus CSV oder Excel übernehmen.</p>
+                      <button class="action-button" type="button" id="imports-start-stakeholder">Stakeholder importieren</button>
                     </article>
                   </div>
                 </div>
@@ -18269,6 +18884,19 @@
                         <option value="Strategie">Strategie</option>
                       </select>
                     </div>
+                  </div>
+                </div>
+              </section>
+              <section class="profile-section profile-onboarding-section" aria-labelledby="profile-onboarding-title">
+                <h3 id="profile-onboarding-title">Onboarding</h3>
+                <div class="profile-onboarding-card">
+                  <div class="profile-onboarding-copy">
+                    <strong>Produkttour durch den Versorgungs-Kompass</strong>
+                    <span>Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Kontakte, Filter, Profile, Karte, Auswertung, Importe und Team.</span>
+                    <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
+                  </div>
+                  <div class="profile-onboarding-actions">
+                    <button class="action-button action-button--primary" type="button" id="profile-tour-start">Tour starten</button>
                   </div>
                 </div>
               </section>
@@ -18407,6 +19035,20 @@
           <button class="action-button action-button--danger" type="button" id="profile-photo-remove">Entfernen</button>
         </div>
         <div class="profile-notice"><span aria-hidden="true">i</span><span>Quadratische Bilder werden automatisch rund zugeschnitten. Die Initialen werden angezeigt, wenn kein Foto hinterlegt ist.</span></div>
+      </section>
+    </aside>
+
+    <aside class="product-tour" id="product-tour" aria-hidden="true" hidden>
+      <div class="product-tour__backdrop" id="product-tour-backdrop"></div>
+      <section class="product-tour__panel" id="product-tour-panel" role="dialog" aria-labelledby="product-tour-title" aria-describedby="product-tour-copy" tabindex="-1">
+        <div class="product-tour__meta" id="product-tour-meta">Schritt 1 von 6</div>
+        <h3 id="product-tour-title">Kontakte</h3>
+        <p id="product-tour-copy">Die wichtigsten Funktionen erscheinen hier Schritt für Schritt.</p>
+        <div class="product-tour__actions">
+          <button class="action-button" type="button" id="product-tour-skip">Überspringen</button>
+          <button class="action-button" type="button" id="product-tour-prev">Zurück</button>
+          <button class="action-button action-button--primary" type="button" id="product-tour-next">Weiter</button>
+        </div>
       </section>
     </aside>
 
@@ -18810,6 +19452,7 @@
     <script src="./data/demo-data.js"></script>
     <script src="./data/versorgungs-kompass-data.js"></script>
     <script src="./data/expertenkreis-data.js"></script>
+    <script src="./data/stakeholder-data.js"></script>
     <script>
       const avatarPalette = [
         "avatar--faculty",
@@ -19430,6 +20073,24 @@
         "Schleswig-Holstein": "SH",
         Thüringen: "TH"
       };
+      const stakeholderStateCenters = {
+        "Baden-Württemberg": { lat: 48.6616, lon: 9.3501 },
+        Bayern: { lat: 48.7904, lon: 11.4979 },
+        Berlin: { lat: 52.5200, lon: 13.4050 },
+        Brandenburg: { lat: 52.4125, lon: 12.5316 },
+        Bremen: { lat: 53.0793, lon: 8.8017 },
+        Hamburg: { lat: 53.5511, lon: 9.9937 },
+        Hessen: { lat: 50.6521, lon: 9.1624 },
+        "Mecklenburg-Vorpommern": { lat: 53.6127, lon: 12.4296 },
+        Niedersachsen: { lat: 52.6367, lon: 9.8451 },
+        "Nordrhein-Westfalen": { lat: 51.4332, lon: 7.6616 },
+        "Rheinland-Pfalz": { lat: 49.9130, lon: 7.4490 },
+        Saarland: { lat: 49.3964, lon: 6.9667 },
+        Sachsen: { lat: 51.1045, lon: 13.2017 },
+        "Sachsen-Anhalt": { lat: 51.9503, lon: 11.6923 },
+        "Schleswig-Holstein": { lat: 54.2194, lon: 9.6961 },
+        Thüringen: { lat: 50.9036, lon: 11.0269 }
+      };
       const statePotentialEstimates = {
         "Nordrhein-Westfalen": 38,
         Bayern: 28,
@@ -19579,12 +20240,33 @@
         note: ["notiz", "bemerkung", "kommentar", "hinweis"],
         source: ["quelle", "source", "herkunft"]
       };
+      const stakeholderImportAliases = {
+        stakeholderType: ["stakeholder typ", "stakeholder-typ", "typ", "type", "stakeholder_type", "stakeholder_type_id"],
+        organization: ["organisation", "organization", "organisationsname", "kv", "kv name", "kv-name", "kassenärztliche vereinigung", "kassenaerztliche vereinigung"],
+        person: ["person", "personenname", "name", "mitglied", "kontakt", "ansprechpartner"],
+        state: ["bundesland", "federal state", "state", "land"],
+        city: ["stadt", "ort", "city"],
+        postalCode: ["plz", "postleitzahl", "postal code", "zip"],
+        website: ["website", "webseite", "url", "homepage"],
+        email: ["email", "e-mail", "mail"],
+        phone: ["telefon", "phone", "tel"],
+        role: ["rolle", "funktion", "position", "amt"],
+        committee: ["gremium", "ausschuss", "committee"],
+        themes: ["themen", "topics", "tags", "schwerpunkte"],
+        source: ["quelle", "source", "herkunft"],
+        lat: ["lat", "latitude", "breite", "geo lat"],
+        lon: ["lon", "lng", "longitude", "länge", "laenge", "geo lon"],
+        representative: ["vertreterversammlung", "vv", "representative", "is_representative_assembly_member", "kartenanzeige"]
+      };
       const storageKey = "versorgungs-kompass-contacts-v9";
       const savedViewsStorageKey = "versorgungs-kompass-saved-views-v1";
       const settingsStorageKey = "versorgungs-kompass-user-settings-v1";
       const legacyOwnerAssignmentsStorageKey = "versorgungs-kompass-legacy-owner-assignments-v1";
       const visibleColumnsStorageKey = "versorgungs-kompass-visible-contact-columns-v1";
       const visibleOrganizationColumnsStorageKey = "versorgungs-kompass-visible-organization-columns-v1";
+      const ONBOARDING_VERSION = 1;
+      const ONBOARDING_ROLLOUT_AT = "2026-06-09T00:00:00.000+02:00";
+      const defaultTeamOptions = ["Stabsstelle Versorgung", "Produktmanagement", "Kommunikation", "Strategie"];
       const defaultContactColumnKeys = ["name", "organization", "category", "specialty", "location", "owner", "updated"];
       const contactTableColumns = [
         { key: "name", label: "Name", template: "minmax(220px, 1.18fr)", required: true },
@@ -19615,6 +20297,22 @@
       const expertOrganizationTableColumns = organizationTableColumns.map((column) =>
         column.key === "sector" ? { ...column, label: "Gruppe" } : column
       );
+      const stakeholderOrganizationTableColumns = [
+        { key: "organization", label: "Organisation", template: "minmax(280px, 1.35fr)", required: true },
+        { key: "type", label: "Typ", template: "minmax(150px, 0.7fr)" },
+        { key: "location", label: "Sitz", template: "minmax(150px, 0.7fr)" },
+        { key: "state", label: "Bundesland", template: "minmax(170px, 0.74fr)" },
+        { key: "people", label: "Personen", template: "minmax(120px, 0.52fr)" },
+        { key: "website", label: "Website", template: "minmax(170px, 0.74fr)" }
+      ];
+      const stakeholderPeopleTableColumns = [
+        { key: "name", label: "Name", template: "minmax(220px, 1.1fr)", required: true },
+        { key: "organization", label: "Organisation", template: "minmax(250px, 1.2fr)" },
+        { key: "role", label: "Rolle", template: "minmax(170px, 0.78fr)" },
+        { key: "committee", label: "Gremium", template: "minmax(150px, 0.7fr)" },
+        { key: "location", label: "Ort", template: "minmax(130px, 0.6fr)" },
+        { key: "source", label: "Quelle", template: "minmax(160px, 0.72fr)" }
+      ];
       const organizationContactRangeFilterOptions = [
         { value: "with", label: "Mit Kontakten" },
         { value: "without", label: "Ohne Kontakte" },
@@ -19727,6 +20425,18 @@
       const expertPagination = document.getElementById("experts-pagination");
       const expertModeButtons = [...document.querySelectorAll("[data-expert-mode]")];
       const expertTables = [...document.querySelectorAll("[data-expert-table]")];
+      const stakeholderOrganizationsTable = document.getElementById("stakeholder-organizations-table");
+      const stakeholderOrganizationsTableHead = document.getElementById("stakeholder-organizations-table-head");
+      const stakeholderOrganizationList = document.getElementById("stakeholder-organization-list");
+      const stakeholderPeopleTable = document.getElementById("stakeholder-people-table");
+      const stakeholderPeopleTableHead = document.getElementById("stakeholder-people-table-head");
+      const stakeholderPeopleList = document.getElementById("stakeholder-people-list");
+      const stakeholderMapPanel = document.getElementById("stakeholder-map-panel");
+      const stakeholderMapFrame = document.getElementById("stakeholder-map-frame");
+      const stakeholderPaginationMeta = document.getElementById("stakeholders-pagination-meta");
+      const stakeholderPagination = document.getElementById("stakeholders-pagination");
+      const stakeholderModeButtons = [...document.querySelectorAll("[data-stakeholder-mode]")];
+      const stakeholderTables = [...document.querySelectorAll("[data-stakeholder-table]")];
       const contactsTable = document.querySelector(".contacts-table");
       const contactsTableHead = document.getElementById("contacts-table-head");
       const bulkToolbar = document.getElementById("bulk-toolbar");
@@ -19805,6 +20515,7 @@
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const sidebarAboutButton = document.getElementById("sidebar-about-button");
+      const sidebarStakeholderButton = document.querySelector('[data-view-tab="stakeholders"]');
       const aboutVersionList = document.getElementById("about-version-list");
       const detailDrawer = document.getElementById("detail-drawer");
       const detailPanel = document.getElementById("detail-panel");
@@ -19837,6 +20548,9 @@
       const expertHeaderSearch = document.getElementById("expert-header-search");
       const expertCommandActions = document.getElementById("expert-command-actions");
       const expertColumnActions = document.getElementById("expert-column-actions");
+      const stakeholderModeActions = document.getElementById("stakeholder-mode-actions");
+      const stakeholderHeaderSearch = document.getElementById("stakeholder-header-search");
+      const stakeholderCommandActions = document.getElementById("stakeholder-command-actions");
       const newContactButton = document.getElementById("new-contact-button");
       const newOrganizationButton = document.getElementById("new-organization-button");
       const archiveViewButton = document.getElementById("archive-view-button");
@@ -19888,6 +20602,7 @@
       const importCsvButton = document.getElementById("import-csv-button");
       const exportCsvButton = document.getElementById("export-csv-button");
       const importsStartFileButton = document.getElementById("imports-start-file");
+      const importsStartStakeholderButton = document.getElementById("imports-start-stakeholder");
       const importsOpenTableButton = document.getElementById("imports-open-table");
       const importsShowHistoryButton = document.getElementById("imports-show-history");
       const registrationsSection = document.getElementById("registrations-section");
@@ -19897,6 +20612,7 @@
       const registrationsResetDemo = document.getElementById("registrations-reset-demo");
       const importsHistorySection = document.getElementById("imports-history-section");
       const csvFileInput = document.getElementById("csv-file-input");
+      const stakeholderFileInput = document.getElementById("stakeholder-file-input");
       const profileModal = document.getElementById("profile-page");
       const profileForm = document.getElementById("profile-form");
       const profileClose = document.getElementById("profile-close");
@@ -19921,6 +20637,30 @@
       const profilePhotoStatus = document.getElementById("profile-photo-status");
       const profileOwnerSummary = document.getElementById("profile-owner-summary");
       const profileOwnerList = document.getElementById("profile-owner-list");
+      const profileOnboardingStatus = document.getElementById("profile-onboarding-status");
+      const profileTourStart = document.getElementById("profile-tour-start");
+      const onboardingProfileForm = document.getElementById("onboarding-profile-form");
+      const onboardingDisplayName = document.getElementById("onboarding-display-name");
+      const onboardingEmail = document.getElementById("onboarding-email");
+      const onboardingTeam = document.getElementById("onboarding-team");
+      const onboardingAvatarPreview = document.getElementById("onboarding-avatar-preview");
+      const onboardingPhotoButton = document.getElementById("onboarding-photo-button");
+      const onboardingPhotoInput = document.getElementById("onboarding-photo-input");
+      const onboardingPhotoStatus = document.getElementById("onboarding-photo-status");
+      const onboardingStatus = document.getElementById("onboarding-status");
+      const onboardingTourStatus = document.getElementById("onboarding-tour-status");
+      const onboardingTourStart = document.getElementById("onboarding-tour-start");
+      const onboardingTourSkip = document.getElementById("onboarding-tour-skip");
+      const onboardingStepDots = [...document.querySelectorAll("[data-onboarding-step-dot]")];
+      const onboardingStepPanels = [...document.querySelectorAll("[data-onboarding-step-panel]")];
+      const productTour = document.getElementById("product-tour");
+      const productTourPanel = document.getElementById("product-tour-panel");
+      const productTourMeta = document.getElementById("product-tour-meta");
+      const productTourTitle = document.getElementById("product-tour-title");
+      const productTourCopy = document.getElementById("product-tour-copy");
+      const productTourSkip = document.getElementById("product-tour-skip");
+      const productTourPrev = document.getElementById("product-tour-prev");
+      const productTourNext = document.getElementById("product-tour-next");
       viewShell?.appendChild(profileModal);
       if (newContactButton && archiveViewButton && contactMatchingWorklistButton) {
         contactCommandActions?.append(newContactButton, archiveViewButton, contactMatchingWorklistButton);
@@ -19952,6 +20692,8 @@
       let activeSettingsTab = "imports";
       let activeProfileTab = "profile";
       let activeExpertMode = "contacts";
+      let activeStakeholderMode = "organizations";
+      let activeStakeholderTypeId = "kv";
       let activeExpertMatchDirection = "careToExpert";
       let activeCareDuplicateView = "";
       let activeExpertDuplicates = false;
@@ -19959,6 +20701,8 @@
       let activeOrganizationId = null;
       let activeExpertId = null;
       let activeExpertOrganizationId = null;
+      let activeStakeholderPersonId = null;
+      let activeStakeholderOrganizationId = null;
       let activeNameEditorId = null;
       let selectedPriorities = [];
       let selectedCategories = [];
@@ -19985,6 +20729,7 @@
       let formatDetailExpanded = false;
       let formatEditorCurrentStep = "basis";
       let formatEditingNoteId = null;
+      let contactEditingNoteId = null;
       let formatStatusFilter = "";
       let formatLoadErrorMessage = "";
       let participantPlannerFormatId = null;
@@ -20038,6 +20783,10 @@
       let legacyOwnerAssignments = new Map();
       let savedViews = [];
       let userSettings = null;
+      let onboardingActive = false;
+      let onboardingStep = "profile";
+      let pendingPostOnboardingView = "contacts";
+      let productTourState = { open: false, index: 0, source: "manual", target: null };
       const collapsedTeams = new Set();
       let activeCareQueueKey = "";
       const selectedCareIds = new Set();
@@ -20137,10 +20886,12 @@
       }
 
       function canAccessView(view) {
-        return !["settings", "about", "quality"].includes(view) || canAdministerData();
+        if (view === "onboarding") return onboardingActive;
+        return !["settings", "about", "quality", "stakeholders"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
+        if (view === "onboarding") return onboardingActive ? "onboarding" : "contacts";
         if (view === "imports") return canAdministerData() ? "settings" : "contacts";
         if (view === "quality") return canAdministerData() ? "quality" : "contacts";
         return canAccessView(view) ? view : "contacts";
@@ -20162,6 +20913,21 @@
         element.setAttribute("aria-hidden", visible ? "false" : "true");
       }
 
+      function isSidebarNavActionVisible(element) {
+        return Boolean(element)
+          && !element.classList.contains("is-role-hidden")
+          && !element.hidden
+          && element.getAttribute("aria-hidden") !== "true";
+      }
+
+      function syncSidebarSections() {
+        document.querySelectorAll("[data-sidebar-section]").forEach((section) => {
+          const actions = [...section.querySelectorAll(".primary-tab, .sidebar-link, .sidebar-footer")];
+          const visible = actions.some(isSidebarNavActionVisible);
+          setRoleElementVisible(section, visible);
+        });
+      }
+
       function applyRoleUi() {
         const role = currentRole();
         document.body.dataset.userRole = role;
@@ -20169,6 +20935,7 @@
         setRoleElementVisible(newOrganizationButton, true);
         setRoleElementVisible(openImportButton, canAdministerData());
         setRoleElementVisible(importsStartFileButton, canAdministerData());
+        setRoleElementVisible(importsStartStakeholderButton, canAdministerData());
         setRoleElementVisible(importsOpenTableButton, canEditContacts());
         setRoleElementVisible(registrationsRefresh, canAdministerData());
         setRoleElementVisible(registrationsResetDemo, canAdministerData());
@@ -20182,6 +20949,7 @@
         setRoleElementVisible(expertDuplicatesButton, canAdministerData());
         setRoleElementVisible(newFormatButton, canEditContacts());
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
+        setRoleElementVisible(sidebarStakeholderButton, canAdministerData());
         setRoleElementVisible(sidebarQualityButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
         setRoleElementVisible(sidebarSettingsButton, true);
@@ -20195,6 +20963,7 @@
           setActiveView("contacts");
           updateRouteHash("contacts");
         }
+        syncSidebarSections();
       }
 
       async function logout() {
@@ -21966,6 +22735,257 @@
         downloadBlob(blob, "versorgungs-kompass-import-vorlage.csv");
       }
 
+      function stakeholderColumnValue(row, aliases = []) {
+        const normalizedAliases = aliases.map(normalizeImportKey);
+        const values = row?.values || row || {};
+        const match = Object.entries(values).find(([column]) => {
+          const normalizedColumn = normalizeImportKey(column);
+          return normalizedAliases.some((alias) => normalizedColumn === alias || normalizedColumn.includes(alias));
+        });
+        return String(match?.[1] || "").trim();
+      }
+
+      function normalizeStakeholderTypeId(value = "") {
+        const normalized = normalizeImportKey(value);
+        if (!normalized || normalized === "kv" || normalized.includes("kassenaerztliche") || normalized.includes("kassenarztliche")) return "kv";
+        return normalizeClassPart(value).slice(0, 80) || "kv";
+      }
+
+      function normalizeStakeholderState(value = "") {
+        const trimmed = String(value || "").trim();
+        if (!trimmed) return "";
+        const direct = germanStates.find((state) => state.toLowerCase() === trimmed.toLowerCase());
+        if (direct) return direct;
+        const abbreviation = trimmed.toUpperCase();
+        return Object.entries(stateAbbreviations).find(([, short]) => short === abbreviation)?.[0] || trimmed;
+      }
+
+      function booleanFromImport(value = "") {
+        const normalized = normalizeImportKey(value);
+        if (!normalized) return false;
+        return ["1", "true", "wahr", "ja", "yes", "y", "x", "vv", "vertreterversammlung"].includes(normalized);
+      }
+
+      function stakeholderImportRowsFromMatrix(rows = []) {
+        const [headerRow = [], ...bodyRows] = rows;
+        const headers = headerRow.map((header, index) => String(header || `Spalte ${index + 1}`).trim());
+        return bodyRows
+          .map((row, index) => {
+            const values = {};
+            headers.forEach((header, columnIndex) => {
+              values[header || `Spalte ${columnIndex + 1}`] = row[columnIndex] ?? "";
+            });
+            return { rowNumber: index + 2, values };
+          })
+          .filter((row) => Object.values(row.values).some((value) => String(value || "").trim()));
+      }
+
+      async function parseStakeholderImportFile(file) {
+        const extension = String(file.name || "").split(".").pop()?.toLowerCase() || "";
+        if (extension === "csv" || String(file.type || "").includes("csv")) {
+          const text = await file.text();
+          return stakeholderImportRowsFromMatrix(parseDelimitedRows(text));
+        }
+        if (["xlsx", "xls"].includes(extension)) {
+          if (!window.XLSX) throw new Error("XLSX-Bibliothek ist nicht geladen.");
+          const buffer = await file.arrayBuffer();
+          const workbook = window.XLSX.read(buffer, { type: "array", cellDates: false });
+          const sheetName = workbook.SheetNames[0];
+          const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, raw: false, defval: "" });
+          return stakeholderImportRowsFromMatrix(rows);
+        }
+        throw new Error("Bitte lade eine CSV- oder XLSX-Datei hoch.");
+      }
+
+      function kvCanonicalNameMap() {
+        return new Map(seedStakeholderOrganizations
+          .filter((organization) => organization.stakeholderTypeId === "kv" && organization.status !== "archived")
+          .map((organization) => [normalizeOrganizationName(organization.name), organization.name]));
+      }
+
+      function organizationCoordinates(organization = {}) {
+        const lat = Number.parseFloat(organization.lat ?? organization.latitude ?? "");
+        const lon = Number.parseFloat(organization.lon ?? organization.longitude ?? "");
+        return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+      }
+
+      function buildStakeholderImportPayload(rows = [], fileName = "") {
+        const now = new Date().toISOString();
+        const organizationById = new Map();
+        const organizationByName = new Map();
+        const peopleById = new Map();
+        const duplicateOrganizationRows = [];
+        const seenOrganizationOnlyRows = new Map();
+        const errors = [];
+        const warnings = [];
+
+        stakeholderOrganizations
+          .filter((organization) => organization.stakeholderTypeId === "kv" && organization.status !== "archived")
+          .forEach((organization) => {
+            const normalizedName = normalizeOrganizationName(organization.name);
+            organizationById.set(organization.id, { ...organization });
+            if (normalizedName) organizationByName.set(normalizedName, organization.id);
+          });
+        stakeholderPeople.forEach((person) => peopleById.set(person.id, { ...person }));
+
+        rows.forEach((row) => {
+          const typeId = normalizeStakeholderTypeId(stakeholderColumnValue(row, stakeholderImportAliases.stakeholderType));
+          const organizationName = stakeholderColumnValue(row, stakeholderImportAliases.organization);
+          const personName = stakeholderColumnValue(row, stakeholderImportAliases.person);
+          if (!organizationName) {
+            errors.push(`Zeile ${row.rowNumber}: Organisationsname fehlt.`);
+            return;
+          }
+          const normalizedOrganizationName = normalizeOrganizationName(organizationName);
+          const existingOrganizationId = organizationByName.get(normalizedOrganizationName);
+          const organizationId = existingOrganizationId || `stakeholder-org-${normalizeClassPart(organizationName).slice(0, 90) || row.rowNumber}`;
+          const currentOrganization = organizationById.get(organizationId) || {};
+          const state = normalizeStakeholderState(stakeholderColumnValue(row, stakeholderImportAliases.state)) || currentOrganization.state || "";
+          const city = stakeholderColumnValue(row, stakeholderImportAliases.city) || currentOrganization.city || "";
+          const postalCode = stakeholderColumnValue(row, stakeholderImportAliases.postalCode) || currentOrganization.postalCode || "";
+          const website = stakeholderColumnValue(row, stakeholderImportAliases.website) || currentOrganization.website || "";
+          const email = stakeholderColumnValue(row, stakeholderImportAliases.email) || currentOrganization.email || "";
+          const phone = stakeholderColumnValue(row, stakeholderImportAliases.phone) || currentOrganization.phone || "";
+          const source = stakeholderColumnValue(row, stakeholderImportAliases.source) || currentOrganization.source || fileName || "Stakeholder-Import";
+          const latValue = Number.parseFloat(stakeholderColumnValue(row, stakeholderImportAliases.lat));
+          const lonValue = Number.parseFloat(stakeholderColumnValue(row, stakeholderImportAliases.lon));
+          const hasDirectCoordinates = Number.isFinite(latValue) && Number.isFinite(lonValue);
+          const organizationPatch = sanitizeStakeholderOrganization({
+            ...currentOrganization,
+            id: organizationId,
+            stakeholderTypeId: typeId,
+            stakeholderType: typeId,
+            name: organizationName,
+            organizationType: currentOrganization.organizationType || "Kassenärztliche Vereinigung",
+            postalCode,
+            city,
+            state,
+            website,
+            email,
+            phone,
+            source,
+            status: "active",
+            lat: !personName && hasDirectCoordinates ? latValue : currentOrganization.lat,
+            lon: !personName && hasDirectCoordinates ? lonValue : currentOrganization.lon,
+            createdAt: currentOrganization.createdAt || now,
+            updatedAt: now
+          }, organizationById.size);
+          organizationById.set(organizationId, organizationPatch);
+          organizationByName.set(normalizedOrganizationName, organizationId);
+
+          if (!personName) {
+            const previousRow = seenOrganizationOnlyRows.get(normalizedOrganizationName);
+            if (previousRow) duplicateOrganizationRows.push(`${organizationName} (Zeile ${previousRow} und ${row.rowNumber})`);
+            seenOrganizationOnlyRows.set(normalizedOrganizationName, row.rowNumber);
+            return;
+          }
+
+          const role = stakeholderColumnValue(row, stakeholderImportAliases.role);
+          const committee = stakeholderColumnValue(row, stakeholderImportAliases.committee);
+          const representativeValue = stakeholderColumnValue(row, stakeholderImportAliases.representative);
+          const isRepresentativeAssemblyMember = booleanFromImport(representativeValue) ||
+            normalizeImportKey(committee).includes("vertreterversammlung") ||
+            normalizeImportKey(role).includes("vertreterversammlung");
+          const directPosition = hasDirectCoordinates ? { lat: latValue, lon: lonValue, source: "person" } : null;
+          const organizationPosition = organizationCoordinates(organizationPatch);
+          const statePosition = stakeholderStateCenters[state] || null;
+          const mapPosition = directPosition || (organizationPosition ? { ...organizationPosition, source: "organization" } : null) || (statePosition ? { ...statePosition, source: "state" } : null);
+          const personId = `stakeholder-person-${normalizeClassPart(organizationName).slice(0, 50)}-${normalizeClassPart(personName).slice(0, 70) || row.rowNumber}`;
+          const themes = stakeholderColumnValue(row, stakeholderImportAliases.themes);
+          const personPatch = sanitizeStakeholderPerson({
+            ...peopleById.get(personId),
+            id: personId,
+            stakeholderTypeId: typeId,
+            stakeholderType: typeId,
+            organizationId,
+            organization: organizationName,
+            name: personName,
+            role,
+            contactRole: role,
+            committee,
+            city,
+            state,
+            email,
+            phone,
+            themes,
+            source,
+            isRepresentativeAssemblyMember,
+            lat: mapPosition?.lat ?? null,
+            lon: mapPosition?.lon ?? null,
+            mapPositionSource: mapPosition?.source || "",
+            status: "active",
+            createdAt: peopleById.get(personId)?.createdAt || now,
+            updatedAt: now
+          }, peopleById.size);
+          peopleById.set(personId, personPatch);
+        });
+
+        duplicateOrganizationRows.forEach((label) => warnings.push(`Doppelte KV-Organisationszeile: ${label}.`));
+        const activeKvOrganizations = [...organizationById.values()].filter((organization) => organization.stakeholderTypeId === "kv" && organization.status !== "archived");
+        const canonicalNames = kvCanonicalNameMap();
+        const activeKvNames = new Set(activeKvOrganizations.map((organization) => normalizeOrganizationName(organization.name)));
+        const missingKvNames = [...canonicalNames.entries()].filter(([key]) => !activeKvNames.has(key)).map(([, name]) => name);
+        if (missingKvNames.length) warnings.push(`Fehlende KVn: ${missingKvNames.join(", ")}.`);
+        if (activeKvOrganizations.length !== 17) warnings.push(`Nach Import sind ${activeKvOrganizations.length} aktive KV-Organisationen vorhanden; erwartet sind 17.`);
+
+        return {
+          payload: {
+            types: [{ id: "kv", label: "Kassenärztliche Vereinigungen", sortOrder: 10, status: "active" }],
+            organizations: activeKvOrganizations,
+            people: [...peopleById.values()]
+          },
+          errors,
+          warnings,
+          organizationCount: activeKvOrganizations.length,
+          peopleCount: [...peopleById.values()].length
+        };
+      }
+
+      function selectStakeholderImportFile() {
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Stakeholder importieren.");
+          return;
+        }
+        stakeholderFileInput?.click();
+      }
+
+      async function handleStakeholderImportFile(file) {
+        if (!file) return;
+        if (!canAdministerData()) {
+          showPermissionDenied("Nur Admins dürfen Stakeholder importieren.");
+          return;
+        }
+        try {
+          const rows = await parseStakeholderImportFile(file);
+          if (!rows.length) {
+            window.alert("Die Datei enthielt keine importierbaren Stakeholder-Zeilen.");
+            return;
+          }
+          const result = buildStakeholderImportPayload(rows, file.name || "");
+          if (result.errors.length) {
+            window.alert(`Stakeholder-Import abgebrochen:\n${result.errors.slice(0, 8).join("\n")}`);
+            return;
+          }
+          if (result.warnings.length) {
+            window.alert(`Stakeholder-Import geprüft:\n${result.warnings.slice(0, 8).join("\n")}`);
+          }
+          const imported = await window.dataService.upsertStakeholderImport(result.payload);
+          stakeholderTypes = (imported.types || result.payload.types).map((entry, index) => sanitizeStakeholderType(entry, index));
+          stakeholderOrganizations = (imported.organizations || result.payload.organizations).map((entry, index) => sanitizeStakeholderOrganization(entry, index));
+          stakeholderPeople = (imported.people || result.payload.people).map((entry, index) => sanitizeStakeholderPerson(entry, index));
+          setStorageStatus(`${result.organizationCount} KVn und ${result.peopleCount} Stakeholder-Personen importiert`);
+          activeStakeholderMode = "organizations";
+          currentPage = 1;
+          closeDetail();
+          setActiveView("stakeholders");
+          updateRouteHash("stakeholders");
+          updateView();
+        } catch (error) {
+          console.error("Stakeholder-Import fehlgeschlagen.", error);
+          window.alert(`Stakeholder-Import fehlgeschlagen: ${error?.message || "Bitte Datei prüfen."}`);
+        }
+      }
+
       function downloadBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -22204,11 +23224,105 @@
         };
       }
 
+      function sanitizeStakeholderType(entry = {}, index = 0) {
+        const id = String(entry.id || entry.value || entry.type || "kv").trim() || `stakeholder-type-${index + 1}`;
+        return {
+          id,
+          label: String(entry.label || entry.name || id).trim(),
+          description: String(entry.description || "").trim(),
+          sortOrder: Number(entry.sortOrder ?? entry.sort_order ?? (index + 1) * 10),
+          status: String(entry.status || "active").trim() || "active",
+          createdAt: entry.createdAt || entry.created_at || "",
+          updatedAt: entry.updatedAt || entry.updated_at || ""
+        };
+      }
+
+      function sanitizeStakeholderOrganization(entry = {}, index = 0) {
+        const name = String(entry.name || entry.organization || entry.organisation || "").trim();
+        const normalizedName = normalizeOrganizationName(entry.normalizedName || entry.normalized_name || name);
+        const latitude = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
+        const longitude = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
+        return {
+          id: String(entry.id || `stakeholder-org-${normalizedName || String(index + 1).padStart(2, "0")}`).trim(),
+          stakeholderTypeId: String(entry.stakeholderTypeId || entry.stakeholder_type_id || entry.stakeholderType || "kv").trim() || "kv",
+          stakeholderType: String(entry.stakeholderType || entry.stakeholder_type_id || entry.stakeholderTypeId || "kv").trim() || "kv",
+          name,
+          normalizedName,
+          organizationType: String(entry.organizationType || entry.organization_type || "Kassenärztliche Vereinigung").trim(),
+          postalCode: String(entry.postalCode || entry.postal_code || "").trim(),
+          city: String(entry.city || "").trim(),
+          state: String(entry.state || entry.federal_state || "").trim(),
+          latitude: Number.isFinite(latitude) ? latitude : null,
+          longitude: Number.isFinite(longitude) ? longitude : null,
+          lat: Number.isFinite(latitude) ? latitude : null,
+          lon: Number.isFinite(longitude) ? longitude : null,
+          website: String(entry.website || entry.url || "").trim(),
+          phone: String(entry.phone || "").trim(),
+          email: String(entry.email || "").trim(),
+          notes: String(entry.notes || entry.note || "").trim(),
+          source: String(entry.source || "").trim(),
+          status: String(entry.status || "active").trim() || "active",
+          personCount: Number(entry.personCount || entry.person_count || 0),
+          createdAt: entry.createdAt || entry.created_at || "",
+          updatedAt: entry.updatedAt || entry.updated_at || ""
+        };
+      }
+
+      function sanitizeStakeholderPerson(entry = {}, index = 0) {
+        const name = String(entry.name || "").trim();
+        const latitude = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
+        const longitude = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
+        const representativeValue = entry.isRepresentativeAssemblyMember ?? entry.is_representative_assembly_member;
+        return {
+          id: String(entry.id || `stakeholder-person-${String(index + 1).padStart(2, "0")}`).trim(),
+          stakeholderTypeId: String(entry.stakeholderTypeId || entry.stakeholder_type_id || entry.stakeholderType || "kv").trim() || "kv",
+          stakeholderType: String(entry.stakeholderType || entry.stakeholder_type_id || entry.stakeholderTypeId || "kv").trim() || "kv",
+          organizationId: String(entry.organizationId || entry.organization_id || "").trim(),
+          organization: String(entry.organization || "").trim(),
+          name,
+          displayName: buildDisplayName(name || "Stakeholder-Person", ""),
+          initials: initialsFromLabel(name || "SP"),
+          avatarClass: "avatar--network",
+          role: String(entry.role || entry.contactRole || entry.contact_role || "").trim(),
+          contactRole: String(entry.contactRole || entry.role || entry.contact_role || "").trim(),
+          committee: String(entry.committee || entry.gremium || "").trim(),
+          city: String(entry.city || "").trim(),
+          state: String(entry.state || entry.federal_state || "").trim(),
+          latitude: Number.isFinite(latitude) ? latitude : null,
+          longitude: Number.isFinite(longitude) ? longitude : null,
+          lat: Number.isFinite(latitude) ? latitude : null,
+          lon: Number.isFinite(longitude) ? longitude : null,
+          mapPositionSource: String(entry.mapPositionSource || entry.map_position_source || "").trim(),
+          email: String(entry.email || "").trim(),
+          phone: String(entry.phone || "").trim(),
+          linkedin: String(entry.linkedin || "").trim(),
+          themes: normalizeThemes(entry.themes || entry.topics || ""),
+          note: String(entry.note || entry.notes || "").trim(),
+          source: String(entry.source || "").trim(),
+          sources: normalizeSources(entry.sources || entry.source || ""),
+          url: String(entry.url || entry.profileUrl || entry.profile_url || "").trim(),
+          isRepresentativeAssemblyMember: typeof representativeValue === "string" ? booleanFromImport(representativeValue) : Boolean(representativeValue),
+          status: String(entry.status || "active").trim() || "active",
+          createdAt: entry.createdAt || entry.created_at || "",
+          updatedAt: entry.updatedAt || entry.updated_at || "",
+          _index: index
+        };
+      }
+
       const seedExpertContacts = (window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS || []).map((entry, index) =>
         sanitizeExpertContact(entry, index)
       );
       const seedExpertOrganizations = (window.VERSORGUNGS_COMPASS_EXPERT_ORGANIZATIONS || []).map((entry, index) =>
         sanitizeExpertOrganization(entry, index)
+      );
+      const seedStakeholderTypes = (window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES || []).map((entry, index) =>
+        sanitizeStakeholderType(entry, index)
+      );
+      const seedStakeholderOrganizations = (window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS || []).map((entry, index) =>
+        sanitizeStakeholderOrganization(entry, index)
+      );
+      const seedStakeholderPeople = (window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE || []).map((entry, index) =>
+        sanitizeStakeholderPerson(entry, index)
       );
       const deprecatedImageUrls = new Map([
         [
@@ -22283,6 +23397,9 @@
       let expertContacts = seedExpertContacts;
       let expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
       let expertEntityLinks = [];
+      let stakeholderTypes = seedStakeholderTypes;
+      let stakeholderOrganizations = seedStakeholderOrganizations;
+      let stakeholderPeople = seedStakeholderPeople;
       let isInitialDataLoading = true;
       let initialDataLoadingSlow = false;
       let organizationLogoMapCache = null;
@@ -22296,6 +23413,7 @@
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Chronologisches Protokoll der Kontaktänderungen im Versorgungs-Kompass." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
+        stakeholders: { title: "Stakeholder", subtitle: "Kassenärztliche Vereinigungen, Personen und Vertreterversammlungen." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
@@ -22303,7 +23421,8 @@
         team: { title: "Team", subtitle: "Accounts, Rollen und Zuständigkeiten im Überblick." },
         settings: { title: "Import", subtitle: "Kontakte erfassen, importieren und Backend-Eingänge prüfen." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
-        profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." }
+        profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." },
+        onboarding: { title: "Willkommen", subtitle: "Profil einrichten und Tour starten." }
       };
 
       const appVersionHistory = [
@@ -23840,6 +24959,669 @@
         });
       }
 
+      function activeStakeholderOrganizationsTotal() {
+        return stakeholderOrganizations.filter((organization) => organization.status !== "archived" && organization.stakeholderTypeId === activeStakeholderTypeId).length;
+      }
+
+      function activeStakeholderPeopleTotal() {
+        return stakeholderPeople.filter((person) => person.status !== "archived" && person.stakeholderTypeId === activeStakeholderTypeId).length;
+      }
+
+      function stakeholderTypeLabel(typeId = activeStakeholderTypeId) {
+        return stakeholderTypes.find((type) => type.id === typeId)?.label || "Stakeholder";
+      }
+
+      function stakeholderOrganizationById(id = "") {
+        return stakeholderOrganizations.find((organization) => organization.id === id) || null;
+      }
+
+      function stakeholderOrganizationPeople(organization) {
+        const normalized = normalizeOrganizationName(organization?.name);
+        return stakeholderPeople
+          .filter((person) => person.status !== "archived")
+          .filter((person) => {
+            if (organization?.id && person.organizationId === organization.id) return true;
+            return normalized && normalizeOrganizationName(person.organization) === normalized;
+          });
+      }
+
+      function stakeholderOrganizationLocation(organization) {
+        return [organization?.postalCode, organization?.city].filter(Boolean).join(" ");
+      }
+
+      function stakeholderPersonOrganization(person) {
+        return stakeholderOrganizationById(person.organizationId) ||
+          stakeholderOrganizations.find((organization) => normalizeOrganizationName(organization.name) === normalizeOrganizationName(person.organization)) ||
+          null;
+      }
+
+      function stakeholderPersonLocation(person) {
+        return [person?.city, person?.state].filter(Boolean).join(", ");
+      }
+
+      function coordinatesFrom(value = {}) {
+        const lat = Number.parseFloat(value.lat ?? value.latitude ?? "");
+        const lon = Number.parseFloat(value.lon ?? value.longitude ?? "");
+        return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+      }
+
+      function stakeholderPersonMapPosition(person) {
+        const direct = coordinatesFrom(person);
+        if (direct) return { ...direct, source: person.mapPositionSource || "person" };
+        const organization = stakeholderPersonOrganization(person);
+        const organizationCoordinates = coordinatesFrom(organization || {});
+        if (organizationCoordinates) return { ...organizationCoordinates, source: "organization" };
+        const stateCenter = stakeholderStateCenters[person.state || organization?.state || ""];
+        if (stateCenter) return { ...stateCenter, source: "state" };
+        return null;
+      }
+
+      function stakeholderMapPeople() {
+        return filteredStakeholderPeople()
+          .filter((person) => person.isRepresentativeAssemblyMember)
+          .map((person) => {
+            const position = stakeholderPersonMapPosition(person);
+            return position ? { ...person, lat: position.lat, lon: position.lon, mapPositionSource: position.source } : null;
+          })
+          .filter(Boolean);
+      }
+
+      function stakeholderSearchText(values = []) {
+        return values
+          .flatMap((value) => Array.isArray(value) ? value : [value])
+          .map((value) => String(value || "").toLowerCase())
+          .join(" ");
+      }
+
+      function filteredStakeholderOrganizations() {
+        const search = searchInput.value.trim().toLowerCase();
+        return stakeholderOrganizations
+          .filter((organization) => organization.status !== "archived" && organization.stakeholderTypeId === activeStakeholderTypeId)
+          .filter((organization) => {
+            if (!search) return true;
+            return stakeholderSearchText([
+              organization.name,
+              organization.organizationType,
+              organization.city,
+              organization.state,
+              organization.website,
+              organization.source,
+              stakeholderTypeLabel(organization.stakeholderTypeId)
+            ]).includes(search);
+          })
+          .sort((left, right) => left.name.localeCompare(right.name, "de"));
+      }
+
+      function filteredStakeholderPeople() {
+        const search = searchInput.value.trim().toLowerCase();
+        return stakeholderPeople
+          .filter((person) => person.status !== "archived" && person.stakeholderTypeId === activeStakeholderTypeId)
+          .filter((person) => {
+            if (!search) return true;
+            return stakeholderSearchText([
+              person.name,
+              person.organization,
+              person.role,
+              person.committee,
+              person.city,
+              person.state,
+              person.themes,
+              person.source,
+              person.isRepresentativeAssemblyMember ? "Vertreterversammlung VV" : ""
+            ]).includes(search);
+          })
+          .sort((left, right) => left.name.localeCompare(right.name, "de"));
+      }
+
+      function renderStakeholderTablesVisibility() {
+        if (appShell) appShell.dataset.stakeholderMode = activeStakeholderMode;
+        const organizationCount = activeStakeholderOrganizationsTotal();
+        const peopleCount = activeStakeholderPeopleTotal();
+        const mapCount = stakeholderMapPeople().length;
+        stakeholderModeButtons.forEach((button) => {
+          const mode = button.dataset.stakeholderMode || "organizations";
+          const active = mode === activeStakeholderMode;
+          const label = mode === "map" ? "Karte" : mode === "people" ? "Personen" : "Organisationen";
+          const count = mode === "map" ? mapCount : mode === "people" ? peopleCount : organizationCount;
+          button.replaceChildren();
+          const labelNode = document.createElement("span");
+          labelNode.className = "experts-mode-label";
+          labelNode.textContent = `${label} `;
+          const countNode = document.createElement("span");
+          countNode.className = "experts-mode-count";
+          countNode.textContent = String(count);
+          button.append(labelNode, countNode);
+          button.setAttribute("aria-label", `${label}: ${count}`);
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-selected", String(active));
+          button.setAttribute("tabindex", active ? "0" : "-1");
+        });
+        stakeholderTables.forEach((table) => {
+          table.hidden = table.dataset.stakeholderTable !== activeStakeholderMode;
+        });
+      }
+
+      function stakeholderOrganizationTableCellMarkup(organization, key) {
+        const peopleCount = stakeholderOrganizationPeople(organization).length;
+        if (key === "organization") {
+          return `
+            <div class="organization-cell">
+              ${organizationLogoMarkup(organization, "sm")}
+              <div class="contact-meta">
+                <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
+                <div class="contact-subline">${escapeHtml(stakeholderTypeLabel(organization.stakeholderTypeId))}</div>
+              </div>
+            </div>
+          `;
+        }
+        if (key === "type") return sectorBadgeMarkup(organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId));
+        if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderOrganizationLocation(organization) || "-")}</div>`;
+        if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.state || "-")}</div>`;
+        if (key === "people") return `<button class="organization-contact-link" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Person" : "Personen"}</button>`;
+        if (key === "website") {
+          const website = normalizedWebsiteUrl(organization.website);
+          return website ? `<a class="contact-subline contact-subline--primary" href="${escapeHtml(website)}" target="_blank" rel="noopener">${escapeHtml(website.replace(/^https?:\/\//i, ""))}</a>` : `<div class="contact-subline contact-subline--primary">-</div>`;
+        }
+        return "";
+      }
+
+      function renderStakeholderOrganizationsTableHead(columns = stakeholderOrganizationTableColumns) {
+        if (!stakeholderOrganizationsTableHead) return;
+        stakeholderOrganizationsTableHead.innerHTML = columns
+          .map((column) => `<div class="cell--${column.key}">${escapeHtml(column.label)}</div>`)
+          .join("");
+      }
+
+      function renderStakeholderOrganizationsTable(items = filteredStakeholderOrganizations()) {
+        if (!stakeholderOrganizationList || !stakeholderPagination || !stakeholderPaginationMeta) return;
+        activeStakeholderMode = "organizations";
+        renderStakeholderTablesVisibility();
+        const columns = stakeholderOrganizationTableColumns;
+        updateStakeholderOrganizationTableGrid(columns);
+        if (!items.length) {
+          renderStakeholderOrganizationsTableHead(columns);
+          stakeholderOrganizationList.innerHTML = `<div class="empty">Keine Stakeholder-Organisationen im aktuellen Filter.</div>`;
+          stakeholderPaginationMeta.textContent = "0-0 von 0 Organisationen";
+          stakeholderPagination.innerHTML = "";
+          return;
+        }
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        stakeholderPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Organisationen`;
+        renderStakeholderOrganizationsTableHead(columns);
+        stakeholderOrganizationList.innerHTML = pageItems
+          .map((organization) => {
+            if (isMobileLayout()) {
+              const peopleCount = stakeholderOrganizationPeople(organization).length;
+              return `
+                <article class="row organization-mobile-card ${organization.id === activeStakeholderOrganizationId ? "is-active" : ""}" data-stakeholder-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                  <div class="cell--organization">${stakeholderOrganizationTableCellMarkup(organization, "organization")}</div>
+                  <div class="organization-mobile-meta">
+                    <span class="organization-mobile-sector">${sectorBadgeMarkup(organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId))}</span>
+                    <span class="organization-mobile-state">${escapeHtml(organization.state || "-")}</span>
+                    <button class="organization-contact-link organization-mobile-count" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Person" : "Personen"}</button>
+                  </div>
+                </article>
+              `;
+            }
+            return `
+              <article class="row ${organization.id === activeStakeholderOrganizationId ? "is-active" : ""}" data-stakeholder-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                ${columns.map((column) => `<div class="cell--${column.key}">${stakeholderOrganizationTableCellMarkup(organization, column.key)}</div>`).join("")}
+              </article>
+            `;
+          })
+          .join("");
+        stakeholderPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-stakeholder-org-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-stakeholder-org-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-stakeholder-org-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+        stakeholderOrganizationList.querySelectorAll("[data-stakeholder-organization-id]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, input, label, a, select, textarea")) return;
+            openStakeholderOrganizationDetail(row.dataset.stakeholderOrganizationId, items);
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openStakeholderOrganizationDetail(row.dataset.stakeholderOrganizationId, items);
+            }
+          });
+        });
+        stakeholderOrganizationList.querySelectorAll("[data-open-stakeholder-organization]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openStakeholderOrganizationDetail(button.dataset.openStakeholderOrganization, items);
+          });
+        });
+        stakeholderPagination.querySelectorAll("[data-stakeholder-org-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.stakeholderOrgPage);
+            renderStakeholderOrganizationsTable(items);
+          });
+        });
+        stakeholderPagination.querySelectorAll("[data-stakeholder-org-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.stakeholderOrgPageNav === "next" ? 1 : -1;
+            renderStakeholderOrganizationsTable(items);
+          });
+        });
+      }
+
+      function stakeholderPersonTableCellMarkup(person, key) {
+        if (key === "name") {
+          return `
+            <div class="contact-cell">
+              ${contactAvatarMarkup(person, "sm")}
+              <div class="contact-meta">
+                <div class="contact-name__line">
+                  <button class="contact-name-button" type="button" data-open-stakeholder-person="${escapeHtml(person.id)}">${escapeHtml(person.name) || "&mdash;"}</button>
+                </div>
+                ${person.isRepresentativeAssemblyMember ? `<div class="contact-subline">Vertreterversammlung</div>` : ""}
+              </div>
+            </div>
+          `;
+        }
+        if (key === "organization") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.organization || stakeholderPersonOrganization(person)?.name || "Nicht dokumentiert")}</div>`;
+        if (key === "role") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.role || "-")}</div>`;
+        if (key === "committee") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.committee || "-")}</div>`;
+        if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderPersonLocation(person) || "-")}</div>`;
+        if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.source || "-")}</div>`;
+        return "";
+      }
+
+      function renderStakeholderPeopleTableHead(columns = stakeholderPeopleTableColumns) {
+        if (!stakeholderPeopleTableHead) return;
+        stakeholderPeopleTableHead.innerHTML = columns
+          .map((column) => `<div class="cell--${column.key}">${escapeHtml(column.label)}</div>`)
+          .join("");
+      }
+
+      function renderStakeholderPeopleTable(items = filteredStakeholderPeople()) {
+        if (!stakeholderPeopleList || !stakeholderPagination || !stakeholderPaginationMeta) return;
+        activeStakeholderMode = "people";
+        renderStakeholderTablesVisibility();
+        const columns = stakeholderPeopleTableColumns;
+        updateStakeholderPeopleTableGrid(columns);
+        if (!items.length) {
+          renderStakeholderPeopleTableHead(columns);
+          stakeholderPeopleList.innerHTML = `<div class="empty">Noch keine Personen für diesen Stakeholder-Typ importiert.</div>`;
+          stakeholderPaginationMeta.textContent = "0-0 von 0 Personen";
+          stakeholderPagination.innerHTML = "";
+          return;
+        }
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        stakeholderPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Personen`;
+        if (isMobileLayout()) {
+          stakeholderPeopleTableHead.innerHTML = "";
+          stakeholderPeopleList.innerHTML = `<div class="mobile-contact-list">${pageItems
+            .map((person) => `
+              <article class="mobile-contact-card ${person.id === activeStakeholderPersonId ? "is-active" : ""}" data-stakeholder-person-id="${escapeHtml(person.id)}" tabindex="0">
+                <div class="mobile-contact-top">
+                  ${contactAvatarMarkup(person, "sm")}
+                  <div class="mobile-contact-copy">
+                    <h3 class="mobile-contact-name">${escapeHtml(person.name) || "&mdash;"}</h3>
+                    <div class="mobile-contact-organization">${escapeHtml(person.organization || "Organisation nicht dokumentiert")}</div>
+                  </div>
+                  <span class="mobile-contact-chevron" aria-hidden="true">›</span>
+                </div>
+              </article>
+            `)
+            .join("")}</div>`;
+        } else {
+          renderStakeholderPeopleTableHead(columns);
+          stakeholderPeopleList.innerHTML = pageItems
+            .map((person) => `
+              <article class="row ${person.id === activeStakeholderPersonId ? "is-active" : ""}" data-stakeholder-person-id="${escapeHtml(person.id)}" tabindex="0">
+                ${columns.map((column) => `<div class="cell--${column.key}">${stakeholderPersonTableCellMarkup(person, column.key)}</div>`).join("")}
+              </article>
+            `)
+            .join("");
+        }
+        stakeholderPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-stakeholder-person-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-stakeholder-person-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-stakeholder-person-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+        stakeholderPeopleList.querySelectorAll("[data-stakeholder-person-id]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, input, label, a, select, textarea")) return;
+            openStakeholderPersonDetail(row.dataset.stakeholderPersonId, items);
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openStakeholderPersonDetail(row.dataset.stakeholderPersonId, items);
+            }
+          });
+        });
+        stakeholderPeopleList.querySelectorAll("[data-open-stakeholder-person]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openStakeholderPersonDetail(button.dataset.openStakeholderPerson, items);
+          });
+        });
+        stakeholderPagination.querySelectorAll("[data-stakeholder-person-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.stakeholderPersonPage);
+            renderStakeholderPeopleTable(items);
+          });
+        });
+        stakeholderPagination.querySelectorAll("[data-stakeholder-person-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.stakeholderPersonPageNav === "next" ? 1 : -1;
+            renderStakeholderPeopleTable(items);
+          });
+        });
+      }
+
+      function syncStakeholderMapFrame(items = stakeholderMapPeople()) {
+        if (!stakeholderMapFrame || !stakeholderMapFrame.contentWindow) return;
+        stakeholderMapFrame.contentWindow.postMessage(
+          {
+            type: "versorgungs-kompass-map-data",
+            context: "stakeholders",
+            labels: {
+              itemSingular: "Person",
+              itemPlural: "Personen",
+              listTitle: "Vertreterversammlung",
+              searchPlaceholder: "Person, KV oder Bundesland suchen",
+              categoryLabel: "Stakeholder",
+              categoryAllLabel: "Alle",
+              openDetailLabel: "Person öffnen",
+              previewKicker: "Stakeholder-Vorschau",
+              emptyTitle: "Keine Personen auf der Karte"
+            },
+            showOwnerFilter: false,
+            contacts: items.map((person) => ({
+              id: person.id,
+              name: person.name,
+              specialty: person.committee,
+              contactRole: person.role,
+              category: "KV",
+              organization: person.organization || stakeholderPersonOrganization(person)?.name || "",
+              topic: person.themes?.join(", ") || "",
+              priority: person.mapPositionSource === "person" ? "Direkt" : person.mapPositionSource === "organization" ? "KV-Sitz" : "Bundesland",
+              email: person.email,
+              phone: person.phone,
+              linkedin: person.linkedin,
+              location: stakeholderPersonLocation(person),
+              city: person.city,
+              state: person.state || stakeholderPersonOrganization(person)?.state || "",
+              url: person.url,
+              description: person.committee || "Vertreterversammlung",
+              lat: person.lat,
+              lon: person.lon,
+              note: person.note,
+              image: "",
+              owner: "",
+              ownerId: "",
+              sources: person.source || "",
+              mapPositionSource: person.mapPositionSource
+            })),
+            totalContacts: stakeholderPeople.length,
+            filteredContacts: items.length
+          },
+          "*"
+        );
+      }
+
+      function renderStakeholderMap(items = stakeholderMapPeople()) {
+        activeStakeholderMode = "map";
+        renderStakeholderTablesVisibility();
+        stakeholderPaginationMeta.textContent = `${items.length} ${items.length === 1 ? "Person" : "Personen"} auf der Karte`;
+        stakeholderPagination.innerHTML = "";
+        syncStakeholderMapFrame(items);
+      }
+
+      function renderStakeholderCurrent() {
+        if (activeStakeholderMode === "map") return renderStakeholderMap(stakeholderMapPeople());
+        if (activeStakeholderMode === "people") return renderStakeholderPeopleTable(filteredStakeholderPeople());
+        return renderStakeholderOrganizationsTable(filteredStakeholderOrganizations());
+      }
+
+      function openStakeholderOrganizationDetail(id, items = filteredStakeholderOrganizations()) {
+        const currentItems = items.length ? items : filteredStakeholderOrganizations();
+        const organization = currentItems.find((item) => item.id === id) || stakeholderOrganizations.find((item) => item.id === id);
+        if (!organization) return;
+        const people = stakeholderOrganizationPeople(organization);
+        const currentIndex = currentItems.findIndex((item) => item.id === organization.id);
+        if (activeStakeholderOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
+        const activeTab = organizationDetailActiveTab || "overview";
+        const locationText = stakeholderOrganizationLocation(organization);
+
+        activeStakeholderOrganizationId = organization.id;
+        activeStakeholderPersonId = null;
+        activeExpertId = null;
+        activeExpertOrganizationId = null;
+        activeId = null;
+        activeOrganizationId = null;
+        if (activeStakeholderMode === "organizations") renderStakeholderOrganizationsTable(currentItems);
+        detailPanel.classList.add("detail-panel--organization");
+        detailPanel.classList.remove("detail-panel--registration");
+
+        detailPanel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Organisationen</div>
+            <div class="detail-toolbar-actions">
+              <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
+            </div>
+          </div>
+          <div class="detail-content">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${organizationLogoMarkup(organization, "lg", "organization-profile-logo")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(organization.name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId))}</div>
+                    <div class="detail-profile-subline">${escapeHtml([locationText, organization.state].filter(Boolean).join(" · ") || "Standort nicht dokumentiert")}</div>
+                    <div class="detail-profile-status">${sectorBadgeMarkup(stakeholderTypeLabel(organization.stakeholderTypeId))}</div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+                ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("people", `Personen (${people.length})`, activeTab)}
+                ${detailTabButton("contact", "Kontakt", activeTab)}
+                ${detailTabButton("notes", "Notizen", activeTab)}
+              </div>
+
+              <section ${detailPanelAttrs("overview", activeTab)} id="stakeholder-organization-overview">
+                <h4 class="detail-section-title">Stammdaten</h4>
+                <div class="detail-line-list">
+                  ${detailLine("Name", organization.name)}
+                  ${detailLine("Stakeholder-Typ", stakeholderTypeLabel(organization.stakeholderTypeId))}
+                  ${detailLine("Organisationstyp", organization.organizationType)}
+                  ${detailLine("Sitz", locationText)}
+                  ${detailLine("Bundesland", organization.state)}
+                  ${detailLine("Quelle", organization.source)}
+                  ${detailLine("Zugeordnete Personen", `${people.length} ${people.length === 1 ? "Person" : "Personen"}`)}
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("people", activeTab)} id="stakeholder-organization-people">
+                <h4 class="detail-section-title">Zugeordnete Personen</h4>
+                <div class="detail-line-list">
+                  ${
+                    people.length
+                      ? `<div class="organization-contact-table-wrap"><table class="organization-contact-table">
+                          <thead><tr><th>Name</th><th>Rolle</th><th>Gremium</th><th>Karte</th><th></th></tr></thead>
+                          <tbody>
+                            ${people.map((person) => `
+                              <tr>
+                                <td><strong>${escapeHtml(person.name)}</strong></td>
+                                <td>${escapeHtml(person.role || "-")}</td>
+                                <td>${escapeHtml(person.committee || "-")}</td>
+                                <td>${escapeHtml(person.isRepresentativeAssemblyMember ? mapPositionSourceLabel(stakeholderPersonMapPosition(person)?.source || person.mapPositionSource) : "-")}</td>
+                                <td><button class="detail-link detail-link--compact" type="button" data-open-stakeholder-org-person="${escapeHtml(person.id)}">Person öffnen</button></td>
+                              </tr>
+                            `).join("")}
+                          </tbody>
+                        </table></div>`
+                      : `<div class="empty">Dieser KV sind noch keine Personen zugeordnet.</div>`
+                  }
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("contact", activeTab)} id="stakeholder-organization-contact">
+                <h4 class="detail-section-title">Kontaktwege</h4>
+                <div class="detail-line-list">
+                  ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
+                  ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
+                  ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("notes", activeTab)} id="stakeholder-organization-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                <div class="detail-note-block ${organization.notes ? "" : "detail-note-block--empty"}">${escapeHtml(organization.notes || "Noch keine Notiz hinterlegt.")}</div>
+              </section>
+            </div>
+          </div>
+        `;
+
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        document.getElementById("detail-close")?.addEventListener("click", closeDetail);
+        detailPanel.querySelectorAll("[data-open-stakeholder-org-person]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeStakeholderMode = "people";
+            updateView();
+            openStakeholderPersonDetail(button.dataset.openStakeholderOrgPerson, stakeholderPeople);
+          });
+        });
+        detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            organizationDetailActiveTab = button.dataset.detailTab || "overview";
+            openStakeholderOrganizationDetail(organization.id, currentItems);
+          });
+        });
+      }
+
+      function mapPositionSourceLabel(source = "") {
+        if (source === "person") return "Koordinate Person";
+        if (source === "organization") return "KV-Sitz";
+        if (source === "state") return "Bundesland-Zentrum";
+        return "Nicht kartiert";
+      }
+
+      function openStakeholderPersonDetail(id, items = filteredStakeholderPeople()) {
+        const currentItems = items.length ? items : filteredStakeholderPeople();
+        const person = currentItems.find((item) => item.id === id) || stakeholderPeople.find((item) => item.id === id);
+        if (!person) return;
+        const organization = stakeholderPersonOrganization(person);
+        const currentIndex = currentItems.findIndex((item) => item.id === person.id);
+        const mapPosition = stakeholderPersonMapPosition(person);
+        if (activeStakeholderPersonId !== person.id) detailActiveTab = "overview";
+        const activeTab = detailActiveTab || "overview";
+
+        activeStakeholderPersonId = person.id;
+        activeStakeholderOrganizationId = null;
+        activeExpertId = null;
+        activeExpertOrganizationId = null;
+        activeId = null;
+        activeOrganizationId = null;
+        if (activeStakeholderMode === "people") renderStakeholderPeopleTable(currentItems);
+        detailPanel.classList.remove("detail-panel--organization");
+        detailPanel.classList.remove("detail-panel--registration");
+
+        detailPanel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Personen</div>
+            <div class="detail-toolbar-actions">
+              <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
+            </div>
+          </div>
+          <div class="detail-content">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${contactAvatarMarkup(person, "lg")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(person.name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(person.organization || organization?.name || "Organisation nicht dokumentiert")}</div>
+                    ${person.role ? `<div class="detail-profile-subline">${escapeHtml(person.role)}</div>` : ""}
+                    <div class="detail-profile-status">${sectorBadgeMarkup(person.committee || stakeholderTypeLabel(person.stakeholderTypeId))}</div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+                ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("contact", "Kontakt", activeTab)}
+                ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("notes", "Notizen", activeTab)}
+              </div>
+
+              <section ${detailPanelAttrs("overview", activeTab)} id="stakeholder-person-overview">
+                <h4 class="detail-section-title">Stammdaten</h4>
+                <div class="detail-line-list">
+                  ${detailLineHtml(
+                    "Organisation",
+                    organization
+                      ? `<button class="organization-contact-link" type="button" data-open-linked-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>`
+                      : escapeHtml(person.organization || "Keine Organisation hinterlegt"),
+                    { empty: !person.organization && !organization }
+                  )}
+                  ${detailLine("Rolle", person.role)}
+                  ${detailLine("Gremium", person.committee)}
+                  ${detailLine("Vertreterversammlung", person.isRepresentativeAssemblyMember ? "Ja" : "Nein")}
+                  ${detailLine("Ort", stakeholderPersonLocation(person))}
+                  ${detailLine("Kartenposition", mapPositionSourceLabel(mapPosition?.source || person.mapPositionSource))}
+                  ${detailLine("Quelle", person.source)}
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("contact", activeTab)} id="stakeholder-person-contact">
+                <h4 class="detail-section-title">Kontakt</h4>
+                <div class="detail-line-list">
+                  ${detailContactLine("E-Mail", person.email, person.email ? `mailto:${person.email}` : "")}
+                  ${detailContactLine("Telefon", person.phone, person.phone ? `tel:${person.phone}` : "")}
+                  ${detailContactLine("LinkedIn", person.linkedin ? "Profil öffnen" : "", person.linkedin)}
+                  ${detailContactLine("Profil", person.url ? "Quelle öffnen" : "", person.url)}
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("themes", activeTab)} id="stakeholder-person-themes">
+                <h4 class="detail-section-title">Themen${person.themes?.length ? ` (${person.themes.length})` : ""}</h4>
+                <div class="detail-chip-row">
+                  ${person.themes?.length ? person.themes.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`}
+                </div>
+              </section>
+
+              <section ${detailPanelAttrs("notes", activeTab)} id="stakeholder-person-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                <div class="detail-note-block ${person.note ? "" : "detail-note-block--empty"}">${escapeHtml(person.note || "Noch keine Notiz hinterlegt.")}</div>
+              </section>
+            </div>
+          </div>
+        `;
+
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        document.getElementById("detail-close")?.addEventListener("click", closeDetail);
+        detailPanel.querySelector("[data-open-linked-stakeholder-organization]")?.addEventListener("click", (event) => {
+          activeStakeholderMode = "organizations";
+          updateView();
+          openStakeholderOrganizationDetail(event.currentTarget.dataset.openLinkedStakeholderOrganization, stakeholderOrganizations);
+        });
+        detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            detailActiveTab = button.dataset.detailTab || "overview";
+            openStakeholderPersonDetail(person.id, currentItems);
+          });
+        });
+      }
+
       function renderExpertMatchingTableHead(tableHead = expertMatchingTableHead, direction = activeExpertMatchDirection) {
         if (!tableHead) return;
         const sourceLabel = direction === "expertToCare" ? "IOP" : "Versorgung";
@@ -24338,6 +26120,27 @@
           });
       }
 
+      function availableTeamOptions(selectedTeam = "") {
+        const teams = new Set(defaultTeamOptions);
+        teamProfiles().forEach((profile) => {
+          const team = String(profile.team || "").trim();
+          if (team) teams.add(team);
+        });
+        const selected = String(selectedTeam || "").trim();
+        if (selected) teams.add(selected);
+        return [...teams].sort((a, b) => a.localeCompare(b, "de"));
+      }
+
+      function renderTeamSelectOptions(select, selectedTeam = "") {
+        if (!select) return;
+        const selected = String(selectedTeam || "").trim();
+        select.innerHTML = `<option value="">Bitte auswählen</option>${availableTeamOptions(selected)
+          .map((team) => `<option value="${escapeHtml(team)}">${escapeHtml(team)}</option>`)
+          .join("")}`;
+        select.value = selected;
+        syncCustomSelect(select);
+      }
+
       function teamSectionId(index) {
         return `team-section-accounts-${index}`;
       }
@@ -24553,7 +26356,7 @@
         profileForm.elements.displayName.value = displayName;
         profileForm.elements.initials.value = initialsFromProfile(profile);
         profileForm.elements.email.value = profile.email || "";
-        profileForm.elements.team.value = profile.team || "";
+        renderTeamSelectOptions(profileForm.elements.team, profile.team || "");
         setProfileTeamBadge(profileTeamLine, profile.team);
         refreshCustomSelects(profileForm);
         renderProfileOwnerSummary();
@@ -24561,6 +26364,7 @@
           profileForm.elements.notificationsEnabled.checked = false;
           profileForm.elements.notificationsEnabled.disabled = true;
         }
+        renderProfileOnboardingStatus();
         profileFormBaseline = profileFormSignature();
         setProfileDirty(false);
       }
@@ -24673,6 +26477,335 @@
           console.error("Profilfoto konnte nicht entfernt werden.", error);
           setProfilePhotoStatus("Foto konnte nicht entfernt werden. Bitte prüfe Anmeldung und Verbindung.", true);
         }
+      }
+
+      function setOnboardingStatus(message = "", isError = false) {
+        if (!onboardingStatus) return;
+        onboardingStatus.textContent = message;
+        onboardingStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setOnboardingPhotoStatus(message = "", isError = false) {
+        if (!onboardingPhotoStatus) return;
+        onboardingPhotoStatus.textContent = message;
+        onboardingPhotoStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setOnboardingTourStatus(message = "", isError = false) {
+        if (!onboardingTourStatus) return;
+        onboardingTourStatus.textContent = message;
+        onboardingTourStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function onboardingPreferences() {
+        return userSettings?.preferences?.onboarding || {};
+      }
+
+      function renderProfileOnboardingStatus() {
+        if (!profileOnboardingStatus) return;
+        const profile = currentProfile || {};
+        const state = onboardingPreferences();
+        const missing = [];
+        if (!String(profile.display_name || profile.displayName || "").trim()) missing.push("Anzeigename");
+        if (!String(profile.team || "").trim()) missing.push("Team");
+        profileOnboardingStatus.classList.remove("is-ready", "is-missing");
+        if (missing.length) {
+          profileOnboardingStatus.textContent = `Profil noch unvollständig: ${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"}. Das Foto bleibt optional.`;
+          profileOnboardingStatus.classList.add("is-missing");
+          return;
+        }
+        if (state.tourCompletedAt) {
+          profileOnboardingStatus.textContent = `Tour zuletzt abgeschlossen: ${formatDateTimeLabel(state.tourCompletedAt) || "Zeitpunkt offen"}. Du kannst sie jederzeit erneut starten.`;
+          profileOnboardingStatus.classList.add("is-ready");
+          return;
+        }
+        if (state.tourSkippedAt) {
+          profileOnboardingStatus.textContent = `Tour zuletzt übersprungen: ${formatDateTimeLabel(state.tourSkippedAt) || "Zeitpunkt offen"}. Du kannst sie jederzeit erneut starten.`;
+          return;
+        }
+        if (state.tourOfferedAt) {
+          profileOnboardingStatus.textContent = `Tour angeboten: ${formatDateTimeLabel(state.tourOfferedAt) || "Zeitpunkt offen"}. Du kannst sie hier starten.`;
+          return;
+        }
+        profileOnboardingStatus.textContent = "Profil bereit. Starte die Tour, um die wichtigsten Bereiche kennenzulernen.";
+      }
+
+      function isSupabaseOnboardingMode() {
+        return String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "supabase";
+      }
+
+      function profileCreatedAfterOnboardingRollout() {
+        const createdAt = Date.parse(currentProfile?.created_at || currentProfile?.createdAt || "");
+        const rolloutAt = Date.parse(ONBOARDING_ROLLOUT_AT);
+        return Number.isFinite(createdAt) && Number.isFinite(rolloutAt) && createdAt >= rolloutAt;
+      }
+
+      function shouldRequireInitialOnboarding() {
+        if (!isSupabaseOnboardingMode()) return false;
+        if (!profileCreatedAfterOnboardingRollout()) return false;
+        const state = onboardingPreferences();
+        if (!state.profileCompletedAt) return true;
+        return !state.tourCompletedAt && !state.tourSkippedAt;
+      }
+
+      async function persistOnboardingState(patch = {}) {
+        const preferences = {
+          ...(userSettings?.preferences || {}),
+          onboarding: {
+            ...onboardingPreferences(),
+            version: ONBOARDING_VERSION,
+            ...patch
+          }
+        };
+        await persistUserSettingPatch({ preferences });
+        renderProfileOnboardingStatus();
+        return userSettings?.preferences?.onboarding || preferences.onboarding;
+      }
+
+      function normalizePostOnboardingView(view = "contacts") {
+        const candidate = String(view || "").replace(/^#/, "") || "contacts";
+        if (candidate === "onboarding") return "contacts";
+        if (!viewLabels[candidate]) return "contacts";
+        if (!canAccessView(candidate)) return "contacts";
+        return candidate;
+      }
+
+      function renderOnboardingProfileForm() {
+        const profile = currentProfile || {};
+        updateAvatarElement(onboardingAvatarPreview, profile);
+        if (onboardingDisplayName) onboardingDisplayName.value = profile.display_name || "";
+        if (onboardingEmail) onboardingEmail.value = profile.email || "";
+        renderTeamSelectOptions(onboardingTeam, profile.team || "");
+        refreshCustomSelects(onboardingProfileForm);
+      }
+
+      async function setOnboardingStep(step = "profile", { markTourOffered = false } = {}) {
+        onboardingStep = step === "tour" ? "tour" : "profile";
+        onboardingStepDots.forEach((dot) => {
+          dot.classList.toggle("is-active", dot.dataset.onboardingStepDot === onboardingStep);
+        });
+        onboardingStepPanels.forEach((panel) => {
+          panel.hidden = panel.dataset.onboardingStepPanel !== onboardingStep;
+        });
+        if (onboardingStep === "profile") renderOnboardingProfileForm();
+        if (onboardingStep === "tour" && markTourOffered && !onboardingPreferences().tourOfferedAt) {
+          await persistOnboardingState({ tourOfferedAt: new Date().toISOString() });
+        }
+        renderViewChrome();
+      }
+
+      async function openOnboarding(targetView = "contacts") {
+        pendingPostOnboardingView = normalizePostOnboardingView(targetView);
+        onboardingActive = true;
+        closeMenus();
+        closeMobileSidebar();
+        setOnboardingStatus("");
+        setOnboardingPhotoStatus("");
+        setOnboardingTourStatus("");
+        const state = onboardingPreferences();
+        await setOnboardingStep(state.profileCompletedAt ? "tour" : "profile", { markTourOffered: Boolean(state.profileCompletedAt) });
+        setActiveView("onboarding");
+        updateRouteHash("onboarding");
+        updateView();
+      }
+
+      function finishOnboarding(targetView = pendingPostOnboardingView || "contacts") {
+        onboardingActive = false;
+        const nextView = normalizePostOnboardingView(targetView);
+        setActiveView(nextView);
+        updateRouteHash(nextView);
+        updateView();
+      }
+
+      async function saveOnboardingProfile(event) {
+        event?.preventDefault();
+        if (!onboardingProfileForm) return;
+        const displayName = String(onboardingDisplayName?.value || "").trim();
+        const team = String(onboardingTeam?.value || "").trim();
+        if (!displayName) {
+          setOnboardingStatus("Bitte trage deinen Namen ein.", true);
+          onboardingDisplayName?.focus();
+          return;
+        }
+        if (!team) {
+          setOnboardingStatus("Bitte wähle dein Team aus.", true);
+          onboardingTeam?.focus();
+          return;
+        }
+        setOnboardingStatus("Profil wird gespeichert...");
+        try {
+          const updatedProfile = await window.dataService.updateCurrentProfile({
+            ...(currentProfile || {}),
+            displayName,
+            initials: initialsFromProfile({ display_name: displayName }),
+            team,
+            avatarUrl: profileAvatarUrl(currentProfile) || null
+          });
+          renderAccountProfile(updatedProfile);
+          applyProfiles(await window.dataService.getProfiles());
+          await persistOnboardingState({
+            profileCompletedAt: onboardingPreferences().profileCompletedAt || new Date().toISOString()
+          });
+          setOnboardingStatus("Profil gespeichert.");
+          await setOnboardingStep("tour", { markTourOffered: true });
+        } catch (error) {
+          console.error("Onboarding-Profil konnte nicht gespeichert werden.", error);
+          setOnboardingStatus("Profil konnte nicht gespeichert werden. Bitte prüfe Anmeldung und Verbindung.", true);
+        }
+      }
+
+      async function handleOnboardingPhotoFile(file) {
+        if (!file) return;
+        setOnboardingPhotoStatus("Foto wird hochgeladen...");
+        try {
+          const avatarUrl = await window.dataService.uploadCurrentProfileImage(file);
+          const updatedProfile = await window.dataService.updateCurrentProfile({
+            ...(currentProfile || {}),
+            avatarUrl
+          });
+          renderAccountProfile(updatedProfile);
+          applyProfiles(await window.dataService.getProfiles());
+          renderOnboardingProfileForm();
+          setOnboardingPhotoStatus("Foto gespeichert.");
+        } catch (error) {
+          console.error("Onboarding-Foto konnte nicht hochgeladen werden.", error);
+          setOnboardingPhotoStatus(error?.message || "Upload fehlgeschlagen. Bitte prüfe Format, Größe und Verbindung.", true);
+        } finally {
+          if (onboardingPhotoInput) onboardingPhotoInput.value = "";
+        }
+      }
+
+      const productTourSteps = [
+        {
+          view: "contacts",
+          target: "#view-contacts .table-command-row",
+          title: "Kontakte und Schnellaktionen",
+          body: "Die Kontaktliste ist der Startpunkt für tägliche CRM-Arbeit. Hier liegen neue Kontakte, Archiv, Dubletten und die wichtigsten Tabellenaktionen im Arbeitskontext."
+        },
+        {
+          view: "contacts",
+          target: "#filter-panel-button",
+          title: "Suche, Filter und Owner",
+          body: "Suche und Filter begrenzen den aktuellen Kontext. Owner-Ansichten helfen dir, deine eigenen Kontakte oder unzugeordnete Einträge schnell zu finden."
+        },
+        {
+          view: "contacts",
+          target: "#contact-list",
+          title: "CRM-Profile lesen",
+          body: "Ein Kontakt öffnet zuerst im Lesemodus. Stammdaten, Organisation, Kontaktwege, Themen und Verlauf bleiben scanbar, bevor du bewusst in die Bearbeitung wechselst."
+        },
+        {
+          view: "map",
+          target: "#map-view-frame",
+          title: "Organisationen und Karte",
+          body: "Organisationen haben eigene Profile; die Karte ergänzt den Blick auf regionale Verteilung und Standortkontext der aktuellen Auswahl."
+        },
+        {
+          view: "analytics",
+          target: "#view-analytics .analytics-shell",
+          title: "Auswertung und Datenqualität",
+          body: "Die Auswertung beantwortet operative Fragen zur Verteilung. Datenqualität bleibt für Admins als eigener Pflegebereich erreichbar."
+        },
+        {
+          view: "team",
+          target: "#sidebar-profile-button",
+          title: "Team, Importe und eigenes Profil",
+          body: "Im Team-Bereich siehst du Accounts und Zuständigkeiten. Dein Profil bleibt unten in der Sidebar erreichbar; Importe erscheinen rollenabhängig im eigenen Arbeitsbereich."
+        }
+      ];
+
+      function removeProductTourHighlight() {
+        productTourState.target?.classList.remove("product-tour-highlight");
+        productTourState.target = null;
+      }
+
+      function targetForProductTourStep(step) {
+        return document.querySelector(step.target) || document.querySelector(`[data-view-panel="${step.view}"]`) || viewShell;
+      }
+
+      function positionProductTourPanel(target) {
+        if (!productTourPanel || !target) return;
+        if (isMobileLayout()) {
+          productTourPanel.style.removeProperty("top");
+          productTourPanel.style.removeProperty("left");
+          return;
+        }
+        const rect = target.getBoundingClientRect();
+        const panelRect = productTourPanel.getBoundingClientRect();
+        const gap = 14;
+        let top = rect.bottom + gap;
+        if (top + panelRect.height > window.innerHeight - gap) {
+          top = Math.max(gap, rect.top - panelRect.height - gap);
+        }
+        let left = Math.min(Math.max(gap, rect.left), window.innerWidth - panelRect.width - gap);
+        productTourPanel.style.top = `${Math.round(top)}px`;
+        productTourPanel.style.left = `${Math.round(left)}px`;
+      }
+
+      function renderProductTourStep() {
+        if (!productTourState.open) return;
+        const step = productTourSteps[productTourState.index] || productTourSteps[0];
+        removeProductTourHighlight();
+        setActiveView(step.view);
+        updateRouteHash(step.view);
+        updateView();
+        window.requestAnimationFrame(() => {
+          const target = targetForProductTourStep(step);
+          productTourState.target = target;
+          target?.classList.add("product-tour-highlight");
+          if (productTourMeta) productTourMeta.textContent = `Schritt ${productTourState.index + 1} von ${productTourSteps.length}`;
+          if (productTourTitle) productTourTitle.textContent = step.title;
+          if (productTourCopy) productTourCopy.textContent = step.body;
+          if (productTourPrev) productTourPrev.disabled = productTourState.index === 0;
+          if (productTourNext) productTourNext.textContent = productTourState.index === productTourSteps.length - 1 ? "Fertig" : "Weiter";
+          positionProductTourPanel(target);
+          productTourPanel?.focus?.();
+        });
+      }
+
+      function isTrackedProductTourSource(source = "") {
+        return source === "onboarding" || source === "profile";
+      }
+
+      async function closeProductTour({ skipped = false } = {}) {
+        if (!productTourState.open) return;
+        const source = productTourState.source;
+        productTourState = { open: false, index: 0, source: "manual", target: productTourState.target };
+        removeProductTourHighlight();
+        productTour.hidden = true;
+        productTour.setAttribute("aria-hidden", "true");
+        if (isTrackedProductTourSource(source)) {
+          const timestamp = new Date().toISOString();
+          await persistOnboardingState(skipped ? { tourSkippedAt: timestamp } : { tourCompletedAt: timestamp });
+        }
+        if (source === "onboarding") {
+          setOnboardingTourStatus(skipped ? "Tour übersprungen." : "Tour abgeschlossen.");
+          finishOnboarding();
+        }
+      }
+
+      async function startProductTour(source = "manual") {
+        closeMenus();
+        closeMobileSidebar();
+        if (source === "onboarding") {
+          onboardingActive = false;
+        }
+        if (isTrackedProductTourSource(source)) await persistOnboardingState({ tourOfferedAt: onboardingPreferences().tourOfferedAt || new Date().toISOString() });
+        productTourState = { open: true, index: 0, source, target: null };
+        productTour.hidden = false;
+        productTour.setAttribute("aria-hidden", "false");
+        renderProductTourStep();
+      }
+
+      async function advanceProductTour(direction = 1) {
+        if (!productTourState.open) return;
+        const nextIndex = productTourState.index + direction;
+        if (nextIndex >= productTourSteps.length) {
+          await closeProductTour({ skipped: false });
+          return;
+        }
+        productTourState.index = Math.max(0, nextIndex);
+        renderProductTourStep();
       }
 
       function saveFavorites() {
@@ -25513,13 +27646,21 @@
 
       function hitCountLabel(items) {
         if (isDuplicateMode()) return `${items.length} von ${expertMatchCandidatesByType(activeDuplicateLinkType()).length} Dubletten`;
-        if (activeView === "activities") return `${activities.length} Aktivitäten`;
         if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
         if (activeView === "experts") {
           if (activeExpertMode === "organizations") return `${items.length} von ${expertOrganizations.length} Organisationen`;
           return `${items.length} von ${activeExpertContactsTotal()} Kontakten`;
         }
+        if (activeView === "stakeholders") {
+          if (activeStakeholderMode === "map") {
+            const representativePeople = filteredStakeholderPeople().filter((person) => person.isRepresentativeAssemblyMember);
+            return `${stakeholderMapPeople().length} von ${representativePeople.length} Personen auf der Karte`;
+          }
+          if (activeStakeholderMode === "people") return `${items.length} von ${activeStakeholderPeopleTotal()} Personen`;
+          return `${items.length} von ${activeStakeholderOrganizationsTotal()} Organisationen`;
+        }
         if (activeView === "formats") return `${items.length} von ${formats.length} Formaten`;
+        if (activeView === "activities") return `${activities.length} Aktivitäten`;
         return `${items.length} von ${activeContactsTotal()} Kontakten`;
       }
 
@@ -26082,6 +28223,16 @@
       function updateExpertOrganizationTableGrid(columns = visibleExpertOrganizationTableColumns()) {
         const template = columns.map((column) => column.template).join(" ");
         expertOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
+      }
+
+      function updateStakeholderOrganizationTableGrid(columns = stakeholderOrganizationTableColumns) {
+        const template = columns.map((column) => column.template).join(" ");
+        stakeholderOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
+      }
+
+      function updateStakeholderPeopleTableGrid(columns = stakeholderPeopleTableColumns) {
+        const template = columns.map((column) => column.template).join(" ");
+        stakeholderPeopleTable?.style.setProperty("--contacts-grid-template", template);
       }
 
       function normalizeClassPart(value) {
@@ -26760,6 +28911,72 @@
         });
       }
 
+      function isContactNotesThread(rawNotes = "") {
+        const raw = String(rawNotes || "").trim();
+        if (!raw.startsWith("{")) return false;
+        try {
+          const parsed = JSON.parse(raw);
+          return parsed?.kind === "contact-notes-thread-v1" && Array.isArray(parsed.messages);
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function parseContactNotesThread(rawNotes = "", contact = {}) {
+        const raw = String(rawNotes || "").trim();
+        if (!raw) return [];
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed?.kind === "contact-notes-thread-v1" && Array.isArray(parsed.messages)) {
+            return parsed.messages
+              .map((message) => {
+                const authorName = String(message.authorName || "Unbekannter Nutzer");
+                return {
+                  id: String(message.id || window.crypto?.randomUUID?.() || Date.now()),
+                  text: String(message.text || "").trim(),
+                  authorId: String(message.authorId || ""),
+                  authorName,
+                  authorRole: String(message.authorRole || ""),
+                  createdAt: String(message.createdAt || ""),
+                  editedAt: String(message.editedAt || ""),
+                  readonly: Boolean(message.readonly) || (!message.authorId && authorName === "Bisherige Notiz")
+                };
+              })
+              .filter((message) => message.text);
+          }
+        } catch (error) {
+          // Legacy freetext notes are rendered below as the first chat entry.
+        }
+        const cleaned = cleanLegacyNoteText(raw);
+        return cleaned
+          ? [{
+              id: `legacy-${contact.id || "contact"}`,
+              text: cleaned,
+              authorId: "",
+              authorName: "Bisherige Notiz",
+              authorRole: "",
+              createdAt: contact.updatedAt || contact.createdAt || "",
+              editedAt: "",
+              readonly: true
+            }]
+          : [];
+      }
+
+      function serializeContactNotesThread(messages = []) {
+        return JSON.stringify({
+          kind: "contact-notes-thread-v1",
+          messages: messages.map((message) => ({
+            id: message.id,
+            text: message.text,
+            authorId: message.authorId,
+            authorName: message.authorName,
+            authorRole: message.authorRole,
+            createdAt: message.createdAt,
+            editedAt: message.editedAt || ""
+          }))
+        });
+      }
+
       function formatNotesAuthorLabel() {
         return currentProfile?.display_name || currentProfile?.displayName || currentProfile?.email || currentProfile?.initials || "Angemeldeter Nutzer";
       }
@@ -26789,6 +29006,22 @@
         const profile = ownerProfileForValue(message.authorId) || ownerProfileForValue(message.authorName);
         if (profile) return avatarMarkup(profile, "format-chat-avatar-image");
         return escapeHtml(initialsFromLabel(message.authorName || "BN"));
+      }
+
+      function contactNotesAuthorLabel() {
+        return formatNotesAuthorLabel();
+      }
+
+      function renderCurrentContactAuthorAvatar() {
+        return renderCurrentFormatAuthorAvatar();
+      }
+
+      function ownsContactNote(message = {}) {
+        return !message.readonly && ownsFormatNote(message);
+      }
+
+      function renderContactChatAvatar(message) {
+        return renderFormatChatAvatar(message);
       }
 
       function renderFormatNotesThread(format) {
@@ -26836,6 +29069,60 @@
                   <span class="format-chat-composer-author">
                     <span class="format-chat-avatar" aria-hidden="true">${renderCurrentFormatAuthorAvatar()}</span>
                     <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(formatNotesAuthorLabel())}</strong></span>
+                  </span>
+                  <button class="action-button action-button--primary" type="submit">Notiz senden</button>
+                </div>
+              </form>
+            ` : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Schreiben von Notizen"))}</div>`}
+          </div>
+        `;
+      }
+
+      function renderContactNotesThread(contact) {
+        const messages = parseContactNotesThread(contact.note, contact);
+        return `
+          <div class="format-notes-thread contact-notes-thread">
+            <div class="format-chat-list" aria-live="polite">
+              ${messages.length ? messages.map((message) => {
+                const canManageMessage = canEditContacts() && ownsContactNote(message);
+                const isEditing = canManageMessage && contactEditingNoteId === message.id;
+                return `
+                <article class="format-chat-message" data-contact-note="${escapeHtml(message.id)}">
+                  <span class="format-chat-avatar" aria-hidden="true">${renderContactChatAvatar(message)}</span>
+                  <div class="format-chat-content">
+                    <div class="format-chat-meta">
+                      <strong>${escapeHtml(message.authorName)}</strong>
+                      ${message.authorRole ? `<span>${escapeHtml(roleLabel(message.authorRole))}</span>` : ""}
+                      <time datetime="${escapeHtml(message.createdAt)}">${escapeHtml(formatDateTimeLabel(message.createdAt) || "Zeitpunkt offen")}</time>
+                      ${message.editedAt ? `<span>bearbeitet</span>` : ""}
+                      ${canManageMessage ? `
+                        <span class="format-chat-message-actions">
+                          <button type="button" data-edit-contact-note="${escapeHtml(message.id)}">Bearbeiten</button>
+                          <button type="button" data-delete-contact-note="${escapeHtml(message.id)}">Löschen</button>
+                        </span>
+                      ` : ""}
+                    </div>
+                    ${isEditing ? `
+                      <form class="format-chat-edit-form" data-contact-note-edit-form="${escapeHtml(message.id)}">
+                        <textarea name="message" aria-label="Kontaktnotiz bearbeiten">${escapeHtml(message.text)}</textarea>
+                        <div class="format-chat-edit-actions">
+                          <button class="action-button" type="button" data-cancel-contact-note-edit="${escapeHtml(message.id)}">Abbrechen</button>
+                          <button class="action-button action-button--primary" type="submit">Speichern</button>
+                        </div>
+                      </form>
+                    ` : `<p class="format-chat-text">${escapeHtml(message.text)}</p>`}
+                  </div>
+                </article>
+              `;
+              }).join("") : `<div class="empty">Noch keine Notiz im Verlauf.</div>`}
+            </div>
+            ${canEditContacts() ? `
+              <form class="format-chat-composer" id="contact-notes-composer">
+                <textarea id="contact-notes-message" name="message" placeholder="Neue Notiz schreiben..." aria-label="Neue Kontaktnotiz"></textarea>
+                <div class="format-chat-composer-footer">
+                  <span class="format-chat-composer-author">
+                    <span class="format-chat-avatar" aria-hidden="true">${renderCurrentContactAuthorAvatar()}</span>
+                    <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(contactNotesAuthorLabel())}</strong></span>
                   </span>
                   <button class="action-button action-button--primary" type="submit">Notiz senden</button>
                 </div>
@@ -28237,8 +30524,8 @@
         }
       }
 
-      function displayNoteText(contact) {
-        const raw = [contact.lastExchange, contact.note].map(meaningfulOrEmpty).find(Boolean) || "";
+      function cleanLegacyNoteText(rawNote = "") {
+        const raw = meaningfulOrEmpty(rawNote);
         if (!raw) return "";
         if (/(Projektkontext|Primärsystem|Dublettenmigration|Privatkontakt-Kontext|Import-Batch|Datenqualität)/i.test(raw)) return "";
         const cleaned = raw
@@ -28257,6 +30544,15 @@
           .filter(Boolean)
           .join("\n");
         return cleaned.trim();
+      }
+
+      function displayNoteText(contact) {
+        const noteRaw = meaningfulOrEmpty(contact.note);
+        if (isContactNotesThread(noteRaw)) {
+          return parseContactNotesThread(noteRaw, contact).map((message) => message.text).join("\n").trim();
+        }
+        const raw = [contact.lastExchange, noteRaw].map(meaningfulOrEmpty).find(Boolean) || "";
+        return cleanLegacyNoteText(raw);
       }
 
       function escapeHtml(value) {
@@ -29071,6 +31367,122 @@
         openDetail(contact.id);
       }
 
+      async function saveContactNotesThread(contact, messages, storageMessage = "Notiz gespeichert") {
+        if (!canEditContacts()) {
+          showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
+          return;
+        }
+        try {
+          const updated = preserveLegacyOwnerSelection(
+            await window.dataService.updateContact(contact.id, { note: serializeContactNotesThread(messages) }),
+            contact.owner || contact.ownerId || ""
+          );
+          contacts = contacts.map((item, index) =>
+            item.id === contact.id ? sanitizeContact({ ...item, ...updated, id: contact.id }, index) : item
+          );
+          contactHistoryCache.delete(contact.id);
+          setStorageStatus(storageMessage);
+          updateView();
+          openDetail(contact.id);
+        } catch (error) {
+          console.error("Kontaktnotiz konnte nicht gespeichert werden.", error);
+          window.alert("Die Notiz konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+        }
+      }
+
+      function bindContactNotesThread(contact) {
+        detailPanel.querySelectorAll("[data-edit-contact-note]").forEach((button) => {
+          button.addEventListener("click", () => {
+            contactEditingNoteId = button.dataset.editContactNote || null;
+            openDetail(contact.id);
+          });
+        });
+        detailPanel.querySelectorAll("[data-cancel-contact-note-edit]").forEach((button) => {
+          button.addEventListener("click", () => {
+            if (contactEditingNoteId === button.dataset.cancelContactNoteEdit) {
+              contactEditingNoteId = null;
+              openDetail(contact.id);
+            }
+          });
+        });
+        detailPanel.querySelectorAll("[data-contact-note-edit-form]").forEach((form) => {
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Notizen"));
+              return;
+            }
+            const noteId = form.dataset.contactNoteEditForm;
+            const textarea = form.querySelector("textarea[name='message']");
+            const text = String(textarea?.value || "").trim();
+            if (!text) {
+              textarea?.focus();
+              return;
+            }
+            const messages = parseContactNotesThread(contact.note, contact);
+            const note = messages.find((message) => message.id === noteId);
+            if (!note || !ownsContactNote(note)) {
+              showPermissionDenied("Du kannst nur eigene Notizen bearbeiten.");
+              return;
+            }
+            contactEditingNoteId = null;
+            await saveContactNotesThread(
+              contact,
+              messages.map((message) => (
+                message.id === noteId ? { ...message, text, editedAt: new Date().toISOString() } : message
+              )),
+              "Notiz aktualisiert"
+            );
+          });
+        });
+        detailPanel.querySelectorAll("[data-delete-contact-note]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Löschen von Notizen"));
+              return;
+            }
+            const noteId = button.dataset.deleteContactNote;
+            const messages = parseContactNotesThread(contact.note, contact);
+            const note = messages.find((message) => message.id === noteId);
+            if (!note || !ownsContactNote(note)) {
+              showPermissionDenied("Du kannst nur eigene Notizen löschen.");
+              return;
+            }
+            if (!window.confirm("Diese Notiz löschen?")) return;
+            if (contactEditingNoteId === noteId) contactEditingNoteId = null;
+            await saveContactNotesThread(
+              contact,
+              messages.filter((message) => message.id !== noteId),
+              "Notiz gelöscht"
+            );
+          });
+        });
+        document.getElementById("contact-notes-composer")?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
+            return;
+          }
+          const textarea = document.getElementById("contact-notes-message");
+          const text = String(textarea?.value || "").trim();
+          if (!text) {
+            textarea?.focus();
+            return;
+          }
+          const messages = parseContactNotesThread(contact.note, contact);
+          const nextMessage = {
+            id: window.crypto?.randomUUID?.() || `contact-note-${Date.now()}`,
+            text,
+            authorId: currentProfile?.id || "",
+            authorName: contactNotesAuthorLabel(),
+            authorRole: currentProfile?.role || "",
+            createdAt: new Date().toISOString()
+          };
+          contactEditingNoteId = null;
+          await saveContactNotesThread(contact, [...messages, nextMessage], "Notiz gespeichert");
+        });
+      }
+
       async function applyDetailThemeChange(contact, nextThemes) {
         await updateContactThemes(contact.id, nextThemes);
       }
@@ -29228,8 +31640,8 @@
           const sameBatch =
             lastGroup &&
             lastGroup.action === change.action &&
-            lastGroup.contactId === change.contactId &&
             lastGroup.changedBy === change.changedBy &&
+            lastGroup.contactId === change.contactId &&
             Number.isFinite(lastTime) &&
             Number.isFinite(currentTime) &&
             Math.abs(lastTime - currentTime) <= 5000;
@@ -29239,8 +31651,8 @@
           }
           groups.push({
             id: `${change.id}`,
-            action: change.action,
             contactId: change.contactId,
+            action: change.action,
             changedAt: change.changedAt,
             changedBy: change.changedBy,
             user: change.user,
@@ -30804,13 +33216,15 @@
       }
 
       function updateRouteHash(view) {
-        const nextHash = `#${safeViewForRole(view || activeView || "contacts")}`;
+        const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "contacts";
+        const nextHash = `#${safeViewForRole(routeView)}`;
         if (window.location.hash !== nextHash) {
           window.history.pushState(null, "", nextHash);
         }
       }
 
       function setActiveView(view) {
+        if (onboardingActive && view !== "onboarding") view = "onboarding";
         if (settingsTabItems.some((item) => item.id === view)) {
           setSettingsTab(view);
           view = "settings";
@@ -30819,7 +33233,11 @@
         const requestedView = view;
         view = safeViewForRole(view);
         if (requestedView !== view) updateRouteHash(view);
-        if (activeView !== view) currentPage = 1;
+        const viewChanged = activeView !== view;
+        if (viewChanged) currentPage = 1;
+        if (viewChanged && detailDrawer?.classList.contains("is-open")) {
+          closeDetail();
+        }
         activeView = view;
         if (view === "organizations") {
           selectedPriorities = [];
@@ -30836,6 +33254,21 @@
             selectedOrganizationCities = [];
             selectedOrganizationContactRanges = [];
           }
+        } else if (view === "stakeholders") {
+          selectedCategories = [];
+          selectedPriorities = [];
+          selectedStates = [];
+          selectedSpecialties = [];
+          selectedOwners = [];
+          selectedThemes = [];
+          selectedQualities = [];
+          selectedMissingFields = [];
+          selectedUpdatedRanges = [];
+          selectedSources = [];
+          selectedOrganizationCities = [];
+          selectedOrganizationContactRanges = [];
+          activeCareDuplicateView = "";
+          activeExpertDuplicates = false;
         } else if (view !== "formats") {
           selectedOrganizationCities = [];
           selectedOrganizationContactRanges = [];
@@ -30860,10 +33293,14 @@
         }
         if (view === "team") renderTeamView();
         if (view === "experts") renderExpertTablesVisibility();
+        if (view === "stakeholders") renderStakeholderTablesVisibility();
         if (view === "formats") renderFormatsView();
         if (view === "settings") setSettingsTab(activeSettingsTab);
         if (view === "map") {
           syncMapFrame(mapContacts());
+        }
+        if (view === "stakeholders" && activeStakeholderMode === "map") {
+          syncStakeholderMapFrame(stakeholderMapPeople());
         }
       }
 
@@ -31470,7 +33907,11 @@
         const currentItems = items.length ? items : fallbackItems;
         const contact = currentItems.find((item) => item.id === id) || sourceContacts.find((item) => item.id === id);
         if (!contact) return;
-        if (expertScope ? activeExpertId !== contact.id : activeId !== contact.id) detailActiveTab = "overview";
+        const detailContactChanged = expertScope ? activeExpertId !== contact.id : activeId !== contact.id;
+        if (detailContactChanged) {
+          detailActiveTab = "overview";
+          contactEditingNoteId = null;
+        }
         if (expertScope) detailEditMode = false;
 
         const locationText = formatLocationDisplay(contact);
@@ -31650,15 +34091,13 @@
               <section ${detailPanelAttrs("notes", activeTab)} id="detail-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 <div class="detail-line-list">
-                  ${
-                    editableDetail
-                      ? renderDirectNoteEditor(contact)
-                      : expertScope
-                        ? `<div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}</div>`
-                        : `<textarea class="detail-note-input detail-note-input--direct detail-note-input--readonly" placeholder="Keine Notiz hinterlegt" readonly disabled>${escapeHtml(noteText)}</textarea><div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Bearbeiten von Notizen"))}</div>`
-                  }
-                </div>
-              </section>
+	                  ${
+	                    expertScope
+	                      ? `<div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}</div>`
+	                      : renderContactNotesThread(contact)
+	                  }
+	                </div>
+	              </section>
 
               <section ${detailPanelAttrs("activity", activeTab)} id="detail-activity">
                 ${
@@ -31750,6 +34189,7 @@
             noteInput.blur();
           }
         });
+        if (!expertScope) bindContactNotesThread(contact);
         detailPanel.querySelectorAll("[data-detail-theme-toggle]").forEach((button) => {
           button.addEventListener("click", () => {
             const tag = button.dataset.detailThemeToggle;
@@ -31809,9 +34249,12 @@
         detailEditMode = false;
         detailActiveTab = "overview";
         organizationDetailActiveTab = "overview";
+        contactEditingNoteId = null;
         activeRegistrationId = null;
         activeExpertId = null;
         activeExpertOrganizationId = null;
+        activeStakeholderPersonId = null;
+        activeStakeholderOrganizationId = null;
         registrationDetailTab = "contact";
         detailPanel.classList.remove("detail-panel--organization");
         detailPanel.classList.remove("detail-panel--registration");
@@ -31872,7 +34315,12 @@
         editorForm.elements.city.value = contact?.city || organizationDefaults?.city || splitLocation.city || "";
         editorForm.elements.state.value = contact?.state || organizationDefaults?.state || "";
         editorForm.elements.street.value = contact?.street || "";
-        editorForm.elements.note.value = contact?.note || "";
+        const contactNoteIsThread = isContactNotesThread(contact?.note);
+        editorForm.elements.note.disabled = contactNoteIsThread;
+        editorForm.elements.note.value = contactNoteIsThread ? "" : contact?.note || "";
+        editorForm.elements.note.placeholder = contactNoteIsThread
+          ? "Notizen werden im Reiter Notizen als Verlauf gepflegt."
+          : "Kurze Notiz zum Kontakt...";
         editorForm.elements.image.value = isExpertEditor ? contact?.url || contact?.image || "" : contact?.image || "";
         editorForm.elements.imageSourceLabel.value = isExpertEditor ? "" : contact?.imageSourceLabel || "";
         renderEditorSpecialtyOptions(contact?.specialty || "");
@@ -32148,11 +34596,15 @@
         const isOrganizationsView = activeView === "organizations";
         const isActivitiesView = activeView === "activities";
         const isExpertsView = activeView === "experts";
+        const isStakeholdersView = activeView === "stakeholders";
         if (!canAdministerData()) {
           activeCareDuplicateView = "";
           activeExpertDuplicates = false;
         }
         const isExpertOrganizationsMode = isExpertsView && activeExpertMode === "organizations";
+        const isStakeholderOrganizationsMode = isStakeholdersView && activeStakeholderMode === "organizations";
+        const isStakeholderPeopleMode = isStakeholdersView && activeStakeholderMode === "people";
+        const isStakeholderMapMode = isStakeholdersView && activeStakeholderMode === "map";
         const isContactsDuplicatesMode = isContactsDuplicateMode();
         const isOrganizationsDuplicatesMode = isOrganizationsDuplicateMode();
         const isCareDuplicatesMode = isContactsDuplicatesMode || isOrganizationsDuplicatesMode;
@@ -32166,13 +34618,15 @@
             ? activities
           : isOrganizationsView
             ? isOrganizationsDuplicatesMode ? filteredExpertMatchCandidates("organization") : filteredOrganizations()
+            : isStakeholdersView
+              ? isStakeholderMapMode ? stakeholderMapPeople() : isStakeholderPeopleMode ? filteredStakeholderPeople() : filteredStakeholderOrganizations()
             : isExpertsView
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.hidden = isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveFilters();
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
-        searchInput.placeholder = isAnyDuplicateMode
+        const searchPlaceholder = isAnyDuplicateMode
           ? "Dubletten suchen..."
           : isOrganizationsView
           ? "Organisationen suchen..."
@@ -32180,6 +34634,10 @@
             ? "Expertenkreis-Organisationen suchen..."
           : isExpertsView
             ? "Expertenkreis suchen..."
+          : isStakeholdersView
+            ? isStakeholderOrganizationsMode
+              ? "Kassenärztliche Vereinigungen suchen..."
+              : "KV-Personen, Organisation oder Bundesland suchen..."
           : isFormatsView
             ? "Formate suchen..."
           : isActivitiesView
@@ -32187,18 +34645,27 @@
           : activeView === "map"
             ? "Kontakte suchen"
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
+        searchInput.placeholder = searchPlaceholder;
+        searchShell?.setAttribute("aria-label", searchPlaceholder);
         const searchHidden = activeView === "analytics" || activeView === "quality";
         if (searchShell) {
           if (isExpertsView && !searchHidden && expertHeaderSearch) {
             expertHeaderSearch.hidden = false;
+            if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
             if (searchShell.parentElement !== expertHeaderSearch) expertHeaderSearch.append(searchShell);
+          } else if (isStakeholdersView && !searchHidden && stakeholderHeaderSearch) {
+            if (expertHeaderSearch) expertHeaderSearch.hidden = true;
+            stakeholderHeaderSearch.hidden = false;
+            if (searchShell.parentElement !== stakeholderHeaderSearch) stakeholderHeaderSearch.append(searchShell);
           } else {
             if (expertHeaderSearch) expertHeaderSearch.hidden = true;
+            if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
             if (controlsStack && searchShell.parentElement !== controlsStack) controlsStack.prepend(searchShell);
           }
           searchShell.hidden = searchHidden;
         } else if (expertHeaderSearch) {
           expertHeaderSearch.hidden = true;
+          if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
         }
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
@@ -32206,6 +34673,8 @@
         if (organizationMatchingWorklistButton) organizationMatchingWorklistButton.hidden = !isOrganizationsView;
         if (expertModeActions) expertModeActions.hidden = !isExpertsView;
         if (expertCommandActions) expertCommandActions.hidden = !isExpertsView;
+        if (stakeholderModeActions) stakeholderModeActions.hidden = !isStakeholdersView;
+        if (stakeholderCommandActions) stakeholderCommandActions.hidden = !isStakeholdersView;
         if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertOrganizationsMode;
         if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView || !isExpertOrganizationsMode;
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
@@ -32216,13 +34685,14 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isAnyDuplicateMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isActivitiesView || isCareDuplicatesMode;
+        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isStakeholdersView || isActivitiesView || isCareDuplicatesMode;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isActivitiesView || isAnyDuplicateMode;
-        if (isActivitiesView || isAnyDuplicateMode) setFilterPanelOpen(false);
+        if (filterToolbar) filterToolbar.hidden = isFormatsView || isStakeholdersView || isActivitiesView || isAnyDuplicateMode;
+        if (isStakeholdersView || isActivitiesView || isAnyDuplicateMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isStakeholdersView) stakeholderCommandActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isFormatsView || isActivitiesView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
@@ -32242,6 +34712,8 @@
           renderExpertOrganizationsTable(items);
         } else if (isExpertsView) {
           renderExpertContactsTable(items);
+        } else if (isStakeholdersView) {
+          renderStakeholderCurrent();
         } else if (isContactsDuplicatesMode) {
           renderCareDuplicateTable("contacts", items);
         } else if (isContactsView) {
@@ -32252,12 +34724,13 @@
           renderFormatsView();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isActivitiesView && !isAnyDuplicateMode) {
+        if (!isFormatsView && !isStakeholdersView && !isActivitiesView && !isAnyDuplicateMode) {
           renderActiveFilters();
           renderFilterPanel();
         }
         renderSavedViews();
         syncMapFrame(mapContacts());
+        if (isStakeholdersView) syncStakeholderMapFrame(stakeholderMapPeople());
         renderProfileOwnerSummary();
         renderTeamView();
         renderAboutApp();
@@ -32270,6 +34743,12 @@
           closeDetail();
         }
         if (isExpertsView && activeExpertMode === "organizations" && activeExpertOrganizationId && !items.some((item) => item.id === activeExpertOrganizationId)) {
+          closeDetail();
+        }
+        if (isStakeholdersView && activeStakeholderMode === "organizations" && activeStakeholderOrganizationId && !items.some((item) => item.id === activeStakeholderOrganizationId)) {
+          closeDetail();
+        }
+        if (isStakeholdersView && activeStakeholderMode === "people" && activeStakeholderPersonId && !items.some((item) => item.id === activeStakeholderPersonId)) {
           closeDetail();
         }
       }
@@ -32389,6 +34868,9 @@
       mapViewFrame.addEventListener("load", () => {
         syncMapFrame(mapContacts());
       });
+      stakeholderMapFrame?.addEventListener("load", () => {
+        syncStakeholderMapFrame(stakeholderMapPeople());
+      });
       viewTabs.forEach((tab) => {
         tab.addEventListener("click", () => {
           closeMobileSidebar();
@@ -32414,6 +34896,17 @@
           currentPage = 1;
           closeDetail();
           updateView();
+        });
+      });
+      stakeholderModeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const nextStakeholderMode = button.dataset.stakeholderMode || "organizations";
+          if (!["organizations", "people", "map"].includes(nextStakeholderMode)) return;
+          activeStakeholderMode = nextStakeholderMode;
+          currentPage = 1;
+          closeDetail();
+          updateView();
+          if (activeStakeholderMode === "map") syncStakeholderMapFrame(stakeholderMapPeople());
         });
       });
       restoreSidebarState();
@@ -32515,6 +35008,24 @@
       profilePhotoPick?.addEventListener("click", () => profilePhotoInput?.click());
       profilePhotoInput?.addEventListener("change", () => handleProfilePhotoFile(profilePhotoInput.files?.[0]));
       profilePhotoRemove?.addEventListener("click", removeProfilePhoto);
+      onboardingProfileForm?.addEventListener("submit", saveOnboardingProfile);
+      onboardingDisplayName?.addEventListener("input", () => {
+        setOnboardingStatus("");
+      });
+      onboardingTeam?.addEventListener("change", () => {
+        setOnboardingStatus("");
+      });
+      onboardingPhotoButton?.addEventListener("click", () => onboardingPhotoInput?.click());
+      onboardingPhotoInput?.addEventListener("change", () => handleOnboardingPhotoFile(onboardingPhotoInput.files?.[0]));
+      onboardingTourStart?.addEventListener("click", () => startProductTour("onboarding"));
+      onboardingTourSkip?.addEventListener("click", async () => {
+        setOnboardingTourStatus("Tour wird übersprungen...");
+        await persistOnboardingState({ tourSkippedAt: new Date().toISOString() });
+        finishOnboarding();
+      });
+      productTourPrev?.addEventListener("click", () => advanceProductTour(-1));
+      productTourNext?.addEventListener("click", () => advanceProductTour(1));
+      productTourSkip?.addEventListener("click", () => closeProductTour({ skipped: true }));
       profileForm?.elements.displayName?.addEventListener("input", () => {
         if (!profileForm.elements.initials.value.trim()) {
           profileForm.elements.initials.value = initialsFromProfile({ display_name: profileForm.elements.displayName.value });
@@ -32811,6 +35322,12 @@
         openSettingsTab("imports");
       });
       importsStartFileButton?.addEventListener("click", openImportWizard);
+      importsStartStakeholderButton?.addEventListener("click", selectStakeholderImportFile);
+      stakeholderFileInput?.addEventListener("change", async (event) => {
+        const [file] = event.target.files || [];
+        await handleStakeholderImportFile(file);
+        event.target.value = "";
+      });
       importsOpenTableButton?.addEventListener("click", () => {
         openImportWizard({ mode: "bulk" });
       });
@@ -32886,7 +35403,7 @@
       });
       accountTourButton?.addEventListener("click", () => {
         closeMenus();
-        window.alert("Geführte Tour: 1. Kontakte durchsuchen, 2. Kontaktprofil öffnen, 3. Filter speichern, 4. Pflege-Queue nutzen. Eine interaktive Schritt-für-Schritt-Tour bauen wir als nächste UX-Schicht sauber aus.");
+        startProductTour("manual");
       });
       accountQualityButton?.addEventListener("click", () => {
         closeMenus();
@@ -32904,6 +35421,10 @@
       });
       document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
+        if (productTourState.open) {
+          closeProductTour({ skipped: true });
+          return;
+        }
         if (profilePhotoModal?.classList.contains("is-open")) {
           closeProfilePhotoModal();
           return;
@@ -32913,6 +35434,15 @@
       window.addEventListener("message", (event) => {
         if (!event.data || typeof event.data !== "object") return;
         if (event.data.type === "versorgungs-kompass-open-detail" && event.data.id) {
+          if (event.data.realm === "stakeholders") {
+            activeStakeholderMode = "people";
+            currentPage = 1;
+            setActiveView("stakeholders");
+            updateRouteHash("stakeholders");
+            updateView();
+            openStakeholderPersonDetail(event.data.id, stakeholderPeople);
+            return;
+          }
           activeId = event.data.id;
           openDetail(event.data.id, contacts);
         }
@@ -33157,6 +35687,10 @@
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+          if (productTourState.open) {
+            closeProductTour({ skipped: true });
+            return;
+          }
           const hasOpenCustomSelect = [...document.querySelectorAll("[data-custom-select] select")].some((select) =>
             select.closest("[data-custom-select]")?.classList.contains("is-open")
           );
@@ -33203,6 +35737,7 @@
         if (nextMobileLayout) setMobileSidebarExpanded(false);
         else appShell?.classList.remove("is-mobile-sidebar-expanded");
         if (layoutChanged) updateView();
+        if (productTourState.open) positionProductTourPanel(productTourState.target);
       });
 
       function routeViewFromHash() {
@@ -33219,6 +35754,9 @@
           setProfileTab("profile");
           return "profile";
         }
+        if (hashView === "onboarding" && onboardingActive) {
+          return "onboarding";
+        }
         if (settingsTabItems.some((item) => item.id === hashView)) {
           setSettingsTab(hashView);
           return "settings";
@@ -33228,6 +35766,10 @@
 
       window.addEventListener("hashchange", () => {
         const nextView = routeViewFromHash() || "contacts";
+        if (onboardingActive && nextView !== "onboarding") {
+          updateRouteHash("onboarding");
+          return;
+        }
         setActiveView(nextView);
         updateView();
       });
@@ -33283,8 +35825,50 @@
         }
       }
 
+      async function loadStakeholderData({ includeArchived = false } = {}) {
+        try {
+          if (window.dataService?.loadStakeholderTypes) {
+            stakeholderTypes = (await window.dataService.loadStakeholderTypes({ includeArchived })).map((type, index) =>
+              sanitizeStakeholderType(type, index)
+            );
+          } else {
+            stakeholderTypes = seedStakeholderTypes;
+          }
+        } catch (typeError) {
+          console.warn("Stakeholder-Typen konnten nicht geladen werden. Seed-Fallback aktiv.", typeError);
+          stakeholderTypes = seedStakeholderTypes;
+        }
+
+        try {
+          if (window.dataService?.loadStakeholderOrganizations) {
+            stakeholderOrganizations = (await window.dataService.loadStakeholderOrganizations({ includeArchived, stakeholderTypeId: activeStakeholderTypeId })).map((organization, index) =>
+              sanitizeStakeholderOrganization(organization, index)
+            );
+          } else {
+            stakeholderOrganizations = seedStakeholderOrganizations;
+          }
+        } catch (organizationError) {
+          console.warn("Stakeholder-Organisationen konnten nicht geladen werden. Seed-Fallback aktiv.", organizationError);
+          stakeholderOrganizations = seedStakeholderOrganizations;
+        }
+
+        try {
+          if (window.dataService?.loadStakeholderPeople) {
+            stakeholderPeople = (await window.dataService.loadStakeholderPeople({ includeArchived, stakeholderTypeId: activeStakeholderTypeId })).map((person, index) =>
+              sanitizeStakeholderPerson(person, index)
+            );
+          } else {
+            stakeholderPeople = seedStakeholderPeople;
+          }
+        } catch (peopleError) {
+          console.warn("Stakeholder-Personen konnten nicht geladen werden. Seed-Fallback aktiv.", peopleError);
+          stakeholderPeople = seedStakeholderPeople;
+        }
+      }
+
       async function initializeData() {
         const initialRouteView = routeViewFromHash();
+        let initialTargetView = initialRouteView || "";
         loadLegacyOwnerAssignments();
         try {
           const profiles = await window.dataService.getProfiles();
@@ -33312,9 +35896,10 @@
             formats = [];
           }
           await loadExpertData({ includeArchived: canAdministerData() });
+          await loadStakeholderData({ includeArchived: canAdministerData() });
           await loadSavedViewsAndSettings();
-          if (!initialRouteView && ["contacts", "organizations", "activities", "experts", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
-            activeView = userSettings.defaultViewType;
+          if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "stakeholders", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
+            initialTargetView = userSettings.defaultViewType;
           }
           loadedContactsFromStorage = false;
           setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
@@ -33334,7 +35919,11 @@
         }
         isInitialDataLoading = false;
         initialDataLoadingSlow = false;
-        if (initialRouteView) activeView = initialRouteView;
+        if (shouldRequireInitialOnboarding()) {
+          await openOnboarding(initialTargetView || activeView || "contacts");
+          return;
+        }
+        if (initialTargetView) activeView = initialTargetView;
         setActiveView(activeView);
         updateView();
       }

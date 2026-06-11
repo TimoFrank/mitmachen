@@ -180,11 +180,59 @@
     "updated_at",
     "updated_by"
   ];
+  const STAKEHOLDER_TYPE_FIELDS = ["id", "label", "description", "sort_order", "status", "created_at", "updated_at"];
+  const STAKEHOLDER_ORGANIZATION_FIELDS = [
+    "id",
+    "stakeholder_type_id",
+    "name",
+    "normalized_name",
+    "organization_type",
+    "postal_code",
+    "city",
+    "federal_state",
+    "latitude",
+    "longitude",
+    "website",
+    "phone",
+    "email",
+    "notes",
+    "source",
+    "status",
+    "created_at",
+    "updated_at"
+  ];
+  const STAKEHOLDER_PEOPLE_FIELDS = [
+    "id",
+    "stakeholder_type_id",
+    "organization_id",
+    "organization",
+    "name",
+    "role",
+    "committee",
+    "city",
+    "federal_state",
+    "latitude",
+    "longitude",
+    "map_position_source",
+    "email",
+    "phone",
+    "linkedin",
+    "topics",
+    "notes",
+    "source",
+    "profile_url",
+    "is_representative_assembly_member",
+    "status",
+    "created_at",
+    "updated_at"
+  ];
   const PROFILE_IMAGE_BUCKET = "profile-images";
   const LOCAL_FORMATS_KEY = "versorgungs-kompass-formats-v1";
   const LOCAL_EXPERT_CONTACTS_KEY = "versorgungs-kompass-expert-contacts-v1";
   const LOCAL_EXPERT_ORGANIZATIONS_KEY = "versorgungs-kompass-expert-organizations-v1";
   const LOCAL_EXPERT_ENTITY_LINKS_KEY = "versorgungs-kompass-expert-entity-links-v1";
+  const LOCAL_STAKEHOLDER_ORGANIZATIONS_KEY = "versorgungs-kompass-stakeholder-organizations-v1";
+  const LOCAL_STAKEHOLDER_PEOPLE_KEY = "versorgungs-kompass-stakeholder-people-v1";
   const LOCAL_REGISTRATIONS_KEY = "versorgungs-kompass-backend-registrations-v1";
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   let client = null;
@@ -195,6 +243,9 @@
   let expertContactCache = [];
   let expertOrganizationCache = [];
   let expertEntityLinkCache = [];
+  let stakeholderTypeCache = [];
+  let stakeholderOrganizationCache = [];
+  let stakeholderPeopleCache = [];
   let formatCache = [];
   let savedViewCache = [];
   let userSettingsCache = null;
@@ -470,6 +521,43 @@
       .map((organization) => clone(organization));
   }
 
+  function normalizeStakeholderTypeEntry(entry = {}, index = 0) {
+    const id = String(entry.id || entry.value || entry.type || "").trim() || `stakeholder-type-${index + 1}`;
+    return {
+      id,
+      label: String(entry.label || entry.name || id).trim(),
+      description: String(entry.description || "").trim(),
+      sortOrder: Number(entry.sortOrder ?? entry.sort_order ?? (index + 1) * 10),
+      status: String(entry.status || "active").trim() || "active"
+    };
+  }
+
+  function localStakeholderTypes(options = {}) {
+    const rows = Array.isArray(window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES) ? window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES : [];
+    return rows
+      .map(normalizeStakeholderTypeEntry)
+      .filter((type) => type.id && (options.includeArchived || type.status !== "archived"))
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label, "de"));
+  }
+
+  function localStakeholderOrganizations(options = {}) {
+    const seedRows = Array.isArray(window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS) ? window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS : [];
+    const storedRows = readLocalCollection(LOCAL_STAKEHOLDER_ORGANIZATIONS_KEY, "Lokale Stakeholder-Organisationen");
+    const rows = mergeLocalRows(seedRows, storedRows);
+    return rows
+      .filter((organization) => options.includeArchived || organization.status !== "archived")
+      .map((organization) => clone(organization));
+  }
+
+  function localStakeholderPeople(options = {}) {
+    const seedRows = Array.isArray(window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE) ? window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE : [];
+    const storedRows = readLocalCollection(LOCAL_STAKEHOLDER_PEOPLE_KEY, "Lokale Stakeholder-Personen");
+    const rows = mergeLocalRows(seedRows, storedRows);
+    return rows
+      .filter((person) => options.includeArchived || person.status !== "archived")
+      .map((person, index) => ({ ...clone(person), _index: index }));
+  }
+
   function readLocalExpertEntityLinks() {
     try {
       const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_EXPERT_ENTITY_LINKS_KEY) || "[]");
@@ -511,6 +599,18 @@
     expertOrganizationCache = items.map(expertOrganizationDbToUi);
     writeLocalCollection(LOCAL_EXPERT_ORGANIZATIONS_KEY, expertOrganizationCache, "Lokale Expertenkreis-Organisationen");
     return clone(expertOrganizationCache);
+  }
+
+  function persistLocalStakeholderOrganizations(items = stakeholderOrganizationCache) {
+    stakeholderOrganizationCache = items.map(stakeholderOrganizationDbToUi);
+    writeLocalCollection(LOCAL_STAKEHOLDER_ORGANIZATIONS_KEY, stakeholderOrganizationCache, "Lokale Stakeholder-Organisationen");
+    return clone(stakeholderOrganizationCache);
+  }
+
+  function persistLocalStakeholderPeople(items = stakeholderPeopleCache) {
+    stakeholderPeopleCache = items.map(stakeholderPersonDbToUi);
+    writeLocalCollection(LOCAL_STAKEHOLDER_PEOPLE_KEY, stakeholderPeopleCache, "Lokale Stakeholder-Personen");
+    return clone(stakeholderPeopleCache);
   }
 
   function sampleRegistrationRows() {
@@ -1203,6 +1303,146 @@
       expert_organization_id: link.expertOrganizationId || link.expert_organization_id || null,
       match_reason: String(link.matchReason || link.match_reason || "").trim() || null,
       confidence: Number.isFinite(Number(link.confidence ?? link.score)) ? Number(link.confidence ?? link.score) : null
+    };
+  }
+
+  function stakeholderTypeDbToUi(row, index = 0) {
+    return {
+      id: row.id || `stakeholder-type-${index + 1}`,
+      label: row.label || row.name || "",
+      description: row.description || "",
+      sortOrder: Number(row.sort_order ?? row.sortOrder ?? (index + 1) * 10),
+      status: row.status || "active",
+      createdAt: row.created_at || row.createdAt || "",
+      updatedAt: row.updated_at || row.updatedAt || ""
+    };
+  }
+
+  function stakeholderOrganizationDbToUi(row, personCount = 0) {
+    const latitude = Number.parseFloat(row.latitude ?? row.lat ?? "");
+    const longitude = Number.parseFloat(row.longitude ?? row.lon ?? "");
+    return {
+      id: row.id || "",
+      stakeholderTypeId: row.stakeholder_type_id || row.stakeholderTypeId || row.stakeholderType || "kv",
+      stakeholderType: row.stakeholder_type_id || row.stakeholderType || "kv",
+      name: row.name || "",
+      normalizedName: row.normalized_name || row.normalizedName || normalizeOrganizationName(row.name),
+      organizationType: row.organization_type || row.organizationType || "",
+      postalCode: row.postal_code || row.postalCode || "",
+      city: row.city || "",
+      state: row.federal_state || row.state || "",
+      latitude: Number.isFinite(latitude) ? latitude : null,
+      longitude: Number.isFinite(longitude) ? longitude : null,
+      lat: Number.isFinite(latitude) ? latitude : null,
+      lon: Number.isFinite(longitude) ? longitude : null,
+      website: row.website || "",
+      phone: row.phone || "",
+      email: row.email || "",
+      notes: row.notes || row.note || "",
+      source: row.source || "",
+      status: row.status || "active",
+      personCount: Number(row.person_count ?? row.personCount ?? personCount ?? 0),
+      createdAt: row.created_at || row.createdAt || "",
+      updatedAt: row.updated_at || row.updatedAt || ""
+    };
+  }
+
+  function stakeholderPersonDbToUi(row, index = 0) {
+    const latitude = Number.parseFloat(row.latitude ?? row.lat ?? "");
+    const longitude = Number.parseFloat(row.longitude ?? row.lon ?? "");
+    return {
+      id: row.id || `stakeholder-person-${index + 1}`,
+      stakeholderTypeId: row.stakeholder_type_id || row.stakeholderTypeId || row.stakeholderType || "kv",
+      stakeholderType: row.stakeholder_type_id || row.stakeholderType || "kv",
+      organizationId: row.organization_id || row.organizationId || "",
+      organization: row.organization || "",
+      name: row.name || "",
+      role: row.role || row.contactRole || "",
+      contactRole: row.role || row.contactRole || "",
+      committee: row.committee || row.gremium || "",
+      city: row.city || "",
+      state: row.federal_state || row.state || "",
+      latitude: Number.isFinite(latitude) ? latitude : null,
+      longitude: Number.isFinite(longitude) ? longitude : null,
+      lat: Number.isFinite(latitude) ? latitude : null,
+      lon: Number.isFinite(longitude) ? longitude : null,
+      mapPositionSource: row.map_position_source || row.mapPositionSource || "",
+      email: row.email || "",
+      phone: row.phone || "",
+      linkedin: row.linkedin || "",
+      themes: splitList(row.topics || row.themes),
+      note: row.notes || row.note || "",
+      source: row.source || "",
+      sources: splitList(row.source),
+      url: row.profile_url || row.profileUrl || row.url || "",
+      isRepresentativeAssemblyMember: Boolean(row.is_representative_assembly_member ?? row.isRepresentativeAssemblyMember),
+      status: row.status || "active",
+      createdAt: row.created_at || row.createdAt || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      _index: index
+    };
+  }
+
+  function stakeholderTypeUiToDb(type = {}) {
+    return {
+      id: String(type.id || type.value || "kv").trim(),
+      label: String(type.label || type.name || "Kassenärztliche Vereinigungen").trim(),
+      description: String(type.description || "").trim() || null,
+      sort_order: Number(type.sortOrder ?? type.sort_order ?? 10),
+      status: type.status || "active"
+    };
+  }
+
+  function stakeholderOrganizationUiToDb(organization = {}) {
+    const name = String(organization.name || organization.organization || "").trim();
+    const latitude = Number.parseFloat(organization.lat ?? organization.latitude ?? "");
+    const longitude = Number.parseFloat(organization.lon ?? organization.longitude ?? "");
+    return {
+      id: String(organization.id || `stakeholder-org-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`).trim(),
+      stakeholder_type_id: String(organization.stakeholderTypeId || organization.stakeholder_type_id || organization.stakeholderType || "kv").trim() || "kv",
+      name,
+      normalized_name: normalizeOrganizationName(organization.normalizedName || organization.normalized_name || name),
+      organization_type: String(organization.organizationType || organization.organization_type || "").trim() || null,
+      postal_code: String(organization.postalCode || organization.postal_code || "").trim() || null,
+      city: String(organization.city || "").trim() || null,
+      federal_state: String(organization.state || organization.federal_state || "").trim() || null,
+      latitude: Number.isFinite(latitude) ? latitude : null,
+      longitude: Number.isFinite(longitude) ? longitude : null,
+      website: String(organization.website || organization.url || "").trim() || null,
+      phone: String(organization.phone || "").trim() || null,
+      email: String(organization.email || "").trim() || null,
+      notes: String(organization.notes || organization.note || "").trim() || null,
+      source: String(organization.source || "").trim() || "Stakeholder-Import",
+      status: organization.status || "active"
+    };
+  }
+
+  function stakeholderPersonUiToDb(person = {}) {
+    const name = String(person.name || "").trim();
+    const latitude = Number.parseFloat(person.lat ?? person.latitude ?? "");
+    const longitude = Number.parseFloat(person.lon ?? person.longitude ?? "");
+    return {
+      id: String(person.id || `stakeholder-person-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`).trim(),
+      stakeholder_type_id: String(person.stakeholderTypeId || person.stakeholder_type_id || person.stakeholderType || "kv").trim() || "kv",
+      organization_id: person.organizationId || person.organization_id || null,
+      organization: String(person.organization || "").trim() || null,
+      name,
+      role: String(person.role || person.contactRole || "").trim() || null,
+      committee: String(person.committee || person.gremium || "").trim() || null,
+      city: String(person.city || "").trim() || null,
+      federal_state: String(person.state || person.federal_state || "").trim() || null,
+      latitude: Number.isFinite(latitude) ? latitude : null,
+      longitude: Number.isFinite(longitude) ? longitude : null,
+      map_position_source: String(person.mapPositionSource || person.map_position_source || "").trim() || null,
+      email: String(person.email || "").trim() || null,
+      phone: String(person.phone || "").trim() || null,
+      linkedin: String(person.linkedin || "").trim() || null,
+      topics: splitList(person.themes || person.topics),
+      notes: String(person.note || person.notes || "").trim() || null,
+      source: String(person.source || splitList(person.sources).join("; ")).trim() || "Stakeholder-Import",
+      profile_url: String(person.url || person.profileUrl || person.profile_url || "").trim() || null,
+      is_representative_assembly_member: Boolean(person.isRepresentativeAssemblyMember ?? person.is_representative_assembly_member),
+      status: person.status || "active"
     };
   }
 
@@ -1996,6 +2236,159 @@
     return true;
   }
 
+  async function loadStakeholderTypes(options = {}) {
+    if (isLocalMode()) {
+      stakeholderTypeCache = localStakeholderTypes(options).map(stakeholderTypeDbToUi);
+      return clone(stakeholderTypeCache);
+    }
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/stakeholder-types", {
+        includeArchived: options.includeArchived ? "true" : ""
+      });
+      stakeholderTypeCache = Array.isArray(payload.items) ? payload.items.map(stakeholderTypeDbToUi) : [];
+      return clone(stakeholderTypeCache);
+    }
+    let query = getClient()
+      .from("stakeholder_types")
+      .select(STAKEHOLDER_TYPE_FIELDS.join(","))
+      .order("sort_order", { ascending: true })
+      .order("label", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    const { data, error } = await query;
+    if (error) throw error;
+    stakeholderTypeCache = (data || []).map(stakeholderTypeDbToUi);
+    return clone(stakeholderTypeCache);
+  }
+
+  async function loadStakeholderOrganizations(options = {}) {
+    if (isLocalMode()) {
+      const people = localStakeholderPeople({ includeArchived: true });
+      stakeholderOrganizationCache = localStakeholderOrganizations(options).map((organization) => {
+        const personCount = people.filter((person) =>
+          person.status !== "archived" &&
+          ((organization.id && person.organizationId === organization.id) ||
+            normalizeOrganizationName(person.organization) === normalizeOrganizationName(organization.name))
+        ).length;
+        return stakeholderOrganizationDbToUi(organization, personCount);
+      });
+      return clone(stakeholderOrganizationCache);
+    }
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/stakeholder-organizations", {
+        includeArchived: options.includeArchived ? "true" : "",
+        stakeholderTypeId: options.stakeholderTypeId || options.stakeholderType || ""
+      });
+      stakeholderOrganizationCache = Array.isArray(payload.items) ? payload.items.map(stakeholderOrganizationDbToUi) : [];
+      return clone(stakeholderOrganizationCache);
+    }
+    const supabase = getClient();
+    let query = supabase
+      .from("stakeholder_organizations")
+      .select(STAKEHOLDER_ORGANIZATION_FIELDS.join(","))
+      .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    if (options.stakeholderTypeId || options.stakeholderType) query = query.eq("stakeholder_type_id", options.stakeholderTypeId || options.stakeholderType);
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const ids = (data || []).map((row) => row.id);
+    const counts = new Map();
+    if (ids.length) {
+      const { data: linkedPeople, error: countError } = await supabase
+        .from("stakeholder_people")
+        .select("organization_id")
+        .in("organization_id", ids)
+        .neq("status", "archived");
+      if (countError) throw countError;
+      (linkedPeople || []).forEach((row) => {
+        if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
+      });
+    }
+    stakeholderOrganizationCache = (data || []).map((row) => stakeholderOrganizationDbToUi(row, counts.get(row.id) || 0));
+    return clone(stakeholderOrganizationCache);
+  }
+
+  async function loadStakeholderPeople(options = {}) {
+    if (isLocalMode()) {
+      stakeholderPeopleCache = localStakeholderPeople(options).map(stakeholderPersonDbToUi);
+      return clone(stakeholderPeopleCache);
+    }
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/stakeholder-people", {
+        includeArchived: options.includeArchived ? "true" : "",
+        stakeholderTypeId: options.stakeholderTypeId || options.stakeholderType || "",
+        representativeAssembly: options.representativeAssembly ? "true" : ""
+      });
+      stakeholderPeopleCache = Array.isArray(payload.items) ? payload.items.map(stakeholderPersonDbToUi) : [];
+      return clone(stakeholderPeopleCache);
+    }
+    let query = getClient()
+      .from("stakeholder_people")
+      .select(STAKEHOLDER_PEOPLE_FIELDS.join(","))
+      .order("name", { ascending: true });
+    if (!options.includeArchived) query = query.neq("status", "archived");
+    if (options.stakeholderTypeId || options.stakeholderType) query = query.eq("stakeholder_type_id", options.stakeholderTypeId || options.stakeholderType);
+    if (options.representativeAssembly) query = query.eq("is_representative_assembly_member", true);
+    const { data, error } = await query;
+    if (error) throw error;
+    stakeholderPeopleCache = (data || []).map(stakeholderPersonDbToUi);
+    return clone(stakeholderPeopleCache);
+  }
+
+  async function upsertStakeholderImport(payload = {}) {
+    const types = (payload.types || []).map(stakeholderTypeUiToDb);
+    const organizations = (payload.organizations || []).map(stakeholderOrganizationUiToDb).filter((organization) => organization.name);
+    const people = (payload.people || []).map(stakeholderPersonUiToDb).filter((person) => person.name);
+    if (isLocalMode()) {
+      requireLocalAdmin("Stakeholder importieren");
+      const typeMap = new Map(localStakeholderTypes({ includeArchived: true }).map((type) => [type.id, stakeholderTypeDbToUi(type)]));
+      types.forEach((type) => typeMap.set(type.id, stakeholderTypeDbToUi(type)));
+      stakeholderTypeCache = [...typeMap.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label, "de"));
+
+      const organizationMap = new Map(localStakeholderOrganizations({ includeArchived: true }).map((organization) => [organization.id, stakeholderOrganizationDbToUi(organization)]));
+      organizations.forEach((organization) => organizationMap.set(organization.id, stakeholderOrganizationDbToUi(organization)));
+      persistLocalStakeholderOrganizations([...organizationMap.values()]);
+
+      const peopleMap = new Map(localStakeholderPeople({ includeArchived: true }).map((person) => [person.id, stakeholderPersonDbToUi(person)]));
+      people.forEach((person) => peopleMap.set(person.id, stakeholderPersonDbToUi(person)));
+      persistLocalStakeholderPeople([...peopleMap.values()]);
+
+      return {
+        types: clone(stakeholderTypeCache),
+        organizations: clone(stakeholderOrganizationCache),
+        people: clone(stakeholderPeopleCache)
+      };
+    }
+    if (usesApiGateway()) {
+      const imported = await apiRequest("/api/stakeholder-import", {
+        method: "POST",
+        body: payload
+      });
+      stakeholderTypeCache = Array.isArray(imported.types) ? imported.types.map(stakeholderTypeDbToUi) : stakeholderTypeCache;
+      stakeholderOrganizationCache = Array.isArray(imported.organizations) ? imported.organizations.map(stakeholderOrganizationDbToUi) : stakeholderOrganizationCache;
+      stakeholderPeopleCache = Array.isArray(imported.people) ? imported.people.map(stakeholderPersonDbToUi) : stakeholderPeopleCache;
+      return clone(imported);
+    }
+    const supabase = getClient();
+    if (types.length) {
+      const { error } = await supabase.from("stakeholder_types").upsert(types, { onConflict: "id" });
+      if (error) throw error;
+    }
+    if (organizations.length) {
+      const { error } = await supabase.from("stakeholder_organizations").upsert(organizations, { onConflict: "id" });
+      if (error) throw error;
+    }
+    if (people.length) {
+      const { error } = await supabase.from("stakeholder_people").upsert(people, { onConflict: "id" });
+      if (error) throw error;
+    }
+    return {
+      types: await loadStakeholderTypes({ includeArchived: true }),
+      organizations: await loadStakeholderOrganizations({ includeArchived: true }),
+      people: await loadStakeholderPeople({ includeArchived: true })
+    };
+  }
+
   async function createOrganization(organization) {
     if (isLocalMode()) {
       requireLocalWrite("Organisation speichern");
@@ -2702,6 +3095,10 @@
     createExpertOrganization,
     createExpertEntityLink,
     deleteExpertEntityLink,
+    loadStakeholderTypes,
+    loadStakeholderOrganizations,
+    loadStakeholderPeople,
+    upsertStakeholderImport,
     createOrganization,
     updateOrganization,
     linkContactToOrganization,

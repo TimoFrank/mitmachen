@@ -3137,6 +3137,9 @@
 
   const BASE_DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);
   let currentEntries = BASE_DATA.slice();
+  let activeMapContext = MAP_PARAMS.get("context") === "stakeholders" ? "stakeholders" : "contacts";
+  let activeMapLabels = {};
+  let showOwnerFilter = true;
   const CITY_LABELS = window.MAP_CITY_LABELS;
   const STATE_LABELS = window.MAP_STATE_LABELS;
   const STATE_POLYGONS = window.MAP_STATE_POLYGONS;
@@ -3390,7 +3393,7 @@
       },
       onEachFeature: (feature, layer) => {
         const total = countsByState[stateNameKey(feature.properties.name)] || 0;
-        layer.bindTooltip(`${total} ${total === 1 ? "Kontakt" : "Kontakte"}`, {
+        layer.bindTooltip(`${total} ${total === 1 ? mapLabel("itemSingular", "Kontakt") : mapLabel("itemPlural", "Kontakte")}`, {
           className: "state-heat-tooltip",
           direction: "top",
           offset: [0, -12],
@@ -3635,6 +3638,10 @@
   let currentListPage = 1;
   const mobileListPageSize = 5;
 
+  function mapLabel(key, fallback) {
+    return activeMapLabels?.[key] || fallback;
+  }
+
   const elMapControls = document.querySelector('.map-controls');
   const elMapMenuToggle = document.getElementById('map-menu-toggle');
   const elFilters = document.getElementById('filters');
@@ -3643,6 +3650,7 @@
   const elList = document.getElementById('list');
   const elMapPagination = document.getElementById('map-pagination');
   const elCount = document.getElementById('count');
+  const elPanelTitle = document.querySelector('.panel-title');
   const elHeatMapToggle = document.getElementById('heatmap-toggle');
   const elClusterToggle = document.getElementById('cluster-toggle');
   const elMapResetToggle = document.getElementById('map-reset-toggle');
@@ -3880,7 +3888,12 @@
   function openEntryDetail(entry){
     if (!entry) return;
     if (EMBED_MODE && window.parent && window.parent !== window) {
-      window.parent.postMessage({ type: "versorgungs-kompass-open-detail", id: entry.id }, "*");
+      window.parent.postMessage({
+        type: "versorgungs-kompass-open-detail",
+        id: entry.id,
+        realm: activeMapContext,
+        entity: activeMapContext === "stakeholders" ? "person" : "contact"
+      }, "*");
       renderMapDetail(null);
       return;
     }
@@ -4181,7 +4194,7 @@
     elMobileMapPreview.hidden = false;
     elMobileMapPreview.innerHTML = `
       <div class="mobile-map-preview-head">
-        <span class="map-detail-kicker">Kontaktvorschau</span>
+        <span class="map-detail-kicker">${mapLabel("previewKicker", "Kontaktvorschau")}</span>
         <button class="mobile-map-preview-close" type="button" id="mobile-map-preview-close" aria-label="Vorschau schließen">&times;</button>
       </div>
       <div class="mobile-map-preview-profile">
@@ -4192,7 +4205,7 @@
         </div>
       </div>
       <div class="mobile-map-preview-meta">${previewMetaBadges(entry)}</div>
-      <button class="mobile-map-preview-action" type="button" id="mobile-map-preview-open">Details öffnen</button>
+      <button class="mobile-map-preview-action" type="button" id="mobile-map-preview-open">${mapLabel("openDetailLabel", "Details öffnen")}</button>
     `;
     document.getElementById('mobile-map-preview-open')?.addEventListener('click', () => openEntryDetail(entry));
     document.getElementById('mobile-map-preview-close')?.addEventListener('click', () => {
@@ -4549,7 +4562,7 @@
 
     const sectorRow = document.createElement('div');
     sectorRow.className = 'map-filter-row map-filter-row--sectors';
-    sectorRow.innerHTML = `<span class="map-filter-label">Sektor</span>`;
+    sectorRow.innerHTML = `<span class="map-filter-label">${mapLabel("categoryLabel", "Sektor")}</span>`;
     const allButton = document.createElement('button');
     allButton.type = 'button';
     allButton.className = `category-chip${activeCategoryFilter ? "" : " active"}`;
@@ -4557,7 +4570,7 @@
     allButton.style.setProperty('--sector-color', '#010E52');
     allButton.style.setProperty('--sector-bg', 'rgba(1,14,82,0.06)');
     allButton.style.setProperty('--sector-shadow', 'rgba(1,14,82,0.18)');
-    allButton.innerHTML = sectorFilterContent("Alle");
+    allButton.innerHTML = sectorFilterContent(mapLabel("categoryAllLabel", "Alle"));
     allButton.addEventListener('click', () => {
       activeCategoryFilter = "";
       resetListPage();
@@ -4587,18 +4600,20 @@
     });
     elFilters.appendChild(sectorRow);
 
-    const ownerRow = document.createElement('div');
-    ownerRow.className = 'map-filter-row owner-filter-row';
-    ownerRow.innerHTML = `<span class="map-filter-label">Owner</span>${ownerFilterChip("")}${owners.map(ownerFilterChip).join("")}`;
-    ownerRow.querySelectorAll('[data-owner-filter]').forEach((button) => {
-      button.addEventListener('click', () => {
-        activeOwnerFilter = button.dataset.ownerFilter || "";
-        resetListPage();
-        renderFilters();
-        render();
+    if (showOwnerFilter && owners.length) {
+      const ownerRow = document.createElement('div');
+      ownerRow.className = 'map-filter-row owner-filter-row';
+      ownerRow.innerHTML = `<span class="map-filter-label">Owner</span>${ownerFilterChip("")}${owners.map(ownerFilterChip).join("")}`;
+      ownerRow.querySelectorAll('[data-owner-filter]').forEach((button) => {
+        button.addEventListener('click', () => {
+          activeOwnerFilter = button.dataset.ownerFilter || "";
+          resetListPage();
+          renderFilters();
+          render();
+        });
       });
-    });
-    elFilters.appendChild(ownerRow);
+      elFilters.appendChild(ownerRow);
+    }
   }
 
   let markerIndex = [];
@@ -4642,7 +4657,7 @@
   function renderList(entries){
     elCount.textContent = `${entries.length} / ${(EMBED_MODE ? currentEntries.length : BASE_DATA.length)}`;
     if (elMobileSheetCount) {
-      elMobileSheetCount.textContent = `${entries.length} ${entries.length === 1 ? 'Kontakt' : 'Kontakte'}`;
+      elMobileSheetCount.textContent = `${entries.length} ${entries.length === 1 ? mapLabel("itemSingular", "Kontakt") : mapLabel("itemPlural", "Kontakte")}`;
     }
     if (elMobileSheetMeta) {
       elMobileSheetMeta.textContent = selectedState ? `${selectedState}${activeCategoryFilter ? ` • ${activeCategoryFilter}` : ''}` : `Deutschlandweite Ansicht`;
@@ -4650,7 +4665,7 @@
     elList.innerHTML = "";
     if (elMapPagination) elMapPagination.innerHTML = "";
     if (!entries.length) {
-      elList.innerHTML = `<div class="list-empty">Keine Kontakte im aktuellen Kartenfilter.</div>`;
+      elList.innerHTML = `<div class="list-empty">${mapLabel("emptyTitle", "Keine Kontakte im aktuellen Kartenfilter.")}</div>`;
       renderMapDetail(null);
       return;
     }
@@ -4911,11 +4926,21 @@
   render();
   window.addEventListener("message", (event) => {
     if (!event.data || event.data.type !== "versorgungs-kompass-map-data") return;
+    activeMapContext = event.data.context === "stakeholders" ? "stakeholders" : "contacts";
+    activeMapLabels = event.data.labels || {};
+    showOwnerFilter = event.data.showOwnerFilter !== false;
     currentEntries = (event.data.contacts || []).map(toMapEntry).filter(Boolean);
     selectedState = "";
     activeMapContactId = "";
     mobilePreviewContactId = "";
+    activeOwnerFilter = "";
     resetListPage();
+    if (elSearch) {
+      elSearch.placeholder = mapLabel("searchPlaceholder", "Kontakte suchen");
+      elSearch.value = "";
+      query = "";
+    }
+    if (elPanelTitle) elPanelTitle.textContent = mapLabel("listTitle", "Kontakte");
     renderMapDetail(null);
     setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
     renderFilters();
@@ -4930,6 +4955,8 @@
     activePriorityFilter = "";
     query = "";
     elSearch.value = "";
+    elSearch.placeholder = mapLabel("searchPlaceholder", "Kontakte suchen");
+    if (elPanelTitle) elPanelTitle.textContent = mapLabel("listTitle", "Kontakte");
     renderFilters();
     renderStateFilterMenu();
     setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
