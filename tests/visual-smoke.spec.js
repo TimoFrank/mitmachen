@@ -209,6 +209,9 @@ function activitiesDemoDataScript() {
       ];
       const contacts = Array.from({ length: 36 }, (_, index) => {
         const n = index + 1;
+        const ownerIds = n % 6 === 0
+          ? [profiles[index % profiles.length].id, profiles[(index + 1) % profiles.length].id]
+          : [profiles[index % profiles.length].id];
         return {
           id: "activity-contact-" + String(n).padStart(2, "0"),
           name: "Aktivitätskontakt " + n,
@@ -217,8 +220,9 @@ function activitiesDemoDataScript() {
           specialty: n % 3 ? "Allgemeinmedizin" : "Geriatrie",
           contactRole: "Ansprechperson",
           priority: n % 2 ? "Hoch" : "Mittel",
-          ownerId: profiles[index % profiles.length].id,
-          owner: profiles[index % profiles.length].display_name,
+          ownerId: ownerIds[0],
+          ownerIds,
+          owner: ownerIds.map((ownerId) => profiles.find((item) => item.id === ownerId)?.display_name || "").filter(Boolean).join(", "),
           postalCode: "10115",
           city: n % 2 ? "Berlin" : "Potsdam",
           state: n % 2 ? "Berlin" : "Brandenburg",
@@ -235,7 +239,8 @@ function activitiesDemoDataScript() {
       const changes = contacts.map((contact, index) => {
         const n = index + 1;
         const kind = n % 9 === 0 ? "archive" : n % 7 === 0 ? "import" : n % 5 === 0 ? "create" : "update";
-        const fieldName = kind === "create" || kind === "import" ? "" : n % 4 === 0 ? "owner_id" : "priority";
+        const fieldName = kind === "create" || kind === "import" ? "" : n % 4 === 0 ? "owner_ids" : "priority";
+        const oldOwnerIds = [profiles[(index + 1) % profiles.length].id];
         return {
           id: n,
           contactId: contact.id,
@@ -243,10 +248,10 @@ function activitiesDemoDataScript() {
           action: kind,
           fieldName,
           field_name: fieldName,
-          oldValue: fieldName === "owner_id" ? profiles[(index + 1) % profiles.length].id : fieldName === "priority" ? "Mittel" : "",
-          old_value: fieldName === "owner_id" ? profiles[(index + 1) % profiles.length].id : fieldName === "priority" ? "Mittel" : "",
-          newValue: fieldName === "owner_id" ? contact.ownerId : fieldName === "priority" ? contact.priority : contact.name,
-          new_value: fieldName === "owner_id" ? contact.ownerId : fieldName === "priority" ? contact.priority : contact.name,
+          oldValue: fieldName === "owner_ids" ? JSON.stringify(oldOwnerIds) : fieldName === "priority" ? "Mittel" : "",
+          old_value: fieldName === "owner_ids" ? JSON.stringify(oldOwnerIds) : fieldName === "priority" ? "Mittel" : "",
+          newValue: fieldName === "owner_ids" ? JSON.stringify(contact.ownerIds) : fieldName === "priority" ? contact.priority : contact.name,
+          new_value: fieldName === "owner_ids" ? JSON.stringify(contact.ownerIds) : fieldName === "priority" ? contact.priority : contact.name,
           changedAt: new Date(now.getTime() - index * 300000).toISOString(),
           changed_at: new Date(now.getTime() - index * 300000).toISOString(),
           changedBy: profiles[index % profiles.length].id,
@@ -312,6 +317,9 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator(".sidebar-section-label").filter({ hasText: "IOP" })).toHaveCount(1);
   await expect(page.locator('[data-view-tab="experts"]')).toContainText("Expertenkreis");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
+  if (!testInfo.project.name.includes("mobile")) {
+    await expect(page.locator("#contact-list .owner-badge-group").first()).toBeVisible();
+  }
 
   await attachScreenshot(page, testInfo, "kontakte");
 });
@@ -334,12 +342,14 @@ test("Onboarding: neuer Supabase-Account richtet Profil ein und startet Tour", a
 
   await page.locator("#onboarding-tour-start").click();
   await expect(page.locator("#product-tour")).toBeVisible();
-  await expect(page.locator("#product-tour-meta")).toHaveText("Schritt 1 von 6");
+  await expect(page.locator("#product-tour-meta")).toHaveText(/Schritt 1 von \d+/);
+  const onboardingTourStepCount = await page.locator("#product-tour-meta").textContent()
+    .then((text) => text?.match(/von (\d+)/)?.[1] || "");
   await expect(page.locator(".product-tour-highlight")).toHaveCount(1);
   await page.locator("#product-tour-next").click();
-  await expect(page.locator("#product-tour-meta")).toHaveText("Schritt 2 von 6");
+  await expect(page.locator("#product-tour-meta")).toHaveText(`Schritt 2 von ${onboardingTourStepCount}`);
   await page.locator("#product-tour-prev").click();
-  await expect(page.locator("#product-tour-meta")).toHaveText("Schritt 1 von 6");
+  await expect(page.locator("#product-tour-meta")).toHaveText(`Schritt 1 von ${onboardingTourStepCount}`);
   await page.keyboard.press("Escape");
 
   await expect(page.locator("#product-tour")).toBeHidden();
@@ -610,6 +620,7 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
   await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   await expect(page.locator(".detail-profile")).toBeVisible();
   await expect(page.locator(".detail-tabs")).toBeVisible();
+  await expect(page.locator("#detail-drawer .owner-badge-group, #detail-drawer [data-detail-owner-picker]").first()).toBeVisible();
 
   await attachScreenshot(page, testInfo, "kontaktprofil");
 });

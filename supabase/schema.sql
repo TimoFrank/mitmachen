@@ -52,6 +52,14 @@ create table if not exists public.contacts (
   updated_by uuid references public.profiles(id)
 );
 
+create table if not exists public.contact_owners (
+  contact_id text not null references public.contacts(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  assigned_at timestamptz not null default now(),
+  assigned_by uuid references public.profiles(id),
+  primary key (contact_id, profile_id)
+);
+
 create table if not exists public.organizations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -319,6 +327,8 @@ alter table public.user_settings
 
 create index if not exists contacts_status_idx on public.contacts(status);
 create index if not exists contacts_owner_idx on public.contacts(owner_id);
+create index if not exists contact_owners_profile_idx on public.contact_owners(profile_id);
+create index if not exists contact_owners_contact_idx on public.contact_owners(contact_id);
 create index if not exists contacts_organization_id_idx on public.contacts(organization_id);
 create index if not exists contacts_state_idx on public.contacts(federal_state);
 create index if not exists organizations_normalized_name_idx on public.organizations(normalized_name);
@@ -458,6 +468,7 @@ for each row execute function public.touch_updated_at();
 
 alter table public.profiles enable row level security;
 alter table public.contacts enable row level security;
+alter table public.contact_owners enable row level security;
 alter table public.organizations enable row level security;
 alter table public.formats enable row level security;
 alter table public.format_participants enable row level security;
@@ -477,6 +488,7 @@ grant usage on schema public to authenticated;
 grant select on public.profiles to authenticated;
 grant update (display_name, initials, avatar_url, team, bio, updated_at) on public.profiles to authenticated;
 grant select, insert, update on public.contacts to authenticated;
+grant select, insert, update, delete on public.contact_owners to authenticated;
 grant select, insert, update on public.organizations to authenticated;
 grant select, insert, update, delete on public.formats to authenticated;
 grant select, insert, update, delete on public.format_participants to authenticated;
@@ -502,6 +514,7 @@ grant usage, select on sequence public.changes_id_seq to authenticated;
 grant usage on schema public to service_role;
 grant select, insert, update, delete on public.profiles to service_role;
 grant select, insert, update, delete on public.contacts to service_role;
+grant select, insert, update, delete on public.contact_owners to service_role;
 grant select, insert, update, delete on public.organizations to service_role;
 grant select, insert, update, delete on public.formats to service_role;
 grant select, insert, update, delete on public.format_participants to service_role;
@@ -577,6 +590,78 @@ using (public.current_profile_role() = 'admin')
 with check (
   public.current_profile_role() = 'admin'
   and updated_by = auth.uid()
+);
+
+drop policy if exists "contact owners authenticated read active contacts" on public.contact_owners;
+create policy "contact owners authenticated read active contacts"
+on public.contact_owners for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.contacts c
+    where c.id = contact_id
+      and (c.status <> 'archived' or public.current_profile_role() = 'admin')
+  )
+);
+
+drop policy if exists "contact owners editor admin insert" on public.contact_owners;
+create policy "contact owners editor admin insert"
+on public.contact_owners for insert
+to authenticated
+with check (
+  public.current_profile_role() in ('editor', 'admin')
+  and assigned_by = auth.uid()
+  and exists (
+    select 1
+    from public.contacts c
+    where c.id = contact_id
+      and c.status <> 'archived'
+  )
+  and exists (
+    select 1
+    from public.profiles p
+    where p.id = profile_id
+      and p.active = true
+  )
+);
+
+drop policy if exists "contact owners editor admin update" on public.contact_owners;
+create policy "contact owners editor admin update"
+on public.contact_owners for update
+to authenticated
+using (
+  public.current_profile_role() in ('editor', 'admin')
+  and exists (
+    select 1
+    from public.contacts c
+    where c.id = contact_id
+      and c.status <> 'archived'
+  )
+)
+with check (
+  public.current_profile_role() in ('editor', 'admin')
+  and assigned_by = auth.uid()
+  and exists (
+    select 1
+    from public.contacts c
+    where c.id = contact_id
+      and c.status <> 'archived'
+  )
+);
+
+drop policy if exists "contact owners editor admin delete" on public.contact_owners;
+create policy "contact owners editor admin delete"
+on public.contact_owners for delete
+to authenticated
+using (
+  public.current_profile_role() in ('editor', 'admin')
+  and exists (
+    select 1
+    from public.contacts c
+    where c.id = contact_id
+      and c.status <> 'archived'
+  )
 );
 
 drop policy if exists "organizations authenticated read active" on public.organizations;

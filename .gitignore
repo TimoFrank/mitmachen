@@ -13,3 +13,4 @@ backups/
 *_backup_*.csv
 *_backup_*.json
 backup-versorgungs-kompass-*.sql
+supabase/.temp/

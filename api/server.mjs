@@ -64,6 +64,7 @@ const PROFILE_FIELDS = [
   "updated_at"
 ];
 const CHANGE_FIELDS = ["id", "contact_id", "action", "field_name", "old_value", "new_value", "changed_at", "changed_by"];
+const CONTACT_OWNER_FIELDS = ["contact_id", "profile_id", "assigned_at", "assigned_by"];
 const SAVED_VIEW_FIELDS = [
   "id",
   "owner_id",
@@ -242,6 +243,9 @@ const CONTACT_INPUT_FIELDS = [
   "priority",
   "ownerId",
   "owner_id",
+  "ownerIds",
+  "owner_ids",
+  "owners",
   "owner",
   "postalCode",
   "postal_code",
@@ -435,6 +439,7 @@ const EXPERT_ENTITY_LINK_INPUT_FIELDS = [
 const STAKEHOLDER_IMPORT_INPUT_FIELDS = ["types", "organizations", "people"];
 
 let profileCache = { expiresAt: 0, byId: new Map() };
+let supportsContactOwners = true;
 
 function withoutTrailingSlash(value) {
   return String(value || "").replace(/\/+$/, "");
@@ -507,9 +512,60 @@ function resolveOwnerId(value) {
   return profile?.id || null;
 }
 
-function contactToDto(row, index = 0) {
-  const topics = splitList(row.topics);
+function splitOwnerTokens(value) {
+  if (Array.isArray(value)) return value.flatMap(splitOwnerTokens);
+  if (value && typeof value === "object") return splitOwnerTokens(value.id || value.profileId || value.profile_id || value.value || "");
+  return String(value || "")
+    .split(/[;,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeOwnerIds(values = []) {
+  const ids = [];
+  splitOwnerTokens(values).forEach((value) => {
+    const id = resolveOwnerId(value);
+    if (id && !ids.includes(id)) ids.push(id);
+  });
+  return ids;
+}
+
+function ownerIdsFromContact(contact = {}) {
+  if (Array.isArray(contact.ownerIds)) return normalizeOwnerIds(contact.ownerIds);
+  if (Array.isArray(contact.owner_ids)) return normalizeOwnerIds(contact.owner_ids);
+  if (Array.isArray(contact.owners)) return normalizeOwnerIds(contact.owners);
+  return normalizeOwnerIds([
+    contact.ownerId,
+    contact.owner_id,
+    contact.owner
+  ]);
+}
+
+function ownerSummaries(ownerIds = []) {
+  return normalizeOwnerIds(ownerIds)
+    .map((id) => profileSummary(id))
+    .filter(Boolean);
+}
+
+function decorateContactOwners(contact = {}, ownerIds = null) {
+  const ids = normalizeOwnerIds(Array.isArray(ownerIds) ? ownerIds : ownerIdsFromContact(contact));
+  const owners = ownerSummaries(ids);
   return {
+    ...contact,
+    ownerIds: ids,
+    owners,
+    ownerId: ids[0] || contact.ownerId || "",
+    owner: owners.map((owner) => owner.displayName).filter(Boolean).join(", ") || contact.owner || ""
+  };
+}
+
+function contactOwnersChanged(oldOwnerIds = [], nextOwnerIds = []) {
+  return stringifyValue(normalizeOwnerIds(oldOwnerIds)) !== stringifyValue(normalizeOwnerIds(nextOwnerIds));
+}
+
+function contactToDto(row, index = 0, ownerIds = null) {
+  const topics = splitList(row.topics);
+  return decorateContactOwners({
     id: row.id,
     organizationId: row.organization_id || "",
     name: row.name || "",
@@ -548,7 +604,7 @@ function contactToDto(row, index = 0) {
     topic: topics.length ? `Themen: ${topics.join(" · ")}` : "",
     description: row.sector ? `Sektor: ${row.sector}` : "",
     _index: index
-  };
+  }, ownerIds);
 }
 
 function organizationToDto(row, contactCount = 0) {
@@ -810,7 +866,7 @@ function changeKind(change = {}) {
   if (change.action === "create") return "create";
   if (change.action === "import") return "import";
   if (change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived") return "restore";
-  if (["owner_id", "owner", "ownerId"].includes(change.fieldName)) return "owner";
+  if (["owner_id", "owner_ids", "owner", "ownerId", "ownerIds"].includes(change.fieldName)) return "owner";
   return "update";
 }
 
@@ -1020,8 +1076,9 @@ function contactPatchToDb(patch = {}) {
   if ("category" in patch || "sector" in patch) db.sector = String(patch.category || patch.sector || "").trim() || "Praxis";
   if ("specialty" in patch) db.specialty = String(patch.specialty || "").trim() || null;
   if ("priority" in patch) db.priority = normalizePriority(patch.priority);
-  if ("ownerId" in patch || "owner_id" in patch) db.owner_id = resolveOwnerId(patch.ownerId || patch.owner_id);
-  if (!("ownerId" in patch) && !("owner_id" in patch) && "owner" in patch) db.owner_id = resolveOwnerId(patch.owner);
+  if ("ownerIds" in patch || "owner_ids" in patch || "owners" in patch || "ownerId" in patch || "owner_id" in patch || "owner" in patch) {
+    db.owner_id = ownerIdsFromContact(patch)[0] || null;
+  }
   if ("postalCode" in patch || "postal_code" in patch) db.postal_code = patch.postalCode || patch.postal_code || null;
   if ("city" in patch) db.city = patch.city || null;
   if ("state" in patch || "federal_state" in patch) db.federal_state = patch.state || patch.federal_state || null;
@@ -1317,6 +1374,93 @@ async function supabaseRest(path, request, searchParams = new URLSearchParams(),
   return JSON.parse(text);
 }
 
+function isMissingContactOwnersError(error) {
+  return /contact_owners|profile_id|assigned_at|assigned_by/i.test(String(error?.message || error?.details || ""));
+}
+
+function contactOwnerMap(rows = []) {
+  return rows.reduce((map, row) => {
+    const contactId = row.contact_id || row.contactId || "";
+    const profileId = row.profile_id || row.profileId || "";
+    if (!contactId || !profileId) return map;
+    if (!map.has(contactId)) map.set(contactId, []);
+    const ids = map.get(contactId);
+    if (!ids.includes(profileId)) ids.push(profileId);
+    return map;
+  }, new Map());
+}
+
+async function loadContactOwnerRows(request, contactIds = []) {
+  if (!supportsContactOwners) return [];
+  const ids = [...new Set(contactIds.map((id) => String(id || "").trim()).filter(Boolean))];
+  if (!ids.length) return [];
+  try {
+    return await supabaseRest("contact_owners", request, new URLSearchParams({
+      select: CONTACT_OWNER_FIELDS.join(","),
+      contact_id: `in.(${ids.join(",")})`,
+      order: "assigned_at.asc"
+    })) || [];
+  } catch (error) {
+    if (isMissingContactOwnersError(error)) {
+      supportsContactOwners = false;
+      return [];
+    }
+    throw error;
+  }
+}
+
+async function decorateRowsWithStoredOwners(request, rows = []) {
+  if (!rows.length) return [];
+  const ownerRows = await loadContactOwnerRows(request, rows.map((row) => row.id));
+  if (!supportsContactOwners) return rows.map((row, index) => contactToDto(row, index));
+  const ownersByContact = contactOwnerMap(ownerRows);
+  return rows.map((row, index) => contactToDto(row, index, ownersByContact.get(row.id) || normalizeOwnerIds(row.owner_id)));
+}
+
+async function replaceStoredContactOwners(request, contactId, oldOwnerIds = [], nextOwnerIds = [], userId = "", { log = true } = {}) {
+  if (!supportsContactOwners || !contactId) return;
+  const oldIds = normalizeOwnerIds(oldOwnerIds);
+  const nextIds = normalizeOwnerIds(nextOwnerIds);
+  if (!contactOwnersChanged(oldIds, nextIds)) return;
+  try {
+    await supabaseRest("contact_owners", request, new URLSearchParams({ contact_id: `eq.${contactId}` }), {
+      method: "DELETE",
+      headers: { prefer: "return=minimal" }
+    });
+  } catch (error) {
+    if (isMissingContactOwnersError(error)) {
+      supportsContactOwners = false;
+      return;
+    }
+    throw error;
+  }
+  if (nextIds.length) {
+    await supabaseRest("contact_owners", request, new URLSearchParams(), {
+      method: "POST",
+      headers: { prefer: "return=minimal" },
+      body: nextIds.map((profileId) => ({
+        contact_id: contactId,
+        profile_id: profileId,
+        assigned_by: userId
+      }))
+    });
+  }
+  if (log) {
+    await supabaseRest("changes", request, new URLSearchParams(), {
+      method: "POST",
+      headers: { prefer: "return=minimal" },
+      body: {
+        contact_id: contactId,
+        action: "update",
+        field_name: "owner_ids",
+        old_value: JSON.stringify(oldIds),
+        new_value: JSON.stringify(nextIds),
+        changed_by: userId
+      }
+    });
+  }
+}
+
 async function supabaseStorage(path, request, options = {}) {
   assertConfigured();
   const token = bearerToken(request);
@@ -1487,7 +1631,7 @@ async function listContacts(request, url) {
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
   if (url.searchParams.get("status")) params.set("status", `eq.${url.searchParams.get("status")}`);
   const rows = await supabaseRest("contacts", request, params);
-  return { items: (rows || []).map(contactToDto) };
+  return { items: await decorateRowsWithStoredOwners(request, rows || []) };
 }
 
 async function organizationContactCounts(request, ids = []) {
@@ -2070,6 +2214,7 @@ async function createContact(request) {
   assertAllowedFields(contact, CONTACT_INPUT_FIELDS, "Kontakt");
   const options = payload.options && typeof payload.options === "object" ? payload.options : {};
   assertAllowedFields(options, CONTACT_CREATE_OPTIONS_FIELDS, "Kontaktanlage-Optionen");
+  const ownerIds = ownerIdsFromContact(contact);
   const dbContact = contactCreateToDb(contact);
   dbContact.created_by = userId;
   dbContact.updated_by = userId;
@@ -2101,7 +2246,8 @@ async function createContact(request) {
     }
   });
 
-  return contactToDto(created);
+  await replaceStoredContactOwners(request, created.id, [], ownerIds, userId, { log: false });
+  return contactToDto(created, 0, supportsContactOwners ? ownerIds : normalizeOwnerIds(created.owner_id));
 }
 
 async function getContact(request, id) {
@@ -2117,7 +2263,7 @@ async function getContact(request, id) {
     error.status = 404;
     throw error;
   }
-  return contactToDto(rows[0]);
+  return (await decorateRowsWithStoredOwners(request, rows || []))[0];
 }
 
 async function getContactHistory(request, id, url) {
@@ -2205,6 +2351,10 @@ async function patchContact(request, id) {
   }
 
   const patch = await readValidatedJsonBody(request, CONTACT_INPUT_FIELDS, "Kontakt-Update");
+  const hasOwnerPatch = ["ownerIds", "owner_ids", "owners", "ownerId", "owner_id", "owner"].some((field) =>
+    Object.prototype.hasOwnProperty.call(patch, field)
+  );
+  const nextOwnerIds = hasOwnerPatch ? ownerIdsFromContact(patch) : [];
   const dbPatch = contactPatchToDb(patch);
   if (!Object.keys(dbPatch).length) {
     const error = new Error("Keine unterstützten Kontaktfelder im Request.");
@@ -2223,10 +2373,15 @@ async function patchContact(request, id) {
     throw error;
   }
   const oldRow = oldRows[0];
+  const oldOwnerRows = await loadContactOwnerRows(request, [id]);
+  const oldOwnerIds = supportsContactOwners
+    ? contactOwnerMap(oldOwnerRows).get(id) || normalizeOwnerIds(oldRow.owner_id)
+    : normalizeOwnerIds(oldRow.owner_id);
 
   dbPatch.updated_by = userId;
   dbPatch.updated_at = new Date().toISOString();
-  const changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
+  let changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
+  if (hasOwnerPatch && supportsContactOwners) changedFields = changedFields.filter((field) => field !== "owner_id");
 
   const updatedRows = await supabaseRest("contacts", request, new URLSearchParams({
     id: `eq.${id}`,
@@ -2259,7 +2414,8 @@ async function patchContact(request, id) {
     });
   }
 
-  return contactToDto(updated);
+  if (hasOwnerPatch) await replaceStoredContactOwners(request, id, oldOwnerIds, nextOwnerIds, userId, { log: supportsContactOwners });
+  return contactToDto(updated, 0, hasOwnerPatch ? nextOwnerIds : oldOwnerIds);
 }
 
 async function handle(request, response) {

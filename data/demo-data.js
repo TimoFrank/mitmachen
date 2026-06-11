@@ -107,6 +107,12 @@
   function contact(index, organizationIndex, name, overrides = {}) {
     const org = organizations[organizationIndex % organizations.length];
     const n = index + 1;
+    const assignedOwnerIds = index % 6 === 0
+      ? [ownerIds[index % ownerIds.length], ownerIds[(index + 1) % ownerIds.length]]
+      : [ownerIds[index % ownerIds.length]];
+    const assignedOwnerLabels = assignedOwnerIds
+      .map((ownerId) => profiles.find((profile) => profile.id === ownerId)?.display_name || "")
+      .filter(Boolean);
     return {
       id: `demo-contact-${String(n).padStart(2, "0")}`,
       name,
@@ -116,7 +122,9 @@
       specialty: specialties[index % specialties.length],
       contactRole: roles[index % roles.length],
       priority: priorities[index % priorities.length],
-      ownerId: ownerIds[index % ownerIds.length],
+      ownerId: assignedOwnerIds[0] || "",
+      ownerIds: assignedOwnerIds,
+      owner: assignedOwnerLabels.join(", "),
       postalCode: org.postalCode,
       city: org.city,
       state: org.state,
@@ -182,7 +190,7 @@
   contacts[5] = { ...contacts[5], email: "", note: "Fiktiver Kontakt mit fehlender E-Mail fuer Datenqualitaets-QA." };
   contacts[8] = { ...contacts[8], phone: "", note: "Fiktiver Kontakt mit fehlender Telefonnummer fuer Datenqualitaets-QA." };
   contacts[12] = { ...contacts[12], specialty: "", note: "Fiktiver Kontakt mit fehlender Fachrichtung fuer Filter- und QA-Pruefung." };
-  contacts[16] = { ...contacts[16], ownerId: "", owner: "", note: "Fiktiver Kontakt ohne Owner fuer Pflege-Queue und Owner-Filter." };
+  contacts[16] = { ...contacts[16], ownerId: "", ownerIds: [], owner: "", note: "Fiktiver Kontakt ohne Owner fuer Pflege-Queue und Owner-Filter." };
   contacts[20] = { ...contacts[20], lat: null, lon: null, note: "Fiktiver Kontakt ohne Koordinaten fuer Karten- und Datenqualitaets-QA." };
   contacts[24] = { ...contacts[24], status: "archived", note: "Archivierter Demo-Kontakt fuer Admin-Pruefung." };
   contacts[30] = { ...contacts[30], organization: "MVZ Nordstadt", organizationId: "demo-org-nordstadt", city: "Berlin", state: "Berlin" };

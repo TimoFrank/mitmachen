@@ -3093,11 +3093,41 @@
     return profile?.display_name || "";
   }
 
+  function splitOwnerTokens(value) {
+    if (Array.isArray(value)) return value.flatMap(splitOwnerTokens);
+    if (value && typeof value === "object") return splitOwnerTokens(value.displayName || value.label || value.name || value.id || "");
+    return String(value || "")
+      .split(/[;,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function contactOwnerIds(contact) {
+    const ids = Array.isArray(contact.ownerIds) ? contact.ownerIds : Array.isArray(contact.owner_ids) ? contact.owner_ids : [];
+    const legacyId = contact.ownerId || contact.owner_id || "";
+    return [...new Set([...ids, legacyId].map((id) => String(id || "").trim()).filter(Boolean))];
+  }
+
+  function contactOwnerLabels(contact) {
+    const ownerObjects = Array.isArray(contact.owners) ? contact.owners : [];
+    const labels = [
+      ...ownerObjects.map((owner) => owner.displayName || owner.label || owner.name || ""),
+      ...contactOwnerIds(contact).map(ownerLabelFromProfiles),
+      ...splitOwnerTokens(contact.owner)
+    ].map((label) => String(label || "").trim()).filter(Boolean);
+    return [...new Set(labels)];
+  }
+
   function toMapEntry(contact) {
     const lat = Number.parseFloat(contact.lat ?? contact.latitude ?? "");
     const lon = Number.parseFloat(contact.lon ?? contact.longitude ?? "");
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
     const personName = String(contact.name || contact.organization || "Kontakt").trim();
+
+    const ownerIds = contactOwnerIds(contact);
+    const ownerLabels = contactOwnerLabels(contact);
+    const ownerObjects = Array.isArray(contact.owners) ? contact.owners : [];
+    const firstOwner = ownerObjects[0] || {};
 
     return {
       id: contact.id || `${personName}-${lat}-${lon}`,
@@ -3121,9 +3151,12 @@
       phone: contact.phone || "",
       linkedin: contact.linkedin || "",
       priority: contact.priority || "",
-      owner: contact.owner || ownerLabelFromProfiles(contact.ownerId || contact.owner_id) || "",
-      ownerId: contact.ownerId || contact.owner_id || "",
-      ownerAvatar: contact.ownerAvatar || contact.owner_avatar || contact.ownerAvatarUrl || "",
+      owner: ownerLabels.join(", "),
+      ownerId: ownerIds[0] || contact.ownerId || contact.owner_id || "",
+      ownerIds,
+      ownerLabels,
+      owners: ownerObjects,
+      ownerAvatar: contact.ownerAvatar || contact.owner_avatar || contact.ownerAvatarUrl || firstOwner.avatarUrl || firstOwner.avatar_url || "",
       themes: Array.isArray(contact.themes) ? contact.themes : String(contact.themes || "").split(/\s*\|\s*/).filter(Boolean),
       image: contact.image || "",
       updatedAt: contact.updatedAt || contact.updated_at || contact.createdAt || contact.created_at || "",
@@ -3554,7 +3587,7 @@
   }
 
   function availableOwners(){
-    return uniqueSorted(mapSourceEntries().map((entry) => entry.owner));
+    return uniqueSorted(mapSourceEntries().flatMap((entry) => ownerValuesForEntry(entry).filter((value) => !/^[0-9a-f-]{36}$/i.test(value))));
   }
 
   function initialsFromLabel(value) {
@@ -3567,13 +3600,25 @@
   function ownerEntryForValue(value) {
     const owner = String(value || "").trim();
     if (!owner) return null;
-    return mapSourceEntries().find((entry) => entry.owner === owner || entry.ownerId === owner) || null;
+    return mapSourceEntries().find((entry) => ownerValuesForEntry(entry).includes(owner)) || null;
+  }
+
+  function ownerValuesForEntry(entry) {
+    return [
+      ...(Array.isArray(entry?.ownerLabels) ? entry.ownerLabels : []),
+      ...(Array.isArray(entry?.ownerIds) ? entry.ownerIds : []),
+      ...splitOwnerTokens(entry?.owner),
+      entry?.ownerId
+    ].map((value) => String(value || "").trim()).filter(Boolean);
   }
 
   function ownerAvatarContent(owner) {
     const entry = ownerEntryForValue(owner);
-    const label = entry?.owner || owner;
-    const avatarUrl = String(entry?.ownerAvatar || "").trim();
+    const ownerObject = Array.isArray(entry?.owners)
+      ? entry.owners.find((item) => [item.id, item.displayName, item.label, item.name].map((value) => String(value || "").trim()).includes(owner))
+      : null;
+    const label = ownerObject?.displayName || ownerObject?.label || ownerObject?.name || owner;
+    const avatarUrl = String(ownerObject?.avatarUrl || ownerObject?.avatar_url || entry?.ownerAvatar || "").trim();
     if (avatarUrl) {
       return `<img src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" onerror="this.remove()">`;
     }
@@ -3592,12 +3637,18 @@
   }
 
   function ownerPillHtml(entry) {
-    if (!entry?.owner) return "";
+    const labels = (Array.isArray(entry?.ownerLabels) && entry.ownerLabels.length ? entry.ownerLabels : splitOwnerTokens(entry?.owner)).filter(Boolean);
+    if (!labels.length) return "";
+    const visible = labels.slice(0, 2);
+    const remaining = Math.max(0, labels.length - visible.length);
     return `
-      <span class="owner-pill">
-        <span class="owner-pill-avatar" aria-hidden="true">${ownerAvatarContent(entry.owner)}</span>
-        <span class="owner-pill-label">${escapeHtml(entry.owner)}</span>
-      </span>
+      ${visible.map((label) => `
+        <span class="owner-pill">
+          <span class="owner-pill-avatar" aria-hidden="true">${ownerAvatarContent(label)}</span>
+          <span class="owner-pill-label">${escapeHtml(label)}</span>
+        </span>
+      `).join("")}
+      ${remaining ? `<span class="owner-pill"><span class="owner-pill-label">+${remaining}</span></span>` : ""}
     `;
   }
 
@@ -3785,7 +3836,7 @@
     const q = normalize(query).trim();
     if (activeCategoryFilter && d.category !== activeCategoryFilter) return false;
     if (selectedState && d.state !== selectedState) return false;
-    if (activeOwnerFilter && d.owner !== activeOwnerFilter) return false;
+    if (activeOwnerFilter && !ownerValuesForEntry(d).includes(activeOwnerFilter)) return false;
     if (!q) return true;
     const hay = [
       d.name,
@@ -3794,7 +3845,7 @@
       d.state,
       d.category,
       d.person_title,
-      d.owner,
+      ...ownerValuesForEntry(d),
       d.description
     ].map(normalize).join(" ");
     return hay.includes(q);
@@ -3807,7 +3858,7 @@
   function matchesQuery(entry){
     const q = normalize(query).trim();
     if (!q) return true;
-    const hay = normalize(entry.name) + " " + normalize(entry.city) + " " + normalize(entry.category) + " " + normalize(entry.description);
+    const hay = normalize(entry.name) + " " + normalize(entry.city) + " " + normalize(entry.category) + " " + normalize(entry.description) + " " + ownerValuesForEntry(entry).map(normalize).join(" ");
     return hay.includes(q);
   }
 
@@ -3815,7 +3866,7 @@
     return mapSourceEntries().filter((entry) => {
       if (entry.state !== name) return false;
       if (activeCategoryFilter && entry.category !== activeCategoryFilter) return false;
-      if (activeOwnerFilter && entry.owner !== activeOwnerFilter) return false;
+      if (activeOwnerFilter && !ownerValuesForEntry(entry).includes(activeOwnerFilter)) return false;
       return matchesQuery(entry);
     });
   }
@@ -3823,7 +3874,7 @@
   function allStateEntriesCount(){
     return mapSourceEntries().filter((entry) => (
       (!activeCategoryFilter || entry.category === activeCategoryFilter) &&
-      (!activeOwnerFilter || entry.owner === activeOwnerFilter) &&
+      (!activeOwnerFilter || ownerValuesForEntry(entry).includes(activeOwnerFilter)) &&
       matchesQuery(entry)
     )).length;
   }
@@ -3940,7 +3991,7 @@
     if (!hasValue(entry.phone)) missing.push("Telefon");
     if (!hasValue(entry.linkedin)) missing.push("LinkedIn");
     if (!hasValue(entry.person_title)) missing.push("Fachrichtung");
-    if (!hasValue(entry.owner)) missing.push("Owner");
+    if (!ownerValuesForEntry(entry).length) missing.push("Owner");
     return missing;
   }
 
@@ -3999,7 +4050,8 @@
   }
 
   function mapOwnerControl(entry){
-    return `<span class="detail-owner-trigger">${escapeHtml(entry.owner || "Keinen Owner zuweisen")}</span>`;
+    const ownerLabel = (Array.isArray(entry.ownerLabels) && entry.ownerLabels.length ? entry.ownerLabels : splitOwnerTokens(entry.owner)).join(", ");
+    return `<span class="detail-owner-trigger">${escapeHtml(ownerLabel || "Keinen Owner zuweisen")}</span>`;
   }
 
   function formatDetailDate(value){

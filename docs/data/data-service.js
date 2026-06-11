@@ -56,6 +56,7 @@
     "updated_by"
   ];
   const CHANGE_FIELDS = ["id", "contact_id", "action", "field_name", "old_value", "new_value", "changed_at", "changed_by"];
+  const CONTACT_OWNER_FIELDS = ["contact_id", "profile_id", "assigned_at", "assigned_by"];
   const SAVED_VIEW_FIELDS = [
     "id",
     "owner_id",
@@ -252,6 +253,7 @@
   let supportsContactOrganizationId = true;
   let supportsContactImageSources = false;
   let supportsContactRole = true;
+  let supportsContactOwners = true;
   let supportsFormats = true;
 
   function contactSelectFields() {
@@ -273,6 +275,10 @@
 
   function isMissingContactRoleError(error) {
     return /\brole\b/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
+
+  function isMissingContactOwnersError(error) {
+    return /contact_owners|profile_id|assigned_at|assigned_by/i.test(String(error?.message || error?.details || error?.hint || ""));
   }
 
   function isConfigured() {
@@ -430,6 +436,10 @@
   }
 
   function localContacts(options = {}) {
+    if (!profileCache.size) {
+      const profiles = isDemoMode() ? demoProfiles() : [localProfile()];
+      profileCache = new Map(profiles.map((profile) => [profile.id, profile]));
+    }
     const rows = isDemoMode() && Array.isArray(demoData().contacts)
       ? demoData().contacts
       : Array.isArray(window.VERSORGUNGS_COMPASS_CONTACTS)
@@ -437,7 +447,7 @@
         : [];
     return rows
       .filter((contact) => options.includeArchived || contact.status !== "archived")
-      .map((contact, index) => ({ ...clone(contact), _index: index }));
+      .map((contact, index) => decorateContactOwners({ ...clone(contact), _index: index }));
   }
 
   function localOrganizations(options = {}) {
@@ -903,6 +913,15 @@
     };
   }
 
+  function splitOwnerTokens(value) {
+    if (Array.isArray(value)) return value.flatMap(splitOwnerTokens);
+    if (value && typeof value === "object") return splitOwnerTokens(value.id || value.profileId || value.profile_id || value.value || "");
+    return String(value || "")
+      .split(/[;,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
   function resolveOwnerId(value) {
     const owner = String(value || "").trim();
     if (!owner) return null;
@@ -914,9 +933,49 @@
     return profile?.id || null;
   }
 
+  function normalizeOwnerIds(values = []) {
+    const ids = [];
+    splitOwnerTokens(values).forEach((value) => {
+      const id = resolveOwnerId(value);
+      if (id && !ids.includes(id)) ids.push(id);
+    });
+    return ids;
+  }
+
+  function ownerIdsFromContact(contact = {}) {
+    if (Array.isArray(contact.ownerIds)) return normalizeOwnerIds(contact.ownerIds);
+    if (Array.isArray(contact.owner_ids)) return normalizeOwnerIds(contact.owner_ids);
+    if (Array.isArray(contact.owners)) return normalizeOwnerIds(contact.owners);
+    return normalizeOwnerIds([
+      contact.ownerId,
+      contact.owner_id,
+      contact.owner
+    ]);
+  }
+
+  function ownerSummaries(ownerIds = []) {
+    return normalizeOwnerIds(ownerIds).map((id) => profileSummary(id));
+  }
+
+  function decorateContactOwners(contact = {}, ownerIds = null) {
+    const ids = normalizeOwnerIds(Array.isArray(ownerIds) ? ownerIds : ownerIdsFromContact(contact));
+    const owners = ownerSummaries(ids);
+    return {
+      ...contact,
+      ownerIds: ids,
+      owners,
+      ownerId: ids[0] || contact.ownerId || "",
+      owner: owners.map((owner) => owner.displayName).filter(Boolean).join(", ") || contact.owner || ""
+    };
+  }
+
+  function contactOwnersChanged(oldOwnerIds = [], nextOwnerIds = []) {
+    return stringifyValue(normalizeOwnerIds(oldOwnerIds)) !== stringifyValue(normalizeOwnerIds(nextOwnerIds));
+  }
+
   function dbToUi(row, index = 0) {
     const topics = splitList(row.topics);
-    return {
+    return decorateContactOwners({
       id: row.id,
       organizationId: row.organization_id || "",
       name: row.name || "",
@@ -955,7 +1014,7 @@
       topic: topics.length ? `Themen: ${topics.join(" · ")}` : "",
       description: row.sector ? `Sektor: ${row.sector}` : "",
       _index: index
-    };
+    });
   }
 
   function changeToUi(row) {
@@ -994,7 +1053,7 @@
     if (change.action === "create") return "create";
     if (change.action === "import") return "import";
     if (change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived") return "restore";
-    if (["owner_id", "owner", "ownerId"].includes(change.fieldName)) return "owner";
+    if (["owner_id", "owner_ids", "owner", "ownerId", "ownerIds"].includes(change.fieldName)) return "owner";
     return "update";
   }
 
@@ -1124,6 +1183,7 @@
   }
 
   function uiToDb(contact) {
+    const ownerIds = ownerIdsFromContact(contact);
     const db = {
       id: contact.id,
       organization_id: contact.organizationId || contact.organization_id || null,
@@ -1133,7 +1193,7 @@
       specialty: String(contact.specialty || "").trim() || null,
       role: String(contact.contactRole || contact.role || "").trim() || null,
       priority: normalizePriority(contact.priority),
-      owner_id: contact.ownerId || resolveOwnerId(contact.owner),
+      owner_id: ownerIds[0] || null,
       postal_code: contact.postalCode || contact.postal_code || null,
       city: contact.city || null,
       federal_state: contact.state || contact.federal_state || null,
@@ -1157,6 +1217,83 @@
       if (!WRITE_FIELDS.includes(key)) delete db[key];
     });
     return db;
+  }
+
+  function contactOwnerMap(rows = []) {
+    return rows.reduce((map, row) => {
+      const contactId = row.contact_id || row.contactId || "";
+      const profileId = row.profile_id || row.profileId || "";
+      if (!contactId || !profileId) return map;
+      if (!map.has(contactId)) map.set(contactId, []);
+      const ids = map.get(contactId);
+      if (!ids.includes(profileId)) ids.push(profileId);
+      return map;
+    }, new Map());
+  }
+
+  async function loadContactOwnerRows(contactIds = []) {
+    if (!supportsContactOwners || isLocalMode() || usesApiGateway()) return [];
+    const ids = [...new Set(contactIds.map((id) => String(id || "").trim()).filter(Boolean))];
+    if (!ids.length) return [];
+    const { data, error } = await getClient()
+      .from("contact_owners")
+      .select(CONTACT_OWNER_FIELDS.join(","))
+      .in("contact_id", ids)
+      .order("assigned_at", { ascending: true });
+    if (error) {
+      if (isMissingContactOwnersError(error)) {
+        supportsContactOwners = false;
+        return [];
+      }
+      throw error;
+    }
+    return data || [];
+  }
+
+  async function decorateContactsWithStoredOwners(items = []) {
+    if (!items.length) return [];
+    if (isLocalMode() || usesApiGateway() || !supportsContactOwners) return items.map((contact) => decorateContactOwners(contact));
+    const rows = await loadContactOwnerRows(items.map((contact) => contact.id));
+    if (!supportsContactOwners) return items.map((contact) => decorateContactOwners(contact));
+    const ownersByContact = contactOwnerMap(rows);
+    return items.map((contact) => decorateContactOwners(contact, ownersByContact.get(contact.id) || ownerIdsFromContact(contact)));
+  }
+
+  async function replaceStoredContactOwners(contactId, oldOwnerIds = [], nextOwnerIds = [], userId = "", { log = true, request = null } = {}) {
+    const nextIds = normalizeOwnerIds(nextOwnerIds);
+    const oldIds = normalizeOwnerIds(oldOwnerIds);
+    if (!supportsContactOwners || isLocalMode() || usesApiGateway() || !contactId) return;
+    if (!contactOwnersChanged(oldIds, nextIds)) return;
+    const supabase = getClient();
+    const { error: deleteError } = await supabase.from("contact_owners").delete().eq("contact_id", contactId);
+    if (deleteError) {
+      if (isMissingContactOwnersError(deleteError)) {
+        supportsContactOwners = false;
+        return;
+      }
+      throw deleteError;
+    }
+    if (nextIds.length) {
+      const assignedBy = userId || null;
+      const rows = nextIds.map((profileId) => ({
+        contact_id: contactId,
+        profile_id: profileId,
+        assigned_by: assignedBy
+      }));
+      const { error: insertError } = await supabase.from("contact_owners").insert(rows);
+      if (insertError) throw insertError;
+    }
+    if (log) {
+      const { error: logError } = await supabase.from("changes").insert({
+        contact_id: contactId,
+        action: "update",
+        field_name: "owner_ids",
+        old_value: JSON.stringify(oldIds),
+        new_value: JSON.stringify(nextIds),
+        changed_by: userId
+      });
+      if (logError) throw logError;
+    }
   }
 
   function applyFilters(items, filters = {}) {
@@ -1721,7 +1858,7 @@
       }
       throw error;
     }
-    contactCache = (data || []).map(dbToUi);
+    contactCache = await decorateContactsWithStoredOwners((data || []).map(dbToUi));
     return contactCache;
   }
 
@@ -1739,7 +1876,7 @@
       return contact;
     }
     if (usesApiGateway()) {
-      return apiGet(`/api/contacts/${encodeURIComponent(id)}`);
+      return decorateContactOwners(await apiGet(`/api/contacts/${encodeURIComponent(id)}`));
     }
     const { data, error } = await getClient().from("contacts").select(contactSelectFields()).eq("id", id).single();
     if (error) {
@@ -1757,7 +1894,7 @@
       }
       throw error;
     }
-    return dbToUi(data);
+    return (await decorateContactsWithStoredOwners([dbToUi(data)]))[0];
   }
 
   async function getContactChanges(contactId, options = {}) {
@@ -2651,19 +2788,21 @@
         createdAt: contact.createdAt || new Date().toISOString(),
         updatedAt: contact.updatedAt || new Date().toISOString()
       };
-      contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
-      return created;
+      const decorated = decorateContactOwners(created);
+      contactCache = [decorated, ...contactCache.filter((item) => item.id !== decorated.id)];
+      return decorated;
     }
     if (usesApiGateway()) {
-      const created = apiContactPayload(await apiRequest("/api/contacts", {
+      const created = decorateContactOwners(apiContactPayload(await apiRequest("/api/contacts", {
         method: "POST",
         body: { contact, options }
-      }));
+      })));
       contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
       return created;
     }
     const supabase = getClient();
     const userId = await getCurrentUserId();
+    const ownerIds = ownerIdsFromContact(contact);
     const payload = { ...uiToDb(contact), created_by: userId, updated_by: userId };
     if (!supportsContactOrganizationId) delete payload.organization_id;
     if (!supportsContactImageSources) {
@@ -2690,7 +2829,8 @@
       changed_by: userId
     });
     if (logError) throw logError;
-    const created = dbToUi(data);
+    await replaceStoredContactOwners(data.id, [], ownerIds, userId, { log: false });
+    const created = decorateContactOwners(dbToUi(data), supportsContactOwners ? ownerIds : ownerIdsFromContact(data));
     contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
     return created;
   }
@@ -2708,14 +2848,15 @@
         priority: normalizePriority(patch.priority || existing.priority),
         updatedAt: new Date().toISOString()
       };
-      contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
-      return clone(updated);
+      const decorated = decorateContactOwners(updated);
+      contactCache = contactCache.map((contact) => (contact.id === id ? decorated : contact));
+      return clone(decorated);
     }
     if (usesApiGateway()) {
-      const updated = apiContactPayload(await apiRequest(`/api/contacts/${encodeURIComponent(id)}`, {
+      const updated = decorateContactOwners(apiContactPayload(await apiRequest(`/api/contacts/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: patch
-      }));
+      })));
       contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
       return updated;
     }
@@ -2727,11 +2868,19 @@
       ({ data: oldRow, error: oldError } = await supabase.from("contacts").select(contactSelectFields()).eq("id", id).single());
     }
     if (oldError) throw oldError;
+    const oldOwnerRows = await loadContactOwnerRows([id]);
+    const oldOwnerIds = supportsContactOwners
+      ? contactOwnerMap(oldOwnerRows).get(id) || normalizeOwnerIds(oldRow.owner_id)
+      : normalizeOwnerIds(oldRow.owner_id);
+    const hasOwnerPatch = ["ownerIds", "owner_ids", "owners", "ownerId", "owner_id", "owner"].some((field) =>
+      Object.prototype.hasOwnProperty.call(patch, field)
+    );
+    const nextOwnerIds = hasOwnerPatch ? ownerIdsFromContact(patch) : oldOwnerIds;
     const merged = { ...dbToUi(oldRow), ...patch, id };
-    if (Object.prototype.hasOwnProperty.call(patch, "ownerId")) {
-      merged.ownerId = resolveOwnerId(patch.ownerId);
-    } else if (Object.prototype.hasOwnProperty.call(patch, "owner")) {
-      merged.ownerId = resolveOwnerId(patch.owner);
+    if (hasOwnerPatch) {
+      merged.ownerIds = nextOwnerIds;
+      merged.ownerId = nextOwnerIds[0] || "";
+      merged.owner = nextOwnerIds.map(profileName).filter(Boolean).join(", ");
     }
     const dbPatch = uiToDb(merged);
     delete dbPatch.id;
@@ -2757,6 +2906,7 @@
     dbPatch.updated_by = userId;
     dbPatch.updated_at = new Date().toISOString();
     let changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
+    if (hasOwnerPatch && supportsContactOwners) changedFields = changedFields.filter((field) => field !== "owner_id");
     let { data, error } = await supabase.from("contacts").update(dbPatch).eq("id", id).select(contactSelectFields()).single();
     if (error && supportsContactRole && isMissingContactRoleError(error)) {
       supportsContactRole = false;
@@ -2778,7 +2928,8 @@
       const { error: logError } = await supabase.from("changes").insert(rows);
       if (logError) throw logError;
     }
-    const updated = dbToUi(data);
+    if (hasOwnerPatch) await replaceStoredContactOwners(id, oldOwnerIds, nextOwnerIds, userId, { log: supportsContactOwners });
+    const updated = decorateContactOwners(dbToUi(data), hasOwnerPatch ? nextOwnerIds : oldOwnerIds);
     contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
     return updated;
   }

@@ -70,17 +70,25 @@ async function loadProfiles() {
   return response.json();
 }
 
-function resolveOwnerId(owner, profiles) {
-  const normalizedOwner = String(owner || "").trim().toLowerCase();
-  if (!normalizedOwner) return null;
-  const profile = profiles.find((item) =>
-    item.active !== false &&
-    [item.display_name, item.email, item.initials].some((candidate) => String(candidate || "").trim().toLowerCase() === normalizedOwner)
-  );
-  return profile?.id || null;
+function resolveOwnerIds(owner, profiles) {
+  const ids = [];
+  String(owner || "")
+    .split(/[;,]/)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .forEach((value) => {
+      const normalizedOwner = value.toLowerCase();
+      const profile = profiles.find((item) =>
+        item.active !== false &&
+        [item.id, item.display_name, item.email, item.initials].some((candidate) => String(candidate || "").trim().toLowerCase() === normalizedOwner)
+      );
+      if (profile?.id && !ids.includes(profile.id)) ids.push(profile.id);
+    });
+  return ids;
 }
 
 function toContact(row, profiles) {
+  const ownerIds = resolveOwnerIds(row.owner, profiles);
   return {
     id: row.id,
     name: row.name || row.organization || "Unbenannter Kontakt",
@@ -88,7 +96,8 @@ function toContact(row, profiles) {
     sector: row.category || "Praxis",
     specialty: row.specialty || null,
     priority: normalizePriority(row.priority),
-    owner_id: resolveOwnerId(row.owner, profiles),
+    owner_id: ownerIds[0] || null,
+    _ownerIds: ownerIds,
     postal_code: row.postalCode || null,
     city: row.city || null,
     federal_state: row.state || null,
@@ -108,6 +117,7 @@ function toContact(row, profiles) {
 }
 
 async function upsertContacts(contacts) {
+  const payload = contacts.map(({ _ownerIds, ...contact }) => contact);
   const response = await fetch(`${supabaseUrl}/rest/v1/contacts?on_conflict=id`, {
     method: "POST",
     headers: {
@@ -116,9 +126,43 @@ async function upsertContacts(contacts) {
       "content-type": "application/json",
       prefer: "resolution=merge-duplicates"
     },
-    body: JSON.stringify(contacts)
+    body: JSON.stringify(payload)
   });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${await response.text()}`);
+}
+
+async function replaceContactOwners(contacts) {
+  const contactIds = contacts.map((contact) => contact.id).filter(Boolean);
+  if (!contactIds.length) return;
+  const ownerDeleteParams = new URLSearchParams({
+    contact_id: `in.(${contactIds.map((id) => `"${String(id).replace(/"/g, '\\"')}"`).join(",")})`
+  });
+  const deleteResponse = await fetch(`${supabaseUrl}/rest/v1/contact_owners?${ownerDeleteParams}`, {
+    method: "DELETE",
+    headers: {
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`
+    }
+  });
+  if (!deleteResponse.ok) throw new Error(`${deleteResponse.status} ${deleteResponse.statusText}: ${await deleteResponse.text()}`);
+  const rows = contacts.flatMap((contact) =>
+    (contact._ownerIds || []).map((ownerId) => ({
+      contact_id: contact.id,
+      profile_id: ownerId,
+      assigned_by: importUserId
+    }))
+  );
+  if (!rows.length) return;
+  const insertResponse = await fetch(`${supabaseUrl}/rest/v1/contact_owners`, {
+    method: "POST",
+    headers: {
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(rows)
+  });
+  if (!insertResponse.ok) throw new Error(`${insertResponse.status} ${insertResponse.statusText}: ${await insertResponse.text()}`);
 }
 
 async function insertImportChanges(contacts) {
@@ -153,6 +197,7 @@ const contacts = body
 for (let index = 0; index < contacts.length; index += 100) {
   const batch = contacts.slice(index, index + 100);
   await upsertContacts(batch);
+  await replaceContactOwners(batch);
   await insertImportChanges(batch);
 }
 

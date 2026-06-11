@@ -12129,6 +12129,71 @@
         vertical-align: middle;
       }
 
+      .owner-badge-group {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        max-width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .owner-badge-group .owner-badge {
+        max-width: 180px;
+      }
+
+      .owner-badge-more {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 750;
+        line-height: 1;
+      }
+
+      .owner-multi-select {
+        display: grid;
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .owner-multi-select--detail {
+        min-width: 220px;
+        max-width: 100%;
+      }
+
+      .owner-multi-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 30px;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        cursor: pointer;
+      }
+
+      .owner-multi-option input {
+        flex: 0 0 auto;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--primary);
+      }
+
+      .owner-multi-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .owner-badge--tone-0 {
         --owner-badge-bg: #ccfbf1;
         --owner-badge-border: #5eead4;
@@ -18227,7 +18292,7 @@
                     <span>Owner</span>
                     <select id="bulk-owner-select" aria-label="Owner für ausgewählte Kontakte"></select>
                   </label>
-                  <button class="action-button action-button--compact" type="button" id="bulk-assign-owner">Zuweisen</button>
+                  <button class="action-button action-button--compact" type="button" id="bulk-assign-owner">Hinzufügen</button>
                   <button class="action-button action-button--compact action-button--danger-soft" type="button" id="bulk-archive">Archivieren</button>
                 </div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
@@ -19140,9 +19205,8 @@
               </div>
               <div class="editor-field">
                 <label class="editor-label" for="field-owner">Owner</label>
-                <div class="editor-select-shell" data-custom-select data-select-type="owner">
-                  <select class="editor-select" id="field-owner" name="owner"></select>
-                </div>
+                <input type="hidden" id="field-owner" name="owner" value="" />
+                <div class="owner-multi-select" id="field-owner-picker" data-owner-multi-picker="editor"></div>
                 <div class="editor-message editor-message--warning" id="field-owner-warning"></div>
               </div>
               <div class="editor-field">
@@ -22625,8 +22689,7 @@
               note: [row.note, `Import-Batch: ${importState.batchId}`].filter(Boolean).join("\n"),
               themes: row.themes,
               sources: [row.source, `Batch ${importState.batchId}`].filter(Boolean).join(" | "),
-              owner: row.owner || "",
-              ownerId: row.owner || "",
+              ...ownerPatchForValue(row.owner || ""),
               createdAt: now,
               updatedAt: now
             },
@@ -23107,6 +23170,11 @@
         const priority = entry.priority || priorityCycle[index % priorityCycle.length];
         const latitude = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
         const longitude = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
+        const ownerIds = ownerIdsFromEntry(entry);
+        const owners = Array.isArray(entry.owners) && entry.owners.length
+          ? entry.owners
+          : ownerSummariesForIds(ownerIds);
+        const ownerLabel = owners.map((owner) => owner.displayName || owner.label || "").filter(Boolean).join(", ");
 
         return {
           id: entry.id || `contact-${String(index + 1).padStart(2, "0")}`,
@@ -23150,8 +23218,10 @@
           themes: normalizeThemes(entry.themes || entry.themesText || entry.themeTags || ""),
           sources: normalizeSources(entry.sources || entry.sourcesText || ""),
           lastExchange: entry.lastExchange || "",
-          owner: entry.owner || "",
-          ownerId: entry.ownerId || "",
+          owner: ownerLabel || entry.owner || "",
+          ownerId: ownerIds[0] || entry.ownerId || entry.owner_id || "",
+          ownerIds,
+          owners,
           status: entry.status || "active",
           createdAt: entry.createdAt || "",
           updatedAt: entry.updatedAt || ""
@@ -23219,6 +23289,8 @@
           priorityClass: "",
           owner: entry.owner || "",
           ownerId: entry.ownerId || entry.owner_id || "",
+          ownerIds: ownerIdsFromEntry(entry),
+          owners: Array.isArray(entry.owners) ? entry.owners : ownerSummariesForIds(ownerIdsFromEntry(entry)),
           status: entry.status || "active"
         };
       }
@@ -25944,7 +26016,7 @@
 
       function syncOwnerOptionsFromContacts() {
         const contactOwners = contacts
-          .flatMap((contact) => [contact.ownerId, contact.owner])
+          .flatMap((contact) => contactOwnerValues(contact))
           .map((owner) => String(owner || "").trim())
           .filter(Boolean);
         const nextOwners = new Set(ownerOptions);
@@ -25952,12 +26024,86 @@
         ownerOptions = [...nextOwners].sort((a, b) => ownerOptionLabel(a).localeCompare(ownerOptionLabel(b), "de"));
       }
 
-      function ownerPatchForValue(value) {
+      function splitOwnerTokens(value) {
+        if (Array.isArray(value)) return value.flatMap(splitOwnerTokens);
+        if (value && typeof value === "object") return splitOwnerTokens(value.id || value.profileId || value.profile_id || value.value || "");
+        return String(value || "")
+          .split(/[;,]/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      function ownerIdFromValue(value) {
         const owner = String(value || "").trim();
+        if (!owner) return "";
+        if (/^[0-9a-f-]{36}$/i.test(owner)) return owner;
+        const profile = ownerProfileForValue(owner);
+        return profile?.id || "";
+      }
+
+      function normalizeOwnerIds(values = []) {
+        const ids = [];
+        splitOwnerTokens(values).forEach((value) => {
+          const id = ownerIdFromValue(value);
+          if (id && !ids.includes(id)) ids.push(id);
+        });
+        return ids;
+      }
+
+      function ownerIdsFromEntry(entry = {}) {
+        if (Array.isArray(entry.ownerIds)) return normalizeOwnerIds(entry.ownerIds);
+        if (Array.isArray(entry.owner_ids)) return normalizeOwnerIds(entry.owner_ids);
+        if (Array.isArray(entry.owners)) return normalizeOwnerIds(entry.owners);
+        return normalizeOwnerIds([entry.ownerId, entry.owner_id, entry.owner]);
+      }
+
+      function ownerSummariesForIds(ownerIds = []) {
+        return normalizeOwnerIds(ownerIds).map((id) => {
+          const profile = ownerProfileForValue(id);
+          return {
+            id,
+            displayName: profile?.label || id,
+            initials: profile?.initials || initialsFromLabel(profile?.label || id),
+            role: profile?.role || "",
+            avatarUrl: profile?.avatarUrl || "",
+            updatedAt: profile?.updatedAt || ""
+          };
+        });
+      }
+
+      function contactOwnerIds(contact = {}) {
+        return normalizeOwnerIds(contact.ownerIds || contact.owner_ids || contact.owners || [contact.ownerId, contact.owner_id]);
+      }
+
+      function contactOwnerValues(contact = {}) {
+        return [
+          ...contactOwnerIds(contact),
+          ...splitOwnerTokens(contact.owner)
+        ].filter(Boolean);
+      }
+
+      function contactOwnerDisplayNames(contact = {}) {
+        const ids = contactOwnerIds(contact);
+        const labels = ids.map((id) => ownerDisplayLabel(id)).filter(Boolean);
+        if (labels.length) return labels;
+        return splitOwnerTokens(contact.owner);
+      }
+
+      function ownerPatchForValues(values = []) {
+        const ownerIds = normalizeOwnerIds(values);
         return {
-          owner,
-          ownerId: owner && !isLegacyOwner(owner) ? owner : ""
+          ownerIds,
+          owner: ownerIds.map((id) => ownerDisplayLabel(id)).filter(Boolean).join(", "),
+          ownerId: ownerIds[0] || ""
         };
+      }
+
+      function ownerPatchForValue(value) {
+        return ownerPatchForValues([value]);
+      }
+
+      function ownerAddPatchForContact(contact = {}, value = "") {
+        return ownerPatchForValues([...contactOwnerIds(contact), value]);
       }
 
       function loadLegacyOwnerAssignments() {
@@ -25984,7 +26130,7 @@
         if (!legacyOwnerAssignments.size) return;
         contacts = contacts.map((contact, index) => {
           const legacyOwner = legacyOwnerAssignments.get(contact.id);
-          if (!legacyOwner || contact.ownerId) return contact;
+          if (!legacyOwner || contactOwnerIds(contact).length) return contact;
           return sanitizeContact({ ...contact, owner: legacyOwner, ownerId: "" }, index);
         });
       }
@@ -26063,7 +26209,7 @@
         if (!values.size) return [];
         return contacts.filter((contact) => {
           if (contact.status === "archived") return false;
-          return [contact.owner, contact.ownerId].some((value) => values.has(String(value || "").trim()));
+          return contactOwnerValues(contact).some((value) => values.has(String(value || "").trim()));
         });
       }
 
@@ -26086,7 +26232,7 @@
         if (!values.size) return [];
         return contacts.filter((contact) => {
           if (contact.status === "archived") return false;
-          return [contact.owner, contact.ownerId].some((value) => values.has(String(value || "").trim()));
+          return contactOwnerValues(contact).some((value) => values.has(String(value || "").trim()));
         });
       }
 
@@ -27259,6 +27405,9 @@
             sources: contact.sources,
             lastExchange: contact.lastExchange,
             owner: contact.owner,
+            ownerId: contact.ownerId,
+            ownerIds: contactOwnerIds(contact),
+            owners: contact.owners || [],
             createdAt: contact.createdAt,
             updatedAt: contact.updatedAt
           }));
@@ -27282,16 +27431,17 @@
         if (!currentContact) return;
 
         const normalizedValue = typeof value === "string" ? value.trim() : value;
-        const currentValue = field === "owner" ? currentContact.ownerId || currentContact.owner || "" : currentContact[field] || "";
-        if (currentValue === normalizedValue) return;
+        const nextOwnerIds = field === "owner" ? normalizeOwnerIds(normalizedValue) : [];
+        const currentValue = field === "owner" ? contactOwnerIds(currentContact) : currentContact[field] || "";
+        if (field === "owner" ? JSON.stringify(currentValue) === JSON.stringify(nextOwnerIds) : currentValue === normalizedValue) return;
 
         try {
-          const patch = field === "owner" ? ownerPatchForValue(normalizedValue) : { [field]: normalizedValue };
+          const patch = field === "owner" ? ownerPatchForValues(nextOwnerIds) : { [field]: normalizedValue };
           const updated = preserveLegacyOwnerSelection(await window.dataService.updateContact(id, patch), field === "owner" ? normalizedValue : "");
           contacts = contacts.map((contact, index) =>
             contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
           );
-          if (field === "owner") setLegacyOwnerAssignment(id, normalizedValue);
+          if (field === "owner" && typeof normalizedValue === "string") setLegacyOwnerAssignment(id, normalizedValue);
           contactHistoryCache.delete(id);
           if (!options.silent) setStorageStatus("Kontakt in Supabase gespeichert");
         } catch (error) {
@@ -27465,10 +27615,10 @@
           const matchesPriority = !selectedPriorities.length || selectedPriorities.includes(contact.priority);
           const matchesState = !selectedStates.length || selectedStates.includes(stateLabel(contact));
           const matchesSpecialty = !selectedSpecialties.length || selectedSpecialties.includes(specialtyLabel(contact));
-          const contactOwnerValues = [meaningfulOrEmpty(contact.owner), meaningfulOrEmpty(contact.ownerId)].filter(Boolean);
+          const ownerValues = contactOwnerValues(contact);
           const matchesOwner =
             !selectedOwners.length ||
-            selectedOwners.some((owner) => (owner === "__none__" ? contactOwnerValues.length === 0 : contactOwnerValues.includes(owner)));
+            selectedOwners.some((owner) => (owner === "__none__" ? ownerValues.length === 0 : ownerValues.includes(owner)));
           const matchesTheme =
             !selectedThemes.length || selectedThemes.some((theme) => normalizeThemes(contact.themes).includes(theme));
           const matchesQuality = !selectedQualities.length || selectedQualities.includes(dataQualityLabel(contact).label);
@@ -28425,9 +28575,8 @@
         return `<img class="owner-badge__image" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" onerror="this.hidden=true;this.parentElement.textContent='${escapeHtml(fallback)}';">`;
       }
 
-      function ownerBadgeMarkup(contact) {
-        const ownerValue = contact.ownerId || contact.owner;
-        const profile = ownerProfileForValue(contact.ownerId) || ownerProfileForValue(contact.owner);
+      function ownerBadgeSingleMarkup(ownerValue) {
+        const profile = ownerProfileForValue(ownerValue);
         const rawLabel = ownerDisplayLabel(profile?.id || ownerValue);
         const label = ownerBadgeLabel(rawLabel);
         if (!label) {
@@ -28442,6 +28591,19 @@
           <span class="owner-badge owner-badge--tone-${tone}">
             <span class="owner-badge__avatar" aria-hidden="true">${ownerBadgeAvatarMarkup(profile, label)}</span>
             <span class="owner-badge__label">${escapeHtml(label)}</span>
+          </span>
+        `;
+      }
+
+      function ownerBadgeMarkup(contact) {
+        const values = contactOwnerIds(contact).length ? contactOwnerIds(contact) : splitOwnerTokens(contact.owner);
+        if (!values.length) return ownerBadgeSingleMarkup("");
+        const visible = values.slice(0, 2);
+        const remaining = Math.max(0, values.length - visible.length);
+        return `
+          <span class="owner-badge-group" title="${escapeHtml(contactOwnerDisplayNames(contact).join(", "))}">
+            ${visible.map(ownerBadgeSingleMarkup).join("")}
+            ${remaining ? `<span class="owner-badge-more">+${remaining}</span>` : ""}
           </span>
         `;
       }
@@ -30102,7 +30264,7 @@
           contact.location || contact.city,
           contact.email,
           contact.phone,
-          contact.owner || contact.ownerId
+          contactOwnerValues(contact).length ? "owner" : ""
         ].filter((value) => !hasMeaningfulValue(value)).length;
         if (missing === 0) return { label: "Vollständig", tone: "good" };
         if (missing <= 2) return { label: "Prüfen", tone: "medium" };
@@ -30113,7 +30275,7 @@
         return [
           { value: "email", label: "E-Mail", present: hasMeaningfulValue(contact.email) },
           { value: "phone", label: "Telefon", present: hasMeaningfulValue(contact.phone) },
-          { value: "owner", label: "Owner", present: hasMeaningfulValue(contact.owner || contact.ownerId) },
+          { value: "owner", label: "Owner", present: contactOwnerValues(contact).length > 0 },
           { value: "organization", label: "Organisation", present: hasMeaningfulValue(contact.organization) },
           { value: "specialty", label: "Fachrichtung", present: hasMeaningfulValue(contact.specialty) }
         ].filter((field) => !field.present);
@@ -30797,6 +30959,43 @@
           ...profileOptions,
           ...legacyOptions
         ].join("");
+      }
+
+      function ownerMultiPickerMarkup(selectedOwnerIds = [], { compact = false } = {}) {
+        const selected = new Set(normalizeOwnerIds(selectedOwnerIds));
+        const options = ownerProfiles.map((profile) => `
+          <label class="owner-multi-option">
+            <input type="checkbox" value="${escapeHtml(profile.id)}" ${selected.has(profile.id) ? "checked" : ""}>
+            <span class="owner-badge__avatar" aria-hidden="true">${ownerBadgeAvatarMarkup(profile, profile.label)}</span>
+            <span class="owner-multi-label">${escapeHtml(profile.label)}</span>
+          </label>
+        `);
+        if (!options.length) return `<div class="filter-empty-note">Keine aktiven Nutzerprofile vorhanden.</div>`;
+        return options.join("");
+      }
+
+      function selectedOwnerIdsFromPicker(picker) {
+        if (!picker) return [];
+        return [...picker.querySelectorAll('input[type="checkbox"]:checked')]
+          .map((input) => input.value)
+          .filter(Boolean);
+      }
+
+      function setOwnerInputValue(input, ownerIds = []) {
+        if (input) input.value = normalizeOwnerIds(ownerIds).join(",");
+      }
+
+      function renderEditorOwnerPicker(ownerIds = []) {
+        const picker = document.getElementById("field-owner-picker");
+        if (!picker) return;
+        picker.innerHTML = ownerMultiPickerMarkup(ownerIds);
+        setOwnerInputValue(editorForm.elements.owner, ownerIds);
+        picker.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+          input.addEventListener("change", () => {
+            setOwnerInputValue(editorForm.elements.owner, selectedOwnerIdsFromPicker(picker));
+            validateEditorValues();
+          });
+        });
       }
 
       function buildSpecialtySelectOptions(selectedSpecialty = "") {
@@ -31514,7 +31713,7 @@
         try {
           const updated = preserveLegacyOwnerSelection(
             await window.dataService.updateContact(contact.id, { note: serializeContactNotesThread(messages) }),
-            contact.owner || contact.ownerId || ""
+            contactOwnerValues(contact).join(",")
           );
           contacts = contacts.map((item, index) =>
             item.id === contact.id ? sanitizeContact({ ...item, ...updated, id: contact.id }, index) : item
@@ -31677,6 +31876,7 @@
           contactRole: "Rolle",
           priority: "Priorität",
           owner_id: "Owner",
+          owner_ids: "Owner",
           postal_code: "PLZ",
           city: "Ort",
           federal_state: "Bundesland",
@@ -31707,7 +31907,7 @@
         if (action === "import") return "Kontakt importiert";
         if (action === "archive") return "Kontakt archiviert";
         if (changes.some((change) => change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived")) return "Kontakt wiederhergestellt";
-        if (visible.length && visible.every((change) => change.fieldName === "owner_id" || change.fieldName === "owner")) {
+        if (visible.length && visible.every((change) => ["owner_id", "owner_ids", "owner"].includes(change.fieldName))) {
           const ownerChange = visible[0];
           if (!String(ownerChange.oldValue || "").trim() && String(ownerChange.newValue || "").trim()) return "Owner hinzugefügt";
           if (String(ownerChange.oldValue || "").trim() && !String(ownerChange.newValue || "").trim()) return "Owner entfernt";
@@ -31738,7 +31938,7 @@
         if (change.action === "create") return "create";
         if (change.action === "import") return "import";
         if (change.fieldName === "status" && change.newValue === "active" && change.oldValue === "archived") return "restore";
-        if (change.fieldName === "owner_id" || change.fieldName === "owner") return "owner";
+        if (["owner_id", "owner_ids", "owner"].includes(change.fieldName)) return "owner";
         return "update";
       }
 
@@ -31755,6 +31955,16 @@
         const normalized = String(value || "").trim();
         if (!normalized) return "leer";
         if (field === "owner_id") return ownerOptionLabel(normalized).replace(/^⚠\s*/, "");
+        if (field === "owner_ids") {
+          try {
+            const parsed = JSON.parse(normalized);
+            if (Array.isArray(parsed)) {
+              return parsed.map((value) => ownerOptionLabel(value).replace(/^⚠\s*/, "")).filter(Boolean).join(", ") || "leer";
+            }
+          } catch (error) {
+            return splitOwnerTokens(normalized).map((value) => ownerOptionLabel(value).replace(/^⚠\s*/, "")).join(", ") || "leer";
+          }
+        }
         if (field === "linkedin") return "LinkedIn-Profil hinterlegt";
         if (field === "email") return "E-Mail-Adresse hinterlegt";
         if (field === "phone") return "Telefonnummer hinterlegt";
@@ -31974,7 +32184,7 @@
         if (!hasMeaningfulValue(contact.linkedin)) fields.push("LinkedIn");
         if (!hasMeaningfulValue(contact.specialty)) fields.push("Fachrichtung");
         if (!hasMeaningfulValue(contact.lastExchange)) fields.push("Letzter Austausch");
-        if (!hasMeaningfulValue(contact.owner)) fields.push("Owner");
+        if (!contactOwnerValues(contact).length) fields.push("Owner");
         if (!hasMeaningfulValue(contact.location) && !hasMeaningfulValue(contact.city) && !hasMeaningfulValue(contact.state)) fields.push("Ort");
         return fields;
       }
@@ -32053,12 +32263,9 @@
       }
 
       function detailHeaderOwnerControl(contact) {
-        const selectedOwner = contact.ownerId || contact.owner || "";
+        const selectedOwnerIds = contactOwnerIds(contact);
         const control = canEditContacts()
-          ? detailHeaderSelect("owner", selectedOwner, buildOwnerSelectOptions(selectedOwner), {
-              label: "Owner ändern",
-              className: "detail-owner-dropdown"
-            })
+          ? `<div class="owner-multi-select owner-multi-select--detail" data-detail-owner-picker>${ownerMultiPickerMarkup(selectedOwnerIds, { compact: true })}</div>`
           : ownerBadgeMarkup(contact);
         return `
           <div class="detail-meta-control">
@@ -32793,7 +33000,7 @@
       }
 
       function isMissingOwner(contact) {
-        return !hasMeaningfulValue(contact.owner) && !hasMeaningfulValue(contact.ownerId);
+        return contactOwnerValues(contact).length === 0;
       }
 
       function isMissingLocation(contact) {
@@ -32801,7 +33008,7 @@
       }
 
       function hasOwner(contact) {
-        return hasMeaningfulValue(contact.owner) || hasMeaningfulValue(contact.ownerId);
+        return contactOwnerValues(contact).length > 0;
       }
 
       function hasLocation(contact) {
@@ -33203,7 +33410,7 @@
             key === "missing-owner"
               ? `<div class="care-workbench-toolbar">
                   <select id="care-bulk-owner"><option value="">Owner auswählen</option>${ownerOptions.map((owner) => `<option value="${escapeHtml(owner)}">${escapeHtml(ownerOptionLabel(owner))}</option>`).join("")}</select>
-                  <button class="action-button action-button--primary" type="button" id="care-apply-owner">Allen sichtbaren zuweisen</button>
+                  <button class="action-button action-button--primary" type="button" id="care-apply-owner">Allen sichtbaren hinzufügen</button>
                 </div>`
               : ""
           }
@@ -33217,7 +33424,7 @@
                       <tr>
                         <td>${escapeHtml(contact.displayName || contact.name)}</td>
                         <td>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</td>
-                        <td>${escapeHtml(meaningfulOrEmpty(contact.owner) || "Kein Owner")}</td>
+                        <td>${escapeHtml(contactOwnerDisplayNames(contact).join(", ") || "Kein Owner")}</td>
                         <td><input data-care-email="${escapeHtml(contact.id)}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen" /></td>
                         <td>${escapeHtml(specialtyLabel(contact) || "-")}</td>
                         <td><button class="detail-link detail-link--compact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">Öffnen</button></td>
@@ -33453,7 +33660,8 @@
           {
             type: "versorgungs-kompass-map-data",
             contacts: items.map((contact) => {
-              const ownerProfile = ownerProfileForValue(contact.ownerId) || ownerProfileForValue(contact.owner);
+              const ownerIds = contactOwnerIds(contact);
+              const firstOwnerProfile = ownerProfileForValue(ownerIds[0]);
               return {
                 id: contact.id,
                 name: contact.name,
@@ -33479,9 +33687,11 @@
                 note: contact.note,
                 nextStep: contact.nextStep,
                 image: contact.image,
-                owner: ownerDisplayLabel(contact.ownerId || contact.owner) || contact.owner || "",
-                ownerId: contact.ownerId || "",
-                ownerAvatar: versionedImageUrl(profileAvatarUrl(ownerProfile), ownerProfile?.updated_at || ownerProfile?.updatedAt || ""),
+                owner: contactOwnerDisplayNames(contact).join(", "),
+                ownerId: ownerIds[0] || "",
+                ownerIds,
+                owners: ownerSummariesForIds(ownerIds),
+                ownerAvatar: versionedImageUrl(profileAvatarUrl(firstOwnerProfile), firstOwnerProfile?.updated_at || firstOwnerProfile?.updatedAt || ""),
                 sources: contact.sources
               };
             }),
@@ -34308,6 +34518,13 @@
             await updateContactField(contact.id, field, select.value);
           });
         });
+        detailPanel.querySelectorAll("[data-detail-owner-picker]").forEach((picker) => {
+          picker.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+            input.addEventListener("change", async () => {
+              await updateContactField(contact.id, "owner", selectedOwnerIdsFromPicker(picker));
+            });
+          });
+        });
         const noteInput = document.getElementById("detail-note-input");
         const noteStatus = document.getElementById("detail-note-status");
         document.getElementById("detail-note-save")?.addEventListener("click", () => saveDetailNote(contact, noteInput, noteStatus));
@@ -34446,10 +34663,9 @@
         editorForm.elements.email.value = contact?.email || "";
         editorForm.elements.phone.value = contact?.phone || "";
         editorForm.elements.linkedin.value = contact?.linkedin || "";
-        const selectedOwnerValue = contact?.ownerId || contact?.owner || (!contact ? currentProfile?.id || "" : "");
+        const selectedOwnerIds = contact ? contactOwnerIds(contact) : normalizeOwnerIds(currentProfile?.id || "");
         ensureOwnerProfile(currentProfile);
-        editorForm.elements.owner.innerHTML = buildOwnerSelectOptions(selectedOwnerValue);
-        editorForm.elements.owner.value = selectedOwnerValue;
+        renderEditorOwnerPicker(selectedOwnerIds);
         editorForm.elements.postalCode.value = contact?.postalCode || organizationDefaults?.postalCode || splitLocation.postalCode || "";
         editorForm.elements.city.value = contact?.city || organizationDefaults?.city || splitLocation.city || "";
         editorForm.elements.state.value = contact?.state || organizationDefaults?.state || "";
@@ -34606,7 +34822,7 @@
             contact.image,
             normalizeSources(contact.sources).join(" | "),
             contact.lastExchange,
-            contact.owner,
+            contactOwnerDisplayNames(contact).join("; "),
             contact.createdAt,
             contact.updatedAt
           ]
@@ -34656,13 +34872,18 @@
           return;
         }
         const normalizedOwner = String(bulkOwnerSelect?.value || "").trim();
+        if (!normalizedOwner) {
+          window.alert("Bitte zuerst einen Owner auswählen.");
+          return;
+        }
         const selectedCount = selectedContactIds.size;
         try {
           for (const id of [...selectedContactIds]) {
-            await updateContactField(id, "owner", normalizedOwner, { silent: true });
+            const contact = contacts.find((item) => item.id === id);
+            await updateContactField(id, "owner", [...contactOwnerIds(contact), normalizedOwner], { silent: true });
           }
-          const ownerLabel = ownerDisplayLabel(normalizedOwner) || "kein Owner";
-          setStorageStatus(`${selectedCount} Kontakte aktualisiert: ${ownerLabel}`);
+          const ownerLabel = ownerDisplayLabel(normalizedOwner) || "Owner";
+          setStorageStatus(`${selectedCount} Kontakte aktualisiert: ${ownerLabel} hinzugefügt`);
           selectedContactIds.clear();
           updateView();
         } catch (error) {
@@ -34896,7 +35117,7 @@
       organizationEditorForm.elements.sector.innerHTML = buildCategorySelectOptions("");
       organizationEditorForm.elements.state.innerHTML = buildStateSelectOptions("");
       updateOrganizationSuggestions("");
-      editorForm.elements.owner.innerHTML = buildOwnerSelectOptions("");
+      renderEditorOwnerPicker([]);
       editorForm.elements.state.innerHTML = buildStateSelectOptions("");
       renderEditorSpecialtyOptions();
       renderEditorThemes();
@@ -35451,7 +35672,7 @@
           const item = careQueueItemByKey(activeCareQueueKey);
           const targets = item?.contacts || [];
           for (const contact of targets) {
-            await updateContactField(contact.id, "owner", owner, { silent: true });
+            await updateContactField(contact.id, "owner", [...contactOwnerIds(contact), owner], { silent: true });
           }
           setStorageStatus(`${targets.length} Kontakte aktualisiert`);
           updateView();
