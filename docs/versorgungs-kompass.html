@@ -525,6 +525,52 @@
         flex: 0 0 auto;
       }
 
+      .sidebar-nav .primary-tab,
+      .sidebar-link {
+        position: relative;
+      }
+
+      .notification-count-indicator {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        margin-left: auto;
+        padding: 0 5px;
+        border: 1px solid var(--surface);
+        border-radius: 999px;
+        background: var(--danger);
+        color: var(--surface);
+        font-size: 0.68rem;
+        font-weight: 900;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16);
+      }
+
+      .notification-count-indicator[hidden] {
+        display: none !important;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-nav .primary-tab .notification-count-indicator,
+      .app-shell.is-sidebar-collapsed .sidebar-link .notification-count-indicator {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: inline-flex;
+        width: auto;
+        min-width: 17px;
+        height: 17px;
+        margin: 0;
+        padding: 0 4px;
+        overflow: visible;
+        clip: auto;
+        white-space: nowrap;
+        border: 1px solid var(--surface);
+        font-size: 0.62rem;
+      }
+
       .sidebar-footer {
         margin-top: auto;
         display: grid;
@@ -1559,6 +1605,10 @@
         justify-content: flex-end;
       }
 
+      .filter-toolbar[hidden] {
+        display: none !important;
+      }
+
       .workspace-expert-switcher[hidden] {
         display: none !important;
       }
@@ -1723,15 +1773,46 @@
         color: var(--primary);
       }
 
+      .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header {
+        width: min(100%, 540px);
+      }
+
+      .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
+        flex-direction: column;
+        gap: 6px;
+        min-height: 58px;
+        padding-inline: 8px;
+        padding-block: 6px;
+      }
+
+      .app-shell[data-active-view="stakeholders"] .experts-mode-label {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .app-shell[data-active-view="stakeholders"] .experts-mode-count {
+        flex: 0 0 auto;
+      }
+
       @media (max-width: 760px) {
-        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button {
+        .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button,
+        .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
           flex: 1 1 auto;
           gap: 4px;
           padding-inline: 8px;
           font-size: var(--font-size-sm);
         }
 
-        .app-shell[data-active-view="experts"] .experts-mode-count {
+        .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
+          flex-direction: column;
+          padding-block: 6px;
+        }
+
+        .app-shell[data-active-view="experts"] .experts-mode-count,
+        .app-shell[data-active-view="stakeholders"] .experts-mode-count {
           min-width: 34px;
           min-height: 22px;
           padding-inline: 4px;
@@ -2640,6 +2721,10 @@
         padding: 0 12px 0 16px;
         gap: 10px;
         max-width: 100%;
+      }
+
+      .search-shell[hidden] {
+        display: none !important;
       }
 
       .search-shell svg {
@@ -4258,6 +4343,195 @@
         justify-content: center;
       }
 
+      .notifications-workspace {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+        min-height: min(70vh, 720px);
+      }
+
+      .notifications-command-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .notifications-filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .notification-filter {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .notification-filter:hover,
+      .notification-filter:focus-visible {
+        border-color: var(--border-strong);
+        background: var(--surface-muted);
+        color: var(--text-primary);
+        outline: none;
+      }
+
+      .notification-filter.is-active {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .notifications-command-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-left: auto;
+      }
+
+      .notifications-meta {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .notifications-feed-shell {
+        min-height: 420px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+      }
+
+      .notifications-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .notification-item {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 12px;
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+      }
+
+      .notification-item.is-unread {
+        border-color: var(--border-strong);
+        box-shadow: inset 3px 0 0 var(--danger);
+      }
+
+      .notification-item__icon {
+        width: 38px;
+        height: 38px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .notification-item__icon svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .notification-item__body {
+        min-width: 0;
+      }
+
+      .notification-item__title {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        font-weight: 900;
+        line-height: var(--line-height-tight);
+      }
+
+      .notification-item__text,
+      .notification-item__meta {
+        margin-top: 4px;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        line-height: 1.4;
+      }
+
+      .notification-item__meta {
+        font-weight: 750;
+      }
+
+      .notification-item__actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .notification-item__unread-dot {
+        width: 9px;
+        height: 9px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: var(--danger);
+      }
+
+      .notification-open {
+        min-height: 32px;
+      }
+
+      .notifications-empty,
+      .notifications-loading,
+      .notifications-error {
+        min-height: 240px;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+        text-align: center;
+      }
+
+      .notifications-error {
+        color: var(--danger);
+      }
+
+      .notifications-load-more-row {
+        display: flex;
+        justify-content: center;
+        padding-top: 2px;
+      }
+
+      .notifications-load-more-row[hidden] {
+        display: none;
+      }
+
+      .notifications-load-more {
+        min-width: 160px;
+        justify-content: center;
+      }
+
       .history-action-pill--owner {
         background: var(--primary-soft);
         border-color: var(--border-strong);
@@ -4313,6 +4587,84 @@
 
         .activities-workspace .history-arrow {
           display: none;
+        }
+
+        .notifications-command-row {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .notifications-filters {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 2px;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .notifications-filters::-webkit-scrollbar {
+          display: none;
+        }
+
+        .notification-filter {
+          flex: 0 0 auto;
+        }
+
+        .notifications-command-actions {
+          width: 100%;
+          justify-content: space-between;
+          margin-left: 0;
+        }
+
+        .notifications-meta {
+          white-space: normal;
+        }
+
+        .notifications-feed-shell {
+          min-height: 360px;
+          padding: 10px;
+        }
+
+        .notification-item {
+          grid-template-columns: 34px minmax(0, 1fr);
+          gap: 10px;
+        }
+
+        .notification-item__icon {
+          width: 34px;
+          height: 34px;
+        }
+
+        .notification-item__actions {
+          grid-column: 2;
+          justify-content: flex-start;
+        }
+
+        .sidebar-nav .primary-tab .notification-count-indicator,
+        .sidebar-link .notification-count-indicator {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          display: inline-flex;
+          min-width: 17px;
+          height: 17px;
+          margin-left: 0;
+          padding: 0 4px;
+          font-size: 0.62rem;
+        }
+
+        .notification-count-indicator[hidden] {
+          display: none !important;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-nav .primary-tab .notification-count-indicator,
+        .app-shell.is-mobile-sidebar-expanded .sidebar-link .notification-count-indicator {
+          position: static;
+          min-width: 18px;
+          height: 18px;
+          margin-left: auto;
+          padding: 0 5px;
+          font-size: 0.68rem;
         }
       }
 
@@ -11822,7 +12174,23 @@
         object-fit: contain;
         object-position: center;
         padding: 5px;
-        background: var(--surface);
+        background: transparent;
+      }
+
+      .organization-logo--image {
+        position: relative;
+      }
+
+      .organization-logo--image img,
+      .organization-logo__fallback {
+        grid-area: 1 / 1;
+      }
+
+      .organization-logo__fallback {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
       }
 
       .organization-cell {
@@ -12845,6 +13213,7 @@
 
       .app-shell[data-active-view="analytics"] .controls,
       .app-shell[data-active-view="experts"] .controls,
+      .app-shell[data-active-view="stakeholders"] .controls,
       .app-shell[data-active-view="quality"] .controls,
       .app-shell[data-active-view="imports"] .controls,
       .app-shell[data-active-view="settings"] .controls,
@@ -18126,6 +18495,7 @@
                 <path d="M23 11h-6"></path>
               </svg>
               <span>Kontakte</span>
+              <span class="notification-count-indicator" id="notification-count-contacts" hidden>0</span>
             </button>
             <button class="primary-tab" type="button" data-view-tab="organizations" title="Organisationen">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -18137,6 +18507,7 @@
                 <path d="M9 15h3"></path>
               </svg>
               <span>Organisationen</span>
+              <span class="notification-count-indicator" id="notification-count-organizations" hidden>0</span>
             </button>
             <button class="primary-tab" type="button" data-view-tab="activities" title="Aktivitäten">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -18227,11 +18598,20 @@
                 <path d="M16 15h.01"></path>
               </svg>
               <span>Formate</span>
+              <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
             </button>
           </div>
         </nav>
         <div class="sidebar-account-section" aria-label="Team, Einstellungen und Profil" data-sidebar-section="account">
           <span class="sidebar-section-label">Team &amp; Konto</span>
+          <button class="sidebar-link" type="button" id="sidebar-notifications-button" title="Hinweise">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+              <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
+            </svg>
+            <span>Hinweise</span>
+            <span class="notification-count-indicator" id="notification-count-total" hidden>0</span>
+          </button>
           <button class="sidebar-link" type="button" id="sidebar-team-button" title="Team">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -18240,6 +18620,7 @@
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             <span>Team</span>
+            <span class="notification-count-indicator" id="notification-count-team" hidden>0</span>
           </button>
           <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
             <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
@@ -18589,6 +18970,34 @@
                 </div>
                 <div class="activities-load-more-row" id="activities-load-more-row" hidden>
                   <button class="action-button activities-load-more" type="button" id="activities-load-more">Mehr laden</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-notifications" data-view-panel="notifications">
+            <div class="view-card notifications-workspace">
+              <div class="notifications-command-row">
+                <div class="notifications-filters" role="tablist" aria-label="Hinweise filtern">
+                  <button class="notification-filter is-active" type="button" data-notification-filter="unread" aria-pressed="true">Ungelesen</button>
+                  <button class="notification-filter" type="button" data-notification-filter="all" aria-pressed="false">Alle</button>
+                  <button class="notification-filter" type="button" data-notification-filter="product" aria-pressed="false">Produkt</button>
+                  <button class="notification-filter" type="button" data-notification-filter="contacts" aria-pressed="false">Kontakte</button>
+                  <button class="notification-filter" type="button" data-notification-filter="organizations" aria-pressed="false">Organisationen</button>
+                  <button class="notification-filter" type="button" data-notification-filter="formats" aria-pressed="false">Formate</button>
+                  <button class="notification-filter" type="button" data-notification-filter="team" aria-pressed="false">Team</button>
+                </div>
+                <div class="notifications-command-actions">
+                  <div class="notifications-meta" id="notifications-meta">Hinweise werden geladen</div>
+                  <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>
+                </div>
+              </div>
+              <div class="notifications-feed-shell">
+                <div class="notifications-list" id="notifications-list" aria-live="polite">
+                  <div class="notifications-loading">Hinweise werden geladen...</div>
+                </div>
+                <div class="notifications-load-more-row" id="notifications-load-more-row" hidden>
+                  <button class="action-button notifications-load-more" type="button" id="notifications-load-more">Mehr laden</button>
                 </div>
               </div>
             </div>
@@ -20482,6 +20891,8 @@
       const legacyOwnerAssignmentsStorageKey = "versorgungs-kompass-legacy-owner-assignments-v1";
       const visibleColumnsStorageKey = "versorgungs-kompass-visible-contact-columns-v1";
       const visibleOrganizationColumnsStorageKey = "versorgungs-kompass-visible-organization-columns-v1";
+      const visibleStakeholderOrganizationColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-organization-columns-v1";
+      const visibleStakeholderPeopleColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-people-columns-v1";
       const ONBOARDING_VERSION = 1;
       const ONBOARDING_ROLLOUT_AT = "2026-06-09T00:00:00.000+02:00";
       const defaultTeamOptions = ["Stabsstelle Versorgung", "Produktmanagement", "Kommunikation", "Strategie"];
@@ -20515,20 +20926,22 @@
       const expertOrganizationTableColumns = organizationTableColumns.map((column) =>
         column.key === "sector" ? { ...column, label: "Gruppe" } : column
       );
+      const defaultStakeholderOrganizationColumnKeys = ["organization", "location", "people", "website"];
       const stakeholderOrganizationTableColumns = [
-        { key: "organization", label: "Organisation", template: "minmax(280px, 1.35fr)", required: true },
-        { key: "type", label: "Typ", template: "minmax(150px, 0.7fr)" },
-        { key: "location", label: "Sitz", template: "minmax(150px, 0.7fr)" },
-        { key: "state", label: "Bundesland", template: "minmax(170px, 0.74fr)" },
-        { key: "people", label: "Personen", template: "minmax(120px, 0.52fr)" },
-        { key: "website", label: "Website", template: "minmax(170px, 0.74fr)" }
+        { key: "organization", label: "Organisation", template: "minmax(310px, 1.45fr)", required: true },
+        { key: "location", label: "Sitz", template: "minmax(150px, 0.66fr)" },
+        { key: "people", label: "Personen", template: "minmax(118px, 0.52fr)" },
+        { key: "website", label: "Website", template: "minmax(180px, 0.82fr)" },
+        { key: "source", label: "Quelle", template: "minmax(170px, 0.72fr)" }
       ];
+      const defaultStakeholderPeopleColumnKeys = ["name", "organization", "role", "committee", "location", "source"];
       const stakeholderPeopleTableColumns = [
         { key: "name", label: "Name", template: "minmax(220px, 1.1fr)", required: true },
         { key: "organization", label: "Organisation", template: "minmax(250px, 1.2fr)" },
         { key: "role", label: "Rolle", template: "minmax(170px, 0.78fr)" },
         { key: "committee", label: "Gremium", template: "minmax(150px, 0.7fr)" },
         { key: "location", label: "Ort", template: "minmax(130px, 0.6fr)" },
+        { key: "map", label: "Karte", template: "minmax(145px, 0.64fr)" },
         { key: "source", label: "Quelle", template: "minmax(160px, 0.72fr)" }
       ];
       const organizationContactRangeFilterOptions = [
@@ -20594,6 +21007,12 @@
       const activityRangeFilter = document.getElementById("activity-range-filter");
       const activitiesLoadMoreRow = document.getElementById("activities-load-more-row");
       const activitiesLoadMoreButton = document.getElementById("activities-load-more");
+      const notificationsList = document.getElementById("notifications-list");
+      const notificationsMeta = document.getElementById("notifications-meta");
+      const notificationFilterButtons = [...document.querySelectorAll("[data-notification-filter]")];
+      const notificationsMarkAllRead = document.getElementById("notifications-mark-all-read");
+      const notificationsLoadMoreRow = document.getElementById("notifications-load-more-row");
+      const notificationsLoadMoreButton = document.getElementById("notifications-load-more");
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
       const formatParticipantDrawer = document.getElementById("format-participant-drawer");
@@ -20730,10 +21149,18 @@
       const sidebarQualityButton = document.getElementById("sidebar-quality-button");
       const sidebarImportButton = document.getElementById("sidebar-import-button");
       const sidebarDataCareSection = document.getElementById("sidebar-data-care-section");
+      const sidebarNotificationsButton = document.getElementById("sidebar-notifications-button");
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const sidebarAboutButton = document.getElementById("sidebar-about-button");
       const sidebarStakeholderButton = document.querySelector('[data-view-tab="stakeholders"]');
+      const notificationCountNodes = {
+        total: document.getElementById("notification-count-total"),
+        contacts: document.getElementById("notification-count-contacts"),
+        organizations: document.getElementById("notification-count-organizations"),
+        formats: document.getElementById("notification-count-formats"),
+        team: document.getElementById("notification-count-team")
+      };
       const aboutVersionList = document.getElementById("about-version-list");
       const detailDrawer = document.getElementById("detail-drawer");
       const detailPanel = document.getElementById("detail-panel");
@@ -20949,6 +21376,7 @@
       let formatEditorCurrentStep = "basis";
       let formatEditingNoteId = null;
       let contactEditingNoteId = null;
+      let stakeholderEditingNoteKey = "";
       let formatStatusFilter = "";
       let formatLoadErrorMessage = "";
       let participantPlannerFormatId = null;
@@ -20965,6 +21393,15 @@
       let activitiesNextOffset = 0;
       let activitiesRequestKey = "";
       const activitiesPageSize = 30;
+      let notifications = [];
+      let notificationsLoaded = false;
+      let notificationsLoading = false;
+      let notificationsHasMore = false;
+      let notificationsNextOffset = 0;
+      let notificationsRequestKey = "";
+      let activeNotificationFilter = "unread";
+      let notificationSummary = { unreadTotal: 0, byContext: {} };
+      const notificationsPageSize = 30;
       function syncPageSizeSelects() {
         [pageSizeSelect, expertPageSizeSelect].forEach((select) => {
           if (!select) return;
@@ -21016,6 +21453,8 @@
       let loadedContactsFromStorage = false;
       let visibleContactColumns = loadVisibleContactColumns();
       let visibleOrganizationColumns = loadVisibleOrganizationColumns();
+      let visibleStakeholderOrganizationColumns = loadVisibleStakeholderOrganizationColumns();
+      let visibleStakeholderPeopleColumns = loadVisibleStakeholderPeopleColumns();
 
       function loadVisibleContactColumns() {
         try {
@@ -21055,6 +21494,46 @@
 
       function persistVisibleOrganizationColumns() {
         window.localStorage.setItem(visibleOrganizationColumnsStorageKey, JSON.stringify(visibleOrganizationColumns));
+      }
+
+      function loadVisibleStakeholderOrganizationColumns() {
+        try {
+          const saved = JSON.parse(window.localStorage.getItem(visibleStakeholderOrganizationColumnsStorageKey) || "null");
+          const allowed = new Set(stakeholderOrganizationTableColumns.map((column) => column.key));
+          const normalized = Array.isArray(saved) ? saved.filter((key) => allowed.has(key)) : [];
+          if (normalized.length) {
+            return stakeholderOrganizationTableColumns
+              .filter((column) => column.required || normalized.includes(column.key))
+              .map((column) => column.key);
+          }
+        } catch (error) {
+          console.warn("Stakeholder-Organisationsspalten konnten nicht geladen werden.", error);
+        }
+        return [...defaultStakeholderOrganizationColumnKeys];
+      }
+
+      function persistVisibleStakeholderOrganizationColumns() {
+        window.localStorage.setItem(visibleStakeholderOrganizationColumnsStorageKey, JSON.stringify(visibleStakeholderOrganizationColumns));
+      }
+
+      function loadVisibleStakeholderPeopleColumns() {
+        try {
+          const saved = JSON.parse(window.localStorage.getItem(visibleStakeholderPeopleColumnsStorageKey) || "null");
+          const allowed = new Set(stakeholderPeopleTableColumns.map((column) => column.key));
+          const normalized = Array.isArray(saved) ? saved.filter((key) => allowed.has(key)) : [];
+          if (normalized.length) {
+            return stakeholderPeopleTableColumns
+              .filter((column) => column.required || normalized.includes(column.key))
+              .map((column) => column.key);
+          }
+        } catch (error) {
+          console.warn("Stakeholder-Personenspalten konnten nicht geladen werden.", error);
+        }
+        return [...defaultStakeholderPeopleColumnKeys];
+      }
+
+      function persistVisibleStakeholderPeopleColumns() {
+        window.localStorage.setItem(visibleStakeholderPeopleColumnsStorageKey, JSON.stringify(visibleStakeholderPeopleColumns));
       }
 
       function setStorageStatus(message) {
@@ -23639,6 +24118,7 @@
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Chronologisches Protokoll der Kontaktänderungen im Versorgungs-Kompass." },
+        notifications: { title: "Hinweise", subtitle: "Persönliche Änderungen und neue Produktinformationen." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
         stakeholders: { title: "Stakeholder", subtitle: "Kassenärztliche Vereinigungen, Personen und Vertreterversammlungen." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
@@ -24509,8 +24989,8 @@
           const origin = parsedWebsite.origin;
           const hostname = parsedWebsite.hostname.replace(/^www\./, "");
           return {
-            url: `${origin}/favicon.ico`,
-            fallbackUrl: `https://icons.duckduckgo.com/ip3/${hostname}.ico`,
+            url: `https://icons.duckduckgo.com/ip3/${hostname}.ico`,
+            fallbackUrl: `${origin}/favicon.ico`,
             sourceUrl: website,
             sourceLabel: "Website der Organisation"
           };
@@ -24542,7 +25022,7 @@
       }
 
       function organizationLogoMarkup(organization, size = "sm", className = "") {
-        const logo = organizationLogoForName(organization?.name);
+        const logo = organizationLogoCandidate(organization) || organizationLogoForName(organization?.name);
         const sizeClass = size === "lg" ? "organization-logo--lg" : "organization-logo--sm";
         const classes = `organization-logo ${sizeClass} ${className}`.trim();
         const initials = organizationInitials(organization?.name);
@@ -24550,7 +25030,8 @@
         if (!logo) return fallback;
         return `
           <span class="${classes} organization-logo--image" aria-hidden="true">
-            <img src="${escapeHtml(logo.url)}" data-fallback-src="${escapeHtml(logo.fallbackUrl || "")}" alt="" loading="lazy" onerror="if (this.dataset.fallbackSrc && !this.dataset.fallbackUsed) { this.dataset.fallbackUsed='true'; this.src=this.dataset.fallbackSrc; } else { this.hidden=true;this.parentElement.classList.remove('organization-logo--image');this.parentElement.textContent='${escapeHtml(initials)}'; }" />
+            <span class="organization-logo__fallback">${escapeHtml(initials)}</span>
+            <img src="${escapeHtml(logo.url)}" data-fallback-src="${escapeHtml(logo.fallbackUrl || "")}" alt="" loading="lazy" onerror="if (this.dataset.fallbackSrc && !this.dataset.fallbackUsed) { this.dataset.fallbackUsed='true'; this.src=this.dataset.fallbackSrc; } else { this.hidden=true;this.previousElementSibling.hidden=false;this.parentElement.classList.remove('organization-logo--image'); }" />
           </span>
         `;
       }
@@ -25415,40 +25896,43 @@
       function stakeholderOrganizationTableCellMarkup(organization, key) {
         const peopleCount = stakeholderOrganizationPeople(organization).length;
         if (key === "organization") {
+          const website = normalizedWebsiteUrl(organization.website);
+          const websiteLabel = website ? website.replace(/^https?:\/\//i, "").replace(/\/$/, "") : "";
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm")}
               <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
-                <div class="contact-subline">${escapeHtml(stakeholderTypeLabel(organization.stakeholderTypeId))}</div>
+                ${websiteLabel ? `<div class="contact-subline">${escapeHtml(websiteLabel)}</div>` : ""}
               </div>
             </div>
           `;
         }
-        if (key === "type") return sectorBadgeMarkup(organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId));
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderOrganizationLocation(organization) || "-")}</div>`;
-        if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.state || "-")}</div>`;
         if (key === "people") return `<button class="organization-contact-link" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Person" : "Personen"}</button>`;
         if (key === "website") {
           const website = normalizedWebsiteUrl(organization.website);
           return website ? `<a class="contact-subline contact-subline--primary" href="${escapeHtml(website)}" target="_blank" rel="noopener">${escapeHtml(website.replace(/^https?:\/\//i, ""))}</a>` : `<div class="contact-subline contact-subline--primary">-</div>`;
         }
+        if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.source || "-")}</div>`;
         return "";
       }
 
-      function renderStakeholderOrganizationsTableHead(columns = stakeholderOrganizationTableColumns) {
+      function renderStakeholderOrganizationsTableHead(columns = visibleStakeholderOrganizationTableColumns()) {
         if (!stakeholderOrganizationsTableHead) return;
         stakeholderOrganizationsTableHead.innerHTML = columns
-          .map((column) => `<div class="cell--${column.key}">${escapeHtml(column.label)}</div>`)
+          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "stakeholder-organizations")}</div>`)
           .join("");
+        bindHeaderFilterMenus(stakeholderOrganizationsTableHead);
       }
 
       function renderStakeholderOrganizationsTable(items = filteredStakeholderOrganizations()) {
         if (!stakeholderOrganizationList || !stakeholderPagination || !stakeholderPaginationMeta) return;
         activeStakeholderMode = "organizations";
         renderStakeholderTablesVisibility();
-        const columns = stakeholderOrganizationTableColumns;
+        const columns = visibleStakeholderOrganizationTableColumns();
         updateStakeholderOrganizationTableGrid(columns);
+        renderColumnMenu();
         if (!items.length) {
           renderStakeholderOrganizationsTableHead(columns);
           stakeholderOrganizationList.innerHTML = `<div class="empty">Keine Stakeholder-Organisationen im aktuellen Filter.</div>`;
@@ -25467,8 +25951,7 @@
                 <article class="row organization-mobile-card ${organization.id === activeStakeholderOrganizationId ? "is-active" : ""}" data-stakeholder-organization-id="${escapeHtml(organization.id)}" tabindex="0">
                   <div class="cell--organization">${stakeholderOrganizationTableCellMarkup(organization, "organization")}</div>
                   <div class="organization-mobile-meta">
-                    <span class="organization-mobile-sector">${sectorBadgeMarkup(organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId))}</span>
-                    <span class="organization-mobile-state">${escapeHtml(organization.state || "-")}</span>
+                    <span class="organization-mobile-state">${escapeHtml(stakeholderOrganizationLocation(organization) || organization.state || "-")}</span>
                     <button class="organization-contact-link organization-mobile-count" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Person" : "Personen"}</button>
                   </div>
                 </article>
@@ -25539,23 +26022,26 @@
         if (key === "role") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.role || "-")}</div>`;
         if (key === "committee") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.committee || "-")}</div>`;
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderPersonLocation(person) || "-")}</div>`;
+        if (key === "map") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.isRepresentativeAssemblyMember ? mapPositionSourceLabel(stakeholderPersonMapPosition(person)?.source || person.mapPositionSource) : "-")}</div>`;
         if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.source || "-")}</div>`;
         return "";
       }
 
-      function renderStakeholderPeopleTableHead(columns = stakeholderPeopleTableColumns) {
+      function renderStakeholderPeopleTableHead(columns = visibleStakeholderPeopleTableColumns()) {
         if (!stakeholderPeopleTableHead) return;
         stakeholderPeopleTableHead.innerHTML = columns
-          .map((column) => `<div class="cell--${column.key}">${escapeHtml(column.label)}</div>`)
+          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "stakeholder-people")}</div>`)
           .join("");
+        bindHeaderFilterMenus(stakeholderPeopleTableHead);
       }
 
       function renderStakeholderPeopleTable(items = filteredStakeholderPeople()) {
         if (!stakeholderPeopleList || !stakeholderPagination || !stakeholderPaginationMeta) return;
         activeStakeholderMode = "people";
         renderStakeholderTablesVisibility();
-        const columns = stakeholderPeopleTableColumns;
+        const columns = visibleStakeholderPeopleTableColumns();
         updateStakeholderPeopleTableGrid(columns);
+        renderColumnMenu();
         if (!items.length) {
           renderStakeholderPeopleTableHead(columns);
           stakeholderPeopleList.innerHTML = `<div class="empty">Noch keine Personen für diesen Stakeholder-Typ importiert.</div>`;
@@ -25732,7 +26218,6 @@
                     <h3>${escapeHtml(organization.name)}</h3>
                     <div class="detail-profile-role">${escapeHtml(organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId))}</div>
                     <div class="detail-profile-subline">${escapeHtml([locationText, organization.state].filter(Boolean).join(" · ") || "Standort nicht dokumentiert")}</div>
-                    <div class="detail-profile-status">${sectorBadgeMarkup(stakeholderTypeLabel(organization.stakeholderTypeId))}</div>
                   </div>
                 </div>
               </section>
@@ -25792,7 +26277,7 @@
 
               <section ${detailPanelAttrs("notes", activeTab)} id="stakeholder-organization-notes">
                 <h4 class="detail-section-title">Notizen</h4>
-                <div class="detail-note-block ${organization.notes ? "" : "detail-note-block--empty"}">${escapeHtml(organization.notes || "Noch keine Notiz hinterlegt.")}</div>
+                ${renderStakeholderNotesThread(organization, "organization")}
               </section>
             </div>
           </div>
@@ -25815,6 +26300,7 @@
             openStakeholderOrganizationDetail(organization.id, currentItems);
           });
         });
+        bindStakeholderNotesThread("organization", organization);
       }
 
       function mapPositionSourceLabel(source = "") {
@@ -25910,7 +26396,7 @@
 
               <section ${detailPanelAttrs("notes", activeTab)} id="stakeholder-person-notes">
                 <h4 class="detail-section-title">Notizen</h4>
-                <div class="detail-note-block ${person.note ? "" : "detail-note-block--empty"}">${escapeHtml(person.note || "Noch keine Notiz hinterlegt.")}</div>
+                ${renderStakeholderNotesThread(person, "person")}
               </section>
             </div>
           </div>
@@ -25931,6 +26417,7 @@
             openStakeholderPersonDetail(person.id, currentItems);
           });
         });
+        bindStakeholderNotesThread("person", person);
       }
 
       function renderExpertMatchingTableHead(tableHead = expertMatchingTableHead, direction = activeExpertMatchDirection) {
@@ -28115,6 +28602,296 @@
         });
       }
 
+      function seenFeatureVersions() {
+        const values = userSettings?.preferences?.seenFeatureVersions;
+        return Array.isArray(values) ? values.map(String) : [];
+      }
+
+      function productNotifications() {
+        const seen = new Set(seenFeatureVersions());
+        return appVersionHistory.map((release, index) => {
+          const id = `product-feature-${release.version}`;
+          const readAt = seen.has(String(release.version)) ? userSettings?.updatedAt || new Date(0).toISOString() : "";
+          return {
+            id,
+            eventId: id,
+            eventType: "feature_release",
+            entityType: "product",
+            entityId: release.version,
+            context: "product",
+            title: release.title || `Version ${release.version}`,
+            body: release.summary || "",
+            route: "#profile-about",
+            payload: { version: release.version, items: release.items || [] },
+            occurredAt: new Date(Date.now() - index * 1000).toISOString(),
+            createdAt: "",
+            readAt,
+            unread: !readAt
+          };
+        });
+      }
+
+      function notificationFilterOptions(offset = notificationsNextOffset) {
+        const unreadOnly = activeNotificationFilter === "unread";
+        const context = ["all", "unread"].includes(activeNotificationFilter) ? "all" : activeNotificationFilter;
+        return { unreadOnly, context, limit: notificationsPageSize, offset };
+      }
+
+      function notificationRequestKey() {
+        return JSON.stringify({
+          filter: activeNotificationFilter,
+          seen: seenFeatureVersions()
+        });
+      }
+
+      function combinedNotificationItems(remoteItems = []) {
+        const products = productNotifications();
+        const productMatches = products.filter((item) => {
+          if (activeNotificationFilter === "unread") return item.unread;
+          if (activeNotificationFilter === "product") return true;
+          if (activeNotificationFilter === "all") return true;
+          return false;
+        });
+        const allItems = activeNotificationFilter === "product"
+          ? productMatches
+          : [...remoteItems, ...productMatches];
+        return allItems
+          .filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index)
+          .sort((left, right) => {
+            const time = new Date(right.occurredAt || right.createdAt || 0).getTime() - new Date(left.occurredAt || left.createdAt || 0).getTime();
+            return time || String(right.id).localeCompare(String(left.id));
+          });
+      }
+
+      function renderNotificationCounts(summary = notificationSummary) {
+        const productUnread = productNotifications().filter((item) => item.unread).length;
+        const byContext = { ...(summary?.byContext || {}) };
+        if (productUnread) byContext.product = productUnread;
+        const unreadTotal = Number(summary?.unreadTotal || 0) + productUnread;
+        const values = {
+          total: unreadTotal,
+          contacts: byContext.contacts || 0,
+          organizations: byContext.organizations || 0,
+          formats: byContext.formats || 0,
+          team: byContext.team || 0
+        };
+        Object.entries(notificationCountNodes).forEach(([key, node]) => {
+          if (!node) return;
+          const value = values[key] || 0;
+          node.textContent = value > 99 ? "99+" : String(value);
+          node.hidden = value <= 0;
+          node.setAttribute("aria-label", value ? `${value} ungelesene Hinweise` : "Keine ungelesenen Hinweise");
+        });
+      }
+
+      async function refreshNotificationSummary() {
+        try {
+          notificationSummary = window.dataService?.getNotificationSummary
+            ? await window.dataService.getNotificationSummary()
+            : { unreadTotal: 0, byContext: {} };
+        } catch (error) {
+          console.warn("Hinweis-Zusammenfassung konnte nicht geladen werden.", error);
+          notificationSummary = { unreadTotal: 0, byContext: {} };
+        }
+        renderNotificationCounts(notificationSummary);
+      }
+
+      function renderNotificationsLoading() {
+        if (notificationsList) notificationsList.innerHTML = `<div class="notifications-loading">Hinweise werden geladen...</div>`;
+        if (notificationsMeta) notificationsMeta.textContent = "Hinweise werden geladen";
+        if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = true;
+      }
+
+      function renderNotificationsError() {
+        if (notificationsList) notificationsList.innerHTML = `<div class="notifications-error">Die Hinweise konnten nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
+        if (notificationsMeta) notificationsMeta.textContent = "Laden fehlgeschlagen";
+        if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = true;
+      }
+
+      async function loadNotifications({ reset = false } = {}) {
+        if (notificationsLoading) return;
+        const key = notificationRequestKey();
+        const offset = reset ? 0 : notificationsNextOffset;
+        notificationsLoading = true;
+        if (reset) {
+          notifications = [];
+          notificationsLoaded = false;
+          notificationsHasMore = false;
+          notificationsNextOffset = 0;
+          renderNotificationsLoading();
+        }
+        try {
+          const remotePayload = activeNotificationFilter === "product" || !window.dataService?.loadNotifications
+            ? { items: [], nextOffset: 0, hasMore: false }
+            : await window.dataService.loadNotifications(notificationFilterOptions(offset));
+          if (key !== notificationRequestKey()) return;
+          const remoteItems = Array.isArray(remotePayload?.items) ? remotePayload.items : [];
+          const nextRemoteItems = reset ? remoteItems : [...notifications.filter((item) => item.context !== "product"), ...remoteItems];
+          notifications = combinedNotificationItems(nextRemoteItems);
+          notificationsHasMore = Boolean(remotePayload?.hasMore);
+          notificationsNextOffset = Number(remotePayload?.nextOffset) || notifications.length;
+          notificationsLoaded = true;
+          notificationsLoading = false;
+          renderNotificationsView();
+          await refreshNotificationSummary();
+        } catch (error) {
+          console.error("Hinweise konnten nicht geladen werden.", error);
+          if (key === notificationRequestKey()) {
+            notificationsLoaded = true;
+            notificationsLoading = false;
+            renderNotificationsError();
+          }
+        } finally {
+          notificationsLoading = false;
+        }
+      }
+
+      function notificationIconMarkup(context = "") {
+        if (context === "contacts") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M20 8v6"></path><path d="M23 11h-6"></path></svg>`;
+        if (context === "organizations") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 21h18"></path><path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path><path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path></svg>`;
+        if (context === "formats") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M3 10h18"></path></svg>`;
+        if (context === "team") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>`;
+        return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3v6"></path><path d="M12 15v6"></path><path d="M4.2 7.2l4.2 4.2"></path><path d="m15.6 12.6 4.2 4.2"></path><path d="M3 12h6"></path><path d="M15 12h6"></path></svg>`;
+      }
+
+      function notificationItemMarkup(notification) {
+        const meta = [
+          notification.context === "product" ? "Produkt" : notification.actor?.displayName || "",
+          formatDateTimeLabel(notification.occurredAt || notification.createdAt)
+        ].filter(Boolean).join(" · ");
+        return `
+          <article class="notification-item ${notification.unread ? "is-unread" : ""}" data-notification-id="${escapeHtml(notification.id)}">
+            <span class="notification-item__icon" aria-hidden="true">${notificationIconMarkup(notification.context)}</span>
+            <div class="notification-item__body">
+              <div class="notification-item__title">${escapeHtml(notification.title || "Hinweis")}</div>
+              ${notification.body ? `<div class="notification-item__text">${escapeHtml(notification.body)}</div>` : ""}
+              <div class="notification-item__meta">${escapeHtml(meta || "Zeitpunkt offen")}</div>
+            </div>
+            <div class="notification-item__actions">
+              ${notification.unread ? `<span class="notification-unread-dot" aria-label="Ungelesen"></span>` : ""}
+              <button class="action-button action-button--compact" type="button" data-open-notification="${escapeHtml(notification.id)}">Öffnen</button>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderNotificationsView() {
+        if (activeView !== "notifications" || !notificationsList) return;
+        notificationFilterButtons.forEach((button) => {
+          const active = button.dataset.notificationFilter === activeNotificationFilter;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        if (!notificationsLoaded || notificationRequestKey() !== notificationsRequestKey) {
+          notificationsRequestKey = notificationRequestKey();
+          loadNotifications({ reset: true });
+          return;
+        }
+        if (!notifications.length) {
+          notificationsList.innerHTML = `<div class="notifications-empty">Keine Hinweise für diese Auswahl.</div>`;
+        } else {
+          notificationsList.innerHTML = notifications.map(notificationItemMarkup).join("");
+        }
+        if (notificationsMeta) {
+          const unread = notifications.filter((item) => item.unread).length;
+          notificationsMeta.textContent = `${notifications.length} ${notifications.length === 1 ? "Hinweis" : "Hinweise"}${unread ? ` · ${unread} ungelesen` : ""}`;
+        }
+        if (notificationsMarkAllRead) notificationsMarkAllRead.disabled = !notifications.some((item) => item.unread);
+        if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = !notificationsHasMore;
+        if (notificationsLoadMoreButton) notificationsLoadMoreButton.disabled = notificationsLoading;
+        notificationsList.querySelectorAll("[data-open-notification]").forEach((button) => {
+          button.addEventListener("click", () => openNotification(button.dataset.openNotification));
+        });
+        notificationsList.querySelectorAll(".notification-item").forEach((item) => {
+          item.addEventListener("click", (event) => {
+            if (event.target.closest("button, a")) return;
+            openNotification(item.dataset.notificationId);
+          });
+        });
+      }
+
+      async function markProductNotificationRead(notification) {
+        if (notification.context !== "product") return;
+        const version = notification.payload?.version || notification.entityId || "";
+        if (!version) return;
+        const preferences = {
+          ...(userSettings?.preferences || {}),
+          seenFeatureVersions: [...new Set([...seenFeatureVersions(), String(version)])]
+        };
+        await persistUserSettingPatch({ preferences });
+      }
+
+      async function markNotificationRead(notification) {
+        if (!notification?.unread) return;
+        if (notification.context === "product") {
+          await markProductNotificationRead(notification);
+        } else if (window.dataService?.markNotificationRead) {
+          await window.dataService.markNotificationRead(notification.id);
+        }
+        notifications = notifications.map((item) =>
+          item.id === notification.id ? { ...item, readAt: item.readAt || new Date().toISOString(), unread: false } : item
+        );
+        await refreshNotificationSummary();
+      }
+
+      async function markVisibleNotificationsRead() {
+        const unread = notifications.filter((item) => item.unread);
+        if (!unread.length) return;
+        const productVersions = unread
+          .filter((item) => item.context === "product")
+          .map((item) => item.payload?.version || item.entityId)
+          .filter(Boolean);
+        const remoteIds = unread.filter((item) => item.context !== "product").map((item) => item.id);
+        if (productVersions.length) {
+          const preferences = {
+            ...(userSettings?.preferences || {}),
+            seenFeatureVersions: [...new Set([...seenFeatureVersions(), ...productVersions.map(String)])]
+          };
+          await persistUserSettingPatch({ preferences });
+        }
+        if (remoteIds.length && window.dataService?.markNotificationsRead) await window.dataService.markNotificationsRead(remoteIds);
+        notifications = notifications.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString(), unread: false }));
+        await refreshNotificationSummary();
+        if (activeNotificationFilter === "unread") {
+          notificationsLoaded = false;
+          notificationsRequestKey = "";
+        }
+        renderNotificationsView();
+      }
+
+      async function openNotification(id = "") {
+        const notification = notifications.find((item) => item.id === id);
+        if (!notification) return;
+        await markNotificationRead(notification);
+        if (notification.context === "product") {
+          openProfileTab("about");
+          return;
+        }
+        if (notification.entityType === "contact" && notification.entityId) {
+          setActiveView("contacts");
+          updateRouteHash("contacts");
+          updateView();
+          openDetail(notification.entityId, contacts);
+          return;
+        }
+        if (notification.entityType === "organization" && notification.entityId) {
+          setActiveView("organizations");
+          updateRouteHash("organizations");
+          updateView();
+          openOrganizationDetail(notification.entityId, organizations);
+          return;
+        }
+        if ((notification.entityType === "format" || notification.entityType === "format_participant") && notification.entityId) {
+          activeFormatId = notification.entityId;
+          formatDetailExpanded = true;
+          setActiveView("formats");
+          updateRouteHash("formats");
+          updateView();
+          return;
+        }
+        renderNotificationsView();
+      }
+
       function activeContactsTotal() {
         return contacts.filter((contact) => contact.status !== "archived").length;
       }
@@ -28707,6 +29484,16 @@
         return expertOrganizationTableColumns.filter((column) => column.required || visible.has(column.key));
       }
 
+      function visibleStakeholderOrganizationTableColumns() {
+        const visible = new Set(visibleStakeholderOrganizationColumns);
+        return stakeholderOrganizationTableColumns.filter((column) => column.required || visible.has(column.key));
+      }
+
+      function visibleStakeholderPeopleTableColumns() {
+        const visible = new Set(visibleStakeholderPeopleColumns);
+        return stakeholderPeopleTableColumns.filter((column) => column.required || visible.has(column.key));
+      }
+
       function updateContactTableGrid(columns = visibleTableColumns()) {
         const template = ["42px", ...columns.map((column) => column.template)].join(" ");
         contactsTable?.style.setProperty("--contacts-grid-template", template);
@@ -28727,12 +29514,12 @@
         expertOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
       }
 
-      function updateStakeholderOrganizationTableGrid(columns = stakeholderOrganizationTableColumns) {
+      function updateStakeholderOrganizationTableGrid(columns = visibleStakeholderOrganizationTableColumns()) {
         const template = columns.map((column) => column.template).join(" ");
         stakeholderOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
       }
 
-      function updateStakeholderPeopleTableGrid(columns = stakeholderPeopleTableColumns) {
+      function updateStakeholderPeopleTableGrid(columns = visibleStakeholderPeopleTableColumns()) {
         const template = columns.map((column) => column.template).join(" ");
         stakeholderPeopleTable?.style.setProperty("--contacts-grid-template", template);
       }
@@ -29710,6 +30497,129 @@
         `;
       }
 
+      function stakeholderNoteKey(entityType = "", noteId = "") {
+        return `${entityType}:${noteId}`;
+      }
+
+      function stakeholderNoteRawValue(entity = {}, entityType = "organization") {
+        return entityType === "person" ? entity.note : entity.notes;
+      }
+
+      function parseStakeholderNotesThread(rawNotes = "", entity = {}) {
+        const raw = String(rawNotes || "").trim();
+        if (!raw) return [];
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed?.kind === "stakeholder-notes-thread-v1" && Array.isArray(parsed.messages)) {
+            return parsed.messages
+              .map((message) => {
+                const authorName = String(message.authorName || "Unbekannter Nutzer");
+                return {
+                  id: String(message.id || window.crypto?.randomUUID?.() || Date.now()),
+                  text: String(message.text || "").trim(),
+                  authorId: String(message.authorId || ""),
+                  authorName,
+                  authorRole: String(message.authorRole || ""),
+                  createdAt: String(message.createdAt || ""),
+                  editedAt: String(message.editedAt || ""),
+                  readonly: Boolean(message.readonly) || (!message.authorId && authorName === "Bisherige Notiz")
+                };
+              })
+              .filter((message) => message.text);
+          }
+        } catch (error) {
+          // Legacy freetext notes are rendered as the first readonly chat entry.
+        }
+        return raw
+          ? [{
+              id: `legacy-${entity.id || "stakeholder"}`,
+              text: raw,
+              authorId: "",
+              authorName: "Bisherige Notiz",
+              authorRole: "",
+              createdAt: entity.updatedAt || entity.createdAt || "",
+              editedAt: "",
+              readonly: true
+            }]
+          : [];
+      }
+
+      function serializeStakeholderNotesThread(messages = []) {
+        return JSON.stringify({
+          kind: "stakeholder-notes-thread-v1",
+          messages: messages.map((message) => ({
+            id: message.id,
+            text: message.text,
+            authorId: message.authorId,
+            authorName: message.authorName,
+            authorRole: message.authorRole,
+            createdAt: message.createdAt,
+            editedAt: message.editedAt || ""
+          }))
+        });
+      }
+
+      function ownsStakeholderNote(message = {}) {
+        return !message.readonly && ownsFormatNote(message);
+      }
+
+      function renderStakeholderNotesThread(entity, entityType = "organization") {
+        const messages = parseStakeholderNotesThread(stakeholderNoteRawValue(entity, entityType), entity);
+        const composerId = `stakeholder-${entityType}-notes-composer`;
+        const textareaId = `stakeholder-${entityType}-notes-message`;
+        return `
+          <div class="format-notes-thread stakeholder-notes-thread" data-stakeholder-notes="${escapeHtml(entityType)}">
+            <div class="format-chat-list" aria-live="polite">
+              ${messages.length ? messages.map((message) => {
+                const canManageMessage = canAdministerData() && ownsStakeholderNote(message);
+                const editingKey = stakeholderNoteKey(entityType, message.id);
+                const isEditing = canManageMessage && stakeholderEditingNoteKey === editingKey;
+                return `
+                <article class="format-chat-message" data-stakeholder-note="${escapeHtml(message.id)}">
+                  <span class="format-chat-avatar" aria-hidden="true">${renderFormatChatAvatar(message)}</span>
+                  <div class="format-chat-content">
+                    <div class="format-chat-meta">
+                      <strong>${escapeHtml(message.authorName)}</strong>
+                      ${message.authorRole ? `<span>${escapeHtml(roleLabel(message.authorRole))}</span>` : ""}
+                      <time datetime="${escapeHtml(message.createdAt)}">${escapeHtml(formatDateTimeLabel(message.createdAt) || "Zeitpunkt offen")}</time>
+                      ${message.editedAt ? `<span>bearbeitet</span>` : ""}
+                      ${canManageMessage ? `
+                        <span class="format-chat-message-actions">
+                          <button type="button" data-edit-stakeholder-note="${escapeHtml(message.id)}" data-stakeholder-note-entity="${escapeHtml(entityType)}">Bearbeiten</button>
+                          <button type="button" data-delete-stakeholder-note="${escapeHtml(message.id)}" data-stakeholder-note-entity="${escapeHtml(entityType)}">Löschen</button>
+                        </span>
+                      ` : ""}
+                    </div>
+                    ${isEditing ? `
+                      <form class="format-chat-edit-form" data-stakeholder-note-edit-form="${escapeHtml(message.id)}" data-stakeholder-note-entity="${escapeHtml(entityType)}">
+                        <textarea name="message" aria-label="Stakeholder-Notiz bearbeiten">${escapeHtml(message.text)}</textarea>
+                        <div class="format-chat-edit-actions">
+                          <button class="action-button" type="button" data-cancel-stakeholder-note-edit="${escapeHtml(message.id)}" data-stakeholder-note-entity="${escapeHtml(entityType)}">Abbrechen</button>
+                          <button class="action-button action-button--primary" type="submit">Speichern</button>
+                        </div>
+                      </form>
+                    ` : `<p class="format-chat-text">${escapeHtml(message.text)}</p>`}
+                  </div>
+                </article>
+              `;
+              }).join("") : `<div class="empty">Noch keine Notiz im Verlauf.</div>`}
+            </div>
+            ${canAdministerData() ? `
+              <form class="format-chat-composer" id="${composerId}" data-stakeholder-note-composer="${escapeHtml(entityType)}">
+                <textarea id="${textareaId}" name="message" placeholder="Neue Notiz schreiben..." aria-label="Neue Stakeholder-Notiz"></textarea>
+                <div class="format-chat-composer-footer">
+                  <span class="format-chat-composer-author">
+                    <span class="format-chat-avatar" aria-hidden="true">${renderCurrentFormatAuthorAvatar()}</span>
+                    <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(formatNotesAuthorLabel())}</strong></span>
+                  </span>
+                  <button class="action-button action-button--primary" type="submit">Notiz senden</button>
+                </div>
+              </form>
+            ` : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Schreiben von Notizen"))}</div>`}
+          </div>
+        `;
+      }
+
       function renderFormatNotesTab(format) {
         return `
           <div class="format-tab-panel" role="tabpanel">
@@ -30633,6 +31543,7 @@
         };
         if (context === "expert-organizations") return expertOrganizationConfigs[columnKey] || null;
         if (context === "experts") return expertContactConfigs[columnKey] || null;
+        if (context === "stakeholder-organizations" || context === "stakeholder-people") return null;
         return (context === "organizations" ? organizationConfigs : contactConfigs)[columnKey] || null;
       }
 
@@ -30881,10 +31792,22 @@
       function renderColumnMenu() {
         if (!columnOptions) return;
         const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
-        const columns = activeView === "experts"
+        const isStakeholderOrganizationsMode = activeView === "stakeholders" && activeStakeholderMode === "organizations";
+        const isStakeholderPeopleMode = activeView === "stakeholders" && activeStakeholderMode === "people";
+        const columns = isStakeholderOrganizationsMode
+          ? stakeholderOrganizationTableColumns
+          : isStakeholderPeopleMode
+            ? stakeholderPeopleTableColumns
+            : activeView === "experts"
           ? activeExpertMode === "organizations" ? expertOrganizationTableColumns : expertContactTableColumns
           : isOrganizationsView ? organizationTableColumns : contactTableColumns;
-        const visible = new Set(isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns);
+        const visible = new Set(
+          isStakeholderOrganizationsMode
+            ? visibleStakeholderOrganizationColumns
+            : isStakeholderPeopleMode
+              ? visibleStakeholderPeopleColumns
+              : isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns
+        );
         columnOptions.innerHTML = columns
           .map(
             (column) => `
@@ -32095,6 +33018,136 @@
           };
           contactEditingNoteId = null;
           await saveContactNotesThread(contact, [...messages, nextMessage], "Notiz gespeichert");
+        });
+      }
+
+      async function saveStakeholderNotesThread(entityType, entity, messages, storageMessage = "Notiz gespeichert") {
+        if (!canAdministerData()) {
+          showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
+          return;
+        }
+        if (!window.dataService?.upsertStakeholderImport) {
+          window.alert("Stakeholder-Notizen können erst gespeichert werden, wenn der Stakeholder-Datendienst verfügbar ist.");
+          return;
+        }
+        const serializedNotes = serializeStakeholderNotesThread(messages);
+        const now = new Date().toISOString();
+        const nextOrganizations = entityType === "organization"
+          ? stakeholderOrganizations.map((organization) => organization.id === entity.id ? { ...organization, notes: serializedNotes, updatedAt: now } : organization)
+          : stakeholderOrganizations;
+        const nextPeople = entityType === "person"
+          ? stakeholderPeople.map((person) => person.id === entity.id ? { ...person, note: serializedNotes, updatedAt: now } : person)
+          : stakeholderPeople;
+        try {
+          const imported = await window.dataService.upsertStakeholderImport({
+            types: stakeholderTypes,
+            organizations: nextOrganizations,
+            people: nextPeople
+          });
+          stakeholderTypes = (imported.types || stakeholderTypes).map((entry, index) => sanitizeStakeholderType(entry, index));
+          stakeholderOrganizations = (imported.organizations || nextOrganizations).map((entry, index) => sanitizeStakeholderOrganization(entry, index));
+          stakeholderPeople = (imported.people || nextPeople).map((entry, index) => sanitizeStakeholderPerson(entry, index));
+          stakeholderEditingNoteKey = "";
+          setStorageStatus(storageMessage);
+          updateView();
+          if (entityType === "organization") openStakeholderOrganizationDetail(entity.id, stakeholderOrganizations);
+          else openStakeholderPersonDetail(entity.id, stakeholderPeople);
+        } catch (error) {
+          console.error("Stakeholder-Notiz konnte nicht gespeichert werden.", error);
+          window.alert("Die Stakeholder-Notiz konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+        }
+      }
+
+      function bindStakeholderNotesThread(entityType, entity) {
+        detailPanel.querySelectorAll("[data-edit-stakeholder-note]").forEach((button) => {
+          button.addEventListener("click", () => {
+            stakeholderEditingNoteKey = stakeholderNoteKey(button.dataset.stakeholderNoteEntity || entityType, button.dataset.editStakeholderNote || "");
+            if (entityType === "organization") openStakeholderOrganizationDetail(entity.id, stakeholderOrganizations);
+            else openStakeholderPersonDetail(entity.id, stakeholderPeople);
+          });
+        });
+        detailPanel.querySelectorAll("[data-cancel-stakeholder-note-edit]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const key = stakeholderNoteKey(button.dataset.stakeholderNoteEntity || entityType, button.dataset.cancelStakeholderNoteEdit || "");
+            if (stakeholderEditingNoteKey === key) stakeholderEditingNoteKey = "";
+            if (entityType === "organization") openStakeholderOrganizationDetail(entity.id, stakeholderOrganizations);
+            else openStakeholderPersonDetail(entity.id, stakeholderPeople);
+          });
+        });
+        detailPanel.querySelectorAll("[data-stakeholder-note-edit-form]").forEach((form) => {
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!canAdministerData()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Notizen"));
+              return;
+            }
+            const noteId = form.dataset.stakeholderNoteEditForm;
+            const textarea = form.querySelector("textarea[name='message']");
+            const text = String(textarea?.value || "").trim();
+            if (!text) {
+              textarea?.focus();
+              return;
+            }
+            const messages = parseStakeholderNotesThread(stakeholderNoteRawValue(entity, entityType), entity);
+            const note = messages.find((message) => message.id === noteId);
+            if (!note || !ownsStakeholderNote(note)) {
+              showPermissionDenied("Du kannst nur eigene Notizen bearbeiten.");
+              return;
+            }
+            await saveStakeholderNotesThread(
+              entityType,
+              entity,
+              messages.map((message) => (
+                message.id === noteId ? { ...message, text, editedAt: new Date().toISOString() } : message
+              )),
+              "Notiz aktualisiert"
+            );
+          });
+        });
+        detailPanel.querySelectorAll("[data-delete-stakeholder-note]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            if (!canAdministerData()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Löschen von Notizen"));
+              return;
+            }
+            const noteId = button.dataset.deleteStakeholderNote;
+            const messages = parseStakeholderNotesThread(stakeholderNoteRawValue(entity, entityType), entity);
+            const note = messages.find((message) => message.id === noteId);
+            if (!note || !ownsStakeholderNote(note)) {
+              showPermissionDenied("Du kannst nur eigene Notizen löschen.");
+              return;
+            }
+            if (!window.confirm("Diese Notiz löschen?")) return;
+            await saveStakeholderNotesThread(
+              entityType,
+              entity,
+              messages.filter((message) => message.id !== noteId),
+              "Notiz gelöscht"
+            );
+          });
+        });
+        detailPanel.querySelector("[data-stakeholder-note-composer]")?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!canAdministerData()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
+            return;
+          }
+          const textarea = event.currentTarget.querySelector("textarea[name='message']");
+          const text = String(textarea?.value || "").trim();
+          if (!text) {
+            textarea?.focus();
+            return;
+          }
+          const messages = parseStakeholderNotesThread(stakeholderNoteRawValue(entity, entityType), entity);
+          const nextMessage = {
+            id: window.crypto?.randomUUID?.() || `stakeholder-note-${Date.now()}`,
+            text,
+            authorId: currentProfile?.id || "",
+            authorName: formatNotesAuthorLabel(),
+            authorRole: currentProfile?.role || "",
+            createdAt: new Date().toISOString()
+          };
+          await saveStakeholderNotesThread(entityType, entity, [...messages, nextMessage], "Notiz gespeichert");
         });
       }
 
@@ -33917,6 +34970,7 @@
         viewTabs.forEach((tab) => {
           tab.classList.toggle("is-active", tab.dataset.viewTab === view);
         });
+        sidebarNotificationsButton?.classList.toggle("is-active", view === "notifications");
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "profile" && activeProfileTab === "settings");
         sidebarImportButton?.classList.toggle("is-active", view === "settings");
@@ -33936,6 +34990,7 @@
         if (view === "experts") renderExpertTablesVisibility();
         if (view === "stakeholders") renderStakeholderTablesVisibility();
         if (view === "formats") renderFormatsView();
+        if (view === "notifications") renderNotificationsView();
         if (view === "settings") setSettingsTab(activeSettingsTab);
         if (view === "map") {
           syncMapFrame(mapContacts());
@@ -34910,6 +35965,7 @@
         detailActiveTab = "overview";
         organizationDetailActiveTab = "overview";
         contactEditingNoteId = null;
+        stakeholderEditingNoteKey = "";
         activeRegistrationId = null;
         activeExpertId = null;
         activeExpertOrganizationId = null;
@@ -35259,6 +36315,7 @@
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
         const isActivitiesView = activeView === "activities";
+        const isNotificationsView = activeView === "notifications";
         const isExpertsView = activeView === "experts";
         const isStakeholdersView = activeView === "stakeholders";
         if (!canAdministerData()) {
@@ -35280,6 +36337,8 @@
           ? filteredFormats()
           : isActivitiesView
             ? activities
+          : isNotificationsView
+            ? notifications
           : isOrganizationsView
             ? isOrganizationsDuplicatesMode ? filteredExpertMatchCandidates("organization") : filteredOrganizations()
             : isStakeholdersView
@@ -35306,12 +36365,14 @@
             ? "Formate suchen..."
           : isActivitiesView
             ? "Aktivitäten nach Kontakt, Organisation, Nutzer oder Feld suchen"
+          : isNotificationsView
+            ? "Hinweise filtern"
           : activeView === "map"
             ? "Kontakte suchen"
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
         searchInput.placeholder = searchPlaceholder;
         searchShell?.setAttribute("aria-label", searchPlaceholder);
-        const searchHidden = activeView === "analytics" || activeView === "quality";
+        const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView;
         if (searchShell) {
           if (isExpertsView && !searchHidden && expertHeaderSearch) {
             expertHeaderSearch.hidden = false;
@@ -35348,17 +36409,17 @@
         if (contactDuplicatesWorkspace) contactDuplicatesWorkspace.hidden = !isContactsDuplicatesMode;
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
-        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isAnyDuplicateMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isStakeholdersView || isActivitiesView || isCareDuplicatesMode;
+        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || (isStakeholdersView && !isStakeholderMapMode)) || isAnyDuplicateMode;
+        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isStakeholdersView || isActivitiesView || isAnyDuplicateMode;
-        if (isStakeholdersView || isActivitiesView || isAnyDuplicateMode) setFilterPanelOpen(false);
+        if (filterToolbar) filterToolbar.hidden = isFormatsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode;
+        if (isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isStakeholdersView) stakeholderCommandActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
-          else if (isFormatsView || isActivitiesView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isFormatsView || isActivitiesView || isNotificationsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
         }
         bulkToolbar.hidden = !isContactsView || isContactsDuplicatesMode || selectedContactIds.size === 0;
@@ -35384,11 +36445,13 @@
           renderTable(items);
         } else if (isActivitiesView) {
           renderActivitiesView();
+        } else if (isNotificationsView) {
+          renderNotificationsView();
         } else if (isFormatsView) {
           renderFormatsView();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isStakeholdersView && !isActivitiesView && !isAnyDuplicateMode) {
+        if (!isFormatsView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -35398,6 +36461,7 @@
         renderProfileOwnerSummary();
         renderTeamView();
         renderAboutApp();
+        renderNotificationCounts();
 
         if (!isOrganizationsView && !isFormatsView && !isExpertsView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
@@ -35441,6 +36505,20 @@
       });
       activitiesLoadMoreButton?.addEventListener("click", () => {
         loadActivities({ reset: false });
+      });
+      notificationFilterButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          activeNotificationFilter = button.dataset.notificationFilter || "unread";
+          notificationsLoaded = false;
+          notificationsRequestKey = "";
+          updateView();
+        });
+      });
+      notificationsLoadMoreButton?.addEventListener("click", () => {
+        loadNotifications({ reset: false });
+      });
+      notificationsMarkAllRead?.addEventListener("click", () => {
+        markVisibleNotificationsRead();
       });
       document.querySelectorAll("[data-format-status-filter]").forEach((button) => {
         button.addEventListener("click", () => {
@@ -35495,15 +36573,39 @@
         if (!toggle) return;
         const key = toggle.dataset.columnToggle;
         const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
-        const columns = activeView === "experts"
+        const isStakeholderOrganizationsMode = activeView === "stakeholders" && activeStakeholderMode === "organizations";
+        const isStakeholderPeopleMode = activeView === "stakeholders" && activeStakeholderMode === "people";
+        const columns = isStakeholderOrganizationsMode
+          ? stakeholderOrganizationTableColumns
+          : isStakeholderPeopleMode
+            ? stakeholderPeopleTableColumns
+            : activeView === "experts"
           ? activeExpertMode === "organizations" ? expertOrganizationTableColumns : expertContactTableColumns
           : isOrganizationsView ? organizationTableColumns : contactTableColumns;
         const column = columns.find((item) => item.key === key);
         if (!column || column.required) return;
-        const visible = new Set(isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns);
+        const visible = new Set(
+          isStakeholderOrganizationsMode
+            ? visibleStakeholderOrganizationColumns
+            : isStakeholderPeopleMode
+              ? visibleStakeholderPeopleColumns
+              : isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns
+        );
         if (toggle.checked) visible.add(key);
         else visible.delete(key);
-        if (isOrganizationsView) {
+        if (isStakeholderOrganizationsMode) {
+          visibleStakeholderOrganizationColumns = stakeholderOrganizationTableColumns
+            .filter((item) => item.required || visible.has(item.key))
+            .map((item) => item.key);
+          persistVisibleStakeholderOrganizationColumns();
+          renderStakeholderOrganizationsTable(filteredStakeholderOrganizations());
+        } else if (isStakeholderPeopleMode) {
+          visibleStakeholderPeopleColumns = stakeholderPeopleTableColumns
+            .filter((item) => item.required || visible.has(item.key))
+            .map((item) => item.key);
+          persistVisibleStakeholderPeopleColumns();
+          renderStakeholderPeopleTable(filteredStakeholderPeople());
+        } else if (isOrganizationsView) {
           visibleOrganizationColumns = organizationTableColumns
             .filter((item) => item.required || visible.has(item.key))
             .map((item) => item.key);
@@ -35595,6 +36697,13 @@
         closeMobileSidebar();
         setActiveView("team");
         updateRouteHash("team");
+        updateView();
+      });
+      sidebarNotificationsButton?.addEventListener("click", () => {
+        closeMenus();
+        closeMobileSidebar();
+        setActiveView("notifications");
+        updateRouteHash("notifications");
         updateView();
       });
       sidebarSettingsButton?.addEventListener("click", () => {
@@ -36574,6 +37683,7 @@
           await loadExpertData({ includeArchived: canAdministerData() });
           await loadStakeholderData({ includeArchived: canAdministerData() });
           await loadSavedViewsAndSettings();
+          await refreshNotificationSummary();
           if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "stakeholders", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
             initialTargetView = userSettings.defaultViewType;
           }

@@ -408,6 +408,22 @@ test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", asy
   await attachScreenshot(page, testInfo, "aktivitaeten");
 });
 
+test("Hinweise: persönliche Inbox rendert und markiert gelesene Einträge", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#notifications");
+
+  await expect(page.locator('[data-view-panel="notifications"]')).toBeVisible();
+  await expect(page.locator("#sidebar-notifications-button")).toHaveClass(/is-active/);
+  await expect(page.locator("#notification-count-total")).toBeVisible();
+  await expect(page.locator("#notifications-list .notification-item").first()).toBeVisible();
+  await expect(page.locator("#search")).toBeHidden();
+
+  await page.locator("#notifications-mark-all-read").click();
+  await expect(page.locator("#notifications-list .notifications-empty")).toBeVisible();
+  await expect(page.locator("#notification-count-total")).toBeHidden();
+
+  await attachScreenshot(page, testInfo, "hinweise");
+});
+
 test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts");
 
@@ -948,12 +964,26 @@ test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich
   await expect(page.locator('button[data-stakeholder-mode="organizations"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#stakeholders-pagination-meta")).toContainText("17 Organisationen");
   await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toBeVisible();
+  await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Typ");
+  await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Bundesland");
+  await expect(page.locator("#stakeholder-organization-list .organization-logo").first()).toBeVisible();
   await expect(page.locator("#stakeholder-header-search #search")).toBeVisible();
   await expect(page.locator("#expert-header-search #search")).toHaveCount(0);
+  if (testInfo.project.name.includes("desktop")) {
+    await expect(page.locator("#columns-button")).toBeVisible();
+    await page.locator("#columns-button").click();
+    await expect(page.locator("#column-options")).toContainText("Quelle");
+    await expect(page.locator("#column-options")).not.toContainText("Bundesland");
+    await page.locator("#columns-button").click();
+  }
 
   await page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first().click();
   await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   await expect(page.locator("#stakeholder-organization-overview")).toBeVisible();
+  await expect(page.locator("#detail-drawer .organization-profile-logo")).toBeVisible();
+  await page.locator('[data-detail-tab="notes"]').click();
+  await expect(page.locator("#stakeholder-organization-notes .stakeholder-notes-thread")).toBeVisible();
+  await expect(page.locator("#stakeholder-organization-notes [data-stakeholder-note-composer]")).toBeVisible();
   await page.locator('[data-detail-tab="people"]').click();
   await expect(page.locator("#stakeholder-organization-people")).toBeVisible();
   await expect(page.locator("#stakeholder-organization-people")).toContainText("VV Demo");

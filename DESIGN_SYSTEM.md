@@ -83,6 +83,7 @@ Der Versorgungs-Kompass ist eine operative CRM-App. Das Designsystem priorisiert
 
 - Badge = Status/Kategorie, nicht CTA.
 - Chip = interaktive Auswahl oder Tag.
+- Count-Indicator = ungelesene Anzahl oder technische Menge an einer Navigation/Aktion. Er ist keine Status- oder Kategorieauszeichnung und wird sparsam eingesetzt.
 - Filterchips duerfen entfernt werden; Tagchips nicht automatisch.
 - Keine Badge-Dopplung, wenn die gleiche Information schon im Tabellenfeld oder Profilheader steht.
 

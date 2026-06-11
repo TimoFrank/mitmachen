@@ -57,6 +57,14 @@
   ];
   const CHANGE_FIELDS = ["id", "contact_id", "action", "field_name", "old_value", "new_value", "changed_at", "changed_by"];
   const CONTACT_OWNER_FIELDS = ["contact_id", "profile_id", "assigned_at", "assigned_by"];
+  const NOTIFICATION_SELECT = [
+    "event_id",
+    "user_id",
+    "read_at",
+    "dismissed_at",
+    "created_at",
+    "notification_events(id,event_type,entity_type,entity_id,actor_id,title,body,occurred_at,route,payload,created_at)"
+  ].join(",");
   const SAVED_VIEW_FIELDS = [
     "id",
     "owner_id",
@@ -235,6 +243,7 @@
   const LOCAL_STAKEHOLDER_ORGANIZATIONS_KEY = "versorgungs-kompass-stakeholder-organizations-v1";
   const LOCAL_STAKEHOLDER_PEOPLE_KEY = "versorgungs-kompass-stakeholder-people-v1";
   const LOCAL_REGISTRATIONS_KEY = "versorgungs-kompass-backend-registrations-v1";
+  const LOCAL_NOTIFICATIONS_KEY = "versorgungs-kompass-notifications-v1";
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   let client = null;
   let profileCache = new Map();
@@ -249,12 +258,14 @@
   let stakeholderPeopleCache = [];
   let formatCache = [];
   let savedViewCache = [];
+  let notificationCache = [];
   let userSettingsCache = null;
   let supportsContactOrganizationId = true;
   let supportsContactImageSources = false;
   let supportsContactRole = true;
   let supportsContactOwners = true;
   let supportsFormats = true;
+  let supportsNotifications = true;
 
   function contactSelectFields() {
     return DB_FIELDS.filter((field) => {
@@ -797,6 +808,32 @@
     return clone(userSettingsCache);
   }
 
+  function readLocalNotifications() {
+    if (notificationCache.length) return clone(notificationCache);
+    try {
+      const stored = JSON.parse(window.localStorage?.getItem(LOCAL_NOTIFICATIONS_KEY) || "[]");
+      notificationCache = Array.isArray(stored) ? stored : [];
+    } catch (error) {
+      console.warn("Lokale Hinweise konnten nicht gelesen werden.", error);
+      notificationCache = [];
+    }
+    const seeded = Array.isArray(demoData().notifications) ? demoData().notifications : [];
+    if (seeded.length) {
+      const byId = new Map([...seeded, ...notificationCache].map((item) => [item.id || item.eventId, item]));
+      notificationCache = [...byId.values()];
+    }
+    return clone(notificationCache);
+  }
+
+  function persistLocalNotifications(items = notificationCache) {
+    notificationCache = clone(items);
+    try {
+      window.localStorage?.setItem(LOCAL_NOTIFICATIONS_KEY, JSON.stringify(notificationCache));
+    } catch (error) {
+      console.warn("Lokale Hinweise konnten nicht gespeichert werden.", error);
+    }
+  }
+
   function readLocalStoredFormats() {
     try {
       const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_FORMATS_KEY) || "[]");
@@ -971,6 +1008,273 @@
 
   function contactOwnersChanged(oldOwnerIds = [], nextOwnerIds = []) {
     return stringifyValue(normalizeOwnerIds(oldOwnerIds)) !== stringifyValue(normalizeOwnerIds(nextOwnerIds));
+  }
+
+  function activeProfileIds() {
+    return [...profileCache.values()]
+      .filter((profile) => profile?.active !== false)
+      .map((profile) => profile.id)
+      .filter(Boolean);
+  }
+
+  function adminProfileIds() {
+    return [...profileCache.values()]
+      .filter((profile) => profile?.active !== false && String(profile.role || "").toLowerCase() === "admin")
+      .map((profile) => profile.id)
+      .filter(Boolean);
+  }
+
+  function uniqueIds(values = []) {
+    return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
+  }
+
+  function idsExcept(values = [], excludedId = "") {
+    return uniqueIds(values).filter((id) => id !== excludedId);
+  }
+
+  function notificationContext(entityType = "", eventType = "") {
+    const entity = String(entityType || "").toLowerCase();
+    const event = String(eventType || "").toLowerCase();
+    if (entity === "contact") return "contacts";
+    if (entity === "organization") return "organizations";
+    if (entity === "format" || entity === "format_participant") return "formats";
+    if (entity === "profile" || event.includes("team") || event.includes("account")) return "team";
+    if (entity === "product" || event.includes("feature")) return "product";
+    return "all";
+  }
+
+  function notificationToUi(row = {}) {
+    const event = row.notification_events || row.event || row.eventData || row;
+    const eventId = event.id || row.event_id || row.eventId || row.id || "";
+    const eventType = event.event_type || event.eventType || row.eventType || "";
+    const entityType = event.entity_type || event.entityType || row.entityType || "";
+    const actorId = event.actor_id || event.actorId || row.actorId || "";
+    return {
+      id: eventId,
+      eventId,
+      eventType,
+      entityType,
+      entityId: event.entity_id || event.entityId || row.entityId || "",
+      context: row.context || notificationContext(entityType, eventType),
+      actorId,
+      actor: profileSummary(actorId),
+      title: event.title || row.title || "Hinweis",
+      body: event.body || row.body || "",
+      route: event.route || row.route || "",
+      payload: event.payload || row.payload || {},
+      occurredAt: event.occurred_at || event.occurredAt || row.occurredAt || row.created_at || row.createdAt || "",
+      createdAt: row.created_at || row.createdAt || event.created_at || event.createdAt || "",
+      readAt: row.read_at || row.readAt || "",
+      dismissedAt: row.dismissed_at || row.dismissedAt || "",
+      unread: !Boolean(row.read_at || row.readAt)
+    };
+  }
+
+  function notificationMatchesContext(notification, context = "") {
+    const normalized = String(context || "all").trim();
+    return !normalized || normalized === "all" || notification.context === normalized;
+  }
+
+  function sortNotifications(items = []) {
+    return [...items].sort((left, right) => {
+      const time = new Date(right.occurredAt || right.createdAt || 0).getTime() - new Date(left.occurredAt || left.createdAt || 0).getTime();
+      return time || String(right.id).localeCompare(String(left.id));
+    });
+  }
+
+  function localNotificationEvent(input = {}) {
+    const now = new Date().toISOString();
+    return notificationToUi({
+      id: input.id || `local-notification-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      eventType: input.eventType || input.event_type || "notice",
+      entityType: input.entityType || input.entity_type || "system",
+      entityId: input.entityId || input.entity_id || "",
+      actorId: input.actorId || input.actor_id || localProfile().id,
+      title: input.title || "Hinweis",
+      body: input.body || "",
+      route: input.route || "",
+      payload: input.payload || {},
+      occurredAt: input.occurredAt || now,
+      createdAt: now,
+      readAt: input.readAt || "",
+      dismissedAt: input.dismissedAt || ""
+    });
+  }
+
+  function addLocalNotification(input = {}, recipientIds = []) {
+    const currentId = localProfile().id;
+    if (recipientIds.length && !recipientIds.includes(currentId)) return null;
+    const notification = localNotificationEvent(input);
+    persistLocalNotifications([notification, ...readLocalNotifications().filter((item) => item.id !== notification.id)]);
+    return notification.id;
+  }
+
+  function isMissingNotificationsError(error) {
+    return /notification_events|notification_recipients|create_notification_event|schema cache|relation .* does not exist|function .* does not exist/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
+
+  async function createNotificationEvent(input = {}) {
+    const recipientIds = uniqueIds(input.recipientIds || input.recipient_ids || []);
+    if (!recipientIds.length) return null;
+    if (!profileCache.size) await loadProfiles();
+    if (isLocalMode() || isGcpMode()) {
+      return addLocalNotification(input, recipientIds);
+    }
+    if (!supportsNotifications) return null;
+    if (usesApiGateway()) return null;
+    try {
+      const userId = await getCurrentUserId();
+      const { data, error } = await getClient().rpc("create_notification_event", {
+        p_event_type: input.eventType || input.event_type || "notice",
+        p_entity_type: input.entityType || input.entity_type || "system",
+        p_entity_id: input.entityId || input.entity_id || "",
+        p_actor_id: userId,
+        p_title: input.title || "Hinweis",
+        p_body: input.body || "",
+        p_route: input.route || "",
+        p_payload: input.payload || {},
+        p_recipient_ids: recipientIds
+      });
+      if (error) throw error;
+      return data || null;
+    } catch (error) {
+      if (isMissingNotificationsError(error)) {
+        supportsNotifications = false;
+        return null;
+      }
+      console.warn("Hinweis konnte nicht erstellt werden.", error);
+      return null;
+    }
+  }
+
+  function contactRoute(contactId = "") {
+    return contactId ? `#contacts?contact=${encodeURIComponent(contactId)}` : "#contacts";
+  }
+
+  function organizationRoute(organizationId = "") {
+    return organizationId ? `#organizations?organization=${encodeURIComponent(organizationId)}` : "#organizations";
+  }
+
+  function formatRoute(formatId = "") {
+    return formatId ? `#formats?format=${encodeURIComponent(formatId)}` : "#formats";
+  }
+
+  function organizationContactOwnerIds(organization = {}) {
+    const organizationId = String(organization.id || organization.organizationId || "").trim();
+    const organizationName = normalizeOrganizationName(organization.name || organization.organization || "");
+    return uniqueIds(contactCache
+      .filter((contact) => {
+        if (organizationId && String(contact.organizationId || "") === organizationId) return true;
+        return organizationName && normalizeOrganizationName(contact.organization) === organizationName;
+      })
+      .flatMap(ownerIdsFromContact));
+  }
+
+  function formatParticipantOwnerIds(format = {}) {
+    const participantContactIds = new Set((format.participants || [])
+      .map((participant) => participant.contactId || participant.contact_id)
+      .filter(Boolean));
+    if (!participantContactIds.size) return [];
+    return uniqueIds(contactCache
+      .filter((contact) => participantContactIds.has(contact.id))
+      .flatMap(ownerIdsFromContact));
+  }
+
+  async function notifyContactCreated(contact = {}, actorId = "", options = {}) {
+    if (!profileCache.size) await loadProfiles();
+    const ownerIds = ownerIdsFromContact(contact);
+    const recipients = ownerIds.length ? ownerIds : idsExcept(adminProfileIds(), actorId);
+    const imported = options.action === "import";
+    await createNotificationEvent({
+      eventType: imported ? "contact_imported" : "contact_created",
+      entityType: "contact",
+      entityId: contact.id,
+      title: imported ? "Kontakt importiert" : "Neuer Kontakt",
+      body: `${contact.name || "Ein Kontakt"} wurde ${imported ? "importiert" : "angelegt"}.`,
+      route: contactRoute(contact.id),
+      payload: {
+        contactName: contact.name || "",
+        organization: contact.organization || "",
+        batchId: options.batchId || ""
+      },
+      recipientIds: recipients
+    });
+  }
+
+  async function notifyContactUpdated(contact = {}, actorId = "", details = {}) {
+    if (!profileCache.size) await loadProfiles();
+    const ownerChanged = details.hasOwnerPatch && contactOwnersChanged(details.oldOwnerIds || [], details.nextOwnerIds || []);
+    const action = details.action || "update";
+    const changedFields = details.changedFields || [];
+    if (!ownerChanged && !changedFields.length) return;
+    const recipients = ownerChanged
+      ? uniqueIds([...(details.oldOwnerIds || []), ...(details.nextOwnerIds || [])])
+      : (ownerIdsFromContact(contact).length ? idsExcept(ownerIdsFromContact(contact), actorId) : idsExcept(adminProfileIds(), actorId));
+    const archived = action === "archive";
+    await createNotificationEvent({
+      eventType: ownerChanged ? "contact_owner_changed" : archived ? "contact_archived" : "contact_updated",
+      entityType: "contact",
+      entityId: contact.id,
+      title: ownerChanged ? "Owner geändert" : archived ? "Kontakt archiviert" : "Kontakt aktualisiert",
+      body: ownerChanged
+        ? `Die Zuständigkeit für ${contact.name || "einen Kontakt"} wurde geändert.`
+        : `${contact.name || "Ein Kontakt"} wurde aktualisiert.`,
+      route: contactRoute(contact.id),
+      payload: {
+        contactName: contact.name || "",
+        organization: contact.organization || "",
+        changedFields,
+        oldOwnerIds: details.oldOwnerIds || [],
+        nextOwnerIds: details.nextOwnerIds || []
+      },
+      recipientIds: recipients
+    });
+  }
+
+  async function notifyOrganizationChanged(organization = {}, actorId = "", action = "update") {
+    if (!profileCache.size) await loadProfiles();
+    const ownerIds = organizationContactOwnerIds(organization);
+    const recipients = ownerIds.length ? idsExcept(ownerIds, actorId) : idsExcept(adminProfileIds(), actorId);
+    await createNotificationEvent({
+      eventType: action === "create" ? "organization_created" : "organization_updated",
+      entityType: "organization",
+      entityId: organization.id,
+      title: action === "create" ? "Neue Organisation" : "Organisation aktualisiert",
+      body: `${organization.name || "Eine Organisation"} wurde ${action === "create" ? "angelegt" : "aktualisiert"}.`,
+      route: organizationRoute(organization.id),
+      payload: {
+        organizationName: organization.name || "",
+        sector: organization.sector || ""
+      },
+      recipientIds: recipients
+    });
+  }
+
+  async function notifyFormatChanged(format = {}, actorId = "", action = "update", previous = null) {
+    if (!profileCache.size) await loadProfiles();
+    const previousOwnerId = previous?.ownerId || previous?.owner_id || "";
+    const nextOwnerId = format.ownerId || format.owner_id || "";
+    const ownerChanged = action !== "create" && previousOwnerId !== nextOwnerId;
+    const participantOwnerIds = formatParticipantOwnerIds(format);
+    const baseRecipients = uniqueIds([nextOwnerId, ...participantOwnerIds]);
+    const recipients = action === "create" || ownerChanged
+      ? uniqueIds([previousOwnerId, nextOwnerId, ...participantOwnerIds])
+      : idsExcept(baseRecipients, actorId);
+    await createNotificationEvent({
+      eventType: action === "create" ? "format_created" : ownerChanged ? "format_owner_changed" : action === "participant" ? "format_participant_changed" : "format_updated",
+      entityType: action === "participant" ? "format_participant" : "format",
+      entityId: format.id,
+      title: action === "create" ? "Neues Format" : ownerChanged ? "Format-Owner geändert" : action === "participant" ? "Format-Teilnehmer geändert" : "Format aktualisiert",
+      body: `${format.title || "Ein Format"} wurde ${action === "create" ? "angelegt" : "aktualisiert"}.`,
+      route: formatRoute(format.id),
+      payload: {
+        formatTitle: format.title || "",
+        status: format.status || "",
+        previousOwnerId,
+        nextOwnerId
+      },
+      recipientIds: recipients
+    });
   }
 
   function dbToUi(row, index = 0) {
@@ -2551,6 +2855,7 @@
         updatedAt: new Date().toISOString()
       };
       organizationCache = [created, ...organizationCache.filter((item) => item.id !== created.id)];
+      await notifyOrganizationChanged(created, localProfile().id, "create");
       return clone(created);
     }
     if (usesApiGateway()) {
@@ -2568,6 +2873,7 @@
     if (error) throw error;
     const created = organizationDbToUi(data);
     organizationCache = [created, ...organizationCache.filter((item) => item.id !== created.id)];
+    await notifyOrganizationChanged(created, userId, "create");
     return created;
   }
 
@@ -2585,6 +2891,7 @@
         updatedAt: new Date().toISOString()
       };
       organizationCache = organizationCache.map((item) => (item.id === id ? updated : item));
+      await notifyOrganizationChanged(updated, localProfile().id, "update");
       return clone(updated);
     }
     if (usesApiGateway()) {
@@ -2620,6 +2927,7 @@
     if (error) throw error;
     const updated = organizationDbToUi(data);
     organizationCache = organizationCache.map((item) => (item.id === id ? updated : item));
+    await notifyOrganizationChanged(updated, userId, "update");
     return updated;
   }
 
@@ -2790,6 +3098,7 @@
       };
       const decorated = decorateContactOwners(created);
       contactCache = [decorated, ...contactCache.filter((item) => item.id !== decorated.id)];
+      await notifyContactCreated(decorated, localProfile().id, options);
       return decorated;
     }
     if (usesApiGateway()) {
@@ -2832,6 +3141,7 @@
     await replaceStoredContactOwners(data.id, [], ownerIds, userId, { log: false });
     const created = decorateContactOwners(dbToUi(data), supportsContactOwners ? ownerIds : ownerIdsFromContact(data));
     contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
+    await notifyContactCreated(created, userId, options);
     return created;
   }
 
@@ -2841,6 +3151,10 @@
       if (!contactCache.length) contactCache = localContacts({ includeArchived: true });
       const existing = contactCache.find((contact) => contact.id === id);
       if (!existing) throw new Error("Kontakt wurde im Demo-Datensatz nicht gefunden.");
+      const oldOwnerIds = ownerIdsFromContact(existing);
+      const hasOwnerPatch = ["ownerIds", "owner_ids", "owners", "ownerId", "owner_id", "owner"].some((field) =>
+        Object.prototype.hasOwnProperty.call(patch, field)
+      );
       const updated = {
         ...existing,
         ...patch,
@@ -2850,6 +3164,13 @@
       };
       const decorated = decorateContactOwners(updated);
       contactCache = contactCache.map((contact) => (contact.id === id ? decorated : contact));
+      await notifyContactUpdated(decorated, localProfile().id, {
+        action: decorated.status === "archived" ? "archive" : "update",
+        changedFields: Object.keys(patch || {}),
+        hasOwnerPatch,
+        oldOwnerIds,
+        nextOwnerIds: ownerIdsFromContact(decorated)
+      });
       return clone(decorated);
     }
     if (usesApiGateway()) {
@@ -2931,6 +3252,13 @@
     if (hasOwnerPatch) await replaceStoredContactOwners(id, oldOwnerIds, nextOwnerIds, userId, { log: supportsContactOwners });
     const updated = decorateContactOwners(dbToUi(data), hasOwnerPatch ? nextOwnerIds : oldOwnerIds);
     contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
+    await notifyContactUpdated(updated, userId, {
+      action: dbPatch.status === "archived" ? "archive" : "update",
+      changedFields,
+      hasOwnerPatch,
+      oldOwnerIds,
+      nextOwnerIds
+    });
     return updated;
   }
 
@@ -3011,6 +3339,7 @@
       }, []);
       formatCache = [created, ...formatCache.filter((item) => item.id !== created.id)];
       persistLocalFormats(formatCache);
+      await notifyFormatChanged(created, localProfile().id, "create");
       return created;
     }
     if (usesApiGateway()) {
@@ -3028,6 +3357,7 @@
     if (error) throw error;
     const created = formatDbToUi(data, []);
     formatCache = [created, ...formatCache.filter((item) => item.id !== created.id)];
+    await notifyFormatChanged(created, userId, "create");
     return created;
   }
 
@@ -3035,9 +3365,12 @@
     if (isLocalMode() || !supportsFormats) {
       requireLocalWrite("Formate bearbeiten");
       const now = new Date().toISOString();
+      const previous = formatCache.find((format) => format.id === id) || null;
       formatCache = formatCache.map((format) => format.id === id ? formatDbToUi({ ...format, ...patch, updatedAt: now }, format.participants || []) : format);
       persistLocalFormats(formatCache);
-      return formatCache.find((format) => format.id === id);
+      const updated = formatCache.find((format) => format.id === id);
+      if (Object.keys(patch || {}).length) await notifyFormatChanged(updated, localProfile().id, "update", previous);
+      return updated;
     }
     if (usesApiGateway()) {
       const updated = await apiRequest(`/api/formats/${encodeURIComponent(id)}`, {
@@ -3048,6 +3381,7 @@
       return updated;
     }
     const userId = await getCurrentUserId();
+    const previous = formatCache.find((format) => format.id === id) || null;
     const payload = { ...formatUiToDb(patch), updated_by: userId, updated_at: new Date().toISOString() };
     if (!Object.prototype.hasOwnProperty.call(patch, "title")) delete payload.title;
     if (!Object.prototype.hasOwnProperty.call(patch, "formatType") && !Object.prototype.hasOwnProperty.call(patch, "format_type")) delete payload.format_type;
@@ -3063,6 +3397,7 @@
     const existing = formatCache.find((format) => format.id === id);
     const updated = formatDbToUi(data, existing?.participants || []);
     formatCache = formatCache.map((format) => format.id === id ? updated : format);
+    if (Object.keys(patch || {}).length) await notifyFormatChanged(updated, userId, "update", previous);
     return updated;
   }
 
@@ -3115,7 +3450,9 @@
         };
       });
       persistLocalFormats(formatCache);
-      return formatCache.find((format) => format.id === formatId);
+      const updated = formatCache.find((format) => format.id === formatId);
+      await notifyFormatChanged(updated, localProfile().id, "participant");
+      return updated;
     }
     if (usesApiGateway()) {
       const updated = await apiRequest(`/api/formats/${encodeURIComponent(formatId)}/participants`, {
@@ -3133,7 +3470,9 @@
     if (error) throw error;
     await updateFormat(formatId, {});
     await loadFormats({ includeArchived: true });
-    return formatCache.find((format) => format.id === formatId);
+    const updated = formatCache.find((format) => format.id === formatId);
+    await notifyFormatChanged(updated, userId, "participant");
+    return updated;
   }
 
   async function updateFormatParticipant(formatId, contactId, patch = {}) {
@@ -3151,7 +3490,9 @@
         };
       });
       persistLocalFormats(formatCache);
-      return formatCache.find((format) => format.id === formatId);
+      const updated = formatCache.find((format) => format.id === formatId);
+      await notifyFormatChanged(updated, localProfile().id, "participant");
+      return updated;
     }
     if (usesApiGateway()) {
       const updated = await apiRequest(`/api/formats/${encodeURIComponent(formatId)}/participants/${encodeURIComponent(contactId)}`, {
@@ -3171,7 +3512,9 @@
     if (error) throw error;
     await updateFormat(formatId, {});
     await loadFormats({ includeArchived: true });
-    return formatCache.find((format) => format.id === formatId);
+    const updated = formatCache.find((format) => format.id === formatId);
+    await notifyFormatChanged(updated, userId, "participant");
+    return updated;
   }
 
   async function removeFormatParticipant(formatId, contactId) {
@@ -3181,7 +3524,9 @@
         format.id === formatId ? { ...format, participants: (format.participants || []).filter((participant) => participant.contactId !== contactId) } : format
       );
       persistLocalFormats(formatCache);
-      return formatCache.find((format) => format.id === formatId);
+      const updated = formatCache.find((format) => format.id === formatId);
+      await notifyFormatChanged(updated, localProfile().id, "participant");
+      return updated;
     }
     if (usesApiGateway()) {
       const updated = await apiRequest(`/api/formats/${encodeURIComponent(formatId)}/participants/${encodeURIComponent(contactId)}`, {
@@ -3194,7 +3539,145 @@
     if (error) throw error;
     await updateFormat(formatId, {});
     await loadFormats({ includeArchived: true });
-    return formatCache.find((format) => format.id === formatId);
+    const updated = formatCache.find((format) => format.id === formatId);
+    await notifyFormatChanged(updated, await getCurrentUserId(), "participant");
+    return updated;
+  }
+
+  async function loadNotifications(options = {}) {
+    const limit = Math.min(Math.max(Number(options.limit) || 30, 1), 100);
+    const offset = Math.max(Number(options.offset) || 0, 0);
+    const context = String(options.context || "all").trim();
+    if (!profileCache.size) await loadProfiles();
+    if (isLocalMode() || isGcpMode()) {
+      const all = sortNotifications(readLocalNotifications().map(notificationToUi))
+        .filter((item) => !item.dismissedAt)
+        .filter((item) => !options.unreadOnly || item.unread)
+        .filter((item) => notificationMatchesContext(item, context));
+      const page = all.slice(offset, offset + limit + 1);
+      return {
+        items: page.slice(0, limit),
+        nextOffset: offset + Math.min(page.length, limit),
+        hasMore: page.length > limit
+      };
+    }
+    if (!supportsNotifications) return { items: [], nextOffset: offset, hasMore: false };
+    if (usesApiGateway()) {
+      return apiGet("/api/notifications", {
+        limit,
+        offset,
+        unreadOnly: options.unreadOnly ? "true" : "",
+        context
+      });
+    }
+    try {
+      let query = getClient()
+        .from("notification_recipients")
+        .select(NOTIFICATION_SELECT)
+        .is("dismissed_at", null)
+        .order("created_at", { ascending: false })
+        .range(0, offset + limit + 100);
+      if (options.unreadOnly) query = query.is("read_at", null);
+      const { data, error } = await query;
+      if (error) throw error;
+      const filtered = sortNotifications((data || []).map(notificationToUi))
+        .filter((item) => notificationMatchesContext(item, context));
+      const page = filtered.slice(offset, offset + limit + 1);
+      return {
+        items: page.slice(0, limit),
+        nextOffset: offset + Math.min(page.length, limit),
+        hasMore: page.length > limit
+      };
+    } catch (error) {
+      if (isMissingNotificationsError(error)) {
+        supportsNotifications = false;
+        return { items: [], nextOffset: offset, hasMore: false };
+      }
+      throw error;
+    }
+  }
+
+  async function getNotificationSummary() {
+    if (!profileCache.size) await loadProfiles();
+    const payload = await loadNotifications({ unreadOnly: true, limit: 100, offset: 0 });
+    const byContext = {};
+    (payload.items || []).forEach((item) => {
+      byContext[item.context] = (byContext[item.context] || 0) + 1;
+    });
+    const unreadTotal = Object.values(byContext).reduce((sum, count) => sum + count, 0);
+    return { unreadTotal, byContext };
+  }
+
+  async function markNotificationRead(id) {
+    if (!id) return false;
+    if (isLocalMode() || isGcpMode()) {
+      const now = new Date().toISOString();
+      persistLocalNotifications(readLocalNotifications().map((item) =>
+        (item.id === id || item.eventId === id) ? { ...item, readAt: item.readAt || now, unread: false } : item
+      ));
+      return true;
+    }
+    if (!supportsNotifications) return false;
+    if (usesApiGateway()) {
+      await apiRequest(`/api/notifications/${encodeURIComponent(id)}/read`, { method: "PATCH" });
+      return true;
+    }
+    try {
+      const { error } = await getClient()
+        .from("notification_recipients")
+        .update({ read_at: new Date().toISOString() })
+        .eq("event_id", id)
+        .is("read_at", null);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      if (isMissingNotificationsError(error)) {
+        supportsNotifications = false;
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async function markNotificationsRead(ids = []) {
+    const eventIds = uniqueIds(ids);
+    if (!eventIds.length) return true;
+    if (isLocalMode() || isGcpMode()) {
+      const now = new Date().toISOString();
+      persistLocalNotifications(readLocalNotifications().map((item) =>
+        eventIds.includes(item.id || item.eventId) ? { ...item, readAt: item.readAt || now, unread: false } : item
+      ));
+      return true;
+    }
+    if (!supportsNotifications) return false;
+    if (usesApiGateway()) {
+      await apiRequest("/api/notifications/read", {
+        method: "PATCH",
+        body: { ids: eventIds }
+      });
+      return true;
+    }
+    try {
+      const { error } = await getClient()
+        .from("notification_recipients")
+        .update({ read_at: new Date().toISOString() })
+        .in("event_id", eventIds)
+        .is("read_at", null);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      if (isMissingNotificationsError(error)) {
+        supportsNotifications = false;
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async function markAllNotificationsRead(options = {}) {
+    const context = String(options.context || "all").trim();
+    const payload = await loadNotifications({ unreadOnly: true, context, limit: 100, offset: 0 });
+    return markNotificationsRead((payload.items || []).map((item) => item.id));
   }
 
   async function getDashboardStats(filters = {}) {
@@ -3271,6 +3754,11 @@
     addFormatParticipant,
     updateFormatParticipant,
     removeFormatParticipant,
+    loadNotifications,
+    getNotificationSummary,
+    markNotificationRead,
+    markNotificationsRead,
+    markAllNotificationsRead,
     getDashboardStats,
     getMapData
   };

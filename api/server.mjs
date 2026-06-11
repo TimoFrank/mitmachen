@@ -65,6 +65,14 @@ const PROFILE_FIELDS = [
 ];
 const CHANGE_FIELDS = ["id", "contact_id", "action", "field_name", "old_value", "new_value", "changed_at", "changed_by"];
 const CONTACT_OWNER_FIELDS = ["contact_id", "profile_id", "assigned_at", "assigned_by"];
+const NOTIFICATION_SELECT = [
+  "event_id",
+  "user_id",
+  "read_at",
+  "dismissed_at",
+  "created_at",
+  "notification_events(id,event_type,entity_type,entity_id,actor_id,title,body,occurred_at,route,payload,created_at)"
+].join(",");
 const SAVED_VIEW_FIELDS = [
   "id",
   "owner_id",
@@ -561,6 +569,94 @@ function decorateContactOwners(contact = {}, ownerIds = null) {
 
 function contactOwnersChanged(oldOwnerIds = [], nextOwnerIds = []) {
   return stringifyValue(normalizeOwnerIds(oldOwnerIds)) !== stringifyValue(normalizeOwnerIds(nextOwnerIds));
+}
+
+function uniqueIds(values = []) {
+  return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
+}
+
+function idsExcept(values = [], excludedId = "") {
+  return uniqueIds(values).filter((id) => id !== excludedId);
+}
+
+function activeProfileIds() {
+  return [...profileCache.byId.values()]
+    .filter((profile) => profile?.active !== false)
+    .map((profile) => profile.id)
+    .filter(Boolean);
+}
+
+function adminProfileIds() {
+  return [...profileCache.byId.values()]
+    .filter((profile) => profile?.active !== false && String(profile.role || "").toLowerCase() === "admin")
+    .map((profile) => profile.id)
+    .filter(Boolean);
+}
+
+function notificationContext(entityType = "", eventType = "") {
+  const entity = String(entityType || "").toLowerCase();
+  const event = String(eventType || "").toLowerCase();
+  if (entity === "contact") return "contacts";
+  if (entity === "organization") return "organizations";
+  if (entity === "format" || entity === "format_participant") return "formats";
+  if (entity === "profile" || event.includes("team") || event.includes("account")) return "team";
+  if (entity === "product" || event.includes("feature")) return "product";
+  return "all";
+}
+
+function notificationToDto(row = {}) {
+  const event = row.notification_events || row.event || row;
+  const eventId = event.id || row.event_id || row.eventId || "";
+  const eventType = event.event_type || event.eventType || "";
+  const entityType = event.entity_type || event.entityType || "";
+  const actorId = event.actor_id || event.actorId || "";
+  return {
+    id: eventId,
+    eventId,
+    eventType,
+    entityType,
+    entityId: event.entity_id || event.entityId || "",
+    context: notificationContext(entityType, eventType),
+    actorId,
+    actor: profileSummary(actorId),
+    title: event.title || "Hinweis",
+    body: event.body || "",
+    route: event.route || "",
+    payload: event.payload || {},
+    occurredAt: event.occurred_at || event.occurredAt || row.created_at || "",
+    createdAt: row.created_at || event.created_at || "",
+    readAt: row.read_at || "",
+    dismissedAt: row.dismissed_at || "",
+    unread: !Boolean(row.read_at)
+  };
+}
+
+function notificationMatchesContext(notification, context = "") {
+  const normalized = String(context || "all").trim();
+  return !normalized || normalized === "all" || notification.context === normalized;
+}
+
+function sortNotifications(items = []) {
+  return [...items].sort((left, right) => {
+    const time = new Date(right.occurredAt || right.createdAt || 0).getTime() - new Date(left.occurredAt || left.createdAt || 0).getTime();
+    return time || String(right.id).localeCompare(String(left.id));
+  });
+}
+
+function isMissingNotificationsError(error) {
+  return /notification_events|notification_recipients|create_notification_event|schema cache|relation .* does not exist|function .* does not exist/i.test(String(error?.message || error?.details || error?.hint || ""));
+}
+
+function contactRoute(contactId = "") {
+  return contactId ? `#contacts?contact=${encodeURIComponent(contactId)}` : "#contacts";
+}
+
+function organizationRoute(organizationId = "") {
+  return organizationId ? `#organizations?organization=${encodeURIComponent(organizationId)}` : "#organizations";
+}
+
+function formatRoute(formatId = "") {
+  return formatId ? `#formats?format=${encodeURIComponent(formatId)}` : "#formats";
 }
 
 function contactToDto(row, index = 0, ownerIds = null) {
@@ -1417,6 +1513,166 @@ async function decorateRowsWithStoredOwners(request, rows = []) {
   return rows.map((row, index) => contactToDto(row, index, ownersByContact.get(row.id) || normalizeOwnerIds(row.owner_id)));
 }
 
+async function createNotificationEvent(request, input = {}) {
+  await loadProfiles(request);
+  const actorId = userIdFromToken(request);
+  const recipientIds = uniqueIds(input.recipientIds || input.recipient_ids || []);
+  if (!actorId || !recipientIds.length) return null;
+  try {
+    return await supabaseRest("rpc/create_notification_event", request, new URLSearchParams(), {
+      method: "POST",
+      body: {
+        p_event_type: input.eventType || input.event_type || "notice",
+        p_entity_type: input.entityType || input.entity_type || "system",
+        p_entity_id: input.entityId || input.entity_id || "",
+        p_actor_id: actorId,
+        p_title: input.title || "Hinweis",
+        p_body: input.body || "",
+        p_route: input.route || "",
+        p_payload: input.payload || {},
+        p_recipient_ids: recipientIds
+      }
+    });
+  } catch (error) {
+    if (isMissingNotificationsError(error)) return null;
+    console.warn("Hinweis konnte nicht erstellt werden.", error.message || error);
+    return null;
+  }
+}
+
+async function organizationContactOwnerIds(request, organization = {}) {
+  const id = String(organization.id || "").trim();
+  const name = String(organization.name || "").trim();
+  let rows = [];
+  if (id) {
+    rows = await supabaseRest("contacts", request, new URLSearchParams({
+      select: CONTACT_FIELDS.join(","),
+      organization_id: `eq.${id}`,
+      status: "neq.archived"
+    })) || [];
+  }
+  if (!rows.length && name) {
+    rows = await supabaseRest("contacts", request, new URLSearchParams({
+      select: CONTACT_FIELDS.join(","),
+      organization: `eq.${name}`,
+      status: "neq.archived"
+    })) || [];
+  }
+  const contacts = await decorateRowsWithStoredOwners(request, rows || []);
+  return uniqueIds(contacts.flatMap(ownerIdsFromContact));
+}
+
+async function formatParticipantOwnerIds(request, format = {}) {
+  const participants = Array.isArray(format.participants) && format.participants.length
+    ? format.participants
+    : [...(await formatParticipantsByFormat(request, [format.id])).values()].flat();
+  const contactIds = uniqueIds(participants.map((participant) => participant.contactId || participant.contact_id));
+  if (!contactIds.length) return [];
+  const rows = await supabaseRest("contacts", request, new URLSearchParams({
+    select: CONTACT_FIELDS.join(","),
+    id: `in.(${contactIds.join(",")})`
+  })) || [];
+  const contacts = await decorateRowsWithStoredOwners(request, rows || []);
+  return uniqueIds(contacts.flatMap(ownerIdsFromContact));
+}
+
+async function notifyContactCreated(request, contact = {}, actorId = "", options = {}) {
+  await loadProfiles(request);
+  const ownerIds = ownerIdsFromContact(contact);
+  const recipients = ownerIds.length ? ownerIds : idsExcept(adminProfileIds(), actorId);
+  const imported = options.action === "import";
+  await createNotificationEvent(request, {
+    eventType: imported ? "contact_imported" : "contact_created",
+    entityType: "contact",
+    entityId: contact.id,
+    title: imported ? "Kontakt importiert" : "Neuer Kontakt",
+    body: `${contact.name || "Ein Kontakt"} wurde ${imported ? "importiert" : "angelegt"}.`,
+    route: contactRoute(contact.id),
+    payload: {
+      contactName: contact.name || "",
+      organization: contact.organization || "",
+      batchId: options.batchId || ""
+    },
+    recipientIds: recipients
+  });
+}
+
+async function notifyContactUpdated(request, contact = {}, actorId = "", details = {}) {
+  await loadProfiles(request);
+  const ownerChanged = details.hasOwnerPatch && contactOwnersChanged(details.oldOwnerIds || [], details.nextOwnerIds || []);
+  const action = details.action || "update";
+  const changedFields = details.changedFields || [];
+  if (!ownerChanged && !changedFields.length) return;
+  const recipients = ownerChanged
+    ? uniqueIds([...(details.oldOwnerIds || []), ...(details.nextOwnerIds || [])])
+    : (ownerIdsFromContact(contact).length ? idsExcept(ownerIdsFromContact(contact), actorId) : idsExcept(adminProfileIds(), actorId));
+  const archived = action === "archive";
+  await createNotificationEvent(request, {
+    eventType: ownerChanged ? "contact_owner_changed" : archived ? "contact_archived" : "contact_updated",
+    entityType: "contact",
+    entityId: contact.id,
+    title: ownerChanged ? "Owner geändert" : archived ? "Kontakt archiviert" : "Kontakt aktualisiert",
+    body: ownerChanged
+      ? `Die Zuständigkeit für ${contact.name || "einen Kontakt"} wurde geändert.`
+      : `${contact.name || "Ein Kontakt"} wurde aktualisiert.`,
+    route: contactRoute(contact.id),
+    payload: {
+      contactName: contact.name || "",
+      organization: contact.organization || "",
+      changedFields,
+      oldOwnerIds: details.oldOwnerIds || [],
+      nextOwnerIds: details.nextOwnerIds || []
+    },
+    recipientIds: recipients
+  });
+}
+
+async function notifyOrganizationChanged(request, organization = {}, actorId = "", action = "update") {
+  await loadProfiles(request);
+  const ownerIds = await organizationContactOwnerIds(request, organization);
+  const recipients = ownerIds.length ? idsExcept(ownerIds, actorId) : idsExcept(adminProfileIds(), actorId);
+  await createNotificationEvent(request, {
+    eventType: action === "create" ? "organization_created" : "organization_updated",
+    entityType: "organization",
+    entityId: organization.id,
+    title: action === "create" ? "Neue Organisation" : "Organisation aktualisiert",
+    body: `${organization.name || "Eine Organisation"} wurde ${action === "create" ? "angelegt" : "aktualisiert"}.`,
+    route: organizationRoute(organization.id),
+    payload: {
+      organizationName: organization.name || "",
+      sector: organization.sector || ""
+    },
+    recipientIds: recipients
+  });
+}
+
+async function notifyFormatChanged(request, format = {}, actorId = "", action = "update", previous = null) {
+  await loadProfiles(request);
+  const previousOwnerId = previous?.ownerId || previous?.owner_id || "";
+  const nextOwnerId = format.ownerId || format.owner_id || "";
+  const ownerChanged = action !== "create" && previousOwnerId !== nextOwnerId;
+  const participantOwnerIds = await formatParticipantOwnerIds(request, format);
+  const baseRecipients = uniqueIds([nextOwnerId, ...participantOwnerIds]);
+  const recipients = action === "create" || ownerChanged
+    ? uniqueIds([previousOwnerId, nextOwnerId, ...participantOwnerIds])
+    : idsExcept(baseRecipients, actorId);
+  await createNotificationEvent(request, {
+    eventType: action === "create" ? "format_created" : ownerChanged ? "format_owner_changed" : action === "participant" ? "format_participant_changed" : "format_updated",
+    entityType: action === "participant" ? "format_participant" : "format",
+    entityId: format.id,
+    title: action === "create" ? "Neues Format" : ownerChanged ? "Format-Owner geändert" : action === "participant" ? "Format-Teilnehmer geändert" : "Format aktualisiert",
+    body: `${format.title || "Ein Format"} wurde ${action === "create" ? "angelegt" : "aktualisiert"}.`,
+    route: formatRoute(format.id),
+    payload: {
+      formatTitle: format.title || "",
+      status: format.status || "",
+      previousOwnerId,
+      nextOwnerId
+    },
+    recipientIds: recipients
+  });
+}
+
 async function replaceStoredContactOwners(request, contactId, oldOwnerIds = [], nextOwnerIds = [], userId = "", { log = true } = {}) {
   if (!supportsContactOwners || !contactId) return;
   const oldIds = normalizeOwnerIds(oldOwnerIds);
@@ -1892,7 +2148,9 @@ async function createOrganization(request) {
     error.status = 500;
     throw error;
   }
-  return organizationToDto(created, 0);
+  const dto = organizationToDto(created, 0);
+  await notifyOrganizationChanged(request, dto, userId, "create");
+  return dto;
 }
 
 async function patchOrganization(request, id) {
@@ -1926,7 +2184,9 @@ async function patchOrganization(request, id) {
     throw error;
   }
   const counts = await organizationContactCounts(request, [id]);
-  return organizationToDto(updated, counts.get(id) || 0);
+  const dto = organizationToDto(updated, counts.get(id) || 0);
+  await notifyOrganizationChanged(request, dto, userId, "update");
+  return dto;
 }
 
 async function listSavedViews(request) {
@@ -2095,7 +2355,9 @@ async function createFormat(request) {
     headers: { prefer: "return=representation" },
     body: payload
   });
-  return formatToDto(rows?.[0], []);
+  const dto = formatToDto(rows?.[0], []);
+  await notifyFormatChanged(request, dto, userId, "create");
+  return dto;
 }
 
 async function patchFormat(request, id, patch = null) {
@@ -2106,8 +2368,11 @@ async function patchFormat(request, id, patch = null) {
     error.status = 401;
     throw error;
   }
+  const rawPatch = patch || await readValidatedJsonBody(request, FORMAT_INPUT_FIELDS, "Format-Update");
+  const shouldNotify = Object.keys(rawPatch || {}).length > 0;
+  const previous = shouldNotify ? await getFormat(request, id) : null;
   const payload = {
-    ...formatPatchToDb(patch || await readValidatedJsonBody(request, FORMAT_INPUT_FIELDS, "Format-Update")),
+    ...formatPatchToDb(rawPatch),
     updated_by: userId,
     updated_at: new Date().toISOString()
   };
@@ -2125,7 +2390,9 @@ async function patchFormat(request, id, patch = null) {
     throw error;
   }
   const participantGroups = await formatParticipantsByFormat(request, [id]);
-  return formatToDto(rows[0], participantGroups.get(id) || []);
+  const dto = formatToDto(rows[0], participantGroups.get(id) || []);
+  if (shouldNotify) await notifyFormatChanged(request, dto, userId, "update", previous);
+  return dto;
 }
 
 async function deleteFormat(request, id) {
@@ -2158,7 +2425,9 @@ async function addFormatParticipant(request, formatId) {
     headers: { prefer: "resolution=ignore-duplicates,return=minimal" },
     body: payload
   });
-  return patchFormat(request, formatId, {});
+  const updated = await patchFormat(request, formatId, {});
+  await notifyFormatChanged(request, updated, userId, "participant");
+  return updated;
 }
 
 async function patchFormatParticipant(request, formatId, contactId) {
@@ -2184,10 +2453,13 @@ async function patchFormatParticipant(request, formatId, contactId) {
     headers: { prefer: "return=minimal" },
     body: payload
   });
-  return patchFormat(request, formatId, {});
+  const updated = await patchFormat(request, formatId, {});
+  await notifyFormatChanged(request, updated, userId, "participant");
+  return updated;
 }
 
 async function removeFormatParticipant(request, formatId, contactId) {
+  const userId = userIdFromToken(request);
   await supabaseRest("format_participants", request, new URLSearchParams({
     format_id: `eq.${formatId}`,
     contact_id: `eq.${contactId}`
@@ -2195,7 +2467,9 @@ async function removeFormatParticipant(request, formatId, contactId) {
     method: "DELETE",
     headers: { prefer: "return=minimal" }
   });
-  return patchFormat(request, formatId, {});
+  const updated = await patchFormat(request, formatId, {});
+  await notifyFormatChanged(request, updated, userId, "participant");
+  return updated;
 }
 
 async function createContact(request) {
@@ -2247,7 +2521,9 @@ async function createContact(request) {
   });
 
   await replaceStoredContactOwners(request, created.id, [], ownerIds, userId, { log: false });
-  return contactToDto(created, 0, supportsContactOwners ? ownerIds : normalizeOwnerIds(created.owner_id));
+  const dto = contactToDto(created, 0, supportsContactOwners ? ownerIds : normalizeOwnerIds(created.owner_id));
+  await notifyContactCreated(request, dto, userId, options);
+  return dto;
 }
 
 async function getContact(request, id) {
@@ -2341,6 +2617,71 @@ async function getActivities(request, url) {
   };
 }
 
+async function listNotifications(request, url) {
+  await loadProfiles(request);
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 30, 1), 100);
+  const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
+  const context = String(url.searchParams.get("context") || "all").trim();
+  const unreadOnly = url.searchParams.get("unreadOnly") === "true";
+  try {
+    const params = new URLSearchParams({
+      select: NOTIFICATION_SELECT,
+      dismissed_at: "is.null",
+      order: "created_at.desc",
+      limit: String(offset + limit + 100)
+    });
+    if (unreadOnly) params.set("read_at", "is.null");
+    const rows = await supabaseRest("notification_recipients", request, params);
+    const filtered = sortNotifications((rows || []).map(notificationToDto))
+      .filter((item) => notificationMatchesContext(item, context));
+    const page = filtered.slice(offset, offset + limit + 1);
+    return {
+      items: page.slice(0, limit),
+      nextOffset: offset + Math.min(page.length, limit),
+      hasMore: page.length > limit
+    };
+  } catch (error) {
+    if (isMissingNotificationsError(error)) return { items: [], nextOffset: offset, hasMore: false };
+    throw error;
+  }
+}
+
+async function getNotificationSummary(request) {
+  const payload = await listNotifications(request, new URL("http://local/api/notifications?unreadOnly=true&limit=100"));
+  const byContext = {};
+  (payload.items || []).forEach((item) => {
+    byContext[item.context] = (byContext[item.context] || 0) + 1;
+  });
+  const unreadTotal = Object.values(byContext).reduce((sum, count) => sum + count, 0);
+  return { unreadTotal, byContext };
+}
+
+async function markNotificationRead(request, id) {
+  try {
+    await supabaseRest("notification_recipients", request, new URLSearchParams({
+      event_id: `eq.${id}`,
+      read_at: "is.null"
+    }), {
+      method: "PATCH",
+      headers: { prefer: "return=minimal" },
+      body: { read_at: new Date().toISOString() }
+    });
+    return { ok: true };
+  } catch (error) {
+    if (isMissingNotificationsError(error)) return { ok: false };
+    throw error;
+  }
+}
+
+async function markNotificationsRead(request) {
+  const body = await readJsonBody(request);
+  const ids = uniqueIds(Array.isArray(body?.ids) ? body.ids : []);
+  for (const id of ids) {
+    await markNotificationRead(request, id);
+  }
+  return { ok: true };
+}
+
 async function patchContact(request, id) {
   await loadProfiles(request);
   const userId = userIdFromToken(request);
@@ -2415,7 +2756,15 @@ async function patchContact(request, id) {
   }
 
   if (hasOwnerPatch) await replaceStoredContactOwners(request, id, oldOwnerIds, nextOwnerIds, userId, { log: supportsContactOwners });
-  return contactToDto(updated, 0, hasOwnerPatch ? nextOwnerIds : oldOwnerIds);
+  const dto = contactToDto(updated, 0, hasOwnerPatch ? nextOwnerIds : oldOwnerIds);
+  await notifyContactUpdated(request, dto, userId, {
+    action: dbPatch.status === "archived" ? "archive" : "update",
+    changedFields,
+    hasOwnerPatch,
+    oldOwnerIds,
+    nextOwnerIds
+  });
+  return dto;
 }
 
 async function handle(request, response) {
@@ -2552,6 +2901,19 @@ async function handle(request, response) {
     }
     if (request.method === "GET" && url.pathname === "/api/activities") {
       return jsonResponse(response, 200, await getActivities(request, url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/notifications") {
+      return jsonResponse(response, 200, await listNotifications(request, url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/notifications/summary") {
+      return jsonResponse(response, 200, await getNotificationSummary(request));
+    }
+    if (request.method === "PATCH" && url.pathname === "/api/notifications/read") {
+      return jsonResponse(response, 200, await markNotificationsRead(request));
+    }
+    const notificationReadMatch = /^\/api\/notifications\/([^/]+)\/read$/.exec(url.pathname);
+    if (request.method === "PATCH" && notificationReadMatch) {
+      return jsonResponse(response, 200, await markNotificationRead(request, decodeURIComponent(notificationReadMatch[1])));
     }
     const historyMatch = /^\/api\/contacts\/([^/]+)\/history$/.exec(url.pathname);
     if (request.method === "GET" && historyMatch) {
