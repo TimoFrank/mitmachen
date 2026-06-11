@@ -318,7 +318,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-view-tab="experts"]')).toContainText("Expertenkreis");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
   if (!testInfo.project.name.includes("mobile")) {
-    await expect(page.locator("#contact-list .owner-badge-group").first()).toBeVisible();
+    await expect(page.locator("#contact-list .owner-avatar-stack").first()).toBeVisible();
   }
 
   await attachScreenshot(page, testInfo, "kontakte");
@@ -620,7 +620,7 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
   await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   await expect(page.locator(".detail-profile")).toBeVisible();
   await expect(page.locator(".detail-tabs")).toBeVisible();
-  await expect(page.locator("#detail-drawer .owner-badge-group, #detail-drawer [data-detail-owner-picker]").first()).toBeVisible();
+  await expect(page.locator("#detail-drawer .owner-summary-list").first()).toBeVisible();
 
   await attachScreenshot(page, testInfo, "kontaktprofil");
 });

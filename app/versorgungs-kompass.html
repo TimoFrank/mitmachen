@@ -12156,6 +12156,60 @@
         line-height: 1;
       }
 
+      .owner-avatar-stack {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        max-width: 100%;
+        height: 28px;
+        padding-left: 2px;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+
+      .owner-avatar-stack__item,
+      .owner-avatar-stack__more {
+        width: 26px;
+        height: 26px;
+        border: 2px solid var(--surface);
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        background: var(--owner-badge-avatar-bg, var(--surface-muted));
+        color: var(--owner-badge-text, var(--text-secondary));
+        font-size: 0.66rem;
+        font-weight: 850;
+        line-height: 1;
+        overflow: hidden;
+      }
+
+      .owner-avatar-stack__item + .owner-avatar-stack__item,
+      .owner-avatar-stack__item + .owner-avatar-stack__more {
+        margin-left: -8px;
+      }
+
+      .owner-avatar-stack__more {
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        border-color: var(--surface);
+        font-size: var(--font-size-xs);
+      }
+
+      .owner-avatar-stack--empty {
+        height: auto;
+        padding-left: 0;
+      }
+
+      .owner-avatar-stack--empty .owner-avatar-stack__more {
+        width: auto;
+        min-width: 0;
+        height: 24px;
+        padding: 0 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+      }
+
       .owner-multi-select {
         display: grid;
         gap: 6px;
@@ -12168,6 +12222,12 @@
       .owner-multi-select--detail {
         min-width: 220px;
         max-width: 100%;
+      }
+
+      .owner-multi-select--inline {
+        width: 100%;
+        max-height: 152px;
+        overflow: auto;
       }
 
       .owner-multi-option {
@@ -12254,6 +12314,75 @@
         width: 100%;
         min-height: 34px;
         padding: 3px 12px 3px 5px;
+      }
+
+      .detail-meta-control--owner {
+        width: 210px;
+      }
+
+      .detail-meta-control__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .detail-meta-control__head .detail-meta-control__label {
+        text-align: left;
+      }
+
+      .detail-owner-edit {
+        border: 0;
+        background: transparent;
+        color: var(--primary);
+        font: inherit;
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        line-height: 1;
+        padding: 2px 0;
+        cursor: pointer;
+      }
+
+      .detail-owner-edit:hover,
+      .detail-owner-edit:focus-visible {
+        text-decoration: underline;
+        outline: none;
+      }
+
+      .owner-summary-list {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .owner-summary-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: 750;
+        line-height: 1.25;
+      }
+
+      .owner-summary-row .owner-badge__avatar {
+        width: 24px;
+        height: 24px;
+      }
+
+      .owner-summary-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .owner-summary-more {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        padding-left: 30px;
       }
 
       .owner-badge__avatar {
@@ -28575,6 +28704,10 @@
         return `<img class="owner-badge__image" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" onerror="this.hidden=true;this.parentElement.textContent='${escapeHtml(fallback)}';">`;
       }
 
+      function contactOwnerRenderValues(contact = {}) {
+        return contactOwnerIds(contact).length ? contactOwnerIds(contact) : splitOwnerTokens(contact.owner);
+      }
+
       function ownerBadgeSingleMarkup(ownerValue) {
         const profile = ownerProfileForValue(ownerValue);
         const rawLabel = ownerDisplayLabel(profile?.id || ownerValue);
@@ -28596,7 +28729,7 @@
       }
 
       function ownerBadgeMarkup(contact) {
-        const values = contactOwnerIds(contact).length ? contactOwnerIds(contact) : splitOwnerTokens(contact.owner);
+        const values = contactOwnerRenderValues(contact);
         if (!values.length) return ownerBadgeSingleMarkup("");
         const visible = values.slice(0, 2);
         const remaining = Math.max(0, values.length - visible.length);
@@ -28605,6 +28738,66 @@
             ${visible.map(ownerBadgeSingleMarkup).join("")}
             ${remaining ? `<span class="owner-badge-more">+${remaining}</span>` : ""}
           </span>
+        `;
+      }
+
+      function ownerAvatarStackItemMarkup(ownerValue) {
+        const profile = ownerProfileForValue(ownerValue);
+        const rawLabel = ownerDisplayLabel(profile?.id || ownerValue);
+        const label = ownerBadgeLabel(rawLabel);
+        const tone = ownerBadgeTone(profile?.id || ownerValue || label);
+        return `
+          <span class="owner-avatar-stack__item owner-badge--tone-${tone}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">
+            ${ownerBadgeAvatarMarkup(profile, label)}
+          </span>
+        `;
+      }
+
+      function ownerAvatarStackMarkup(contact, { maxVisible = 3 } = {}) {
+        const values = contactOwnerRenderValues(contact);
+        const names = contactOwnerDisplayNames(contact);
+        if (!values.length) {
+          return `
+            <span class="owner-avatar-stack owner-avatar-stack--empty" title="Kein Owner" aria-label="Kein Owner">
+              <span class="owner-avatar-stack__more">Kein Owner</span>
+            </span>
+          `;
+        }
+        const visible = values.slice(0, maxVisible);
+        const remaining = Math.max(0, values.length - visible.length);
+        return `
+          <span class="owner-avatar-stack" title="${escapeHtml(names.join(", "))}" aria-label="${escapeHtml(names.join(", "))}">
+            ${visible.map(ownerAvatarStackItemMarkup).join("")}
+            ${remaining ? `<span class="owner-avatar-stack__more" title="${escapeHtml(names.slice(maxVisible).join(", "))}">+${remaining}</span>` : ""}
+          </span>
+        `;
+      }
+
+      function ownerSummaryRowMarkup(ownerValue) {
+        const profile = ownerProfileForValue(ownerValue);
+        const rawLabel = ownerDisplayLabel(profile?.id || ownerValue);
+        const label = ownerBadgeLabel(rawLabel);
+        return `
+          <span class="owner-summary-row" title="${escapeHtml(label)}">
+            <span class="owner-badge__avatar" aria-hidden="true">${ownerBadgeAvatarMarkup(profile, label)}</span>
+            <span class="owner-summary-name">${escapeHtml(label)}</span>
+          </span>
+        `;
+      }
+
+      function detailOwnerSummaryMarkup(contact, { maxVisible = 4 } = {}) {
+        const values = contactOwnerRenderValues(contact);
+        const names = contactOwnerDisplayNames(contact);
+        if (!values.length) {
+          return `<div class="owner-summary-list">${ownerBadgeSingleMarkup("")}</div>`;
+        }
+        const visible = values.slice(0, maxVisible);
+        const remaining = Math.max(0, values.length - visible.length);
+        return `
+          <div class="owner-summary-list" title="${escapeHtml(names.join(", "))}">
+            ${visible.map(ownerSummaryRowMarkup).join("")}
+            ${remaining ? `<span class="owner-summary-more">+${remaining} weitere</span>` : ""}
+          </div>
         `;
       }
 
@@ -30312,7 +30505,7 @@
         if (key === "specialty") return `<div class="contact-subline contact-subline--primary">${escapeHtml(specialtyLabel(contact) || "-")}</div>`;
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(formatLocationDisplay(contact) || "-")}</div>`;
         if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stateLabel(contact) || "-")}</div>`;
-        if (key === "owner") return ownerBadgeMarkup(contact);
+        if (key === "owner") return ownerAvatarStackMarkup(contact);
         if (key === "priority") {
           const priority = normalizedPriorityValue(contact.priority);
           return priority ? `<span class="contact-priority-pill contact-priority-pill--${priority.toLowerCase()}">${escapeHtml(priorityDisplayLabel(contact.priority))}</span>` : `<span class="contact-priority-pill">-</span>`;
@@ -32263,14 +32456,16 @@
       }
 
       function detailHeaderOwnerControl(contact) {
-        const selectedOwnerIds = contactOwnerIds(contact);
-        const control = canEditContacts()
-          ? `<div class="owner-multi-select owner-multi-select--detail" data-detail-owner-picker>${ownerMultiPickerMarkup(selectedOwnerIds, { compact: true })}</div>`
-          : ownerBadgeMarkup(contact);
+        const editButton = canEditContacts()
+          ? `<button class="detail-owner-edit" type="button" data-detail-edit-section="overview" data-detail-edit-focus="owner">Bearbeiten</button>`
+          : "";
         return `
-          <div class="detail-meta-control">
-            <span class="detail-meta-control__label">Owner</span>
-            ${control}
+          <div class="detail-meta-control detail-meta-control--owner">
+            <div class="detail-meta-control__head">
+              <span class="detail-meta-control__label">Owner</span>
+              ${editButton}
+            </div>
+            ${detailOwnerSummaryMarkup(contact)}
           </div>
         `;
       }
@@ -32278,6 +32473,21 @@
       function detailHeaderPriorityControl(contact) {
         const priority = priorityDisplayLabel(contact.priority);
         return contact.priority ? `<span class="contact-priority-pill contact-priority-pill--${normalizedPriorityValue(contact.priority).toLowerCase()}">${escapeHtml(priority)}</span>` : "";
+      }
+
+      function detailOwnerEditField(contact) {
+        const ownerIds = contactOwnerIds(contact);
+        return `
+          <div class="detail-line detail-edit-row detail-edit-owner">
+            <label class="detail-line__label" for="detail-field-owner">Owner</label>
+            <span class="detail-line__value">
+              <input id="detail-field-owner" type="hidden" data-detail-field="owner" value="${escapeHtml(ownerIds.join(","))}" />
+              <div class="owner-multi-select owner-multi-select--inline" data-detail-owner-picker aria-label="Owner auswählen">
+                ${ownerMultiPickerMarkup(ownerIds, { compact: true })}
+              </div>
+            </span>
+          </div>
+        `;
       }
 
       function renderDetailEditGrid(contact, locationText) {
@@ -32291,6 +32501,7 @@
             ${detailEditField("Ort", "city", contact.city || splitLocationLabel(locationText).city, { placeholder: "Ort" })}
             ${detailEditField("Bundesland", "state", contact.state, { type: "select", options: buildStateSelectOptions(contact.state) })}
             ${detailEditField("Priorität", "priority", contact.priority, { type: "select", options: buildPrioritySelectOptions(priorityDisplayLabel(contact.priority)) })}
+            ${detailOwnerEditField(contact)}
           </div>
         `;
       }
@@ -34503,8 +34714,12 @@
           button.addEventListener("click", () => {
             detailEditMode = true;
             detailActiveTab = button.dataset.detailEditSection === "contactways" ? "contact" : button.dataset.detailEditSection || detailActiveTab;
+            const focusTarget = button.dataset.detailEditFocus || "";
             openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
-            window.setTimeout(() => document.getElementById(`detail-${button.dataset.detailEditSection}`)?.scrollIntoView({ block: "start" }), 0);
+            window.setTimeout(() => {
+              document.getElementById(`detail-${button.dataset.detailEditSection}`)?.scrollIntoView({ block: "start" });
+              if (focusTarget === "owner") detailPanel.querySelector("[data-detail-owner-picker] input")?.focus();
+            }, 0);
           });
         });
         document.getElementById("detail-cancel-edit")?.addEventListener("click", () => {
@@ -34521,6 +34736,11 @@
         detailPanel.querySelectorAll("[data-detail-owner-picker]").forEach((picker) => {
           picker.querySelectorAll('input[type="checkbox"]').forEach((input) => {
             input.addEventListener("change", async () => {
+              const detailOwnerInput = picker.closest(".detail-edit-owner")?.querySelector("[data-detail-field='owner']");
+              if (detailOwnerInput) {
+                setOwnerInputValue(detailOwnerInput, selectedOwnerIdsFromPicker(picker));
+                return;
+              }
               await updateContactField(contact.id, "owner", selectedOwnerIdsFromPicker(picker));
             });
           });
