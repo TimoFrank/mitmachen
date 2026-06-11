@@ -2,6 +2,76 @@
 
 Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompass.
 
+## Version 0.16 - Geteilte Kontaktzuständigkeiten
+
+11. Juni 2026
+
+Kontakte können jetzt gemeinsamer im Team verantwortet werden.
+
+- Kontakte können mehreren Zuständigen zugeordnet werden.
+- Kontaktlisten und Profile zeigen Zuständigkeiten kompakter und besser vergleichbar.
+- Owner-Änderungen bleiben für die weitere Kontaktarbeit klarer nachvollziehbar.
+
+## Version 0.15 - Produkt-Tour und Onboarding
+
+11. Juni 2026
+
+Der Einstieg in den Versorgungs-Kompass ist geführter und bleibt später wieder aufrufbar.
+
+- Neue Nutzer richten Profil und Team vor der ersten Arbeit strukturierter ein.
+- Die Produkt-Tour erklärt die wichtigsten Arbeitsbereiche direkt in der App.
+- Die Tour kann im eigenen Profil erneut gestartet werden.
+
+## Version 0.14 - KV-Stakeholder-Bereich
+
+11. Juni 2026
+
+Kassenärztliche Vereinigungen und Vertreterversammlungsmitglieder haben einen eigenen Admin-Arbeitsbereich erhalten.
+
+- KV-Organisationen und Personen sind als eigener Stakeholder-Kontext erreichbar.
+- Organisationen, Personen und Kartenansicht lassen sich innerhalb eines Bereichs wechseln.
+- Der Bereich bleibt rollenbasiert eingeordnet und erscheint nur für berechtigte Nutzer.
+
+## Version 0.13 - Aktivitäten-Bereich
+
+9. Juni 2026
+
+Änderungen an Kontakten sind in einem eigenen Verlauf besser nachvollziehbar.
+
+- Aktivitäten erscheinen als zentrale Übersicht für Updates, Owner, Importe und Wiederherstellungen.
+- Filter nach Typ, Nutzer und Zeitraum helfen bei der schnellen Prüfung.
+- Längere Verläufe können schrittweise nachgeladen werden.
+
+## Version 0.12 - Passwort und Einladung
+
+9. Juni 2026
+
+Anmeldung, Passwort-Zurücksetzung und Einladungen wurden zuverlässiger geführt.
+
+- Passwort-Reset und Einladungslinks führen stabiler zurück in die App.
+- Die Login-Seiten zeigen klarere Zustände und nächste Schritte.
+- Sitzungs- und Rücksprunglogik funktioniert besser auf GitHub Pages.
+
+## Version 0.11 - IOP-Expertenkreis
+
+6. Juni 2026
+
+Der Expertenkreis wurde als eigener Arbeitsbereich für Recherche und Datenpflege ausgebaut.
+
+- Experten, Organisationen und bestehende Kontakte sind stärker miteinander verknüpft.
+- Matching-, Dubletten- und Arbeitslisten unterstützen die gezielte Pflege.
+- Suche, Auswahl und Detailansichten im Expertenbereich sind ruhiger bedienbar.
+
+## Version 0.10 - Registrierungen und Importprüfung
+
+20. Mai 2026
+
+Neue Kontakte aus Registrierungen können strukturierter geprüft und übernommen werden.
+
+- Öffentliche Registrierungen laufen in einen eigenen Prüfbereich ein.
+- Registrierungslisten, Vorschau und Detaildrawer erleichtern die Übernahme.
+- Import, Online-Erfassung und Historie sind klarer im Bereich Importe gebündelt.
+
 ## Version 0.9 - Kontaktrollen und bessere Kartengrundlage
 
 19. Mai 2026
