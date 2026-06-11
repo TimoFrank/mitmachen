@@ -272,6 +272,20 @@ function loadExpertData() {
   });
 }
 
+function loadStakeholderData() {
+  const codePath = path.join(ROOT, "data", "stakeholder-data.js");
+  return readFile(codePath, "utf8").then((source) => {
+    const sandbox = { window: {} };
+    vm.createContext(sandbox);
+    vm.runInContext(source, sandbox, { filename: codePath });
+    return {
+      types: Array.isArray(sandbox.window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES) ? sandbox.window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES : [],
+      organizations: Array.isArray(sandbox.window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS) ? sandbox.window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS : [],
+      people: Array.isArray(sandbox.window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE) ? sandbox.window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE : []
+    };
+  });
+}
+
 async function seedIfEmpty() {
   const { rows } = await getPool().query("select count(*)::int as count from contacts");
   if (rows[0]?.count > 0) {
@@ -286,9 +300,11 @@ async function seedSupplementalDataIfEmpty() {
   try {
     await client.query("begin");
     const { rows: expertRows } = await client.query("select count(*)::int as count from expert_groups");
+    const { rows: stakeholderRows } = await client.query("select count(*)::int as count from stakeholder_types");
     const { rows: formatRows } = await client.query("select count(*)::int as count from formats");
     const actorId = await firstProfileId(client);
     if ((expertRows[0]?.count || 0) === 0) await seedExpertData(client);
+    if ((stakeholderRows[0]?.count || 0) === 0) await seedStakeholderData(client);
     if ((formatRows[0]?.count || 0) === 0) await seedDemoFormats(client, actorId);
     await client.query("commit");
   } catch (error) {
@@ -305,7 +321,7 @@ async function resetDemoData() {
   try {
     await client.query("begin");
     await client.query(
-      "truncate import_runs, changes, format_participants, formats, expert_entity_links, expert_contacts, expert_organizations, expert_groups, contacts, organizations, profiles restart identity cascade"
+      "truncate import_runs, changes, format_participants, formats, expert_entity_links, expert_contacts, expert_organizations, expert_groups, stakeholder_people, stakeholder_organizations, stakeholder_types, contacts, organizations, profiles restart identity cascade"
     );
 
     const profiles = Array.isArray(demo.profiles) ? demo.profiles : [];
@@ -432,6 +448,7 @@ async function resetDemoData() {
     }
 
     await seedExpertData(client);
+    await seedStakeholderData(client);
     await seedDemoFormats(client, actorId);
 
     await client.query("commit");
@@ -601,6 +618,134 @@ async function seedExpertData(client) {
         splitList(contact.sources || contact.source).join("; ") || "INA Expertenkreis",
         contact.url || contact.sourceUrl || contact.profileUrl || contact.profile_url || "",
         contact.status || "active"
+      ]
+    );
+  }
+}
+
+async function seedStakeholderData(client) {
+  const stakeholder = await loadStakeholderData();
+  const types = stakeholder.types.length ? stakeholder.types : [{ id: "kv", label: "Kassenärztliche Vereinigungen", sortOrder: 10, status: "active" }];
+  for (const type of types) {
+    await client.query(
+      `insert into stakeholder_types (id, label, description, sort_order, status)
+       values ($1, $2, $3, $4, $5)
+       on conflict (id) do update
+       set label = excluded.label,
+           description = excluded.description,
+           sort_order = excluded.sort_order,
+           status = excluded.status`,
+      [
+        String(type.id || "kv").trim(),
+        String(type.label || type.name || "Kassenärztliche Vereinigungen").trim(),
+        String(type.description || "").trim(),
+        Number(type.sortOrder ?? type.sort_order ?? 10),
+        type.status || "active"
+      ]
+    );
+  }
+
+  const organizationIds = new Set();
+  for (const organization of stakeholder.organizations) {
+    const name = String(organization.name || "").trim();
+    if (!name) continue;
+    const id = String(organization.id || slugId("stakeholder-org", name)).trim();
+    organizationIds.add(id);
+    await client.query(
+      `insert into stakeholder_organizations
+        (id, stakeholder_type_id, name, normalized_name, organization_type, postal_code, city,
+         federal_state, latitude, longitude, website, phone, email, notes, source, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+       on conflict (id) do update
+       set stakeholder_type_id = excluded.stakeholder_type_id,
+           name = excluded.name,
+           normalized_name = excluded.normalized_name,
+           organization_type = excluded.organization_type,
+           postal_code = excluded.postal_code,
+           city = excluded.city,
+           federal_state = excluded.federal_state,
+           latitude = excluded.latitude,
+           longitude = excluded.longitude,
+           website = excluded.website,
+           phone = excluded.phone,
+           email = excluded.email,
+           notes = excluded.notes,
+           source = excluded.source,
+           status = excluded.status`,
+      [
+        id,
+        organization.stakeholderTypeId || organization.stakeholder_type_id || organization.stakeholderType || "kv",
+        name,
+        normalizeName(organization.normalizedName || organization.normalized_name || name),
+        organization.organizationType || organization.organization_type || "Stakeholder-Organisation",
+        organization.postalCode || organization.postal_code || "",
+        organization.city || "",
+        organization.state || organization.federal_state || "",
+        Number.isFinite(Number(organization.lat ?? organization.latitude)) ? Number(organization.lat ?? organization.latitude) : null,
+        Number.isFinite(Number(organization.lon ?? organization.longitude)) ? Number(organization.lon ?? organization.longitude) : null,
+        organization.website || organization.url || "",
+        organization.phone || "",
+        organization.email || "",
+        organization.notes || organization.note || "",
+        organization.source || "Stakeholder-Seed",
+        organization.status || "active"
+      ]
+    );
+  }
+
+  for (const person of stakeholder.people) {
+    const name = String(person.name || "").trim();
+    if (!name) continue;
+    const organizationId = organizationIds.has(person.organizationId || person.organization_id) ? person.organizationId || person.organization_id : null;
+    await client.query(
+      `insert into stakeholder_people
+        (id, stakeholder_type_id, organization_id, organization, name, role, committee, city,
+         federal_state, latitude, longitude, map_position_source, email, phone, linkedin,
+         topics, notes, source, profile_url, is_representative_assembly_member, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+       on conflict (id) do update
+       set stakeholder_type_id = excluded.stakeholder_type_id,
+           organization_id = excluded.organization_id,
+           organization = excluded.organization,
+           name = excluded.name,
+           role = excluded.role,
+           committee = excluded.committee,
+           city = excluded.city,
+           federal_state = excluded.federal_state,
+           latitude = excluded.latitude,
+           longitude = excluded.longitude,
+           map_position_source = excluded.map_position_source,
+           email = excluded.email,
+           phone = excluded.phone,
+           linkedin = excluded.linkedin,
+           topics = excluded.topics,
+           notes = excluded.notes,
+           source = excluded.source,
+           profile_url = excluded.profile_url,
+           is_representative_assembly_member = excluded.is_representative_assembly_member,
+           status = excluded.status`,
+      [
+        String(person.id || slugId("stakeholder-person", name)).trim(),
+        person.stakeholderTypeId || person.stakeholder_type_id || person.stakeholderType || "kv",
+        organizationId,
+        person.organization || "",
+        name,
+        person.role || person.contactRole || "",
+        person.committee || person.gremium || "",
+        person.city || "",
+        person.state || person.federal_state || "",
+        Number.isFinite(Number(person.lat ?? person.latitude)) ? Number(person.lat ?? person.latitude) : null,
+        Number.isFinite(Number(person.lon ?? person.longitude)) ? Number(person.lon ?? person.longitude) : null,
+        person.mapPositionSource || person.map_position_source || "",
+        person.email || "",
+        person.phone || "",
+        person.linkedin || "",
+        splitList(person.themes || person.topics),
+        person.note || person.notes || "",
+        person.source || "Stakeholder-Seed",
+        person.url || person.profileUrl || person.profile_url || "",
+        Boolean(person.isRepresentativeAssemblyMember ?? person.is_representative_assembly_member),
+        person.status || "active"
       ]
     );
   }
@@ -1622,6 +1767,79 @@ function mapExpertEntityLink(row = {}) {
   };
 }
 
+function mapStakeholderType(row, index = 0) {
+  return {
+    id: row.id || `stakeholder-type-${index + 1}`,
+    label: row.label || "",
+    description: row.description || "",
+    sortOrder: Number(row.sort_order ?? (index + 1) * 10),
+    status: row.status || "active",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function mapStakeholderOrganization(row, personCount = 0) {
+  return {
+    id: row.id || "",
+    stakeholderTypeId: row.stakeholder_type_id || "",
+    stakeholderType: row.stakeholder_type_id || "",
+    name: row.name || "",
+    normalizedName: row.normalized_name || normalizeName(row.name),
+    organizationType: row.organization_type || "",
+    postalCode: row.postal_code || "",
+    city: row.city || "",
+    state: row.federal_state || "",
+    latitude: row.latitude,
+    longitude: row.longitude,
+    lat: Number.isFinite(Number(row.latitude)) ? Number(row.latitude) : null,
+    lon: Number.isFinite(Number(row.longitude)) ? Number(row.longitude) : null,
+    website: row.website || "",
+    phone: row.phone || "",
+    email: row.email || "",
+    notes: row.notes || "",
+    source: row.source || "",
+    status: row.status || "active",
+    personCount: Number(row.person_count ?? personCount ?? 0),
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function mapStakeholderPerson(row, index = 0) {
+  return {
+    id: row.id || `stakeholder-person-${index + 1}`,
+    stakeholderTypeId: row.stakeholder_type_id || "",
+    stakeholderType: row.stakeholder_type_id || "",
+    organizationId: row.organization_id || "",
+    organization: row.organization || "",
+    name: row.name || "",
+    role: row.role || "",
+    contactRole: row.role || "",
+    committee: row.committee || "",
+    city: row.city || "",
+    state: row.federal_state || "",
+    latitude: row.latitude,
+    longitude: row.longitude,
+    lat: Number.isFinite(Number(row.latitude)) ? Number(row.latitude) : null,
+    lon: Number.isFinite(Number(row.longitude)) ? Number(row.longitude) : null,
+    mapPositionSource: row.map_position_source || "",
+    email: row.email || "",
+    phone: row.phone || "",
+    linkedin: row.linkedin || "",
+    themes: Array.isArray(row.topics) ? row.topics : splitList(row.topics),
+    note: row.notes || "",
+    source: row.source || "",
+    sources: splitList(row.source),
+    url: row.profile_url || "",
+    isRepresentativeAssemblyMember: Boolean(row.is_representative_assembly_member),
+    status: row.status || "active",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    _index: index
+  };
+}
+
 async function profileIdForInput(value, client = getPool()) {
   const raw = String(value || "").trim();
   if (!raw) return null;
@@ -1955,6 +2173,189 @@ async function createExpertOrganization(input = {}) {
   }
 }
 
+async function listStakeholderTypes({ includeArchived = false } = {}) {
+  const where = includeArchived ? "" : "where status <> 'archived'";
+  const { rows } = await getPool().query(`select * from stakeholder_types ${where} order by sort_order asc, label asc`);
+  return rows.map(mapStakeholderType);
+}
+
+async function listStakeholderOrganizations({ includeArchived = false, stakeholderTypeId = "" } = {}) {
+  const filters = [];
+  const values = [];
+  if (!includeArchived) filters.push("stakeholder_organizations.status <> 'archived'");
+  if (stakeholderTypeId) {
+    values.push(stakeholderTypeId);
+    filters.push(`stakeholder_organizations.stakeholder_type_id = $${values.length}`);
+  }
+  const where = filters.length ? `where ${filters.join(" and ")}` : "";
+  const { rows } = await getPool().query(
+    `select stakeholder_organizations.*,
+            (
+              select count(*)::int
+              from stakeholder_people
+              where stakeholder_people.status <> 'archived'
+                and stakeholder_people.organization_id = stakeholder_organizations.id
+            ) as person_count
+     from stakeholder_organizations
+     ${where}
+     order by stakeholder_organizations.name asc`,
+    values
+  );
+  return rows.map((row) => mapStakeholderOrganization(row, row.person_count || 0));
+}
+
+async function listStakeholderPeople({ includeArchived = false, stakeholderTypeId = "", representativeAssembly = false } = {}) {
+  const filters = [];
+  const values = [];
+  if (!includeArchived) filters.push("status <> 'archived'");
+  if (stakeholderTypeId) {
+    values.push(stakeholderTypeId);
+    filters.push(`stakeholder_type_id = $${values.length}`);
+  }
+  if (representativeAssembly) filters.push("is_representative_assembly_member is true");
+  const where = filters.length ? `where ${filters.join(" and ")}` : "";
+  const { rows } = await getPool().query(`select * from stakeholder_people ${where} order by name asc`, values);
+  return rows.map(mapStakeholderPerson);
+}
+
+async function upsertStakeholderImport(input = {}) {
+  const client = await getPool().connect();
+  try {
+    await client.query("begin");
+    const types = Array.isArray(input.types) && input.types.length
+      ? input.types
+      : [{ id: "kv", label: "Kassenärztliche Vereinigungen", sortOrder: 10, status: "active" }];
+    for (const type of types) {
+      await client.query(
+        `insert into stakeholder_types (id, label, description, sort_order, status)
+         values ($1, $2, $3, $4, $5)
+         on conflict (id) do update
+         set label = excluded.label,
+             description = excluded.description,
+             sort_order = excluded.sort_order,
+             status = excluded.status`,
+        [
+          String(type.id || "kv").trim(),
+          String(type.label || type.name || "Kassenärztliche Vereinigungen").trim(),
+          String(type.description || "").trim(),
+          Number(type.sortOrder ?? type.sort_order ?? 10),
+          type.status || "active"
+        ]
+      );
+    }
+    for (const organization of Array.isArray(input.organizations) ? input.organizations : []) {
+      const name = String(organization.name || organization.organization || "").trim();
+      if (!name) continue;
+      await client.query(
+        `insert into stakeholder_organizations
+          (id, stakeholder_type_id, name, normalized_name, organization_type, postal_code, city,
+           federal_state, latitude, longitude, website, phone, email, notes, source, status)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+         on conflict (id) do update
+         set stakeholder_type_id = excluded.stakeholder_type_id,
+             name = excluded.name,
+             normalized_name = excluded.normalized_name,
+             organization_type = excluded.organization_type,
+             postal_code = excluded.postal_code,
+             city = excluded.city,
+             federal_state = excluded.federal_state,
+             latitude = excluded.latitude,
+             longitude = excluded.longitude,
+             website = excluded.website,
+             phone = excluded.phone,
+             email = excluded.email,
+             notes = excluded.notes,
+             source = excluded.source,
+             status = excluded.status`,
+        [
+          String(organization.id || slugId("stakeholder-org", name)).trim(),
+          organization.stakeholderTypeId || organization.stakeholder_type_id || organization.stakeholderType || "kv",
+          name,
+          normalizeName(organization.normalizedName || organization.normalized_name || name),
+          organization.organizationType || organization.organization_type || null,
+          organization.postalCode || organization.postal_code || null,
+          organization.city || null,
+          organization.state || organization.federal_state || null,
+          Number.isFinite(Number(organization.lat ?? organization.latitude)) ? Number(organization.lat ?? organization.latitude) : null,
+          Number.isFinite(Number(organization.lon ?? organization.longitude)) ? Number(organization.lon ?? organization.longitude) : null,
+          organization.website || organization.url || null,
+          organization.phone || null,
+          organization.email || null,
+          organization.notes || organization.note || null,
+          organization.source || "Stakeholder-Import",
+          organization.status || "active"
+        ]
+      );
+    }
+    for (const person of Array.isArray(input.people) ? input.people : []) {
+      const name = String(person.name || "").trim();
+      if (!name) continue;
+      await client.query(
+        `insert into stakeholder_people
+          (id, stakeholder_type_id, organization_id, organization, name, role, committee, city,
+           federal_state, latitude, longitude, map_position_source, email, phone, linkedin,
+           topics, notes, source, profile_url, is_representative_assembly_member, status)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+         on conflict (id) do update
+         set stakeholder_type_id = excluded.stakeholder_type_id,
+             organization_id = excluded.organization_id,
+             organization = excluded.organization,
+             name = excluded.name,
+             role = excluded.role,
+             committee = excluded.committee,
+             city = excluded.city,
+             federal_state = excluded.federal_state,
+             latitude = excluded.latitude,
+             longitude = excluded.longitude,
+             map_position_source = excluded.map_position_source,
+             email = excluded.email,
+             phone = excluded.phone,
+             linkedin = excluded.linkedin,
+             topics = excluded.topics,
+             notes = excluded.notes,
+             source = excluded.source,
+             profile_url = excluded.profile_url,
+             is_representative_assembly_member = excluded.is_representative_assembly_member,
+             status = excluded.status`,
+        [
+          String(person.id || slugId("stakeholder-person", name)).trim(),
+          person.stakeholderTypeId || person.stakeholder_type_id || person.stakeholderType || "kv",
+          person.organizationId || person.organization_id || null,
+          person.organization || null,
+          name,
+          person.role || person.contactRole || null,
+          person.committee || person.gremium || null,
+          person.city || null,
+          person.state || person.federal_state || null,
+          Number.isFinite(Number(person.lat ?? person.latitude)) ? Number(person.lat ?? person.latitude) : null,
+          Number.isFinite(Number(person.lon ?? person.longitude)) ? Number(person.lon ?? person.longitude) : null,
+          person.mapPositionSource || person.map_position_source || null,
+          person.email || null,
+          person.phone || null,
+          person.linkedin || null,
+          splitList(person.themes || person.topics),
+          person.note || person.notes || null,
+          person.source || "Stakeholder-Import",
+          person.url || person.profileUrl || person.profile_url || null,
+          Boolean(person.isRepresentativeAssemblyMember ?? person.is_representative_assembly_member),
+          person.status || "active"
+        ]
+      );
+    }
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+  return {
+    types: await listStakeholderTypes({ includeArchived: true }),
+    organizations: await listStakeholderOrganizations({ includeArchived: true }),
+    people: await listStakeholderPeople({ includeArchived: true })
+  };
+}
+
 async function listExpertEntityLinks() {
   const { rows } = await getPool().query("select * from expert_entity_links order by updated_at desc");
   return rows.map(mapExpertEntityLink);
@@ -2260,7 +2661,10 @@ async function exportDemoData() {
     expertGroups,
     expertContacts,
     expertOrganizations,
-    expertEntityLinks
+    expertEntityLinks,
+    stakeholderTypes,
+    stakeholderOrganizations,
+    stakeholderPeople
   ] = await Promise.all([
     getOpsSummary(),
     getOpsChecks(),
@@ -2274,7 +2678,10 @@ async function exportDemoData() {
     listExpertGroups({ includeArchived: true }),
     listExpertContacts({ includeArchived: true }),
     listExpertOrganizations({ includeArchived: true }),
-    listExpertEntityLinks()
+    listExpertEntityLinks(),
+    listStakeholderTypes({ includeArchived: true }),
+    listStakeholderOrganizations({ includeArchived: true }),
+    listStakeholderPeople({ includeArchived: true })
   ]);
   return {
     exportedAt: new Date().toISOString(),
@@ -2291,7 +2698,10 @@ async function exportDemoData() {
     expertGroups,
     expertContacts,
     expertOrganizations,
-    expertEntityLinks
+    expertEntityLinks,
+    stakeholderTypes,
+    stakeholderOrganizations,
+    stakeholderPeople
   };
 }
 
@@ -2821,7 +3231,21 @@ async function handleApi(request, response, url) {
 
     if (request.method === "GET" && url.pathname === "/api/bootstrap") {
       const includeArchived = url.searchParams.get("includeArchived") === "true";
-      const [session, profiles, organizations, contacts, changes, formats, expertGroups, expertContacts, expertOrganizations, expertEntityLinks] = await Promise.all([
+      const [
+        session,
+        profiles,
+        organizations,
+        contacts,
+        changes,
+        formats,
+        expertGroups,
+        expertContacts,
+        expertOrganizations,
+        expertEntityLinks,
+        stakeholderTypes,
+        stakeholderOrganizations,
+        stakeholderPeople
+      ] = await Promise.all([
         getDemoSession(),
         listProfiles(),
         listOrganizations({ includeArchived }),
@@ -2831,9 +3255,26 @@ async function handleApi(request, response, url) {
         listExpertGroups({ includeArchived }),
         listExpertContacts({ includeArchived }),
         listExpertOrganizations({ includeArchived }),
-        listExpertEntityLinks()
+        listExpertEntityLinks(),
+        listStakeholderTypes({ includeArchived }),
+        listStakeholderOrganizations({ includeArchived }),
+        listStakeholderPeople({ includeArchived })
       ]);
-      sendJson(response, 200, { session, profiles, organizations, contacts, changes, formats, expertGroups, expertContacts, expertOrganizations, expertEntityLinks });
+      sendJson(response, 200, {
+        session,
+        profiles,
+        organizations,
+        contacts,
+        changes,
+        formats,
+        expertGroups,
+        expertContacts,
+        expertOrganizations,
+        expertEntityLinks,
+        stakeholderTypes,
+        stakeholderOrganizations,
+        stakeholderPeople
+      });
       return;
     }
 
@@ -2981,6 +3422,38 @@ async function handleApi(request, response, url) {
     const expertEntityLinkMatch = /^\/api\/expert-entity-links\/([^/]+)$/.exec(url.pathname);
     if (expertEntityLinkMatch && request.method === "DELETE") {
       sendJson(response, 200, await deleteExpertEntityLink(decodeURIComponent(expertEntityLinkMatch[1])));
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/stakeholder-types") {
+      sendJson(response, 200, { items: await listStakeholderTypes({ includeArchived: url.searchParams.get("includeArchived") === "true" }) });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/stakeholder-organizations") {
+      sendJson(response, 200, {
+        items: await listStakeholderOrganizations({
+          includeArchived: url.searchParams.get("includeArchived") === "true",
+          stakeholderTypeId: url.searchParams.get("stakeholderTypeId") || ""
+        })
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/stakeholder-people") {
+      sendJson(response, 200, {
+        items: await listStakeholderPeople({
+          includeArchived: url.searchParams.get("includeArchived") === "true",
+          stakeholderTypeId: url.searchParams.get("stakeholderTypeId") || "",
+          representativeAssembly: url.searchParams.get("representativeAssembly") === "true"
+        })
+      });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/stakeholder-import") {
+      const body = await readJson(request);
+      sendJson(response, 200, await upsertStakeholderImport(body.import || body));
       return;
     }
 

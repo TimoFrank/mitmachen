@@ -214,6 +214,63 @@ create table if not exists expert_entity_links (
   )
 );
 
+create table if not exists stakeholder_types (
+  id text primary key,
+  label text not null,
+  description text,
+  sort_order integer not null default 100,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists stakeholder_organizations (
+  id text primary key,
+  stakeholder_type_id text not null references stakeholder_types(id) on delete restrict,
+  name text not null,
+  normalized_name text not null,
+  organization_type text,
+  postal_code text,
+  city text,
+  federal_state text,
+  latitude double precision,
+  longitude double precision,
+  website text,
+  phone text,
+  email text,
+  notes text,
+  source text,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists stakeholder_people (
+  id text primary key,
+  stakeholder_type_id text not null references stakeholder_types(id) on delete restrict,
+  organization_id text references stakeholder_organizations(id) on delete set null,
+  organization text,
+  name text not null,
+  role text,
+  committee text,
+  city text,
+  federal_state text,
+  latitude double precision,
+  longitude double precision,
+  map_position_source text,
+  email text,
+  phone text,
+  linkedin text,
+  topics text[] not null default '{}',
+  notes text,
+  source text,
+  profile_url text,
+  is_representative_assembly_member boolean not null default false,
+  status text not null default 'active' check (status in ('active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists profiles_active_idx on profiles(active);
 create index if not exists organizations_status_idx on organizations(status);
 create index if not exists organizations_normalized_name_idx on organizations(normalized_name);
@@ -250,6 +307,15 @@ create index if not exists expert_entity_links_contact_idx on expert_entity_link
 create index if not exists expert_entity_links_expert_contact_idx on expert_entity_links(expert_contact_id);
 create index if not exists expert_entity_links_organization_idx on expert_entity_links(organization_id);
 create index if not exists expert_entity_links_expert_organization_idx on expert_entity_links(expert_organization_id);
+create index if not exists stakeholder_types_status_idx on stakeholder_types(status);
+create index if not exists stakeholder_organizations_type_idx on stakeholder_organizations(stakeholder_type_id);
+create index if not exists stakeholder_organizations_normalized_name_idx on stakeholder_organizations(normalized_name);
+create index if not exists stakeholder_organizations_state_idx on stakeholder_organizations(federal_state);
+create index if not exists stakeholder_organizations_status_idx on stakeholder_organizations(status);
+create index if not exists stakeholder_people_type_idx on stakeholder_people(stakeholder_type_id);
+create index if not exists stakeholder_people_organization_idx on stakeholder_people(organization_id);
+create index if not exists stakeholder_people_representative_idx on stakeholder_people(is_representative_assembly_member);
+create index if not exists stakeholder_people_status_idx on stakeholder_people(status);
 
 create or replace function touch_updated_at()
 returns trigger
@@ -304,4 +370,19 @@ for each row execute function touch_updated_at();
 drop trigger if exists expert_entity_links_touch_updated_at on expert_entity_links;
 create trigger expert_entity_links_touch_updated_at
 before update on expert_entity_links
+for each row execute function touch_updated_at();
+
+drop trigger if exists stakeholder_types_touch_updated_at on stakeholder_types;
+create trigger stakeholder_types_touch_updated_at
+before update on stakeholder_types
+for each row execute function touch_updated_at();
+
+drop trigger if exists stakeholder_organizations_touch_updated_at on stakeholder_organizations;
+create trigger stakeholder_organizations_touch_updated_at
+before update on stakeholder_organizations
+for each row execute function touch_updated_at();
+
+drop trigger if exists stakeholder_people_touch_updated_at on stakeholder_people;
+create trigger stakeholder_people_touch_updated_at
+before update on stakeholder_people
 for each row execute function touch_updated_at();

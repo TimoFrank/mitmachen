@@ -8,7 +8,7 @@ function authSession() {
   };
 }
 
-async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "", demoDataScript = "" } = {}) {
+async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "", demoDataScript = "", dataServiceScript = "" } = {}) {
   await page.route("**/login/auth-guard.js", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
@@ -55,6 +55,14 @@ async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo"
       });
     });
   }
+  if (dataServiceScript) {
+    await page.route("**/data/data-service.js", async (route) => {
+      await route.fulfill({
+        contentType: "application/javascript",
+        body: dataServiceScript
+      });
+    });
+  }
   await page.goto("/");
   await page.evaluate(
     ({ key, session }) => {
@@ -66,10 +74,116 @@ async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo"
   await expect(page).not.toHaveURL(/\/login\/login\.html/);
 }
 
-async function attachScreenshot(page, testInfo, name) {
+function onboardingDataServiceScript({ createdAt = "2026-06-09T08:30:00.000Z", completed = false } = {}) {
+  return `
+    (() => {
+      let profile = {
+        id: "11111111-1111-4111-8111-111111111111",
+        email: "steffen@example.test",
+        display_name: "steffen",
+        initials: "ST",
+        role: "viewer",
+        active: true,
+        avatar_url: "",
+        team: "",
+        bio: "",
+        created_at: ${JSON.stringify(createdAt)},
+        updated_at: ${JSON.stringify(createdAt)}
+      };
+      let settings = ${completed ? `{
+        userId: profile.id,
+        defaultViewType: "contacts",
+        tableDensity: "comfortable",
+        theme: "system",
+        fontScale: 1,
+        pageSize: 20,
+        preferences: {
+          onboarding: {
+            version: 1,
+            profileCompletedAt: "2026-06-09T09:00:00.000Z",
+            tourOfferedAt: "2026-06-09T09:00:05.000Z",
+            tourSkippedAt: "2026-06-09T09:01:00.000Z"
+          }
+        }
+      }` : `null`};
+      const contacts = [
+        {
+          id: "contact-anna",
+          name: "Anna Versorgung",
+          organization: "Praxis Mitte",
+          category: "Praxis",
+          sector: "Praxis",
+          specialty: "Allgemeinmedizin",
+          city: "Berlin",
+          state: "Berlin",
+          priority: "Mittel",
+          ownerId: profile.id,
+          status: "active",
+          updatedAt: "2026-06-09T09:00:00.000Z"
+        }
+      ];
+      window.dataService = {
+        isConfigured: () => true,
+        getClient: () => ({ auth: { signOut: async () => ({}) } }),
+        getProfiles: async () => [profile],
+        getCurrentProfile: async () => profile,
+        updateCurrentProfile: async (patch = {}) => {
+          profile = {
+            ...profile,
+            display_name: patch.displayName ?? patch.display_name ?? profile.display_name,
+            initials: patch.initials ?? profile.initials,
+            team: patch.team ?? profile.team,
+            avatar_url: patch.avatarUrl ?? patch.avatar_url ?? profile.avatar_url,
+            updated_at: new Date().toISOString()
+          };
+          return profile;
+        },
+        uploadCurrentProfileImage: async () => {
+          profile = { ...profile, avatar_url: "https://example.test/avatar.jpg" };
+          return profile.avatar_url;
+        },
+        removeCurrentProfileImage: async () => {
+          profile = { ...profile, avatar_url: "" };
+          return profile;
+        },
+        loadContacts: async () => contacts,
+        getContacts: async () => contacts,
+        getContact: async (id) => contacts.find((contact) => contact.id === id),
+        loadOrganizations: async () => [],
+        getOrganization: async () => null,
+        loadExpertGroups: async () => [],
+        loadExpertContacts: async () => [],
+        loadExpertOrganizations: async () => [],
+        loadExpertEntityLinks: async () => [],
+        loadFormats: async () => [],
+        getSavedViews: async () => [],
+        getUserSettings: async () => settings,
+        upsertUserSettings: async (next = {}) => {
+          settings = {
+            userId: profile.id,
+            defaultViewType: next.defaultViewType || "contacts",
+            tableDensity: next.tableDensity || "comfortable",
+            theme: next.theme || "system",
+            fontScale: next.fontScale || 1,
+            pageSize: next.pageSize || 20,
+            preferences: next.preferences || {},
+            updatedAt: new Date().toISOString()
+          };
+          window.__vkSettings = settings;
+          return settings;
+        },
+        getDashboardStats: async () => ({ total: contacts.length, bySector: { Praxis: 1 }, byState: { Berlin: 1 }, byPriority: { Mittel: 1 } }),
+        getMapData: async () => [],
+        getContactChanges: async () => []
+      };
+    })();
+  `;
+}
+
+async function attachScreenshot(page, testInfo, name, options = {}) {
   await page.screenshot({
     path: testInfo.outputPath(`${name}.png`),
-    fullPage: true
+    fullPage: options.fullPage ?? true
   });
 }
 
@@ -188,6 +302,51 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
 
   await attachScreenshot(page, testInfo, "kontakte");
+});
+
+test("Onboarding: neuer Supabase-Account richtet Profil ein und startet Tour", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#map", {
+    dataMode: "supabase",
+    dataServiceScript: onboardingDataServiceScript()
+  });
+
+  await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
+  await expect(page.locator("#workspace-view-title")).toHaveText("Willkommen");
+  await expect(page.locator("#onboarding-display-name")).toHaveValue("steffen");
+  await page.locator("#onboarding-profile-submit").click();
+  await expect(page.locator("#onboarding-status")).toContainText("Team");
+
+  await page.locator("#onboarding-team").selectOption("Produktmanagement");
+  await page.locator("#onboarding-profile-submit").click();
+  await expect(page.locator("#onboarding-tour-panel")).toBeVisible();
+
+  await page.locator("#onboarding-tour-start").click();
+  await expect(page.locator("#product-tour")).toBeVisible();
+  await expect(page.locator("#product-tour-meta")).toHaveText("Schritt 1 von 6");
+  await expect(page.locator(".product-tour-highlight")).toHaveCount(1);
+  await page.locator("#product-tour-next").click();
+  await expect(page.locator("#product-tour-meta")).toHaveText("Schritt 2 von 6");
+  await page.locator("#product-tour-prev").click();
+  await expect(page.locator("#product-tour-meta")).toHaveText("Schritt 1 von 6");
+  await page.keyboard.press("Escape");
+
+  await expect(page.locator("#product-tour")).toBeHidden();
+  await expect(page.locator('[data-view-panel="map"]')).toBeVisible();
+  const settings = await page.evaluate(() => window.__vkSettings);
+  expect(settings.preferences.onboarding.profileCompletedAt).toBeTruthy();
+  expect(settings.preferences.onboarding.tourSkippedAt).toBeTruthy();
+
+  await attachScreenshot(page, testInfo, "onboarding");
+});
+
+test("Onboarding: abgeschlossener neuer Account landet direkt in Kontakte", async ({ page }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", {
+    dataMode: "supabase",
+    dataServiceScript: onboardingDataServiceScript({ completed: true })
+  });
+
+  await expect(page.locator('[data-view-panel="onboarding"]')).toBeHidden();
+  await expect(page.locator("#contact-list")).toBeVisible();
 });
 
 test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, testInfo) => {
@@ -443,6 +602,66 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
   await attachScreenshot(page, testInfo, "kontaktprofil");
 });
 
+test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
+
+  await page.locator("#contact-list .row, #contact-list .mobile-contact-card").first().click();
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await page.locator('[data-view-tab="organizations"]:visible').first().click();
+  await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
+
+  await attachScreenshot(page, testInfo, "drawer-wechsel-organisationen", { fullPage: false });
+
+  await expect(page.locator("#organization-list .row, #organization-list .mobile-contact-card").first()).toBeVisible();
+  await page.locator("#organization-list .row, #organization-list .mobile-contact-card").first().click();
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await page.locator('[data-view-tab="contacts"]:visible').first().click();
+  await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
+
+  await attachScreenshot(page, testInfo, "drawer-wechsel-kontakte", { fullPage: false });
+});
+
+test("Kontaktprofil: Notizen als Chat pflegen", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
+
+  await page.locator("#contact-list .row, #contact-list .mobile-contact-card").first().click();
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await page.locator(".detail-tab").filter({ hasText: "Notizen" }).click();
+  await expect(page.locator("#contact-notes-composer")).toBeVisible();
+
+  await page.locator("#contact-notes-message").fill("Testnotiz aus dem Kontakt-Visualtest");
+  await page.locator("#contact-notes-composer").getByRole("button", { name: "Notiz senden" }).click();
+  await expect(page.locator("#detail-notes .format-chat-message").filter({ hasText: "Testnotiz aus dem Kontakt-Visualtest" })).toBeVisible();
+  await expect(page.locator("#detail-notes .format-chat-meta time").last()).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "kontaktprofil-notizen-chat", { fullPage: false });
+
+  await page.locator("[data-edit-contact-note]").last().click();
+  await page.locator("[data-contact-note-edit-form] textarea").fill("Bearbeitete Testnotiz aus dem Kontakt-Visualtest");
+  await page.locator("[data-contact-note-edit-form]").getByRole("button", { name: "Speichern" }).click();
+  await expect(page.locator("#detail-notes .format-chat-message").filter({ hasText: "Bearbeitete Testnotiz aus dem Kontakt-Visualtest" })).toBeVisible();
+  await expect(page.locator("#detail-notes .format-chat-message").filter({ hasText: "bearbeitet" })).toBeVisible();
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator("[data-delete-contact-note]").last().click();
+  await expect(page.locator("#detail-notes .format-chat-message").filter({ hasText: "Bearbeitete Testnotiz aus dem Kontakt-Visualtest" })).toHaveCount(0);
+});
+
+test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "viewer" });
+
+  await page.locator("#contact-list .row, #contact-list .mobile-contact-card").first().click();
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await page.locator(".detail-tab").filter({ hasText: "Notizen" }).click();
+
+  await expect(page.locator("#detail-notes .format-chat-message").first()).toBeVisible();
+  await expect(page.locator("#detail-notes .format-chat-message").first()).toContainText("Bisherige Notiz");
+  await expect(page.locator("#contact-notes-composer")).toHaveCount(0);
+  await expect(page.locator("#detail-notes .detail-permission-note")).toBeVisible();
+});
+
 test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/map/versorgungs-kompass-map.html");
 
@@ -462,6 +681,9 @@ test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => 
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#sidebar-import-button")).toBeHidden();
+  await expect(page.locator('[data-sidebar-section="import"]')).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Import" })).toBeHidden();
+  await expect(page.locator('[data-sidebar-section="analysis"]')).toHaveAttribute("aria-hidden", "false");
   await expect(page.locator("#archive-view-button")).toBeHidden();
 
   await attachScreenshot(page, testInfo, "viewer-rolle");
@@ -471,6 +693,7 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "admin" });
 
   await expect(page.locator("#contact-list")).toBeVisible();
+  await expect(page.locator('[data-sidebar-section="import"]')).toHaveAttribute("aria-hidden", "false");
   await expect(page.locator("#sidebar-import-button")).toBeVisible();
   await expect(page.locator("#archive-view-button")).toHaveAttribute("aria-hidden", "false");
   if (!testInfo.project.name.includes("mobile")) {
@@ -601,6 +824,51 @@ test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page })
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
 });
 
+test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
+
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
+  await expect(page.locator('button[data-stakeholder-mode="organizations"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("17 Organisationen");
+  await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toBeVisible();
+  await expect(page.locator("#stakeholder-header-search #search")).toBeVisible();
+  await expect(page.locator("#expert-header-search #search")).toHaveCount(0);
+
+  await page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first().click();
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await expect(page.locator("#stakeholder-organization-overview")).toBeVisible();
+  await page.locator('[data-detail-tab="people"]').click();
+  await expect(page.locator("#stakeholder-organization-people")).toBeVisible();
+  await expect(page.locator("#stakeholder-organization-people")).toContainText("VV Demo");
+  await page.locator("#detail-close").click();
+  await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
+
+  await page.locator('button[data-stakeholder-mode="people"]').click();
+  await expect(page.locator("#stakeholder-people-table")).toBeVisible();
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("3 Personen");
+
+  await page.locator('button[data-stakeholder-mode="map"]').click();
+  await expect(page.locator("#stakeholder-map-panel")).toBeVisible();
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("3 Personen");
+  await page.evaluate(() => {
+    window.postMessage({ type: "versorgungs-kompass-open-detail", realm: "stakeholders", id: "stakeholder-person-demo-1" }, "*");
+  });
+  await expect(page.locator("#stakeholder-person-overview")).toBeVisible();
+  await expect(page.locator("#stakeholder-person-overview")).toContainText("Vertreterversammlung");
+
+  await attachScreenshot(page, testInfo, "stakeholder-kvn");
+});
+
+test("Stakeholder: KVn-Bereich ist nur fuer Admins sichtbar", async ({ page }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "viewer" });
+
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
+  await expect(page.locator('button[data-view-tab="stakeholders"]')).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator('button[data-view-tab="stakeholders"]')).toHaveClass(/is-role-hidden/);
+  await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveAttribute("aria-hidden", "true");
+  await expect(page).toHaveURL(/#contacts$/);
+});
+
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
 
@@ -693,18 +961,19 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-participant-map")).not.toContainText("Personen mit Koordinaten");
   await page.locator('[data-format-tab="notes"]').click();
   await expect(page.locator("#format-notes-composer")).toBeVisible();
+  const formatChatMessages = page.locator("#format-detail-panel .format-chat-message");
   await page.locator("#format-notes-message").fill("Testnotiz aus dem Formate-Visualtest");
   await page.locator("#format-notes-composer").getByRole("button", { name: "Notiz senden" }).click();
-  await expect(page.locator(".format-chat-message")).toContainText("Testnotiz aus dem Formate-Visualtest");
-  await expect(page.locator(".format-chat-meta time")).toBeVisible();
+  await expect(formatChatMessages).toContainText("Testnotiz aus dem Formate-Visualtest");
+  await expect(page.locator("#format-detail-panel .format-chat-meta time")).toBeVisible();
   await page.locator("[data-edit-format-note]").first().click();
   await page.locator("[data-format-note-edit-form] textarea").fill("Bearbeitete Testnotiz aus dem Formate-Visualtest");
   await page.locator("[data-format-note-edit-form]").getByRole("button", { name: "Speichern" }).click();
-  await expect(page.locator(".format-chat-message")).toContainText("Bearbeitete Testnotiz aus dem Formate-Visualtest");
-  await expect(page.locator(".format-chat-message")).toContainText("bearbeitet");
+  await expect(formatChatMessages).toContainText("Bearbeitete Testnotiz aus dem Formate-Visualtest");
+  await expect(formatChatMessages).toContainText("bearbeitet");
   page.once("dialog", (dialog) => dialog.accept());
   await page.locator("[data-delete-format-note]").first().click();
-  await expect(page.locator(".format-chat-message")).toHaveCount(0);
+  await expect(formatChatMessages).toHaveCount(0);
   await page.locator('[data-format-tab="settings"]').click();
   await expect(page.locator("#export-format-participants")).toBeVisible();
   await expect(page.locator("[data-archive-format]")).toBeVisible();

@@ -175,6 +175,52 @@ const EXPERT_ENTITY_LINK_FIELDS = [
   "updated_at",
   "updated_by"
 ];
+const STAKEHOLDER_TYPE_FIELDS = ["id", "label", "description", "sort_order", "status", "created_at", "updated_at"];
+const STAKEHOLDER_ORGANIZATION_FIELDS = [
+  "id",
+  "stakeholder_type_id",
+  "name",
+  "normalized_name",
+  "organization_type",
+  "postal_code",
+  "city",
+  "federal_state",
+  "latitude",
+  "longitude",
+  "website",
+  "phone",
+  "email",
+  "notes",
+  "source",
+  "status",
+  "created_at",
+  "updated_at"
+];
+const STAKEHOLDER_PEOPLE_FIELDS = [
+  "id",
+  "stakeholder_type_id",
+  "organization_id",
+  "organization",
+  "name",
+  "role",
+  "committee",
+  "city",
+  "federal_state",
+  "latitude",
+  "longitude",
+  "map_position_source",
+  "email",
+  "phone",
+  "linkedin",
+  "topics",
+  "notes",
+  "source",
+  "profile_url",
+  "is_representative_assembly_member",
+  "status",
+  "created_at",
+  "updated_at"
+];
 const PORT = Number(process.env.PORT || 8081);
 const SUPABASE_URL = withoutTrailingSlash(process.env.SUPABASE_URL || "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
@@ -386,6 +432,7 @@ const EXPERT_ENTITY_LINK_INPUT_FIELDS = [
   "confidence",
   "score"
 ];
+const STAKEHOLDER_IMPORT_INPUT_FIELDS = ["types", "organizations", "people"];
 
 let profileCache = { expiresAt: 0, byId: new Map() };
 
@@ -609,6 +656,80 @@ function expertEntityLinkToDto(row = {}) {
     createdBy: row.created_by || "",
     updatedAt: row.updated_at || "",
     updatedBy: row.updated_by || ""
+  };
+}
+
+function stakeholderTypeToDto(row, index = 0) {
+  return {
+    id: row.id || `stakeholder-type-${index + 1}`,
+    label: row.label || "",
+    description: row.description || "",
+    sortOrder: Number(row.sort_order ?? (index + 1) * 10),
+    status: row.status || "active",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function stakeholderOrganizationToDto(row, personCount = 0) {
+  return {
+    id: row.id || "",
+    stakeholderTypeId: row.stakeholder_type_id || "",
+    stakeholderType: row.stakeholder_type_id || "",
+    name: row.name || "",
+    normalizedName: row.normalized_name || normalizeOrganizationName(row.name),
+    organizationType: row.organization_type || "",
+    postalCode: row.postal_code || "",
+    city: row.city || "",
+    state: row.federal_state || "",
+    latitude: row.latitude,
+    longitude: row.longitude,
+    lat: Number.isFinite(Number(row.latitude)) ? Number(row.latitude) : null,
+    lon: Number.isFinite(Number(row.longitude)) ? Number(row.longitude) : null,
+    website: row.website || "",
+    phone: row.phone || "",
+    email: row.email || "",
+    notes: row.notes || "",
+    source: row.source || "",
+    status: row.status || "active",
+    personCount,
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function stakeholderPersonToDto(row, index = 0) {
+  const topics = splitList(row.topics);
+  return {
+    id: row.id || `stakeholder-person-${index + 1}`,
+    stakeholderTypeId: row.stakeholder_type_id || "",
+    stakeholderType: row.stakeholder_type_id || "",
+    organizationId: row.organization_id || "",
+    organization: row.organization || "",
+    name: row.name || "",
+    role: row.role || "",
+    contactRole: row.role || "",
+    committee: row.committee || "",
+    city: row.city || "",
+    state: row.federal_state || "",
+    latitude: row.latitude,
+    longitude: row.longitude,
+    lat: Number.isFinite(Number(row.latitude)) ? Number(row.latitude) : null,
+    lon: Number.isFinite(Number(row.longitude)) ? Number(row.longitude) : null,
+    mapPositionSource: row.map_position_source || "",
+    email: row.email || "",
+    phone: row.phone || "",
+    linkedin: row.linkedin || "",
+    themes: topics,
+    note: row.notes || "",
+    source: row.source || "",
+    sources: splitList(row.source),
+    url: row.profile_url || "",
+    isRepresentativeAssemblyMember: Boolean(row.is_representative_assembly_member),
+    status: row.status || "active",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    _index: index
   };
 }
 
@@ -1001,6 +1122,65 @@ function expertOrganizationCreateToDb(organization = {}) {
     throw error;
   }
   return db;
+}
+
+function stakeholderTypeToDb(type = {}) {
+  return {
+    id: String(type.id || type.value || "kv").trim(),
+    label: String(type.label || type.name || "Kassenärztliche Vereinigungen").trim(),
+    description: String(type.description || "").trim() || null,
+    sort_order: Number(type.sortOrder ?? type.sort_order ?? 10),
+    status: type.status || "active"
+  };
+}
+
+function stakeholderOrganizationToDb(organization = {}) {
+  const name = String(organization.name || organization.organization || "").trim();
+  return {
+    id: String(organization.id || generatedId("stakeholder-org")).trim(),
+    stakeholder_type_id: String(organization.stakeholderTypeId || organization.stakeholder_type_id || organization.stakeholderType || "kv").trim() || "kv",
+    name,
+    normalized_name: normalizeOrganizationName(organization.normalizedName || organization.normalized_name || name),
+    organization_type: String(organization.organizationType || organization.organization_type || "").trim() || null,
+    postal_code: String(organization.postalCode || organization.postal_code || "").trim() || null,
+    city: String(organization.city || "").trim() || null,
+    federal_state: String(organization.state || organization.federal_state || "").trim() || null,
+    latitude: Number.isFinite(Number(organization.lat ?? organization.latitude)) ? Number(organization.lat ?? organization.latitude) : null,
+    longitude: Number.isFinite(Number(organization.lon ?? organization.longitude)) ? Number(organization.lon ?? organization.longitude) : null,
+    website: String(organization.website || organization.url || "").trim() || null,
+    phone: String(organization.phone || "").trim() || null,
+    email: String(organization.email || "").trim() || null,
+    notes: String(organization.notes || organization.note || "").trim() || null,
+    source: String(organization.source || "").trim() || "Stakeholder-Import",
+    status: organization.status || "active"
+  };
+}
+
+function stakeholderPersonToDb(person = {}) {
+  const name = String(person.name || "").trim();
+  return {
+    id: String(person.id || generatedId("stakeholder-person")).trim(),
+    stakeholder_type_id: String(person.stakeholderTypeId || person.stakeholder_type_id || person.stakeholderType || "kv").trim() || "kv",
+    organization_id: person.organizationId || person.organization_id || null,
+    organization: String(person.organization || "").trim() || null,
+    name,
+    role: String(person.role || person.contactRole || "").trim() || null,
+    committee: String(person.committee || person.gremium || "").trim() || null,
+    city: String(person.city || "").trim() || null,
+    federal_state: String(person.state || person.federal_state || "").trim() || null,
+    latitude: Number.isFinite(Number(person.lat ?? person.latitude)) ? Number(person.lat ?? person.latitude) : null,
+    longitude: Number.isFinite(Number(person.lon ?? person.longitude)) ? Number(person.lon ?? person.longitude) : null,
+    map_position_source: String(person.mapPositionSource || person.map_position_source || "").trim() || null,
+    email: String(person.email || "").trim() || null,
+    phone: String(person.phone || "").trim() || null,
+    linkedin: String(person.linkedin || "").trim() || null,
+    topics: splitList(person.themes || person.topics),
+    notes: String(person.note || person.notes || "").trim() || null,
+    source: String(person.source || splitList(person.sources).join("; ")).trim() || "Stakeholder-Import",
+    profile_url: String(person.url || person.profileUrl || person.profile_url || "").trim() || null,
+    is_representative_assembly_member: Boolean(person.isRepresentativeAssemblyMember ?? person.is_representative_assembly_member),
+    status: person.status || "active"
+  };
 }
 
 function jsonResponse(response, status, payload, headers = {}) {
@@ -1436,6 +1616,89 @@ async function createExpertEntityLink(request) {
     body: payload
   });
   return expertEntityLinkToDto(rows?.[0]);
+}
+
+async function listStakeholderTypes(request, url) {
+  const params = new URLSearchParams({
+    select: STAKEHOLDER_TYPE_FIELDS.join(","),
+    order: "sort_order.asc,label.asc"
+  });
+  if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
+  const rows = await supabaseRest("stakeholder_types", request, params);
+  return { items: (rows || []).map(stakeholderTypeToDto) };
+}
+
+async function stakeholderPeopleCounts(request, ids = []) {
+  if (!ids.length) return new Map();
+  const params = new URLSearchParams({
+    select: "organization_id",
+    organization_id: `in.(${ids.join(",")})`,
+    status: "neq.archived"
+  });
+  const rows = await supabaseRest("stakeholder_people", request, params);
+  return (rows || []).reduce((counts, row) => {
+    if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
+    return counts;
+  }, new Map());
+}
+
+async function listStakeholderOrganizations(request, url) {
+  const params = new URLSearchParams({
+    select: STAKEHOLDER_ORGANIZATION_FIELDS.join(","),
+    order: "name.asc"
+  });
+  if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
+  if (url.searchParams.get("stakeholderTypeId")) params.set("stakeholder_type_id", `eq.${url.searchParams.get("stakeholderTypeId")}`);
+  const rows = await supabaseRest("stakeholder_organizations", request, params);
+  const counts = await stakeholderPeopleCounts(request, (rows || []).map((row) => row.id));
+  return { items: (rows || []).map((row) => stakeholderOrganizationToDto(row, counts.get(row.id) || 0)) };
+}
+
+async function listStakeholderPeople(request, url) {
+  const params = new URLSearchParams({
+    select: STAKEHOLDER_PEOPLE_FIELDS.join(","),
+    order: "name.asc"
+  });
+  if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
+  if (url.searchParams.get("stakeholderTypeId")) params.set("stakeholder_type_id", `eq.${url.searchParams.get("stakeholderTypeId")}`);
+  if (url.searchParams.get("representativeAssembly") === "true") params.set("is_representative_assembly_member", "eq.true");
+  const rows = await supabaseRest("stakeholder_people", request, params);
+  return { items: (rows || []).map(stakeholderPersonToDto) };
+}
+
+async function upsertStakeholderImport(request) {
+  const body = await readValidatedJsonBody(request, STAKEHOLDER_IMPORT_INPUT_FIELDS, "Stakeholder-Import");
+  const types = (Array.isArray(body.types) ? body.types : []).map(stakeholderTypeToDb);
+  const organizations = (Array.isArray(body.organizations) ? body.organizations : []).map(stakeholderOrganizationToDb).filter((row) => row.name);
+  const people = (Array.isArray(body.people) ? body.people : []).map(stakeholderPersonToDb).filter((row) => row.name);
+
+  if (types.length) {
+    await supabaseRest("stakeholder_types", request, new URLSearchParams({ on_conflict: "id" }), {
+      method: "POST",
+      headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+      body: types
+    });
+  }
+  if (organizations.length) {
+    await supabaseRest("stakeholder_organizations", request, new URLSearchParams({ on_conflict: "id" }), {
+      method: "POST",
+      headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+      body: organizations
+    });
+  }
+  if (people.length) {
+    await supabaseRest("stakeholder_people", request, new URLSearchParams({ on_conflict: "id" }), {
+      method: "POST",
+      headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+      body: people
+    });
+  }
+
+  return {
+    types: (await listStakeholderTypes(request, new URL("http://local/api/stakeholder-types?includeArchived=true"))).items,
+    organizations: (await listStakeholderOrganizations(request, new URL("http://local/api/stakeholder-organizations?includeArchived=true"))).items,
+    people: (await listStakeholderPeople(request, new URL("http://local/api/stakeholder-people?includeArchived=true"))).items
+  };
 }
 
 async function deleteExpertEntityLink(request, id) {
@@ -2039,6 +2302,18 @@ async function handle(request, response) {
     }
     if (request.method === "POST" && url.pathname === "/api/expert-entity-links") {
       return jsonResponse(response, 201, await createExpertEntityLink(request));
+    }
+    if (request.method === "GET" && url.pathname === "/api/stakeholder-types") {
+      return jsonResponse(response, 200, await listStakeholderTypes(request, url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/stakeholder-organizations") {
+      return jsonResponse(response, 200, await listStakeholderOrganizations(request, url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/stakeholder-people") {
+      return jsonResponse(response, 200, await listStakeholderPeople(request, url));
+    }
+    if (request.method === "POST" && url.pathname === "/api/stakeholder-import") {
+      return jsonResponse(response, 200, await upsertStakeholderImport(request));
     }
     if (request.method === "GET" && url.pathname === "/api/profiles") {
       return jsonResponse(response, 200, await listProfiles(request));
