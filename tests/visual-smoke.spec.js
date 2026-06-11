@@ -703,6 +703,46 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
   await attachScreenshot(page, testInfo, "admin-rolle");
 });
 
+test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ page }, testInfo) => {
+  await page.setViewportSize(testInfo.project.name.includes("mobile")
+    ? { width: 390, height: 460 }
+    : { width: 1440, height: 460 });
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "admin" });
+
+  const sidebar = page.locator(".app-sidebar");
+  await expect(sidebar).toBeVisible();
+
+  const scrollMetrics = await sidebar.evaluate((element) => {
+    element.scrollTop = 0;
+    const scrollHeight = element.scrollHeight;
+    const clientHeight = element.clientHeight;
+    element.scrollTop = scrollHeight;
+    return {
+      clientHeight,
+      overflowY: getComputedStyle(element).overflowY,
+      scrollHeight,
+      scrollTop: element.scrollTop
+    };
+  });
+  expect(scrollMetrics.overflowY).toMatch(/auto|scroll/);
+  if (!testInfo.project.name.includes("mobile")) {
+    expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
+    expect(scrollMetrics.scrollTop).toBeGreaterThan(0);
+  }
+
+  await expect(page.locator("#sidebar-profile-button")).toBeInViewport();
+  await page.locator("#sidebar-profile-button").click();
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+
+  await sidebar.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await page.locator("#sidebar-team-button").click();
+  await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "sidebar-scroll");
+});
+
 test("Mein Profil: Einstellungen sind als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#profile-settings", { role: "admin" });
 
