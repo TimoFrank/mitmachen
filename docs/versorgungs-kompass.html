@@ -13026,6 +13026,21 @@
         inset: 0;
         background: rgba(15, 23, 42, 0.34);
         pointer-events: auto;
+        z-index: 0;
+      }
+
+      .product-tour__spotlight[hidden] {
+        display: none;
+      }
+
+      .product-tour__spotlight {
+        position: fixed;
+        border: 3px solid var(--primary);
+        border-radius: var(--radius-md);
+        box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 16%, transparent);
+        pointer-events: none;
+        transition: top 0.14s ease, left 0.14s ease, width 0.14s ease, height 0.14s ease;
+        z-index: 1;
       }
 
       .product-tour__panel {
@@ -13040,7 +13055,7 @@
         box-shadow: var(--shadow-lg);
         color: var(--text-primary);
         pointer-events: auto;
-        z-index: 212;
+        z-index: 2;
       }
 
       .product-tour__meta {
@@ -13075,12 +13090,7 @@
       }
 
       .product-tour-highlight {
-        position: relative;
-        z-index: 211;
-        border-radius: var(--radius-md);
-        outline: 3px solid var(--primary);
-        outline-offset: 4px;
-        box-shadow: 0 0 0 8px rgba(21, 95, 228, 0.16);
+        scroll-margin: 96px;
       }
 
       @media (max-width: 760px) {
@@ -18703,15 +18713,19 @@
                     <div class="onboarding-tour-list" aria-label="Tour-Inhalte">
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">1</span>
-                        <span><strong>Kontakte und Schnellaktionen</strong><span>Die Kontaktliste ist der tägliche Ausgangspunkt für Suche, Pflege und neue Einträge.</span></span>
+                        <span><strong>Sidebar und Kontakte</strong><span>Die Tour startet in der Navigation und zeigt den täglichen Ausgangspunkt für Suche, Pflege und neue Einträge.</span></span>
                       </div>
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">2</span>
-                        <span><strong>Filter, Owner und Profile</strong><span>Ansichten, Filter und CRM-Profile helfen dir, wiederkehrende Arbeit schneller zu erledigen.</span></span>
+                        <span><strong>Filter, Owner und CRM-Profile</strong><span>Ansichten, Filter und Lesemodus-Profile helfen dir, wiederkehrende Arbeit schneller zu erledigen.</span></span>
                       </div>
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">3</span>
-                        <span><strong>Karte, Auswertung, Team</strong><span>Regionale Orientierung, operative Kennzahlen und Team-Zuständigkeiten bleiben nah beieinander.</span></span>
+                        <span><strong>Organisationen, Karte und Auswertung</strong><span>Unterseiten für Einrichtungen, regionale Orientierung und operative Kennzahlen werden direkt angesteuert.</span></span>
+                      </div>
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">4</span>
+                        <span><strong>Team, Profil und Admin-Pflege</strong><span>Team und eigenes Profil schließen die Tour ab; Admins sehen zusätzlich Datenqualität und Importe.</span></span>
                       </div>
                     </div>
                     <div class="profile-status" id="onboarding-tour-status" aria-live="polite"></div>
@@ -18868,19 +18882,6 @@
                   </div>
                 </div>
               </section>
-              <section class="profile-section profile-onboarding-section" aria-labelledby="profile-onboarding-title">
-                <h3 id="profile-onboarding-title">Onboarding</h3>
-                <div class="profile-onboarding-card">
-                  <div class="profile-onboarding-copy">
-                    <strong>Produkttour durch den Versorgungs-Kompass</strong>
-                    <span>Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Kontakte, Filter, Profile, Karte, Auswertung, Importe und Team.</span>
-                    <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
-                  </div>
-                  <div class="profile-onboarding-actions">
-                    <button class="action-button action-button--primary" type="button" id="profile-tour-start">Tour starten</button>
-                  </div>
-                </div>
-              </section>
               <section class="profile-section">
                 <h3>Basisdaten</h3>
                 <div class="profile-grid">
@@ -18916,6 +18917,19 @@
                   <summary id="profile-owner-summary">Du bist Owner von 0 Kontakten.</summary>
                   <div class="profile-owner-list" id="profile-owner-list"></div>
                 </details>
+              </section>
+              <section class="profile-section profile-onboarding-section" aria-labelledby="profile-onboarding-title">
+                <h3 id="profile-onboarding-title">Onboarding</h3>
+                <div class="profile-onboarding-card">
+                  <div class="profile-onboarding-copy">
+                    <strong>Produkttour durch den Versorgungs-Kompass</strong>
+                    <span>Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Sidebar, Kontakte, Filter, CRM-Profile, Organisationen, Karte, Auswertung, Importe, Team und Profil.</span>
+                    <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
+                  </div>
+                  <div class="profile-onboarding-actions">
+                    <button class="action-button action-button--primary" type="button" id="profile-tour-start">Tour starten</button>
+                  </div>
+                </div>
               </section>
               <section class="profile-section">
                 <h3>Rolle &amp; Berechtigungen</h3>
@@ -19050,8 +19064,9 @@
 
     <aside class="product-tour" id="product-tour" aria-hidden="true" hidden>
       <div class="product-tour__backdrop" id="product-tour-backdrop"></div>
+      <div class="product-tour__spotlight" id="product-tour-spotlight" hidden></div>
       <section class="product-tour__panel" id="product-tour-panel" role="dialog" aria-labelledby="product-tour-title" aria-describedby="product-tour-copy" tabindex="-1">
-        <div class="product-tour__meta" id="product-tour-meta">Schritt 1 von 6</div>
+        <div class="product-tour__meta" id="product-tour-meta">Schritt 1</div>
         <h3 id="product-tour-title">Kontakte</h3>
         <p id="product-tour-copy">Die wichtigsten Funktionen erscheinen hier Schritt für Schritt.</p>
         <div class="product-tour__actions">
@@ -20664,6 +20679,7 @@
       const onboardingStepDots = [...document.querySelectorAll("[data-onboarding-step-dot]")];
       const onboardingStepPanels = [...document.querySelectorAll("[data-onboarding-step-panel]")];
       const productTour = document.getElementById("product-tour");
+      const productTourSpotlight = document.getElementById("product-tour-spotlight");
       const productTourPanel = document.getElementById("product-tour-panel");
       const productTourMeta = document.getElementById("product-tour-meta");
       const productTourTitle = document.getElementById("product-tour-title");
@@ -26688,9 +26704,16 @@
       const productTourSteps = [
         {
           view: "contacts",
+          target: ".primary-nav",
+          placement: "right",
+          title: "Navigation in der Sidebar",
+          body: "Die Sidebar ist der stabile Einstieg in alle Arbeitsbereiche. Von hier wechselst du zwischen Versorgungskontakten, Analyse, Import, Team und Profil."
+        },
+        {
+          view: "contacts",
           target: "#view-contacts .table-command-row",
           title: "Kontakte und Schnellaktionen",
-          body: "Die Kontaktliste ist der Startpunkt für tägliche CRM-Arbeit. Hier liegen neue Kontakte, Archiv, Dubletten und die wichtigsten Tabellenaktionen im Arbeitskontext."
+          body: "Die Kontaktliste ist der Startpunkt für tägliche CRM-Arbeit. Neue Kontakte, Archiv, Dubletten und Tabellenaktionen bleiben im Arbeitskontext."
         },
         {
           view: "contacts",
@@ -26700,76 +26723,181 @@
         },
         {
           view: "contacts",
-          target: "#contact-list",
-          title: "CRM-Profile lesen",
-          body: "Ein Kontakt öffnet zuerst im Lesemodus. Stammdaten, Organisation, Kontaktwege, Themen und Verlauf bleiben scanbar, bevor du bewusst in die Bearbeitung wechselst."
+          target: "#detail-panel .detail-profile-top",
+          prepare: "contact-detail",
+          title: "CRM-Profil im Lesemodus",
+          body: "Ein Kontakt öffnet zuerst als lesbares Profil. Stammdaten, Organisation, Kontaktwege, Themen und Verlauf bleiben scanbar, bevor du bewusst bearbeitest."
+        },
+        {
+          view: "organizations",
+          target: "#view-organizations .organizations-table",
+          title: "Organisationen",
+          body: "Organisationen sind eigene CRM-Profile und zeigen die Einrichtungen hinter den Kontakten, inklusive Standort, Sektor und Kontaktbezug."
+        },
+        {
+          view: "activities",
+          target: "#view-activities .activities-feed-shell",
+          nonAdminOnly: true,
+          title: "Aktivitäten",
+          body: "Die Aktivitäten zeigen nachvollziehbar, was im Datenbestand passiert ist. Das hilft bei Zusammenarbeit und späterer Einordnung."
         },
         {
           view: "map",
           target: "#map-view-frame",
-          title: "Organisationen und Karte",
-          body: "Organisationen haben eigene Profile; die Karte ergänzt den Blick auf regionale Verteilung und Standortkontext der aktuellen Auswahl."
+          title: "Karte",
+          body: "Die Karte ergänzt den Blick auf regionale Verteilung und Standortkontext der aktuellen Auswahl, ohne die Kontaktliste zu ersetzen."
         },
         {
           view: "analytics",
           target: "#view-analytics .analytics-shell",
-          title: "Auswertung und Datenqualität",
-          body: "Die Auswertung beantwortet operative Fragen zur Verteilung. Datenqualität bleibt für Admins als eigener Pflegebereich erreichbar."
+          title: "Auswertung",
+          body: "Die Auswertung beantwortet operative Fragen zur Verteilung, Priorität, regionalen Abdeckung und unterrepräsentierten Bereichen."
         },
         {
-          view: "team",
-          target: "#sidebar-profile-button",
+          view: "quality",
+          target: "#view-quality .quality-workspace",
+          adminOnly: true,
+          title: "Datenqualität",
+          body: "Admins sehen hier Arbeitslisten für fehlende Angaben und Datenpflege. So wird Qualität zu einer konkreten Aufgabe statt zu einem abstrakten Hinweis."
+        },
+        {
+          view: "settings",
+          target: "#settings-tab-imports",
+          settingsTab: "imports",
+          adminOnly: true,
+          title: "Importe und Online-Erfassung",
+          body: "Importe sind ein eigener Pflegebereich: Dateiimport, Online-Erfassung, Registrierungen und Historie bleiben zusammen und getrennt von der Kontaktliste."
+        },
+        {
+          view: "profile",
+          target: ".sidebar-account-section",
+          placement: "right",
+          profileTab: "profile",
           title: "Team, Importe und eigenes Profil",
-          body: "Im Team-Bereich siehst du Accounts und Zuständigkeiten. Dein Profil bleibt unten in der Sidebar erreichbar; Importe erscheinen rollenabhängig im eigenen Arbeitsbereich."
+          body: "Team und eigenes Profil bleiben unten in der Sidebar erreichbar. In Mein Profil kannst du diese Tour jederzeit erneut starten."
         }
       ];
+
+      function visibleProductTourSteps() {
+        return productTourSteps.filter((step) => {
+          if (step.adminOnly && !canAdministerData()) return false;
+          if (step.nonAdminOnly && canAdministerData()) return false;
+          if (step.view === "settings") return canAdministerData();
+          if (step.view === "quality") return canAdministerData();
+          return canAccessView(step.view);
+        });
+      }
+
+      function currentProductTourSteps() {
+        return productTourState.steps?.length ? productTourState.steps : visibleProductTourSteps();
+      }
 
       function removeProductTourHighlight() {
         productTourState.target?.classList.remove("product-tour-highlight");
         productTourState.target = null;
+        if (productTourSpotlight) {
+          productTourSpotlight.hidden = true;
+          ["top", "left", "width", "height"].forEach((property) => productTourSpotlight.style.removeProperty(property));
+        }
       }
 
       function targetForProductTourStep(step) {
         return document.querySelector(step.target) || document.querySelector(`[data-view-panel="${step.view}"]`) || viewShell;
       }
 
-      function positionProductTourPanel(target) {
+      function positionProductTourSpotlight(target) {
+        if (!productTourSpotlight || !target) return;
+        const rect = target.getBoundingClientRect();
+        if (!rect.width || !rect.height) {
+          productTourSpotlight.hidden = true;
+          return;
+        }
+        const gap = 8;
+        const pad = 4;
+        const top = Math.max(gap, rect.top - pad);
+        const left = Math.max(gap, rect.left - pad);
+        const right = Math.min(window.innerWidth - gap, rect.right + pad);
+        const bottom = Math.min(window.innerHeight - gap, rect.bottom + pad);
+        productTourSpotlight.style.top = `${Math.round(top)}px`;
+        productTourSpotlight.style.left = `${Math.round(left)}px`;
+        productTourSpotlight.style.width = `${Math.round(Math.max(44, right - left))}px`;
+        productTourSpotlight.style.height = `${Math.round(Math.max(36, bottom - top))}px`;
+        productTourSpotlight.hidden = false;
+      }
+
+      function prepareProductTourStep(step) {
+        if (step.view !== "contacts" && detailDrawer?.classList.contains("is-open")) closeDetail();
+        if (step.settingsTab) setSettingsTab(step.settingsTab);
+        if (step.profileTab) setProfileTab(step.profileTab);
+        if (step.prepare === "contact-detail") {
+          const items = filteredContacts();
+          const contact = items[0] || contacts[0];
+          if (contact) openDetail(contact.id, items.length ? items : contacts);
+        } else if (step.view === "contacts" && detailDrawer?.classList.contains("is-open")) {
+          closeDetail();
+        }
+      }
+
+      function scrollProductTourTargetIntoView(target) {
+        try {
+          target?.scrollIntoView?.({ block: "center", inline: "nearest" });
+        } catch (_error) {
+          target?.scrollIntoView?.();
+        }
+      }
+
+      function positionProductTourPanel(target, step = null) {
         if (!productTourPanel || !target) return;
         if (isMobileLayout()) {
           productTourPanel.style.removeProperty("top");
           productTourPanel.style.removeProperty("left");
+          positionProductTourSpotlight(target);
           return;
         }
         const rect = target.getBoundingClientRect();
         const panelRect = productTourPanel.getBoundingClientRect();
         const gap = 14;
-        let top = rect.bottom + gap;
-        if (top + panelRect.height > window.innerHeight - gap) {
-          top = Math.max(gap, rect.top - panelRect.height - gap);
+        let top;
+        let left;
+        if (step?.placement === "right" && rect.right + panelRect.width + gap <= window.innerWidth - gap) {
+          top = Math.min(Math.max(gap, rect.top), window.innerHeight - panelRect.height - gap);
+          left = rect.right + gap;
+        } else {
+          top = rect.bottom + gap;
+          if (top + panelRect.height > window.innerHeight - gap) {
+            top = Math.max(gap, rect.top - panelRect.height - gap);
+          }
+          left = Math.min(Math.max(gap, rect.left), window.innerWidth - panelRect.width - gap);
         }
-        let left = Math.min(Math.max(gap, rect.left), window.innerWidth - panelRect.width - gap);
         productTourPanel.style.top = `${Math.round(top)}px`;
         productTourPanel.style.left = `${Math.round(left)}px`;
+        positionProductTourSpotlight(target);
       }
 
       function renderProductTourStep() {
         if (!productTourState.open) return;
-        const step = productTourSteps[productTourState.index] || productTourSteps[0];
+        const steps = currentProductTourSteps();
+        const step = steps[productTourState.index] || steps[0];
+        if (!step) return;
         removeProductTourHighlight();
         setActiveView(step.view);
         updateRouteHash(step.view);
         updateView();
+        prepareProductTourStep(step);
         window.requestAnimationFrame(() => {
           const target = targetForProductTourStep(step);
-          productTourState.target = target;
-          target?.classList.add("product-tour-highlight");
-          if (productTourMeta) productTourMeta.textContent = `Schritt ${productTourState.index + 1} von ${productTourSteps.length}`;
-          if (productTourTitle) productTourTitle.textContent = step.title;
-          if (productTourCopy) productTourCopy.textContent = step.body;
-          if (productTourPrev) productTourPrev.disabled = productTourState.index === 0;
-          if (productTourNext) productTourNext.textContent = productTourState.index === productTourSteps.length - 1 ? "Fertig" : "Weiter";
-          positionProductTourPanel(target);
-          productTourPanel?.focus?.();
+          scrollProductTourTargetIntoView(target);
+          window.requestAnimationFrame(() => {
+            productTourState.target = target;
+            target?.classList.add("product-tour-highlight");
+            if (productTourMeta) productTourMeta.textContent = `Schritt ${productTourState.index + 1} von ${steps.length}`;
+            if (productTourTitle) productTourTitle.textContent = step.title;
+            if (productTourCopy) productTourCopy.textContent = step.body;
+            if (productTourPrev) productTourPrev.disabled = productTourState.index === 0;
+            if (productTourNext) productTourNext.textContent = productTourState.index === steps.length - 1 ? "Fertig" : "Weiter";
+            positionProductTourPanel(target, step);
+            productTourPanel?.focus?.();
+          });
         });
       }
 
@@ -26780,7 +26908,7 @@
       async function closeProductTour({ skipped = false } = {}) {
         if (!productTourState.open) return;
         const source = productTourState.source;
-        productTourState = { open: false, index: 0, source: "manual", target: productTourState.target };
+        productTourState = { open: false, index: 0, source: "manual", target: productTourState.target, steps: [] };
         removeProductTourHighlight();
         productTour.hidden = true;
         productTour.setAttribute("aria-hidden", "true");
@@ -26801,7 +26929,7 @@
           onboardingActive = false;
         }
         if (isTrackedProductTourSource(source)) await persistOnboardingState({ tourOfferedAt: onboardingPreferences().tourOfferedAt || new Date().toISOString() });
-        productTourState = { open: true, index: 0, source, target: null };
+        productTourState = { open: true, index: 0, source, target: null, steps: visibleProductTourSteps() };
         productTour.hidden = false;
         productTour.setAttribute("aria-hidden", "false");
         renderProductTourStep();
@@ -26809,8 +26937,9 @@
 
       async function advanceProductTour(direction = 1) {
         if (!productTourState.open) return;
+        const steps = currentProductTourSteps();
         const nextIndex = productTourState.index + direction;
-        if (nextIndex >= productTourSteps.length) {
+        if (nextIndex >= steps.length) {
           await closeProductTour({ skipped: false });
           return;
         }
@@ -35756,7 +35885,10 @@
         if (nextMobileLayout) setMobileSidebarExpanded(false);
         else appShell?.classList.remove("is-mobile-sidebar-expanded");
         if (layoutChanged) updateView();
-        if (productTourState.open) positionProductTourPanel(productTourState.target);
+        if (productTourState.open) {
+          const steps = currentProductTourSteps();
+          positionProductTourPanel(productTourState.target, steps[productTourState.index] || null);
+        }
       });
 
       function routeViewFromHash() {

@@ -74,6 +74,18 @@ async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo"
   await expect(page).not.toHaveURL(/\/login\/login\.html/);
 }
 
+async function expectTourPanelInteractive(page) {
+  await expect(page.locator("#product-tour-panel")).toBeVisible();
+  const panelReceivesPointer = await page.locator("#product-tour-panel").evaluate((panel) => {
+    const rect = panel.getBoundingClientRect();
+    const x = Math.min(Math.max(rect.left + rect.width / 2, 0), window.innerWidth - 1);
+    const y = Math.min(Math.max(rect.top + rect.height / 2, 0), window.innerHeight - 1);
+    const topElement = document.elementFromPoint(x, y);
+    return Boolean(topElement && (topElement === panel || panel.contains(topElement)));
+  });
+  expect(panelReceivesPointer).toBe(true);
+}
+
 function onboardingDataServiceScript({ createdAt = "2026-06-09T08:30:00.000Z", completed = false } = {}) {
   return `
     (() => {
@@ -770,6 +782,7 @@ test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ pag
 for (const role of ["admin", "editor", "viewer"]) {
   test(`Mein Profil: Onboarding-Tour ist für ${role} startbar`, async ({ page }) => {
     await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role });
+    const expectedStepCount = role === "admin" ? 10 : 9;
 
     await page.locator("#sidebar-profile-button").click();
     await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
@@ -779,11 +792,46 @@ for (const role of ["admin", "editor", "viewer"]) {
 
     await page.locator("#profile-tour-start").click();
     await expect(page.locator("#product-tour")).toBeVisible();
-    await expect(page.locator("#product-tour-meta")).toHaveText("Schritt 1 von 6");
+    await expect(page.locator("#product-tour-meta")).toHaveText(`Schritt 1 von ${expectedStepCount}`);
+    await expect(page.locator("#product-tour-title")).toHaveText("Navigation in der Sidebar");
+    await expectTourPanelInteractive(page);
     await page.locator("#product-tour-skip").click();
     await expect(page.locator("#product-tour")).toBeHidden();
   });
 }
+
+test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "admin" });
+  await page.locator("#sidebar-profile-button").click();
+  await page.locator("#profile-tour-start").click();
+
+  const expectedTitles = [
+    "Navigation in der Sidebar",
+    "Kontakte und Schnellaktionen",
+    "Suche, Filter und Owner",
+    "CRM-Profil im Lesemodus",
+    "Organisationen",
+    "Karte",
+    "Auswertung",
+    "Datenqualität",
+    "Importe und Online-Erfassung",
+    "Team, Importe und eigenes Profil"
+  ];
+
+  for (const [index, title] of expectedTitles.entries()) {
+    await expect(page.locator("#product-tour-title")).toHaveText(title);
+    await expect(page.locator("#product-tour-meta")).toHaveText(`Schritt ${index + 1} von ${expectedTitles.length}`);
+    await expectTourPanelInteractive(page);
+
+    if (title === "Karte") await expect(page.locator('[data-view-panel="map"]')).toBeVisible();
+    if (title === "Auswertung") await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();
+
+    await page.locator("#product-tour-next").click();
+  }
+
+  await expect(page.locator("#product-tour")).toBeHidden();
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+});
 
 test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
