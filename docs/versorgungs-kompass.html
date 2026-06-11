@@ -18688,7 +18688,7 @@
                   <section class="profile-tab-panel" id="onboarding-tour-panel" data-onboarding-step-panel="tour" hidden>
                     <div class="onboarding-heading">
                       <h3>Kurze Tour durch die App</h3>
-                      <p>Die Tour zeigt dir die wichtigsten Arbeitsbereiche direkt in der Oberfläche. Du kannst sie jederzeit über dein Konto erneut starten.</p>
+                      <p>Die Tour zeigt dir die wichtigsten Arbeitsbereiche direkt in der Oberfläche. Du kannst sie jederzeit in Mein Profil erneut starten.</p>
                     </div>
                     <div class="onboarding-tour-list" aria-label="Tour-Inhalte">
                       <div class="onboarding-tour-item">
@@ -18858,6 +18858,19 @@
                   </div>
                 </div>
               </section>
+              <section class="profile-section profile-onboarding-section" aria-labelledby="profile-onboarding-title">
+                <h3 id="profile-onboarding-title">Onboarding</h3>
+                <div class="profile-onboarding-card">
+                  <div class="profile-onboarding-copy">
+                    <strong>Produkttour durch den Versorgungs-Kompass</strong>
+                    <span>Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Kontakte, Filter, Profile, Karte, Auswertung, Importe und Team.</span>
+                    <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
+                  </div>
+                  <div class="profile-onboarding-actions">
+                    <button class="action-button action-button--primary" type="button" id="profile-tour-start">Tour starten</button>
+                  </div>
+                </div>
+              </section>
               <section class="profile-section">
                 <h3>Basisdaten</h3>
                 <div class="profile-grid">
@@ -18884,19 +18897,6 @@
                         <option value="Strategie">Strategie</option>
                       </select>
                     </div>
-                  </div>
-                </div>
-              </section>
-              <section class="profile-section profile-onboarding-section" aria-labelledby="profile-onboarding-title">
-                <h3 id="profile-onboarding-title">Onboarding</h3>
-                <div class="profile-onboarding-card">
-                  <div class="profile-onboarding-copy">
-                    <strong>Produkttour durch den Versorgungs-Kompass</strong>
-                    <span>Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Kontakte, Filter, Profile, Karte, Auswertung, Importe und Team.</span>
-                    <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
-                  </div>
-                  <div class="profile-onboarding-actions">
-                    <button class="action-button action-button--primary" type="button" id="profile-tour-start">Tour starten</button>
                   </div>
                 </div>
               </section>
@@ -35008,6 +35008,14 @@
       profilePhotoPick?.addEventListener("click", () => profilePhotoInput?.click());
       profilePhotoInput?.addEventListener("change", () => handleProfilePhotoFile(profilePhotoInput.files?.[0]));
       profilePhotoRemove?.addEventListener("click", removeProfilePhoto);
+      profileTourStart?.addEventListener("click", async () => {
+        if (profileDirty) {
+          setProfileStatus("Bitte speichere oder verwirf deine Profiländerungen, bevor du die Tour startest.", true);
+          return;
+        }
+        setProfileStatus("");
+        await startProductTour("profile");
+      });
       onboardingProfileForm?.addEventListener("submit", saveOnboardingProfile);
       onboardingDisplayName?.addEventListener("input", () => {
         setOnboardingStatus("");
@@ -35403,7 +35411,8 @@
       });
       accountTourButton?.addEventListener("click", () => {
         closeMenus();
-        startProductTour("manual");
+        openProfileTab("profile");
+        profileTourStart?.focus();
       });
       accountQualityButton?.addEventListener("click", () => {
         closeMenus();

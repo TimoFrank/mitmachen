@@ -727,6 +727,24 @@ test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ pag
   await attachScreenshot(page, testInfo, "profil-about");
 });
 
+for (const role of ["admin", "editor", "viewer"]) {
+  test(`Mein Profil: Onboarding-Tour ist für ${role} startbar`, async ({ page }) => {
+    await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role });
+
+    await page.locator("#sidebar-profile-button").click();
+    await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+    await expect(page.locator("#profile-tab-profile")).toBeVisible();
+    await expect(page.locator("#profile-onboarding-status")).toBeVisible();
+    await expect(page.locator("#profile-tour-start")).toBeVisible();
+
+    await page.locator("#profile-tour-start").click();
+    await expect(page.locator("#product-tour")).toBeVisible();
+    await expect(page.locator("#product-tour-meta")).toHaveText("Schritt 1 von 6");
+    await page.locator("#product-tour-skip").click();
+    await expect(page.locator("#product-tour")).toBeHidden();
+  });
+}
+
 test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
 
