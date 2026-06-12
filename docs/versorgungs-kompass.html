@@ -587,6 +587,148 @@
         margin: 0;
       }
 
+      .notification-popover {
+        position: fixed;
+        width: min(380px, calc(100vw - 24px));
+        max-height: min(520px, calc(100vh - 24px));
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        box-shadow: var(--shadow-md);
+        z-index: 120;
+      }
+
+      .notification-popover[hidden] {
+        display: none;
+      }
+
+      .notification-popover__head,
+      .notification-popover__footer {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .notification-popover__title {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        font-weight: 950;
+        line-height: var(--line-height-tight);
+      }
+
+      .notification-popover__meta {
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 750;
+      }
+
+      .notification-popover__list {
+        min-height: 0;
+        max-height: min(360px, calc(100vh - 180px));
+        display: grid;
+        align-content: start;
+        gap: 8px;
+        overflow: auto;
+      }
+
+      .notification-preview-item {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: inherit;
+        cursor: pointer;
+        padding: 10px;
+        text-align: left;
+      }
+
+      .notification-preview-item:hover,
+      .notification-preview-item:focus-visible {
+        border-color: var(--border-strong);
+        background: var(--surface-muted);
+        outline: none;
+      }
+
+      .notification-preview-item.is-unread {
+        border-color: var(--border-strong);
+        box-shadow: inset 3px 0 0 var(--danger);
+      }
+
+      .notification-preview-item .notification-item__icon {
+        width: 32px;
+        height: 32px;
+      }
+
+      .notification-preview-item .notification-item__icon svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .notification-preview-item__copy {
+        min-width: 0;
+      }
+
+      .notification-preview-item__title {
+        display: block;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+        line-height: var(--line-height-tight);
+        overflow-wrap: anywhere;
+      }
+
+      .notification-preview-item__text,
+      .notification-preview-item__meta {
+        display: block;
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        line-height: var(--line-height-normal);
+        overflow-wrap: anywhere;
+      }
+
+      .notification-preview-item__meta {
+        font-weight: 800;
+      }
+
+      .notification-popover__empty,
+      .notification-popover__loading,
+      .notification-popover__error {
+        min-height: 112px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+        line-height: var(--line-height-normal);
+        padding: 18px;
+        text-align: center;
+      }
+
+      .notification-popover__error {
+        color: var(--danger);
+      }
+
+      .notification-popover__footer {
+        align-items: center;
+        justify-content: flex-end;
+        padding-top: 2px;
+      }
+
       .app-shell.is-sidebar-collapsed .sidebar-nav .primary-tab .notification-count-indicator,
       .app-shell.is-sidebar-collapsed .sidebar-link .notification-count-indicator,
       .app-shell.is-sidebar-collapsed .sidebar-notification-button .notification-count-indicator {
@@ -4553,7 +4695,8 @@
         gap: 8px;
       }
 
-      .notification-item__unread-dot {
+      .notification-item__unread-dot,
+      .notification-unread-dot {
         width: 9px;
         height: 9px;
         flex: 0 0 auto;
@@ -4595,6 +4738,14 @@
       .notifications-load-more {
         min-width: 160px;
         justify-content: center;
+      }
+
+      .profile-notifications-workspace {
+        min-height: 0;
+      }
+
+      .profile-notifications-workspace .notifications-feed-shell {
+        min-height: 360px;
       }
 
       .history-action-pill--owner {
@@ -4655,11 +4806,16 @@
         }
 
         .notifications-command-row {
+          width: 100%;
+          min-width: 0;
           align-items: stretch;
           flex-direction: column;
         }
 
         .notifications-filters {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
           flex-wrap: nowrap;
           overflow-x: auto;
           padding-bottom: 2px;
@@ -4677,8 +4833,17 @@
 
         .notifications-command-actions {
           width: 100%;
-          justify-content: space-between;
+          min-width: 0;
+          max-width: 100%;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          justify-content: stretch;
           margin-left: 0;
+        }
+
+        .notifications-command-actions .action-button {
+          width: 100%;
+          justify-content: center;
         }
 
         .notifications-meta {
@@ -4686,8 +4851,17 @@
         }
 
         .notifications-feed-shell {
+          width: 100%;
+          min-width: 0;
           min-height: 360px;
           padding: 10px;
+        }
+
+        .notifications-empty,
+        .notifications-loading,
+        .notifications-error {
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         .notification-item {
@@ -4703,6 +4877,10 @@
         .notification-item__actions {
           grid-column: 2;
           justify-content: flex-start;
+        }
+
+        .profile-notifications-workspace {
+          min-width: 0;
         }
 
         .sidebar-nav .primary-tab .notification-count-indicator,
@@ -4721,6 +4899,12 @@
 
         .notification-count-indicator[hidden] {
           display: none !important;
+        }
+
+        .notification-popover {
+          left: 12px !important;
+          right: 12px;
+          width: auto;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-nav .primary-tab .notification-count-indicator,
@@ -13350,6 +13534,7 @@
       }
 
       .profile-page .profile-section {
+        min-width: 0;
         border-color: var(--border);
         border-radius: var(--radius-md);
         box-shadow: none;
@@ -18569,6 +18754,33 @@
         }
 
       }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) .workspace-copy,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #summary-grid {
+        display: none;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-header {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-header .workspace-actions,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-expert-switcher,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .experts-mode-nav--header {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
+        flex-direction: row;
+        gap: 8px;
+        min-height: 54px;
+        padding: 0 16px;
+      }
+
+      .app-shell[data-active-view="stakeholders"] .experts-mode-label {
+        display: inline-flex;
+      }
     </style>
   </head>
   <body>
@@ -18606,7 +18818,7 @@
               </svg>
               <span>Expertenkreis</span>
             </button>
-            <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Kassenärztliche Vereinigungen">
+            <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Stakeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <path d="M3 21h18"></path>
                 <path d="M5 21V7l7-4 7 4v14"></path>
@@ -18615,7 +18827,7 @@
                 <path d="M12 9h.01"></path>
                 <path d="M15 9h.01"></path>
               </svg>
-              <span>KVn</span>
+              <span>Stakeholder</span>
             </button>
           </div>
           <div class="sidebar-section" aria-label="Planung" data-sidebar-section="planning">
@@ -18682,13 +18894,28 @@
                 <span id="sidebar-user-role">Admin</span>
               </div>
             </button>
-            <button class="sidebar-notification-button" type="button" id="sidebar-notifications-button" aria-label="Benachrichtigungen öffnen" title="Benachrichtigungen">
+            <button class="sidebar-notification-button" type="button" id="sidebar-notifications-button" aria-label="Benachrichtigungen öffnen" aria-controls="notification-popover" aria-expanded="false" title="Benachrichtigungen">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
                 <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
               </svg>
               <span class="notification-count-indicator" id="notification-count-total" hidden>0</span>
             </button>
+          </div>
+          <div class="notification-popover" id="notification-popover" role="dialog" aria-labelledby="notification-popover-title" hidden>
+            <div class="notification-popover__head">
+              <div>
+                <h3 class="notification-popover__title" id="notification-popover-title">Neue Benachrichtigungen</h3>
+                <div class="notification-popover__meta" id="notification-popover-meta">Wird geladen</div>
+              </div>
+              <button class="detail-close" type="button" id="notification-popover-close" aria-label="Benachrichtigungen schließen">×</button>
+            </div>
+            <div class="notification-popover__list" id="notification-popover-list" aria-live="polite">
+              <div class="notification-popover__loading">Benachrichtigungen werden geladen...</div>
+            </div>
+            <div class="notification-popover__footer">
+              <button class="action-button action-button--compact" type="button" id="notification-popover-all">Alle Benachrichtigungen</button>
+            </div>
           </div>
         </div>
         <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" title="Menü einklappen">
@@ -18752,7 +18979,7 @@
           <div class="workspace-expert-switcher" id="stakeholder-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Stakeholder-Listen">
               <button class="settings-tab-button is-active" type="button" role="tab" data-stakeholder-mode="organizations" aria-selected="true" aria-controls="stakeholder-organizations-table">
-                <span class="experts-mode-label">Organisationen </span>
+                <span class="experts-mode-label">KVn </span>
                 <span class="experts-mode-count">0</span>
               </button>
               <button class="settings-tab-button" type="button" role="tab" data-stakeholder-mode="people" aria-selected="false" aria-controls="stakeholder-people-table">
@@ -19047,34 +19274,6 @@
                 </div>
                 <div class="activities-load-more-row" id="activities-load-more-row" hidden>
                   <button class="action-button activities-load-more" type="button" id="activities-load-more">Mehr laden</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="view-panel" id="view-notifications" data-view-panel="notifications">
-            <div class="view-card notifications-workspace">
-              <div class="notifications-command-row">
-                <div class="notifications-filters" role="tablist" aria-label="Benachrichtigungen filtern">
-                  <button class="notification-filter is-active" type="button" data-notification-filter="unread" aria-pressed="true">Ungelesen</button>
-                  <button class="notification-filter" type="button" data-notification-filter="all" aria-pressed="false">Alle</button>
-                  <button class="notification-filter" type="button" data-notification-filter="contacts" aria-pressed="false">Kontakte</button>
-                  <button class="notification-filter" type="button" data-notification-filter="organizations" aria-pressed="false">Organisationen</button>
-                  <button class="notification-filter" type="button" data-notification-filter="formats" aria-pressed="false">Formate</button>
-                  <button class="notification-filter" type="button" data-notification-filter="team" aria-pressed="false">Team</button>
-                  <button class="notification-filter" type="button" data-notification-filter="product" aria-pressed="false">Produkt</button>
-                </div>
-                <div class="notifications-command-actions">
-                  <div class="notifications-meta" id="notifications-meta">Benachrichtigungen werden geladen</div>
-                  <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>
-                </div>
-              </div>
-              <div class="notifications-feed-shell">
-                <div class="notifications-list" id="notifications-list" aria-live="polite">
-                  <div class="notifications-loading">Benachrichtigungen werden geladen...</div>
-                </div>
-                <div class="notifications-load-more-row" id="notifications-load-more-row" hidden>
-                  <button class="action-button notifications-load-more" type="button" id="notifications-load-more">Mehr laden</button>
                 </div>
               </div>
             </div>
@@ -19545,6 +19744,7 @@
           <div class="profile-panel__body">
             <div class="settings-tab-nav" role="tablist" aria-label="Profilbereiche">
               <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-profile" data-profile-tab="profile">Profil</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-notifications" data-profile-tab="notifications">Benachrichtigungen</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-settings" data-profile-tab="settings">Einstellungen</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-about" data-profile-tab="about">Über die App</button>
             </div>
@@ -19631,9 +19831,36 @@
                 </div>
               </section>
             </div>
-            <div class="profile-tab-panel" id="profile-tab-settings" role="tabpanel" data-profile-tab-panel="settings" hidden>
+            <div class="profile-tab-panel" id="profile-tab-notifications" role="tabpanel" data-profile-tab-panel="notifications" hidden>
               <section class="profile-section">
-                <h3>Benachrichtigungen</h3>
+                <div class="notifications-workspace profile-notifications-workspace">
+                  <div class="notifications-command-row">
+                    <div class="notifications-filters" role="tablist" aria-label="Benachrichtigungen filtern">
+                      <button class="notification-filter is-active" type="button" data-notification-filter="unread" aria-pressed="true">Ungelesen</button>
+                      <button class="notification-filter" type="button" data-notification-filter="all" aria-pressed="false">Alle</button>
+                      <button class="notification-filter" type="button" data-notification-filter="contacts" aria-pressed="false">Kontakte</button>
+                      <button class="notification-filter" type="button" data-notification-filter="organizations" aria-pressed="false">Organisationen</button>
+                      <button class="notification-filter" type="button" data-notification-filter="formats" aria-pressed="false">Formate</button>
+                      <button class="notification-filter" type="button" data-notification-filter="team" aria-pressed="false">Team</button>
+                      <button class="notification-filter" type="button" data-notification-filter="product" aria-pressed="false">Produkt</button>
+                    </div>
+                    <div class="notifications-command-actions">
+                      <div class="notifications-meta" id="notifications-meta">Benachrichtigungen werden geladen</div>
+                      <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>
+                    </div>
+                  </div>
+                  <div class="notifications-feed-shell">
+                    <div class="notifications-list" id="notifications-list" aria-live="polite">
+                      <div class="notifications-loading">Benachrichtigungen werden geladen...</div>
+                    </div>
+                    <div class="notifications-load-more-row" id="notifications-load-more-row" hidden>
+                      <button class="action-button notifications-load-more" type="button" id="notifications-load-more">Mehr laden</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section class="profile-section">
+                <h3>Benachrichtigungskanäle</h3>
                 <div class="profile-setting-toggle profile-setting-toggle--disabled">
                   <label class="profile-switch" for="profile-notifications">
                     <input id="profile-notifications" name="notificationsEnabled" type="checkbox" disabled />
@@ -19645,6 +19872,8 @@
                   </div>
                 </div>
               </section>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-settings" role="tabpanel" data-profile-tab-panel="settings" hidden>
               <div class="settings-wip-note">
                 <span class="settings-status-pill">Entwurf</span>
                 <strong>Dieser Bereich ist noch in Arbeit.</strong>
@@ -21068,6 +21297,7 @@
       ];
       const profileTabItems = [
         { id: "profile", title: "Mein Profil", subtitle: "Persönliche Informationen und Zuständigkeiten verwalten." },
+        { id: "notifications", title: "Benachrichtigungen", subtitle: "Persönliche Hinweise zu Änderungen, Team und Produkt." },
         { id: "settings", title: "Einstellungen", subtitle: "Persönliche App-Einstellungen und spätere Konfigurationen." },
         { id: "about", title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." }
       ];
@@ -21090,6 +21320,11 @@
       const notificationsMarkAllRead = document.getElementById("notifications-mark-all-read");
       const notificationsLoadMoreRow = document.getElementById("notifications-load-more-row");
       const notificationsLoadMoreButton = document.getElementById("notifications-load-more");
+      const notificationPopover = document.getElementById("notification-popover");
+      const notificationPopoverList = document.getElementById("notification-popover-list");
+      const notificationPopoverMeta = document.getElementById("notification-popover-meta");
+      const notificationPopoverClose = document.getElementById("notification-popover-close");
+      const notificationPopoverAll = document.getElementById("notification-popover-all");
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
       const formatParticipantDrawer = document.getElementById("format-participant-drawer");
@@ -21483,6 +21718,8 @@
       let notificationsNextOffset = 0;
       let notificationsRequestKey = "";
       let activeNotificationFilter = "unread";
+      let notificationPreviewItems = [];
+      let notificationPreviewLoading = false;
       let notificationSummary = { unreadTotal: 0, byContext: {} };
       const notificationsPageSize = 30;
       function syncPageSizeSelects() {
@@ -26008,7 +26245,7 @@
         stakeholderModeButtons.forEach((button) => {
           const mode = button.dataset.stakeholderMode || "organizations";
           const active = mode === activeStakeholderMode;
-          const label = mode === "map" ? "Karte" : mode === "people" ? "Personen" : "Organisationen";
+          const label = mode === "map" ? "Karte" : mode === "people" ? "Personen" : "KVn";
           const count = mode === "map" ? mapCount : mode === "people" ? peopleCount : organizationCount;
           button.replaceChildren();
           const labelNode = document.createElement("span");
@@ -27382,7 +27619,7 @@
         setProfileStatus("");
         setProfileTab(activeProfileTab);
         setActiveView("profile");
-        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : activeProfileTab === "about" ? "profile-about" : "profile");
+        updateRouteHash(profileRouteForTab());
         updateView();
         profileModal?.setAttribute("aria-hidden", "false");
       }
@@ -28792,12 +29029,25 @@
         const allItems = activeNotificationFilter === "product"
           ? productMatches
           : [...remoteItems, ...productMatches];
-        return allItems
-          .filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index)
-          .sort((left, right) => {
-            const time = new Date(right.occurredAt || right.createdAt || 0).getTime() - new Date(left.occurredAt || left.createdAt || 0).getTime();
-            return time || String(right.id).localeCompare(String(left.id));
-          });
+        return sortNotificationItems(
+          allItems.filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index),
+          { productLast: activeNotificationFilter !== "product" }
+        );
+      }
+
+      function sortNotificationItems(items = [], { productLast = false } = {}) {
+        return [...items].sort((left, right) => {
+          if (productLast && left.context !== right.context) {
+            if (left.context === "product") return 1;
+            if (right.context === "product") return -1;
+          }
+          const time = new Date(right.occurredAt || right.createdAt || 0).getTime() - new Date(left.occurredAt || left.createdAt || 0).getTime();
+          return time || String(right.id).localeCompare(String(left.id));
+        });
+      }
+
+      function isNotificationsWorkspaceActive() {
+        return activeView === "notifications" || (activeView === "profile" && activeProfileTab === "notifications");
       }
 
       function renderNotificationCounts(summary = notificationSummary) {
@@ -28913,8 +29163,125 @@
         `;
       }
 
+      function notificationPreviewItemMarkup(notification) {
+        const meta = [
+          notification.context === "product" ? "Produkt" : notification.actor?.displayName || "",
+          formatDateTimeLabel(notification.occurredAt || notification.createdAt)
+        ].filter(Boolean).join(" · ");
+        return `
+          <button class="notification-preview-item ${notification.unread ? "is-unread" : ""}" type="button" data-open-notification="${escapeHtml(notification.id)}">
+            <span class="notification-item__icon" aria-hidden="true">${notificationIconMarkup(notification.context)}</span>
+            <span class="notification-preview-item__copy">
+              <span class="notification-preview-item__title">${escapeHtml(notification.title || "Benachrichtigung")}</span>
+              ${notification.body ? `<span class="notification-preview-item__text">${escapeHtml(notification.body)}</span>` : ""}
+              <span class="notification-preview-item__meta">${escapeHtml(meta || "Zeitpunkt offen")}</span>
+            </span>
+          </button>
+        `;
+      }
+
+      function renderNotificationPopoverLoading() {
+        if (notificationPopoverList) notificationPopoverList.innerHTML = `<div class="notification-popover__loading">Benachrichtigungen werden geladen...</div>`;
+        if (notificationPopoverMeta) notificationPopoverMeta.textContent = "Wird geladen";
+      }
+
+      function renderNotificationPopoverError() {
+        if (notificationPopoverList) notificationPopoverList.innerHTML = `<div class="notification-popover__error">Die neuen Benachrichtigungen konnten nicht geladen werden.</div>`;
+        if (notificationPopoverMeta) notificationPopoverMeta.textContent = "Laden fehlgeschlagen";
+      }
+
+      function renderNotificationPopover() {
+        if (!notificationPopoverList) return;
+        if (!notificationPreviewItems.length) {
+          notificationPopoverList.innerHTML = `<div class="notification-popover__empty">Keine neuen Benachrichtigungen.</div>`;
+        } else {
+          notificationPopoverList.innerHTML = notificationPreviewItems.map(notificationPreviewItemMarkup).join("");
+        }
+        if (notificationPopoverMeta) {
+          notificationPopoverMeta.textContent = notificationPreviewItems.length
+            ? `${notificationPreviewItems.length} ${notificationPreviewItems.length === 1 ? "neue Benachrichtigung" : "neue Benachrichtigungen"}`
+            : "Alles gelesen";
+        }
+        notificationPopoverList.querySelectorAll("[data-open-notification]").forEach((button) => {
+          button.addEventListener("click", () => openNotification(button.dataset.openNotification));
+        });
+      }
+
+      async function loadNotificationPreview() {
+        if (notificationPreviewLoading) return;
+        notificationPreviewLoading = true;
+        renderNotificationPopoverLoading();
+        try {
+          const remotePayload = window.dataService?.loadNotifications
+            ? await window.dataService.loadNotifications({ unreadOnly: true, context: "all", limit: 5, offset: 0 })
+            : { items: [] };
+          const remoteItems = Array.isArray(remotePayload?.items) ? remotePayload.items : [];
+          const productItems = productNotifications().filter((item) => item.unread);
+          notificationPreviewItems = sortNotificationItems(
+            [...remoteItems, ...productItems].filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index),
+            { productLast: true }
+          ).slice(0, 5);
+          renderNotificationPopover();
+          await refreshNotificationSummary();
+        } catch (error) {
+          console.warn("Benachrichtigungs-Vorschau konnte nicht geladen werden.", error);
+          notificationPreviewItems = [];
+          renderNotificationPopoverError();
+        } finally {
+          notificationPreviewLoading = false;
+        }
+      }
+
+      function positionNotificationPopover() {
+        if (!notificationPopover || !sidebarNotificationsButton || notificationPopover.hidden) return;
+        const trigger = sidebarNotificationsButton.getBoundingClientRect();
+        const popoverWidth = notificationPopover.offsetWidth || 380;
+        const popoverHeight = notificationPopover.offsetHeight || 320;
+        const gap = 10;
+        let left = trigger.right + gap;
+        if (left + popoverWidth > window.innerWidth - 12) {
+          left = trigger.left - popoverWidth - gap;
+        }
+        left = Math.max(12, Math.min(left, window.innerWidth - popoverWidth - 12));
+        let top = trigger.bottom - popoverHeight;
+        top = Math.max(12, Math.min(top, window.innerHeight - popoverHeight - 12));
+        notificationPopover.style.left = `${left}px`;
+        notificationPopover.style.top = `${top}px`;
+      }
+
+      function closeNotificationPopover() {
+        if (!notificationPopover) return;
+        notificationPopover.hidden = true;
+        sidebarNotificationsButton?.setAttribute("aria-expanded", "false");
+        if (!(activeView === "profile" && activeProfileTab === "notifications")) {
+          sidebarNotificationsButton?.classList.remove("is-active");
+        }
+      }
+
+      function openNotificationPopover() {
+        if (!notificationPopover) return;
+        closeMenus();
+        notificationPopover.hidden = false;
+        sidebarNotificationsButton?.setAttribute("aria-expanded", "true");
+        sidebarNotificationsButton?.classList.add("is-active");
+        positionNotificationPopover();
+        loadNotificationPreview();
+      }
+
+      function toggleNotificationPopover() {
+        if (!notificationPopover) return;
+        if (notificationPopover.hidden) openNotificationPopover();
+        else closeNotificationPopover();
+      }
+
+      function openNotificationsTab() {
+        closeNotificationPopover();
+        openProfileTab("notifications");
+        closeMobileSidebar();
+      }
+
       function renderNotificationsView() {
-        if (activeView !== "notifications" || !notificationsList) return;
+        if (!isNotificationsWorkspaceActive() || !notificationsList) return;
         notificationFilterButtons.forEach((button) => {
           const active = button.dataset.notificationFilter === activeNotificationFilter;
           button.classList.toggle("is-active", active);
@@ -28969,7 +29336,9 @@
         notifications = notifications.map((item) =>
           item.id === notification.id ? { ...item, readAt: item.readAt || new Date().toISOString(), unread: false } : item
         );
+        notificationPreviewItems = notificationPreviewItems.filter((item) => item.id !== notification.id);
         await refreshNotificationSummary();
+        if (notificationPopover && !notificationPopover.hidden) renderNotificationPopover();
       }
 
       async function markVisibleNotificationsRead() {
@@ -28989,17 +29358,20 @@
         }
         if (remoteIds.length && window.dataService?.markNotificationsRead) await window.dataService.markNotificationsRead(remoteIds);
         notifications = notifications.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString(), unread: false }));
+        notificationPreviewItems = [];
         await refreshNotificationSummary();
         if (activeNotificationFilter === "unread") {
           notificationsLoaded = false;
           notificationsRequestKey = "";
         }
         renderNotificationsView();
+        if (notificationPopover && !notificationPopover.hidden) renderNotificationPopover();
       }
 
       async function openNotification(id = "") {
-        const notification = notifications.find((item) => item.id === id);
+        const notification = notifications.find((item) => item.id === id) || notificationPreviewItems.find((item) => item.id === id);
         if (!notification) return;
+        closeNotificationPopover();
         await markNotificationRead(notification);
         if (notification.context === "product") {
           openProfileTab("about");
@@ -29442,7 +29814,12 @@
             .join("");
         };
 
-        if (activeView === "notifications") {
+        if (isNotificationsWorkspaceActive()) {
+          if (summaryGrid) summaryGrid.innerHTML = "";
+          return;
+        }
+
+        if (isCareView(activeView)) {
           if (summaryGrid) summaryGrid.innerHTML = "";
           return;
         }
@@ -34996,6 +35373,13 @@
         return profileTabItems.some((item) => item.id === tab) ? tab : "profile";
       }
 
+      function profileRouteForTab(tab = activeProfileTab) {
+        if (tab === "notifications") return "profile-notifications";
+        if (tab === "settings") return "profile-settings";
+        if (tab === "about") return "profile-about";
+        return "profile";
+      }
+
       function setProfileTab(tab = "profile") {
         activeProfileTab = normalizeProfileTab(tab);
         profileTabButtons.forEach((button) => {
@@ -35009,14 +35393,16 @@
         });
         sidebarSettingsButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "settings");
         sidebarProfileButton?.classList.toggle("is-active", activeView === "profile");
+        sidebarNotificationsButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "notifications");
         if (profileEditActions) profileEditActions.hidden = activeProfileTab !== "profile" || !profileDirty;
         if (activeProfileTab === "about") renderAboutApp();
+        if (activeProfileTab === "notifications") renderNotificationsView();
       }
 
       function openProfileTab(tab = "profile") {
         setProfileTab(tab);
         openProfileModal();
-        updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : activeProfileTab === "about" ? "profile-about" : "profile");
+        updateRouteHash(profileRouteForTab());
       }
 
       function setSidebarCollapsed(collapsed) {
@@ -35117,7 +35503,7 @@
           const active = tabView === view || (tab.dataset.viewGroup === "care" && isCareView(view));
           tab.classList.toggle("is-active", active);
         });
-        sidebarNotificationsButton?.classList.toggle("is-active", view === "notifications");
+        sidebarNotificationsButton?.classList.toggle("is-active", view === "notifications" || (view === "profile" && activeProfileTab === "notifications") || Boolean(notificationPopover && !notificationPopover.hidden));
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "profile" && activeProfileTab === "settings");
         sidebarImportButton?.classList.toggle("is-active", view === "settings");
@@ -36463,7 +36849,7 @@
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
         const isActivitiesView = activeView === "activities";
-        const isNotificationsView = activeView === "notifications";
+        const isNotificationsView = isNotificationsWorkspaceActive();
         const isExpertsView = activeView === "experts";
         const isStakeholdersView = activeView === "stakeholders";
         if (!canAdministerData()) {
@@ -36669,6 +37055,8 @@
       notificationsMarkAllRead?.addEventListener("click", () => {
         markVisibleNotificationsRead();
       });
+      notificationPopoverAll?.addEventListener("click", openNotificationsTab);
+      notificationPopoverClose?.addEventListener("click", closeNotificationPopover);
       document.querySelectorAll("[data-format-status-filter]").forEach((button) => {
         button.addEventListener("click", () => {
           const nextStatus = button.dataset.formatStatusFilter || "";
@@ -36860,11 +37248,7 @@
         updateView();
       });
       sidebarNotificationsButton?.addEventListener("click", () => {
-        closeMenus();
-        closeMobileSidebar();
-        setActiveView("notifications");
-        updateRouteHash("notifications");
-        updateView();
+        toggleNotificationPopover();
       });
       sidebarSettingsButton?.addEventListener("click", () => {
         closeMenus();
@@ -36886,7 +37270,7 @@
       profileTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
           setProfileTab(button.dataset.profileTab || "profile");
-          updateRouteHash(activeProfileTab === "settings" ? "profile-settings" : activeProfileTab === "about" ? "profile-about" : "profile");
+          updateRouteHash(profileRouteForTab());
           renderViewChrome();
         });
       });
@@ -37644,6 +38028,10 @@
             setOrganizationComboboxOpen(false);
             return;
           }
+          if (notificationPopover && !notificationPopover.hidden) {
+            closeNotificationPopover();
+            return;
+          }
           closeMenus();
           if (importDrawer.classList.contains("is-open")) {
             closeImportWizard();
@@ -37660,6 +38048,7 @@
       });
 
       document.addEventListener("click", (event) => {
+        if (!event.target.closest("#notification-popover") && !event.target.closest("#sidebar-notifications-button")) closeNotificationPopover();
         if (!event.target.closest(".menu-shell") && !event.target.closest(".filter-shell") && !event.target.closest(".topbar-account") && !event.target.closest(".column-menu-shell")) closeMenus();
         if (!event.target.closest("[data-custom-select]")) closeAllCustomSelects();
         if (!event.target.closest("[data-organization-combobox]")) setOrganizationComboboxOpen(false);
@@ -37683,10 +38072,15 @@
           const steps = currentProductTourSteps();
           positionProductTourPanel(productTourState.target, steps[productTourState.index] || null);
         }
+        positionNotificationPopover();
       });
 
       function routeViewFromHash() {
         const hashView = String(window.location.hash || "").replace(/^#/, "");
+        if (hashView === "notifications" || hashView === "profile-notifications") {
+          setProfileTab("notifications");
+          return "profile";
+        }
         if (hashView === "settings" || hashView === "profile-settings") {
           setProfileTab("settings");
           return "profile";

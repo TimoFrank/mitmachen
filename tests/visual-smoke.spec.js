@@ -409,8 +409,8 @@ test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", asy
   await attachScreenshot(page, testInfo, "aktivitaeten");
 });
 
-test("Benachrichtigungen: persönliche Inbox rendert und markiert gelesene Einträge", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#notifications", {
+test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbox", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#contacts", {
     localNotifications: [
       {
         id: "visual-notification-contact-update",
@@ -427,11 +427,22 @@ test("Benachrichtigungen: persönliche Inbox rendert und markiert gelesene Eintr
     ]
   });
 
-  await expect(page.locator('[data-view-panel="notifications"]')).toBeVisible();
+  await expect(page.locator("#notification-count-total")).toBeVisible();
+  await page.locator("#sidebar-notifications-button").click();
+  await expect(page.locator("#notification-popover")).toBeVisible();
+  await expect(page.locator("#notification-popover-title")).toHaveText("Neue Benachrichtigungen");
+  await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(1);
+
+  await page.locator("#notification-popover-all").click();
+  await expect(page).toHaveURL(/#profile-notifications$/);
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+  await expect(page.locator('[data-profile-tab="notifications"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#profile-tab-notifications")).toBeVisible();
   await expect(page.locator("#workspace-view-title")).toHaveText("Benachrichtigungen");
   await expect(page.locator("#sidebar-notifications-button")).toHaveClass(/is-active/);
-  await expect(page.locator("#notification-count-total")).toBeVisible();
   await expect(page.locator("#notifications-list .notification-item").first()).toBeVisible();
+  await expect(page.locator("#profile-tab-notifications .profile-setting-toggle")).toBeVisible();
+  await expect(page.locator("#profile-tab-settings .profile-setting-toggle")).toHaveCount(0);
   await expect(page.locator("#search")).toBeHidden();
   await expect(page.locator("#summary-grid")).toBeHidden();
   await expect(page.locator('[data-notification-filter]').last()).toHaveText("Produkt");
