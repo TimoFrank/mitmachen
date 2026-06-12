@@ -8,7 +8,7 @@ function authSession() {
   };
 }
 
-async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "", demoDataScript = "", dataServiceScript = "" } = {}) {
+async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "", demoDataScript = "", dataServiceScript = "", localNotifications = [] } = {}) {
   await page.route("**/login/auth-guard.js", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
@@ -65,10 +65,11 @@ async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo"
   }
   await page.goto("/");
   await page.evaluate(
-    ({ key, session }) => {
+    ({ key, session, notifications }) => {
       window.localStorage.setItem(key, JSON.stringify(session));
+      window.localStorage.setItem("versorgungs-kompass-notifications-v1", JSON.stringify(notifications));
     },
-    { key: AUTH_KEY, session: authSession() }
+    { key: AUTH_KEY, session: authSession(), notifications: localNotifications }
   );
   await page.goto(path);
   await expect(page).not.toHaveURL(/\/login\/login\.html/);
@@ -408,14 +409,32 @@ test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", asy
   await attachScreenshot(page, testInfo, "aktivitaeten");
 });
 
-test("Hinweise: persönliche Inbox rendert und markiert gelesene Einträge", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#notifications");
+test("Benachrichtigungen: persönliche Inbox rendert und markiert gelesene Einträge", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#notifications", {
+    localNotifications: [
+      {
+        id: "visual-notification-contact-update",
+        eventType: "contact_updated",
+        entityType: "contact",
+        entityId: "kontakt-1",
+        title: "Kontakt aktualisiert",
+        body: "Stammdaten wurden angepasst.",
+        route: "#contacts",
+        occurredAt: "2026-06-12T08:30:00.000Z",
+        createdAt: "2026-06-12T08:30:00.000Z",
+        readAt: ""
+      }
+    ]
+  });
 
   await expect(page.locator('[data-view-panel="notifications"]')).toBeVisible();
+  await expect(page.locator("#workspace-view-title")).toHaveText("Benachrichtigungen");
   await expect(page.locator("#sidebar-notifications-button")).toHaveClass(/is-active/);
   await expect(page.locator("#notification-count-total")).toBeVisible();
   await expect(page.locator("#notifications-list .notification-item").first()).toBeVisible();
   await expect(page.locator("#search")).toBeHidden();
+  await expect(page.locator("#summary-grid")).toBeHidden();
+  await expect(page.locator('[data-notification-filter]').last()).toHaveText("Produkt");
 
   await page.locator("#notifications-mark-all-read").click();
   await expect(page.locator("#notifications-list .notifications-empty")).toBeVisible();

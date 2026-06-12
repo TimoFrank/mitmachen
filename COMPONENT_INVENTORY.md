@@ -16,7 +16,7 @@ Stand: 2026-05-16. Analysebasis sind die aktuellen UI-Quellen in `app/versorgung
 - Rollen/Admin: `.account-role-pill`, `.account-role-pill--admin`, `.account-role-pill--editor`, `.account-role-pill--viewer`, `.permission-banner`.
 - Import/Status: `.status-pill`, `.status-pill--ready`, `.status-pill--duplicate`, `.status-pill--review`, `.status-pill--error`, `.file-badge`.
 - Kontakt-/Tabellenindikatoren: `.contact-owner-chip`, `.contact-sector-pill`, `.contact-priority-pill`, `.owner-badge`, `.role-badge`.
-- Benachrichtigungszaehler: `.notification-count-indicator` ist eine eigene Count-Primitive fuer ungelesene persoenliche Hinweise in der Sidebar. Sie ist kein Status-Badge und darf nicht fuer Kategorien, Rollen oder Filter verwendet werden.
+- Benachrichtigungszaehler: `.notification-count-indicator` ist eine eigene Count-Primitive fuer ungelesene persoenliche Benachrichtigungen in der Sidebar. Sie ist kein Status-Badge und darf nicht fuer Kategorien, Rollen oder Filter verwendet werden.
 - Befund: Badges werden fuer Status, Rollen, Dateitypen, Sektoren, Prioritaeten und dekorative Hinweise genutzt. Das erzeugt visuelles Rauschen. Badges duerfen kuenftig nur echte Status-/Kategoriewerte tragen.
 
 ## Chips

@@ -506,27 +506,54 @@
         text-align: left;
       }
 
+      .sidebar-account-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 40px;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .sidebar-notification-button {
+        position: relative;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        display: inline-grid;
+        place-items: center;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.72);
+        cursor: pointer;
+      }
+
       .sidebar-link:hover,
-      .sidebar-link:focus-visible {
+      .sidebar-link:focus-visible,
+      .sidebar-notification-button:hover,
+      .sidebar-notification-button:focus-visible {
         background: rgba(255, 255, 255, 0.09);
         color: #ffffff;
         outline: none;
       }
 
-      .sidebar-link.is-active {
+      .sidebar-link.is-active,
+      .sidebar-notification-button.is-active {
         background: var(--sidebar-active);
         color: #ffffff;
       }
 
       .sidebar-link svg,
-      .sidebar-nav svg {
+      .sidebar-nav svg,
+      .sidebar-notification-button svg {
         width: 18px;
         height: 18px;
         flex: 0 0 auto;
       }
 
       .sidebar-nav .primary-tab,
-      .sidebar-link {
+      .sidebar-link,
+      .sidebar-notification-button {
         position: relative;
       }
 
@@ -553,8 +580,16 @@
         display: none !important;
       }
 
+      .sidebar-notification-button .notification-count-indicator {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        margin: 0;
+      }
+
       .app-shell.is-sidebar-collapsed .sidebar-nav .primary-tab .notification-count-indicator,
-      .app-shell.is-sidebar-collapsed .sidebar-link .notification-count-indicator {
+      .app-shell.is-sidebar-collapsed .sidebar-link .notification-count-indicator,
+      .app-shell.is-sidebar-collapsed .sidebar-notification-button .notification-count-indicator {
         position: absolute;
         top: 4px;
         right: 4px;
@@ -569,6 +604,15 @@
         white-space: nowrap;
         border: 1px solid var(--surface);
         font-size: 0.62rem;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-account-row {
+        grid-template-columns: 1fr;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-notification-button {
+        width: 100%;
+        min-width: 0;
       }
 
       .sidebar-footer {
@@ -1611,6 +1655,27 @@
 
       .workspace-expert-switcher[hidden] {
         display: none !important;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) .workspace-header {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) .workspace-header .workspace-actions {
+        justify-content: stretch;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-nav--header {
+        width: 100%;
+        min-width: 0;
+      }
+
+      #care-mode-actions .experts-mode-nav--header {
+        width: min(100%, 540px);
       }
 
       .app-shell[data-active-view="experts"] .workspace-header {
@@ -4641,7 +4706,8 @@
         }
 
         .sidebar-nav .primary-tab .notification-count-indicator,
-        .sidebar-link .notification-count-indicator {
+        .sidebar-link .notification-count-indicator,
+        .sidebar-notification-button .notification-count-indicator {
           position: absolute;
           top: 4px;
           right: 4px;
@@ -10578,7 +10644,9 @@
       .sidebar-nav .primary-tab:hover,
       .sidebar-nav .primary-tab:focus-visible,
       .sidebar-link:hover,
-      .sidebar-link:focus-visible {
+      .sidebar-link:focus-visible,
+      .sidebar-notification-button:hover,
+      .sidebar-notification-button:focus-visible {
         background: rgba(255, 255, 255, 0.1);
       }
 
@@ -13214,12 +13282,17 @@
       .app-shell[data-active-view="analytics"] .controls,
       .app-shell[data-active-view="experts"] .controls,
       .app-shell[data-active-view="stakeholders"] .controls,
+      .app-shell[data-active-view="notifications"] .controls,
       .app-shell[data-active-view="quality"] .controls,
       .app-shell[data-active-view="imports"] .controls,
       .app-shell[data-active-view="settings"] .controls,
       .app-shell[data-active-view="about"] .controls,
       .app-shell[data-active-view="team"] .controls,
       .app-shell[data-active-view="profile"] .controls {
+        display: none;
+      }
+
+      .app-shell[data-active-view="notifications"] #summary-grid {
         display: none;
       }
 
@@ -15171,6 +15244,19 @@
           padding: 5px 0 0;
         }
 
+        .sidebar-account-row {
+          grid-template-columns: 1fr;
+          gap: 6px;
+          margin-top: 0;
+        }
+
+        .sidebar-notification-button {
+          width: 100%;
+          min-width: 0;
+          min-height: 44px;
+          border-radius: 12px;
+        }
+
         .sidebar-footer__badge {
           width: 38px;
           height: 38px;
@@ -16427,6 +16513,18 @@
           justify-content: flex-start;
           gap: 10px;
           padding-inline: 12px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-account-row {
+          grid-template-columns: minmax(0, 1fr) 42px;
+          gap: 8px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-notification-button {
+          width: 42px;
+          min-width: 42px;
+          height: 42px;
+          min-height: 42px;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-footer {
@@ -18476,7 +18574,7 @@
   <body>
     <div class="app-shell">
       <aside class="app-sidebar" aria-label="Hauptnavigation">
-        <a class="sidebar-brand" href="#contacts" id="brand-home-link" aria-label="Zur Kontakte-Ansicht">
+        <a class="sidebar-brand" href="#contacts" id="brand-home-link" aria-label="Zur Versorgung">
           <div class="brand-mark" aria-hidden="true">
             <span></span>
             <span></span>
@@ -18485,42 +18583,18 @@
           <strong>Versorgungs-Kompass</strong>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
-          <div class="sidebar-section" aria-label="Kontakte und Organisationen" data-sidebar-section="care">
-            <span class="sidebar-section-label">Versorgung</span>
-            <button class="primary-tab is-active" type="button" data-view-tab="contacts" title="Kontakte">
+          <div class="sidebar-section" aria-label="Kontakte" data-sidebar-section="contacts">
+            <span class="sidebar-section-label">Kontakte</span>
+            <button class="primary-tab is-active" type="button" data-view-tab="contacts" data-view-group="care" title="Versorgung">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9.5" cy="7" r="4"></circle>
                 <path d="M20 8v6"></path>
                 <path d="M23 11h-6"></path>
               </svg>
-              <span>Kontakte</span>
-              <span class="notification-count-indicator" id="notification-count-contacts" hidden>0</span>
+              <span>Versorgung</span>
+              <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
             </button>
-            <button class="primary-tab" type="button" data-view-tab="organizations" title="Organisationen">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M3 21h18"></path>
-                <path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path>
-                <path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path>
-                <path d="M9 7h3"></path>
-                <path d="M9 11h3"></path>
-                <path d="M9 15h3"></path>
-              </svg>
-              <span>Organisationen</span>
-              <span class="notification-count-indicator" id="notification-count-organizations" hidden>0</span>
-            </button>
-            <button class="primary-tab" type="button" data-view-tab="activities" title="Aktivitäten">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M12 8v5l3 2"></path>
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="M4 4 2 6"></path>
-                <path d="m20 4 2 2"></path>
-              </svg>
-              <span>Aktivitäten</span>
-            </button>
-          </div>
-          <div class="sidebar-section" aria-label="IOP" data-sidebar-section="iop">
-            <span class="sidebar-section-label">IOP</span>
             <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="7" r="3"></circle>
@@ -18532,9 +18606,6 @@
               </svg>
               <span>Expertenkreis</span>
             </button>
-          </div>
-          <div class="sidebar-section" aria-label="Stakeholder" data-sidebar-section="stakeholders">
-            <span class="sidebar-section-label">Stakeholder</span>
             <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Kassenärztliche Vereinigungen">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <path d="M3 21h18"></path>
@@ -18545,44 +18616,6 @@
                 <path d="M15 9h.01"></path>
               </svg>
               <span>KVn</span>
-            </button>
-          </div>
-          <div class="sidebar-section" aria-label="Karte und Auswertung" data-sidebar-section="analysis">
-            <span class="sidebar-section-label">Analyse</span>
-            <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
-                <path d="M9 3v15"></path>
-                <path d="M15 6v15"></path>
-              </svg>
-              <span>Karte</span>
-            </button>
-            <button class="primary-tab" type="button" data-view-tab="analytics" title="Auswertung">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M4 19h16"></path>
-                <path d="M7 16V9"></path>
-                <path d="M12 16V5"></path>
-                <path d="M17 16v-4"></path>
-              </svg>
-              <span>Auswertung</span>
-            </button>
-            <button class="primary-tab" type="button" data-view-tab="quality" id="sidebar-quality-button" title="Datenqualität">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M12 3 5 6v5c0 4.5 2.9 8.4 7 10 4.1-1.6 7-5.5 7-10V6l-7-3Z"></path>
-                <path d="m9 12 2 2 4-4"></path>
-              </svg>
-              <span>Datenqualität</span>
-            </button>
-          </div>
-          <div class="sidebar-section" aria-label="Importe und Eingänge" data-sidebar-section="import">
-            <span class="sidebar-section-label">Import</span>
-            <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <path d="M7 10l5 5 5-5"></path>
-                <path d="M12 15V3"></path>
-              </svg>
-              <span>Importe</span>
             </button>
           </div>
           <div class="sidebar-section" aria-label="Planung" data-sidebar-section="planning">
@@ -18601,17 +18634,36 @@
               <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
             </button>
           </div>
+          <div class="sidebar-section" id="sidebar-data-care-section" aria-label="Admin" data-sidebar-section="admin">
+            <span class="sidebar-section-label">Admin</span>
+            <button class="primary-tab" type="button" data-view-tab="analytics" id="sidebar-analytics-button" title="Auswertung">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M4 19h16"></path>
+                <path d="M7 16V9"></path>
+                <path d="M12 16V5"></path>
+                <path d="M17 16v-4"></path>
+              </svg>
+              <span>Auswertung</span>
+            </button>
+            <button class="primary-tab" type="button" data-view-tab="quality" id="sidebar-quality-button" title="Datenqualität">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M12 3 5 6v5c0 4.5 2.9 8.4 7 10 4.1-1.6 7-5.5 7-10V6l-7-3Z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+              <span>Datenqualität</span>
+            </button>
+            <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <path d="M7 10l5 5 5-5"></path>
+                <path d="M12 15V3"></path>
+              </svg>
+              <span>Importe</span>
+            </button>
+          </div>
         </nav>
         <div class="sidebar-account-section" aria-label="Team, Einstellungen und Profil" data-sidebar-section="account">
           <span class="sidebar-section-label">Team &amp; Konto</span>
-          <button class="sidebar-link" type="button" id="sidebar-notifications-button" title="Hinweise">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
-              <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
-            </svg>
-            <span>Hinweise</span>
-            <span class="notification-count-indicator" id="notification-count-total" hidden>0</span>
-          </button>
           <button class="sidebar-link" type="button" id="sidebar-team-button" title="Team">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -18622,13 +18674,22 @@
             <span>Team</span>
             <span class="notification-count-indicator" id="notification-count-team" hidden>0</span>
           </button>
-          <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
-            <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
-            <div>
-              <strong id="sidebar-user-name">Timo Frank</strong>
-              <span id="sidebar-user-role">Admin</span>
-            </div>
-          </button>
+          <div class="sidebar-account-row">
+            <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
+              <span class="sidebar-footer__badge" id="sidebar-user-badge">TF</span>
+              <div>
+                <strong id="sidebar-user-name">Timo Frank</strong>
+                <span id="sidebar-user-role">Admin</span>
+              </div>
+            </button>
+            <button class="sidebar-notification-button" type="button" id="sidebar-notifications-button" aria-label="Benachrichtigungen öffnen" title="Benachrichtigungen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
+              </svg>
+              <span class="notification-count-indicator" id="notification-count-total" hidden>0</span>
+            </button>
+          </div>
         </div>
         <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" title="Menü einklappen">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -18659,6 +18720,22 @@
           <div class="workspace-copy">
             <h2 id="workspace-view-title">Kontakte</h2>
             <p id="workspace-view-subtitle">Willkommen, Timo</p>
+          </div>
+          <div class="workspace-expert-switcher" id="care-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Versorgung">
+              <button class="settings-tab-button is-active" type="button" role="tab" data-care-mode="contacts" aria-selected="true" aria-controls="view-contacts">
+                <span class="experts-mode-label">Kontakte </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-care-mode="organizations" aria-selected="false" aria-controls="view-organizations">
+                <span class="experts-mode-label">Organisationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-care-mode="map" aria-selected="false" aria-controls="view-map">
+                <span class="experts-mode-label">Karte </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+            </div>
           </div>
           <div class="workspace-expert-switcher" id="expert-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Expertenkreis-Listen">
@@ -18978,23 +19055,23 @@
           <section class="view-panel" id="view-notifications" data-view-panel="notifications">
             <div class="view-card notifications-workspace">
               <div class="notifications-command-row">
-                <div class="notifications-filters" role="tablist" aria-label="Hinweise filtern">
+                <div class="notifications-filters" role="tablist" aria-label="Benachrichtigungen filtern">
                   <button class="notification-filter is-active" type="button" data-notification-filter="unread" aria-pressed="true">Ungelesen</button>
                   <button class="notification-filter" type="button" data-notification-filter="all" aria-pressed="false">Alle</button>
-                  <button class="notification-filter" type="button" data-notification-filter="product" aria-pressed="false">Produkt</button>
                   <button class="notification-filter" type="button" data-notification-filter="contacts" aria-pressed="false">Kontakte</button>
                   <button class="notification-filter" type="button" data-notification-filter="organizations" aria-pressed="false">Organisationen</button>
                   <button class="notification-filter" type="button" data-notification-filter="formats" aria-pressed="false">Formate</button>
                   <button class="notification-filter" type="button" data-notification-filter="team" aria-pressed="false">Team</button>
+                  <button class="notification-filter" type="button" data-notification-filter="product" aria-pressed="false">Produkt</button>
                 </div>
                 <div class="notifications-command-actions">
-                  <div class="notifications-meta" id="notifications-meta">Hinweise werden geladen</div>
+                  <div class="notifications-meta" id="notifications-meta">Benachrichtigungen werden geladen</div>
                   <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>
                 </div>
               </div>
               <div class="notifications-feed-shell">
                 <div class="notifications-list" id="notifications-list" aria-live="polite">
-                  <div class="notifications-loading">Hinweise werden geladen...</div>
+                  <div class="notifications-loading">Benachrichtigungen werden geladen...</div>
                 </div>
                 <div class="notifications-load-more-row" id="notifications-load-more-row" hidden>
                   <button class="action-button notifications-load-more" type="button" id="notifications-load-more">Mehr laden</button>
@@ -19316,7 +19393,7 @@
                     <div class="onboarding-tour-list" aria-label="Tour-Inhalte">
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">1</span>
-                        <span><strong>Sidebar und Kontakte</strong><span>Die Tour startet in der Navigation und zeigt den täglichen Ausgangspunkt für Suche, Pflege und neue Einträge.</span></span>
+                        <span><strong>Sidebar und Versorgung</strong><span>Die Tour startet in der Navigation und zeigt den täglichen Ausgangspunkt für Suche, Pflege und neue Einträge.</span></span>
                       </div>
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">2</span>
@@ -19324,11 +19401,11 @@
                       </div>
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">3</span>
-                        <span><strong>Organisationen, Karte und Auswertung</strong><span>Unterseiten für Einrichtungen, regionale Orientierung und operative Kennzahlen werden direkt angesteuert.</span></span>
+                        <span><strong>Versorgung mit Reitern</strong><span>Kontakte, Organisationen und Karte liegen zusammen in einem geschlossenen Arbeitsbereich.</span></span>
                       </div>
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">4</span>
-                        <span><strong>Team, Profil und Admin-Pflege</strong><span>Team und eigenes Profil schließen die Tour ab; Admins sehen zusätzlich Datenqualität und Importe.</span></span>
+                        <span><strong>Planung, Admin und Profil</strong><span>Formate, Admin-Auswertung, Datenqualität, Importe, Team und eigenes Profil bleiben klar getrennt.</span></span>
                       </div>
                     </div>
                     <div class="profile-status" id="onboarding-tour-status" aria-live="polite"></div>
@@ -19526,7 +19603,7 @@
                 <div class="profile-onboarding-card">
                   <div class="profile-onboarding-copy">
                     <strong>Produkttour durch den Versorgungs-Kompass</strong>
-                    <span>Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Sidebar, Kontakte, Filter, CRM-Profile, Organisationen, Karte, Auswertung, Importe, Team und Profil.</span>
+                    <span>Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Sidebar, Versorgung, Filter, CRM-Profile, Planung, Admin, Team und Profil.</span>
                     <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
                   </div>
                   <div class="profile-onboarding-actions">
@@ -21060,6 +21137,8 @@
       const organizationDuplicatesMeta = document.getElementById("organization-duplicates-meta");
       const expertPaginationMeta = document.getElementById("experts-pagination-meta");
       const expertPagination = document.getElementById("experts-pagination");
+      const careModeActions = document.getElementById("care-mode-actions");
+      const careModeButtons = [...document.querySelectorAll("[data-care-mode]")];
       const expertModeButtons = [...document.querySelectorAll("[data-expert-mode]")];
       const expertTables = [...document.querySelectorAll("[data-expert-table]")];
       const stakeholderOrganizationsTable = document.getElementById("stakeholder-organizations-table");
@@ -21149,6 +21228,7 @@
       const sidebarQualityButton = document.getElementById("sidebar-quality-button");
       const sidebarImportButton = document.getElementById("sidebar-import-button");
       const sidebarDataCareSection = document.getElementById("sidebar-data-care-section");
+      const sidebarAnalyticsButton = document.getElementById("sidebar-analytics-button");
       const sidebarNotificationsButton = document.getElementById("sidebar-notifications-button");
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
@@ -21156,6 +21236,7 @@
       const sidebarStakeholderButton = document.querySelector('[data-view-tab="stakeholders"]');
       const notificationCountNodes = {
         total: document.getElementById("notification-count-total"),
+        care: document.getElementById("notification-count-care"),
         contacts: document.getElementById("notification-count-contacts"),
         organizations: document.getElementById("notification-count-organizations"),
         formats: document.getElementById("notification-count-formats"),
@@ -21333,6 +21414,8 @@
       const organizationEditorNext = document.getElementById("organization-editor-next");
       const organizationEditorStepsNode = document.getElementById("organization-editor-steps");
       const organizationEditorSave = document.getElementById("organization-editor-save");
+
+      const careViewModes = ["contacts", "organizations", "map"];
 
       let activeView = "contacts";
       let activeSettingsTab = "imports";
@@ -21583,14 +21666,19 @@
         return currentRole() === "admin";
       }
 
+      function isCareView(view = activeView) {
+        return careViewModes.includes(view);
+      }
+
       function canAccessView(view) {
         if (view === "onboarding") return onboardingActive;
-        return !["settings", "about", "quality", "stakeholders"].includes(view) || canAdministerData();
+        return !["settings", "about", "analytics", "quality", "stakeholders"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
         if (view === "onboarding") return onboardingActive ? "onboarding" : "contacts";
         if (view === "imports") return canAdministerData() ? "settings" : "contacts";
+        if (view === "analytics") return canAdministerData() ? "analytics" : "contacts";
         if (view === "quality") return canAdministerData() ? "quality" : "contacts";
         return canAccessView(view) ? view : "contacts";
       }
@@ -21648,6 +21736,7 @@
         setRoleElementVisible(newFormatButton, canEditContacts());
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
         setRoleElementVisible(sidebarStakeholderButton, canAdministerData());
+        setRoleElementVisible(sidebarAnalyticsButton, canAdministerData());
         setRoleElementVisible(sidebarQualityButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
         setRoleElementVisible(sidebarSettingsButton, true);
@@ -24118,7 +24207,7 @@
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Chronologisches Protokoll der Kontaktänderungen im Versorgungs-Kompass." },
-        notifications: { title: "Hinweise", subtitle: "Persönliche Änderungen und neue Produktinformationen." },
+        notifications: { title: "Benachrichtigungen", subtitle: "Persönliche Änderungen und neue Produktinformationen." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
         stakeholders: { title: "Stakeholder", subtitle: "Kassenärztliche Vereinigungen, Personen und Vertreterversammlungen." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
@@ -24325,6 +24414,24 @@
           ]
         }
       ];
+      const productNotificationBaselineVersions = new Set([
+        "0.16.0",
+        "0.15.0",
+        "0.14.0",
+        "0.13.0",
+        "0.12.0",
+        "0.11.0",
+        "0.10.0",
+        "0.9.0",
+        "0.8.0",
+        "0.7.0",
+        "0.6.0",
+        "0.5.0",
+        "0.4.0",
+        "0.3.0",
+        "0.2.0",
+        "0.1.0"
+      ]);
 
       function uniqueValues(key) {
         return [...new Set(contacts.map((contact) => contact[key]))].sort((a, b) => a.localeCompare(b, "de"));
@@ -25480,6 +25587,34 @@
             currentPage += button.dataset.orgPageNav === "next" ? 1 : -1;
             renderOrganizationsTable(items);
           });
+        });
+      }
+
+      function renderCareModeTabs() {
+        const active = isCareView(activeView);
+        if (careModeActions) careModeActions.hidden = !active;
+        const counts = {
+          contacts: contacts.filter((contact) => contact.status !== "archived").length,
+          organizations: organizations.filter((organization) => organization.status !== "archived").length,
+          map: mapContacts().length
+        };
+        careModeButtons.forEach((button) => {
+          const mode = button.dataset.careMode || "contacts";
+          const selected = activeView === mode;
+          const label = mode === "map" ? "Karte" : mode === "organizations" ? "Organisationen" : "Kontakte";
+          const count = counts[mode] || 0;
+          button.replaceChildren();
+          const labelNode = document.createElement("span");
+          labelNode.className = "experts-mode-label";
+          labelNode.textContent = `${label} `;
+          const countNode = document.createElement("span");
+          countNode.className = "experts-mode-count";
+          countNode.textContent = String(count);
+          button.append(labelNode, countNode);
+          button.setAttribute("aria-label", `${label}: ${count}`);
+          button.classList.toggle("is-active", selected);
+          button.setAttribute("aria-selected", String(selected));
+          button.setAttribute("tabindex", selected ? "0" : "-1");
         });
       }
 
@@ -27553,7 +27688,13 @@
           target: ".primary-nav",
           placement: "right",
           title: "Navigation in der Sidebar",
-          body: "Die Sidebar ist der stabile Einstieg in alle Arbeitsbereiche. Von hier wechselst du zwischen Versorgungskontakten, Analyse, Import, Team und Profil."
+          body: "Die Sidebar bündelt Kontakte, Expertenkreis und KVn im Abschnitt Kontakte. Planung und Admin bleiben darunter klar getrennt."
+        },
+        {
+          view: "contacts",
+          target: "#care-mode-actions",
+          title: "Versorgung als Arbeitsbereich",
+          body: "Im Versorgungsbereich wechselst du oben zwischen Kontakten, Organisationen und Karte, ohne den fachlichen Kontext zu verlassen."
         },
         {
           view: "contacts",
@@ -27581,13 +27722,6 @@
           body: "Organisationen sind eigene CRM-Profile und zeigen die Einrichtungen hinter den Kontakten, inklusive Standort, Sektor und Kontaktbezug."
         },
         {
-          view: "activities",
-          target: "#view-activities .activities-feed-shell",
-          nonAdminOnly: true,
-          title: "Aktivitäten",
-          body: "Die Aktivitäten zeigen nachvollziehbar, was im Datenbestand passiert ist. Das hilft bei Zusammenarbeit und späterer Einordnung."
-        },
-        {
           view: "map",
           target: "#map-view-frame",
           title: "Karte",
@@ -27596,8 +27730,9 @@
         {
           view: "analytics",
           target: "#view-analytics .analytics-shell",
+          adminOnly: true,
           title: "Auswertung",
-          body: "Die Auswertung beantwortet operative Fragen zur Verteilung, Priorität, regionalen Abdeckung und unterrepräsentierten Bereichen."
+          body: "Die Auswertung liegt im Admin-Abschnitt und beantwortet operative Fragen zur Verteilung, Priorität und regionalen Abdeckung."
         },
         {
           view: "quality",
@@ -28610,25 +28745,27 @@
       function productNotifications() {
         const seen = new Set(seenFeatureVersions());
         return appVersionHistory.map((release, index) => {
-          const id = `product-feature-${release.version}`;
-          const readAt = seen.has(String(release.version)) ? userSettings?.updatedAt || new Date(0).toISOString() : "";
+          const version = String(release.version || "");
+          if (productNotificationBaselineVersions.has(version)) return null;
+          const id = `product-feature-${version}`;
+          const readAt = seen.has(version) ? userSettings?.updatedAt || new Date(0).toISOString() : "";
           return {
             id,
             eventId: id,
             eventType: "feature_release",
             entityType: "product",
-            entityId: release.version,
+            entityId: version,
             context: "product",
-            title: release.title || `Version ${release.version}`,
+            title: release.title || `Version ${version}`,
             body: release.summary || "",
             route: "#profile-about",
-            payload: { version: release.version, items: release.items || [] },
+            payload: { version, items: release.items || [] },
             occurredAt: new Date(Date.now() - index * 1000).toISOString(),
             createdAt: "",
             readAt,
             unread: !readAt
           };
-        });
+        }).filter(Boolean);
       }
 
       function notificationFilterOptions(offset = notificationsNextOffset) {
@@ -28675,12 +28812,13 @@
           formats: byContext.formats || 0,
           team: byContext.team || 0
         };
+        values.care = values.contacts + values.organizations;
         Object.entries(notificationCountNodes).forEach(([key, node]) => {
           if (!node) return;
           const value = values[key] || 0;
           node.textContent = value > 99 ? "99+" : String(value);
           node.hidden = value <= 0;
-          node.setAttribute("aria-label", value ? `${value} ungelesene Hinweise` : "Keine ungelesenen Hinweise");
+          node.setAttribute("aria-label", value ? `${value} ungelesene Benachrichtigungen` : "Keine ungelesenen Benachrichtigungen");
         });
       }
 
@@ -28690,20 +28828,20 @@
             ? await window.dataService.getNotificationSummary()
             : { unreadTotal: 0, byContext: {} };
         } catch (error) {
-          console.warn("Hinweis-Zusammenfassung konnte nicht geladen werden.", error);
+          console.warn("Benachrichtigungs-Zusammenfassung konnte nicht geladen werden.", error);
           notificationSummary = { unreadTotal: 0, byContext: {} };
         }
         renderNotificationCounts(notificationSummary);
       }
 
       function renderNotificationsLoading() {
-        if (notificationsList) notificationsList.innerHTML = `<div class="notifications-loading">Hinweise werden geladen...</div>`;
-        if (notificationsMeta) notificationsMeta.textContent = "Hinweise werden geladen";
+        if (notificationsList) notificationsList.innerHTML = `<div class="notifications-loading">Benachrichtigungen werden geladen...</div>`;
+        if (notificationsMeta) notificationsMeta.textContent = "Benachrichtigungen werden geladen";
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = true;
       }
 
       function renderNotificationsError() {
-        if (notificationsList) notificationsList.innerHTML = `<div class="notifications-error">Die Hinweise konnten nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
+        if (notificationsList) notificationsList.innerHTML = `<div class="notifications-error">Die Benachrichtigungen konnten nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
         if (notificationsMeta) notificationsMeta.textContent = "Laden fehlgeschlagen";
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = true;
       }
@@ -28735,7 +28873,7 @@
           renderNotificationsView();
           await refreshNotificationSummary();
         } catch (error) {
-          console.error("Hinweise konnten nicht geladen werden.", error);
+          console.error("Benachrichtigungen konnten nicht geladen werden.", error);
           if (key === notificationRequestKey()) {
             notificationsLoaded = true;
             notificationsLoading = false;
@@ -28763,7 +28901,7 @@
           <article class="notification-item ${notification.unread ? "is-unread" : ""}" data-notification-id="${escapeHtml(notification.id)}">
             <span class="notification-item__icon" aria-hidden="true">${notificationIconMarkup(notification.context)}</span>
             <div class="notification-item__body">
-              <div class="notification-item__title">${escapeHtml(notification.title || "Hinweis")}</div>
+              <div class="notification-item__title">${escapeHtml(notification.title || "Benachrichtigung")}</div>
               ${notification.body ? `<div class="notification-item__text">${escapeHtml(notification.body)}</div>` : ""}
               <div class="notification-item__meta">${escapeHtml(meta || "Zeitpunkt offen")}</div>
             </div>
@@ -28788,13 +28926,13 @@
           return;
         }
         if (!notifications.length) {
-          notificationsList.innerHTML = `<div class="notifications-empty">Keine Hinweise für diese Auswahl.</div>`;
+          notificationsList.innerHTML = `<div class="notifications-empty">Keine Benachrichtigungen für diese Auswahl.</div>`;
         } else {
           notificationsList.innerHTML = notifications.map(notificationItemMarkup).join("");
         }
         if (notificationsMeta) {
           const unread = notifications.filter((item) => item.unread).length;
-          notificationsMeta.textContent = `${notifications.length} ${notifications.length === 1 ? "Hinweis" : "Hinweise"}${unread ? ` · ${unread} ungelesen` : ""}`;
+          notificationsMeta.textContent = `${notifications.length} ${notifications.length === 1 ? "Benachrichtigung" : "Benachrichtigungen"}${unread ? ` · ${unread} ungelesen` : ""}`;
         }
         if (notificationsMarkAllRead) notificationsMarkAllRead.disabled = !notifications.some((item) => item.unread);
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = !notificationsHasMore;
@@ -29303,6 +29441,11 @@
             )
             .join("");
         };
+
+        if (activeView === "notifications") {
+          if (summaryGrid) summaryGrid.innerHTML = "";
+          return;
+        }
 
         if (isInitialDataLoading) {
           if (!summaryGrid) return;
@@ -34807,7 +34950,9 @@
       }
 
       function renderViewChrome() {
-        const view = activeView === "settings"
+        const view = isCareView(activeView)
+          ? { title: "Versorgung", subtitle: "Kontakte, Organisationen und Karte in einem gemeinsamen Arbeitsbereich." }
+          : activeView === "settings"
           ? settingsTabItems.find((item) => item.id === activeSettingsTab) || viewLabels.settings
           : activeView === "profile"
             ? profileTabItems.find((item) => item.id === activeProfileTab) || viewLabels.profile
@@ -34968,7 +35113,9 @@
           selectedOrganizationContactRanges = [];
         }
         viewTabs.forEach((tab) => {
-          tab.classList.toggle("is-active", tab.dataset.viewTab === view);
+          const tabView = tab.dataset.viewTab;
+          const active = tabView === view || (tab.dataset.viewGroup === "care" && isCareView(view));
+          tab.classList.toggle("is-active", active);
         });
         sidebarNotificationsButton?.classList.toggle("is-active", view === "notifications");
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
@@ -34982,6 +35129,7 @@
         });
         if (appShell) appShell.dataset.activeView = view;
         renderViewChrome();
+        renderCareModeTabs();
         if (view === "profile") {
           renderProfileForm();
           setProfileTab(activeProfileTab);
@@ -36366,7 +36514,7 @@
           : isActivitiesView
             ? "Aktivitäten nach Kontakt, Organisation, Nutzer oder Feld suchen"
           : isNotificationsView
-            ? "Hinweise filtern"
+            ? "Benachrichtigungen filtern"
           : activeView === "map"
             ? "Kontakte suchen"
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
@@ -36426,6 +36574,7 @@
         renderExpertBulkToolbar();
         updateViewSelectLabel();
         renderSummary(items);
+        renderCareModeTabs();
         syncExpertMatchWorklistButtons();
         if (isOrganizationsDuplicatesMode) {
           renderCareDuplicateTable("organizations", items);
@@ -36642,6 +36791,17 @@
           closeMobileSidebar();
           setActiveView(tab.dataset.viewTab);
           updateRouteHash(tab.dataset.viewTab);
+          updateView();
+        });
+      });
+      careModeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const nextCareMode = button.dataset.careMode || "contacts";
+          if (!careViewModes.includes(nextCareMode)) return;
+          currentPage = 1;
+          closeDetail();
+          setActiveView(nextCareMode);
+          updateRouteHash(nextCareMode);
           updateView();
         });
       });
