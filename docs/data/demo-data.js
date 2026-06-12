@@ -3,39 +3,52 @@
   const profiles = [
     {
       id: "11111111-1111-4111-8111-111111111111",
-      email: "demo.admin@example.test",
-      display_name: "Demo Admin",
-      initials: "DA",
+      email: "timo.frank@example.test",
+      display_name: "Timo Frank",
+      initials: "TF",
       role: "admin",
       active: true,
       avatar_url: "",
-      team: "Versorgungssteuerung",
+      team: "Stabsstelle Versorgung",
       bio: "Fiktives Admin-Profil fuer Offline-QA.",
       created_at: now,
       updated_at: now
     },
     {
       id: "22222222-2222-4222-8222-222222222222",
-      email: "demo.editor@example.test",
-      display_name: "Demo Editor",
-      initials: "DE",
+      email: "benjamin.bluemchen@example.test",
+      display_name: "Benjamin Blümchen",
+      initials: "BB",
       role: "editor",
       active: true,
       avatar_url: "",
-      team: "Kontaktpflege",
+      team: "Kommunikation",
       bio: "Fiktives Editor-Profil fuer Offline-QA.",
       created_at: now,
       updated_at: now
     },
     {
       id: "33333333-3333-4333-8333-333333333333",
-      email: "demo.viewer@example.test",
-      display_name: "Demo Viewer",
-      initials: "DV",
+      email: "bibi.blocksberg@example.test",
+      display_name: "Bibi Blocksberg",
+      initials: "BI",
       role: "viewer",
       active: true,
       avatar_url: "",
-      team: "Analyse",
+      team: "Kommunikation",
+      bio: "Fiktives Viewer-Profil fuer Offline-QA.",
+      created_at: now,
+      updated_at: now
+    },
+    {
+      id: "44444444-4444-4444-8444-444444444444",
+      email: "hallo@example.test",
+      display_name: "hallo",
+      initials: "HA",
+      role: "viewer",
+      active: true,
+      avatar_url: "",
+      team: "Strategie und Standards",
       bio: "Fiktives Viewer-Profil fuer Offline-QA.",
       created_at: now,
       updated_at: now
@@ -107,6 +120,12 @@
   function contact(index, organizationIndex, name, overrides = {}) {
     const org = organizations[organizationIndex % organizations.length];
     const n = index + 1;
+    const assignedOwnerIds = index % 6 === 0
+      ? [ownerIds[index % ownerIds.length], ownerIds[(index + 1) % ownerIds.length]]
+      : [ownerIds[index % ownerIds.length]];
+    const assignedOwnerLabels = assignedOwnerIds
+      .map((ownerId) => profiles.find((profile) => profile.id === ownerId)?.display_name || "")
+      .filter(Boolean);
     return {
       id: `demo-contact-${String(n).padStart(2, "0")}`,
       name,
@@ -116,7 +135,9 @@
       specialty: specialties[index % specialties.length],
       contactRole: roles[index % roles.length],
       priority: priorities[index % priorities.length],
-      ownerId: ownerIds[index % ownerIds.length],
+      ownerId: assignedOwnerIds[0] || "",
+      ownerIds: assignedOwnerIds,
+      owner: assignedOwnerLabels.join(", "),
       postalCode: org.postalCode,
       city: org.city,
       state: org.state,
@@ -182,7 +203,7 @@
   contacts[5] = { ...contacts[5], email: "", note: "Fiktiver Kontakt mit fehlender E-Mail fuer Datenqualitaets-QA." };
   contacts[8] = { ...contacts[8], phone: "", note: "Fiktiver Kontakt mit fehlender Telefonnummer fuer Datenqualitaets-QA." };
   contacts[12] = { ...contacts[12], specialty: "", note: "Fiktiver Kontakt mit fehlender Fachrichtung fuer Filter- und QA-Pruefung." };
-  contacts[16] = { ...contacts[16], ownerId: "", owner: "", note: "Fiktiver Kontakt ohne Owner fuer Pflege-Queue und Owner-Filter." };
+  contacts[16] = { ...contacts[16], ownerId: "", ownerIds: [], owner: "", note: "Fiktiver Kontakt ohne Owner fuer Pflege-Queue und Owner-Filter." };
   contacts[20] = { ...contacts[20], lat: null, lon: null, note: "Fiktiver Kontakt ohne Koordinaten fuer Karten- und Datenqualitaets-QA." };
   contacts[24] = { ...contacts[24], status: "archived", note: "Archivierter Demo-Kontakt fuer Admin-Pruefung." };
   contacts[30] = { ...contacts[30], organization: "MVZ Nordstadt", organizationId: "demo-org-nordstadt", city: "Berlin", state: "Berlin" };

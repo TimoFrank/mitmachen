@@ -430,7 +430,8 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notification-count-total")).toBeVisible();
   await page.locator("#sidebar-notifications-button").click();
   await expect(page.locator("#notification-popover")).toBeVisible();
-  await expect(page.locator("#notification-popover-title")).toHaveText("Neue Benachrichtigungen");
+  await expect(page.locator("#notification-popover-title")).toHaveText("Benachrichtigungen");
+  await expect(page.locator("#notification-popover-meta")).toHaveCount(0);
   await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(1);
 
   await page.locator("#notification-popover-all").click();
@@ -449,7 +450,14 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
 
   await page.locator("#notifications-mark-all-read").click();
   await expect(page.locator("#notifications-list .notifications-empty")).toBeVisible();
+  await expect(page.locator("#notifications-list .notification-empty-state__icon")).toBeVisible();
+  await expect(page.locator("#notifications-mark-all-read")).toBeHidden();
   await expect(page.locator("#notification-count-total")).toBeHidden();
+
+  await page.locator("#sidebar-notifications-button").click();
+  await expect(page.locator("#notification-popover")).toBeVisible();
+  await expect(page.locator("#notification-popover-list .notification-popover__empty")).toContainText("Keine neuen Benachrichtigungen.");
+  await expect(page.locator("#notification-popover-list .notification-empty-state__icon")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "hinweise");
 });

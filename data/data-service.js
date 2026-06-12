@@ -420,7 +420,7 @@
       role: "admin",
       active: true,
       avatar_url: "",
-      team: "",
+      team: "Stabsstelle Versorgung",
       bio: ""
     };
   }

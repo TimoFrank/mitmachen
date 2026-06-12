@@ -589,8 +589,8 @@
 
       .notification-popover {
         position: fixed;
-        width: min(380px, calc(100vw - 24px));
-        max-height: min(520px, calc(100vh - 24px));
+        width: min(220px, calc(100vw - 24px));
+        max-height: min(460px, calc(100vh - 24px));
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
         gap: 10px;
@@ -622,16 +622,9 @@
         line-height: var(--line-height-tight);
       }
 
-      .notification-popover__meta {
-        margin-top: 3px;
-        color: var(--text-muted);
-        font-size: var(--font-size-xs);
-        font-weight: 750;
-      }
-
       .notification-popover__list {
         min-height: 0;
-        max-height: min(360px, calc(100vh - 180px));
+        max-height: min(300px, calc(100vh - 180px));
         display: grid;
         align-content: start;
         gap: 8px;
@@ -705,7 +698,7 @@
       .notification-popover__empty,
       .notification-popover__loading,
       .notification-popover__error {
-        min-height: 112px;
+        min-height: 92px;
         display: grid;
         place-items: center;
         border: 1px solid var(--border);
@@ -719,6 +712,10 @@
         text-align: center;
       }
 
+      .notification-popover__empty {
+        min-height: 104px;
+      }
+
       .notification-popover__error {
         color: var(--danger);
       }
@@ -727,6 +724,11 @@
         align-items: center;
         justify-content: flex-end;
         padding-top: 2px;
+      }
+
+      .notification-popover__footer .action-button {
+        width: 100%;
+        justify-content: center;
       }
 
       .app-shell.is-sidebar-collapsed .sidebar-nav .primary-tab .notification-count-indicator,
@@ -4558,22 +4560,30 @@
       }
 
       .notifications-command-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+        gap: 10px;
       }
 
       .notifications-filters {
         display: flex;
         align-items: center;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 8px;
         min-width: 0;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .notifications-filters::-webkit-scrollbar {
+        display: none;
       }
 
       .notification-filter {
+        flex: 0 0 auto;
         min-height: 34px;
         padding: 0 12px;
         border: 1px solid var(--border);
@@ -4601,15 +4611,17 @@
       }
 
       .notifications-command-actions {
-        display: flex;
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         justify-content: flex-end;
-        flex-wrap: wrap;
         gap: 10px;
         margin-left: auto;
       }
 
       .notifications-meta {
+        justify-self: end;
         color: var(--text-muted);
         font-size: var(--font-size-sm);
         font-weight: 850;
@@ -4622,6 +4634,10 @@
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--surface-muted);
+      }
+
+      .notifications-feed-shell.is-empty {
+        min-height: 210px;
       }
 
       .notifications-list {
@@ -4721,6 +4737,41 @@
         text-align: center;
       }
 
+      .notifications-feed-shell.is-empty .notifications-empty {
+        min-height: 180px;
+      }
+
+      .notification-empty-state {
+        display: grid;
+        justify-items: center;
+        align-content: center;
+        gap: 10px;
+        color: var(--text-muted);
+        line-height: var(--line-height-normal);
+        text-align: center;
+      }
+
+      .notification-empty-state__icon {
+        width: 34px;
+        height: 34px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        border: 1px solid var(--success);
+        background: var(--success-soft);
+        color: var(--success);
+      }
+
+      .notification-empty-state__icon svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
       .notifications-error {
         color: var(--danger);
       }
@@ -4746,6 +4797,14 @@
 
       .profile-notifications-workspace .notifications-feed-shell {
         min-height: 360px;
+      }
+
+      .profile-notifications-workspace .notifications-feed-shell.is-empty {
+        min-height: 190px;
+      }
+
+      .profile-notifications-workspace .notifications-feed-shell.is-empty .notifications-empty {
+        min-height: 160px;
       }
 
       .history-action-pill--owner {
@@ -4809,7 +4868,7 @@
           width: 100%;
           min-width: 0;
           align-items: stretch;
-          flex-direction: column;
+          grid-template-columns: minmax(0, 1fr);
         }
 
         .notifications-filters {
@@ -4902,9 +4961,7 @@
         }
 
         .notification-popover {
-          left: 12px !important;
-          right: 12px;
-          width: auto;
+          max-width: calc(100vw - 24px);
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-nav .primary-tab .notification-count-indicator,
@@ -13459,13 +13516,13 @@
 
       .app-shell[data-active-view="contacts"] .controls,
       .app-shell[data-active-view="organizations"] .controls,
-      .app-shell[data-active-view="map"] .controls {
+      .app-shell[data-active-view="map"] .controls,
+      .app-shell[data-active-view="experts"] .controls,
+      .app-shell[data-active-view="stakeholders"] .controls {
         display: block;
       }
 
       .app-shell[data-active-view="analytics"] .controls,
-      .app-shell[data-active-view="experts"] .controls,
-      .app-shell[data-active-view="stakeholders"] .controls,
       .app-shell[data-active-view="notifications"] .controls,
       .app-shell[data-active-view="quality"] .controls,
       .app-shell[data-active-view="imports"] .controls,
@@ -14331,21 +14388,15 @@
         background: var(--surface);
         box-shadow: var(--shadow-sm);
         overflow: hidden;
-      }
-
-      .team-workspace {
-        width: min(760px, 100%);
-        margin: 0 auto;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        background: var(--surface);
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-      }
-
-      .settings-workspace,
-      .team-workspace {
         padding: 14px;
+      }
+
+      .team-workspace {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 12px;
+        min-width: 0;
       }
 
       .settings-workspace .profile-section:first-child {
@@ -14819,108 +14870,141 @@
 
       .team-account-list {
         display: grid;
-        gap: 14px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        align-items: start;
       }
 
-      .team-section {
+      .team-column {
         display: grid;
-        gap: 9px;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
       }
 
-      .team-section-head {
-        display: flex;
+      .team-column-head {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
         align-items: center;
-        justify-content: space-between;
         gap: 10px;
-        min-height: 32px;
-      }
-
-      .team-section-toggle {
-        width: 100%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        color: var(--text-primary);
-        cursor: pointer;
-        text-align: left;
-      }
-
-      .team-section-toggle:hover .team-section-chevron {
-        border-color: var(--border-strong);
+        min-height: 58px;
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
         background: var(--surface-muted);
+      }
+
+      .team-icon {
+        width: 34px;
+        height: 34px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--primary-soft);
         color: var(--primary);
       }
 
-      .team-section-toggle:focus-visible {
-        outline: 2px solid var(--primary);
-        outline-offset: 3px;
-        border-radius: var(--radius-sm);
+      .team-icon svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
-      .team-section-chevron {
-        width: 30px;
-        height: 30px;
+      .team-column-title {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .team-column-title strong,
+      .team-column-title span {
+        min-width: 0;
+      }
+
+      .team-column-title strong {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        font-weight: 900;
+        line-height: var(--line-height-tight);
+        overflow-wrap: anywhere;
+      }
+
+      .team-column-title span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 750;
+      }
+
+      .team-column-count {
+        min-width: 28px;
+        min-height: 26px;
         display: inline-grid;
         place-items: center;
-        flex: 0 0 auto;
-        border: 1px solid var(--border);
+        padding: 0 8px;
         border-radius: 999px;
-        background: var(--surface);
-        color: var(--text-muted);
-        transform-origin: center;
-        transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: var(--font-size-xs);
+        font-weight: 950;
+        font-variant-numeric: tabular-nums;
       }
 
-      .team-section-chevron svg {
-        width: 15px;
-        height: 15px;
-        display: block;
-        stroke-width: 2.4;
-      }
-
-      .team-section.is-collapsed .team-section-chevron {
-        transform: rotate(-90deg);
-      }
-
-      .team-section-accounts {
+      .team-column-accounts {
         display: grid;
         gap: 8px;
+        align-content: start;
+        padding: 10px;
       }
 
-      .team-section-accounts[hidden] {
-        display: none;
+      .team-column-empty {
+        padding: 12px;
+        border: 1px dashed var(--border-strong);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 750;
+        line-height: var(--line-height-normal);
       }
 
       .team-account-row {
         display: grid;
-        grid-template-columns: 68px minmax(0, 1fr) minmax(128px, auto);
-        grid-template-rows: auto auto auto;
-        gap: 12px;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 8px 10px;
         align-items: center;
-        min-height: 82px;
-        padding: 8px 12px 8px 8px;
+        min-width: 0;
+        padding: 10px;
         border: 1px solid var(--border);
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-sm);
         background: var(--surface);
       }
 
       .team-account-avatar {
         grid-column: 1;
         grid-row: 1 / span 2;
-        width: 68px;
-        height: 76px;
+        width: 44px;
+        height: 44px;
         min-height: 0;
         display: grid;
         place-items: center;
-        align-self: start;
-        border-radius: var(--radius-md);
+        align-self: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
         background: var(--primary-soft);
         color: var(--primary);
-        font-size: var(--font-size-lg);
+        font-size: var(--font-size-sm);
         font-weight: 950;
         overflow: hidden;
       }
@@ -14929,37 +15013,42 @@
         grid-column: 2;
         grid-row: 1;
         display: grid;
-        gap: 5px;
+        gap: 3px;
         align-content: center;
-        align-self: center;
         min-width: 0;
       }
 
       .team-account-copy strong,
       .team-account-copy span {
         min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
 
       .team-account-copy strong {
         color: var(--text-primary);
         font-size: var(--font-size-md);
+        font-weight: 900;
         line-height: var(--line-height-tight);
+        overflow-wrap: anywhere;
       }
 
       .team-account-copy span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: var(--text-muted);
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-xs);
         font-weight: 750;
       }
 
       .team-account-meta {
+        grid-column: 2;
+        grid-row: 2;
         display: inline-flex;
         flex-wrap: wrap;
         gap: 6px;
         align-items: center;
+        min-width: 0;
       }
 
       .team-badge {
@@ -14972,60 +15061,17 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         padding: 0 8px;
-        border: 1px solid var(--team-badge-border, #d8e4ff);
+        border: 1px solid var(--border);
         border-radius: 999px;
-        background: var(--team-badge-bg, var(--primary-soft));
-        color: var(--team-badge-text, var(--primary));
+        background: var(--primary-soft);
+        color: var(--primary);
         font-size: var(--font-size-xs);
         font-weight: 900;
       }
 
-      .team-badge--0 {
-        --team-badge-bg: #f4ecff;
-        --team-badge-border: #dbc6ff;
-        --team-badge-text: #6b35b8;
-      }
-
-      .team-badge--1 {
-        --team-badge-bg: #ecfeff;
-        --team-badge-border: #a5f3fc;
-        --team-badge-text: #155e75;
-      }
-
-      .team-badge--2 {
-        --team-badge-bg: #fdf2f8;
-        --team-badge-border: #fbcfe8;
-        --team-badge-text: #9d174d;
-      }
-
-      .team-badge--3 {
-        --team-badge-bg: #eef2ff;
-        --team-badge-border: #c7d2fe;
-        --team-badge-text: #4338ca;
-      }
-
-      .team-badge--4 {
-        --team-badge-bg: #faf5ff;
-        --team-badge-border: #e9d5ff;
-        --team-badge-text: #7e22ce;
-      }
-
-      .team-badge--5 {
-        --team-badge-bg: #fdf4ff;
-        --team-badge-border: #f5d0fe;
-        --team-badge-text: #a21caf;
-      }
-
-      .team-badge--6 {
-        --team-badge-bg: #f5f3ff;
-        --team-badge-border: #ddd6fe;
-        --team-badge-text: #5b21b6;
-      }
-
-      .team-badge--7 {
-        --team-badge-bg: #f1f5f9;
-        --team-badge-border: #cbd5e1;
-        --team-badge-text: #334155;
+      .team-badge--unassigned {
+        background: var(--surface-muted);
+        color: var(--text-muted);
       }
 
       .team-account-actions {
@@ -15033,46 +15079,59 @@
       }
 
       .team-account-role {
-        grid-column: 3;
-        grid-row: 1;
-        justify-self: end;
-        align-self: center;
         display: inline-flex;
-        align-items: center;
-        justify-content: flex-end;
-        width: 128px;
+        min-width: 0;
       }
 
       .team-account-role .account-role-pill {
+        min-height: 24px;
         margin-top: 0;
+        padding-inline: 8px;
+        font-size: var(--font-size-xs);
       }
 
       .team-contact-details {
         grid-column: 1 / -1;
-        grid-row: 3;
         justify-self: stretch;
-        align-self: start;
         width: 100%;
         min-width: 0;
         box-shadow: none;
       }
 
-      .team-contact-details[open] {
-        grid-column: 1 / -1;
-        grid-row: 3;
-        width: 100%;
-      }
-
       .team-contact-details summary {
         min-width: 0;
+        min-height: 38px;
+        padding-inline: 10px;
         white-space: nowrap;
-        justify-content: flex-end;
       }
 
       .team-contact-details .profile-owner-summary-label {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      @media (max-width: 1180px) {
+        .team-account-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .team-account-list {
+          grid-template-columns: 1fr;
+        }
+
+        .team-column-head {
+          grid-template-columns: 32px minmax(0, 1fr) auto;
+          min-height: 54px;
+          padding: 10px;
+        }
+
+        .team-icon {
+          width: 32px;
+          height: 32px;
+        }
       }
 
       .imports-history-list {
@@ -15137,174 +15196,6 @@
 
         .registration-row__actions .import-row-action {
           flex: 1 1 140px;
-        }
-
-        .team-account-row {
-          grid-template-columns: 64px minmax(0, 1fr) auto;
-          grid-template-rows: auto auto;
-          gap: 8px 10px;
-          min-height: 92px;
-          padding: 8px;
-          align-items: center;
-        }
-
-        .team-account-avatar {
-          grid-row: 1 / span 2;
-          width: 64px;
-          height: 76px;
-          min-height: 0;
-          align-self: start;
-        }
-
-        .team-account-copy {
-          grid-column: 2;
-          grid-row: 1;
-          align-self: end;
-          align-content: end;
-        }
-
-        .team-account-copy strong {
-          font-size: 0.92rem;
-          line-height: 1.18;
-        }
-
-        .team-account-role {
-          grid-column: 3;
-          grid-row: 1;
-          justify-self: end;
-          align-self: end;
-          width: auto;
-          min-width: 0;
-        }
-
-        .team-contact-details {
-          grid-column: 1 / -1;
-          grid-row: 3;
-          justify-self: stretch;
-          align-self: start;
-          width: 100%;
-        }
-
-        .team-contact-details summary {
-          min-height: 36px;
-          justify-content: flex-end;
-          padding-inline: 10px;
-        }
-
-        .team-contact-details[open] {
-          grid-column: 1 / -1;
-          grid-row: 3;
-          width: 100%;
-        }
-      }
-
-      @media (max-width: 430px) {
-        .team-workspace {
-          padding: 6px;
-        }
-
-        .team-workspace .profile-section {
-          padding: 10px;
-        }
-
-        .team-workspace .profile-section h3 {
-          margin-bottom: 10px;
-        }
-
-        .team-account-list {
-          gap: 12px;
-        }
-
-        .team-section {
-          gap: 8px;
-        }
-
-        .team-section-accounts {
-          gap: 8px;
-        }
-
-        .team-account-row {
-          grid-template-columns: 58px minmax(0, 1fr) auto;
-          gap: 10px;
-          min-height: 88px;
-          padding: 8px;
-          align-items: center;
-        }
-
-        .team-account-avatar {
-          grid-row: 1 / span 2;
-          width: 58px;
-          height: 72px;
-          min-height: 0;
-          align-self: start;
-        }
-
-        .team-account-copy {
-          grid-column: 2;
-          grid-row: 1;
-          align-self: end;
-          align-content: end;
-          gap: 0;
-        }
-
-        .team-account-copy strong {
-          font-size: 0.9rem;
-          line-height: 1.16;
-          display: -webkit-box;
-          overflow: hidden;
-          white-space: normal;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-        }
-
-        .team-account-role {
-          grid-column: 3;
-          grid-row: 1;
-          justify-self: end;
-          align-self: end;
-          width: auto;
-          min-width: 0;
-        }
-
-        .team-account-role .account-role-pill {
-          min-height: 24px;
-          padding-inline: 8px;
-          font-size: 0.68rem;
-        }
-
-        .team-contact-details {
-          grid-column: 1 / -1;
-          grid-row: 3;
-          justify-self: stretch;
-          width: 100%;
-        }
-
-        .team-contact-details summary {
-          min-height: 36px;
-          justify-content: flex-end;
-          gap: 6px;
-          padding-inline: 8px;
-          font-size: 0.78rem;
-        }
-
-        .team-contact-details summary::after {
-          font-size: 0.72rem;
-        }
-
-        .team-contact-details .profile-owner-summary-label {
-          gap: 4px;
-        }
-
-        .team-contact-details .profile-owner-count {
-          min-width: 24px;
-          min-height: 24px;
-          padding-inline: 6px;
-        }
-
-        .team-contact-details[open] {
-          grid-column: 1 / -1;
-          grid-row: 3;
-          width: 100%;
         }
       }
 
@@ -18905,8 +18796,7 @@
           <div class="notification-popover" id="notification-popover" role="dialog" aria-labelledby="notification-popover-title" hidden>
             <div class="notification-popover__head">
               <div>
-                <h3 class="notification-popover__title" id="notification-popover-title">Neue Benachrichtigungen</h3>
-                <div class="notification-popover__meta" id="notification-popover-meta">Wird geladen</div>
+                <h3 class="notification-popover__title" id="notification-popover-title">Benachrichtigungen</h3>
               </div>
               <button class="detail-close" type="button" id="notification-popover-close" aria-label="Benachrichtigungen schließen">×</button>
             </div>
@@ -19530,12 +19420,9 @@
 
           <section class="view-panel" id="view-team" data-view-panel="team">
             <div class="team-workspace">
-              <section class="profile-section">
-                <h3>Accounts</h3>
-                <div class="team-account-list" id="team-account-list">
-                  <div class="saved-view-empty">Accounts werden nach dem Laden des Profils angezeigt.</div>
-                </div>
-              </section>
+              <div class="team-account-list" id="team-account-list" aria-label="Accounts nach Team">
+                <div class="saved-view-empty">Accounts werden nach dem Laden des Profils angezeigt.</div>
+              </div>
             </div>
           </section>
 
@@ -19571,7 +19458,7 @@
                           <div class="profile-field">
                             <label for="onboarding-team">Team</label>
                             <div class="select-shell" data-custom-select>
-                              <select id="onboarding-team" name="team" required>
+                              <select id="onboarding-team" name="team">
                                 <option value="">Bitte auswählen</option>
                               </select>
                             </div>
@@ -19757,7 +19644,7 @@
                   </div>
                   <div class="profile-identity-copy">
                     <h3 id="profile-display-title">Timo Frank</h3>
-                    <div class="profile-team-line" id="profile-team-line">Team nicht ausgewählt</div>
+                    <div class="profile-team-line" id="profile-team-line">Ohne Team</div>
                     <div class="profile-status" id="profile-status" aria-live="polite"></div>
                   </div>
                 </div>
@@ -19783,9 +19670,8 @@
                       <select id="profile-team" name="team">
                         <option value="">Bitte auswählen</option>
                         <option value="Stabsstelle Versorgung">Stabsstelle Versorgung</option>
-                        <option value="Produktmanagement">Produktmanagement</option>
                         <option value="Kommunikation">Kommunikation</option>
-                        <option value="Strategie">Strategie</option>
+                        <option value="Strategie und Standards">Strategie und Standards</option>
                       </select>
                     </div>
                   </div>
@@ -21197,12 +21083,35 @@
       const legacyOwnerAssignmentsStorageKey = "versorgungs-kompass-legacy-owner-assignments-v1";
       const visibleColumnsStorageKey = "versorgungs-kompass-visible-contact-columns-v1";
       const visibleOrganizationColumnsStorageKey = "versorgungs-kompass-visible-organization-columns-v1";
+      const visibleExpertContactColumnsStorageKey = "versorgungs-kompass-visible-expert-contact-columns-v1";
       const visibleStakeholderOrganizationColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-organization-columns-v1";
       const visibleStakeholderPeopleColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-people-columns-v1";
       const ONBOARDING_VERSION = 1;
       const ONBOARDING_ROLLOUT_AT = "2026-06-09T00:00:00.000+02:00";
-      const defaultTeamOptions = ["Stabsstelle Versorgung", "Produktmanagement", "Kommunikation", "Strategie"];
+      const TEAM_UNASSIGNED_LABEL = "Ohne Team";
+      const teamDefinitions = [
+        { name: "Stabsstelle Versorgung", icon: "stabsstelle" },
+        { name: "Kommunikation", icon: "kommunikation" },
+        { name: "Strategie und Standards", icon: "standards" }
+      ];
+      const defaultTeamOptions = teamDefinitions.map((team) => team.name);
+      const teamMemberAssignments = new Map([
+        ["timo frank", "Stabsstelle Versorgung"],
+        ["benjamin blumchen", "Kommunikation"],
+        ["bibi blocksberg", "Kommunikation"],
+        ["hallo", "Strategie und Standards"]
+      ]);
+      const teamAliases = new Map([
+        ["stabsstelle versorgung", "Stabsstelle Versorgung"],
+        ["versorgungssteuerung", "Stabsstelle Versorgung"],
+        ["kommunikation", "Kommunikation"],
+        ["kontaktpflege", "Kommunikation"],
+        ["strategie und standards", "Strategie und Standards"],
+        ["strategie", "Strategie und Standards"],
+        ["analyse", "Strategie und Standards"]
+      ]);
       const defaultContactColumnKeys = ["name", "organization", "category", "specialty", "location", "owner", "updated"];
+      const defaultExpertContactColumnKeys = ["name", "organization", "category", "location", "owner", "updated"];
       const contactTableColumns = [
         { key: "name", label: "Name", template: "minmax(220px, 1.18fr)", required: true },
         { key: "organization", label: "Organisation", template: "minmax(200px, 1.02fr)" },
@@ -21322,7 +21231,6 @@
       const notificationsLoadMoreButton = document.getElementById("notifications-load-more");
       const notificationPopover = document.getElementById("notification-popover");
       const notificationPopoverList = document.getElementById("notification-popover-list");
-      const notificationPopoverMeta = document.getElementById("notification-popover-meta");
       const notificationPopoverClose = document.getElementById("notification-popover-close");
       const notificationPopoverAll = document.getElementById("notification-popover-all");
       const formatDetailPanel = document.getElementById("format-detail-panel");
@@ -21763,7 +21671,6 @@
       let onboardingStep = "profile";
       let pendingPostOnboardingView = "contacts";
       let productTourState = { open: false, index: 0, source: "manual", target: null };
-      const collapsedTeams = new Set();
       let activeCareQueueKey = "";
       const selectedCareIds = new Set();
       const selectedContactIds = new Set();
@@ -27312,16 +27219,54 @@
         return ownerContactsForProfile(profile).length;
       }
 
-      function teamToneClass(team, index = null) {
-        const value = String(team || "").trim();
-        if (!value || value === "Team nicht ausgewählt") return "team-badge--7";
-        const hash = [...value].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-        return `team-badge--${hash % 7}`;
+      function normalizeTeamLookup(value = "") {
+        return String(value || "")
+          .trim()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/\s+/g, " ");
+      }
+
+      function canonicalTeamName(value = "") {
+        return teamAliases.get(normalizeTeamLookup(value)) || "";
+      }
+
+      function profileLookupCandidates(profile = {}) {
+        return [
+          profile?.label,
+          profile?.display_name,
+          profile?.displayName,
+          profile?.email,
+          profile?.initials,
+          ...(Array.isArray(profile?.matchLabels) ? profile.matchLabels : [])
+        ].filter(Boolean);
+      }
+
+      function assignedTeamForProfile(profile = {}) {
+        const namedTeam = profileLookupCandidates(profile)
+          .map((candidate) => teamMemberAssignments.get(normalizeTeamLookup(candidate)))
+          .find(Boolean);
+        if (namedTeam) return namedTeam;
+        return canonicalTeamName(profile?.team || "");
+      }
+
+      function resolvedProfileTeam(profile = {}) {
+        return assignedTeamForProfile(profile) || TEAM_UNASSIGNED_LABEL;
+      }
+
+      function selectableTeamValue(profile = {}) {
+        const team = resolvedProfileTeam(profile);
+        return team === TEAM_UNASSIGNED_LABEL ? "" : team;
+      }
+
+      function teamToneClass(team) {
+        return String(team || "").trim() === TEAM_UNASSIGNED_LABEL ? "team-badge--unassigned" : "";
       }
 
       function setProfileTeamBadge(element, team = "") {
         if (!element) return;
-        const label = String(team || "").trim() || "Team nicht ausgewählt";
+        const label = canonicalTeamName(team) || String(team || "").trim() || TEAM_UNASSIGNED_LABEL;
         element.textContent = label;
         element.className = `profile-team-line team-badge ${teamToneClass(label)}`;
       }
@@ -27346,38 +27291,36 @@
       }
 
       function groupedTeamProfiles(profiles = teamProfiles()) {
-        const byTeam = new Map();
+        const groups = [
+          ...teamDefinitions.map((team) => ({ ...team, accounts: [], isUnassigned: false })),
+          { name: TEAM_UNASSIGNED_LABEL, icon: "unassigned", accounts: [], isUnassigned: true }
+        ];
+        const byName = new Map(groups.map((group) => [group.name, group]));
         profiles.forEach((profile) => {
-          const team = String(profile.team || "").trim() || "Team nicht ausgewählt";
-          if (!byTeam.has(team)) byTeam.set(team, []);
-          byTeam.get(team).push(profile);
+          const team = assignedTeamForProfile(profile);
+          const group = byName.get(team) || byName.get(TEAM_UNASSIGNED_LABEL);
+          group.accounts.push({ ...profile, team: group.name });
         });
-        return [...byTeam.entries()]
-          .map(([team, accounts]) => ({
-            team,
-            accounts: accounts.sort((a, b) => a.label.localeCompare(b.label, "de"))
-          }))
-          .sort((a, b) => {
-            if (a.team === "Team nicht ausgewählt") return 1;
-            if (b.team === "Team nicht ausgewählt") return -1;
-            return a.team.localeCompare(b.team, "de");
-          });
+        groups.forEach((group) => {
+          group.accounts.sort((a, b) => a.label.localeCompare(b.label, "de"));
+        });
+        return groups;
       }
 
       function availableTeamOptions(selectedTeam = "") {
         const teams = new Set(defaultTeamOptions);
         teamProfiles().forEach((profile) => {
-          const team = String(profile.team || "").trim();
+          const team = assignedTeamForProfile(profile);
           if (team) teams.add(team);
         });
-        const selected = String(selectedTeam || "").trim();
+        const selected = canonicalTeamName(selectedTeam);
         if (selected) teams.add(selected);
-        return [...teams].sort((a, b) => a.localeCompare(b, "de"));
+        return defaultTeamOptions.filter((team) => teams.has(team));
       }
 
       function renderTeamSelectOptions(select, selectedTeam = "") {
         if (!select) return;
-        const selected = String(selectedTeam || "").trim();
+        const selected = canonicalTeamName(selectedTeam);
         select.innerHTML = `<option value="">Bitte auswählen</option>${availableTeamOptions(selected)
           .map((team) => `<option value="${escapeHtml(team)}">${escapeHtml(team)}</option>`)
           .join("")}`;
@@ -27385,8 +27328,18 @@
         syncCustomSelect(select);
       }
 
-      function teamSectionId(index) {
-        return `team-section-accounts-${index}`;
+      function teamIconMarkup(team = "") {
+        const icon = teamDefinitions.find((entry) => entry.name === team)?.icon || "unassigned";
+        if (icon === "kommunikation") {
+          return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H6l-3 3v-7a8 8 0 1 1 18-4Z"></path><path d="M8 11h8"></path><path d="M8 15h5"></path></svg>`;
+        }
+        if (icon === "standards") {
+          return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l2 2 4-4"></path><path d="M9 17l2 2 4-4"></path><path d="M5 4h14v18H5z"></path><path d="M9 4a3 3 0 0 1 6 0"></path></svg>`;
+        }
+        if (icon === "stabsstelle") {
+          return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.4 2.8 8.4 7 10 4.2-1.6 7-5.6 7-10V6l-7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>`;
+        }
+        return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>`;
       }
 
       function renderTeamView() {
@@ -27394,20 +27347,23 @@
         const groups = groupedTeamProfiles();
         teamAccountList.innerHTML = groups.length
           ? groups
-              .map(({ team, accounts }, groupIndex) => `
-                <section class="team-section ${collapsedTeams.has(team) ? "is-collapsed" : ""}">
-                  <div class="team-section-head">
-                    <button class="team-section-toggle" type="button" data-team-toggle="${escapeHtml(team)}" aria-expanded="${collapsedTeams.has(team) ? "false" : "true"}" aria-controls="${teamSectionId(groupIndex)}">
-                      <span class="team-badge ${teamToneClass(team)}">${escapeHtml(team)}</span>
-                      <span class="team-section-chevron" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="m6 9 6 6 6-6"></path>
-                        </svg>
-                      </span>
-                    </button>
+              .map((group) => {
+                const team = group.name;
+                const accounts = group.accounts;
+                const accountLabel = accounts.length === 1 ? "Account" : "Accounts";
+                return `
+                <section class="team-column" aria-labelledby="team-column-${group.icon}">
+                  <div class="team-column-head">
+                    <span class="team-icon" aria-hidden="true">${teamIconMarkup(team)}</span>
+                    <div class="team-column-title">
+                      <strong id="team-column-${group.icon}">${escapeHtml(team)}</strong>
+                      <span>${accounts.length} ${accountLabel}</span>
+                    </div>
+                    <span class="team-column-count" aria-label="${accounts.length} ${accountLabel}">${accounts.length}</span>
                   </div>
-                  <div class="team-section-accounts" id="${teamSectionId(groupIndex)}" ${collapsedTeams.has(team) ? "hidden" : ""}>
-                    ${accounts
+                  <div class="team-column-accounts">
+                    ${accounts.length
+                      ? accounts
                       .map((profile) => {
                 const ownerContacts = ownerContactsForProfile(profile);
                 const ownerCount = ownerContacts.length;
@@ -27418,11 +27374,14 @@
                     <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
                     <div class="team-account-copy">
                       <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
+                      <span>${escapeHtml(profile.email || "E-Mail nicht hinterlegt")}</span>
                     </div>
-                    <div class="team-account-actions">
+                    <div class="team-account-meta">
                       <div class="team-account-role">
                         <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
                       </div>
+                    </div>
+                    <div class="team-account-actions">
                       <details class="profile-owner-details team-contact-details">
                         <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt" : "Kontakte"}</span></summary>
                         <div class="profile-owner-list">
@@ -27452,20 +27411,14 @@
                   </article>
                 `;
               })
-                      .join("")}
+                      .join("")
+                      : `<div class="team-column-empty">${group.isUnassigned ? "Alle geladenen Accounts sind einem Team zugeordnet." : "Noch keine Accounts zugeordnet."}</div>`}
                   </div>
                 </section>
-              `)
+              `;
+              })
               .join("")
           : `<div class="saved-view-empty">Noch keine Accounts geladen.</div>`;
-        teamAccountList.querySelectorAll("[data-team-toggle]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const team = button.dataset.teamToggle || "";
-            if (collapsedTeams.has(team)) collapsedTeams.delete(team);
-            else collapsedTeams.add(team);
-            renderTeamView();
-          });
-        });
         teamAccountList.querySelectorAll("[data-team-owner-contact]").forEach((button) => {
           button.addEventListener("click", () => {
             setActiveView("contacts");
@@ -27588,7 +27541,7 @@
         updateAvatarElement(profileAvatarPreview, profile);
         updateAvatarElement(profilePhotoPreview, profile);
         if (profileDisplayTitle) profileDisplayTitle.textContent = displayName;
-        setProfileTeamBadge(profileTeamLine, profile.team);
+        setProfileTeamBadge(profileTeamLine, resolvedProfileTeam(profile));
         if (profileEmailLabel) profileEmailLabel.textContent = profile.email || "Supabase-Profil";
         [profileRolePill, profileRoleDisplay].forEach((element) => {
           if (!element) return;
@@ -27600,8 +27553,8 @@
         profileForm.elements.displayName.value = displayName;
         profileForm.elements.initials.value = initialsFromProfile(profile);
         profileForm.elements.email.value = profile.email || "";
-        renderTeamSelectOptions(profileForm.elements.team, profile.team || "");
-        setProfileTeamBadge(profileTeamLine, profile.team);
+        renderTeamSelectOptions(profileForm.elements.team, selectableTeamValue(profile));
+        setProfileTeamBadge(profileTeamLine, resolvedProfileTeam(profile));
         refreshCustomSelects(profileForm);
         renderProfileOwnerSummary();
         if (profileForm.elements.notificationsEnabled) {
@@ -27666,7 +27619,7 @@
           return;
         }
         setProfileStatus("Profil wird gespeichert...");
-        setProfileTeamBadge(profileTeamLine, nextProfile.team);
+        setProfileTeamBadge(profileTeamLine, nextProfile.team || TEAM_UNASSIGNED_LABEL);
         try {
           const updatedProfile = await window.dataService.updateCurrentProfile(nextProfile);
           userSettings = window.dataService?.upsertUserSettings ? await window.dataService.upsertUserSettings(nextSettings) : nextSettings;
@@ -27751,7 +27704,6 @@
         const state = onboardingPreferences();
         const missing = [];
         if (!String(profile.display_name || profile.displayName || "").trim()) missing.push("Anzeigename");
-        if (!String(profile.team || "").trim()) missing.push("Team");
         profileOnboardingStatus.classList.remove("is-ready", "is-missing");
         if (missing.length) {
           profileOnboardingStatus.textContent = `Profil noch unvollständig: ${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"}. Das Foto bleibt optional.`;
@@ -27819,7 +27771,7 @@
         updateAvatarElement(onboardingAvatarPreview, profile);
         if (onboardingDisplayName) onboardingDisplayName.value = profile.display_name || "";
         if (onboardingEmail) onboardingEmail.value = profile.email || "";
-        renderTeamSelectOptions(onboardingTeam, profile.team || "");
+        renderTeamSelectOptions(onboardingTeam, selectableTeamValue(profile));
         refreshCustomSelects(onboardingProfileForm);
       }
 
@@ -27869,11 +27821,6 @@
         if (!displayName) {
           setOnboardingStatus("Bitte trage deinen Namen ein.", true);
           onboardingDisplayName?.focus();
-          return;
-        }
-        if (!team) {
-          setOnboardingStatus("Bitte wähle dein Team aus.", true);
-          onboardingTeam?.focus();
           return;
         }
         setOnboardingStatus("Profil wird gespeichert...");
@@ -29085,14 +29032,18 @@
       }
 
       function renderNotificationsLoading() {
+        notificationsList?.closest(".notifications-feed-shell")?.classList.remove("is-empty");
         if (notificationsList) notificationsList.innerHTML = `<div class="notifications-loading">Benachrichtigungen werden geladen...</div>`;
         if (notificationsMeta) notificationsMeta.textContent = "Benachrichtigungen werden geladen";
+        if (notificationsMarkAllRead) notificationsMarkAllRead.hidden = true;
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = true;
       }
 
       function renderNotificationsError() {
+        notificationsList?.closest(".notifications-feed-shell")?.classList.remove("is-empty");
         if (notificationsList) notificationsList.innerHTML = `<div class="notifications-error">Die Benachrichtigungen konnten nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
         if (notificationsMeta) notificationsMeta.textContent = "Laden fehlgeschlagen";
+        if (notificationsMarkAllRead) notificationsMarkAllRead.hidden = true;
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = true;
       }
 
@@ -29180,28 +29131,33 @@
         `;
       }
 
+      function notificationEmptyStateMarkup(message = "Keine Benachrichtigungen für diese Auswahl.") {
+        return `
+          <div class="notification-empty-state">
+            <span class="notification-empty-state__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"></path></svg>
+            </span>
+            <span>${escapeHtml(message)}</span>
+          </div>
+        `;
+      }
+
       function renderNotificationPopoverLoading() {
         if (notificationPopoverList) notificationPopoverList.innerHTML = `<div class="notification-popover__loading">Benachrichtigungen werden geladen...</div>`;
-        if (notificationPopoverMeta) notificationPopoverMeta.textContent = "Wird geladen";
       }
 
       function renderNotificationPopoverError() {
         if (notificationPopoverList) notificationPopoverList.innerHTML = `<div class="notification-popover__error">Die neuen Benachrichtigungen konnten nicht geladen werden.</div>`;
-        if (notificationPopoverMeta) notificationPopoverMeta.textContent = "Laden fehlgeschlagen";
       }
 
       function renderNotificationPopover() {
         if (!notificationPopoverList) return;
         if (!notificationPreviewItems.length) {
-          notificationPopoverList.innerHTML = `<div class="notification-popover__empty">Keine neuen Benachrichtigungen.</div>`;
+          notificationPopoverList.innerHTML = `<div class="notification-popover__empty">${notificationEmptyStateMarkup("Keine neuen Benachrichtigungen.")}</div>`;
         } else {
           notificationPopoverList.innerHTML = notificationPreviewItems.map(notificationPreviewItemMarkup).join("");
         }
-        if (notificationPopoverMeta) {
-          notificationPopoverMeta.textContent = notificationPreviewItems.length
-            ? `${notificationPreviewItems.length} ${notificationPreviewItems.length === 1 ? "neue Benachrichtigung" : "neue Benachrichtigungen"}`
-            : "Alles gelesen";
-        }
+        if (notificationPopoverAll) notificationPopoverAll.hidden = false;
         notificationPopoverList.querySelectorAll("[data-open-notification]").forEach((button) => {
           button.addEventListener("click", () => openNotification(button.dataset.openNotification));
         });
@@ -29234,16 +29190,19 @@
 
       function positionNotificationPopover() {
         if (!notificationPopover || !sidebarNotificationsButton || notificationPopover.hidden) return;
+        const sidebar = sidebarNotificationsButton.closest(".app-sidebar");
+        if (!sidebar) return;
+        const sidebarRect = sidebar.getBoundingClientRect();
         const trigger = sidebarNotificationsButton.getBoundingClientRect();
-        const popoverWidth = notificationPopover.offsetWidth || 380;
+        const sidebarPadding = isMobileLayout() ? 8 : 14;
+        const popoverWidth = Math.max(180, Math.min(260, sidebarRect.width - sidebarPadding * 2));
+        notificationPopover.style.width = `${popoverWidth}px`;
         const popoverHeight = notificationPopover.offsetHeight || 320;
         const gap = 10;
-        let left = trigger.right + gap;
-        if (left + popoverWidth > window.innerWidth - 12) {
-          left = trigger.left - popoverWidth - gap;
-        }
+        let left = sidebarRect.left + Math.max(6, Math.min(sidebarPadding, (sidebarRect.width - popoverWidth) / 2));
         left = Math.max(12, Math.min(left, window.innerWidth - popoverWidth - 12));
         let top = trigger.bottom - popoverHeight;
+        if (top < 12) top = trigger.top + gap;
         top = Math.max(12, Math.min(top, window.innerHeight - popoverHeight - 12));
         notificationPopover.style.left = `${left}px`;
         notificationPopover.style.top = `${top}px`;
@@ -29260,6 +29219,7 @@
 
       function openNotificationPopover() {
         if (!notificationPopover) return;
+        if (isMobileLayout()) setMobileSidebarExpanded(true);
         closeMenus();
         notificationPopover.hidden = false;
         sidebarNotificationsButton?.setAttribute("aria-expanded", "true");
@@ -29292,8 +29252,10 @@
           loadNotifications({ reset: true });
           return;
         }
+        const feedShell = notificationsList.closest(".notifications-feed-shell");
+        feedShell?.classList.toggle("is-empty", !notifications.length);
         if (!notifications.length) {
-          notificationsList.innerHTML = `<div class="notifications-empty">Keine Benachrichtigungen für diese Auswahl.</div>`;
+          notificationsList.innerHTML = `<div class="notifications-empty">${notificationEmptyStateMarkup("Keine Benachrichtigungen für diese Auswahl.")}</div>`;
         } else {
           notificationsList.innerHTML = notifications.map(notificationItemMarkup).join("");
         }
@@ -29301,7 +29263,10 @@
           const unread = notifications.filter((item) => item.unread).length;
           notificationsMeta.textContent = `${notifications.length} ${notifications.length === 1 ? "Benachrichtigung" : "Benachrichtigungen"}${unread ? ` · ${unread} ungelesen` : ""}`;
         }
-        if (notificationsMarkAllRead) notificationsMarkAllRead.disabled = !notifications.some((item) => item.unread);
+        if (notificationsMarkAllRead) {
+          notificationsMarkAllRead.hidden = !notifications.length;
+          notificationsMarkAllRead.disabled = !notifications.some((item) => item.unread);
+        }
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = !notificationsHasMore;
         if (notificationsLoadMoreButton) notificationsLoadMoreButton.disabled = notificationsLoading;
         notificationsList.querySelectorAll("[data-open-notification]").forEach((button) => {
