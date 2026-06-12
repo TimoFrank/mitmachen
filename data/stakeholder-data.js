@@ -1,6 +1,6 @@
 // Public stakeholder fallback seed.
-// Contains organization-level KV baseline data plus synthetic representative rows for demo/tests only.
-// Do not commit real personal contact data here.
+// Contains organization-level KV baseline data plus public board-member rows.
+// Do not include non-public contact data here.
 window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES = [
   {
     id: "kv",
@@ -76,24 +76,76 @@ window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS = [
   status: "active"
 }));
 
-window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE = window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS.slice(0, 3).map((organization, index) => ({
-  id: `stakeholder-person-demo-${index + 1}`,
-  stakeholderTypeId: "kv",
-  stakeholderType: "kv",
-  organizationId: organization.id,
-  organization: organization.name,
-  name: `VV Demo ${index + 1}`,
-  role: "Mitglied der Vertreterversammlung",
-  committee: "Vertreterversammlung",
-  city: organization.city,
-  state: organization.state,
-  lat: organization.lat,
-  lon: organization.lon,
-  latitude: organization.lat,
-  longitude: organization.lon,
-  mapPositionSource: "organization",
-  isRepresentativeAssemblyMember: true,
-  themes: ["Selbstverwaltung"],
-  source: "Synthetische Demo-Daten",
-  status: "active"
-}));
+const stakeholderKvOrganizationById = new Map(
+  window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS.map((organization) => [organization.id, organization])
+);
+
+window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE = [
+  ["kv-baden-wuerttemberg-karsten-braun", "kv-baden-wuerttemberg", "Dr. Karsten Braun", "Vorstandsvorsitzender", "https://www.kvbawue.de/ueber-uns/vorstand"],
+  ["kv-baden-wuerttemberg-doris-reinhardt", "kv-baden-wuerttemberg", "Dr. Doris Reinhardt", "Stellvertretende Vorstandsvorsitzende", "https://www.kvbawue.de/ueber-uns/vorstand"],
+  ["kv-bayern-christian-pfeiffer", "kv-bayern", "Dr. Christian Pfeiffer", "Vorstandsvorsitzender", "https://www.kvb.de/ueber-uns/verwaltung"],
+  ["kv-bayern-peter-heinz", "kv-bayern", "Dr. Peter Heinz", "1. Stv. Vorstandsvorsitzender", "https://www.kvb.de/ueber-uns/verwaltung"],
+  ["kv-bayern-claudia-ritter-rupp", "kv-bayern", "Dr. Claudia Ritter-Rupp", "2. Stv. Vorstandsvorsitzende", "https://www.kvb.de/ueber-uns/verwaltung"],
+  ["kv-berlin-burkhard-ruppert", "kv-berlin", "Dr. Burkhard Ruppert", "Vorstandsvorsitzender", "https://www.kvberlin.de/die-kv-berlin/organisation/vorstand"],
+  ["kv-berlin-christiane-wessel", "kv-berlin", "Dr. Christiane Wessel", "Stellvertretende Vorstandsvorsitzende", "https://www.kvberlin.de/die-kv-berlin/organisation/vorstand"],
+  ["kv-berlin-guenter-scherer", "kv-berlin", "Günter Scherer", "Vorstandsmitglied", "https://www.kvberlin.de/die-kv-berlin/organisation/vorstand"],
+  ["kv-brandenburg-catrin-steiniger", "kv-brandenburg", "Catrin Steiniger", "Vorsitzende des Vorstandes", "https://www.kvbb.de/wir/unsere-struktur/vorstand"],
+  ["kv-brandenburg-stefan-rossbach-kurschat", "kv-brandenburg", "Dr. med. Stefan Roßbach-Kurschat", "Stellvertretender Vorsitzender des Vorstandes", "https://www.kvbb.de/wir/unsere-struktur/vorstand"],
+  ["kv-brandenburg-holger-rostek", "kv-brandenburg", "Holger Rostek", "Stellvertretender Vorsitzender des Vorstandes", "https://www.kvbb.de/wir/unsere-struktur/vorstand"],
+  ["kv-bremen-bernhard-rochell", "kv-bremen", "Dr. Bernhard Rochell", "Vorstandsvorsitzender", "https://www.kvhb.de/ueber-uns/vorstand"],
+  ["kv-bremen-peter-kurt-josenhans", "kv-bremen", "Peter Kurt Josenhans", "Stv. Vorstandsvorsitzender", "https://www.kvhb.de/ueber-uns/vorstand"],
+  ["kv-bremen-martina-kemme", "kv-bremen", "Martina Kemme", "Mitglied des Vorstands", "https://www.kvhb.de/ueber-uns/vorstand"],
+  ["kv-hamburg-john-afful", "kv-hamburg", "John Afful", "Vorsitzender des Vorstandes", "https://www.kvhh.net/de/ueber-uns/aufbau-vorstand.html"],
+  ["kv-hamburg-caroline-roos", "kv-hamburg", "Caroline Roos", "Stellv. Vorsitzende des Vorstandes", "https://www.kvhh.net/de/ueber-uns/aufbau-vorstand.html"],
+  ["kv-hessen-frank-dastych", "kv-hessen", "Frank Dastych", "Vorstandsvorsitzender", "https://www.kvhessen.de/ueber-uns/vorstand"],
+  ["kv-hessen-armin-beck", "kv-hessen", "Armin Beck", "Stellvertretender Vorstandsvorsitzender", "https://www.kvhessen.de/ueber-uns/vorstand"],
+  ["kv-mecklenburg-vorpommern-angelika-von-schuetz", "kv-mecklenburg-vorpommern", "Dipl.-Med. Angelika von Schütz", "Vorsitzende", "https://www.kvmv.de/ueber-uns/vorstand/"],
+  ["kv-mecklenburg-vorpommern-tilo-schneider", "kv-mecklenburg-vorpommern", "Dr. med. Tilo Schneider", "Stellvertretender Vorsitzender", "https://www.kvmv.de/ueber-uns/vorstand/"],
+  ["kv-mecklenburg-vorpommern-markolf-oelze", "kv-mecklenburg-vorpommern", "Dr. med. Markolf Oelze", "Stellvertretender Vorsitzender", "https://www.kvmv.de/ueber-uns/vorstand/"],
+  ["kv-niedersachsen-mark-barjenbruch", "kv-niedersachsen", "Mark Barjenbruch", "Vorsitzender", "https://www.kvn.de/%C3%9Cber%2Buns/Organisation/Vorstand.html"],
+  ["kv-niedersachsen-thorsten-schmidt", "kv-niedersachsen", "Thorsten Schmidt", "Stellvertretender Vorsitzender", "https://www.kvn.de/%C3%9Cber%2Buns/Organisation/Vorstand.html"],
+  ["kv-niedersachsen-nicole-loehr", "kv-niedersachsen", "Nicole Löhr", "Vorständin", "https://www.kvn.de/%C3%9Cber%2Buns/Organisation/Vorstand.html"],
+  ["kv-nordrhein-frank-bergmann", "kv-nordrhein", "Dr. med. Frank Bergmann", "Vorstandsvorsitzender", "https://www.kvno.de/ueber-uns/vorstand"],
+  ["kv-nordrhein-carsten-koenig", "kv-nordrhein", "Dr. med. Carsten König, M. san.", "Stellvertretender Vorstandsvorsitzender", "https://www.kvno.de/ueber-uns/vorstand"],
+  ["kv-rheinland-pfalz-peter-heinz", "kv-rheinland-pfalz", "San.-Rat Dr. Peter Heinz", "Vorsitzender des Vorstands", "https://www.kv-rlp.de/institution/aufgaben-und-organisation"],
+  ["kv-rheinland-pfalz-andreas-bartels", "kv-rheinland-pfalz", "Dr. Andreas Bartels", "Stellvertretender Vorsitzender des Vorstands", "https://www.kv-rlp.de/institution/aufgaben-und-organisation"],
+  ["kv-rheinland-pfalz-peter-andreas-staub", "kv-rheinland-pfalz", "Peter Andreas Staub", "Mitglied des Vorstands", "https://www.kv-rlp.de/institution/aufgaben-und-organisation"],
+  ["kv-saarland-harry-derouet", "kv-saarland", "San.-Rat Prof. Dr. med. Harry Derouet", "Vorsitzender des Vorstandes", "https://www.kvsaarland.de/vorstand"],
+  ["kv-saarland-thomas-rehlinger", "kv-saarland", "Thomas Rehlinger", "Stellv. Vorsitzender des Vorstandes", "https://www.kvsaarland.de/vorstand"],
+  ["kv-sachsen-stefan-windau", "kv-sachsen", "Dr. med. Stefan Windau", "Vorstandsvorsitzender", "https://www.kvsachsen.de/kv-sachsen/organisation/verwaltung/vorstand"],
+  ["kv-sachsen-manuela-sipli", "kv-sachsen", "Dr. med. Manuela Sipli", "Stellvertretende Vorstandsvorsitzende", "https://www.kvsachsen.de/kv-sachsen/organisation/verwaltung/vorstand"],
+  ["kv-sachsen-anhalt-joerg-boehme", "kv-sachsen-anhalt", "Dr. med. Jörg Böhme", "Vorsitzender des Vorstandes", "https://www.kvsa.de/ueber-uns/ansprechpartner/vorstand"],
+  ["kv-sachsen-anhalt-nadine-waldburg", "kv-sachsen-anhalt", "Dr. med. Nadine Waldburg", "Stellvertretende Vorsitzende des Vorstandes", "https://www.kvsa.de/ueber-uns/ansprechpartner/vorstand"],
+  ["kv-sachsen-anhalt-mathias-tronnier", "kv-sachsen-anhalt", "Mathias Tronnier", "Geschäftsführender Vorstand", "https://www.kvsa.de/ueber-uns/ansprechpartner/vorstand"],
+  ["kv-schleswig-holstein-bettina-schultz", "kv-schleswig-holstein", "Dr. med. Bettina Schultz", "Vorstandsvorsitzende", "https://www.kvsh.de/ueber-uns/organisation/vorstand"],
+  ["kv-schleswig-holstein-karsten-brandstetter", "kv-schleswig-holstein", "Dipl.-Kfm. Karsten Brandstetter", "Stellvertretender Vorstandsvorsitzender", "https://www.kvsh.de/ueber-uns/organisation/vorstand"],
+  ["kv-schleswig-holstein-alexander-paquet", "kv-schleswig-holstein", "Dipl.-Wirtschaftsinformatiker Alexander Paquet", "Vorstandsmitglied", "https://www.kvsh.de/ueber-uns/organisation/vorstand"],
+  ["kv-thueringen-annette-rommel", "kv-thueringen", "Dr. med. Annette Rommel", "1. Vorsitzende", "https://www.kv-thueringen.de/ueber-uns/vorstand"],
+  ["kv-thueringen-thomas-schroeter", "kv-thueringen", "Dr. med. Thomas Schröter", "2. Vorsitzender", "https://www.kv-thueringen.de/ueber-uns/vorstand"],
+  ["kv-westfalen-lippe-dirk-spelmeyer", "kv-westfalen-lippe", "Dr. med. Dirk Spelmeyer", "Vorstandsvorsitzender", "https://www.kvwl.de/kvwl/selbstverwaltung/vorstand"],
+  ["kv-westfalen-lippe-anke-richter-scheer", "kv-westfalen-lippe", "Anke Richter-Scheer", "Stellv. Vorstandsvorsitzende", "https://www.kvwl.de/kvwl/selbstverwaltung/vorstand"]
+].map(([id, organizationId, name, role, url]) => {
+  const organization = stakeholderKvOrganizationById.get(organizationId) || {};
+  return {
+    id,
+    stakeholderTypeId: "kv",
+    stakeholderType: "kv",
+    organizationId,
+    organization: organization.name || "",
+    name,
+    role,
+    committee: "Vorstand",
+    city: organization.city || "",
+    state: organization.state || "",
+    lat: organization.lat,
+    lon: organization.lon,
+    latitude: organization.latitude,
+    longitude: organization.longitude,
+    mapPositionSource: "organization",
+    isRepresentativeAssemblyMember: false,
+    themes: ["Selbstverwaltung", "KV-Vorstand"],
+    source: "Offizielle KV-Vorstandsseite",
+    url,
+    status: "active"
+  };
+});
