@@ -2819,6 +2819,39 @@
     return clone(stakeholderPeopleCache);
   }
 
+  function normalizePersonRecordKind(kind = "") {
+    const value = String(kind || "").trim().toLowerCase();
+    if (["contact", "contacts", "care"].includes(value)) return "contact";
+    if (["expert", "experts", "expert-contact"].includes(value)) return "expert";
+    if (["stakeholder", "stakeholder-person", "stakeholder_people"].includes(value)) return "stakeholder";
+    return "";
+  }
+
+  async function getPersonRecord(kind, id, options = {}) {
+    const normalizedKind = normalizePersonRecordKind(kind);
+    const recordId = String(id || "").trim();
+    if (!normalizedKind || !recordId) return null;
+    const includeArchived = Boolean(options.includeArchived);
+    if (normalizedKind === "contact") return getContact(recordId);
+    if (normalizedKind === "expert") {
+      let record = expertContactCache.find((contact) => contact.id === recordId);
+      if (!record) {
+        const rows = await loadExpertContacts({ includeArchived });
+        record = rows.find((contact) => contact.id === recordId);
+      }
+      return record ? clone(record) : null;
+    }
+    if (normalizedKind === "stakeholder") {
+      let record = stakeholderPeopleCache.find((person) => person.id === recordId);
+      if (!record) {
+        const rows = await loadStakeholderPeople({ includeArchived });
+        record = rows.find((person) => person.id === recordId);
+      }
+      return record ? clone(record) : null;
+    }
+    return null;
+  }
+
   async function upsertStakeholderImport(payload = {}) {
     const types = (payload.types || []).map(stakeholderTypeUiToDb);
     const organizations = (payload.organizations || []).map(stakeholderOrganizationUiToDb).filter((organization) => organization.name);
@@ -3768,6 +3801,7 @@
     loadExpertContacts,
     loadExpertOrganizations,
     loadExpertEntityLinks,
+    getPersonRecord,
     createExpertContact,
     createExpertOrganization,
     createExpertEntityLink,

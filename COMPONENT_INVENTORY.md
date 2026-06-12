@@ -68,6 +68,7 @@ Stand: 2026-05-16. Analysebasis sind die aktuellen UI-Quellen in `app/versorgung
 ## Detailpanels
 
 - App-Kontaktprofil: dynamisches Markup in `openDetail()`, Klassen `.detail-profile`, `.detail-tabs`, `.section-block`, `.detail-line-list`, `.detail-info-card`.
+- Personenprofilseite: `.person-profile-page`, `.person-profile-shell`, `.person-profile-body`; nutzt dieselbe `.detail-profile`-/Zeilenstruktur wie der Detaildrawer, aber als kanonische App-Shell-Seite mit Routen `#person/contact/<id>`, `#person/expert/<id>` und `#person/stakeholder/<id>`.
 - Organisationsprofil: gleicher Drawer, andere Sektionen.
 - Kartenprofil: `.map-detail-panel`, `.map-detail-toolbar`, `.map-detail-line-list`.
 - Sprint F: Kontaktprofile nutzen einen kompakten Profilkopf, Zeilenlisten fuer Stammdaten/Kontaktwege/Quelle und einen eigenen Abschnitt `Bild & Quelle`. Themen und Notizen sind im Lesemodus keine Inputs mehr; Bearbeitung laeuft ueber explizite Profilbearbeitung mit Speichern/Abbrechen.

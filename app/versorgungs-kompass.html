@@ -3353,6 +3353,47 @@
         white-space: nowrap;
       }
 
+      .column-sort-button {
+        width: 100%;
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-width: 0;
+        padding: 0;
+        font: inherit;
+        text-align: left;
+        text-transform: inherit;
+      }
+
+      .column-sort-button:hover,
+      .column-sort-button:focus-visible {
+        color: var(--primary);
+        outline: none;
+      }
+
+      .column-sort-indicator {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-sm);
+        display: inline-grid;
+        flex: 0 0 auto;
+        place-items: center;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        line-height: 1;
+      }
+
+      .column-sort-button.is-active .column-sort-indicator {
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
       .mini-filters {
         display: inline-flex;
         align-items: center;
@@ -13668,7 +13709,8 @@
       .app-shell[data-active-view="settings"] .controls,
       .app-shell[data-active-view="about"] .controls,
       .app-shell[data-active-view="team"] .controls,
-      .app-shell[data-active-view="profile"] .controls {
+      .app-shell[data-active-view="profile"] .controls,
+      .app-shell[data-active-view="personProfile"] .controls {
         display: none;
       }
 
@@ -13685,10 +13727,88 @@
       .app-shell[data-active-view="about"] .summary,
       .app-shell[data-active-view="team"] .summary,
       .app-shell[data-active-view="profile"] .summary,
+      .app-shell[data-active-view="personProfile"] .summary,
       .app-shell[data-active-view="map"] .summary,
       .app-shell[data-active-view="analytics"] .summary,
       .app-shell[data-active-view="quality"] .summary {
         display: none;
+      }
+
+      .person-profile-page {
+        display: none;
+      }
+
+      .person-profile-page.is-active {
+        display: block;
+      }
+
+      .person-profile-shell {
+        width: min(1040px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 14px;
+      }
+
+      .person-profile-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .person-profile-body {
+        min-width: 0;
+      }
+
+      .person-profile-body .detail-panel {
+        position: static;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        overflow: visible;
+      }
+
+      .person-profile-body .detail-toolbar {
+        border-top-left-radius: var(--radius-md);
+        border-top-right-radius: var(--radius-md);
+      }
+
+      .person-profile-body .detail-content {
+        max-height: none;
+      }
+
+      .person-profile-body .detail-profile {
+        gap: 16px;
+      }
+
+      .person-profile-body .detail-tab-panel {
+        scroll-margin-top: 86px;
+      }
+
+      .detail-preview {
+        display: grid;
+        gap: 14px;
+      }
+
+      .detail-preview .detail-tabs,
+      .detail-preview .detail-bottom-actions {
+        display: none;
+      }
+
+      .detail-preview .detail-info-card--map {
+        display: none;
+      }
+
+      .detail-preview-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-top: 4px;
       }
 
       .profile-page {
@@ -19514,11 +19634,11 @@
                   <div class="thead" id="stakeholder-people-table-head"></div>
                   <div id="stakeholder-people-list"></div>
                 </section>
-                <section class="stakeholder-map-panel" id="stakeholder-map-panel" aria-label="Vertreterversammlungsmitglieder auf der Karte" data-stakeholder-table="map" role="tabpanel" hidden>
+                <section class="stakeholder-map-panel" id="stakeholder-map-panel" aria-label="KV-Vorstände auf der Karte" data-stakeholder-table="map" role="tabpanel" hidden>
                   <iframe
                     class="map-embed-frame"
                     id="stakeholder-map-frame"
-                    title="Karte der KV-Vertreterversammlungsmitglieder"
+                    title="Karte der KV-Vorstände"
                     src="../map/versorgungs-kompass-map.html?embed=1&context=stakeholders"
                     loading="lazy"
                   ></iframe>
@@ -19830,7 +19950,7 @@
                         </svg>
                       </div>
                       <h3>Stakeholder-Import</h3>
-                      <p>KV-Organisationen und Vertreterversammlungsmitglieder aus CSV oder Excel übernehmen.</p>
+                      <p>KV-Organisationen und Vorstandsmitglieder aus CSV oder Excel übernehmen.</p>
                       <button class="action-button" type="button" id="imports-start-stakeholder">Stakeholder importieren</button>
                     </article>
                   </div>
@@ -20136,6 +20256,22 @@
           </div>
         </form>
       </section>
+    </section>
+
+    <section class="view-panel person-profile-page" id="person-profile-page" data-view-panel="personProfile" aria-hidden="true">
+      <div class="person-profile-shell">
+        <div class="person-profile-nav">
+          <button class="action-button" type="button" id="person-profile-back">Zurück</button>
+          <button class="action-button" type="button" id="person-profile-close">Liste öffnen</button>
+        </div>
+        <div class="person-profile-body" id="person-profile-body" aria-live="polite">
+          <section class="detail-panel">
+            <div class="detail-content">
+              <div class="empty">Profil wird geladen.</div>
+            </div>
+          </section>
+        </div>
+      </div>
     </section>
 
     <aside class="profile-photo-modal" id="profile-photo-modal" aria-hidden="true">
@@ -21458,18 +21594,15 @@
         { key: "organization", label: "Organisation", template: "minmax(310px, 1.45fr)", required: true },
         { key: "location", label: "Sitz", template: "minmax(150px, 0.66fr)" },
         { key: "memberCount", label: "Mitgliederzahl", template: "minmax(142px, 0.62fr)" },
-        { key: "people", label: "Personen", template: "minmax(118px, 0.52fr)" },
-        { key: "source", label: "Quelle", template: "minmax(170px, 0.72fr)" }
+        { key: "people", label: "Personen", template: "minmax(118px, 0.52fr)" }
       ];
-      const defaultStakeholderPeopleColumnKeys = ["name", "organization", "role", "committee", "location", "source"];
+      const defaultStakeholderPeopleColumnKeys = ["name", "organization", "role", "location"];
       const stakeholderPeopleTableColumns = [
         { key: "name", label: "Name", template: "minmax(220px, 1.1fr)", required: true },
-        { key: "organization", label: "Organisation", template: "minmax(250px, 1.2fr)" },
-        { key: "role", label: "Rolle", template: "minmax(170px, 0.78fr)" },
-        { key: "committee", label: "Gremium", template: "minmax(150px, 0.7fr)" },
+        { key: "organization", label: "Organisation", template: "minmax(210px, 1.0fr)" },
+        { key: "role", label: "Rolle", template: "minmax(210px, 0.95fr)" },
         { key: "location", label: "Ort", template: "minmax(130px, 0.6fr)" },
-        { key: "map", label: "Karte", template: "minmax(145px, 0.64fr)" },
-        { key: "source", label: "Quelle", template: "minmax(160px, 0.72fr)" }
+        { key: "map", label: "Karte", template: "minmax(145px, 0.64fr)" }
       ];
       const organizationContactRangeFilterOptions = [
         { value: "with", label: "Mit Kontakten" },
@@ -21755,6 +21888,10 @@
         team: document.getElementById("notification-count-team")
       };
       const aboutVersionList = document.getElementById("about-version-list");
+      const personProfilePage = document.getElementById("person-profile-page");
+      const personProfileBody = document.getElementById("person-profile-body");
+      const personProfileBack = document.getElementById("person-profile-back");
+      const personProfileClose = document.getElementById("person-profile-close");
       const detailDrawer = document.getElementById("detail-drawer");
       const detailPanel = document.getElementById("detail-panel");
       const detailOverlay = document.getElementById("detail-overlay");
@@ -21902,6 +22039,7 @@
       const productTourPrev = document.getElementById("product-tour-prev");
       const productTourNext = document.getElementById("product-tour-next");
       viewShell?.appendChild(profileModal);
+      viewShell?.appendChild(personProfilePage);
       if (newContactButton && archiveViewButton && contactMatchingWorklistButton) {
         contactCommandActions?.append(newContactButton, archiveViewButton, contactMatchingWorklistButton);
       }
@@ -21936,6 +22074,7 @@
       let activeExpertMode = "contacts";
       let activeStakeholderMode = "organizations";
       let activeStakeholderTypeId = "kv";
+      let stakeholderOrganizationSort = { key: "organization", direction: "asc" };
       let activeExpertMatchDirection = "careToExpert";
       let activeCareDuplicateView = "";
       let activeExpertDuplicates = false;
@@ -21945,6 +22084,8 @@
       let activeExpertOrganizationId = null;
       let activeStakeholderPersonId = null;
       let activeStakeholderOrganizationId = null;
+      let activePersonProfile = { kind: "", id: "", returnTo: "contacts", title: "Personenprofil" };
+      let personProfileRenderToken = 0;
       let activeNameEditorId = null;
       let selectedPriorities = [];
       let selectedCategories = [];
@@ -22215,7 +22356,38 @@
         if (view === "imports") return canAdministerData() ? "settings" : "contacts";
         if (view === "analytics") return canAdministerData() ? "analytics" : "contacts";
         if (view === "quality") return canAdministerData() ? "quality" : "contacts";
+        if (view === "personProfile") return "personProfile";
         return canAccessView(view) ? view : "contacts";
+      }
+
+      function normalizePersonProfileKind(kind = "") {
+        const normalized = String(kind || "").trim().toLowerCase();
+        if (["contact", "expert", "stakeholder"].includes(normalized)) return normalized;
+        return "";
+      }
+
+      function personProfileParentView(kind = activePersonProfile.kind) {
+        if (kind === "expert") return "experts";
+        if (kind === "stakeholder") return "stakeholders";
+        return "contacts";
+      }
+
+      function personProfileRoute(kind = activePersonProfile.kind, id = activePersonProfile.id) {
+        const normalizedKind = normalizePersonProfileKind(kind);
+        return normalizedKind && id ? `person/${normalizedKind}/${encodeURIComponent(id)}` : "contacts";
+      }
+
+      function parsePersonProfileRoute(hashValue = "") {
+        const hash = String(hashValue || "").replace(/^#/, "");
+        const match = /^person\/([^/]+)\/(.+)$/.exec(hash);
+        if (!match) return null;
+        const kind = normalizePersonProfileKind(match[1]);
+        const id = decodeURIComponent(match[2] || "").trim();
+        return kind && id ? { kind, id } : null;
+      }
+
+      function isPersonProfileActive(kind = "", id = "") {
+        return activeView === "personProfile" && activePersonProfile.kind === kind && activePersonProfile.id === id;
       }
 
       function permissionText(role = currentRole()) {
@@ -22837,7 +23009,7 @@
           activeId = savedContact.id;
           setStorageStatus("Registrierung übernommen und Kontakt angelegt");
           updateView();
-          openDetail(savedContact.id);
+          openPersonProfile("contact", savedContact.id, { returnTo: "contacts" });
         } catch (error) {
           console.error("Registrierung konnte nicht übernommen werden.", error);
           window.alert("Die Registrierung konnte nicht übernommen werden. Bitte prüfe Backend-Verbindung, Rolle und Kontaktanlage.");
@@ -22882,7 +23054,7 @@
           setStorageStatus("Registrierung mit bestehendem Kontakt verknüpft");
           activeId = match.id;
           updateView();
-          openDetail(match.id);
+          openPersonProfile("contact", match.id, { returnTo: "contacts" });
         } catch (error) {
           console.error("Registrierung konnte nicht verknüpft werden.", error);
           window.alert("Die Registrierung konnte nicht verknüpft werden. Bitte Backend-Verbindung prüfen.");
@@ -24792,7 +24964,7 @@
         activities: { title: "Aktivitäten", subtitle: "Chronologisches Protokoll der Kontaktänderungen im Versorgungs-Kompass." },
         notifications: { title: "Benachrichtigungen", subtitle: "Persönliche Änderungen und neue Produktinformationen." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
-        stakeholders: { title: "Stakeholder", subtitle: "Kassenärztliche Vereinigungen, Personen und Vertreterversammlungen." },
+        stakeholders: { title: "Stakeholder", subtitle: "Kassenärztliche Vereinigungen und ihre Vorstände." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
@@ -24801,6 +24973,7 @@
         settings: { title: "Import", subtitle: "Kontakte erfassen, importieren und Backend-Eingänge prüfen." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
         profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." },
+        personProfile: { title: "Personenprofil", subtitle: "Stammdaten, Kontaktwege, Notizen und Verlauf im Lesemodus." },
         onboarding: { title: "Willkommen", subtitle: "Profil einrichten und Tour starten." }
       };
 
@@ -25574,46 +25747,52 @@
         }
       }
 
-      function bindExpertEntityLinkControls(refreshCallback) {
-        detailPanel.querySelectorAll("[data-open-cross-expert-contact]").forEach((button) => {
+      function bindExpertEntityLinkControls(refreshCallback, root = detailPanel) {
+        root.querySelectorAll("[data-open-cross-expert-contact]").forEach((button) => {
           button.addEventListener("click", () => {
+            const keepProfile = activeView === "personProfile";
             activeExpertDuplicates = false;
             activeCareDuplicateView = "";
             activeExpertMode = "contacts";
             setActiveView("experts");
+            updateRouteHash("experts");
             updateView();
-            openExpertDetail(button.dataset.openCrossExpertContact, expertContacts);
+            openPersonEntry("expert", button.dataset.openCrossExpertContact, expertContacts, { forceProfile: keepProfile });
           });
         });
-        detailPanel.querySelectorAll("[data-open-cross-contact]").forEach((button) => {
+        root.querySelectorAll("[data-open-cross-contact]").forEach((button) => {
           button.addEventListener("click", () => {
+            const keepProfile = activeView === "personProfile";
             activeExpertDuplicates = false;
             activeCareDuplicateView = "";
             setActiveView("contacts");
+            updateRouteHash("contacts");
             updateView();
-            openDetail(button.dataset.openCrossContact, contacts);
+            openPersonEntry("contact", button.dataset.openCrossContact, contacts, { forceProfile: keepProfile });
           });
         });
-        detailPanel.querySelectorAll("[data-open-cross-expert-organization]").forEach((button) => {
+        root.querySelectorAll("[data-open-cross-expert-organization]").forEach((button) => {
           button.addEventListener("click", () => {
             activeExpertDuplicates = false;
             activeCareDuplicateView = "";
             activeExpertMode = "organizations";
             setActiveView("experts");
+            updateRouteHash("experts");
             updateView();
             openExpertOrganizationDetail(button.dataset.openCrossExpertOrganization, expertOrganizations);
           });
         });
-        detailPanel.querySelectorAll("[data-open-cross-organization]").forEach((button) => {
+        root.querySelectorAll("[data-open-cross-organization]").forEach((button) => {
           button.addEventListener("click", () => {
             activeExpertDuplicates = false;
             activeCareDuplicateView = "";
             setActiveView("organizations");
+            updateRouteHash("organizations");
             updateView();
             openOrganizationDetail(button.dataset.openCrossOrganization, organizations);
           });
         });
-        detailPanel.querySelectorAll("[data-confirm-expert-link]").forEach((button) => {
+        root.querySelectorAll("[data-confirm-expert-link]").forEach((button) => {
           button.addEventListener("click", () => confirmExpertEntityLink(button, refreshCallback));
         });
       }
@@ -26319,12 +26498,12 @@
         expertList.querySelectorAll("[data-expert-id]").forEach((row) => {
           row.addEventListener("click", (event) => {
             if (event.target.closest("button, input, label, a, select, textarea")) return;
-            openDetail(row.dataset.expertId, items, { scope: "expert" });
+            openPersonEntry("expert", row.dataset.expertId, items, { returnTo: "experts" });
           });
           row.addEventListener("keydown", (event) => {
             if ((event.key === "Enter" || event.key === " ") && !event.target.closest("button, input, label, a, select, textarea")) {
               event.preventDefault();
-              openDetail(row.dataset.expertId, items, { scope: "expert" });
+              openPersonEntry("expert", row.dataset.expertId, items, { returnTo: "experts" });
             }
           });
         });
@@ -26339,7 +26518,7 @@
         expertList.querySelectorAll("[data-open-detail]").forEach((button) => {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
-            openDetail(button.dataset.openDetail, items, { scope: "expert" });
+            openPersonEntry("expert", button.dataset.openDetail, items, { returnTo: "experts" });
           });
         });
         expertPagination.querySelectorAll("[data-expert-page]").forEach((button) => {
@@ -26504,6 +26683,21 @@
         return [organization?.postalCode, organization?.city].filter(Boolean).join(" ");
       }
 
+      function abbreviatedStakeholderOrganizationName(value = "") {
+        const name = meaningfulOrEmpty(value);
+        if (!name) return "";
+        return name.replace(/^Kassenärztliche Vereinigung\s+(.+)$/i, "KV $1");
+      }
+
+      function stakeholderOrganizationListName(organization = {}) {
+        return abbreviatedStakeholderOrganizationName(organization.name) || organization.name || "";
+      }
+
+      function stakeholderPersonOrganizationListName(person = {}) {
+        const organization = stakeholderPersonOrganization(person);
+        return abbreviatedStakeholderOrganizationName(person.organization || organization?.name) || "Nicht dokumentiert";
+      }
+
       function stakeholderPersonOrganization(person) {
         return stakeholderOrganizationById(person.organizationId) ||
           stakeholderOrganizations.find((organization) => normalizeOrganizationName(organization.name) === normalizeOrganizationName(person.organization)) ||
@@ -26533,7 +26727,6 @@
 
       function stakeholderMapPeople() {
         return filteredStakeholderPeople()
-          .filter((person) => person.isRepresentativeAssemblyMember)
           .map((person) => {
             const position = stakeholderPersonMapPosition(person);
             return position ? { ...person, lat: position.lat, lon: position.lon, mapPositionSource: position.source } : null;
@@ -26548,14 +26741,36 @@
           .join(" ");
       }
 
+      function stakeholderMemberCountSortValue(organization = {}) {
+        const parsed = parseLocalizedInteger(organization.memberCount ?? organization.member_count ?? organization.memberCountLabel ?? organization.member_count_label);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      function sortStakeholderOrganizations(items = []) {
+        const direction = stakeholderOrganizationSort.direction === "desc" ? -1 : 1;
+        return [...items].sort((left, right) => {
+          if (stakeholderOrganizationSort.key === "memberCount") {
+            const leftCount = stakeholderMemberCountSortValue(left);
+            const rightCount = stakeholderMemberCountSortValue(right);
+            if (leftCount === null && rightCount !== null) return 1;
+            if (rightCount === null && leftCount !== null) return -1;
+            if (leftCount !== null && rightCount !== null && leftCount !== rightCount) {
+              return (leftCount - rightCount) * direction;
+            }
+          }
+          return left.name.localeCompare(right.name, "de");
+        });
+      }
+
       function filteredStakeholderOrganizations() {
         const search = searchInput.value.trim().toLowerCase();
-        return stakeholderOrganizations
+        const items = stakeholderOrganizations
           .filter((organization) => organization.status !== "archived" && organization.stakeholderTypeId === activeStakeholderTypeId)
           .filter((organization) => {
             if (!search) return true;
             return stakeholderSearchText([
               organization.name,
+              stakeholderOrganizationListName(organization),
               organization.organizationType,
               organization.city,
               organization.state,
@@ -26565,8 +26780,8 @@
               organization.source,
               stakeholderTypeLabel(organization.stakeholderTypeId)
             ]).includes(search);
-          })
-          .sort((left, right) => left.name.localeCompare(right.name, "de"));
+          });
+        return sortStakeholderOrganizations(items);
       }
 
       function filteredStakeholderPeople() {
@@ -26578,13 +26793,14 @@
             return stakeholderSearchText([
               person.name,
               person.organization,
+              stakeholderPersonOrganizationListName(person),
               person.role,
               person.committee,
               person.city,
               person.state,
               person.themes,
               person.source,
-              person.isRepresentativeAssemblyMember ? "Vertreterversammlung VV" : ""
+              "Vorstand KV"
             ]).includes(search);
           })
           .sort((left, right) => left.name.localeCompare(right.name, "de"));
@@ -26641,7 +26857,7 @@
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm", "organization-logo--stakeholder")}
               <div class="contact-meta">
-                <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
+                <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}" title="${escapeHtml(organization.name)}">${escapeHtml(stakeholderOrganizationListName(organization))}</button>
               </div>
             </div>
           `;
@@ -26653,12 +26869,49 @@
         return "";
       }
 
+      function stakeholderOrganizationColumnHeaderMarkup(column) {
+        if (column.key !== "memberCount") return columnHeaderMarkup(column, "stakeholder-organizations");
+        const active = stakeholderOrganizationSort.key === "memberCount";
+        const direction = active ? stakeholderOrganizationSort.direction : "none";
+        const indicator = active ? (direction === "asc" ? "↑" : "↓") : "↕";
+        const sortLabel = active
+          ? `Mitgliederzahl ${direction === "asc" ? "aufsteigend" : "absteigend"} sortiert`
+          : "Mitgliederzahl sortieren";
+        return `
+          <button
+            class="column-sort-button ${active ? "is-active" : ""}"
+            type="button"
+            data-stakeholder-organization-sort="memberCount"
+            aria-label="${escapeHtml(sortLabel)}"
+            aria-sort="${direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "none"}"
+          >
+            <span class="column-head__label">${escapeHtml(column.label)}</span>
+            <span class="column-sort-indicator" aria-hidden="true">${indicator}</span>
+          </button>
+        `;
+      }
+
+      function bindStakeholderOrganizationSortControls(root = stakeholderOrganizationsTableHead) {
+        root?.querySelectorAll("[data-stakeholder-organization-sort]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const key = button.dataset.stakeholderOrganizationSort || "memberCount";
+            stakeholderOrganizationSort = {
+              key,
+              direction: stakeholderOrganizationSort.key === key && stakeholderOrganizationSort.direction === "desc" ? "asc" : "desc"
+            };
+            currentPage = 1;
+            renderStakeholderOrganizationsTable(filteredStakeholderOrganizations());
+          });
+        });
+      }
+
       function renderStakeholderOrganizationsTableHead(columns = visibleStakeholderOrganizationTableColumns()) {
         if (!stakeholderOrganizationsTableHead) return;
         stakeholderOrganizationsTableHead.innerHTML = columns
-          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "stakeholder-organizations")}</div>`)
+          .map((column) => `<div class="cell--${column.key}">${stakeholderOrganizationColumnHeaderMarkup(column)}</div>`)
           .join("");
         bindHeaderFilterMenus(stakeholderOrganizationsTableHead);
+        bindStakeholderOrganizationSortControls(stakeholderOrganizationsTableHead);
       }
 
       function renderStakeholderOrganizationsTable(items = filteredStakeholderOrganizations()) {
@@ -26749,16 +27002,19 @@
                 <div class="contact-name__line">
                   <button class="contact-name-button" type="button" data-open-stakeholder-person="${escapeHtml(person.id)}">${escapeHtml(person.name) || "&mdash;"}</button>
                 </div>
-                ${person.isRepresentativeAssemblyMember ? `<div class="contact-subline">Vertreterversammlung</div>` : ""}
+                ${person.committee ? `<div class="contact-subline">${escapeHtml(person.committee)}</div>` : ""}
               </div>
             </div>
           `;
         }
-        if (key === "organization") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.organization || stakeholderPersonOrganization(person)?.name || "Nicht dokumentiert")}</div>`;
+        if (key === "organization") {
+          const fullName = person.organization || stakeholderPersonOrganization(person)?.name || "";
+          return `<div class="contact-subline contact-subline--primary" title="${escapeHtml(fullName)}">${escapeHtml(stakeholderPersonOrganizationListName(person))}</div>`;
+        }
         if (key === "role") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.role || "-")}</div>`;
         if (key === "committee") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.committee || "-")}</div>`;
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderPersonLocation(person) || "-")}</div>`;
-        if (key === "map") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.isRepresentativeAssemblyMember ? mapPositionSourceLabel(stakeholderPersonMapPosition(person)?.source || person.mapPositionSource) : "-")}</div>`;
+        if (key === "map") return `<div class="contact-subline contact-subline--primary">${escapeHtml(mapPositionSourceLabel(stakeholderPersonMapPosition(person)?.source || person.mapPositionSource))}</div>`;
         if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.source || "-")}</div>`;
         return "";
       }
@@ -26796,7 +27052,7 @@
                   ${contactAvatarMarkup(person, "sm")}
                   <div class="mobile-contact-copy">
                     <h3 class="mobile-contact-name">${escapeHtml(person.name) || "&mdash;"}</h3>
-                    <div class="mobile-contact-organization">${escapeHtml(person.organization || "Organisation nicht dokumentiert")}</div>
+                    <div class="mobile-contact-organization" title="${escapeHtml(person.organization || "")}">${escapeHtml(stakeholderPersonOrganizationListName(person))}</div>
                   </div>
                   <span class="mobile-contact-chevron" aria-hidden="true">›</span>
                 </div>
@@ -26824,19 +27080,19 @@
         stakeholderPeopleList.querySelectorAll("[data-stakeholder-person-id]").forEach((row) => {
           row.addEventListener("click", (event) => {
             if (event.target.closest("button, input, label, a, select, textarea")) return;
-            openStakeholderPersonDetail(row.dataset.stakeholderPersonId, items);
+            openPersonEntry("stakeholder", row.dataset.stakeholderPersonId, items, { returnTo: "stakeholders" });
           });
           row.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              openStakeholderPersonDetail(row.dataset.stakeholderPersonId, items);
+              openPersonEntry("stakeholder", row.dataset.stakeholderPersonId, items, { returnTo: "stakeholders" });
             }
           });
         });
         stakeholderPeopleList.querySelectorAll("[data-open-stakeholder-person]").forEach((button) => {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
-            openStakeholderPersonDetail(button.dataset.openStakeholderPerson, items);
+            openPersonEntry("stakeholder", button.dataset.openStakeholderPerson, items, { returnTo: "stakeholders" });
           });
         });
         stakeholderPagination.querySelectorAll("[data-stakeholder-person-page]").forEach((button) => {
@@ -26862,7 +27118,7 @@
             labels: {
               itemSingular: "Person",
               itemPlural: "Personen",
-              listTitle: "Vertreterversammlung",
+              listTitle: "KV-Vorstände",
               searchPlaceholder: "Person, KV oder Bundesland suchen",
               categoryLabel: "Stakeholder",
               categoryAllLabel: "Alle",
@@ -26887,7 +27143,7 @@
               city: person.city,
               state: person.state || stakeholderPersonOrganization(person)?.state || "",
               url: person.url,
-              description: person.committee || "Vertreterversammlung",
+              description: person.committee || "Vorstand",
               lat: person.lat,
               lon: person.lon,
               note: person.note,
@@ -26987,14 +27243,13 @@
                   ${
                     people.length
                       ? `<div class="organization-contact-table-wrap"><table class="organization-contact-table">
-                          <thead><tr><th>Name</th><th>Rolle</th><th>Gremium</th><th>Karte</th><th></th></tr></thead>
+                          <thead><tr><th>Name</th><th>Rolle</th><th>Karte</th><th></th></tr></thead>
                           <tbody>
                             ${people.map((person) => `
                               <tr>
                                 <td><strong>${escapeHtml(person.name)}</strong></td>
                                 <td>${escapeHtml(person.role || "-")}</td>
-                                <td>${escapeHtml(person.committee || "-")}</td>
-                                <td>${escapeHtml(person.isRepresentativeAssemblyMember ? mapPositionSourceLabel(stakeholderPersonMapPosition(person)?.source || person.mapPositionSource) : "-")}</td>
+                                <td>${escapeHtml(mapPositionSourceLabel(stakeholderPersonMapPosition(person)?.source || person.mapPositionSource))}</td>
                                 <td><button class="detail-link detail-link--compact" type="button" data-open-stakeholder-org-person="${escapeHtml(person.id)}">Person öffnen</button></td>
                               </tr>
                             `).join("")}
@@ -27031,7 +27286,7 @@
           button.addEventListener("click", () => {
             activeStakeholderMode = "people";
             updateView();
-            openStakeholderPersonDetail(button.dataset.openStakeholderOrgPerson, stakeholderPeople);
+            openPersonProfile("stakeholder", button.dataset.openStakeholderOrgPerson, { returnTo: "stakeholders" });
           });
         });
         detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
@@ -27074,6 +27329,7 @@
           <div class="detail-toolbar">
             <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Personen</div>
             <div class="detail-toolbar-actions">
+              <button class="action-button action-button--primary" type="button" id="stakeholder-person-open-profile">Profil öffnen</button>
               <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
             </div>
           </div>
@@ -27110,7 +27366,6 @@
                   )}
                   ${detailLine("Rolle", person.role)}
                   ${detailLine("Gremium", person.committee)}
-                  ${detailLine("Vertreterversammlung", person.isRepresentativeAssemblyMember ? "Ja" : "Nein")}
                   ${detailLine("Ort", stakeholderPersonLocation(person))}
                   ${detailLine("Kartenposition", mapPositionSourceLabel(mapPosition?.source || person.mapPositionSource))}
                   ${detailLine("Quelle", person.source)}
@@ -27145,6 +27400,9 @@
         detailDrawer.classList.add("is-open");
         detailDrawer.setAttribute("aria-hidden", "false");
         syncBodyScrollLock();
+        document.getElementById("stakeholder-person-open-profile")?.addEventListener("click", () => {
+          openPersonProfile("stakeholder", person.id, { returnTo: "stakeholders", title: person.name });
+        });
         document.getElementById("detail-close")?.addEventListener("click", closeDetail);
         detailPanel.querySelector("[data-open-linked-stakeholder-organization]")?.addEventListener("click", (event) => {
           activeStakeholderMode = "organizations";
@@ -27223,7 +27481,7 @@
           activeExpertMode = "contacts";
           setActiveView("experts");
           updateView();
-          openExpertDetail(id, expertContacts);
+          openPersonProfile("expert", id, { returnTo: "experts" });
           return;
         }
         if (realm === "expert" && kind === "organization") {
@@ -27247,7 +27505,7 @@
         activeCareDuplicateView = "";
         setActiveView("contacts");
         updateView();
-        openDetail(id, contacts);
+        openPersonProfile("contact", id, { returnTo: "contacts" });
       }
 
       function bindExpertMatchingControls({ listElement, paginationElement, items, render }) {
@@ -27921,7 +28179,7 @@
             setActiveView("contacts");
             updateRouteHash("contacts");
             updateView();
-            openDetail(button.dataset.teamOwnerContact, contacts);
+            openPersonProfile("contact", button.dataset.teamOwnerContact, { returnTo: "team" });
           });
         });
       }
@@ -27955,7 +28213,7 @@
             setActiveView("contacts");
             updateRouteHash("contacts");
             updateView();
-            openDetail(button.dataset.profileOwnerContact, contacts);
+            openPersonProfile("contact", button.dataset.profileOwnerContact, { returnTo: "profile" });
           });
         });
       }
@@ -28969,9 +29227,7 @@
 
         if (!options.silent) updateView();
 
-        if (!options.silent && activeId === id && detailDrawer.classList.contains("is-open")) {
-          openDetail(id);
-        }
+        if (!options.silent) refreshContactDetailView(id);
       }
 
       function toggleNameEditor(id) {
@@ -29414,7 +29670,7 @@
             const id = element.dataset.activityContact;
             if (!id) return;
             event.stopPropagation();
-            openDetail(id, contacts);
+            openPersonProfile("contact", id, { returnTo: "activities" });
           });
         });
       }
@@ -29858,7 +30114,7 @@
           setActiveView("contacts");
           updateRouteHash("contacts");
           updateView();
-          openDetail(notification.entityId, contacts);
+          openPersonProfile("contact", notification.entityId, { returnTo: "contacts" });
           return;
         }
         if (notification.entityType === "organization" && notification.entityId) {
@@ -29919,8 +30175,7 @@
         }
         if (activeView === "stakeholders") {
           if (activeStakeholderMode === "map") {
-            const representativePeople = filteredStakeholderPeople().filter((person) => person.isRepresentativeAssemblyMember);
-            return `${stakeholderMapPeople().length} von ${representativePeople.length} Personen auf der Karte`;
+            return `${stakeholderMapPeople().length} von ${filteredStakeholderPeople().length} Personen auf der Karte`;
           }
           if (activeStakeholderMode === "people") return `${items.length} von ${activeStakeholderPeopleTotal()} Personen`;
           return `${items.length} von ${activeStakeholderOrganizationsTotal()} Organisationen`;
@@ -32131,7 +32386,7 @@
           button.addEventListener("click", () => {
             const contactId = button.dataset.openFormatContact;
             const formatContacts = formatParticipantContacts(format).map(({ contact }) => contact);
-            openDetail(contactId, formatContacts);
+            openPersonProfile("contact", contactId, { returnTo: "formats" });
           });
         });
         const toggleFormatDetail = (nextFormatId) => {
@@ -32929,12 +33184,12 @@
         [...list.querySelectorAll(".row, .mobile-contact-card")].forEach((row) => {
           row.addEventListener("click", (event) => {
             if (event.target.closest("button, input, label, a, select, textarea")) return;
-            openDetail(row.dataset.id, items);
+            openPersonEntry("contact", row.dataset.id, items, { returnTo: "contacts" });
           });
           row.addEventListener("keydown", (event) => {
             if ((event.key === "Enter" || event.key === " ") && !event.target.closest("button, input, label, a, select, textarea")) {
               event.preventDefault();
-              openDetail(row.dataset.id, items);
+              openPersonEntry("contact", row.dataset.id, items, { returnTo: "contacts" });
             }
           });
         });
@@ -32951,7 +33206,7 @@
         [...list.querySelectorAll("[data-open-detail]")].forEach((button) => {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
-            openDetail(button.dataset.openDetail, items);
+            openPersonEntry("contact", button.dataset.openDetail, items, { returnTo: "contacts" });
           });
         });
 
@@ -33806,6 +34061,25 @@
         );
       }
 
+      function activeDetailRoot(contactId = "") {
+        if (isPersonProfileActive("contact", contactId) || isPersonProfileActive("expert", contactId)) return personProfileDetailPanel();
+        return detailPanel;
+      }
+
+      function refreshContactDetailView(contactId, options = {}) {
+        if (isPersonProfileActive("contact", contactId)) {
+          renderPersonProfilePage();
+          return;
+        }
+        if (isPersonProfileActive("expert", contactId)) {
+          renderPersonProfilePage();
+          return;
+        }
+        if (detailDrawer.classList.contains("is-open")) {
+          openDetail(contactId, options.items || undefined, options);
+        }
+      }
+
       async function updateContactThemes(id, themes) {
         if (!canEditContacts()) {
           showPermissionDenied("Du hast Leserechte. Themen können nur von Editor- oder Admin-Nutzern geändert werden.");
@@ -33825,9 +34099,7 @@
           return;
         }
         updateView();
-        if (activeId === id && detailDrawer.classList.contains("is-open")) {
-          openDetail(id);
-        }
+        refreshContactDetailView(id);
       }
 
       async function saveDetailInline(contact) {
@@ -33835,7 +34107,8 @@
           showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern geändert werden.");
           return;
         }
-        const fields = [...detailPanel.querySelectorAll("[data-detail-field]")];
+        const root = activeDetailRoot(contact.id);
+        const fields = [...root.querySelectorAll("[data-detail-field]")];
         const patch = {};
         fields.forEach((field) => {
           patch[field.dataset.detailField] = String(field.value || "").trim();
@@ -33861,14 +34134,14 @@
         const nextName = Object.prototype.hasOwnProperty.call(patch, "name") ? patch.name : contact.name;
         if (!nextName) {
           window.alert("Bitte trage mindestens einen Namen ein.");
-          detailPanel.querySelector("[data-detail-field='name']")?.focus();
+          root.querySelector("[data-detail-field='name']")?.focus();
           return;
         }
 
         const invalidUrlField = ["linkedin", "url", "image", "imageSourceUrl"].find((field) => Object.prototype.hasOwnProperty.call(patch, field) && !isValidOptionalUrl(patch[field]));
         if (invalidUrlField) {
           window.alert("Bitte trage eine gültige URL mit https:// oder http:// ein oder lasse das Feld leer.");
-          detailPanel.querySelector(`[data-detail-field='${invalidUrlField}']`)?.focus();
+          root.querySelector(`[data-detail-field='${invalidUrlField}']`)?.focus();
           return;
         }
 
@@ -33882,7 +34155,7 @@
           setStorageStatus("Kontakt in Supabase gespeichert");
           detailEditMode = false;
           updateView();
-          openDetail(contact.id);
+          refreshContactDetailView(contact.id);
         } catch (error) {
           console.error("Kontakt konnte nicht gespeichert werden.", error);
           window.alert("Die Änderung konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
@@ -33902,7 +34175,7 @@
         setStorageStatus("Notiz in Supabase gespeichert");
         if (statusElement) statusElement.textContent = "Gespeichert";
         updateView();
-        openDetail(contact.id);
+        refreshContactDetailView(contact.id);
       }
 
       async function saveContactNotesThread(contact, messages, storageMessage = "Notiz gespeichert") {
@@ -33921,29 +34194,29 @@
           contactHistoryCache.delete(contact.id);
           setStorageStatus(storageMessage);
           updateView();
-          openDetail(contact.id);
+          refreshContactDetailView(contact.id);
         } catch (error) {
           console.error("Kontaktnotiz konnte nicht gespeichert werden.", error);
           window.alert("Die Notiz konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
         }
       }
 
-      function bindContactNotesThread(contact) {
-        detailPanel.querySelectorAll("[data-edit-contact-note]").forEach((button) => {
+      function bindContactNotesThread(contact, root = detailPanel) {
+        root.querySelectorAll("[data-edit-contact-note]").forEach((button) => {
           button.addEventListener("click", () => {
             contactEditingNoteId = button.dataset.editContactNote || null;
-            openDetail(contact.id);
+            refreshContactDetailView(contact.id);
           });
         });
-        detailPanel.querySelectorAll("[data-cancel-contact-note-edit]").forEach((button) => {
+        root.querySelectorAll("[data-cancel-contact-note-edit]").forEach((button) => {
           button.addEventListener("click", () => {
             if (contactEditingNoteId === button.dataset.cancelContactNoteEdit) {
               contactEditingNoteId = null;
-              openDetail(contact.id);
+              refreshContactDetailView(contact.id);
             }
           });
         });
-        detailPanel.querySelectorAll("[data-contact-note-edit-form]").forEach((form) => {
+        root.querySelectorAll("[data-contact-note-edit-form]").forEach((form) => {
           form.addEventListener("submit", async (event) => {
             event.preventDefault();
             if (!canEditContacts()) {
@@ -33973,7 +34246,7 @@
             );
           });
         });
-        detailPanel.querySelectorAll("[data-delete-contact-note]").forEach((button) => {
+        root.querySelectorAll("[data-delete-contact-note]").forEach((button) => {
           button.addEventListener("click", async () => {
             if (!canEditContacts()) {
               showPermissionDenied(viewerCreateDisabledMessage("das Löschen von Notizen"));
@@ -33995,13 +34268,13 @@
             );
           });
         });
-        document.getElementById("contact-notes-composer")?.addEventListener("submit", async (event) => {
+        root.querySelector("#contact-notes-composer")?.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!canEditContacts()) {
             showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
             return;
           }
-          const textarea = document.getElementById("contact-notes-message");
+          const textarea = root.querySelector("#contact-notes-message");
           const text = String(textarea?.value || "").trim();
           if (!text) {
             textarea?.focus();
@@ -34050,7 +34323,8 @@
           stakeholderEditingNoteKey = "";
           setStorageStatus(storageMessage);
           updateView();
-          if (entityType === "organization") openStakeholderOrganizationDetail(entity.id, stakeholderOrganizations);
+          if (entityType === "person" && isPersonProfileActive("stakeholder", entity.id)) renderPersonProfilePage();
+          else if (entityType === "organization") openStakeholderOrganizationDetail(entity.id, stakeholderOrganizations);
           else openStakeholderPersonDetail(entity.id, stakeholderPeople);
         } catch (error) {
           console.error("Stakeholder-Notiz konnte nicht gespeichert werden.", error);
@@ -34058,23 +34332,26 @@
         }
       }
 
-      function bindStakeholderNotesThread(entityType, entity) {
-        detailPanel.querySelectorAll("[data-edit-stakeholder-note]").forEach((button) => {
+      function bindStakeholderNotesThread(entityType, entity, root = detailPanel) {
+        const refreshStakeholderDetail = () => {
+          if (entityType === "person" && isPersonProfileActive("stakeholder", entity.id)) renderPersonProfilePage();
+          else if (entityType === "organization") openStakeholderOrganizationDetail(entity.id, stakeholderOrganizations);
+          else openStakeholderPersonDetail(entity.id, stakeholderPeople);
+        };
+        root.querySelectorAll("[data-edit-stakeholder-note]").forEach((button) => {
           button.addEventListener("click", () => {
             stakeholderEditingNoteKey = stakeholderNoteKey(button.dataset.stakeholderNoteEntity || entityType, button.dataset.editStakeholderNote || "");
-            if (entityType === "organization") openStakeholderOrganizationDetail(entity.id, stakeholderOrganizations);
-            else openStakeholderPersonDetail(entity.id, stakeholderPeople);
+            refreshStakeholderDetail();
           });
         });
-        detailPanel.querySelectorAll("[data-cancel-stakeholder-note-edit]").forEach((button) => {
+        root.querySelectorAll("[data-cancel-stakeholder-note-edit]").forEach((button) => {
           button.addEventListener("click", () => {
             const key = stakeholderNoteKey(button.dataset.stakeholderNoteEntity || entityType, button.dataset.cancelStakeholderNoteEdit || "");
             if (stakeholderEditingNoteKey === key) stakeholderEditingNoteKey = "";
-            if (entityType === "organization") openStakeholderOrganizationDetail(entity.id, stakeholderOrganizations);
-            else openStakeholderPersonDetail(entity.id, stakeholderPeople);
+            refreshStakeholderDetail();
           });
         });
-        detailPanel.querySelectorAll("[data-stakeholder-note-edit-form]").forEach((form) => {
+        root.querySelectorAll("[data-stakeholder-note-edit-form]").forEach((form) => {
           form.addEventListener("submit", async (event) => {
             event.preventDefault();
             if (!canAdministerData()) {
@@ -34104,7 +34381,7 @@
             );
           });
         });
-        detailPanel.querySelectorAll("[data-delete-stakeholder-note]").forEach((button) => {
+        root.querySelectorAll("[data-delete-stakeholder-note]").forEach((button) => {
           button.addEventListener("click", async () => {
             if (!canAdministerData()) {
               showPermissionDenied(viewerCreateDisabledMessage("das Löschen von Notizen"));
@@ -34126,7 +34403,7 @@
             );
           });
         });
-        detailPanel.querySelector("[data-stakeholder-note-composer]")?.addEventListener("submit", async (event) => {
+        root.querySelector("[data-stakeholder-note-composer]")?.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!canAdministerData()) {
             showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
@@ -35803,7 +36080,331 @@
             return;
           }
         }
-        openDetail(id, contacts);
+        openPersonProfile("contact", id, { returnTo: "quality" });
+      }
+
+      function personKindLabel(kind = activePersonProfile.kind) {
+        if (kind === "expert") return "Expertenkreis-Kontakt";
+        if (kind === "stakeholder") return "Stakeholder-Person";
+        return "Kontakt";
+      }
+
+      function personProfileDetailPanel() {
+        if (!personProfileBody) return detailPanel;
+        let panel = personProfileBody.querySelector(":scope > .detail-panel");
+        if (!panel) {
+          panel = document.createElement("section");
+          panel.className = "detail-panel";
+          personProfileBody.replaceChildren(panel);
+        }
+        return panel;
+      }
+
+      function renderPersonProfileState(title, message) {
+        const panel = personProfileDetailPanel();
+        panel.classList.remove("detail-panel--organization", "detail-panel--registration");
+        panel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">${escapeHtml(title)}</div>
+          </div>
+          <div class="detail-content">
+            <div class="empty">${escapeHtml(message)}</div>
+          </div>
+        `;
+      }
+
+      async function getPersonRecord(kind, id) {
+        if (window.dataService?.getPersonRecord) {
+          const record = await window.dataService.getPersonRecord(kind, id, { includeArchived: canAdministerData() });
+          if (record) {
+            if (kind === "contact") {
+              const contact = sanitizeContact(record, contacts.length);
+              const existingIndex = contacts.findIndex((item) => item.id === contact.id);
+              contacts = existingIndex >= 0
+                ? contacts.map((item) => item.id === contact.id ? contact : item)
+                : [contact, ...contacts];
+              return contact;
+            }
+            if (kind === "expert") {
+              const contact = sanitizeExpertContact(record, expertContacts.length);
+              const existingIndex = expertContacts.findIndex((item) => item.id === contact.id);
+              expertContacts = existingIndex >= 0
+                ? expertContacts.map((item) => item.id === contact.id ? contact : item)
+                : [contact, ...expertContacts];
+              return contact;
+            }
+            if (kind === "stakeholder") {
+              const person = sanitizeStakeholderPerson(record, stakeholderPeople.length);
+              const existingIndex = stakeholderPeople.findIndex((item) => item.id === person.id);
+              stakeholderPeople = existingIndex >= 0
+                ? stakeholderPeople.map((item) => item.id === person.id ? person : item)
+                : [person, ...stakeholderPeople];
+              return person;
+            }
+          }
+        }
+
+        if (kind === "contact") {
+          let contact = contacts.find((item) => item.id === id);
+          if (!contact && window.dataService?.getContact) {
+            contact = sanitizeContact(await window.dataService.getContact(id), contacts.length);
+            contacts = [contact, ...contacts.filter((item) => item.id !== contact.id)];
+          }
+          return contact || null;
+        }
+
+        if (kind === "expert") {
+          let contact = expertContacts.find((item) => item.id === id);
+          if (!contact && window.dataService?.loadExpertContacts) {
+            expertContacts = (await window.dataService.loadExpertContacts({ includeArchived: canAdministerData() })).map((entry, index) =>
+              sanitizeExpertContact(entry, index)
+            );
+            contact = expertContacts.find((item) => item.id === id);
+          }
+          return contact || null;
+        }
+
+        if (kind === "stakeholder") {
+          let person = stakeholderPeople.find((item) => item.id === id);
+          if (!person && window.dataService?.loadStakeholderPeople) {
+            stakeholderPeople = (await window.dataService.loadStakeholderPeople({ includeArchived: canAdministerData() })).map((entry, index) =>
+              sanitizeStakeholderPerson(entry, index)
+            );
+            person = stakeholderPeople.find((item) => item.id === id);
+          }
+          return person || null;
+        }
+
+        return null;
+      }
+
+      function renderStakeholderPersonProfile(person) {
+        const panel = personProfileDetailPanel();
+        const organization = stakeholderPersonOrganization(person);
+        const locationText = stakeholderPersonLocation(person);
+        const mapPosition = stakeholderPersonMapPosition(person);
+        const themes = normalizeThemes(person.themes);
+        activeStakeholderMode = "people";
+        activeStakeholderPersonId = person.id;
+        activeStakeholderOrganizationId = null;
+        activePersonProfile.title = person.name || "Stakeholder-Person";
+        renderViewChrome();
+        panel.classList.remove("detail-panel--organization", "detail-panel--registration");
+        panel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">Stakeholder-Person</div>
+          </div>
+          <div class="detail-content">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${contactAvatarMarkup(person, "lg")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(person.name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(person.organization || organization?.name || "Organisation nicht dokumentiert")}</div>
+                    ${person.role ? `<div class="detail-profile-subline">${escapeHtml(person.role)}</div>` : ""}
+                    <div class="detail-profile-status">${sectorBadgeMarkup(person.committee || stakeholderTypeLabel(person.stakeholderTypeId))}</div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="detail-tabs" role="tablist" aria-label="Profilbereiche">
+                <button class="detail-tab is-active" type="button" data-scroll-detail="stakeholder-person-overview">Überblick</button>
+                <button class="detail-tab" type="button" data-scroll-detail="stakeholder-person-contact">Kontakt</button>
+                <button class="detail-tab" type="button" data-scroll-detail="stakeholder-person-themes">Themen</button>
+                <button class="detail-tab" type="button" data-scroll-detail="stakeholder-person-notes">Notizen</button>
+              </div>
+
+              <section class="section-block detail-tab-panel" id="stakeholder-person-overview">
+                <h4 class="detail-section-title">Stammdaten</h4>
+                <div class="detail-line-list">
+                  ${detailLineHtml(
+                    "Organisation",
+                    organization
+                      ? `<button class="organization-contact-link" type="button" data-open-linked-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>`
+                      : escapeHtml(person.organization || "Keine Organisation hinterlegt"),
+                    { empty: !person.organization && !organization }
+                  )}
+                  ${detailLine("Rolle", person.role)}
+                  ${detailLine("Gremium", person.committee)}
+                  ${detailLine("Ort", locationText)}
+                  ${detailLine("Kartenposition", mapPositionSourceLabel(mapPosition?.source || person.mapPositionSource))}
+                  ${detailLine("Quelle", person.source)}
+                </div>
+              </section>
+
+              <section class="section-block detail-tab-panel" id="stakeholder-person-contact">
+                <h4 class="detail-section-title">Kontakt</h4>
+                <div class="detail-line-list">
+                  ${detailContactLine("E-Mail", person.email, person.email ? `mailto:${person.email}` : "")}
+                  ${detailContactLine("Telefon", person.phone, person.phone ? `tel:${person.phone}` : "")}
+                  ${detailContactLine("LinkedIn", person.linkedin ? "Profil öffnen" : "", person.linkedin)}
+                  ${detailContactLine("Profil", person.url ? "Quelle öffnen" : "", person.url)}
+                </div>
+              </section>
+
+              <section class="section-block detail-tab-panel" id="stakeholder-person-themes">
+                <h4 class="detail-section-title">Themen${themes.length ? ` (${themes.length})` : ""}</h4>
+                <div class="detail-chip-row">
+                  ${themes.length ? themes.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`}
+                </div>
+              </section>
+
+              <section class="section-block detail-tab-panel" id="stakeholder-person-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                ${renderStakeholderNotesThread(person, "person")}
+              </section>
+            </div>
+          </div>
+        `;
+        panel.querySelector("[data-open-linked-stakeholder-organization]")?.addEventListener("click", (event) => {
+          openPersonProfileParent("stakeholders");
+          openStakeholderOrganizationDetail(event.currentTarget.dataset.openLinkedStakeholderOrganization, stakeholderOrganizations);
+        });
+        panel.querySelectorAll("[data-scroll-detail]").forEach((button) => {
+          button.addEventListener("click", () => {
+            panel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
+            panel.querySelector(`#${button.dataset.scrollDetail}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+        bindStakeholderNotesThread("person", person, panel);
+      }
+
+      async function renderPersonProfilePage() {
+        if (activeView !== "personProfile") return;
+        const token = ++personProfileRenderToken;
+        const { kind, id } = activePersonProfile;
+        if (!normalizePersonProfileKind(kind) || !id) {
+          renderPersonProfileState("Personenprofil", "Kein Personenprofil ausgewählt.");
+          return;
+        }
+        renderPersonProfileState(personKindLabel(kind), "Profil wird geladen.");
+        try {
+          const record = await getPersonRecord(kind, id);
+          if (token !== personProfileRenderToken || activeView !== "personProfile") return;
+          if (!record) {
+            renderPersonProfileState(personKindLabel(kind), "Dieses Profil wurde nicht gefunden oder ist nicht sichtbar.");
+            return;
+          }
+          activePersonProfile.title = record.displayName || record.name || personKindLabel(kind);
+          if (kind === "stakeholder") {
+            renderStakeholderPersonProfile(record);
+          } else {
+            openDetail(record.id, kind === "expert" ? expertContacts : contacts, { scope: kind === "expert" ? "expert" : "care", mode: "page" });
+          }
+          renderViewChrome();
+        } catch (error) {
+          console.error("Personenprofil konnte nicht geladen werden.", error);
+          renderPersonProfileState(personKindLabel(kind), "Das Profil konnte nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+        }
+      }
+
+      function openPersonProfile(kind, id, options = {}) {
+        const normalizedKind = normalizePersonProfileKind(kind);
+        if (!normalizedKind || !id) return;
+        activePersonProfile = {
+          kind: normalizedKind,
+          id,
+          returnTo: options.returnTo || personProfileParentView(normalizedKind),
+          title: options.title || viewLabels.personProfile.title
+        };
+        closeMenus();
+        closeMobileSidebar();
+        if (detailDrawer?.classList.contains("is-open")) closeDetail();
+        setActiveView("personProfile");
+        updateRouteHash(personProfileRoute(normalizedKind, id));
+        updateView();
+      }
+
+      function openPersonProfileParent(preferredView = "") {
+        const parentView = preferredView || activePersonProfile.returnTo || personProfileParentView();
+        if (parentView === "experts") activeExpertMode = "contacts";
+        if (parentView === "stakeholders") activeStakeholderMode = "people";
+        setActiveView(parentView);
+        updateRouteHash(parentView);
+        updateView();
+      }
+
+      function openStakeholderPersonPreview(id, items = filteredStakeholderPeople()) {
+        const currentItems = items.length ? items : filteredStakeholderPeople();
+        const person = currentItems.find((item) => item.id === id) || stakeholderPeople.find((item) => item.id === id);
+        if (!person) return;
+        const organization = stakeholderPersonOrganization(person);
+        const currentIndex = currentItems.findIndex((item) => item.id === person.id);
+        activeStakeholderPersonId = person.id;
+        activeStakeholderOrganizationId = null;
+        activeExpertId = null;
+        activeExpertOrganizationId = null;
+        activeId = null;
+        if (activeStakeholderMode === "people") renderStakeholderPeopleTable(currentItems);
+        detailPanel.classList.remove("detail-panel--organization", "detail-panel--registration");
+        detailPanel.innerHTML = `
+          <div class="detail-toolbar">
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Personen</div>
+            <div class="detail-toolbar-actions">
+              <button class="action-button action-button--primary" type="button" id="stakeholder-person-open-profile">Profil öffnen</button>
+              <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
+            </div>
+          </div>
+          <div class="detail-content detail-preview">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${contactAvatarMarkup(person, "lg")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(person.name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(person.organization || organization?.name || "Organisation nicht dokumentiert")}</div>
+                    ${person.role ? `<div class="detail-profile-subline">${escapeHtml(person.role)}</div>` : ""}
+                    <div class="detail-profile-status">${sectorBadgeMarkup(person.committee || stakeholderTypeLabel(person.stakeholderTypeId))}</div>
+                  </div>
+                </div>
+              </section>
+              <section class="section-block detail-tab-panel" id="stakeholder-person-preview">
+                <h4 class="detail-section-title">Überblick</h4>
+                <div class="detail-line-list">
+                  ${detailLineHtml(
+                    "Organisation",
+                    organization
+                      ? `<button class="organization-contact-link" type="button" data-open-linked-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>`
+                      : escapeHtml(person.organization || "Keine Organisation hinterlegt"),
+                    { empty: !person.organization && !organization }
+                  )}
+                  ${detailLine("Rolle", person.role)}
+                  ${detailLine("Gremium", person.committee)}
+                  ${detailContactLine("Profil", person.url ? "Quelle öffnen" : "", person.url)}
+                </div>
+              </section>
+            </div>
+          </div>
+        `;
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        detailPanel.querySelector("#stakeholder-person-open-profile")?.addEventListener("click", () => {
+          openPersonProfile("stakeholder", person.id, { returnTo: "stakeholders", title: person.name });
+        });
+        detailPanel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
+        detailPanel.querySelector("[data-open-linked-stakeholder-organization]")?.addEventListener("click", (event) => {
+          activeStakeholderMode = "organizations";
+          setActiveView("stakeholders");
+          updateRouteHash("stakeholders");
+          updateView();
+          openStakeholderOrganizationDetail(event.currentTarget.dataset.openLinkedStakeholderOrganization, stakeholderOrganizations);
+        });
+      }
+
+      function openPersonEntry(kind, id, items = [], options = {}) {
+        const normalizedKind = normalizePersonProfileKind(kind);
+        if (!normalizedKind || !id) return;
+        if (isMobileLayout() || options.forceProfile) {
+          openPersonProfile(normalizedKind, id, { returnTo: options.returnTo || personProfileParentView(normalizedKind) });
+          return;
+        }
+        if (normalizedKind === "stakeholder") {
+          openStakeholderPersonPreview(id, items);
+          return;
+        }
+        openDetail(id, items, { scope: normalizedKind === "expert" ? "expert" : "care", mode: "preview" });
       }
 
       function renderViewChrome() {
@@ -35813,6 +36414,8 @@
           ? settingsTabItems.find((item) => item.id === activeSettingsTab) || viewLabels.settings
           : activeView === "profile"
             ? profileTabItems.find((item) => item.id === activeProfileTab) || viewLabels.profile
+            : activeView === "personProfile"
+              ? { ...viewLabels.personProfile, title: activePersonProfile.title || viewLabels.personProfile.title }
             : viewLabels[activeView] || viewLabels.contacts;
         if (topbarViewTitle) topbarViewTitle.textContent = view.title;
         if (topbarViewMeta) topbarViewMeta.textContent = greetingLabel;
@@ -35923,7 +36526,9 @@
 
       function updateRouteHash(view) {
         const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "contacts";
-        const nextHash = `#${safeViewForRole(routeView)}`;
+        const nextHash = routeView === "personProfile" || String(routeView).startsWith("person/")
+          ? `#${routeView === "personProfile" ? personProfileRoute() : routeView}`
+          : `#${safeViewForRole(routeView)}`;
         if (window.location.hash !== nextHash) {
           window.history.pushState(null, "", nextHash);
         }
@@ -35945,6 +36550,7 @@
           closeDetail();
         }
         activeView = view;
+        const activeNavigationView = view === "personProfile" ? personProfileParentView() : view;
         if (view === "organizations") {
           selectedPriorities = [];
           selectedSpecialties = [];
@@ -35981,7 +36587,7 @@
         }
         viewTabs.forEach((tab) => {
           const tabView = tab.dataset.viewTab;
-          const active = tabView === view || (tab.dataset.viewGroup === "care" && isCareView(view));
+          const active = tabView === activeNavigationView || (tab.dataset.viewGroup === "care" && isCareView(activeNavigationView));
           tab.classList.toggle("is-active", active);
         });
         sidebarNotificationsButton?.classList.toggle("is-active", view === "notifications" || (view === "profile" && activeProfileTab === "notifications") || Boolean(notificationPopover && !notificationPopover.hidden));
@@ -36001,6 +36607,7 @@
           renderProfileForm();
           setProfileTab(activeProfileTab);
         }
+        if (view === "personProfile") renderPersonProfilePage();
         if (view === "team") renderTeamView();
         if (view === "experts") renderExpertTablesVisibility();
         if (view === "stakeholders") renderStakeholderTablesVisibility();
@@ -36365,7 +36972,7 @@
         detailPanel.querySelectorAll("[data-open-expert-org-contact]").forEach((button) => {
           button.addEventListener("click", () => {
             activeExpertMode = "contacts";
-            openExpertDetail(button.dataset.openExpertOrgContact, expertContacts);
+            openPersonProfile("expert", button.dataset.openExpertOrgContact, { returnTo: "experts" });
           });
         });
         bindExpertEntityLinkControls(() => openExpertOrganizationDetail(organization.id, currentItems));
@@ -36503,8 +37110,7 @@
         document.getElementById("organization-link-contact")?.addEventListener("click", () => linkExistingContactToOrganization(organization));
         detailPanel.querySelectorAll("[data-open-org-contact]").forEach((button) => {
           button.addEventListener("click", () => {
-            setActiveView("contacts");
-            openDetail(button.dataset.openOrgContact, contacts);
+            openPersonProfile("contact", button.dataset.openOrgContact, { returnTo: "organizations" });
           });
         });
         bindExpertEntityLinkControls(() => openOrganizationDetail(organization.id, currentItems));
@@ -36557,7 +37163,7 @@
           organizations = mergeOrganizations(organizations, deriveOrganizationsFromContacts(contacts));
           setStorageStatus("Organisation am Kontakt gespeichert");
           updateView();
-          openDetail(contact.id, contacts);
+          refreshContactDetailView(contact.id);
         } catch (error) {
           console.error("Organisation konnte nicht am Kontakt gespeichert werden.", error);
           window.alert("Die Organisation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
@@ -36616,6 +37222,11 @@
 
       function openDetail(id, items = filteredContacts(), options = {}) {
         const expertScope = options.scope === "expert";
+        const detailMode = options.mode === "page" ? "page" : options.mode === "preview" ? "preview" : "drawer";
+        const isProfilePage = detailMode === "page";
+        const isPreview = detailMode === "preview";
+        const targetPanel = isProfilePage ? personProfileDetailPanel() : detailPanel;
+        const rerenderDetail = () => openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care", mode: detailMode });
         const sourceContacts = expertScope ? expertContacts : contacts;
         const fallbackItems = expertScope ? filteredExpertContacts() : filteredContacts();
         const currentItems = items.length ? items : fallbackItems;
@@ -36646,9 +37257,9 @@
         );
         const themeTags = normalizeThemes(contact.themes);
         const linkedCareContacts = expertScope ? linkedContactsForExpertContact(contact) : [];
-        const editingDetail = !expertScope && detailEditMode && canEditContacts();
-        const editableDetail = !expertScope && canEditContacts();
-        const admin = !expertScope && canAdministerData();
+        const editingDetail = !isPreview && !expertScope && detailEditMode && canEditContacts();
+        const editableDetail = !isPreview && !expertScope && canEditContacts();
+        const admin = !isPreview && !expertScope && canAdministerData();
         const portraitMarkup = contactAvatarMarkup(contact, "lg");
         const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
         const normalizedStatus = String(contact.status || "").trim().toLowerCase();
@@ -36669,22 +37280,26 @@
           activeExpertOrganizationId = null;
           activeId = null;
           activeOrganizationId = null;
-          renderExpertContactsTable(currentItems);
+          if (!isProfilePage) renderExpertContactsTable(currentItems);
         } else {
           activeId = contact.id;
           activeExpertId = null;
           activeExpertOrganizationId = null;
-          renderTable(currentItems);
+          if (!isProfilePage) renderTable(currentItems);
         }
-        detailPanel.classList.remove("detail-panel--organization");
-        detailPanel.classList.remove("detail-panel--registration");
+        targetPanel.classList.remove("detail-panel--organization");
+        targetPanel.classList.remove("detail-panel--registration");
 
         const currentIndex = currentItems.findIndex((item) => item.id === contact.id);
+        const panelAttrs = (tab) => isProfilePage
+          ? `class="section-block detail-tab-panel" data-detail-panel="${escapeHtml(tab)}"`
+          : detailPanelAttrs(tab, activeTab);
 
-        detailPanel.innerHTML = `
+        targetPanel.innerHTML = `
           <div class="detail-toolbar">
-            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>
+            <div class="detail-counter">${isProfilePage ? escapeHtml(personKindLabel(expertScope ? "expert" : "contact")) : `${currentIndex + 1} von ${currentItems.length} Kontakten`}</div>
             <div class="detail-toolbar-actions">
+              ${isPreview ? `<button class="action-button action-button--primary" type="button" id="detail-open-profile">Profil öffnen</button>` : ""}
               ${
                 editingDetail
                   ? `
@@ -36695,10 +37310,10 @@
                     ? `<button class="action-button detail-profile-edit" type="button" id="detail-edit">Bearbeiten</button>`
                     : ""
               }
-              <button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>
+              ${isProfilePage ? "" : `<button class="detail-close" type="button" id="detail-close" aria-label="Details schlie&szlig;en">&times;</button>`}
             </div>
           </div>
-          <div class="detail-content">
+          <div class="detail-content ${isPreview ? "detail-preview" : ""}">
             <div class="detail-profile">
               <section class="detail-profile-top">
                 <div class="detail-profile-main">
@@ -36727,7 +37342,7 @@
                 ${detailTabButton("activity", "Aktivitäten", activeTab)}
               </div>
 
-              <section ${detailPanelAttrs("overview", activeTab)} id="detail-overview">
+              <section ${panelAttrs("overview")} id="detail-overview">
                 ${expertScope ? `<h4 class="detail-section-title">Stammdaten</h4>` : sectionTitleMarkup("Stammdaten", "overview", editingDetail)}
                 <div class="detail-line-list">
                   ${
@@ -36763,7 +37378,7 @@
                 </div>
               </section>
 
-              <section ${detailPanelAttrs("contact", activeTab)} id="detail-contactways">
+              <section ${panelAttrs("contact")} id="detail-contactways">
                 ${expertScope ? `<h4 class="detail-section-title">Kontakt</h4>` : sectionTitleMarkup("Kontakt", "contactways", editingDetail)}
                 <div class="detail-line-list">
                   ${
@@ -36779,7 +37394,7 @@
                 </div>
               </section>
 
-              <section ${detailPanelAttrs("themes", activeTab)} id="detail-themes">
+              <section ${panelAttrs("themes")} id="detail-themes">
                 <h4 class="detail-section-title">Themen${themeTags.length ? ` (${themeTags.length})` : ""}</h4>
                 <div class="detail-line-list">
                   ${editableDetail ? renderDetailThemeEditor(themeTags) : expertScope ? renderReadOnlyThemePanel(themeTags) : renderViewerThemePanel(themeTags)}
@@ -36789,7 +37404,7 @@
               ${
                 expertScope
                   ? `
-                    <section ${detailPanelAttrs("links", activeTab)} id="detail-links">
+                    <section ${panelAttrs("links")} id="detail-links">
                       ${
                         expertContactContextMarkup(contact) ||
                         `<div class="expert-context-section">
@@ -36802,7 +37417,7 @@
                   : ""
               }
 
-              <section ${detailPanelAttrs("notes", activeTab)} id="detail-notes">
+              <section ${panelAttrs("notes")} id="detail-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 <div class="detail-line-list">
 	                  ${
@@ -36813,7 +37428,7 @@
 	                </div>
 	              </section>
 
-              <section ${detailPanelAttrs("activity", activeTab)} id="detail-activity">
+              <section ${panelAttrs("activity")} id="detail-activity">
                 ${
                   expertScope
                     ? `<div class="history-empty">Noch kein Verlauf für diesen Expertenkreis-Kontakt vorhanden.</div>`
@@ -36853,41 +37468,46 @@
           </div>
         `;
 
-        detailDrawer.classList.add("is-open");
-        detailDrawer.setAttribute("aria-hidden", "false");
-        syncBodyScrollLock();
-        refreshCustomSelects(detailDrawer);
+        if (!isProfilePage) {
+          detailDrawer.classList.add("is-open");
+          detailDrawer.setAttribute("aria-hidden", "false");
+          syncBodyScrollLock();
+        }
+        refreshCustomSelects(targetPanel);
         if (!expertScope) loadContactHistory(contact.id);
 
-        document.getElementById("detail-close").addEventListener("click", closeDetail);
-        document.getElementById("detail-edit")?.addEventListener("click", () => {
-          detailEditMode = true;
-          openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
+        targetPanel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
+        targetPanel.querySelector("#detail-open-profile")?.addEventListener("click", () => {
+          openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: expertScope ? "experts" : "contacts" });
         });
-        detailPanel.querySelectorAll("[data-detail-edit-section]").forEach((button) => {
+        targetPanel.querySelector("#detail-edit")?.addEventListener("click", () => {
+          detailEditMode = true;
+          rerenderDetail();
+        });
+        targetPanel.querySelectorAll("[data-detail-edit-section]").forEach((button) => {
           button.addEventListener("click", () => {
             detailEditMode = true;
             detailActiveTab = button.dataset.detailEditSection === "contactways" ? "contact" : button.dataset.detailEditSection || detailActiveTab;
             const focusTarget = button.dataset.detailEditFocus || "";
-            openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
+            rerenderDetail();
             window.setTimeout(() => {
-              document.getElementById(`detail-${button.dataset.detailEditSection}`)?.scrollIntoView({ block: "start" });
-              if (focusTarget === "owner") detailPanel.querySelector("[data-detail-owner-picker] input")?.focus();
+              targetPanel.querySelector(`#detail-${button.dataset.detailEditSection}`)?.scrollIntoView({ block: "start" });
+              if (focusTarget === "owner") targetPanel.querySelector("[data-detail-owner-picker] input")?.focus();
             }, 0);
           });
         });
-        document.getElementById("detail-cancel-edit")?.addEventListener("click", () => {
+        targetPanel.querySelector("#detail-cancel-edit")?.addEventListener("click", () => {
           detailEditMode = false;
-          openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
+          rerenderDetail();
         });
-        document.getElementById("detail-save-edit")?.addEventListener("click", () => saveDetailInline(contact));
-        detailPanel.querySelectorAll("[data-detail-header-field]").forEach((select) => {
+        targetPanel.querySelector("#detail-save-edit")?.addEventListener("click", () => saveDetailInline(contact));
+        targetPanel.querySelectorAll("[data-detail-header-field]").forEach((select) => {
           select.addEventListener("change", async () => {
             const field = select.dataset.detailHeaderField;
             await updateContactField(contact.id, field, select.value);
           });
         });
-        detailPanel.querySelectorAll("[data-detail-owner-picker]").forEach((picker) => {
+        targetPanel.querySelectorAll("[data-detail-owner-picker]").forEach((picker) => {
           picker.querySelectorAll('input[type="checkbox"]').forEach((input) => {
             input.addEventListener("change", async () => {
               const detailOwnerInput = picker.closest(".detail-edit-owner")?.querySelector("[data-detail-field='owner']");
@@ -36899,10 +37519,10 @@
             });
           });
         });
-        const noteInput = document.getElementById("detail-note-input");
-        const noteStatus = document.getElementById("detail-note-status");
-        document.getElementById("detail-note-save")?.addEventListener("click", () => saveDetailNote(contact, noteInput, noteStatus));
-        detailPanel.querySelectorAll("[data-viewer-theme-blocked]").forEach((element) => {
+        const noteInput = targetPanel.querySelector("#detail-note-input");
+        const noteStatus = targetPanel.querySelector("#detail-note-status");
+        targetPanel.querySelector("#detail-note-save")?.addEventListener("click", () => saveDetailNote(contact, noteInput, noteStatus));
+        targetPanel.querySelectorAll("[data-viewer-theme-blocked]").forEach((element) => {
           element.addEventListener("click", () => showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen")));
           element.addEventListener("focus", () => {
             if (element.matches("input")) showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen"));
@@ -36919,8 +37539,8 @@
             noteInput.blur();
           }
         });
-        if (!expertScope) bindContactNotesThread(contact);
-        detailPanel.querySelectorAll("[data-detail-theme-toggle]").forEach((button) => {
+        if (!expertScope) bindContactNotesThread(contact, targetPanel);
+        targetPanel.querySelectorAll("[data-detail-theme-toggle]").forEach((button) => {
           button.addEventListener("click", () => {
             const tag = button.dataset.detailThemeToggle;
             const current = new Set(normalizeThemes(contact.themes));
@@ -36929,47 +37549,55 @@
             applyDetailThemeChange(contact, [...current]);
           });
         });
-        detailPanel.querySelectorAll("[data-detail-theme-remove]").forEach((button) => {
+        targetPanel.querySelectorAll("[data-detail-theme-remove]").forEach((button) => {
           button.addEventListener("click", () => {
             const tag = button.dataset.detailThemeRemove;
             applyDetailThemeChange(contact, normalizeThemes(contact.themes).filter((item) => item !== tag));
           });
         });
         const addTheme = () => {
-          const input = document.getElementById("detail-theme-input");
+          const input = targetPanel.querySelector("#detail-theme-input");
           const value = String(input?.value || "").trim();
           if (!value) return;
           applyDetailThemeChange(contact, [...normalizeThemes(contact.themes), value]);
         };
-        document.getElementById("detail-theme-add")?.addEventListener("click", addTheme);
-        document.getElementById("detail-theme-input")?.addEventListener("keydown", (event) => {
+        targetPanel.querySelector("#detail-theme-add")?.addEventListener("click", addTheme);
+        targetPanel.querySelector("#detail-theme-input")?.addEventListener("keydown", (event) => {
           if (event.key === "Enter") {
             event.preventDefault();
             addTheme();
           }
         });
-        document.getElementById("detail-delete")?.addEventListener("click", () => deleteContact(contact));
-        document.getElementById("detail-restore")?.addEventListener("click", () => restoreContact(contact));
-        detailPanel.querySelector("[data-open-linked-organization]")?.addEventListener("click", (event) => {
+        targetPanel.querySelector("#detail-delete")?.addEventListener("click", () => deleteContact(contact));
+        targetPanel.querySelector("#detail-restore")?.addEventListener("click", () => restoreContact(contact));
+        targetPanel.querySelector("[data-open-linked-organization]")?.addEventListener("click", (event) => {
           setActiveView("organizations");
+          updateRouteHash("organizations");
           openOrganizationDetail(event.currentTarget.dataset.openLinkedOrganization);
         });
-        detailPanel.querySelector("[data-open-linked-expert-organization]")?.addEventListener("click", (event) => {
+        targetPanel.querySelector("[data-open-linked-expert-organization]")?.addEventListener("click", (event) => {
           activeExpertMode = "organizations";
+          setActiveView("experts");
+          updateRouteHash("experts");
           openExpertOrganizationDetail(event.currentTarget.dataset.openLinkedExpertOrganization);
         });
-        bindExpertEntityLinkControls(() => openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" }));
-        document.getElementById("detail-assign-organization")?.addEventListener("click", () => assignOrganizationToContact(contact));
-        [...detailPanel.querySelectorAll("[data-detail-tab]")].forEach((button) => {
+        bindExpertEntityLinkControls(() => rerenderDetail(), targetPanel);
+        targetPanel.querySelector("#detail-assign-organization")?.addEventListener("click", () => assignOrganizationToContact(contact));
+        [...targetPanel.querySelectorAll("[data-detail-tab]")].forEach((button) => {
           button.addEventListener("click", () => {
             detailActiveTab = button.dataset.detailTab || "overview";
-            openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care" });
+            if (isProfilePage) {
+              targetPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
+              targetPanel.querySelector(`[data-detail-panel="${CSS.escape(detailActiveTab)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              return;
+            }
+            rerenderDetail();
           });
         });
-        [...detailPanel.querySelectorAll("[data-scroll-detail]")].forEach((button) => {
+        [...targetPanel.querySelectorAll("[data-scroll-detail]")].forEach((button) => {
           button.addEventListener("click", () => {
-            detailPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
-            document.getElementById(button.dataset.scrollDetail)?.scrollIntoView({ behavior: "smooth", block: "start" });
+            targetPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
+            targetPanel.querySelector(`#${button.dataset.scrollDetail}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
           });
         });
       }
@@ -37133,7 +37761,7 @@
         activeId = contact.id;
         closeDetail();
         updateView();
-        openDetail(contact.id);
+        openPersonProfile("contact", contact.id, { returnTo: "contacts" });
       }
 
       function serializeContactsToCsv(items) {
@@ -37333,6 +37961,7 @@
         const isNotificationsView = isNotificationsWorkspaceActive();
         const isExpertsView = activeView === "experts";
         const isStakeholdersView = activeView === "stakeholders";
+        const isPersonProfileView = activeView === "personProfile";
         if (!canAdministerData()) {
           activeCareDuplicateView = "";
           activeExpertDuplicates = false;
@@ -37354,6 +37983,8 @@
             ? activities
           : isNotificationsView
             ? notifications
+          : isPersonProfileView
+            ? []
           : isOrganizationsView
             ? isOrganizationsDuplicatesMode ? filteredExpertMatchCandidates("organization") : filteredOrganizations()
             : isStakeholdersView
@@ -37362,7 +37993,7 @@
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
-        resultsCount.hidden = isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveFilters();
+        resultsCount.hidden = isPersonProfileView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveFilters());
         archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
         const searchPlaceholder = isAnyDuplicateMode
           ? "Dubletten suchen..."
@@ -37387,7 +38018,7 @@
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
         searchInput.placeholder = searchPlaceholder;
         searchShell?.setAttribute("aria-label", searchPlaceholder);
-        const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView;
+        const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView || isPersonProfileView;
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -37415,10 +38046,10 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || (isStakeholdersView && !isStakeholderMapMode)) || isAnyDuplicateMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode;
+        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isPersonProfileView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode;
-        if (isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode) setFilterPanelOpen(false);
+        if (filterToolbar) filterToolbar.hidden = isFormatsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isPersonProfileView;
+        if (isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isPersonProfileView) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -37455,9 +38086,11 @@
           renderNotificationsView();
         } else if (isFormatsView) {
           renderFormatsView();
+        } else if (isPersonProfileView) {
+          renderPersonProfilePage();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode) {
+        if (!isFormatsView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isPersonProfileView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -37469,7 +38102,7 @@
         renderAboutApp();
         renderNotificationCounts();
 
-        if (!isOrganizationsView && !isFormatsView && !isExpertsView && activeId && !items.some((item) => item.id === activeId)) {
+        if (!isOrganizationsView && !isFormatsView && !isExpertsView && !isPersonProfileView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
           activeId = null;
         }
@@ -37754,6 +38387,14 @@
           renderViewChrome();
         });
       });
+      personProfileBack?.addEventListener("click", () => {
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        openPersonProfileParent();
+      });
+      personProfileClose?.addEventListener("click", () => openPersonProfileParent());
       sidebarAboutButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
@@ -38243,14 +38884,10 @@
           if (event.data.realm === "stakeholders") {
             activeStakeholderMode = "people";
             currentPage = 1;
-            setActiveView("stakeholders");
-            updateRouteHash("stakeholders");
-            updateView();
-            openStakeholderPersonDetail(event.data.id, stakeholderPeople);
+            openPersonProfile("stakeholder", event.data.id, { returnTo: "stakeholders" });
             return;
           }
-          activeId = event.data.id;
-          openDetail(event.data.id, contacts);
+          openPersonProfile("contact", event.data.id, { returnTo: "map" });
         }
       });
 
@@ -38411,7 +39048,7 @@
             setActiveView("experts");
             updateRouteHash("experts");
             updateView();
-            openExpertDetail(savedExpertContact.id);
+            openPersonProfile("expert", savedExpertContact.id, { returnTo: "experts" });
           } catch (error) {
             console.error("Expertenkreis-Kontakt konnte nicht gespeichert werden.", error);
             editorStatus.textContent = "Expertenkreis-Kontakt konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
@@ -38488,7 +39125,7 @@
         editorForm.dataset.submitAction = "save";
         closeEditor();
         updateView();
-        openDetail(savedContact.id);
+        openPersonProfile("contact", savedContact.id, { returnTo: "contacts" });
       });
 
       document.addEventListener("keydown", (event) => {
@@ -38557,6 +39194,16 @@
 
       function routeViewFromHash() {
         const hashView = String(window.location.hash || "").replace(/^#/, "");
+        const personRoute = parsePersonProfileRoute(hashView);
+        if (personRoute) {
+          activePersonProfile = {
+            kind: personRoute.kind,
+            id: personRoute.id,
+            returnTo: personProfileParentView(personRoute.kind),
+            title: viewLabels.personProfile.title
+          };
+          return "personProfile";
+        }
         if (hashView === "notifications" || hashView === "profile-notifications") {
           setProfileTab("notifications");
           return "profile";
