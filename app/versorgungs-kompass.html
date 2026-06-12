@@ -1162,7 +1162,130 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
+        align-items: start;
+      }
+
+      .profile-role-card__copy {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .profile-role-card .profile-setting__note {
+        margin-top: 0;
+      }
+
+      .profile-permission-details {
+        grid-column: 1 / -1;
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .profile-permission-details summary {
+        min-height: 38px;
+        display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 12px;
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+        list-style: none;
+      }
+
+      .profile-permission-details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .profile-permission-details summary::after {
+        content: "⌄";
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        line-height: 1;
+        transition: transform 0.16s ease;
+      }
+
+      .profile-permission-details[open] summary::after {
+        transform: rotate(180deg);
+      }
+
+      .profile-permission-details summary:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: -2px;
+      }
+
+      .profile-permission-list {
+        display: grid;
+        gap: 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .profile-permission-item {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        padding: 10px 12px;
+        color: var(--text-muted);
+      }
+
+      .profile-permission-item + .profile-permission-item {
+        border-top: 1px solid var(--border);
+      }
+
+      .profile-permission-item.is-allowed {
+        color: var(--text-secondary);
+      }
+
+      .profile-permission-icon {
+        width: 22px;
+        height: 22px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text-muted);
+      }
+
+      .profile-permission-item.is-allowed .profile-permission-icon {
+        border-color: var(--success);
+        background: var(--success-soft);
+        color: var(--success);
+      }
+
+      .profile-permission-icon svg {
+        width: 14px;
+        height: 14px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .profile-permission-copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .profile-permission-copy strong {
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+        line-height: var(--line-height-tight);
+      }
+
+      .profile-permission-copy span {
+        font-size: var(--font-size-xs);
+        font-weight: 750;
+        line-height: var(--line-height-normal);
       }
 
       .profile-label-with-info {
@@ -13703,6 +13826,22 @@
         gap: 8px;
       }
 
+      @media (max-width: 760px) {
+        .profile-onboarding-card {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+
+        .profile-onboarding-actions {
+          justify-content: stretch;
+        }
+
+        .profile-onboarding-actions .action-button {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
       .onboarding-page {
         display: none;
       }
@@ -14673,6 +14812,39 @@
         color: var(--text-primary);
         font-size: var(--font-size-md);
         font-weight: 900;
+        line-height: var(--line-height-normal);
+      }
+
+      .about-topic-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .about-topic {
+        display: grid;
+        gap: 6px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .about-topic h3,
+      .about-topic p {
+        margin: 0;
+      }
+
+      .about-topic h3 {
+        color: var(--text-primary);
+        font-size: var(--font-size-md);
+        font-weight: 950;
+        line-height: var(--line-height-tight);
+      }
+
+      .about-topic p {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
         line-height: var(--line-height-normal);
       }
 
@@ -19629,6 +19801,7 @@
               <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-profile" data-profile-tab="profile">Profil</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-notifications" data-profile-tab="notifications">Benachrichtigungen</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-settings" data-profile-tab="settings">Einstellungen</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-changelog" data-profile-tab="changelog">Changelog</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-about" data-profile-tab="about">Über die App</button>
             </div>
             <div class="profile-tab-panel" id="profile-tab-profile" role="tabpanel" data-profile-tab-panel="profile">
@@ -19685,7 +19858,6 @@
                 <div class="profile-onboarding-card">
                   <div class="profile-onboarding-copy">
                     <strong>Produkttour durch den Versorgungs-Kompass</strong>
-                    <span>Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Sidebar, Versorgung, Filter, CRM-Profile, Planung, Admin, Team und Profil.</span>
                     <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
                   </div>
                   <div class="profile-onboarding-actions">
@@ -19696,10 +19868,15 @@
               <section class="profile-section">
                 <h3>Rolle &amp; Berechtigungen</h3>
                 <div class="profile-role-card">
-                  <div>
+                  <div class="profile-role-card__copy">
                     <div class="profile-role-label">Deine Rolle im System</div>
+                    <div class="profile-setting__note" id="profile-role-description">Rollenrechte werden geladen.</div>
                   </div>
                   <span class="account-role-pill" id="profile-role-display">Nutzer</span>
+                  <details class="profile-permission-details" id="profile-permission-details">
+                    <summary id="profile-permissions-summary">Berechtigungen anzeigen</summary>
+                    <div class="profile-permission-list" id="profile-permissions-list" aria-label="Rollenbasierte Berechtigungen"></div>
+                  </details>
                 </div>
               </section>
               <section class="profile-section">
@@ -19813,8 +19990,39 @@
                   <div>
                     <h3>Versorgungs-Kompass</h3>
                     <div class="about-intro__highlight">Ein gemeinsamer Blick auf Kontakte, Organisationen und regionale Versorgung - klar strukturiert, schnell filterbar und bereit für echte Netzwerkarbeit.</div>
+                    <p>Der Versorgungs-Kompass ist ein gemeinsames Arbeitswerkzeug für Versorgungsteams. Er hilft dabei, Kontakte, Organisationen und regionale Zusammenhänge an einem Ort zu pflegen.</p>
                   </div>
                 </section>
+                <div class="about-topic-list" aria-label="Funktionen des Versorgungs-Kompass">
+                  <section class="about-topic">
+                    <h3>Kontakte und Organisationen</h3>
+                    <p>Du sammelst wichtige Ansprechpersonen, Einrichtungen und Netzwerke strukturiert und findest schnell, wer wofür zuständig ist.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Suchen und filtern</h3>
+                    <p>Filter, Tabellen und gespeicherte Arbeitslogik helfen dir, relevante Kontakte nach Region, Thema, Owner oder Datenqualität einzugrenzen.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>CRM-Profile</h3>
+                    <p>Kontakt- und Organisationsprofile zeigen erst die wichtigsten Informationen im Lesemodus. Bearbeiten bleibt eine bewusste Aktion.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Karte und Auswertung</h3>
+                    <p>Regionale Versorgung wird sichtbar, damit Teams Lücken, Schwerpunkte und Netzwerke besser einschätzen können.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Formate und Zusammenarbeit</h3>
+                    <p>Formate unterstützen Planung, Teilnehmende und nächste Schritte. Owner und Teams behalten ihre Aufgaben im Blick.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Benachrichtigungen und Profil</h3>
+                    <p>Benachrichtigungen zeigen persönliche Hinweise zu relevanten Änderungen. Im Profil verwaltest du deine Angaben, Rolle und App-Informationen.</p>
+                  </section>
+                </div>
+              </div>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-changelog" role="tabpanel" data-profile-tab-panel="changelog" hidden>
+              <div class="about-workspace">
                 <h3 class="about-version-heading">Changelog</h3>
                 <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
               </div>
@@ -21202,7 +21410,64 @@
         { id: "profile", title: "Mein Profil", subtitle: "Persönliche Informationen und Zuständigkeiten verwalten." },
         { id: "notifications", title: "Benachrichtigungen", subtitle: "Persönliche Hinweise zu Änderungen, Team und Produkt." },
         { id: "settings", title: "Einstellungen", subtitle: "Persönliche App-Einstellungen und spätere Konfigurationen." },
-        { id: "about", title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." }
+        { id: "changelog", title: "Changelog", subtitle: "Versionsverlauf und sichtbare Produktänderungen." },
+        { id: "about", title: "Über die App", subtitle: "Ziele, Funktionen und Nutzung des Versorgungs-Kompass kurz erklärt." }
+      ];
+      const rolePermissionItems = [
+        {
+          id: "read",
+          title: "Kontakte, Organisationen und Formate lesen",
+          body: "Listen, Profile und Details öffnen.",
+          roles: ["admin", "editor", "viewer"]
+        },
+        {
+          id: "search",
+          title: "Suchen, filtern und Karte nutzen",
+          body: "Kontakte und Versorgung regional einordnen.",
+          roles: ["admin", "editor", "viewer"]
+        },
+        {
+          id: "edit",
+          title: "Kontakte und Organisationen pflegen",
+          body: "Neue Einträge anlegen und bestehende Daten bearbeiten.",
+          roles: ["admin", "editor"]
+        },
+        {
+          id: "formats",
+          title: "Formate planen und bearbeiten",
+          body: "Formate, Teilnehmende und Notizen verwalten.",
+          roles: ["admin", "editor"]
+        },
+        {
+          id: "notes",
+          title: "Themen und Notizen ergänzen",
+          body: "Arbeitsnotizen und Themen an Kontakten pflegen.",
+          roles: ["admin", "editor"]
+        },
+        {
+          id: "imports",
+          title: "Importe und Registrierungen verwalten",
+          body: "Dateien importieren und neue Registrierungen übernehmen.",
+          roles: ["admin"]
+        },
+        {
+          id: "quality",
+          title: "Datenqualität und Archiv prüfen",
+          body: "Pflegehinweise, Archiv und Dublettenlisten öffnen.",
+          roles: ["admin"]
+        },
+        {
+          id: "analytics",
+          title: "Auswertung öffnen",
+          body: "Reporting und Versorgungsabdeckung einsehen.",
+          roles: ["admin"]
+        },
+        {
+          id: "roles",
+          title: "Rollen- und Teamübersicht verwalten",
+          body: "Team, Rollen und administrative Hinweise einordnen.",
+          roles: ["admin"]
+        }
       ];
 
       const searchInput = document.getElementById("search");
@@ -21490,6 +21755,7 @@
       const profileRolePill = document.getElementById("profile-role-pill");
       const profileRoleDisplay = document.getElementById("profile-role-display");
       const profileRoleDescription = document.getElementById("profile-role-description");
+      const profilePermissionsList = document.getElementById("profile-permissions-list");
       const profilePhotoOpen = document.getElementById("profile-photo-open");
       const profilePhotoInput = document.getElementById("profile-photo-input");
       const profilePhotoModal = document.getElementById("profile-photo-modal");
@@ -27162,6 +27428,31 @@
         return role || "Nutzer";
       }
 
+      function renderProfilePermissions(role = currentRole()) {
+        if (!profilePermissionsList) return;
+        const normalizedRole = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
+        profilePermissionsList.innerHTML = rolePermissionItems
+          .map((item) => {
+            const allowed = item.roles.includes(normalizedRole);
+            return `
+              <div class="profile-permission-item ${allowed ? "is-allowed" : "is-unavailable"}">
+                <span class="profile-permission-icon" aria-label="${allowed ? "Berechtigt" : "Keine Berechtigung"}">
+                  ${
+                    allowed
+                      ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10"></path></svg>`
+                      : `<span aria-hidden="true">&ndash;</span>`
+                  }
+                </span>
+                <span class="profile-permission-copy">
+                  <strong>${escapeHtml(item.title)}</strong>
+                  <span>${escapeHtml(item.body)}</span>
+                </span>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
       function isEmailLikeLabel(value = "") {
         const label = String(value || "").replace(/\s*\((Admin|Editor|Viewer|Nutzer)\)\s*$/i, "").trim();
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(label);
@@ -27572,6 +27863,7 @@
           element.className = `account-role-pill account-role-pill--${role}`;
         });
         if (profileRoleDescription) profileRoleDescription.textContent = permissionText(role);
+        renderProfilePermissions(role);
         if (!profileForm) return;
         profileForm.elements.displayName.value = displayName;
         profileForm.elements.initials.value = initialsFromProfile(profile);
@@ -27734,12 +28026,12 @@
           return;
         }
         if (state.tourCompletedAt) {
-          profileOnboardingStatus.textContent = `Tour zuletzt abgeschlossen: ${formatDateTimeLabel(state.tourCompletedAt) || "Zeitpunkt offen"}. Du kannst sie jederzeit erneut starten.`;
+          profileOnboardingStatus.innerHTML = `Tour zuletzt abgeschlossen: ${escapeHtml(formatDateTimeLabel(state.tourCompletedAt) || "Zeitpunkt offen")}.<br>Du kannst sie jederzeit erneut starten.`;
           profileOnboardingStatus.classList.add("is-ready");
           return;
         }
         if (state.tourSkippedAt) {
-          profileOnboardingStatus.textContent = `Tour zuletzt übersprungen: ${formatDateTimeLabel(state.tourSkippedAt) || "Zeitpunkt offen"}. Du kannst sie jederzeit erneut starten.`;
+          profileOnboardingStatus.innerHTML = `Tour zuletzt übersprungen: ${escapeHtml(formatDateTimeLabel(state.tourSkippedAt) || "Zeitpunkt offen")}.<br>Du kannst sie jederzeit erneut starten.`;
           return;
         }
         if (state.tourOfferedAt) {
@@ -35382,6 +35674,7 @@
         if (tab === "notifications") return "profile-notifications";
         if (tab === "settings") return "profile-settings";
         if (tab === "about") return "profile-about";
+        if (tab === "changelog") return "profile-changelog";
         return "profile";
       }
 
@@ -35400,7 +35693,7 @@
         sidebarProfileButton?.classList.toggle("is-active", activeView === "profile");
         sidebarNotificationsButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "notifications");
         if (profileEditActions) profileEditActions.hidden = activeProfileTab !== "profile" || !profileDirty;
-        if (activeProfileTab === "about") renderAboutApp();
+        if (activeProfileTab === "changelog") renderAboutApp();
         if (activeProfileTab === "notifications") renderNotificationsView();
       }
 
@@ -38091,6 +38384,10 @@
         }
         if (hashView === "about" || hashView === "profile-about") {
           setProfileTab("about");
+          return "profile";
+        }
+        if (hashView === "changelog" || hashView === "profile-changelog") {
+          setProfileTab("changelog");
           return "profile";
         }
         if (hashView === "profile") {

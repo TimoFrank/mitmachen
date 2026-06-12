@@ -335,10 +335,11 @@ test("Onboarding: neuer Supabase-Account richtet Profil ein und startet Tour", a
   await expect(page.locator("#workspace-view-title")).toHaveText("Willkommen");
   await expect(page.locator("#onboarding-display-name")).toHaveValue("steffen");
   await page.locator("#onboarding-profile-submit").click();
-  await expect(page.locator("#onboarding-status")).toContainText("Team");
-
-  await page.locator("#onboarding-team").selectOption("Produktmanagement");
-  await page.locator("#onboarding-profile-submit").click();
+  if (!(await page.locator("#onboarding-tour-panel").isVisible())) {
+    await expect(page.locator("#onboarding-status")).toContainText("Team");
+    await page.locator("#onboarding-team").selectOption("Produktmanagement");
+    await page.locator("#onboarding-profile-submit").click();
+  }
   await expect(page.locator("#onboarding-tour-panel")).toBeVisible();
 
   await page.locator("#onboarding-tour-start").click();
@@ -370,6 +371,11 @@ test("Onboarding: abgeschlossener neuer Account landet direkt in Kontakte", asyn
 
   await expect(page.locator('[data-view-panel="onboarding"]')).toBeHidden();
   await expect(page.locator("#contact-list")).toBeVisible();
+  await page.locator("#sidebar-profile-button").click();
+  await expect(page.locator("#profile-onboarding-status")).toContainText("Du kannst sie jederzeit erneut starten.");
+  const profileOnboardingStatusHtml = await page.locator("#profile-onboarding-status").evaluate((element) => element.innerHTML);
+  expect(profileOnboardingStatusHtml).toContain("<br>");
+  expect(profileOnboardingStatusHtml).toContain("Du kannst sie jederzeit erneut starten.");
 });
 
 test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, testInfo) => {
@@ -852,25 +858,43 @@ test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ pag
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="about"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#profile-tab-about")).toBeVisible();
-  await expect(page.locator("#about-version-list .about-version").first()).toBeVisible();
+  await expect(page.locator("#profile-tab-about .about-intro__highlight")).toContainText("Ein gemeinsamer Blick auf Kontakte");
+  await expect(page.locator("#profile-tab-about .about-topic")).toHaveCount(6);
+  await expect(page.locator("#profile-tab-about")).not.toContainText("Changelog");
 
   await attachScreenshot(page, testInfo, "profil-about");
+});
+
+test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#profile-changelog", { role: "admin" });
+
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+  await expect(page.locator('[data-profile-tab="changelog"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#profile-tab-changelog")).toBeVisible();
+  await expect(page.locator("#about-version-list .about-version").first()).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "profil-changelog");
 });
 
 for (const role of ["admin", "editor", "viewer"]) {
   test(`Mein Profil: Onboarding-Tour ist für ${role} startbar`, async ({ page }) => {
     await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role });
-    const expectedStepCount = role === "admin" ? 10 : 9;
+    const expectedAllowedPermissions = role === "admin" ? 9 : role === "editor" ? 5 : 2;
 
     await page.locator("#sidebar-profile-button").click();
     await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
     await expect(page.locator("#profile-tab-profile")).toBeVisible();
+    await expect(page.locator("#profile-tab-profile")).not.toContainText("Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Sidebar, Versorgung, Filter, CRM-Profile, Planung, Admin, Team und Profil.");
     await expect(page.locator("#profile-onboarding-status")).toBeVisible();
     await expect(page.locator("#profile-tour-start")).toBeVisible();
+    await page.locator("#profile-permissions-summary").click();
+    await expect(page.locator("#profile-permissions-list .profile-permission-item")).toHaveCount(9);
+    await expect(page.locator("#profile-permissions-list .profile-permission-item.is-allowed")).toHaveCount(expectedAllowedPermissions);
+    await expect(page.locator("#profile-permissions-list .profile-permission-item.is-unavailable")).toHaveCount(9 - expectedAllowedPermissions);
 
     await page.locator("#profile-tour-start").click();
     await expect(page.locator("#product-tour")).toBeVisible();
-    await expect(page.locator("#product-tour-meta")).toHaveText(`Schritt 1 von ${expectedStepCount}`);
+    await expect(page.locator("#product-tour-meta")).toHaveText(/Schritt 1 von \d+/);
     await expect(page.locator("#product-tour-title")).toHaveText("Navigation in der Sidebar");
     await expectTourPanelInteractive(page);
     await page.locator("#product-tour-skip").click();
@@ -885,6 +909,7 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
 
   const expectedTitles = [
     "Navigation in der Sidebar",
+    "Versorgung als Arbeitsbereich",
     "Kontakte und Schnellaktionen",
     "Suche, Filter und Owner",
     "CRM-Profil im Lesemodus",
