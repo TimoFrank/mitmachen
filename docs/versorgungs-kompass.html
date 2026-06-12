@@ -21680,6 +21680,7 @@
       let loadedContactsFromStorage = false;
       let visibleContactColumns = loadVisibleContactColumns();
       let visibleOrganizationColumns = loadVisibleOrganizationColumns();
+      let visibleExpertContactColumns = loadVisibleExpertContactColumns();
       let visibleStakeholderOrganizationColumns = loadVisibleStakeholderOrganizationColumns();
       let visibleStakeholderPeopleColumns = loadVisibleStakeholderPeopleColumns();
 
@@ -21721,6 +21722,26 @@
 
       function persistVisibleOrganizationColumns() {
         window.localStorage.setItem(visibleOrganizationColumnsStorageKey, JSON.stringify(visibleOrganizationColumns));
+      }
+
+      function loadVisibleExpertContactColumns() {
+        try {
+          const saved = JSON.parse(window.localStorage.getItem(visibleExpertContactColumnsStorageKey) || "null");
+          const allowed = new Set(expertContactTableColumns.map((column) => column.key));
+          const normalized = Array.isArray(saved) ? saved.filter((key) => allowed.has(key)) : [];
+          if (normalized.length) {
+            return expertContactTableColumns
+              .filter((column) => column.required || normalized.includes(column.key))
+              .map((column) => column.key);
+          }
+        } catch (error) {
+          console.warn("Expertenkreis-Kontaktspalten konnten nicht geladen werden.", error);
+        }
+        return [...defaultExpertContactColumnKeys];
+      }
+
+      function persistVisibleExpertContactColumns() {
+        window.localStorage.setItem(visibleExpertContactColumnsStorageKey, JSON.stringify(visibleExpertContactColumns));
       }
 
       function loadVisibleStakeholderOrganizationColumns() {
@@ -26175,14 +26196,11 @@
       function stakeholderOrganizationTableCellMarkup(organization, key) {
         const peopleCount = stakeholderOrganizationPeople(organization).length;
         if (key === "organization") {
-          const website = normalizedWebsiteUrl(organization.website);
-          const websiteLabel = website ? website.replace(/^https?:\/\//i, "").replace(/\/$/, "") : "";
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm")}
               <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
-                ${websiteLabel ? `<div class="contact-subline">${escapeHtml(websiteLabel)}</div>` : ""}
               </div>
             </div>
           `;
@@ -29960,7 +29978,7 @@
       }
 
       function visibleExpertContactTableColumns() {
-        const visible = new Set(visibleContactColumns);
+        const visible = new Set(visibleExpertContactColumns);
         return expertContactTableColumns.filter((column) => column.required || visible.has(column.key));
       }
 
@@ -32276,6 +32294,7 @@
 
       function renderColumnMenu() {
         if (!columnOptions) return;
+        const isExpertContactsMode = activeView === "experts" && activeExpertMode === "contacts";
         const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
         const isStakeholderOrganizationsMode = activeView === "stakeholders" && activeStakeholderMode === "organizations";
         const isStakeholderPeopleMode = activeView === "stakeholders" && activeStakeholderMode === "people";
@@ -32291,6 +32310,8 @@
             ? visibleStakeholderOrganizationColumns
             : isStakeholderPeopleMode
               ? visibleStakeholderPeopleColumns
+              : isExpertContactsMode
+                ? visibleExpertContactColumns
               : isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns
         );
         columnOptions.innerHTML = columns
@@ -36873,19 +36894,9 @@
         searchShell?.setAttribute("aria-label", searchPlaceholder);
         const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView;
         if (searchShell) {
-          if (isExpertsView && !searchHidden && expertHeaderSearch) {
-            expertHeaderSearch.hidden = false;
-            if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
-            if (searchShell.parentElement !== expertHeaderSearch) expertHeaderSearch.append(searchShell);
-          } else if (isStakeholdersView && !searchHidden && stakeholderHeaderSearch) {
-            if (expertHeaderSearch) expertHeaderSearch.hidden = true;
-            stakeholderHeaderSearch.hidden = false;
-            if (searchShell.parentElement !== stakeholderHeaderSearch) stakeholderHeaderSearch.append(searchShell);
-          } else {
-            if (expertHeaderSearch) expertHeaderSearch.hidden = true;
-            if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
-            if (controlsStack && searchShell.parentElement !== controlsStack) controlsStack.prepend(searchShell);
-          }
+          if (expertHeaderSearch) expertHeaderSearch.hidden = true;
+          if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
+          if (controlsStack && searchShell.parentElement !== controlsStack) controlsStack.prepend(searchShell);
           searchShell.hidden = searchHidden;
         } else if (expertHeaderSearch) {
           expertHeaderSearch.hidden = true;
@@ -37074,6 +37085,7 @@
         const toggle = event.target.closest("[data-column-toggle]");
         if (!toggle) return;
         const key = toggle.dataset.columnToggle;
+        const isExpertContactsMode = activeView === "experts" && activeExpertMode === "contacts";
         const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
         const isStakeholderOrganizationsMode = activeView === "stakeholders" && activeStakeholderMode === "organizations";
         const isStakeholderPeopleMode = activeView === "stakeholders" && activeStakeholderMode === "people";
@@ -37091,6 +37103,8 @@
             ? visibleStakeholderOrganizationColumns
             : isStakeholderPeopleMode
               ? visibleStakeholderPeopleColumns
+              : isExpertContactsMode
+                ? visibleExpertContactColumns
               : isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns
         );
         if (toggle.checked) visible.add(key);
@@ -37114,6 +37128,12 @@
           persistVisibleOrganizationColumns();
           if (activeView === "experts") renderExpertOrganizationsTable(filteredExpertOrganizations());
           else renderOrganizationsTable(filteredOrganizations());
+        } else if (isExpertContactsMode) {
+          visibleExpertContactColumns = expertContactTableColumns
+            .filter((item) => item.required || visible.has(item.key))
+            .map((item) => item.key);
+          persistVisibleExpertContactColumns();
+          renderExpertContactsTable(filteredExpertContacts());
         } else {
           visibleContactColumns = contactTableColumns
             .filter((item) => item.required || visible.has(item.key))

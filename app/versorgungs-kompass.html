@@ -26196,14 +26196,11 @@
       function stakeholderOrganizationTableCellMarkup(organization, key) {
         const peopleCount = stakeholderOrganizationPeople(organization).length;
         if (key === "organization") {
-          const website = normalizedWebsiteUrl(organization.website);
-          const websiteLabel = website ? website.replace(/^https?:\/\//i, "").replace(/\/$/, "") : "";
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm")}
               <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
-                ${websiteLabel ? `<div class="contact-subline">${escapeHtml(websiteLabel)}</div>` : ""}
               </div>
             </div>
           `;
@@ -36897,19 +36894,9 @@
         searchShell?.setAttribute("aria-label", searchPlaceholder);
         const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView;
         if (searchShell) {
-          if (isExpertsView && !searchHidden && expertHeaderSearch) {
-            expertHeaderSearch.hidden = false;
-            if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
-            if (searchShell.parentElement !== expertHeaderSearch) expertHeaderSearch.append(searchShell);
-          } else if (isStakeholdersView && !searchHidden && stakeholderHeaderSearch) {
-            if (expertHeaderSearch) expertHeaderSearch.hidden = true;
-            stakeholderHeaderSearch.hidden = false;
-            if (searchShell.parentElement !== stakeholderHeaderSearch) stakeholderHeaderSearch.append(searchShell);
-          } else {
-            if (expertHeaderSearch) expertHeaderSearch.hidden = true;
-            if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
-            if (controlsStack && searchShell.parentElement !== controlsStack) controlsStack.prepend(searchShell);
-          }
+          if (expertHeaderSearch) expertHeaderSearch.hidden = true;
+          if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
+          if (controlsStack && searchShell.parentElement !== controlsStack) controlsStack.prepend(searchShell);
           searchShell.hidden = searchHidden;
         } else if (expertHeaderSearch) {
           expertHeaderSearch.hidden = true;
