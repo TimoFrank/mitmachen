@@ -1,7 +1,11 @@
-<svg version="1.1" id="logo" xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 76 72">
-        <defs><style>#links,#unten{fill:rgb(51,131,195)}#rechts{fill:rgb(210,220,255)}</style></defs><g>
-            <polygon id="links" points="0,33.144 9.256,39.43 16.014,44.954 29.385,56.953 12.488,34.857 44.371,10.095 38.641,2.667 "></polygon>
-            <polygon id="rechts" points="62.443,27.429 40.404,44.381 46.281,51.431 75.077,29.143 68.172,24.762 59.062,17.524 43.342,3.047 "></polygon>
-            <polygon id="unten" points="17.483,35.43 43.637,69.145 49.072,61.335 55.683,53.335 67.438,39.811 45.546,56.763 24.536,29.716 "></polygon>
-        </g>
-    </svg>
+<svg role="img" aria-label="kvt Kassenärztliche Vereinigung Thüringen" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 72">
+  <g>
+    <polygon fill="rgb(51,131,195)" points="0,33.144 9.256,39.43 16.014,44.954 29.385,56.953 12.488,34.857 44.371,10.095 38.641,2.667"/>
+    <polygon fill="rgb(210,220,255)" points="62.443,27.429 40.404,44.381 46.281,51.431 75.077,29.143 68.172,24.762 59.062,17.524 43.342,3.047"/>
+    <polygon fill="rgb(51,131,195)" points="17.483,35.43 43.637,69.145 49.072,61.335 55.683,53.335 67.438,39.811 45.546,56.763 24.536,29.716"/>
+  </g>
+  <line x1="90" y1="4" x2="90" y2="68" stroke="rgb(51,131,195)" stroke-width="2"/>
+  <text x="106" y="35" fill="rgb(0,100,180)" font-family="Helvetica, Arial, sans-serif" font-size="35">kvt</text>
+  <text x="106" y="51" fill="#000" font-family="Helvetica, Arial, sans-serif" font-size="13">Kassenärztliche</text>
+  <text x="106" y="67" fill="#000" font-family="Helvetica, Arial, sans-serif" font-size="13">Vereinigung Thüringen</text>
+</svg>

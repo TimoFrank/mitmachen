@@ -12597,6 +12597,15 @@
         font-size: 1.22rem;
       }
 
+      .organization-logo--stakeholder.organization-logo--sm {
+        width: 74px;
+        height: 42px;
+      }
+
+      .organization-logo--stakeholder.organization-logo--lg {
+        width: 124px;
+      }
+
       .organization-logo img,
       .organization-contact-logo img {
         width: 100%;
@@ -12608,6 +12617,10 @@
         background: transparent;
       }
 
+      .organization-logo--stakeholder img {
+        padding: 4px;
+      }
+
       .organization-logo--image {
         position: relative;
       }
@@ -12615,6 +12628,10 @@
       .organization-logo--image img,
       .organization-logo__fallback {
         grid-area: 1 / 1;
+      }
+
+      .organization-logo--image .organization-logo__fallback {
+        visibility: hidden;
       }
 
       .organization-logo__fallback {
@@ -18845,6 +18862,35 @@
         display: inline-flex;
       }
 
+      @media (max-width: 520px) {
+        .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header {
+          gap: 4px;
+          padding: 4px;
+        }
+
+        .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
+          flex-direction: column;
+          gap: 4px;
+          min-height: 58px;
+          padding: 4px 2px;
+          font-size: var(--font-size-xs);
+        }
+
+        .app-shell[data-active-view="stakeholders"] .experts-mode-label {
+          display: block;
+          max-width: 100%;
+          overflow: visible;
+          text-overflow: clip;
+          white-space: nowrap;
+        }
+
+        .app-shell[data-active-view="stakeholders"] .experts-mode-count {
+          min-width: 32px;
+          min-height: 22px;
+          padding-inline: 4px;
+        }
+      }
+
       .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-header {
         gap: 0;
         padding-bottom: 6px;
@@ -18869,25 +18915,33 @@
       }
 
       .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell {
-        min-height: 50px;
-        padding: 0 14px;
+        min-height: 56px;
+        padding: 0 18px 0 14px;
         border-color: var(--border-strong);
-        border-radius: var(--radius-md);
-        background: var(--surface-muted);
-        box-shadow: none;
+        border-radius: 999px;
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell:hover,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(21, 95, 228, 0.12), var(--shadow-sm);
       }
 
       .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell svg {
-        width: 28px;
-        height: 28px;
-        padding: 6px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
+        width: 34px;
+        height: 34px;
+        padding: 8px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--primary-soft);
         color: var(--primary);
       }
 
       .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-input {
+        font-size: 1rem;
         font-weight: 700;
       }
     </style>
@@ -26585,7 +26639,7 @@
         if (key === "organization") {
           return `
             <div class="organization-cell">
-              ${organizationLogoMarkup(organization, "sm")}
+              ${organizationLogoMarkup(organization, "sm", "organization-logo--stakeholder")}
               <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
               </div>
@@ -26896,7 +26950,7 @@
             <div class="detail-profile">
               <section class="detail-profile-top">
                 <div class="detail-profile-main">
-                  ${organizationLogoMarkup(organization, "lg", "organization-profile-logo")}
+                  ${organizationLogoMarkup(organization, "lg", "organization-profile-logo organization-logo--stakeholder")}
                   <div class="detail-profile-copy">
                     <h3>${escapeHtml(organization.name)}</h3>
                     <div class="detail-profile-role">${escapeHtml(organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId))}</div>

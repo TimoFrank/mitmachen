@@ -11,6 +11,26 @@ window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES = [
   }
 ];
 
+const stakeholderKvLogoSourceUrls = {
+  "kv-baden-wuerttemberg": "https://www.kvbawue.de/fileadmin/templates/pics/LogoKVBW-Only.svg",
+  "kv-bayern": "https://www.kvb.de/typo3conf/ext/sitepackage/Resources/Public/Img/Frontend/Icons/kvb_logo_L.svg",
+  "kv-berlin": "https://www.kvberlin.de/die-kv-berlin/pressematerial",
+  "kv-brandenburg": "https://www.kvbb.de/",
+  "kv-bremen": "https://www.kvhb.de/fileadmin/templates/img/kvhb-logo_rgb.svg",
+  "kv-hamburg": "https://www.kvhh.net/_Resources/Static/Packages/Kvh.Shared/Images/logo.svg",
+  "kv-hessen": "https://www.kvhessen.de/",
+  "kv-mecklenburg-vorpommern": "https://www.kvmv.de/export/sites/default/.galleries/logos_kvmv/kvmv_logo_260x72_72dpi_neu.png_924116194.png",
+  "kv-niedersachsen": "https://www.kvn.de/media/Startseite/logo_kvn.gif?height=83&width=280",
+  "kv-nordrhein": "https://www.kvno.de/_assets/1e9b4bda4188c921a5f70dd8e8f89d33/Default/Images/Frontend/KVNO_Logo_FIN_RGB.svg",
+  "kv-rheinland-pfalz": "https://www.kv-rlp.de/",
+  "kv-saarland": "https://www.kvsaarland.de/wp-content/uploads/2021/11/cropped-layout_set_logo.png",
+  "kv-sachsen": "https://www.kvsachsen.de/_assets/52b99c8405b202148655db3504f4e336/Images/logo.svg",
+  "kv-sachsen-anhalt": "https://www.kvsa.de/fileadmin/kvsa/kvsa-logo-positiv.svg",
+  "kv-schleswig-holstein": "https://www.kvsh.de/_assets/dc2a61922c9e4e40c3e5c4b5eb2f2579/Images/logo.svg",
+  "kv-thueringen": "https://www.kv-thueringen.de/",
+  "kv-westfalen-lippe": "https://www.kvwl.de/"
+};
+
 window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS = [
   ["kv-baden-wuerttemberg", "Kassenärztliche Vereinigung Baden-Württemberg", "Stuttgart", "Baden-Württemberg", 48.7758, 9.1829, "https://www.kvbawue.de", "kv-baden-wuerttemberg.svg", 24324],
   ["kv-bayern", "Kassenärztliche Vereinigung Bayerns", "München", "Bayern", 48.1351, 11.5820, "https://www.kvb.de", "kv-bayern.svg", 30984],
@@ -44,8 +64,8 @@ window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS = [
   longitude: lon,
   website,
   logoUrl: `./public/stakeholder-logos/${logoFile}`,
-  logoSourceUrl: website,
-  logoSourceLabel: "Website der Organisation",
+  logoSourceUrl: stakeholderKvLogoSourceUrls[id] || website,
+  logoSourceLabel: "Offizielles Header-/Logo-Asset der Organisation",
   memberCount,
   memberCountLabel: memberCount.toLocaleString("de-DE"),
   memberCountScope: "An der vertragsärztlichen Versorgung teilnehmende Ärztinnen und Ärzte, Psychotherapeutinnen und Psychotherapeuten (Zählung nach Personen)",

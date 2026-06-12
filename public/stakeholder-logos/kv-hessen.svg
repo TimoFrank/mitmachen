@@ -1,5 +1,5 @@
-<svg role="img" aria-label="Logo-Bild" id="logo-kvh" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68.3 71.72" width="93.31" height="98" preserveAspectRatio="xMidYMid meet">
-    <path fill="#f79433" d="M59.1,9.66H9.2v52.4H59.1Z"></path>
-    <path fill="#fff" d="M21.2,46.76l5.1-6.6h3.9L24.6,47l6.2,8.5H26.7l-5.5-7.8v7.8H17.9V40.16h3.3Zm13.4-6.6H31l5.6,15.3h3.6Z"></path>
-    <path fill="#ab3794" d="M43.5,48.26h5.1v7.3h1.8V40.06H48.6v6.6H44.1Z"></path>
+<svg role="img" aria-label="Kassenärztliche Vereinigung Hessen" id="logo-kvh" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68.3 71.72" preserveAspectRatio="xMidYMid meet">
+  <path fill="#f79433" d="M59.1,9.66H9.2v52.4H59.1Z"/>
+  <path fill="#fff" d="M21.2,46.76l5.1-6.6h3.9L24.6,47l6.2,8.5H26.7l-5.5-7.8v7.8H17.9V40.16h3.3Zm13.4-6.6H31l5.6,15.3h3.6Z"/>
+  <path fill="#ab3794" d="M43.5,48.26h5.1v7.3h1.8V40.06H48.6v6.6H44.1Z"/>
 </svg>
