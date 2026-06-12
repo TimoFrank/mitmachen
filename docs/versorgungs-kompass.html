@@ -14888,7 +14888,8 @@
         grid-template-columns: 34px minmax(0, 1fr) auto;
         align-items: center;
         gap: 10px;
-        min-height: 58px;
+        height: 76px;
+        min-height: 76px;
         padding: 12px;
         border-bottom: 1px solid var(--border);
         background: var(--surface-muted);
@@ -15015,8 +15016,7 @@
         min-width: 0;
       }
 
-      .team-account-copy strong,
-      .team-account-copy span {
+      .team-account-copy strong {
         min-width: 0;
       }
 
@@ -15026,16 +15026,6 @@
         font-weight: 900;
         line-height: var(--line-height-tight);
         overflow-wrap: anywhere;
-      }
-
-      .team-account-copy span {
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--text-muted);
-        font-size: var(--font-size-xs);
-        font-weight: 750;
       }
 
       .team-account-meta {
@@ -15108,6 +15098,16 @@
         white-space: nowrap;
       }
 
+      .team-contact-details .profile-owner-contact {
+        grid-template-columns: 34px minmax(0, 1fr);
+      }
+
+      .team-contact-details .profile-owner-contact strong,
+      .team-contact-details .profile-owner-contact span:not(.avatar) {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
       @media (max-width: 1180px) {
         .team-account-list {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -15121,7 +15121,8 @@
 
         .team-column-head {
           grid-template-columns: 32px minmax(0, 1fr) auto;
-          min-height: 54px;
+          height: 72px;
+          min-height: 72px;
           padding: 10px;
         }
 
@@ -18762,16 +18763,16 @@
             </button>
           </div>
         </nav>
-        <div class="sidebar-account-section" aria-label="Team, Einstellungen und Profil" data-sidebar-section="account">
-          <span class="sidebar-section-label">Team &amp; Konto</span>
-          <button class="sidebar-link" type="button" id="sidebar-team-button" title="Team">
+        <div class="sidebar-account-section" aria-label="Teams, Einstellungen und Profil" data-sidebar-section="account">
+          <span class="sidebar-section-label">Teams &amp; Konto</span>
+          <button class="sidebar-link" type="button" id="sidebar-team-button" title="Teams">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
               <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            <span>Team</span>
+            <span>Teams</span>
             <span class="notification-count-indicator" id="notification-count-team" hidden>0</span>
           </button>
           <div class="sidebar-account-row">
@@ -19415,8 +19416,8 @@
 
           <section class="view-panel" id="view-team" data-view-panel="team">
             <div class="team-workspace">
-              <div class="team-account-list" id="team-account-list" aria-label="Accounts nach Team">
-                <div class="saved-view-empty">Accounts werden nach dem Laden des Profils angezeigt.</div>
+              <div class="team-account-list" id="team-account-list" aria-label="Nutzer nach Teams">
+                <div class="saved-view-empty">Nutzer werden nach dem Laden des Profils angezeigt.</div>
               </div>
             </div>
           </section>
@@ -21817,7 +21818,7 @@
       }
 
       function viewerCreateDisabledMessage(kind = "diese Funktion") {
-        return `Dein Account hat aktuell nur Leserechte. Ein Admin kann ${kind} für dich freischalten.`;
+        return `Dein Nutzerprofil hat aktuell nur Leserechte. Ein Admin kann ${kind} für dich freischalten.`;
       }
 
       function canAdministerData() {
@@ -22748,7 +22749,7 @@
         const mode = options.mode || "file";
         const hasAccess = mode === "bulk" ? canEditContacts() : canAdministerData();
         if (!hasAccess) {
-          showPermissionDenied(mode === "bulk" ? "Kontakte können nur von Editor- oder Admin-Accounts angelegt werden." : "Nur Admins dürfen Kontakte importieren.");
+          showPermissionDenied(mode === "bulk" ? "Kontakte können nur von Editor- oder Admin-Nutzern angelegt werden." : "Nur Admins dürfen Kontakte importieren.");
           return;
         }
         importState = createImportState();
@@ -24372,7 +24373,7 @@
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
-        team: { title: "Team", subtitle: "Accounts, Rollen und Zuständigkeiten im Überblick." },
+        team: { title: "Teams", subtitle: "Nutzer, Rollen und Zuständigkeiten im Überblick." },
         settings: { title: "Import", subtitle: "Kontakte erfassen, importieren und Backend-Eingänge prüfen." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
         profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." },
@@ -24493,7 +24494,7 @@
           date: "17. Mai 2026",
           title: "Teamfunktionen",
           icon: "team",
-          summary: "Accounts, Rollen und Zuständigkeiten sind als eigener Team-Bereich sichtbar.",
+          summary: "Nutzer, Rollen und Zuständigkeiten sind als eigener Teams-Bereich sichtbar.",
           items: [
             "Teammitglieder werden übersichtlich nach Teams gruppiert.",
             "Rollen wie Admin, Editor und Viewer sind schneller erkennbar.",
@@ -27161,6 +27162,18 @@
         return role || "Nutzer";
       }
 
+      function isEmailLikeLabel(value = "") {
+        const label = String(value || "").replace(/\s*\((Admin|Editor|Viewer|Nutzer)\)\s*$/i, "").trim();
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(label);
+      }
+
+      function teamProfileDisplayLabel(profile = {}) {
+        const label = String(profile.label || "").trim();
+        if (label && !isEmailLikeLabel(label)) return label;
+        const initials = String(profile.initials || "").trim();
+        return initials || "Unbenannter Nutzer";
+      }
+
       function initialsFromProfile(profile) {
         const source = profile?.display_name || profile?.displayName || profile?.email || "VK";
         const parts = String(source).trim().split(/\s+/).filter(Boolean);
@@ -27361,7 +27374,7 @@
               .map((group) => {
                 const team = group.name;
                 const accounts = group.accounts;
-                const accountLabel = accounts.length === 1 ? "Account" : "Accounts";
+                const accountLabel = "Nutzer";
                 return `
                 <section class="team-column" aria-labelledby="team-column-${group.icon}">
                   <div class="team-column-head">
@@ -27380,12 +27393,12 @@
                 const ownerCount = ownerContacts.length;
                 const role = String(profile.role || "viewer").toLowerCase();
                 const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
+                const profileName = teamProfileDisplayLabel(profile);
                 return `
                   <article class="team-account-row">
                     <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
                     <div class="team-account-copy">
-                      <strong>${escapeHtml(profile.label || profile.email || "Unbenannter Account")}</strong>
-                      <span>${escapeHtml(profile.email || "E-Mail nicht hinterlegt")}</span>
+                      <strong>${escapeHtml(profileName)}</strong>
                     </div>
                     <div class="team-account-meta">
                       <div class="team-account-role">
@@ -27408,7 +27421,6 @@
                                           <strong>${escapeHtml(contact.displayName || contact.name || "Unbenannter Kontakt")}</strong>
                                           <span>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</span>
                                         </span>
-                                        <small>${escapeHtml(formatDateLabel(contact.updatedAt || contact.createdAt) || "kein Datum")}</small>
                                       </button>
                                     `
                                   )
@@ -27423,13 +27435,13 @@
                 `;
               })
                       .join("")
-                      : `<div class="team-column-empty">${group.isUnassigned ? "Alle geladenen Accounts sind einem Team zugeordnet." : "Noch keine Accounts zugeordnet."}</div>`}
+                      : `<div class="team-column-empty">${group.isUnassigned ? "Alle geladenen Nutzer sind einem Team zugeordnet." : "Noch keine Nutzer zugeordnet."}</div>`}
                   </div>
                 </section>
               `;
               })
               .join("")
-          : `<div class="saved-view-empty">Noch keine Accounts geladen.</div>`;
+          : `<div class="saved-view-empty">Noch keine Nutzer geladen.</div>`;
         teamAccountList.querySelectorAll("[data-team-owner-contact]").forEach((button) => {
           button.addEventListener("click", () => {
             setActiveView("contacts");
@@ -28299,7 +28311,7 @@
         const uniqueOwners = uniqueOwnerViewOptions();
         viewSelectOwnerList.innerHTML = uniqueOwners.length
           ? uniqueOwners
-              .map(({ owner, label, legacy }) => `<button class="view-select-option ${legacy ? "view-select-option--legacy" : ""}" type="button" data-owner-view="${escapeHtml(owner)}" ${legacy ? 'title="Kein aktiver Account"' : ""}>${escapeHtml(label)}</button>`)
+              .map(({ owner, label, legacy }) => `<button class="view-select-option ${legacy ? "view-select-option--legacy" : ""}" type="button" data-owner-view="${escapeHtml(owner)}" ${legacy ? 'title="Kein aktiver Nutzer"' : ""}>${escapeHtml(label)}</button>`)
               .join("")
           : `<div class="view-select-empty">Keine weiteren Owner</div>`;
         viewSelectOwnerList.querySelectorAll("[data-owner-view]").forEach((button) => {
@@ -28454,7 +28466,7 @@
 
       async function updateContactField(id, field, value, options = {}) {
         if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts geändert werden.");
+          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern geändert werden.");
           return;
         }
         const currentContact = contacts.find((contact) => contact.id === id);
@@ -33321,7 +33333,7 @@
 
       async function updateContactThemes(id, themes) {
         if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Themen können nur von Editor- oder Admin-Accounts geändert werden.");
+          showPermissionDenied("Du hast Leserechte. Themen können nur von Editor- oder Admin-Nutzern geändert werden.");
           return;
         }
         const normalizedThemes = normalizeThemes(themes);
@@ -33345,7 +33357,7 @@
 
       async function saveDetailInline(contact) {
         if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts geändert werden.");
+          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern geändert werden.");
           return;
         }
         const fields = [...detailPanel.querySelectorAll("[data-detail-field]")];
@@ -35164,7 +35176,7 @@
       function renderCareQueue(items) {
         if (!careQueue) return;
         if (!canEditContacts()) {
-          careQueue.innerHTML = `<div class="dashboard-empty">Arbeitslisten können von Editor- und Admin-Accounts geöffnet werden.</div>`;
+          careQueue.innerHTML = `<div class="dashboard-empty">Arbeitslisten können von Editor- und Admin-Nutzern geöffnet werden.</div>`;
           return;
         }
         const queueItems = buildCareQueueItems(items);
@@ -36755,7 +36767,7 @@
       async function assignOwnerToSelectedContacts() {
         if (!selectedContactIds.size) return;
         if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Owner können nur von Editor- oder Admin-Accounts geändert werden.");
+          showPermissionDenied("Du hast Leserechte. Owner können nur von Editor- oder Admin-Nutzern geändert werden.");
           return;
         }
         const normalizedOwner = String(bulkOwnerSelect?.value || "").trim();
@@ -37475,7 +37487,7 @@
       organizationEditorForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!canEditContacts()) {
-          showPermissionDenied("Organisationen können nur von Editor- oder Admin-Accounts gespeichert werden.");
+          showPermissionDenied("Organisationen können nur von Editor- oder Admin-Nutzern gespeichert werden.");
           return;
         }
         const formData = new FormData(organizationEditorForm);
@@ -37849,7 +37861,7 @@
       editorForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Accounts gespeichert werden.");
+          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern gespeichert werden.");
           return;
         }
         const formData = new FormData(editorForm);
