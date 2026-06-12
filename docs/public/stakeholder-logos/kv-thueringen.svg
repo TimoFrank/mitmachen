@@ -1,0 +1,7 @@
+<svg version="1.1" id="logo" xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 76 72">
+        <defs><style>#links,#unten{fill:rgb(51,131,195)}#rechts{fill:rgb(210,220,255)}</style></defs><g>
+            <polygon id="links" points="0,33.144 9.256,39.43 16.014,44.954 29.385,56.953 12.488,34.857 44.371,10.095 38.641,2.667 "></polygon>
+            <polygon id="rechts" points="62.443,27.429 40.404,44.381 46.281,51.431 75.077,29.143 68.172,24.762 59.062,17.524 43.342,3.047 "></polygon>
+            <polygon id="unten" points="17.483,35.43 43.637,69.145 49.072,61.335 55.683,53.335 67.438,39.811 45.546,56.763 24.536,29.716 "></polygon>
+        </g>
+    </svg>

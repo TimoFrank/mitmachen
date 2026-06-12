@@ -2869,7 +2869,7 @@
 
       .controls-stack {
         display: grid;
-        grid-template-columns: minmax(320px, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 10px 12px;
         align-items: center;
         padding: 10px;
@@ -2880,6 +2880,8 @@
       }
 
       .controls-stack .search-shell {
+        width: 100%;
+        min-width: 0;
         min-height: 42px;
         border-radius: 7px;
         box-shadow: none;
@@ -11511,7 +11513,7 @@
 
       .controls-stack {
         display: grid;
-        grid-template-columns: minmax(320px, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 8px 10px;
         align-items: center;
         padding: 10px;
@@ -17090,7 +17092,7 @@
       }
 
       .app-shell[data-active-view="formats"] .controls-stack {
-        grid-template-columns: minmax(320px, 1fr);
+        grid-template-columns: minmax(0, 1fr);
       }
 
       .app-shell[data-active-view="formats"] .controls-stack .filter-toolbar {
@@ -18841,6 +18843,52 @@
 
       .app-shell[data-active-view="stakeholders"] .experts-mode-label {
         display: inline-flex;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-header {
+        gap: 0;
+        padding-bottom: 6px;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls {
+        padding-bottom: 10px;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .experts-mode-nav--header {
+        margin-bottom: 0;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell {
+        min-height: 50px;
+        padding: 0 14px;
+        border-color: var(--border-strong);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        box-shadow: none;
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell svg {
+        width: 28px;
+        height: 28px;
+        padding: 6px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--primary);
+      }
+
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-input {
+        font-weight: 700;
       }
     </style>
   </head>
@@ -21271,6 +21319,14 @@
         website: ["website", "webseite", "url", "homepage"],
         email: ["email", "e-mail", "mail"],
         phone: ["telefon", "phone", "tel"],
+        logoUrl: ["logo", "logo url", "logo-url", "logo_url", "avatar", "bild", "bild url", "bild-url"],
+        logoSourceUrl: ["logo quelle", "logo quelle url", "logo-quellen-url", "logo_source_url", "logo source url"],
+        logoSourceLabel: ["logo quellenlabel", "logo quelle label", "logo_source_label", "logo source label"],
+        memberCount: ["mitgliederzahl", "mitglieder", "anzahl mitglieder", "member count", "member_count"],
+        memberCountSourceUrl: ["quelle mitgliederzahl url", "member_count_source_url", "member count source url"],
+        memberCountSourceLabel: ["quelle mitgliederzahl", "member_count_source_label", "member count source label"],
+        memberCountUpdatedAt: ["stand mitgliederzahl", "mitgliederdaten stand", "member_count_updated_at", "member count updated at"],
+        memberCountScope: ["bezugsgröße", "bezugsgroesse", "bezugsgröße mitgliederzahl", "member_count_scope", "member count scope"],
         role: ["rolle", "funktion", "position", "amt"],
         committee: ["gremium", "ausschuss", "committee"],
         themes: ["themen", "topics", "tags", "schwerpunkte"],
@@ -21343,12 +21399,12 @@
       const expertOrganizationTableColumns = organizationTableColumns.map((column) =>
         column.key === "sector" ? { ...column, label: "Gruppe" } : column
       );
-      const defaultStakeholderOrganizationColumnKeys = ["organization", "location", "people", "website"];
+      const defaultStakeholderOrganizationColumnKeys = ["organization", "location", "memberCount", "people"];
       const stakeholderOrganizationTableColumns = [
         { key: "organization", label: "Organisation", template: "minmax(310px, 1.45fr)", required: true },
         { key: "location", label: "Sitz", template: "minmax(150px, 0.66fr)" },
+        { key: "memberCount", label: "Mitgliederzahl", template: "minmax(142px, 0.62fr)" },
         { key: "people", label: "Personen", template: "minmax(118px, 0.52fr)" },
-        { key: "website", label: "Website", template: "minmax(180px, 0.82fr)" },
         { key: "source", label: "Quelle", template: "minmax(170px, 0.72fr)" }
       ];
       const defaultStakeholderPeopleColumnKeys = ["name", "organization", "role", "committee", "location", "source"];
@@ -23977,6 +24033,24 @@
         return ["1", "true", "wahr", "ja", "yes", "y", "x", "vv", "vertreterversammlung"].includes(normalized);
       }
 
+      function parseLocalizedInteger(value) {
+        if (Number.isFinite(value)) return Math.round(value);
+        const raw = String(value ?? "").trim();
+        if (!raw) return null;
+        let normalized = raw.replace(/\s/g, "");
+        if (/^\d{1,3}([.,]\d{3})+$/.test(normalized)) {
+          normalized = normalized.replace(/[.,]/g, "");
+        } else if (normalized.includes(",") && normalized.includes(".")) {
+          normalized = normalized.lastIndexOf(",") > normalized.lastIndexOf(".")
+            ? normalized.replace(/\./g, "").replace(",", ".")
+            : normalized.replace(/,/g, "");
+        } else if (normalized.includes(",")) {
+          normalized = normalized.replace(",", ".");
+        }
+        const parsed = Number.parseFloat(normalized.replace(/[^\d.-]/g, ""));
+        return Number.isFinite(parsed) ? Math.round(parsed) : null;
+      }
+
       function stakeholderImportRowsFromMatrix(rows = []) {
         const [headerRow = [], ...bodyRows] = rows;
         const headers = headerRow.map((header, index) => String(header || `Spalte ${index + 1}`).trim());
@@ -24057,6 +24131,17 @@
           const website = stakeholderColumnValue(row, stakeholderImportAliases.website) || currentOrganization.website || "";
           const email = stakeholderColumnValue(row, stakeholderImportAliases.email) || currentOrganization.email || "";
           const phone = stakeholderColumnValue(row, stakeholderImportAliases.phone) || currentOrganization.phone || "";
+          const logoUrl = stakeholderColumnValue(row, stakeholderImportAliases.logoUrl) || currentOrganization.logoUrl || "";
+          const logoSourceUrl = stakeholderColumnValue(row, stakeholderImportAliases.logoSourceUrl) || currentOrganization.logoSourceUrl || "";
+          const logoSourceLabel = stakeholderColumnValue(row, stakeholderImportAliases.logoSourceLabel) || currentOrganization.logoSourceLabel || "";
+          const memberCountValue = stakeholderColumnValue(row, stakeholderImportAliases.memberCount);
+          const parsedMemberCount = parseLocalizedInteger(memberCountValue);
+          if (memberCountValue && parsedMemberCount === null) warnings.push(`Zeile ${row.rowNumber}: Mitgliederzahl konnte nicht gelesen werden.`);
+          const memberCount = parsedMemberCount ?? currentOrganization.memberCount ?? null;
+          const memberCountSourceUrl = stakeholderColumnValue(row, stakeholderImportAliases.memberCountSourceUrl) || currentOrganization.memberCountSourceUrl || "";
+          const memberCountSourceLabel = stakeholderColumnValue(row, stakeholderImportAliases.memberCountSourceLabel) || currentOrganization.memberCountSourceLabel || "";
+          const memberCountUpdatedAt = stakeholderColumnValue(row, stakeholderImportAliases.memberCountUpdatedAt) || currentOrganization.memberCountUpdatedAt || "";
+          const memberCountScope = stakeholderColumnValue(row, stakeholderImportAliases.memberCountScope) || currentOrganization.memberCountScope || "";
           const source = stakeholderColumnValue(row, stakeholderImportAliases.source) || currentOrganization.source || fileName || "Stakeholder-Import";
           const latValue = Number.parseFloat(stakeholderColumnValue(row, stakeholderImportAliases.lat));
           const lonValue = Number.parseFloat(stakeholderColumnValue(row, stakeholderImportAliases.lon));
@@ -24074,6 +24159,15 @@
             website,
             email,
             phone,
+            logoUrl,
+            logoSourceUrl,
+            logoSourceLabel,
+            memberCount,
+            memberCountLabel: memberCount !== null ? memberCount.toLocaleString("de-DE") : currentOrganization.memberCountLabel || "",
+            memberCountSourceUrl,
+            memberCountSourceLabel,
+            memberCountUpdatedAt,
+            memberCountScope,
             source,
             status: "active",
             lat: !personName && hasDirectCoordinates ? latValue : currentOrganization.lat,
@@ -24462,6 +24556,7 @@
         const normalizedName = normalizeOrganizationName(entry.normalizedName || entry.normalized_name || name);
         const latitude = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
         const longitude = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
+        const memberCount = parseLocalizedInteger(entry.memberCount ?? entry.member_count ?? "");
         return {
           id: String(entry.id || `stakeholder-org-${normalizedName || String(index + 1).padStart(2, "0")}`).trim(),
           stakeholderTypeId: String(entry.stakeholderTypeId || entry.stakeholder_type_id || entry.stakeholderType || "kv").trim() || "kv",
@@ -24479,6 +24574,15 @@
           website: String(entry.website || entry.url || "").trim(),
           phone: String(entry.phone || "").trim(),
           email: String(entry.email || "").trim(),
+          logoUrl: String(entry.logoUrl || entry.logo_url || "").trim(),
+          logoSourceUrl: String(entry.logoSourceUrl || entry.logo_source_url || "").trim(),
+          logoSourceLabel: String(entry.logoSourceLabel || entry.logo_source_label || "").trim(),
+          memberCount: Number.isFinite(memberCount) ? memberCount : null,
+          memberCountLabel: String(entry.memberCountLabel || entry.member_count_label || "").trim(),
+          memberCountScope: String(entry.memberCountScope || entry.member_count_scope || "").trim(),
+          memberCountSourceUrl: String(entry.memberCountSourceUrl || entry.member_count_source_url || "").trim(),
+          memberCountSourceLabel: String(entry.memberCountSourceLabel || entry.member_count_source_label || "").trim(),
+          memberCountUpdatedAt: entry.memberCountUpdatedAt || entry.member_count_updated_at || "",
           notes: String(entry.notes || entry.note || "").trim(),
           source: String(entry.source || "").trim(),
           status: String(entry.status || "active").trim() || "active",
@@ -25500,9 +25604,14 @@
         return Boolean(curatedOrganizationLogo(name));
       }
 
+      function isRelativeAssetPath(value) {
+        const normalized = String(value || "").trim();
+        return /^(?:\.{0,2}\/|\/)(?!\/)/.test(normalized);
+      }
+
       function organizationLogoCandidate(organization) {
         const directLogo = organization?.logoUrl || organization?.logo_url || organization?.image || organization?.image_url;
-        if (hasMeaningfulValue(directLogo) && isValidOptionalUrl(directLogo)) {
+        if (hasMeaningfulValue(directLogo) && (isValidOptionalUrl(directLogo) || isRelativeAssetPath(directLogo))) {
           return {
             url: directLogo,
             fallbackUrl: "",
@@ -26397,6 +26506,8 @@
               organization.city,
               organization.state,
               organization.website,
+              organization.memberCount,
+              organization.memberCountLabel,
               organization.source,
               stakeholderTypeLabel(organization.stakeholderTypeId)
             ]).includes(search);
@@ -26453,6 +26564,22 @@
         });
       }
 
+      function stakeholderMemberCountLabel(organization = {}) {
+        const providedLabel = meaningfulOrEmpty(organization.memberCountLabel || organization.member_count_label);
+        if (providedLabel) return providedLabel;
+        const rawCount = organization.memberCount ?? organization.member_count;
+        if (rawCount === null || rawCount === undefined || rawCount === "") return "-";
+        const numericCount = Number(rawCount);
+        return Number.isFinite(numericCount) ? numericCount.toLocaleString("de-DE") : "-";
+      }
+
+      function stakeholderMemberCountSourceLabel(organization = {}) {
+        const label = meaningfulOrEmpty(organization.memberCountSourceLabel || organization.member_count_source_label);
+        const updatedAt = formatDateLabel(organization.memberCountUpdatedAt || organization.member_count_updated_at);
+        if (label && updatedAt) return `${label} (${updatedAt})`;
+        return label || updatedAt || "";
+      }
+
       function stakeholderOrganizationTableCellMarkup(organization, key) {
         const peopleCount = stakeholderOrganizationPeople(organization).length;
         if (key === "organization") {
@@ -26466,11 +26593,8 @@
           `;
         }
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderOrganizationLocation(organization) || "-")}</div>`;
+        if (key === "memberCount") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderMemberCountLabel(organization))}</div>`;
         if (key === "people") return `<button class="organization-contact-link" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Person" : "Personen"}</button>`;
-        if (key === "website") {
-          const website = normalizedWebsiteUrl(organization.website);
-          return website ? `<a class="contact-subline contact-subline--primary" href="${escapeHtml(website)}" target="_blank" rel="noopener">${escapeHtml(website.replace(/^https?:\/\//i, ""))}</a>` : `<div class="contact-subline contact-subline--primary">-</div>`;
-        }
         if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.source || "-")}</div>`;
         return "";
       }
@@ -26509,6 +26633,7 @@
                   <div class="cell--organization">${stakeholderOrganizationTableCellMarkup(organization, "organization")}</div>
                   <div class="organization-mobile-meta">
                     <span class="organization-mobile-state">${escapeHtml(stakeholderOrganizationLocation(organization) || organization.state || "-")}</span>
+                    <span class="organization-mobile-state">${escapeHtml(stakeholderMemberCountLabel(organization))} Mitglieder</span>
                     <button class="organization-contact-link organization-mobile-count" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Person" : "Personen"}</button>
                   </div>
                 </article>
@@ -26748,6 +26873,7 @@
         if (activeStakeholderOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
         const activeTab = organizationDetailActiveTab || "overview";
         const locationText = stakeholderOrganizationLocation(organization);
+        const memberCountSourceLabel = stakeholderMemberCountSourceLabel(organization);
 
         activeStakeholderOrganizationId = organization.id;
         activeStakeholderPersonId = null;
@@ -26794,6 +26920,8 @@
                   ${detailLine("Organisationstyp", organization.organizationType)}
                   ${detailLine("Sitz", locationText)}
                   ${detailLine("Bundesland", organization.state)}
+                  ${detailLine("Mitgliederzahl", stakeholderMemberCountLabel(organization))}
+                  ${detailLine("Bezugsgröße", organization.memberCountScope)}
                   ${detailLine("Quelle", organization.source)}
                   ${detailLine("Zugeordnete Personen", `${people.length} ${people.length === 1 ? "Person" : "Personen"}`)}
                 </div>
@@ -26829,6 +26957,7 @@
                   ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
                   ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
                   ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
+                  ${detailContactLine("Quelle Mitgliederzahl", memberCountSourceLabel, organization.memberCountSourceUrl)}
                 </div>
               </section>
 

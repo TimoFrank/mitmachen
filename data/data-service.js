@@ -47,6 +47,14 @@
     "website",
     "phone",
     "email",
+    "logo_url",
+    "logo_source_url",
+    "logo_source_label",
+    "member_count",
+    "member_count_source_url",
+    "member_count_source_label",
+    "member_count_updated_at",
+    "member_count_scope",
     "notes",
     "source",
     "status",
@@ -1617,6 +1625,24 @@
       .toLowerCase();
   }
 
+  function parseLocalizedInteger(value) {
+    if (Number.isFinite(value)) return Math.round(value);
+    const raw = String(value ?? "").trim();
+    if (!raw) return null;
+    let normalized = raw.replace(/\s/g, "");
+    if (/^\d{1,3}([.,]\d{3})+$/.test(normalized)) {
+      normalized = normalized.replace(/[.,]/g, "");
+    } else if (normalized.includes(",") && normalized.includes(".")) {
+      normalized = normalized.lastIndexOf(",") > normalized.lastIndexOf(".")
+        ? normalized.replace(/\./g, "").replace(",", ".")
+        : normalized.replace(/,/g, "");
+    } else if (normalized.includes(",")) {
+      normalized = normalized.replace(",", ".");
+    }
+    const parsed = Number.parseFloat(normalized.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(parsed) ? Math.round(parsed) : null;
+  }
+
   function organizationDbToUi(row, contactCount = 0) {
     return {
       id: row.id,
@@ -1779,6 +1805,15 @@
       website: row.website || "",
       phone: row.phone || "",
       email: row.email || "",
+      logoUrl: row.logo_url || row.logoUrl || "",
+      logoSourceUrl: row.logo_source_url || row.logoSourceUrl || "",
+      logoSourceLabel: row.logo_source_label || row.logoSourceLabel || "",
+      memberCount: Number.isFinite(Number(row.member_count ?? row.memberCount)) ? Number(row.member_count ?? row.memberCount) : null,
+      memberCountLabel: row.member_count_label || row.memberCountLabel || "",
+      memberCountSourceUrl: row.member_count_source_url || row.memberCountSourceUrl || "",
+      memberCountSourceLabel: row.member_count_source_label || row.memberCountSourceLabel || "",
+      memberCountUpdatedAt: row.member_count_updated_at || row.memberCountUpdatedAt || "",
+      memberCountScope: row.member_count_scope || row.memberCountScope || "",
       notes: row.notes || row.note || "",
       source: row.source || "",
       status: row.status || "active",
@@ -1852,6 +1887,14 @@
       website: String(organization.website || organization.url || "").trim() || null,
       phone: String(organization.phone || "").trim() || null,
       email: String(organization.email || "").trim() || null,
+      logo_url: String(organization.logoUrl || organization.logo_url || "").trim() || null,
+      logo_source_url: String(organization.logoSourceUrl || organization.logo_source_url || "").trim() || null,
+      logo_source_label: String(organization.logoSourceLabel || organization.logo_source_label || "").trim() || null,
+      member_count: parseLocalizedInteger(organization.memberCount ?? organization.member_count),
+      member_count_source_url: String(organization.memberCountSourceUrl || organization.member_count_source_url || "").trim() || null,
+      member_count_source_label: String(organization.memberCountSourceLabel || organization.member_count_source_label || "").trim() || null,
+      member_count_updated_at: String(organization.memberCountUpdatedAt || organization.member_count_updated_at || "").trim() || null,
+      member_count_scope: String(organization.memberCountScope || organization.member_count_scope || "").trim() || null,
       notes: String(organization.notes || organization.note || "").trim() || null,
       source: String(organization.source || "").trim() || "Stakeholder-Import",
       status: organization.status || "active"

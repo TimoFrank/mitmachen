@@ -1040,15 +1040,20 @@ test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich
   await expect(page.locator('button[data-stakeholder-mode="organizations"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#stakeholders-pagination-meta")).toContainText("17 Organisationen");
   await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toBeVisible();
+  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Mitgliederzahl");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Typ");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Bundesland");
+  await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Website");
+  await expect(page.locator("#stakeholder-organization-list")).toContainText("24.324");
   await expect(page.locator("#stakeholder-organization-list .organization-logo").first()).toBeVisible();
-  await expect(page.locator("#stakeholder-header-search #search")).toBeVisible();
-  await expect(page.locator("#expert-header-search #search")).toHaveCount(0);
+  await expect(page.locator("#stakeholder-organization-list .organization-logo img").first()).toHaveAttribute("src", /stakeholder-logos\/kv-/);
+  await expect(page.getByRole("searchbox", { name: "Kassenärztliche Vereinigungen suchen..." })).toBeVisible();
   if (testInfo.project.name.includes("desktop")) {
     await expect(page.locator("#columns-button")).toBeVisible();
     await page.locator("#columns-button").click();
+    await expect(page.locator("#column-options")).toContainText("Mitgliederzahl");
     await expect(page.locator("#column-options")).toContainText("Quelle");
+    await expect(page.locator("#column-options")).not.toContainText("Website");
     await expect(page.locator("#column-options")).not.toContainText("Bundesland");
     await page.locator("#columns-button").click();
   }
@@ -1056,7 +1061,12 @@ test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich
   await page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first().click();
   await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   await expect(page.locator("#stakeholder-organization-overview")).toBeVisible();
+  await expect(page.locator("#stakeholder-organization-overview")).toContainText("Mitgliederzahl");
+  await expect(page.locator("#stakeholder-organization-overview")).toContainText("24.324");
   await expect(page.locator("#detail-drawer .organization-profile-logo")).toBeVisible();
+  await page.locator('[data-detail-tab="contact"]').click();
+  await expect(page.locator("#stakeholder-organization-contact")).toContainText("kvbawue.de");
+  await expect(page.locator("#stakeholder-organization-contact")).toContainText("KBV Bundesarztregister");
   await page.locator('[data-detail-tab="notes"]').click();
   await expect(page.locator("#stakeholder-organization-notes .stakeholder-notes-thread")).toBeVisible();
   await expect(page.locator("#stakeholder-organization-notes [data-stakeholder-note-composer]")).toBeVisible();
@@ -1088,7 +1098,6 @@ test("Stakeholder: KVn-Bereich ist nur fuer Admins sichtbar", async ({ page }) =
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
   await expect(page.locator('button[data-view-tab="stakeholders"]')).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator('button[data-view-tab="stakeholders"]')).toHaveClass(/is-role-hidden/);
-  await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveAttribute("aria-hidden", "true");
   await expect(page).toHaveURL(/#contacts$/);
 });
 
