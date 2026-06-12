@@ -696,7 +696,6 @@
       }
 
       .notification-popover__empty,
-      .notification-popover__loading,
       .notification-popover__error {
         min-height: 92px;
         display: grid;
@@ -4725,7 +4724,6 @@
       }
 
       .notifications-empty,
-      .notifications-loading,
       .notifications-error {
         min-height: 240px;
         display: grid;
@@ -4917,7 +4915,6 @@
         }
 
         .notifications-empty,
-        .notifications-loading,
         .notifications-error {
           min-width: 0;
           overflow-wrap: anywhere;
@@ -18800,9 +18797,7 @@
               </div>
               <button class="detail-close" type="button" id="notification-popover-close" aria-label="Benachrichtigungen schließen">×</button>
             </div>
-            <div class="notification-popover__list" id="notification-popover-list" aria-live="polite">
-              <div class="notification-popover__loading">Benachrichtigungen werden geladen...</div>
-            </div>
+            <div class="notification-popover__list" id="notification-popover-list" aria-live="polite"></div>
             <div class="notification-popover__footer">
               <button class="action-button action-button--compact" type="button" id="notification-popover-all">Alle Benachrichtigungen</button>
             </div>
@@ -19731,14 +19726,12 @@
                       <button class="notification-filter" type="button" data-notification-filter="product" aria-pressed="false">Produkt</button>
                     </div>
                     <div class="notifications-command-actions">
-                      <div class="notifications-meta" id="notifications-meta">Benachrichtigungen werden geladen</div>
+                      <div class="notifications-meta" id="notifications-meta"></div>
                       <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>
                     </div>
                   </div>
                   <div class="notifications-feed-shell">
-                    <div class="notifications-list" id="notifications-list" aria-live="polite">
-                      <div class="notifications-loading">Benachrichtigungen werden geladen...</div>
-                    </div>
+                    <div class="notifications-list" id="notifications-list" aria-live="polite"></div>
                     <div class="notifications-load-more-row" id="notifications-load-more-row" hidden>
                       <button class="action-button notifications-load-more" type="button" id="notifications-load-more">Mehr laden</button>
                     </div>
@@ -29051,15 +29044,21 @@
 
       function renderNotificationsLoading() {
         notificationsList?.closest(".notifications-feed-shell")?.classList.remove("is-empty");
-        if (notificationsList) notificationsList.innerHTML = `<div class="notifications-loading">Benachrichtigungen werden geladen...</div>`;
-        if (notificationsMeta) notificationsMeta.textContent = "Benachrichtigungen werden geladen";
+        if (notificationsList) {
+          notificationsList.innerHTML = "";
+          notificationsList.setAttribute("aria-busy", "true");
+        }
+        if (notificationsMeta) notificationsMeta.textContent = "";
         if (notificationsMarkAllRead) notificationsMarkAllRead.hidden = true;
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = true;
       }
 
       function renderNotificationsError() {
         notificationsList?.closest(".notifications-feed-shell")?.classList.remove("is-empty");
-        if (notificationsList) notificationsList.innerHTML = `<div class="notifications-error">Die Benachrichtigungen konnten nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
+        if (notificationsList) {
+          notificationsList.removeAttribute("aria-busy");
+          notificationsList.innerHTML = `<div class="notifications-error">Die Benachrichtigungen konnten nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
+        }
         if (notificationsMeta) notificationsMeta.textContent = "Laden fehlgeschlagen";
         if (notificationsMarkAllRead) notificationsMarkAllRead.hidden = true;
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = true;
@@ -29161,15 +29160,21 @@
       }
 
       function renderNotificationPopoverLoading() {
-        if (notificationPopoverList) notificationPopoverList.innerHTML = `<div class="notification-popover__loading">Benachrichtigungen werden geladen...</div>`;
+        if (!notificationPopoverList) return;
+        notificationPopoverList.setAttribute("aria-busy", "true");
+        if (!notificationPreviewItems.length) notificationPopoverList.innerHTML = "";
       }
 
       function renderNotificationPopoverError() {
-        if (notificationPopoverList) notificationPopoverList.innerHTML = `<div class="notification-popover__error">Die neuen Benachrichtigungen konnten nicht geladen werden.</div>`;
+        if (!notificationPopoverList) return;
+        notificationPopoverList.removeAttribute("aria-busy");
+        notificationPopoverList.innerHTML = `<div class="notification-popover__error">Die neuen Benachrichtigungen konnten nicht geladen werden.</div>`;
+        positionNotificationPopover();
       }
 
       function renderNotificationPopover() {
         if (!notificationPopoverList) return;
+        notificationPopoverList.removeAttribute("aria-busy");
         if (!notificationPreviewItems.length) {
           notificationPopoverList.innerHTML = `<div class="notification-popover__empty">${notificationEmptyStateMarkup("Keine neuen Benachrichtigungen.")}</div>`;
         } else {
@@ -29179,6 +29184,7 @@
         notificationPopoverList.querySelectorAll("[data-open-notification]").forEach((button) => {
           button.addEventListener("click", () => openNotification(button.dataset.openNotification));
         });
+        positionNotificationPopover();
       }
 
       async function loadNotificationPreview() {
@@ -29215,12 +29221,12 @@
         const sidebarPadding = isMobileLayout() ? 8 : 14;
         const popoverWidth = Math.max(180, Math.min(260, sidebarRect.width - sidebarPadding * 2));
         notificationPopover.style.width = `${popoverWidth}px`;
+        notificationPopover.style.maxHeight = `${Math.max(140, trigger.top - 24)}px`;
         const popoverHeight = notificationPopover.offsetHeight || 320;
-        const gap = 10;
+        const gap = 12;
         let left = sidebarRect.left + Math.max(6, Math.min(sidebarPadding, (sidebarRect.width - popoverWidth) / 2));
         left = Math.max(12, Math.min(left, window.innerWidth - popoverWidth - 12));
-        let top = trigger.bottom - popoverHeight;
-        if (top < 12) top = trigger.top + gap;
+        let top = trigger.top - popoverHeight - gap;
         top = Math.max(12, Math.min(top, window.innerHeight - popoverHeight - 12));
         notificationPopover.style.left = `${left}px`;
         notificationPopover.style.top = `${top}px`;
@@ -29271,6 +29277,7 @@
           return;
         }
         const feedShell = notificationsList.closest(".notifications-feed-shell");
+        notificationsList.removeAttribute("aria-busy");
         feedShell?.classList.toggle("is-empty", !notifications.length);
         if (!notifications.length) {
           notificationsList.innerHTML = `<div class="notifications-empty">${notificationEmptyStateMarkup("Keine Benachrichtigungen für diese Auswahl.")}</div>`;

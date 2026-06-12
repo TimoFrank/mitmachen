@@ -432,7 +432,18 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notification-popover")).toBeVisible();
   await expect(page.locator("#notification-popover-title")).toHaveText("Benachrichtigungen");
   await expect(page.locator("#notification-popover-meta")).toHaveCount(0);
+  await expect(page.locator("#notification-popover-list .notification-popover__loading")).toHaveCount(0);
+  await expect(page.locator("#notification-popover")).not.toContainText("Benachrichtigungen werden geladen");
   await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(1);
+  const popoverLayout = await page.evaluate(() => {
+    const popover = document.querySelector("#notification-popover")?.getBoundingClientRect();
+    const accountRow = document.querySelector(".sidebar-account-row")?.getBoundingClientRect();
+    return popover && accountRow
+      ? { popoverBottom: popover.bottom, accountTop: accountRow.top }
+      : null;
+  });
+  expect(popoverLayout).not.toBeNull();
+  expect(popoverLayout.popoverBottom).toBeLessThanOrEqual(popoverLayout.accountTop - 6);
 
   await page.locator("#notification-popover-all").click();
   await expect(page).toHaveURL(/#profile-notifications$/);
@@ -446,6 +457,8 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#profile-tab-settings .profile-setting-toggle")).toHaveCount(0);
   await expect(page.locator("#search")).toBeHidden();
   await expect(page.locator("#summary-grid")).toBeHidden();
+  await expect(page.locator("#notifications-list .notifications-loading")).toHaveCount(0);
+  await expect(page.locator("#notifications-meta")).not.toHaveText("Benachrichtigungen werden geladen");
   await expect(page.locator('[data-notification-filter]').last()).toHaveText("Produkt");
 
   await page.locator("#notifications-mark-all-read").click();
