@@ -1176,7 +1176,20 @@ test("Stakeholder: KVn, Vorstände und Karte rendern im gemeinsamen Arbeitsberei
   await expect(page.locator("#stakeholder-organization-list")).toContainText("24.324");
   await expect(page.locator("#stakeholder-organization-list .organization-logo").first()).toBeVisible();
   await expect(page.locator("#stakeholder-organization-list .organization-logo img").first()).toHaveAttribute("src", /stakeholder-logos\/kv-/);
-  await expect(page.getByRole("searchbox", { name: "Kassenärztliche Vereinigungen suchen..." })).toBeVisible();
+  const stakeholderSearch = page.getByRole("searchbox", { name: "Kassenärztliche Vereinigungen suchen..." });
+  await expect(stakeholderSearch).toBeVisible();
+  for (const [query, id, count] of [
+    ["Berlin", "kv-berlin", "11.148"],
+    ["Brandenburg", "kv-brandenburg", "5.099"],
+    ["Bremen", "kv-bremen", "2.127"]
+  ]) {
+    await stakeholderSearch.fill(query);
+    const row = page.locator(`#stakeholder-organization-list [data-stakeholder-organization-id="${id}"]`);
+    await expect(row).toBeVisible();
+    await expect(row).toContainText(count);
+    await expect(row.locator(".organization-logo img")).toHaveAttribute("src", new RegExp(`stakeholder-logos/${id}\\.svg`));
+  }
+  await stakeholderSearch.fill("");
   const isDesktop = testInfo.project.name.includes("desktop");
   if (isDesktop) {
     await expect(page.locator("#columns-button")).toBeHidden();
@@ -1193,7 +1206,8 @@ test("Stakeholder: KVn, Vorstände und Karte rendern im gemeinsamen Arbeitsberei
   if (isDesktop) {
     await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
     await expect(page.locator("#detail-drawer [data-open-organization-profile]")).toBeVisible();
-    await expect(page.locator("#detail-drawer .detail-tabs")).toBeHidden();
+    await expect(page.locator("#detail-drawer .detail-tabs")).toBeVisible();
+    await expect(page.locator("#detail-drawer #stakeholder-organization-overview")).toContainText(expectedDetailMemberCount);
     await page.locator("#detail-drawer [data-open-organization-profile]").click();
   }
   const organizationProfile = page.locator("#organization-profile-body");

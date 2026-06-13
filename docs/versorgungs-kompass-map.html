@@ -41,6 +41,12 @@
       --font-size-sm: 0.84rem;
       --font-size-md: 0.94rem;
     }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
     html, body { height: 100%; margin: 0; font-family: var(--font-family); }
     body {
       background: var(--background);
@@ -1906,6 +1912,8 @@
       }
 
       .page-shell {
+        width: 100%;
+        max-width: 100vw;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
@@ -1919,9 +1927,21 @@
         grid-template-columns: none;
         gap: 0;
         padding: 0;
+        width: 100%;
+        max-width: 100vw;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
+      }
+      .topbar,
+      .sidebar,
+      body.embed-mode .sidebar,
+      .panel,
+      body.embed-mode .panel,
+      .map-area,
+      body.embed-mode .map-area {
+        width: 100%;
+        max-width: 100vw;
       }
       .workspace.has-map-detail .map-detail-panel,
       body.embed-mode.has-map-detail .map-detail-panel {
@@ -2138,6 +2158,8 @@
 
       .page-shell,
       body.embed-mode .page-shell {
+        width: 100%;
+        max-width: 100vw;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
@@ -2151,10 +2173,22 @@
         flex-direction: column;
         grid-template-columns: none;
         padding: 0;
+        width: 100%;
+        max-width: 100vw;
         gap: 0;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
+      }
+      .topbar,
+      .sidebar,
+      body.embed-mode .sidebar,
+      .panel,
+      body.embed-mode .panel,
+      .map-area,
+      body.embed-mode .map-area {
+        width: 100%;
+        max-width: 100vw;
       }
 
       .workspace.has-map-detail .map-detail-panel,

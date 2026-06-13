@@ -27888,7 +27888,7 @@
           <div class="detail-toolbar">
             ${isProfilePage ? organizationProfileBackButtonMarkup() : `<div class="detail-counter">${Math.max(currentIndex, 0) + 1} von ${currentItems.length} Organisationen</div>`}
             <div class="detail-toolbar-actions">
-              ${isPreview ? `<button class="action-button action-button--primary" type="button" data-open-organization-profile>Profil öffnen</button>` : ""}
+              ${!isProfilePage ? `<button class="action-button action-button--primary" type="button" data-open-organization-profile>Profil öffnen</button>` : ""}
               ${isProfilePage ? "" : `<button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>`}
             </div>
           </div>
@@ -37389,7 +37389,7 @@
           return;
         }
         if (normalizedKind === "stakeholder") {
-          openStakeholderOrganizationDetail(id, items, { mode: "preview", returnTo });
+          openStakeholderOrganizationDetail(id, items, { mode: "drawer", returnTo });
           return;
         }
         openOrganizationDetail(id, items, { mode: "preview", returnTo });
