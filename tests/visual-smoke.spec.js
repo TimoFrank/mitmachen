@@ -8,7 +8,7 @@ function authSession() {
   };
 }
 
-async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "", demoDataScript = "", dataServiceScript = "", localNotifications = [] } = {}) {
+async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo", contactsScript = "", expertsScript = "", stakeholderScript = "", demoDataScript = "", dataServiceScript = "", localNotifications = [] } = {}) {
   await page.route("**/login/auth-guard.js", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
@@ -44,6 +44,14 @@ async function gotoAuthenticated(page, path, { role = "admin", dataMode = "demo"
       await route.fulfill({
         contentType: "application/javascript",
         body: expertsScript
+      });
+    });
+  }
+  if (stakeholderScript) {
+    await page.route("**/data/stakeholder-data.js", async (route) => {
+      await route.fulfill({
+        contentType: "application/javascript",
+        body: stakeholderScript
       });
     });
   }
@@ -382,12 +390,47 @@ test("Onboarding: abgeschlossener neuer Account landet direkt in Kontakte", asyn
 test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#organizations");
 
+  const isMobile = testInfo.project.name.includes("mobile");
   await expect(page.locator('[data-view-panel="organizations"]')).toBeVisible();
-  await expect(page.locator("#organization-list .row, #organization-list .mobile-contact-card").first()).toBeVisible();
+  const firstOrganization = page.locator("#organization-list .row, #organization-list .mobile-contact-card").first();
+  await expect(firstOrganization).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten");
+  await firstOrganization.click();
+
+  if (isMobile) {
+    await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  } else {
+    await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+    await expect(page.locator("#detail-drawer .detail-profile")).toBeVisible();
+    await expect(page.locator("#detail-drawer [data-open-organization-profile]")).toBeVisible();
+    await expect(page.locator("#detail-drawer .detail-tabs")).toBeHidden();
+    await page.locator("#detail-drawer [data-open-organization-profile]").click();
+  }
+
+  const profile = page.locator("#organization-profile-body");
+  await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  await expect(page).toHaveURL(/#organization\/care\//);
+  await expect(profile.locator(".detail-profile")).toBeVisible();
+  await expect(profile.locator("[data-organization-profile-back]")).toBeVisible();
+  await expect(profile.locator("#organization-overview")).toBeVisible();
+  await expect(profile.locator("#organization-contacts")).toBeHidden();
+  await profile.locator(".detail-tab").filter({ hasText: "Kontakte" }).click();
+  await expect(profile.locator("#organization-overview")).toBeHidden();
+  await expect(profile.locator("#organization-contacts")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "organisationen");
+});
+
+test("Organisationsprofil: direkter Deeplink rendert Profilseite", async ({ page }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#organization/care/demo-org-nordstadt");
+
+  await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  await expect(page).toHaveURL(/#organization\/care\/demo-org-nordstadt$/);
+  await expect(page.locator("#organization-profile-body .detail-profile h3")).toContainText("MVZ Nordstadt");
+  await expect(page.locator("#organization-profile-body #organization-overview")).toBeVisible();
+  await expect(page.locator(".app-shell[data-active-view='organizationProfile'] .workspace-header")).toBeHidden();
+  await expect(page.locator("#search")).toBeHidden();
 });
 
 test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", async ({ page }, testInfo) => {
@@ -559,8 +602,18 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator("#new-expert-contact-button")).toBeHidden();
   await expect(page.locator("#new-expert-organization-button")).toBeVisible();
   await page.locator("#expert-organization-list .row").first().click();
-  await expect(page.locator("#detail-drawer .detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
-  await page.locator("#detail-close").click();
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  } else {
+    await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+    await expect(page.locator("#detail-drawer [data-open-organization-profile]")).toBeVisible();
+    await expect(page.locator("#detail-drawer .detail-tabs")).toBeHidden();
+    await page.locator("#detail-drawer [data-open-organization-profile]").click();
+  }
+  await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  await expect(page).toHaveURL(/#organization\/expert\//);
+  await expect(page.locator("#organization-profile-body .detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
+  await page.locator("#organization-profile-body [data-organization-profile-back]").click();
 
   await attachScreenshot(page, testInfo, "expertenkreis");
 });
@@ -607,9 +660,11 @@ test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async (
   await page.locator("#organization-field-name").fill("FHIR Forum Test");
   await page.locator("#organization-editor-save").click();
 
-  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
-  await expect(page.locator("#detail-drawer .detail-profile h3")).toContainText("FHIR Forum Test");
-  await expect(page.locator("#detail-drawer .detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
+  await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  await expect(page).toHaveURL(/#organization\/expert\//);
+  await expect(page.locator("#organization-profile-body .detail-profile h3")).toContainText("FHIR Forum Test");
+  await expect(page.locator("#organization-profile-body .detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
+  await page.locator("#organization-profile-body [data-organization-profile-back]").click();
   await expect(page.locator('#expert-mode-actions [data-expert-mode="organizations"] .experts-mode-count')).toHaveText("2");
 
   await attachScreenshot(page, testInfo, "expertenkreis-anlage");
@@ -765,14 +820,16 @@ test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ pag
 
   await expect(page.locator("#organization-list .row, #organization-list .mobile-contact-card").first()).toBeVisible();
   await page.locator("#organization-list .row, #organization-list .mobile-contact-card").first().click();
-  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   if (isMobile) {
-    await page.locator("#detail-close").click();
+    await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+    await page.locator("#organization-profile-body [data-organization-profile-back]").click();
   } else {
+    await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
     await page.locator('button[data-care-mode="contacts"]').click();
   }
   await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
+  await expect(page.locator("#organization-profile-page")).toHaveAttribute("aria-hidden", "true");
   if (isMobile) {
     await page.locator('button[data-care-mode="contacts"]').click();
   }
@@ -1110,7 +1167,7 @@ test("Stakeholder: KVn, Vorstände und Karte rendern im gemeinsamen Arbeitsberei
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
   await expect(page.locator('button[data-stakeholder-mode="organizations"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("17 Organisationen");
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("17 KVn");
   await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toBeVisible();
   await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Mitgliederzahl");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Typ");
@@ -1133,28 +1190,37 @@ test("Stakeholder: KVn, Vorstände und Karte rendern im gemeinsamen Arbeitsberei
   const expectedOrganizationPerson = isDesktop ? "Dr. Christian Pfeiffer" : "Dr. Karsten Braun";
 
   await page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first().click();
-  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
-  await expect(page.locator("#stakeholder-organization-overview")).toBeVisible();
-  await expect(page.locator("#stakeholder-organization-overview")).toContainText("Mitgliederzahl");
-  await expect(page.locator("#stakeholder-organization-overview")).toContainText(expectedDetailMemberCount);
-  await expect(page.locator("#stakeholder-organization-overview")).toContainText(expectedDetailOrganization);
-  await expect(page.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Stakeholder-Typ" })).toHaveCount(0);
-  await expect(page.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Organisationstyp" })).toHaveCount(0);
-  await expect(page.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Bezugsgröße" })).toHaveCount(0);
-  await expect(page.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Zugeordnete Personen" })).toHaveCount(0);
-  await expect(page.locator("#stakeholder-organization-overview .stakeholder-member-info")).toBeVisible();
-  await expect(page.locator("#detail-drawer .organization-profile-logo")).toBeVisible();
-  await page.locator('[data-detail-tab="contact"]').click();
-  await expect(page.locator("#stakeholder-organization-contact")).toContainText(expectedDetailWebsite);
-  await expect(page.locator("#stakeholder-organization-contact")).toContainText("KBV Bundesarztregister");
-  await page.locator('[data-detail-tab="notes"]').click();
-  await expect(page.locator("#stakeholder-organization-notes .stakeholder-notes-thread")).toBeVisible();
-  await expect(page.locator("#stakeholder-organization-notes [data-stakeholder-note-composer]")).toBeVisible();
-  await page.locator('[data-detail-tab="people"]').click();
-  await expect(page.locator("#stakeholder-organization-people")).toBeVisible();
-  await expect(page.locator("#stakeholder-organization-people")).toContainText(expectedOrganizationPerson);
-  await page.locator("#detail-close").click();
+  if (isDesktop) {
+    await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+    await expect(page.locator("#detail-drawer [data-open-organization-profile]")).toBeVisible();
+    await expect(page.locator("#detail-drawer .detail-tabs")).toBeHidden();
+    await page.locator("#detail-drawer [data-open-organization-profile]").click();
+  }
+  const organizationProfile = page.locator("#organization-profile-body");
+  await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  await expect(page).toHaveURL(/#organization\/stakeholder\//);
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toBeVisible();
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("Mitgliederzahl");
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText(expectedDetailMemberCount);
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText(expectedDetailOrganization);
+  await expect(organizationProfile.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Stakeholder-Typ" })).toHaveCount(0);
+  await expect(organizationProfile.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Organisationstyp" })).toHaveCount(0);
+  await expect(organizationProfile.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Bezugsgröße" })).toHaveCount(0);
+  await expect(organizationProfile.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Zugeordnete Personen" })).toHaveCount(0);
+  await expect(organizationProfile.locator("#stakeholder-organization-overview .stakeholder-member-info")).toBeVisible();
+  await expect(organizationProfile.locator(".organization-profile-logo")).toBeVisible();
+  await organizationProfile.locator('[data-detail-tab="contact"]').click();
+  await expect(organizationProfile.locator("#stakeholder-organization-contact")).toContainText(expectedDetailWebsite);
+  await expect(organizationProfile.locator("#stakeholder-organization-contact")).toContainText("KBV Bundesarztregister");
+  await organizationProfile.locator('[data-detail-tab="notes"]').click();
+  await expect(organizationProfile.locator("#stakeholder-organization-notes .stakeholder-notes-thread")).toBeVisible();
+  await expect(organizationProfile.locator("#stakeholder-organization-notes [data-stakeholder-note-composer]")).toBeVisible();
+  await organizationProfile.locator('[data-detail-tab="people"]').click();
+  await expect(organizationProfile.locator("#stakeholder-organization-people")).toBeVisible();
+  await expect(organizationProfile.locator("#stakeholder-organization-people")).toContainText(expectedOrganizationPerson);
+  await organizationProfile.locator("[data-organization-profile-back]").click();
   await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#organization-profile-page")).toHaveAttribute("aria-hidden", "true");
 
   await page.locator('button[data-stakeholder-mode="people"]').click();
   await expect(page.locator('button[data-stakeholder-mode="people"]')).toContainText("Vorstände");
@@ -1189,6 +1255,51 @@ test("Stakeholder: KVn, Vorstände und Karte rendern im gemeinsamen Arbeitsberei
   await expect(page.locator("#person-profile-body #stakeholder-person-overview")).toContainText("Kassenärztliche Vereinigung Baden-Württemberg");
 
   await attachScreenshot(page, testInfo, "stakeholder-kvn");
+});
+
+test("Stakeholder: weitere Typen nutzen Tabellen, Profile und Kartenlabels", async ({ page }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", {
+    role: "admin",
+    stakeholderScript: `
+      window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES = [
+        { id: "kv", label: "Kassenärztliche Vereinigungen", sortOrder: 10, status: "active" },
+        { id: "health-insurance", label: "Krankenkassen", sortOrder: 20, status: "active" },
+        { id: "patient-associations", label: "Patientenverbände", sortOrder: 30, status: "active" },
+        { id: "hospital-associations", label: "Krankenhausgesellschaften", sortOrder: 40, status: "active" },
+        { id: "physician-associations", label: "Ärztliche Berufsverbände", sortOrder: 50, status: "active" }
+      ];
+      window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS = [
+        { id: "health-aok-test", stakeholderTypeId: "health-insurance", stakeholderType: "health-insurance", name: "AOK Test", organizationType: "Krankenkasse", city: "Berlin", state: "Berlin", latitude: 52.52, longitude: 13.405, website: "https://example.org/aok-test", memberCount: 123, source: "Backend-Pflege", status: "active" },
+        { id: "patient-test", stakeholderTypeId: "patient-associations", stakeholderType: "patient-associations", name: "Patientenverband Test", organizationType: "Patientenverband", city: "Hamburg", state: "Hamburg", source: "Backend-Pflege", status: "active" }
+      ];
+      window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE = [
+        { id: "health-aok-test-alex", stakeholderTypeId: "health-insurance", stakeholderType: "health-insurance", organizationId: "health-aok-test", organization: "AOK Test", name: "Alex Beispiel", role: "Referentin Versorgung", committee: "Ansprechperson", city: "Berlin", state: "Berlin", mapPositionSource: "organization", source: "Backend-Pflege", status: "active" }
+      ];
+    `
+  });
+
+  await expect(page.locator('[data-stakeholder-type="health-insurance"]')).toBeVisible();
+  await page.locator('[data-stakeholder-type="health-insurance"]').click();
+  await expect(page.locator('[data-stakeholder-type="health-insurance"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("searchbox", { name: "Krankenkassen suchen..." })).toBeVisible();
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Krankenkassen");
+  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Ansprechpersonen");
+  await expect(page.locator("#stakeholder-organization-list")).toContainText("AOK Test");
+
+  await page.locator('button[data-stakeholder-mode="people"]').click();
+  await expect(page.locator('button[data-stakeholder-mode="people"]')).toContainText("Ansprechpersonen");
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Ansprechpersonen");
+  await expect(page.locator("#stakeholder-people-list")).toContainText("Alex Beispiel");
+
+  await page.locator('button[data-stakeholder-mode="map"]').click();
+  await expect(page.locator("#stakeholder-map-panel")).toBeVisible();
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Ansprechperson auf der Karte");
+
+  await page.locator('[data-stakeholder-type="patient-associations"]').click();
+  await page.locator('button[data-stakeholder-mode="organizations"]').click();
+  await expect(page.getByRole("searchbox", { name: "Patientenverbände suchen..." })).toBeVisible();
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Patientenverbände");
+  await expect(page.locator("#stakeholder-organization-list")).toContainText("Patientenverband Test");
 });
 
 test("Stakeholder: KVn-Bereich ist nur fuer Admins sichtbar", async ({ page }) => {

@@ -106,7 +106,7 @@ Der Versorgungs-Kompass ist eine operative CRM-App. Das Designsystem priorisiert
 
 - Detail-Sidepanel: Lesemodus, rechts, 420-520px, kein Overlay auf Desktop.
 - Editor-Sidepanel: expliziter Formularmodus, rechts, bis 820px.
-- Personenprofilseite: kanonisches CRM-Profil innerhalb der App-Shell, deeplinkbar und fuer laengere Lese-/Pflegearbeit. Der rechte Detaildrawer bleibt nur kompakte Vorschau.
+- Personen- und Organisationsprofilseiten: kanonische CRM-Profile innerhalb der App-Shell, deeplinkbar und fuer laengere Lese-/Pflegearbeit. Der rechte Detaildrawer bleibt nur kompakte Vorschau.
 - Fullscreen-Workspace: Import, Karte, Auswertung nur wenn die Aufgabe Platz braucht.
 - Modals: nur fuer Bestaetigungen oder isolierte kleine Entscheidungen. Das Nutzerprofil ist eine eigene Seite innerhalb der App-Shell, kein Drawer und kein temporaeres Pop-up.
 - Detailpanel-Titel darf nicht mit Seitentitel oder Tabtitel doppeln.
@@ -138,7 +138,7 @@ Der Versorgungs-Kompass ist eine operative CRM-App. Das Designsystem priorisiert
 
 - Kontaktprofile nutzen einen ruhigen Profilkopf mit Bild/Initialen, Name, Organisation, Sektor, Fachrichtung, Ort und dezenten Schnellaktionen.
 - Stammdaten, Kontaktwege, Themen, Notizen, Quelle sowie `Bild & Quelle` erscheinen im Lesemodus als kompakte Zeilen oder Chips.
-- Vollstaendige Personenprofile nutzen eigene Routen wie `#person/contact/<id>`, `#person/expert/<id>` und `#person/stakeholder/<id>`. Tabellen- und Kartenkontexte duerfen auf Desktop vorher eine kompakte Vorschau zeigen.
+- Vollstaendige Personenprofile nutzen eigene Routen wie `#person/contact/<id>`, `#person/expert/<id>` und `#person/stakeholder/<id>`. Vollstaendige Organisationsprofile nutzen `#organization/care/<id>`, `#organization/expert/<id>` und `#organization/stakeholder/<id>`. Tabellen- und Kartenkontexte duerfen auf Desktop vorher eine kompakte Vorschau zeigen.
 - Keine alten Fact-Card-Muster fuer einzelne Felder; Profilsektionen nutzen flache Cards mit Zeilenstruktur.
 - Kontaktbilder nutzen zentrale Avatar-Klassen: `.avatar`, `.avatar-sm`, `.avatar-md`, `.avatar-lg`, `.avatar-fallback`, `.contact-image`.
 - Kontaktbilder muessen `object-fit: cover` und `object-position: center` nutzen. Bei fehlender oder kaputter URL erscheint ein Initialen-Fallback.
