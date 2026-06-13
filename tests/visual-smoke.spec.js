@@ -550,7 +550,7 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator("#person-profile-body #detail-overview")).toBeVisible();
   await expect(page.locator("#expert-detail-overview")).toHaveCount(0);
   await expect(page.locator("#person-profile-body .detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
-  await page.locator("#person-profile-close").click();
+  await page.locator("#person-profile-body [data-person-profile-back]").click();
 
   await page.locator('#expert-mode-actions [data-expert-mode="organizations"]').click();
   await expect(page.locator("#expert-organization-list .row").first()).toBeVisible();
@@ -593,7 +593,7 @@ test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async (
   await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"] .experts-mode-count')).toHaveText("1");
   await expect(page.locator("#new-expert-contact-button")).toBeHidden();
   await expect(page.locator("#new-expert-organization-button")).toBeHidden();
-  await page.locator("#person-profile-close").click();
+  await page.locator("#person-profile-body [data-person-profile-back]").click();
   await expect(page.locator("#new-expert-contact-button")).toBeVisible();
   await expect(page.locator("#new-expert-organization-button")).toBeHidden();
 
@@ -725,6 +725,8 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
   await expect(page).toHaveURL(/#person\/contact\//);
   await expect(page.locator("#person-profile-body .detail-profile")).toBeVisible();
   await expect(page.locator("#person-profile-body .detail-tabs")).toBeVisible();
+  await expect(page.locator("#person-profile-body [data-person-profile-back]")).toBeVisible();
+  await expect(page.locator("#person-profile-body #detail-contactways")).toBeHidden();
   await expect(page.locator("#person-profile-body .owner-summary-list").first()).toBeVisible();
 
   await attachScreenshot(page, testInfo, "kontaktprofil");
@@ -737,6 +739,7 @@ test("Kontaktprofil: direkter Deeplink rendert Profilseite", async ({ page }) =>
   await expect(page).toHaveURL(/#person\/contact\/demo-contact-01$/);
   await expect(page.locator("#person-profile-body .detail-profile h3")).toBeVisible();
   await expect(page.locator("#person-profile-body #detail-overview")).toBeVisible();
+  await expect(page.locator(".app-shell[data-active-view='personProfile'] .workspace-header")).toBeHidden();
   await expect(page.locator("#search")).toBeHidden();
 });
 
@@ -751,7 +754,7 @@ test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ pag
     await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
   }
   if (isMobile) {
-    await page.locator("#person-profile-close").click();
+    await page.locator("#person-profile-body [data-person-profile-back]").click();
   }
   await page.locator('button[data-care-mode="organizations"]').click();
   await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
@@ -788,6 +791,7 @@ test("Kontaktprofil: Notizen als Chat pflegen", async ({ page }, testInfo) => {
   const profile = page.locator("#person-profile-body");
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await profile.locator(".detail-tab").filter({ hasText: "Notizen" }).click();
+  await expect(profile.locator("#detail-overview")).toBeHidden();
   await expect(profile.locator("#contact-notes-composer")).toBeVisible();
 
   await profile.locator("#contact-notes-message").fill("Testnotiz aus dem Kontakt-Visualtest");
@@ -819,6 +823,7 @@ test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }, 
   const profile = page.locator("#person-profile-body");
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await profile.locator(".detail-tab").filter({ hasText: "Notizen" }).click();
+  await expect(profile.locator("#detail-overview")).toBeHidden();
 
   await expect(profile.locator("#detail-notes .format-chat-message").first()).toBeVisible();
   await expect(profile.locator("#detail-notes .format-chat-message").first()).toContainText("Bisherige Notiz");
@@ -1100,7 +1105,7 @@ test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page })
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
 });
 
-test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich", async ({ page }, testInfo) => {
+test("Stakeholder: KVn, Vorstände und Karte rendern im gemeinsamen Arbeitsbereich", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
@@ -1117,13 +1122,7 @@ test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich
   await expect(page.getByRole("searchbox", { name: "Kassenärztliche Vereinigungen suchen..." })).toBeVisible();
   const isDesktop = testInfo.project.name.includes("desktop");
   if (isDesktop) {
-    await expect(page.locator("#columns-button")).toBeVisible();
-    await page.locator("#columns-button").click();
-    await expect(page.locator("#column-options")).toContainText("Mitgliederzahl");
-    await expect(page.locator("#column-options")).not.toContainText("Quelle");
-    await expect(page.locator("#column-options")).not.toContainText("Website");
-    await expect(page.locator("#column-options")).not.toContainText("Bundesland");
-    await page.locator("#columns-button").click();
+    await expect(page.locator("#columns-button")).toBeHidden();
     await page.locator('[data-stakeholder-organization-sort="memberCount"]').click();
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Bayerns");
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("30.984");
@@ -1139,6 +1138,11 @@ test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich
   await expect(page.locator("#stakeholder-organization-overview")).toContainText("Mitgliederzahl");
   await expect(page.locator("#stakeholder-organization-overview")).toContainText(expectedDetailMemberCount);
   await expect(page.locator("#stakeholder-organization-overview")).toContainText(expectedDetailOrganization);
+  await expect(page.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Stakeholder-Typ" })).toHaveCount(0);
+  await expect(page.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Organisationstyp" })).toHaveCount(0);
+  await expect(page.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Bezugsgröße" })).toHaveCount(0);
+  await expect(page.locator("#stakeholder-organization-overview .detail-line__label", { hasText: "Zugeordnete Personen" })).toHaveCount(0);
+  await expect(page.locator("#stakeholder-organization-overview .stakeholder-member-info")).toBeVisible();
   await expect(page.locator("#detail-drawer .organization-profile-logo")).toBeVisible();
   await page.locator('[data-detail-tab="contact"]').click();
   await expect(page.locator("#stakeholder-organization-contact")).toContainText(expectedDetailWebsite);
@@ -1153,8 +1157,9 @@ test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich
   await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
 
   await page.locator('button[data-stakeholder-mode="people"]').click();
+  await expect(page.locator('button[data-stakeholder-mode="people"]')).toContainText("Vorstände");
   await expect(page.locator("#stakeholder-people-table")).toBeVisible();
-  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("43 Personen");
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("43 Vorständen");
   await expect(page.locator("#stakeholder-people-table-head")).not.toContainText("Gremium");
   await expect(page.locator("#stakeholder-people-table-head")).not.toContainText("Quelle");
   await expect(page.locator("#stakeholder-people-list")).toContainText("KV Westfalen-Lippe");
@@ -1167,12 +1172,13 @@ test("Stakeholder: KVn, Personen und Karte rendern im gemeinsamen Arbeitsbereich
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#person\/stakeholder\//);
   await expect(page.locator("#person-profile-body #stakeholder-person-overview")).toBeVisible();
-  await page.locator("#person-profile-close").click();
+  await expect(page.locator("#person-profile-body #stakeholder-person-contact")).toBeHidden();
+  await page.locator("#person-profile-body [data-person-profile-back]").click();
   await expect(page.locator('[data-view-panel="stakeholders"]')).toBeVisible();
 
   await page.locator('button[data-stakeholder-mode="map"]').click();
   await expect(page.locator("#stakeholder-map-panel")).toBeVisible();
-  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("43 Personen");
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("43 Vorstände");
   await page.evaluate(() => {
     window.postMessage({ type: "versorgungs-kompass-open-detail", realm: "stakeholders", id: "kv-baden-wuerttemberg-karsten-braun" }, "*");
   });
@@ -1268,7 +1274,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#person\/contact\/demo-contact-01$/);
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "personProfile");
-  await page.locator("#person-profile-close").click();
+  await page.locator("#person-profile-body [data-person-profile-back]").click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "formats");
   await expect(page.locator(".format-diversity-board")).toHaveCount(0);
   await page.locator('[data-format-tab="invitationStatus"]').click();

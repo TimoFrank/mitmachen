@@ -3275,6 +3275,11 @@
         min-width: 1180px;
       }
 
+      .stakeholder-organizations-table,
+      .stakeholder-people-table {
+        min-width: 0;
+      }
+
       .thead,
       .row {
         display: grid;
@@ -6954,6 +6959,29 @@
       .dashboard-info:focus-within .dashboard-info__popup {
         opacity: 1;
         transform: translateY(0);
+      }
+
+      .stakeholder-member-value {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .dashboard-info.stakeholder-member-info {
+        display: inline-grid;
+      }
+
+      .stakeholder-member-info .dashboard-info__popup {
+        right: auto;
+        left: 50%;
+        width: min(300px, 76vw);
+        transform: translate(-50%, -4px);
+      }
+
+      .stakeholder-member-info:hover .dashboard-info__popup,
+      .stakeholder-member-info:focus-within .dashboard-info__popup {
+        transform: translate(-50%, 0);
       }
 
       .card-menu-dot {
@@ -12639,12 +12667,21 @@
       }
 
       .organization-logo--stakeholder.organization-logo--sm {
-        width: 74px;
-        height: 42px;
+        width: 54px;
+        height: 38px;
       }
 
       .organization-logo--stakeholder.organization-logo--lg {
         width: 124px;
+      }
+
+      .organization-logo--stakeholder.organization-logo--kv-hessen.organization-logo--sm {
+        width: 42px;
+        height: 42px;
+      }
+
+      .organization-logo--stakeholder.organization-logo--kv-hessen.organization-logo--lg {
+        width: 76px;
       }
 
       .organization-logo img,
@@ -12660,6 +12697,10 @@
 
       .organization-logo--stakeholder img {
         padding: 4px;
+      }
+
+      .organization-logo--kv-hessen img {
+        padding: 2px;
       }
 
       .organization-logo--image {
@@ -13718,6 +13759,10 @@
         display: none;
       }
 
+      .app-shell[data-active-view="personProfile"] .workspace-header {
+        display: none;
+      }
+
       .app-shell[data-active-view="map"] .filter-toolbar {
         display: none;
       }
@@ -13746,14 +13791,7 @@
         width: min(1040px, 100%);
         margin: 0 auto;
         display: grid;
-        gap: 14px;
-      }
-
-      .person-profile-nav {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+        gap: 0;
         min-width: 0;
       }
 
@@ -13784,10 +13822,6 @@
 
       .person-profile-body .detail-profile {
         gap: 16px;
-      }
-
-      .person-profile-body .detail-tab-panel {
-        scroll-margin-top: 86px;
       }
 
       .detail-preview {
@@ -19263,7 +19297,7 @@
                 <span class="experts-mode-count">0</span>
               </button>
               <button class="settings-tab-button" type="button" role="tab" data-stakeholder-mode="people" aria-selected="false" aria-controls="stakeholder-people-table">
-                <span class="experts-mode-label">Personen </span>
+                <span class="experts-mode-label">Vorstände </span>
                 <span class="experts-mode-count">0</span>
               </button>
               <button class="settings-tab-button" type="button" role="tab" data-stakeholder-mode="map" aria-selected="false" aria-controls="stakeholder-map-panel">
@@ -19630,7 +19664,7 @@
                   <div class="thead" id="stakeholder-organizations-table-head"></div>
                   <div id="stakeholder-organization-list"></div>
                 </section>
-                <section class="table contacts-table stakeholder-people-table" id="stakeholder-people-table" aria-label="Stakeholder-Personen" data-stakeholder-table="people" role="tabpanel" hidden>
+                <section class="table contacts-table stakeholder-people-table" id="stakeholder-people-table" aria-label="Stakeholder-Vorstände" data-stakeholder-table="people" role="tabpanel" hidden>
                   <div class="thead" id="stakeholder-people-table-head"></div>
                   <div id="stakeholder-people-list"></div>
                 </section>
@@ -20260,10 +20294,6 @@
 
     <section class="view-panel person-profile-page" id="person-profile-page" data-view-panel="personProfile" aria-hidden="true">
       <div class="person-profile-shell">
-        <div class="person-profile-nav">
-          <button class="action-button" type="button" id="person-profile-back">Zurück</button>
-          <button class="action-button" type="button" id="person-profile-close">Liste öffnen</button>
-        </div>
         <div class="person-profile-body" id="person-profile-body" aria-live="polite">
           <section class="detail-panel">
             <div class="detail-content">
@@ -21591,18 +21621,18 @@
       );
       const defaultStakeholderOrganizationColumnKeys = ["organization", "location", "memberCount", "people"];
       const stakeholderOrganizationTableColumns = [
-        { key: "organization", label: "Organisation", template: "minmax(310px, 1.45fr)", required: true },
-        { key: "location", label: "Sitz", template: "minmax(150px, 0.66fr)" },
-        { key: "memberCount", label: "Mitgliederzahl", template: "minmax(142px, 0.62fr)" },
-        { key: "people", label: "Personen", template: "minmax(118px, 0.52fr)" }
+        { key: "organization", label: "Organisation", template: "minmax(210px, 1.05fr)", required: true },
+        { key: "location", label: "Sitz", template: "minmax(112px, 0.48fr)" },
+        { key: "memberCount", label: "Mitgliederzahl", template: "minmax(116px, 0.46fr)" },
+        { key: "people", label: "Vorstände", template: "minmax(96px, 0.36fr)" }
       ];
       const defaultStakeholderPeopleColumnKeys = ["name", "organization", "role", "location"];
       const stakeholderPeopleTableColumns = [
-        { key: "name", label: "Name", template: "minmax(220px, 1.1fr)", required: true },
-        { key: "organization", label: "Organisation", template: "minmax(210px, 1.0fr)" },
-        { key: "role", label: "Rolle", template: "minmax(210px, 0.95fr)" },
-        { key: "location", label: "Ort", template: "minmax(130px, 0.6fr)" },
-        { key: "map", label: "Karte", template: "minmax(145px, 0.64fr)" }
+        { key: "name", label: "Name", template: "minmax(200px, 1.04fr)", required: true },
+        { key: "organization", label: "Organisation", template: "minmax(170px, 0.82fr)" },
+        { key: "role", label: "Rolle", template: "minmax(190px, 0.88fr)" },
+        { key: "location", label: "Ort", template: "minmax(112px, 0.5fr)" },
+        { key: "map", label: "Karte", template: "minmax(126px, 0.56fr)" }
       ];
       const organizationContactRangeFilterOptions = [
         { value: "with", label: "Mit Kontakten" },
@@ -21890,8 +21920,6 @@
       const aboutVersionList = document.getElementById("about-version-list");
       const personProfilePage = document.getElementById("person-profile-page");
       const personProfileBody = document.getElementById("person-profile-body");
-      const personProfileBack = document.getElementById("person-profile-back");
-      const personProfileClose = document.getElementById("person-profile-close");
       const detailDrawer = document.getElementById("detail-drawer");
       const detailPanel = document.getElementById("detail-panel");
       const detailOverlay = document.getElementById("detail-overlay");
@@ -25898,7 +25926,8 @@
       function organizationLogoMarkup(organization, size = "sm", className = "") {
         const logo = organizationLogoCandidate(organization) || organizationLogoForName(organization?.name);
         const sizeClass = size === "lg" ? "organization-logo--lg" : "organization-logo--sm";
-        const classes = `organization-logo ${sizeClass} ${className}`.trim();
+        const organizationClass = normalizeClassPart(organization?.id || "");
+        const classes = `organization-logo ${sizeClass} ${organizationClass ? `organization-logo--${organizationClass}` : ""} ${className}`.trim();
         const initials = organizationInitials(organization?.name);
         const fallback = `<span class="${classes}" aria-hidden="true">${escapeHtml(initials)}</span>`;
         if (!logo) return fallback;
@@ -26814,7 +26843,7 @@
         stakeholderModeButtons.forEach((button) => {
           const mode = button.dataset.stakeholderMode || "organizations";
           const active = mode === activeStakeholderMode;
-          const label = mode === "map" ? "Karte" : mode === "people" ? "Personen" : "KVn";
+          const label = mode === "map" ? "Karte" : mode === "people" ? "Vorstände" : "KVn";
           const count = mode === "map" ? mapCount : mode === "people" ? peopleCount : organizationCount;
           button.replaceChildren();
           const labelNode = document.createElement("span");
@@ -26850,6 +26879,18 @@
         return label || updatedAt || "";
       }
 
+      function stakeholderMemberCountDetailMarkup(organization = {}) {
+        const count = stakeholderMemberCountLabel(organization);
+        const scope = meaningfulOrEmpty(organization.memberCountScope || organization.member_count_scope);
+        if (!scope) return escapeHtml(count);
+        return `
+          <span class="stakeholder-member-value">
+            <span>${escapeHtml(count)}</span>
+            <span class="dashboard-info stakeholder-member-info" tabindex="0" aria-label="Bezugsgröße der Mitgliederzahl">i<span class="dashboard-info__popup" role="tooltip">${escapeHtml(scope)}</span></span>
+          </span>
+        `;
+      }
+
       function stakeholderOrganizationTableCellMarkup(organization, key) {
         const peopleCount = stakeholderOrganizationPeople(organization).length;
         if (key === "organization") {
@@ -26864,7 +26905,7 @@
         }
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderOrganizationLocation(organization) || "-")}</div>`;
         if (key === "memberCount") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderMemberCountLabel(organization))}</div>`;
-        if (key === "people") return `<button class="organization-contact-link" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Person" : "Personen"}</button>`;
+        if (key === "people") return `<button class="organization-contact-link" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Vorstand" : "Vorstände"}</button>`;
         if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.source || "-")}</div>`;
         return "";
       }
@@ -26941,7 +26982,7 @@
                   <div class="organization-mobile-meta">
                     <span class="organization-mobile-state">${escapeHtml(stakeholderOrganizationLocation(organization) || organization.state || "-")}</span>
                     <span class="organization-mobile-state">${escapeHtml(stakeholderMemberCountLabel(organization))} Mitglieder</span>
-                    <button class="organization-contact-link organization-mobile-count" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Person" : "Personen"}</button>
+                    <button class="organization-contact-link organization-mobile-count" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${peopleCount} ${peopleCount === 1 ? "Vorstand" : "Vorstände"}</button>
                   </div>
                 </article>
               `;
@@ -27036,13 +27077,13 @@
         renderColumnMenu();
         if (!items.length) {
           renderStakeholderPeopleTableHead(columns);
-          stakeholderPeopleList.innerHTML = `<div class="empty">Noch keine Personen für diesen Stakeholder-Typ importiert.</div>`;
-          stakeholderPaginationMeta.textContent = "0-0 von 0 Personen";
+          stakeholderPeopleList.innerHTML = `<div class="empty">Noch keine Vorstände für diesen Stakeholder-Typ importiert.</div>`;
+          stakeholderPaginationMeta.textContent = "0-0 von 0 Vorständen";
           stakeholderPagination.innerHTML = "";
           return;
         }
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
-        stakeholderPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Personen`;
+        stakeholderPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Vorständen`;
         if (isMobileLayout()) {
           stakeholderPeopleTableHead.innerHTML = "";
           stakeholderPeopleList.innerHTML = `<div class="mobile-contact-list">${pageItems
@@ -27116,15 +27157,15 @@
             type: "versorgungs-kompass-map-data",
             context: "stakeholders",
             labels: {
-              itemSingular: "Person",
-              itemPlural: "Personen",
+              itemSingular: "Vorstand",
+              itemPlural: "Vorstände",
               listTitle: "KV-Vorstände",
-              searchPlaceholder: "Person, KV oder Bundesland suchen",
+              searchPlaceholder: "Vorstand, KV oder Bundesland suchen",
               categoryLabel: "Stakeholder",
               categoryAllLabel: "Alle",
-              openDetailLabel: "Person öffnen",
+              openDetailLabel: "Vorstand öffnen",
               previewKicker: "Stakeholder-Vorschau",
-              emptyTitle: "Keine Personen auf der Karte"
+              emptyTitle: "Keine Vorstände auf der Karte"
             },
             showOwnerFilter: false,
             contacts: items.map((person) => ({
@@ -27163,7 +27204,7 @@
       function renderStakeholderMap(items = stakeholderMapPeople()) {
         activeStakeholderMode = "map";
         renderStakeholderTablesVisibility();
-        stakeholderPaginationMeta.textContent = `${items.length} ${items.length === 1 ? "Person" : "Personen"} auf der Karte`;
+        stakeholderPaginationMeta.textContent = `${items.length} ${items.length === 1 ? "Vorstand" : "Vorstände"} auf der Karte`;
         stakeholderPagination.innerHTML = "";
         syncStakeholderMapFrame(items);
       }
@@ -27184,6 +27225,7 @@
         const activeTab = organizationDetailActiveTab || "overview";
         const locationText = stakeholderOrganizationLocation(organization);
         const memberCountSourceLabel = stakeholderMemberCountSourceLabel(organization);
+        const organizationTypeText = organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId);
 
         activeStakeholderOrganizationId = organization.id;
         activeStakeholderPersonId = null;
@@ -27209,7 +27251,7 @@
                   ${organizationLogoMarkup(organization, "lg", "organization-profile-logo organization-logo--stakeholder")}
                   <div class="detail-profile-copy">
                     <h3>${escapeHtml(organization.name)}</h3>
-                    <div class="detail-profile-role">${escapeHtml(organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId))}</div>
+                    <div class="detail-profile-role">${escapeHtml(organizationTypeText)}</div>
                     <div class="detail-profile-subline">${escapeHtml([locationText, organization.state].filter(Boolean).join(" · ") || "Standort nicht dokumentiert")}</div>
                   </div>
                 </div>
@@ -27217,7 +27259,7 @@
 
               <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
                 ${detailTabButton("overview", "Überblick", activeTab)}
-                ${detailTabButton("people", `Personen (${people.length})`, activeTab)}
+                ${detailTabButton("people", `Vorstände (${people.length})`, activeTab)}
                 ${detailTabButton("contact", "Kontakt", activeTab)}
                 ${detailTabButton("notes", "Notizen", activeTab)}
               </div>
@@ -27226,19 +27268,16 @@
                 <h4 class="detail-section-title">Stammdaten</h4>
                 <div class="detail-line-list">
                   ${detailLine("Name", organization.name)}
-                  ${detailLine("Stakeholder-Typ", stakeholderTypeLabel(organization.stakeholderTypeId))}
-                  ${detailLine("Organisationstyp", organization.organizationType)}
+                  ${detailLine("Typ", organizationTypeText)}
                   ${detailLine("Sitz", locationText)}
                   ${detailLine("Bundesland", organization.state)}
-                  ${detailLine("Mitgliederzahl", stakeholderMemberCountLabel(organization))}
-                  ${detailLine("Bezugsgröße", organization.memberCountScope)}
+                  ${detailLineHtml("Mitgliederzahl", stakeholderMemberCountDetailMarkup(organization))}
                   ${detailLine("Quelle", organization.source)}
-                  ${detailLine("Zugeordnete Personen", `${people.length} ${people.length === 1 ? "Person" : "Personen"}`)}
                 </div>
               </section>
 
               <section ${detailPanelAttrs("people", activeTab)} id="stakeholder-organization-people">
-                <h4 class="detail-section-title">Zugeordnete Personen</h4>
+                <h4 class="detail-section-title">Vorstände</h4>
                 <div class="detail-line-list">
                   ${
                     people.length
@@ -27250,12 +27289,12 @@
                                 <td><strong>${escapeHtml(person.name)}</strong></td>
                                 <td>${escapeHtml(person.role || "-")}</td>
                                 <td>${escapeHtml(mapPositionSourceLabel(stakeholderPersonMapPosition(person)?.source || person.mapPositionSource))}</td>
-                                <td><button class="detail-link detail-link--compact" type="button" data-open-stakeholder-org-person="${escapeHtml(person.id)}">Person öffnen</button></td>
+                                <td><button class="detail-link detail-link--compact" type="button" data-open-stakeholder-org-person="${escapeHtml(person.id)}">Vorstand öffnen</button></td>
                               </tr>
                             `).join("")}
                           </tbody>
                         </table></div>`
-                      : `<div class="empty">Dieser KV sind noch keine Personen zugeordnet.</div>`
+                      : `<div class="empty">Dieser KV sind noch keine Vorstände zugeordnet.</div>`
                   }
                 </div>
               </section>
@@ -27313,7 +27352,8 @@
         const currentIndex = currentItems.findIndex((item) => item.id === person.id);
         const mapPosition = stakeholderPersonMapPosition(person);
         if (activeStakeholderPersonId !== person.id) detailActiveTab = "overview";
-        const activeTab = detailActiveTab || "overview";
+        const activeTab = normalizeDetailTab(detailActiveTab || "overview", ["overview", "contact", "themes", "notes"]);
+        detailActiveTab = activeTab;
 
         activeStakeholderPersonId = person.id;
         activeStakeholderOrganizationId = null;
@@ -27327,7 +27367,7 @@
 
         detailPanel.innerHTML = `
           <div class="detail-toolbar">
-            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Personen</div>
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Vorständen</div>
             <div class="detail-toolbar-actions">
               <button class="action-button action-button--primary" type="button" id="stakeholder-person-open-profile">Profil öffnen</button>
               <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
@@ -30175,9 +30215,9 @@
         }
         if (activeView === "stakeholders") {
           if (activeStakeholderMode === "map") {
-            return `${stakeholderMapPeople().length} von ${filteredStakeholderPeople().length} Personen auf der Karte`;
+            return `${stakeholderMapPeople().length} von ${filteredStakeholderPeople().length} Vorständen auf der Karte`;
           }
-          if (activeStakeholderMode === "people") return `${items.length} von ${activeStakeholderPeopleTotal()} Personen`;
+          if (activeStakeholderMode === "people") return `${items.length} von ${activeStakeholderPeopleTotal()} Vorständen`;
           return `${items.length} von ${activeStakeholderOrganizationsTotal()} Organisationen`;
         }
         if (activeView === "formats") return `${items.length} von ${formats.length} Formaten`;
@@ -36085,8 +36125,20 @@
 
       function personKindLabel(kind = activePersonProfile.kind) {
         if (kind === "expert") return "Expertenkreis-Kontakt";
-        if (kind === "stakeholder") return "Stakeholder-Person";
+        if (kind === "stakeholder") return "KV-Vorstand";
         return "Kontakt";
+      }
+
+      function personProfileBackButtonMarkup() {
+        return `<button class="action-button" type="button" data-person-profile-back>Zurück</button>`;
+      }
+
+      function bindPersonProfileBack(root = personProfileBody) {
+        root?.querySelector("[data-person-profile-back]")?.addEventListener("click", () => openPersonProfileParent());
+      }
+
+      function normalizeDetailTab(tab = "overview", allowedTabs = ["overview", "contact", "themes", "notes", "activity"]) {
+        return allowedTabs.includes(tab) ? tab : "overview";
       }
 
       function personProfileDetailPanel() {
@@ -36105,12 +36157,13 @@
         panel.classList.remove("detail-panel--organization", "detail-panel--registration");
         panel.innerHTML = `
           <div class="detail-toolbar">
-            <div class="detail-counter">${escapeHtml(title)}</div>
+            ${personProfileBackButtonMarkup()}
           </div>
           <div class="detail-content">
             <div class="empty">${escapeHtml(message)}</div>
           </div>
         `;
+        bindPersonProfileBack(panel);
       }
 
       async function getPersonRecord(kind, id) {
@@ -36184,15 +36237,19 @@
         const locationText = stakeholderPersonLocation(person);
         const mapPosition = stakeholderPersonMapPosition(person);
         const themes = normalizeThemes(person.themes);
+        const stakeholderProfileTabs = ["overview", "contact", "themes", "notes"];
+        const activeTab = normalizeDetailTab(detailActiveTab, stakeholderProfileTabs);
+        const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
+        detailActiveTab = activeTab;
         activeStakeholderMode = "people";
         activeStakeholderPersonId = person.id;
         activeStakeholderOrganizationId = null;
-        activePersonProfile.title = person.name || "Stakeholder-Person";
+        activePersonProfile.title = person.name || "KV-Vorstand";
         renderViewChrome();
         panel.classList.remove("detail-panel--organization", "detail-panel--registration");
         panel.innerHTML = `
           <div class="detail-toolbar">
-            <div class="detail-counter">Stakeholder-Person</div>
+            ${personProfileBackButtonMarkup()}
           </div>
           <div class="detail-content">
             <div class="detail-profile">
@@ -36209,13 +36266,13 @@
               </section>
 
               <div class="detail-tabs" role="tablist" aria-label="Profilbereiche">
-                <button class="detail-tab is-active" type="button" data-scroll-detail="stakeholder-person-overview">Überblick</button>
-                <button class="detail-tab" type="button" data-scroll-detail="stakeholder-person-contact">Kontakt</button>
-                <button class="detail-tab" type="button" data-scroll-detail="stakeholder-person-themes">Themen</button>
-                <button class="detail-tab" type="button" data-scroll-detail="stakeholder-person-notes">Notizen</button>
+                ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("contact", "Kontakt", activeTab)}
+                ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("notes", "Notizen", activeTab)}
               </div>
 
-              <section class="section-block detail-tab-panel" id="stakeholder-person-overview">
+              <section ${panelAttrs("overview")} id="stakeholder-person-overview">
                 <h4 class="detail-section-title">Stammdaten</h4>
                 <div class="detail-line-list">
                   ${detailLineHtml(
@@ -36233,7 +36290,7 @@
                 </div>
               </section>
 
-              <section class="section-block detail-tab-panel" id="stakeholder-person-contact">
+              <section ${panelAttrs("contact")} id="stakeholder-person-contact">
                 <h4 class="detail-section-title">Kontakt</h4>
                 <div class="detail-line-list">
                   ${detailContactLine("E-Mail", person.email, person.email ? `mailto:${person.email}` : "")}
@@ -36243,14 +36300,14 @@
                 </div>
               </section>
 
-              <section class="section-block detail-tab-panel" id="stakeholder-person-themes">
+              <section ${panelAttrs("themes")} id="stakeholder-person-themes">
                 <h4 class="detail-section-title">Themen${themes.length ? ` (${themes.length})` : ""}</h4>
                 <div class="detail-chip-row">
                   ${themes.length ? themes.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`}
                 </div>
               </section>
 
-              <section class="section-block detail-tab-panel" id="stakeholder-person-notes">
+              <section ${panelAttrs("notes")} id="stakeholder-person-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 ${renderStakeholderNotesThread(person, "person")}
               </section>
@@ -36261,12 +36318,19 @@
           openPersonProfileParent("stakeholders");
           openStakeholderOrganizationDetail(event.currentTarget.dataset.openLinkedStakeholderOrganization, stakeholderOrganizations);
         });
-        panel.querySelectorAll("[data-scroll-detail]").forEach((button) => {
+        panel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
+            detailActiveTab = normalizeDetailTab(button.dataset.detailTab || "overview", stakeholderProfileTabs);
             panel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
-            panel.querySelector(`#${button.dataset.scrollDetail}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+            panel.querySelectorAll("[data-detail-tab]").forEach((tab) => {
+              tab.setAttribute("aria-selected", String(tab === button));
+            });
+            panel.querySelectorAll("[data-detail-panel]").forEach((detailPanelNode) => {
+              detailPanelNode.hidden = detailPanelNode.dataset.detailPanel !== detailActiveTab;
+            });
           });
         });
+        bindPersonProfileBack(panel);
         bindStakeholderNotesThread("person", person, panel);
       }
 
@@ -36302,6 +36366,12 @@
       function openPersonProfile(kind, id, options = {}) {
         const normalizedKind = normalizePersonProfileKind(kind);
         if (!normalizedKind || !id) return;
+        const sameProfile = isPersonProfileActive(normalizedKind, id);
+        if (!sameProfile) {
+          detailActiveTab = "overview";
+          contactEditingNoteId = null;
+          stakeholderEditingNoteKey = "";
+        }
         activePersonProfile = {
           kind: normalizedKind,
           id,
@@ -36340,7 +36410,7 @@
         detailPanel.classList.remove("detail-panel--organization", "detail-panel--registration");
         detailPanel.innerHTML = `
           <div class="detail-toolbar">
-            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Personen</div>
+            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Vorständen</div>
             <div class="detail-toolbar-actions">
               <button class="action-button action-button--primary" type="button" id="stakeholder-person-open-profile">Profil öffnen</button>
               <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
@@ -37263,7 +37333,11 @@
         const portraitMarkup = contactAvatarMarkup(contact, "lg");
         const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
         const normalizedStatus = String(contact.status || "").trim().toLowerCase();
-        const activeTab = detailActiveTab || "overview";
+        const activeTab = normalizeDetailTab(
+          detailActiveTab || "overview",
+          expertScope ? ["overview", "contact", "themes", "links", "notes", "activity"] : ["overview", "contact", "themes", "notes", "activity"]
+        );
+        detailActiveTab = activeTab;
         const statusLabel = normalizedStatus === "archived"
           ? "Archiviert"
           : normalizedStatus && !["active", "aktiv"].includes(normalizedStatus)
@@ -37291,13 +37365,11 @@
         targetPanel.classList.remove("detail-panel--registration");
 
         const currentIndex = currentItems.findIndex((item) => item.id === contact.id);
-        const panelAttrs = (tab) => isProfilePage
-          ? `class="section-block detail-tab-panel" data-detail-panel="${escapeHtml(tab)}"`
-          : detailPanelAttrs(tab, activeTab);
+        const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
 
         targetPanel.innerHTML = `
           <div class="detail-toolbar">
-            <div class="detail-counter">${isProfilePage ? escapeHtml(personKindLabel(expertScope ? "expert" : "contact")) : `${currentIndex + 1} von ${currentItems.length} Kontakten`}</div>
+            ${isProfilePage ? personProfileBackButtonMarkup() : `<div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>`}
             <div class="detail-toolbar-actions">
               ${isPreview ? `<button class="action-button action-button--primary" type="button" id="detail-open-profile">Profil öffnen</button>` : ""}
               ${
@@ -37477,6 +37549,7 @@
         if (!expertScope) loadContactHistory(contact.id);
 
         targetPanel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
+        if (isProfilePage) bindPersonProfileBack(targetPanel);
         targetPanel.querySelector("#detail-open-profile")?.addEventListener("click", () => {
           openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: expertScope ? "experts" : "contacts" });
         });
@@ -37587,17 +37660,10 @@
           button.addEventListener("click", () => {
             detailActiveTab = button.dataset.detailTab || "overview";
             if (isProfilePage) {
-              targetPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
-              targetPanel.querySelector(`[data-detail-panel="${CSS.escape(detailActiveTab)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              rerenderDetail();
               return;
             }
             rerenderDetail();
-          });
-        });
-        [...targetPanel.querySelectorAll("[data-scroll-detail]")].forEach((button) => {
-          button.addEventListener("click", () => {
-            targetPanel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
-            targetPanel.querySelector(`#${button.dataset.scrollDetail}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
           });
         });
       }
@@ -38006,7 +38072,7 @@
           : isStakeholdersView
             ? isStakeholderOrganizationsMode
               ? "Kassenärztliche Vereinigungen suchen..."
-              : "KV-Personen, Organisation oder Bundesland suchen..."
+              : "KV-Vorstände, Organisation oder Bundesland suchen..."
           : isFormatsView
             ? "Formate suchen..."
           : isActivitiesView
@@ -38045,7 +38111,7 @@
         if (contactDuplicatesWorkspace) contactDuplicatesWorkspace.hidden = !isContactsDuplicatesMode;
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
-        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || (isStakeholdersView && !isStakeholderMapMode)) || isAnyDuplicateMode;
+        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isAnyDuplicateMode;
         if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isPersonProfileView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
         if (filterToolbar) filterToolbar.hidden = isFormatsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isPersonProfileView;
@@ -38053,7 +38119,7 @@
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
-          else if (isStakeholdersView) stakeholderCommandActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isStakeholdersView) stakeholderCommandActions?.append(filterToolbar, viewSelectShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isFormatsView || isActivitiesView || isNotificationsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
@@ -38387,14 +38453,6 @@
           renderViewChrome();
         });
       });
-      personProfileBack?.addEventListener("click", () => {
-        if (window.history.length > 1) {
-          window.history.back();
-          return;
-        }
-        openPersonProfileParent();
-      });
-      personProfileClose?.addEventListener("click", () => openPersonProfileParent());
       sidebarAboutButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
@@ -39196,6 +39254,9 @@
         const hashView = String(window.location.hash || "").replace(/^#/, "");
         const personRoute = parsePersonProfileRoute(hashView);
         if (personRoute) {
+          detailActiveTab = "overview";
+          contactEditingNoteId = null;
+          stakeholderEditingNoteKey = "";
           activePersonProfile = {
             kind: personRoute.kind,
             id: personRoute.id,
