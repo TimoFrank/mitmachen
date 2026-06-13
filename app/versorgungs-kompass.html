@@ -3779,10 +3779,10 @@
         min-height: 26px;
         max-width: 100%;
         padding: 0 9px;
-        border: 1px solid #dce4f6;
+        border: 1px solid var(--sector-border, #dce4f6);
         border-radius: 999px;
-        background: #f8faff;
-        color: #3f4f80;
+        background: var(--sector-bg, #f8faff);
+        color: var(--sector-color, #3f4f80);
         font-size: 0.76rem;
         font-weight: 750;
         white-space: nowrap;
@@ -12945,9 +12945,9 @@
       }
 
       .contact-sector-pill {
-        background: #eef5ff;
-        color: #155fe4;
-        border-color: #bfd3ff;
+        background: var(--sector-bg, #eef5ff);
+        color: var(--sector-color, #155fe4);
+        border-color: var(--sector-border, #bfd3ff);
       }
 
       .contact-sector-pill--praxis {
@@ -21046,6 +21046,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../data/supabase-config.js"></script>
+    <script src="../data/sector-registry.js"></script>
     <script src="../data/data-service.js"></script>
     <script src="../data/demo-data.js"></script>
     <script src="../data/versorgungs-kompass-data.js"></script>
@@ -21059,14 +21060,15 @@
         "avatar--network",
         "avatar--study"
       ];
-      const defaultCategories = [
-        "Praxis",
-        "Krankenhaus",
-        "Apotheke",
-        "Pflege",
-        "Krankenkasse",
-        "Notfallversorgung"
-      ];
+      const sectorRegistry = window.VersorgungsCompassSectors || {
+        labels: () => ["Praxis", "Krankenhaus", "Apotheke", "Pflege", "Krankenkasse", "Rettungsdienst"],
+        normalizeSector: (value, fallback = "Praxis") => String(value || "").trim() || fallback,
+        isKnownSector: (value) => Boolean(String(value || "").trim()),
+        colorFor: () => "#64748b",
+        fallbackColor: "#64748b"
+      };
+      const defaultCategories = sectorRegistry.labels();
+      const coverageCategories = sectorRegistry.labels({ coverageOnly: true });
       const defaultLocations = [
         "10117 Berlin",
         "35037 Marburg",
@@ -21597,7 +21599,14 @@
         Apotheke: "AP",
         Pflege: "PF",
         Krankenkasse: "KK",
-        Notfallversorgung: "NV"
+        Labor: "LA",
+        Therapie: "TH",
+        Hebammen: "HE",
+        Rettungsdienst: "RD",
+        Reha: "RE",
+        Sozialdienst: "SD",
+        Hilfsmittel: "HM",
+        "ÖGD": "ÖG"
       };
       const roleBadgeClasses = {
         Praxis: "role-badge role--versorgung",
@@ -21605,16 +21614,16 @@
         Krankenhaus: "role-badge role--institution",
         Pflege: "role-badge role--netzwerk",
         Krankenkasse: "role-badge role--methodik",
-        Notfallversorgung: "role-badge role--versorgung"
+        Labor: "role-badge role--institution",
+        Therapie: "role-badge role--netzwerk",
+        Hebammen: "role-badge role--versorgung",
+        Rettungsdienst: "role-badge role--versorgung",
+        Reha: "role-badge role--institution",
+        Sozialdienst: "role-badge role--netzwerk",
+        Hilfsmittel: "role-badge role--methodik",
+        "ÖGD": "role-badge role--institution"
       };
-      const categoryChartColors = {
-        Praxis: "#2788f6",
-        Krankenhaus: "#ff7f3f",
-        Apotheke: "#09a63e",
-        Pflege: "#9b46df",
-        Krankenkasse: "#6677cc",
-        Notfallversorgung: "#e43d30"
-      };
+      const categoryChartColors = Object.fromEntries(defaultCategories.map((category) => [category, sectorRegistry.colorFor(category)]));
       const priorityChartColors = {
         Hoch: "#e43d30",
         Mittel: "#ff9f1c",
@@ -21713,7 +21722,11 @@
         Apotheke: 24,
         Pflege: 28,
         Krankenkasse: 16,
-        Notfallversorgung: 12
+        Rettungsdienst: 12,
+        Labor: 18,
+        Therapie: 22,
+        Hebammen: 10,
+        Reha: 14
       };
       const themeOptions = [
         "Notfallversorgung",
@@ -22557,6 +22570,7 @@
       let activeExpertMode = "contacts";
       let activeStakeholderMode = "organizations";
       let activeStakeholderTypeId = "kv";
+      let loadedStakeholderPeopleTypeIds = new Set();
       let stakeholderOrganizationSort = { key: "organization", direction: "asc" };
       let activeExpertMatchDirection = "careToExpert";
       let activeCareDuplicateView = "";
@@ -23027,14 +23041,7 @@
       }
 
       function normalizeCategory(value) {
-        const category = String(value || "").trim();
-        if (category === "Wissenschaftliches Netzwerk") return "Praxis";
-        if (category === "Berufliches Netzwerk") return "Praxis";
-        if (category === "Versorgungspraxis") return "Praxis";
-        if (category === "Patientenperspektive") return "Pflege";
-        if (category === "Methodik") return "Krankenhaus";
-        if (category === "Institution") return "Krankenhaus";
-        return category || "Praxis";
+        return sectorRegistry.normalizeSector(value, "Praxis");
       }
 
       function normalizeSpecialty(value) {
@@ -25212,8 +25219,9 @@
           .map((part) => part[0])
           .join("")
           .toUpperCase();
-        const category = normalizeCategory(entry.category || entry.sector || (defaultCategories.includes(rawRole) ? rawRole : "") || defaultCategories[index % defaultCategories.length]);
-        const contactRole = entry.contactRole || entry.contact_role || entry.functionRole || entry.function_role || entry.jobTitle || entry.job_title || entry.position || (rawRole && !defaultCategories.includes(rawRole) ? rawRole : "");
+        const roleSector = sectorRegistry.isKnownSector(rawRole) ? normalizeCategory(rawRole) : "";
+        const category = normalizeCategory(entry.category || entry.sector || roleSector || defaultCategories[index % defaultCategories.length]);
+        const contactRole = entry.contactRole || entry.contact_role || entry.functionRole || entry.function_role || entry.jobTitle || entry.job_title || entry.position || (rawRole && !roleSector ? rawRole : "");
         const priority = entry.priority || priorityCycle[index % priorityCycle.length];
         const latitude = Number.parseFloat(entry.lat ?? entry.latitude ?? "");
         const longitude = Number.parseFloat(entry.lon ?? entry.longitude ?? "");
@@ -26442,13 +26450,35 @@
         return /^(?:\.{0,2}\/|\/)(?!\/)/.test(normalized);
       }
 
+      function isPublicAssetPath(value) {
+        const normalized = String(value || "").trim().replace(/^\/+/, "").replace(/^(?:\.\.\/|\.\/)+/, "");
+        return normalized.startsWith("public/") || normalized.startsWith("stakeholder-logos/");
+      }
+
+      function publicAssetBasePath() {
+        return /\/app\/[^/]*$/i.test(window.location.pathname || "") ? "../public/" : "./public/";
+      }
+
+      function resolvePublicAssetUrl(value = "") {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
+        const normalized = raw
+          .replace(/^\/+/, "")
+          .replace(/^(?:\.\.\/|\.\/)+/, "");
+        const publicIndex = normalized.indexOf("public/");
+        if (publicIndex >= 0) return `${publicAssetBasePath()}${normalized.slice(publicIndex + "public/".length)}`;
+        if (normalized.startsWith("stakeholder-logos/")) return `${publicAssetBasePath()}${normalized}`;
+        return raw;
+      }
+
       function organizationLogoCandidate(organization) {
         const directLogo = organization?.logoUrl || organization?.logo_url || organization?.image || organization?.image_url;
-        if (hasMeaningfulValue(directLogo) && (isValidOptionalUrl(directLogo) || isRelativeAssetPath(directLogo))) {
+        if (hasMeaningfulValue(directLogo) && (isValidOptionalUrl(directLogo) || isRelativeAssetPath(directLogo) || isPublicAssetPath(directLogo))) {
           return {
-            url: directLogo,
+            url: resolvePublicAssetUrl(directLogo),
             fallbackUrl: "",
-            sourceUrl: organization.logoSourceUrl || organization.logo_source_url || directLogo,
+            sourceUrl: organization.logoSourceUrl || organization.logo_source_url || (isValidOptionalUrl(directLogo) ? directLogo : ""),
             sourceLabel: organization.logoSourceLabel || organization.logo_source_label || "Organisationslogo"
           };
         }
@@ -27290,6 +27320,7 @@
         const normalized = normalizeOrganizationName(organization?.name);
         return stakeholderPeople
           .filter((person) => person.status !== "archived")
+          .filter((person) => !organization?.stakeholderTypeId || person.stakeholderTypeId === organization.stakeholderTypeId)
           .filter((person) => {
             if (organization?.id && person.organizationId === organization.id) return true;
             return normalized && normalizeOrganizationName(person.organization) === normalized;
@@ -27830,13 +27861,17 @@
         const people = stakeholderOrganizationPeople(organization);
         const currentIndex = currentItems.findIndex((item) => item.id === organization.id);
         if (activeStakeholderOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
-        const activeTab = normalizeDetailTab(organizationDetailActiveTab || "overview", ["overview", "people", "contact", "notes"]);
+        const stakeholderOrganizationTabs = ["overview", "people", "themes", "notes", "activity"];
+        const activeTab = normalizeDetailTab(organizationDetailActiveTab || "overview", stakeholderOrganizationTabs);
         organizationDetailActiveTab = activeTab;
         const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
         const locationText = stakeholderOrganizationLocation(organization);
         const memberCountSourceLabel = stakeholderMemberCountSourceLabel(organization);
         const config = stakeholderTypeConfig(organization.stakeholderTypeId);
         const organizationTypeText = organization.organizationType || stakeholderTypeLabel(organization.stakeholderTypeId);
+        const peopleThemes = [...new Set(people.flatMap((person) => normalizeThemes(person.themes)))];
+        const fallbackThemes = [organizationTypeText, stakeholderTypeLabel(organization.stakeholderTypeId)].filter(Boolean);
+        const themeTags = peopleThemes.length ? peopleThemes : fallbackThemes;
 
         activeStakeholderOrganizationId = organization.id;
         activeStakeholderPersonId = null;
@@ -27873,8 +27908,9 @@
               <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
                 ${detailTabButton("overview", "Überblick", activeTab)}
                 ${detailTabButton("people", `${config.peopleSectionTitle} (${people.length})`, activeTab)}
-                ${detailTabButton("contact", "Kontakt", activeTab)}
+                ${detailTabButton("themes", "Themen", activeTab)}
                 ${detailTabButton("notes", "Notizen", activeTab)}
+                ${detailTabButton("activity", "Aktivitäten", activeTab)}
               </div>
 
               <section ${panelAttrs("overview")} id="stakeholder-organization-overview">
@@ -27885,6 +27921,10 @@
                   ${detailLine("Sitz", locationText)}
                   ${detailLine("Bundesland", organization.state)}
                   ${detailLineHtml("Mitgliederzahl", stakeholderMemberCountDetailMarkup(organization))}
+                  ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
+                  ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
+                  ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
+                  ${detailContactLine("Quelle Mitgliederzahl", memberCountSourceLabel, organization.memberCountSourceUrl)}
                   ${detailLine("Quelle", organization.source)}
                 </div>
               </section>
@@ -27912,19 +27952,20 @@
                 </div>
               </section>
 
-              <section ${panelAttrs("contact")} id="stakeholder-organization-contact">
-                <h4 class="detail-section-title">Kontaktwege</h4>
-                <div class="detail-line-list">
-                  ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
-                  ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
-                  ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
-                  ${detailContactLine("Quelle Mitgliederzahl", memberCountSourceLabel, organization.memberCountSourceUrl)}
+              <section ${panelAttrs("themes")} id="stakeholder-organization-themes">
+                <h4 class="detail-section-title">Themen${themeTags.length ? ` (${themeTags.length})` : ""}</h4>
+                <div class="detail-chip-row">
+                  ${themeTags.length ? themeTags.slice(0, 12).map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`}
                 </div>
               </section>
 
               <section ${panelAttrs("notes")} id="stakeholder-organization-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 ${renderStakeholderNotesThread(organization, "organization")}
+              </section>
+
+              <section ${panelAttrs("activity")} id="stakeholder-organization-activity">
+                <div class="history-empty">Aktivitäten werden später aus Stakeholder-Kontakten, Notizen und Importen aufgebaut.</div>
               </section>
             </div>
           </div>
@@ -27949,7 +27990,7 @@
         });
         targetPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
-            organizationDetailActiveTab = normalizeDetailTab(button.dataset.detailTab || "overview", ["overview", "people", "contact", "notes"]);
+            organizationDetailActiveTab = normalizeDetailTab(button.dataset.detailTab || "overview", stakeholderOrganizationTabs);
             rerenderDetail();
           });
         });
@@ -31659,25 +31700,19 @@
       }
 
       function renderDiversityChips(entries, getter, { sector = false } = {}) {
-        const counts = countByValue(entries.map(({ contact }) => contact), getter);
+        const counts = countByValue(entries.map(({ contact }) => contact), (contact) => {
+          const value = getter(contact);
+          return sector && meaningfulOrEmpty(value) ? normalizeCategory(value) : value;
+        });
         if (!counts.length) return `<p>Keine Teilnehmer</p>`;
         return counts.map(([label, count]) => sector
-          ? `<span class="format-diversity-chip format-diversity-chip--sector contact-sector-pill--${normalizeClassPart(label)}"><span class="format-diversity-chip__label">${escapeHtml(label)}</span><span class="format-diversity-chip__count">${count}</span></span>`
+          ? `<span class="format-diversity-chip format-diversity-chip--sector" style="${sectorBadgeStyle(label)}"><span class="format-diversity-chip__label">${escapeHtml(normalizeCategory(label))}</span><span class="format-diversity-chip__count">${count}</span></span>`
           : `<span class="format-diversity-chip">${escapeHtml(label)} <span>${count}</span></span>`
         ).join("");
       }
 
       function sectorMapColor(value) {
-        const normalized = normalizeClassPart(meaningfulOrEmpty(value) || "");
-        const colors = {
-          praxis: "#155fe4",
-          krankenhaus: "#dc2626",
-          apotheke: "#16a34a",
-          pflege: "#7c3aed",
-          krankenkasse: "#4f5fb8",
-          notfallversorgung: "#dc2626"
-        };
-        return colors[normalized] || "#155fe4";
+        return sectorRegistry.colorFor(value);
       }
 
       function formatDateRange(format) {
@@ -33361,9 +33396,26 @@
         });
       }
 
+      function sectorTint(color, alpha = 0.12) {
+        const hex = String(color || sectorRegistry.fallbackColor || "#64748b").replace("#", "");
+        if (hex.length !== 6) return `rgba(100, 116, 139, ${alpha})`;
+        const r = Number.parseInt(hex.slice(0, 2), 16);
+        const g = Number.parseInt(hex.slice(2, 4), 16);
+        const b = Number.parseInt(hex.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      function sectorBadgeStyle(value) {
+        const color = sectorRegistry.colorFor(value);
+        return `--sector-color:${color};--sector-bg:${sectorTint(color)};--sector-border:${sectorTint(color, 0.34)}`;
+      }
+
       function sectorBadgeMarkup(value) {
-        const label = meaningfulOrEmpty(value) || "Nicht dokumentiert";
-        return `<span class="contact-sector-pill contact-sector-pill--${normalizeClassPart(label)}${expertGroupClassSuffix(label)}">${escapeHtml(label)}</span>`;
+        const rawLabel = meaningfulOrEmpty(value);
+        const label = rawLabel ? normalizeCategory(rawLabel) : "Nicht dokumentiert";
+        const expertClass = expertGroupClassSuffix(label);
+        const className = expertClass ? `contact-sector-pill${expertClass}` : "contact-sector-pill";
+        return `<span class="${className}" style="${sectorBadgeStyle(label)}">${escapeHtml(label)}</span>`;
       }
 
       function sourceLabel(contact) {
@@ -34701,10 +34753,11 @@
       }
 
       function buildCategorySelectOptions(selectedCategory = "") {
+        const selected = normalizeCategory(selectedCategory);
         return defaultCategories
           .map(
             (value) =>
-              `<option value="${value}" ${selectedCategory === value ? "selected" : ""}>${value}</option>`
+              `<option value="${value}" ${selected === value ? "selected" : ""}>${value}</option>`
           )
           .join("");
       }
@@ -35784,7 +35837,7 @@
 
       function categoryLabel(contact) {
         const category = String(contact.category || "").trim();
-        return defaultCategories.includes(category) ? category : "Nicht dokumentiert";
+        return category ? normalizeCategory(category) : "Nicht dokumentiert";
       }
 
       function formatPercent(count, total) {
@@ -35889,11 +35942,15 @@
       function renderDashboard(items = filteredContacts()) {
         const visibleContacts = items.length;
 
-        const categoryCounts = defaultCategories
+        const dashboardCategories = [
+          ...defaultCategories,
+          ...items.map((contact) => categoryLabel(contact)).filter((label) => label && label !== "Nicht dokumentiert")
+        ];
+        const categoryCounts = [...new Set(dashboardCategories)]
           .map((category) => ({
             label: category,
             count: items.filter((contact) => categoryLabel(contact) === category).length,
-            color: categoryChartColors[category] || "#2788f6"
+            color: categoryChartColors[category] || sectorRegistry.colorFor(category)
           }))
           .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "de"));
 
@@ -36089,7 +36146,7 @@
 
       function renderGapAnalysis(items) {
         const total = Math.max(items.length, 1);
-        const sectorGaps = defaultCategories
+        const sectorGaps = coverageCategories
           .map((sector) => {
             const count = items.filter((contact) => categoryLabel(contact) === sector).length;
             return { label: sector, count, share: Math.round((count / total) * 100) };
@@ -37236,6 +37293,24 @@
         return null;
       }
 
+      async function ensureStakeholderPeopleForType(typeId = activeStakeholderTypeId) {
+        const normalizedTypeId = normalizeStakeholderTypeId(typeId);
+        if (!normalizedTypeId || loadedStakeholderPeopleTypeIds.has(normalizedTypeId) || !window.dataService?.loadStakeholderPeople) return;
+        try {
+          const loadedPeople = (await window.dataService.loadStakeholderPeople({
+            includeArchived: canAdministerData(),
+            stakeholderTypeId: normalizedTypeId
+          })).map((entry, index) => sanitizeStakeholderPerson(entry, index));
+          stakeholderPeople = [
+            ...stakeholderPeople.filter((person) => person.stakeholderTypeId !== normalizedTypeId),
+            ...loadedPeople
+          ].sort((left, right) => left.name.localeCompare(right.name, "de"));
+          loadedStakeholderPeopleTypeIds.add(normalizedTypeId);
+        } catch (error) {
+          console.warn("Stakeholder-Ansprechpersonen konnten fuer das Organisationsprofil nicht geladen werden.", error);
+        }
+      }
+
       async function renderOrganizationProfilePage() {
         if (activeView !== "organizationProfile") return;
         const token = ++organizationProfileRenderToken;
@@ -37259,6 +37334,8 @@
             openExpertOrganizationDetail(record.id, expertOrganizations, { mode: "page" });
           } else if (normalizedKind === "stakeholder") {
             activeStakeholderTypeId = record.stakeholderTypeId || activeStakeholderTypeId;
+            await ensureStakeholderPeopleForType(activeStakeholderTypeId);
+            if (token !== organizationProfileRenderToken || activeView !== "organizationProfile") return;
             activeStakeholderMode = "organizations";
             openStakeholderOrganizationDetail(record.id, stakeholderOrganizations, { mode: "page" });
           } else {
@@ -37547,34 +37624,40 @@
 
       function syncMapFrame(items = mapContacts()) {
         if (!mapViewFrame || !mapViewFrame.contentWindow) return;
+        const organizationById = new Map(organizations.map((organization) => [String(organization.id || ""), organization]));
+        const organizationByName = new Map(organizations.map((organization) => [normalizeOrganizationName(organization.name), organization]));
         mapViewFrame.contentWindow.postMessage(
           {
             type: "versorgungs-kompass-map-data",
             contacts: items.map((contact) => {
               const ownerIds = contactOwnerIds(contact);
               const firstOwnerProfile = ownerProfileForValue(ownerIds[0]);
+              const linkedOrganization = organizationById.get(String(contact.organizationId || "")) || organizationByName.get(normalizeOrganizationName(contact.organization)) || null;
+              const hasContactCoordinates = Number.isFinite(Number(contact.lat)) && Number.isFinite(Number(contact.lon));
+              const hasOrganizationCoordinates = Number.isFinite(Number(linkedOrganization?.lat)) && Number.isFinite(Number(linkedOrganization?.lon));
               return {
                 id: contact.id,
                 name: contact.name,
                 honorificTitle: contact.honorificTitle,
                 specialty: contact.specialty,
                 contactRole: contact.contactRole,
-                category: contact.category,
-                organization: contact.organization,
+                category: normalizeCategory(contact.category),
+                organization: contact.organization || linkedOrganization?.name || "",
                 topic: contact.topic,
                 priority: contact.priority,
                 email: contact.email,
                 phone: contact.phone,
                 linkedin: contact.linkedin,
-                location: contact.location,
-                city: contact.city,
-                state: stateLabel(contact),
+                location: contact.location || [linkedOrganization?.postalCode, linkedOrganization?.city].filter(Boolean).join(" "),
+                city: contact.city || linkedOrganization?.city || "",
+                state: stateLabel(contact) !== "Unbekannt" ? stateLabel(contact) : linkedOrganization?.state || "",
                 street: contact.street,
-                postalCode: contact.postalCode,
+                postalCode: contact.postalCode || linkedOrganization?.postalCode || "",
                 url: contact.url,
                 description: contact.description,
-                lat: contact.lat,
-                lon: contact.lon,
+                lat: hasContactCoordinates ? contact.lat : hasOrganizationCoordinates ? linkedOrganization.lat : contact.lat,
+                lon: hasContactCoordinates ? contact.lon : hasOrganizationCoordinates ? linkedOrganization.lon : contact.lon,
+                mapPositionSource: hasContactCoordinates ? "contact" : hasOrganizationCoordinates ? "organization" : "",
                 note: contact.note,
                 nextStep: contact.nextStep,
                 image: contact.image,
@@ -38138,7 +38221,7 @@
           ? "Organisation aus der Interoperabilität getrennt vom Versorgungsdatenbestand erfassen."
           : organization ? "Stammdaten der Organisation aktualisieren." : "Neue Einrichtung, Institution oder Organisation anlegen.";
         const defaultExpertGroup = expertGroups.find((group) => group.status !== "archived")?.name || seedExpertGroups()[0] || "";
-        const selectedSector = organization?.sector || (isExpertEditor ? defaultExpertGroup : defaultCategories[0]);
+        const selectedSector = isExpertEditor ? organization?.sector || defaultExpertGroup : normalizeCategory(organization?.sector || defaultCategories[0]);
         organizationEditorForm.elements.id.value = organization?.id || "";
         organizationEditorForm.elements.name.value = organization?.name || "";
         organizationEditorForm.elements.sector.innerHTML = buildContextCategorySelectOptions(selectedSector, organizationEditorScope);
@@ -38595,7 +38678,7 @@
             : "Neue Kontakte werden im gemeinsamen Supabase-Datenstand angelegt.";
         const selectedOrganizationName = contact?.organization || organizationDefaults?.name || "";
         const defaultExpertGroup = expertGroups.find((group) => group.status !== "archived")?.name || seedExpertGroups()[0] || "";
-        const selectedCategory = contact?.category || organizationDefaults?.sector || (isExpertEditor ? defaultExpertGroup : defaultCategories[0]);
+        const selectedCategory = isExpertEditor ? contact?.category || defaultExpertGroup : normalizeCategory(contact?.category || organizationDefaults?.sector || defaultCategories[0]);
 
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
@@ -39568,7 +39651,7 @@
         const formData = new FormData(organizationEditorForm);
         const payload = {
           name: String(formData.get("name") || "").trim(),
-          sector: String(formData.get("sector") || "").trim(),
+          sector: organizationEditorScope === "expert" ? String(formData.get("sector") || "").trim() : normalizeCategory(formData.get("sector") || defaultCategories[0]),
           organizationType: String(formData.get("organizationType") || "").trim(),
           postalCode: String(formData.get("postalCode") || "").trim(),
           city: String(formData.get("city") || "").trim(),
@@ -40014,7 +40097,7 @@
           name: String(formData.get("name") || "").trim(),
           specialty: String(formData.get("specialty") || "").trim(),
           contactRole: String(formData.get("contactRole") || "").trim(),
-          category: String(formData.get("category") || defaultCategories[0]),
+          category: normalizeCategory(formData.get("category") || defaultCategories[0]),
           organization: organizationName,
           organizationId,
           topic: existingContact?.topic || "",
@@ -40279,9 +40362,13 @@
 
         try {
           if (window.dataService?.loadStakeholderOrganizations) {
-            stakeholderOrganizations = (await window.dataService.loadStakeholderOrganizations({ includeArchived, stakeholderTypeId: activeStakeholderTypeId })).map((organization, index) =>
+            const loadedOrganizations = (await window.dataService.loadStakeholderOrganizations({ includeArchived, stakeholderTypeId: activeStakeholderTypeId })).map((organization, index) =>
               sanitizeStakeholderOrganization(organization, index)
             );
+            stakeholderOrganizations = [
+              ...stakeholderOrganizations.filter((organization) => organization.stakeholderTypeId !== activeStakeholderTypeId),
+              ...loadedOrganizations
+            ].sort((left, right) => left.name.localeCompare(right.name, "de"));
           } else {
             stakeholderOrganizations = seedStakeholderOrganizations;
           }
@@ -40292,15 +40379,22 @@
 
         try {
           if (window.dataService?.loadStakeholderPeople) {
-            stakeholderPeople = (await window.dataService.loadStakeholderPeople({ includeArchived, stakeholderTypeId: activeStakeholderTypeId })).map((person, index) =>
+            const loadedPeople = (await window.dataService.loadStakeholderPeople({ includeArchived, stakeholderTypeId: activeStakeholderTypeId })).map((person, index) =>
               sanitizeStakeholderPerson(person, index)
             );
+            stakeholderPeople = [
+              ...stakeholderPeople.filter((person) => person.stakeholderTypeId !== activeStakeholderTypeId),
+              ...loadedPeople
+            ].sort((left, right) => left.name.localeCompare(right.name, "de"));
+            loadedStakeholderPeopleTypeIds.add(activeStakeholderTypeId);
           } else {
             stakeholderPeople = seedStakeholderPeople;
+            loadedStakeholderPeopleTypeIds = new Set(stakeholderTypes.map((type) => type.id));
           }
         } catch (peopleError) {
           console.warn("Stakeholder-Personen konnten nicht geladen werden. Seed-Fallback aktiv.", peopleError);
           stakeholderPeople = seedStakeholderPeople;
+          loadedStakeholderPeopleTypeIds = new Set(stakeholderTypes.map((type) => type.id));
         }
       }
 

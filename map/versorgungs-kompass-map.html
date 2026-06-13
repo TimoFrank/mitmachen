@@ -41,6 +41,12 @@
       --font-size-sm: 0.84rem;
       --font-size-md: 0.94rem;
     }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
     html, body { height: 100%; margin: 0; font-family: var(--font-family); }
     body {
       background: var(--background);
@@ -1906,6 +1912,8 @@
       }
 
       .page-shell {
+        width: 100%;
+        max-width: 100vw;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
@@ -1919,9 +1927,21 @@
         grid-template-columns: none;
         gap: 0;
         padding: 0;
+        width: 100%;
+        max-width: 100vw;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
+      }
+      .topbar,
+      .sidebar,
+      body.embed-mode .sidebar,
+      .panel,
+      body.embed-mode .panel,
+      .map-area,
+      body.embed-mode .map-area {
+        width: 100%;
+        max-width: 100vw;
       }
       .workspace.has-map-detail .map-detail-panel,
       body.embed-mode.has-map-detail .map-detail-panel {
@@ -2138,6 +2158,8 @@
 
       .page-shell,
       body.embed-mode .page-shell {
+        width: 100%;
+        max-width: 100vw;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
@@ -2151,10 +2173,22 @@
         flex-direction: column;
         grid-template-columns: none;
         padding: 0;
+        width: 100%;
+        max-width: 100vw;
         gap: 0;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
+      }
+      .topbar,
+      .sidebar,
+      body.embed-mode .sidebar,
+      .panel,
+      body.embed-mode .panel,
+      .map-area,
+      body.embed-mode .map-area {
+        width: 100%;
+        max-width: 100vw;
       }
 
       .workspace.has-map-detail .map-detail-panel,
@@ -2991,12 +3025,7 @@
           <div id="map-active-filters" class="map-active-filters" aria-label="Aktive Kartenfilter"></div>
           <aside class="map-legend" aria-label="Legende Kontaktpunkte">
             <div class="map-legend-title">Legende</div>
-            <div class="map-legend-list">
-              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#155fe4;"></span><span>Praxis</span></div>
-              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#dc2626;"></span><span>Krankenhaus</span></div>
-              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#16a34a;"></span><span>Apotheke</span></div>
-              <div class="map-legend-item"><span class="map-legend-swatch" style="background:#7c3aed;"></span><span>Pflege</span></div>
-            </div>
+            <div class="map-legend-list" id="map-legend-list"></div>
           </aside>
           <div id="map"></div>
           <section id="state-view" class="state-view" aria-hidden="true">
@@ -3035,6 +3064,7 @@
 <script src="./data/state-labels.js"></script>
 <script src="./data/state-polygons.js"></script>
 <script src="../data/supabase-config.js"></script>
+<script src="../data/sector-registry.js"></script>
 <script src="../data/demo-data.js"></script>
 <script src="../data/versorgungs-kompass-data.js"></script>
 
@@ -3042,6 +3072,12 @@
   const MAP_PARAMS = new URLSearchParams(window.location.search);
   const MAP_DEMO_MODE = MAP_PARAMS.get("demo") === "1";
   const MAP_DEMO_CONTACTS_KEY = "versorgungs-kompass-demo-mode-contacts-v1";
+  const sectorRegistry = window.VersorgungsCompassSectors || {
+    normalizeSector: (value, fallback = "Praxis") => String(value || "").trim() || fallback,
+    colorFor: () => "#64748b",
+    labels: () => ["Praxis", "Krankenhaus", "Apotheke", "Pflege"],
+    fallbackColor: "#64748b"
+  };
 
   function hasMapCoordinates(entry) {
     return Number.isFinite(Number.parseFloat(entry?.lat ?? entry?.latitude ?? ""));
@@ -3133,7 +3169,7 @@
       id: contact.id || `${personName}-${lat}-${lon}`,
       name: personName,
       organization: contact.organization || "",
-      category: contact.category || "Praxis",
+      category: sectorRegistry.normalizeSector(contact.category || contact.sector || "Praxis"),
       city: contact.city || String(contact.location || "").replace(/^\d{5}\s*/, "") || "-",
       state: contact.state || "",
       location: contact.location || "",
@@ -3141,6 +3177,7 @@
       postal_code: contact.postalCode || contact.postal_code || String(contact.location || "").match(/\b\d{5}\b/)?.[0] || "",
       lat,
       lon,
+      mapPositionSource: contact.mapPositionSource || contact.map_position_source || "",
       url: firstSource(contact),
       description: contact.description || contact.topic || "",
       note: contact.note || contact.notes || "",
@@ -3177,8 +3214,6 @@
   const STATE_LABELS = window.MAP_STATE_LABELS;
   const STATE_POLYGONS = window.MAP_STATE_POLYGONS;
   const DE_GEOJSON = window.MAP_DE_GEOJSON;
-  const CATEGORY_COLORS = {"Praxis": "#155fe4", "Krankenhaus": "#dc2626", "Apotheke": "#16a34a", "Pflege": "#7c3aed"};
-  const CATEGORY_EMOJIS = {"Praxis": "🩺", "Krankenhaus": "🏥", "Apotheke": "💊", "Pflege": "🤝"};
   const AVATARS = {"Praxis": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.18%22%2F%3E%0A%3Ccircle%20cx%3D%2232%22%20cy%3D%2226%22%20r%3D%2210%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M14%2054c3-10%2011-16%2018-16s15%206%2018%2016%22%20fill%3D%22none%22%20stroke%3D%22%231f77b4%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M42%2018h6v6h-6zM44%2012h2v18h-2z%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.48%22%2F%3E%0A%3C%2Fsvg%3E", "Krankenhaus": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%23d62728%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M20%2050V18c0-2%202-4%204-4h16c2%200%204%202%204%204v32%22%20fill%3D%22none%22%20stroke%3D%22%23d62728%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M26%2024h6v6h-6zm0%2010h6v6h-6zm12-10h6v6h-6zm0%2010h6v6h-6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.45%22%2F%3E%0A%3Cpath%20d%3D%22M30%2018h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.50%22%2F%3E%0A%3C%2Fsvg%3E", "Apotheke": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M22%2022h20v20H22z%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M30%2024h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.50%22%2F%3E%0A%3Cpath%20d%3D%22M44%2022h2c2%200%204%202%204%204v16c0%202-2%204-4%204h-2%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.35%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E", "Pflege": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%239467bd%22%20opacity%3D%220.16%22%2F%3E%0A%3Ccircle%20cx%3D%2226%22%20cy%3D%2226%22%20r%3D%228%22%20fill%3D%22%239467bd%22%20opacity%3D%220.52%22%2F%3E%0A%3Ccircle%20cx%3D%2240%22%20cy%3D%2228%22%20r%3D%226%22%20fill%3D%22%239467bd%22%20opacity%3D%220.36%22%2F%3E%0A%3Cpath%20d%3D%22M14%2052c2-9%208-14%2012-14s10%205%2012%2014%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M34%2052c1-7%205-11%208-11s7%204%208%2011%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.36%22%2F%3E%0A%3C%2Fsvg%3E"};
 
   // Minimal basemap WITHOUT labels; the CRM overlays carry the important information.
@@ -3583,7 +3618,10 @@
   }
 
   function availableCategories(){
-    return uniqueSorted(mapSourceEntries().map((entry) => entry.category));
+    const present = new Set(mapSourceEntries().map((entry) => entry.category).filter(Boolean));
+    const ordered = sectorRegistry.labels().filter((label) => present.has(label));
+    const extras = uniqueSorted([...present].filter((label) => !ordered.includes(label)));
+    return [...ordered, ...extras];
   }
 
   function availableOwners(){
@@ -3654,6 +3692,24 @@
 
   function sectorIconSvg(category) {
     const key = String(category || "").toLowerCase();
+    if (key.includes("labor")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"></path><path d="M10 3v5l-4 8a3 3 0 0 0 2.7 4.3h6.6A3 3 0 0 0 18 16l-4-8V3"></path><path d="M8 15h8"></path></svg>`;
+    }
+    if (key.includes("therapie")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M8 8v8"></path><path d="M16 8v8"></path><path d="M6 17c2 2 10 2 12 0"></path></svg>`;
+    }
+    if (key.includes("hebamme")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10c0-2.8 2.2-5 5-5s5 2.2 5 5c0 4-5 8-5 8s-5-4-5-8Z"></path><circle cx="12" cy="10" r="2"></circle></svg>`;
+    }
+    if (key.includes("rettung") || key.includes("notfall")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17V8h10l3 4h3v5"></path><path d="M8 17a2 2 0 1 0 0 .1"></path><path d="M17 17a2 2 0 1 0 0 .1"></path><path d="M8 11h4"></path><path d="M10 9v4"></path></svg>`;
+    }
+    if (key.includes("reha")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19c4-8 8-12 12-14"></path><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>`;
+    }
+    if (key.includes("krankenkasse")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 7.6 7 10 4-2.4 7-5.5 7-10V6z"></path><path d="M9 12h6"></path><path d="M12 9v6"></path></svg>`;
+    }
     if (key.includes("krankenhaus")) {
       return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"></path><path d="M6 20V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"></path><path d="M9 10h6"></path><path d="M12 7v6"></path><path d="M9 20v-4h6v4"></path></svg>`;
     }
@@ -3723,6 +3779,7 @@
   const elMobileSheetMeta = document.getElementById('mobile-sheet-meta');
   const elMobileMapPreview = document.getElementById('mobile-map-preview');
   const elMapActiveFilters = document.getElementById('map-active-filters');
+  const elMapLegendList = document.getElementById('map-legend-list');
   const elWorkspace = document.querySelector('.workspace');
   const elMapDetailPanel = document.getElementById('map-detail-panel');
   const elMapListToggle = document.getElementById('map-list-toggle');
@@ -3883,7 +3940,7 @@
     if (!elMapActiveFilters) return;
     const chips = [];
     if (selectedState) chips.push({ key: 'state', label: selectedState });
-    if (activeCategoryFilter) chips.push({ key: 'category', label: activeCategoryFilter });
+    if (activeCategoryFilter) chips.push({ key: 'category', label: `Sektor: ${activeCategoryFilter}` });
     if (activeOwnerFilter) chips.push({ key: 'owner', label: `Owner: ${activeOwnerFilter}` });
     if (query.trim()) chips.push({ key: 'query', label: `Suche: ${query.trim()}` });
 
@@ -4097,7 +4154,7 @@
     const location = entryLocation(entry);
     const missing = missingEntryFields(entry);
     const themeTags = Array.isArray(entry.themes) ? entry.themes : [];
-    const sectorColor = CATEGORY_COLORS[entry.category] || "#155fe4";
+    const sectorColor = sectorRegistry.colorFor(entry.category);
     const activeTab = mapDetailActiveTab || "overview";
     const entries = filteredEntries();
     const currentIndex = entries.findIndex((item) => item.id === entry.id);
@@ -4153,6 +4210,7 @@
               ${detailLine("Rolle", roleText)}
               ${detailLine("Ort", location)}
               ${detailLine("Bundesland", entry.state)}
+              ${entry.mapPositionSource === "organization" ? detailLine("Kartenposition", "Organisation") : ""}
               ${detailLineHtml("Priorität", mapPriorityPill(entry.priority), { empty: !hasValue(entry.priority) })}
               ${updatedLabel ? detailLine("Aktualisiert", updatedLabel) : ""}
             </div>
@@ -4271,7 +4329,7 @@
   }
 
   function markerFor(d){
-    const color = CATEGORY_COLORS[d.category] || '#555';
+    const color = sectorRegistry.colorFor(d.category);
     const size = isMobileLayout() ? 10 : 12;
     const icon = L.divIcon({
       className: '',
@@ -4612,45 +4670,23 @@
     const owners = availableOwners();
     activePriorityFilter = "";
 
-    const sectorRow = document.createElement('div');
-    sectorRow.className = 'map-filter-row map-filter-row--sectors';
-    sectorRow.innerHTML = `<span class="map-filter-label">${mapLabel("categoryLabel", "Sektor")}</span>`;
-    const allButton = document.createElement('button');
-    allButton.type = 'button';
-    allButton.className = `category-chip${activeCategoryFilter ? "" : " active"}`;
-    allButton.setAttribute('aria-pressed', activeCategoryFilter ? 'false' : 'true');
-    allButton.style.setProperty('--sector-color', '#010E52');
-    allButton.style.setProperty('--sector-bg', 'rgba(1,14,82,0.06)');
-    allButton.style.setProperty('--sector-shadow', 'rgba(1,14,82,0.18)');
-    allButton.innerHTML = sectorFilterContent(mapLabel("categoryAllLabel", "Alle"));
-    allButton.addEventListener('click', () => {
-      activeCategoryFilter = "";
-      resetListPage();
-      renderFilters();
-      render();
-    });
-    sectorRow.appendChild(allButton);
-
-    categories.forEach(cat => {
-      const checked = activeCategoryFilter === cat;
-      const color = CATEGORY_COLORS[cat] || "#155fe4";
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `category-chip${checked ? " active" : ""}`;
-      button.setAttribute('aria-pressed', checked ? 'true' : 'false');
-      button.style.setProperty('--sector-color', color);
-      button.style.setProperty('--sector-bg', sectorTint(color));
-      button.style.setProperty('--sector-shadow', sectorShadow(color));
-      button.innerHTML = sectorFilterContent(cat);
-      button.addEventListener('click', () => {
-        activeCategoryFilter = activeCategoryFilter === cat ? "" : cat;
+    const buildSectorDropdown = () => mapFilterDropdown({
+      label: mapLabel("categoryLabel", "Sektor"),
+      allLabel: mapLabel("categoryAllLabel", "Alle Sektoren"),
+      value: activeCategoryFilter,
+      options: categories,
+      onChange: (value) => {
+        activeCategoryFilter = value;
         resetListPage();
         renderFilters();
         render();
-      });
-      sectorRow.appendChild(button);
+      }
     });
+    const sectorRow = document.createElement('div');
+    sectorRow.className = 'map-filter-row map-filter-row--sectors';
+    sectorRow.appendChild(buildSectorDropdown());
     elFilters.appendChild(sectorRow);
+    if (elMobileMapFilters) elMobileMapFilters.appendChild(buildSectorDropdown());
 
     if (showOwnerFilter && owners.length) {
       const ownerRow = document.createElement('div');
@@ -4666,6 +4702,27 @@
       });
       elFilters.appendChild(ownerRow);
     }
+  }
+
+  function renderLegend(entries = filteredEntries()){
+    if (!elMapLegendList) return;
+    const counts = new Map();
+    entries.forEach((entry) => {
+      const label = entry.category || "Weitere";
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+    const rows = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "de"));
+    if (!rows.length) {
+      elMapLegendList.innerHTML = `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.fallbackColor};"></span><span>Keine Treffer</span></div>`;
+      return;
+    }
+    const visibleRows = rows.slice(0, 8);
+    const remainingCount = rows.slice(8).reduce((sum, [, count]) => sum + count, 0);
+    elMapLegendList.innerHTML = [
+      ...visibleRows.map(([label]) => `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.colorFor(label)};"></span><span>${escapeHtml(label)}</span></div>`),
+      remainingCount ? `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.fallbackColor};"></span><span>Weitere</span></div>` : ""
+    ].join("");
   }
 
   let markerIndex = [];
@@ -4733,7 +4790,7 @@
       const isActive = activeMapContactId === d.id;
       item.className = `item${isActive ? " item-active" : ""}`;
       item.dataset.mapContactId = d.id;
-      const color = CATEGORY_COLORS[d.category] || "#555";
+      const color = sectorRegistry.colorFor(d.category);
       const meta = d.organization || "Organisation nicht dokumentiert";
       const ownerPill = ownerPillHtml(d);
       item.innerHTML = `<div class="item-top">
@@ -4860,6 +4917,7 @@
     updateLabelVisibility();
 
     renderList(filtered);
+    renderLegend(filtered);
     updateMapResetButton();
     updateMapModeControls();
     renderMapActiveFilters();

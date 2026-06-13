@@ -177,6 +177,14 @@
     "website",
     "phone",
     "email",
+    "logo_url",
+    "logo_source_url",
+    "logo_source_label",
+    "member_count",
+    "member_count_source_url",
+    "member_count_source_label",
+    "member_count_updated_at",
+    "member_count_scope",
     "notes",
     "source",
     "status",
@@ -387,6 +395,12 @@
     return payload?.organization || payload;
   }
 
+  function normalizeCareSector(value, fallback = "Praxis") {
+    return window.VersorgungsCompassSectors?.normalizeSector
+      ? window.VersorgungsCompassSectors.normalizeSector(value, fallback)
+      : String(value || "").trim() || fallback;
+  }
+
   async function apiGet(path, params = {}) {
     return apiRequest(path, { params });
   }
@@ -466,7 +480,11 @@
         : [];
     return rows
       .filter((contact) => options.includeArchived || contact.status !== "archived")
-      .map((contact, index) => decorateContactOwners({ ...clone(contact), _index: index }));
+      .map((contact, index) => {
+        const entry = { ...clone(contact), _index: index };
+        entry.category = normalizeCareSector(entry.category || entry.sector);
+        return decorateContactOwners(entry);
+      });
   }
 
   function localOrganizations(options = {}) {
@@ -479,7 +497,7 @@
           contact.status !== "archived" &&
           ((organization.id && contact.organizationId === organization.id) || normalizeOrganizationName(contact.organization) === normalizeOrganizationName(organization.name))
         ).length;
-        return { ...clone(organization), contactCount };
+        return { ...clone(organization), sector: normalizeCareSector(organization.sector, ""), contactCount };
       });
   }
 
@@ -1292,7 +1310,7 @@
       organizationId: row.organization_id || "",
       name: row.name || "",
       organization: row.organization || "",
-      category: row.sector || "Praxis",
+      category: normalizeCareSector(row.sector),
       specialty: row.specialty || "",
       contactRole: row.role || "",
       priority: normalizePriority(row.priority),
@@ -1501,7 +1519,7 @@
       organization_id: contact.organizationId || contact.organization_id || null,
       name: String(contact.name || "").trim(),
       organization: String(contact.organization || "").trim() || null,
-      sector: String(contact.category || contact.sector || "").trim() || "Praxis",
+      sector: normalizeCareSector(contact.category || contact.sector),
       specialty: String(contact.specialty || "").trim() || null,
       role: String(contact.contactRole || contact.role || "").trim() || null,
       priority: normalizePriority(contact.priority),
@@ -1618,6 +1636,21 @@
     });
   }
 
+  function normalizeContactUi(contact = {}) {
+    const entry = {
+      ...contact,
+      category: normalizeCareSector(contact.category || contact.sector)
+    };
+    return decorateContactOwners(entry);
+  }
+
+  function normalizeOrganizationUi(organization = {}) {
+    return {
+      ...organization,
+      sector: normalizeCareSector(organization.sector, "")
+    };
+  }
+
   function normalizeOrganizationName(value) {
     return String(value || "")
       .trim()
@@ -1648,7 +1681,7 @@
       id: row.id,
       name: row.name || "",
       normalizedName: row.normalized_name || normalizeOrganizationName(row.name),
-      sector: row.sector || "",
+      sector: normalizeCareSector(row.sector, ""),
       organizationType: row.organization_type || "",
       postalCode: row.postal_code || "",
       city: row.city || "",
@@ -1989,7 +2022,7 @@
     return {
       name,
       normalized_name: normalizeOrganizationName(organization.normalizedName || name),
-      sector: String(organization.sector || "").trim() || null,
+      sector: normalizeCareSector(organization.sector, "") || null,
       organization_type: String(organization.organizationType || organization.organization_type || "").trim() || null,
       postal_code: organization.postalCode || organization.postal_code || null,
       city: organization.city || null,
@@ -2177,7 +2210,7 @@
         includeArchived: options.includeArchived ? "true" : "",
         status: options.status || ""
       });
-      contactCache = Array.isArray(payload.items) ? payload.items : [];
+      contactCache = Array.isArray(payload.items) ? payload.items.map(normalizeContactUi) : [];
       return contactCache;
     }
     const supabase = getClient();
@@ -2223,7 +2256,7 @@
       return contact;
     }
     if (usesApiGateway()) {
-      return decorateContactOwners(await apiGet(`/api/contacts/${encodeURIComponent(id)}`));
+      return normalizeContactUi(await apiGet(`/api/contacts/${encodeURIComponent(id)}`));
     }
     const { data, error } = await getClient().from("contacts").select(contactSelectFields()).eq("id", id).single();
     if (error) {
@@ -2436,7 +2469,7 @@
       const payload = await apiGet("/api/organizations", {
         includeArchived: options.includeArchived ? "true" : ""
       });
-      organizationCache = Array.isArray(payload.items) ? payload.items : [];
+      organizationCache = Array.isArray(payload.items) ? payload.items.map(normalizeOrganizationUi) : [];
       return clone(organizationCache);
     }
     const supabase = getClient();
@@ -2474,7 +2507,7 @@
       return clone(organization);
     }
     if (usesApiGateway()) {
-      return apiGet(`/api/organizations/${encodeURIComponent(id)}`);
+      return normalizeOrganizationUi(await apiGet(`/api/organizations/${encodeURIComponent(id)}`));
     }
     const { data, error } = await getClient().from("organizations").select(ORGANIZATION_FIELDS.join(",")).eq("id", id).single();
     if (error) throw error;
@@ -2948,7 +2981,7 @@
         id: organization.id || `local-organization-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
         name,
         normalizedName: normalizeOrganizationName(name),
-        sector: String(organization.sector || "").trim(),
+        sector: normalizeCareSector(organization.sector, ""),
         organizationType: String(organization.organizationType || "").trim(),
         postalCode: String(organization.postalCode || "").trim(),
         city: String(organization.city || "").trim(),
@@ -2968,10 +3001,11 @@
       return clone(created);
     }
     if (usesApiGateway()) {
-      const created = apiOrganizationPayload(await apiRequest("/api/organizations", {
+      const organizationForWrite = normalizeOrganizationUi(organization);
+      const created = normalizeOrganizationUi(apiOrganizationPayload(await apiRequest("/api/organizations", {
         method: "POST",
-        body: organization
-      }));
+        body: organizationForWrite
+      })));
       organizationCache = [created, ...organizationCache.filter((item) => item.id !== created.id)];
       return created;
     }
@@ -2996,6 +3030,7 @@
         ...existing,
         ...patch,
         id,
+        sector: "sector" in patch ? normalizeCareSector(patch.sector, "") : existing.sector,
         normalizedName: normalizeOrganizationName(patch.name || existing.name),
         updatedAt: new Date().toISOString()
       };
@@ -3004,10 +3039,11 @@
       return clone(updated);
     }
     if (usesApiGateway()) {
-      const updated = apiOrganizationPayload(await apiRequest(`/api/organizations/${encodeURIComponent(id)}`, {
+      const patchForWrite = "sector" in patch ? { ...patch, sector: normalizeCareSector(patch.sector, "") } : patch;
+      const updated = normalizeOrganizationUi(apiOrganizationPayload(await apiRequest(`/api/organizations/${encodeURIComponent(id)}`, {
         method: "PATCH",
-        body: patch
-      }));
+        body: patchForWrite
+      })));
       organizationCache = organizationCache.map((item) => (item.id === id ? updated : item));
       return updated;
     }
@@ -3017,7 +3053,7 @@
       payload.name = String(patch.name || "").trim();
       payload.normalized_name = normalizeOrganizationName(patch.name);
     }
-    if ("sector" in patch) payload.sector = String(patch.sector || "").trim() || null;
+    if ("sector" in patch) payload.sector = normalizeCareSector(patch.sector, "") || null;
     if ("organizationType" in patch || "organization_type" in patch) payload.organization_type = String(patch.organizationType || patch.organization_type || "").trim() || null;
     if ("postalCode" in patch || "postal_code" in patch) payload.postal_code = patch.postalCode || patch.postal_code || null;
     if ("city" in patch) payload.city = patch.city || null;
@@ -3195,15 +3231,19 @@
   }
 
   async function createContact(contact, options = {}) {
+    const contactForWrite = {
+      ...contact,
+      category: normalizeCareSector(contact.category || contact.sector)
+    };
     if (isLocalMode()) {
       requireLocalWrite("Kontakt speichern");
       const created = {
-        ...contact,
-        id: contact.id || `local-contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-        status: contact.status || "active",
-        priority: normalizePriority(contact.priority),
-        createdAt: contact.createdAt || new Date().toISOString(),
-        updatedAt: contact.updatedAt || new Date().toISOString()
+        ...contactForWrite,
+        id: contactForWrite.id || `local-contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        status: contactForWrite.status || "active",
+        priority: normalizePriority(contactForWrite.priority),
+        createdAt: contactForWrite.createdAt || new Date().toISOString(),
+        updatedAt: contactForWrite.updatedAt || new Date().toISOString()
       };
       const decorated = decorateContactOwners(created);
       contactCache = [decorated, ...contactCache.filter((item) => item.id !== decorated.id)];
@@ -3211,17 +3251,17 @@
       return decorated;
     }
     if (usesApiGateway()) {
-      const created = decorateContactOwners(apiContactPayload(await apiRequest("/api/contacts", {
+      const created = normalizeContactUi(apiContactPayload(await apiRequest("/api/contacts", {
         method: "POST",
-        body: { contact, options }
+        body: { contact: contactForWrite, options }
       })));
       contactCache = [created, ...contactCache.filter((item) => item.id !== created.id)];
       return created;
     }
     const supabase = getClient();
     const userId = await getCurrentUserId();
-    const ownerIds = ownerIdsFromContact(contact);
-    const payload = { ...uiToDb(contact), created_by: userId, updated_by: userId };
+    const ownerIds = ownerIdsFromContact(contactForWrite);
+    const payload = { ...uiToDb(contactForWrite), created_by: userId, updated_by: userId };
     if (!supportsContactOrganizationId) delete payload.organization_id;
     if (!supportsContactImageSources) {
       delete payload.image_source_url;
@@ -3255,6 +3295,11 @@
   }
 
   async function updateContact(id, patch) {
+    const normalizedPatch = { ...patch };
+    if ("category" in normalizedPatch || "sector" in normalizedPatch) {
+      normalizedPatch.category = normalizeCareSector(normalizedPatch.category || normalizedPatch.sector);
+      delete normalizedPatch.sector;
+    }
     if (isLocalMode()) {
       requireLocalWrite("Kontakt speichern");
       if (!contactCache.length) contactCache = localContacts({ includeArchived: true });
@@ -3266,16 +3311,16 @@
       );
       const updated = {
         ...existing,
-        ...patch,
+        ...normalizedPatch,
         id,
-        priority: normalizePriority(patch.priority || existing.priority),
+        priority: normalizePriority(normalizedPatch.priority || existing.priority),
         updatedAt: new Date().toISOString()
       };
       const decorated = decorateContactOwners(updated);
       contactCache = contactCache.map((contact) => (contact.id === id ? decorated : contact));
       await notifyContactUpdated(decorated, localProfile().id, {
         action: decorated.status === "archived" ? "archive" : "update",
-        changedFields: Object.keys(patch || {}),
+        changedFields: Object.keys(normalizedPatch || {}),
         hasOwnerPatch,
         oldOwnerIds,
         nextOwnerIds: ownerIdsFromContact(decorated)
@@ -3283,9 +3328,9 @@
       return clone(decorated);
     }
     if (usesApiGateway()) {
-      const updated = decorateContactOwners(apiContactPayload(await apiRequest(`/api/contacts/${encodeURIComponent(id)}`, {
+      const updated = normalizeContactUi(apiContactPayload(await apiRequest(`/api/contacts/${encodeURIComponent(id)}`, {
         method: "PATCH",
-        body: patch
+        body: normalizedPatch
       })));
       contactCache = contactCache.map((contact) => (contact.id === id ? updated : contact));
       return updated;
@@ -3303,10 +3348,10 @@
       ? contactOwnerMap(oldOwnerRows).get(id) || normalizeOwnerIds(oldRow.owner_id)
       : normalizeOwnerIds(oldRow.owner_id);
     const hasOwnerPatch = ["ownerIds", "owner_ids", "owners", "ownerId", "owner_id", "owner"].some((field) =>
-      Object.prototype.hasOwnProperty.call(patch, field)
+      Object.prototype.hasOwnProperty.call(normalizedPatch, field)
     );
-    const nextOwnerIds = hasOwnerPatch ? ownerIdsFromContact(patch) : oldOwnerIds;
-    const merged = { ...dbToUi(oldRow), ...patch, id };
+    const nextOwnerIds = hasOwnerPatch ? ownerIdsFromContact(normalizedPatch) : oldOwnerIds;
+    const merged = { ...dbToUi(oldRow), ...normalizedPatch, id };
     if (hasOwnerPatch) {
       merged.ownerIds = nextOwnerIds;
       merged.ownerId = nextOwnerIds[0] || "";
@@ -3316,10 +3361,10 @@
     delete dbPatch.id;
     if (!supportsContactOrganizationId) delete dbPatch.organization_id;
     if (!supportsContactRole) delete dbPatch.role;
-    if (!["image", "image_url"].some((field) => Object.prototype.hasOwnProperty.call(patch, field))) {
+    if (!["image", "image_url"].some((field) => Object.prototype.hasOwnProperty.call(normalizedPatch, field))) {
       delete dbPatch.image_url;
     }
-    if (!["imageSourceUrl", "image_source_url", "imageSourceLabel", "image_source_label", "imageRightsNote", "image_rights_note"].some((field) => Object.prototype.hasOwnProperty.call(patch, field))) {
+    if (!["imageSourceUrl", "image_source_url", "imageSourceLabel", "image_source_label", "imageRightsNote", "image_rights_note"].some((field) => Object.prototype.hasOwnProperty.call(normalizedPatch, field))) {
       delete dbPatch.image_source_url;
       delete dbPatch.image_source_label;
       delete dbPatch.image_rights_note;

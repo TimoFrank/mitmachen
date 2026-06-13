@@ -21,6 +21,7 @@ cp "$ROOT_DIR/data/versorgungs-kompass-data.js" "$DOCS_DIR/data/versorgungs-komp
 cp "$ROOT_DIR/data/versorgungs-kompass-data.csv" "$DOCS_DIR/data/versorgungs-kompass-data.csv"
 cp "$ROOT_DIR/data/expertenkreis-data.js" "$DOCS_DIR/data/expertenkreis-data.js"
 cp "$ROOT_DIR/data/demo-data.js" "$DOCS_DIR/data/demo-data.js"
+cp "$ROOT_DIR/data/sector-registry.js" "$DOCS_DIR/data/sector-registry.js"
 cp "$ROOT_DIR/data/stakeholder-data.js" "$DOCS_DIR/data/stakeholder-data.js"
 cp "$ROOT_DIR/data/supabase-config.js" "$DOCS_DIR/data/supabase-config.js"
 cp "$ROOT_DIR/data/data-service.js" "$DOCS_DIR/data/data-service.js"

@@ -1235,7 +1235,7 @@ with kv_metadata (id, logo_file, logo_source_url, member_count) as (
     ('kv-westfalen-lippe', 'kv-westfalen-lippe.svg', 'https://www.kvwl.de/', 17233)
 )
 update public.stakeholder_organizations as org
-set logo_url = '../public/stakeholder-logos/' || kv_metadata.logo_file,
+set logo_url = 'public/stakeholder-logos/' || kv_metadata.logo_file,
     logo_source_url = kv_metadata.logo_source_url,
     logo_source_label = 'Offizielles Header-/Logo-Asset der Organisation',
     member_count = kv_metadata.member_count,
@@ -1245,6 +1245,109 @@ set logo_url = '../public/stakeholder-logos/' || kv_metadata.logo_file,
     member_count_scope = 'An der vertragsärztlichen Versorgung teilnehmende Ärztinnen und Ärzte, Psychotherapeutinnen und Psychotherapeuten (Zählung nach Personen)'
 from kv_metadata
 where org.id = kv_metadata.id;
+
+with kv_board (id, organization_id, name, role, profile_url) as (
+  values
+    ('kv-baden-wuerttemberg-karsten-braun', 'kv-baden-wuerttemberg', 'Dr. Karsten Braun', 'Vorstandsvorsitzender', 'https://www.kvbawue.de/ueber-uns/vorstand'),
+    ('kv-baden-wuerttemberg-doris-reinhardt', 'kv-baden-wuerttemberg', 'Dr. Doris Reinhardt', 'Stellvertretende Vorstandsvorsitzende', 'https://www.kvbawue.de/ueber-uns/vorstand'),
+    ('kv-bayern-christian-pfeiffer', 'kv-bayern', 'Dr. Christian Pfeiffer', 'Vorstandsvorsitzender', 'https://www.kvb.de/ueber-uns/verwaltung'),
+    ('kv-bayern-peter-heinz', 'kv-bayern', 'Dr. Peter Heinz', '1. Stv. Vorstandsvorsitzender', 'https://www.kvb.de/ueber-uns/verwaltung'),
+    ('kv-bayern-claudia-ritter-rupp', 'kv-bayern', 'Dr. Claudia Ritter-Rupp', '2. Stv. Vorstandsvorsitzende', 'https://www.kvb.de/ueber-uns/verwaltung'),
+    ('kv-berlin-burkhard-ruppert', 'kv-berlin', 'Dr. Burkhard Ruppert', 'Vorstandsvorsitzender', 'https://www.kvberlin.de/die-kv-berlin/organisation/vorstand'),
+    ('kv-berlin-christiane-wessel', 'kv-berlin', 'Dr. Christiane Wessel', 'Stellvertretende Vorstandsvorsitzende', 'https://www.kvberlin.de/die-kv-berlin/organisation/vorstand'),
+    ('kv-berlin-guenter-scherer', 'kv-berlin', 'Günter Scherer', 'Vorstandsmitglied', 'https://www.kvberlin.de/die-kv-berlin/organisation/vorstand'),
+    ('kv-brandenburg-catrin-steiniger', 'kv-brandenburg', 'Catrin Steiniger', 'Vorsitzende des Vorstandes', 'https://www.kvbb.de/wir/unsere-struktur/vorstand'),
+    ('kv-brandenburg-stefan-rossbach-kurschat', 'kv-brandenburg', 'Dr. med. Stefan Roßbach-Kurschat', 'Stellvertretender Vorsitzender des Vorstandes', 'https://www.kvbb.de/wir/unsere-struktur/vorstand'),
+    ('kv-brandenburg-holger-rostek', 'kv-brandenburg', 'Holger Rostek', 'Stellvertretender Vorsitzender des Vorstandes', 'https://www.kvbb.de/wir/unsere-struktur/vorstand'),
+    ('kv-bremen-bernhard-rochell', 'kv-bremen', 'Dr. Bernhard Rochell', 'Vorstandsvorsitzender', 'https://www.kvhb.de/ueber-uns/vorstand'),
+    ('kv-bremen-peter-kurt-josenhans', 'kv-bremen', 'Peter Kurt Josenhans', 'Stv. Vorstandsvorsitzender', 'https://www.kvhb.de/ueber-uns/vorstand'),
+    ('kv-bremen-martina-kemme', 'kv-bremen', 'Martina Kemme', 'Mitglied des Vorstands', 'https://www.kvhb.de/ueber-uns/vorstand'),
+    ('kv-hamburg-john-afful', 'kv-hamburg', 'John Afful', 'Vorsitzender des Vorstandes', 'https://www.kvhh.net/de/ueber-uns/aufbau-vorstand.html'),
+    ('kv-hamburg-caroline-roos', 'kv-hamburg', 'Caroline Roos', 'Stellv. Vorsitzende des Vorstandes', 'https://www.kvhh.net/de/ueber-uns/aufbau-vorstand.html'),
+    ('kv-hessen-frank-dastych', 'kv-hessen', 'Frank Dastych', 'Vorstandsvorsitzender', 'https://www.kvhessen.de/ueber-uns/vorstand'),
+    ('kv-hessen-armin-beck', 'kv-hessen', 'Armin Beck', 'Stellvertretender Vorstandsvorsitzender', 'https://www.kvhessen.de/ueber-uns/vorstand'),
+    ('kv-mecklenburg-vorpommern-angelika-von-schuetz', 'kv-mecklenburg-vorpommern', 'Dipl.-Med. Angelika von Schütz', 'Vorsitzende', 'https://www.kvmv.de/ueber-uns/vorstand/'),
+    ('kv-mecklenburg-vorpommern-tilo-schneider', 'kv-mecklenburg-vorpommern', 'Dr. med. Tilo Schneider', 'Stellvertretender Vorsitzender', 'https://www.kvmv.de/ueber-uns/vorstand/'),
+    ('kv-mecklenburg-vorpommern-markolf-oelze', 'kv-mecklenburg-vorpommern', 'Dr. med. Markolf Oelze', 'Stellvertretender Vorsitzender', 'https://www.kvmv.de/ueber-uns/vorstand/'),
+    ('kv-niedersachsen-mark-barjenbruch', 'kv-niedersachsen', 'Mark Barjenbruch', 'Vorsitzender', 'https://www.kvn.de/%C3%9Cber%2Buns/Organisation/Vorstand.html'),
+    ('kv-niedersachsen-thorsten-schmidt', 'kv-niedersachsen', 'Thorsten Schmidt', 'Stellvertretender Vorsitzender', 'https://www.kvn.de/%C3%9Cber%2Buns/Organisation/Vorstand.html'),
+    ('kv-niedersachsen-nicole-loehr', 'kv-niedersachsen', 'Nicole Löhr', 'Vorständin', 'https://www.kvn.de/%C3%9Cber%2Buns/Organisation/Vorstand.html'),
+    ('kv-nordrhein-frank-bergmann', 'kv-nordrhein', 'Dr. med. Frank Bergmann', 'Vorstandsvorsitzender', 'https://www.kvno.de/ueber-uns/vorstand'),
+    ('kv-nordrhein-carsten-koenig', 'kv-nordrhein', 'Dr. med. Carsten König, M. san.', 'Stellvertretender Vorstandsvorsitzender', 'https://www.kvno.de/ueber-uns/vorstand'),
+    ('kv-rheinland-pfalz-peter-heinz', 'kv-rheinland-pfalz', 'San.-Rat Dr. Peter Heinz', 'Vorsitzender des Vorstands', 'https://www.kv-rlp.de/institution/aufgaben-und-organisation'),
+    ('kv-rheinland-pfalz-andreas-bartels', 'kv-rheinland-pfalz', 'Dr. Andreas Bartels', 'Stellvertretender Vorsitzender des Vorstands', 'https://www.kv-rlp.de/institution/aufgaben-und-organisation'),
+    ('kv-rheinland-pfalz-peter-andreas-staub', 'kv-rheinland-pfalz', 'Peter Andreas Staub', 'Mitglied des Vorstands', 'https://www.kv-rlp.de/institution/aufgaben-und-organisation'),
+    ('kv-saarland-harry-derouet', 'kv-saarland', 'San.-Rat Prof. Dr. med. Harry Derouet', 'Vorsitzender des Vorstandes', 'https://www.kvsaarland.de/vorstand'),
+    ('kv-saarland-thomas-rehlinger', 'kv-saarland', 'Thomas Rehlinger', 'Stellv. Vorsitzender des Vorstandes', 'https://www.kvsaarland.de/vorstand'),
+    ('kv-sachsen-stefan-windau', 'kv-sachsen', 'Dr. med. Stefan Windau', 'Vorstandsvorsitzender', 'https://www.kvsachsen.de/kv-sachsen/organisation/verwaltung/vorstand'),
+    ('kv-sachsen-manuela-sipli', 'kv-sachsen', 'Dr. med. Manuela Sipli', 'Stellvertretende Vorstandsvorsitzende', 'https://www.kvsachsen.de/kv-sachsen/organisation/verwaltung/vorstand'),
+    ('kv-sachsen-anhalt-joerg-boehme', 'kv-sachsen-anhalt', 'Dr. med. Jörg Böhme', 'Vorsitzender des Vorstandes', 'https://www.kvsa.de/ueber-uns/ansprechpartner/vorstand'),
+    ('kv-sachsen-anhalt-nadine-waldburg', 'kv-sachsen-anhalt', 'Dr. med. Nadine Waldburg', 'Stellvertretende Vorsitzende des Vorstandes', 'https://www.kvsa.de/ueber-uns/ansprechpartner/vorstand'),
+    ('kv-sachsen-anhalt-mathias-tronnier', 'kv-sachsen-anhalt', 'Mathias Tronnier', 'Geschäftsführender Vorstand', 'https://www.kvsa.de/ueber-uns/ansprechpartner/vorstand'),
+    ('kv-schleswig-holstein-bettina-schultz', 'kv-schleswig-holstein', 'Dr. med. Bettina Schultz', 'Vorstandsvorsitzende', 'https://www.kvsh.de/ueber-uns/organisation/vorstand'),
+    ('kv-schleswig-holstein-karsten-brandstetter', 'kv-schleswig-holstein', 'Dipl.-Kfm. Karsten Brandstetter', 'Stellvertretender Vorstandsvorsitzender', 'https://www.kvsh.de/ueber-uns/organisation/vorstand'),
+    ('kv-schleswig-holstein-alexander-paquet', 'kv-schleswig-holstein', 'Dipl.-Wirtschaftsinformatiker Alexander Paquet', 'Vorstandsmitglied', 'https://www.kvsh.de/ueber-uns/organisation/vorstand'),
+    ('kv-thueringen-annette-rommel', 'kv-thueringen', 'Dr. med. Annette Rommel', '1. Vorsitzende', 'https://www.kv-thueringen.de/ueber-uns/vorstand'),
+    ('kv-thueringen-thomas-schroeter', 'kv-thueringen', 'Dr. med. Thomas Schröter', '2. Vorsitzender', 'https://www.kv-thueringen.de/ueber-uns/vorstand'),
+    ('kv-westfalen-lippe-dirk-spelmeyer', 'kv-westfalen-lippe', 'Dr. med. Dirk Spelmeyer', 'Vorstandsvorsitzender', 'https://www.kvwl.de/kvwl/selbstverwaltung/vorstand'),
+    ('kv-westfalen-lippe-anke-richter-scheer', 'kv-westfalen-lippe', 'Anke Richter-Scheer', 'Stellv. Vorstandsvorsitzende', 'https://www.kvwl.de/kvwl/selbstverwaltung/vorstand')
+)
+insert into public.stakeholder_people (
+  id,
+  stakeholder_type_id,
+  organization_id,
+  organization,
+  name,
+  role,
+  committee,
+  city,
+  federal_state,
+  latitude,
+  longitude,
+  map_position_source,
+  topics,
+  source,
+  profile_url,
+  is_representative_assembly_member,
+  status
+)
+select
+  kv_board.id,
+  'kv',
+  kv_board.organization_id,
+  org.name,
+  kv_board.name,
+  kv_board.role,
+  'Vorstand',
+  org.city,
+  org.federal_state,
+  org.latitude,
+  org.longitude,
+  'organization',
+  array['Selbstverwaltung', 'KV-Vorstand']::text[],
+  'Offizielle KV-Vorstandsseite',
+  kv_board.profile_url,
+  false,
+  'active'
+from kv_board
+join public.stakeholder_organizations as org on org.id = kv_board.organization_id
+on conflict (id) do update
+set stakeholder_type_id = excluded.stakeholder_type_id,
+    organization_id = excluded.organization_id,
+    organization = excluded.organization,
+    name = excluded.name,
+    role = excluded.role,
+    committee = excluded.committee,
+    city = excluded.city,
+    federal_state = excluded.federal_state,
+    latitude = excluded.latitude,
+    longitude = excluded.longitude,
+    map_position_source = excluded.map_position_source,
+    topics = excluded.topics,
+    source = excluded.source,
+    profile_url = excluded.profile_url,
+    is_representative_assembly_member = excluded.is_representative_assembly_member,
+    status = excluded.status;
 
 create or replace function public.handle_new_user()
 returns trigger
