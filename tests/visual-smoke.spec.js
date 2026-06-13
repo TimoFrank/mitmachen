@@ -1162,11 +1162,17 @@ test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page })
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
 });
 
-test("Stakeholder: KVn, Vorstände und Karte rendern im gemeinsamen Arbeitsbereich", async ({ page }, testInfo) => {
+test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
-  await expect(page.locator('button[data-stakeholder-mode="organizations"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#stakeholder-mode-actions [data-stakeholder-type=\"kv\"]")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#stakeholder-mode-actions [data-stakeholder-mode]")).toHaveCount(0);
+  await expect(page.locator("#stakeholder-mode-actions")).not.toContainText("Vorstände");
+  await expect(page.locator("#stakeholder-mode-actions")).not.toContainText("Karte");
+  await expect(page.locator("#stakeholder-organizations-table")).toBeVisible();
+  await expect(page.locator("#stakeholder-people-table")).toHaveCount(0);
+  await expect(page.locator("#stakeholder-map-panel")).toHaveCount(0);
   await expect(page.locator("#stakeholders-pagination-meta")).toContainText("17 KVn");
   await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toBeVisible();
   await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Mitgliederzahl");
@@ -1236,46 +1242,22 @@ test("Stakeholder: KVn, Vorstände und Karte rendern im gemeinsamen Arbeitsberei
   await organizationProfile.locator('[data-detail-tab="people"]').click();
   await expect(organizationProfile.locator("#stakeholder-organization-people")).toBeVisible();
   await expect(organizationProfile.locator("#stakeholder-organization-people")).toContainText(expectedOrganizationPerson);
-  await organizationProfile.locator("[data-organization-profile-back]").click();
-  await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.locator("#organization-profile-page")).toHaveAttribute("aria-hidden", "true");
-
-  await page.locator('button[data-stakeholder-mode="people"]').click();
-  await expect(page.locator('button[data-stakeholder-mode="people"]')).toContainText("Vorstände");
-  await expect(page.locator("#stakeholder-people-table")).toBeVisible();
-  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("43 Vorständen");
-  await expect(page.locator("#stakeholder-people-table-head")).not.toContainText("Gremium");
-  await expect(page.locator("#stakeholder-people-table-head")).not.toContainText("Quelle");
-  await expect(page.locator("#stakeholder-people-list")).toContainText("KV Westfalen-Lippe");
-  await page.locator("#stakeholder-people-list [data-stakeholder-person-id]").first().click();
-  if (isDesktop) {
-    await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
-    await expect(page.locator("#stakeholder-person-open-profile")).toBeVisible();
-    await page.locator("#stakeholder-person-open-profile").click();
-  }
+  await organizationProfile.locator("[data-open-stakeholder-org-person]").first().click();
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#person\/stakeholder\//);
   await expect(page.locator("#person-profile-body #stakeholder-person-overview")).toBeVisible();
   await expect(page.locator("#person-profile-body #stakeholder-person-contact")).toBeHidden();
+  await expect(page.locator("#person-profile-body #stakeholder-person-overview")).toContainText(expectedDetailOrganization);
   await page.locator("#person-profile-body [data-person-profile-back]").click();
   await expect(page.locator('[data-view-panel="stakeholders"]')).toBeVisible();
-
-  await page.locator('button[data-stakeholder-mode="map"]').click();
-  await expect(page.locator("#stakeholder-map-panel")).toBeVisible();
-  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("43 Vorstände");
-  await page.evaluate(() => {
-    window.postMessage({ type: "versorgungs-kompass-open-detail", realm: "stakeholders", id: "kv-baden-wuerttemberg-karsten-braun" }, "*");
-  });
-  await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
-  await expect(page).toHaveURL(/#person\/stakeholder\/kv-baden-wuerttemberg-karsten-braun$/);
-  await expect(page.locator("#person-profile-body #stakeholder-person-overview")).toBeVisible();
-  await expect(page.locator("#person-profile-body #stakeholder-person-overview")).toContainText("Vorstandsvorsitzender");
-  await expect(page.locator("#person-profile-body #stakeholder-person-overview")).toContainText("Kassenärztliche Vereinigung Baden-Württemberg");
+  await expect(page.locator("#stakeholder-organizations-table")).toBeVisible();
+  await expect(page.locator("#stakeholder-people-table")).toHaveCount(0);
+  await expect(page.locator("#stakeholder-map-panel")).toHaveCount(0);
 
   await attachScreenshot(page, testInfo, "stakeholder-kvn");
 });
 
-test("Stakeholder: weitere Typen nutzen Tabellen, Profile und Kartenlabels", async ({ page }) => {
+test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", async ({ page }) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", {
     role: "admin",
     stakeholderScript: `
@@ -1297,6 +1279,9 @@ test("Stakeholder: weitere Typen nutzen Tabellen, Profile und Kartenlabels", asy
   });
 
   await expect(page.locator('[data-stakeholder-type="health-insurance"]')).toBeVisible();
+  await expect(page.locator("#stakeholder-mode-actions [data-stakeholder-mode]")).toHaveCount(0);
+  await expect(page.locator("#stakeholder-people-table")).toHaveCount(0);
+  await expect(page.locator("#stakeholder-map-panel")).toHaveCount(0);
   await page.locator('[data-stakeholder-type="health-insurance"]').click();
   await expect(page.locator('[data-stakeholder-type="health-insurance"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("searchbox", { name: "Krankenkassen suchen..." })).toBeVisible();
@@ -1316,17 +1301,9 @@ test("Stakeholder: weitere Typen nutzen Tabellen, Profile und Kartenlabels", asy
   await expect(organizationProfile.locator("#stakeholder-organization-people")).toContainText("Alex Beispiel");
   await organizationProfile.locator("[data-organization-profile-back]").click();
 
-  await page.locator('button[data-stakeholder-mode="people"]').click();
-  await expect(page.locator('button[data-stakeholder-mode="people"]')).toContainText("Ansprechpersonen");
-  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Ansprechpersonen");
-  await expect(page.locator("#stakeholder-people-list")).toContainText("Alex Beispiel");
-
-  await page.locator('button[data-stakeholder-mode="map"]').click();
-  await expect(page.locator("#stakeholder-map-panel")).toBeVisible();
-  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Ansprechperson auf der Karte");
-
   await page.locator('[data-stakeholder-type="patient-associations"]').click();
-  await page.locator('button[data-stakeholder-mode="organizations"]').click();
+  await expect(page.locator("#stakeholder-organizations-table")).toBeVisible();
+  await expect(page.locator("#stakeholder-mode-actions [data-stakeholder-mode]")).toHaveCount(0);
   await expect(page.getByRole("searchbox", { name: "Patientenverbände suchen..." })).toBeVisible();
   await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Patientenverbände");
   await expect(page.locator("#stakeholder-organization-list")).toContainText("Patientenverband Test");
