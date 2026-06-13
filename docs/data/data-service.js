@@ -2852,6 +2852,39 @@
     return null;
   }
 
+  function normalizeOrganizationRecordKind(kind = "") {
+    const value = String(kind || "").trim().toLowerCase();
+    if (["care", "organization", "organizations", "contact", "contacts"].includes(value)) return "care";
+    if (["expert", "experts", "expert-organization"].includes(value)) return "expert";
+    if (["stakeholder", "stakeholders", "kv", "stakeholder-organization"].includes(value)) return "stakeholder";
+    return "";
+  }
+
+  async function getOrganizationRecord(kind, id, options = {}) {
+    const normalizedKind = normalizeOrganizationRecordKind(kind);
+    const recordId = String(id || "").trim();
+    if (!normalizedKind || !recordId) return null;
+    const includeArchived = Boolean(options.includeArchived);
+    if (normalizedKind === "care") return getOrganization(recordId);
+    if (normalizedKind === "expert") {
+      let record = expertOrganizationCache.find((organization) => organization.id === recordId);
+      if (!record) {
+        const rows = await loadExpertOrganizations({ includeArchived });
+        record = rows.find((organization) => organization.id === recordId);
+      }
+      return record ? clone(record) : null;
+    }
+    if (normalizedKind === "stakeholder") {
+      let record = stakeholderOrganizationCache.find((organization) => organization.id === recordId);
+      if (!record) {
+        const rows = await loadStakeholderOrganizations({ includeArchived });
+        record = rows.find((organization) => organization.id === recordId);
+      }
+      return record ? clone(record) : null;
+    }
+    return null;
+  }
+
   async function upsertStakeholderImport(payload = {}) {
     const types = (payload.types || []).map(stakeholderTypeUiToDb);
     const organizations = (payload.organizations || []).map(stakeholderOrganizationUiToDb).filter((organization) => organization.name);
@@ -3802,6 +3835,7 @@
     loadExpertOrganizations,
     loadExpertEntityLinks,
     getPersonRecord,
+    getOrganizationRecord,
     createExpertContact,
     createExpertOrganization,
     createExpertEntityLink,

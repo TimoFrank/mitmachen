@@ -8,6 +8,34 @@ window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES = [
     description: "Regionale Kassenärztliche Vereinigungen als erster Stakeholder-Bereich.",
     sortOrder: 10,
     status: "active"
+  },
+  {
+    id: "health-insurance",
+    label: "Krankenkassen",
+    description: "Gesetzliche und weitere Krankenkassen als Stakeholder-Bereich.",
+    sortOrder: 20,
+    status: "active"
+  },
+  {
+    id: "patient-associations",
+    label: "Patientenverbände",
+    description: "Patientenorganisationen und Patientenvertretungen als Stakeholder-Bereich.",
+    sortOrder: 30,
+    status: "active"
+  },
+  {
+    id: "hospital-associations",
+    label: "Krankenhausgesellschaften",
+    description: "Bundes- und Landeskrankenhausgesellschaften als Stakeholder-Bereich.",
+    sortOrder: 40,
+    status: "active"
+  },
+  {
+    id: "physician-associations",
+    label: "Ärztliche Berufsverbände",
+    description: "Ärztliche Berufs- und Fachverbände als Stakeholder-Bereich.",
+    sortOrder: 50,
+    status: "active"
   }
 ];
 
