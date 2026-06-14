@@ -92,7 +92,26 @@ git diff --check
 ```
 
 4. Committen und nach `main` pushen.
-5. GitHub Pages oeffnen und Login, Kontaktliste, Karte und Auswertung kurz testen.
+5. Wenn die Aenderung Supabase-Tabellen, Seed-Daten oder Migrationen betrifft, die Migration bzw. SQL-Aenderung auf den produktiven Supabase-Datenstand anwenden. Ein Git-Push der Migrationsdatei aktualisiert Supabase nicht automatisch.
+6. GitHub Pages oeffnen und Login, Kontaktliste, Karte und Auswertung kurz testen.
+
+### Sichtbarkeit nach Push klaeren
+
+Der Versorgungs-Kompass trennt statische Auslieferung und Live-Daten:
+
+- GitHub Pages liefert HTML, JS, CSS, Karten- und Logo-Dateien aus `docs/`.
+- Die produktive App nutzt `dataMode: "supabase"` und liest CRM-/Stakeholder-Daten aus Supabase.
+- Neue statische Assets koennen auf GitHub Pages bereits per URL sichtbar sein, waehrend die App sie trotzdem nicht zeigt, wenn die zugehoerigen `logo_url`-/Datenfelder in Supabase noch nicht aktualisiert wurden.
+- Umgekehrt kann eine Supabase-Aenderung ohne synchronisierte `docs/`-/`public/`-Assets auf kaputte Bild- oder Dateipfade zeigen.
+
+Nach jedem Deployment muss deshalb getrennt geprueft und dokumentiert werden:
+
+1. Git-Commit und Push auf `origin/main`.
+2. GitHub-Pages-Asset oder relevante HTML/JS-Datei per oeffentlicher URL pruefen.
+3. Supabase-Migration/SQL auf Live-Datenstand angewendet oder ausdruecklich als noch offen markieren.
+4. In der App mit Login pruefen, ob die sichtbare Funktion tatsaechlich aus dem Live-Datenstand kommt.
+
+Ein Abschlussbericht darf "live sichtbar" nur verwenden, wenn GitHub Pages und, falls betroffen, Supabase-Live-Daten geprueft wurden.
 
 ## Neue Nutzer:innen und Rollen
 

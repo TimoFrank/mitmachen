@@ -151,6 +151,8 @@ Fuer eine einfache Web-Version des statischen `Versorgungs-Kompass` wird der Pub
 
 `docs/` ist eine Publish-Kopie. Aktive Bearbeitung findet in `app/`, `login/`, `map/`, `data/` und `public/` statt.
 
+Wichtig fuer die Sichtbarkeit: GitHub Pages veroeffentlicht nur statische Dateien. Die produktive App ist in `docs/data/supabase-config.js` auf `dataMode: "supabase"` gestellt und liest CRM-/Stakeholder-Daten aus Supabase. Ein Commit und Push einer Supabase-Migration macht die Migration als Datei sichtbar, wendet sie aber nicht auf den produktiven Supabase-Datenstand an. Aenderungen an Datenfeldern wie `logo_url` sind in der App erst sichtbar, wenn sowohl die statischen Assets in `docs/public/` ausgeliefert werden als auch der Supabase-Live-Datenstand aktualisiert wurde.
+
 Fuer GitHub Pages in GitHub:
 
 1. `Settings`

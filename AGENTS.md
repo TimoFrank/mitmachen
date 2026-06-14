@@ -34,10 +34,28 @@ Diese Regeln gelten fuer Codex- und Agentenarbeit im Versorgungs-Kompass.
 
 ## Git-, Commit- und Push-Regeln
 
+- Begriffe strikt trennen:
+  - `commit` = lokaler Git-Snapshot.
+  - `push` = Git-Commit ist auf GitHub/Remote-Branch.
+  - `GitHub Pages veroeffentlicht` = `docs/` wurde synchronisiert, gepusht und eine betroffene oeffentliche GitHub-Pages-URL wurde nach dem Push geprueft.
+  - `Live-Daten veroeffentlicht` = der produktive Supabase-Datenstand wurde aktualisiert oder eine Migration wurde auf das verknuepfte Supabase-Projekt angewendet.
+- Nie schreiben oder implizieren, dass etwas "live", "sichtbar" oder "veroeffentlicht" ist, wenn nur ein Git-Push erfolgt ist.
 - Nach jeder Aufgabe mit Datei- oder Repo-Aenderungen immer sagen, ob Aenderungen noch uncommitted oder ungepusht sind.
 - Wenn neue Aenderungen fertig sind und noch nicht gepusht wurden, den Nutzer aktiv fragen, ob sie sofort committed und gepusht werden sollen.
 - Automatisch committen und pushen, wenn der Nutzer ausdruecklich `push`, `commit und push`, `deploy`, `live stellen`, `veroeffentlichen` oder `GitHub Pages aktualisieren` verlangt.
 - Bei Push-/Deploy-Auftraegen immer alle zum Projekt gehoerenden Aenderungen einbeziehen, inklusive aktualisierter `docs/`-Artefakte und Supabase-Migrationen, sofern der Nutzer nicht ausdruecklich einen kleineren Umfang nennt.
+- Wenn eine Aenderung Supabase-Live-Daten betrifft, reicht das Committen/Pushen einer Migration nicht aus. Dann muss im Abschluss klar stehen:
+  - Migration/SQL-Datei: committed/gepusht oder nicht.
+  - Supabase-Live-Daten: angewendet oder nicht angewendet.
+  - Falls nicht angewendet: warum nicht und welche konkrete Aktion noch fehlt.
+- Bei `deploy`, `live stellen` oder `veroeffentlichen` gehoert die Supabase-Anwendung zur Aufgabe, wenn die Aenderung ohne Live-Datenupdate in der App nicht sichtbar waere. Wenn die Anwendung nicht sicher oder nicht moeglich ist, vor dem Abschluss aktiv stoppen und den fehlenden Schritt benennen.
+- Bei einem reinen `push` muss trotzdem ausdruecklich gesagt werden, ob dieser Push die sichtbare App bereits aktualisiert oder ob zusaetzlich GitHub-Pages-Build, Cache, Supabase-Migration oder ein anderer Deployment-Schritt fehlt.
+- Nach jedem Push-/Deploy-Auftrag im Abschluss eine kurze Statusmatrix ausgeben:
+  - Git commit: ja/nein, Commit-SHA.
+  - Git push: ja/nein, Branch.
+  - GitHub Pages: `docs/` synchronisiert ja/nein; oeffentliche URL geprueft ja/nein.
+  - Supabase/Live-Daten: Migration angewendet ja/nein/nicht betroffen.
+  - Sichtbarkeit: jetzt erwartbar, noch ausstehend oder nicht verifiziert.
 - Nicht automatisch pushen bei explorativen Analysen, Reviews, lokalen Experimenten, fehlgeschlagenen Checks, unklarer fachlicher Freigabe oder wenn der Nutzer nur eine Planung/Recherche ohne Umsetzung angefragt hat.
 - Vor einem Push die relevanten Checks ausfuehren; wenn Checks nicht laufen oder fehlschlagen, den Nutzer informieren und nur nach ausdruecklicher Bestaetigung trotzdem pushen.
 - Bestehende uncommitted Aenderungen anderer Bearbeiter nicht verwerfen; bei einem ausdruecklichen "alle Aenderungen pushen" werden sie mitgenommen.
