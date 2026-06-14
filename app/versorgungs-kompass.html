@@ -2795,6 +2795,21 @@
         overflow: visible;
       }
 
+      .table-secondary-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 10px 18px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .table-secondary-actions .action-button[hidden] {
+        display: none !important;
+      }
+
       .pagination {
         display: inline-flex;
         align-items: center;
@@ -15875,10 +15890,6 @@
           min-height: 38px;
         }
 
-        #archive-view-button {
-          display: none !important;
-        }
-
         .table-command-row > .filter-toolbar,
         .table-command-row--organizations .organization-column-actions .filter-toolbar {
           grid-column: 2 / 3;
@@ -16614,6 +16625,19 @@
           width: 100%;
           min-width: 0;
           overflow: hidden;
+        }
+
+        .table-secondary-actions {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+          padding: 8px 2px 0;
+          border-top: 0;
+          background: transparent;
+        }
+
+        .table-secondary-actions .action-button {
+          width: 100%;
         }
 
         .pagination {
@@ -19200,7 +19224,6 @@
           touch-action: auto;
         }
 
-        #contact-matching-worklist-button,
         #organization-matching-worklist-button,
         #expert-duplicates-button {
           display: none !important;
@@ -19709,8 +19732,6 @@
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions" id="contact-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
-                  <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
-                  <button class="action-button" type="button" id="contact-matching-worklist-button">Dubletten</button>
                 </div>
                 <div class="view-select-shell">
                   <button class="view-select-button" type="button" id="view-select-button" aria-expanded="false" aria-controls="view-select-menu">
@@ -19744,7 +19765,7 @@
                         <path d="M15 4v16"></path>
                       </svg>
                     </span>
-                    Spalten anpassen
+                    Spalten
                   </button>
                   <div class="column-menu" id="columns-menu" hidden>
                     <div class="column-menu__title">Sichtbare Spalten</div>
@@ -19787,6 +19808,10 @@
                     </select>
                   </label>
                 </div>
+              </div>
+              <div class="table-secondary-actions" id="contact-secondary-actions">
+                <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
+                <button class="action-button" type="button" id="contact-matching-worklist-button">Dubletten</button>
               </div>
             </div>
           </section>
@@ -22375,6 +22400,7 @@
       const editorThemePresets = document.getElementById("editor-theme-presets");
       const editorThemeSelected = document.getElementById("editor-theme-selected");
       const contactCommandActions = document.getElementById("contact-command-actions");
+      const contactSecondaryActions = document.getElementById("contact-secondary-actions");
       const contactCommandRow = document.querySelector("#view-contacts .table-command-row");
       const organizationColumnActions = document.getElementById("organization-column-actions");
       const organizationCommandActions = document.getElementById("organization-command-actions");
@@ -22500,9 +22526,8 @@
       viewShell?.appendChild(profileModal);
       viewShell?.appendChild(personProfilePage);
       viewShell?.appendChild(organizationProfilePage);
-      if (newContactButton && archiveViewButton && contactMatchingWorklistButton) {
-        contactCommandActions?.append(newContactButton, archiveViewButton, contactMatchingWorklistButton);
-      }
+      if (newContactButton) contactCommandActions?.append(newContactButton);
+      if (archiveViewButton && contactMatchingWorklistButton) contactSecondaryActions?.append(archiveViewButton, contactMatchingWorklistButton);
       if (newOrganizationButton && organizationMatchingWorklistButton) {
         organizationCommandActions?.append(newOrganizationButton, organizationMatchingWorklistButton);
       }
@@ -26779,6 +26804,10 @@
           const matchesSector = !selectedCategories.length || selectedCategories.includes(organization.sector);
           const matchesState = !selectedStates.length || selectedStates.includes(organization.state);
           const matchesCity = !selectedOrganizationCities.length || selectedOrganizationCities.includes(organization.city || organizationLocation(organization));
+          const ownerValues = [...new Set(contactsForOrganization.flatMap((contact) => contactOwnerValues(contact)))];
+          const matchesOwner =
+            !selectedOwners.length ||
+            selectedOwners.some((owner) => (owner === "__none__" ? ownerValues.length === 0 : ownerValues.includes(owner)));
           const matchesContactRange =
             !selectedOrganizationContactRanges.length ||
             selectedOrganizationContactRanges.some((range) => organizationMatchesContactRange(organization, range));
@@ -26796,7 +26825,7 @@
               const mapped = field === "organization" ? "contacts" : field === "specialty" ? "sector" : field;
               return missingFields.includes(mapped);
             });
-          return matchesSearch && matchesSector && matchesState && matchesCity && matchesContactRange && matchesUpdated && matchesSource && matchesQuality && matchesMissing;
+          return matchesSearch && matchesSector && matchesState && matchesCity && matchesOwner && matchesContactRange && matchesUpdated && matchesSource && matchesQuality && matchesMissing;
         });
       }
 
@@ -29568,12 +29597,22 @@
         updateViewSelectLabel();
       }
 
+      function viewSelectAllLabel() {
+        return activeView === "organizations" ? "Alle Organisationen" : "Alle Kontakte";
+      }
+
+      function renderViewSelectStandardLabels() {
+        const allButton = viewSelectMenu?.querySelector('[data-standard-view="all"]');
+        if (allButton) allButton.textContent = viewSelectAllLabel();
+      }
+
       function updateViewSelectLabel(label = "") {
         if (!viewSelectLabel) return;
+        renderViewSelectStandardLabels();
         const defaultLabel = activeView === "organizations" ? "Alle Organisationen" : activeView === "map" ? "Karte" : activeView === "analytics" ? "Auswertung" : "Alle Kontakte";
-        if (activeView === "contacts") {
+        if (activeView === "contacts" || activeView === "organizations") {
           const ownerLabel = label || activeSavedViewName || defaultLabel;
-          viewSelectLabel.textContent = ownerLabel === "Alle Kontakte" ? "Owner: Alle" : `Owner: ${ownerLabel.replace(/^Ohne Owner$/, "Ohne")}`;
+          viewSelectLabel.textContent = ownerLabel === defaultLabel ? "Owner: Alle" : `Owner: ${ownerLabel.replace(/^Ohne Owner$/, "Ohne")}`;
           return;
         }
         viewSelectLabel.textContent = `Ansicht: ${label || activeSavedViewName || defaultLabel}`;
@@ -29647,7 +29686,7 @@
         showingArchive = false;
         selectedOwners = [owner];
         currentPage = 1;
-        setActiveView("contacts");
+        setActiveView(activeView === "organizations" ? "organizations" : "contacts");
         closeMenus();
         activeSavedViewName = ownerOptionLabel(owner) || "Owner";
         updateViewSelectLabel();

@@ -32,6 +32,16 @@ Diese Regeln gelten fuer Codex- und Agentenarbeit im Versorgungs-Kompass.
 - Keine grossen neuen Features waehrend eines Design-System-Konsolidierungssprints.
 - Nach sichtbaren UI-Aenderungen die `VISUAL_QA_CHECKLIST.md` abarbeiten.
 
+## Git-, Commit- und Push-Regeln
+
+- Nach jeder Aufgabe mit Datei- oder Repo-Aenderungen immer sagen, ob Aenderungen noch uncommitted oder ungepusht sind.
+- Wenn neue Aenderungen fertig sind und noch nicht gepusht wurden, den Nutzer aktiv fragen, ob sie sofort committed und gepusht werden sollen.
+- Automatisch committen und pushen, wenn der Nutzer ausdruecklich `push`, `commit und push`, `deploy`, `live stellen`, `veroeffentlichen` oder `GitHub Pages aktualisieren` verlangt.
+- Bei Push-/Deploy-Auftraegen immer alle zum Projekt gehoerenden Aenderungen einbeziehen, inklusive aktualisierter `docs/`-Artefakte und Supabase-Migrationen, sofern der Nutzer nicht ausdruecklich einen kleineren Umfang nennt.
+- Nicht automatisch pushen bei explorativen Analysen, Reviews, lokalen Experimenten, fehlgeschlagenen Checks, unklarer fachlicher Freigabe oder wenn der Nutzer nur eine Planung/Recherche ohne Umsetzung angefragt hat.
+- Vor einem Push die relevanten Checks ausfuehren; wenn Checks nicht laufen oder fehlschlagen, den Nutzer informieren und nur nach ausdruecklicher Bestaetigung trotzdem pushen.
+- Bestehende uncommitted Aenderungen anderer Bearbeiter nicht verwerfen; bei einem ausdruecklichen "alle Aenderungen pushen" werden sie mitgenommen.
+
 ## Priorisierte technische UI-Schulden
 
 - Vor selektiven UI-Verbesserungen zuerst `UI_TECH_DEBT.md` lesen.
