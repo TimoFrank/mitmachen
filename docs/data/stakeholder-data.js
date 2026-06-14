@@ -222,6 +222,255 @@ const stakeholderPatientAssociationLogoMetadata = {
     logoSourceUrl: "https://www.blasenkrebs-shb.de/wp-content/uploads/bg-branding.jpg"
   }
 };
+
+const stakeholderPatientAssociationMemberCounts = {
+  "patient-dbr": {
+    memberCount: 140,
+    memberCountScope: "Mitgliedsorganisationen laut Lobbyregister; der DBR repräsentiert über seine Organisationen zusätzlich mehr als 2,5 Mio. Betroffene.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: DBR, Mitglieder am 17.06.2024",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R002273",
+    memberCountUpdatedAt: "2024-06-17"
+  },
+  "patient-dag-shg": {
+    memberCount: 200,
+    memberCountScope: "Mitglieder der DAG SHG laut Geschäftsbericht 2024.",
+    memberCountSourceLabel: "DAG SHG: Geschäftsbericht 2024",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/media/f7/fc/578719/Geschaftsbericht-DAG-SHG_2024.pdf"
+  },
+  "patient-vzbv": {
+    memberCount: 47,
+    memberCountLabel: "mind. 47",
+    memberCountScope: "16 Verbraucherzentralen plus mehr als 30 verbraucherpolitische Verbände; Sortierwert als belegter Mindestwert.",
+    memberCountSourceLabel: "vzbv: Mitglieder",
+    memberCountSourceUrl: "https://www.vzbv.de/ueber-uns/organisation/mitglieder"
+  },
+  "patient-bag-selbsthilfe": {
+    memberCount: 141,
+    memberCountScope: "121 Bundesorganisationen, 13 Landesarbeitsgemeinschaften und 7 Fachverbände.",
+    memberCountSourceLabel: "BAG SELBSTHILFE: Infos zur Mitgliedschaft",
+    memberCountSourceUrl: "https://www.bag-selbsthilfe.de/bag-selbsthilfe/die-mitgliedsorganisationen-der-bag-selbsthilfe/infos-zur-mitgliedschaft"
+  },
+  "patient-sovd": {
+    memberCount: 600000,
+    memberCountLabel: "ca. 600.000",
+    memberCountScope: "Öffentliche Verbandsangabe: Sozialverband mit ca. 600.000 Mitgliedern.",
+    memberCountSourceLabel: "SoVD: Startseite",
+    memberCountSourceUrl: "https://www.sovd.de/"
+  },
+  "patient-vdk": {
+    memberCount: 2385426,
+    memberCountScope: "Mitgliederbestand zum Jahresende 2025.",
+    memberCountSourceLabel: "Sozialverband VdK Deutschland: Mitglieder-Höchststand 2025",
+    memberCountSourceUrl: "https://www.presseportal.de/pm/134393/6223304",
+    memberCountUpdatedAt: "2025-12-31"
+  },
+  "patient-isl": {
+    memberCount: 20,
+    memberCountLabel: "ca. 20",
+    memberCountScope: "Dachorganisation der rund 20 Zentren für Selbstbestimmtes Leben behinderter Menschen; keine öffentliche Einzelmitgliederzahl gefunden.",
+    memberCountSourceLabel: "Forum Menschenrechte: ISL e.V.",
+    memberCountSourceUrl: "https://www.forum-menschenrechte.de/netzwerk/interessenvertretung-selbstbestimmt-leben-in-deutschland-isl-e-v/"
+  },
+  "patient-abid": {
+    memberCount: 2506,
+    memberCountScope: "11 natürliche Personen und 2.495 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: ABiD, Mitglieder am 31.12.2023",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R003142",
+    memberCountUpdatedAt: "2023-12-31"
+  },
+  "patient-lebenshilfe": {
+    memberCount: 646,
+    memberCountScope: "5 natürliche Personen und 641 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: Bundesvereinigung Lebenshilfe, Mitglieder am 05.02.2026",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R004143",
+    memberCountUpdatedAt: "2026-02-05"
+  },
+  "patient-achse": {
+    memberCount: 130,
+    memberCountLabel: ">130",
+    memberCountScope: "Dachverband von mehr als 130 Patientenorganisationen im Bereich Seltene Erkrankungen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: ACHSE",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R002390"
+  },
+  "patient-deutsche-alzheimer-gesellschaft": {
+    memberCount: 193,
+    memberCountScope: "63 natürliche Personen und 130 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: Deutsche Alzheimer Gesellschaft, Mitglieder am 01.01.2025",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R001162",
+    memberCountUpdatedAt: "2025-01-01"
+  },
+  "patient-rheuma-liga": {
+    memberCount: 260048,
+    memberCountScope: "260.000 natürliche Personen und 48 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: Deutsche Rheuma-Liga, Mitglieder am 01.01.2024",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R001807",
+    memberCountUpdatedAt: "2024-01-01"
+  },
+  "patient-dmsg": {
+    memberCount: 41961,
+    memberCountScope: "41.881 natürliche Personen und 80 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: DMSG, Mitglieder am 31.12.2023",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R004509",
+    memberCountUpdatedAt: "2023-12-31"
+  },
+  "patient-dccv": {
+    memberCount: 23970,
+    memberCountScope: "23.945 natürliche Personen und 25 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: DCCV, Mitglieder am 24.07.2025",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/media/08/18/595593/Lobbyregister-Registereintraege-Detailansicht-R004914-2025-08-01_07-54-40.pdf",
+    memberCountUpdatedAt: "2025-07-24"
+  },
+  "patient-pro-retina": {
+    memberCount: 6000,
+    memberCountLabel: "ca. 6.000",
+    memberCountScope: "Mitglieder bundesweit laut Retina International.",
+    memberCountSourceLabel: "Retina International: PRO RETINA Deutschland",
+    memberCountSourceUrl: "https://retina-international.org/members/pro-retina-deutschland-e-v/"
+  },
+  "patient-aps": {
+    memberCount: 800,
+    memberCountLabel: ">800",
+    memberCountScope: "Persönliche Mitglieder, Mitgliedsorganisationen und engagierte Fachleute.",
+    memberCountSourceLabel: "APS: Startseite",
+    memberCountSourceUrl: "https://www.aps-ev.de/"
+  },
+  "patient-bpik": {
+    memberCount: 200,
+    memberCountLabel: ">200",
+    memberCountScope: "Bundesweit über 200 Mitglieder, die in kommunalen, freigemeinnützigen, spezialisierten und Universitätskliniken tätig sind.",
+    memberCountSourceLabel: "BPiK: Spendenseite",
+    memberCountSourceUrl: "https://bpik.de/spendenseite/"
+  },
+  "patient-diabetesde": {
+    memberCount: 30,
+    memberCountScope: "Ausschließlich natürliche Personen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: diabetesDE, Mitglieder am 01.02.2024",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R003277",
+    memberCountUpdatedAt: "2024-02-01"
+  },
+  "patient-parkinson-vereinigung": {
+    memberCount: 15300,
+    memberCountLabel: "knapp 15.300",
+    memberCountScope: "Mitgliederbestand der Deutschen Parkinson Vereinigung, Stand 2024.",
+    memberCountSourceLabel: "Deutsche Parkinson Vereinigung: Organisationsprofil",
+    memberCountSourceUrl: "https://de.wikipedia.org/wiki/Deutsche_Parkinson_Vereinigung",
+    memberCountUpdatedAt: "2024-12-31"
+  },
+  "patient-herzstiftung": {
+    memberCount: 107633,
+    memberCountScope: "107.062 natürliche Personen und 571 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: Deutsche Herzstiftung, Mitglieder am 17.06.2024",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R001258",
+    memberCountUpdatedAt: "2024-06-17"
+  },
+  "patient-daab": {
+    memberCount: 18100,
+    memberCountScope: "Betroffene, Angehörige, Selbsthilfegruppen, Verbraucherverbände sowie ärztliche und weitere Fachkreise.",
+    memberCountSourceLabel: "REHADAT-Adressen: Deutscher Allergie- und Asthmabund",
+    memberCountSourceUrl: "https://www.rehadat-adressen.de/adressen/behinderung-erkrankung/allergie-und-atemwegserkrankung/index.html?filter=%28art_adr%3A%28%22Allergie%2FAsthma%2FBundesverband%22%29%29+AND+doc_type%3AADR&listtitle=Allergie+%26+Asthma+-+Bundesverb%C3%A4nde&mode=detail&page=3&query=%28%22Allergie%2FAsthma%2FBundesverband%22%29&reloaded=&sort=sort_name1_adr+asc"
+  },
+  "patient-psoriasis-bund": {
+    memberCount: 3739,
+    memberCountScope: "Ausschließlich natürliche Personen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: Deutscher Psoriasis Bund, Mitglieder am 16.06.2025",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R002639",
+    memberCountUpdatedAt: "2025-06-16"
+  },
+  "patient-frauenselbsthilfe-krebs": {
+    memberCount: 750,
+    memberCountScope: "Formale Mitglieder; NAKOS nennt zusätzlich eine Community von ca. 25.000 aktiv Teilnehmenden.",
+    memberCountSourceLabel: "NAKOS: SHO-Steckbrief Frauenselbsthilfe Krebs",
+    memberCountSourceUrl: "https://www.nakos.de/adressen/gruen/kennzeichnung/SHO-Steckbriefe/key%4010541"
+  },
+  "patient-prostatakrebs-bps": {
+    memberCount: 180,
+    memberCountLabel: "ca. 180",
+    memberCountScope: "Selbsthilfegruppen als Mitglieder des Bundesverbands.",
+    memberCountSourceLabel: "BPS: Geschichte des BPS",
+    memberCountSourceUrl: "https://prostatakrebs-bps.de/geschichte-des-bps/"
+  },
+  "patient-ilco": {
+    memberCount: 6000,
+    memberCountLabel: ">6.000",
+    memberCountScope: "Mitglieder bundesweit.",
+    memberCountSourceLabel: "Haus der Krebs-Selbsthilfe: Deutsche ILCO",
+    memberCountSourceUrl: "https://hausderkrebsselbsthilfe.de/mitgliedsverband/deutsche-ilco-e-v-selbsthilfe-bei-darmkrebs-und-stoma/"
+  },
+  "patient-haus-der-krebs-selbsthilfe": {
+    memberCount: 12,
+    memberCountScope: "Mitgliedsverbände des Dachverbands.",
+    memberCountSourceLabel: "Haus der Krebs-Selbsthilfe: Bundesverband",
+    memberCountSourceUrl: "https://hausderkrebsselbsthilfe.de/wer-wir-sind/bundesverband/"
+  },
+  "patient-dlh": {
+    memberCount: 246,
+    memberCountScope: "153 natürliche Personen und 93 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: DLH, Mitglieder am 31.12.2024",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R006506",
+    memberCountUpdatedAt: "2024-12-31"
+  },
+  "patient-schilddruesenkrebs": {
+    memberCount: 845,
+    memberCountScope: "Mitgliederbestand des Bundesverbands Schilddrüsenkrebs, Stand 2023.",
+    memberCountSourceLabel: "Bundesverband Schilddrüsenkrebs: Organisationsprofil",
+    memberCountSourceUrl: "https://de.wikipedia.org/wiki/Bundesverband_Schilddr%C3%BCsenkrebs",
+    memberCountUpdatedAt: "2023-12-31"
+  },
+  "patient-mukoviszidose": {
+    memberCount: 5810,
+    memberCountScope: "5.799 natürliche Personen und 11 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: Mukoviszidose e.V., Mitglieder am 31.12.2025",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R001032",
+    memberCountUpdatedAt: "2025-12-31"
+  },
+  "patient-kindernetzwerk": {
+    memberCount: 844,
+    memberCountScope: "453 natürliche Personen und 391 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: Kindernetzwerk, Mitglieder am 16.03.2026",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R000194",
+    memberCountUpdatedAt: "2026-03-16"
+  },
+  "patient-bvhk": {
+    memberCount: 29,
+    memberCountScope: "Mitgliedsvereine in Deutschland.",
+    memberCountSourceLabel: "DZI: Bundesverband Herzkranke Kinder",
+    memberCountSourceUrl: "https://www.dzi.de/organisation/bundesverband-herzkranke-kinder-e-v/"
+  },
+  "patient-epilepsievereinigung": {
+    memberCount: 1000,
+    memberCountLabel: "ca. 1.000",
+    memberCountScope: "Öffentliche Angabe aus 2016; keine aktuellere belastbare öffentliche Mitgliederzahl gefunden.",
+    memberCountSourceLabel: "Pharmazeutische Zeitung: Epilepsie-Tagung 2016",
+    memberCountSourceUrl: "https://www.pharmazeutische-zeitung.de/2016-07/epilepsie-tagung-raus-aus-der-stigmatisierung/"
+  },
+  "patient-depressionsliga": {
+    memberCount: 2458,
+    memberCountScope: "2.456 natürliche Personen und 2 juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: Deutsche DepressionsLiga",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R006194"
+  },
+  "patient-autismus-deutschland": {
+    memberCount: 55,
+    memberCountLabel: "ca. 55",
+    memberCountScope: "Regionalverbände im Bundesverband.",
+    memberCountSourceLabel: "autismus Deutschland: Startseite",
+    memberCountSourceUrl: "https://www.autismus.de/"
+  },
+  "patient-adhs-deutschland": {
+    memberCount: 200,
+    memberCountLabel: ">200",
+    memberCountScope: "Selbsthilfegruppen, Online-Gruppen und Telefonberaternetz; keine öffentliche Einzelmitgliederzahl gefunden.",
+    memberCountSourceLabel: "ADHS Deutschland: Startseite",
+    memberCountSourceUrl: "https://adhs-deutschland.de/herzlich-willkommen-beim-internetauftritt-des-adhs-deutschland-ev"
+  },
+  "patient-blasenkrebs-shb": {
+    memberCount: 850,
+    memberCountLabel: "ca. 850",
+    memberCountScope: "Mitglieder mit 57 Selbsthilfegruppen.",
+    memberCountSourceLabel: "Selbsthilfe.app: Selbsthilfe-Bund Blasenkrebs",
+    memberCountSourceUrl: "https://selbsthilfe.app/alle-mitgliedsorganisationen/organisation/selbsthilfe-bund-blasenkrebs-e-v"
+  }
+};
 const stakeholderPhysicianAssociationNote = "Bundesweit relevante ärztliche Berufs-, Fach- oder Dachorganisation; Auswahl nach SpiFa-/GFB-Mitgliedschaft, Lobbyregister-Relevanz, Versorgungspolitik, Fachgruppenabdeckung und bundesweiter Kontaktierbarkeit.";
 const stakeholderPhysicianAssociationLogoSourceLabel = "Kuratiertes Logo-Asset: offizielles Header-/Logo-Asset; keine Favicon-/Social-Media-Quelle";
 const stakeholderPhysicianAssociationLogoMetadata = {
@@ -780,6 +1029,7 @@ const stakeholderKvOrganizations = [
   ["patient-blasenkrebs-shb", "Selbsthilfe-Bund Blasenkrebs e.V. (ShB)", "53111", "Bonn", "Nordrhein-Westfalen", "https://www.blasenkrebs-shb.de", "https://www.blasenkrebs-shb.de/impressum/", "Krebs-Selbsthilfevertretung", "Offizielles ShB-Impressum", stakeholderPatientContactExpansionNote, "0228 33889152", "info@blasenkrebs-shb.de"]
 ].map(([id, name, postalCode, city, state, website, organizationSourceUrl, organizationType = "Maßgebliche Patientenorganisation", source = "G-BA Patientenvertretung; offizielle Organisationsangaben", notes = stakeholderPatientAssociationNote, phone = "", email = ""]) => {
   const logoMetadata = stakeholderPatientAssociationLogoMetadata[id] || {};
+  const memberCountMetadata = stakeholderPatientAssociationMemberCounts[id] || {};
   return {
     id,
     stakeholderTypeId: "patient-associations",
@@ -802,12 +1052,12 @@ const stakeholderKvOrganizations = [
     logoUrl: logoMetadata.logoFile ? `./public/stakeholder-logos/patient-associations/${logoMetadata.logoFile}` : "",
     logoSourceUrl: logoMetadata.logoSourceUrl || "",
     logoSourceLabel: logoMetadata.logoSourceUrl ? stakeholderPatientAssociationLogoSourceLabel : "",
-    memberCount: null,
-    memberCountLabel: "",
-    memberCountScope: "",
-    memberCountSourceLabel: "",
-    memberCountSourceUrl: "",
-    memberCountUpdatedAt: "",
+    memberCount: memberCountMetadata.memberCount ?? null,
+    memberCountLabel: memberCountMetadata.memberCountLabel || (memberCountMetadata.memberCount ? memberCountMetadata.memberCount.toLocaleString("de-DE") : ""),
+    memberCountScope: memberCountMetadata.memberCountScope || "",
+    memberCountSourceLabel: memberCountMetadata.memberCountSourceLabel || "",
+    memberCountSourceUrl: memberCountMetadata.memberCountSourceUrl || "",
+    memberCountUpdatedAt: memberCountMetadata.memberCountUpdatedAt || "",
     recognitionSourceUrl: stakeholderPatientAssociationRecognitionSourceUrl,
     organizationSourceUrl,
     status: "active"

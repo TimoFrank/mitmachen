@@ -3776,12 +3776,6 @@
         width: 100%;
       }
 
-      .contact-meta--stack {
-        display: grid;
-        align-items: start;
-        gap: 3px;
-      }
-
       .contact-subline {
         margin-top: 3px;
         color: var(--muted);
@@ -16355,13 +16349,6 @@
           display: none;
         }
 
-        .organization-mobile-card .stakeholder-organization-member-line {
-          display: block;
-          white-space: normal;
-          overflow: visible;
-          text-overflow: clip;
-        }
-
         .organization-mobile-meta {
           display: flex;
           align-items: center;
@@ -20058,6 +20045,14 @@
                 <div class="table-footer__meta" id="stakeholders-pagination-meta">0-0 von 0 Organisationen</div>
                 <div class="table-footer__controls">
                   <div class="pagination" id="stakeholders-pagination"></div>
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
+                    <select id="stakeholders-page-size-select" aria-label="Stakeholder pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
                 </div>
               </div>
             </div>
@@ -20360,7 +20355,7 @@
                         </svg>
                       </div>
                       <h3>Stakeholder-Import</h3>
-                      <p>Stakeholder-Organisationen und Ansprechpersonen aus CSV oder Excel übernehmen.</p>
+                      <p>Stakeholder-Organisationen und Kontakte aus CSV oder Excel übernehmen.</p>
                       <button class="action-button" type="button" id="imports-start-stakeholder">Stakeholder importieren</button>
                     </article>
                   </div>
@@ -20628,7 +20623,7 @@
                 <div class="about-topic-list" aria-label="Funktionen des Versorgungs-Kompass">
                   <section class="about-topic">
                     <h3>Kontakte und Organisationen</h3>
-                    <p>Du sammelst wichtige Ansprechpersonen, Einrichtungen und Netzwerke strukturiert und findest schnell, wer wofür zuständig ist.</p>
+                    <p>Du sammelst wichtige Kontakte, Einrichtungen und Netzwerke strukturiert und findest schnell, wer wofür zuständig ist.</p>
                   </section>
                   <section class="about-topic">
                     <h3>Suchen und filtern</h3>
@@ -22017,8 +22012,8 @@
       const stakeholderOrganizationTableColumns = [
         { key: "organization", label: "Organisation", template: "minmax(210px, 1.05fr)", required: true },
         { key: "location", label: "Sitz", template: "minmax(112px, 0.48fr)" },
-        { key: "memberCount", label: "Mitgliederzahl", template: "minmax(116px, 0.46fr)" },
-        { key: "people", label: "Personen", template: "minmax(96px, 0.36fr)" }
+        { key: "memberCount", label: "Mitgliederzahl", template: "minmax(116px, 0.46fr)", required: true },
+        { key: "people", label: "Kontakte", template: "minmax(96px, 0.36fr)" }
       ];
       const defaultStakeholderPeopleColumnKeys = ["name", "organization", "role", "location"];
       const stakeholderPeopleTableColumns = [
@@ -22036,22 +22031,22 @@
           organizationShortPlural: "Organisationen",
           organizationTypeFallback: "Stakeholder-Organisation",
           organizationSearchPlaceholder: "Stakeholder-Organisationen suchen...",
-          personSingular: "Person",
-          personPlural: "Personen",
-          personPluralDative: "Personen",
-          peopleTabLabel: "Personen",
-          peopleSearchPlaceholder: "Person, Organisation oder Bundesland suchen...",
-          emptyPeopleLabel: "Noch keine Personen für diesen Stakeholder-Typ gepflegt.",
-          peopleSectionTitle: "Personen",
-          peopleOpenLabel: "Person öffnen",
+          personSingular: "Kontakt",
+          personPlural: "Kontakte",
+          personPluralDative: "Kontakten",
+          peopleTabLabel: "Kontakte",
+          peopleSearchPlaceholder: "Kontakt, Organisation oder Bundesland suchen...",
+          emptyPeopleLabel: "Noch keine Kontakte für diesen Stakeholder-Typ gepflegt.",
+          peopleSectionTitle: "Kontakte",
+          peopleOpenLabel: "Kontakt öffnen",
           mapOrganizationSourceLabel: "Organisationssitz",
-          mapListTitle: "Stakeholder-Personen",
-          mapSearchPlaceholder: "Person, Organisation oder Bundesland suchen",
+          mapListTitle: "Stakeholder-Kontakte",
+          mapSearchPlaceholder: "Kontakt, Organisation oder Bundesland suchen",
           mapCategory: "Stakeholder",
-          mapOpenDetailLabel: "Person öffnen",
+          mapOpenDetailLabel: "Kontakt öffnen",
           mapPreviewKicker: "Stakeholder-Vorschau",
-          mapEmptyTitle: "Keine Personen auf der Karte",
-          mapDescriptionFallback: "Person",
+          mapEmptyTitle: "Keine Kontakte auf der Karte",
+          mapDescriptionFallback: "Kontakt",
           importAliases: []
         },
         kv: {
@@ -22061,21 +22056,21 @@
           organizationShortPlural: "KVn",
           organizationTypeFallback: "Kassenärztliche Vereinigung",
           organizationSearchPlaceholder: "Kassenärztliche Vereinigungen suchen...",
-          personSingular: "Vorstand",
-          personPlural: "Vorstände",
-          personPluralDative: "Vorständen",
-          peopleTabLabel: "Vorstände",
-          peopleSearchPlaceholder: "KV-Vorstände, Organisation oder Bundesland suchen...",
-          emptyPeopleLabel: "Noch keine Vorstände für diesen Stakeholder-Typ importiert.",
-          peopleSectionTitle: "Vorstände",
-          peopleOpenLabel: "Vorstand öffnen",
+          personSingular: "Kontakt",
+          personPlural: "Kontakte",
+          personPluralDative: "Kontakten",
+          peopleTabLabel: "Kontakte",
+          peopleSearchPlaceholder: "Kontakt, KV oder Bundesland suchen...",
+          emptyPeopleLabel: "Noch keine Kontakte für diesen Stakeholder-Typ importiert.",
+          peopleSectionTitle: "Kontakte",
+          peopleOpenLabel: "Kontakt öffnen",
           mapOrganizationSourceLabel: "KV-Sitz",
-          mapListTitle: "KV-Vorstände",
-          mapSearchPlaceholder: "Vorstand, KV oder Bundesland suchen",
+          mapListTitle: "KV-Kontakte",
+          mapSearchPlaceholder: "Kontakt, KV oder Bundesland suchen",
           mapCategory: "KV",
-          mapOpenDetailLabel: "Vorstand öffnen",
-          mapEmptyTitle: "Keine Vorstände auf der Karte",
-          mapDescriptionFallback: "Vorstand",
+          mapOpenDetailLabel: "Kontakt öffnen",
+          mapEmptyTitle: "Keine Kontakte auf der Karte",
+          mapDescriptionFallback: "Kontakt",
           importAliases: ["kv", "kassenaerztliche", "kassenarztliche", "kassenärztliche"]
         },
         "health-insurance": {
@@ -22085,20 +22080,20 @@
           organizationShortPlural: "Krankenkassen",
           organizationTypeFallback: "Krankenkasse",
           organizationSearchPlaceholder: "Krankenkassen suchen...",
-          personSingular: "Ansprechperson",
-          personPlural: "Ansprechpersonen",
-          personPluralDative: "Ansprechpersonen",
-          peopleTabLabel: "Ansprechpersonen",
-          peopleSearchPlaceholder: "Ansprechperson, Krankenkasse oder Bundesland suchen...",
-          emptyPeopleLabel: "Noch keine Ansprechpersonen für diesen Stakeholder-Typ gepflegt.",
-          peopleSectionTitle: "Ansprechpersonen",
-          peopleOpenLabel: "Ansprechperson öffnen",
-          mapListTitle: "Ansprechpersonen Krankenkassen",
-          mapSearchPlaceholder: "Ansprechperson, Krankenkasse oder Bundesland suchen",
+          personSingular: "Kontakt",
+          personPlural: "Kontakte",
+          personPluralDative: "Kontakten",
+          peopleTabLabel: "Kontakte",
+          peopleSearchPlaceholder: "Kontakt, Krankenkasse oder Bundesland suchen...",
+          emptyPeopleLabel: "Noch keine Kontakte für diesen Stakeholder-Typ gepflegt.",
+          peopleSectionTitle: "Kontakte",
+          peopleOpenLabel: "Kontakt öffnen",
+          mapListTitle: "Kontakte Krankenkassen",
+          mapSearchPlaceholder: "Kontakt, Krankenkasse oder Bundesland suchen",
           mapCategory: "Krankenkasse",
-          mapOpenDetailLabel: "Ansprechperson öffnen",
-          mapEmptyTitle: "Keine Ansprechpersonen auf der Karte",
-          mapDescriptionFallback: "Ansprechperson",
+          mapOpenDetailLabel: "Kontakt öffnen",
+          mapEmptyTitle: "Keine Kontakte auf der Karte",
+          mapDescriptionFallback: "Kontakt",
           importAliases: ["krankenkasse", "krankenkassen", "gkv", "health insurance"]
         },
         "patient-associations": {
@@ -22108,20 +22103,20 @@
           organizationShortPlural: "Patientenverbände",
           organizationTypeFallback: "Patientenverband",
           organizationSearchPlaceholder: "Patientenverbände suchen...",
-          personSingular: "Ansprechperson",
-          personPlural: "Ansprechpersonen",
-          personPluralDative: "Ansprechpersonen",
-          peopleTabLabel: "Ansprechpersonen",
-          peopleSearchPlaceholder: "Ansprechperson, Patientenverband oder Bundesland suchen...",
-          emptyPeopleLabel: "Noch keine Ansprechpersonen für diesen Stakeholder-Typ gepflegt.",
-          peopleSectionTitle: "Ansprechpersonen",
-          peopleOpenLabel: "Ansprechperson öffnen",
-          mapListTitle: "Ansprechpersonen Patientenverbände",
-          mapSearchPlaceholder: "Ansprechperson, Patientenverband oder Bundesland suchen",
+          personSingular: "Kontakt",
+          personPlural: "Kontakte",
+          personPluralDative: "Kontakten",
+          peopleTabLabel: "Kontakte",
+          peopleSearchPlaceholder: "Kontakt, Patientenverband oder Bundesland suchen...",
+          emptyPeopleLabel: "Noch keine Kontakte für diesen Stakeholder-Typ gepflegt.",
+          peopleSectionTitle: "Kontakte",
+          peopleOpenLabel: "Kontakt öffnen",
+          mapListTitle: "Kontakte Patientenverbände",
+          mapSearchPlaceholder: "Kontakt, Patientenverband oder Bundesland suchen",
           mapCategory: "Patientenverband",
-          mapOpenDetailLabel: "Ansprechperson öffnen",
-          mapEmptyTitle: "Keine Ansprechpersonen auf der Karte",
-          mapDescriptionFallback: "Ansprechperson",
+          mapOpenDetailLabel: "Kontakt öffnen",
+          mapEmptyTitle: "Keine Kontakte auf der Karte",
+          mapDescriptionFallback: "Kontakt",
           importAliases: ["patientenverband", "patientenverbaende", "patientenverbände", "patient association"]
         },
         "hospital-associations": {
@@ -22131,20 +22126,20 @@
           organizationShortPlural: "Krankenhausgesellschaften",
           organizationTypeFallback: "Krankenhausgesellschaft",
           organizationSearchPlaceholder: "Krankenhausgesellschaften suchen...",
-          personSingular: "Person",
-          personPlural: "Personen",
-          personPluralDative: "Personen",
-          peopleTabLabel: "Geschäftsführung",
-          peopleSearchPlaceholder: "Geschäftsführung, Krankenhausgesellschaft oder Bundesland suchen...",
-          emptyPeopleLabel: "Noch keine Personen der Geschäftsführung für diesen Stakeholder-Typ gepflegt.",
-          peopleSectionTitle: "Geschäftsführung",
-          peopleOpenLabel: "Person öffnen",
-          mapListTitle: "Geschäftsführung Krankenhausgesellschaften",
-          mapSearchPlaceholder: "Person, Krankenhausgesellschaft oder Bundesland suchen",
+          personSingular: "Kontakt",
+          personPlural: "Kontakte",
+          personPluralDative: "Kontakten",
+          peopleTabLabel: "Kontakte",
+          peopleSearchPlaceholder: "Kontakt, Krankenhausgesellschaft oder Bundesland suchen...",
+          emptyPeopleLabel: "Noch keine Kontakte für diesen Stakeholder-Typ gepflegt.",
+          peopleSectionTitle: "Kontakte",
+          peopleOpenLabel: "Kontakt öffnen",
+          mapListTitle: "Kontakte Krankenhausgesellschaften",
+          mapSearchPlaceholder: "Kontakt, Krankenhausgesellschaft oder Bundesland suchen",
           mapCategory: "Krankenhausgesellschaft",
-          mapOpenDetailLabel: "Person öffnen",
-          mapEmptyTitle: "Keine Personen auf der Karte",
-          mapDescriptionFallback: "Geschäftsführung",
+          mapOpenDetailLabel: "Kontakt öffnen",
+          mapEmptyTitle: "Keine Kontakte auf der Karte",
+          mapDescriptionFallback: "Kontakt",
           importAliases: ["krankenhausgesellschaft", "krankenhausgesellschaften", "hospital association"]
         },
         "physician-associations": {
@@ -22154,20 +22149,20 @@
           organizationShortPlural: "Berufsverbände",
           organizationTypeFallback: "Ärztlicher Berufsverband",
           organizationSearchPlaceholder: "Ärztliche Berufsverbände suchen...",
-          personSingular: "Person",
-          personPlural: "Personen",
-          personPluralDative: "Personen",
-          peopleTabLabel: "Präsidium",
-          peopleSearchPlaceholder: "Präsidium, Berufsverband oder Bundesland suchen...",
-          emptyPeopleLabel: "Noch keine Präsidiums- oder Vorstandsmitglieder für diesen Stakeholder-Typ gepflegt.",
-          peopleSectionTitle: "Präsidium",
-          peopleOpenLabel: "Person öffnen",
-          mapListTitle: "Präsidium ärztliche Berufsverbände",
-          mapSearchPlaceholder: "Person, Berufsverband oder Bundesland suchen",
+          personSingular: "Kontakt",
+          personPlural: "Kontakte",
+          personPluralDative: "Kontakten",
+          peopleTabLabel: "Kontakte",
+          peopleSearchPlaceholder: "Kontakt, Berufsverband oder Bundesland suchen...",
+          emptyPeopleLabel: "Noch keine Kontakte für diesen Stakeholder-Typ gepflegt.",
+          peopleSectionTitle: "Kontakte",
+          peopleOpenLabel: "Kontakt öffnen",
+          mapListTitle: "Kontakte ärztliche Berufsverbände",
+          mapSearchPlaceholder: "Kontakt, Berufsverband oder Bundesland suchen",
           mapCategory: "Berufsverband",
-          mapOpenDetailLabel: "Person öffnen",
-          mapEmptyTitle: "Keine Personen auf der Karte",
-          mapDescriptionFallback: "Präsidium",
+          mapOpenDetailLabel: "Kontakt öffnen",
+          mapEmptyTitle: "Keine Kontakte auf der Karte",
+          mapDescriptionFallback: "Kontakt",
           importAliases: ["aerztlicher berufsverband", "ärztlicher berufsverband", "berufsverband", "physician association"]
         }
       };
@@ -22363,6 +22358,7 @@
       const stakeholderMapFrame = document.getElementById("stakeholder-map-frame");
       const stakeholderPaginationMeta = document.getElementById("stakeholders-pagination-meta");
       const stakeholderPagination = document.getElementById("stakeholders-pagination");
+      const stakeholderPageSizeSelect = document.getElementById("stakeholders-page-size-select");
       const stakeholderTypeActions = document.getElementById("stakeholder-type-actions");
       const stakeholderTables = [...document.querySelectorAll("[data-stakeholder-table]")];
       const contactsTable = document.querySelector(".contacts-table");
@@ -22643,7 +22639,7 @@
       let activeStakeholderMode = "organizations";
       let activeStakeholderTypeId = "kv";
       let loadedStakeholderPeopleTypeIds = new Set();
-      let stakeholderOrganizationSort = { key: "organization", direction: "asc" };
+      let stakeholderOrganizationSort = { key: "memberCount", direction: "desc" };
       let activeExpertMatchDirection = "careToExpert";
       let activeCareDuplicateView = "";
       let activeExpertDuplicates = false;
@@ -22713,7 +22709,7 @@
       let notificationSummary = { unreadTotal: 0, byContext: {} };
       const notificationsPageSize = 30;
       function syncPageSizeSelects() {
-        [pageSizeSelect, expertPageSizeSelect].forEach((select) => {
+        [pageSizeSelect, expertPageSizeSelect, stakeholderPageSizeSelect].forEach((select) => {
           if (!select) return;
           select.value = String(pageSize);
           syncCustomSelect(select);
@@ -22857,7 +22853,7 @@
               .map((column) => column.key);
           }
         } catch (error) {
-          console.warn("Stakeholder-Personenspalten konnten nicht geladen werden.", error);
+          console.warn("Stakeholder-Kontaktspalten konnten nicht geladen werden.", error);
         }
         return [...defaultStakeholderPeopleColumnKeys];
       }
@@ -25191,7 +25187,7 @@
           if (!importedTypeIds.has(activeStakeholderTypeId)) {
             activeStakeholderTypeId = result.payload.types[0]?.id || activeStakeholderTypeId;
           }
-          setStorageStatus(`${result.organizationCount} Stakeholder-Organisationen und ${result.peopleCount} Stakeholder-Personen importiert`);
+          setStorageStatus(`${result.organizationCount} Stakeholder-Organisationen und ${result.peopleCount} Stakeholder-Kontakte importiert`);
           activeStakeholderMode = "organizations";
           currentPage = 1;
           closeDetail();
@@ -25518,7 +25514,7 @@
           organizationId: String(entry.organizationId || entry.organization_id || "").trim(),
           organization: String(entry.organization || "").trim(),
           name,
-          displayName: buildDisplayName(name || "Stakeholder-Person", ""),
+          displayName: buildDisplayName(name || "Stakeholder-Kontakt", ""),
           initials: initialsFromLabel(name || "SP"),
           avatarClass: "avatar--network",
           role: String(entry.role || entry.contactRole || entry.contact_role || "").trim(),
@@ -25652,7 +25648,7 @@
         activities: { title: "Aktivitäten", subtitle: "Chronologisches Protokoll der Kontaktänderungen im Versorgungs-Kompass." },
         notifications: { title: "Benachrichtigungen", subtitle: "Persönliche Änderungen und neue Produktinformationen." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
-        stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Ansprechpersonen und Kartenbezug." },
+        stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
@@ -25698,8 +25694,8 @@
           icon: "organization",
           summary: "Kassenärztliche Vereinigungen und Vertreterversammlungsmitglieder haben einen eigenen Admin-Arbeitsbereich erhalten.",
           items: [
-            "KV-Organisationen und Personen sind als eigener Stakeholder-Kontext erreichbar.",
-            "Organisationen, Personen und Kartenansicht lassen sich innerhalb eines Bereichs wechseln.",
+            "KV-Organisationen und Kontakte sind als eigener Stakeholder-Kontext erreichbar.",
+            "Organisationen, Kontakte und Kartenansicht lassen sich innerhalb eines Bereichs wechseln.",
             "Der Bereich bleibt rollenbasiert eingeordnet und erscheint nur für berechtigte Nutzer."
           ]
         },
@@ -27511,9 +27507,7 @@
       }
 
       function defaultStakeholderOrganizationSortForType(typeId = activeStakeholderTypeId) {
-        return typeId === "hospital-associations"
-          ? { key: "memberCount", direction: "desc" }
-          : { key: "organization", direction: "asc" };
+        return { key: "memberCount", direction: "desc" };
       }
 
       function resetStakeholderOrganizationSortForType(typeId = activeStakeholderTypeId) {
@@ -27624,14 +27618,6 @@
         `;
       }
 
-      function stakeholderOrganizationMemberCountLineMarkup(organization = {}) {
-        const typeId = organization.stakeholderTypeId || organization.stakeholderType || activeStakeholderTypeId;
-        if (typeId !== "hospital-associations") return "";
-        const count = stakeholderMemberCountLabel(organization);
-        if (!count || count === "-") return "";
-        return `<div class="contact-subline contact-subline--primary stakeholder-organization-member-line">${escapeHtml(count)} Mitglieder</div>`;
-      }
-
       function stakeholderOrganizationTableCellMarkup(organization, key) {
         const peopleCount = stakeholderOrganizationPeople(organization).length;
         const config = stakeholderTypeConfig(organization.stakeholderTypeId);
@@ -27639,19 +27625,14 @@
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm", "organization-logo--stakeholder")}
-              <div class="contact-meta contact-meta--stack">
+              <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}" title="${escapeHtml(organization.name)}">${escapeHtml(stakeholderOrganizationListName(organization))}</button>
-                ${stakeholderOrganizationMemberCountLineMarkup(organization)}
               </div>
             </div>
           `;
         }
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderOrganizationLocation(organization) || "-")}</div>`;
-        if (key === "memberCount") {
-          const count = stakeholderMemberCountLabel(organization);
-          const suffix = (organization.stakeholderTypeId || organization.stakeholderType || activeStakeholderTypeId) === "hospital-associations" && count !== "-" ? " Mitglieder" : "";
-          return `<div class="contact-subline contact-subline--primary">${escapeHtml(count)}${suffix}</div>`;
-        }
+        if (key === "memberCount") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderMemberCountLabel(organization))}</div>`;
         if (key === "people") return `<button class="organization-contact-link" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${stakeholderCountLabel(peopleCount, config.personSingular, config.personPlural)}</button>`;
         if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.source || "-")}</div>`;
         return "";
@@ -27730,7 +27711,7 @@
           stakeholderPagination.innerHTML = "";
           return;
         }
-        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items, { responsiveMobileSize: false });
         stakeholderPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} ${config.organizationShortPlural}`;
         renderStakeholderOrganizationsTableHead(columns);
         stakeholderOrganizationList.innerHTML = pageItems
@@ -28045,7 +28026,7 @@
       }
 
       function mapPositionSourceLabel(source = "", typeId = activeStakeholderTypeId) {
-        if (source === "person") return "Koordinate Person";
+        if (source === "person") return "Koordinate Kontakt";
         if (source === "organization") return stakeholderTypeConfig(typeId).mapOrganizationSourceLabel;
         if (source === "state") return "Bundesland-Zentrum";
         return "Nicht kartiert";
@@ -30967,8 +30948,9 @@
         return window.matchMedia("(max-width: 760px)").matches;
       }
 
-      function paginatedItems(items) {
-        const effectivePageSize = isMobileLayout() && activeView !== "experts" ? 6 : pageSize;
+      function paginatedItems(items, options = {}) {
+        const responsiveMobileSize = options.responsiveMobileSize !== false;
+        const effectivePageSize = responsiveMobileSize && isMobileLayout() && activeView !== "experts" ? 6 : pageSize;
         const totalPages = Math.max(1, Math.ceil(items.length / effectivePageSize));
         currentPage = Math.min(Math.max(1, currentPage), totalPages);
         const startIndex = (currentPage - 1) * effectivePageSize;
@@ -31520,7 +31502,6 @@
         const config = stakeholderTypeConfig(typeId);
         return stakeholderOrganizationTableColumns.map((column) => {
           if (column.key === "people") return { ...column, label: config.peopleTabLabel };
-          if (column.key === "memberCount" && typeId === "hospital-associations") return { ...column, required: true };
           return column;
         });
       }
@@ -36873,7 +36854,7 @@
 
       function personKindLabel(kind = activePersonProfile.kind) {
         if (kind === "expert") return "Expertenkreis-Kontakt";
-        if (kind === "stakeholder") return "Stakeholder-Person";
+        if (kind === "stakeholder") return "Stakeholder-Kontakt";
         return "Kontakt";
       }
 
@@ -37359,7 +37340,7 @@
           ].sort((left, right) => left.name.localeCompare(right.name, "de"));
           loadedStakeholderPeopleTypeIds.add(normalizedTypeId);
         } catch (error) {
-          console.warn("Stakeholder-Ansprechpersonen konnten fuer das Organisationsprofil nicht geladen werden.", error);
+          console.warn("Stakeholder-Kontakte konnten fuer das Organisationsprofil nicht geladen werden.", error);
         }
       }
 
@@ -39249,7 +39230,7 @@
           renderFormatsView();
         });
       });
-      [pageSizeSelect, expertPageSizeSelect].forEach((select) => {
+      [pageSizeSelect, expertPageSizeSelect, stakeholderPageSizeSelect].forEach((select) => {
         select?.addEventListener("change", () => {
           applyPageSize(select.value);
         });
@@ -40418,7 +40399,7 @@
             loadedStakeholderPeopleTypeIds = new Set(stakeholderTypes.map((type) => type.id));
           }
         } catch (peopleError) {
-          console.warn("Stakeholder-Personen konnten nicht geladen werden. Seed-Fallback aktiv.", peopleError);
+          console.warn("Stakeholder-Kontakte konnten nicht geladen werden. Seed-Fallback aktiv.", peopleError);
           stakeholderPeople = seedStakeholderPeople;
           loadedStakeholderPeopleTypeIds = new Set(stakeholderTypes.map((type) => type.id));
         }

@@ -1176,6 +1176,7 @@ test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async
   await expect(page.locator("#stakeholders-pagination-meta")).toContainText("17 KVn");
   await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toBeVisible();
   await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Mitgliederzahl");
+  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Kontakte");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Typ");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Bundesland");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Website");
@@ -1199,8 +1200,11 @@ test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async
   const isDesktop = testInfo.project.name.includes("desktop");
   if (isDesktop) {
     await expect(page.locator("#columns-button")).toBeHidden();
+    await expectPageSizeDropdownUsable(page, "#view-stakeholders .page-size-shell");
+    await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1-17 von 17 KVn");
     await expect(page.locator('[data-stakeholder-organization-sort="organization"]')).toBeVisible();
-    await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Baden-Württemberg");
+    await expect(page.locator('[data-stakeholder-organization-sort="memberCount"]')).toHaveAttribute("aria-sort", "descending");
+    await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Bayerns");
     await page.locator('[data-stakeholder-organization-sort="organization"]').click();
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Westfalen-Lippe");
     await page.locator('[data-stakeholder-organization-sort="organization"]').click();
@@ -1209,10 +1213,10 @@ test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Bayerns");
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("30.984");
   }
-  const expectedDetailMemberCount = isDesktop ? "30.984" : "24.324";
-  const expectedDetailOrganization = isDesktop ? "Kassenärztliche Vereinigung Bayerns" : "Kassenärztliche Vereinigung Baden-Württemberg";
-  const expectedDetailWebsite = isDesktop ? "kvb.de" : "kvbawue.de";
-  const expectedOrganizationPerson = isDesktop ? "Dr. Christian Pfeiffer" : "Dr. Karsten Braun";
+  const expectedDetailMemberCount = "30.984";
+  const expectedDetailOrganization = "Kassenärztliche Vereinigung Bayerns";
+  const expectedDetailWebsite = "kvb.de";
+  const expectedOrganizationPerson = "Dr. Christian Pfeiffer";
 
   await page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first().click();
   if (isDesktop) {
@@ -1263,7 +1267,28 @@ test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async
   await attachScreenshot(page, testInfo, "stakeholder-kvn");
 });
 
-test("Stakeholder: Krankenhausgesellschaften zeigen Mitgliederzahlen und sortieren danach", async ({ page }, testInfo) => {
+test("Stakeholder: Krankenkassen und aerztliche Verbaende starten nach Mitgliederzahl", async ({ page }) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
+
+  await page.locator('[data-stakeholder-type="health-insurance"]').click();
+  await expect(page.locator('[data-stakeholder-type="health-insurance"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-stakeholder-organization-sort="memberCount"]')).toHaveAttribute("aria-sort", "descending");
+  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Kontakte");
+  await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Ansprechpersonen");
+  await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("Techniker Krankenkasse");
+  await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("9.548.866");
+
+  await page.locator('[data-stakeholder-type="physician-associations"]').click();
+  await expect(page.locator('[data-stakeholder-type="physician-associations"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-stakeholder-organization-sort="memberCount"]')).toHaveAttribute("aria-sort", "descending");
+  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Kontakte");
+  await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Präsidium");
+  await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Personen");
+  await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("Marburger Bund");
+  await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("146.221");
+});
+
+test("Stakeholder: Patientenverbaende zeigen recherchierte Mitgliederzahlen und sortieren danach", async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     window.localStorage.setItem(
       "versorgungs-kompass-visible-stakeholder-organization-columns-v1",
@@ -1272,29 +1297,31 @@ test("Stakeholder: Krankenhausgesellschaften zeigen Mitgliederzahlen und sortier
   });
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
 
-  await page.locator('[data-stakeholder-type="hospital-associations"]').click();
-  await expect(page.locator('[data-stakeholder-type="hospital-associations"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("16 Krankenhausgesellschaften");
+  await page.locator('[data-stakeholder-type="patient-associations"]').click();
+  await expect(page.locator('[data-stakeholder-type="patient-associations"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("39 Patientenverbände");
   await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Mitgliederzahl");
+  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Kontakte");
   await expect(page.locator('[data-stakeholder-organization-sort="memberCount"]')).toHaveAttribute("aria-sort", "descending");
+
   const firstRow = page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first();
-  await expect(firstRow).toContainText("Krankenhausgesellschaft Nordrhein-Westfalen");
-  await expect(firstRow.locator(".stakeholder-organization-member-line")).toContainText("244 Mitglieder");
-  await expect(firstRow).toContainText("244 Mitglieder");
-  await attachScreenshot(page, testInfo, "stakeholder-krankenhausgesellschaften-liste");
+  await expect(firstRow).toContainText("Sozialverband VdK Deutschland");
+  await expect(firstRow).toContainText("2.385.426");
+  await attachScreenshot(page, testInfo, "stakeholder-patientenverbaende-liste");
 
   await firstRow.click();
-  if (testInfo.project.name.includes("desktop")) {
-    await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
-    await expect(page.locator("#detail-drawer #stakeholder-organization-overview")).toContainText("Mitgliederzahl");
-    await expect(page.locator("#detail-drawer #stakeholder-organization-overview")).toContainText("244");
-    await page.locator("#detail-drawer [data-open-organization-profile]").click();
+  const profileButton = page.locator("#detail-drawer [data-open-organization-profile]");
+  if (await profileButton.isVisible().catch(() => false)) {
+    await expect(page.locator("#detail-drawer #stakeholder-organization-overview")).toContainText("2.385.426");
+    await profileButton.click();
   }
   const organizationProfile = page.locator("#organization-profile-body");
   await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("Sozialverband VdK Deutschland");
   await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("Mitgliederzahl");
-  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("244");
-  await attachScreenshot(page, testInfo, "stakeholder-krankenhausgesellschaften");
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("2.385.426");
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("Mitglieder-Höchststand 2025");
+  await attachScreenshot(page, testInfo, "stakeholder-patientenverbaende");
 });
 
 test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", async ({ page }) => {
@@ -1326,7 +1353,8 @@ test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", asyn
   await expect(page.locator('[data-stakeholder-type="health-insurance"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("searchbox", { name: "Krankenkassen suchen..." })).toBeVisible();
   await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Krankenkassen");
-  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Ansprechpersonen");
+  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Kontakte");
+  await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Ansprechpersonen");
   await expect(page.locator("#stakeholder-organization-list")).toContainText("AOK Test");
   const healthListLogo = page.locator('#stakeholder-organization-list [data-stakeholder-organization-id="health-aok-test"] .organization-logo--stakeholder');
   await expect(healthListLogo).toHaveText("AOK");
