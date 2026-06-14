@@ -5484,6 +5484,7 @@
 
       .detail-profile-copy {
         min-width: 0;
+        max-width: 100%;
       }
 
       .detail-profile-copy h3 {
@@ -5491,6 +5492,7 @@
         font-size: 1.16rem;
         line-height: 1.15;
         letter-spacing: -0.02em;
+        overflow-wrap: anywhere;
       }
 
       .detail-profile-role {
@@ -5498,6 +5500,7 @@
         color: #4d5d8f;
         font-size: 0.92rem;
         font-weight: 700;
+        overflow-wrap: anywhere;
       }
 
       .detail-profile-subline {
@@ -5505,6 +5508,7 @@
         color: var(--muted);
         font-size: 0.82rem;
         line-height: 1.4;
+        overflow-wrap: anywhere;
       }
 
       .detail-profile-status {
@@ -16043,6 +16047,17 @@
           flex-basis: 66px;
         }
 
+        .detail-profile-main:has(.organization-profile-logo) {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          align-items: start;
+          gap: 12px;
+        }
+
+        .detail-profile-main:has(.organization-profile-logo) .organization-profile-logo {
+          justify-self: start;
+        }
+
         .detail-profile-copy h3 {
           font-size: 1.1rem;
         }
@@ -16313,6 +16328,16 @@
 
         .organization-mobile-card .organization-cell {
           min-width: 0;
+        }
+
+        .organization-mobile-card .contact-meta {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+
+        .organization-mobile-card .organization-name-button {
+          max-width: 100%;
+          overflow-wrap: anywhere;
         }
 
         .organization-mobile-card .contact-subline {

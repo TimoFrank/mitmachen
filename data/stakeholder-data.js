@@ -63,6 +63,165 @@ const stakeholderPatientAssociationRecognitionSourceUrl = "https://patientenvert
 const stakeholderPatientAssociationNote = "Anerkannte maßgebliche Patientenorganisation nach § 140f SGB V/Patientenbeteiligungsverordnung; berechtigt zur Benennung von Patientenvertreterinnen und Patientenvertretern im G-BA.";
 const stakeholderAdditionalPatientRepresentationNote = "Weitere bundesweit relevante Patienten-, Selbsthilfe- oder Patientenvertretungsorganisation; nicht als maßgebliche Patientenorganisation nach § 140f SGB V erfasst.";
 const stakeholderPatientContactExpansionNote = "Bundesweit kontaktierbarer Patienten- oder Selbsthilfeverband zur Erweiterung der CRM-Kontaktbasis.";
+const stakeholderPatientAssociationLogoSourceLabel = "Offizielles Header-/Logo-Asset der Organisation; keine Favicon-/Social-Media-Quelle";
+const stakeholderPatientAssociationLogoMetadata = {
+  "patient-dbr": {
+    logoFile: "patient-dbr.gif",
+    logoSourceUrl: "https://www.deutscher-behindertenrat.de/GroupSys/layout/25031/040714-logo-dbr-408x85.gif"
+  },
+  "patient-bagp": {
+    logoFile: "patient-bagp.png",
+    logoSourceUrl: "https://bagp.de/templates/bagp/images/logo.png"
+  },
+  "patient-dag-shg": {
+    logoFile: "patient-dag-shg.png",
+    logoSourceUrl: "https://www.dag-shg.de/images/logo.png"
+  },
+  "patient-vzbv": {
+    logoFile: "patient-vzbv.svg",
+    logoSourceUrl: "https://www.vzbv.de/themes/custom/vzbv_rebrush2025/images/vzbv-logo.svg"
+  },
+  "patient-bag-selbsthilfe": {
+    logoFile: "patient-bag-selbsthilfe.svg",
+    logoSourceUrl: "https://www.bag-selbsthilfe.de"
+  },
+  "patient-sovd": {
+    logoFile: "patient-sovd.svg",
+    logoSourceUrl: "https://www.sovd.de/_assets/279cee4ecef4166e206be59121d7a13a/Images/Logo/SoVD.svg"
+  },
+  "patient-vdk": {
+    logoFile: "patient-vdk.svg",
+    logoSourceUrl: "https://www.vdk.de/_assets/af9f607dc860719ef78163c597401b48/Frontend/Build/assets/images/Sozialverband_VdK_Deutschland_Logo.svg"
+  },
+  "patient-isl": {
+    logoFile: "patient-isl.svg",
+    logoSourceUrl: "https://isl-ev.de/wp-content/themes/isl/assets/images/logo-isl.svg"
+  },
+  "patient-abid": {
+    logoFile: "patient-abid.png",
+    logoSourceUrl: "https://www.abid-ev.de/wp-content/uploads/logo-neu-300x49.png"
+  },
+  "patient-lebenshilfe": {
+    logoFile: "patient-lebenshilfe.svg",
+    logoSourceUrl: "https://www.lebenshilfe.de"
+  },
+  "patient-achse": {
+    logoFile: "patient-achse.svg",
+    logoSourceUrl: "https://www.achse-online.de/typo3conf/ext/wd_template/Resources/Public/img/logo-achse.svg"
+  },
+  "patient-deutsche-alzheimer-gesellschaft": {
+    logoFile: "patient-deutsche-alzheimer-gesellschaft.svg",
+    logoSourceUrl: "https://www.deutsche-alzheimer.de/typo3conf/ext/cm_site/Resources/Public/Images/DAlzG_Logo_lang.svg"
+  },
+  "patient-rheuma-liga": {
+    logoFile: "patient-rheuma-liga.png",
+    logoSourceUrl: "https://www.rheuma-liga.de/typo3conf/ext/z35_project/Resources/Public/Images/logo.png"
+  },
+  "patient-dmsg": {
+    logoFile: "patient-dmsg.svg",
+    logoSourceUrl: "https://www.dmsg.de/_assets/082b9181afcf7491747656c6ceddf510/_Customizations/Public_DMSG/Media/logo.svg"
+  },
+  "patient-dccv": {
+    logoFile: "patient-dccv.png",
+    logoSourceUrl: "https://www.dccv.de/typo3conf/ext/dccv/Resources/Public/Img/dccv_logo.png"
+  },
+  "patient-pro-retina": {
+    logoFile: "patient-pro-retina.jpg",
+    logoSourceUrl: "https://www.pro-retina.de/fileadmin/_processed_/b/d/csm_PRO-RETINA_2026_Logo_742d14f6b8.jpg"
+  },
+  "patient-upd": {
+    logoFile: "patient-upd.svg",
+    logoSourceUrl: "https://patientenberatung.de/wp-content/uploads/2024/04/upd-logo-pos.svg"
+  },
+  "patient-aps": {
+    logoFile: "patient-aps.png",
+    logoSourceUrl: "https://www.aps-ev.de/wp-content/uploads/2024/05/aps_logo_480.png"
+  },
+  "patient-bpik": {
+    logoFile: "patient-bpik.png",
+    logoSourceUrl: "https://bpik.de/wp-content/uploads/2021/08/Logo-BPIK_web_klein.png"
+  },
+  "patient-diabetesde": {
+    logoFile: "patient-diabetesde.svg",
+    logoSourceUrl: "https://www.diabetesde.org/themes/custom/diabetes/logo.svg"
+  },
+  "patient-parkinson-vereinigung": {
+    logoFile: "patient-parkinson-vereinigung.svg",
+    logoSourceUrl: "https://www.dpv-bundesverband.de/_assets/45b0bf2660e159d4af5ba8f836de3394/Images/logo.svg"
+  },
+  "patient-herzstiftung": {
+    logoFile: "patient-herzstiftung.jpg",
+    logoSourceUrl: "https://herzstiftung.de/themes/custom/dhs_front/dhs-logo.jpg"
+  },
+  "patient-daab": {
+    logoFile: "patient-daab.png",
+    logoSourceUrl: "https://www.daab.de/fileadmin/templates/img/logo.png"
+  },
+  "patient-psoriasis-bund": {
+    logoFile: "patient-psoriasis-bund.png",
+    logoSourceUrl: "https://www.psoriasis-bund.de/typo3conf/ext/user_psoriasis_bund/Resources/Public/Images/logo.png"
+  },
+  "patient-frauenselbsthilfe-krebs": {
+    logoFile: "patient-frauenselbsthilfe-krebs.png",
+    logoSourceUrl: "https://www.frauenselbsthilfe.de/typo3conf/ext/dg_theme/Resources/Public/Logos/Logo-FSH.png"
+  },
+  "patient-prostatakrebs-bps": {
+    logoFile: "patient-prostatakrebs-bps.png",
+    logoSourceUrl: "https://prostatakrebs-bps.de/wp-content/uploads/bps-logo-transparent-schriftzug-grau.png"
+  },
+  "patient-ilco": {
+    logoFile: "patient-ilco.jpg",
+    logoSourceUrl: "https://www.ilco.de/fileadmin/theme_ilco_de/images/logo.jpg"
+  },
+  "patient-haus-der-krebs-selbsthilfe": {
+    logoFile: "patient-haus-der-krebs-selbsthilfe.svg",
+    logoSourceUrl: "https://hausderkrebsselbsthilfe.de/wp-content/uploads/2025/08/logo_svg.svg"
+  },
+  "patient-dlh": {
+    logoFile: "patient-dlh.svg",
+    logoSourceUrl: "https://www.leukaemie-hilfe.de/fileadmin/user_upload/logo.svg"
+  },
+  "patient-schilddruesenkrebs": {
+    logoFile: "patient-schilddruesenkrebs.svg",
+    logoSourceUrl: "https://www.sd-krebs.de/wp-content/uploads/2020/09/logo-sd-krebs.svg"
+  },
+  "patient-mukoviszidose": {
+    logoFile: "patient-mukoviszidose.svg",
+    logoSourceUrl: "https://www.muko.info/_assets/22cf45b1172aadb18e25b83cb2690c1d/Images/logo-mukoviszidose-ev.svg"
+  },
+  "patient-kindernetzwerk": {
+    logoFile: "patient-kindernetzwerk.svg",
+    logoSourceUrl: "https://www.kindernetzwerk.de/dist/svg/logo.svg"
+  },
+  "patient-bvhk": {
+    logoFile: "patient-bvhk.svg",
+    logoSourceUrl: "https://bvhk.de/wp-content/uploads/2022/11/Logo_BVHK.svg"
+  },
+  "patient-epilepsievereinigung": {
+    logoFile: "patient-epilepsievereinigung.png",
+    logoSourceUrl: "https://www.epilepsie-vereinigung.de/wp-content/uploads/2020/05/deutsche-epilepsievereinigung.png"
+  },
+  "patient-depressionsliga": {
+    logoFile: "patient-depressionsliga.svg",
+    logoSourceUrl: "https://depressionsliga.de/wp-content/uploads/2024/02/logo.svg"
+  },
+  "patient-autismus-deutschland": {
+    logoFile: "patient-autismus-deutschland.png",
+    logoSourceUrl: "https://www.autismus.de/fileadmin/templates/images/autismus_logo290.png"
+  },
+  "patient-adhs-deutschland": {
+    logoFile: "patient-adhs-deutschland.svg",
+    logoSourceUrl: "https://adhs-deutschland.de/themes/custom/adhs/logo.svg"
+  },
+  "patient-sarkom-stiftung": {
+    logoFile: "patient-sarkom-stiftung.jpg",
+    logoSourceUrl: "https://www.sarkome.de/templates/sarkomstiftung2020/images/designer/2efb3b721710d19a95b802575f669e73_SARKOMEdelogo.jpg"
+  },
+  "patient-blasenkrebs-shb": {
+    logoFile: "patient-blasenkrebs-shb.jpg",
+    logoSourceUrl: "https://www.blasenkrebs-shb.de/wp-content/uploads/bg-branding.jpg"
+  }
+};
 const stakeholderPhysicianAssociationNote = "Bundesweit relevante ärztliche Berufs-, Fach- oder Dachorganisation; Auswahl nach SpiFa-/GFB-Mitgliedschaft, Lobbyregister-Relevanz, Versorgungspolitik, Fachgruppenabdeckung und bundesweiter Kontaktierbarkeit.";
 
 const stakeholderHospitalAssociationLogoMetadata = {
@@ -372,35 +531,41 @@ const stakeholderKvOrganizations = [
   ["patient-adhs-deutschland", "ADHS Deutschland e.V.", "13629", "Berlin", "Berlin", "https://adhs-deutschland.de", "https://adhs-deutschland.de/impressum", "Krankheitsbezogene Selbsthilfevertretung", "Offizielles ADHS-Deutschland-Impressum", stakeholderPatientContactExpansionNote, "", "info@adhs-deutschland.de"],
   ["patient-sarkom-stiftung", "Deutsche Sarkom-Stiftung", "61200", "Wölfersheim", "Hessen", "https://www.sarkome.de", "https://www.sarkome.de/impressum", "Patienten-/Expertenorganisation", "Offizielles Sarkom-Stiftung-Impressum", "Gemeinsame Organisation von Patientinnen, Patienten und Expertinnen/Experten zur Verbesserung der Sarkomversorgung.", "0700 48840700", ""],
   ["patient-blasenkrebs-shb", "Selbsthilfe-Bund Blasenkrebs e.V. (ShB)", "53111", "Bonn", "Nordrhein-Westfalen", "https://www.blasenkrebs-shb.de", "https://www.blasenkrebs-shb.de/impressum/", "Krebs-Selbsthilfevertretung", "Offizielles ShB-Impressum", stakeholderPatientContactExpansionNote, "0228 33889152", "info@blasenkrebs-shb.de"]
-].map(([id, name, postalCode, city, state, website, organizationSourceUrl, organizationType = "Maßgebliche Patientenorganisation", source = "G-BA Patientenvertretung; offizielle Organisationsangaben", notes = stakeholderPatientAssociationNote, phone = "", email = ""]) => ({
-  id,
-  stakeholderTypeId: "patient-associations",
-  stakeholderType: "patient-associations",
-  name,
-  normalizedName: name.toLowerCase(),
-  organizationType,
-  postalCode,
-  city,
-  state,
-  lat: null,
-  lon: null,
-  latitude: null,
-  longitude: null,
-  website,
-  phone,
-  email,
-  notes,
-  source,
-  memberCount: null,
-  memberCountLabel: "",
-  memberCountScope: "",
-  memberCountSourceLabel: "",
-  memberCountSourceUrl: "",
-  memberCountUpdatedAt: "",
-  recognitionSourceUrl: stakeholderPatientAssociationRecognitionSourceUrl,
-  organizationSourceUrl,
-  status: "active"
-}))).concat([
+].map(([id, name, postalCode, city, state, website, organizationSourceUrl, organizationType = "Maßgebliche Patientenorganisation", source = "G-BA Patientenvertretung; offizielle Organisationsangaben", notes = stakeholderPatientAssociationNote, phone = "", email = ""]) => {
+  const logoMetadata = stakeholderPatientAssociationLogoMetadata[id] || {};
+  return {
+    id,
+    stakeholderTypeId: "patient-associations",
+    stakeholderType: "patient-associations",
+    name,
+    normalizedName: name.toLowerCase(),
+    organizationType,
+    postalCode,
+    city,
+    state,
+    lat: null,
+    lon: null,
+    latitude: null,
+    longitude: null,
+    website,
+    phone,
+    email,
+    notes,
+    source,
+    logoUrl: logoMetadata.logoFile ? `../public/stakeholder-logos/patient-associations/${logoMetadata.logoFile}` : "",
+    logoSourceUrl: logoMetadata.logoSourceUrl || "",
+    logoSourceLabel: logoMetadata.logoSourceUrl ? stakeholderPatientAssociationLogoSourceLabel : "",
+    memberCount: null,
+    memberCountLabel: "",
+    memberCountScope: "",
+    memberCountSourceLabel: "",
+    memberCountSourceUrl: "",
+    memberCountUpdatedAt: "",
+    recognitionSourceUrl: stakeholderPatientAssociationRecognitionSourceUrl,
+    organizationSourceUrl,
+    status: "active"
+  };
+})).concat([
   ["physician-spifa", "Spitzenverband Fachärztinnen und Fachärzte Deutschlands e.V. (SpiFa)", "Fachärztlicher Dachverband", "10115", "Berlin", "Berlin", 52.5200, 13.4050, "https://spifa.de", "+49 30 40009631", "info@spifa.de", 36, "https://www.lobbyregister.bundestag.de/suche/R001177", "Deutscher Bundestag Lobbyregister R001177, Stand 18.05.2026", "2026-05-18", "Ordentliche und assoziierte Mitgliedsverbände; der SpiFa repräsentiert über seine Verbände mehr als 160.000 Fachärztinnen und Fachärzte."],
   ["physician-gfb", "Gemeinschaft fachärztlicher Berufsverbände e.V. (GFB)", "Fachärztlicher Dachverband", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.gfb-facharztverband.de", "", "info@gfb-facharztverband.de", 11, "https://www.lobbyregister.bundestag.de/suche/R001535", "Deutscher Bundestag Lobbyregister R001535, Stand 31.05.2024", "2024-05-31", "Mitgliedsverbände bzw. juristische Personen; Dachvertretung fachärztlicher Berufsverbände."],
   ["physician-marburger-bund", "Marburger Bund - Verband der angestellten und beamteten Ärztinnen und Ärzte Deutschlands e.V.", "Ärzteverband und Gewerkschaft", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.marburger-bund.de", "+49 30 746846-0", "info@marburger-bund.de", 146221, "https://www.lobbyregister.bundestag.de/suche/R003043", "Deutscher Bundestag Lobbyregister R003043, Stand 01.01.2025", "2025-01-01", "Natürliche und juristische Mitglieder; berufspolitische und gewerkschaftliche Vertretung angestellter und beamteter Ärztinnen und Ärzte."],
