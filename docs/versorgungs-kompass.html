@@ -3776,6 +3776,12 @@
         width: 100%;
       }
 
+      .contact-meta--stack {
+        display: grid;
+        align-items: start;
+        gap: 3px;
+      }
+
       .contact-subline {
         margin-top: 3px;
         color: var(--muted);
@@ -16349,6 +16355,13 @@
           display: none;
         }
 
+        .organization-mobile-card .stakeholder-organization-member-line {
+          display: block;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+        }
+
         .organization-mobile-meta {
           display: flex;
           align-items: center;
@@ -24851,13 +24864,16 @@
 
       function normalizeActiveStakeholderType() {
         const types = activeStakeholderTypes();
+        const previousTypeId = activeStakeholderTypeId;
         if (!types.length) {
           activeStakeholderTypeId = "kv";
+          if (previousTypeId !== activeStakeholderTypeId) resetStakeholderOrganizationSortForType(activeStakeholderTypeId);
           return activeStakeholderTypeId;
         }
         if (!types.some((type) => type.id === activeStakeholderTypeId)) {
           activeStakeholderTypeId = types.find((type) => type.id === "kv")?.id || types[0].id;
         }
+        if (previousTypeId !== activeStakeholderTypeId) resetStakeholderOrganizationSortForType(activeStakeholderTypeId);
         return activeStakeholderTypeId;
       }
 
@@ -27494,6 +27510,16 @@
         return String(stakeholderOrganizationListName(organization) || organization.name || "");
       }
 
+      function defaultStakeholderOrganizationSortForType(typeId = activeStakeholderTypeId) {
+        return typeId === "hospital-associations"
+          ? { key: "memberCount", direction: "desc" }
+          : { key: "organization", direction: "asc" };
+      }
+
+      function resetStakeholderOrganizationSortForType(typeId = activeStakeholderTypeId) {
+        stakeholderOrganizationSort = defaultStakeholderOrganizationSortForType(typeId);
+      }
+
       function sortStakeholderOrganizations(items = []) {
         const direction = stakeholderOrganizationSort.direction === "desc" ? -1 : 1;
         return [...items].sort((left, right) => {
@@ -27598,6 +27624,14 @@
         `;
       }
 
+      function stakeholderOrganizationMemberCountLineMarkup(organization = {}) {
+        const typeId = organization.stakeholderTypeId || organization.stakeholderType || activeStakeholderTypeId;
+        if (typeId !== "hospital-associations") return "";
+        const count = stakeholderMemberCountLabel(organization);
+        if (!count || count === "-") return "";
+        return `<div class="contact-subline contact-subline--primary stakeholder-organization-member-line">${escapeHtml(count)} Mitglieder</div>`;
+      }
+
       function stakeholderOrganizationTableCellMarkup(organization, key) {
         const peopleCount = stakeholderOrganizationPeople(organization).length;
         const config = stakeholderTypeConfig(organization.stakeholderTypeId);
@@ -27605,14 +27639,19 @@
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm", "organization-logo--stakeholder")}
-              <div class="contact-meta">
+              <div class="contact-meta contact-meta--stack">
                 <button class="organization-name-button" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}" title="${escapeHtml(organization.name)}">${escapeHtml(stakeholderOrganizationListName(organization))}</button>
+                ${stakeholderOrganizationMemberCountLineMarkup(organization)}
               </div>
             </div>
           `;
         }
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderOrganizationLocation(organization) || "-")}</div>`;
-        if (key === "memberCount") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderMemberCountLabel(organization))}</div>`;
+        if (key === "memberCount") {
+          const count = stakeholderMemberCountLabel(organization);
+          const suffix = (organization.stakeholderTypeId || organization.stakeholderType || activeStakeholderTypeId) === "hospital-associations" && count !== "-" ? " Mitglieder" : "";
+          return `<div class="contact-subline contact-subline--primary">${escapeHtml(count)}${suffix}</div>`;
+        }
         if (key === "people") return `<button class="organization-contact-link" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${stakeholderCountLabel(peopleCount, config.personSingular, config.personPlural)}</button>`;
         if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.source || "-")}</div>`;
         return "";
@@ -31481,6 +31520,7 @@
         const config = stakeholderTypeConfig(typeId);
         return stakeholderOrganizationTableColumns.map((column) => {
           if (column.key === "people") return { ...column, label: config.peopleTabLabel };
+          if (column.key === "memberCount" && typeId === "hospital-associations") return { ...column, required: true };
           return column;
         });
       }
@@ -39359,6 +39399,7 @@
         const nextStakeholderTypeId = button.dataset.stakeholderType || "kv";
         if (nextStakeholderTypeId === activeStakeholderTypeId) return;
         activeStakeholderTypeId = nextStakeholderTypeId;
+        resetStakeholderOrganizationSortForType(activeStakeholderTypeId);
         activeStakeholderMode = "organizations";
         activeStakeholderOrganizationId = null;
         activeStakeholderPersonId = null;

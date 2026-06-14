@@ -1263,6 +1263,40 @@ test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async
   await attachScreenshot(page, testInfo, "stakeholder-kvn");
 });
 
+test("Stakeholder: Krankenhausgesellschaften zeigen Mitgliederzahlen und sortieren danach", async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "versorgungs-kompass-visible-stakeholder-organization-columns-v1",
+      JSON.stringify(["organization", "location", "people"])
+    );
+  });
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
+
+  await page.locator('[data-stakeholder-type="hospital-associations"]').click();
+  await expect(page.locator('[data-stakeholder-type="hospital-associations"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#stakeholders-pagination-meta")).toContainText("16 Krankenhausgesellschaften");
+  await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Mitgliederzahl");
+  await expect(page.locator('[data-stakeholder-organization-sort="memberCount"]')).toHaveAttribute("aria-sort", "descending");
+  const firstRow = page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first();
+  await expect(firstRow).toContainText("Krankenhausgesellschaft Nordrhein-Westfalen");
+  await expect(firstRow.locator(".stakeholder-organization-member-line")).toContainText("244 Mitglieder");
+  await expect(firstRow).toContainText("244 Mitglieder");
+  await attachScreenshot(page, testInfo, "stakeholder-krankenhausgesellschaften-liste");
+
+  await firstRow.click();
+  if (testInfo.project.name.includes("desktop")) {
+    await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+    await expect(page.locator("#detail-drawer #stakeholder-organization-overview")).toContainText("Mitgliederzahl");
+    await expect(page.locator("#detail-drawer #stakeholder-organization-overview")).toContainText("244");
+    await page.locator("#detail-drawer [data-open-organization-profile]").click();
+  }
+  const organizationProfile = page.locator("#organization-profile-body");
+  await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("Mitgliederzahl");
+  await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("244");
+  await attachScreenshot(page, testInfo, "stakeholder-krankenhausgesellschaften");
+});
+
 test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", async ({ page }) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", {
     role: "admin",
