@@ -19268,11 +19268,6 @@
           touch-action: auto;
         }
 
-        #organization-matching-worklist-button,
-        #expert-duplicates-button {
-          display: none !important;
-        }
-
         .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions {
           overflow-x: auto;
           overflow-y: hidden;
@@ -22181,6 +22176,7 @@
       const profileTabItems = [
         { id: "profile", title: "Mein Profil", subtitle: "Persönliche Informationen und Zuständigkeiten verwalten." },
         { id: "notifications", title: "Benachrichtigungen", subtitle: "Persönliche Hinweise zu Änderungen, Team und Produkt." },
+        { id: "settings", title: "Einstellungen", subtitle: "Persönliche Arbeits- und Benachrichtigungsvorgaben." },
         { id: "changelog", title: "Changelog", subtitle: "Versionsverlauf und sichtbare Produktänderungen." },
         { id: "about", title: "Über die App", subtitle: "Ziele, Funktionen und Nutzung des Versorgungs-Kompass kurz erklärt." }
       ];
@@ -37434,6 +37430,7 @@
 
       function profileRouteForTab(tab = activeProfileTab) {
         if (tab === "notifications") return "profile-notifications";
+        if (tab === "settings") return "profile-settings";
         if (tab === "about") return "profile-about";
         if (tab === "changelog") return "profile-changelog";
         return "profile";
@@ -40217,7 +40214,7 @@
           return "profile";
         }
         if (hashView === "settings" || hashView === "profile-settings") {
-          setProfileTab("profile");
+          setProfileTab("settings");
           return "profile";
         }
         if (hashView === "about" || hashView === "profile-about") {

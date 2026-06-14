@@ -65,6 +65,74 @@ const stakeholderAdditionalPatientRepresentationNote = "Weitere bundesweit relev
 const stakeholderPatientContactExpansionNote = "Bundesweit kontaktierbarer Patienten- oder Selbsthilfeverband zur Erweiterung der CRM-Kontaktbasis.";
 const stakeholderPhysicianAssociationNote = "Bundesweit relevante ärztliche Berufs-, Fach- oder Dachorganisation; Auswahl nach SpiFa-/GFB-Mitgliedschaft, Lobbyregister-Relevanz, Versorgungspolitik, Fachgruppenabdeckung und bundesweiter Kontaktierbarkeit.";
 
+const stakeholderHospitalAssociationLogoMetadata = {
+  "hospital-association-baden-wuerttemberg": {
+    logoFile: "hospital-association-baden-wuerttemberg.svg",
+    logoSourceUrl: "https://www.bwkg.de/_assets/e4fef9a38ef08a06e77456c7720a0d7c/Images/logo-mobile.svg?1781247736"
+  },
+  "hospital-association-bayern": {
+    logoFile: "hospital-association-bayern.svg",
+    logoSourceUrl: "https://www.bkg-online.de/typo3conf/ext/as_template/Resources/Public/Images/Logo/logo-BKG.svg"
+  },
+  "hospital-association-berlin": {
+    logoFile: "hospital-association-berlin.png",
+    logoSourceUrl: "https://www.bkgev.de/app/uploads/2024/03/bkg_logo.png"
+  },
+  "hospital-association-brandenburg": {
+    logoFile: "hospital-association-brandenburg.png",
+    logoSourceUrl: "https://lkb-online.de/wp-content/themes/LKB-Template/src/bilder/Logo.png"
+  },
+  "hospital-association-bremen": {
+    logoFile: "hospital-association-bremen.png",
+    logoSourceUrl: "https://www.hbkg.de/images/hbkgLogoNeu.png"
+  },
+  "hospital-association-hamburg": {
+    logoFile: "hospital-association-hamburg.svg",
+    logoSourceUrl: "https://www.hkgev.de/files/hkgev-template/img/logos/hkg-logo.svg"
+  },
+  "hospital-association-hessen": {
+    logoFile: "hospital-association-hessen.svg",
+    logoSourceUrl: "https://hkg-online.de/wp-content/themes/hkg/img/logo/HKG_logo.svg"
+  },
+  "hospital-association-mecklenburg-vorpommern": {
+    logoFile: "hospital-association-mecklenburg-vorpommern.png",
+    logoSourceUrl: "https://www.kgmv.de/images/logo.png"
+  },
+  "hospital-association-niedersachsen": {
+    logoFile: "hospital-association-niedersachsen.png",
+    logoSourceUrl: "http://www.nkgev.de/files/assets/images/NKG_Logo.png"
+  },
+  "hospital-association-nordrhein-westfalen": {
+    logoFile: "hospital-association-nordrhein-westfalen.svg",
+    logoSourceUrl: "https://www.kgnw.de/",
+    logoSourceLabel: "Kuratiertes Logo-Asset: offizielles Inline-SVG der Verbandswebsite"
+  },
+  "hospital-association-rheinland-pfalz": {
+    logoFile: "hospital-association-rheinland-pfalz.svg",
+    logoSourceUrl: "https://www.kgrp.de/wp-content/uploads/kgrp-logo.svg"
+  },
+  "hospital-association-saarland": {
+    logoFile: "hospital-association-saarland.svg",
+    logoSourceUrl: "https://skgev.de/media/logo-skg_color.svg"
+  },
+  "hospital-association-sachsen": {
+    logoFile: "hospital-association-sachsen.png",
+    logoSourceUrl: "https://khg-sachsen.de/wp-content/uploads/2022/09/KGS-Logo-1600x285-transp.png"
+  },
+  "hospital-association-sachsen-anhalt": {
+    logoFile: "hospital-association-sachsen-anhalt.png",
+    logoSourceUrl: "https://www.kgsan.de/wnf/customizing/layouts/kgsan15/images/banner_bg4.png"
+  },
+  "hospital-association-schleswig-holstein": {
+    logoFile: "hospital-association-schleswig-holstein.png",
+    logoSourceUrl: "https://static.wixstatic.com/media/230206_145009f6df504feab5710961a4103dd3~mv2.png/v1/fill/w_520,h_210,al_c,lg_1,q_85,enc_avif,quality_auto/KGSHPNG.png"
+  },
+  "hospital-association-thueringen": {
+    logoFile: "hospital-association-thueringen.png",
+    logoSourceUrl: "https://lkhg-thueringen.de/wp-content/themes/LKHG/assets/img/logo-big.png"
+  }
+};
+
 const stakeholderHospitalAssociationMemberCounts = {
   "hospital-association-baden-wuerttemberg": {
     memberCount: 219,
@@ -234,6 +302,7 @@ const stakeholderKvOrganizations = [
   ["hospital-association-thueringen", "Landeskrankenhausgesellschaft Thüringen e. V.", "99096", "Erfurt", "Thüringen", 50.9848, 11.0299, "https://www.lkhg-thueringen.de", "0361 55830-0", "Friedrich-Ebert-Straße 63"]
 ].map(([id, name, postalCode, city, state, lat, lon, website, phone, streetAddress]) => {
   const memberCountMetadata = stakeholderHospitalAssociationMemberCounts[id] || {};
+  const logoMetadata = stakeholderHospitalAssociationLogoMetadata[id] || {};
   return {
     id,
     stakeholderTypeId: "hospital-associations",
@@ -250,6 +319,9 @@ const stakeholderKvOrganizations = [
     longitude: lon,
     website,
     phone,
+    logoUrl: logoMetadata.logoFile ? `../public/stakeholder-logos/hospital-associations/${logoMetadata.logoFile}` : "",
+    logoSourceUrl: logoMetadata.logoSourceUrl || "",
+    logoSourceLabel: logoMetadata.logoSourceLabel || (logoMetadata.logoSourceUrl ? "Kuratiertes Logo-Asset" : ""),
     notes: `Adresse laut DKG: ${streetAddress}, ${postalCode} ${city}`,
     source: "DKG-Mitgliederseite",
     memberCount: memberCountMetadata.memberCount ?? null,
