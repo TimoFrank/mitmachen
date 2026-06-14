@@ -62,7 +62,115 @@ const stakeholderKvLogoSourceUrls = {
 const stakeholderPatientAssociationRecognitionSourceUrl = "https://patientenvertretung.g-ba.de/wer-wir-sind/massgebliche-patientenorganisationen/";
 const stakeholderPatientAssociationNote = "Anerkannte maßgebliche Patientenorganisation nach § 140f SGB V/Patientenbeteiligungsverordnung; berechtigt zur Benennung von Patientenvertreterinnen und Patientenvertretern im G-BA.";
 const stakeholderAdditionalPatientRepresentationNote = "Weitere bundesweit relevante Patienten-, Selbsthilfe- oder Patientenvertretungsorganisation; nicht als maßgebliche Patientenorganisation nach § 140f SGB V erfasst.";
-const stakeholderPhysicianAssociationNote = "Bundesweit relevante ärztliche Berufs-, Fach- oder Dachorganisation; Auswahl nach Versorgungspolitik, Fachgruppenabdeckung, Mitglieder-/Verbandsstruktur und belegbarer öffentlicher Relevanz.";
+const stakeholderPatientContactExpansionNote = "Bundesweit kontaktierbarer Patienten- oder Selbsthilfeverband zur Erweiterung der CRM-Kontaktbasis.";
+const stakeholderPhysicianAssociationNote = "Bundesweit relevante ärztliche Berufs-, Fach- oder Dachorganisation; Auswahl nach SpiFa-/GFB-Mitgliedschaft, Lobbyregister-Relevanz, Versorgungspolitik, Fachgruppenabdeckung und bundesweiter Kontaktierbarkeit.";
+
+const stakeholderHospitalAssociationMemberCounts = {
+  "hospital-association-baden-wuerttemberg": {
+    memberCount: 219,
+    memberCountScope: "Mitgliedskrankenhäuser im BWKG-Mitgliederverzeichnis; Vorsorge-/Reha- und Pflegeeinrichtungen sind nicht mitgezählt.",
+    memberCountSourceLabel: "Sozialministerium Baden-Württemberg: Krankenhausführer/BWKG-Mitgliederverzeichnis",
+    memberCountSourceUrl: "https://sozialministerium.baden-wuerttemberg.de/de/gesundheit-pflege/krankenhaeuser/krankenhausfuehrer"
+  },
+  "hospital-association-bayern": {
+    memberCount: 190,
+    memberCountLabel: "ca. 190",
+    memberCountScope: "Krankenhausträger in der Bayerischen Krankenhausgesellschaft; diese Träger stehen für knapp 350 Krankenhäuser.",
+    memberCountSourceLabel: "Bayerische Krankenhausgesellschaft: Zahlen, Daten, Fakten",
+    memberCountSourceUrl: "https://www.bkg-online.de/infos-services/krankenhausversorgung/zahlen-daten-fakten"
+  },
+  "hospital-association-berlin": {
+    memberCount: 86,
+    memberCountScope: "Krankenhäuser in Berlin 2024; Fallback, da keine separate Mitgliederzahl der BKG öffentlich auffindbar war.",
+    memberCountSourceLabel: "Berliner Krankenhausgesellschaft: Zahlen, Daten, Fakten 2026",
+    memberCountSourceUrl: "https://www.bkgev.de/zahlen-daten-fakten/"
+  },
+  "hospital-association-brandenburg": {
+    memberCount: 53,
+    memberCountScope: "Krankenhäuser, die durch die Mitglieder der LKB repräsentiert werden.",
+    memberCountSourceLabel: "Landeskrankenhausgesellschaft Brandenburg: Der Verband",
+    memberCountSourceUrl: "https://lkb-online.de/"
+  },
+  "hospital-association-bremen": {
+    memberCount: 14,
+    memberCountScope: "Kommunale, freigemeinnützige und private Krankenhäuser in Bremen und Bremerhaven.",
+    memberCountSourceLabel: "Krankenhausgesellschaft Bremen: Krankenhaussuche/Kontaktseite",
+    memberCountSourceUrl: "https://www.hbkg.de/"
+  },
+  "hospital-association-hamburg": {
+    memberCount: 35,
+    memberCountScope: "Private, freigemeinnützige und öffentliche Krankenhäuser in und um Hamburg, deren Interessen die HKG vertritt.",
+    memberCountSourceLabel: "Hamburgische Krankenhausgesellschaft: Über die HKG",
+    memberCountSourceUrl: "https://www.hkgev.de/"
+  },
+  "hospital-association-hessen": {
+    memberCount: 140,
+    memberCountLabel: "ca. 140",
+    memberCountScope: "Krankenhausträger, die durch die HKG als Interessenvertretung repräsentiert werden.",
+    memberCountSourceLabel: "Hessische Krankenhausgesellschaft: Startseite",
+    memberCountSourceUrl: "https://hkg-online.de/"
+  },
+  "hospital-association-mecklenburg-vorpommern": {
+    memberCount: 37,
+    memberCountScope: "Akutkrankenhäuser; zusätzlich sind 4 Rehabilitationskliniken angeschlossen.",
+    memberCountSourceLabel: "Krankenhausgesellschaft Mecklenburg-Vorpommern: Wer sind wir?",
+    memberCountSourceUrl: "https://www.kgmv.de/"
+  },
+  "hospital-association-niedersachsen": {
+    memberCount: 163,
+    memberCountScope: "Mitglieder laut Lobbyregister; juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: NKG, Mitglieder am 18.05.2026",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R001389",
+    memberCountUpdatedAt: "2026-05-18"
+  },
+  "hospital-association-nordrhein-westfalen": {
+    memberCount: 244,
+    memberCountScope: "Krankenhausträger in Nordrhein-Westfalen, die in der KGNW zusammengeschlossen sind.",
+    memberCountSourceLabel: "Krankenhausgesellschaft Nordrhein-Westfalen: Mitglieder der KGNW, Stand 05.02.2025",
+    memberCountSourceUrl: "https://www.kgnw.de/",
+    memberCountUpdatedAt: "2025-02-05"
+  },
+  "hospital-association-rheinland-pfalz": {
+    memberCount: 100,
+    memberCountScope: "Krankenhäuser in Rheinland-Pfalz, deren Interessen die KGRP vertritt.",
+    memberCountSourceLabel: "Krankenhausgesellschaft Rheinland-Pfalz: Die KGRP",
+    memberCountSourceUrl: "https://www.kgrp.de/die-kgrp/"
+  },
+  "hospital-association-saarland": {
+    memberCount: 18,
+    memberCountScope: "Akutkrankenhäuser im Saarland; zusätzlich werden weitere angeschlossene Versorgungsangebote ausgewiesen.",
+    memberCountSourceLabel: "Saarländische Krankenhausgesellschaft: Mitglieder",
+    memberCountSourceUrl: "https://skgev.de/die-skg/mitglieder/"
+  },
+  "hospital-association-sachsen": {
+    memberCount: 66,
+    memberCountScope: "Mitglieder der Krankenhausgesellschaft Sachsen; diese umfassen 76 Krankenhäuser an 116 Standorten.",
+    memberCountSourceLabel: "Krankenhausgesellschaft Sachsen: Mitglieder, Stand 04.11.2024",
+    memberCountSourceUrl: "https://khg-sachsen.de/mitglieder/",
+    memberCountUpdatedAt: "2024-11-04"
+  },
+  "hospital-association-sachsen-anhalt": {
+    memberCount: 45,
+    memberCountScope: "Krankenhäuser in Sachsen-Anhalt an 57 Standorten; Fallback, da keine separate Mitgliederzahl öffentlich auffindbar war.",
+    memberCountSourceLabel: "KGSAN: Sachsen-Anhalts Krankenhäuser, Öffentliche Mitgliederversammlung 2025",
+    memberCountSourceUrl: "https://www.kgsan.de/wnf/navbar/wnf.php?oid=15637&sid=",
+    memberCountUpdatedAt: "2025-09-17"
+  },
+  "hospital-association-schleswig-holstein": {
+    memberCount: 60,
+    memberCountScope: "Mitglieder laut Lobbyregister; die KGSH-Website nennt zusätzlich 72 vertretene Krankenhäuser.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: KGSH, Mitglieder am 05.06.2024",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R002866",
+    memberCountUpdatedAt: "2024-06-05"
+  },
+  "hospital-association-thueringen": {
+    memberCount: 46,
+    memberCountScope: "Mitglieder laut Lobbyregister; juristische Personen, Personengesellschaften oder sonstige Organisationen.",
+    memberCountSourceLabel: "Lobbyregister Bundestag: LKHG Thüringen, Mitglieder am 01.01.2026",
+    memberCountSourceUrl: "https://www.lobbyregister.bundestag.de/suche/R004254",
+    memberCountUpdatedAt: "2026-01-01"
+  }
+};
 
 const stakeholderKvOrganizations = [
   ["kv-baden-wuerttemberg", "Kassenärztliche Vereinigung Baden-Württemberg", "Stuttgart", "Baden-Württemberg", 48.7758, 9.1829, "https://www.kvbawue.de", "kv-baden-wuerttemberg.svg", 24324],
@@ -124,32 +232,35 @@ const stakeholderKvOrganizations = [
   ["hospital-association-sachsen-anhalt", "Krankenhausgesellschaft Sachsen-Anhalt e. V.", "06112", "Halle (Saale)", "Sachsen-Anhalt", 51.4969, 11.9688, "https://www.kgsan.de", "0345 21466-0", "Magdeburger Straße 23"],
   ["hospital-association-schleswig-holstein", "Krankenhausgesellschaft Schleswig-Holstein e. V.", "24105", "Kiel", "Schleswig-Holstein", 54.3233, 10.1228, "https://www.kgsh.de", "0431 88105-0", "Feldstraße 75"],
   ["hospital-association-thueringen", "Landeskrankenhausgesellschaft Thüringen e. V.", "99096", "Erfurt", "Thüringen", 50.9848, 11.0299, "https://www.lkhg-thueringen.de", "0361 55830-0", "Friedrich-Ebert-Straße 63"]
-].map(([id, name, postalCode, city, state, lat, lon, website, phone, streetAddress]) => ({
-  id,
-  stakeholderTypeId: "hospital-associations",
-  stakeholderType: "hospital-associations",
-  name,
-  normalizedName: name.toLowerCase(),
-  organizationType: "Landeskrankenhausgesellschaft",
-  postalCode,
-  city,
-  state,
-  lat,
-  lon,
-  latitude: lat,
-  longitude: lon,
-  website,
-  phone,
-  notes: `Adresse laut DKG: ${streetAddress}, ${postalCode} ${city}`,
-  source: "DKG-Mitgliederseite",
-  memberCount: null,
-  memberCountLabel: "",
-  memberCountScope: "",
-  memberCountSourceLabel: "",
-  memberCountSourceUrl: "",
-  memberCountUpdatedAt: "",
-  status: "active"
-}))).concat([
+].map(([id, name, postalCode, city, state, lat, lon, website, phone, streetAddress]) => {
+  const memberCountMetadata = stakeholderHospitalAssociationMemberCounts[id] || {};
+  return {
+    id,
+    stakeholderTypeId: "hospital-associations",
+    stakeholderType: "hospital-associations",
+    name,
+    normalizedName: name.toLowerCase(),
+    organizationType: "Landeskrankenhausgesellschaft",
+    postalCode,
+    city,
+    state,
+    lat,
+    lon,
+    latitude: lat,
+    longitude: lon,
+    website,
+    phone,
+    notes: `Adresse laut DKG: ${streetAddress}, ${postalCode} ${city}`,
+    source: "DKG-Mitgliederseite",
+    memberCount: memberCountMetadata.memberCount ?? null,
+    memberCountLabel: memberCountMetadata.memberCountLabel || (memberCountMetadata.memberCount ? memberCountMetadata.memberCount.toLocaleString("de-DE") : ""),
+    memberCountScope: memberCountMetadata.memberCountScope || "",
+    memberCountSourceLabel: memberCountMetadata.memberCountSourceLabel || "",
+    memberCountSourceUrl: memberCountMetadata.memberCountSourceUrl || "",
+    memberCountUpdatedAt: memberCountMetadata.memberCountUpdatedAt || "",
+    status: "active"
+  };
+})).concat([
   ["patient-dbr", "Deutscher Behindertenrat (DBR)", "12107", "Berlin", "Berlin", "https://www.deutscher-behindertenrat.de", "https://www.deutscher-behindertenrat.de/ID25033"],
   ["patient-bagp", "BundesArbeitsGemeinschaft der PatientInnenstellen (BAGP)", "80339", "München", "Bayern", "https://bagp.de", "https://bagp.de/index.php/kontakt"],
   ["patient-dag-shg", "Deutsche Arbeitsgemeinschaft Selbsthilfegruppen e.V. (DAG SHG)", "10585", "Berlin", "Berlin", "https://www.dag-shg.de", "https://www.dag-shg.de/kontakt/"],
@@ -168,8 +279,28 @@ const stakeholderKvOrganizations = [
   ["patient-pro-retina", "PRO RETINA Deutschland e.V.", "53115", "Bonn", "Nordrhein-Westfalen", "https://www.pro-retina.de", "https://www.pro-retina.de/kontakt", "Krankheitsbezogene Selbsthilfevertretung", "DBR-Mitgliederliste; offizieller PRO-RETINA-Kontakt", stakeholderAdditionalPatientRepresentationNote],
   ["patient-upd", "Stiftung Unabhängige Patientenberatung Deutschland (UPD)", "12161", "Berlin", "Berlin", "https://patientenberatung.de", "https://patientenberatung.de/impressum/", "Unabhängige Patientenberatung", "Offizielles UPD-Impressum", "Gemeinnützige Stiftung zur unabhängigen Beratung in gesundheitlichen und gesundheitsrechtlichen Fragen."],
   ["patient-aps", "Aktionsbündnis Patientensicherheit e.V. (APS)", "10179", "Berlin", "Berlin", "https://www.aps-ev.de", "https://www.aps-ev.de/impressum/", "Patientensicherheitsnetzwerk", "Offizielles APS-Impressum", "Bundesweit relevantes Netzwerk für Patientensicherheit mit patientenorientierten Informationen und Empfehlungen."],
-  ["patient-bpik", "Bundesverband Patientenfürsprecher in Krankenhäusern e.V. (BPiK)", "45147", "Essen", "Nordrhein-Westfalen", "https://bpik.de", "https://bpik.de/vorstand-und-beirat/", "Patientenfürsprache", "Offizielle BPiK-Website", "Bundesverband der Patientenfürsprecherinnen und Patientenfürsprecher in Krankenhäusern."]
-].map(([id, name, postalCode, city, state, website, organizationSourceUrl, organizationType = "Maßgebliche Patientenorganisation", source = "G-BA Patientenvertretung; offizielle Organisationsangaben", notes = stakeholderPatientAssociationNote]) => ({
+  ["patient-bpik", "Bundesverband Patientenfürsprecher in Krankenhäusern e.V. (BPiK)", "45147", "Essen", "Nordrhein-Westfalen", "https://bpik.de", "https://bpik.de/vorstand-und-beirat/", "Patientenfürsprache", "Offizielle BPiK-Website", "Bundesverband der Patientenfürsprecherinnen und Patientenfürsprecher in Krankenhäusern."],
+  ["patient-diabetesde", "diabetesDE - Deutsche Diabetes-Hilfe e.V.", "10117", "Berlin", "Berlin", "https://www.diabetesde.org", "https://www.diabetesde.org/impressum", "Krankheitsbezogene Patientenvertretung", "Offizielles diabetesDE-Impressum", stakeholderPatientContactExpansionNote, "030 20167712", "info@diabetesde.org"],
+  ["patient-parkinson-vereinigung", "Deutsche Parkinson Vereinigung e.V. (dPV)", "41464", "Neuss", "Nordrhein-Westfalen", "https://www.dpv-bundesverband.de", "https://www.dpv-bundesverband.de/start", "Krankheitsbezogene Selbsthilfevertretung", "Offizielle dPV-Website", stakeholderPatientContactExpansionNote, "02131 740270", ""],
+  ["patient-herzstiftung", "Deutsche Herzstiftung e.V.", "60323", "Frankfurt am Main", "Hessen", "https://herzstiftung.de", "https://herzstiftung.de/impressum", "Patientenorganisation/Patienteninformation", "Offizielles Herzstiftung-Impressum", "Bundesweit sichtbare Patientenorganisation und Informationsanbieterin im Bereich Herz-Kreislauf-Erkrankungen.", "069 955128-0", "info@herzstiftung.de"],
+  ["patient-daab", "Deutscher Allergie- und Asthmabund e.V. (DAAB)", "41238", "Mönchengladbach", "Nordrhein-Westfalen", "https://www.daab.de", "https://www.daab.de/impressum", "Krankheitsbezogene Patientenvertretung", "Offizielles DAAB-Impressum", stakeholderPatientContactExpansionNote, "02166 6478820", "info@daab.de"],
+  ["patient-psoriasis-bund", "Deutscher Psoriasis Bund e.V. (DPB)", "20459", "Hamburg", "Hamburg", "https://www.psoriasis-bund.de", "https://www.psoriasis-bund.de/impressum/", "Krankheitsbezogene Selbsthilfevertretung", "Offizielles DPB-Impressum", stakeholderPatientContactExpansionNote, "040 223399-0", "info@psoriasis-bund.de"],
+  ["patient-frauenselbsthilfe-krebs", "Frauenselbsthilfe Krebs - Bundesverband e.V.", "53111", "Bonn", "Nordrhein-Westfalen", "https://www.frauenselbsthilfe.de", "https://www.frauenselbsthilfe.de/impressum", "Krebs-Selbsthilfevertretung", "Offizielles FSH-Impressum", stakeholderPatientContactExpansionNote, "0228 338894-00", "kontakt@frauenselbsthilfe.de"],
+  ["patient-prostatakrebs-bps", "Bundesverband Prostatakrebs Selbsthilfe e.V. (BPS)", "53111", "Bonn", "Nordrhein-Westfalen", "https://prostatakrebs-bps.de", "https://prostatakrebs-bps.de/impressum/", "Krebs-Selbsthilfevertretung", "Offizielles BPS-Impressum", stakeholderPatientContactExpansionNote, "0228 33889-500", "info@prostatakrebs-bps.de"],
+  ["patient-ilco", "Deutsche ILCO e.V.", "53111", "Bonn", "Nordrhein-Westfalen", "https://www.ilco.de", "https://hausderkrebsselbsthilfe.de/mitgliedsverband/deutsche-ilco-e-v-selbsthilfe-bei-darmkrebs-und-stoma/", "Krebs-/Stoma-Selbsthilfevertretung", "Haus der Krebs-Selbsthilfe; offizielle ILCO-Website", "Selbsthilfevereinigung für Stomaträgerinnen und Stomaträger sowie Menschen mit Darmkrebs und ihre Angehörigen.", "0228 33889450", "info@ilco.de"],
+  ["patient-haus-der-krebs-selbsthilfe", "Haus der Krebs-Selbsthilfe - Bundesverband e.V.", "53111", "Bonn", "Nordrhein-Westfalen", "https://hausderkrebsselbsthilfe.de", "https://hausderkrebsselbsthilfe.de/impressum/", "Krebs-Selbsthilfe-Dachverband", "Offizielles HKSH-Impressum", "Dachstruktur mehrerer bundesweiter Krebs-Selbsthilfeorganisationen.", "0228 33889-540", "info@hausderkrebsselbsthilfe.de"],
+  ["patient-dlh", "Deutsche Leukämie- & Lymphom-Hilfe e.V. (DLH)", "53111", "Bonn", "Nordrhein-Westfalen", "https://www.leukaemie-hilfe.de", "https://www.leukaemie-hilfe.de/impressum", "Krebs-Selbsthilfevertretung", "Offizielles DLH-Impressum", "Bundesverband der Selbsthilfeorganisationen für Erwachsene mit Leukämien und Lymphomen.", "0228 33889200", "info@leukaemie-hilfe.de"],
+  ["patient-schilddruesenkrebs", "Bundesverband Schilddrüsenkrebs - Ohne Schilddrüse leben e.V.", "10179", "Berlin", "Berlin", "https://www.sd-krebs.de", "https://hausderkrebsselbsthilfe.de/mitgliedsverband/bundesverband-schilddruesenkrebs-ohne-schilddruese-leben-e-v/", "Krebs-Selbsthilfevertretung", "Haus der Krebs-Selbsthilfe; offizielle Verbandsangaben", stakeholderPatientContactExpansionNote, "030 27581146", "info@sd-krebs.de"],
+  ["patient-mukoviszidose", "Mukoviszidose e.V. - Bundesverband Cystische Fibrose (CF)", "53117", "Bonn", "Nordrhein-Westfalen", "https://www.muko.info", "https://www.muko.info/impressum", "Krankheitsbezogene Selbsthilfevertretung", "Offizielles Mukoviszidose-Impressum", stakeholderPatientContactExpansionNote, "0228 98780-0", "info@muko.info"],
+  ["patient-kindernetzwerk", "Kindernetzwerk e.V.", "63741", "Aschaffenburg", "Bayern", "https://www.kindernetzwerk.de", "https://www.kindernetzwerk.de/impressum", "Patienten-/Angehörigen-Dachverband", "Offizielles Kindernetzwerk-Impressum", "Dachverband der Selbsthilfe von Familien mit Kindern und jungen Erwachsenen mit chronischen Erkrankungen und Behinderungen.", "06021 454400", "info@kindernetzwerk.de"],
+  ["patient-bvhk", "Bundesverband Herzkranke Kinder e.V. (BVHK)", "52074", "Aachen", "Nordrhein-Westfalen", "https://bvhk.de", "https://bvhk.de/impressum/", "Patienten-/Angehörigenverband", "Offizielles BVHK-Impressum", stakeholderPatientContactExpansionNote, "0241 912332", "info@bvhk.de"],
+  ["patient-epilepsievereinigung", "Deutsche Epilepsievereinigung e.V.", "10585", "Berlin", "Berlin", "https://www.epilepsie-vereinigung.de", "https://www.epilepsie-vereinigung.de/kontakt/", "Krankheitsbezogene Selbsthilfevertretung", "Offizieller Epilepsievereinigung-Kontakt", stakeholderPatientContactExpansionNote, "030 3424414", ""],
+  ["patient-depressionsliga", "Deutsche DepressionsLiga e.V.", "53119", "Bonn", "Nordrhein-Westfalen", "https://depressionsliga.de", "https://depressionsliga.de/impressum/", "Krankheitsbezogene Patientenvertretung", "Offizielles DepressionsLiga-Impressum", "Bundesweite Betroffenenorganisation für Menschen mit Depression und Angehörige.", "0228 24065772", "kontakt@depressionsliga.de"],
+  ["patient-autismus-deutschland", "autismus Deutschland e.V.", "20148", "Hamburg", "Hamburg", "https://www.autismus.de", "https://www.autismus.de/kontakt-impressum-datenschutz.html", "Patienten-/Angehörigenverband", "Offizielles autismus.de-Impressum", stakeholderPatientContactExpansionNote, "040 5115604", "info@autismus.de"],
+  ["patient-adhs-deutschland", "ADHS Deutschland e.V.", "13629", "Berlin", "Berlin", "https://adhs-deutschland.de", "https://adhs-deutschland.de/impressum", "Krankheitsbezogene Selbsthilfevertretung", "Offizielles ADHS-Deutschland-Impressum", stakeholderPatientContactExpansionNote, "", "info@adhs-deutschland.de"],
+  ["patient-sarkom-stiftung", "Deutsche Sarkom-Stiftung", "61200", "Wölfersheim", "Hessen", "https://www.sarkome.de", "https://www.sarkome.de/impressum", "Patienten-/Expertenorganisation", "Offizielles Sarkom-Stiftung-Impressum", "Gemeinsame Organisation von Patientinnen, Patienten und Expertinnen/Experten zur Verbesserung der Sarkomversorgung.", "0700 48840700", ""],
+  ["patient-blasenkrebs-shb", "Selbsthilfe-Bund Blasenkrebs e.V. (ShB)", "53111", "Bonn", "Nordrhein-Westfalen", "https://www.blasenkrebs-shb.de", "https://www.blasenkrebs-shb.de/impressum/", "Krebs-Selbsthilfevertretung", "Offizielles ShB-Impressum", stakeholderPatientContactExpansionNote, "0228 33889152", "info@blasenkrebs-shb.de"]
+].map(([id, name, postalCode, city, state, website, organizationSourceUrl, organizationType = "Maßgebliche Patientenorganisation", source = "G-BA Patientenvertretung; offizielle Organisationsangaben", notes = stakeholderPatientAssociationNote, phone = "", email = ""]) => ({
   id,
   stakeholderTypeId: "patient-associations",
   stakeholderType: "patient-associations",
@@ -184,6 +315,8 @@ const stakeholderKvOrganizations = [
   latitude: null,
   longitude: null,
   website,
+  phone,
+  email,
   notes,
   source,
   memberCount: null,
@@ -216,7 +349,44 @@ const stakeholderKvOrganizations = [
   ["physician-bvhno", "Deutscher Berufsverband der Hals-Nasen-Ohrenärzte e.V. (BVHNO)", "Fachärztlicher Berufsverband", "24539", "Neumünster", "Schleswig-Holstein", 54.0729, 9.9840, "https://www.hno-aerzte.de", "+49 4321 97250", "bv@hno-aerzte.de", 4647, "https://www.lobbyregister.bundestag.de/suche/R000412", "Deutscher Bundestag Lobbyregister R000412, Stand 02.06.2026", "2026-06-02", "Natürliche Mitglieder."],
   ["physician-bdl", "Berufsverband Deutscher Laborärzte e.V. (BDL)", "Fachärztlicher Berufsverband", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.bdlev.de", "+49 30 88621911", "buero-berlin@bdlev.de", 1200, "https://www.bdlev.de/", "Offizielle Verbandsseite, abgerufen 13.06.2026", "2026-06-13", "Öffentliche Verbandsangabe: rund 1.200 Fachärztinnen und Fachärzte für Laboratoriumsmedizin."],
   ["physician-bvoegd", "Bundesverband der Ärztinnen und Ärzte des öffentlichen Gesundheitsdienstes e.V. (BVÖGD)", "Ärztlicher Fachverband Öffentlicher Gesundheitsdienst", "10719", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.bvoegd.de", "+49 30 887273755", "info@bvoegd.de", 15, "https://www.lobbyregister.bundestag.de/suche/R004037", "Deutscher Bundestag Lobbyregister R004037, Stand 01.01.2025", "2025-01-01", "Landesverbände als juristische Mitglieder."],
-  ["physician-daeb", "Deutscher Ärztinnenbund e.V. (DÄB)", "Ärztlicher Berufsverband und Netzwerk", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.aerztinnenbund.de", "+49 30 54708635", "gsdaeb@aerztinnenbund.de", 2542, "https://www.lobbyregister.bundestag.de/suche/R006369", "Deutscher Bundestag Lobbyregister R006369, Stand 16.06.2025", "2025-06-16", "Natürliche und juristische Mitglieder; Netzwerk für Ärztinnen und Zahnärztinnen aller Fachrichtungen sowie Medizinstudentinnen."]
+  ["physician-daeb", "Deutscher Ärztinnenbund e.V. (DÄB)", "Ärztlicher Berufsverband und Netzwerk", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.aerztinnenbund.de", "+49 30 54708635", "gsdaeb@aerztinnenbund.de", 2542, "https://www.lobbyregister.bundestag.de/suche/R006369", "Deutscher Bundestag Lobbyregister R006369, Stand 16.06.2025", "2025-06-16", "Natürliche und juristische Mitglieder; Netzwerk für Ärztinnen und Zahnärztinnen aller Fachrichtungen sowie Medizinstudentinnen."],
+  ["physician-alm", "ALM - Akkreditierte Labore in der Medizin e.V.", "Labormedizinischer Interessenverband", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.alm-ev.de", "+49 30 4036884000", "kontakt@alm-ev.de", 200, "https://www.lobbyregister.bundestag.de/suche/R001160", "Deutscher Bundestag Lobbyregister R001160, abgerufen 14.06.2026", "2026-06-14", "Über 200 medizinische Labore; zugleich etwa 900 Fachärztinnen und Fachärzte in vertretenen Laborstrukturen."],
+  ["physician-bao", "Bundesverband Ambulantes Operieren e.V. (BAO)", "Fachübergreifender Berufsverband Ambulantes Operieren", "10557", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.operieren.de", "+49 30 31958413", "buero@bao.berlin", null, "https://www.operieren.de/e42177/", "Offizielles BAO-Impressum, abgerufen 14.06.2026", "", "SpiFa-Mitgliedsverband; Interessenvertretung ambulanter operativer Versorgung."],
+  ["physician-bdb", "Bundesverband der Belegärzte und Belegkrankenhäuser e.V. (BdB)", "Fachübergreifender Berufsverband Belegarztwesen", "10557", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.bundesverband-belegaerzte.de", "", "buero@bundesverband-belegaerzte.de", null, "https://www.lobbyregister.bundestag.de/suche/R001659", "Deutscher Bundestag Lobbyregister R001659, abgerufen 14.06.2026", "", "Berufspolitische Vertretung des Belegarztwesens und der Belegkrankenhäuser."],
+  ["physician-bdnc", "Berufsverband Deutsche Neurochirurgie e.V. (BDNC)", "Fachärztlicher Berufsverband", "", "", "", null, null, "https://bdnc.de/app/", "", "", null, "https://spifa.de/verband/", "SpiFa-Mitgliedsverbände, abgerufen 14.06.2026", "", "Ordentlicher SpiFa-Mitgliedsverband für berufspolitische Belange der Neurochirurgie."],
+  ["physician-bdn-nuklearmedizin", "Berufsverband Deutscher Nuklearmediziner e.V. (BDN)", "Fachärztlicher Berufsverband", "45136", "Essen", "Nordrhein-Westfalen", 51.4556, 7.0116, "https://www.berufsverband-nuklearmedizin.de", "+49 201 251297", "herzogenrath@berufsverband-nuklearmedizin.de", 486, "https://www.lobbyregister.bundestag.de/suche/R005526", "Deutscher Bundestag Lobbyregister R005526, Stand 30.06.2025", "2025-06-30", "Natürliche und juristische Mitglieder des Berufsverbands Deutscher Nuklearmediziner."],
+  ["physician-bdnr", "Berufsverband Deutscher Neuroradiologen e.V. (BDNR)", "Fachärztlicher Berufsverband", "10587", "Berlin", "Berlin", 52.5200, 13.4050, "https://bdnr.de", "+49 30 91607019", "bdnr@drg.de", null, "https://bdnr.de/impressum/", "Offizielles BDNR-Impressum, abgerufen 14.06.2026", "", "Ordentlicher SpiFa-Mitgliedsverband; vertritt Neuroradiologinnen und Neuroradiologen in Berufs-, Kammer- und Gesundheitspolitik."],
+  ["physician-bdp-pneumologie", "Bundesverband der Pneumologie, Schlaf- und Beatmungsmedizin e.V. (BdP)", "Fachärztlicher Berufsverband", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.pneumologenverband.de", "+49 30 700140445", "", null, "https://www.lobbyregister.bundestag.de/suche/R000575", "Deutscher Bundestag Lobbyregister R000575, abgerufen 14.06.2026", "", "Berufsverband der Pneumologie, Schlaf- und Beatmungsmedizin; bundesweite Vertretung gegenüber Selbstverwaltung, Kassen und Politik."],
+  ["physician-bdpm", "Bundesverband Psychosomatische Medizin und Ärztliche Psychotherapie e.V. (BDPM)", "Fachärztlicher Berufsverband", "10999", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.bdpm-online.de", "+49 30 37918464", "info@bdpm-online.de", null, "https://www.bdpm-online.de/", "Offizielle BDPM-Website, abgerufen 14.06.2026", "", "SpiFa-Mitgliedsverband für Psychosomatische Medizin und Ärztliche Psychotherapie."],
+  ["physician-bnc", "Berufsverband Niedergelassener Chirurgen e.V. (BNC)", "Fachärztlicher Berufsverband", "22941", "Jersbek", "Schleswig-Holstein", 53.7410, 10.2190, "https://www.bncev.de", "+49 4532 2687560", "info@bncev.de", 1500, "https://spifa.de/verband/", "SpiFa-Mitgliedsverbände, abgerufen 14.06.2026", "2026-06-14", "Rund 1.500 freiberufliche Chirurginnen und Chirurgen laut SpiFa-Mitgliedsprofil."],
+  ["physician-bnk", "Bundesverband Niedergelassener Kardiologen e.V. (BNK)", "Fachärztlicher Berufsverband", "80805", "München", "Bayern", 48.1351, 11.5820, "https://www.bnk.de", "+49 89 32357740", "info@bnk.de", 1200, "https://www.bnk.de/", "Offizielle BNK-Website, abgerufen 14.06.2026", "2026-06-14", "Über 1.200 niedergelassene Fachärztinnen und Fachärzte mit Schwerpunkt Kardiologie."],
+  ["physician-bng", "Berufsverband Niedergelassener Gastroenterologen Deutschlands e.V. (bng)", "Fachärztlicher Berufsverband", "89081", "Ulm", "Baden-Württemberg", 48.4011, 9.9876, "https://bng-gastro.de", "+49 731 7042718", "kontakt@bng-gastro.de", 1300, "https://bng-gastro.de/", "Offizielle bng-Website, abgerufen 14.06.2026", "2026-06-14", "Mehr als 1.300 organisierte Ärztinnen und Ärzte; mehr als 90 Prozent der niedergelassenen Gastroenterologen."],
+  ["physician-bngo", "Berufsverband Niedergelassener und ambulant tätiger Gynäkologischer Onkologen in Deutschland e.V. (BNGO)", "Fachärztlicher Berufsverband", "15366", "Neuenhagen bei Berlin", "Brandenburg", 52.5290, 13.6890, "https://bngo.de", "+49 3342 4268970", "info@bngo.de", 123, "https://bngo.de/", "Offizielle BNGO-Website, abgerufen 14.06.2026", "2026-06-14", "Hochspezialisierte niedergelassene und ambulant tätige gynäkologische Onkologinnen und Onkologen."],
+  ["physician-bnho", "Berufsverband der Niedergelassenen Ärztinnen und Ärzte für Hämatologie und Medizinische Onkologie in Deutschland e.V. (BNHO)", "Fachärztlicher Berufsverband", "50677", "Köln", "Nordrhein-Westfalen", 50.9375, 6.9603, "https://bnho.de", "", "", 590, "https://bnho.de/", "Offizielle BNHO-Website, abgerufen 14.06.2026", "2026-06-14", "Niedergelassene Fachärztinnen und Fachärzte für Hämatologie und Medizinische Onkologie."],
+  ["physician-brz", "Bundesverband Reproduktionsmedizinischer Zentren Deutschlands e.V. (BRZ)", "Fachärztlicher Berufsverband/Reproduktionsmedizinische Zentren", "66123", "Saarbrücken", "Saarland", 49.2402, 6.9969, "https://repromed.de", "+49 681 373551", "horstkamp@repromed.de", null, "https://www.lobbyregister.bundestag.de/suche/R003685", "Deutscher Bundestag Lobbyregister R003685, abgerufen 14.06.2026", "", "Ordentlicher SpiFa-Mitgliedsverband für reproduktionsmedizinische Zentren."],
+  ["physician-bvad", "Berufsverband der AngiologInnen Deutschlands e.V. (BVAD)", "Fachärztlicher Berufsverband", "10437", "Berlin", "Berlin", 52.5200, 13.4050, "https://berufsverbandangiologie.de", "+49 176 34383585", "info@berufsverbandangiologie.de", null, "https://www.lobbyregister.bundestag.de/suche/R005533", "Deutscher Bundestag Lobbyregister R005533, abgerufen 14.06.2026", "", "Berufs- und gesundheitspolitische Vertretung angiologisch tätiger Ärztinnen und Ärzte."],
+  ["physician-bvdh", "Berufsverband Deutscher Humangenetiker e.V. (BVDH)", "Fachärztlicher Berufsverband", "10115", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.bvdh.de", "+49 30 55954411", "info@bvdh.de", null, "https://www.bvdh.de/", "Offizielle BVDH-Website, abgerufen 14.06.2026", "", "Vertretung von Fachärztinnen und Fachärzten für Humangenetik, Fachhumangenetikerinnen und Fachhumangenetikern sowie genetischen Laborstrukturen."],
+  ["physician-bvnd", "Bundesverband Niedergelassener Diabetologen e.V. (BVND)", "Fachärztlicher Berufsverband", "89522", "Heidenheim an der Brenz", "Baden-Württemberg", 48.6768, 10.1510, "https://www.bvnd.de", "+49 7321 9469190", "mail@bvnd.de", null, "https://www.lobbyregister.bundestag.de/suche/R000516", "Deutscher Bundestag Lobbyregister R000516, abgerufen 14.06.2026", "", "Bundesweite berufspolitische Interessenvertretung niedergelassener Diabetologinnen und Diabetologen."],
+  ["physician-bvprm", "Berufsverband für Physikalische und Rehabilitative Medizin e.V. (BVPRM)", "Fachärztlicher Berufsverband", "04357", "Leipzig", "Sachsen", 51.3397, 12.3731, "https://www.bvprm.de", "+49 341 60051350", "", null, "https://www.lobbyregister.bundestag.de/suche/R006811", "Deutscher Bundestag Lobbyregister R006811, abgerufen 14.06.2026", "", "Bundesweite berufspolitische Interessenvertretung der Physikalischen und Rehabilitativen Medizin."],
+  ["physician-dbvpp", "Deutscher Berufsverband der Fachärzte für Phoniatrie und Pädaudiologie e.V. (DBVPP)", "Fachärztlicher Berufsverband", "", "", "", null, null, "https://www.dbvpp.de", "", "", null, "https://spifa.de/verband/", "SpiFa-Mitgliedsverbände, abgerufen 14.06.2026", "", "Ordentlicher SpiFa-Mitgliedsverband für Phoniatrie und Pädaudiologie."],
+  ["physician-dfv", "Deutscher Facharztverband e.V. (DFV)", "Fachärztlicher Berufsverband", "89129", "Langenau", "Baden-Württemberg", 48.4964, 10.1180, "https://www.deutscher-facharztverband.de", "+49 7345 9336785", "", null, "https://www.lobbyregister.bundestag.de/suche/R002987", "Deutscher Bundestag Lobbyregister R002987, abgerufen 14.06.2026", "", "Unabhängige berufspolitische Vertretung niedergelassener Fachärztinnen und Fachärzte."],
+  ["physician-dgmkg", "Deutsche Gesellschaft für Mund-, Kiefer- und Gesichtschirurgie e.V. (DGMKG)", "Berufsverband und Fachgesellschaft", "65719", "Hofheim", "Hessen", 50.0906, 8.4497, "https://www.dgmkg.com", "+49 6192 206303", "info@dgmkg.de", 1900, "https://spifa.de/verband/", "SpiFa-Mitgliedsverbände, abgerufen 14.06.2026", "2026-06-14", "Gesamtverband aller Fachärztinnen und Fachärzte für Mund-, Kiefer- und Gesichtschirurgie in Deutschland."],
+  ["physician-dgpraec", "Deutsche Gesellschaft für Plastische, Rekonstruktive und Ästhetische Chirurgie e.V. (DGPRÄC)", "Berufsverband und Fachgesellschaft", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.dgpraec.de", "+49 30 44017611", "info@dgpraec.de", 2000, "https://www.dgpraec.de/", "Offizielle DGPRÄC-Website, abgerufen 14.06.2026", "2026-06-14", "Über 2.000 Mitglieder; Berufsverband und wissenschaftliche Fachgesellschaft der Plastischen Chirurgie."],
+  ["physician-dn", "Berufsverband der Nephrologinnen und Nephrologen in Deutschland e.V. (DN)", "Fachärztlicher Berufsverband", "40210", "Düsseldorf", "Nordrhein-Westfalen", 51.2277, 6.7735, "https://www.dnev.de", "+49 211 1795790", "info@dnev.de", 737, "https://www.lobbyregister.bundestag.de/suche/R000362", "Deutscher Bundestag Lobbyregister R000362, Stand 01.12.2025", "2025-12-01", "Natürliche Mitglieder; berufspolitische Vertretung der nephrologischen Versorgung."],
+  ["physician-vdro", "Verband der in Deutschland niedergelassenen Radioonkologen e.V. (VDRO)", "Fachärztlicher Berufsverband", "", "", "", null, null, "https://vdro.de", "", "", null, "https://www.lobbyregister.bundestag.de/suche/R007040", "Deutscher Bundestag Lobbyregister R007040, abgerufen 14.06.2026", "", "Neu aufgenommener SpiFa-Mitgliedsverband für niedergelassene Radioonkologinnen und Radioonkologen."],
+  ["physician-bdh", "Berufsverband Deutscher Hygieniker e.V. (BDH)", "Fachärztlicher Berufsverband", "69129", "Heidelberg", "Baden-Württemberg", 49.3988, 8.6724, "https://www.hygiene-bv.de", "+49 6221 3432381", "info@hygiene-bv.de", null, "https://www.gfb-facharztverband.de/de/gfb/mitglieder/bdh.html", "GFB-Mitgliedsverband, abgerufen 14.06.2026", "", "GFB-Mitgliedsverband für Fachärztinnen und Fachärzte für Hygiene und Umweltmedizin."],
+  ["physician-bdp-pathologie", "Berufsverband Deutscher Pathologinnen und Pathologen e.V. (BDP)", "Fachärztlicher Berufsverband", "10115", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.pathologie.de", "+49 30 30881970", "bv@pathologie.de", null, "https://www.lobbyregister.bundestag.de/suche/R002120", "Deutscher Bundestag Lobbyregister R002120, abgerufen 14.06.2026", "", "Berufsständische Vertretung der Pathologie und Neuropathologie in Praxis, Krankenhaus und Universität."],
+  ["physician-bdrm", "Berufsverband Deutscher Rechtsmediziner e.V. (BDRM)", "Fachärztlicher Berufsverband", "55131", "Mainz", "Rheinland-Pfalz", 49.9929, 8.2473, "https://bvd-rechtsmedizin.com", "+49 6131 179487", "", null, "https://www.gfb-facharztverband.de/de/gfb/mitglieder/bdrm.html", "GFB-Mitgliedsverband, abgerufen 14.06.2026", "", "GFB-Mitgliedsverband für Rechtsmedizin."],
+  ["physician-bdn-neurologen", "Berufsverband Deutscher Neurologen e.V. (BDN)", "Fachärztlicher Berufsverband", "12165", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.berufsverband-neurologen.de", "+49 30 94878310", "info@berufsverband-neurologen.de", null, "https://www.gfb-facharztverband.de/de/gfb/mitglieder/bdn.html", "GFB-Mitgliedsverband, abgerufen 14.06.2026", "", "Zentrale Interessenvertretung für Fachärztinnen und Fachärzte der Neurologie in Deutschland."],
+  ["physician-bvdn", "Berufsverband Deutscher Nervenärzte e.V. (BVDN)", "Fachärztlicher Berufsverband", "12165", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.berufsverband-nervenaerzte.de", "+49 30 94878310", "info@bvdn.de", null, "https://www.gfb-facharztverband.de/de/gfb/mitglieder/bvdn.html", "GFB-Mitgliedsverband, abgerufen 14.06.2026", "", "GFB-Mitgliedsverband; bundesweite Interessenvertretung der Nervenärztinnen und Nervenärzte."],
+  ["physician-bvdp", "Berufsverband Deutscher Fachärztinnen und Fachärzte für Psychiatrie und Psychotherapie e.V. (BVDP)", "Fachärztlicher Berufsverband", "12165", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.berufsverband-psychiater.de", "+49 30 94878310", "info@berufsverband-psychiater.de", null, "https://www.gfb-facharztverband.de/de/gfb/mitglieder/bvdp.html", "GFB-Mitgliedsverband, abgerufen 14.06.2026", "", "GFB-Mitgliedsverband für Psychiatrie und Psychotherapie."],
+  ["physician-bkjpp", "Berufsverband für Kinder- und Jugendpsychiatrie, Psychosomatik und Psychotherapie in Deutschland e.V. (BKJPP)", "Fachärztlicher Berufsverband", "55116", "Mainz", "Rheinland-Pfalz", 49.9929, 8.2473, "https://www.bkjpp.de", "+49 6131 6938070", "", null, "https://www.lobbyregister.bundestag.de/suche/R007652", "Deutscher Bundestag Lobbyregister R007652, abgerufen 14.06.2026", "", "Berufsverband für Kinder- und Jugendpsychiatrie, Psychosomatik und Psychotherapie."],
+  ["physician-aeda", "Ärzteverband Deutscher Allergologen e.V. (AeDA)", "Ärztlicher Berufsverband", "65205", "Wiesbaden", "Hessen", 50.0782, 8.2398, "https://aeda.de", "+49 611 95008000", "info@aeda.de", null, "https://www.gfb-facharztverband.de/de/gfb/mitglieder/aeda.html", "GFB-Mitgliedsverband, abgerufen 14.06.2026", "", "Berufsverband angewandt allergologisch tätiger Ärztinnen und Ärzte."],
+  ["physician-bdrh", "Berufsverband Deutscher Rheumatologen e.V. (BDRh)", "Fachärztlicher Berufsverband", "82031", "Grünwald", "Bayern", 48.0399, 11.5232, "https://www.bdrh.de", "+49 89 904141413", "kontakt@bdrh.de", null, "https://www.lobbyregister.bundestag.de/suche/R000342", "Deutscher Bundestag Lobbyregister R000342, abgerufen 14.06.2026", "", "Berufspolitische Vertretung rheumatologisch tätiger Ärztinnen und Ärzte."],
+  ["physician-vlk", "Verband leitender Krankenhausärztinnen und -ärzte e.V. (VLK)", "Ärztlicher Berufsverband Krankenhausleitung", "40474", "Düsseldorf", "Nordrhein-Westfalen", 51.2277, 6.7735, "https://vlk-online.de", "+49 211 454990", "info@vlk-online.de", null, "https://www.lobbyregister.bundestag.de/suche/R001393", "Deutscher Bundestag Lobbyregister R001393, abgerufen 14.06.2026", "", "Bundesweite Interessenvertretung leitender Krankenhausärztinnen und Krankenhausärzte mit 16 Landesverbänden."],
+  ["physician-bvsd", "Berufsverband der Ärzte und Psychologischen Psychotherapeuten in der Schmerz- und Palliativmedizin in Deutschland e.V. (BVSD)", "Ärztlicher Berufsverband Schmerz- und Palliativmedizin", "10711", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.bvsd.de", "+49 30 28867260", "bgst@bvsd.de", 600, "https://www.bvsd.de/", "Offizielle BVSD-Website, abgerufen 14.06.2026", "2026-06-14", "Rund 600 Mitglieder in der Schmerz- und Palliativmedizin; ärztlich-psychotherapeutischer Berufsverband."],
+  ["physician-freie-aerzteschaft", "Freie Ärzteschaft e.V. (FÄ)", "Ärztlicher Berufsverband", "", "Essen", "Nordrhein-Westfalen", 51.4556, 7.0116, "https://freie-aerzteschaft.de", "", "", null, "https://freie-aerzteschaft.de/", "Offizielle Verbandsseite, abgerufen 14.06.2026", "", "Fachübergreifender ärztlicher Berufsverband mit Schwerpunkt freie ärztliche Berufsausübung und ambulante Versorgung."],
+  ["physician-ada", "AdA - Bundesverband der Arzt-, Praxis- und Gesundheitsnetze e.V.", "Dachverband ärztlicher Praxis- und Gesundheitsnetze", "10117", "Berlin", "Berlin", 52.5200, 13.4050, "https://www.arztnetze.info", "+49 30 403656700", "", 400, "https://www.lobbyregister.bundestag.de/suche/R004210", "Deutscher Bundestag Lobbyregister R004210, abgerufen 14.06.2026", "2026-06-14", "Rund 400 Arztnetze und Gesundheitsverbünde werden als bundesweite Netzwerkstruktur adressiert."]
 ].map(([id, name, organizationType, postalCode, city, state, lat, lon, website, phone, email, memberCount, memberCountSourceUrl, memberCountSourceLabel, memberCountUpdatedAt, memberCountScope]) => ({
   id,
   stakeholderTypeId: "physician-associations",
@@ -235,15 +405,487 @@ const stakeholderKvOrganizations = [
   phone,
   email,
   notes: stakeholderPhysicianAssociationNote,
-  source: "Recherche ärztliche Berufsverbände, Stand 13.06.2026",
+  source: "Recherche ärztliche Berufsverbände, Stand 14.06.2026",
   memberCount,
-  memberCountLabel: memberCount.toLocaleString("de-DE"),
+  memberCountLabel: memberCount != null ? memberCount.toLocaleString("de-DE") : "",
   memberCountScope,
   memberCountSourceLabel,
   memberCountSourceUrl,
   memberCountUpdatedAt,
   status: "active"
 })));
+
+const stakeholderHealthInsuranceLogoMetadata = {
+  "health-insurance-aok-baden-wurttemberg": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-bayern": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-bremen-bremerhaven": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-hessen": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-niedersachsen": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-nordost": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-nordwest": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-plus": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-aok-plus.svg",
+    logoSourceUrl: "https://www.aok.de/aokplus",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-rheinland-pfalz-saarland": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-rheinland-hamburg": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-aok-sachsen-anhalt": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-aok-sachsen-anhalt.svg",
+    logoSourceUrl: "https://www.aok.de/sachsen-anhalt",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-audi-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-audi-bkk.svg",
+    logoSourceUrl: "https://www.audibkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bahn-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bahn-bkk.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BAHN-BKK_RGB.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-barmer": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-barmer.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Barmer_Logo_12.2025.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bergische-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bergische-krankenkasse.png",
+    logoSourceUrl: "https://www.bergische-krankenkasse.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bertelsmann-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bertelsmann-bkk.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Bertelsmann_BKK_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-big-direkt-gesund": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-big-direkt-gesund.svg",
+    logoSourceUrl: "https://www.big-direkt.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-akzo-nobel-bayern": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-akzo-nobel-bayern.svg",
+    logoSourceUrl: "https://www.bkk-akzo.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-b-braun-aesculap": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-b-braun-aesculap.png",
+    logoSourceUrl: "https://www.bkk-bba.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-deutsche-bank-ag": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-deutsche-bank-ag.svg",
+    logoSourceUrl: "https://de.wikipedia.org/wiki/Datei:BKK_Deutsche_Bank_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-diakonie": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-diakonie.png",
+    logoSourceUrl: "https://www.bkk-diakonie.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-durkoppadler": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-durkoppadler.png",
+    logoSourceUrl: "https://www.bkk-da.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-euregio": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-euregio.png",
+    logoSourceUrl: "https://www.bkk-euregio.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-evm": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-evm.svg",
+    logoSourceUrl: "https://www.bkk-evm.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-ewe": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-ewe.svg",
+    logoSourceUrl: "https://www.bkk-ewe.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-exklusiv": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-exklusiv.png",
+    logoSourceUrl: "https://www.bkkexklusiv.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-faber-castell-partner": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-faber-castell-partner.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Faber_Castell_&_Partner_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-firmus": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-firmus.svg",
+    logoSourceUrl: "https://www.bkk-firmus.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-freudenberg": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-freudenberg.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Freudenberg_BKK_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-gildemeister-seidensticker": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-gildemeister-seidensticker.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Gildemeister_Seidensticker_logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-groz-beckert": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-groz-beckert.svg",
+    logoSourceUrl: "https://www.bkk-gb.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-herkules": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-herkules.svg",
+    logoSourceUrl: "https://www.bkk-herkules.de/",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-karl-mayer": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-karl-mayer.svg",
+    logoSourceUrl: "https://www.karlmayer-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-linde": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-linde.svg",
+    logoSourceUrl: "https://www.bkk-linde.de/",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-mahle": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-mahle.svg",
+    logoSourceUrl: "https://www.bkk-mahle.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-melitta-hmr": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-melitta-hmr.svg",
+    logoSourceUrl: "https://www.bkk-melitta-hmr.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-miele": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-miele.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Miele_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-mtu": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-mtu.svg",
+    logoSourceUrl: "https://www.bkk-mtu.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-pfaff": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-pfaff.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK-Pfaff-Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-pfalz": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-pfalz.svg",
+    logoSourceUrl: "https://www.bkkpfalz.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-provita": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-provita.svg",
+    logoSourceUrl: "https://www.bkk-provita.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-public": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-public.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Public_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-pwc": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-pwc.svg",
+    logoSourceUrl: "https://www.bkk-pwc.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-rieker-ricosta-weisser": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-rieker-ricosta-weisser.svg",
+    logoSourceUrl: "https://www.bkk-rrw.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-salzgitter": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-salzgitter.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Salzgitter_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-sbh": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-sbh.svg",
+    logoSourceUrl: "https://www.bkk-sbh.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-scheufelen": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-scheufelen.png",
+    logoSourceUrl: "https://www.bkk-scheufelen.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-technoform": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-technoform.png",
+    logoSourceUrl: "https://www.bkk-technoform.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-vdn": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-vdn.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_VDN_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-verbundplus": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-verbundplus.svg",
+    logoSourceUrl: "https://www.bkk-verbundplus.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-werra-meissner": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-werra-meissner.svg",
+    logoSourceUrl: "https://www.bkk-werra-meissner.de/",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-wirtschaft-finanzen": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-wirtschaft-finanzen.png",
+    logoSourceUrl: "https://www.bkk-wf.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk-wurth": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-wurth.png",
+    logoSourceUrl: "https://www.bkk-wuerth.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bkk24": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk24.svg",
+    logoSourceUrl: "https://www.bkk24.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bmw-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bmw-bkk.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BMW_BKK_Logo_2020.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-bosch-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bosch-bkk.svg",
+    logoSourceUrl: "https://www.bosch-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-continentale-betriebskrankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-continentale-betriebskrankenkasse.png",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Logo_CBKK.png",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-dak-gesundheit": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-dak-gesundheit.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:DAK-Gesundheit_logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-debeka-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-debeka-bkk.svg",
+    logoSourceUrl: "https://www.debeka-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-energie-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-energie-bkk.svg",
+    logoSourceUrl: "https://www.energie-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-ey-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ey-bkk.svg",
+    logoSourceUrl: "https://www.ey-bkk.de/",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-heimat-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-heimat-krankenkasse.png",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Heimat_Krankenkasse_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-hek-hanseatische-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-hek-hanseatische-krankenkasse.png",
+    logoSourceUrl: "https://www.hek.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-hkk-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-hkk-krankenkasse.svg",
+    logoSourceUrl: "https://www.hkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-ikk-die-innovationskasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-die-innovationskasse.png",
+    logoSourceUrl: "https://www.die-ik.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-ikk-brandenburg-und-berlin": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-brandenburg-und-berlin.svg",
+    logoSourceUrl: "https://www.ikkbb.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-ikk-classic": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-classic.svg",
+    logoSourceUrl: "https://www.ikk-classic.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-ikk-gesund-plus": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-gesund-plus.svg",
+    logoSourceUrl: "https://www.ikk-gesundplus.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-ikk-sudwest": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-sudwest.svg",
+    logoSourceUrl: "https://www.ikk-suedwest.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-kkh-kaufmannische-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-kkh-kaufmannische-krankenkasse.svg",
+    logoSourceUrl: "https://www.kkh.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-knappschaft": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-knappschaft.png",
+    logoSourceUrl: "https://www.knappschaft.de/",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-koenig-bauer-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-koenig-bauer-bkk.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Koenig_%26_Bauer_Logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-krones-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-krones-bkk.svg",
+    logoSourceUrl: "https://www.krones-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-mercedes-benz-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-mercedes-benz-bkk.svg",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_BKK_Logo_2022.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-merck-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-merck-bkk.svg",
+    logoSourceUrl: "https://www.merck-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-mhplus-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-mhplus-bkk.svg",
+    logoSourceUrl: "https://www.mhplus.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-mkk-meine-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-mkk-meine-krankenkasse.svg",
+    logoSourceUrl: "https://www.meine-krankenkasse.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-mobil-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-mobil-krankenkasse.svg",
+    logoSourceUrl: "https://www.mobil-krankenkasse.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-novitas-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-novitas-bkk.png",
+    logoSourceUrl: "https://www.novitas-bkk.de/",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-pronova-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-pronova-bkk.svg",
+    logoSourceUrl: "https://www.pronovabkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-r-v-betriebskrankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-r-v-betriebskrankenkasse.svg",
+    logoSourceUrl: "https://www.ruv-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-salus-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-salus-bkk.svg",
+    logoSourceUrl: "https://www.salus-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-sbk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-sbk.svg",
+    logoSourceUrl: "https://www.sbk.org/",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-securvita-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-securvita-krankenkasse.png",
+    logoSourceUrl: "https://www.securvita.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-skd-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-skd-bkk.svg",
+    logoSourceUrl: "https://www.skd-bkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-svlfg-landwirtschaftliche-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-svlfg-landwirtschaftliche-krankenkasse.svg",
+    logoSourceUrl: "https://www.svlfg.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-sudzucker-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-sudzucker-bkk.png",
+    logoSourceUrl: "https://www.xn--sdzucker-bkk-dlb.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-techniker-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-techniker-krankenkasse.svg",
+    logoSourceUrl: "https://www.tk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-tui-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-tui-bkk.svg",
+    logoSourceUrl: "https://www.tui-bkk.de/",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-viactiv-krankenkasse": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-viactiv-krankenkasse.svg",
+    logoSourceUrl: "https://www.viactiv.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-vivida-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-vivida-bkk.svg",
+    logoSourceUrl: "https://www.vividabkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-wmf-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-wmf-bkk.png",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:WMF_BKK_logo.svg",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  },
+  "health-insurance-zf-bkk": {
+    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-zf-bkk.svg",
+    logoSourceUrl: "https://www.zfbkk.de",
+    logoSourceLabel: "Kuratiertes Logo-Asset"
+  }
+};
+
+function stakeholderHealthInsuranceLogoMetadataFor(id) {
+  return stakeholderHealthInsuranceLogoMetadata[id] || {};
+}
 
 const stakeholderHealthInsuranceOrganizations = [
   {
@@ -2943,7 +3585,10 @@ const stakeholderHealthInsuranceOrganizations = [
     memberCountUpdatedAt: "2026-02-01",
     status: "active"
   }
-];
+].map((organization) => ({
+  ...organization,
+  ...stakeholderHealthInsuranceLogoMetadataFor(organization.id)
+}));
 
 window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS = [
   ...stakeholderKvOrganizations,

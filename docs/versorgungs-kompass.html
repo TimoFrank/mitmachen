@@ -3432,6 +3432,32 @@
         line-height: 1;
       }
 
+      .column-sort-indicator svg {
+        width: 14px;
+        height: 14px;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .column-sort-icon__up,
+      .column-sort-icon__down {
+        opacity: 0.55;
+      }
+
+      .column-sort-indicator--asc .column-sort-icon__up,
+      .column-sort-indicator--desc .column-sort-icon__down {
+        opacity: 1;
+      }
+
+      .column-sort-indicator--asc .column-sort-icon__down,
+      .column-sort-indicator--desc .column-sort-icon__up {
+        opacity: 0.28;
+      }
+
       .column-sort-button.is-active .column-sort-indicator {
         background: var(--primary-soft);
         color: var(--primary);
@@ -12705,13 +12731,13 @@
       }
 
       .organization-logo--stakeholder.organization-logo--sm {
-        width: 68px;
-        height: 42px;
+        width: 96px;
+        height: 44px;
       }
 
       .organization-logo--stakeholder.organization-logo--lg {
-        width: 156px;
-        height: 84px;
+        width: 172px;
+        height: 86px;
       }
 
       .organization-logo--stakeholder.organization-logo--kv-hessen.organization-logo--sm {
@@ -12721,6 +12747,20 @@
 
       .organization-logo--stakeholder.organization-logo--kv-hessen.organization-logo--lg {
         width: 76px;
+      }
+
+      .organization-logo--stakeholder:not(.organization-logo--image) {
+        padding: 0 4px;
+        background: var(--surface-muted);
+        color: var(--text-secondary);
+        font-size: 0.76rem;
+        letter-spacing: 0;
+        line-height: 1;
+        text-align: center;
+      }
+
+      .organization-logo--stakeholder.organization-logo--lg:not(.organization-logo--image) {
+        font-size: 1rem;
       }
 
       .organization-logo img,
@@ -12738,7 +12778,7 @@
       }
 
       .organization-logo--stakeholder img {
-        padding: 6px 8px;
+        padding: 5px 8px;
       }
 
       .organization-logo--kv-hessen img {
@@ -19814,7 +19854,7 @@
                 </div>
               </div>
               <div class="table-secondary-actions" id="contact-secondary-actions">
-                <button class="action-button" type="button" id="archive-view-button">Archiv anzeigen</button>
+                <button class="action-button" type="button" id="archive-view-button">Archiv</button>
                 <button class="action-button" type="button" id="contact-matching-worklist-button">Dubletten</button>
               </div>
             </div>
@@ -26408,6 +26448,31 @@
         return `${source[0][0]}${source[source.length - 1][0]}`.toUpperCase();
       }
 
+      function stakeholderLogoFallbackLabel(organization = {}) {
+        const name = String(organization?.name || "").trim();
+        if (!name) return organizationInitials(name);
+        const healthInsuranceLabels = [
+          [/^aok\b/i, "AOK"],
+          [/\bbkk\b/i, "BKK"],
+          [/\bikk\b/i, "IKK"],
+          [/^tk\b|techniker krankenkasse/i, "TK"],
+          [/^dak\b|dak-gesundheit/i, "DAK"],
+          [/^kkh\b/i, "KKH"],
+          [/^hek\b/i, "HEK"],
+          [/^hkk\b/i, "hkk"],
+          [/^sbk\b/i, "SBK"],
+          [/^barmer\b/i, "BARMER"],
+          [/knappschaft/i, "KN"]
+        ];
+        if (organization?.stakeholderTypeId === "health-insurance" || organization?.stakeholder_type_id === "health-insurance") {
+          const match = healthInsuranceLabels.find(([pattern]) => pattern.test(name));
+          if (match) return match[1];
+          const firstToken = name.replace(/[^\p{L}\p{N}\s-]/gu, " ").trim().split(/\s+/).filter(Boolean)[0] || "";
+          if (firstToken && firstToken.length <= 6) return firstToken;
+        }
+        return organizationInitials(name);
+      }
+
       function normalizedWebsiteUrl(value) {
         const raw = String(value || "").trim();
         if (!raw) return "";
@@ -26465,7 +26530,9 @@
         return raw;
       }
 
-      function organizationLogoCandidate(organization) {
+      function organizationLogoCandidate(organization, options = {}) {
+        const allowCurated = options.allowCurated !== false;
+        const allowGenerated = options.allowGenerated !== false;
         const directLogo = organization?.logoUrl || organization?.logo_url || organization?.image || organization?.image_url;
         if (hasMeaningfulValue(directLogo) && (isValidOptionalUrl(directLogo) || isRelativeAssetPath(directLogo) || isPublicAssetPath(directLogo))) {
           return {
@@ -26476,8 +26543,12 @@
           };
         }
 
-        const curatedLogo = curatedOrganizationLogo(organization?.name);
-        if (curatedLogo) return curatedLogo;
+        if (allowCurated) {
+          const curatedLogo = curatedOrganizationLogo(organization?.name);
+          if (curatedLogo) return curatedLogo;
+        }
+
+        if (!allowGenerated) return null;
 
         const website = normalizedWebsiteUrl(organization?.website);
         if (!website) return null;
@@ -26519,11 +26590,12 @@
       }
 
       function organizationLogoMarkup(organization, size = "sm", className = "") {
-        const logo = organizationLogoCandidate(organization) || organizationLogoForName(organization?.name);
+        const isStakeholderLogo = String(className || "").split(/\s+/).includes("organization-logo--stakeholder");
+        const logo = organizationLogoCandidate(organization, { allowGenerated: !isStakeholderLogo }) || (!isStakeholderLogo ? organizationLogoForName(organization?.name) : null);
         const sizeClass = size === "lg" ? "organization-logo--lg" : "organization-logo--sm";
         const organizationClass = normalizeClassPart(organization?.id || "");
         const classes = `organization-logo ${sizeClass} ${organizationClass ? `organization-logo--${organizationClass}` : ""} ${className}`.trim();
-        const initials = organizationInitials(organization?.name);
+        const initials = isStakeholderLogo ? stakeholderLogoFallbackLabel(organization) : organizationInitials(organization?.name);
         const fallback = `<span class="${classes}" aria-hidden="true">${escapeHtml(initials)}</span>`;
         if (!logo) return fallback;
         return `
@@ -27520,12 +27592,23 @@
         return "";
       }
 
+      function columnSortIndicatorMarkup(direction = "none") {
+        const state = ["asc", "desc"].includes(direction) ? direction : "none";
+        return `
+          <span class="column-sort-indicator column-sort-indicator--${state}" aria-hidden="true">
+            <svg class="column-sort-icon" viewBox="0 0 16 16" focusable="false">
+              <path class="column-sort-icon__up" d="M5 6.5 8 3.5l3 3"></path>
+              <path class="column-sort-icon__down" d="M5 9.5l3 3 3-3"></path>
+            </svg>
+          </span>
+        `;
+      }
+
       function stakeholderOrganizationColumnHeaderMarkup(column) {
         const sortableKeys = new Set(["organization", "memberCount"]);
         if (!sortableKeys.has(column.key)) return columnHeaderMarkup(column, "stakeholder-organizations");
         const active = stakeholderOrganizationSort.key === column.key;
         const direction = active ? stakeholderOrganizationSort.direction : "none";
-        const indicator = active ? (direction === "asc" ? "↑" : "↓") : "↕";
         const sortLabel = active
           ? `${column.label} ${direction === "asc" ? "aufsteigend" : "absteigend"} sortiert`
           : `${column.label} sortieren`;
@@ -27538,7 +27621,7 @@
             aria-sort="${direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "none"}"
           >
             <span class="column-head__label">${escapeHtml(column.label)}</span>
-            <span class="column-sort-indicator" aria-hidden="true">${indicator}</span>
+            ${columnSortIndicatorMarkup(direction)}
           </button>
         `;
       }
@@ -30762,6 +30845,14 @@
 
       function activeContactsTotal() {
         return contacts.filter((contact) => contact.status !== "archived").length;
+      }
+
+      function archivedContactsTotal() {
+        return contacts.filter((contact) => contact.status === "archived").length;
+      }
+
+      function archiveViewButtonLabel() {
+        return showingArchive ? "Aktive Kontakte" : `Archiv (${archivedContactsTotal()})`;
       }
 
       function isContactsDuplicateMode() {
@@ -38919,7 +39010,7 @@
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.hidden = isProfileRecordView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveFilters());
-        archiveViewButton.textContent = showingArchive ? "Aktive Kontakte anzeigen" : "Archiv anzeigen";
+        archiveViewButton.textContent = archiveViewButtonLabel();
         const searchPlaceholder = isAnyDuplicateMode
           ? "Dubletten suchen..."
           : isOrganizationsView

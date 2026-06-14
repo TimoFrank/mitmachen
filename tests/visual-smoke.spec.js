@@ -1294,6 +1294,9 @@ test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", asyn
   await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1 Krankenkassen");
   await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Ansprechpersonen");
   await expect(page.locator("#stakeholder-organization-list")).toContainText("AOK Test");
+  const healthListLogo = page.locator('#stakeholder-organization-list [data-stakeholder-organization-id="health-aok-test"] .organization-logo--stakeholder');
+  await expect(healthListLogo).toHaveText("AOK");
+  await expect(healthListLogo.locator("img")).toHaveCount(0);
   await page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first().click();
   const healthProfileButton = page.locator("#detail-drawer [data-open-organization-profile]");
   if (await healthProfileButton.isVisible().catch(() => false)) {
@@ -1303,6 +1306,9 @@ test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", asyn
   await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#organization\/stakeholder\/health-aok-test$/);
   await expect(organizationProfile.locator("#stakeholder-organization-overview")).toContainText("AOK Test");
+  const healthProfileLogo = organizationProfile.locator(".organization-profile-logo.organization-logo--stakeholder");
+  await expect(healthProfileLogo).toHaveText("AOK");
+  await expect(healthProfileLogo.locator("img")).toHaveCount(0);
   await organizationProfile.locator('[data-detail-tab="people"]').click();
   await expect(organizationProfile.locator("#stakeholder-organization-people")).toContainText("Alex Beispiel");
   await organizationProfile.locator("[data-organization-profile-back]").click();
