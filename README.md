@@ -20,6 +20,11 @@ Fuer den aktuellen nutzbaren Stand sind diese Dateien relevant:
 - `map/versorgungs-kompass-map-teaser.html`: Mini-Karten-Vorschau fuer die Login-Seite
 - `map/versorgungs-kompass-contact-mini-map.html`: kompakte Kontaktkarte
 
+Fuer Agenten- und QA-Arbeit sind ausserdem wichtig:
+
+- `CURRENT_STATE.md`: kurzer Projektzustand, bekannte Stolperstellen und Standardbefehle
+- `QA_WORKFLOW.md`: QA-Stufen, Effizienzmodus und gemeinsamer Auth-Testmodus
+
 ## Daten
 
 Die produktiven Kompass-Daten liegen nicht mehr im GitHub-Repository, sondern in Supabase.
@@ -94,6 +99,18 @@ Der lokale GCP/Jenkins-Preflight laeuft mit:
 ```bash
 npm run deploy:preflight
 ```
+
+## QA und Tests
+
+Die Standard-Checks sind nach Aenderungsrisiko gestuft:
+
+```bash
+npm run qa:small     # kleine Text-/CSS-/Doku-Aenderungen
+npm run check        # fokussierte technische Pruefung
+npm run qa:full      # kompletter Check plus visuelle Smokes
+```
+
+Playwright-Tests nutzen den gemeinsamen Auth-/Demo-Helper in `tests/helpers/app-test-session.js`. Details stehen in `QA_WORKFLOW.md`.
 
 ## Lokale Nutzung
 
