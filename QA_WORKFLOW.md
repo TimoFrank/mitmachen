@@ -45,6 +45,30 @@ npm run qa:full
 
 Bei sichtbaren UI-Aenderungen zusaetzlich die relevanten Punkte aus `VISUAL_QA_CHECKLIST.md` abgleichen. Bei GitHub-Pages-Auftraegen vorher `bash scripts/sync_github_pages.sh` ausfuehren und `docs/` mitpruefen.
 
+### Stufe 4: Publication-/Live-Verifikation
+
+Fuer jeden Push-/Deploy-/GitHub-Pages-Auftrag nach dem Push.
+
+Pflicht:
+
+```bash
+npm run verify:publication
+```
+
+Da die produktive App mit `dataMode: "supabase"` laeuft, muss der Supabase-Live-Datenstatus explizit sein:
+
+```bash
+SUPABASE_LIVE_STATUS=verified npm run verify:publication
+```
+
+`verified` ist nur erlaubt, wenn die betroffene Live-Tabelle vorher per SQL, REST oder Supabase-MCP stichprobenartig geprueft wurde. Fuer reine Static-/UI-Aenderungen ohne Datenbankwirkung:
+
+```bash
+SUPABASE_LIVE_STATUS=not_affected npm run verify:publication
+```
+
+Wenn Supabase-Migrationen, `supabase/schema.sql` oder Supabase-gespeiste Stakeholder-Daten betroffen sind, darf `not_affected` nicht genutzt werden. Ein Abschluss darf "sichtbar", "verfuegbar" oder "live" nur sagen, wenn GitHub Pages und der Supabase-Live-Datenstatus in dieser Stufe erfolgreich geprueft wurden.
+
 ## Standard-Auth-Testmodus
 
 Playwright-Tests nutzen den gemeinsamen Helper:

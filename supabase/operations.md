@@ -93,7 +93,19 @@ git diff --check
 
 4. Committen und nach `main` pushen.
 5. Wenn die Aenderung Supabase-Tabellen, Seed-Daten oder Migrationen betrifft, die Migration bzw. SQL-Aenderung auf den produktiven Supabase-Datenstand anwenden. Ein Git-Push der Migrationsdatei aktualisiert Supabase nicht automatisch.
-6. GitHub Pages oeffnen und Login, Kontaktliste, Karte und Auswertung kurz testen.
+6. Supabase-Live-Daten nach der Anwendung per SQL, REST oder Supabase-MCP stichprobenartig pruefen. Beispiel: ein konkret geaenderter Datensatz muss den erwarteten Wert liefern.
+7. GitHub Pages oeffnen und Login, Kontaktliste, Karte und Auswertung kurz testen.
+8. Publication-Check ausfuehren:
+
+```bash
+SUPABASE_LIVE_STATUS=verified npm run verify:publication
+```
+
+Fuer reine Static-/UI-Aenderungen ohne Datenbankwirkung stattdessen:
+
+```bash
+SUPABASE_LIVE_STATUS=not_affected npm run verify:publication
+```
 
 ### Sichtbarkeit nach Push klaeren
 
@@ -112,6 +124,14 @@ Nach jedem Deployment muss deshalb getrennt geprueft und dokumentiert werden:
 4. In der App mit Login pruefen, ob die sichtbare Funktion tatsaechlich aus dem Live-Datenstand kommt.
 
 Ein Abschlussbericht darf "live sichtbar" nur verwenden, wenn GitHub Pages und, falls betroffen, Supabase-Live-Daten geprueft wurden.
+
+Der maschinelle Abschlusscheck ist:
+
+```bash
+npm run verify:publication
+```
+
+Das Skript vergleicht die oeffentlichen GitHub-Pages-Dateien mit `docs/` und bricht bei `dataMode: "supabase"` ab, solange `SUPABASE_LIVE_STATUS` nicht explizit auf `verified` oder `not_affected` steht. `verified` setzt eine vorherige Live-Daten-Stichprobe voraus; `not_affected` darf nicht fuer Migrationen, Schema-Aenderungen oder Supabase-gespeiste Datenupdates genutzt werden.
 
 ## Neue Nutzer:innen und Rollen
 
