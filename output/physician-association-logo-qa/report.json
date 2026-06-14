@@ -1,0 +1,102 @@
+[
+  {
+    "scenario": "desktop",
+    "seen": 58,
+    "pages": [
+      {
+        "page": 1,
+        "meta": "1-20 von 58 Berufsverbände",
+        "rows": 20,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/desktop-page-1.png"
+      },
+      {
+        "page": 2,
+        "meta": "21-40 von 58 Berufsverbände",
+        "rows": 20,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/desktop-page-2.png"
+      },
+      {
+        "page": 3,
+        "meta": "41-58 von 58 Berufsverbände",
+        "rows": 18,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/desktop-page-3.png"
+      }
+    ],
+    "specialTiles": {
+      "physician-dn": "rgb(23, 39, 95)",
+      "physician-spifa": "rgb(23, 39, 95)"
+    },
+    "consoleErrors": []
+  },
+  {
+    "scenario": "mobile",
+    "seen": 58,
+    "pages": [
+      {
+        "page": 1,
+        "meta": "1-6 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-1.png"
+      },
+      {
+        "page": 2,
+        "meta": "7-12 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-2.png"
+      },
+      {
+        "page": 3,
+        "meta": "13-18 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-3.png"
+      },
+      {
+        "page": 4,
+        "meta": "19-24 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-4.png"
+      },
+      {
+        "page": 5,
+        "meta": "25-30 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-5.png"
+      },
+      {
+        "page": 6,
+        "meta": "31-36 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-6.png"
+      },
+      {
+        "page": 7,
+        "meta": "37-42 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-7.png"
+      },
+      {
+        "page": 8,
+        "meta": "43-48 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-8.png"
+      },
+      {
+        "page": 9,
+        "meta": "49-54 von 58 Berufsverbände",
+        "rows": 6,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-9.png"
+      },
+      {
+        "page": 10,
+        "meta": "55-58 von 58 Berufsverbände",
+        "rows": 4,
+        "screenshot": "/Users/timofrank/Desktop/Versorgungs-CRM/output/physician-association-logo-qa/mobile-page-10.png"
+      }
+    ],
+    "specialTiles": {
+      "physician-dn": "rgb(23, 39, 95)",
+      "physician-spifa": "rgb(23, 39, 95)"
+    },
+    "consoleErrors": []
+  }
+]

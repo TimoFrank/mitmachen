@@ -223,6 +223,253 @@ const stakeholderPatientAssociationLogoMetadata = {
   }
 };
 const stakeholderPhysicianAssociationNote = "Bundesweit relevante ärztliche Berufs-, Fach- oder Dachorganisation; Auswahl nach SpiFa-/GFB-Mitgliedschaft, Lobbyregister-Relevanz, Versorgungspolitik, Fachgruppenabdeckung und bundesweiter Kontaktierbarkeit.";
+const stakeholderPhysicianAssociationLogoSourceLabel = "Kuratiertes Logo-Asset: offizielles Header-/Logo-Asset; keine Favicon-/Social-Media-Quelle";
+const stakeholderPhysicianAssociationLogoMetadata = {
+  "physician-spifa": {
+    logoFile: "physician-spifa.png",
+    logoSourceUrl: "https://spifa.de/wp-content/uploads/2021/07/SpiFa_Logo_2024_weiss.png"
+  },
+  "physician-gfb": {
+    logoFile: "physician-gfb.png",
+    logoSourceUrl: "https://www.gfb-facharztverband.de/images/logo.png"
+  },
+  "physician-marburger-bund": {
+    logoFile: "physician-marburger-bund.svg",
+    logoSourceUrl: "https://www.marburger-bund.de/themes/custom/mb/img/logo.svg"
+  },
+  "physician-hartmannbund": {
+    logoFile: "physician-hartmannbund.svg",
+    logoSourceUrl: "https://www.hartmannbund.de/wp-content/uploads/2020/10/logocrop.svg"
+  },
+  "physician-hausaerzteverband": {
+    logoFile: "physician-hausaerzteverband.png",
+    logoSourceUrl: "https://www.haev.de/typo3conf/ext/dhv_sitepackage/Resources/Public/Images/HAEV_Logo_Dachverband_rgb.png"
+  },
+  "physician-virchowbund": {
+    logoFile: "physician-virchowbund.svg",
+    logoSourceUrl: "https://www.virchowbund.de/_assets/12ecccfe9186b84b10b2cda53d4b5e65/Icons/logo-virchowbund.svg"
+  },
+  "physician-medi-geno": {
+    logoFile: "physician-medi-geno.png",
+    logoSourceUrl: "https://www.medi-verbund.de/wp-content/uploads/2020/11/logo@2x.png"
+  },
+  "physician-bdi": {
+    logoFile: "physician-bdi.svg",
+    logoSourceUrl: "https://www.bdi.de/fileadmin/templates/gfx/bdi_logo.svg"
+  },
+  "physician-bvkj": {
+    logoFile: "physician-bvkj.svg",
+    logoSourceUrl: "https://www.bvkj.de/fileadmin/templates/gfx/bvkj-logo.svg"
+  },
+  "physician-bvf": {
+    logoFile: "physician-bvf.svg",
+    logoSourceUrl: "https://www.bvf.de/fileadmin/templates/gfx/BVF-Logo.svg"
+  },
+  "physician-bva": {
+    logoFile: "physician-bva.gif",
+    logoSourceUrl: "https://www.augeninfo.de/bilder/bva_logo.gif"
+  },
+  "physician-bda": {
+    logoFile: "physician-bda.png",
+    logoSourceUrl: "https://www.bda.de/images/BDA-Logo-150.png"
+  },
+  "physician-bdc": {
+    logoFile: "physician-bdc.webp",
+    logoSourceUrl: "https://www.bdc.de/wp-content/themes/bdc/images/logo.png"
+  },
+  "physician-bdr": {
+    logoFile: "physician-bdr.png",
+    logoSourceUrl: "https://www.radiologenverband.de/theme/site/logo.png"
+  },
+  "physician-bvdd": {
+    logoFile: "physician-bvdd.png",
+    logoSourceUrl: "https://hilfe.bvdd.de/corporate-design/logo/"
+  },
+  "physician-bvdu": {
+    logoFile: "physician-bvdu.svg",
+    logoSourceUrl: "https://urologie-gestalten.de/wp-content/uploads/2026/05/BvDU-Logo.svg"
+  },
+  "physician-bvou": {
+    logoFile: "physician-bvou.png",
+    logoSourceUrl: "https://d38i6es1q63hoz.cloudfront.net/wp-content/themes/bvou/images/bvou-logo-desk-neu.png"
+  },
+  "physician-bvhno": {
+    logoFile: "physician-bvhno.svg",
+    logoSourceUrl: "https://www.hno-aerzte.de/fileadmin/Bilder/CD-Elemente/HNO-Logo-white-on-orange.svg"
+  },
+  "physician-bdl": {
+    logoFile: "physician-bdl.png",
+    logoSourceUrl: "https://layout.verwaltungsportal.de/10905/img/logo.png"
+  },
+  "physician-bvoegd": {
+    logoFile: "physician-bvoegd.svg",
+    logoSourceUrl: "https://www.bvoegd.de/wp-content/themes/bvoegd/img/BVOEGD_Logo_1.svg"
+  },
+  "physician-daeb": {
+    logoFile: "physician-daeb.png",
+    logoSourceUrl: "https://www.aerztinnenbund.de/pics/9/967.png"
+  },
+  "physician-alm": {
+    logoFile: "physician-alm.svg",
+    logoSourceUrl: "https://www.alm-ev.de/wp-content/uploads/Media/ALM-Logos/alm-logo.svg"
+  },
+  "physician-bao": {
+    logoFile: "physician-bao.svg",
+    logoSourceUrl: "https://www.operieren.de/common/img/Logo_BAO_n.svg"
+  },
+  "physician-bdb": {
+    logoFile: "physician-bdb.jpg",
+    logoSourceUrl: "https://www.bundesverband-belegaerzte.de/fileadmin/vorlagen/bdb/logo-belegaerzte.jpg"
+  },
+  "physician-bdnc": {
+    logoFile: "physician-bdnc.png",
+    logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Bdnclogo.png"
+  },
+  "physician-bdn-nuklearmedizin": {
+    logoFile: "physician-bdn-nuklearmedizin.svg",
+    logoSourceUrl: "https://www.berufsverband-nuklearmedizin.de/_assets/45db20552cef078ea65b34e606e1b5d6/Frontend/Images/bdn-logo.svg"
+  },
+  "physician-bdnr": {
+    logoFile: "physician-bdnr.svg",
+    logoSourceUrl: "https://bdnr.de/themes/bdnr20/images/bdnr-logo-neu.svg"
+  },
+  "physician-bdp-pneumologie": {
+    logoFile: "physician-bdp-pneumologie.svg",
+    logoSourceUrl: "https://www.pneumologenverband.de/build/img/bundesverband-pneumologie-schlaf-und-beatmungsmedizin-logo.6734c23e.svg"
+  },
+  "physician-bdpm": {
+    logoFile: "physician-bdpm.png",
+    logoSourceUrl: "https://assets.coco-online.de/100601764588773_1lzRbZKb/logo-189-1658401122.png"
+  },
+  "physician-bnc": {
+    logoFile: "physician-bnc.svg",
+    logoSourceUrl: "https://www.bncev.de/wp-content/themes/berufsverband-chirurgen-jersbek/src/img/logo-dark.svg"
+  },
+  "physician-bnk": {
+    logoFile: "physician-bnk.png",
+    logoSourceUrl: "https://www.bnk.de/assets/images/0/bnk-ev_logo_2023-wmn8ee1k9yfm45c.png"
+  },
+  "physician-bng": {
+    logoFile: "physician-bng.png",
+    logoSourceUrl: "https://bng-gastro.de/wp-content/uploads/2023/01/BNG-Logo-600.png"
+  },
+  "physician-bngo": {
+    logoFile: "physician-bngo.png",
+    logoSourceUrl: "https://bngo.de/files/2021/11/Logo-BNGO-web.png"
+  },
+  "physician-bnho": {
+    logoFile: "physician-bnho.svg",
+    logoSourceUrl: "https://bnho.de/wp-content/themes/bnho-fluxo-io/img/logos/logo-bnho-small.svg"
+  },
+  "physician-brz": {
+    logoFile: "physician-brz.png",
+    logoSourceUrl: "https://repromed.org/wp-content/uploads/2017/05/cropped-logo.png"
+  },
+  "physician-bvad": {
+    logoFile: "physician-bvad.png",
+    logoSourceUrl: "https://berufsverbandangiologie.de/wp-content/uploads/2020/07/LOGO_BVAD_01-1.png"
+  },
+  "physician-bvdh": {
+    logoFile: "physician-bvdh.png",
+    logoSourceUrl: "https://www.bvdh.de/files/_theme_bvdh/img/BVDH/BVDH_LOGO_Web.png"
+  },
+  "physician-bvnd": {
+    logoFile: "physician-bvnd.png",
+    logoSourceUrl: "https://www.bvnd.de/fileadmin/vorlagen/bvnd87/logo-bvnd.png"
+  },
+  "physician-bvprm": {
+    logoFile: "physician-bvprm.jpg",
+    logoSourceUrl: "https://image.jimcdn.com/app/cms/image/transf/none/path/sc0e03c62217ca902/image/i5842f3a2b3800fd2/version/1641114701/image.jpg"
+  },
+  "physician-dbvpp": {
+    logoFile: "physician-dbvpp.jpg",
+    logoSourceUrl: "https://www.dbvpp.de/logotxt.jpg"
+  },
+  "physician-dfv": {
+    logoFile: "physician-dfv.png",
+    logoSourceUrl: "https://deutscher-facharztverband.de/wp-content/uploads/2022/09/cropped-cropped-logo-dfv.png"
+  },
+  "physician-dgmkg": {
+    logoFile: "physician-dgmkg.png",
+    logoSourceUrl: "https://dgmkg.de/wp-content/uploads/2021/08/Logo_DGMKG_210x120.png"
+  },
+  "physician-dgpraec": {
+    logoFile: "physician-dgpraec.png",
+    logoSourceUrl: "https://www.dgpraec.de/wp-content/uploads/2023/03/DGPRAeC_LOGO_128px_freigestellt.png"
+  },
+  "physician-dn": {
+    logoFile: "physician-dn.svg",
+    logoSourceUrl: "https://www.dnev.de/site/templates/assets/img/core/dnev-signet-full-white.svg"
+  },
+  "physician-vdro": {
+    logoFile: "physician-vdro.svg",
+    logoSourceUrl: "https://vdro.de/wp-content/uploads/sites/12/2024/01/vdro_logo_farbe_rgb.svg"
+  },
+  "physician-bdh": {
+    logoFile: "physician-bdh.png",
+    logoSourceUrl: "https://www.hygiene-bv.de/daten/BDH_logo.png"
+  },
+  "physician-bdp-pathologie": {
+    logoFile: "physician-bdp-pathologie.png",
+    logoSourceUrl: "https://www.pathologie.de/_Resources/Static/Packages/C4Csystems.Pathologie/GFX/logo-pathologie-175x50.png"
+  },
+  "physician-bdrm": {
+    logoFile: "physician-bdrm.png",
+    logoSourceUrl: "https://bvd-rechtsmedizin.com/images/logo/LogoBVD_Transp.png"
+  },
+  "physician-bdn-neurologen": {
+    logoFile: "physician-bdn-neurologen.png",
+    logoSourceUrl: "https://www.berufsverband-neurologen.de/wp-content/uploads/2020/09/BDN-Logo.png"
+  },
+  "physician-bvdn": {
+    logoFile: "physician-bvdn.png",
+    logoSourceUrl: "https://www.berufsverband-nervenaerzte.de/wp-content/uploads/2021/04/BVDN-Logo.png"
+  },
+  "physician-bvdp": {
+    logoFile: "physician-bvdp.png",
+    logoSourceUrl: "https://www.berufsverband-psychiater.de/wp-content/uploads/2021/03/BVDP-Logo_210219.png"
+  },
+  "physician-bkjpp": {
+    logoFile: "physician-bkjpp.jpg",
+    logoSourceUrl: "https://www.bkjpp.de/wp-content/uploads/2024/03/logobkjjp60unten.jpg"
+  },
+  "physician-aeda": {
+    logoFile: "physician-aeda.svg",
+    logoSourceUrl: "https://aeda.de/wp-content/uploads/2022/04/Aeda_Logo_lang.svg"
+  },
+  "physician-bdrh": {
+    logoFile: "physician-bdrh.svg",
+    logoSourceUrl: "https://www.bdrh.de/wp-content/uploads/2021/12/BDRh_Logo_RGB_v1.svg"
+  },
+  "physician-vlk": {
+    logoFile: "physician-vlk.png",
+    logoSourceUrl: "https://vlk-online.de/wp-content/uploads/thegem/logos/logo_6f12867f7839268a3c0b15b2f73017c0_3x.png"
+  },
+  "physician-bvsd": {
+    logoFile: "physician-bvsd.png",
+    logoSourceUrl: "https://www.bvsd.de/wp-content/uploads/2019/05/bvsd_logo.png"
+  },
+  "physician-freie-aerzteschaft": {
+    logoFile: "physician-freie-aerzteschaft.png",
+    logoSourceUrl: "https://freie-aerzteschaft.de/wp-content/uploads/2022/04/fa-logo-rgb-neu.png"
+  },
+  "physician-ada": {
+    logoFile: "physician-ada.png",
+    logoSourceUrl: "https://www.arztnetze.info/images/logos/ada_logo.png"
+  }
+};
+
+function stakeholderPhysicianAssociationLogoMetadataFor(id) {
+  const logoMetadata = stakeholderPhysicianAssociationLogoMetadata[id] || {};
+  if (!logoMetadata.logoFile) {
+    return {};
+  }
+  return {
+    logoUrl: `../public/stakeholder-logos/physician-associations/${logoMetadata.logoFile}`,
+    logoSourceUrl: logoMetadata.logoSourceUrl || "",
+    logoSourceLabel: logoMetadata.logoSourceLabel || stakeholderPhysicianAssociationLogoSourceLabel
+  };
+}
 
 const stakeholderHospitalAssociationLogoMetadata = {
   "hospital-association-baden-wuerttemberg": {
@@ -649,6 +896,7 @@ const stakeholderKvOrganizations = [
   memberCountSourceLabel,
   memberCountSourceUrl,
   memberCountUpdatedAt,
+  ...stakeholderPhysicianAssociationLogoMetadataFor(id),
   status: "active"
 })));
 
