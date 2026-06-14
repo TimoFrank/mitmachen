@@ -1199,6 +1199,12 @@ test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async
   const isDesktop = testInfo.project.name.includes("desktop");
   if (isDesktop) {
     await expect(page.locator("#columns-button")).toBeHidden();
+    await expect(page.locator('[data-stakeholder-organization-sort="organization"]')).toBeVisible();
+    await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Baden-Württemberg");
+    await page.locator('[data-stakeholder-organization-sort="organization"]').click();
+    await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Westfalen-Lippe");
+    await page.locator('[data-stakeholder-organization-sort="organization"]').click();
+    await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Baden-Württemberg");
     await page.locator('[data-stakeholder-organization-sort="memberCount"]').click();
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("KV Bayerns");
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("30.984");
