@@ -9,7 +9,7 @@
   <body>
     <div class="app-shell">
       <aside class="app-sidebar" aria-label="Hauptnavigation">
-        <a class="sidebar-brand" href="./index.html" aria-label="Zur Kontakte-Ansicht">
+        <a class="sidebar-brand" href="./index.html" aria-label="Zur Karte">
           <div class="brand-mark" aria-hidden="true">
             <span></span>
             <span></span>
@@ -19,33 +19,9 @@
         </a>
 
         <nav class="primary-nav sidebar-nav" aria-label="App-Bereiche">
-          <div class="sidebar-section" aria-label="Kontakte und Organisationen">
-            <span class="sidebar-section-label">Kontakte</span>
-            <button class="primary-tab is-active" type="button" data-view="contacts" title="Kontakte">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9.5" cy="7" r="4"></circle>
-                <path d="M20 8v6"></path>
-                <path d="M23 11h-6"></path>
-              </svg>
-              <span>Kontakte</span>
-            </button>
-            <button class="primary-tab" type="button" data-view="organizations" title="Organisationen">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M3 21h18"></path>
-                <path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path>
-                <path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path>
-                <path d="M9 7h3"></path>
-                <path d="M9 11h3"></path>
-                <path d="M9 15h3"></path>
-              </svg>
-              <span>Organisationen</span>
-            </button>
-          </div>
-
-          <div class="sidebar-section" aria-label="Karte und Aktivität">
-            <span class="sidebar-section-label">Analyse</span>
-            <button class="primary-tab" type="button" data-view="map" title="Karte">
+          <div class="sidebar-section" aria-label="Karte">
+            <span class="sidebar-section-label">Karte</span>
+            <button class="primary-tab is-active" type="button" data-view="map" title="Karte">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
                 <path d="M9 3v15"></path>
@@ -53,51 +29,23 @@
               </svg>
               <span>Karte</span>
             </button>
-            <button class="primary-tab" type="button" data-view="activity" title="Aktivität">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M4 19h16"></path>
-                <path d="M7 16V9"></path>
-                <path d="M12 16V5"></path>
-                <path d="M17 16v-4"></path>
-              </svg>
-              <span>Aktivität</span>
-            </button>
           </div>
 
-          <div class="sidebar-section" aria-label="Importe">
-            <span class="sidebar-section-label">Pflege</span>
-            <button class="primary-tab" type="button" data-view="imports" title="Importe">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M12 3v12"></path>
-                <path d="m7 10 5 5 5-5"></path>
-                <path d="M4 21h16"></path>
+          <div class="sidebar-section" aria-label="Kontakte" data-sidebar-section="contacts">
+            <span class="sidebar-section-label">Kontakte</span>
+            <button class="primary-tab" type="button" data-view="contacts" data-view-tab="contacts" data-view-group="care" title="Versorgung">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9.5" cy="7" r="4"></circle>
+                <path d="M20 8v6"></path>
+                <path d="M23 11h-6"></path>
               </svg>
-              <span>Importe</span>
-            </button>
-          </div>
-
-          <div class="sidebar-section" aria-label="Persönlich">
-            <span class="sidebar-section-label">Persönlich</span>
-            <button class="primary-tab" type="button" data-view="profile" title="Mein Profil">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="8" r="4"></circle>
-                <path d="M4 21a8 8 0 0 1 16 0"></path>
-              </svg>
-              <span>Mein Profil</span>
+              <span>Versorgung</span>
+              <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
             </button>
           </div>
         </nav>
 
-        <div class="sidebar-account-section" aria-label="Betriebsstatus">
-          <span class="sidebar-section-label">Betrieb</span>
-          <button class="sidebar-footer" type="button" id="sidebar-demo-status" aria-label="Betriebsstatus" title="Betriebsstatus">
-            <span class="sidebar-footer__badge" aria-hidden="true">VK</span>
-            <div>
-              <strong>Pilot</strong>
-              <span>Lokaler Browserstand</span>
-            </div>
-          </button>
-        </div>
         <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" title="Menü einklappen">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="m15 18-6-6 6-6"></path>

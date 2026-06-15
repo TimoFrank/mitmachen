@@ -20,7 +20,7 @@
   ];
 
   const state = {
-    view: "contacts",
+    view: "map",
     profiles: [],
     session: null,
     organizations: [],
@@ -2151,7 +2151,7 @@
           state.importRunsLoaded = false;
           state.importRuns = [];
           clearImportDraft();
-          state.view = "contacts";
+          state.view = "map";
           elements.status.textContent = "Cloud-SQL-Testdaten zurückgesetzt";
           render();
         } catch (error) {
@@ -2174,7 +2174,7 @@
       state.importRunsLoaded = false;
       state.importRuns = [];
       clearImportDraft();
-      state.view = "contacts";
+      state.view = "map";
       elements.status.textContent = "Testdaten zurückgesetzt";
       render();
     });
