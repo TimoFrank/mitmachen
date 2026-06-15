@@ -1,6 +1,6 @@
 # Versorgungs-Kompass Demo
 
-Diese Demo zeigt, wie der Versorgungs-Kompass als Orientierung fuer das gematik-Hospitationsnetzwerk wirken kann. Sie ist bewusst leichtgewichtig gebaut: ein statisches Paket, das schnell geoeffnet, geteilt und von der IT geprueft werden kann, ohne produktive Netzwerkdaten auszuliefern.
+Diese Demo zeigt, wie der Versorgungs-Kompass als Orientierung fuer das gematik-Hospitationsnetzwerk wirken kann. Sie ist bewusst als leichtgewichtig statisches Paket ohne reale Kontaktdaten gebaut.
 
 Im Zentrum steht die Karte. Sie ist der erste Blick auf das Hospitations-Netzwerk und macht sichtbar, was in Tabellen nur schwer zu erfassen ist: Wo liegen bekannte Hospitationsorte? Welche Regionen sind bereits gut vertreten? Wo entstehen Cluster aus Praxen, Kliniken, Kassen, Pflege, Therapie oder weiteren Akteuren? Und wo zeigen sich noch weisse Flecken, die fachlich interessant sein koennten?
 
