@@ -322,7 +322,7 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
     await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
     await expect(page.locator("#detail-drawer .detail-profile")).toBeVisible();
     await expect(page.locator("#detail-drawer [data-open-organization-profile]")).toBeVisible();
-    await expect(page.locator("#detail-drawer .detail-tabs")).toBeHidden();
+    await expect(page.locator("#detail-drawer .detail-tabs")).toBeVisible();
     await page.locator("#detail-drawer [data-open-organization-profile]").click();
   }
 
@@ -500,18 +500,34 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await page.locator("#expert-list .row, #expert-list .mobile-contact-card").first().click();
   if (testInfo.project.name.includes("mobile")) {
     await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
+    await expect(page.locator("#person-profile-body #detail-overview")).toBeVisible();
+    await expect(page.locator("#expert-detail-overview")).toHaveCount(0);
+    await expect(page.locator("#person-profile-body .detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
+    await page.locator('#person-profile-body [data-detail-tab="themes"]').click();
+    await expect(page.locator("#person-profile-body #detail-themes")).toContainText("Mögliche Themen");
+    await expect(page.locator("#person-profile-body #detail-theme-input")).toBeVisible();
+    await page.locator("#person-profile-body [data-person-profile-back]").click();
   } else {
     await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
-    await expect(page.locator("#detail-open-profile")).toBeVisible();
-    await expect(page.locator("#detail-drawer .detail-tabs")).toBeHidden();
-    await page.locator("#detail-open-profile").click();
+    await expect(page.locator("#detail-open-profile")).toHaveCount(0);
+    await expect(page.locator("#detail-drawer .detail-tabs")).toBeVisible();
+    await expect(page.locator("#detail-drawer .detail-profile-meta")).toContainText("Owner");
+    await expect(page.locator("#detail-drawer .detail-profile-top")).not.toContainText("Wissenschaftliche Einrichtung und Patientenorganisation");
+    await expect(page.locator("#detail-drawer .detail-profile-top")).not.toContainText("Experte seit");
+    await expect(page.locator("#detail-drawer #detail-overview .detail-line").filter({ hasText: "Gruppe" })).toContainText("Wissenschaftliche Einrichtung und Patientenorganisation");
+    await page.locator('#detail-drawer [data-detail-tab="themes"]').click();
+    await expect(page.locator("#detail-drawer #detail-themes")).toContainText("Mögliche Themen");
+    await expect(page.locator("#detail-drawer #detail-theme-input")).toBeVisible();
+    expect(await page.locator("#detail-drawer #detail-themes .theme-tag--preset").count()).toBeGreaterThan(1);
+    await page.locator("#detail-drawer #detail-theme-input").fill("Interoperabilitäts-Testthema");
+    await page.locator("#detail-drawer #detail-theme-add").click();
+    await expect(page.locator("#detail-drawer #detail-themes")).toContainText("Interoperabilitäts-Testthema");
+    await page.locator('#detail-drawer [data-detail-tab="notes"]').click();
+    await expect(page.locator("#detail-drawer .contact-notes-thread")).toBeVisible();
+    await expect(page.locator("#detail-drawer #contact-notes-composer")).toBeVisible();
+    await page.locator("#detail-close").click();
+    await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
   }
-  await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
-  await expect(page).toHaveURL(/#person\/expert\//);
-  await expect(page.locator("#person-profile-body #detail-overview")).toBeVisible();
-  await expect(page.locator("#expert-detail-overview")).toHaveCount(0);
-  await expect(page.locator("#person-profile-body .detail-tab").filter({ hasText: "Verbindungen" })).toBeVisible();
-  await page.locator("#person-profile-body [data-person-profile-back]").click();
 
   await page.locator('#expert-mode-actions [data-expert-mode="organizations"]').click();
   await expect(page.locator("#expert-organization-list .row").first()).toBeVisible();
@@ -525,7 +541,7 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   } else {
     await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
     await expect(page.locator("#detail-drawer [data-open-organization-profile]")).toBeVisible();
-    await expect(page.locator("#detail-drawer .detail-tabs")).toBeHidden();
+    await expect(page.locator("#detail-drawer .detail-tabs")).toBeVisible();
     await page.locator("#detail-drawer [data-open-organization-profile]").click();
   }
   await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
@@ -679,6 +695,7 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
 
   const isMobile = testInfo.project.name.includes("mobile");
+  if (!isMobile) await page.setViewportSize({ width: 1440, height: 720 });
   const firstContact = page.locator("#contact-list .row, #contact-list .mobile-contact-card").first();
   await expect(firstContact).toBeVisible();
   await firstContact.click();
@@ -689,8 +706,37 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
     await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
     await expect(page.locator("#detail-drawer .detail-profile")).toBeVisible();
     await expect(page.locator("#detail-open-profile")).toBeVisible();
-    await expect(page.locator("#detail-drawer .detail-tabs")).toBeHidden();
+    await expect(page.locator("#detail-drawer .detail-tabs")).toBeVisible();
     await expect(page.locator("#detail-drawer .owner-summary-list").first()).toBeVisible();
+    const drawerMetrics = await page.locator("#detail-drawer").evaluate((drawer) => {
+      const panel = drawer.querySelector(".detail-panel");
+      const drawerRect = drawer.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const initialPanelScroll = panel.scrollTop;
+      panel.scrollTop = panel.scrollHeight;
+      const scrolledPanel = panel.scrollTop;
+      return {
+        bodyOverflow: document.body.style.overflow,
+        canScrollPanel: panel.scrollHeight > panel.clientHeight,
+        drawerBottom: drawerRect.bottom,
+        drawerTop: drawerRect.top,
+        panelBottom: panelRect.bottom,
+        panelTop: panelRect.top,
+        scrolledPanel,
+        initialPanelScroll,
+        viewportHeight: window.innerHeight,
+        windowScrollY: window.scrollY
+      };
+    });
+    expect(drawerMetrics.drawerTop).toBeLessThanOrEqual(1);
+    expect(drawerMetrics.panelTop).toBeLessThanOrEqual(1);
+    expect(drawerMetrics.drawerBottom).toBeGreaterThanOrEqual(drawerMetrics.viewportHeight - 1);
+    expect(drawerMetrics.panelBottom).toBeGreaterThanOrEqual(drawerMetrics.viewportHeight - 1);
+    expect(drawerMetrics.bodyOverflow).toBe("hidden");
+    expect(drawerMetrics.canScrollPanel).toBe(true);
+    expect(drawerMetrics.scrolledPanel).toBeGreaterThan(drawerMetrics.initialPanelScroll);
+    expect(drawerMetrics.windowScrollY).toBe(0);
+    await page.locator("#detail-drawer .detail-panel").evaluate((panel) => { panel.scrollTop = 0; });
     await page.locator("#detail-open-profile").click();
   }
 

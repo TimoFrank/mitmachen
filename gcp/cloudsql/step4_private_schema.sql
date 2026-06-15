@@ -178,6 +178,8 @@ create table if not exists expert_contacts (
   notes text,
   source text,
   profile_url text,
+  owner_id uuid references profiles(id) on delete set null,
+  owner_ids uuid[] not null default '{}',
   status text not null default 'active' check (status in ('active', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -296,6 +298,8 @@ create index if not exists expert_organizations_group_idx on expert_organization
 create index if not exists expert_organizations_status_idx on expert_organizations(status);
 create index if not exists expert_contacts_group_idx on expert_contacts(group_id);
 create index if not exists expert_contacts_organization_idx on expert_contacts(organization_id);
+create index if not exists expert_contacts_owner_idx on expert_contacts(owner_id);
+create index if not exists expert_contacts_owner_ids_idx on expert_contacts using gin(owner_ids);
 create index if not exists expert_contacts_status_idx on expert_contacts(status);
 create unique index if not exists expert_entity_links_contact_unique
 on expert_entity_links(contact_id, expert_contact_id)

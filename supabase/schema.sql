@@ -168,6 +168,8 @@ create table if not exists public.expert_contacts (
   notes text,
   source text,
   profile_url text,
+  owner_id uuid references public.profiles(id) on delete set null,
+  owner_ids uuid[] not null default '{}',
   status text not null default 'active' check (status in ('active', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -386,6 +388,8 @@ create index if not exists expert_organizations_group_idx on public.expert_organ
 create index if not exists expert_organizations_status_idx on public.expert_organizations(status);
 create index if not exists expert_contacts_group_idx on public.expert_contacts(group_id);
 create index if not exists expert_contacts_organization_idx on public.expert_contacts(organization_id);
+create index if not exists expert_contacts_owner_idx on public.expert_contacts(owner_id);
+create index if not exists expert_contacts_owner_ids_idx on public.expert_contacts using gin(owner_ids);
 create index if not exists expert_contacts_status_idx on public.expert_contacts(status);
 create unique index if not exists expert_entity_links_contact_unique
 on public.expert_entity_links(contact_id, expert_contact_id)
@@ -545,7 +549,7 @@ revoke all on public.stakeholder_organizations from anon, authenticated, service
 revoke all on public.stakeholder_people from anon, authenticated, service_role;
 grant select on public.expert_groups to authenticated;
 grant select on public.expert_organizations to authenticated;
-grant select on public.expert_contacts to authenticated;
+grant select, insert, update on public.expert_contacts to authenticated;
 grant select, insert, update, delete on public.expert_entity_links to authenticated;
 grant select, insert, update on public.stakeholder_types to authenticated;
 grant select, insert, update on public.stakeholder_organizations to authenticated;
@@ -774,6 +778,19 @@ create policy "expert contacts authenticated read active"
 on public.expert_contacts for select
 to authenticated
 using (status <> 'archived' or public.current_profile_role() = 'admin');
+
+drop policy if exists "expert contacts editor update active" on public.expert_contacts;
+create policy "expert contacts editor update active"
+on public.expert_contacts for update
+to authenticated
+using (
+  public.current_profile_role() in ('admin', 'editor')
+  and status <> 'archived'
+)
+with check (
+  public.current_profile_role() in ('admin', 'editor')
+  and status <> 'archived'
+);
 
 drop policy if exists "expert entity links authenticated read" on public.expert_entity_links;
 create policy "expert entity links authenticated read"

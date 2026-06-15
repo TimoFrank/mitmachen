@@ -161,6 +161,8 @@
     "notes",
     "source",
     "profile_url",
+    "owner_id",
+    "owner_ids",
     "status",
     "created_at",
     "updated_at"
@@ -288,6 +290,7 @@
   let supportsContactImageSources = false;
   let supportsContactRole = true;
   let supportsContactOwners = true;
+  let supportsExpertContactOwners = true;
   let supportsFormats = true;
   let supportsNotifications = true;
 
@@ -296,6 +299,13 @@
       if (!supportsContactOrganizationId && field === "organization_id") return false;
       if (!supportsContactImageSources && field.startsWith("image_") && field !== "image_url") return false;
       if (!supportsContactRole && field === "role") return false;
+      return true;
+    }).join(",");
+  }
+
+  function expertContactSelectFields() {
+    return EXPERT_CONTACT_FIELDS.filter((field) => {
+      if (!supportsExpertContactOwners && ["owner_id", "owner_ids"].includes(field)) return false;
       return true;
     }).join(",");
   }
@@ -314,6 +324,10 @@
 
   function isMissingContactOwnersError(error) {
     return /contact_owners|profile_id|assigned_at|assigned_by/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
+
+  function isMissingExpertContactOwnersError(error) {
+    return /owner_id|owner_ids|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
   }
 
   function isConfigured() {
@@ -1733,7 +1747,7 @@
     const topics = splitList(row.topics || row.themes);
     const source = row.source || row.sources || "INA Expertenkreis";
     const profileUrl = row.profile_url || row.profileUrl || row.sourceUrl || row.url || "";
-    return {
+    return decorateContactOwners({
       id: row.id || `expert-contact-${index + 1}`,
       name: row.name || "",
       organizationId: row.organization_id || row.organizationId || "",
@@ -1753,11 +1767,13 @@
       sources: splitList(source),
       url: profileUrl,
       sourceUrl: profileUrl,
+      ownerId: row.owner_id || row.ownerId || "",
+      ownerIds: ownerIdsFromContact(row),
       status: row.status || "active",
       createdAt: row.created_at || row.createdAt || "",
       updatedAt: row.updated_at || row.updatedAt || "",
       _index: index
-    };
+    });
   }
 
   function expertOrganizationDbToUi(row, contactCount = 0) {
@@ -1981,6 +1997,7 @@
   function expertContactUiToDb(contact = {}) {
     const groupName = String(contact.group || contact.category || contact.groupName || "").trim();
     const groupId = String(contact.groupId || contact.group_id || expertGroupIdForName(groupName)).trim();
+    const ownerIds = ownerIdsFromContact(contact);
     return {
       id: contact.id || `expert-contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       name: String(contact.name || "").trim(),
@@ -1999,6 +2016,8 @@
       notes: String(contact.note || contact.notes || "").trim() || null,
       source: splitList(contact.sources || contact.source).join("; ") || "Manuell angelegt",
       profile_url: String(contact.url || contact.sourceUrl || contact.profileUrl || "").trim() || null,
+      owner_id: ownerIds[0] || null,
+      owner_ids: ownerIds,
       status: contact.status || "active"
     };
   }
@@ -2562,13 +2581,20 @@
       return clone(expertContactCache);
     }
     if (!expertGroupCache.length) await loadExpertGroups({ includeArchived: true });
-    let query = getClient()
-      .from("expert_contacts")
-      .select(EXPERT_CONTACT_FIELDS.join(","))
-      .order("name", { ascending: true });
-    if (!options.includeArchived) query = query.neq("status", "archived");
-    if (options.status) query = query.eq("status", options.status);
-    const { data, error } = await query;
+    const buildQuery = () => {
+      let query = getClient()
+        .from("expert_contacts")
+        .select(expertContactSelectFields())
+        .order("name", { ascending: true });
+      if (!options.includeArchived) query = query.neq("status", "archived");
+      if (options.status) query = query.eq("status", options.status);
+      return query;
+    };
+    let { data, error } = await buildQuery();
+    if (error && supportsExpertContactOwners && isMissingExpertContactOwnersError(error)) {
+      supportsExpertContactOwners = false;
+      ({ data, error } = await buildQuery());
+    }
     if (error) throw error;
     expertContactCache = (data || []).map(expertContactDbToUi);
     return clone(expertContactCache);
@@ -2639,15 +2665,112 @@
       expertContactCache = [normalized, ...expertContactCache.filter((item) => item.id !== normalized.id)];
       return normalized;
     }
-    const { data, error } = await getClient()
+    const writePayload = { ...payload };
+    if (!supportsExpertContactOwners) {
+      delete writePayload.owner_id;
+      delete writePayload.owner_ids;
+    }
+    let { data, error } = await getClient()
       .from("expert_contacts")
-      .insert(payload)
-      .select(EXPERT_CONTACT_FIELDS.join(","))
+      .insert(writePayload)
+      .select(expertContactSelectFields())
       .single();
+    if (error && supportsExpertContactOwners && isMissingExpertContactOwnersError(error)) {
+      supportsExpertContactOwners = false;
+      delete writePayload.owner_id;
+      delete writePayload.owner_ids;
+      ({ data, error } = await getClient()
+        .from("expert_contacts")
+        .insert(writePayload)
+        .select(expertContactSelectFields())
+        .single());
+    }
     if (error) throw error;
     const created = expertContactDbToUi(data);
     expertContactCache = [created, ...expertContactCache.filter((item) => item.id !== created.id)];
     return created;
+  }
+
+  async function updateExpertContact(id, patch = {}) {
+    if (!expertGroupCache.length) await loadExpertGroups({ includeArchived: true });
+    const hasOwnerPatch = ["ownerIds", "owner_ids", "owners", "ownerId", "owner_id", "owner"].some((field) =>
+      Object.prototype.hasOwnProperty.call(patch, field)
+    );
+    if (isLocalMode()) {
+      requireLocalWrite("Expertenkreis-Kontakt speichern");
+      if (!expertContactCache.length) expertContactCache = localExpertContacts({ includeArchived: true }).map(expertContactDbToUi);
+      const existing = expertContactCache.find((contact) => contact.id === id);
+      if (!existing) throw new Error("Expertenkreis-Kontakt wurde im Demo-Datensatz nicht gefunden.");
+      const ownerIds = hasOwnerPatch ? ownerIdsFromContact(patch) : ownerIdsFromContact(existing);
+      const updated = decorateContactOwners({
+        ...existing,
+        ...patch,
+        id,
+        group: patch.group || patch.category || existing.group,
+        category: patch.category || patch.group || existing.category,
+        updatedAt: new Date().toISOString()
+      }, ownerIds);
+      persistLocalExpertContacts(expertContactCache.map((contact) => (contact.id === id ? updated : contact)));
+      return clone(updated);
+    }
+    if (usesApiGateway()) {
+      const updated = expertContactDbToUi(await apiRequest(`/api/expert-contacts/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      }));
+      expertContactCache = expertContactCache.map((contact) => (contact.id === id ? updated : contact));
+      return updated;
+    }
+
+    const fetchExisting = () => getClient()
+      .from("expert_contacts")
+      .select(expertContactSelectFields())
+      .eq("id", id)
+      .single();
+    let { data: existingRow, error: existingError } = await fetchExisting();
+    if (existingError && supportsExpertContactOwners && isMissingExpertContactOwnersError(existingError)) {
+      supportsExpertContactOwners = false;
+      ({ data: existingRow, error: existingError } = await fetchExisting());
+    }
+    if (existingError) throw existingError;
+    const existing = expertContactDbToUi(existingRow);
+    const nextOwnerIds = hasOwnerPatch ? ownerIdsFromContact(patch) : ownerIdsFromContact(existing);
+    const merged = decorateContactOwners({
+      ...existing,
+      ...patch,
+      id,
+      group: patch.group || patch.category || existing.group,
+      category: patch.category || patch.group || existing.category,
+      updatedAt: new Date().toISOString()
+    }, nextOwnerIds);
+    const dbPatch = expertContactUiToDb(merged);
+    delete dbPatch.id;
+    dbPatch.updated_at = new Date().toISOString();
+    if (!supportsExpertContactOwners) {
+      delete dbPatch.owner_id;
+      delete dbPatch.owner_ids;
+    }
+    let { data, error } = await getClient()
+      .from("expert_contacts")
+      .update(dbPatch)
+      .eq("id", id)
+      .select(expertContactSelectFields())
+      .single();
+    if (error && supportsExpertContactOwners && isMissingExpertContactOwnersError(error)) {
+      supportsExpertContactOwners = false;
+      delete dbPatch.owner_id;
+      delete dbPatch.owner_ids;
+      ({ data, error } = await getClient()
+        .from("expert_contacts")
+        .update(dbPatch)
+        .eq("id", id)
+        .select(expertContactSelectFields())
+        .single());
+    }
+    if (error) throw error;
+    const updated = expertContactDbToUi(data);
+    expertContactCache = expertContactCache.map((contact) => (contact.id === id ? updated : contact));
+    return updated;
   }
 
   async function createExpertOrganization(organization = {}) {
@@ -3890,6 +4013,7 @@
     getPersonRecord,
     getOrganizationRecord,
     createExpertContact,
+    updateExpertContact,
     createExpertOrganization,
     createExpertEntityLink,
     deleteExpertEntityLink,

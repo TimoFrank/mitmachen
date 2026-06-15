@@ -877,6 +877,15 @@ function splitList(value) {
     .filter(Boolean);
 }
 
+function splitOwnerTokens(value) {
+  if (Array.isArray(value)) return value.flatMap(splitOwnerTokens);
+  if (value && typeof value === "object") return splitOwnerTokens(value.id || value.profileId || value.profile_id || value.value || "");
+  return String(value || "")
+    .split(/[;,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function generateId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
 }
@@ -1720,6 +1729,8 @@ function mapExpertContact(row, index = 0) {
     sources: splitList(row.source || "INA Expertenkreis"),
     url: row.profile_url || "",
     sourceUrl: row.profile_url || "",
+    ownerId: row.owner_id || "",
+    ownerIds: Array.isArray(row.owner_ids) ? row.owner_ids : [],
     status: row.status || "active",
     createdAt: row.created_at || "",
     updatedAt: row.updated_at || "",
@@ -1853,6 +1864,18 @@ async function profileIdForInput(value, client = getPool()) {
     [raw]
   );
   return rows[0]?.id || null;
+}
+
+async function ownerIdsForInput(input = {}, client = getPool()) {
+  const tokens = splitOwnerTokens(
+    input.ownerIds || input.owner_ids || input.owners || [input.ownerId, input.owner_id, input.owner]
+  );
+  const ids = [];
+  for (const token of tokens) {
+    const id = await profileIdForInput(token, client);
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
 }
 
 async function formatParticipantsByFormat(ids = [], client = getPool()) {
@@ -2104,11 +2127,12 @@ async function createExpertContact(input = {}) {
     if (!name) throw new Error("Name des Expertenkreis-Kontakts fehlt.");
     if (!group?.id) throw new Error("Gruppe des Expertenkreis-Kontakts fehlt.");
     const id = String(input.id || "").trim() || generateId("expert-contact");
+    const ownerIds = await ownerIdsForInput(input, client);
     const { rows } = await client.query(
       `insert into expert_contacts
         (id, name, organization_id, organization, group_id, group_name, specialty, role, city,
-         federal_state, email, phone, linkedin, topics, notes, source, profile_url, status)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+         federal_state, email, phone, linkedin, topics, notes, source, profile_url, owner_id, owner_ids, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
        returning *`,
       [
         id,
@@ -2128,9 +2152,63 @@ async function createExpertContact(input = {}) {
         String(input.note || input.notes || "").trim() || null,
         splitList(input.sources || input.source).join("; ") || "Manuell angelegt",
         String(input.url || input.sourceUrl || input.profileUrl || input.profile_url || "").trim() || null,
+        ownerIds[0] || null,
+        ownerIds,
         input.status || "active"
       ]
     );
+    return mapExpertContact(rows[0]);
+  } finally {
+    client.release();
+  }
+}
+
+async function updateExpertContact(id, input = {}) {
+  const client = await getPool().connect();
+  try {
+    const fields = [];
+    const values = [];
+    const has = (field) => Object.prototype.hasOwnProperty.call(input, field);
+    const setField = (column, value) => {
+      values.push(value);
+      fields.push(`${column} = $${values.length}`);
+    };
+    if (has("name")) setField("name", String(input.name || "").trim());
+    if (has("organizationId") || has("organization_id")) setField("organization_id", input.organizationId || input.organization_id || null);
+    if (has("organization")) setField("organization", String(input.organization || "").trim() || null);
+    if (has("groupId") || has("group_id") || has("group") || has("groupName") || has("group_name") || has("category")) {
+      const group = await ensureExpertGroupForInput(input, client);
+      if (!group?.id) throw new Error("Gruppe des Expertenkreis-Kontakts fehlt.");
+      setField("group_id", group.id);
+      setField("group_name", group.name);
+    }
+    if (has("specialty")) setField("specialty", String(input.specialty || "").trim() || null);
+    if (has("contactRole") || has("role")) setField("role", String(input.contactRole || input.role || "").trim() || null);
+    if (has("city")) setField("city", String(input.city || "").trim() || null);
+    if (has("state") || has("federal_state")) setField("federal_state", String(input.state || input.federal_state || "").trim() || null);
+    if (has("email")) setField("email", String(input.email || "").trim() || null);
+    if (has("phone")) setField("phone", String(input.phone || "").trim() || null);
+    if (has("linkedin")) setField("linkedin", String(input.linkedin || "").trim() || null);
+    if (has("themes") || has("topics")) setField("topics", splitList(input.themes || input.topics));
+    if (has("note") || has("notes")) setField("notes", String(input.note || input.notes || "").trim() || null);
+    if (has("sources") || has("source")) setField("source", splitList(input.sources || input.source).join("; ") || "Manuell angelegt");
+    if (has("url") || has("sourceUrl") || has("profileUrl") || has("profile_url")) {
+      setField("profile_url", String(input.url || input.sourceUrl || input.profileUrl || input.profile_url || "").trim() || null);
+    }
+    if (["ownerIds", "owner_ids", "owners", "ownerId", "owner_id", "owner"].some(has)) {
+      const ownerIds = await ownerIdsForInput(input, client);
+      setField("owner_id", ownerIds[0] || null);
+      setField("owner_ids", ownerIds);
+    }
+    if (has("status")) setField("status", input.status || "active");
+    if (!fields.length) throw new Error("Keine unterstützten Expertenkreis-Kontaktfelder im Request.");
+    setField("updated_at", new Date().toISOString());
+    values.push(id);
+    const { rows } = await client.query(
+      `update expert_contacts set ${fields.join(", ")} where id = $${values.length} returning *`,
+      values
+    );
+    if (!rows[0]) throw new Error("Expertenkreis-Kontakt wurde nicht gefunden.");
     return mapExpertContact(rows[0]);
   } finally {
     client.release();
@@ -3394,6 +3472,13 @@ async function handleApi(request, response, url) {
     if (request.method === "POST" && url.pathname === "/api/expert-contacts") {
       const body = await readJson(request);
       sendJson(response, 201, await createExpertContact(body.contact || body));
+      return;
+    }
+
+    const expertContactMatch = /^\/api\/expert-contacts\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "PATCH" && expertContactMatch) {
+      const body = await readJson(request);
+      sendJson(response, 200, await updateExpertContact(decodeURIComponent(expertContactMatch[1]), body.contact || body));
       return;
     }
 

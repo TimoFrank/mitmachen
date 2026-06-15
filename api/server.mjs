@@ -156,6 +156,8 @@ const EXPERT_CONTACT_FIELDS = [
   "notes",
   "source",
   "profile_url",
+  "owner_id",
+  "owner_ids",
   "status",
   "created_at",
   "updated_at"
@@ -418,6 +420,11 @@ const EXPERT_CONTACT_INPUT_FIELDS = [
   "sourceUrl",
   "profileUrl",
   "profile_url",
+  "ownerId",
+  "owner_id",
+  "ownerIds",
+  "owner_ids",
+  "owner",
   "status"
 ];
 const EXPERT_ORGANIZATION_INPUT_FIELDS = [
@@ -798,6 +805,8 @@ function expertContactToDto(row, index = 0) {
     sources: splitList(row.source || "INA Expertenkreis"),
     url: row.profile_url || "",
     sourceUrl: row.profile_url || "",
+    ownerId: row.owner_id || "",
+    ownerIds: Array.isArray(row.owner_ids) ? row.owner_ids : [],
     status: row.status || "active",
     createdAt: row.created_at || "",
     updatedAt: row.updated_at || "",
@@ -1259,6 +1268,7 @@ function expertGroupFields(input = {}) {
 
 function expertContactCreateToDb(contact = {}) {
   const { groupName, groupId } = expertGroupFields(contact);
+  const ownerIds = ownerIdsFromContact(contact);
   const db = {
     id: String(contact.id || generatedId("expert-contact")).trim(),
     name: String(contact.name || "").trim(),
@@ -1277,6 +1287,8 @@ function expertContactCreateToDb(contact = {}) {
     notes: String(contact.note || contact.notes || "").trim() || null,
     source: splitList(contact.sources || contact.source).join("; ") || "Manuell angelegt",
     profile_url: String(contact.url || contact.sourceUrl || contact.profileUrl || contact.profile_url || "").trim() || null,
+    owner_id: ownerIds[0] || null,
+    owner_ids: ownerIds,
     status: contact.status || "active"
   };
   if (!db.name) {
@@ -1289,6 +1301,38 @@ function expertContactCreateToDb(contact = {}) {
     error.status = 400;
     throw error;
   }
+  return db;
+}
+
+function expertContactPatchToDb(contact = {}) {
+  const has = (field) => Object.prototype.hasOwnProperty.call(contact, field);
+  const db = {};
+  if (has("name")) db.name = String(contact.name || "").trim();
+  if (has("organizationId") || has("organization_id")) db.organization_id = contact.organizationId || contact.organization_id || null;
+  if (has("organization")) db.organization = String(contact.organization || "").trim() || null;
+  if (has("groupId") || has("group_id")) db.group_id = contact.groupId || contact.group_id || null;
+  if (has("group") || has("groupName") || has("group_name") || has("category")) {
+    db.group_name = String(contact.group || contact.groupName || contact.group_name || contact.category || "").trim() || null;
+  }
+  if (has("specialty")) db.specialty = String(contact.specialty || "").trim() || null;
+  if (has("contactRole") || has("role")) db.role = String(contact.contactRole || contact.role || "").trim() || null;
+  if (has("city")) db.city = String(contact.city || "").trim() || null;
+  if (has("state") || has("federal_state")) db.federal_state = String(contact.state || contact.federal_state || "").trim() || null;
+  if (has("email")) db.email = String(contact.email || "").trim() || null;
+  if (has("phone")) db.phone = String(contact.phone || "").trim() || null;
+  if (has("linkedin")) db.linkedin = String(contact.linkedin || "").trim() || null;
+  if (has("themes") || has("topics")) db.topics = splitList(contact.themes || contact.topics);
+  if (has("note") || has("notes")) db.notes = String(contact.note || contact.notes || "").trim() || null;
+  if (has("sources") || has("source")) db.source = splitList(contact.sources || contact.source).join("; ") || "Manuell angelegt";
+  if (has("url") || has("sourceUrl") || has("profileUrl") || has("profile_url")) {
+    db.profile_url = String(contact.url || contact.sourceUrl || contact.profileUrl || contact.profile_url || "").trim() || null;
+  }
+  if (["ownerIds", "owner_ids", "owners", "ownerId", "owner_id", "owner"].some(has)) {
+    const ownerIds = ownerIdsFromContact(contact);
+    db.owner_id = ownerIds[0] || null;
+    db.owner_ids = ownerIds;
+  }
+  if (has("status")) db.status = contact.status || "active";
   return db;
 }
 
@@ -1987,6 +2031,7 @@ async function listExpertContacts(request, url) {
 }
 
 async function createExpertContact(request) {
+  await loadProfiles(request);
   const payload = expertContactCreateToDb(
     await readValidatedJsonBody(request, EXPERT_CONTACT_INPUT_FIELDS, "Expertenkreis-Kontakt")
   );
@@ -1998,6 +2043,32 @@ async function createExpertContact(request) {
     body: payload
   });
   return expertContactToDto(rows?.[0]);
+}
+
+async function patchExpertContact(request, id) {
+  await loadProfiles(request);
+  const patch = await readValidatedJsonBody(request, EXPERT_CONTACT_INPUT_FIELDS, "Expertenkreis-Kontakt-Update");
+  const dbPatch = expertContactPatchToDb(patch);
+  if (!Object.keys(dbPatch).length) {
+    const error = new Error("Keine unterstützten Expertenkreis-Kontaktfelder im Request.");
+    error.status = 400;
+    throw error;
+  }
+  dbPatch.updated_at = new Date().toISOString();
+  const rows = await supabaseRest("expert_contacts", request, new URLSearchParams({
+    id: `eq.${id}`,
+    select: EXPERT_CONTACT_FIELDS.join(",")
+  }), {
+    method: "PATCH",
+    headers: { prefer: "return=representation" },
+    body: dbPatch
+  });
+  if (!rows?.[0]) {
+    const error = new Error("Expertenkreis-Kontakt wurde nicht aktualisiert.");
+    error.status = 404;
+    throw error;
+  }
+  return expertContactToDto(rows[0]);
 }
 
 async function expertOrganizationContactCounts(request, ids = []) {
@@ -2845,6 +2916,10 @@ async function handle(request, response) {
     }
     if (request.method === "POST" && url.pathname === "/api/expert-contacts") {
       return jsonResponse(response, 201, await createExpertContact(request));
+    }
+    const expertContactMatch = /^\/api\/expert-contacts\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "PATCH" && expertContactMatch) {
+      return jsonResponse(response, 200, await patchExpertContact(request, decodeURIComponent(expertContactMatch[1])));
     }
     if (request.method === "GET" && url.pathname === "/api/expert-organizations") {
       return jsonResponse(response, 200, await listExpertOrganizations(request, url));

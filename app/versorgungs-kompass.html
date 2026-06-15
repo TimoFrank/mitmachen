@@ -4249,11 +4249,14 @@
         right: 0;
         width: min(520px, 100%);
         height: 100%;
+        max-height: 100dvh;
         display: flex;
         flex-direction: column;
         background: #ffffff;
         box-shadow: -24px 0 70px rgba(16, 27, 80, 0.16);
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
       }
 
       .detail-toolbar {
@@ -5822,8 +5825,9 @@
 
         .detail-drawer.is-open {
           display: block;
-          inset: 70px 0 0 auto;
+          inset: 0 0 0 auto;
           width: var(--detail-panel-width, 500px);
+          height: 100dvh;
           pointer-events: none;
         }
 
@@ -5832,10 +5836,16 @@
         }
 
         .detail-drawer.is-open .detail-panel {
+          top: 0;
+          bottom: 0;
           width: var(--detail-panel-width, 500px);
+          height: 100dvh;
+          max-height: 100dvh;
           pointer-events: auto;
-          border-left: 1px solid #dce3f5;
+          border-left: 1px solid var(--border);
           box-shadow: -12px 0 28px rgba(16, 27, 80, 0.08);
+          overflow-y: auto;
+          overscroll-behavior: contain;
         }
       }
 
@@ -13929,15 +13939,6 @@
       .detail-preview {
         display: grid;
         gap: 14px;
-      }
-
-      .detail-preview .detail-tabs,
-      .detail-preview .detail-bottom-actions {
-        display: none;
-      }
-
-      .detail-preview .detail-info-card--map {
-        display: none;
       }
 
       .detail-preview-actions {
@@ -29958,7 +29959,9 @@
           showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern geändert werden.");
           return;
         }
-        const currentContact = contacts.find((contact) => contact.id === id);
+        const expertScope = options.scope === "expert";
+        const currentList = expertScope ? expertContacts : contacts;
+        const currentContact = currentList.find((contact) => contact.id === id);
         if (!currentContact) return;
 
         const normalizedValue = typeof value === "string" ? value.trim() : value;
@@ -29968,13 +29971,23 @@
 
         try {
           const patch = field === "owner" ? ownerPatchForValues(nextOwnerIds) : { [field]: normalizedValue };
-          const updated = preserveLegacyOwnerSelection(await window.dataService.updateContact(id, patch), field === "owner" ? normalizedValue : "");
-          contacts = contacts.map((contact, index) =>
-            contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
-          );
-          if (field === "owner" && typeof normalizedValue === "string") setLegacyOwnerAssignment(id, normalizedValue);
-          contactHistoryCache.delete(id);
-          if (!options.silent) setStorageStatus("Kontakt in Supabase gespeichert");
+          if (expertScope) {
+            if (!window.dataService?.updateExpertContact) throw new Error("Expertenkreis-Kontakte können in diesem Datendienst noch nicht aktualisiert werden.");
+            const updated = await window.dataService.updateExpertContact(id, patch);
+            expertContacts = expertContacts.map((contact, index) =>
+              contact.id === id ? sanitizeExpertContact({ ...contact, ...updated }, index) : contact
+            );
+            expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+            if (!options.silent) setStorageStatus("Expertenkreis-Kontakt gespeichert");
+          } else {
+            const updated = preserveLegacyOwnerSelection(await window.dataService.updateContact(id, patch), field === "owner" ? normalizedValue : "");
+            contacts = contacts.map((contact, index) =>
+              contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
+            );
+            if (field === "owner" && typeof normalizedValue === "string") setLegacyOwnerAssignment(id, normalizedValue);
+            contactHistoryCache.delete(id);
+            if (!options.silent) setStorageStatus("Kontakt in Supabase gespeichert");
+          }
         } catch (error) {
           console.error("Kontaktfeld konnte nicht gespeichert werden.", error);
           window.alert("Die Änderung konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
@@ -29983,7 +29996,7 @@
 
         if (!options.silent) updateView();
 
-        if (!options.silent) refreshContactDetailView(id);
+        if (!options.silent) refreshContactDetailView(id, { scope: expertScope ? "expert" : "care" });
       }
 
       function toggleNameEditor(id) {
@@ -34818,8 +34831,9 @@
         return scope === "expert" ? buildExpertGroupSelectOptions(selectedCategory) : buildCategorySelectOptions(selectedCategory);
       }
 
-      function themeSuggestions() {
-        return [...new Set([...themeOptions, ...contacts.flatMap((contact) => normalizeThemes(contact.themes))])].sort((a, b) =>
+      function themeSuggestions(options = {}) {
+        const sourceContacts = options.scope === "expert" ? expertContacts : contacts;
+        return [...new Set([...themeOptions, ...sourceContacts.flatMap((contact) => normalizeThemes(contact.themes))])].sort((a, b) =>
           a.localeCompare(b, "de")
         );
       }
@@ -34830,6 +34844,7 @@
       }
 
       function refreshContactDetailView(contactId, options = {}) {
+        const scope = options.scope === "expert" || activeExpertId === contactId || isPersonProfileActive("expert", contactId) ? "expert" : "care";
         if (isPersonProfileActive("contact", contactId)) {
           renderPersonProfilePage();
           return;
@@ -34839,30 +34854,41 @@
           return;
         }
         if (detailDrawer.classList.contains("is-open")) {
-          openDetail(contactId, options.items || undefined, options);
+          openDetail(contactId, options.items || undefined, { ...options, scope });
         }
       }
 
-      async function updateContactThemes(id, themes) {
+      async function updateContactThemes(id, themes, options = {}) {
         if (!canEditContacts()) {
           showPermissionDenied("Du hast Leserechte. Themen können nur von Editor- oder Admin-Nutzern geändert werden.");
           return;
         }
+        const expertScope = options.scope === "expert";
         const normalizedThemes = normalizeThemes(themes);
         try {
-          const updated = await window.dataService.updateContact(id, { themes: normalizedThemes });
-          contacts = contacts.map((contact, index) =>
-            contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
-          );
-          contactHistoryCache.delete(id);
-          setStorageStatus("Themen in Supabase gespeichert");
+          if (expertScope) {
+            if (!window.dataService?.updateExpertContact) throw new Error("Expertenkreis-Kontakte können in diesem Datendienst noch nicht aktualisiert werden.");
+            const updated = await window.dataService.updateExpertContact(id, { themes: normalizedThemes });
+            expertContacts = expertContacts.map((contact, index) =>
+              contact.id === id ? sanitizeExpertContact({ ...contact, ...updated }, index) : contact
+            );
+            expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+            setStorageStatus("Expertenkreis-Themen gespeichert");
+          } else {
+            const updated = await window.dataService.updateContact(id, { themes: normalizedThemes });
+            contacts = contacts.map((contact, index) =>
+              contact.id === id ? sanitizeContact({ ...contact, ...updated }, index) : contact
+            );
+            contactHistoryCache.delete(id);
+            setStorageStatus("Themen in Supabase gespeichert");
+          }
         } catch (error) {
           console.error("Themen konnten nicht gespeichert werden.", error);
           window.alert("Die Themen konnten nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
           return;
         }
         updateView();
-        refreshContactDetailView(id);
+        refreshContactDetailView(id, { scope: expertScope ? "expert" : "care" });
       }
 
       async function saveDetailInline(contact) {
@@ -34870,6 +34896,7 @@
           showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern geändert werden.");
           return;
         }
+        const expertScope = activeExpertId === contact.id || isPersonProfileActive("expert", contact.id);
         const root = activeDetailRoot(contact.id);
         const fields = [...root.querySelectorAll("[data-detail-field]")];
         const patch = {};
@@ -34887,6 +34914,11 @@
         }
         if (Object.prototype.hasOwnProperty.call(patch, "owner")) {
           Object.assign(patch, ownerPatchForValue(patch.owner));
+        }
+        if (expertScope && Object.prototype.hasOwnProperty.call(patch, "category")) {
+          const group = expertGroupByName(patch.category);
+          patch.group = group?.name || patch.category;
+          patch.groupId = group?.id || contact.groupId || "";
         }
         patch.updatedAt = new Date().toISOString();
         if (["image", "imageSourceUrl", "imageSourceLabel", "imageRightsNote"].some((field) => Object.prototype.hasOwnProperty.call(patch, field))) {
@@ -34909,16 +34941,26 @@
         }
 
         try {
-          const updated = preserveLegacyOwnerSelection(await window.dataService.updateContact(contact.id, patch), patch.owner);
-          contacts = contacts.map((item, index) =>
-            item.id === contact.id ? sanitizeContact({ ...item, ...updated, id: contact.id }, index) : item
-          );
-          if (Object.prototype.hasOwnProperty.call(patch, "owner")) setLegacyOwnerAssignment(contact.id, patch.owner);
-          contactHistoryCache.delete(contact.id);
-          setStorageStatus("Kontakt in Supabase gespeichert");
+          if (expertScope) {
+            if (!window.dataService?.updateExpertContact) throw new Error("Expertenkreis-Kontakte können in diesem Datendienst noch nicht aktualisiert werden.");
+            const updated = await window.dataService.updateExpertContact(contact.id, patch);
+            expertContacts = expertContacts.map((item, index) =>
+              item.id === contact.id ? sanitizeExpertContact({ ...item, ...updated, id: contact.id }, index) : item
+            );
+            expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
+            setStorageStatus("Expertenkreis-Kontakt gespeichert");
+          } else {
+            const updated = preserveLegacyOwnerSelection(await window.dataService.updateContact(contact.id, patch), patch.owner);
+            contacts = contacts.map((item, index) =>
+              item.id === contact.id ? sanitizeContact({ ...item, ...updated, id: contact.id }, index) : item
+            );
+            if (Object.prototype.hasOwnProperty.call(patch, "owner")) setLegacyOwnerAssignment(contact.id, patch.owner);
+            contactHistoryCache.delete(contact.id);
+            setStorageStatus("Kontakt in Supabase gespeichert");
+          }
           detailEditMode = false;
           updateView();
-          refreshContactDetailView(contact.id);
+          refreshContactDetailView(contact.id, { scope: expertScope ? "expert" : "care" });
         } catch (error) {
           console.error("Kontakt konnte nicht gespeichert werden.", error);
           window.alert("Die Änderung konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
@@ -34941,41 +34983,51 @@
         refreshContactDetailView(contact.id);
       }
 
-      async function saveContactNotesThread(contact, messages, storageMessage = "Notiz gespeichert") {
+      async function saveContactNotesThread(contact, messages, storageMessage = "Notiz gespeichert", options = {}) {
         if (!canEditContacts()) {
           showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
           return;
         }
+        const expertScope = options.scope === "expert";
         try {
-          const updated = preserveLegacyOwnerSelection(
-            await window.dataService.updateContact(contact.id, { note: serializeContactNotesThread(messages) }),
-            contactOwnerValues(contact).join(",")
-          );
-          contacts = contacts.map((item, index) =>
-            item.id === contact.id ? sanitizeContact({ ...item, ...updated, id: contact.id }, index) : item
-          );
-          contactHistoryCache.delete(contact.id);
+          if (expertScope) {
+            if (!window.dataService?.updateExpertContact) throw new Error("Expertenkreis-Kontakte können in diesem Datendienst noch nicht aktualisiert werden.");
+            const updated = await window.dataService.updateExpertContact(contact.id, { note: serializeContactNotesThread(messages) });
+            expertContacts = expertContacts.map((item, index) =>
+              item.id === contact.id ? sanitizeExpertContact({ ...item, ...updated, id: contact.id }, index) : item
+            );
+          } else {
+            const updated = preserveLegacyOwnerSelection(
+              await window.dataService.updateContact(contact.id, { note: serializeContactNotesThread(messages) }),
+              contactOwnerValues(contact).join(",")
+            );
+            contacts = contacts.map((item, index) =>
+              item.id === contact.id ? sanitizeContact({ ...item, ...updated, id: contact.id }, index) : item
+            );
+            contactHistoryCache.delete(contact.id);
+          }
           setStorageStatus(storageMessage);
           updateView();
-          refreshContactDetailView(contact.id);
+          refreshContactDetailView(contact.id, { scope: expertScope ? "expert" : "care" });
         } catch (error) {
           console.error("Kontaktnotiz konnte nicht gespeichert werden.", error);
           window.alert("Die Notiz konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
         }
       }
 
-      function bindContactNotesThread(contact, root = detailPanel) {
+      function bindContactNotesThread(contact, root = detailPanel, options = {}) {
+        const noteScope = options.scope === "expert" ? "expert" : "care";
         root.querySelectorAll("[data-edit-contact-note]").forEach((button) => {
           button.addEventListener("click", () => {
             contactEditingNoteId = button.dataset.editContactNote || null;
-            refreshContactDetailView(contact.id);
+            refreshContactDetailView(contact.id, { scope: noteScope });
           });
         });
         root.querySelectorAll("[data-cancel-contact-note-edit]").forEach((button) => {
           button.addEventListener("click", () => {
             if (contactEditingNoteId === button.dataset.cancelContactNoteEdit) {
               contactEditingNoteId = null;
-              refreshContactDetailView(contact.id);
+              refreshContactDetailView(contact.id, { scope: noteScope });
             }
           });
         });
@@ -35005,7 +35057,8 @@
               messages.map((message) => (
                 message.id === noteId ? { ...message, text, editedAt: new Date().toISOString() } : message
               )),
-              "Notiz aktualisiert"
+              "Notiz aktualisiert",
+              { scope: noteScope }
             );
           });
         });
@@ -35027,7 +35080,8 @@
             await saveContactNotesThread(
               contact,
               messages.filter((message) => message.id !== noteId),
-              "Notiz gelöscht"
+              "Notiz gelöscht",
+              { scope: noteScope }
             );
           });
         });
@@ -35053,7 +35107,7 @@
             createdAt: new Date().toISOString()
           };
           contactEditingNoteId = null;
-          await saveContactNotesThread(contact, [...messages, nextMessage], "Notiz gespeichert");
+          await saveContactNotesThread(contact, [...messages, nextMessage], "Notiz gespeichert", { scope: noteScope });
         });
       }
 
@@ -35193,8 +35247,8 @@
         });
       }
 
-      async function applyDetailThemeChange(contact, nextThemes) {
-        await updateContactThemes(contact.id, nextThemes);
+      async function applyDetailThemeChange(contact, nextThemes, options = {}) {
+        await updateContactThemes(contact.id, nextThemes, options);
       }
 
       function contactRoleSummary(contact) {
@@ -35669,17 +35723,18 @@
         `;
       }
 
-      function renderDetailEditGrid(contact, locationText) {
+      function renderDetailEditGrid(contact, locationText, options = {}) {
+        const expertScope = options.scope === "expert";
         return `
           <div class="detail-edit-grid">
             ${detailEditField("Organisation", "organization", contact.organization, { placeholder: "Organisation" })}
-            ${detailEditField("Sektor", "category", contact.category, { type: "select", options: buildCategorySelectOptions(contact.category) })}
-            ${detailEditField("Fachrichtung", "specialty", contact.specialty, { type: "select", options: buildSpecialtySelectOptions(contact.specialty) })}
+            ${detailEditField(expertScope ? "Gruppe" : "Sektor", "category", contact.category, { type: "select", options: buildContextCategorySelectOptions(contact.category, expertScope ? "expert" : "care") })}
+            ${detailEditField(expertScope ? "Fachbereich / Fokus" : "Fachrichtung", "specialty", contact.specialty, { type: "select", options: expertScope ? buildExpertFocusSelectOptions(contact.specialty) : buildSpecialtySelectOptions(contact.specialty) })}
             ${detailEditField("Rolle", "contactRole", contact.contactRole, { placeholder: "Funktion, Beruf oder Stelle" })}
-            ${detailEditField("PLZ", "postalCode", contact.postalCode || splitLocationLabel(locationText).postalCode, { placeholder: "PLZ" })}
+            ${expertScope ? "" : detailEditField("PLZ", "postalCode", contact.postalCode || splitLocationLabel(locationText).postalCode, { placeholder: "PLZ" })}
             ${detailEditField("Ort", "city", contact.city || splitLocationLabel(locationText).city, { placeholder: "Ort" })}
             ${detailEditField("Bundesland", "state", contact.state, { type: "select", options: buildStateSelectOptions(contact.state) })}
-            ${detailEditField("Priorität", "priority", contact.priority, { type: "select", options: buildPrioritySelectOptions(priorityDisplayLabel(contact.priority)) })}
+            ${expertScope ? "" : detailEditField("Priorität", "priority", contact.priority, { type: "select", options: buildPrioritySelectOptions(priorityDisplayLabel(contact.priority)) })}
             ${detailOwnerEditField(contact)}
           </div>
         `;
@@ -35731,7 +35786,7 @@
         `;
       }
 
-      function detailThemeSuggestions() {
+      function detailThemeSuggestions(options = {}) {
         const preferred = [
           "E-Überweisung",
           "Krankenhausentlassbrief",
@@ -35744,11 +35799,11 @@
           "Prävention",
           "Pflege"
         ];
-        return [...new Set([...preferred, ...themeSuggestions()])].slice(0, 18);
+        return [...new Set([...preferred, ...themeSuggestions(options)])].slice(0, 18);
       }
 
-      function renderDetailThemeEditor(themeTags) {
-        const suggestions = detailThemeSuggestions();
+      function renderDetailThemeEditor(themeTags, options = {}) {
+        const suggestions = detailThemeSuggestions(options);
         const active = new Set(themeTags);
         return `
           <div class="detail-theme-editor">
@@ -35792,8 +35847,8 @@
         `;
       }
 
-      function renderViewerThemePanel(themeTags) {
-        const suggestions = detailThemeSuggestions();
+      function renderViewerThemePanel(themeTags, options = {}) {
+        const suggestions = detailThemeSuggestions(options);
         const active = new Set(themeTags);
         return `
           <div class="detail-theme-editor">
@@ -37130,6 +37185,15 @@
         if (!person) return;
         const config = stakeholderTypeConfig(person.stakeholderTypeId);
         const organization = stakeholderPersonOrganization(person);
+        const personChanged = activeStakeholderPersonId !== person.id;
+        const locationText = stakeholderPersonLocation(person);
+        const mapPosition = stakeholderPersonMapPosition(person);
+        const themes = normalizeThemes(person.themes);
+        const stakeholderProfileTabs = ["overview", "contact", "themes", "notes"];
+        if (personChanged) detailActiveTab = "overview";
+        const activeTab = normalizeDetailTab(detailActiveTab || "overview", stakeholderProfileTabs);
+        const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
+        detailActiveTab = activeTab;
         const currentIndex = currentItems.findIndex((item) => item.id === person.id);
         activeStakeholderPersonId = person.id;
         activeStakeholderOrganizationId = null;
@@ -37158,8 +37222,16 @@
                   </div>
                 </div>
               </section>
-              <section class="section-block detail-tab-panel" id="stakeholder-person-preview">
-                <h4 class="detail-section-title">Überblick</h4>
+
+              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+                ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("contact", "Kontakt", activeTab)}
+                ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("notes", "Notizen", activeTab)}
+              </div>
+
+              <section ${panelAttrs("overview")} id="stakeholder-person-overview">
+                <h4 class="detail-section-title">Stammdaten</h4>
                 <div class="detail-line-list">
                   ${detailLineHtml(
                     "Organisation",
@@ -37170,8 +37242,32 @@
                   )}
                   ${detailLine("Rolle", person.role)}
                   ${detailLine("Gremium", person.committee)}
+                  ${detailLine("Ort", locationText)}
+                  ${detailLine("Kartenposition", mapPositionSourceLabel(mapPosition?.source || person.mapPositionSource, person.stakeholderTypeId))}
+                  ${detailLine("Quelle", person.source)}
+                </div>
+              </section>
+
+              <section ${panelAttrs("contact")} id="stakeholder-person-contact">
+                <h4 class="detail-section-title">Kontakt</h4>
+                <div class="detail-line-list">
+                  ${detailContactLine("E-Mail", person.email, person.email ? `mailto:${person.email}` : "")}
+                  ${detailContactLine("Telefon", person.phone, person.phone ? `tel:${person.phone}` : "")}
+                  ${detailContactLine("LinkedIn", person.linkedin ? "Profil öffnen" : "", person.linkedin)}
                   ${detailContactLine("Profil", person.url ? "Quelle öffnen" : "", person.url)}
                 </div>
+              </section>
+
+              <section ${panelAttrs("themes")} id="stakeholder-person-themes">
+                <h4 class="detail-section-title">Themen${themes.length ? ` (${themes.length})` : ""}</h4>
+                <div class="detail-chip-row">
+                  ${themes.length ? themes.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`}
+                </div>
+              </section>
+
+              <section ${panelAttrs("notes")} id="stakeholder-person-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                ${renderStakeholderNotesThread(person, "person")}
               </section>
             </div>
           </div>
@@ -37187,6 +37283,13 @@
           activeStakeholderMode = "organizations";
           openOrganizationProfile("stakeholder", event.currentTarget.dataset.openLinkedStakeholderOrganization, { returnTo: "stakeholders" });
         });
+        detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            detailActiveTab = normalizeDetailTab(button.dataset.detailTab || "overview", stakeholderProfileTabs);
+            openStakeholderPersonPreview(person.id, currentItems);
+          });
+        });
+        bindStakeholderNotesThread("person", person, detailPanel);
       }
 
       function openPersonEntry(kind, id, items = [], options = {}) {
@@ -37198,6 +37301,10 @@
         }
         if (normalizedKind === "stakeholder") {
           openStakeholderPersonPreview(id, items);
+          return;
+        }
+        if (normalizedKind === "expert") {
+          openDetail(id, items, { scope: "expert" });
           return;
         }
         openDetail(id, items, { scope: normalizedKind === "expert" ? "expert" : "care", mode: "preview" });
@@ -37714,7 +37821,7 @@
         const detailOpen = detailDrawer.classList.contains("is-open");
         document.body.classList.toggle("detail-open", detailOpen);
         const overlayOpen =
-          (detailOpen && isMobileLayout()) ||
+          detailOpen ||
           editorDrawer.classList.contains("is-open") ||
           organizationEditorDrawer?.classList.contains("is-open") ||
           importDrawer.classList.contains("is-open") ||
@@ -37726,149 +37833,6 @@
 
       function openExpertDetail(id, items = filteredExpertContacts()) {
         openDetail(id, items, { scope: "expert" });
-        return;
-        const currentItems = items.length ? items : filteredExpertContacts();
-        const contact = currentItems.find((item) => item.id === id) || expertContacts.find((item) => item.id === id);
-        if (!contact) return;
-        if (activeExpertId !== contact.id) detailActiveTab = "overview";
-        const currentIndex = currentItems.findIndex((item) => item.id === contact.id);
-        const locationText = formatLocationDisplay(contact);
-        const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
-        const specialtyText = specialtyLabel(contact);
-        const roleText = meaningfulOrEmpty(contact.contactRole);
-        const noteText = displayNoteText(contact);
-        const sourceText = sourceLabel(contact) === "-" ? "" : sourceLabel(contact);
-        const websiteText = meaningfulOrEmpty(contact.url) || (sourceText && isValidOptionalUrl(sourceText) ? sourceText : "");
-        const websiteHref = isValidOptionalUrl(websiteText) ? websiteText : "";
-        const organizationLabel = meaningfulOrEmpty(contact.organization);
-        const linkedOrganization = expertOrganizations.find((organization) =>
-          (contact.organizationId && organization.id === contact.organizationId) ||
-          (organizationLabel && normalizeOrganizationName(organization.name) === normalizeOrganizationName(organizationLabel))
-        );
-        const themeTags = normalizeThemes(contact.themes);
-        const linkedCareContacts = linkedContactsForExpertContact(contact);
-        const connectionMarkup = expertContactContextMarkup(contact);
-        const activeTab = detailActiveTab || "overview";
-
-        activeExpertId = contact.id;
-        activeExpertOrganizationId = null;
-        activeId = null;
-        activeOrganizationId = null;
-        renderExpertContactsTable(currentItems);
-        detailPanel.classList.remove("detail-panel--organization");
-        detailPanel.classList.remove("detail-panel--registration");
-
-        detailPanel.innerHTML = `
-          <div class="detail-toolbar">
-            <div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>
-            <div class="detail-toolbar-actions">
-              <button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>
-            </div>
-          </div>
-          <div class="detail-content">
-            <div class="detail-profile">
-              <section class="detail-profile-top">
-                <div class="detail-profile-main">
-                  ${contactAvatarMarkup(contact, "lg")}
-                  <div class="detail-profile-copy">
-                    <h3>${escapeHtml(contact.displayName)}</h3>
-                    <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
-                    ${roleText ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
-                    <div class="detail-profile-status">${sectorBadgeMarkup(contact.category)}</div>
-                  </div>
-                </div>
-              </section>
-
-              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
-                ${detailTabButton("overview", "Überblick", activeTab)}
-                ${detailTabButton("contact", "Kontakt", activeTab)}
-                ${detailTabButton("themes", "Themen", activeTab)}
-                ${detailTabButton("links", "Verbindungen", activeTab)}
-                ${detailTabButton("notes", "Notizen", activeTab)}
-                ${detailTabButton("activity", "Aktivitäten", activeTab)}
-              </div>
-
-              <section ${detailPanelAttrs("overview", activeTab)} id="expert-detail-overview">
-                <h4 class="detail-section-title">Stammdaten</h4>
-                <div class="detail-line-list">
-                  ${detailLineHtml(
-                    "Organisation",
-                    linkedOrganization
-                      ? `<button class="organization-contact-link" type="button" data-open-linked-expert-organization="${escapeHtml(linkedOrganization.id)}">${escapeHtml(linkedOrganization.name)}</button>`
-                      : escapeHtml(organizationLabel || "Keine Organisation hinterlegt"),
-                    { empty: !organizationLabel && !linkedOrganization }
-                  )}
-                  ${detailLine("Gruppe", contact.category)}
-                  ${detailLine("Fachbereich / Fokus", specialtyText, { emptyLabel: "Nicht hinterlegt" })}
-                  ${detailLine("Rolle", roleText)}
-                  ${detailLine("Ort", locationText)}
-                  ${detailLine("Bundesland", contact.state || stateLabel(contact))}
-                  ${detailLine("Quelle", sourceText, { emptyLabel: "Nicht hinterlegt" })}
-                  ${detailLine("Versorgung", `${linkedCareContacts.length} ${linkedCareContacts.length === 1 ? "Verknüpfung" : "Verknüpfungen"}`)}
-                  ${detailLine("Aktualisiert", formatDateLabel(contact.updatedAt || contact.createdAt))}
-                </div>
-                <div class="section-block">
-                  <h4 class="detail-section-title">Standort</h4>
-                  <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
-                    ${buildDetailMiniMap(contact, locationText)}
-                  </article>
-                </div>
-              </section>
-
-              <section ${detailPanelAttrs("contact", activeTab)} id="expert-detail-contactways">
-                <h4 class="detail-section-title">Kontakt</h4>
-                <div class="detail-line-list">
-                  ${detailContactLine("E-Mail", meaningfulOrEmpty(contact.email), `mailto:${meaningfulOrEmpty(contact.email)}`)}
-                  ${detailContactLine("Telefon", meaningfulOrEmpty(contact.phone), `tel:${meaningfulOrEmpty(contact.phone)}`)}
-                  ${detailContactLine("LinkedIn", linkedinUrl ? "Profil öffnen" : "", linkedinUrl)}
-                  ${detailContactLine("Website", websiteText, websiteHref)}
-                </div>
-              </section>
-
-              <section ${detailPanelAttrs("themes", activeTab)} id="expert-detail-themes">
-                <h4 class="detail-section-title">Themen${themeTags.length ? ` (${themeTags.length})` : ""}</h4>
-                <div class="detail-chip-row">
-                  ${themeTags.length ? themeTags.map((tag) => `<span class="theme-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`}
-                </div>
-              </section>
-
-              <section ${detailPanelAttrs("links", activeTab)} id="expert-detail-links">
-                ${
-                  connectionMarkup ||
-                  `<div class="expert-context-section">
-                    <h4 class="detail-section-title">Auch in Versorgungskontakten</h4>
-                    <div class="empty">Noch keine Verknüpfung zu Versorgungskontakten vorhanden.</div>
-                  </div>`
-                }
-              </section>
-
-              <section ${detailPanelAttrs("notes", activeTab)} id="expert-detail-notes">
-                <h4 class="detail-section-title">Notizen</h4>
-                <div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}</div>
-              </section>
-
-              <section ${detailPanelAttrs("activity", activeTab)} id="expert-detail-activity">
-                <div class="history-empty">Noch kein Verlauf für diesen Expertenkreis-Kontakt vorhanden.</div>
-              </section>
-            </div>
-          </div>
-        `;
-
-        detailDrawer.classList.add("is-open");
-        detailDrawer.setAttribute("aria-hidden", "false");
-        syncBodyScrollLock();
-        document.getElementById("detail-close").addEventListener("click", closeDetail);
-        detailPanel.querySelector("[data-open-linked-expert-organization]")?.addEventListener("click", (event) => {
-          activeExpertMode = "organizations";
-          openOrganizationProfile("expert", event.currentTarget.dataset.openLinkedExpertOrganization, { returnTo: "experts" });
-        });
-        bindExpertEntityLinkControls(() => openExpertDetail(contact.id, currentItems));
-        detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
-          button.addEventListener("click", () => {
-            detailActiveTab = button.dataset.detailTab || "overview";
-            openExpertDetail(contact.id, currentItems);
-          });
-        });
       }
 
       function openExpertOrganizationDetail(id, items = filteredExpertOrganizations(), options = {}) {
@@ -38053,7 +38017,7 @@
         const activeTab = normalizeDetailTab(organizationDetailActiveTab || "overview", ["overview", "contacts", "themes", "notes", "activity"]);
         organizationDetailActiveTab = activeTab;
         const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
-        const editable = !isPreview && canEditContacts();
+        const editable = canEditContacts();
         activeOrganizationId = organization.id;
         activeId = null;
         if (!isProfilePage) renderOrganizationsTable(currentItems);
@@ -38306,7 +38270,6 @@
           detailActiveTab = "overview";
           contactEditingNoteId = null;
         }
-        if (expertScope) detailEditMode = false;
 
         const locationText = formatLocationDisplay(contact);
         const linkedinUrl = meaningfulOrEmpty(contact.linkedin);
@@ -38326,9 +38289,9 @@
         );
         const themeTags = normalizeThemes(contact.themes);
         const linkedCareContacts = expertScope ? linkedContactsForExpertContact(contact) : [];
-        const editingDetail = !isPreview && !expertScope && detailEditMode && canEditContacts();
-        const editableDetail = !isPreview && !expertScope && canEditContacts();
-        const admin = !isPreview && !expertScope && canAdministerData();
+        const editingDetail = detailEditMode && canEditContacts();
+        const editableDetail = canEditContacts();
+        const admin = !expertScope && canAdministerData();
         const portraitMarkup = contactAvatarMarkup(contact, "lg");
         const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
         const normalizedStatus = String(contact.status || "").trim().toLowerCase();
@@ -38343,7 +38306,7 @@
             ? contact.status
             : "";
         const profileStatusMarkup = expertScope
-          ? sectorBadgeMarkup(contact.category)
+          ? ""
           : statusLabel
             ? `<span class="badge badge--status">${escapeHtml(statusLabel)}</span>`
             : "";
@@ -38397,11 +38360,11 @@
                     }
                     ${honorificTitle ? `<div class="detail-profile-subline">${escapeHtml(honorificTitle)}</div>` : ""}
                     <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
-                    ${roleText ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
+                    ${roleText && !expertScope ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
                     ${profileStatusMarkup ? `<div class="detail-profile-status">${profileStatusMarkup}</div>` : ""}
                   </div>
                 </div>
-                ${expertScope ? "" : `<div class="detail-profile-meta">${detailHeaderOwnerControl(contact)}</div>`}
+                <div class="detail-profile-meta">${detailHeaderOwnerControl(contact)}</div>
               </section>
 
               <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
@@ -38414,11 +38377,11 @@
               </div>
 
               <section ${panelAttrs("overview")} id="detail-overview">
-                ${expertScope ? `<h4 class="detail-section-title">Stammdaten</h4>` : sectionTitleMarkup("Stammdaten", "overview", editingDetail)}
+                ${sectionTitleMarkup("Stammdaten", "overview", editingDetail)}
                 <div class="detail-line-list">
                   ${
                     editingDetail
-                      ? renderDetailEditGrid(contact, locationText)
+                      ? renderDetailEditGrid(contact, locationText, { scope: expertScope ? "expert" : "care" })
                       : `
                         ${detailLineHtml(
                           "Organisation",
@@ -38450,7 +38413,7 @@
               </section>
 
               <section ${panelAttrs("contact")} id="detail-contactways">
-                ${expertScope ? `<h4 class="detail-section-title">Kontakt</h4>` : sectionTitleMarkup("Kontakt", "contactways", editingDetail)}
+                ${sectionTitleMarkup("Kontakt", "contactways", editingDetail)}
                 <div class="detail-line-list">
                   ${
                     editingDetail
@@ -38468,7 +38431,9 @@
               <section ${panelAttrs("themes")} id="detail-themes">
                 <h4 class="detail-section-title">Themen${themeTags.length ? ` (${themeTags.length})` : ""}</h4>
                 <div class="detail-line-list">
-                  ${editableDetail ? renderDetailThemeEditor(themeTags) : expertScope ? renderReadOnlyThemePanel(themeTags) : renderViewerThemePanel(themeTags)}
+                  ${editableDetail
+                    ? renderDetailThemeEditor(themeTags, { scope: expertScope ? "expert" : "care" })
+                    : renderViewerThemePanel(themeTags, { scope: expertScope ? "expert" : "care" })}
                 </div>
               </section>
 
@@ -38491,11 +38456,7 @@
               <section ${panelAttrs("notes")} id="detail-notes">
                 <h4 class="detail-section-title">Notizen</h4>
                 <div class="detail-line-list">
-	                  ${
-	                    expertScope
-	                      ? `<div class="detail-note-block ${noteText ? "" : "detail-note-block--empty"}">${escapeHtml(noteText || "Noch keine Notiz hinterlegt.")}</div>`
-	                      : renderContactNotesThread(contact)
-	                  }
+	                  ${renderContactNotesThread(contact)}
 	                </div>
 	              </section>
 
@@ -38587,7 +38548,7 @@
                 setOwnerInputValue(detailOwnerInput, selectedOwnerIdsFromPicker(picker));
                 return;
               }
-              await updateContactField(contact.id, "owner", selectedOwnerIdsFromPicker(picker));
+              await updateContactField(contact.id, "owner", selectedOwnerIdsFromPicker(picker), { scope: expertScope ? "expert" : "care" });
             });
           });
         });
@@ -38611,27 +38572,27 @@
             noteInput.blur();
           }
         });
-        if (!expertScope) bindContactNotesThread(contact, targetPanel);
+        bindContactNotesThread(contact, targetPanel, { scope: expertScope ? "expert" : "care" });
         targetPanel.querySelectorAll("[data-detail-theme-toggle]").forEach((button) => {
           button.addEventListener("click", () => {
             const tag = button.dataset.detailThemeToggle;
             const current = new Set(normalizeThemes(contact.themes));
             if (current.has(tag)) current.delete(tag);
             else current.add(tag);
-            applyDetailThemeChange(contact, [...current]);
+            applyDetailThemeChange(contact, [...current], { scope: expertScope ? "expert" : "care" });
           });
         });
         targetPanel.querySelectorAll("[data-detail-theme-remove]").forEach((button) => {
           button.addEventListener("click", () => {
             const tag = button.dataset.detailThemeRemove;
-            applyDetailThemeChange(contact, normalizeThemes(contact.themes).filter((item) => item !== tag));
+            applyDetailThemeChange(contact, normalizeThemes(contact.themes).filter((item) => item !== tag), { scope: expertScope ? "expert" : "care" });
           });
         });
         const addTheme = () => {
           const input = targetPanel.querySelector("#detail-theme-input");
           const value = String(input?.value || "").trim();
           if (!value) return;
-          applyDetailThemeChange(contact, [...normalizeThemes(contact.themes), value]);
+          applyDetailThemeChange(contact, [...normalizeThemes(contact.themes), value], { scope: expertScope ? "expert" : "care" });
         };
         targetPanel.querySelector("#detail-theme-add")?.addEventListener("click", addTheme);
         targetPanel.querySelector("#detail-theme-input")?.addEventListener("keydown", (event) => {
@@ -40070,6 +40031,7 @@
             state: String(formData.get("state") || "").trim(),
             note: String(formData.get("note") || "").trim(),
             themes: editorThemes,
+            ...ownerPatchForValue(formData.get("owner")),
             sources: ["Manuell angelegt"],
             source: "Manuell angelegt",
             url: String(formData.get("image") || "").trim(),

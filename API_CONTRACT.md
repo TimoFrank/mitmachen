@@ -30,6 +30,7 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `PATCH` | `/api/organizations/:id` | Organisation aktualisieren |
 | `GET` | `/api/expert-groups` | Expertenkreis-Gruppen laden, optional `includeArchived=true` |
 | `GET` | `/api/expert-contacts` | Expertenkreis-Kontakte laden, optional `includeArchived=true`, `status=...` |
+| `PATCH` | `/api/expert-contacts/:id` | Expertenkreis-Kontakt aktualisieren, inklusive Ownern, Themen und Notizen |
 | `GET` | `/api/expert-organizations` | Expertenkreis-Organisationen laden, optional `includeArchived=true` |
 | `GET` | `/api/profiles` | Aktive Teamprofile laden |
 | `GET` | `/api/profile` | Profil des angemeldeten Nutzers laden |
@@ -57,7 +58,7 @@ Die API gibt Frontend-DTOs zurueck, keine Supabase-Rohzeilen. Beispiele:
 
 - Kontaktfelder wie `organizationId`, `postalCode`, `themes`, `owner`, `ownerId`
 - Organisationsfelder wie `organizationType`, `postalCode`, `contactCount`
-- Expertenkreis-Felder wie `groupId`, `group`, `category`, `organizationId`, `themes`, `sourceUrl`
+- Expertenkreis-Felder wie `groupId`, `group`, `category`, `organizationId`, `themes`, `sourceUrl`, `ownerId`, `ownerIds`
 - Profilfelder bleiben kompatibel zur bestehenden Profilseite, z.B. `display_name`, `avatar_url`, `team`, `bio`, `role`
 - Formatfelder wie `formatType`, `startsAt`, `owner`, `participants`
 - Teilnehmerfelder wie `contactId`, `invitationStatus`, `participantRole`
