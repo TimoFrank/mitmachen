@@ -8,6 +8,10 @@ Im Mittelpunkt steht die `Karte`. Sie soll schnell erfassbar machen, wie unser H
 
 Das Ziel ist eine lebendige Uebersicht ueber unser Hospitations-Netzwerk: eine Karte, die Orientierung gibt, Gespraeche vorbereitet, Luecken sichtbar macht und hilft, aus vielen Einzelkontakten ein belastbares Bild der Versorgungspraxis zu entwickeln.
 
+![Kartenansicht des Versorgungs-Kompass mit fiktiven Demo-Daten](dokumentation/assets/versorgungs-kompass-karte.png)
+
+_Demo-Snapshot mit fiktiven Daten._
+
 Das Repository enthaelt die Weboberflaeche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen fuer Uebergabe und Betrieb. Produktive Netzwerkdaten liegen nicht im Repository, sondern in einem geschuetzten Backend.
 
 ## Schnellstart
