@@ -6,9 +6,10 @@
   const ACTOR = "Demo-Testzugang";
   const API_MODE = window.VK_DEMO_BACKEND === "api";
   const data = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
-  const defaultContactColumnKeys = ["name", "organization", "category", "specialty", "location", "owner", "priority"];
+  const careViewModes = new Set(["contacts", "organizations", "map"]);
+  const defaultContactColumnKeys = ["name", "organization", "category", "owner", "updated"];
   const contactTableColumns = [
-    { key: "name", label: "Kontakt", template: "minmax(210px, 1.25fr)", required: true },
+    { key: "name", label: "Name", template: "minmax(210px, 1.25fr)", required: true },
     { key: "organization", label: "Organisation", template: "minmax(170px, 1fr)" },
     { key: "category", label: "Sektor", template: "minmax(112px, 0.68fr)" },
     { key: "specialty", label: "Fachrichtung", template: "minmax(150px, 0.82fr)" },
@@ -82,6 +83,8 @@
     reset: document.getElementById("reset-demo"),
     workspace: document.querySelector(".workspace"),
     shell: document.querySelector(".app-shell"),
+    careModeActions: document.getElementById("care-mode-actions"),
+    careModeButtons: document.querySelectorAll("[data-care-mode]"),
     sidebarCollapse: document.getElementById("sidebar-collapse-button")
   };
 
@@ -91,6 +94,36 @@
 
   function organizationItems() {
     return state.organizations.length ? state.organizations : data.organizations || [];
+  }
+
+  function isCareView(view = state.view) {
+    return careViewModes.has(view);
+  }
+
+  function careCounts() {
+    const activeContacts = state.contacts.filter((contact) => contact.status !== "archived").length;
+    const activeOrganizations = organizationItems().filter((organization) => organization.status !== "archived").length;
+    return {
+      contacts: activeContacts,
+      organizations: activeOrganizations,
+      map: activeContacts
+    };
+  }
+
+  function updateCareModeTabs() {
+    if (!elements.careModeActions) return;
+    const visible = isCareView();
+    elements.careModeActions.hidden = !visible;
+    const counts = careCounts();
+    elements.careModeButtons.forEach((button) => {
+      const mode = button.dataset.careMode || "contacts";
+      const active = state.view === mode;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+      button.setAttribute("tabindex", active ? "0" : "-1");
+      const count = button.querySelector(".experts-mode-count");
+      if (count) count.textContent = String(counts[mode] ?? 0);
+    });
   }
 
   function loadVisibleContactColumns() {
@@ -485,8 +518,14 @@
   function renderColumnMenu() {
     return `
       <div class="column-menu-shell">
-        <button class="button button--secondary button--compact" type="button" id="columns-toggle" aria-expanded="${state.columnMenuOpen ? "true" : "false"}" aria-controls="columns-menu">
-          <span class="button-icon" aria-hidden="true">▦</span>
+        <button class="action-button action-button--compact" type="button" id="columns-toggle" aria-expanded="${state.columnMenuOpen ? "true" : "false"}" aria-controls="columns-menu">
+          <span class="action-button__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <rect x="4" y="5" width="4" height="14" rx="1"></rect>
+              <rect x="10" y="5" width="4" height="14" rx="1"></rect>
+              <rect x="16" y="5" width="4" height="14" rx="1"></rect>
+            </svg>
+          </span>
           <span>Spalten</span>
         </button>
         <div class="column-menu" id="columns-menu" ${state.columnMenuOpen ? "" : "hidden"}>
@@ -518,6 +557,80 @@
           `).join("") : '<span class="active-filter-empty">Keine aktiven Filter</span>'}
         </div>
         <button class="button button--ghost filter-reset" type="button" id="filter-reset-all" ${items.length ? "" : "hidden"}>Zurücksetzen</button>
+      </div>
+    `;
+  }
+
+  function renderCareSearchControls() {
+    return `
+      <div class="controls care-controls">
+        <div class="controls-stack">
+          <label class="search-shell search-shell--care" for="filter-query">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m20 20-3.5-3.5"></path>
+            </svg>
+            <input class="search-input" id="filter-query" type="search" value="${escapeHtml(state.filters.query)}" placeholder="Nach Name, Organisation, Thema oder Standort suchen">
+          </label>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCareActiveFilterRow(resultCount, resultLabel) {
+    const items = activeFilterItems();
+    return `
+      <div class="active-filter-row" ${items.length ? "" : "hidden"}>
+        <span class="filter-results">${resultCount} ${escapeHtml(resultLabel)}</span>
+        <div class="active-filter-list" aria-label="Aktive Filter">
+          ${items.map((item) => `
+            <span class="active-filter-chip">
+              ${escapeHtml(`${item.label}: ${item.value}`)}
+              <button type="button" data-clear-filter="${escapeHtml(item.key)}" aria-label="${escapeHtml(`${item.label} entfernen`)}">×</button>
+            </span>
+          `).join("")}
+        </div>
+        <button class="filter-reset" type="button" id="filter-reset-all">Zurücksetzen</button>
+      </div>
+    `;
+  }
+
+  function renderCareFilterToolbar(resultCount, resultLabel) {
+    const filterCount = activeFilterItems().length;
+    return `
+      <div class="filter-toolbar">
+        ${renderCareActiveFilterRow(resultCount, resultLabel)}
+        <div class="filter-shell">
+          <button class="filter-panel-button" type="button" id="filter-toggle" aria-label="Filter öffnen" aria-expanded="${state.filterPanelOpen ? "true" : "false"}" aria-controls="filter-panel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M4 7h16"></path>
+              <path d="M7 12h10"></path>
+              <path d="M10 17h4"></path>
+            </svg>
+            <span class="filter-panel-button__label">
+              Filter
+              <span class="filter-panel-button__badge${filterCount ? " is-visible" : ""}">${filterCount}</span>
+            </span>
+          </button>
+          ${renderFilterPanel()}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderViewSelectButton() {
+    return `
+      <div class="view-select-shell">
+        <button class="view-select-button" type="button" aria-label="Owner-Ansicht wählen">
+          <svg class="view-select-button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9.5" cy="7" r="4"></circle>
+            <path d="M20 8v6"></path>
+            <path d="M23 11h-6"></path>
+          </svg>
+          <span>Owner: Alle</span>
+          <span class="view-select-button__caret" aria-hidden="true">⌄</span>
+        </button>
       </div>
     `;
   }
@@ -575,30 +688,45 @@
   }
 
   function renderContactCommandBar(contacts) {
-    const filterCount = activeFilterItems().length;
-    const archivedCount = state.contacts.filter((contact) => contact.status === "archived").length;
+    const columns = visibleContactTableColumns();
+    const gridTemplate = `44px ${contactGridTemplate(columns)}`;
     return `
-      <div class="contact-command">
-        <div class="contact-command__top">
-          <label class="search-shell" for="filter-query">
-            <span class="search-shell__icon" aria-hidden="true">⌕</span>
-            <input class="search-input" id="filter-query" type="search" value="${escapeHtml(state.filters.query)}" placeholder="Kontakte, Organisationen, Orte suchen">
-          </label>
-          <div class="contact-command__actions">
-            ${API_MODE ? `<button class="button button--primary" type="button" id="create-contact">Kontakt anlegen</button>` : ""}
-            ${API_MODE ? `<button class="button button--secondary" type="button" id="toggle-archived">${state.showArchived ? "Aktive anzeigen" : `Archiv (${archivedCount})`}</button>` : ""}
-            <div class="filter-shell">
-              <button class="button button--secondary button--compact" type="button" id="filter-toggle" aria-expanded="${state.filterPanelOpen ? "true" : "false"}" aria-controls="filter-panel">
-                <span class="button-icon" aria-hidden="true">☰</span>
-                <span>Filter</span>
-                ${filterCount ? `<span class="button-badge">${filterCount}</span>` : ""}
-              </button>
-              ${renderFilterPanel()}
+      ${renderCareSearchControls()}
+      <div class="view-shell">
+        <section class="view-panel is-active" id="view-contacts" data-view-panel="contacts">
+          <div class="view-card">
+            <div class="table-command-row">
+              <div class="table-command-actions">
+                <button class="action-button action-button--primary" type="button" id="create-contact">
+                  <span class="action-button__icon" aria-hidden="true">+</span>
+                  Neuer Kontakt
+                </button>
+                ${API_MODE ? `<button class="action-button action-button--compact" type="button" id="toggle-archived">${state.showArchived ? "Aktive anzeigen" : "Archiv"}</button>` : ""}
+              </div>
+              <div class="table-command-spacer"></div>
+              ${renderCareFilterToolbar(contacts.length, `Kontakt${contacts.length === 1 ? "" : "e"}`)}
+              ${renderViewSelectButton()}
+              ${renderColumnMenu()}
             </div>
-            ${renderColumnMenu()}
+            <div class="table-wrap">
+              <section class="table contacts-table" aria-labelledby="kontaktliste-title" style="--contacts-grid-template: ${escapeHtml(gridTemplate)}">
+                <div class="thead" id="contacts-table-head">
+                  <div class="cell cell--select">
+                    <span class="selection-checkbox" aria-hidden="true"></span>
+                  </div>
+                  ${columns.map((column) => `<div class="cell cell--${escapeHtml(column.key)}">${columnHeaderMarkup(column)}</div>`).join("")}
+                </div>
+                <div id="contact-list">
+                  ${
+                    contacts.length
+                      ? contacts.map((contact) => renderContactRow(contact, columns)).join("")
+                      : '<div class="empty-state">Keine Kontakte für diese Filter.</div>'
+                  }
+                </div>
+              </section>
+            </div>
           </div>
-        </div>
-        ${renderActiveFilterRow(contacts)}
+        </section>
       </div>
     `;
   }
@@ -618,33 +746,61 @@
 
   function renderContacts() {
     const contacts = filteredContacts();
-    const highCount = contacts.filter((contact) => contact.priority === "Hoch").length;
-    const missingOwner = contacts.filter((contact) => !contact.ownerId).length;
-    const columns = visibleContactTableColumns();
-    const gridTemplate = contactGridTemplate(columns);
-    elements.title.textContent = "Kontakte";
+    elements.title.textContent = "Versorgung";
     elements.subtitle.textContent = API_MODE
       ? "Kontakte suchen, filtern, lesen und in Cloud SQL pflegen."
       : "Kontakte suchen, filtern, lesen und Teständerungen lokal simulieren.";
-    elements.main.innerHTML = `
-      ${renderContactCommandBar(contacts)}
-      <div class="summary-strip">
-        <span class="metric"><strong>${contacts.length}</strong> Kontakte</span>
-        <span class="metric"><strong>${highCount}</strong> hohe Priorität</span>
-        <span class="metric"><strong>${missingOwner}</strong> ohne Owner</span>
-      </div>
-      <div class="contact-list contact-table" style="--contact-grid-template: ${escapeHtml(gridTemplate)}">
-        <div class="list-head" aria-hidden="true">
-          ${columns.map((column) => `<span class="cell cell--${escapeHtml(column.key)}">${columnHeaderMarkup(column)}</span>`).join("")}
-        </div>
-        ${
-          contacts.length
-            ? contacts.map((contact) => renderContactRow(contact, columns)).join("")
-            : '<div class="empty-state">Keine Kontakte für diese Filter.</div>'
-        }
-      </div>
-    `;
+    elements.main.innerHTML = renderContactCommandBar(contacts);
     setTimeout(syncMapFrame, 0);
+  }
+
+  function normalizeClassPart(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/ß/g, "ss")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function sectorPillMarkup(value) {
+    const label = value || "Nicht hinterlegt";
+    const suffix = normalizeClassPart(label);
+    return `<span class="contact-sector-pill contact-sector-pill--${escapeHtml(suffix)}">${escapeHtml(label)}</span>`;
+  }
+
+  function ownerProfile(ownerId) {
+    return profileItems().find((profile) => profile.id === ownerId) || null;
+  }
+
+  function ownerAvatarContent(profile, label) {
+    const image = profile?.avatar_url || profile?.avatarUrl || "";
+    if (image) {
+      return `<img src="${escapeHtml(image)}" alt="" data-initials="${escapeHtml(profile.initials || initials(label))}">`;
+    }
+    return escapeHtml(profile?.initials || initials(label));
+  }
+
+  function ownerAvatarStackMarkup(contact) {
+    if (!contact.ownerId) {
+      return `
+        <span class="owner-avatar-stack owner-avatar-stack--empty" title="Kein Owner" aria-label="Kein Owner">
+          <span class="owner-avatar-stack__more">Kein Owner</span>
+        </span>
+      `;
+    }
+    const profile = ownerProfile(contact.ownerId);
+    const label = profileLabel(contact.ownerId);
+    return `
+      <span class="owner-avatar-stack" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">
+        <span class="owner-avatar-stack__item">${ownerAvatarContent(profile, label)}</span>
+      </span>
+    `;
   }
 
   function contactTableCellMarkup(contact, key) {
@@ -653,19 +809,16 @@
       return `
         <span class="person-cell">
           ${avatar(contact)}
-          <span>
-            <strong>${escapeHtml(contact.name)}</strong>
-            <span>${escapeHtml(contact.contactRole || "Rolle nicht hinterlegt")}</span>
-          </span>
+          <strong>${escapeHtml(contact.name)}</strong>
         </span>
       `;
     }
     if (key === "organization") return escapeHtml(contact.organization || "Nicht hinterlegt");
-    if (key === "category") return escapeHtml(contact.category || "Nicht hinterlegt");
+    if (key === "category") return sectorPillMarkup(contact.category);
     if (key === "specialty") return escapeHtml(contact.specialty || "Nicht hinterlegt");
     if (key === "location") return escapeHtml(contactLocation(contact) || "Nicht hinterlegt");
     if (key === "state") return escapeHtml(contact.state || "Nicht hinterlegt");
-    if (key === "owner") return escapeHtml(profileLabel(contact.ownerId));
+    if (key === "owner") return ownerAvatarStackMarkup(contact);
     if (key === "priority") return `<span class="${priorityClass(priority)}">${escapeHtml(priority)}</span>`;
     if (key === "updated") return `<span class="contact-date">${escapeHtml(formatShortDate(contact.updatedAt || contact.createdAt))}</span>`;
     return "";
@@ -674,11 +827,14 @@
   function renderContactRow(contact, columns = visibleContactTableColumns()) {
     const active = contact.id === state.selectedId ? " is-active" : "";
     return `
-      <button class="contact-row${active}" type="button" data-contact-id="${escapeHtml(contact.id)}">
+      <button class="row care-contact-row${active}" type="button" data-contact-id="${escapeHtml(contact.id)}">
+        <div class="cell cell--select">
+          <span class="selection-checkbox" aria-hidden="true"></span>
+        </div>
         ${columns.map((column) => `
-          <span class="cell cell--${escapeHtml(column.key)}" data-label="${escapeHtml(column.label)}">
+          <div class="cell cell--${escapeHtml(column.key)}" data-label="${escapeHtml(column.label)}">
             ${contactTableCellMarkup(contact, column.key)}
-          </span>
+          </div>
         `).join("")}
       </button>
     `;
@@ -1075,40 +1231,83 @@
     `;
   }
 
+  function filteredOrganizations() {
+    const query = state.filters.query.trim().toLowerCase();
+    return organizationItems()
+      .filter((organization) => organization.status !== "archived")
+      .filter((organization) => {
+        const haystack = [
+          organization.name,
+          organization.sector,
+          organization.organizationType,
+          organization.city,
+          organization.state,
+          organization.website,
+          organization.email
+        ].join(" ").toLowerCase();
+        if (query && !haystack.includes(query)) return false;
+        if (state.filters.sector && organization.sector !== state.filters.sector) return false;
+        if (state.filters.state && organization.state !== state.filters.state) return false;
+        return true;
+      })
+      .map((organization) => ({
+        ...organization,
+        contactCount: state.contacts.filter((contact) => contact.organizationId === organization.id && contact.status !== "archived").length
+      }));
+  }
+
   function renderOrganizations() {
-    elements.title.textContent = "Organisationen";
+    elements.title.textContent = "Versorgung";
     elements.subtitle.textContent = API_MODE
       ? "Organisationen und Kontaktverteilung aus Cloud SQL."
       : "Organisationen und Kontaktverteilung aus dem lokalen Testdatenbestand.";
-    const orgs = organizationItems().map((organization) => ({
-      ...organization,
-      contactCount: state.contacts.filter((contact) => contact.organizationId === organization.id && contact.status !== "archived").length
-    }));
-    const activeContactCount = state.contacts.filter((contact) => contact.status !== "archived").length;
+    const orgs = filteredOrganizations();
+    const gridTemplate = "minmax(260px, 1.4fr) minmax(150px, 0.8fr) minmax(150px, 0.8fr) minmax(110px, 0.46fr)";
     elements.main.innerHTML = `
-      <div class="summary-strip">
-        <span class="metric"><strong>${orgs.length}</strong> Organisationen</span>
-        <span class="metric"><strong>${activeContactCount}</strong> aktive Kontakte</span>
-        ${API_MODE ? '<button class="button button--secondary" type="button" id="create-organization">Organisation anlegen</button>' : ""}
-      </div>
-      <div class="org-list">
-        <div class="list-head" aria-hidden="true">
-          <span>Organisation</span>
-          <span>Sektor</span>
-          <span>Bundesland</span>
-          <span>Kontakte</span>
-        </div>
-        ${orgs.map((org) => `
-          <button class="org-row" type="button" data-organization-id="${escapeHtml(org.id)}">
-            <span>
-              <strong>${escapeHtml(org.name)}</strong>
-              <span>${escapeHtml([org.city, org.postalCode].filter(Boolean).join(" · "))}</span>
-            </span>
-            <span>${escapeHtml(org.sector || "Nicht hinterlegt")}</span>
-            <span>${escapeHtml(org.state || "Nicht hinterlegt")}</span>
-            <span><strong>${org.contactCount}</strong></span>
-          </button>
-        `).join("")}
+      ${renderCareSearchControls()}
+      <div class="view-shell">
+        <section class="view-panel is-active" id="view-organizations" data-view-panel="organizations">
+          <div class="view-card organizations-workspace">
+            <div class="table-command-row table-command-row--organizations">
+              <div class="table-command-actions">
+                ${API_MODE ? `
+                  <button class="action-button action-button--primary" type="button" id="create-organization">
+                    <span class="action-button__icon" aria-hidden="true">+</span>
+                    Neue Organisation
+                  </button>
+                ` : ""}
+              </div>
+              <div class="table-command-spacer"></div>
+              ${renderCareFilterToolbar(orgs.length, `Organisation${orgs.length === 1 ? "" : "en"}`)}
+            </div>
+            <div class="table-wrap">
+              <section class="table organizations-table" aria-label="Organisationen" style="--organizations-grid-template: ${escapeHtml(gridTemplate)}">
+                <div class="thead">
+                  <div>Organisation</div>
+                  <div>Sektor</div>
+                  <div>Bundesland</div>
+                  <div>Kontakte</div>
+                </div>
+                <div id="organization-list">
+                  ${orgs.length ? orgs.map((org) => `
+                    <button class="row care-organization-row" type="button" data-organization-id="${escapeHtml(org.id)}">
+                      <div class="organization-cell">
+                        <span class="organization-logo organization-logo--sm" aria-hidden="true">${escapeHtml(initials(org.name))}</span>
+                        <span>
+                          <strong>${escapeHtml(org.name)}</strong>
+                          <span>${escapeHtml([org.city, org.postalCode].filter(Boolean).join(" · ") || "Standort nicht hinterlegt")}</span>
+                        </span>
+                      </div>
+                      <div>${sectorPillMarkup(org.sector || "Nicht hinterlegt")}</div>
+                      <div>${escapeHtml(org.state || "Nicht hinterlegt")}</div>
+                      <div><strong>${org.contactCount}</strong></div>
+                    </button>
+                  `).join("") : '<div class="empty-state">Keine Organisationen für diese Filter.</div>'}
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
       </div>
     `;
   }
@@ -1150,13 +1349,17 @@
     elements.status.textContent = API_MODE ? "Original-Kartenmodus mit Cloud-SQL-Daten" : "Original-Kartenmodus mit Testdaten";
     saveState();
     elements.main.innerHTML = `
-      <div class="map-frame-shell">
-        <iframe
-          class="map-frame"
-          title="Versorgungs-Kompass Karten-Modus"
-          src="../versorgungs-kompass-map.html?embed=1&demo=1"
-          loading="eager"
-        ></iframe>
+      <div class="view-shell">
+        <section class="view-panel is-active" id="view-map" data-view-panel="map">
+          <div class="view-card view-card--map">
+            <iframe
+              class="map-frame map-embed-frame"
+              title="Versorgungs-Kompass Karten-Modus"
+              src="../versorgungs-kompass-map.html?embed=1&demo=1"
+              loading="eager"
+            ></iframe>
+          </div>
+        </section>
       </div>
     `;
   }
@@ -1487,9 +1690,16 @@
 
   function render() {
     document.querySelectorAll(".primary-tab").forEach((item) => {
-      item.classList.toggle("is-active", item.dataset.view === state.view);
+      const primaryView = item.dataset.view || "contacts";
+      const active =
+        primaryView === state.view ||
+        (primaryView === "contacts" && (state.view === "contacts" || state.view === "organizations"));
+      item.classList.toggle("is-active", active);
     });
+    elements.shell?.setAttribute("data-active-view", state.view);
     elements.workspace?.classList.toggle("workspace--map", state.view === "map");
+    elements.workspace?.classList.toggle("workspace--care", isCareView());
+    updateCareModeTabs();
     if (state.view === "organizations") renderOrganizations();
     else if (state.view === "map") renderMapView();
     else if (state.view === "activity") renderActivity();
@@ -1497,7 +1707,7 @@
     else if (state.view === "profile") renderProfileView();
     else if (state.view === "imports") renderImportView();
     else renderContacts();
-    if (state.view === "map") {
+    if (isCareView()) {
       elements.detail.innerHTML = "";
     } else if (!["ops", "imports", "profile"].includes(state.view)) {
       renderDetail();
@@ -2117,6 +2327,19 @@
         state.organizationCreateMode = false;
         state.organizationEditMode = false;
         state.opsError = "";
+        state.filterPanelOpen = false;
+        state.columnMenuOpen = false;
+        render();
+      });
+    });
+
+    elements.careModeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        state.view = button.dataset.careMode || "contacts";
+        state.editMode = false;
+        state.createMode = false;
+        state.organizationCreateMode = false;
+        state.organizationEditMode = false;
         state.filterPanelOpen = false;
         state.columnMenuOpen = false;
         render();

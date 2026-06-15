@@ -271,8 +271,23 @@
   const LOCAL_REGISTRATIONS_KEY = "versorgungs-kompass-backend-registrations-v1";
   const LOCAL_NOTIFICATIONS_KEY = "versorgungs-kompass-notifications-v1";
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
+  const CAPABILITIES = CONFIG.capabilities || {};
+  const ORGANIZATION_ASSET_FIELDS = new Set([
+    "logo_url",
+    "logo_source_url",
+    "logo_source_label",
+    "member_count",
+    "member_count_source_url",
+    "member_count_source_label",
+    "member_count_updated_at",
+    "member_count_scope"
+  ]);
   let client = null;
   let profileCache = new Map();
+  let profileLoadPromise = null;
+  let currentUserCache = null;
+  let currentUserPromise = null;
+  let currentProfilePromise = null;
   let contactCache = [];
   let organizationCache = [];
   let expertGroupCache = [];
@@ -287,10 +302,13 @@
   let notificationCache = [];
   let userSettingsCache = null;
   let supportsContactOrganizationId = true;
-  let supportsContactImageSources = false;
-  let supportsContactRole = true;
+  let supportsContactImageSources = CAPABILITIES.contactImageSources === true;
+  let supportsContactRole = CAPABILITIES.contactRole === true;
   let supportsContactOwners = true;
   let supportsExpertContactOwners = true;
+  let supportsOrganizationAssets = CAPABILITIES.organizationAssets === true;
+  let supportsExpertOrganizationAssets = CAPABILITIES.expertOrganizationAssets === true;
+  let supportsStakeholderOrganizationAssets = CAPABILITIES.stakeholderOrganizationAssets !== false;
   let supportsFormats = true;
   let supportsNotifications = true;
 
@@ -303,11 +321,23 @@
     }).join(",");
   }
 
+  function organizationSelectFields() {
+    return ORGANIZATION_FIELDS.filter((field) => supportsOrganizationAssets || !ORGANIZATION_ASSET_FIELDS.has(field)).join(",");
+  }
+
   function expertContactSelectFields() {
     return EXPERT_CONTACT_FIELDS.filter((field) => {
       if (!supportsExpertContactOwners && ["owner_id", "owner_ids"].includes(field)) return false;
       return true;
     }).join(",");
+  }
+
+  function expertOrganizationSelectFields() {
+    return EXPERT_ORGANIZATION_FIELDS.filter((field) => supportsExpertOrganizationAssets || !ORGANIZATION_ASSET_FIELDS.has(field)).join(",");
+  }
+
+  function stakeholderOrganizationSelectFields() {
+    return STAKEHOLDER_ORGANIZATION_FIELDS.filter((field) => supportsStakeholderOrganizationAssets || !ORGANIZATION_ASSET_FIELDS.has(field)).join(",");
   }
 
   function isMissingOrganizationIdError(error) {
@@ -328,6 +358,10 @@
 
   function isMissingExpertContactOwnersError(error) {
     return /owner_id|owner_ids|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
+
+  function isMissingOrganizationAssetError(error) {
+    return /logo_url|logo_source_url|logo_source_label|member_count|member_count_source_url|member_count_source_label|member_count_updated_at|member_count_scope|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
   }
 
   function isConfigured() {
@@ -2065,33 +2099,62 @@
     };
   }
 
-  async function loadProfiles() {
-    if (isLocalMode()) {
-      const profiles = isDemoMode() ? demoProfiles() : [localProfile()];
-      profileCache = new Map(profiles.map((profile) => [profile.id, profile]));
-      return [...profileCache.values()];
-    }
-    if (usesApiGateway()) {
-      const payload = await apiGet("/api/profiles");
-      const profiles = Array.isArray(payload.items) ? payload.items : [];
-      profileCache = new Map(profiles.map((profile) => [profile.id, profile]));
-      return [...profileCache.values()];
-    }
-    const { data, error } = await getClient()
-      .from("profiles")
-      .select(PROFILE_FIELDS.join(","))
-      .eq("active", true);
-    if (error) throw error;
-    profileCache = new Map((data || []).map((profile) => [profile.id, profile]));
+  function setProfileCache(profiles = []) {
+    profileCache = new Map((profiles || []).map((profile) => [profile.id, profile]));
     return [...profileCache.values()];
+  }
+
+  async function loadProfiles(options = {}) {
+    const force = Boolean(options.force);
+    if (!force && profileCache.size) return [...profileCache.values()];
+    if (!force && profileLoadPromise) return profileLoadPromise;
+    const request = (async () => {
+      if (isLocalMode()) {
+        return setProfileCache(isDemoMode() ? demoProfiles() : [localProfile()]);
+      }
+      if (usesApiGateway()) {
+        const payload = await apiGet("/api/profiles");
+        return setProfileCache(Array.isArray(payload.items) ? payload.items : []);
+      }
+      const { data, error } = await getClient()
+        .from("profiles")
+        .select(PROFILE_FIELDS.join(","))
+        .eq("active", true);
+      if (error) throw error;
+      return setProfileCache(data || []);
+    })();
+    profileLoadPromise = request;
+    try {
+      return await request;
+    } catch (error) {
+      if (profileLoadPromise === request) profileLoadPromise = null;
+      throw error;
+    }
   }
 
   async function getProfiles() {
-    if (!profileCache.size) return loadProfiles();
-    return [...profileCache.values()];
+    return loadProfiles();
   }
 
-  async function getCurrentProfile() {
+  async function getSupabaseUser() {
+    if (currentUserCache) return currentUserCache;
+    if (currentUserPromise) return currentUserPromise;
+    const request = (async () => {
+      const { data, error } = await getClient().auth.getUser();
+      if (error) throw error;
+      currentUserCache = data.user || null;
+      return currentUserCache;
+    })();
+    currentUserPromise = request;
+    try {
+      return await request;
+    } catch (error) {
+      if (currentUserPromise === request) currentUserPromise = null;
+      throw error;
+    }
+  }
+
+  async function getCurrentProfile(options = {}) {
     if (isLocalMode()) {
       const profile = localProfile();
       return profileCache.get(profile.id) || profile;
@@ -2102,17 +2165,27 @@
       if (profile?.id) profileCache.set(profile.id, profile);
       return profile;
     }
-    const { data, error } = await getClient().auth.getUser();
-    if (error) throw error;
-    const userId = data.user?.id;
-    if (!userId) return null;
-    if (usesApiGateway()) {
-      const profile = await apiGet("/api/profile");
-      if (profile?.id) profileCache.set(profile.id, profile);
-      return profile;
+    if (!options.force && currentUserCache?.id && profileCache.has(currentUserCache.id)) return profileCache.get(currentUserCache.id);
+    if (!options.force && currentProfilePromise) return currentProfilePromise;
+    const request = (async () => {
+      if (usesApiGateway()) {
+        const profile = await apiGet("/api/profile");
+        if (profile?.id) profileCache.set(profile.id, profile);
+        return profile;
+      }
+      const user = await getSupabaseUser();
+      const userId = user?.id;
+      if (!userId) return null;
+      await loadProfiles();
+      return profileCache.get(userId) || null;
+    })();
+    currentProfilePromise = request;
+    try {
+      return await request;
+    } catch (error) {
+      if (currentProfilePromise === request) currentProfilePromise = null;
+      throw error;
     }
-    if (!profileCache.size) await loadProfiles();
-    return profileCache.get(userId) || null;
   }
 
   async function updateCurrentProfile(profile = {}) {
@@ -2130,6 +2203,7 @@
       };
       if (!updated.display_name) throw new Error("Bitte trage einen Anzeigenamen ein.");
       profileCache.set(updated.id, updated);
+      currentProfilePromise = Promise.resolve(updated);
       return updated;
     }
     if (isGcpMode()) {
@@ -2146,6 +2220,7 @@
       };
       if (!updated.display_name) throw new Error("Bitte trage einen Anzeigenamen ein.");
       profileCache.set(updated.id, updated);
+      currentProfilePromise = Promise.resolve(updated);
       return updated;
     }
     if (usesApiGateway()) {
@@ -2154,6 +2229,7 @@
         body: profile
       });
       if (updated?.id) profileCache.set(updated.id, updated);
+      currentProfilePromise = Promise.resolve(updated);
       return updated;
     }
     const userId = await getCurrentUserId();
@@ -2174,6 +2250,7 @@
       .single();
     if (error) throw error;
     profileCache.set(userId, data);
+    currentProfilePromise = Promise.resolve(data);
     return data;
   }
 
@@ -2242,30 +2319,39 @@
     }
     const supabase = getClient();
     await loadProfiles();
-    let query = supabase
-      .from("contacts")
-      .select(contactSelectFields())
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .order("name", { ascending: true });
-    if (!options.includeArchived) query = query.neq("status", "archived");
-    if (options.status) query = query.eq("status", options.status);
-    const { data, error } = await query;
-    if (error) {
+    const buildQuery = () => {
+      let query = supabase
+        .from("contacts")
+        .select(contactSelectFields())
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("name", { ascending: true });
+      if (!options.includeArchived) query = query.neq("status", "archived");
+      if (options.status) query = query.eq("status", options.status);
+      return query;
+    };
+    let data = [];
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const result = await buildQuery();
+      if (!result.error) {
+        data = result.data || [];
+        break;
+      }
+      const error = result.error;
       if (supportsContactOrganizationId && isMissingOrganizationIdError(error)) {
         supportsContactOrganizationId = false;
-        return loadContacts(options);
+        continue;
       }
       if (supportsContactImageSources && isMissingContactImageSourceError(error)) {
         supportsContactImageSources = false;
-        return loadContacts(options);
+        continue;
       }
       if (supportsContactRole && isMissingContactRoleError(error)) {
         supportsContactRole = false;
-        return loadContacts(options);
+        continue;
       }
       throw error;
     }
-    contactCache = await decorateContactsWithStoredOwners((data || []).map(dbToUi));
+    contactCache = await decorateContactsWithStoredOwners(data.map(dbToUi));
     return contactCache;
   }
 
@@ -2500,13 +2586,20 @@
       return clone(organizationCache);
     }
     const supabase = getClient();
-    let query = supabase
-      .from("organizations")
-      .select(ORGANIZATION_FIELDS.join(","))
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .order("name", { ascending: true });
-    if (!options.includeArchived) query = query.neq("status", "archived");
-    const { data, error } = await query;
+    const buildQuery = () => {
+      let query = supabase
+        .from("organizations")
+        .select(organizationSelectFields())
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("name", { ascending: true });
+      if (!options.includeArchived) query = query.neq("status", "archived");
+      return query;
+    };
+    let { data, error } = await buildQuery();
+    if (error && supportsOrganizationAssets && isMissingOrganizationAssetError(error)) {
+      supportsOrganizationAssets = false;
+      ({ data, error } = await buildQuery());
+    }
     if (error) throw error;
 
     const ids = (data || []).map((row) => row.id);
@@ -2536,7 +2629,7 @@
     if (usesApiGateway()) {
       return normalizeOrganizationUi(await apiGet(`/api/organizations/${encodeURIComponent(id)}`));
     }
-    const { data, error } = await getClient().from("organizations").select(ORGANIZATION_FIELDS.join(",")).eq("id", id).single();
+    const { data, error } = await getClient().from("organizations").select(organizationSelectFields()).eq("id", id).single();
     if (error) throw error;
     return organizationDbToUi(data);
   }
@@ -2618,10 +2711,19 @@
     const supabase = getClient();
     let query = supabase
       .from("expert_organizations")
-      .select(EXPERT_ORGANIZATION_FIELDS.join(","))
+      .select(expertOrganizationSelectFields())
       .order("name", { ascending: true });
     if (!options.includeArchived) query = query.neq("status", "archived");
-    const { data, error } = await query;
+    let { data, error } = await query;
+    if (error && supportsExpertOrganizationAssets && isMissingOrganizationAssetError(error)) {
+      supportsExpertOrganizationAssets = false;
+      query = supabase
+        .from("expert_organizations")
+        .select(expertOrganizationSelectFields())
+        .order("name", { ascending: true });
+      if (!options.includeArchived) query = query.neq("status", "archived");
+      ({ data, error } = await query);
+    }
     if (error) throw error;
 
     const ids = (data || []).map((row) => row.id);
@@ -2799,7 +2901,7 @@
     const { data, error } = await getClient()
       .from("expert_organizations")
       .insert(payload)
-      .select(EXPERT_ORGANIZATION_FIELDS.join(","))
+      .select(expertOrganizationSelectFields())
       .single();
     if (error) throw error;
     const created = expertOrganizationDbToUi(data);
@@ -2930,13 +3032,20 @@
       return clone(stakeholderOrganizationCache);
     }
     const supabase = getClient();
-    let query = supabase
-      .from("stakeholder_organizations")
-      .select(STAKEHOLDER_ORGANIZATION_FIELDS.join(","))
-      .order("name", { ascending: true });
-    if (!options.includeArchived) query = query.neq("status", "archived");
-    if (options.stakeholderTypeId || options.stakeholderType) query = query.eq("stakeholder_type_id", options.stakeholderTypeId || options.stakeholderType);
-    const { data, error } = await query;
+    const buildQuery = () => {
+      let query = supabase
+        .from("stakeholder_organizations")
+        .select(stakeholderOrganizationSelectFields())
+        .order("name", { ascending: true });
+      if (!options.includeArchived) query = query.neq("status", "archived");
+      if (options.stakeholderTypeId || options.stakeholderType) query = query.eq("stakeholder_type_id", options.stakeholderTypeId || options.stakeholderType);
+      return query;
+    };
+    let { data, error } = await buildQuery();
+    if (error && supportsStakeholderOrganizationAssets && isMissingOrganizationAssetError(error)) {
+      supportsStakeholderOrganizationAssets = false;
+      ({ data, error } = await buildQuery());
+    }
     if (error) throw error;
 
     const ids = (data || []).map((row) => row.id);
@@ -3143,7 +3252,7 @@
     const userId = await getCurrentUserId();
     const payload = { ...organizationUiToDb(organization), created_by: userId, updated_by: userId };
     if (!payload.name) throw new Error("Name der Organisation fehlt.");
-    const { data, error } = await getClient().from("organizations").insert(payload).select(ORGANIZATION_FIELDS.join(",")).single();
+    const { data, error } = await getClient().from("organizations").insert(payload).select(organizationSelectFields()).single();
     if (error) throw error;
     const created = organizationDbToUi(data);
     organizationCache = [created, ...organizationCache.filter((item) => item.id !== created.id)];
@@ -3199,7 +3308,7 @@
     if ("status" in patch) payload.status = patch.status || "active";
     payload.updated_by = userId;
     payload.updated_at = new Date().toISOString();
-    const { data, error } = await getClient().from("organizations").update(payload).eq("id", id).select(ORGANIZATION_FIELDS.join(",")).single();
+    const { data, error } = await getClient().from("organizations").update(payload).eq("id", id).select(organizationSelectFields()).single();
     if (error) throw error;
     const updated = organizationDbToUi(data);
     organizationCache = organizationCache.map((item) => (item.id === id ? updated : item));
@@ -3355,10 +3464,14 @@
       if (!profile?.id) throw new Error("Im GCP-Pilot ist kein Profil aktiv.");
       return profile.id;
     }
-    const { data, error } = await getClient().auth.getUser();
-    if (error) throw error;
-    if (!data.user?.id) throw new Error("Bitte zuerst mit Supabase anmelden.");
-    return data.user.id;
+    if (usesApiGateway()) {
+      const profile = await getCurrentProfile();
+      if (!profile?.id) throw new Error("Bitte zuerst anmelden.");
+      return profile.id;
+    }
+    const user = await getSupabaseUser();
+    if (!user?.id) throw new Error("Bitte zuerst mit Supabase anmelden.");
+    return user.id;
   }
 
   async function createContact(contact, options = {}) {

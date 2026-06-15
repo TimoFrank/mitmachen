@@ -21118,7 +21118,6 @@
     </aside>
 
     <script src="../map/data/state-polygons.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../data/supabase-config.js"></script>
     <script src="../data/sector-registry.js"></script>
@@ -21128,6 +21127,26 @@
     <script src="../data/expertenkreis-data.js"></script>
     <script src="../data/stakeholder-data.js"></script>
     <script>
+      const XLSX_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+      let xlsxLoadPromise = null;
+
+      function ensureXlsxLoaded() {
+        if (window.XLSX) return Promise.resolve(window.XLSX);
+        if (xlsxLoadPromise) return xlsxLoadPromise;
+        xlsxLoadPromise = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = XLSX_SCRIPT_SRC;
+          script.async = true;
+          script.onload = () => resolve(window.XLSX);
+          script.onerror = () => {
+            xlsxLoadPromise = null;
+            reject(new Error("XLSX-Bibliothek konnte nicht geladen werden."));
+          };
+          document.head.appendChild(script);
+        });
+        return xlsxLoadPromise;
+      }
+
       const avatarPalette = [
         "avatar--faculty",
         "avatar--policy",
@@ -23903,6 +23922,7 @@
         importDrawer.setAttribute("aria-hidden", "false");
         renderImportWizard();
         syncBodyScrollLock();
+        if (mode === "file") ensureXlsxLoaded().catch((error) => console.warn("XLSX-Bibliothek konnte nicht vorab geladen werden.", error));
       }
 
       function closeImportWizard() {
@@ -23960,7 +23980,9 @@
         }
 
         if (["xlsx", "xls"].includes(extension)) {
-          if (!window.XLSX) {
+          try {
+            await ensureXlsxLoaded();
+          } catch (error) {
             importState.parsed = {
               ...baseParsed,
               fileType: "unsupported",
@@ -24968,7 +24990,11 @@
           return stakeholderImportRowsFromMatrix(parseDelimitedRows(text));
         }
         if (["xlsx", "xls"].includes(extension)) {
-          if (!window.XLSX) throw new Error("XLSX-Bibliothek ist nicht geladen.");
+          try {
+            await ensureXlsxLoaded();
+          } catch (error) {
+            throw new Error("XLSX-Bibliothek ist nicht geladen.");
+          }
           const buffer = await file.arrayBuffer();
           const workbook = window.XLSX.read(buffer, { type: "array", cellDates: false });
           const sheetName = workbook.SheetNames[0];
@@ -29682,7 +29708,7 @@
         };
       }
 
-      async function loadSavedViewsAndSettings() {
+      async function loadSavedViews() {
         try {
           if (window.dataService?.getSavedViews) {
             savedViews = (await window.dataService.getSavedViews()).map(normalizeSavedView);
@@ -29693,7 +29719,10 @@
           console.warn("Gespeicherte Ansichten konnten nicht aus Supabase geladen werden. Lokaler Fallback aktiv.", error);
           savedViews = loadLocalSavedViews().map(normalizeSavedView);
         }
+        renderSavedViews();
+      }
 
+      async function loadUserSettings() {
         try {
           userSettings = window.dataService?.getUserSettings ? await window.dataService.getUserSettings() : null;
         } catch (error) {
@@ -29709,8 +29738,10 @@
           syncPageSizeSelects();
         }
         applyUserSettingsUi();
+      }
 
-        renderSavedViews();
+      async function loadSavedViewsAndSettings() {
+        await Promise.all([loadSavedViews(), loadUserSettings()]);
       }
 
       function renderSavedViews() {
@@ -31715,10 +31746,11 @@
         const sizeClass = size === "lg" ? "avatar-lg" : size === "sm" ? "avatar-sm" : "avatar-md";
         const fallback = `<span class="avatar avatar-fallback ${sizeClass} ${contact.avatarClass}">${escapeHtml(contact.initials)}</span>`;
         if (!hasMeaningfulValue(contact.image)) return fallback;
+        if (size !== "lg") return fallback;
         const imageUrl = escapeHtml(decodeAttributeValue(contact.image));
         return `
           <span class="avatar contact-image contact-thumb ${sizeClass} ${contact.avatarClass}" aria-label="${escapeHtml(contact.displayName)}">
-            <img src="${imageUrl}" alt="" loading="eager" decoding="async" onerror="this.hidden=true;this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${escapeHtml(contact.initials)}';" />
+            <img src="${imageUrl}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${escapeHtml(contact.initials)}';" />
           </span>
         `;
       }
@@ -40367,44 +40399,90 @@
         }
       }
 
+      async function loadOrganizationData({ includeArchived = false } = {}) {
+        try {
+          if (window.dataService.loadOrganizations) {
+            organizations = mergeOrganizations(await window.dataService.loadOrganizations({ includeArchived }), deriveOrganizationsFromContacts(contacts));
+          } else {
+            organizations = deriveOrganizationsFromContacts(contacts);
+          }
+        } catch (organizationError) {
+          console.warn("Organisationen konnten nicht aus Supabase geladen werden. Kontaktbasierter Fallback aktiv.", organizationError);
+          organizations = deriveOrganizationsFromContacts(contacts);
+        }
+      }
+
+      async function loadFormatData({ includeArchived = false } = {}) {
+        try {
+          formats = window.dataService.loadFormats ? await window.dataService.loadFormats({ includeArchived }) : [];
+          formatLoadErrorMessage = "";
+          activeFormatId = formats.find((format) => format.status !== "Archiviert")?.id || formats[0]?.id || null;
+        } catch (formatError) {
+          console.warn("Formate konnten nicht geladen werden.", formatError);
+          formatLoadErrorMessage = String(formatError?.message || "Bitte prüfe die Supabase-Tabellen und RLS-Policies für Formate.");
+          formats = [];
+        }
+      }
+
+      async function loadCriticalInitialData() {
+        loadLegacyOwnerAssignments();
+        const settingsPromise = loadUserSettings();
+        const [profiles, profile] = await Promise.all([
+          window.dataService.getProfiles(),
+          window.dataService.getCurrentProfile()
+        ]);
+        applyProfiles(profiles);
+        renderAccountProfile(profile);
+        await settingsPromise;
+        contacts = (await window.dataService.loadContacts({ includeArchived: canAdministerData() })).map((contact, index) => sanitizeContact(contact, index));
+        applyLegacyOwnerAssignments();
+        organizations = deriveOrganizationsFromContacts(contacts);
+        loadedContactsFromStorage = false;
+        setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
+      }
+
+      let deferredInitialDataPromise = null;
+
+      function scheduleDeferredInitialData() {
+        if (deferredInitialDataPromise) return deferredInitialDataPromise;
+        const includeArchived = canAdministerData();
+        const run = () => {
+          deferredInitialDataPromise = loadDeferredInitialData({ includeArchived });
+          return deferredInitialDataPromise;
+        };
+        if ("requestIdleCallback" in window) {
+          window.requestIdleCallback(run, { timeout: 500 });
+        } else {
+          window.setTimeout(run, 0);
+        }
+        return deferredInitialDataPromise;
+      }
+
+      async function loadDeferredInitialData({ includeArchived = false } = {}) {
+        const refreshAfter = async (task) => {
+          await task;
+          updateView();
+        };
+        await Promise.allSettled([
+          refreshAfter(loadOrganizationData({ includeArchived })),
+          refreshAfter(loadFormatData({ includeArchived })),
+          refreshAfter(loadExpertData({ includeArchived })),
+          refreshAfter(loadStakeholderData({ includeArchived })),
+          refreshAfter(loadSavedViews()),
+          refreshAfter(refreshNotificationSummary())
+        ]);
+        updateView();
+      }
+
       async function initializeData() {
         const initialRouteView = routeViewFromHash();
         let initialTargetView = initialRouteView || "";
-        loadLegacyOwnerAssignments();
         try {
-          const profiles = await window.dataService.getProfiles();
-          applyProfiles(profiles);
-          renderAccountProfile(await window.dataService.getCurrentProfile());
-          contacts = (await window.dataService.loadContacts({ includeArchived: canAdministerData() })).map((contact, index) => sanitizeContact(contact, index));
-          applyLegacyOwnerAssignments();
-          try {
-            if (window.dataService.loadOrganizations) {
-              organizations = mergeOrganizations(await window.dataService.loadOrganizations({ includeArchived: canAdministerData() }), deriveOrganizationsFromContacts(contacts));
-            } else {
-              organizations = deriveOrganizationsFromContacts(contacts);
-            }
-          } catch (organizationError) {
-            console.warn("Organisationen konnten nicht aus Supabase geladen werden. Kontaktbasierter Fallback aktiv.", organizationError);
-            organizations = deriveOrganizationsFromContacts(contacts);
-          }
-          try {
-            formats = window.dataService.loadFormats ? await window.dataService.loadFormats({ includeArchived: canAdministerData() }) : [];
-            formatLoadErrorMessage = "";
-            activeFormatId = formats.find((format) => format.status !== "Archiviert")?.id || formats[0]?.id || null;
-          } catch (formatError) {
-            console.warn("Formate konnten nicht geladen werden.", formatError);
-            formatLoadErrorMessage = String(formatError?.message || "Bitte prüfe die Supabase-Tabellen und RLS-Policies für Formate.");
-            formats = [];
-          }
-          await loadExpertData({ includeArchived: canAdministerData() });
-          await loadStakeholderData({ includeArchived: canAdministerData() });
-          await loadSavedViewsAndSettings();
-          await refreshNotificationSummary();
+          await loadCriticalInitialData();
           if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "stakeholders", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
             initialTargetView = userSettings.defaultViewType;
           }
-          loadedContactsFromStorage = false;
-          setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
+          scheduleDeferredInitialData();
         } catch (error) {
           console.error("Supabase-Daten konnten nicht geladen werden.", error);
           const message = String(error?.message || error?.details || "");

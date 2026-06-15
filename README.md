@@ -1,10 +1,12 @@
 # Versorgungs-Kompass
 
-Der Versorgungs-Kompass macht das gematik-Hospitationsnetzwerk sichtbar.
+Das gematik-Hospitationsnetzwerk sichtbar machen.
 
-Im Mittelpunkt steht die Karte: Sie zeigt, wo relevante Einrichtungen, Organisationen und Ansprechpersonen im Netzwerk verortet sind. So entsteht schnell ein gemeinsames Bild davon, welche Hospitationsorte bereits bekannt sind, wo Schwerpunkte liegen und welche Regionen oder Versorgungskontexte noch gezielt erschlossen werden koennen.
+Der `Versorgungs-Kompass` ist ein interner Arbeits- und Orientierungskompass fuer das gematik-Hospitationsnetzwerk. Er buendelt Kontakte, Organisationen, Standorte und fachliche Einordnungen so, dass aus einzelnen Anknuepfungspunkten ein gemeinsames Lagebild entsteht: Wer gehoert zu unserem Netzwerk? Wo sind Einrichtungen, Praxen, Kliniken, Kassen, Pflege- und Therapieangebote verortet? Welche Regionen sind bereits gut sichtbar und wo fehlen uns noch Perspektiven?
 
-Die Anwendung hilft dabei, ein wachsendes Netzwerk nicht nur als Liste zu verwalten, sondern raeumlich zu verstehen. Teams koennen Kontakte, Organisationen und fachliche Hinweise entlang der Karte einordnen, vergleichen und fuer die weitere Planung nutzen. Ziel ist eine uebersichtliche, nachvollziehbare Arbeitsgrundlage fuer Hospitationen, Austauschformate und den spaeteren internen Betrieb.
+Im Mittelpunkt steht die `Karte`. Sie soll schnell erfassbar machen, wie unser Hospitations-Netzwerk im Raum verteilt ist. Statt Kontakte nur als Liste zu betrachten, zeigt die Karte Cluster, weisse Flecken, regionale Schwerpunkte und moegliche Nachbarschaften zwischen Akteuren. Damit wird sie zum Einstieg fuer Planung, Abstimmung und Reflexion: Wo koennen Hospitationen sinnvoll gebuendelt werden? Welche Versorgungsbereiche sind in einer Region vertreten? Welche Kontakte liegen nahe beieinander und koennten gemeinsam gedacht werden?
+
+Das Ziel ist eine lebendige Uebersicht ueber unser Hospitations-Netzwerk: eine Karte, die Orientierung gibt, Gespraeche vorbereitet, Luecken sichtbar macht und hilft, aus vielen Einzelkontakten ein belastbares Bild der Versorgungspraxis zu entwickeln.
 
 Das Repository enthaelt die Weboberflaeche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen fuer Uebergabe und Betrieb. Produktive Netzwerkdaten liegen nicht im Repository, sondern in einem geschuetzten Backend.
 
@@ -86,6 +88,8 @@ Fuer Jenkins, GCP Cloud Run und API-Gateway siehe:
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`
 
 Wichtig: Ein Git-Push aktualisiert nur den Git-Stand. Wenn eine Aenderung produktive Backend-Daten betrifft, muss sie zusaetzlich in der Zielumgebung angewendet werden.
+
+Wichtig fuer die Sichtbarkeit: GitHub Pages veroeffentlicht nur statische Dateien. Die produktive App ist in `docs/data/supabase-config.js` auf `dataMode: "supabase"` gestellt und liest Versorgungs- und Stakeholder-Daten aus Supabase. Ein Commit und Push einer Supabase-Migration macht die Migration als Datei sichtbar, wendet sie aber nicht auf den produktiven Supabase-Datenstand an. Aenderungen an Datenfeldern wie `logo_url` sind in der App erst sichtbar, wenn sowohl die statischen Assets in `docs/public/` ausgeliefert werden als auch der Supabase-Live-Datenstand aktualisiert wurde.
 
 ## Pruefungen
 
