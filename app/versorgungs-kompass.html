@@ -31746,11 +31746,11 @@
         const sizeClass = size === "lg" ? "avatar-lg" : size === "sm" ? "avatar-sm" : "avatar-md";
         const fallback = `<span class="avatar avatar-fallback ${sizeClass} ${contact.avatarClass}">${escapeHtml(contact.initials)}</span>`;
         if (!hasMeaningfulValue(contact.image)) return fallback;
-        if (size !== "lg") return fallback;
         const imageUrl = escapeHtml(decodeAttributeValue(contact.image));
+        const loading = size === "sm" ? "eager" : "lazy";
         return `
           <span class="avatar contact-image contact-thumb ${sizeClass} ${contact.avatarClass}" aria-label="${escapeHtml(contact.displayName)}">
-            <img src="${imageUrl}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${escapeHtml(contact.initials)}';" />
+            <img src="${imageUrl}" alt="" loading="${loading}" decoding="async" onerror="this.hidden=true;this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${escapeHtml(contact.initials)}';" />
           </span>
         `;
       }
