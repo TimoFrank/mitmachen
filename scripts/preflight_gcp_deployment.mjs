@@ -5,8 +5,8 @@ const requiredFiles = [
   "Dockerfile",
   "Dockerfile.api",
   "Jenkinsfile",
-  "DEPLOYMENT_GCP_GEMATIK.md",
-  "API_CONTRACT.md",
+  "dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_GEMATIK.md",
+  "dokumentation/architektur/API_CONTRACT.md",
   "api/server.mjs",
   "docs/data/supabase-config.js"
 ];

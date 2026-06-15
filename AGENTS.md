@@ -5,7 +5,7 @@ Diese Regeln gelten fuer Codex- und Agentenarbeit im Versorgungs-Kompass.
 ## Produkt- und UX-Leitplanken
 
 - Der Versorgungs-Kompass ist eine CRM-App, keine Landingpage.
-- Vor neuen Features erst pruefen, ob sie zu `DESIGN_SYSTEM.md`, `UX_PRINCIPLES.md` und `VISUAL_QA_CHECKLIST.md` passen.
+- Vor neuen Features erst pruefen, ob sie zu `dokumentation/produkt-und-design/DESIGN_SYSTEM.md`, `dokumentation/produkt-und-design/UX_PRINCIPLES.md` und `dokumentation/produkt-und-design/VISUAL_QA_CHECKLIST.md` passen.
 - Lesemodus kommt vor Formularmodus. Kontakt- und Organisationsdetails werden als CRM-Profile behandelt.
 - Admin-, Rollen-, Deployment- und Betriebshinweise bleiben dezent.
 - Keine doppelten Titel, keine unnoetigen Badges, eine Suche pro Kontext.
@@ -16,10 +16,10 @@ Diese Regeln gelten fuer Codex- und Agentenarbeit im Versorgungs-Kompass.
 
 ## Designsystem-Regeln
 
-- Neue UI muss die Tokens und Regeln aus `DESIGN_SYSTEM.md` verwenden.
+- Neue UI muss die Tokens und Regeln aus `dokumentation/produkt-und-design/DESIGN_SYSTEM.md` verwenden.
 - Keine neuen hart codierten Farben, Gradients, Schatten oder Radien, wenn ein Token existiert.
 - Neue Komponentenvarianten nur einfuehren, wenn sie im Designsystem dokumentiert werden.
-- Buttons, Badges, Chips, Cards, Tabellen, Drawer, Modals, Detailpanels, Filter und Formulare gegen `COMPONENT_INVENTORY.md` pruefen.
+- Buttons, Badges, Chips, Cards, Tabellen, Drawer, Modals, Detailpanels, Filter und Formulare gegen `dokumentation/produkt-und-design/COMPONENT_INVENTORY.md` pruefen.
 - Keine Card-in-Card-Layouts. Cards sind wiederholbare Inhaltseinheiten oder echte Werkzeuge, keine dekorativen Seitencontainer.
 
 ## Arbeitsweise
@@ -30,7 +30,7 @@ Diese Regeln gelten fuer Codex- und Agentenarbeit im Versorgungs-Kompass.
 - Wenn Aenderungen auf GitHub/GitHub Pages live gehen sollen, immer `bash scripts/sync_github_pages.sh` ausfuehren und die aktualisierten `docs/`-Artefakte mitcommitten; der Nutzer muss das nicht extra anfordern.
 - Bestehende uncommitted Aenderungen nicht zuruecksetzen.
 - Keine grossen neuen Features waehrend eines Design-System-Konsolidierungssprints.
-- Nach sichtbaren UI-Aenderungen die `VISUAL_QA_CHECKLIST.md` abarbeiten.
+- Nach sichtbaren UI-Aenderungen die `dokumentation/produkt-und-design/VISUAL_QA_CHECKLIST.md` abarbeiten.
 
 ## Git-, Commit- und Push-Regeln
 
@@ -64,7 +64,7 @@ Diese Regeln gelten fuer Codex- und Agentenarbeit im Versorgungs-Kompass.
 
 ## Priorisierte technische UI-Schulden
 
-- Vor selektiven UI-Verbesserungen zuerst `UI_TECH_DEBT.md` lesen.
+- Vor selektiven UI-Verbesserungen zuerst `dokumentation/produkt-und-design/UI_TECH_DEBT.md` lesen.
 - P0-Schulden haben Vorrang vor neuen kosmetischen Einzelkorrekturen.
 - Die bestehende CSS-Override-Schicht ist Uebergang, nicht Zielarchitektur.
 

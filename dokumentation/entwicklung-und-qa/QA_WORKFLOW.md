@@ -43,7 +43,7 @@ Pflicht:
 npm run qa:full
 ```
 
-Bei sichtbaren UI-Aenderungen zusaetzlich die relevanten Punkte aus `VISUAL_QA_CHECKLIST.md` abgleichen. Bei GitHub-Pages-Auftraegen vorher `bash scripts/sync_github_pages.sh` ausfuehren und `docs/` mitpruefen.
+Bei sichtbaren UI-Aenderungen zusaetzlich die relevanten Punkte aus `../produkt-und-design/VISUAL_QA_CHECKLIST.md` abgleichen. Bei GitHub-Pages-Auftraegen vorher `bash scripts/sync_github_pages.sh` aus dem Repository-Root ausfuehren und `docs/` mitpruefen.
 
 ### Stufe 4: Publication-/Live-Verifikation
 

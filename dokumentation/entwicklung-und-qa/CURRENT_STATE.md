@@ -7,7 +7,7 @@ Stand: 2026-06-14.
 - Fuehrende App-Dateien: `app/versorgungs-kompass.html`, `map/versorgungs-kompass-map.html`, `login/login.html`.
 - `docs/` ist der GitHub-Pages-Spiegel und wird nur bei Push-/Live-/GitHub-Pages-Auftraegen synchronisiert.
 - Kleine UI-Wuensche starten im Effizienzmodus aus `QA_WORKFLOW.md`.
-- Bei sichtbaren UI-Aenderungen bleiben `DESIGN_SYSTEM.md`, `UX_PRINCIPLES.md`, `COMPONENT_INVENTORY.md`, `UI_TECH_DEBT.md` und `VISUAL_QA_CHECKLIST.md` die relevanten Leitplanken.
+- Bei sichtbaren UI-Aenderungen bleiben `../produkt-und-design/DESIGN_SYSTEM.md`, `../produkt-und-design/UX_PRINCIPLES.md`, `../produkt-und-design/COMPONENT_INVENTORY.md`, `../produkt-und-design/UI_TECH_DEBT.md` und `../produkt-und-design/VISUAL_QA_CHECKLIST.md` die relevanten Leitplanken.
 
 ## QA-Standard
 

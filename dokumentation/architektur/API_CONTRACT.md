@@ -2,7 +2,7 @@
 
 Diese API-Schicht kapselt produktive Supabase-Tabellenzugriffe fuer den Browser. Das Frontend sendet im API-Modus nur fachliche REST-Aufrufe an `/api/...`; Tabellenfelder, `select=...`-Listen und Supabase-REST-URLs bleiben serverseitig in `api/server.mjs`.
 
-Die technische Deployment-Doku fuer Jenkins, GCP Cloud Run und gematik-Zielbetrieb steht in `DEPLOYMENT_GCP_GEMATIK.md`.
+Die technische Deployment-Doku fuer Jenkins, GCP Cloud Run und gematik-Zielbetrieb steht in `../betrieb-und-deployment/DEPLOYMENT_GCP_GEMATIK.md`.
 
 ## Authentifizierung
 

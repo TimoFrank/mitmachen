@@ -149,4 +149,4 @@ curl -i https://<api-service-url>/api/healthz
 
 ## Abgrenzung
 
-Dieses Dokument beschreibt das technische Deployment. Fachlicher Betrieb, Rollen, Backups und Notfallablaeufe stehen in `BETRIEB.md`. Der API-Kontrakt und die Security-Abgrenzung stehen in `API_CONTRACT.md`.
+Dieses Dokument beschreibt das technische Deployment. Fachlicher Betrieb, Rollen, Backups und Notfallablaeufe stehen in `BETRIEB.md`. Der API-Kontrakt und die Security-Abgrenzung stehen in `../architektur/API_CONTRACT.md`.
