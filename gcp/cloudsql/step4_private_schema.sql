@@ -178,8 +178,8 @@ create table if not exists expert_contacts (
   notes text,
   source text,
   profile_url text,
-  owner_id uuid references profiles(id) on delete set null,
-  owner_ids uuid[] not null default '{}',
+  owner_id text references profiles(id) on delete set null,
+  owner_ids text[] not null default '{}',
   status text not null default 'active' check (status in ('active', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -272,6 +272,132 @@ create table if not exists stakeholder_people (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Existing private demo databases may predate later Step 5/9 columns.
+-- Keep this schema file idempotent for both fresh creates and in-place deploys.
+alter table if exists profiles add column if not exists initials text;
+alter table if exists profiles add column if not exists role text not null default 'editor';
+alter table if exists profiles add column if not exists avatar_url text;
+alter table if exists profiles add column if not exists team text;
+alter table if exists profiles add column if not exists bio text;
+alter table if exists profiles add column if not exists active boolean not null default true;
+alter table if exists profiles add column if not exists created_at timestamptz not null default now();
+alter table if exists profiles add column if not exists updated_at timestamptz not null default now();
+
+alter table if exists organizations add column if not exists normalized_name text;
+alter table if exists organizations add column if not exists sector text;
+alter table if exists organizations add column if not exists organization_type text;
+alter table if exists organizations add column if not exists postal_code text;
+alter table if exists organizations add column if not exists city text;
+alter table if exists organizations add column if not exists federal_state text;
+alter table if exists organizations add column if not exists latitude double precision;
+alter table if exists organizations add column if not exists longitude double precision;
+alter table if exists organizations add column if not exists website text;
+alter table if exists organizations add column if not exists phone text;
+alter table if exists organizations add column if not exists email text;
+alter table if exists organizations add column if not exists notes text;
+alter table if exists organizations add column if not exists source text;
+alter table if exists organizations add column if not exists status text not null default 'active';
+alter table if exists organizations add column if not exists created_at timestamptz not null default now();
+alter table if exists organizations add column if not exists created_by text references profiles(id) on delete set null;
+alter table if exists organizations add column if not exists updated_at timestamptz not null default now();
+alter table if exists organizations add column if not exists updated_by text references profiles(id) on delete set null;
+
+alter table if exists contacts add column if not exists organization_id text references organizations(id) on delete set null;
+alter table if exists contacts add column if not exists organization text;
+alter table if exists contacts add column if not exists sector text;
+alter table if exists contacts add column if not exists specialty text;
+alter table if exists contacts add column if not exists role text;
+alter table if exists contacts add column if not exists priority text not null default 'Mittel';
+alter table if exists contacts add column if not exists owner_id text references profiles(id) on delete set null;
+alter table if exists contacts add column if not exists postal_code text;
+alter table if exists contacts add column if not exists city text;
+alter table if exists contacts add column if not exists federal_state text;
+alter table if exists contacts add column if not exists latitude double precision;
+alter table if exists contacts add column if not exists longitude double precision;
+alter table if exists contacts add column if not exists email text;
+alter table if exists contacts add column if not exists phone text;
+alter table if exists contacts add column if not exists linkedin text;
+alter table if exists contacts add column if not exists topics text[] not null default '{}';
+alter table if exists contacts add column if not exists notes text;
+alter table if exists contacts add column if not exists next_step text;
+alter table if exists contacts add column if not exists source text;
+alter table if exists contacts add column if not exists image_url text;
+alter table if exists contacts add column if not exists image_source_url text;
+alter table if exists contacts add column if not exists image_source_label text;
+alter table if exists contacts add column if not exists image_rights_note text;
+alter table if exists contacts add column if not exists image_updated_at timestamptz;
+alter table if exists contacts add column if not exists image_updated_by text references profiles(id) on delete set null;
+alter table if exists contacts add column if not exists status text not null default 'active';
+alter table if exists contacts add column if not exists created_at timestamptz not null default now();
+alter table if exists contacts add column if not exists created_by text references profiles(id) on delete set null;
+alter table if exists contacts add column if not exists updated_at timestamptz not null default now();
+alter table if exists contacts add column if not exists updated_by text references profiles(id) on delete set null;
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'contacts' and column_name = 'owner'
+  ) then
+    execute $migrate_owner$
+      update contacts
+      set owner_id = profiles.id
+      from profiles
+      where contacts.owner_id is null
+        and lower(trim(contacts.owner)) = lower(trim(profiles.display_name))
+    $migrate_owner$;
+  end if;
+end;
+$$;
+
+alter table if exists changes add column if not exists field_name text;
+alter table if exists changes add column if not exists old_value text;
+alter table if exists changes add column if not exists new_value text;
+alter table if exists changes add column if not exists changed_at timestamptz not null default now();
+alter table if exists changes add column if not exists changed_by text references profiles(id) on delete set null;
+
+alter table if exists import_runs add column if not exists file_name text;
+alter table if exists import_runs add column if not exists status text not null default 'completed';
+alter table if exists import_runs add column if not exists total_rows integer not null default 0;
+alter table if exists import_runs add column if not exists valid_rows integer not null default 0;
+alter table if exists import_runs add column if not exists imported_contacts integer not null default 0;
+alter table if exists import_runs add column if not exists skipped_rows integer not null default 0;
+alter table if exists import_runs add column if not exists error_count integer not null default 0;
+alter table if exists import_runs add column if not exists warning_count integer not null default 0;
+alter table if exists import_runs add column if not exists report jsonb not null default '{}'::jsonb;
+alter table if exists import_runs add column if not exists created_at timestamptz not null default now();
+alter table if exists import_runs add column if not exists created_by text references profiles(id) on delete set null;
+
+alter table if exists formats add column if not exists format_type text not null default 'Roundtable';
+alter table if exists formats add column if not exists starts_at timestamptz;
+alter table if exists formats add column if not exists ends_at timestamptz;
+alter table if exists formats add column if not exists location text;
+alter table if exists formats add column if not exists goal text;
+alter table if exists formats add column if not exists owner_id text references profiles(id) on delete set null;
+alter table if exists formats add column if not exists status text not null default 'Planung';
+alter table if exists formats add column if not exists notes text;
+alter table if exists formats add column if not exists created_at timestamptz not null default now();
+alter table if exists formats add column if not exists created_by text references profiles(id) on delete set null;
+alter table if exists formats add column if not exists updated_at timestamptz not null default now();
+alter table if exists formats add column if not exists updated_by text references profiles(id) on delete set null;
+
+alter table if exists format_participants add column if not exists invitation_status text not null default 'Kandidat';
+alter table if exists format_participants add column if not exists participant_role text;
+alter table if exists format_participants add column if not exists notes text;
+alter table if exists format_participants add column if not exists created_at timestamptz not null default now();
+alter table if exists format_participants add column if not exists created_by text references profiles(id) on delete set null;
+alter table if exists format_participants add column if not exists updated_at timestamptz not null default now();
+alter table if exists format_participants add column if not exists updated_by text references profiles(id) on delete set null;
+
+alter table if exists expert_contacts add column if not exists owner_id text references profiles(id) on delete set null;
+alter table if exists expert_contacts add column if not exists owner_ids text[] not null default '{}';
+alter table if exists expert_entity_links add column if not exists created_by text references profiles(id) on delete set null;
+alter table if exists expert_entity_links add column if not exists updated_at timestamptz not null default now();
+alter table if exists expert_entity_links add column if not exists updated_by text references profiles(id) on delete set null;
+
+alter table if exists stakeholder_people add column if not exists map_position_source text;
+alter table if exists stakeholder_people add column if not exists is_representative_assembly_member boolean not null default false;
 
 create index if not exists profiles_active_idx on profiles(active);
 create index if not exists organizations_status_idx on organizations(status);

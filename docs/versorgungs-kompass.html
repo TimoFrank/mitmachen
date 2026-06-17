@@ -19492,7 +19492,7 @@
   <body>
     <div class="app-shell">
       <aside class="app-sidebar" aria-label="Hauptnavigation">
-        <a class="sidebar-brand" href="#contacts" id="brand-home-link" aria-label="Zur Versorgung">
+        <a class="sidebar-brand" href="#map" id="brand-home-link" aria-label="Zur Karte">
           <div class="brand-mark" aria-hidden="true">
             <span></span>
             <span></span>
@@ -19501,18 +19501,40 @@
           <strong>Versorgungs-Kompass</strong>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
-          <div class="sidebar-section" aria-label="Kontakte" data-sidebar-section="contacts">
-            <span class="sidebar-section-label">Kontakte</span>
-            <button class="primary-tab is-active" type="button" data-view-tab="contacts" data-view-group="care" title="Versorgung">
+          <div class="sidebar-section" aria-label="Versorgung" data-sidebar-section="contacts">
+            <span class="sidebar-section-label">Versorgung</span>
+            <button class="primary-tab is-active" type="button" data-view-tab="map" title="Karte">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                <path d="M9 3v15"></path>
+                <path d="M15 6v15"></path>
+              </svg>
+              <span>Karte</span>
+            </button>
+            <button class="primary-tab" type="button" data-view-tab="contacts" title="Kontakte">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9.5" cy="7" r="4"></circle>
                 <path d="M20 8v6"></path>
                 <path d="M23 11h-6"></path>
               </svg>
-              <span>Versorgung</span>
+              <span>Kontakte</span>
               <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
             </button>
+            <button class="primary-tab" type="button" data-view-tab="organizations" title="Organisationen">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M3 21h18"></path>
+                <path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path>
+                <path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path>
+                <path d="M9 7h3"></path>
+                <path d="M9 11h3"></path>
+                <path d="M9 15h3"></path>
+              </svg>
+              <span>Organisationen</span>
+            </button>
+          </div>
+          <div class="sidebar-section" aria-label="IOP" data-sidebar-section="iop">
+            <span class="sidebar-section-label">IOP</span>
             <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="7" r="3"></circle>
@@ -19524,6 +19546,9 @@
               </svg>
               <span>Expertenkreis</span>
             </button>
+          </div>
+          <div class="sidebar-section" aria-label="Stakeholder" data-sidebar-section="stakeholders">
+            <span class="sidebar-section-label">Stakeholder</span>
             <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Stakeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                 <path d="M3 21h18"></path>
@@ -19653,16 +19678,16 @@
           </div>
           <div class="workspace-expert-switcher" id="care-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Versorgung">
-              <button class="settings-tab-button is-active" type="button" role="tab" data-care-mode="contacts" aria-selected="true" aria-controls="view-contacts">
+              <button class="settings-tab-button is-active" type="button" role="tab" data-care-mode="map" aria-selected="true" aria-controls="view-map">
+                <span class="experts-mode-label">Karte </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-care-mode="contacts" aria-selected="false" aria-controls="view-contacts">
                 <span class="experts-mode-label">Kontakte </span>
                 <span class="experts-mode-count">0</span>
               </button>
               <button class="settings-tab-button" type="button" role="tab" data-care-mode="organizations" aria-selected="false" aria-controls="view-organizations">
                 <span class="experts-mode-label">Organisationen </span>
-                <span class="experts-mode-count">0</span>
-              </button>
-              <button class="settings-tab-button" type="button" role="tab" data-care-mode="map" aria-selected="false" aria-controls="view-map">
-                <span class="experts-mode-label">Karte </span>
                 <span class="experts-mode-count">0</span>
               </button>
             </div>
@@ -22652,7 +22677,7 @@
 
       const careViewModes = ["contacts", "organizations", "map"];
 
-      let activeView = "contacts";
+      let activeView = "map";
       let activeSettingsTab = "imports";
       let activeProfileTab = "profile";
       let activeExpertMode = "contacts";
@@ -29008,7 +29033,7 @@
       function profileSettingsPayload() {
         const preferences = userSettings?.preferences || {};
         return {
-          defaultViewType: userSettings?.defaultViewType || "contacts",
+          defaultViewType: userSettings?.defaultViewType || "map",
           tableDensity: userSettings?.tableDensity || "comfortable",
           preferences: {
             ...preferences,
@@ -39396,8 +39421,8 @@
         event.preventDefault();
         closeMenus();
         closeMobileSidebar();
-        setActiveView("contacts");
-        updateRouteHash("contacts");
+        setActiveView("map");
+        updateRouteHash("map");
         updateView();
       });
       sidebarTeamButton?.addEventListener("click", () => {
@@ -40476,7 +40501,7 @@
 
       async function initializeData() {
         const initialRouteView = routeViewFromHash();
-        let initialTargetView = initialRouteView || "";
+        let initialTargetView = initialRouteView || "map";
         try {
           await loadCriticalInitialData();
           if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "stakeholders", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {

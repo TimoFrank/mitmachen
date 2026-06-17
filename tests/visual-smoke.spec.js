@@ -235,14 +235,15 @@ async function expectPageSizeDropdownUsable(page, shellSelector, nextValue = "50
 }
 
 test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#contacts");
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#filter-panel-button")).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
-  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Kontakte" })).toHaveCount(1);
+  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Versorgung" })).toHaveCount(1);
   await expect(page.locator(".sidebar-section-label").filter({ hasText: "Planung" })).toHaveCount(1);
   await expect(page.locator(".sidebar-section-label").filter({ hasText: "Admin" })).toHaveCount(1);
+  await expect(page.locator('[data-view-tab="map"]')).toContainText("Karte");
   await expect(page.locator('[data-view-tab="experts"]')).toContainText("Expertenkreis");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
   if (!testInfo.project.name.includes("mobile")) {
@@ -290,14 +291,14 @@ test("Onboarding: neuer Supabase-Account richtet Profil ein und startet Tour", a
   await attachScreenshot(page, testInfo, "onboarding");
 });
 
-test("Onboarding: abgeschlossener neuer Account landet direkt in Kontakte", async ({ page }) => {
+test("Onboarding: abgeschlossener neuer Account landet direkt in Karte", async ({ page }) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html", {
     dataMode: "supabase",
     dataServiceScript: onboardingDataServiceScript({ completed: true })
   });
 
   await expect(page.locator('[data-view-panel="onboarding"]')).toBeHidden();
-  await expect(page.locator("#contact-list")).toBeVisible();
+  await expect(page.locator('[data-view-panel="map"]')).toBeVisible();
   await page.locator("#sidebar-profile-button").click();
   await expect(page.locator("#profile-onboarding-status")).toContainText("Du kannst sie jederzeit erneut starten.");
   const profileOnboardingStatusHtml = await page.locator("#profile-onboarding-status").evaluate((element) => element.innerHTML);
