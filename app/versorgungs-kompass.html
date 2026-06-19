@@ -19151,7 +19151,7 @@
 
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) .workspace-copy,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-copy,
       .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #summary-grid {
         display: none;
       }
@@ -19533,20 +19533,6 @@
                 <path d="M9 17h6"></path>
               </svg>
               <span>Expertenkreis</span>
-            </button>
-          </div>
-          <div class="sidebar-section" aria-label="Stakeholder" data-sidebar-section="stakeholders">
-            <span class="sidebar-section-label">Stakeholder</span>
-            <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Stakeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M3 21h18"></path>
-                <path d="M5 21V7l7-4 7 4v14"></path>
-                <path d="M9 21v-7h6v7"></path>
-                <path d="M9 9h.01"></path>
-                <path d="M12 9h.01"></path>
-                <path d="M15 9h.01"></path>
-              </svg>
-              <span>Stakeholder</span>
             </button>
           </div>
           <div class="sidebar-section" aria-label="Planung" data-sidebar-section="planning">
@@ -22478,7 +22464,6 @@
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const sidebarAboutButton = document.getElementById("sidebar-about-button");
-      const sidebarStakeholderButton = document.querySelector('[data-view-tab="stakeholders"]');
       const notificationCountNodes = {
         total: document.getElementById("notification-count-total"),
         care: document.getElementById("notification-count-care"),
@@ -23083,7 +23068,6 @@
         setRoleElementVisible(expertDuplicatesButton, canAdministerData());
         setRoleElementVisible(newFormatButton, canEditContacts());
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
-        setRoleElementVisible(sidebarStakeholderButton, canAdministerData());
         setRoleElementVisible(sidebarAnalyticsButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
         setRoleElementVisible(sidebarSettingsButton, true);
@@ -29420,7 +29404,7 @@
           target: ".primary-nav",
           placement: "right",
           title: "Navigation in der Sidebar",
-          body: "Die Sidebar bündelt die Hauptbereiche: Versorgung, IOP, Stakeholder, Planung und Admin bleiben klar getrennt."
+          body: "Die Sidebar bündelt die Hauptbereiche: Versorgung, IOP, Planung und Admin bleiben klar getrennt."
         },
         {
           view: "contacts",
