@@ -4,8 +4,8 @@ const port = 19000 + Math.floor(Math.random() * 1000);
 const env = {
   ...process.env,
   PORT: String(port),
-  SUPABASE_URL: "https://example.supabase.co",
-  SUPABASE_ANON_KEY: "test-anon-key"
+  API_AUTH_ALLOW_BEARER_DEV: "1",
+  API_AUTH_MODE: "iap"
 };
 
 function base64Url(value) {
@@ -67,6 +67,8 @@ const child = spawn(process.execPath, ["api/server.mjs"], {
 try {
   await waitForServer(child);
   await expectValidationFailure("/api/profile", { displayName: "Validierung", injectedSql: "select * from contacts" }, "injectedSql");
+  await expectValidationFailure("/api/hospitation-slots/test-slot", { startsAt: "2026-07-01T10:00:00.000Z", injectedSql: "select * from hospitation_slots" }, "injectedSql");
+  await expectValidationFailure("/api/hospitations/test-hospitation", { status: "Gebucht", injectedSql: "select * from hospitations" }, "injectedSql");
   console.log("API Validation Test OK: unbekannte JSON-Felder werden mit 400 abgewiesen.");
 } finally {
   child.kill("SIGTERM");

@@ -1,16 +1,20 @@
 # Datenmodell Versorgungs-Kompass
 
-Stand: abgeleitet aus `supabase/schema.sql` und `data/data-service.js`.
+Stand: abgeleitet aus `supabase/schema.sql`, `gcp/cloudsql/schema.sql` und `data/data-service.js`.
+
+Zielbild-Hinweis: Supabase bleibt in diesem Dokument als Ursprungsschema und Migrationsquelle sichtbar. Die neue GCP/gematik-Zielarchitektur fuehrt das relationale Modell in Cloud SQL PostgreSQL weiter.
 
 ## Ueberblick
 
-Der produktive Datenbestand liegt in Supabase im Schema `public`. Die App nutzt aktuell diese Tabellen:
+Der produktive Ziel-Datenbestand liegt in Cloud SQL PostgreSQL. Das bisherige Supabase-Schema `public` bleibt die wichtigste Migrationsquelle. Die App nutzt fachlich diese Tabellen:
 
 - `profiles`
 - `contacts`
 - `organizations`
 - `formats`
 - `format_participants`
+- `hospitation_slots`
+- `hospitations`
 - `changes`
 - `saved_views`
 - `user_settings`
@@ -29,6 +33,14 @@ erDiagram
   profiles ||--o{ formats : "owner_id"
   formats ||--o{ format_participants : "format_id"
   contacts ||--o{ format_participants : "contact_id"
+  profiles ||--o{ hospitation_slots : "owner_id"
+  contacts ||--o{ hospitation_slots : "contact_id"
+  organizations ||--o{ hospitation_slots : "organization_id"
+  hospitation_slots ||--o{ hospitations : "slot_id"
+  profiles ||--o{ hospitations : "owner_id"
+  profiles ||--o{ hospitations : "requester_profile_id"
+  contacts ||--o{ hospitations : "contact_id"
+  organizations ||--o{ hospitations : "organization_id"
   contacts ||--o{ changes : "contact_id"
   profiles ||--o{ changes : "changed_by"
   profiles ||--o{ saved_views : "owner_id"
@@ -247,6 +259,66 @@ Kritische Regeln:
 - `format_id` und `contact_id` sind eindeutig kombiniert; ein Kontakt kann pro Format nur einmal auftauchen.
 - Viewer lesen Formate und Teilnehmer, Editor/Admin pflegen sie, nur Admins loeschen Formate.
 
+## Tabelle `hospitation_slots`
+
+Zweck:
+
+- Interne Terminangebote fuer Hospitationen.
+- Grundlage fuer direkte Buchungen durch Editor/Admin.
+- Optionaler Bezug zu Kontakt oder Organisation, falls ein Slot bereits fachlich vorgeplant ist.
+
+Wichtigste Felder:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `id` | UUID, Primaerschluessel. |
+| `contact_id` | Optionaler Verweis auf `contacts.id`. |
+| `organization_id` | Optionaler Verweis auf `organizations.id`. |
+| `starts_at`, `ends_at` | Zeitraum des angebotenen Termins; `starts_at` ist Pflicht. |
+| `location` | Ort, Einrichtung, Raum oder Online-Hinweis. |
+| `capacity` | Interne Kapazitaet, mindestens 1. |
+| `owner_id` | Verantwortliches Profil. |
+| `status` | `Frei`, `Reserviert`, `Gebucht`, `Abgesagt` oder `Archiviert`. |
+| `notes` | Interne Terminnotiz. |
+| `created_by`, `updated_by`, `created_at`, `updated_at` | Nachvollziehbarkeit. |
+
+## Tabelle `hospitations`
+
+Zweck:
+
+- Eigenes CRM-Modell fuer Hospitationsanfragen, Buchungen, Durchfuehrung und Dokumentation.
+- Erfasst Versorgungskontakte und Organisationen, ohne Hospitationen als `formats`-Spezialfall zu behandeln.
+- Sichtbar im Arbeitsbereich `Hospitationen` und in Kontakt-/Organisationsprofilen.
+
+Wichtigste Felder:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `id` | UUID, Primaerschluessel. |
+| `slot_id` | Optionaler Verweis auf `hospitation_slots.id`. |
+| `contact_id` | Optionaler Verweis auf `contacts.id`. |
+| `organization_id` | Optionaler Verweis auf `organizations.id`. |
+| `requester_profile_id` | Profil, das die Anfrage bzw. Buchung ausgelöst hat. |
+| `owner_id` | Verantwortliches Profil. |
+| `status` | `Entwurf`, `Angefragt`, `Angeboten`, `Gebucht`, `Abgelehnt`, `Abgesagt`, `Durchgeführt`, `Dokumentiert` oder `Archiviert`. |
+| `requested_windows` | Optionale Terminwunschfenster als JSON. |
+| `starts_at`, `ends_at` | Geplanter oder gebuchter Zeitraum. |
+| `location` | Ort, Einrichtung, Raum oder Online-Hinweis. |
+| `goal` | Ziel oder Anlass der Hospitation. |
+| `topics` | Themenliste als Textarray. |
+| `request_note` | Interne Anfrage- oder Planungsnotiz. |
+| `documentation_summary` | Pflicht-Minimum fuer die Ergebnisnotiz nach Durchfuehrung. |
+| `documentation_outcome` | Auswertung, Ergebnis oder fachliche Einordnung. |
+| `follow_up_note`, `follow_up_owner_id`, `follow_up_due_at` | Nachverfolgung offener Aufgaben. |
+| `documented_at`, `documented_by` | Dokumentationszeitpunkt und dokumentierendes Profil. |
+| `created_by`, `updated_by`, `created_at`, `updated_at` | Nachvollziehbarkeit. |
+
+Kritische Regeln:
+
+- Viewer lesen aktive Hospitationen und Slots.
+- Editor/Admin koennen Hospitationen anfragen, buchen, durchfuehren und dokumentieren.
+- Archivierte Hospitationen und Slots bleiben Admins vorbehalten.
+
 ## Tabelle `changes`
 
 Zweck:
@@ -304,7 +376,7 @@ Wichtigste Felder:
 | `owner_id` | Besitzerprofil. |
 | `name`, `description` | Name und Beschreibung. |
 | `scope` | `private` oder `team`. |
-| `view_type` | `contacts`, `organizations`, `formats`, `map` oder `analytics`. |
+| `view_type` | `contacts`, `organizations`, `formats`, `hospitations`, `map` oder `analytics`. |
 | `filters` | Filter als JSON. |
 | `search_query` | Suchtext. |
 | `sort_key`, `sort_direction` | Sortierung. |
@@ -346,7 +418,7 @@ Wichtigste Felder:
 | --- | --- |
 | `user_id` | Verweis auf `profiles.id`, Primaerschluessel. |
 | `default_view_id` | Optionale Standardsicht. |
-| `default_view_type` | `contacts`, `organizations`, `formats`, `map` oder `analytics`. |
+| `default_view_type` | `contacts`, `organizations`, `formats`, `hospitations`, `map` oder `analytics`. |
 | `table_density` | `compact`, `comfortable`, `spacious`. |
 | `theme` | `system`, `light`, `contrast`. |
 | `font_scale` | Schriftgroesse zwischen 0.9 und 1.2. |
@@ -367,7 +439,7 @@ Kritische Felder:
 
 Hinweis:
 
-- `default_view_type` erlaubt `contacts`, `organizations`, `formats`, `map` und `analytics`.
+- `default_view_type` erlaubt `contacts`, `organizations`, `formats`, `hospitations`, `map` und `analytics`.
 - `table_density = compact` reduziert die Tabellenhoehe.
 - Benachrichtigungen sind nur als boolean `notificationsEnabled` vorbereitet; es gibt noch kein Notification-Center, keinen E-Mail-Versand und keine Push-Logik.
 

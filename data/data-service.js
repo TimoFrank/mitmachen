@@ -142,6 +142,49 @@
     "updated_at",
     "updated_by"
   ];
+  const HOSPITATION_SLOT_FIELDS = [
+    "id",
+    "contact_id",
+    "organization_id",
+    "starts_at",
+    "ends_at",
+    "location",
+    "capacity",
+    "owner_id",
+    "status",
+    "notes",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
+  const HOSPITATION_FIELDS = [
+    "id",
+    "slot_id",
+    "contact_id",
+    "organization_id",
+    "requester_profile_id",
+    "owner_id",
+    "status",
+    "requested_windows",
+    "starts_at",
+    "ends_at",
+    "location",
+    "goal",
+    "topics",
+    "request_note",
+    "documentation_summary",
+    "documentation_outcome",
+    "follow_up_note",
+    "follow_up_owner_id",
+    "follow_up_due_at",
+    "documented_at",
+    "documented_by",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
   const EXPERT_GROUP_FIELDS = ["id", "name", "sort_order", "status", "created_at", "updated_at"];
   const EXPERT_CONTACT_FIELDS = [
     "id",
@@ -263,6 +306,8 @@
   ];
   const PROFILE_IMAGE_BUCKET = "profile-images";
   const LOCAL_FORMATS_KEY = "versorgungs-kompass-formats-v1";
+  const LOCAL_HOSPITATION_SLOTS_KEY = "versorgungs-kompass-hospitation-slots-v1";
+  const LOCAL_HOSPITATIONS_KEY = "versorgungs-kompass-hospitations-v1";
   const LOCAL_EXPERT_CONTACTS_KEY = "versorgungs-kompass-expert-contacts-v1";
   const LOCAL_EXPERT_ORGANIZATIONS_KEY = "versorgungs-kompass-expert-organizations-v1";
   const LOCAL_EXPERT_ENTITY_LINKS_KEY = "versorgungs-kompass-expert-entity-links-v1";
@@ -298,6 +343,8 @@
   let stakeholderOrganizationCache = [];
   let stakeholderPeopleCache = [];
   let formatCache = [];
+  let hospitationSlotCache = [];
+  let hospitationCache = [];
   let savedViewCache = [];
   let notificationCache = [];
   let userSettingsCache = null;
@@ -310,6 +357,7 @@
   let supportsExpertOrganizationAssets = CAPABILITIES.expertOrganizationAssets === true;
   let supportsStakeholderOrganizationAssets = CAPABILITIES.stakeholderOrganizationAssets !== false;
   let supportsFormats = true;
+  let supportsHospitations = true;
   let supportsNotifications = true;
 
   function contactSelectFields() {
@@ -947,6 +995,68 @@
     if (!isDemoMode()) writeLocalStoredFormats(items.map((format) => formatDbToUi(format, format.participants || [])));
   }
 
+  function readLocalStoredHospitationSlots() {
+    try {
+      const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_HOSPITATION_SLOTS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Lokale Hospitationstermine konnten nicht gelesen werden.", error);
+      return [];
+    }
+  }
+
+  function writeLocalStoredHospitationSlots(items) {
+    try {
+      window.localStorage?.setItem(LOCAL_HOSPITATION_SLOTS_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.warn("Lokale Hospitationstermine konnten nicht gespeichert werden.", error);
+    }
+  }
+
+  function readLocalStoredHospitations() {
+    try {
+      const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_HOSPITATIONS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Lokale Hospitationen konnten nicht gelesen werden.", error);
+      return [];
+    }
+  }
+
+  function writeLocalStoredHospitations(items) {
+    try {
+      window.localStorage?.setItem(LOCAL_HOSPITATIONS_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.warn("Lokale Hospitationen konnten nicht gespeichert werden.", error);
+    }
+  }
+
+  function localHospitationSlots(options = {}) {
+    const rows = isDemoMode() && Array.isArray(demoData().hospitationSlots)
+      ? demoData().hospitationSlots
+      : readLocalStoredHospitationSlots();
+    return clone(rows)
+      .filter((slot) => options.includeArchived || slot.status !== "Archiviert")
+      .map(hospitationSlotDbToUi);
+  }
+
+  function localHospitations(options = {}) {
+    const rows = isDemoMode() && Array.isArray(demoData().hospitations)
+      ? demoData().hospitations
+      : readLocalStoredHospitations();
+    return clone(rows)
+      .filter((hospitation) => options.includeArchived || hospitation.status !== "Archiviert")
+      .map(hospitationDbToUi);
+  }
+
+  function persistLocalHospitationSlots(items = hospitationSlotCache) {
+    if (!isDemoMode()) writeLocalStoredHospitationSlots(items.map(hospitationSlotDbToUi));
+  }
+
+  function persistLocalHospitations(items = hospitationCache) {
+    if (!isDemoMode()) writeLocalStoredHospitations(items.map(hospitationDbToUi));
+  }
+
   function roleCanEdit() {
     return ["admin", "editor"].includes(String(localProfile().role || "").toLowerCase());
   }
@@ -969,9 +1079,21 @@
     return /formats|format_participants|relation .* does not exist|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
   }
 
+  function isMissingHospitationsError(error) {
+    return /hospitation_slots|hospitations|relation .* does not exist|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
+
   function formatSetupError(error) {
     const setupError = new Error(
       "Formate sind in Supabase noch nicht eingerichtet. Bitte die Formate-Migrationen in Supabase ausführen, damit Formate nicht nur lokal im Browser gespeichert werden."
+    );
+    setupError.cause = error;
+    return setupError;
+  }
+
+  function hospitationSetupError(error) {
+    const setupError = new Error(
+      "Hospitationen sind in Supabase noch nicht eingerichtet. Bitte die Hospitations-Migration in Supabase ausführen, damit Hospitationen nicht nur lokal im Browser gespeichert werden."
     );
     setupError.cause = error;
     return setupError;
@@ -1492,6 +1614,20 @@
     return "Kandidat";
   }
 
+  function normalizeHospitationStatus(value) {
+    const label = String(value || "").trim();
+    if (["Entwurf", "Angefragt", "Angeboten", "Gebucht", "Abgelehnt", "Abgesagt", "Durchgeführt", "Dokumentiert", "Archiviert"].includes(label)) return label;
+    if (label === "archived") return "Archiviert";
+    return "Angefragt";
+  }
+
+  function normalizeHospitationSlotStatus(value) {
+    const label = String(value || "").trim();
+    if (["Frei", "Reserviert", "Gebucht", "Abgesagt", "Archiviert"].includes(label)) return label;
+    if (label === "archived") return "Archiviert";
+    return "Frei";
+  }
+
   function participantDbToUi(row) {
     return {
       id: row.id || "",
@@ -1549,6 +1685,99 @@
       owner_id: format.ownerId || format.owner_id || resolveOwnerId(format.owner) || null,
       status: normalizeFormatStatus(format.status),
       notes: String(format.notes || "").trim() || null
+    };
+  }
+
+  function hospitationSlotDbToUi(row = {}) {
+    return {
+      id: row.id || "",
+      contactId: row.contact_id || row.contactId || "",
+      organizationId: row.organization_id || row.organizationId || "",
+      startsAt: row.starts_at || row.startsAt || "",
+      endsAt: row.ends_at || row.endsAt || "",
+      location: row.location || "",
+      capacity: Number(row.capacity || 1),
+      ownerId: row.owner_id || row.ownerId || "",
+      owner: profileName(row.owner_id || row.ownerId),
+      status: normalizeHospitationSlotStatus(row.status),
+      notes: row.notes || "",
+      createdAt: row.created_at || row.createdAt || "",
+      createdBy: row.created_by || row.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || ""
+    };
+  }
+
+  function hospitationSlotUiToDb(slot = {}) {
+    return {
+      contact_id: slot.contactId || slot.contact_id || null,
+      organization_id: slot.organizationId || slot.organization_id || null,
+      starts_at: slot.startsAt || slot.starts_at || null,
+      ends_at: slot.endsAt || slot.ends_at || null,
+      location: String(slot.location || "").trim() || null,
+      capacity: Math.max(1, Number.parseInt(slot.capacity || 1, 10) || 1),
+      owner_id: slot.ownerId || slot.owner_id || resolveOwnerId(slot.owner) || null,
+      status: normalizeHospitationSlotStatus(slot.status),
+      notes: String(slot.notes || "").trim() || null
+    };
+  }
+
+  function hospitationDbToUi(row = {}) {
+    return {
+      id: row.id || "",
+      slotId: row.slot_id || row.slotId || "",
+      contactId: row.contact_id || row.contactId || "",
+      organizationId: row.organization_id || row.organizationId || "",
+      requesterProfileId: row.requester_profile_id || row.requesterProfileId || "",
+      requester: profileName(row.requester_profile_id || row.requesterProfileId),
+      ownerId: row.owner_id || row.ownerId || "",
+      owner: profileName(row.owner_id || row.ownerId),
+      status: normalizeHospitationStatus(row.status),
+      requestedWindows: Array.isArray(row.requested_windows || row.requestedWindows) ? row.requested_windows || row.requestedWindows : [],
+      startsAt: row.starts_at || row.startsAt || "",
+      endsAt: row.ends_at || row.endsAt || "",
+      location: row.location || "",
+      goal: row.goal || "",
+      topics: Array.isArray(row.topics) ? row.topics : splitList(row.topics),
+      requestNote: row.request_note || row.requestNote || "",
+      documentationSummary: row.documentation_summary || row.documentationSummary || "",
+      documentationOutcome: row.documentation_outcome || row.documentationOutcome || "",
+      followUpNote: row.follow_up_note || row.followUpNote || "",
+      followUpOwnerId: row.follow_up_owner_id || row.followUpOwnerId || "",
+      followUpOwner: profileName(row.follow_up_owner_id || row.followUpOwnerId),
+      followUpDueAt: row.follow_up_due_at || row.followUpDueAt || "",
+      documentedAt: row.documented_at || row.documentedAt || "",
+      documentedBy: row.documented_by || row.documentedBy || "",
+      documentedByName: profileName(row.documented_by || row.documentedBy),
+      createdAt: row.created_at || row.createdAt || "",
+      createdBy: row.created_by || row.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || ""
+    };
+  }
+
+  function hospitationUiToDb(hospitation = {}) {
+    return {
+      slot_id: hospitation.slotId || hospitation.slot_id || null,
+      contact_id: hospitation.contactId || hospitation.contact_id || null,
+      organization_id: hospitation.organizationId || hospitation.organization_id || null,
+      requester_profile_id: hospitation.requesterProfileId || hospitation.requester_profile_id || null,
+      owner_id: hospitation.ownerId || hospitation.owner_id || resolveOwnerId(hospitation.owner) || null,
+      status: normalizeHospitationStatus(hospitation.status),
+      requested_windows: Array.isArray(hospitation.requestedWindows || hospitation.requested_windows) ? hospitation.requestedWindows || hospitation.requested_windows : [],
+      starts_at: hospitation.startsAt || hospitation.starts_at || null,
+      ends_at: hospitation.endsAt || hospitation.ends_at || null,
+      location: String(hospitation.location || "").trim() || null,
+      goal: String(hospitation.goal || "").trim() || null,
+      topics: splitList(hospitation.topics),
+      request_note: String(hospitation.requestNote || hospitation.request_note || "").trim() || null,
+      documentation_summary: String(hospitation.documentationSummary || hospitation.documentation_summary || "").trim() || null,
+      documentation_outcome: String(hospitation.documentationOutcome || hospitation.documentation_outcome || "").trim() || null,
+      follow_up_note: String(hospitation.followUpNote || hospitation.follow_up_note || "").trim() || null,
+      follow_up_owner_id: hospitation.followUpOwnerId || hospitation.follow_up_owner_id || null,
+      follow_up_due_at: hospitation.followUpDueAt || hospitation.follow_up_due_at || null,
+      documented_at: hospitation.documentedAt || hospitation.documented_at || null,
+      documented_by: hospitation.documentedBy || hospitation.documented_by || null
     };
   }
 
@@ -3942,6 +4171,250 @@
     return updated;
   }
 
+  function pruneDbPatch(payload, patch, mapping = []) {
+    mapping.forEach(([dbKey, keys]) => {
+      if (!keys.some((key) => Object.prototype.hasOwnProperty.call(patch, key))) delete payload[dbKey];
+    });
+    return payload;
+  }
+
+  const HOSPITATION_SLOT_PATCH_FIELDS = [
+    ["contact_id", ["contactId", "contact_id"]],
+    ["organization_id", ["organizationId", "organization_id"]],
+    ["starts_at", ["startsAt", "starts_at"]],
+    ["ends_at", ["endsAt", "ends_at"]],
+    ["location", ["location"]],
+    ["capacity", ["capacity"]],
+    ["owner_id", ["ownerId", "owner_id", "owner"]],
+    ["status", ["status"]],
+    ["notes", ["notes"]]
+  ];
+
+  const HOSPITATION_PATCH_FIELDS = [
+    ["slot_id", ["slotId", "slot_id"]],
+    ["contact_id", ["contactId", "contact_id"]],
+    ["organization_id", ["organizationId", "organization_id"]],
+    ["requester_profile_id", ["requesterProfileId", "requester_profile_id"]],
+    ["owner_id", ["ownerId", "owner_id", "owner"]],
+    ["status", ["status"]],
+    ["requested_windows", ["requestedWindows", "requested_windows"]],
+    ["starts_at", ["startsAt", "starts_at"]],
+    ["ends_at", ["endsAt", "ends_at"]],
+    ["location", ["location"]],
+    ["goal", ["goal"]],
+    ["topics", ["topics"]],
+    ["request_note", ["requestNote", "request_note"]],
+    ["documentation_summary", ["documentationSummary", "documentation_summary"]],
+    ["documentation_outcome", ["documentationOutcome", "documentation_outcome"]],
+    ["follow_up_note", ["followUpNote", "follow_up_note"]],
+    ["follow_up_owner_id", ["followUpOwnerId", "follow_up_owner_id"]],
+    ["follow_up_due_at", ["followUpDueAt", "follow_up_due_at"]],
+    ["documented_at", ["documentedAt", "documented_at"]],
+    ["documented_by", ["documentedBy", "documented_by"]]
+  ];
+
+  function hospitationOccupiesSlot(status = "") {
+    return ["Gebucht", "Durchgeführt", "Dokumentiert"].includes(normalizeHospitationStatus(status));
+  }
+
+  function syncLocalHospitationSlotStatus(slotId = "", status = "") {
+    if (!slotId) return;
+    const nextStatus = hospitationOccupiesSlot(status) ? "Gebucht" : status === "Abgesagt" ? "Abgesagt" : "";
+    if (!nextStatus) return;
+    hospitationSlotCache = hospitationSlotCache.map((slot) => slot.id === slotId ? { ...slot, status: nextStatus, updatedAt: new Date().toISOString() } : slot);
+    persistLocalHospitationSlots(hospitationSlotCache);
+  }
+
+  function hydrateHospitationFromLocalSlot(hospitation = {}) {
+    if (!hospitation.slotId && !hospitation.slot_id) return hospitation;
+    const slotId = hospitation.slotId || hospitation.slot_id;
+    const slot = hospitationSlotCache.find((item) => item.id === slotId) || null;
+    if (!slot) return hospitation;
+    return {
+      ...hospitation,
+      contactId: hospitation.contactId || slot.contactId,
+      organizationId: hospitation.organizationId || slot.organizationId,
+      startsAt: hospitation.startsAt || slot.startsAt,
+      endsAt: hospitation.endsAt || slot.endsAt,
+      location: hospitation.location || slot.location,
+      ownerId: hospitation.ownerId || slot.ownerId
+    };
+  }
+
+  async function loadHospitationSlots(options = {}) {
+    if (isLocalMode() || !supportsHospitations) {
+      hospitationSlotCache = localHospitationSlots(options);
+      return hospitationSlotCache;
+    }
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/hospitation-slots", {
+        includeArchived: options.includeArchived ? "true" : ""
+      });
+      hospitationSlotCache = Array.isArray(payload.items) ? payload.items : [];
+      return hospitationSlotCache;
+    }
+    await loadProfiles();
+    const { data, error } = await getClient()
+      .from("hospitation_slots")
+      .select(HOSPITATION_SLOT_FIELDS.join(","))
+      .order("starts_at", { ascending: true, nullsFirst: false })
+      .order("updated_at", { ascending: false, nullsFirst: false });
+    if (error) {
+      if (isMissingHospitationsError(error)) throw hospitationSetupError(error);
+      throw error;
+    }
+    hospitationSlotCache = (data || [])
+      .map(hospitationSlotDbToUi)
+      .filter((slot) => options.includeArchived || slot.status !== "Archiviert");
+    return hospitationSlotCache;
+  }
+
+  async function createHospitationSlot(slot) {
+    if (isLocalMode() || !supportsHospitations) {
+      requireLocalWrite("Hospitationstermin anlegen");
+      const now = new Date().toISOString();
+      const created = hospitationSlotDbToUi({
+        ...slot,
+        id: slot.id || `local-hospitation-slot-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        ownerId: slot.ownerId || localProfile().id,
+        createdAt: now,
+        updatedAt: now
+      });
+      hospitationSlotCache = [created, ...hospitationSlotCache.filter((item) => item.id !== created.id)];
+      persistLocalHospitationSlots(hospitationSlotCache);
+      return created;
+    }
+    if (usesApiGateway()) {
+      const created = await apiRequest("/api/hospitation-slots", { method: "POST", body: slot });
+      hospitationSlotCache = [created, ...hospitationSlotCache.filter((item) => item.id !== created.id)];
+      return created;
+    }
+    const userId = await getCurrentUserId();
+    const payload = { ...hospitationSlotUiToDb(slot), created_by: userId, updated_by: userId };
+    if (!payload.starts_at) throw new Error("Startzeit des Hospitationstermins fehlt.");
+    const { data, error } = await getClient().from("hospitation_slots").insert(payload).select(HOSPITATION_SLOT_FIELDS.join(",")).single();
+    if (error) throw error;
+    const created = hospitationSlotDbToUi(data);
+    hospitationSlotCache = [created, ...hospitationSlotCache.filter((item) => item.id !== created.id)];
+    return created;
+  }
+
+  async function updateHospitationSlot(id, patch = {}) {
+    if (isLocalMode() || !supportsHospitations) {
+      requireLocalWrite("Hospitationstermin bearbeiten");
+      const now = new Date().toISOString();
+      hospitationSlotCache = hospitationSlotCache.map((slot) => slot.id === id ? hospitationSlotDbToUi({ ...slot, ...patch, updatedAt: now }) : slot);
+      persistLocalHospitationSlots(hospitationSlotCache);
+      return hospitationSlotCache.find((slot) => slot.id === id) || null;
+    }
+    if (usesApiGateway()) {
+      const updated = await apiRequest(`/api/hospitation-slots/${encodeURIComponent(id)}`, { method: "PATCH", body: patch });
+      hospitationSlotCache = hospitationSlotCache.map((slot) => slot.id === id ? updated : slot);
+      return updated;
+    }
+    const userId = await getCurrentUserId();
+    const payload = pruneDbPatch({ ...hospitationSlotUiToDb(patch), updated_by: userId, updated_at: new Date().toISOString() }, patch, HOSPITATION_SLOT_PATCH_FIELDS);
+    const { data, error } = await getClient().from("hospitation_slots").update(payload).eq("id", id).select(HOSPITATION_SLOT_FIELDS.join(",")).single();
+    if (error) throw error;
+    const updated = hospitationSlotDbToUi(data);
+    hospitationSlotCache = hospitationSlotCache.map((slot) => slot.id === id ? updated : slot);
+    return updated;
+  }
+
+  async function loadHospitations(options = {}) {
+    if (isLocalMode() || !supportsHospitations) {
+      hospitationCache = localHospitations(options);
+      return hospitationCache;
+    }
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/hospitations", {
+        includeArchived: options.includeArchived ? "true" : ""
+      });
+      hospitationCache = Array.isArray(payload.items) ? payload.items : [];
+      return hospitationCache;
+    }
+    await loadProfiles();
+    const { data, error } = await getClient()
+      .from("hospitations")
+      .select(HOSPITATION_FIELDS.join(","))
+      .order("starts_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false, nullsFirst: false });
+    if (error) {
+      if (isMissingHospitationsError(error)) throw hospitationSetupError(error);
+      throw error;
+    }
+    hospitationCache = (data || [])
+      .map(hospitationDbToUi)
+      .filter((hospitation) => options.includeArchived || hospitation.status !== "Archiviert");
+    return hospitationCache;
+  }
+
+  async function createHospitation(hospitation) {
+    if (isLocalMode() || !supportsHospitations) {
+      requireLocalWrite("Hospitation anlegen");
+      const now = new Date().toISOString();
+      const hydrated = hydrateHospitationFromLocalSlot(hospitation);
+      const created = hospitationDbToUi({
+        ...hydrated,
+        id: hydrated.id || `local-hospitation-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        requesterProfileId: hydrated.requesterProfileId || localProfile().id,
+        ownerId: hydrated.ownerId || localProfile().id,
+        createdAt: now,
+        updatedAt: now
+      });
+      hospitationCache = [created, ...hospitationCache.filter((item) => item.id !== created.id)];
+      persistLocalHospitations(hospitationCache);
+      syncLocalHospitationSlotStatus(created.slotId, created.status);
+      return created;
+    }
+    if (usesApiGateway()) {
+      const created = await apiRequest("/api/hospitations", { method: "POST", body: hospitation });
+      hospitationCache = [created, ...hospitationCache.filter((item) => item.id !== created.id)];
+      return created;
+    }
+    const userId = await getCurrentUserId();
+    const payload = { ...hospitationUiToDb(hospitation), requester_profile_id: hospitation.requesterProfileId || userId, owner_id: hospitation.ownerId || userId, created_by: userId, updated_by: userId };
+    const { data, error } = await getClient().from("hospitations").insert(payload).select(HOSPITATION_FIELDS.join(",")).single();
+    if (error) throw error;
+    const created = hospitationDbToUi(data);
+    hospitationCache = [created, ...hospitationCache.filter((item) => item.id !== created.id)];
+    if (created.slotId && hospitationOccupiesSlot(created.status)) await updateHospitationSlot(created.slotId, { status: "Gebucht" });
+    return created;
+  }
+
+  async function updateHospitation(id, patch = {}) {
+    const patchWithDocumentedMeta = normalizeHospitationStatus(patch.status) === "Dokumentiert"
+      ? {
+          ...patch,
+          documentedAt: patch.documentedAt || patch.documented_at || new Date().toISOString(),
+          documentedBy: patch.documentedBy || patch.documented_by || localProfile().id
+        }
+      : patch;
+    if (isLocalMode() || !supportsHospitations) {
+      requireLocalWrite("Hospitation bearbeiten");
+      const now = new Date().toISOString();
+      hospitationCache = hospitationCache.map((hospitation) => hospitation.id === id ? hospitationDbToUi({ ...hospitation, ...patchWithDocumentedMeta, updatedAt: now }) : hospitation);
+      persistLocalHospitations(hospitationCache);
+      const updated = hospitationCache.find((hospitation) => hospitation.id === id) || null;
+      if (updated) syncLocalHospitationSlotStatus(updated.slotId, updated.status);
+      return updated;
+    }
+    if (usesApiGateway()) {
+      const updated = await apiRequest(`/api/hospitations/${encodeURIComponent(id)}`, { method: "PATCH", body: patch });
+      hospitationCache = hospitationCache.map((hospitation) => hospitation.id === id ? updated : hospitation);
+      return updated;
+    }
+    const userId = await getCurrentUserId();
+    const payload = pruneDbPatch({ ...hospitationUiToDb(patchWithDocumentedMeta), updated_by: userId, updated_at: new Date().toISOString() }, patchWithDocumentedMeta, HOSPITATION_PATCH_FIELDS);
+    if (normalizeHospitationStatus(patch.status) === "Dokumentiert" && !patch.documentedBy && !patch.documented_by) payload.documented_by = userId;
+    const { data, error } = await getClient().from("hospitations").update(payload).eq("id", id).select(HOSPITATION_FIELDS.join(",")).single();
+    if (error) throw error;
+    const updated = hospitationDbToUi(data);
+    hospitationCache = hospitationCache.map((hospitation) => hospitation.id === id ? updated : hospitation);
+    if (updated.slotId && hospitationOccupiesSlot(updated.status)) await updateHospitationSlot(updated.slotId, { status: "Gebucht" });
+    return updated;
+  }
+
   async function loadNotifications(options = {}) {
     const limit = Math.min(Math.max(Number(options.limit) || 30, 1), 100);
     const offset = Math.max(Number(options.offset) || 0, 0);
@@ -4155,6 +4628,12 @@
     addFormatParticipant,
     updateFormatParticipant,
     removeFormatParticipant,
+    loadHospitationSlots,
+    createHospitationSlot,
+    updateHospitationSlot,
+    loadHospitations,
+    createHospitation,
+    updateHospitation,
     loadNotifications,
     getNotificationSummary,
     markNotificationRead,

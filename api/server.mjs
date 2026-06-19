@@ -1,4 +1,6 @@
 import http from "node:http";
+import crypto from "node:crypto";
+import { Pool } from "pg";
 
 const CONTACT_FIELDS = [
   "id",
@@ -7,6 +9,7 @@ const CONTACT_FIELDS = [
   "organization",
   "sector",
   "specialty",
+  "role",
   "priority",
   "owner_id",
   "postal_code",
@@ -21,6 +24,11 @@ const CONTACT_FIELDS = [
   "notes",
   "source",
   "image_url",
+  "image_source_url",
+  "image_source_label",
+  "image_rights_note",
+  "image_updated_at",
+  "image_updated_by",
   "status",
   "created_at",
   "created_by",
@@ -132,6 +140,49 @@ const FORMAT_PARTICIPANT_FIELDS = [
   "invitation_status",
   "participant_role",
   "notes",
+  "created_at",
+  "created_by",
+  "updated_at",
+  "updated_by"
+];
+const HOSPITATION_SLOT_FIELDS = [
+  "id",
+  "contact_id",
+  "organization_id",
+  "starts_at",
+  "ends_at",
+  "location",
+  "capacity",
+  "owner_id",
+  "status",
+  "notes",
+  "created_at",
+  "created_by",
+  "updated_at",
+  "updated_by"
+];
+const HOSPITATION_FIELDS = [
+  "id",
+  "slot_id",
+  "contact_id",
+  "organization_id",
+  "requester_profile_id",
+  "owner_id",
+  "status",
+  "requested_windows",
+  "starts_at",
+  "ends_at",
+  "location",
+  "goal",
+  "topics",
+  "request_note",
+  "documentation_summary",
+  "documentation_outcome",
+  "follow_up_note",
+  "follow_up_owner_id",
+  "follow_up_due_at",
+  "documented_at",
+  "documented_by",
   "created_at",
   "created_by",
   "updated_at",
@@ -249,11 +300,17 @@ const STAKEHOLDER_PEOPLE_FIELDS = [
   "updated_at"
 ];
 const PORT = Number(process.env.PORT || 8081);
-const SUPABASE_URL = withoutTrailingSlash(process.env.SUPABASE_URL || "");
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "";
 const LOG_REQUESTS = process.env.API_LOG_REQUESTS === "1";
-const PROFILE_IMAGE_BUCKET = "profile-images";
+const PROFILE_IMAGE_BUCKET = process.env.PROFILE_IMAGE_BUCKET || "";
+const CONTACT_IMAGE_BUCKET = process.env.CONTACT_IMAGE_BUCKET || "";
+const API_AUTH_MODE = process.env.API_AUTH_MODE || "iap";
+const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1";
+const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
+const API_DEV_PROFILE_ID = process.env.API_DEV_PROFILE_ID || process.env.GCP_DEMO_PROFILE_ID || "";
+const IAP_JWT_AUDIENCE = process.env.IAP_JWT_AUDIENCE || "";
+const DEFAULT_DB_NAME = "versorgungs_kompass";
+const DEFAULT_DB_USER = "vk_app";
 
 const CONTACT_INPUT_FIELDS = [
   "id",
@@ -389,6 +446,64 @@ const FORMAT_INPUT_FIELDS = [
   "notes"
 ];
 const FORMAT_PARTICIPANT_INPUT_FIELDS = ["contactId", "contact_id", "invitationStatus", "invitation_status", "participantRole", "participant_role", "notes"];
+const HOSPITATION_SLOT_INPUT_FIELDS = [
+  "id",
+  "contactId",
+  "contact_id",
+  "organizationId",
+  "organization_id",
+  "startsAt",
+  "starts_at",
+  "endsAt",
+  "ends_at",
+  "location",
+  "capacity",
+  "ownerId",
+  "owner_id",
+  "owner",
+  "status",
+  "notes"
+];
+const HOSPITATION_INPUT_FIELDS = [
+  "id",
+  "slotId",
+  "slot_id",
+  "contactId",
+  "contact_id",
+  "organizationId",
+  "organization_id",
+  "requesterProfileId",
+  "requester_profile_id",
+  "ownerId",
+  "owner_id",
+  "owner",
+  "status",
+  "requestedWindows",
+  "requested_windows",
+  "startsAt",
+  "starts_at",
+  "endsAt",
+  "ends_at",
+  "location",
+  "goal",
+  "topics",
+  "requestNote",
+  "request_note",
+  "documentationSummary",
+  "documentation_summary",
+  "documentationOutcome",
+  "documentation_outcome",
+  "followUpNote",
+  "follow_up_note",
+  "followUpOwnerId",
+  "follow_up_owner_id",
+  "followUpDueAt",
+  "follow_up_due_at",
+  "documentedAt",
+  "documented_at",
+  "documentedBy",
+  "documented_by"
+];
 const EXPERT_CONTACT_INPUT_FIELDS = [
   "id",
   "name",
@@ -470,7 +585,39 @@ const EXPERT_ENTITY_LINK_INPUT_FIELDS = [
 const STAKEHOLDER_IMPORT_INPUT_FIELDS = ["types", "organizations", "people"];
 
 let profileCache = { expiresAt: 0, byId: new Map() };
+let iapKeyCache = { expiresAt: 0, keys: new Map() };
 let supportsContactOwners = true;
+let pool = null;
+
+const ROLE_MATRIX = [
+  {
+    role: "admin",
+    label: "Admin",
+    canRead: true,
+    canWrite: true,
+    canDelete: true,
+    canExport: true,
+    canOperate: true
+  },
+  {
+    role: "editor",
+    label: "Editor",
+    canRead: true,
+    canWrite: true,
+    canDelete: false,
+    canExport: false,
+    canOperate: false
+  },
+  {
+    role: "viewer",
+    label: "Viewer",
+    canRead: true,
+    canWrite: false,
+    canDelete: false,
+    canExport: false,
+    canOperate: false
+  }
+];
 
 function withoutTrailingSlash(value) {
   return String(value || "").replace(/\/+$/, "");
@@ -501,6 +648,20 @@ function normalizeInvitationStatus(value) {
   const label = String(value || "").trim();
   if (["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"].includes(label)) return label;
   return "Kandidat";
+}
+
+function normalizeHospitationStatus(value) {
+  const label = String(value || "").trim();
+  if (["Entwurf", "Angefragt", "Angeboten", "Gebucht", "Abgelehnt", "Abgesagt", "Durchgeführt", "Dokumentiert", "Archiviert"].includes(label)) return label;
+  if (label === "archived") return "Archiviert";
+  return "Angefragt";
+}
+
+function normalizeHospitationSlotStatus(value) {
+  const label = String(value || "").trim();
+  if (["Frei", "Reserviert", "Gebucht", "Abgesagt", "Archiviert"].includes(label)) return label;
+  if (label === "archived") return "Archiviert";
+  return "Frei";
 }
 
 function stringifyValue(value) {
@@ -1103,12 +1264,22 @@ function profilePatchToDb(profile = {}) {
   return db;
 }
 
-function publicStorageUrl(bucket, path) {
-  return `${SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path.split("/").map(encodeURIComponent).join("/")}`;
+function profileAvatarUrl(profileId) {
+  return `/api/profile-avatar/${encodeURIComponent(profileId)}`;
+}
+
+function profileRowToClient(row = {}) {
+  if (!row) return row;
+  const avatar = String(row.avatar_url || "");
+  return {
+    ...row,
+    avatar_url: avatar.startsWith("gs://") ? profileAvatarUrl(row.id) : avatar
+  };
 }
 
 function formatToDb(format = {}) {
   return {
+    id: String(format.id || generatedId("format")).trim(),
     title: String(format.title || "").trim(),
     format_type: String(format.formatType || format.format_type || "Roundtable").trim() || "Roundtable",
     starts_at: format.startsAt || format.starts_at || null,
@@ -1138,6 +1309,7 @@ function formatPatchToDb(patch = {}) {
 
 function formatParticipantToDb(participant = {}, formatId, contactId) {
   return {
+    id: String(participant.id || generatedId("format-participant")).trim(),
     format_id: formatId || participant.formatId || participant.format_id,
     contact_id: contactId || participant.contactId || participant.contact_id,
     invitation_status: normalizeInvitationStatus(participant.invitationStatus || participant.invitation_status),
@@ -1151,6 +1323,142 @@ function formatParticipantPatchToDb(patch = {}) {
   if ("invitationStatus" in patch || "invitation_status" in patch) db.invitation_status = normalizeInvitationStatus(patch.invitationStatus || patch.invitation_status);
   if ("participantRole" in patch || "participant_role" in patch) db.participant_role = String(patch.participantRole || patch.participant_role || "").trim() || null;
   if ("notes" in patch) db.notes = String(patch.notes || "").trim() || null;
+  return db;
+}
+
+function hospitationSlotToDto(row = {}) {
+  return {
+    id: row.id || "",
+    contactId: row.contact_id || "",
+    organizationId: row.organization_id || "",
+    startsAt: row.starts_at || "",
+    endsAt: row.ends_at || "",
+    location: row.location || "",
+    capacity: Number(row.capacity || 1),
+    ownerId: row.owner_id || "",
+    owner: profileName(row.owner_id),
+    status: normalizeHospitationSlotStatus(row.status),
+    notes: row.notes || "",
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || ""
+  };
+}
+
+function hospitationToDto(row = {}) {
+  return {
+    id: row.id || "",
+    slotId: row.slot_id || "",
+    contactId: row.contact_id || "",
+    organizationId: row.organization_id || "",
+    requesterProfileId: row.requester_profile_id || "",
+    requester: profileName(row.requester_profile_id),
+    ownerId: row.owner_id || "",
+    owner: profileName(row.owner_id),
+    status: normalizeHospitationStatus(row.status),
+    requestedWindows: Array.isArray(row.requested_windows) ? row.requested_windows : [],
+    startsAt: row.starts_at || "",
+    endsAt: row.ends_at || "",
+    location: row.location || "",
+    goal: row.goal || "",
+    topics: Array.isArray(row.topics) ? row.topics : [],
+    requestNote: row.request_note || "",
+    documentationSummary: row.documentation_summary || "",
+    documentationOutcome: row.documentation_outcome || "",
+    followUpNote: row.follow_up_note || "",
+    followUpOwnerId: row.follow_up_owner_id || "",
+    followUpOwner: profileName(row.follow_up_owner_id),
+    followUpDueAt: row.follow_up_due_at || "",
+    documentedAt: row.documented_at || "",
+    documentedBy: row.documented_by || "",
+    documentedByName: profileName(row.documented_by),
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || ""
+  };
+}
+
+function hospitationSlotToDb(slot = {}) {
+  return {
+    id: String(slot.id || generatedId("hospitation-slot")).trim(),
+    contact_id: slot.contactId || slot.contact_id || null,
+    organization_id: slot.organizationId || slot.organization_id || null,
+    starts_at: slot.startsAt || slot.starts_at || null,
+    ends_at: slot.endsAt || slot.ends_at || null,
+    location: String(slot.location || "").trim() || null,
+    capacity: Math.max(1, Number.parseInt(slot.capacity || 1, 10) || 1),
+    owner_id: slot.ownerId || slot.owner_id || resolveOwnerId(slot.owner) || null,
+    status: normalizeHospitationSlotStatus(slot.status),
+    notes: String(slot.notes || "").trim() || null
+  };
+}
+
+function hospitationSlotPatchToDb(patch = {}) {
+  const db = {};
+  if ("contactId" in patch || "contact_id" in patch) db.contact_id = patch.contactId || patch.contact_id || null;
+  if ("organizationId" in patch || "organization_id" in patch) db.organization_id = patch.organizationId || patch.organization_id || null;
+  if ("startsAt" in patch || "starts_at" in patch) db.starts_at = patch.startsAt || patch.starts_at || null;
+  if ("endsAt" in patch || "ends_at" in patch) db.ends_at = patch.endsAt || patch.ends_at || null;
+  if ("location" in patch) db.location = String(patch.location || "").trim() || null;
+  if ("capacity" in patch) db.capacity = Math.max(1, Number.parseInt(patch.capacity || 1, 10) || 1);
+  if ("ownerId" in patch || "owner_id" in patch) db.owner_id = patch.ownerId || patch.owner_id || null;
+  if (!("ownerId" in patch) && !("owner_id" in patch) && "owner" in patch) db.owner_id = resolveOwnerId(patch.owner);
+  if ("status" in patch) db.status = normalizeHospitationSlotStatus(patch.status);
+  if ("notes" in patch) db.notes = String(patch.notes || "").trim() || null;
+  return db;
+}
+
+function hospitationToDb(hospitation = {}, userId = "") {
+  return {
+    id: String(hospitation.id || generatedId("hospitation")).trim(),
+    slot_id: hospitation.slotId || hospitation.slot_id || null,
+    contact_id: hospitation.contactId || hospitation.contact_id || null,
+    organization_id: hospitation.organizationId || hospitation.organization_id || null,
+    requester_profile_id: hospitation.requesterProfileId || hospitation.requester_profile_id || userId || null,
+    owner_id: hospitation.ownerId || hospitation.owner_id || resolveOwnerId(hospitation.owner) || userId || null,
+    status: normalizeHospitationStatus(hospitation.status),
+    requested_windows: Array.isArray(hospitation.requestedWindows || hospitation.requested_windows) ? hospitation.requestedWindows || hospitation.requested_windows : [],
+    starts_at: hospitation.startsAt || hospitation.starts_at || null,
+    ends_at: hospitation.endsAt || hospitation.ends_at || null,
+    location: String(hospitation.location || "").trim() || null,
+    goal: String(hospitation.goal || "").trim() || null,
+    topics: splitList(hospitation.topics),
+    request_note: String(hospitation.requestNote || hospitation.request_note || "").trim() || null,
+    documentation_summary: String(hospitation.documentationSummary || hospitation.documentation_summary || "").trim() || null,
+    documentation_outcome: String(hospitation.documentationOutcome || hospitation.documentation_outcome || "").trim() || null,
+    follow_up_note: String(hospitation.followUpNote || hospitation.follow_up_note || "").trim() || null,
+    follow_up_owner_id: hospitation.followUpOwnerId || hospitation.follow_up_owner_id || null,
+    follow_up_due_at: hospitation.followUpDueAt || hospitation.follow_up_due_at || null,
+    documented_at: hospitation.documentedAt || hospitation.documented_at || null,
+    documented_by: hospitation.documentedBy || hospitation.documented_by || null
+  };
+}
+
+function hospitationPatchToDb(patch = {}) {
+  const db = {};
+  if ("slotId" in patch || "slot_id" in patch) db.slot_id = patch.slotId || patch.slot_id || null;
+  if ("contactId" in patch || "contact_id" in patch) db.contact_id = patch.contactId || patch.contact_id || null;
+  if ("organizationId" in patch || "organization_id" in patch) db.organization_id = patch.organizationId || patch.organization_id || null;
+  if ("requesterProfileId" in patch || "requester_profile_id" in patch) db.requester_profile_id = patch.requesterProfileId || patch.requester_profile_id || null;
+  if ("ownerId" in patch || "owner_id" in patch) db.owner_id = patch.ownerId || patch.owner_id || null;
+  if (!("ownerId" in patch) && !("owner_id" in patch) && "owner" in patch) db.owner_id = resolveOwnerId(patch.owner);
+  if ("status" in patch) db.status = normalizeHospitationStatus(patch.status);
+  if ("requestedWindows" in patch || "requested_windows" in patch) db.requested_windows = Array.isArray(patch.requestedWindows || patch.requested_windows) ? patch.requestedWindows || patch.requested_windows : [];
+  if ("startsAt" in patch || "starts_at" in patch) db.starts_at = patch.startsAt || patch.starts_at || null;
+  if ("endsAt" in patch || "ends_at" in patch) db.ends_at = patch.endsAt || patch.ends_at || null;
+  if ("location" in patch) db.location = String(patch.location || "").trim() || null;
+  if ("goal" in patch) db.goal = String(patch.goal || "").trim() || null;
+  if ("topics" in patch) db.topics = splitList(patch.topics);
+  if ("requestNote" in patch || "request_note" in patch) db.request_note = String(patch.requestNote || patch.request_note || "").trim() || null;
+  if ("documentationSummary" in patch || "documentation_summary" in patch) db.documentation_summary = String(patch.documentationSummary || patch.documentation_summary || "").trim() || null;
+  if ("documentationOutcome" in patch || "documentation_outcome" in patch) db.documentation_outcome = String(patch.documentationOutcome || patch.documentation_outcome || "").trim() || null;
+  if ("followUpNote" in patch || "follow_up_note" in patch) db.follow_up_note = String(patch.followUpNote || patch.follow_up_note || "").trim() || null;
+  if ("followUpOwnerId" in patch || "follow_up_owner_id" in patch) db.follow_up_owner_id = patch.followUpOwnerId || patch.follow_up_owner_id || null;
+  if ("followUpDueAt" in patch || "follow_up_due_at" in patch) db.follow_up_due_at = patch.followUpDueAt || patch.follow_up_due_at || null;
+  if ("documentedAt" in patch || "documented_at" in patch) db.documented_at = patch.documentedAt || patch.documented_at || null;
+  if ("documentedBy" in patch || "documented_by" in patch) db.documented_by = patch.documentedBy || patch.documented_by || null;
   return db;
 }
 
@@ -1204,6 +1512,7 @@ function organizationPatchToDb(patch = {}) {
 
 function organizationCreateToDb(organization = {}) {
   const db = organizationPatchToDb(organization);
+  db.id = String(organization.id || generatedId("organization")).trim();
   db.name = String(organization.name || "").trim();
   db.normalized_name = normalizeOrganizationName(organization.normalizedName || db.name);
   db.status = organization.status || "active";
@@ -1444,7 +1753,7 @@ function corsHeaders() {
   if (!ALLOWED_ORIGIN) return {};
   return {
     "access-control-allow-origin": ALLOWED_ORIGIN,
-    "access-control-allow-headers": "authorization, content-type",
+    "access-control-allow-headers": "authorization, content-type, x-goog-authenticated-user-email, x-goog-authenticated-user-id",
     "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     vary: "origin"
   };
@@ -1457,6 +1766,12 @@ function bearerToken(request) {
 }
 
 function userIdFromToken(request) {
+  if (request.currentProfile?.id) return request.currentProfile.id;
+  return bearerSubject(request);
+}
+
+function bearerSubject(request) {
+  if (!API_AUTH_ALLOW_BEARER_DEV) return "";
   const token = bearerToken(request);
   const [, payload] = token.split(".");
   if (!payload) return "";
@@ -1465,6 +1780,191 @@ function userIdFromToken(request) {
     return JSON.parse(json).sub || "";
   } catch {
     return "";
+  }
+}
+
+function cleanIdentityHeader(value = "") {
+  const raw = String(value || "").trim();
+  return raw.includes(":") ? raw.split(":").slice(1).join(":") : raw;
+}
+
+function iapEmail(request) {
+  return cleanIdentityHeader(
+    request.headers["x-goog-authenticated-user-email"] ||
+    request.headers["x-auth-request-email"] ||
+    request.headers["x-forwarded-email"] ||
+    ""
+  ).toLowerCase();
+}
+
+function iapSubject(request) {
+  return cleanIdentityHeader(request.headers["x-goog-authenticated-user-id"] || "");
+}
+
+function decodeJwtPart(value) {
+  try {
+    return JSON.parse(Buffer.from(String(value || ""), "base64url").toString("utf8"));
+  } catch {
+    const error = new Error("IAP-JWT konnte nicht gelesen werden.");
+    error.status = 401;
+    throw error;
+  }
+}
+
+async function iapPublicKeys() {
+  if (iapKeyCache.expiresAt > Date.now() && iapKeyCache.keys.size) return iapKeyCache.keys;
+  const response = await fetch("https://www.gstatic.com/iap/verify/public_key-jwk");
+  if (!response.ok) {
+    const error = new Error("IAP-Public-Keys konnten nicht geladen werden.");
+    error.status = 503;
+    throw error;
+  }
+  const payload = await response.json();
+  const keys = new Map();
+  for (const jwk of payload.keys || []) {
+    if (!jwk.kid) continue;
+    keys.set(jwk.kid, crypto.createPublicKey({ key: jwk, format: "jwk" }));
+  }
+  iapKeyCache = { expiresAt: Date.now() + 60 * 60 * 1000, keys };
+  return keys;
+}
+
+async function verifyIapJwt(request) {
+  if (request.iapPayload) return request.iapPayload;
+  if (API_AUTH_MODE !== "iap" || !IAP_JWT_AUDIENCE) return null;
+  const token = String(request.headers["x-goog-iap-jwt-assertion"] || "").trim();
+  if (!token) {
+    const error = new Error("Signiertes IAP-JWT fehlt.");
+    error.status = 401;
+    throw error;
+  }
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    const error = new Error("IAP-JWT ist ungueltig.");
+    error.status = 401;
+    throw error;
+  }
+  const [encodedHeader, encodedPayload, encodedSignature] = parts;
+  const header = decodeJwtPart(encodedHeader);
+  const payload = decodeJwtPart(encodedPayload);
+  if (header.alg !== "ES256" || !header.kid) {
+    const error = new Error("IAP-JWT nutzt keinen unterstuetzten Signaturalgorithmus.");
+    error.status = 401;
+    throw error;
+  }
+  const keys = await iapPublicKeys();
+  const publicKey = keys.get(header.kid);
+  if (!publicKey) {
+    const error = new Error("IAP-JWT-Key ist unbekannt.");
+    error.status = 401;
+    throw error;
+  }
+  const verified = crypto.verify(
+    "sha256",
+    Buffer.from(`${encodedHeader}.${encodedPayload}`),
+    { key: publicKey, dsaEncoding: "ieee-p1363" },
+    Buffer.from(encodedSignature, "base64url")
+  );
+  if (!verified) {
+    const error = new Error("IAP-JWT-Signatur ist ungueltig.");
+    error.status = 401;
+    throw error;
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const skew = 30;
+  if (payload.iss !== "https://cloud.google.com/iap" || payload.aud !== IAP_JWT_AUDIENCE) {
+    const error = new Error("IAP-JWT-Issuer oder Audience passt nicht.");
+    error.status = 401;
+    throw error;
+  }
+  if (Number(payload.exp || 0) < now - skew || Number(payload.iat || 0) > now + skew) {
+    const error = new Error("IAP-JWT-Zeitfenster ist ungueltig.");
+    error.status = 401;
+    throw error;
+  }
+  if (!payload.email || !payload.sub) {
+    const error = new Error("IAP-JWT enthaelt keine Nutzeridentitaet.");
+    error.status = 401;
+    throw error;
+  }
+  request.iapPayload = payload;
+  return payload;
+}
+
+function devProfileFromRequest(request) {
+  if (API_AUTH_ALLOW_BEARER_DEV) {
+    const tokenId = bearerSubject(request);
+    if (tokenId) {
+      return {
+        id: tokenId,
+        email: `${tokenId}@dev.local`,
+        display_name: "Validation Test",
+        initials: "VT",
+        role: "admin",
+        active: true
+      };
+    }
+  }
+  if (!API_AUTH_ALLOW_DEV_PROFILE) return null;
+  const id = API_DEV_PROFILE_ID || "local-admin";
+  return {
+    id,
+    email: `${id}@dev.local`,
+    display_name: "Lokales Admin-Profil",
+    initials: "LA",
+    role: "admin",
+    active: true
+  };
+}
+
+async function resolveRequestProfile(request) {
+  const devProfile = devProfileFromRequest(request);
+  if (devProfile) return devProfile;
+  const iapPayload = await verifyIapJwt(request);
+  const email = String(iapPayload?.email || iapEmail(request)).trim().toLowerCase();
+  const subject = String(iapPayload?.sub || iapSubject(request)).trim();
+  if (!email && !subject) {
+    const error = new Error("IAP-/SSO-Identitaet fehlt.");
+    error.status = 401;
+    throw error;
+  }
+  await loadProfiles(request);
+  const profile = [...profileCache.byId.values()].find((item) => {
+    const profileEmail = String(item.email || "").trim().toLowerCase();
+    return item.active !== false && ((email && profileEmail === email) || (subject && item.id === subject));
+  });
+  if (!profile) {
+    const error = new Error("SSO-Nutzer ist keinem aktiven Versorgungs-Kompass-Profil zugeordnet.");
+    error.status = 403;
+    throw error;
+  }
+  return profile;
+}
+
+function roleRank(role = "") {
+  return { viewer: 1, editor: 2, admin: 3 }[String(role || "").toLowerCase()] || 0;
+}
+
+function requiredRoleForRequest(method, pathname) {
+  if (method === "OPTIONS") return "";
+  if (["/healthz", "/api/healthz"].includes(pathname)) return "";
+  if (pathname === "/api/session") return "viewer";
+  if (pathname === "/api/export" || pathname.startsWith("/api/ops/")) return "admin";
+  if (method === "GET") return "viewer";
+  if (pathname === "/api/profile" || pathname === "/api/profile/avatar") return "viewer";
+  if (method === "DELETE" && pathname.startsWith("/api/formats/")) return "admin";
+  return "editor";
+}
+
+async function authorizeRequest(request, url) {
+  const requiredRole = requiredRoleForRequest(request.method, url.pathname);
+  if (!requiredRole) return;
+  const profile = await resolveRequestProfile(request);
+  request.currentProfile = profile;
+  if (roleRank(profile.role) < roleRank(requiredRole)) {
+    const error = new Error("Fuer diese Aktion fehlt die serverseitige Rolle.");
+    error.status = 403;
+    throw error;
   }
 }
 
@@ -1517,51 +2017,316 @@ async function readValidatedJsonBody(request, allowedFields, label = "Request Bo
   return body;
 }
 
-function assertConfigured() {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    const error = new Error("API ist nicht konfiguriert. SUPABASE_URL und SUPABASE_ANON_KEY fehlen.");
+const TABLE_FIELDS = new Map(Object.entries({
+  contacts: [...CONTACT_FIELDS, "role", "image_source_url", "image_source_label", "image_rights_note", "image_updated_at", "image_updated_by"],
+  contact_owners: CONTACT_OWNER_FIELDS,
+  organizations: ORGANIZATION_FIELDS,
+  profiles: PROFILE_FIELDS,
+  changes: CHANGE_FIELDS,
+  saved_views: SAVED_VIEW_FIELDS,
+  user_settings: USER_SETTINGS_FIELDS,
+  formats: FORMAT_FIELDS,
+  format_participants: FORMAT_PARTICIPANT_FIELDS,
+  hospitation_slots: HOSPITATION_SLOT_FIELDS,
+  hospitations: HOSPITATION_FIELDS,
+  expert_groups: EXPERT_GROUP_FIELDS,
+  expert_contacts: EXPERT_CONTACT_FIELDS,
+  expert_organizations: [...EXPERT_ORGANIZATION_FIELDS, "logo_url", "logo_source_url", "logo_source_label", "member_count", "member_count_source_url", "member_count_source_label", "member_count_updated_at", "member_count_scope"],
+  expert_entity_links: EXPERT_ENTITY_LINK_FIELDS,
+  stakeholder_types: STAKEHOLDER_TYPE_FIELDS,
+  stakeholder_organizations: STAKEHOLDER_ORGANIZATION_FIELDS,
+  stakeholder_people: STAKEHOLDER_PEOPLE_FIELDS,
+  notification_events: ["id", "event_type", "entity_type", "entity_id", "actor_id", "title", "body", "occurred_at", "route", "payload", "created_at"],
+  notification_recipients: ["event_id", "user_id", "read_at", "dismissed_at", "created_at"]
+}));
+
+function getPool() {
+  if (pool) return pool;
+  if (process.env.DATABASE_URL) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: Number(process.env.DB_POOL_MAX || 5),
+      ssl: process.env.DB_SSL === "1" ? { rejectUnauthorized: false } : undefined
+    });
+    return pool;
+  }
+  const host = process.env.DB_HOST || process.env.PGHOST || "";
+  const database = process.env.DB_NAME || process.env.PGDATABASE || DEFAULT_DB_NAME;
+  const user = process.env.DB_USER || process.env.PGUSER || DEFAULT_DB_USER;
+  const password = process.env.DB_PASSWORD || process.env.PGPASSWORD || "";
+  if (!host && !process.env.PGHOST) {
+    const error = new Error("Cloud-SQL-Verbindung fehlt. Bitte DATABASE_URL oder DB_HOST/DB_NAME/DB_USER/DB_PASSWORD setzen.");
     error.status = 500;
     throw error;
   }
+  pool = new Pool({
+    host,
+    port: Number(process.env.DB_PORT || process.env.PGPORT || 5432),
+    database,
+    user,
+    password,
+    max: Number(process.env.DB_POOL_MAX || 5)
+  });
+  return pool;
 }
 
-async function supabaseRest(path, request, searchParams = new URLSearchParams(), options = {}) {
-  assertConfigured();
-  const token = bearerToken(request);
-  if (!token) {
-    const error = new Error("Authorization Bearer Token fehlt.");
-    error.status = 401;
+function tableFields(table) {
+  const fields = TABLE_FIELDS.get(table);
+  if (!fields) {
+    const error = new Error(`Unbekannte Cloud-SQL-Tabelle: ${table}`);
+    error.status = 500;
     throw error;
   }
+  return new Set(fields);
+}
 
-  const url = new URL(`${SUPABASE_URL}/rest/v1/${path}`);
-  searchParams.forEach((value, key) => url.searchParams.append(key, value));
+function qid(identifier) {
+  if (!/^[a-z_][a-z0-9_]*$/i.test(identifier)) {
+    throw validationError(`Ungueltiger SQL-Identifier: ${identifier}`);
+  }
+  return `"${identifier.replace(/"/g, '""')}"`;
+}
 
-  const headers = {
-    apikey: SUPABASE_ANON_KEY,
-    authorization: `Bearer ${token}`,
-    accept: "application/json",
-    ...(options.headers || {})
-  };
-  if (options.body) headers["content-type"] = "application/json";
+function dbValue(value) {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (value === "null") return null;
+  return value;
+}
 
-  const response = await fetch(url, {
-    method: options.method || "GET",
-    headers: {
-      ...headers
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined
+function parseInValues(value) {
+  const match = /^in\.\((.*)\)$/.exec(value);
+  if (!match) return [];
+  return match[1].split(",").map((item) => dbValue(item.trim())).filter((item) => item !== "");
+}
+
+function buildWhere(table, searchParams, values) {
+  const fields = tableFields(table);
+  const clauses = [];
+  for (const [key, rawValue] of searchParams.entries()) {
+    if (["select", "order", "limit", "offset", "on_conflict"].includes(key)) continue;
+    if (!fields.has(key)) continue;
+    const value = String(rawValue || "");
+    const column = qid(key);
+    if (value.startsWith("eq.")) {
+      values.push(dbValue(value.slice(3)));
+      clauses.push(`${column} = $${values.length}`);
+    } else if (value.startsWith("neq.")) {
+      values.push(dbValue(value.slice(4)));
+      clauses.push(`${column} <> $${values.length}`);
+    } else if (value.startsWith("gte.")) {
+      values.push(dbValue(value.slice(4)));
+      clauses.push(`${column} >= $${values.length}`);
+    } else if (value.startsWith("lte.")) {
+      values.push(dbValue(value.slice(4)));
+      clauses.push(`${column} <= $${values.length}`);
+    } else if (value.startsWith("gt.")) {
+      values.push(dbValue(value.slice(3)));
+      clauses.push(`${column} > $${values.length}`);
+    } else if (value.startsWith("lt.")) {
+      values.push(dbValue(value.slice(3)));
+      clauses.push(`${column} < $${values.length}`);
+    } else if (value.startsWith("in.")) {
+      const items = parseInValues(value);
+      if (!items.length) {
+        clauses.push("false");
+      } else {
+        values.push(items);
+        clauses.push(`${column} = any($${values.length})`);
+      }
+    } else if (value === "is.null") {
+      clauses.push(`${column} is null`);
+    } else if (value === "not.is.null") {
+      clauses.push(`${column} is not null`);
+    }
+  }
+  return clauses.length ? ` where ${clauses.join(" and ")}` : "";
+}
+
+function buildOrder(table, searchParams) {
+  const fields = tableFields(table);
+  const order = searchParams.get("order");
+  if (!order) return "";
+  const clauses = order.split(",").map((part) => {
+    const [field, direction = "asc", nulls] = part.split(".");
+    if (!fields.has(field)) return "";
+    const dir = direction.toLowerCase() === "desc" ? "desc" : "asc";
+    const nullsClause = nulls === "nullslast" ? " nulls last" : nulls === "nullsfirst" ? " nulls first" : "";
+    return `${qid(field)} ${dir}${nullsClause}`;
+  }).filter(Boolean);
+  return clauses.length ? ` order by ${clauses.join(", ")}` : "";
+}
+
+function buildLimitOffset(searchParams, values) {
+  const clauses = [];
+  const limit = Number(searchParams.get("limit"));
+  const offset = Number(searchParams.get("offset"));
+  if (Number.isFinite(limit) && limit > 0) {
+    values.push(Math.min(limit, 5000));
+    clauses.push(` limit $${values.length}`);
+  }
+  if (Number.isFinite(offset) && offset > 0) {
+    values.push(offset);
+    clauses.push(` offset $${values.length}`);
+  }
+  return clauses.join("");
+}
+
+async function selectRows(table, searchParams) {
+  const values = [];
+  const where = buildWhere(table, searchParams, values);
+  const order = buildOrder(table, searchParams);
+  const limitOffset = buildLimitOffset(searchParams, values);
+  const result = await getPool().query(`select * from ${qid(table)}${where}${order}${limitOffset}`, values);
+  if (table === "changes" && String(searchParams.get("select") || "").includes("contacts(")) {
+    await attachContactsToChanges(result.rows);
+  }
+  if (table === "notification_recipients") {
+    await attachNotificationEvents(result.rows);
+  }
+  return result.rows;
+}
+
+async function attachContactsToChanges(rows = []) {
+  const ids = uniqueIds(rows.map((row) => row.contact_id));
+  if (!ids.length) return;
+  const result = await getPool().query("select id, name, organization, sector, specialty, city, federal_state, image_url, status from contacts where id = any($1)", [ids]);
+  const byId = new Map(result.rows.map((row) => [row.id, row]));
+  rows.forEach((row) => {
+    row.contacts = byId.get(row.contact_id) || null;
   });
-  if (!response.ok) {
-    const details = await response.text();
-    const error = new Error(`Supabase Anfrage fehlgeschlagen (${response.status}).`);
-    error.status = response.status;
-    error.details = details;
-    throw error;
+}
+
+async function attachNotificationEvents(rows = []) {
+  const ids = uniqueIds(rows.map((row) => row.event_id));
+  if (!ids.length) return;
+  const result = await getPool().query("select * from notification_events where id = any($1)", [ids]);
+  const byId = new Map(result.rows.map((row) => [row.id, row]));
+  rows.forEach((row) => {
+    row.notification_events = byId.get(row.event_id) || null;
+  });
+}
+
+function sanitizeRowForTable(table, row = {}) {
+  const fields = tableFields(table);
+  return Object.fromEntries(Object.entries(row).filter(([key]) => fields.has(key)));
+}
+
+function insertSql(table, rows, searchParams, options = {}) {
+  const items = (Array.isArray(rows) ? rows : [rows]).map((row) => sanitizeRowForTable(table, row));
+  if (!items.length || items.some((row) => !Object.keys(row).length)) {
+    throw validationError(`Keine gueltigen Felder fuer ${table}.`);
   }
-  const text = await response.text();
-  if (!text) return null;
-  return JSON.parse(text);
+  const columns = [...new Set(items.flatMap((row) => Object.keys(row)))];
+  const values = [];
+  const tuples = items.map((row) => {
+    const placeholders = columns.map((column) => {
+      values.push(Object.prototype.hasOwnProperty.call(row, column) ? row[column] : null);
+      return `$${values.length}`;
+    });
+    return `(${placeholders.join(", ")})`;
+  });
+  const conflict = String(searchParams.get("on_conflict") || "").split(",").map((field) => field.trim()).filter(Boolean);
+  let conflictClause = "";
+  const prefer = String(options.headers?.prefer || "");
+  if (conflict.length) {
+    const conflictColumns = conflict.map(qid).join(", ");
+    if (prefer.includes("ignore-duplicates")) {
+      conflictClause = ` on conflict (${conflictColumns}) do nothing`;
+    } else {
+      const updates = columns
+        .filter((column) => !conflict.includes(column))
+        .map((column) => `${qid(column)} = excluded.${qid(column)}`);
+      conflictClause = updates.length
+        ? ` on conflict (${conflictColumns}) do update set ${updates.join(", ")}`
+        : ` on conflict (${conflictColumns}) do nothing`;
+    }
+  }
+  return {
+    sql: `insert into ${qid(table)} (${columns.map(qid).join(", ")}) values ${tuples.join(", ")}${conflictClause} returning *`,
+    values
+  };
+}
+
+async function insertRows(table, searchParams, options = {}) {
+  const { sql, values } = insertSql(table, options.body, searchParams, options);
+  const result = await getPool().query(sql, values);
+  return result.rows;
+}
+
+async function patchRows(table, searchParams, options = {}) {
+  const payload = sanitizeRowForTable(table, options.body || {});
+  const columns = Object.keys(payload);
+  if (!columns.length) return [];
+  const values = [];
+  const assignments = columns.map((column) => {
+    values.push(payload[column]);
+    return `${qid(column)} = $${values.length}`;
+  });
+  const where = buildWhere(table, searchParams, values);
+  const result = await getPool().query(`update ${qid(table)} set ${assignments.join(", ")}${where} returning *`, values);
+  return result.rows;
+}
+
+async function deleteRows(table, searchParams) {
+  const values = [];
+  const where = buildWhere(table, searchParams, values);
+  await getPool().query(`delete from ${qid(table)}${where}`, values);
+  return [];
+}
+
+async function createNotificationEventRpc(input = {}) {
+  const recipientIds = uniqueIds(input.p_recipient_ids || []);
+  if (!recipientIds.length) return null;
+  const client = await getPool().connect();
+  try {
+    await client.query("begin");
+    const id = generatedId("notification-event");
+    const event = await client.query(
+      `insert into notification_events
+        (id, event_type, entity_type, entity_id, actor_id, title, body, route, payload)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       returning *`,
+      [
+        id,
+        input.p_event_type || "notice",
+        input.p_entity_type || "system",
+        input.p_entity_id || "",
+        input.p_actor_id || null,
+        input.p_title || "Hinweis",
+        input.p_body || "",
+        input.p_route || "",
+        input.p_payload || {}
+      ]
+    );
+    for (const userId of recipientIds) {
+      await client.query(
+        `insert into notification_recipients (event_id, user_id)
+         values ($1, $2)
+         on conflict (event_id, user_id) do nothing`,
+        [id, userId]
+      );
+    }
+    await client.query("commit");
+    return event.rows[0];
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function cloudSqlRest(path, request, searchParams = new URLSearchParams(), options = {}) {
+  if (path === "rpc/create_notification_event") return createNotificationEventRpc(options.body || {});
+  const method = String(options.method || "GET").toUpperCase();
+  if (method === "GET") return selectRows(path, searchParams);
+  if (method === "POST") return insertRows(path, searchParams, options);
+  if (method === "PATCH") return patchRows(path, searchParams, options);
+  if (method === "DELETE") return deleteRows(path, searchParams);
+  const error = new Error(`Nicht unterstuetzte Cloud-SQL-Methode: ${method}`);
+  error.status = 405;
+  throw error;
 }
 
 function isMissingContactOwnersError(error) {
@@ -1585,7 +2350,7 @@ async function loadContactOwnerRows(request, contactIds = []) {
   const ids = [...new Set(contactIds.map((id) => String(id || "").trim()).filter(Boolean))];
   if (!ids.length) return [];
   try {
-    return await supabaseRest("contact_owners", request, new URLSearchParams({
+    return await cloudSqlRest("contact_owners", request, new URLSearchParams({
       select: CONTACT_OWNER_FIELDS.join(","),
       contact_id: `in.(${ids.join(",")})`,
       order: "assigned_at.asc"
@@ -1613,7 +2378,7 @@ async function createNotificationEvent(request, input = {}) {
   const recipientIds = uniqueIds(input.recipientIds || input.recipient_ids || []);
   if (!actorId || !recipientIds.length) return null;
   try {
-    return await supabaseRest("rpc/create_notification_event", request, new URLSearchParams(), {
+    return await cloudSqlRest("rpc/create_notification_event", request, new URLSearchParams(), {
       method: "POST",
       body: {
         p_event_type: input.eventType || input.event_type || "notice",
@@ -1639,14 +2404,14 @@ async function organizationContactOwnerIds(request, organization = {}) {
   const name = String(organization.name || "").trim();
   let rows = [];
   if (id) {
-    rows = await supabaseRest("contacts", request, new URLSearchParams({
+    rows = await cloudSqlRest("contacts", request, new URLSearchParams({
       select: CONTACT_FIELDS.join(","),
       organization_id: `eq.${id}`,
       status: "neq.archived"
     })) || [];
   }
   if (!rows.length && name) {
-    rows = await supabaseRest("contacts", request, new URLSearchParams({
+    rows = await cloudSqlRest("contacts", request, new URLSearchParams({
       select: CONTACT_FIELDS.join(","),
       organization: `eq.${name}`,
       status: "neq.archived"
@@ -1662,7 +2427,7 @@ async function formatParticipantOwnerIds(request, format = {}) {
     : [...(await formatParticipantsByFormat(request, [format.id])).values()].flat();
   const contactIds = uniqueIds(participants.map((participant) => participant.contactId || participant.contact_id));
   if (!contactIds.length) return [];
-  const rows = await supabaseRest("contacts", request, new URLSearchParams({
+  const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
     select: CONTACT_FIELDS.join(","),
     id: `in.(${contactIds.join(",")})`
   })) || [];
@@ -1773,7 +2538,7 @@ async function replaceStoredContactOwners(request, contactId, oldOwnerIds = [], 
   const nextIds = normalizeOwnerIds(nextOwnerIds);
   if (!contactOwnersChanged(oldIds, nextIds)) return;
   try {
-    await supabaseRest("contact_owners", request, new URLSearchParams({ contact_id: `eq.${contactId}` }), {
+    await cloudSqlRest("contact_owners", request, new URLSearchParams({ contact_id: `eq.${contactId}` }), {
       method: "DELETE",
       headers: { prefer: "return=minimal" }
     });
@@ -1785,7 +2550,7 @@ async function replaceStoredContactOwners(request, contactId, oldOwnerIds = [], 
     throw error;
   }
   if (nextIds.length) {
-    await supabaseRest("contact_owners", request, new URLSearchParams(), {
+    await cloudSqlRest("contact_owners", request, new URLSearchParams(), {
       method: "POST",
       headers: { prefer: "return=minimal" },
       body: nextIds.map((profileId) => ({
@@ -1796,7 +2561,7 @@ async function replaceStoredContactOwners(request, contactId, oldOwnerIds = [], 
     });
   }
   if (log) {
-    await supabaseRest("changes", request, new URLSearchParams(), {
+    await cloudSqlRest("changes", request, new URLSearchParams(), {
       method: "POST",
       headers: { prefer: "return=minimal" },
       body: {
@@ -1811,35 +2576,75 @@ async function replaceStoredContactOwners(request, contactId, oldOwnerIds = [], 
   }
 }
 
-async function supabaseStorage(path, request, options = {}) {
-  assertConfigured();
-  const token = bearerToken(request);
-  if (!token) {
-    const error = new Error("Authorization Bearer Token fehlt.");
-    error.status = 401;
-    throw error;
-  }
-  const url = new URL(`${SUPABASE_URL}/storage/v1/${path}`);
-  const headers = {
-    apikey: SUPABASE_ANON_KEY,
-    authorization: `Bearer ${token}`,
-    ...(options.headers || {})
-  };
-  const response = await fetch(url, {
-    method: options.method || "GET",
-    headers,
-    body: options.body
+function storageEnabled(bucket) {
+  return Boolean(bucket);
+}
+
+async function googleAccessToken() {
+  if (process.env.GOOGLE_OAUTH_ACCESS_TOKEN) return process.env.GOOGLE_OAUTH_ACCESS_TOKEN;
+  const response = await fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", {
+    headers: { "metadata-flavor": "Google" }
   });
   if (!response.ok) {
+    const error = new Error("Google-Access-Token fuer Cloud Storage konnte nicht gelesen werden.");
+    error.status = 500;
+    throw error;
+  }
+  const payload = await response.json();
+  return payload.access_token || "";
+}
+
+async function storageFetch(url, options = {}) {
+  const token = await googleAccessToken();
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      authorization: `Bearer ${token}`,
+      ...(options.headers || {})
+    }
+  });
+  if (!response.ok && response.status !== 404) {
     const details = await response.text();
-    const error = new Error(`Supabase Storage Anfrage fehlgeschlagen (${response.status}).`);
+    const error = new Error(`Cloud-Storage-Anfrage fehlgeschlagen (${response.status}).`);
     error.status = response.status;
     error.details = details;
     throw error;
   }
-  const text = await response.text();
-  if (!text) return null;
-  return JSON.parse(text);
+  return response;
+}
+
+async function saveStorageObject(bucket, objectName, buffer, contentType) {
+  if (!storageEnabled(bucket)) {
+    const error = new Error("Cloud-Storage-Bucket ist nicht konfiguriert.");
+    error.status = 500;
+    throw error;
+  }
+  const url = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=media&name=${encodeURIComponent(objectName)}`;
+  const response = await storageFetch(url, {
+    method: "POST",
+    headers: { "content-type": contentType },
+    body: buffer
+  });
+  return response.ok;
+}
+
+async function deleteStorageObject(bucket, objectName) {
+  if (!storageEnabled(bucket) || !objectName) return;
+  await storageFetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`, {
+    method: "DELETE"
+  });
+}
+
+async function readStorageObject(bucket, objectName) {
+  const metadata = await storageFetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`);
+  if (metadata.status === 404) return null;
+  const meta = await metadata.json();
+  const media = await storageFetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}?alt=media`);
+  if (media.status === 404) return null;
+  return {
+    buffer: Buffer.from(await media.arrayBuffer()),
+    contentType: meta.contentType || "application/octet-stream"
+  };
 }
 
 async function loadProfiles(request) {
@@ -1848,10 +2653,13 @@ async function loadProfiles(request) {
     select: PROFILE_FIELDS.join(","),
     active: "eq.true"
   });
-  const rows = await supabaseRest("profiles", request, params);
+  const rows = await cloudSqlRest("profiles", request, params);
   profileCache = {
     expiresAt: Date.now() + 60_000,
-    byId: new Map((rows || []).map((profile) => [profile.id, profile]))
+    byId: new Map((rows || []).map((profile) => {
+      const mapped = profileRowToClient(profile);
+      return [mapped.id, mapped];
+    }))
   };
 }
 
@@ -1861,20 +2669,28 @@ async function listProfiles(request) {
 }
 
 async function getCurrentProfile(request) {
-  await loadProfiles(request);
-  const userId = userIdFromToken(request);
-  if (!userId) {
-    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
-    error.status = 401;
-    throw error;
-  }
-  return profileCache.byId.get(userId) || null;
+  if (!request.currentProfile) request.currentProfile = await resolveRequestProfile(request);
+  return profileRowToClient(request.currentProfile);
+}
+
+async function getSession(request) {
+  const profile = await getCurrentProfile(request);
+  return {
+    authMode: API_AUTH_MODE,
+    authModeLabel: API_AUTH_MODE === "iap" ? "IAP/SSO" : "Backend-Identitaet",
+    identitySource: iapEmail(request) || iapSubject(request) || (API_AUTH_ALLOW_DEV_PROFILE ? "lokales Dev-Profil" : ""),
+    enforcement: "server-side",
+    enforcementLabel: "Rollen werden in der API serverseitig geprueft.",
+    profile,
+    roleMatrix: ROLE_MATRIX
+  };
 }
 
 async function patchCurrentProfile(request) {
+  if (!request.currentProfile) request.currentProfile = await resolveRequestProfile(request);
   const userId = userIdFromToken(request);
   if (!userId) {
-    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    const error = new Error("User-ID konnte nicht aus der IAP-/SSO-Identitaet gelesen werden.");
     error.status = 401;
     throw error;
   }
@@ -1885,7 +2701,7 @@ async function patchCurrentProfile(request) {
     throw error;
   }
   payload.updated_at = new Date().toISOString();
-  const rows = await supabaseRest("profiles", request, new URLSearchParams({
+  const rows = await cloudSqlRest("profiles", request, new URLSearchParams({
     id: `eq.${userId}`,
     select: PROFILE_FIELDS.join(",")
   }), {
@@ -1900,14 +2716,20 @@ async function patchCurrentProfile(request) {
   }
   profileCache.expiresAt = 0;
   await loadProfiles(request);
-  return rows[0];
+  return profileRowToClient(rows[0]);
 }
 
 async function uploadCurrentProfileAvatar(request) {
+  if (!request.currentProfile) request.currentProfile = await resolveRequestProfile(request);
   const userId = userIdFromToken(request);
   if (!userId) {
-    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    const error = new Error("User-ID konnte nicht aus der IAP-/SSO-Identitaet gelesen werden.");
     error.status = 401;
+    throw error;
+  }
+  if (!PROFILE_IMAGE_BUCKET) {
+    const error = new Error("PROFILE_IMAGE_BUCKET ist nicht konfiguriert.");
+    error.status = 500;
     throw error;
   }
   const body = await readValidatedJsonBody(request, PROFILE_AVATAR_UPLOAD_FIELDS, "Profilfoto-Upload");
@@ -1930,33 +2752,36 @@ async function uploadCurrentProfileAvatar(request) {
     throw error;
   }
   const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
-  const path = `${userId}/avatar.${extension}`;
-  await supabaseStorage(`object/${PROFILE_IMAGE_BUCKET}/${path}`, request, {
-    method: "POST",
-    headers: {
-      "cache-control": "3600",
-      "content-type": contentType,
-      "x-upsert": "true"
-    },
-    body: buffer
+  const objectName = `profile-images/${userId}/avatar.${extension}`;
+  await saveStorageObject(PROFILE_IMAGE_BUCKET, objectName, buffer, contentType);
+  const avatarUrl = profileAvatarUrl(userId);
+  await cloudSqlRest("profiles", request, new URLSearchParams({
+    id: `eq.${userId}`,
+    select: PROFILE_FIELDS.join(",")
+  }), {
+    method: "PATCH",
+    headers: { prefer: "return=representation" },
+    body: {
+      avatar_url: `gs://${PROFILE_IMAGE_BUCKET}/${objectName}`,
+      updated_at: new Date().toISOString()
+    }
   });
-  return { publicUrl: publicStorageUrl(PROFILE_IMAGE_BUCKET, path), path };
+  profileCache.expiresAt = 0;
+  return { publicUrl: avatarUrl, path: objectName };
 }
 
 async function removeCurrentProfileAvatar(request) {
+  if (!request.currentProfile) request.currentProfile = await resolveRequestProfile(request);
   const userId = userIdFromToken(request);
   if (!userId) {
-    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    const error = new Error("User-ID konnte nicht aus der IAP-/SSO-Identitaet gelesen werden.");
     error.status = 401;
     throw error;
   }
-  const paths = ["jpg", "jpeg", "png", "webp"].map((extension) => `${userId}/avatar.${extension}`);
-  await supabaseStorage(`object/${PROFILE_IMAGE_BUCKET}`, request, {
-    method: "DELETE",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ prefixes: paths })
-  });
-  const rows = await supabaseRest("profiles", request, new URLSearchParams({
+  await Promise.all(["jpg", "jpeg", "png", "webp"].map((extension) =>
+    deleteStorageObject(PROFILE_IMAGE_BUCKET, `profile-images/${userId}/avatar.${extension}`)
+  ));
+  const rows = await cloudSqlRest("profiles", request, new URLSearchParams({
     id: `eq.${userId}`,
     select: PROFILE_FIELDS.join(",")
   }), {
@@ -1969,7 +2794,26 @@ async function removeCurrentProfileAvatar(request) {
   });
   profileCache.expiresAt = 0;
   await loadProfiles(request);
-  return rows?.[0] || null;
+  return profileRowToClient(rows?.[0] || null);
+}
+
+async function readProfileAvatar(request, response, profileId) {
+  await authorizeRequest(request, new URL("/api/profile-avatar", "http://local"));
+  if (!PROFILE_IMAGE_BUCKET) return jsonResponse(response, 404, { error: "Profilbild-Bucket ist nicht konfiguriert." });
+  for (const extension of ["jpg", "jpeg", "png", "webp"]) {
+    const objectName = `profile-images/${profileId}/avatar.${extension}`;
+    const object = await readStorageObject(PROFILE_IMAGE_BUCKET, objectName);
+    if (object) {
+      response.writeHead(200, {
+        "content-type": object.contentType,
+        "cache-control": "private, max-age=300",
+        ...corsHeaders()
+      });
+      response.end(object.buffer);
+      return;
+    }
+  }
+  return jsonResponse(response, 404, { error: "Profilbild nicht gefunden." });
 }
 
 async function listContacts(request, url) {
@@ -1980,7 +2824,7 @@ async function listContacts(request, url) {
   });
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
   if (url.searchParams.get("status")) params.set("status", `eq.${url.searchParams.get("status")}`);
-  const rows = await supabaseRest("contacts", request, params);
+  const rows = await cloudSqlRest("contacts", request, params);
   return { items: await decorateRowsWithStoredOwners(request, rows || []) };
 }
 
@@ -1991,7 +2835,7 @@ async function organizationContactCounts(request, ids = []) {
     organization_id: `in.(${ids.join(",")})`,
     status: "neq.archived"
   });
-  const rows = await supabaseRest("contacts", request, params);
+  const rows = await cloudSqlRest("contacts", request, params);
   return (rows || []).reduce((counts, row) => {
     if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
     return counts;
@@ -2004,7 +2848,7 @@ async function listOrganizations(request, url) {
     order: "updated_at.desc.nullslast,name.asc"
   });
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
-  const rows = await supabaseRest("organizations", request, params);
+  const rows = await cloudSqlRest("organizations", request, params);
   const counts = await organizationContactCounts(request, (rows || []).map((row) => row.id));
   return { items: (rows || []).map((row) => organizationToDto(row, counts.get(row.id) || 0)) };
 }
@@ -2015,7 +2859,7 @@ async function listExpertGroups(request, url) {
     order: "sort_order.asc,name.asc"
   });
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
-  const rows = await supabaseRest("expert_groups", request, params);
+  const rows = await cloudSqlRest("expert_groups", request, params);
   return { items: (rows || []).map(expertGroupToDto) };
 }
 
@@ -2026,7 +2870,7 @@ async function listExpertContacts(request, url) {
   });
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
   if (url.searchParams.get("status")) params.set("status", `eq.${url.searchParams.get("status")}`);
-  const rows = await supabaseRest("expert_contacts", request, params);
+  const rows = await cloudSqlRest("expert_contacts", request, params);
   return { items: (rows || []).map(expertContactToDto) };
 }
 
@@ -2035,7 +2879,7 @@ async function createExpertContact(request) {
   const payload = expertContactCreateToDb(
     await readValidatedJsonBody(request, EXPERT_CONTACT_INPUT_FIELDS, "Expertenkreis-Kontakt")
   );
-  const rows = await supabaseRest("expert_contacts", request, new URLSearchParams({
+  const rows = await cloudSqlRest("expert_contacts", request, new URLSearchParams({
     select: EXPERT_CONTACT_FIELDS.join(",")
   }), {
     method: "POST",
@@ -2055,7 +2899,7 @@ async function patchExpertContact(request, id) {
     throw error;
   }
   dbPatch.updated_at = new Date().toISOString();
-  const rows = await supabaseRest("expert_contacts", request, new URLSearchParams({
+  const rows = await cloudSqlRest("expert_contacts", request, new URLSearchParams({
     id: `eq.${id}`,
     select: EXPERT_CONTACT_FIELDS.join(",")
   }), {
@@ -2078,7 +2922,7 @@ async function expertOrganizationContactCounts(request, ids = []) {
     organization_id: `in.(${ids.join(",")})`,
     status: "neq.archived"
   });
-  const rows = await supabaseRest("expert_contacts", request, params);
+  const rows = await cloudSqlRest("expert_contacts", request, params);
   return (rows || []).reduce((counts, row) => {
     if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
     return counts;
@@ -2091,7 +2935,7 @@ async function listExpertOrganizations(request, url) {
     order: "name.asc"
   });
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
-  const rows = await supabaseRest("expert_organizations", request, params);
+  const rows = await cloudSqlRest("expert_organizations", request, params);
   const counts = await expertOrganizationContactCounts(request, (rows || []).map((row) => row.id));
   return { items: (rows || []).map((row) => expertOrganizationToDto(row, counts.get(row.id) || 0)) };
 }
@@ -2100,7 +2944,7 @@ async function createExpertOrganization(request) {
   const payload = expertOrganizationCreateToDb(
     await readValidatedJsonBody(request, EXPERT_ORGANIZATION_INPUT_FIELDS, "Expertenkreis-Organisation")
   );
-  const rows = await supabaseRest("expert_organizations", request, new URLSearchParams({
+  const rows = await cloudSqlRest("expert_organizations", request, new URLSearchParams({
     select: EXPERT_ORGANIZATION_FIELDS.join(",")
   }), {
     method: "POST",
@@ -2111,7 +2955,7 @@ async function createExpertOrganization(request) {
 }
 
 async function listExpertEntityLinks(request) {
-  const rows = await supabaseRest("expert_entity_links", request, new URLSearchParams({
+  const rows = await cloudSqlRest("expert_entity_links", request, new URLSearchParams({
     select: EXPERT_ENTITY_LINK_FIELDS.join(","),
     order: "updated_at.desc.nullslast"
   }));
@@ -2129,7 +2973,7 @@ async function createExpertEntityLink(request) {
     await readValidatedJsonBody(request, EXPERT_ENTITY_LINK_INPUT_FIELDS, "Expertenkreis-Verknuepfung"),
     userId
   );
-  const rows = await supabaseRest("expert_entity_links", request, new URLSearchParams({
+  const rows = await cloudSqlRest("expert_entity_links", request, new URLSearchParams({
     select: EXPERT_ENTITY_LINK_FIELDS.join(",")
   }), {
     method: "POST",
@@ -2145,7 +2989,7 @@ async function listStakeholderTypes(request, url) {
     order: "sort_order.asc,label.asc"
   });
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
-  const rows = await supabaseRest("stakeholder_types", request, params);
+  const rows = await cloudSqlRest("stakeholder_types", request, params);
   return { items: (rows || []).map(stakeholderTypeToDto) };
 }
 
@@ -2156,7 +3000,7 @@ async function stakeholderPeopleCounts(request, ids = []) {
     organization_id: `in.(${ids.join(",")})`,
     status: "neq.archived"
   });
-  const rows = await supabaseRest("stakeholder_people", request, params);
+  const rows = await cloudSqlRest("stakeholder_people", request, params);
   return (rows || []).reduce((counts, row) => {
     if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
     return counts;
@@ -2170,7 +3014,7 @@ async function listStakeholderOrganizations(request, url) {
   });
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
   if (url.searchParams.get("stakeholderTypeId")) params.set("stakeholder_type_id", `eq.${url.searchParams.get("stakeholderTypeId")}`);
-  const rows = await supabaseRest("stakeholder_organizations", request, params);
+  const rows = await cloudSqlRest("stakeholder_organizations", request, params);
   const counts = await stakeholderPeopleCounts(request, (rows || []).map((row) => row.id));
   return { items: (rows || []).map((row) => stakeholderOrganizationToDto(row, counts.get(row.id) || 0)) };
 }
@@ -2183,7 +3027,7 @@ async function listStakeholderPeople(request, url) {
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
   if (url.searchParams.get("stakeholderTypeId")) params.set("stakeholder_type_id", `eq.${url.searchParams.get("stakeholderTypeId")}`);
   if (url.searchParams.get("representativeAssembly") === "true") params.set("is_representative_assembly_member", "eq.true");
-  const rows = await supabaseRest("stakeholder_people", request, params);
+  const rows = await cloudSqlRest("stakeholder_people", request, params);
   return { items: (rows || []).map(stakeholderPersonToDto) };
 }
 
@@ -2194,21 +3038,21 @@ async function upsertStakeholderImport(request) {
   const people = (Array.isArray(body.people) ? body.people : []).map(stakeholderPersonToDb).filter((row) => row.name);
 
   if (types.length) {
-    await supabaseRest("stakeholder_types", request, new URLSearchParams({ on_conflict: "id" }), {
+    await cloudSqlRest("stakeholder_types", request, new URLSearchParams({ on_conflict: "id" }), {
       method: "POST",
       headers: { prefer: "resolution=merge-duplicates,return=minimal" },
       body: types
     });
   }
   if (organizations.length) {
-    await supabaseRest("stakeholder_organizations", request, new URLSearchParams({ on_conflict: "id" }), {
+    await cloudSqlRest("stakeholder_organizations", request, new URLSearchParams({ on_conflict: "id" }), {
       method: "POST",
       headers: { prefer: "resolution=merge-duplicates,return=minimal" },
       body: organizations
     });
   }
   if (people.length) {
-    await supabaseRest("stakeholder_people", request, new URLSearchParams({ on_conflict: "id" }), {
+    await cloudSqlRest("stakeholder_people", request, new URLSearchParams({ on_conflict: "id" }), {
       method: "POST",
       headers: { prefer: "resolution=merge-duplicates,return=minimal" },
       body: people
@@ -2223,7 +3067,7 @@ async function upsertStakeholderImport(request) {
 }
 
 async function deleteExpertEntityLink(request, id) {
-  await supabaseRest("expert_entity_links", request, new URLSearchParams({ id: `eq.${id}` }), {
+  await cloudSqlRest("expert_entity_links", request, new URLSearchParams({ id: `eq.${id}` }), {
     method: "DELETE",
     headers: { prefer: "return=minimal" }
   });
@@ -2231,7 +3075,7 @@ async function deleteExpertEntityLink(request, id) {
 }
 
 async function getOrganization(request, id) {
-  const rows = await supabaseRest("organizations", request, new URLSearchParams({
+  const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
     select: ORGANIZATION_FIELDS.join(","),
     id: `eq.${id}`,
     limit: "1"
@@ -2256,7 +3100,7 @@ async function createOrganization(request) {
   const dbOrganization = organizationCreateToDb(organization);
   dbOrganization.created_by = userId;
   dbOrganization.updated_by = userId;
-  const rows = await supabaseRest("organizations", request, new URLSearchParams({
+  const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
     select: ORGANIZATION_FIELDS.join(",")
   }), {
     method: "POST",
@@ -2290,7 +3134,7 @@ async function patchOrganization(request, id) {
   }
   dbPatch.updated_by = userId;
   dbPatch.updated_at = new Date().toISOString();
-  const rows = await supabaseRest("organizations", request, new URLSearchParams({
+  const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
     id: `eq.${id}`,
     select: ORGANIZATION_FIELDS.join(",")
   }), {
@@ -2312,11 +3156,16 @@ async function patchOrganization(request, id) {
 
 async function listSavedViews(request) {
   await loadProfiles(request);
-  const rows = await supabaseRest("saved_views", request, new URLSearchParams({
+  const userId = userIdFromToken(request);
+  const rows = await cloudSqlRest("saved_views", request, new URLSearchParams({
     select: SAVED_VIEW_FIELDS.join(","),
     order: "is_default.desc,updated_at.desc"
   }));
-  return { items: (rows || []).map(savedViewToDto) };
+  return {
+    items: (rows || [])
+      .filter((row) => row.scope === "team" || row.owner_id === userId)
+      .map(savedViewToDto)
+  };
 }
 
 async function createSavedView(request) {
@@ -2328,12 +3177,13 @@ async function createSavedView(request) {
     throw error;
   }
   const payload = savedViewToDb(await readValidatedJsonBody(request, SAVED_VIEW_INPUT_FIELDS, "Gespeicherte Ansicht"), userId);
+  if (payload.scope === "team" && roleRank(request.currentProfile?.role) < roleRank("admin")) payload.scope = "private";
   if (!payload.name) {
     const error = new Error("Name fuer gespeicherte Suche fehlt.");
     error.status = 400;
     throw error;
   }
-  const rows = await supabaseRest("saved_views", request, new URLSearchParams({
+  const rows = await cloudSqlRest("saved_views", request, new URLSearchParams({
     select: SAVED_VIEW_FIELDS.join(",")
   }), {
     method: "POST",
@@ -2345,13 +3195,24 @@ async function createSavedView(request) {
 
 async function patchSavedView(request, id) {
   await loadProfiles(request);
+  const userId = userIdFromToken(request);
+  const existingRows = await cloudSqlRest("saved_views", request, new URLSearchParams({
+    id: `eq.${id}`,
+    limit: "1"
+  }));
+  if (!existingRows?.[0] || (existingRows[0].owner_id !== userId && roleRank(request.currentProfile?.role) < roleRank("admin"))) {
+    const error = new Error("Gespeicherte Ansicht wurde nicht gefunden oder darf nicht bearbeitet werden.");
+    error.status = 404;
+    throw error;
+  }
   const payload = savedViewPatchToDb(await readValidatedJsonBody(request, SAVED_VIEW_INPUT_FIELDS, "Gespeicherte Ansicht"));
+  if (payload.scope === "team" && roleRank(request.currentProfile?.role) < roleRank("admin")) payload.scope = "private";
   if (!Object.keys(payload).length) {
     const error = new Error("Keine unterstützten Felder fuer gespeicherte Suche im Request.");
     error.status = 400;
     throw error;
   }
-  const rows = await supabaseRest("saved_views", request, new URLSearchParams({
+  const rows = await cloudSqlRest("saved_views", request, new URLSearchParams({
     id: `eq.${id}`,
     select: SAVED_VIEW_FIELDS.join(",")
   }), {
@@ -2368,7 +3229,17 @@ async function patchSavedView(request, id) {
 }
 
 async function deleteSavedView(request, id) {
-  await supabaseRest("saved_views", request, new URLSearchParams({ id: `eq.${id}` }), {
+  const userId = userIdFromToken(request);
+  const existingRows = await cloudSqlRest("saved_views", request, new URLSearchParams({
+    id: `eq.${id}`,
+    limit: "1"
+  }));
+  if (!existingRows?.[0] || (existingRows[0].owner_id !== userId && roleRank(request.currentProfile?.role) < roleRank("admin"))) {
+    const error = new Error("Gespeicherte Ansicht wurde nicht gefunden oder darf nicht geloescht werden.");
+    error.status = 404;
+    throw error;
+  }
+  await cloudSqlRest("saved_views", request, new URLSearchParams({ id: `eq.${id}` }), {
     method: "DELETE",
     headers: { prefer: "return=minimal" }
   });
@@ -2382,7 +3253,7 @@ async function getUserSettings(request) {
     error.status = 401;
     throw error;
   }
-  const rows = await supabaseRest("user_settings", request, new URLSearchParams({
+  const rows = await cloudSqlRest("user_settings", request, new URLSearchParams({
     select: USER_SETTINGS_FIELDS.join(","),
     user_id: `eq.${userId}`,
     limit: "1"
@@ -2398,7 +3269,7 @@ async function upsertUserSettings(request) {
     throw error;
   }
   const payload = userSettingsToDb(await readValidatedJsonBody(request, USER_SETTINGS_INPUT_FIELDS, "Nutzereinstellungen"), userId);
-  const rows = await supabaseRest("user_settings", request, new URLSearchParams({
+  const rows = await cloudSqlRest("user_settings", request, new URLSearchParams({
     on_conflict: "user_id",
     select: USER_SETTINGS_FIELDS.join(",")
   }), {
@@ -2411,7 +3282,7 @@ async function upsertUserSettings(request) {
 
 async function formatParticipantsByFormat(request, ids = []) {
   if (!ids.length) return new Map();
-  const rows = await supabaseRest("format_participants", request, new URLSearchParams({
+  const rows = await cloudSqlRest("format_participants", request, new URLSearchParams({
     select: FORMAT_PARTICIPANT_FIELDS.join(","),
     format_id: `in.(${ids.join(",")})`,
     order: "updated_at.desc.nullslast"
@@ -2426,7 +3297,7 @@ async function formatParticipantsByFormat(request, ids = []) {
 
 async function listFormats(request, url) {
   await loadProfiles(request);
-  const rows = await supabaseRest("formats", request, new URLSearchParams({
+  const rows = await cloudSqlRest("formats", request, new URLSearchParams({
     select: FORMAT_FIELDS.join(","),
     order: "updated_at.desc.nullslast,title.asc"
   }));
@@ -2439,7 +3310,7 @@ async function listFormats(request, url) {
 
 async function getFormat(request, id) {
   await loadProfiles(request);
-  const rows = await supabaseRest("formats", request, new URLSearchParams({
+  const rows = await cloudSqlRest("formats", request, new URLSearchParams({
     select: FORMAT_FIELDS.join(","),
     id: `eq.${id}`,
     limit: "1"
@@ -2469,7 +3340,7 @@ async function createFormat(request) {
   }
   payload.created_by = userId;
   payload.updated_by = userId;
-  const rows = await supabaseRest("formats", request, new URLSearchParams({
+  const rows = await cloudSqlRest("formats", request, new URLSearchParams({
     select: FORMAT_FIELDS.join(",")
   }), {
     method: "POST",
@@ -2497,7 +3368,7 @@ async function patchFormat(request, id, patch = null) {
     updated_by: userId,
     updated_at: new Date().toISOString()
   };
-  const rows = await supabaseRest("formats", request, new URLSearchParams({
+  const rows = await cloudSqlRest("formats", request, new URLSearchParams({
     id: `eq.${id}`,
     select: FORMAT_FIELDS.join(",")
   }), {
@@ -2517,7 +3388,7 @@ async function patchFormat(request, id, patch = null) {
 }
 
 async function deleteFormat(request, id) {
-  await supabaseRest("formats", request, new URLSearchParams({ id: `eq.${id}` }), {
+  await cloudSqlRest("formats", request, new URLSearchParams({ id: `eq.${id}` }), {
     method: "DELETE",
     headers: { prefer: "return=minimal" }
   });
@@ -2541,7 +3412,7 @@ async function addFormatParticipant(request, formatId) {
   const payload = formatParticipantToDb(body, formatId, contactId);
   payload.created_by = userId;
   payload.updated_by = userId;
-  await supabaseRest("format_participants", request, new URLSearchParams({ on_conflict: "format_id,contact_id" }), {
+  await cloudSqlRest("format_participants", request, new URLSearchParams({ on_conflict: "format_id,contact_id" }), {
     method: "POST",
     headers: { prefer: "resolution=ignore-duplicates,return=minimal" },
     body: payload
@@ -2566,7 +3437,7 @@ async function patchFormatParticipant(request, formatId, contactId) {
   }
   payload.updated_by = userId;
   payload.updated_at = new Date().toISOString();
-  await supabaseRest("format_participants", request, new URLSearchParams({
+  await cloudSqlRest("format_participants", request, new URLSearchParams({
     format_id: `eq.${formatId}`,
     contact_id: `eq.${contactId}`
   }), {
@@ -2581,7 +3452,7 @@ async function patchFormatParticipant(request, formatId, contactId) {
 
 async function removeFormatParticipant(request, formatId, contactId) {
   const userId = userIdFromToken(request);
-  await supabaseRest("format_participants", request, new URLSearchParams({
+  await cloudSqlRest("format_participants", request, new URLSearchParams({
     format_id: `eq.${formatId}`,
     contact_id: `eq.${contactId}`
   }), {
@@ -2591,6 +3462,215 @@ async function removeFormatParticipant(request, formatId, contactId) {
   const updated = await patchFormat(request, formatId, {});
   await notifyFormatChanged(request, updated, userId, "participant");
   return updated;
+}
+
+async function listHospitationSlots(request, url) {
+  await loadProfiles(request);
+  const rows = await cloudSqlRest("hospitation_slots", request, new URLSearchParams({
+    select: HOSPITATION_SLOT_FIELDS.join(","),
+    order: "starts_at.asc.nullslast,updated_at.desc.nullslast"
+  }));
+  const includeArchived = url.searchParams.get("includeArchived") === "true";
+  const items = (rows || [])
+    .map(hospitationSlotToDto)
+    .filter((slot) => includeArchived || slot.status !== "Archiviert");
+  return { items };
+}
+
+async function getHospitationSlot(request, id) {
+  await loadProfiles(request);
+  const rows = await cloudSqlRest("hospitation_slots", request, new URLSearchParams({
+    select: HOSPITATION_SLOT_FIELDS.join(","),
+    id: `eq.${id}`,
+    limit: "1"
+  }));
+  if (!rows?.length) {
+    const error = new Error("Hospitations-Termin wurde nicht gefunden.");
+    error.status = 404;
+    throw error;
+  }
+  return hospitationSlotToDto(rows[0]);
+}
+
+async function createHospitationSlot(request) {
+  const body = await readValidatedJsonBody(request, HOSPITATION_SLOT_INPUT_FIELDS, "Hospitations-Termin");
+  await loadProfiles(request);
+  const userId = userIdFromToken(request);
+  if (!userId) {
+    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    error.status = 401;
+    throw error;
+  }
+  const payload = hospitationSlotToDb(body);
+  if (!payload.starts_at) {
+    const error = new Error("Startzeit des Hospitations-Termins fehlt.");
+    error.status = 400;
+    throw error;
+  }
+  payload.created_by = userId;
+  payload.updated_by = userId;
+  const rows = await cloudSqlRest("hospitation_slots", request, new URLSearchParams({
+    select: HOSPITATION_SLOT_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  return hospitationSlotToDto(rows?.[0]);
+}
+
+async function patchHospitationSlot(request, id) {
+  const rawPatch = await readValidatedJsonBody(request, HOSPITATION_SLOT_INPUT_FIELDS, "Hospitations-Termin-Update");
+  await loadProfiles(request);
+  const userId = userIdFromToken(request);
+  if (!userId) {
+    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    error.status = 401;
+    throw error;
+  }
+  const payload = {
+    ...hospitationSlotPatchToDb(rawPatch),
+    updated_by: userId,
+    updated_at: new Date().toISOString()
+  };
+  const rows = await cloudSqlRest("hospitation_slots", request, new URLSearchParams({
+    id: `eq.${id}`,
+    select: HOSPITATION_SLOT_FIELDS.join(",")
+  }), {
+    method: "PATCH",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  if (!rows?.[0]) {
+    const error = new Error("Hospitations-Termin wurde nicht aktualisiert.");
+    error.status = 404;
+    throw error;
+  }
+  return hospitationSlotToDto(rows[0]);
+}
+
+function hospitationOccupiesSlot(status = "") {
+  return ["Gebucht", "Durchgeführt", "Dokumentiert"].includes(normalizeHospitationStatus(status));
+}
+
+async function syncHospitationSlotStatus(request, slotId = "", status = "") {
+  if (!slotId) return;
+  const nextStatus = hospitationOccupiesSlot(status) ? "Gebucht" : status === "Abgesagt" ? "Abgesagt" : "";
+  if (!nextStatus) return;
+  await cloudSqlRest("hospitation_slots", request, new URLSearchParams({ id: `eq.${slotId}` }), {
+    method: "PATCH",
+    headers: { prefer: "return=minimal" },
+    body: {
+      status: nextStatus,
+      updated_by: userIdFromToken(request),
+      updated_at: new Date().toISOString()
+    }
+  });
+}
+
+async function hydrateHospitationFromSlot(request, payload = {}) {
+  if (!payload.slot_id) return payload;
+  const slot = await getHospitationSlot(request, payload.slot_id);
+  return {
+    ...payload,
+    contact_id: payload.contact_id || slot.contactId || null,
+    organization_id: payload.organization_id || slot.organizationId || null,
+    starts_at: payload.starts_at || slot.startsAt || null,
+    ends_at: payload.ends_at || slot.endsAt || null,
+    location: payload.location || slot.location || null,
+    owner_id: payload.owner_id || slot.ownerId || null
+  };
+}
+
+async function listHospitations(request, url) {
+  await loadProfiles(request);
+  const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
+    select: HOSPITATION_FIELDS.join(","),
+    order: "starts_at.desc.nullslast,updated_at.desc.nullslast"
+  }));
+  const includeArchived = url.searchParams.get("includeArchived") === "true";
+  const items = (rows || [])
+    .map(hospitationToDto)
+    .filter((hospitation) => includeArchived || hospitation.status !== "Archiviert");
+  return { items };
+}
+
+async function getHospitation(request, id) {
+  await loadProfiles(request);
+  const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
+    select: HOSPITATION_FIELDS.join(","),
+    id: `eq.${id}`,
+    limit: "1"
+  }));
+  if (!rows?.length) {
+    const error = new Error("Hospitation wurde nicht gefunden.");
+    error.status = 404;
+    throw error;
+  }
+  return hospitationToDto(rows[0]);
+}
+
+async function createHospitation(request) {
+  const rawBody = await readValidatedJsonBody(request, HOSPITATION_INPUT_FIELDS, "Hospitation");
+  await loadProfiles(request);
+  const userId = userIdFromToken(request);
+  if (!userId) {
+    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    error.status = 401;
+    throw error;
+  }
+  const payload = await hydrateHospitationFromSlot(request, hospitationToDb(rawBody, userId));
+  if (!payload.contact_id && !payload.organization_id && !payload.slot_id) {
+    const error = new Error("Hospitation benötigt Kontakt, Organisation oder Termin-Slot.");
+    error.status = 400;
+    throw error;
+  }
+  payload.created_by = userId;
+  payload.updated_by = userId;
+  const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
+    select: HOSPITATION_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  const dto = hospitationToDto(rows?.[0]);
+  await syncHospitationSlotStatus(request, dto.slotId, dto.status);
+  return dto;
+}
+
+async function patchHospitation(request, id) {
+  const rawPatch = await readValidatedJsonBody(request, HOSPITATION_INPUT_FIELDS, "Hospitations-Update");
+  await loadProfiles(request);
+  const userId = userIdFromToken(request);
+  if (!userId) {
+    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    error.status = 401;
+    throw error;
+  }
+  const payload = await hydrateHospitationFromSlot(request, hospitationPatchToDb(rawPatch));
+  if (normalizeHospitationStatus(rawPatch.status) === "Dokumentiert") {
+    if (!("documentedAt" in rawPatch) && !("documented_at" in rawPatch)) payload.documented_at = new Date().toISOString();
+    if (!("documentedBy" in rawPatch) && !("documented_by" in rawPatch)) payload.documented_by = userId;
+  }
+  payload.updated_by = userId;
+  payload.updated_at = new Date().toISOString();
+  const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
+    id: `eq.${id}`,
+    select: HOSPITATION_FIELDS.join(",")
+  }), {
+    method: "PATCH",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  if (!rows?.[0]) {
+    const error = new Error("Hospitation wurde nicht aktualisiert.");
+    error.status = 404;
+    throw error;
+  }
+  const dto = hospitationToDto(rows[0]);
+  await syncHospitationSlotStatus(request, dto.slotId, dto.status);
+  return dto;
 }
 
 async function createContact(request) {
@@ -2614,7 +3694,7 @@ async function createContact(request) {
   dbContact.created_by = userId;
   dbContact.updated_by = userId;
 
-  const rows = await supabaseRest("contacts", request, new URLSearchParams({
+  const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
     select: CONTACT_FIELDS.join(",")
   }), {
     method: "POST",
@@ -2628,7 +3708,7 @@ async function createContact(request) {
     throw error;
   }
 
-  await supabaseRest("changes", request, new URLSearchParams(), {
+  await cloudSqlRest("changes", request, new URLSearchParams(), {
     method: "POST",
     headers: { prefer: "return=minimal" },
     body: {
@@ -2654,7 +3734,7 @@ async function getContact(request, id) {
     id: `eq.${id}`,
     limit: "1"
   });
-  const rows = await supabaseRest("contacts", request, params);
+  const rows = await cloudSqlRest("contacts", request, params);
   if (!rows?.length) {
     const error = new Error("Kontakt wurde nicht gefunden.");
     error.status = 404;
@@ -2671,7 +3751,7 @@ async function getContactHistory(request, id, url) {
     order: "changed_at.desc,id.desc"
   });
   if (url.searchParams.get("action")) params.set("action", `eq.${url.searchParams.get("action")}`);
-  const rows = await supabaseRest("changes", request, params);
+  const rows = await cloudSqlRest("changes", request, params);
   return { items: (rows || []).map(changeToDto) };
 }
 
@@ -2726,7 +3806,7 @@ async function getActivities(request, url) {
     params.set("limit", String(limit + 1));
     params.set("offset", String(offset));
   }
-  const rows = await supabaseRest("changes", request, params);
+  const rows = await cloudSqlRest("changes", request, params);
   const allItems = (rows || [])
     .map(changeToDto)
     .filter((change) => activityMatchesFilters(change, { kind, q }));
@@ -2740,6 +3820,8 @@ async function getActivities(request, url) {
 
 async function listNotifications(request, url) {
   await loadProfiles(request);
+  const userId = userIdFromToken(request);
+  if (!userId) return { items: [], nextOffset: 0, hasMore: false };
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 30, 1), 100);
   const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
   const context = String(url.searchParams.get("context") || "all").trim();
@@ -2748,11 +3830,12 @@ async function listNotifications(request, url) {
     const params = new URLSearchParams({
       select: NOTIFICATION_SELECT,
       dismissed_at: "is.null",
+      user_id: `eq.${userId}`,
       order: "created_at.desc",
       limit: String(offset + limit + 100)
     });
     if (unreadOnly) params.set("read_at", "is.null");
-    const rows = await supabaseRest("notification_recipients", request, params);
+    const rows = await cloudSqlRest("notification_recipients", request, params);
     const filtered = sortNotifications((rows || []).map(notificationToDto))
       .filter((item) => notificationMatchesContext(item, context));
     const page = filtered.slice(offset, offset + limit + 1);
@@ -2778,9 +3861,11 @@ async function getNotificationSummary(request) {
 }
 
 async function markNotificationRead(request, id) {
+  const userId = userIdFromToken(request);
   try {
-    await supabaseRest("notification_recipients", request, new URLSearchParams({
+    await cloudSqlRest("notification_recipients", request, new URLSearchParams({
       event_id: `eq.${id}`,
+      user_id: `eq.${userId}`,
       read_at: "is.null"
     }), {
       method: "PATCH",
@@ -2801,6 +3886,167 @@ async function markNotificationsRead(request) {
     await markNotificationRead(request, id);
   }
   return { ok: true };
+}
+
+function runtimeMetadata() {
+  return {
+    service: process.env.K_SERVICE || "local-api",
+    revision: process.env.K_REVISION || "local",
+    configuration: process.env.K_CONFIGURATION || "local",
+    database: process.env.DB_NAME || process.env.PGDATABASE || DEFAULT_DB_NAME,
+    authMode: API_AUTH_MODE,
+    iapJwtAudienceConfigured: Boolean(IAP_JWT_AUDIENCE),
+    profileImageBucket: PROFILE_IMAGE_BUCKET || null,
+    contactImageBucket: CONTACT_IMAGE_BUCKET || null
+  };
+}
+
+async function scalar(sql, values = []) {
+  const result = await getPool().query(sql, values);
+  return result.rows[0] || {};
+}
+
+async function countWhere(table, where = "true") {
+  const row = await scalar(`select count(*)::int as count from ${qid(table)} where ${where}`);
+  return row.count || 0;
+}
+
+async function getOpsSummary() {
+  const row = await scalar("select now() as db_time");
+  return {
+    ok: true,
+    backend: "cloud-sql",
+    generatedAt: new Date().toISOString(),
+    runtime: runtimeMetadata(),
+    databaseTime: row.db_time || null,
+    counts: {
+      profiles: await countWhere("profiles"),
+      activeContacts: await countWhere("contacts", "status <> 'archived'"),
+      archivedContacts: await countWhere("contacts", "status = 'archived'"),
+      activeOrganizations: await countWhere("organizations", "status <> 'archived'"),
+      archivedOrganizations: await countWhere("organizations", "status = 'archived'"),
+      changes: await countWhere("changes"),
+      activeFormats: await countWhere("formats", "status <> 'Archiviert'"),
+      archivedFormats: await countWhere("formats", "status = 'Archiviert'"),
+      formatParticipants: await countWhere("format_participants"),
+      activeHospitationSlots: await countWhere("hospitation_slots", "status <> 'Archiviert'"),
+      activeHospitations: await countWhere("hospitations", "status <> 'Archiviert'"),
+      documentedHospitations: await countWhere("hospitations", "status = 'Dokumentiert'"),
+      expertGroups: await countWhere("expert_groups", "status <> 'archived'"),
+      expertContacts: await countWhere("expert_contacts", "status <> 'archived'"),
+      expertOrganizations: await countWhere("expert_organizations", "status <> 'archived'"),
+      stakeholderTypes: await countWhere("stakeholder_types", "status <> 'archived'"),
+      stakeholderOrganizations: await countWhere("stakeholder_organizations", "status <> 'archived'"),
+      stakeholderPeople: await countWhere("stakeholder_people", "status <> 'archived'"),
+      savedViews: await countWhere("saved_views"),
+      userSettings: await countWhere("user_settings"),
+      notifications: await countWhere("notification_events"),
+      importRuns: await countWhere("import_runs")
+    }
+  };
+}
+
+function opsCheck(key, label, status, detail, meta = {}) {
+  return { key, label, status, detail, meta };
+}
+
+async function getOpsChecks() {
+  const checks = [];
+  let summary = null;
+  let dbError = "";
+  const startedAt = Date.now();
+  try {
+    const dbStartedAt = Date.now();
+    summary = await getOpsSummary();
+    checks.push(opsCheck("cloud-sql", "Cloud SQL", "ok", `Datenbank antwortet in ${Date.now() - dbStartedAt} ms.`, {
+      databaseTime: summary.databaseTime
+    }));
+  } catch (error) {
+    dbError = error.message || "Cloud-SQL-Abfrage fehlgeschlagen.";
+    checks.push(opsCheck("cloud-sql", "Cloud SQL", "error", dbError));
+  }
+  const counts = summary?.counts || {};
+  checks.push(opsCheck("cloud-run-api", "Cloud Run API", "ok", "API-Service antwortet.", runtimeMetadata()));
+  checks.push(opsCheck(
+    "auth-boundary",
+    "IAP/SSO",
+    API_AUTH_MODE === "iap" && IAP_JWT_AUDIENCE ? "ok" : "warn",
+    API_AUTH_MODE === "iap" && IAP_JWT_AUDIENCE
+      ? "API validiert signierte IAP-JWTs und mappt sie auf Profile."
+      : "API erwartet IAP; IAP_JWT_AUDIENCE fehlt oder API_AUTH_MODE ist nicht iap.",
+    { authMode: API_AUTH_MODE, iapJwtAudienceConfigured: Boolean(IAP_JWT_AUDIENCE) }
+  ));
+  checks.push(opsCheck(
+    "core-data",
+    "Kern-Daten",
+    dbError ? "error" : counts.profiles > 0 && counts.activeContacts > 0 ? "ok" : "warn",
+    dbError || `${counts.profiles || 0} Profile, ${counts.activeContacts || 0} aktive Kontakte, ${counts.activeOrganizations || 0} aktive Organisationen.`,
+    counts
+  ));
+  checks.push(opsCheck(
+    "storage",
+    "Cloud Storage",
+    PROFILE_IMAGE_BUCKET || CONTACT_IMAGE_BUCKET ? "ok" : "warn",
+    PROFILE_IMAGE_BUCKET || CONTACT_IMAGE_BUCKET ? "Mindestens ein Storage-Bucket ist konfiguriert." : "PROFILE_IMAGE_BUCKET/CONTACT_IMAGE_BUCKET fehlen.",
+    { profileImageBucket: PROFILE_IMAGE_BUCKET || null, contactImageBucket: CONTACT_IMAGE_BUCKET || null }
+  ));
+  checks.push(opsCheck("cloud-run-jobs", "Cloud Run Jobs", "info", "Nicht fuer den App-Betrieb erforderlich; optional fuer Migrationen, Seeds oder Wartung."));
+  const status = checks.some((check) => check.status === "error") ? "error" : checks.some((check) => check.status === "warn") ? "warn" : "ok";
+  return {
+    ok: status !== "error",
+    status,
+    generatedAt: new Date().toISOString(),
+    durationMs: Date.now() - startedAt,
+    runtime: runtimeMetadata(),
+    summary,
+    checks
+  };
+}
+
+async function exportCloudSqlData() {
+  const tables = [
+    "profiles",
+    "organizations",
+    "contacts",
+    "contact_owners",
+    "changes",
+    "formats",
+    "format_participants",
+    "hospitation_slots",
+    "hospitations",
+    "expert_groups",
+    "expert_contacts",
+    "expert_organizations",
+    "expert_entity_links",
+    "stakeholder_types",
+    "stakeholder_organizations",
+    "stakeholder_people",
+    "saved_views",
+    "user_settings",
+    "notification_events",
+    "notification_recipients",
+    "import_runs"
+  ];
+  const data = {};
+  for (const table of tables) {
+    data[table] = (await getPool().query(`select * from ${qid(table)}`)).rows;
+  }
+  return {
+    exportedAt: new Date().toISOString(),
+    exportType: "versorgungs-kompass-cloud-sql",
+    runtime: runtimeMetadata(),
+    data
+  };
+}
+
+function jsonDownload(response, fileName, payload) {
+  response.writeHead(200, {
+    "content-type": "application/json; charset=utf-8",
+    "content-disposition": `attachment; filename="${fileName}"`,
+    "cache-control": "no-store",
+    ...corsHeaders()
+  });
+  response.end(JSON.stringify(payload, null, 2));
 }
 
 async function patchContact(request, id) {
@@ -2824,7 +4070,7 @@ async function patchContact(request, id) {
     throw error;
   }
 
-  const oldRows = await supabaseRest("contacts", request, new URLSearchParams({
+  const oldRows = await cloudSqlRest("contacts", request, new URLSearchParams({
     select: CONTACT_FIELDS.join(","),
     id: `eq.${id}`,
     limit: "1"
@@ -2845,7 +4091,7 @@ async function patchContact(request, id) {
   let changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
   if (hasOwnerPatch && supportsContactOwners) changedFields = changedFields.filter((field) => field !== "owner_id");
 
-  const updatedRows = await supabaseRest("contacts", request, new URLSearchParams({
+  const updatedRows = await cloudSqlRest("contacts", request, new URLSearchParams({
     id: `eq.${id}`,
     select: CONTACT_FIELDS.join(",")
   }), {
@@ -2862,7 +4108,7 @@ async function patchContact(request, id) {
 
   if (changedFields.length) {
     const action = dbPatch.status === "archived" ? "archive" : "update";
-    await supabaseRest("changes", request, new URLSearchParams(), {
+    await cloudSqlRest("changes", request, new URLSearchParams(), {
       method: "POST",
       headers: { prefer: "return=minimal" },
       body: changedFields.map((field) => ({
@@ -2893,8 +4139,26 @@ async function handle(request, response) {
   const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
   if (LOG_REQUESTS) console.log(`${request.method} ${url.pathname}${url.search}`);
   try {
+    const profileAvatarMatch = /^\/api\/profile-avatar\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "GET" && profileAvatarMatch) {
+      return readProfileAvatar(request, response, decodeURIComponent(profileAvatarMatch[1]));
+    }
+    await authorizeRequest(request, url);
     if (request.method === "GET" && ["/healthz", "/api/healthz"].includes(url.pathname)) {
-      return jsonResponse(response, 200, { ok: true });
+      return jsonResponse(response, 200, { ok: true, backend: "cloud-sql", authMode: API_AUTH_MODE });
+    }
+    if (request.method === "GET" && url.pathname === "/api/session") {
+      return jsonResponse(response, 200, await getSession(request));
+    }
+    if (request.method === "GET" && url.pathname === "/api/ops/summary") {
+      return jsonResponse(response, 200, await getOpsSummary());
+    }
+    if (request.method === "GET" && url.pathname === "/api/ops/checks") {
+      return jsonResponse(response, 200, await getOpsChecks());
+    }
+    if (request.method === "GET" && url.pathname === "/api/export") {
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      return jsonDownload(response, `versorgungs-kompass-cloud-sql-export-${stamp}.json`, await exportCloudSqlData());
     }
     if (request.method === "GET" && url.pathname === "/api/contacts") {
       return jsonResponse(response, 200, await listContacts(request, url));
@@ -2989,6 +4253,29 @@ async function handle(request, response) {
     }
     if (request.method === "PUT" && url.pathname === "/api/user-settings") {
       return jsonResponse(response, 200, await upsertUserSettings(request));
+    }
+    if (request.method === "GET" && url.pathname === "/api/hospitation-slots") {
+      return jsonResponse(response, 200, await listHospitationSlots(request, url));
+    }
+    if (request.method === "POST" && url.pathname === "/api/hospitation-slots") {
+      return jsonResponse(response, 201, await createHospitationSlot(request));
+    }
+    const hospitationSlotMatch = /^\/api\/hospitation-slots\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "PATCH" && hospitationSlotMatch) {
+      return jsonResponse(response, 200, await patchHospitationSlot(request, decodeURIComponent(hospitationSlotMatch[1])));
+    }
+    if (request.method === "GET" && url.pathname === "/api/hospitations") {
+      return jsonResponse(response, 200, await listHospitations(request, url));
+    }
+    if (request.method === "POST" && url.pathname === "/api/hospitations") {
+      return jsonResponse(response, 201, await createHospitation(request));
+    }
+    const hospitationMatch = /^\/api\/hospitations\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "GET" && hospitationMatch) {
+      return jsonResponse(response, 200, await getHospitation(request, decodeURIComponent(hospitationMatch[1])));
+    }
+    if (request.method === "PATCH" && hospitationMatch) {
+      return jsonResponse(response, 200, await patchHospitation(request, decodeURIComponent(hospitationMatch[1])));
     }
     if (request.method === "GET" && url.pathname === "/api/formats") {
       return jsonResponse(response, 200, await listFormats(request, url));

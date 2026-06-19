@@ -11,6 +11,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" sizes="180x180" href="./public/app-icon-180.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="./public/app-icon-32.png" />
+    <script src="./data/supabase-config.js"></script>
     <script src="./auth-config.js"></script>
     <script src="./auth-guard.js"></script>
     <link
@@ -13843,7 +13844,8 @@
       .app-shell[data-active-view="organizations"] .controls,
       .app-shell[data-active-view="map"] .controls,
       .app-shell[data-active-view="experts"] .controls,
-      .app-shell[data-active-view="stakeholders"] .controls {
+      .app-shell[data-active-view="stakeholders"] .controls,
+      .app-shell[data-active-view="hospitations"] .controls {
         display: block;
       }
 
@@ -17428,7 +17430,15 @@
         grid-template-columns: minmax(0, 1fr);
       }
 
+      .app-shell[data-active-view="hospitations"] .controls-stack {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
       .app-shell[data-active-view="formats"] .controls-stack .filter-toolbar {
+        display: none;
+      }
+
+      .app-shell[data-active-view="hospitations"] .controls-stack .filter-toolbar {
         display: none;
       }
 
@@ -17462,6 +17472,153 @@
         border-color: currentColor;
         background: var(--primary-soft);
         box-shadow: inset 0 0 0 1px currentColor;
+      }
+
+      .hospitation-tab-nav {
+        margin-left: auto;
+      }
+
+      .hospitation-status-legend {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .hospitation-tab-panel[hidden] {
+        display: none;
+      }
+
+      .hospitation-list {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .hospitation-card {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        padding: 14px 16px;
+      }
+
+      .hospitation-card__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .hospitation-card__title {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .hospitation-card__title h3 {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .hospitation-card__meta,
+      .hospitation-card__note {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+
+      .hospitation-card__facts {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .hospitation-fact {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        padding: 8px 10px;
+      }
+
+      .hospitation-fact span {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .hospitation-fact strong {
+        color: var(--text);
+        font-size: 0.86rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .hospitation-card__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .hospitation-status-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-secondary);
+        padding: 5px 10px;
+        font-size: 0.76rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .hospitation-status-filter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-secondary);
+        padding: 5px 10px;
+        font: inherit;
+        font-size: 0.76rem;
+        font-weight: 800;
+        line-height: 1;
+        cursor: pointer;
+        transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      .hospitation-status-filter:hover,
+      .hospitation-status-filter:focus-visible {
+        border-color: currentColor;
+        box-shadow: var(--focus-ring);
+        outline: none;
+      }
+
+      .hospitation-status-filter.is-active {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+        color: var(--primary);
+        box-shadow: inset 0 0 0 1px currentColor;
+      }
+
+      .hospitation-dashboard {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .formats-layout {
@@ -19080,20 +19237,24 @@
       @media (max-width: 760px) {
         .format-detail-head,
         .format-section-head,
+        .hospitation-card__head,
         .formats-command-row {
           align-items: stretch;
           flex-direction: column;
         }
 
-        .app-shell[data-active-view="formats"] .controls-stack {
+        .app-shell[data-active-view="formats"] .controls-stack,
+        .app-shell[data-active-view="hospitations"] .controls-stack {
           grid-template-columns: 1fr;
         }
 
-        .app-shell[data-active-view="formats"] .workspace-header {
+        .app-shell[data-active-view="formats"] .workspace-header,
+        .app-shell[data-active-view="hospitations"] .workspace-header {
           grid-template-columns: minmax(0, 1fr);
         }
 
-        .app-shell[data-active-view="formats"] .workspace-header .workspace-actions {
+        .app-shell[data-active-view="formats"] .workspace-header .workspace-actions,
+        .app-shell[data-active-view="hospitations"] .workspace-header .workspace-actions {
           display: none;
         }
 
@@ -19125,6 +19286,8 @@
         .format-reporting-layout,
         .format-overview-hero,
         .participant-board,
+        .hospitation-card__facts,
+        .hospitation-dashboard,
         .invitation-status-board {
           grid-template-columns: 1fr;
         }
@@ -19549,6 +19712,17 @@
               </svg>
               <span>Formate</span>
               <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
+            </button>
+            <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M8 2v4"></path>
+                <path d="M16 2v4"></path>
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M3 10h18"></path>
+                <path d="M12 14v5"></path>
+                <path d="M9.5 16.5h5"></path>
+              </svg>
+              <span>Hospitationen</span>
             </button>
           </div>
           <div class="sidebar-section" id="sidebar-data-care-section" aria-label="Admin" data-sidebar-section="admin">
@@ -20090,6 +20264,33 @@
                   </div>
                 </section>
               </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-hospitations" data-view-panel="hospitations">
+            <div class="formats-workspace hospitations-workspace">
+              <div class="formats-command-row" aria-label="Hospitationsaktionen">
+                <div class="formats-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-hospitation-request-button"><span class="action-button__icon">+</span>Anfrage</button>
+                  <button class="action-button" type="button" id="new-hospitation-booking-button">Direkt buchen</button>
+                  <button class="action-button" type="button" id="new-hospitation-slot-button">Termin anbieten</button>
+                </div>
+                <div class="settings-tab-nav hospitation-tab-nav" role="tablist" aria-label="Hospitationsbereiche">
+                  <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" data-hospitation-tab="appointments" aria-controls="hospitation-appointments-panel">Termine</button>
+                  <button class="settings-tab-button" type="button" role="tab" aria-selected="false" data-hospitation-tab="documentation" aria-controls="hospitation-documentation-panel">Dokumentation</button>
+                  <button class="settings-tab-button" type="button" role="tab" aria-selected="false" data-hospitation-tab="dashboard" aria-controls="hospitation-dashboard-panel">Dashboard</button>
+                </div>
+              </div>
+              <div class="hospitation-status-legend" id="hospitation-status-legend" aria-label="Hospitationsstatus"></div>
+              <section class="hospitation-tab-panel" id="hospitation-appointments-panel" data-hospitation-tab-panel="appointments" role="tabpanel">
+                <div class="hospitation-list" id="hospitation-list"></div>
+              </section>
+              <section class="hospitation-tab-panel" id="hospitation-documentation-panel" data-hospitation-tab-panel="documentation" role="tabpanel" hidden>
+                <div class="hospitation-list" id="hospitation-documentation-list"></div>
+              </section>
+              <section class="hospitation-tab-panel" id="hospitation-dashboard-panel" data-hospitation-tab-panel="dashboard" role="tabpanel" hidden>
+                <div class="dashboard-grid hospitation-dashboard" id="hospitation-dashboard"></div>
+              </section>
             </div>
           </section>
 
@@ -21116,6 +21317,20 @@
           <button class="import-close" type="button" id="format-editor-drawer-close" aria-label="Format-Editor schließen">&times;</button>
         </div>
         <div class="format-participant-body" id="format-editor-drawer-body"></div>
+      </section>
+    </aside>
+
+    <aside class="format-participant-drawer format-editor-drawer" id="hospitation-editor-drawer" aria-hidden="true">
+      <div class="format-participant-overlay" id="hospitation-editor-overlay"></div>
+      <section class="format-participant-panel" aria-labelledby="hospitation-editor-title" aria-modal="true" role="dialog">
+        <div class="format-participant-header">
+          <div>
+            <h3 id="hospitation-editor-title">Hospitation</h3>
+            <p id="hospitation-editor-subtitle">Termin, Kontaktbezug und Dokumentation erfassen.</p>
+          </div>
+          <button class="import-close" type="button" id="hospitation-editor-close" aria-label="Hospitations-Editor schließen">&times;</button>
+        </div>
+        <div class="format-participant-body" id="hospitation-editor-body"></div>
       </section>
     </aside>
 
@@ -22210,6 +22425,8 @@
       const formatTypeOptions = ["Roundtable", "Fachgespräch", "Workshop", "Veranstaltung", "Diskussionsformat"];
       const formatStatusOptions = ["Planung", "Aktiv", "Abgeschlossen"];
       const invitationStatusOptions = ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt"];
+      const hospitationStatusOptions = ["Entwurf", "Angefragt", "Angeboten", "Gebucht", "Abgelehnt", "Abgesagt", "Durchgeführt", "Dokumentiert", "Archiviert"];
+      const hospitationSlotStatusOptions = ["Frei", "Reserviert", "Gebucht", "Abgesagt", "Archiviert"];
       const formatEditorSteps = [
         { id: "basis", label: "Basis" },
         { id: "planung", label: "Planung" },
@@ -22226,6 +22443,11 @@
         { id: "reporting", label: "Auswertung" },
         { id: "notes", label: "Notizen" },
         { id: "settings", label: "Einstellungen" }
+      ];
+      const hospitationTabItems = [
+        { id: "appointments", label: "Termine" },
+        { id: "documentation", label: "Dokumentation" },
+        { id: "dashboard", label: "Dashboard" }
       ];
       const settingsTabItems = [
         { id: "registrations", title: "Registrierungen", subtitle: "Eingänge aus dem Versorgungs-Netzwerk prüfen und kontrolliert übernehmen." },
@@ -22343,6 +22565,21 @@
       const formatEditorDrawerTitle = document.getElementById("format-editor-drawer-title");
       const formatEditorDrawerSubtitle = document.getElementById("format-editor-drawer-subtitle");
       const formatEditorDrawerBody = document.getElementById("format-editor-drawer-body");
+      const newHospitationRequestButton = document.getElementById("new-hospitation-request-button");
+      const newHospitationBookingButton = document.getElementById("new-hospitation-booking-button");
+      const newHospitationSlotButton = document.getElementById("new-hospitation-slot-button");
+      const hospitationTabButtons = [...document.querySelectorAll("[data-hospitation-tab]")];
+      const hospitationTabPanels = [...document.querySelectorAll("[data-hospitation-tab-panel]")];
+      const hospitationStatusLegend = document.getElementById("hospitation-status-legend");
+      const hospitationList = document.getElementById("hospitation-list");
+      const hospitationDocumentationList = document.getElementById("hospitation-documentation-list");
+      const hospitationDashboard = document.getElementById("hospitation-dashboard");
+      const hospitationEditorDrawer = document.getElementById("hospitation-editor-drawer");
+      const hospitationEditorOverlay = document.getElementById("hospitation-editor-overlay");
+      const hospitationEditorClose = document.getElementById("hospitation-editor-close");
+      const hospitationEditorTitle = document.getElementById("hospitation-editor-title");
+      const hospitationEditorSubtitle = document.getElementById("hospitation-editor-subtitle");
+      const hospitationEditorBody = document.getElementById("hospitation-editor-body");
       const organizationsTable = document.querySelector(".organizations-table");
       const organizationsTableHead = document.getElementById("organizations-table-head");
       const organizationsPaginationMeta = document.getElementById("organizations-pagination-meta");
@@ -22689,6 +22926,8 @@
       let selectedOrganizationCities = [];
       let selectedOrganizationContactRanges = [];
       let formats = [];
+      let hospitations = [];
+      let hospitationSlots = [];
       let backendRegistrations = [];
       let activeRegistrationId = null;
       let registrationDetailTab = "contact";
@@ -22705,6 +22944,12 @@
       let stakeholderEditingNoteKey = "";
       let formatStatusFilter = "";
       let formatLoadErrorMessage = "";
+      let activeHospitationTab = "appointments";
+      let hospitationStatusFilter = "";
+      let hospitationLoadErrorMessage = "";
+      let editingHospitationId = "";
+      let editingHospitationSlotId = "";
+      let hospitationEditorMode = "request";
       let participantPlannerFormatId = null;
       let participantPlannerCurrentStep = "filters";
       let participantPlannerSelectedIds = new Set();
@@ -25681,6 +25926,7 @@
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
+        hospitations: { title: "Hospitationen", subtitle: "Termine anfragen, intern buchen und Versorgungskontakte dokumentieren." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
@@ -31000,6 +31246,7 @@
           return `${items.length} von ${activeStakeholderOrganizationsTotal()} ${config.organizationPlural}`;
         }
         if (activeView === "formats") return `${items.length} von ${formats.length} Formaten`;
+        if (activeView === "hospitations") return `${items.length} von ${hospitations.length} Hospitationen`;
         if (activeView === "activities") return `${activities.length} Aktivitäten`;
         return `${items.length} von ${activeContactsTotal()} Kontakten`;
       }
@@ -31497,6 +31744,46 @@
           );
           return;
         }
+        if (activeView === "hospitations") {
+          const activeHospitationItems = hospitations.filter((hospitation) => hospitation.status !== "Archiviert");
+          const documented = activeHospitationItems.filter((hospitation) => hospitation.status === "Dokumentiert" || meaningfulOrEmpty(hospitation.documentationSummary)).length;
+          const openDocumentation = activeHospitationItems.filter((hospitation) => ["Gebucht", "Durchgeführt"].includes(hospitation.status) && !meaningfulOrEmpty(hospitation.documentationSummary)).length;
+          renderSummaryCards(
+            summaryGrid,
+            [
+              {
+                label: "Hospitationen",
+                value: activeHospitationItems.length,
+                meta: isMobileLayout() ? "aktiv" : "",
+                icon: `
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 2v4"></path>
+                    <path d="M16 2v4"></path>
+                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                    <path d="M3 10h18"></path>
+                    <path d="M8 14h4"></path>
+                    <path d="M8 18h8"></path>
+                  </svg>
+                `,
+                iconClass: "summary-icon--blue"
+              },
+              {
+                label: "Dokumentiert",
+                value: documented,
+                meta: openDocumentation ? `${openDocumentation} offen` : "",
+                icon: `
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 11l2 2 4-4"></path>
+                    <path d="M4 4h16v16H4z"></path>
+                  </svg>
+                `,
+                iconClass: "summary-icon--blue"
+              }
+            ],
+            "Hospitationen"
+          );
+          return;
+        }
         if (activeView === "activities") {
           renderSummaryCards(
             summaryGrid,
@@ -31795,6 +32082,777 @@
               format.notes
             ].join(" ").toLowerCase().includes(query);
           });
+      }
+
+      function hospitationSearchQuery() {
+        return String(searchInput?.value || "").trim().toLowerCase();
+      }
+
+      function hospitationStatusBadgeMarkup(status = "") {
+        const label = status || "Angefragt";
+        return `<span class="hospitation-status-badge">${escapeHtml(label)}</span>`;
+      }
+
+      function dateTimeInputValue(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
+        const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 16);
+      }
+
+      function dateTimeInputToIso(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        const date = new Date(raw);
+        return Number.isNaN(date.getTime()) ? raw : date.toISOString();
+      }
+
+      function dateInputValue(value) {
+        return String(value || "").slice(0, 10);
+      }
+
+      function hospitationDateRangeLabel(item = {}) {
+        const start = item.startsAt || item.starts_at || "";
+        const end = item.endsAt || item.ends_at || "";
+        if (!start) return "Termin offen";
+        const startLabel = formatDateTimeLabel(start) || formatDateLabel(start) || "Termin offen";
+        const endDate = new Date(end);
+        const startDate = new Date(start);
+        if (!end || Number.isNaN(endDate.getTime()) || Number.isNaN(startDate.getTime())) return startLabel;
+        const sameDay = startDate.toDateString() === endDate.toDateString();
+        const endLabel = sameDay
+          ? endDate.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
+          : formatDateTimeLabel(end);
+        return `${startLabel} bis ${endLabel}`;
+      }
+
+      function hospitationContact(hospitation = {}) {
+        return contacts.find((contact) => contact.id === (hospitation.contactId || hospitation.contact_id)) || null;
+      }
+
+      function hospitationOrganization(hospitation = {}) {
+        const organizationId = hospitation.organizationId || hospitation.organization_id || "";
+        const contact = hospitationContact(hospitation);
+        const organizationName = contact?.organization || "";
+        return organizations.find((organization) =>
+          (organizationId && organization.id === organizationId) ||
+          (organizationName && normalizeOrganizationName(organization.name) === normalizeOrganizationName(organizationName))
+        ) || null;
+      }
+
+      function hospitationContextLabel(hospitation = {}) {
+        const contact = hospitationContact(hospitation);
+        const organization = hospitationOrganization(hospitation);
+        if (contact && organization) return `${contact.displayName || contact.name} · ${organization.name}`;
+        if (contact) return contact.displayName || contact.name;
+        if (organization) return organization.name;
+        return hospitation.contactName || hospitation.organizationName || "Kontakt oder Organisation offen";
+      }
+
+      function hospitationOwnerLabel(ownerId = "") {
+        const label = ownerDisplayLabel(ownerId);
+        return ownerBadgeLabel(label || ownerId || currentProfile?.displayName || "");
+      }
+
+      function hospitationOwnerMarkup(ownerId = "") {
+        return ownerBadgeSingleMarkup(ownerId || currentProfile?.id || "");
+      }
+
+      function hospitationStateLabel(hospitation = {}) {
+        const contact = hospitationContact(hospitation);
+        const organization = hospitationOrganization(hospitation);
+        return contact?.state || (contact ? stateLabel(contact) : "") || organization?.state || "Nicht hinterlegt";
+      }
+
+      function hospitationSectorLabel(hospitation = {}) {
+        const contact = hospitationContact(hospitation);
+        const organization = hospitationOrganization(hospitation);
+        return normalizeCategory(contact?.category || organization?.sector || "") || "Nicht hinterlegt";
+      }
+
+      function sortedHospitations(items = hospitations) {
+        return [...items].sort((left, right) => {
+          const leftTime = new Date(left.startsAt || left.updatedAt || left.createdAt || 0).getTime();
+          const rightTime = new Date(right.startsAt || right.updatedAt || right.createdAt || 0).getTime();
+          return rightTime - leftTime || String(right.id || "").localeCompare(String(left.id || ""));
+        });
+      }
+
+      function filteredHospitations() {
+        const query = hospitationSearchQuery();
+        return sortedHospitations(
+          hospitations
+            .filter((hospitation) => hospitation.status !== "Archiviert" || canAdministerData())
+            .filter((hospitation) => !hospitationStatusFilter || hospitation.status === hospitationStatusFilter)
+            .filter((hospitation) => {
+              if (!query) return true;
+              const contact = hospitationContact(hospitation);
+              const organization = hospitationOrganization(hospitation);
+              return [
+                hospitationContextLabel(hospitation),
+                contact?.email,
+                organization?.name,
+                hospitation.status,
+                hospitation.goal,
+                Array.isArray(hospitation.topics) ? hospitation.topics.join(" ") : hospitation.topics,
+                hospitation.location,
+                hospitation.requestNote,
+                hospitation.documentationSummary,
+                hospitation.documentationOutcome,
+                hospitation.followUpNote
+              ].join(" ").toLowerCase().includes(query);
+            })
+        );
+      }
+
+      function filteredHospitationSlots() {
+        const query = hospitationSearchQuery();
+        return [...hospitationSlots]
+          .filter((slot) => slot.status !== "Archiviert" || canAdministerData())
+          .filter((slot) => {
+            if (!query) return true;
+            const pseudoHospitation = { contactId: slot.contactId, organizationId: slot.organizationId };
+            return [
+              hospitationContextLabel(pseudoHospitation),
+              slot.status,
+              slot.location,
+              slot.notes,
+              hospitationOwnerLabel(slot.ownerId)
+            ].join(" ").toLowerCase().includes(query);
+          })
+          .sort((left, right) => new Date(left.startsAt || 0).getTime() - new Date(right.startsAt || 0).getTime());
+      }
+
+      function openDocumentationHospitations() {
+        return filteredHospitations().filter((hospitation) => {
+          const needsDocumentation = ["Gebucht", "Durchgeführt"].includes(hospitation.status) && !meaningfulOrEmpty(hospitation.documentationSummary);
+          const hasOpenFollowUp = meaningfulOrEmpty(hospitation.followUpNote) && meaningfulOrEmpty(hospitation.followUpDueAt);
+          return needsDocumentation || hasOpenFollowUp;
+        });
+      }
+
+      function hospitationsForContact(contactId = "") {
+        if (!contactId) return [];
+        return sortedHospitations(hospitations.filter((hospitation) => hospitation.contactId === contactId));
+      }
+
+      function hospitationsForOrganization(organization = {}) {
+        if (!organization?.id) return [];
+        const linkedContactIds = new Set(organizationContacts(organization).map((contact) => contact.id));
+        return sortedHospitations(hospitations.filter((hospitation) =>
+          hospitation.organizationId === organization.id || linkedContactIds.has(hospitation.contactId)
+        ));
+      }
+
+      function hospitationSlotOptionMarkup(selectedSlotId = "") {
+        const options = filteredHospitationSlots()
+          .filter((slot) => slot.status === "Frei" || slot.id === selectedSlotId)
+          .map((slot) => {
+            const pseudoHospitation = { contactId: slot.contactId, organizationId: slot.organizationId };
+            const label = `${hospitationDateRangeLabel(slot)} · ${hospitationContextLabel(pseudoHospitation)}${slot.location ? ` · ${slot.location}` : ""}`;
+            return `<option value="${escapeHtml(slot.id)}" ${slot.id === selectedSlotId ? "selected" : ""}>${escapeHtml(label)}</option>`;
+          });
+        return `<option value="">Ohne Slot / direkten Termin erfassen</option>${options.join("")}`;
+      }
+
+      function hospitationContactOptionMarkup(selectedContactId = "") {
+        const options = contacts
+          .filter((contact) => contact.status !== "archived" || contact.id === selectedContactId)
+          .sort((left, right) => String(left.displayName || left.name).localeCompare(String(right.displayName || right.name), "de"))
+          .map((contact) => `<option value="${escapeHtml(contact.id)}" ${contact.id === selectedContactId ? "selected" : ""}>${escapeHtml(contact.displayName || contact.name)}</option>`);
+        return `<option value="">Kein Kontakt</option>${options.join("")}`;
+      }
+
+      function hospitationOrganizationOptionMarkup(selectedOrganizationId = "") {
+        const options = organizations
+          .filter((organization) => organization.status !== "archived" || organization.id === selectedOrganizationId)
+          .sort((left, right) => String(left.name).localeCompare(String(right.name), "de"))
+          .map((organization) => `<option value="${escapeHtml(organization.id)}" ${organization.id === selectedOrganizationId ? "selected" : ""}>${escapeHtml(organization.name)}</option>`);
+        return `<option value="">Keine Organisation</option>${options.join("")}`;
+      }
+
+      function hospitationFactMarkup(label, value) {
+        return `
+          <div class="hospitation-fact">
+            <span>${escapeHtml(label)}</span>
+            <strong>${value || "Nicht hinterlegt"}</strong>
+          </div>
+        `;
+      }
+
+      function hospitationCardMarkup(hospitation, options = {}) {
+        const documentationQueue = Boolean(options.documentationQueue);
+        const contact = hospitationContact(hospitation);
+        const organization = hospitationOrganization(hospitation);
+        const topics = Array.isArray(hospitation.topics) ? hospitation.topics.join(", ") : String(hospitation.topics || "");
+        const followUp = meaningfulOrEmpty(hospitation.followUpDueAt)
+          ? `${formatDateLabel(hospitation.followUpDueAt)}${hospitation.followUpOwnerId ? ` · ${hospitationOwnerLabel(hospitation.followUpOwnerId)}` : ""}`
+          : "";
+        const canEdit = canEditContacts();
+        return `
+          <article class="hospitation-card" data-hospitation-card="${escapeHtml(hospitation.id)}">
+            <div class="hospitation-card__head">
+              <div class="hospitation-card__title">
+                <h3>${escapeHtml(hospitationContextLabel(hospitation))}</h3>
+                <div class="hospitation-card__meta">${escapeHtml(hospitationDateRangeLabel(hospitation))}</div>
+              </div>
+              ${hospitationStatusBadgeMarkup(hospitation.status)}
+            </div>
+            <div class="hospitation-card__facts">
+              ${hospitationFactMarkup("Ziel / Thema", escapeHtml(hospitation.goal || topics || "Nicht hinterlegt"))}
+              ${hospitationFactMarkup("Ort", escapeHtml(hospitation.location || "Nicht hinterlegt"))}
+              ${hospitationFactMarkup("Owner", hospitationOwnerMarkup(hospitation.ownerId))}
+              ${hospitationFactMarkup("Follow-up", escapeHtml(followUp || "Kein offenes Follow-up"))}
+            </div>
+            ${hospitation.documentationSummary ? `<p class="hospitation-card__note">${escapeHtml(hospitation.documentationSummary)}</p>` : ""}
+            <div class="hospitation-card__actions">
+              ${contact ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="open-contact" data-contact-id="${escapeHtml(contact.id)}">Kontakt</button>` : ""}
+              ${organization ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="open-organization" data-organization-id="${escapeHtml(organization.id)}">Organisation</button>` : ""}
+              ${canEdit && hospitation.status === "Gebucht" ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="mark-done" data-hospitation-id="${escapeHtml(hospitation.id)}">Durchgeführt</button>` : ""}
+              ${canEdit ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="document" data-hospitation-id="${escapeHtml(hospitation.id)}">${documentationQueue ? "Dokumentieren" : "Doku"}</button>` : ""}
+              ${canEdit ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="edit" data-hospitation-id="${escapeHtml(hospitation.id)}">Bearbeiten</button>` : ""}
+            </div>
+          </article>
+        `;
+      }
+
+      function hospitationSlotCardMarkup(slot) {
+        const pseudoHospitation = { contactId: slot.contactId, organizationId: slot.organizationId };
+        const canEdit = canEditContacts();
+        return `
+          <article class="hospitation-card" data-hospitation-slot-card="${escapeHtml(slot.id)}">
+            <div class="hospitation-card__head">
+              <div class="hospitation-card__title">
+                <h3>${escapeHtml(hospitationDateRangeLabel(slot))}</h3>
+                <div class="hospitation-card__meta">${escapeHtml(hospitationContextLabel(pseudoHospitation))}</div>
+              </div>
+              ${hospitationStatusBadgeMarkup(slot.status || "Frei")}
+            </div>
+            <div class="hospitation-card__facts">
+              ${hospitationFactMarkup("Ort", escapeHtml(slot.location || "Nicht hinterlegt"))}
+              ${hospitationFactMarkup("Kapazität", escapeHtml(String(slot.capacity || 1)))}
+              ${hospitationFactMarkup("Owner", hospitationOwnerMarkup(slot.ownerId))}
+              ${hospitationFactMarkup("Notiz", escapeHtml(slot.notes || "Keine Notiz"))}
+            </div>
+            <div class="hospitation-card__actions">
+              ${canEdit && slot.status === "Frei" ? `<button class="action-button action-button--compact action-button--primary" type="button" data-hospitation-action="book-slot" data-slot-id="${escapeHtml(slot.id)}">Buchen</button>` : ""}
+              ${canEdit ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="edit-slot" data-slot-id="${escapeHtml(slot.id)}">Bearbeiten</button>` : ""}
+            </div>
+          </article>
+        `;
+      }
+
+      function renderHospitationStatusLegend() {
+        if (!hospitationStatusLegend) return;
+        const statuses = ["", "Angefragt", "Angeboten", "Gebucht", "Durchgeführt", "Dokumentiert"];
+        hospitationStatusLegend.innerHTML = statuses
+          .map((status) => `
+            <button class="hospitation-status-filter ${hospitationStatusFilter === status ? "is-active" : ""}" type="button" data-hospitation-status-filter="${escapeHtml(status)}" aria-pressed="${hospitationStatusFilter === status ? "true" : "false"}">
+              ${escapeHtml(status || "Alle")}
+            </button>
+          `)
+          .join("");
+        hospitationStatusLegend.querySelectorAll("[data-hospitation-status-filter]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const nextStatus = button.dataset.hospitationStatusFilter || "";
+            hospitationStatusFilter = hospitationStatusFilter === nextStatus ? "" : nextStatus;
+            renderHospitationsView();
+          });
+        });
+      }
+
+      function renderHospitationDashboard() {
+        if (!hospitationDashboard) return;
+        const visible = filteredHospitations();
+        const active = hospitations.filter((hospitation) => hospitation.status !== "Archiviert");
+        const completed = active.filter((hospitation) => ["Durchgeführt", "Dokumentiert"].includes(hospitation.status));
+        const documented = active.filter((hospitation) => hospitation.status === "Dokumentiert" || meaningfulOrEmpty(hospitation.documentationSummary));
+        const openDocumentation = active.filter((hospitation) => ["Gebucht", "Durchgeführt"].includes(hospitation.status) && !meaningfulOrEmpty(hospitation.documentationSummary));
+        const openFollowUps = active.filter((hospitation) => meaningfulOrEmpty(hospitation.followUpNote) && meaningfulOrEmpty(hospitation.followUpDueAt));
+        const statusCounts = countByValue(active, (hospitation) => hospitation.status || "Angefragt").slice(0, 6);
+        const ownerCounts = countByValue(active, (hospitation) => hospitationOwnerLabel(hospitation.ownerId)).slice(0, 5);
+        const sectorCounts = countByValue(active, hospitationSectorLabel).slice(0, 5);
+        const stateCounts = countByValue(active, hospitationStateLabel).slice(0, 5);
+        const listMarkup = (entries) => entries.length
+          ? entries.map(([label, count]) => `<p><strong>${escapeHtml(label)}</strong> <span>${count}</span></p>`).join("")
+          : `<p>Noch keine Daten</p>`;
+        hospitationDashboard.innerHTML = `
+          <article class="dashboard-card dashboard-card--compact">
+            <div class="dashboard-card-head"><h4>Hospitationen</h4><span>${visible.length} Treffer</span></div>
+            <p>${active.length} aktive Einträge</p>
+          </article>
+          <article class="dashboard-card dashboard-card--compact">
+            <div class="dashboard-card-head"><h4>Durchgeführt</h4><span>${completed.length}</span></div>
+            <p>${documented.length} dokumentiert</p>
+          </article>
+          <article class="dashboard-card dashboard-card--compact">
+            <div class="dashboard-card-head"><h4>Offene Doku</h4><span>${openDocumentation.length}</span></div>
+            <p>${openFollowUps.length} Follow-ups mit Fälligkeit</p>
+          </article>
+          <article class="dashboard-card dashboard-card--compact">
+            <div class="dashboard-card-head"><h4>Freie Termine</h4><span>${hospitationSlots.filter((slot) => slot.status === "Frei").length}</span></div>
+            <p>${hospitationSlots.filter((slot) => slot.status !== "Archiviert").length} Slots gesamt</p>
+          </article>
+          <article class="dashboard-card dashboard-card--medium">
+            <div class="dashboard-card-head"><h4>Status</h4></div>
+            ${listMarkup(statusCounts)}
+          </article>
+          <article class="dashboard-card dashboard-card--medium">
+            <div class="dashboard-card-head"><h4>Owner</h4></div>
+            ${listMarkup(ownerCounts)}
+          </article>
+          <article class="dashboard-card dashboard-card--medium">
+            <div class="dashboard-card-head"><h4>Sektor</h4></div>
+            ${listMarkup(sectorCounts)}
+          </article>
+          <article class="dashboard-card dashboard-card--medium">
+            <div class="dashboard-card-head"><h4>Bundesland</h4></div>
+            ${listMarkup(stateCounts)}
+          </article>
+        `;
+      }
+
+      function bindHospitationListActions(root = document) {
+        root.querySelectorAll("[data-hospitation-action]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const action = button.dataset.hospitationAction;
+            const hospitationId = button.dataset.hospitationId || "";
+            const slotId = button.dataset.slotId || "";
+            if (action === "open-contact" && button.dataset.contactId) {
+              openPersonProfile("contact", button.dataset.contactId, { returnTo: "hospitations" });
+              return;
+            }
+            if (action === "open-organization" && button.dataset.organizationId) {
+              openOrganizationProfile("care", button.dataset.organizationId, { returnTo: "hospitations" });
+              return;
+            }
+            if (action === "edit") {
+              openHospitationEditor("edit", hospitations.find((item) => item.id === hospitationId));
+              return;
+            }
+            if (action === "document") {
+              openHospitationEditor("documentation", hospitations.find((item) => item.id === hospitationId));
+              return;
+            }
+            if (action === "book-slot") {
+              openHospitationEditor("booking", null, { slotId });
+              return;
+            }
+            if (action === "edit-slot") {
+              openHospitationEditor("slot", hospitationSlots.find((item) => item.id === slotId));
+              return;
+            }
+            if (action === "mark-done") {
+              try {
+                const updated = await window.dataService.updateHospitation(hospitationId, { status: "Durchgeführt" });
+                replaceHospitation(updated);
+                setStorageStatus("Hospitation als durchgeführt markiert");
+                renderHospitationsView();
+                updateView();
+              } catch (error) {
+                console.error("Hospitationsstatus konnte nicht gespeichert werden.", error);
+                window.alert("Der Status konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+              }
+            }
+          });
+        });
+      }
+
+      function renderHospitationsView() {
+        if (activeView !== "hospitations") return;
+        const activeTab = hospitationTabItems.some((item) => item.id === activeHospitationTab) ? activeHospitationTab : "appointments";
+        activeHospitationTab = activeTab;
+        hospitationTabButtons.forEach((button) => {
+          const active = button.dataset.hospitationTab === activeTab;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        hospitationTabPanels.forEach((panel) => {
+          panel.hidden = panel.dataset.hospitationTabPanel !== activeTab;
+        });
+        renderHospitationStatusLegend();
+        const items = filteredHospitations();
+        if (resultsCount) resultsCount.textContent = hitCountLabel(items);
+        if (hospitationLoadErrorMessage && hospitationList) {
+          hospitationList.innerHTML = `<div class="history-error">${escapeHtml(hospitationLoadErrorMessage)}</div>`;
+          return;
+        }
+        if (activeTab === "appointments" && hospitationList) {
+          const slotItems = filteredHospitationSlots().filter((slot) => slot.status !== "Archiviert");
+          const hospitationMarkup = items.length
+            ? items.map((hospitation) => hospitationCardMarkup(hospitation)).join("")
+            : `<div class="history-empty">Noch keine Hospitationen für diese Auswahl.</div>`;
+          const slotMarkup = slotItems.length
+            ? `<div class="hospitation-list">${slotItems.map(hospitationSlotCardMarkup).join("")}</div>`
+            : `<div class="history-empty">Keine freien oder geplanten Hospitationstermine hinterlegt.</div>`;
+          hospitationList.innerHTML = `
+            ${hospitationMarkup}
+            <section class="section-block">
+              <h4 class="detail-section-title">Angebotene Termine</h4>
+              ${slotMarkup}
+            </section>
+          `;
+          bindHospitationListActions(hospitationList);
+        }
+        if (activeTab === "documentation" && hospitationDocumentationList) {
+          const docs = openDocumentationHospitations();
+          hospitationDocumentationList.innerHTML = docs.length
+            ? docs.map((hospitation) => hospitationCardMarkup(hospitation, { documentationQueue: true })).join("")
+            : `<div class="history-empty">Alle durchgeführten Hospitationen sind dokumentiert.</div>`;
+          bindHospitationListActions(hospitationDocumentationList);
+        }
+        if (activeTab === "dashboard") {
+          renderHospitationDashboard();
+        }
+      }
+
+      function renderHospitationEditor(record = null, context = {}) {
+        const isSlotMode = hospitationEditorMode === "slot";
+        const isDocumentation = hospitationEditorMode === "documentation";
+        const isBooking = hospitationEditorMode === "booking";
+        if (isSlotMode) {
+          const slot = record || context;
+          return `
+            <form class="format-editor" id="hospitation-editor-form">
+              <section class="editor-section editor-section--primary">
+                <div class="editor-section-head">
+                  <h4 class="editor-section-title">Terminangebot</h4>
+                </div>
+                <div class="format-editor-grid">
+                  <div class="format-editor-field">
+                    <label for="hospitation-slot-start">Beginn</label>
+                    <input id="hospitation-slot-start" name="startsAt" type="datetime-local" required value="${escapeHtml(dateTimeInputValue(slot.startsAt))}" />
+                  </div>
+                  <div class="format-editor-field">
+                    <label for="hospitation-slot-end">Ende</label>
+                    <input id="hospitation-slot-end" name="endsAt" type="datetime-local" value="${escapeHtml(dateTimeInputValue(slot.endsAt))}" />
+                  </div>
+                  <div class="format-editor-field">
+                    <label for="hospitation-slot-status">Status</label>
+                    <div class="editor-select-shell" data-custom-select data-select-type="hospitation-slot-status">
+                      <select class="editor-select" id="hospitation-slot-status" name="status">${formatOptionMarkup(hospitationSlotStatusOptions, slot.status || "Frei")}</select>
+                    </div>
+                  </div>
+                  <div class="format-editor-field">
+                    <label for="hospitation-slot-capacity">Kapazität</label>
+                    <input id="hospitation-slot-capacity" name="capacity" type="number" min="1" step="1" value="${escapeHtml(String(slot.capacity || 1))}" />
+                  </div>
+                  <div class="format-editor-field">
+                    <label for="hospitation-slot-contact">Kontakt</label>
+                    <div class="editor-select-shell" data-custom-select data-select-type="hospitation-slot-contact">
+                      <select class="editor-select" id="hospitation-slot-contact" name="contactId">${hospitationContactOptionMarkup(slot.contactId || context.contactId || "")}</select>
+                    </div>
+                  </div>
+                  <div class="format-editor-field">
+                    <label for="hospitation-slot-organization">Organisation</label>
+                    <div class="editor-select-shell" data-custom-select data-select-type="hospitation-slot-organization">
+                      <select class="editor-select" id="hospitation-slot-organization" name="organizationId">${hospitationOrganizationOptionMarkup(slot.organizationId || context.organizationId || "")}</select>
+                    </div>
+                  </div>
+                  <div class="format-editor-field">
+                    <label for="hospitation-slot-owner">Owner</label>
+                    <div class="editor-select-shell" data-custom-select data-select-type="hospitation-slot-owner">
+                      <select class="editor-select" id="hospitation-slot-owner" name="ownerId">${buildOwnerSelectOptions(slot.ownerId || currentProfile?.id || "")}</select>
+                    </div>
+                  </div>
+                  <div class="format-editor-field">
+                    <label for="hospitation-slot-location">Ort</label>
+                    <input id="hospitation-slot-location" name="location" value="${escapeHtml(slot.location || "")}" placeholder="Einrichtung, Raum oder online" />
+                  </div>
+                  <div class="format-editor-field format-editor-field--wide">
+                    <label for="hospitation-slot-notes">Notiz</label>
+                    <textarea id="hospitation-slot-notes" name="notes" placeholder="Interne Terminnotiz">${escapeHtml(slot.notes || "")}</textarea>
+                  </div>
+                </div>
+              </section>
+              <div class="format-editor-actions">
+                <button class="action-button" type="button" id="hospitation-editor-cancel">Abbrechen</button>
+                <button class="action-button action-button--primary" type="submit">Speichern</button>
+              </div>
+            </form>
+          `;
+        }
+
+        const hospitation = record || context;
+        const selectedSlotId = hospitation.slotId || context.slotId || "";
+        const defaultStatus = isDocumentation ? "Dokumentiert" : isBooking ? "Gebucht" : hospitation.status || "Angefragt";
+        return `
+          <form class="format-editor" id="hospitation-editor-form">
+            <section class="editor-section editor-section--primary">
+              <div class="editor-section-head">
+                <h4 class="editor-section-title">${isDocumentation ? "Dokumentation" : "Hospitation"}</h4>
+              </div>
+              <div class="format-editor-grid">
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="hospitation-slot">Termin-Slot</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-slot">
+                    <select class="editor-select" id="hospitation-slot" name="slotId">${hospitationSlotOptionMarkup(selectedSlotId)}</select>
+                  </div>
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-contact">Kontakt</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-contact">
+                    <select class="editor-select" id="hospitation-contact" name="contactId">${hospitationContactOptionMarkup(hospitation.contactId || context.contactId || "")}</select>
+                  </div>
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-organization">Organisation</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-organization">
+                    <select class="editor-select" id="hospitation-organization" name="organizationId">${hospitationOrganizationOptionMarkup(hospitation.organizationId || context.organizationId || "")}</select>
+                  </div>
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-status">Status</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-status">
+                    <select class="editor-select" id="hospitation-status" name="status">${formatOptionMarkup(hospitationStatusOptions, defaultStatus)}</select>
+                  </div>
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-owner">Owner</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-owner">
+                    <select class="editor-select" id="hospitation-owner" name="ownerId">${buildOwnerSelectOptions(hospitation.ownerId || currentProfile?.id || "")}</select>
+                  </div>
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-start">Beginn</label>
+                  <input id="hospitation-start" name="startsAt" type="datetime-local" value="${escapeHtml(dateTimeInputValue(hospitation.startsAt))}" />
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-end">Ende</label>
+                  <input id="hospitation-end" name="endsAt" type="datetime-local" value="${escapeHtml(dateTimeInputValue(hospitation.endsAt))}" />
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-location">Ort</label>
+                  <input id="hospitation-location" name="location" value="${escapeHtml(hospitation.location || "")}" placeholder="Einrichtung, Raum oder online" />
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-follow-up-owner">Follow-up-Owner</label>
+                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-follow-up-owner">
+                    <select class="editor-select" id="hospitation-follow-up-owner" name="followUpOwnerId">${buildOwnerSelectOptions(hospitation.followUpOwnerId || "")}</select>
+                  </div>
+                </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-follow-up-due">Follow-up-Fälligkeit</label>
+                  <input id="hospitation-follow-up-due" name="followUpDueAt" type="date" value="${escapeHtml(dateInputValue(hospitation.followUpDueAt))}" />
+                </div>
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="hospitation-goal">Ziel / Themen</label>
+                  <textarea id="hospitation-goal" name="goal" required placeholder="Warum findet die Hospitation statt?">${escapeHtml(hospitation.goal || "")}</textarea>
+                </div>
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="hospitation-topics">Themenliste</label>
+                  <input id="hospitation-topics" name="topics" value="${escapeHtml(Array.isArray(hospitation.topics) ? hospitation.topics.join(", ") : hospitation.topics || "")}" placeholder="z. B. Pflegekoordination, Entlassmanagement" />
+                </div>
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="hospitation-request-note">Anfrage- / Planungsnotiz</label>
+                  <textarea id="hospitation-request-note" name="requestNote" placeholder="Interner Kontext zur Anfrage">${escapeHtml(hospitation.requestNote || "")}</textarea>
+                </div>
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="hospitation-documentation-summary">Ergebnisnotiz</label>
+                  <textarea id="hospitation-documentation-summary" name="documentationSummary" ${isDocumentation ? "required" : ""} placeholder="Was wurde beobachtet oder besprochen?">${escapeHtml(hospitation.documentationSummary || "")}</textarea>
+                </div>
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="hospitation-documentation-outcome">Auswertung / Ergebnis</label>
+                  <textarea id="hospitation-documentation-outcome" name="documentationOutcome" placeholder="Ergebnis, offene Punkte oder Einschätzung">${escapeHtml(hospitation.documentationOutcome || "")}</textarea>
+                </div>
+                <div class="format-editor-field format-editor-field--wide">
+                  <label for="hospitation-follow-up-note">Follow-up</label>
+                  <textarea id="hospitation-follow-up-note" name="followUpNote" placeholder="Nächster Schritt">${escapeHtml(hospitation.followUpNote || "")}</textarea>
+                </div>
+              </div>
+            </section>
+            <div class="format-editor-actions">
+              <button class="action-button" type="button" id="hospitation-editor-cancel">Abbrechen</button>
+              <button class="action-button action-button--primary" type="submit">Speichern</button>
+            </div>
+          </form>
+        `;
+      }
+
+      function hospitationEditorPayload(form) {
+        const data = new FormData(form);
+        if (hospitationEditorMode === "slot") {
+          return {
+            startsAt: dateTimeInputToIso(data.get("startsAt")),
+            endsAt: dateTimeInputToIso(data.get("endsAt")),
+            contactId: String(data.get("contactId") || "").trim(),
+            organizationId: String(data.get("organizationId") || "").trim(),
+            location: String(data.get("location") || "").trim(),
+            capacity: Math.max(1, Number(data.get("capacity")) || 1),
+            ownerId: String(data.get("ownerId") || "").trim(),
+            status: String(data.get("status") || "Frei").trim(),
+            notes: String(data.get("notes") || "").trim()
+          };
+        }
+        return {
+          slotId: String(data.get("slotId") || "").trim(),
+          contactId: String(data.get("contactId") || "").trim(),
+          organizationId: String(data.get("organizationId") || "").trim(),
+          status: String(data.get("status") || "Angefragt").trim(),
+          startsAt: dateTimeInputToIso(data.get("startsAt")),
+          endsAt: dateTimeInputToIso(data.get("endsAt")),
+          location: String(data.get("location") || "").trim(),
+          ownerId: String(data.get("ownerId") || "").trim(),
+          goal: String(data.get("goal") || "").trim(),
+          topics: String(data.get("topics") || "").trim(),
+          requestNote: String(data.get("requestNote") || "").trim(),
+          documentationSummary: String(data.get("documentationSummary") || "").trim(),
+          documentationOutcome: String(data.get("documentationOutcome") || "").trim(),
+          followUpNote: String(data.get("followUpNote") || "").trim(),
+          followUpOwnerId: String(data.get("followUpOwnerId") || "").trim(),
+          followUpDueAt: String(data.get("followUpDueAt") || "").trim()
+        };
+      }
+
+      function replaceHospitation(updated) {
+        if (!updated) return;
+        hospitations = [updated, ...hospitations.filter((item) => item.id !== updated.id)];
+      }
+
+      function replaceHospitationSlot(updated) {
+        if (!updated) return;
+        hospitationSlots = [updated, ...hospitationSlots.filter((item) => item.id !== updated.id)];
+      }
+
+      function bindHospitationEditor() {
+        const form = document.getElementById("hospitation-editor-form");
+        refreshCustomSelects(form || document);
+        document.getElementById("hospitation-editor-cancel")?.addEventListener("click", closeHospitationEditor);
+        form?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Pflegen von Hospitationen"));
+            return;
+          }
+          const payload = hospitationEditorPayload(form);
+          if (hospitationEditorMode === "slot" && !payload.startsAt) {
+            window.alert("Bitte trage einen Beginn für den Hospitationstermin ein.");
+            return;
+          }
+          if (hospitationEditorMode !== "slot" && !payload.slotId && !payload.contactId && !payload.organizationId) {
+            window.alert("Bitte wähle Kontakt, Organisation oder Termin-Slot aus.");
+            return;
+          }
+          if (hospitationEditorMode === "documentation" && !payload.documentationSummary) {
+            window.alert("Bitte erfasse eine Ergebnisnotiz.");
+            return;
+          }
+          try {
+            if (hospitationEditorMode === "slot") {
+              const saved = editingHospitationSlotId
+                ? await window.dataService.updateHospitationSlot(editingHospitationSlotId, payload)
+                : await window.dataService.createHospitationSlot(payload);
+              replaceHospitationSlot(saved);
+              setStorageStatus("Hospitationstermin gespeichert");
+            } else {
+              const saved = editingHospitationId
+                ? await window.dataService.updateHospitation(editingHospitationId, payload)
+                : await window.dataService.createHospitation(payload);
+              replaceHospitation(saved);
+              setStorageStatus("Hospitation gespeichert");
+            }
+            closeHospitationEditor({ rerender: false });
+            renderHospitationsView();
+            updateView();
+          } catch (error) {
+            console.error("Hospitation konnte nicht gespeichert werden.", error);
+            window.alert("Die Hospitation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          }
+        });
+      }
+
+      function openHospitationEditor(mode = "request", record = null, context = {}) {
+        if (!canEditContacts()) {
+          showPermissionDenied(viewerCreateDisabledMessage("das Pflegen von Hospitationen"));
+          return;
+        }
+        hospitationEditorMode = mode;
+        editingHospitationId = mode === "slot" ? "" : record?.id || "";
+        editingHospitationSlotId = mode === "slot" ? record?.id || "" : "";
+        const titles = {
+          request: ["Hospitation anfragen", "Anfrage mit Kontakt- oder Organisationsbezug erfassen."],
+          booking: ["Hospitation buchen", "Freien Termin-Slot oder direkten Termin verbindlich buchen."],
+          edit: ["Hospitation bearbeiten", "Termin, Status und Planungsnotizen aktualisieren."],
+          documentation: ["Hospitation dokumentieren", "Durchführung, Ergebnis und Follow-up erfassen."],
+          slot: [record?.id ? "Terminangebot bearbeiten" : "Termin anbieten", "Internen Slot für direkte Buchungen pflegen."]
+        };
+        const [title, subtitle] = titles[mode] || titles.request;
+        if (hospitationEditorTitle) hospitationEditorTitle.textContent = title;
+        if (hospitationEditorSubtitle) hospitationEditorSubtitle.textContent = subtitle;
+        if (hospitationEditorBody) hospitationEditorBody.innerHTML = renderHospitationEditor(record, context);
+        bindHospitationEditor();
+        hospitationEditorDrawer?.classList.add("is-open");
+        hospitationEditorDrawer?.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        window.setTimeout(() => document.getElementById(mode === "slot" ? "hospitation-slot-start" : "hospitation-contact")?.focus(), 0);
+      }
+
+      function closeHospitationEditor({ rerender = true } = {}) {
+        closeAllCustomSelects();
+        hospitationEditorDrawer?.classList.remove("is-open");
+        hospitationEditorDrawer?.setAttribute("aria-hidden", "true");
+        if (hospitationEditorBody) hospitationEditorBody.innerHTML = "";
+        editingHospitationId = "";
+        editingHospitationSlotId = "";
+        hospitationEditorMode = "request";
+        syncBodyScrollLock();
+        if (rerender) renderHospitationsView();
+      }
+
+      function renderHospitationProfileSection(items = [], context = {}) {
+        if (context.scope === "expert") return "";
+        const activeItems = sortedHospitations(items.filter((item) => item.status !== "Archiviert"));
+        const now = Date.now();
+        const upcoming = activeItems
+          .filter((item) => item.startsAt && new Date(item.startsAt).getTime() >= now && !["Abgelehnt", "Abgesagt"].includes(item.status))
+          .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime())[0];
+        const lastDocumented = activeItems.find((item) => item.status === "Dokumentiert" || meaningfulOrEmpty(item.documentationSummary));
+        const openDocumentation = activeItems.filter((item) => ["Gebucht", "Durchgeführt"].includes(item.status) && !meaningfulOrEmpty(item.documentationSummary));
+        const openFollowUps = activeItems.filter((item) => meaningfulOrEmpty(item.followUpNote) && meaningfulOrEmpty(item.followUpDueAt));
+        const actions = canEditContacts()
+          ? `
+            <div class="hospitation-card__actions">
+              <button class="action-button action-button--compact" type="button" data-hospitation-profile-action="request" data-context-kind="${escapeHtml(context.kind || "")}" data-context-id="${escapeHtml(context.id || "")}">Hospitation anfragen</button>
+              <button class="action-button action-button--compact" type="button" data-hospitation-profile-action="booking" data-context-kind="${escapeHtml(context.kind || "")}" data-context-id="${escapeHtml(context.id || "")}">Termin buchen</button>
+              ${openDocumentation[0] ? `<button class="action-button action-button--compact action-button--primary" type="button" data-hospitation-profile-action="document" data-hospitation-id="${escapeHtml(openDocumentation[0].id)}">Dokumentieren</button>` : ""}
+            </div>
+          `
+          : "";
+        return `
+          <div class="section-block" data-hospitation-profile-section>
+            <h4 class="detail-section-title">Hospitationen</h4>
+            <div class="detail-line-list">
+              ${detailLine("Nächste Hospitation", upcoming ? hospitationDateRangeLabel(upcoming) : "Nicht geplant")}
+              ${detailLine("Letzte Dokumentation", lastDocumented ? `${formatDateLabel(lastDocumented.documentedAt || lastDocumented.updatedAt || lastDocumented.startsAt)} · ${lastDocumented.documentationSummary || "Dokumentiert"}` : "Noch keine Dokumentation")}
+              ${detailLine("Offene Dokumentation", openDocumentation.length ? `${openDocumentation.length} offen` : "Keine")}
+              ${detailLine("Offene Follow-ups", openFollowUps.length ? `${openFollowUps.length} offen` : "Keine")}
+            </div>
+            ${actions}
+          </div>
+        `;
+      }
+
+      function bindHospitationProfileActions(root = document, context = {}) {
+        root.querySelectorAll("[data-hospitation-profile-action]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const action = button.dataset.hospitationProfileAction;
+            const contextKind = button.dataset.contextKind || context.kind || "";
+            const contextId = button.dataset.contextId || context.id || "";
+            const editorContext = contextKind === "contact"
+              ? { contactId: contextId }
+              : contextKind === "organization"
+                ? { organizationId: contextId }
+                : {};
+            if (action === "document") {
+              openHospitationEditor("documentation", hospitations.find((item) => item.id === button.dataset.hospitationId));
+            } else if (action === "booking") {
+              openHospitationEditor("booking", null, editorContext);
+            } else {
+              openHospitationEditor("request", null, editorContext);
+            }
+          });
+        });
       }
 
       function formatParticipantContacts(format) {
@@ -37804,6 +38862,7 @@
           renderStakeholderTablesVisibility();
         }
         if (view === "formats") renderFormatsView();
+        if (view === "hospitations") renderHospitationsView();
         if (view === "notifications") renderNotificationsView();
         if (view === "settings") setSettingsTab(activeSettingsTab);
         if (view === "map") {
@@ -37879,6 +38938,7 @@
           importDrawer.classList.contains("is-open") ||
           formatParticipantDrawer?.classList.contains("is-open") ||
           formatEditorDrawer?.classList.contains("is-open") ||
+          hospitationEditorDrawer?.classList.contains("is-open") ||
           profilePhotoModal?.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
@@ -38122,6 +39182,7 @@
                   ${detailLine("Zugeordnete Kontakte", `${linkedContacts.length} ${linkedContacts.length === 1 ? "Kontakt" : "Kontakte"}`)}
                 </div>
                 ${organizationExpertContextMarkup(organization)}
+                ${renderHospitationProfileSection(hospitationsForOrganization(organization), { kind: "organization", id: organization.id, scope: "care" })}
               </section>
 
               <section ${panelAttrs("contacts")} id="organization-contacts">
@@ -38186,6 +39247,7 @@
         }
         targetPanel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
         if (isProfilePage) bindOrganizationProfileBack(targetPanel);
+        bindHospitationProfileActions(targetPanel, { kind: "organization", id: organization.id });
         targetPanel.querySelector("[data-open-organization-profile]")?.addEventListener("click", () => {
           openOrganizationProfile("care", organization.id, { returnTo, title: organization.name });
         });
@@ -38456,6 +39518,7 @@
                   }
                 </div>
                 ${editingDetail || expertScope ? "" : contactExpertContextMarkup(contact)}
+                ${editingDetail || expertScope ? "" : renderHospitationProfileSection(hospitationsForContact(contact.id), { kind: "contact", id: contact.id, scope: "care" })}
                 <div class="section-block">
                   <h4 class="detail-section-title">Standort</h4>
                   <article class="detail-info-card detail-info-card--map detail-info-card--span-full">
@@ -38562,6 +39625,7 @@
 
         targetPanel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
         if (isProfilePage) bindPersonProfileBack(targetPanel);
+        if (!expertScope) bindHospitationProfileActions(targetPanel, { kind: "contact", id: contact.id });
         targetPanel.querySelector("#detail-open-profile")?.addEventListener("click", () => {
           openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: expertScope ? "experts" : "contacts" });
         });
@@ -39054,8 +40118,11 @@
         const isAnyDuplicateMode = isCareDuplicatesMode || isExpertMatchingMode;
         const expertDuplicateLinkType = duplicateLinkTypeForExpertView();
         const isFormatsView = activeView === "formats";
+        const isHospitationsView = activeView === "hospitations";
         const items = isFormatsView
           ? filteredFormats()
+          : isHospitationsView
+            ? filteredHospitations()
           : isActivitiesView
             ? activities
           : isNotificationsView
@@ -39084,6 +40151,8 @@
             ? stakeholderTypeConfig().organizationSearchPlaceholder
           : isFormatsView
             ? "Formate suchen..."
+          : isHospitationsView
+            ? "Hospitationen nach Kontakt, Organisation, Ziel oder Status suchen..."
           : isActivitiesView
             ? "Aktivitäten nach Kontakt, Organisation, Nutzer oder Feld suchen"
           : isNotificationsView
@@ -39114,6 +40183,9 @@
         if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertOrganizationsMode;
         if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView || !isExpertOrganizationsMode;
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
+        if (newHospitationRequestButton) newHospitationRequestButton.hidden = !isHospitationsView || !canEditContacts();
+        if (newHospitationBookingButton) newHospitationBookingButton.hidden = !isHospitationsView || !canEditContacts();
+        if (newHospitationSlotButton) newHospitationSlotButton.hidden = !isHospitationsView || !canEditContacts();
         archiveViewButton.hidden = !isContactsView;
         if (openImportButton) openImportButton.hidden = true;
         if (contactsTable) contactsTable.hidden = isContactsDuplicatesMode;
@@ -39121,16 +40193,16 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isAnyDuplicateMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
-        if (isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView) setFilterPanelOpen(false);
+        if (filterToolbar) filterToolbar.hidden = isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
+        if (isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isStakeholdersView) stakeholderCommandActions?.append(filterToolbar, viewSelectShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
-          else if (isFormatsView || isActivitiesView || isNotificationsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isFormatsView || isHospitationsView || isActivitiesView || isNotificationsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
         }
         bulkToolbar.hidden = !isContactsView || isContactsDuplicatesMode || selectedContactIds.size === 0;
@@ -39161,13 +40233,15 @@
           renderNotificationsView();
         } else if (isFormatsView) {
           renderFormatsView();
+        } else if (isHospitationsView) {
+          renderHospitationsView();
         } else if (isPersonProfileView) {
           renderPersonProfilePage();
         } else if (isOrganizationProfileView) {
           renderOrganizationProfilePage();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
+        if (!isFormatsView && !isHospitationsView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -39178,7 +40252,7 @@
         renderAboutApp();
         renderNotificationCounts();
 
-        if (!isOrganizationsView && !isFormatsView && !isExpertsView && !isProfileRecordView && activeId && !items.some((item) => item.id === activeId)) {
+        if (!isOrganizationsView && !isFormatsView && !isHospitationsView && !isExpertsView && !isProfileRecordView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
           activeId = null;
         }
@@ -39636,6 +40710,17 @@
       });
       formatEditorOverlay?.addEventListener("click", () => closeFormatEditorDrawer());
       formatEditorDrawerClose?.addEventListener("click", () => closeFormatEditorDrawer());
+      newHospitationRequestButton?.addEventListener("click", () => openHospitationEditor("request"));
+      newHospitationBookingButton?.addEventListener("click", () => openHospitationEditor("booking"));
+      newHospitationSlotButton?.addEventListener("click", () => openHospitationEditor("slot"));
+      hospitationTabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          activeHospitationTab = button.dataset.hospitationTab || "appointments";
+          renderHospitationsView();
+        });
+      });
+      hospitationEditorOverlay?.addEventListener("click", () => closeHospitationEditor());
+      hospitationEditorClose?.addEventListener("click", () => closeHospitationEditor());
       formatParticipantOverlay?.addEventListener("click", closeParticipantPlanner);
       formatParticipantClose?.addEventListener("click", closeParticipantPlanner);
       formatParticipantCancel?.addEventListener("click", closeParticipantPlanner);
@@ -40455,6 +41540,23 @@
         }
       }
 
+      async function loadHospitationData({ includeArchived = false } = {}) {
+        try {
+          const [loadedSlots, loadedHospitations] = await Promise.all([
+            window.dataService.loadHospitationSlots ? window.dataService.loadHospitationSlots({ includeArchived }) : [],
+            window.dataService.loadHospitations ? window.dataService.loadHospitations({ includeArchived }) : []
+          ]);
+          hospitationSlots = Array.isArray(loadedSlots) ? loadedSlots : [];
+          hospitations = Array.isArray(loadedHospitations) ? loadedHospitations : [];
+          hospitationLoadErrorMessage = "";
+        } catch (hospitationError) {
+          console.warn("Hospitationen konnten nicht geladen werden.", hospitationError);
+          hospitationLoadErrorMessage = String(hospitationError?.message || "Bitte prüfe die Supabase-Tabellen und RLS-Policies für Hospitationen.");
+          hospitationSlots = [];
+          hospitations = [];
+        }
+      }
+
       async function loadCriticalInitialData() {
         loadLegacyOwnerAssignments();
         const settingsPromise = loadUserSettings();
@@ -40497,6 +41599,7 @@
         await Promise.allSettled([
           refreshAfter(loadOrganizationData({ includeArchived })),
           refreshAfter(loadFormatData({ includeArchived })),
+          refreshAfter(loadHospitationData({ includeArchived })),
           refreshAfter(loadExpertData({ includeArchived })),
           refreshAfter(loadStakeholderData({ includeArchived })),
           refreshAfter(loadSavedViews()),
@@ -40510,7 +41613,7 @@
         let initialTargetView = initialRouteView || "map";
         try {
           await loadCriticalInitialData();
-          if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "stakeholders", "formats", "map", "analytics"].includes(userSettings?.defaultViewType)) {
+          if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "stakeholders", "formats", "hospitations", "map", "analytics"].includes(userSettings?.defaultViewType)) {
             initialTargetView = userSettings.defaultViewType;
           }
           scheduleDeferredInitialData();

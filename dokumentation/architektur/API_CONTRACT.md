@@ -1,14 +1,14 @@
 # Versorgungs-Kompass API-Kontrakt
 
-Diese API-Schicht kapselt produktive Supabase-Tabellenzugriffe fuer den Browser. Das Frontend sendet im API-Modus nur fachliche REST-Aufrufe an `/api/...`; Tabellenfelder, `select=...`-Listen und Supabase-REST-URLs bleiben serverseitig in `api/server.mjs`.
+Diese API-Schicht kapselt produktive Backend-Zugriffe fuer den Browser. Das Frontend sendet im GCP-Modus nur fachliche REST-Aufrufe an `/api/...`; Tabellenfelder, SQL-Filter, Storage-Pfade und Rollenlogik bleiben serverseitig in `api/server.mjs`.
 
 Die technische Deployment-Doku fuer Jenkins, GCP Cloud Run und gematik-Zielbetrieb steht in `../betrieb-und-deployment/DEPLOYMENT_GCP_GEMATIK.md`.
 
 ## Authentifizierung
 
-Der Browser nutzt weiterhin Supabase Auth fuer Login und Session. Bei API-Aufrufen sendet `data/data-service.js` den Supabase Access Token als `Authorization: Bearer <token>`.
+Das GCP-Zielbild nutzt IAP/SSO vor Frontend und API. Der Browser verwaltet keine Supabase-Session und sendet keine Supabase-Access-Tokens.
 
-Der API-Server reicht den Token zusammen mit dem Supabase Anon Key an Supabase REST weiter. Dadurch bleiben Supabase RLS-Regeln wirksam, ohne dass das Frontend direkte Tabellen-Queries formuliert.
+Der API-Server liest die IAP-Identitaet aus den Request-Headern, mappt die E-Mail auf `profiles` und liefert diese Session ueber `GET /api/session`. Schreibende und administrative Endpunkte pruefen `viewer`, `editor` und `admin` serverseitig.
 
 ## Endpunkte
 
@@ -18,6 +18,7 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | --- | --- | --- |
 | `GET` | `/healthz` | Lokaler Healthcheck fuer Container und Jenkins-Smoke |
 | `GET` | `/api/healthz` | Cloud-Run-kompatibler API-Healthcheck |
+| `GET` | `/api/session` | Aktuelles IAP/SSO-Profil, Rollenmatrix und Auth-Modus laden |
 | `GET` | `/api/contacts` | Kontakte laden, optional `includeArchived=true`, `status=...` |
 | `POST` | `/api/contacts` | Kontakt anlegen |
 | `GET` | `/api/contacts/:id` | Einzelkontakt laden |
@@ -35,8 +36,9 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `GET` | `/api/profiles` | Aktive Teamprofile laden |
 | `GET` | `/api/profile` | Profil des angemeldeten Nutzers laden |
 | `PATCH` | `/api/profile` | Profil des angemeldeten Nutzers aktualisieren |
-| `POST` | `/api/profile/avatar` | Profilbild des angemeldeten Nutzers in Supabase Storage hochladen |
+| `POST` | `/api/profile/avatar` | Profilbild des angemeldeten Nutzers in Cloud Storage hochladen |
 | `DELETE` | `/api/profile/avatar` | Profilbild-Dateien entfernen und `avatar_url` leeren |
+| `GET` | `/api/profile-avatar/:id` | Profilbild ueber API aus privatem Cloud Storage ausliefern |
 | `GET` | `/api/saved-views` | Gespeicherte Ansichten laden |
 | `POST` | `/api/saved-views` | Gespeicherte Ansicht anlegen |
 | `PATCH` | `/api/saved-views/:id` | Gespeicherte Ansicht aktualisieren |
@@ -51,6 +53,13 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `POST` | `/api/formats/:id/participants` | Kontakt als Teilnehmer hinzufuegen |
 | `PATCH` | `/api/formats/:id/participants/:contactId` | Teilnehmerstatus, Rolle oder Notiz aktualisieren |
 | `DELETE` | `/api/formats/:id/participants/:contactId` | Teilnehmer aus Format entfernen |
+| `GET` | `/api/hospitation-slots` | Interne Hospitationstermine laden, optional `includeArchived=true` |
+| `POST` | `/api/hospitation-slots` | Internen Hospitationstermin anbieten |
+| `PATCH` | `/api/hospitation-slots/:id` | Hospitationstermin aktualisieren |
+| `GET` | `/api/hospitations` | Hospitationen laden, optional `includeArchived=true` |
+| `POST` | `/api/hospitations` | Hospitation anfragen oder direkt buchen |
+| `GET` | `/api/hospitations/:id` | Einzelne Hospitation laden |
+| `PATCH` | `/api/hospitations/:id` | Hospitation aktualisieren, durchfuehren, dokumentieren oder archivieren |
 
 ## DTO-Richtung
 
@@ -62,27 +71,30 @@ Die API gibt Frontend-DTOs zurueck, keine Supabase-Rohzeilen. Beispiele:
 - Profilfelder bleiben kompatibel zur bestehenden Profilseite, z.B. `display_name`, `avatar_url`, `team`, `bio`, `role`
 - Formatfelder wie `formatType`, `startsAt`, `owner`, `participants`
 - Teilnehmerfelder wie `contactId`, `invitationStatus`, `participantRole`
+- Hospitationsfelder wie `slotId`, `contactId`, `organizationId`, `startsAt`, `status`, `goal`, `topics`, `documentationSummary`, `followUpDueAt`
+- Hospitationstermin-Felder wie `contactId`, `organizationId`, `startsAt`, `capacity`, `ownerId`, `status`
 
-Supabase-Spalten wie `organization_id`, `postal_code`, `format_type` oder `invitation_status` werden nur im API-Server gemappt.
+DB-Spalten wie `organization_id`, `postal_code`, `format_type`, `invitation_status` oder `follow_up_due_at` werden nur im API-Server gemappt.
 
 ## Produktivmodus
 
 `data/supabase-config.js` steuert den Modus:
 
 - `dataMode: "local"` oder `"demo"`: Demo-/Local-Daten bleiben im Browser verfuegbar.
+- `dataMode: "gcp"` und `authMode: "iap"`: fachliche Datenpfade laufen ueber die Cloud-Run-API; Identitaet kommt von IAP/SSO.
 - `apiBaseUrl: "https://..."`: fachliche Datenpfade laufen ueber die API-Schicht.
 - `requireApiGateway: true`: fachliche Datenpfade muessen ueber `/api/...` laufen. Wenn `apiBaseUrl` leer ist, nutzt der Browser same-origin `/api/...`.
 - `dataMode: "supabase"` ohne API-Gateway ist kein produktiver Datenmodus mehr. Das Frontend bricht fachliche Datenpfade mit einer klaren Fehlermeldung ab, statt direkte Supabase-Tabellen- oder Storage-Queries auszufuehren.
 
-Fuer internes GCP/gematik-Hosting muessen `apiBaseUrl` und `requireApiGateway: true` gesetzt sein. Jenkins prueft das im Produktionsartefakt. Danach ist ein separater API-Modus-Test noetig: Kontakte, Organisationen, Profile, Profilbild-Storage, gespeicherte Ansichten, User Settings und Formate muessen im Browser ueber `/api/...` laufen.
+Fuer internes GCP/gematik-Hosting muessen `dataMode: "gcp"`, `authMode: "iap"`, `apiBaseUrl` und `requireApiGateway: true` gesetzt sein. Jenkins prueft das im Produktionsartefakt. Danach ist ein separater API-Modus-Test noetig: Kontakte, Organisationen, Profile, Profilbild-Storage, gespeicherte Ansichten, User Settings, Formate und Hospitationen muessen im Browser ueber `/api/...` laufen.
 
 ## Browser-Abgrenzung
 
-Erlaubt im Browser bleibt Supabase Auth, weil der API-Server den angemeldeten Nutzer ueber den Access Token identifiziert und RLS weiterhin greift. Nicht mehr im Browser vorhanden sind direkte fachliche Aufrufe wie `from("contacts").select(...)`, `from("organizations")`, `from("saved_views")`, `from("formats")` oder Supabase Storage-Zugriffe fuer Profilbilder.
+Im GCP-Zielbild ist im Browser weder Supabase Auth noch ein Supabase-Datenclient aktiv. Nicht mehr im Browser vorhanden sein duerfen direkte fachliche Aufrufe wie `from("contacts").select(...)`, `from("organizations")`, `from("saved_views")`, `from("formats")`, `from("hospitations")`, `from("hospitation_slots")` oder direkte Storage-Zugriffe fuer Profilbilder.
 
 ## Jenkins-Absicherung
 
-`npm run check` fuehrt `scripts/audit_api_gateway.mjs` aus. Das Skript scannt Browser-Artefakte in `app/`, `data/`, `login/`, `map/`, `mitmachen/` und `docs/` und bricht den Build ab, wenn direkte fachliche Supabase-Tabellen- oder Storage-Aufrufe gefunden werden.
+`npm run check` fuehrt `scripts/audit_api_gateway.mjs` aus. Ohne Produktionsartefakt ist der Audit lokal tolerant, damit der alte Supabase-Fallback bis zur vollstaendigen Datenmigration noch im Code liegen darf. Mit `--production-config` prueft der Audit das auszuliefernde GCP-Artefakt hart.
 
 Nach dem Erzeugen des Frontend-Artefakts setzt Jenkins die produktive `apiBaseUrl` und `requireApiGateway: true`. Anschliessend laeuft:
 
@@ -90,10 +102,10 @@ Nach dem Erzeugen des Frontend-Artefakts setzt Jenkins die produktive `apiBaseUr
 npm run security:api-gateway -- --production-config docs/data/supabase-config.js
 ```
 
-Damit prueft Jenkins zusaetzlich, dass das auszuliefernde Artefakt eine HTTPS-API-URL nutzt, nicht auf localhost zeigt und den API-Gateway-Modus erzwingt.
+Damit prueft Jenkins zusaetzlich, dass das auszuliefernde Artefakt eine HTTPS-API-URL nutzt, nicht auf localhost zeigt, `dataMode: "gcp"`, `authMode: "iap"` und `requireApiGateway: true` setzt und kein Supabase-Browser-SDK ausliefert.
 
 ## Input-Validierung
 
-Schreibende Endpunkte akzeptieren nur definierte JSON-Felder pro fachlichem DTO. Unbekannte Felder werden mit HTTP `400` abgewiesen, bevor die API Daten an Supabase weiterreicht. Dadurch koennen Clients keine freien Supabase-Spalten, Filter oder Query-Bestandteile in den Request schmuggeln.
+Schreibende Endpunkte akzeptieren nur definierte JSON-Felder pro fachlichem DTO. Unbekannte Felder werden mit HTTP `400` abgewiesen, bevor die API Daten in Cloud SQL schreibt. Dadurch koennen Clients keine freien DB-Spalten, Filter oder Query-Bestandteile in den Request schmuggeln.
 
 `npm run check` startet zusaetzlich `scripts/test_api_validation.mjs`. Dieser Negativtest prueft, dass ein unbekanntes JSON-Feld in einem API-Request abgewiesen wird.

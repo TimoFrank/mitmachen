@@ -1,5 +1,7 @@
 # Betriebshandbuch Versorgungs-Kompass
 
+Statushinweis: Dieses Handbuch beschreibt den bisherigen Supabase-Betrieb und bleibt bis zum Abschluss der Cloud-SQL-Datenmigration als Legacy-Referenz erhalten. Fuer das neue GCP/gematik-Zielbild sind `DEPLOYMENT_GCP_GEMATIK.md`, `DEPLOYMENT_UEBERSICHT.md`, `ORGANISATIONS_GCP_MIGRATIONSPAKET.md` und `../architektur/API_CONTRACT.md` fuehrend.
+
 Dieses Handbuch beschreibt den Betrieb des Versorgungs-Kompass fuer Admins und fachlich verantwortliche Personen. Es erklaert die wichtigsten Komponenten, Routinen, Backups, Deployments und Notfallablaeufe ohne vorausgesetztes Entwicklerwissen.
 
 ## 1. Ueberblick
@@ -24,9 +26,9 @@ Produktive Kontakt-, E-Mail-, Telefon- und CRM-Daten duerfen nicht in die oeffen
 
 | Rolle | Darf | Darf nicht |
 | --- | --- | --- |
-| Admin | Kontakte anlegen, bearbeiten, archivieren und wiederherstellen; Importe ausfuehren; Profile/Rollen pflegen; Archiv und Datenqualitaet pruefen; Backups exportieren. | Service-Role-Key ins Frontend oder Repository schreiben. |
-| Editor | Aktive Kontakte anlegen und bearbeiten. | Kontakte archivieren/wiederherstellen, Rollen aendern, Admin-Importe oder Supabase-Konfiguration aendern. |
-| Viewer | Kontakte lesen, suchen, filtern, Karte und Auswertung ansehen. | Kontakte bearbeiten, speichern, importieren oder archivieren. |
+| Admin | Kontakte anlegen, bearbeiten, archivieren und wiederherstellen; Hospitationen anfragen, buchen, dokumentieren und archivierte Hospitationen sehen; Importe ausfuehren; Profile/Rollen pflegen; Archiv und Datenqualitaet pruefen; Backups exportieren. | Service-Role-Key ins Frontend oder Repository schreiben. |
+| Editor | Aktive Kontakte anlegen und bearbeiten; Hospitationen anfragen, buchen, durchfuehren und dokumentieren. | Kontakte archivieren/wiederherstellen, archivierte Hospitationen sehen, Rollen aendern, Admin-Importe oder Supabase-Konfiguration aendern. |
+| Viewer | Kontakte und aktive Hospitationen lesen, suchen, filtern, Karte und Auswertung ansehen. | Kontakte oder Hospitationen bearbeiten, speichern, importieren oder archivieren. |
 | Technische Verantwortung | Deployment, Supabase-Konfiguration, RLS/Policies, Backup-Skripte, Sicherheitschecks. | Fachliche Kontaktentscheidungen ohne Datenverantwortliche treffen. |
 | Fachliche Datenverantwortung | Datenqualitaet, Owner-Zuordnung, Dubletten, Importfreigabe, Archiventscheidung. | Supabase-Schluessel oder RLS-Policies ohne technische Pruefung aendern. |
 
@@ -388,6 +390,7 @@ Nach jeder Aenderung oder nach einem Deployment:
 - [ ] Online-Tabelle speichert nur fehlerfreie Zeilen nach Supabase; Fehlerzeilen bleiben bearbeitbar.
 - [ ] Speichern schreibt nach Supabase.
 - [ ] Aenderungsverlauf zeigt die Aenderung.
+- [ ] Hospitationen laden, eine Anfrage kann erstellt und eine gebuchte Hospitation dokumentiert werden.
 - [ ] Admin kann Kontakt archivieren.
 - [ ] Admin kann Kontakt aus Archiv wiederherstellen.
 - [ ] Karte zeigt Kontakte mit Koordinaten.
