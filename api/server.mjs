@@ -309,6 +309,8 @@ const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1
 const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
 const API_DEV_PROFILE_ID = process.env.API_DEV_PROFILE_ID || process.env.GCP_DEMO_PROFILE_ID || "";
 const IAP_JWT_AUDIENCE = process.env.IAP_JWT_AUDIENCE || "";
+const AUTH_EMAIL_HEADER = String(process.env.AUTH_EMAIL_HEADER || "x-auth-request-email").toLowerCase();
+const AUTH_SUBJECT_HEADER = String(process.env.AUTH_SUBJECT_HEADER || "x-auth-request-user").toLowerCase();
 const DEFAULT_DB_NAME = "versorgungs_kompass";
 const DEFAULT_DB_USER = "vk_app";
 
@@ -1753,7 +1755,7 @@ function corsHeaders() {
   if (!ALLOWED_ORIGIN) return {};
   return {
     "access-control-allow-origin": ALLOWED_ORIGIN,
-    "access-control-allow-headers": "authorization, content-type, x-goog-authenticated-user-email, x-goog-authenticated-user-id",
+    "access-control-allow-headers": `authorization, content-type, x-goog-authenticated-user-email, x-goog-authenticated-user-id, ${AUTH_EMAIL_HEADER}, ${AUTH_SUBJECT_HEADER}`,
     "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     vary: "origin"
   };
@@ -1788,6 +1790,10 @@ function cleanIdentityHeader(value = "") {
   return raw.includes(":") ? raw.split(":").slice(1).join(":") : raw;
 }
 
+function requestHeader(request, name) {
+  return request.headers[String(name || "").toLowerCase()] || "";
+}
+
 function iapEmail(request) {
   return cleanIdentityHeader(
     request.headers["x-goog-authenticated-user-email"] ||
@@ -1799,6 +1805,22 @@ function iapEmail(request) {
 
 function iapSubject(request) {
   return cleanIdentityHeader(request.headers["x-goog-authenticated-user-id"] || "");
+}
+
+function trustedHeaderEmail(request) {
+  return cleanIdentityHeader(requestHeader(request, AUTH_EMAIL_HEADER)).toLowerCase();
+}
+
+function trustedHeaderSubject(request) {
+  return cleanIdentityHeader(requestHeader(request, AUTH_SUBJECT_HEADER));
+}
+
+function authModeLabel() {
+  return {
+    iap: "IAP/SSO",
+    "trusted-header": "Gateway-SSO",
+    sso: "SSO"
+  }[API_AUTH_MODE] || "Backend-Identitaet";
 }
 
 function decodeJwtPart(value) {
@@ -1921,10 +1943,10 @@ async function resolveRequestProfile(request) {
   const devProfile = devProfileFromRequest(request);
   if (devProfile) return devProfile;
   const iapPayload = await verifyIapJwt(request);
-  const email = String(iapPayload?.email || iapEmail(request)).trim().toLowerCase();
-  const subject = String(iapPayload?.sub || iapSubject(request)).trim();
+  const email = String(iapPayload?.email || trustedHeaderEmail(request) || iapEmail(request)).trim().toLowerCase();
+  const subject = String(iapPayload?.sub || trustedHeaderSubject(request) || iapSubject(request)).trim();
   if (!email && !subject) {
-    const error = new Error("IAP-/SSO-Identitaet fehlt.");
+    const error = new Error("Gateway-/SSO-Identitaet fehlt.");
     error.status = 401;
     throw error;
   }
@@ -2055,7 +2077,7 @@ function getPool() {
   const user = process.env.DB_USER || process.env.PGUSER || DEFAULT_DB_USER;
   const password = process.env.DB_PASSWORD || process.env.PGPASSWORD || "";
   if (!host && !process.env.PGHOST) {
-    const error = new Error("Cloud-SQL-Verbindung fehlt. Bitte DATABASE_URL oder DB_HOST/DB_NAME/DB_USER/DB_PASSWORD setzen.");
+    const error = new Error("Postgres-Verbindung fehlt. Bitte DATABASE_URL oder DB_HOST/DB_NAME/DB_USER/DB_PASSWORD setzen.");
     error.status = 500;
     throw error;
   }
@@ -2677,8 +2699,8 @@ async function getSession(request) {
   const profile = await getCurrentProfile(request);
   return {
     authMode: API_AUTH_MODE,
-    authModeLabel: API_AUTH_MODE === "iap" ? "IAP/SSO" : "Backend-Identitaet",
-    identitySource: iapEmail(request) || iapSubject(request) || (API_AUTH_ALLOW_DEV_PROFILE ? "lokales Dev-Profil" : ""),
+    authModeLabel: authModeLabel(),
+    identitySource: trustedHeaderEmail(request) || trustedHeaderSubject(request) || iapEmail(request) || iapSubject(request) || (API_AUTH_ALLOW_DEV_PROFILE ? "lokales Dev-Profil" : ""),
     enforcement: "server-side",
     enforcementLabel: "Rollen werden in der API serverseitig geprueft.",
     profile,
@@ -3896,6 +3918,8 @@ function runtimeMetadata() {
     database: process.env.DB_NAME || process.env.PGDATABASE || DEFAULT_DB_NAME,
     authMode: API_AUTH_MODE,
     iapJwtAudienceConfigured: Boolean(IAP_JWT_AUDIENCE),
+    authEmailHeader: AUTH_EMAIL_HEADER,
+    authSubjectHeader: AUTH_SUBJECT_HEADER,
     profileImageBucket: PROFILE_IMAGE_BUCKET || null,
     contactImageBucket: CONTACT_IMAGE_BUCKET || null
   };
@@ -3915,7 +3939,7 @@ async function getOpsSummary() {
   const row = await scalar("select now() as db_time");
   return {
     ok: true,
-    backend: "cloud-sql",
+    backend: "postgres",
     generatedAt: new Date().toISOString(),
     runtime: runtimeMetadata(),
     databaseTime: row.db_time || null,
@@ -3958,23 +3982,25 @@ async function getOpsChecks() {
   try {
     const dbStartedAt = Date.now();
     summary = await getOpsSummary();
-    checks.push(opsCheck("cloud-sql", "Cloud SQL", "ok", `Datenbank antwortet in ${Date.now() - dbStartedAt} ms.`, {
+    checks.push(opsCheck("postgres", "Postgres", "ok", `Datenbank antwortet in ${Date.now() - dbStartedAt} ms.`, {
       databaseTime: summary.databaseTime
     }));
   } catch (error) {
-    dbError = error.message || "Cloud-SQL-Abfrage fehlgeschlagen.";
-    checks.push(opsCheck("cloud-sql", "Cloud SQL", "error", dbError));
+    dbError = error.message || "Postgres-Abfrage fehlgeschlagen.";
+    checks.push(opsCheck("postgres", "Postgres", "error", dbError));
   }
   const counts = summary?.counts || {};
-  checks.push(opsCheck("cloud-run-api", "Cloud Run API", "ok", "API-Service antwortet.", runtimeMetadata()));
+  checks.push(opsCheck("kubernetes-api", "Kubernetes API", "ok", "API-Service antwortet.", runtimeMetadata()));
   checks.push(opsCheck(
     "auth-boundary",
-    "IAP/SSO",
-    API_AUTH_MODE === "iap" && IAP_JWT_AUDIENCE ? "ok" : "warn",
+    "Gateway/SSO",
+    API_AUTH_MODE === "iap" ? (IAP_JWT_AUDIENCE ? "ok" : "warn") : (["trusted-header", "sso"].includes(API_AUTH_MODE) && AUTH_EMAIL_HEADER ? "ok" : "warn"),
     API_AUTH_MODE === "iap" && IAP_JWT_AUDIENCE
       ? "API validiert signierte IAP-JWTs und mappt sie auf Profile."
-      : "API erwartet IAP; IAP_JWT_AUDIENCE fehlt oder API_AUTH_MODE ist nicht iap.",
-    { authMode: API_AUTH_MODE, iapJwtAudienceConfigured: Boolean(IAP_JWT_AUDIENCE) }
+      : ["trusted-header", "sso"].includes(API_AUTH_MODE) && AUTH_EMAIL_HEADER
+        ? "API erwartet eine vom Gateway gesetzte Nutzeridentitaet und mappt sie auf Profile."
+        : "API erwartet eine Gateway-/SSO-Identitaet; Auth-Konfiguration ist unvollstaendig.",
+    { authMode: API_AUTH_MODE, iapJwtAudienceConfigured: Boolean(IAP_JWT_AUDIENCE), authEmailHeader: AUTH_EMAIL_HEADER, authSubjectHeader: AUTH_SUBJECT_HEADER }
   ));
   checks.push(opsCheck(
     "core-data",
@@ -3985,12 +4011,12 @@ async function getOpsChecks() {
   ));
   checks.push(opsCheck(
     "storage",
-    "Cloud Storage",
+    "Object Storage",
     PROFILE_IMAGE_BUCKET || CONTACT_IMAGE_BUCKET ? "ok" : "warn",
     PROFILE_IMAGE_BUCKET || CONTACT_IMAGE_BUCKET ? "Mindestens ein Storage-Bucket ist konfiguriert." : "PROFILE_IMAGE_BUCKET/CONTACT_IMAGE_BUCKET fehlen.",
     { profileImageBucket: PROFILE_IMAGE_BUCKET || null, contactImageBucket: CONTACT_IMAGE_BUCKET || null }
   ));
-  checks.push(opsCheck("cloud-run-jobs", "Cloud Run Jobs", "info", "Nicht fuer den App-Betrieb erforderlich; optional fuer Migrationen, Seeds oder Wartung."));
+  checks.push(opsCheck("migration-jobs", "Migrationsjobs", "info", "Nicht fuer den App-Betrieb erforderlich; optional fuer Migrationen, Seeds oder Wartung."));
   const status = checks.some((check) => check.status === "error") ? "error" : checks.some((check) => check.status === "warn") ? "warn" : "ok";
   return {
     ok: status !== "error",
@@ -4145,7 +4171,7 @@ async function handle(request, response) {
     }
     await authorizeRequest(request, url);
     if (request.method === "GET" && ["/healthz", "/api/healthz"].includes(url.pathname)) {
-      return jsonResponse(response, 200, { ok: true, backend: "cloud-sql", authMode: API_AUTH_MODE });
+      return jsonResponse(response, 200, { ok: true, backend: "postgres", authMode: API_AUTH_MODE });
     }
     if (request.method === "GET" && url.pathname === "/api/session") {
       return jsonResponse(response, 200, await getSession(request));

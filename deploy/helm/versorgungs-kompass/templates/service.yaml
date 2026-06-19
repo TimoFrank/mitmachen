@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "versorgungs-kompass.fullname" . }}-api
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "versorgungs-kompass.selectorLabels" . | nindent 4 }}

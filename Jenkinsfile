@@ -2,17 +2,26 @@ pipeline {
   agent any
 
   environment {
-    PROJECT_ID = credentials('gcp-project-id')
-    REGION = 'europe-west3'
-    REPOSITORY = 'versorgungs-kompass'
-    FRONTEND_SERVICE = 'versorgungs-kompass-frontend'
+    ARTIFACT_REGISTRY = credentials('versorgungs-artifact-registry')
     API_SERVICE = 'versorgungs-kompass-api'
-    SUPABASE_URL = credentials('versorgungs-supabase-url')
-    SUPABASE_ANON_KEY = credentials('versorgungs-supabase-anon-key')
+    API_IMAGE_REPOSITORY = "${ARTIFACT_REGISTRY}/${API_SERVICE}"
+    API_IMAGE = "${API_IMAGE_REPOSITORY}:${env.BUILD_NUMBER}"
     API_BASE_URL = credentials('versorgungs-api-base-url')
     FRONTEND_BASE_URL = credentials('versorgungs-frontend-base-url')
-    FRONTEND_IMAGE = "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${env.BUILD_NUMBER}"
-    API_IMAGE = "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${API_SERVICE}:${env.BUILD_NUMBER}"
+    FRONTEND_BUCKET_URI = credentials('versorgungs-frontend-bucket-uri')
+    K8S_NAMESPACE = credentials('versorgungs-k8s-namespace')
+    HELM_RELEASE = 'versorgungs-kompass'
+    HELM_CHART = 'deploy/helm/versorgungs-kompass'
+    DB_HOST = credentials('versorgungs-postgres-host')
+    DB_PORT = '5432'
+    DB_NAME = 'versorgungs_kompass'
+    DB_USER = 'vk_app'
+    DB_PASSWORD_SECRET_NAME = credentials('versorgungs-postgres-password-secret-name')
+    API_AUTH_MODE = 'trusted-header'
+    AUTH_EMAIL_HEADER = 'x-auth-request-email'
+    AUTH_SUBJECT_HEADER = 'x-auth-request-user'
+    PROFILE_IMAGE_BUCKET = credentials('versorgungs-profile-image-bucket')
+    CONTACT_IMAGE_BUCKET = credentials('versorgungs-contact-image-bucket')
   }
 
   stages {
@@ -57,51 +66,102 @@ pipeline {
       steps {
         sh 'bash scripts/sync_github_pages.sh'
         sh '''
-          node -e 'const fs=require("fs"); const p="docs/data/supabase-config.js"; let s=fs.readFileSync(p,"utf8"); s=s.replace(/apiBaseUrl:\\s*"[^"]*"/, `apiBaseUrl: "${process.env.API_BASE_URL}"`); s=s.includes("requireApiGateway") ? s.replace(/requireApiGateway:\\s*(true|false)/, "requireApiGateway: true") : s.replace(/apiBaseUrl:\\s*"[^"]*"/, (m) => `${m},\\n  requireApiGateway: true`); fs.writeFileSync(p,s);'
-          node -e 'const fs=require("fs"); const s=fs.readFileSync("docs/data/supabase-config.js","utf8"); if(!/apiBaseUrl:\\s*"https?:\\/\\//.test(s) || !/requireApiGateway:\\s*true/.test(s)) throw new Error("Produktionsartefakt muss apiBaseUrl und requireApiGateway=true setzen.");'
+          node scripts/prepare_target_frontend_config.mjs docs/data/supabase-config.js "$API_BASE_URL" api "$API_AUTH_MODE"
           npm run security:api-gateway -- --production-config docs/data/supabase-config.js
         '''
       }
     }
 
-    stage('Build containers') {
+    stage('Build API image') {
       steps {
-        sh 'docker build -t "$FRONTEND_IMAGE" .'
         sh 'docker build -f Dockerfile.api -t "$API_IMAGE" .'
       }
     }
 
-    stage('Push containers') {
+    stage('Trivy image scan') {
       steps {
-        sh 'gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet'
-        sh 'docker push "$FRONTEND_IMAGE"'
-        sh 'docker push "$API_IMAGE"'
+        sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL "$API_IMAGE"'
       }
     }
 
-    stage('Deploy API') {
+    stage('Push API image') {
       steps {
         sh '''
-          gcloud run deploy "$API_SERVICE" \
-            --project "$PROJECT_ID" \
-            --region "$REGION" \
-            --image "$API_IMAGE" \
-            --platform managed \
-            --allow-unauthenticated \
-            --set-env-vars "SUPABASE_URL=$SUPABASE_URL,SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY,ALLOWED_ORIGIN=$FRONTEND_BASE_URL"
+          REGISTRY_HOST="$(printf "%s" "$ARTIFACT_REGISTRY" | cut -d/ -f1)"
+          if command -v gcloud >/dev/null 2>&1; then
+            gcloud auth configure-docker "$REGISTRY_HOST" --quiet
+          fi
+          docker push "$API_IMAGE"
         '''
       }
     }
 
-    stage('Deploy frontend') {
+    stage('Helm validate') {
       steps {
         sh '''
-          gcloud run deploy "$FRONTEND_SERVICE" \
-            --project "$PROJECT_ID" \
-            --region "$REGION" \
-            --image "$FRONTEND_IMAGE" \
-            --platform managed \
-            --allow-unauthenticated
+          API_HOST="$(node -e 'console.log(new URL(process.env.API_BASE_URL).host)')"
+          helm lint "$HELM_CHART" \
+            --set image.repository="$API_IMAGE_REPOSITORY" \
+            --set image.tag="$BUILD_NUMBER" \
+            --set ingress.host="$API_HOST"
+          helm template "$HELM_RELEASE" "$HELM_CHART" \
+            --namespace "$K8S_NAMESPACE" \
+            --set image.repository="$API_IMAGE_REPOSITORY" \
+            --set image.tag="$BUILD_NUMBER" \
+            --set ingress.host="$API_HOST" \
+            --set config.allowedOrigin="$FRONTEND_BASE_URL" \
+            --set config.apiAuthMode="$API_AUTH_MODE" \
+            --set config.authEmailHeader="$AUTH_EMAIL_HEADER" \
+            --set config.authSubjectHeader="$AUTH_SUBJECT_HEADER" \
+            --set database.host="$DB_HOST" \
+            --set database.port="$DB_PORT" \
+            --set database.name="$DB_NAME" \
+            --set database.user="$DB_USER" \
+            --set secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
+            --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
+            --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" >/tmp/versorgungs-kompass-rendered.yaml
+        '''
+      }
+    }
+
+    stage('Publish frontend artifact') {
+      steps {
+        sh 'gcloud storage rsync --recursive --delete-unmatched-destination-objects docs "$FRONTEND_BUCKET_URI"'
+      }
+    }
+
+    stage('Deploy API to Kubernetes') {
+      steps {
+        sh '''
+          API_HOST="$(node -e 'console.log(new URL(process.env.API_BASE_URL).host)')"
+          helm upgrade --install "$HELM_RELEASE" "$HELM_CHART" \
+            --namespace "$K8S_NAMESPACE" \
+            --atomic \
+            --wait \
+            --timeout 10m \
+            --set image.repository="$API_IMAGE_REPOSITORY" \
+            --set image.tag="$BUILD_NUMBER" \
+            --set ingress.host="$API_HOST" \
+            --set config.allowedOrigin="$FRONTEND_BASE_URL" \
+            --set config.apiAuthMode="$API_AUTH_MODE" \
+            --set config.authEmailHeader="$AUTH_EMAIL_HEADER" \
+            --set config.authSubjectHeader="$AUTH_SUBJECT_HEADER" \
+            --set database.host="$DB_HOST" \
+            --set database.port="$DB_PORT" \
+            --set database.name="$DB_NAME" \
+            --set database.user="$DB_USER" \
+            --set secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
+            --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
+            --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET"
+        '''
+      }
+    }
+
+    stage('Smoke test') {
+      steps {
+        sh '''
+          kubectl -n "$K8S_NAMESPACE" rollout status "deployment/${HELM_RELEASE}-api" --timeout=180s
+          curl -fsS "$API_BASE_URL/api/healthz"
         '''
       }
     }

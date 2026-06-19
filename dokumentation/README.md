@@ -5,7 +5,7 @@ Dieser Ordner buendelt die Unterlagen, die fuer Uebergabe, Betrieb und Weiterent
 ## Bereiche
 
 - `architektur/`: API-Kontrakt und Datenmodell.
-- `betrieb-und-deployment/`: Betrieb, Deployment, GCP-Uebergabe und historische Schrittunterlagen.
+- `betrieb-und-deployment/`: Betrieb, aktive Deployment-Uebersicht, gematik Kubernetes-Zielbild und klar abgegrenztes Archiv.
 - `entwicklung-und-qa/`: aktueller Projektzustand, QA-Ablauf und visuelle Nachweise.
 - `produkt-und-design/`: Designsystem, UX-Leitplanken und UI-Inventar.
 
@@ -13,7 +13,8 @@ Dieser Ordner buendelt die Unterlagen, die fuer Uebergabe, Betrieb und Weiterent
 
 1. `../README.md` fuer den Gesamtueberblick lesen.
 2. `architektur/API_CONTRACT.md` fuer die API-Grenzen lesen.
-3. `betrieb-und-deployment/DEPLOYMENT_GCP_GEMATIK.md` fuer Jenkins, GCP Cloud Run und API-Gateway lesen.
-4. `../supabase/README.md` fuer Supabase-Setup, Rollen und RLS lesen.
+3. `betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md` fuer aktive und archivierte Auslieferungswege lesen.
+4. `betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md` fuer das aktuelle Kubernetes-Zielbild lesen.
+5. `../db/postgres/schema.sql` und `../supabase/README.md` nur fuer Datenmodell- und Migrationsdetails lesen.
 
-Die GCP-Schrittdokumente bleiben als Nachvollziehbarkeit erhalten. Fuer den ersten Einstieg sind sie nicht erforderlich.
+Die GCP-/Cloud-Run-Schrittdokumente, Supabase-Unterlagen und alten Demo-Deployments bleiben im Archiv als Nachvollziehbarkeit erhalten. Fuer den ersten Einstieg sind sie nicht erforderlich.

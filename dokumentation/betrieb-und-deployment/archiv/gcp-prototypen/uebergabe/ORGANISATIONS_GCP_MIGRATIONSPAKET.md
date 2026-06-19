@@ -1,17 +1,20 @@
 # Organisations-GCP Migrationspaket
 
+Archivhinweis: Dieses Paket dokumentiert die fruehere GCP-/Cloud-Run-Uebergabe. Die aktuelle Zielarchitektur steht in `DEPLOYMENT_GEMATIK_K8S.md`; die alten Demo-Deployments liegen unter `archiv/gcp-prototypen/`.
+
 Stand: 2026-06-06
 
-Ziel: Dieses Paket beschreibt, wie der aktuelle private GCP-Stand des Versorgungs-Kompass in eine organisationsinterne GCP-Umgebung ueberfuehrt werden kann.
+Ziel: Dieses Paket beschreibt einen moeglichen Weg, wie der Versorgungs-Kompass in eine organisationsinterne GCP-Umgebung ueberfuehrt werden kann. Die konkrete gematik-Zielarchitektur ist noch offen. Der alte private Cloud-SQL-Prototyp bleibt Referenzmaterial; das Zwei-Service-Setup aus Root-`Jenkinsfile`, `Dockerfile` und `Dockerfile.api` ist ein Arbeitsentwurf, keine finale Vorgabe.
 
 ## Kurzfassung fuer IT
 
-Der Versorgungs-Kompass ist aktuell als Cloud-Run-App mit integriertem Node.js-Backend umgesetzt. Die App nutzt im GCP-Modus kein Supabase.
+Der damalige Arbeitsentwurf nutzte zwei Cloud-Run-Services. Das Frontend lieferte die statische CRM-App aus, die API kapselte Cloud SQL, Cloud Storage und IAP/SSO-Rollenpruefung. Dieses Dokument ist historisch; der aktuelle gematik-Zielpfad ist Kubernetes mit Helm, Shared Postgres und statischem Bucket-Hosting.
 
 ```text
 Browser
--> interne URL / Cloud Run
--> Node.js-App liefert Original-Frontend und /api-Endpunkte
+-> IAP/SSO / interne URL
+-> Cloud Run Frontend
+-> Cloud Run API
 -> Cloud SQL PostgreSQL fuer CRM-Daten
 -> Cloud Storage fuer Kontaktbilder
 -> Secret Manager fuer Datenbankpasswort
@@ -29,7 +32,7 @@ Datenbank: Cloud SQL PostgreSQL / versorgungs_kompass
 Kontaktbild-Bucket: versorgungs-kompass-gcp-demo-images-765190393967
 ```
 
-Dieser Stand ist die technische Vorlage, nicht die Zielkonfiguration fuer die Organisation.
+Dieser Stand ist technische Vorlage und Datenmodell-Referenz, nicht mehr die Zielkonfiguration fuer die Organisation.
 
 ## Was bereits GCP-basiert ist
 
@@ -46,9 +49,8 @@ Dieser Stand ist die technische Vorlage, nicht die Zielkonfiguration fuer die Or
 
 ## Noch nicht organisationsfertig
 
-- echte Authentifizierung fehlt noch
-- serverseitige Rollenpruefung fehlt noch
-- Zugriffsschutz ist im privaten Test noch nicht intern/IAP/SSO-abgesichert
+- IAP/SSO muss in der Organisationsumgebung final aktiviert und abgenommen werden
+- IAP-Signaturvalidierung und Rollenmatrix muessen im Betriebssicherheitscheck final verifiziert werden
 - Restore-Test ist noch nicht dokumentiert durchgefuehrt
 - Cloud Monitoring Alerts sind noch nicht eingerichtet
 - produktive Datenmigration aus Supabase oder anderen Quellen ist noch offen
@@ -88,12 +90,14 @@ Die IT kann Namen frei vergeben. Vorschlag:
 GCP Projekt: <org-project-id>
 Region: europe-west3
 Artifact Registry Repository: versorgungs-kompass
-Cloud Run Service: versorgungs-kompass
+Cloud Run Frontend-Service: versorgungs-kompass-frontend
+Cloud Run API-Service: versorgungs-kompass-api
 Cloud SQL Instanz: versorgungs-kompass-db
 Datenbank: versorgungs_kompass
 DB User: vk_app
 Secret: versorgungs-kompass-db-password
-Storage Bucket: versorgungs-kompass-contact-images-<org-suffix>
+Storage Bucket Kontaktbilder: versorgungs-kompass-contact-images-<org-suffix>
+Storage Bucket Profilbilder: versorgungs-kompass-profile-images-<org-suffix>
 Interne FQDN: ccc.gematik.solutions
 ```
 
@@ -102,9 +106,11 @@ Interne FQDN: ccc.gematik.solutions
 Fuehrend fuer den GCP-Modus:
 
 ```text
-Dockerfile.gcp-demo
-gcp/server.mjs
-gcp/cloudsql/step4_private_schema.sql
+Dockerfile
+Dockerfile.api
+Jenkinsfile
+api/server.mjs
+gcp/cloudsql/schema.sql
 data/data-service.js
 app/versorgungs-kompass.html
 map/
@@ -118,21 +124,22 @@ Nicht fuer das aktuelle GCP-Backend-Ziel verwenden:
 Dockerfile.demo
 cloudbuild.demo.yaml
 Jenkinsfile.demo
+Dockerfile.gcp-demo
+Jenkinsfile.gcp-demo
+cloudbuild.gcp-demo*.yaml
 ```
 
-Diese Dateien beschreiben den fruehen reduzierten Demo-Mode.
+Diese Dateien beschreiben fruehere Demo- oder Prototyp-Staende und liegen im Archiv.
 
 ## Jenkins-Pipeline
 
 Vorlage:
 
 ```text
-Jenkinsfile.gcp-demo
+Jenkinsfile
 ```
 
-Die Pipeline baut mit `Dockerfile.gcp-demo`, pusht in Artifact Registry und deployed nach Cloud Run mit Cloud-SQL-Anbindung.
-
-Die Vorlage nutzt `--allow-unauthenticated` in Kombination mit internem Ingress. Das bedeutet: Cloud Run selbst verlangt keinen eigenen IAM-Login, der Zugriff muss dann ueber interne Erreichbarkeit, Load Balancer, IAP oder SSO begrenzt werden. Wenn die IT Cloud-Run-IAM direkt erzwingen moechte, muss diese Option in der Pipeline entfernt und der Smoke-Test mit Identity Token ausgefuehrt werden.
+Die Pipeline baut `Dockerfile` fuer das Frontend und `Dockerfile.api` fuer die API, pusht beide Images in Artifact Registry und deployed beide Services nach Cloud Run. Beide Services werden mit IAP und ohne `--allow-unauthenticated` ausgerollt.
 
 Erforderliche Jenkins-Credentials:
 
@@ -149,9 +156,11 @@ Optional koennen Projektwerte auch als Jenkins-Environment oder Pipeline-Paramet
 DB_HOST=/cloudsql/<project>:<region>:<cloud-sql-instance>
 DB_NAME=versorgungs_kompass
 DB_USER=vk_app
-GCP_DEMO_AUTO_SCHEMA=1
-GCP_DEMO_AUTO_SEED=1
+API_AUTH_MODE=iap
+IAP_JWT_AUDIENCE=/projects/<project-number>/locations/<region>/services/<api-service>
 CONTACT_IMAGE_BUCKET=<bucket-name>
+PROFILE_IMAGE_BUCKET=<bucket-name>
+ALLOWED_ORIGIN=https://<frontend-url>
 ```
 
 Secret:
@@ -160,7 +169,7 @@ Secret:
 DB_PASSWORD=<Secret Manager Secret>:latest
 ```
 
-Hinweis: `GCP_DEMO_AUTO_SCHEMA=1` fuehrt beim Start die Schema-Datei aus. Fuer den ersten Organisationsaufbau ist das hilfreich. Fuer spaeteren produktiven Betrieb kann die IT entscheiden, ob Schema-Migrationen kontrolliert separat laufen sollen.
+Hinweis: Schema-Migrationen sollen fuer den Organisationsbetrieb kontrolliert gegen Cloud SQL angewendet werden. Cloud Run Jobs sind dafuer optional, aber nicht fuer den App-Betrieb erforderlich.
 
 ## Service Account / IAM
 
@@ -187,13 +196,13 @@ Der Cloud-Run-Runtime-Service-Account benoetigt:
 4. Cloud SQL PostgreSQL Instanz anlegen.
 5. Datenbank `versorgungs_kompass` und User `vk_app` anlegen.
 6. DB-Passwort im Secret Manager speichern.
-7. Cloud Storage Bucket fuer Kontaktbilder anlegen.
+7. Cloud Storage Buckets fuer Kontakt- und Profilbilder anlegen.
 8. Jenkins Credentials hinterlegen.
-9. `Jenkinsfile.gcp-demo` auf Organisationswerte anpassen.
+9. `Jenkinsfile` auf Organisationswerte anpassen.
 10. Ersten Jenkins-Build ausfuehren.
-11. Cloud Run Service pruefen.
+11. Cloud Run Frontend- und API-Service pruefen.
 12. Interne URL/FQDN anbinden.
-13. Zugriffsschutz festlegen und aktivieren.
+13. IAP/SSO-Zugriffsschutz festlegen und aktivieren.
 14. Datenmigration oder Import fachlich durchfuehren.
 15. Backup/Restore und Monitoring testen.
 
@@ -205,6 +214,7 @@ API:
 curl -fsS https://<interne-url>/api/healthz
 curl -fsS https://<interne-url>/api/ops/checks
 curl -fsS https://<interne-url>/api/ops/summary
+curl -fsS https://<interne-url>/api/session
 ```
 
 UI:
@@ -245,7 +255,7 @@ Cloud Storage speichert Kontaktbilder.
 Secret Manager speichert DB-Passwort.
 Backups sind aktiv.
 Ops-Checks sind gruen.
-Zugriff ist mindestens organisationsintern begrenzt.
+Zugriff ist ueber IAP/SSO oder eine gleichwertige interne Zugriffsschicht begrenzt.
 ```
 
 ## Formulierung fuer den IT-Leiter

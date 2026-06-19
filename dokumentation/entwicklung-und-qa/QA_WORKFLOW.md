@@ -2,7 +2,7 @@
 
 Stand: 2026-06-14.
 
-Dieses Dokument legt fest, wie Codex und andere Agenten Aenderungen am Versorgungs-Kompass pruefen, ohne fuer kleine Aufgaben unnoetig viel Kontext und Testlaufzeit zu verbrauchen.
+Dieses Dokument legt fest, wie Aenderungen am Versorgungs-Kompass geprueft werden, ohne fuer kleine Aufgaben unnoetig viel Kontext und Testlaufzeit zu verbrauchen.
 
 ## QA-Stufen
 
@@ -55,19 +55,19 @@ Pflicht:
 npm run verify:publication
 ```
 
-Da die produktive App mit `dataMode: "supabase"` laeuft, muss der Supabase-Live-Datenstatus explizit sein:
+Da das Zielbild mit `dataMode: "api"` und Kubernetes-API laeuft, muss der Live-Datenstatus explizit sein. Fuer Supabase-Legacy-Aenderungen gilt weiterhin:
 
 ```bash
 SUPABASE_LIVE_STATUS=verified npm run verify:publication
 ```
 
-`verified` ist nur erlaubt, wenn die betroffene Live-Tabelle vorher per SQL, REST oder Supabase-MCP stichprobenartig geprueft wurde. Fuer reine Static-/UI-Aenderungen ohne Datenbankwirkung:
+`verified` ist nur erlaubt, wenn die betroffene Live-Tabelle vorher per SQL, REST oder Supabase-MCP stichprobenartig geprueft wurde. Fuer Zielbetrieb-/Shared-Postgres-Aenderungen ist eine DB- oder API-Stichprobe erforderlich. Fuer reine Static-/UI-Aenderungen ohne Datenbankwirkung:
 
 ```bash
 SUPABASE_LIVE_STATUS=not_affected npm run verify:publication
 ```
 
-Wenn Supabase-Migrationen, `supabase/schema.sql` oder Supabase-gespeiste Stakeholder-Daten betroffen sind, darf `not_affected` nicht genutzt werden. Ein Abschluss darf "sichtbar", "verfuegbar" oder "live" nur sagen, wenn GitHub Pages und der Supabase-Live-Datenstatus in dieser Stufe erfolgreich geprueft wurden.
+Wenn Datenmigrationen, `db/postgres/schema.sql`, Supabase-Legacy-Migrationen oder datengetriebene Stakeholder-Aenderungen betroffen sind, darf `not_affected` nicht genutzt werden. Ein Abschluss darf "sichtbar", "verfuegbar" oder "live" nur sagen, wenn die betroffene Auslieferung und der passende Live-Datenstatus in dieser Stufe erfolgreich geprueft wurden.
 
 ## Standard-Auth-Testmodus
 
@@ -107,7 +107,7 @@ Nicht im Effizienzmodus: breite Recherchen, Roadmap-Analysen, neue Module, globa
 
 ## Projekt-Log
 
-`CURRENT_STATE.md` ist das kurze Arbeitslog fuer Agenten. Es soll nach groesseren Aenderungen aktualisiert werden, wenn sich einer dieser Punkte aendert:
+`CURRENT_STATE.md` ist das kurze Arbeitslog fuer Projektarbeit. Es soll nach groesseren Aenderungen aktualisiert werden, wenn sich einer dieser Punkte aendert:
 
 - fuehrender lokaler Architekturpfad,
 - empfohlene QA-Stufe oder Standardbefehle,

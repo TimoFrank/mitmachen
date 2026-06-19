@@ -1,6 +1,6 @@
 # Betriebshandbuch Versorgungs-Kompass
 
-Statushinweis: Dieses Handbuch beschreibt den bisherigen Supabase-Betrieb und bleibt bis zum Abschluss der Cloud-SQL-Datenmigration als Legacy-Referenz erhalten. Fuer das neue GCP/gematik-Zielbild sind `DEPLOYMENT_GCP_GEMATIK.md`, `DEPLOYMENT_UEBERSICHT.md`, `ORGANISATIONS_GCP_MIGRATIONSPAKET.md` und `../architektur/API_CONTRACT.md` fuehrend.
+Statushinweis: Dieses Handbuch beschreibt den bisherigen Supabase-Betrieb und bleibt bis zur Abnahme des gematik-Zielbetriebs als Legacy-Referenz erhalten. Fuer das neue Zielbild sind `DEPLOYMENT_GEMATIK_K8S.md`, `DEPLOYMENT_UEBERSICHT.md` und `../architektur/API_CONTRACT.md` fuehrend.
 
 Dieses Handbuch beschreibt den Betrieb des Versorgungs-Kompass fuer Admins und fachlich verantwortliche Personen. Es erklaert die wichtigsten Komponenten, Routinen, Backups, Deployments und Notfallablaeufe ohne vorausgesetztes Entwicklerwissen.
 

@@ -2,14 +2,14 @@
 
 Kurze Checkliste fuer Aenderungen am Versorgungs-Kompass.
 
-Fuer das interne Jenkins-/GCP-Zieldeployment siehe `DEPLOYMENT_GCP_GEMATIK.md`.
+Fuer das interne Jenkins-/Kubernetes-Zieldeployment siehe `DEPLOYMENT_GEMATIK_K8S.md`.
 
 ## Vor Deployment
 
 - [ ] Aktuellen Stand sichern: `git status --short`.
 - [ ] Bei groesseren Daten-/Importaenderungen Backup exportieren.
 - [ ] Lokale Aenderungen pruefen: keine fremden oder unbeabsichtigten Dateien.
-- [ ] Supabase-Konfiguration pruefen: `data/supabase-config.js` und `docs/data/supabase-config.js`.
+- [ ] Runtime-Konfiguration pruefen: `data/supabase-config.js` und `docs/data/supabase-config.js` muessen fuer das Zielbild `dataMode: "api"`, `authMode: "trusted-header"` und `requireApiGateway: true` setzen.
 - [ ] Kein Service-Role-Key, privater Token oder Passwort im Frontend.
 - [ ] Keine echten Kontaktdaten in `data/versorgungs-kompass-data.*` oder `docs/data/versorgungs-kompass-data.*`.
 - [ ] Falls Publish-Dateien betroffen sind: `bash scripts/sync_github_pages.sh` ausfuehren.
@@ -34,13 +34,13 @@ git diff --check
 
 - [ ] GitHub Pages laedt korrekt.
 - [ ] Login funktioniert.
-- [ ] Kontakte werden aus Supabase geladen.
+- [ ] Kontakte werden ueber `/api/contacts` geladen.
 - [ ] Suche funktioniert.
 - [ ] Filter funktionieren.
 - [ ] Detailprofil oeffnet.
 - [ ] Angemeldeter Nutzer und Rolle werden plausibel angezeigt.
 - [ ] Admin oder Editor kann Kontakt bearbeiten.
-- [ ] Speichern schreibt nach Supabase.
+- [ ] Speichern schreibt ueber die API nach Shared Postgres.
 - [ ] Aenderungsverlauf zeigt die Testaenderung.
 - [ ] Karte zeigt Kontakte.
 - [ ] Auswertung zeigt plausible Zahlen.

@@ -17489,10 +17489,236 @@
         display: none;
       }
 
-      .hospitation-list {
+      .hospitation-list,
+      .hospitation-schedule {
         display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .hospitation-schedule-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .hospitation-view-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        padding: 3px;
+      }
+
+      .hospitation-view-toggle button {
+        min-height: 30px;
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 800;
+        padding: 6px 10px;
+      }
+
+      .hospitation-view-toggle button:hover,
+      .hospitation-view-toggle button:focus-visible {
+        background: var(--surface-muted);
+        color: var(--text);
+        outline: none;
+      }
+
+      .hospitation-view-toggle button.is-active {
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .hospitation-schedule-meta {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 750;
+        text-align: right;
+      }
+
+      .hospitation-table {
+        display: grid;
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .hospitation-table-head,
+      .hospitation-row__head {
+        display: grid;
+        grid-template-columns: minmax(260px, 1.5fr) minmax(170px, 0.9fr) minmax(190px, 0.9fr) minmax(160px, 0.8fr) minmax(190px, 1fr) 42px;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .hospitation-table-head {
+        min-height: 42px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.04em;
+        padding: 0 14px;
+        text-transform: uppercase;
+      }
+
+      .hospitation-row {
+        display: grid;
+        min-width: 0;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .hospitation-row:last-child {
+        border-bottom: 0;
+      }
+
+      .hospitation-row.is-open {
+        background: var(--surface);
+      }
+
+      .hospitation-row__head {
+        min-height: 58px;
+        border-left: 3px solid transparent;
+        cursor: pointer;
+        padding: 9px 14px 9px 11px;
+        transition: background 160ms ease, border-color 160ms ease;
+      }
+
+      .hospitation-row__head:hover {
+        background: var(--surface-muted);
+      }
+
+      .hospitation-row__head:focus-visible {
+        box-shadow: var(--focus-ring);
+        outline: none;
+      }
+
+      .hospitation-row.is-open .hospitation-row__head {
+        border-left-color: var(--primary);
+        background: var(--primary-soft);
+      }
+
+      .hospitation-row__person {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
         gap: 10px;
         min-width: 0;
+      }
+
+      .hospitation-row__copy,
+      .hospitation-row__cell {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .hospitation-row__name,
+      .hospitation-row__primary {
+        color: var(--text);
+        font-size: 0.92rem;
+        font-weight: 850;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-row__meta,
+      .hospitation-row__secondary {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-row__badges {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+
+      .hospitation-kind-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        padding: 5px 9px;
+        font-size: 0.74rem;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .hospitation-row__toggle {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        display: inline-grid;
+        place-items: center;
+        justify-self: end;
+        border-radius: 999px;
+        padding: 0;
+      }
+
+      .hospitation-row__toggle svg {
+        width: 17px;
+        height: 17px;
+        display: block;
+        transition: transform 160ms ease;
+      }
+
+      .hospitation-row__toggle[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+      }
+
+      .hospitation-row__detail {
+        display: grid;
+        gap: 14px;
+        border-top: 1px solid var(--border);
+        padding: 14px;
+      }
+
+      .hospitation-detail-panel {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .hospitation-detail-actions,
+      .hospitation-card__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .hospitation-detail-note {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.86rem;
+        line-height: 1.45;
       }
 
       .hospitation-card {
@@ -17564,13 +17790,6 @@
         overflow-wrap: anywhere;
       }
 
-      .hospitation-card__actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
       .hospitation-status-badge {
         display: inline-flex;
         align-items: center;
@@ -17583,6 +17802,48 @@
         font-size: 0.76rem;
         font-weight: 800;
         white-space: nowrap;
+      }
+
+      .hospitation-status-badge--draft,
+      .hospitation-status-badge--archived {
+        background: var(--surface-muted);
+        color: var(--text-muted);
+      }
+
+      .hospitation-status-badge--requested,
+      .hospitation-status-badge--booked,
+      .hospitation-status-badge--free {
+        border-color: var(--info);
+        background: var(--info-soft);
+        color: var(--info);
+      }
+
+      .hospitation-status-badge--offered,
+      .hospitation-status-badge--reserved {
+        border-color: var(--warning);
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+
+      .hospitation-status-badge--done,
+      .hospitation-status-badge--documented {
+        border-color: var(--success);
+        background: var(--success-soft);
+        color: var(--success);
+      }
+
+      .hospitation-status-badge--rejected,
+      .hospitation-status-badge--cancelled {
+        border-color: var(--danger);
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .format-fact .hospitation-status-badge,
+      .format-fact .theme-tag {
+        justify-self: start;
+        text-transform: none;
+        letter-spacing: 0;
       }
 
       .hospitation-status-filter {
@@ -17619,6 +17880,149 @@
 
       .hospitation-dashboard {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .hospitation-calendar {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .hospitation-calendar-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .hospitation-calendar-title {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .hospitation-calendar-title strong {
+        color: var(--text);
+        font-size: 1rem;
+      }
+
+      .hospitation-calendar-title span {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .hospitation-calendar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .hospitation-calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .hospitation-calendar-weekday {
+        min-height: 34px;
+        display: grid;
+        align-items: center;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.04em;
+        padding: 0 8px;
+        text-transform: uppercase;
+      }
+
+      .hospitation-calendar-weekday:nth-child(7) {
+        border-right: 0;
+      }
+
+      .hospitation-calendar-day {
+        min-height: 128px;
+        display: grid;
+        align-content: start;
+        gap: 6px;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        padding: 8px;
+      }
+
+      .hospitation-calendar-day:nth-child(7n) {
+        border-right: 0;
+      }
+
+      .hospitation-calendar-day:nth-last-child(-n + 7) {
+        border-bottom: 0;
+      }
+
+      .hospitation-calendar-day.is-muted {
+        background: var(--surface-muted);
+      }
+
+      .hospitation-calendar-day.is-today {
+        box-shadow: inset 0 0 0 2px var(--primary);
+      }
+
+      .hospitation-calendar-day__number {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+
+      .hospitation-calendar-event {
+        display: grid;
+        gap: 2px;
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        padding: 6px 7px;
+        text-align: left;
+      }
+
+      .hospitation-calendar-event:hover,
+      .hospitation-calendar-event:focus-visible,
+      .hospitation-calendar-event.is-active {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+        outline: none;
+      }
+
+      .hospitation-calendar-event strong,
+      .hospitation-calendar-event span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-calendar-event strong {
+        font-size: 0.76rem;
+      }
+
+      .hospitation-calendar-event span {
+        color: var(--text-muted);
+        font-size: 0.7rem;
+      }
+
+      .hospitation-calendar-selection {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        padding: 14px;
       }
 
       .formats-layout {
@@ -19238,6 +19642,8 @@
         .format-detail-head,
         .format-section-head,
         .hospitation-card__head,
+        .hospitation-schedule-toolbar,
+        .hospitation-calendar-head,
         .formats-command-row {
           align-items: stretch;
           flex-direction: column;
@@ -19280,6 +19686,51 @@
         .format-tab {
           flex: 1 1 140px;
           padding-inline: 8px;
+        }
+
+        .hospitation-schedule-meta {
+          text-align: left;
+        }
+
+        .hospitation-table-head {
+          display: none;
+        }
+
+        .hospitation-row__head {
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 10px;
+        }
+
+        .hospitation-row__person,
+        .hospitation-row__cell,
+        .hospitation-row__badges {
+          grid-column: 1 / -1;
+        }
+
+        .hospitation-row__toggle {
+          grid-column: 2;
+          grid-row: 1;
+        }
+
+        .hospitation-row__name,
+        .hospitation-row__primary,
+        .hospitation-row__meta,
+        .hospitation-row__secondary {
+          white-space: normal;
+        }
+
+        .hospitation-calendar-grid {
+          grid-template-columns: repeat(7, minmax(40px, 1fr));
+          overflow-x: auto;
+        }
+
+        .hospitation-calendar-day {
+          min-height: 96px;
+          padding: 6px;
+        }
+
+        .hospitation-calendar-event {
+          padding: 5px;
         }
 
         .format-editor-grid,
@@ -22945,6 +23396,10 @@
       let formatStatusFilter = "";
       let formatLoadErrorMessage = "";
       let activeHospitationTab = "appointments";
+      let hospitationScheduleView = "list";
+      let activeHospitationDetailKey = "";
+      let hospitationDetailTab = "overview";
+      let hospitationCalendarDate = new Date();
       let hospitationStatusFilter = "";
       let hospitationLoadErrorMessage = "";
       let editingHospitationId = "";
@@ -32088,9 +32543,25 @@
         return String(searchInput?.value || "").trim().toLowerCase();
       }
 
+      function hospitationStatusTone(status = "") {
+        const normalized = normalizeClassPart(status || "Angefragt");
+        if (normalized === "entwurf") return "draft";
+        if (normalized === "angefragt") return "requested";
+        if (normalized === "angeboten") return "offered";
+        if (normalized === "gebucht") return "booked";
+        if (normalized === "durchgefuhrt") return "done";
+        if (normalized === "dokumentiert") return "documented";
+        if (normalized === "abgelehnt") return "rejected";
+        if (normalized === "abgesagt") return "cancelled";
+        if (normalized === "frei") return "free";
+        if (normalized === "reserviert") return "reserved";
+        if (normalized === "archiviert") return "archived";
+        return "draft";
+      }
+
       function hospitationStatusBadgeMarkup(status = "") {
         const label = status || "Angefragt";
-        return `<span class="hospitation-status-badge">${escapeHtml(label)}</span>`;
+        return `<span class="hospitation-status-badge hospitation-status-badge--${hospitationStatusTone(label)}">${escapeHtml(label)}</span>`;
       }
 
       function dateTimeInputValue(value) {
@@ -32281,6 +32752,461 @@
         `;
       }
 
+      function hospitationRecordKey(kind = "hospitation", id = "") {
+        return `${kind}:${id}`;
+      }
+
+      function hospitationEntryKey(entry = {}) {
+        return hospitationRecordKey(entry.kind, entry.item?.id || "");
+      }
+
+      function hospitationEntryDate(entry = {}) {
+        const value = entry.item?.startsAt || entry.item?.starts_at || "";
+        if (!value) return null;
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+
+      function hospitationEntryTimeLabel(entry = {}) {
+        const date = hospitationEntryDate(entry);
+        if (!date) return "Termin offen";
+        return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+      }
+
+      function hospitationEntryTitle(entry = {}) {
+        const item = entry.item || {};
+        const contact = hospitationContact(item);
+        const organization = hospitationOrganization(item);
+        if (contact) return contact.displayName || contact.name || "Kontakt";
+        if (organization) return organization.name || "Organisation";
+        return entry.kind === "slot" ? "Terminangebot ohne Kontakt" : "Hospitation ohne Kontakt";
+      }
+
+      function hospitationEntrySubtitle(entry = {}) {
+        const item = entry.item || {};
+        const contact = hospitationContact(item);
+        const organization = hospitationOrganization(item);
+        const location = item.location || "";
+        if (contact && organization) return organization.name;
+        if (organization) return [hospitationStateLabel(item), location].filter(Boolean).join(" · ");
+        if (location) return location;
+        return entry.kind === "slot" ? "Interner Slot" : "Kontakt oder Organisation offen";
+      }
+
+      function hospitationAvatarMarkup(item = {}) {
+        const contact = hospitationContact(item);
+        if (contact) return contactAvatarMarkup(contact, "sm");
+        const organization = hospitationOrganization(item);
+        const label = organization?.name || item.organizationName || "Hospitation";
+        return `<span class="avatar avatar-fallback avatar-sm" aria-hidden="true">${escapeHtml(initialsFromLabel(label))}</span>`;
+      }
+
+      function hospitationEntryOwnerId(entry = {}) {
+        return entry.item?.ownerId || entry.item?.owner_id || currentProfile?.id || "";
+      }
+
+      function hospitationFollowUpLabel(item = {}) {
+        if (!meaningfulOrEmpty(item.followUpDueAt)) return "Kein Follow-up";
+        const owner = item.followUpOwnerId ? ` · ${hospitationOwnerLabel(item.followUpOwnerId)}` : "";
+        return `${formatDateLabel(item.followUpDueAt)}${owner}`;
+      }
+
+      function hospitationScheduleEntries() {
+        const query = hospitationSearchQuery();
+        const slotEntries = filteredHospitationSlots()
+          .filter((slot) => slot.status !== "Archiviert")
+          .filter((slot) => !hospitationStatusFilter || slot.status === hospitationStatusFilter)
+          .map((slot) => ({ kind: "slot", item: slot }));
+        const hospitationEntries = filteredHospitations().map((hospitation) => ({ kind: "hospitation", item: hospitation }));
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        return [...hospitationEntries, ...slotEntries]
+          .filter((entry) => entry.item?.id)
+          .filter((entry) => {
+            if (!query || entry.kind !== "slot") return true;
+            return [
+              hospitationEntryTitle(entry),
+              hospitationEntrySubtitle(entry),
+              entry.item.status,
+              entry.item.location,
+              entry.item.notes,
+              hospitationOwnerLabel(entry.item.ownerId)
+            ].join(" ").toLowerCase().includes(query);
+          })
+          .sort((left, right) => {
+            const leftDate = hospitationEntryDate(left);
+            const rightDate = hospitationEntryDate(right);
+            const leftTime = leftDate?.getTime();
+            const rightTime = rightDate?.getTime();
+            const leftBucket = leftTime ? (leftTime >= startOfToday.getTime() ? 0 : 2) : 1;
+            const rightBucket = rightTime ? (rightTime >= startOfToday.getTime() ? 0 : 2) : 1;
+            if (leftBucket !== rightBucket) return leftBucket - rightBucket;
+            if (leftBucket === 2) return (rightTime || 0) - (leftTime || 0);
+            return (leftTime || Number.MAX_SAFE_INTEGER) - (rightTime || Number.MAX_SAFE_INTEGER) || hospitationEntryTitle(left).localeCompare(hospitationEntryTitle(right), "de");
+          });
+      }
+
+      function hospitationDetailTabsForKind(kind = "hospitation") {
+        return kind === "slot"
+          ? [
+              { id: "overview", label: "Termin" },
+              { id: "planning", label: "Buchung" },
+              { id: "notes", label: "Notiz" }
+            ]
+          : [
+              { id: "overview", label: "Überblick" },
+              { id: "planning", label: "Planung" },
+              { id: "documentation", label: "Dokumentation" },
+              { id: "followUp", label: "Follow-up" }
+            ];
+      }
+
+      function activeHospitationDetailTab(kind = "hospitation") {
+        const tabs = hospitationDetailTabsForKind(kind);
+        return tabs.some((tab) => tab.id === hospitationDetailTab) ? hospitationDetailTab : tabs[0].id;
+      }
+
+      function renderHospitationDetailTabs(kind = "hospitation") {
+        const activeTab = activeHospitationDetailTab(kind);
+        return `
+          <div class="format-tabs" role="tablist" aria-label="Hospitationsdetails">
+            ${hospitationDetailTabsForKind(kind).map((tab) => `
+              <button class="format-tab ${activeTab === tab.id ? "is-active" : ""}" type="button" role="tab" aria-selected="${activeTab === tab.id ? "true" : "false"}" data-hospitation-detail-tab="${escapeHtml(tab.id)}">
+                ${escapeHtml(tab.label)}
+              </button>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function requestedWindowsMarkup(windows = []) {
+        const items = Array.isArray(windows) ? windows : [];
+        if (!items.length) return `<p class="hospitation-detail-note">Keine Wunschzeitfenster hinterlegt.</p>`;
+        return `
+          <div class="detail-line-list">
+            ${items.map((windowItem, index) => {
+              const label = windowItem.label || `Zeitfenster ${index + 1}`;
+              const range = [formatDateTimeLabel(windowItem.startsAt), formatDateTimeLabel(windowItem.endsAt)].filter(Boolean).join(" bis ");
+              return detailLine(label, range || "Zeitpunkt offen");
+            }).join("")}
+          </div>
+        `;
+      }
+
+      function hospitationTopicsMarkup(item = {}) {
+        const topics = Array.isArray(item.topics) ? item.topics : String(item.topics || "").split(",");
+        const normalized = topics.map((topic) => String(topic || "").trim()).filter(Boolean);
+        if (!normalized.length) return "Nicht hinterlegt";
+        return normalized.map((topic) => `<span class="theme-tag">${escapeHtml(topic)}</span>`).join(" ");
+      }
+
+      function hospitationDetailActionsMarkup(entry = {}) {
+        const item = entry.item || {};
+        const contact = hospitationContact(item);
+        const organization = hospitationOrganization(item);
+        const canEdit = canEditContacts();
+        return `
+          <div class="hospitation-detail-actions">
+            ${contact ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="open-contact" data-contact-id="${escapeHtml(contact.id)}">Kontakt</button>` : ""}
+            ${organization ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="open-organization" data-organization-id="${escapeHtml(organization.id)}">Organisation</button>` : ""}
+            ${entry.kind === "slot" && canEdit && item.status === "Frei" ? `<button class="action-button action-button--compact action-button--primary" type="button" data-hospitation-action="book-slot" data-slot-id="${escapeHtml(item.id)}">Buchen</button>` : ""}
+            ${entry.kind === "slot" && canEdit ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="edit-slot" data-slot-id="${escapeHtml(item.id)}">Bearbeiten</button>` : ""}
+            ${entry.kind === "hospitation" && canEdit && item.status === "Gebucht" ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="mark-done" data-hospitation-id="${escapeHtml(item.id)}">Durchgeführt</button>` : ""}
+            ${entry.kind === "hospitation" && canEdit ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="document" data-hospitation-id="${escapeHtml(item.id)}">Dokumentieren</button>` : ""}
+            ${entry.kind === "hospitation" && canEdit ? `<button class="action-button action-button--compact" type="button" data-hospitation-action="edit" data-hospitation-id="${escapeHtml(item.id)}">Bearbeiten</button>` : ""}
+          </div>
+        `;
+      }
+
+      function renderHospitationDetailActiveTab(entry = {}) {
+        const item = entry.item || {};
+        const contact = hospitationContact(item);
+        const organization = hospitationOrganization(item);
+        const activeTab = activeHospitationDetailTab(entry.kind);
+        const linkedBooking = entry.kind === "slot" ? hospitations.find((hospitation) => hospitation.slotId === item.id) : null;
+        if (entry.kind === "slot") {
+          if (activeTab === "planning") {
+            return `
+              <section class="format-tab-panel">
+                <section class="format-section">
+                  <div class="format-section-head"><h4>Buchung</h4></div>
+                  <div class="detail-line-list">
+                    ${detailLine("Status", item.status || "Frei")}
+                    ${detailLine("Zugeordnete Hospitation", linkedBooking ? hospitationContextLabel(linkedBooking) : "Noch nicht gebucht")}
+                    ${detailLine("Kapazität", String(item.capacity || 1))}
+                  </div>
+                  ${hospitationDetailActionsMarkup(entry)}
+                </section>
+              </section>
+            `;
+          }
+          if (activeTab === "notes") {
+            return `
+              <section class="format-tab-panel">
+                <section class="format-section">
+                  <div class="format-section-head"><h4>Notiz</h4></div>
+                  <p class="hospitation-detail-note">${escapeHtml(item.notes || "Keine interne Notiz hinterlegt.")}</p>
+                </section>
+              </section>
+            `;
+          }
+          return `
+            <section class="format-tab-panel">
+              <section class="format-section">
+                <div class="format-facts-grid">
+                  ${renderFormatFact("Termin", `<strong>${escapeHtml(hospitationDateRangeLabel(item))}</strong>`)}
+                  ${renderFormatFact("Ort", `<strong>${escapeHtml(item.location || "Nicht hinterlegt")}</strong>`)}
+                  ${renderFormatFact("Owner", hospitationOwnerMarkup(item.ownerId))}
+                  ${renderFormatFact("Status", hospitationStatusBadgeMarkup(item.status || "Frei"))}
+                </div>
+              </section>
+              <section class="format-section">
+                <div class="detail-line-list">
+                  ${detailLine("Kontakt", contact ? contact.displayName || contact.name : "Nicht hinterlegt")}
+                  ${detailLine("Organisation", organization ? organization.name : "Nicht hinterlegt")}
+                  ${detailLine("Sektor", hospitationSectorLabel(item))}
+                  ${detailLine("Bundesland", hospitationStateLabel(item))}
+                </div>
+                ${hospitationDetailActionsMarkup(entry)}
+              </section>
+            </section>
+          `;
+        }
+        if (activeTab === "planning") {
+          return `
+            <section class="format-tab-panel">
+              <section class="format-section">
+                <div class="format-facts-grid">
+                  ${renderFormatFact("Termin", `<strong>${escapeHtml(hospitationDateRangeLabel(item))}</strong>`)}
+                  ${renderFormatFact("Ort", `<strong>${escapeHtml(item.location || "Nicht hinterlegt")}</strong>`)}
+                  ${renderFormatFact("Themen", `<strong>${hospitationTopicsMarkup(item)}</strong>`)}
+                  ${renderFormatFact("Anfrage", `<strong>${escapeHtml(item.requestNote || "Nicht hinterlegt")}</strong>`)}
+                </div>
+              </section>
+              <section class="format-section">
+                <div class="format-section-head"><h4>Wunschzeitfenster</h4></div>
+                ${requestedWindowsMarkup(item.requestedWindows)}
+              </section>
+            </section>
+          `;
+        }
+        if (activeTab === "documentation") {
+          return `
+            <section class="format-tab-panel">
+              <section class="format-section">
+                <div class="detail-line-list">
+                  ${detailLine("Dokumentiert am", item.documentedAt ? formatDateTimeLabel(item.documentedAt) : "Noch nicht dokumentiert")}
+                  ${detailLine("Ergebnisnotiz", item.documentationSummary || "Noch nicht dokumentiert")}
+                  ${detailLine("Auswertung", item.documentationOutcome || "Nicht hinterlegt")}
+                </div>
+                ${hospitationDetailActionsMarkup(entry)}
+              </section>
+            </section>
+          `;
+        }
+        if (activeTab === "followUp") {
+          return `
+            <section class="format-tab-panel">
+              <section class="format-section">
+                <div class="detail-line-list">
+                  ${detailLine("Follow-up", item.followUpNote || "Kein Follow-up hinterlegt")}
+                  ${detailLine("Fällig", item.followUpDueAt ? formatDateLabel(item.followUpDueAt) : "Nicht hinterlegt")}
+                  ${detailLine("Owner", item.followUpOwnerId ? hospitationOwnerLabel(item.followUpOwnerId) : "Nicht zugewiesen")}
+                </div>
+              </section>
+            </section>
+          `;
+        }
+        return `
+          <section class="format-tab-panel">
+            <section class="format-section">
+              <div class="format-facts-grid">
+                ${renderFormatFact("Termin", `<strong>${escapeHtml(hospitationDateRangeLabel(item))}</strong>`)}
+                ${renderFormatFact("Status", hospitationStatusBadgeMarkup(item.status || "Angefragt"))}
+                ${renderFormatFact("Owner", hospitationOwnerMarkup(item.ownerId))}
+                ${renderFormatFact("Follow-up", `<strong>${escapeHtml(hospitationFollowUpLabel(item))}</strong>`)}
+              </div>
+            </section>
+            <section class="format-section">
+              <div class="detail-line-list">
+                ${detailLine("Kontakt", contact ? contact.displayName || contact.name : "Nicht hinterlegt")}
+                ${detailLine("Organisation", organization ? organization.name : "Nicht hinterlegt")}
+                ${detailLine("Sektor", hospitationSectorLabel(item))}
+                ${detailLine("Bundesland", hospitationStateLabel(item))}
+                ${detailLine("Ziel", item.goal || "Nicht hinterlegt")}
+              </div>
+              ${hospitationDetailActionsMarkup(entry)}
+            </section>
+          </section>
+        `;
+      }
+
+      function renderHospitationDetailPanel(entry = {}) {
+        return `
+          <div class="hospitation-detail-panel">
+            <div class="format-detail-nav">
+              ${renderHospitationDetailTabs(entry.kind)}
+            </div>
+            ${renderHospitationDetailActiveTab(entry)}
+          </div>
+        `;
+      }
+
+      function renderHospitationScheduleRow(entry = {}) {
+        const item = entry.item || {};
+        const key = hospitationEntryKey(entry);
+        const isOpen = activeHospitationDetailKey === key;
+        const kindLabel = entry.kind === "slot" ? "Terminangebot" : "Hospitation";
+        const status = item.status || (entry.kind === "slot" ? "Frei" : "Angefragt");
+        const secondary = hospitationEntrySubtitle(entry);
+        const sector = hospitationSectorLabel(item);
+        const location = item.location || "Ort offen";
+        return `
+          <article class="hospitation-row ${isOpen ? "is-open" : ""}" data-hospitation-row="${escapeHtml(key)}">
+            <div class="hospitation-row__head" data-toggle-hospitation-row="${escapeHtml(key)}" role="button" tabindex="0" aria-expanded="${isOpen ? "true" : "false"}" aria-controls="hospitation-detail-${escapeHtml(key)}">
+              <div class="hospitation-row__person">
+                ${hospitationAvatarMarkup(item)}
+                <span class="hospitation-row__copy">
+                  <span class="hospitation-row__name">${escapeHtml(hospitationEntryTitle(entry))}</span>
+                  <span class="hospitation-row__meta">${escapeHtml(secondary || "Kontext offen")}</span>
+                </span>
+              </div>
+              <div class="hospitation-row__cell">
+                <span class="hospitation-row__primary">${escapeHtml(hospitationDateRangeLabel(item))}</span>
+                <span class="hospitation-row__secondary">${escapeHtml(location)}</span>
+              </div>
+              <div class="hospitation-row__badges">
+                ${hospitationStatusBadgeMarkup(status)}
+                ${sectorBadgeMarkup(sector)}
+                <span class="hospitation-kind-badge">${escapeHtml(kindLabel)}</span>
+              </div>
+              <div class="hospitation-row__cell">
+                <span class="hospitation-row__primary">${hospitationOwnerLabel(hospitationEntryOwnerId(entry)) || "Kein Owner"}</span>
+                <span class="hospitation-row__secondary">Owner</span>
+              </div>
+              <div class="hospitation-row__cell">
+                <span class="hospitation-row__primary">${escapeHtml(entry.kind === "slot" ? item.notes || "Slot pflegen" : item.goal || "Ziel offen")}</span>
+                <span class="hospitation-row__secondary">${escapeHtml(entry.kind === "slot" ? `Kapazität ${item.capacity || 1}` : hospitationFollowUpLabel(item))}</span>
+              </div>
+              <button class="action-button hospitation-row__toggle" type="button" data-toggle-hospitation-detail="${escapeHtml(key)}" aria-label="${isOpen ? "Details schließen" : "Details öffnen"}" aria-expanded="${isOpen ? "true" : "false"}" aria-controls="hospitation-detail-${escapeHtml(key)}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6"></path>
+                </svg>
+              </button>
+            </div>
+            ${isOpen ? `<div class="hospitation-row__detail" id="hospitation-detail-${escapeHtml(key)}">${renderHospitationDetailPanel(entry)}</div>` : ""}
+          </article>
+        `;
+      }
+
+      function renderHospitationScheduleToolbar(entries = []) {
+        return `
+          <div class="hospitation-schedule-toolbar">
+            <div class="hospitation-view-toggle" role="group" aria-label="Terminansicht">
+              <button class="${hospitationScheduleView === "list" ? "is-active" : ""}" type="button" data-hospitation-schedule-view="list" aria-pressed="${hospitationScheduleView === "list" ? "true" : "false"}">Liste</button>
+              <button class="${hospitationScheduleView === "calendar" ? "is-active" : ""}" type="button" data-hospitation-schedule-view="calendar" aria-pressed="${hospitationScheduleView === "calendar" ? "true" : "false"}">Kalender</button>
+            </div>
+            <div class="hospitation-schedule-meta">${entries.length} ${entries.length === 1 ? "Termin" : "Termine"} und Angebote</div>
+          </div>
+        `;
+      }
+
+      function renderHospitationScheduleList(entries = []) {
+        if (!entries.length) return `<div class="history-empty">Noch keine Hospitationen oder Terminangebote für diese Auswahl.</div>`;
+        return `
+          <div class="hospitation-table" role="list">
+            <div class="hospitation-table-head" aria-hidden="true">
+              <span>Kontakt</span>
+              <span>Termin</span>
+              <span>Status / Sektor</span>
+              <span>Owner</span>
+              <span>Nächster Schritt</span>
+              <span></span>
+            </div>
+            ${entries.map(renderHospitationScheduleRow).join("")}
+          </div>
+        `;
+      }
+
+      function hospitationDateKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+
+      function addCalendarMonths(date, delta) {
+        return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+      }
+
+      function renderHospitationCalendar(entries = []) {
+        const base = new Date(hospitationCalendarDate);
+        const month = new Date(base.getFullYear(), base.getMonth(), 1);
+        const todayKey = hospitationDateKey(new Date());
+        const monthLabel = month.toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+        const firstGridDay = new Date(month);
+        firstGridDay.setDate(1 - ((month.getDay() + 6) % 7));
+        const entriesByDay = new Map();
+        entries.forEach((entry) => {
+          const date = hospitationEntryDate(entry);
+          if (!date) return;
+          const key = hospitationDateKey(date);
+          entriesByDay.set(key, [...(entriesByDay.get(key) || []), entry]);
+        });
+        const weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+        const days = Array.from({ length: 42 }, (_, index) => {
+          const day = new Date(firstGridDay);
+          day.setDate(firstGridDay.getDate() + index);
+          const key = hospitationDateKey(day);
+          const dayEntries = entriesByDay.get(key) || [];
+          return `
+            <div class="hospitation-calendar-day ${day.getMonth() === month.getMonth() ? "" : "is-muted"} ${key === todayKey ? "is-today" : ""}">
+              <span class="hospitation-calendar-day__number">${day.getDate()}</span>
+              ${dayEntries.slice(0, 4).map((entry) => {
+                const entryKey = hospitationEntryKey(entry);
+                return `
+                  <button class="hospitation-calendar-event ${activeHospitationDetailKey === entryKey ? "is-active" : ""}" type="button" data-select-hospitation-detail="${escapeHtml(entryKey)}">
+                    <strong>${escapeHtml(hospitationEntryTimeLabel(entry))} · ${escapeHtml(hospitationEntryTitle(entry))}</strong>
+                    <span>${escapeHtml(entry.item.status || (entry.kind === "slot" ? "Frei" : "Angefragt"))}</span>
+                  </button>
+                `;
+              }).join("")}
+              ${dayEntries.length > 4 ? `<span class="hospitation-row__secondary">+${dayEntries.length - 4} weitere</span>` : ""}
+            </div>
+          `;
+        }).join("");
+        const selectedEntry = entries.find((entry) => hospitationEntryKey(entry) === activeHospitationDetailKey);
+        return `
+          <div class="hospitation-calendar">
+            <div class="hospitation-calendar-head">
+              <div class="hospitation-calendar-title">
+                <strong>${escapeHtml(monthLabel)}</strong>
+                <span>Monatssicht</span>
+              </div>
+              <div class="hospitation-calendar-actions">
+                <button class="action-button action-button--compact" type="button" data-hospitation-calendar-nav="-1">Zurück</button>
+                <button class="action-button action-button--compact" type="button" data-hospitation-calendar-nav="today">Heute</button>
+                <button class="action-button action-button--compact" type="button" data-hospitation-calendar-nav="1">Weiter</button>
+              </div>
+            </div>
+            <div class="hospitation-calendar-grid">
+              ${weekdays.map((day) => `<div class="hospitation-calendar-weekday">${day}</div>`).join("")}
+              ${days}
+            </div>
+            ${selectedEntry ? `<div class="hospitation-calendar-selection">${renderHospitationDetailPanel(selectedEntry)}</div>` : ""}
+          </div>
+        `;
+      }
+
+      function renderHospitationAppointments() {
+        const entries = hospitationScheduleEntries();
+        const activeEntryStillVisible = entries.some((entry) => hospitationEntryKey(entry) === activeHospitationDetailKey);
+        if (!activeEntryStillVisible) activeHospitationDetailKey = "";
+        return `
+          <div class="hospitation-schedule">
+            ${renderHospitationScheduleToolbar(entries)}
+            ${hospitationScheduleView === "calendar" ? renderHospitationCalendar(entries) : renderHospitationScheduleList(entries)}
+          </div>
+        `;
+      }
+
       function hospitationCardMarkup(hospitation, options = {}) {
         const documentationQueue = Boolean(options.documentationQueue);
         const contact = hospitationContact(hospitation);
@@ -32414,6 +33340,52 @@
       }
 
       function bindHospitationListActions(root = document) {
+        const openHospitationDetail = (key, { forceOpen = false } = {}) => {
+          if (!key) return;
+          const isSame = activeHospitationDetailKey === key;
+          activeHospitationDetailKey = isSame && !forceOpen ? "" : key;
+          if (!isSame || forceOpen) hospitationDetailTab = "overview";
+          renderHospitationsView();
+        };
+        root.querySelectorAll("[data-hospitation-schedule-view]").forEach((button) => {
+          button.addEventListener("click", () => {
+            hospitationScheduleView = button.dataset.hospitationScheduleView === "calendar" ? "calendar" : "list";
+            renderHospitationsView();
+          });
+        });
+        root.querySelectorAll("[data-hospitation-calendar-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const direction = button.dataset.hospitationCalendarNav;
+            hospitationCalendarDate = direction === "today" ? new Date() : addCalendarMonths(hospitationCalendarDate, Number(direction) || 0);
+            renderHospitationsView();
+          });
+        });
+        root.querySelectorAll("[data-select-hospitation-detail]").forEach((button) => {
+          button.addEventListener("click", () => openHospitationDetail(button.dataset.selectHospitationDetail, { forceOpen: true }));
+        });
+        root.querySelectorAll("[data-toggle-hospitation-row]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, a, input, select, textarea")) return;
+            openHospitationDetail(row.dataset.toggleHospitationRow);
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            openHospitationDetail(row.dataset.toggleHospitationRow);
+          });
+        });
+        root.querySelectorAll("[data-toggle-hospitation-detail]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openHospitationDetail(button.dataset.toggleHospitationDetail);
+          });
+        });
+        root.querySelectorAll("[data-hospitation-detail-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            hospitationDetailTab = button.dataset.hospitationDetailTab || "overview";
+            renderHospitationsView();
+          });
+        });
         root.querySelectorAll("[data-hospitation-action]").forEach((button) => {
           button.addEventListener("click", async () => {
             const action = button.dataset.hospitationAction;
@@ -32479,20 +33451,7 @@
           return;
         }
         if (activeTab === "appointments" && hospitationList) {
-          const slotItems = filteredHospitationSlots().filter((slot) => slot.status !== "Archiviert");
-          const hospitationMarkup = items.length
-            ? items.map((hospitation) => hospitationCardMarkup(hospitation)).join("")
-            : `<div class="history-empty">Noch keine Hospitationen für diese Auswahl.</div>`;
-          const slotMarkup = slotItems.length
-            ? `<div class="hospitation-list">${slotItems.map(hospitationSlotCardMarkup).join("")}</div>`
-            : `<div class="history-empty">Keine freien oder geplanten Hospitationstermine hinterlegt.</div>`;
-          hospitationList.innerHTML = `
-            ${hospitationMarkup}
-            <section class="section-block">
-              <h4 class="detail-section-title">Angebotene Termine</h4>
-              ${slotMarkup}
-            </section>
-          `;
+          hospitationList.innerHTML = renderHospitationAppointments();
           bindHospitationListActions(hospitationList);
         }
         if (activeTab === "documentation" && hospitationDocumentationList) {

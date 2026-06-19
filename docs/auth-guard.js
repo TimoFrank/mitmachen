@@ -52,6 +52,11 @@
     return loginPath + "?" + params.toString();
   }
 
+  function usesExternalIdentityProvider() {
+    const runtimeConfig = window.VERSORGUNGS_COMPASS_CONFIG || {};
+    return ["iap", "trusted-header", "sso"].includes(runtimeConfig.authMode) || ["api", "gcp", "gcp-demo"].includes(runtimeConfig.dataMode);
+  }
+
   window.VKAuth = {
     config,
     getStoredSession,
@@ -67,6 +72,10 @@
   };
 
   if (currentFileName() === (config.loginFile || "login.html") || currentFileName() === "set-password.html") {
+    return;
+  }
+
+  if (usesExternalIdentityProvider()) {
     return;
   }
 

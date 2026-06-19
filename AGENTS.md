@@ -1,6 +1,6 @@
-# AGENTS.md
+# Projektarbeitsregeln
 
-Diese Regeln gelten fuer Codex- und Agentenarbeit im Versorgungs-Kompass.
+Diese Regeln gelten fuer assistierte und manuelle Arbeit im Versorgungs-Kompass.
 
 ## Produkt- und UX-Leitplanken
 

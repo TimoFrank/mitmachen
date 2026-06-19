@@ -413,7 +413,7 @@
   }
 
   function isConfigured() {
-    if (isGcpMode()) return true;
+    if (usesTargetApiMode()) return true;
     return Boolean(
       CONFIG.dataMode === "supabase" &&
         CONFIG.supabaseUrl &&
@@ -427,9 +427,17 @@
     return CONFIG.dataMode === "gcp" || CONFIG.dataMode === "gcp-demo";
   }
 
+  function usesTargetApiMode() {
+    return CONFIG.dataMode === "api" || isGcpMode();
+  }
+
+  function usesServerIdentity() {
+    return usesTargetApiMode() || ["iap", "trusted-header", "sso"].includes(CONFIG.authMode);
+  }
+
   function getClient() {
     if (client) return client;
-    if (isGcpMode()) {
+    if (usesServerIdentity()) {
       client = {
         auth: {
           signOut: async () => ({ error: null })
@@ -454,7 +462,7 @@
   }
 
   function usesApiGateway() {
-    return isGcpMode() || Boolean(apiBaseUrl()) || requiresApiGateway();
+    return usesTargetApiMode() || Boolean(apiBaseUrl()) || requiresApiGateway();
   }
 
   function apiGatewayRequiredError() {
@@ -470,7 +478,7 @@
     const headers = {
       Accept: "application/json"
     };
-    if (!isGcpMode()) {
+    if (!usesServerIdentity()) {
       const { data, error } = await getClient().auth.getSession();
       if (error) throw error;
       const token = data?.session?.access_token;

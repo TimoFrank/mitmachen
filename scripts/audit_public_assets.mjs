@@ -41,9 +41,16 @@ for (const [label, content] of [
   ["data/supabase-config.js", config],
   ["docs/data/supabase-config.js", docsConfig]
 ]) {
+  const dataMode = /dataMode\s*:\s*["']([^"']+)["']/.exec(content)?.[1] || "";
   assert(!/service[_-]?role/i.test(content), `${label} enthaelt Service-Role-Hinweis`);
   assert(!/sb_secret_/i.test(content), `${label} enthaelt moeglich geheimen Supabase-Key`);
-  assert(/supabaseAnonKey/.test(content), `${label} enthaelt keinen anon/publishable Key`);
+  if (["api", "gcp"].includes(dataMode)) {
+    assert(!/supabaseAnonKey|supabaseUrl/.test(content), `${label} darf im Ziel-API-Modus keine Supabase-Keys enthalten`);
+    assert(/authMode\s*:\s*["'](trusted-header|sso|iap)["']/.test(content), `${label} muss im Ziel-API-Modus einen freigegebenen authMode setzen`);
+    assert(/requireApiGateway\s*:\s*true/.test(content), `${label} muss im Ziel-API-Modus requireApiGateway=true setzen`);
+  } else {
+    assert(/supabaseAnonKey/.test(content), `${label} enthaelt keinen anon/publishable Key`);
+  }
 }
 
 const suspiciousPublicSeedText = [seedCsv, docsSeedCsv, seedJs, docsSeedJs].join("\n");

@@ -2,7 +2,7 @@
 
 Stand: 2026-06-06
 
-Hinweis: Das aktuelle fuehrende Migrationspaket steht in `ORGANISATIONS_GCP_MIGRATIONSPAKET.md`. Diese Notiz enthaelt auch historische Beschreibungen des fruehen statischen Demo-Stands und ist nicht mehr allein ausreichend fuer die aktuelle GCP-Backend-Version.
+Archivhinweis: Diese Notiz beschreibt den frueheren privaten GCP-Demostand. Fuer den aktuellen Zielpfad zuerst `../../../DEPLOYMENT_GEMATIK_K8S.md` und `../../../DEPLOYMENT_UEBERSICHT.md` lesen.
 
 Diese Notiz fasst den aktuellen privaten GCP-Demostand des Versorgungs-Kompass zusammen. Sie ist als Gespraechsgrundlage fuer die spaetere Ueberfuehrung in die Organisations-IT gedacht.
 
@@ -277,7 +277,7 @@ Fuer die Organisationsueberfuehrung sollten geklaert werden:
 
 Es ist offen, ob ich in der Organisationsumgebung Zugriff auf alle benoetigten GCP-Dienste und Funktionen bekomme. Falls Berechtigungen fehlen, muss gezielt bei der IT nachgefragt werden, z. B. fuer Cloud Run Deployments, Artifact Registry Push, Cloud Build, IAM-Invoker-Regeln, Service Accounts oder interne FQDN-/Load-Balancer-Konfiguration.
 
-Es ist ebenfalls offen, ob Codex oder eine CLI-gestuetzte Arbeitsweise auf dem Firmenrechner genutzt werden kann. Falls Codex CLI nicht laeuft oder nicht freigegeben ist, braucht es einen alternativen Deployment-Weg:
+Es ist ebenfalls offen, ob eine lokale CLI-gestuetzte Arbeitsweise auf dem Firmenrechner genutzt werden kann. Falls die benoetigten CLI-Tools nicht laufen oder nicht freigegeben sind, braucht es einen alternativen Deployment-Weg:
 
 - Deployment ueber GitLab und Jenkins als Standardweg der Organisation.
 - Manuelles Deployment mit dokumentierten `gcloud`-Befehlen, sofern `gcloud` erlaubt ist.
@@ -292,4 +292,4 @@ Ich brauche entweder die noetigen Rechte und Tools, um das Deployment selbst aus
 
 ## Abgrenzung zu aelteren Zielbildern
 
-`DEPLOYMENT_GCP_GEMATIK.md` beschreibt einen frueheren Zielstand mit Supabase plus API-Gateway-Schicht. Die aktuelle Demo-Strategie fuer den leichten internen Test ist Supabase-frei und wird in `README_DEMO_MODE_GCP.md`, `PRIVATE_GCP_TEST.md` und dieser Notiz beschrieben.
+`DEPLOYMENT_GCP_GEMATIK.md` beschreibt inzwischen das aktive GCP/gematik-Zielbild mit Cloud-Run-Frontend, Cloud-Run-API, Cloud SQL, Cloud Storage und IAP/SSO. Die frueheren Demo-Strategien bleiben in `README_DEMO_MODE_GCP.md`, `PRIVATE_GCP_TEST.md` und dieser Notiz als historische Referenz sichtbar.

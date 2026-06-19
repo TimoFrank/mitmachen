@@ -1,0 +1,74 @@
+replicaCount: 2
+
+image:
+  repository: artifact-registry.example/versorgungs-kompass-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+containerPort: 8080
+
+ingress:
+  enabled: true
+  className: ""
+  host: versorgungs-kompass-api.example.internal
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: ""
+
+config:
+  allowedOrigin: "https://versorgungs-kompass.example.internal"
+  apiAuthMode: "trusted-header"
+  authEmailHeader: "x-auth-request-email"
+  authSubjectHeader: "x-auth-request-user"
+  logRequests: "0"
+
+database:
+  host: ""
+  port: "5432"
+  name: "versorgungs_kompass"
+  user: "vk_app"
+  ssl: "0"
+  poolMax: "5"
+
+secrets:
+  databasePasswordSecretName: "versorgungs-kompass-postgres"
+  databasePasswordSecretKey: "password"
+
+storage:
+  profileImageBucket: ""
+  contactImageBucket: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

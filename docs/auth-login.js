@@ -1,6 +1,7 @@
 (function () {
   const config = window.VK_AUTH_CONFIG || {};
   const auth = window.VKAuth;
+  const runtimeConfig = window.VERSORGUNGS_COMPASS_CONFIG || {};
 
   if (!auth) return;
 
@@ -57,6 +58,17 @@
     if (!window.dataService?.isConfigured?.()) window.location.replace(getReturnUrl());
   }
 
+  if (["iap", "trusted-header", "sso"].includes(runtimeConfig.authMode) || ["api", "gcp", "gcp-demo"].includes(runtimeConfig.dataMode)) {
+    window.addEventListener("DOMContentLoaded", function () {
+      const copy = document.getElementById("login-copy");
+      const form = document.getElementById("login-form");
+      if (copy) copy.textContent = "Die Anmeldung erfolgt über den organisationsweiten SSO-Zugang.";
+      if (form) form.hidden = true;
+      window.location.replace(getReturnUrl());
+    });
+    return;
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("login-form");
     const emailField = document.getElementById("email-field");
@@ -91,6 +103,11 @@
             window.location.replace(getReturnUrl());
           }
         });
+    } else {
+      if (emailField) emailField.hidden = true;
+      if (emailInput) emailInput.required = false;
+      if (copy) copy.textContent = "Gib das lokale Demo-Passwort ein, um den geschützten Bereich zu öffnen.";
+      if (passwordLabel) passwordLabel.textContent = "Passwort";
     }
 
     form.addEventListener("submit", async function (event) {

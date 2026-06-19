@@ -1,12 +1,12 @@
 # Datenmodell Versorgungs-Kompass
 
-Stand: abgeleitet aus `supabase/schema.sql`, `gcp/cloudsql/schema.sql` und `data/data-service.js`.
+Stand: abgeleitet aus `supabase/schema.sql`, `db/postgres/schema.sql` und `data/data-service.js`.
 
-Zielbild-Hinweis: Supabase bleibt in diesem Dokument als Ursprungsschema und Migrationsquelle sichtbar. Die neue GCP/gematik-Zielarchitektur fuehrt das relationale Modell in Cloud SQL PostgreSQL weiter.
+Zielbild-Hinweis: Supabase bleibt in diesem Dokument als Ursprungsschema und Migrationsquelle sichtbar. Die neue gematik-Zielarchitektur fuehrt das relationale Modell in Shared PostgreSQL weiter.
 
 ## Ueberblick
 
-Der produktive Ziel-Datenbestand liegt in Cloud SQL PostgreSQL. Das bisherige Supabase-Schema `public` bleibt die wichtigste Migrationsquelle. Die App nutzt fachlich diese Tabellen:
+Der produktive Ziel-Datenbestand liegt in Shared PostgreSQL. Das bisherige Supabase-Schema `public` bleibt die wichtigste Migrationsquelle. Die App nutzt fachlich diese Tabellen:
 
 - `profiles`
 - `contacts`

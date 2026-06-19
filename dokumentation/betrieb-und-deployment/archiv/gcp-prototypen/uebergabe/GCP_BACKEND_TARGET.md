@@ -1,18 +1,20 @@
-# GCP Backend-Zielbild
+# Archiv: GCP Backend-Zielbild
 
 Stand: 2026-06-06
 
-Dieses Dokument schliesst Schritt 3 der GCP-Ueberfuehrung ab. Es legt fest, wie der Versorgungs-Kompass nach der statischen Demo schrittweise zu einer echten GCP-basierten Version erweitert werden soll.
+Dieses Dokument beschreibt den frueheren privaten GCP-Prototyp. Es ist nicht mehr die fuehrende Zielarchitektur fuer die Migration.
 
-Umsetzungsstand: Schritt 4 wurde privat am 2026-06-06 umgesetzt. Details stehen in `GCP_STEP4_PRIVATE_TEST.md`.
+Archivhinweis: Der hier beschriebene Cloud-SQL-Prototyp liegt unter `../cloud-sql-prototyp/`. Fuer den aktuellen Zielpfad zuerst `../../../DEPLOYMENT_GEMATIK_K8S.md` und `../../../DEPLOYMENT_UEBERSICHT.md` lesen.
 
-Update nach Schritt 5: Kern-CRM-API, Betriebssicherheit, Kontaktbilder in Cloud Storage, Importvorbereitung, Profil/Rollenmodell light sowie Monitoring light wurden schrittweise privat umgesetzt. Details stehen in `GCP_STEP5_1_PRIVATE_TEST.md`, `GCP_STEP5_2_OPERATIONS.md`, `GCP_STEP5_3_CONTACT_IMAGES.md`, `GCP_STEP5_4_IMPORT.md`, `GCP_STEP5_5_PROFILE_ROLES.md` und `GCP_STEP5_6_MONITORING.md`.
+Umsetzungsstand: Schritt 4 wurde privat am 2026-06-06 umgesetzt. Details stehen in `../protokoll/GCP_STEP4_PRIVATE_TEST.md`.
 
-Update nach Schritt 7: Die GCP-Version wurde frontendseitig naeher an die Original-App herangefuehrt, ohne Supabase wieder einzufuehren. Details stehen in `GCP_STEP7_FRONTEND_PARITY.md`.
+Update nach Schritt 5: Kern-CRM-API, Betriebssicherheit, Kontaktbilder in Cloud Storage, Importvorbereitung, Profil/Rollenmodell light sowie Monitoring light wurden schrittweise privat umgesetzt. Details stehen unter `../protokoll/`.
 
-Update nach Schritt 8: Die private GCP-Version liefert jetzt die Original-App aus `app/versorgungs-kompass.html` aus und nutzt GCP als Datenadapter. Der Demo-UI-Nachbau ist damit abgeloest. Details stehen in `GCP_STEP8_ORIGINAL_UI_PORT.md`.
+Update nach Schritt 7: Die GCP-Version wurde frontendseitig naeher an die Original-App herangefuehrt, ohne Supabase wieder einzufuehren. Details stehen in `../protokoll/GCP_STEP7_FRONTEND_PARITY.md`.
 
-Update nach Schritt 9: Formate und Expertenkreis nutzen im privaten GCP-Modus jetzt echte Cloud-SQL-Tabellen statt lokale Fallbacks. Details stehen in `GCP_STEP9_FORMATS_EXPERTS_TABLES.md`.
+Update nach Schritt 8: Die private GCP-Version liefert jetzt die Original-App aus `app/versorgungs-kompass.html` aus und nutzt GCP als Datenadapter. Der Demo-UI-Nachbau ist damit abgeloest. Details stehen in `../protokoll/GCP_STEP8_ORIGINAL_UI_PORT.md`.
+
+Update nach Schritt 9: Formate und Expertenkreis nutzen im privaten GCP-Modus jetzt echte Cloud-SQL-Tabellen statt lokale Fallbacks. Details stehen in `../protokoll/GCP_STEP9_FORMATS_EXPERTS_TABLES.md`.
 
 ## Entscheidung
 
@@ -272,7 +274,7 @@ Falls Secret Manager fehlt:
 - Privater Test kann temporaer mit Cloud-Run-Env-Variablen arbeiten.
 - Fuer Organisationsbetrieb sollte Secret Manager oder ein organisationsinterner Secret-Mechanismus genutzt werden.
 
-Falls Codex oder CLI auf dem Firmenrechner nicht erlaubt ist:
+Falls die benoetigten CLI-Tools auf dem Firmenrechner nicht erlaubt sind:
 
 - Deployment ueber GitLab/Jenkins bevorzugen.
 - Alternativ dokumentierte `gcloud`-Befehle oder Cloud Shell nutzen, sofern freigegeben.

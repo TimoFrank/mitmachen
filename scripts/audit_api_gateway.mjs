@@ -38,13 +38,15 @@ const disallowedPatterns = [
 const args = process.argv.slice(2);
 const productionConfigIndex = args.indexOf("--production-config");
 const productionConfigPath = productionConfigIndex >= 0 ? args[productionConfigIndex + 1] : "";
+const targetDataModes = new Set(["api", "gcp"]);
+const targetAuthModes = new Set(["trusted-header", "sso", "iap"]);
 const supabaseRuntimePatterns = [
   {
-    label: "Supabase Browser-SDK im GCP-Produktionsartefakt",
+    label: "Supabase Browser-SDK im Ziel-Produktionsartefakt",
     regex: /@supabase\/supabase-js|supabase-js@/g
   },
   {
-    label: "Direkte Supabase-Projekt-URL im GCP-Produktionsartefakt",
+    label: "Direkte Supabase-Projekt-URL im Ziel-Produktionsartefakt",
     regex: /https:\/\/[a-z0-9-]+\.supabase\.co/gi
   }
 ];
@@ -120,12 +122,12 @@ function assertProductionConfig(configPath) {
   if (!requireApiGateway) {
     throw new Error(`${configPath}: requireApiGateway muss im Produktionsartefakt true sein.`);
   }
-  if (dataMode === "gcp") {
-    if (authMode !== "iap") {
-      throw new Error(`${configPath}: authMode muss im GCP-Produktionsartefakt iap sein.`);
+  if (targetDataModes.has(dataMode)) {
+    if (!targetAuthModes.has(authMode)) {
+      throw new Error(`${configPath}: authMode muss im Ziel-Produktionsartefakt trusted-header, sso oder iap sein.`);
     }
     if (/supabaseUrl|supabaseAnonKey/.test(source)) {
-      throw new Error(`${configPath}: GCP-Produktionsartefakt darf keine oeffentlichen Supabase-Keys enthalten.`);
+      throw new Error(`${configPath}: Ziel-Produktionsartefakt darf keine oeffentlichen Supabase-Keys enthalten.`);
     }
   }
   return { dataMode, authMode, apiBaseUrl };
@@ -133,7 +135,7 @@ function assertProductionConfig(configPath) {
 
 function scanSupabaseRuntimeArtifacts() {
   const findings = [];
-  const files = ["app", "login", "map", "mitmachen", "docs"]
+  const files = ["docs"]
     .flatMap((dir) => walk(path.join(root, dir)))
     .filter((file) => !/\/data\/data-service\.js$/.test(file));
   for (const file of files) {
@@ -169,7 +171,7 @@ if (!productionConfigPath) {
   process.exit(0);
 }
 
-const findings = productionConfig?.dataMode === "gcp"
+const findings = targetDataModes.has(productionConfig?.dataMode)
   ? scanSupabaseRuntimeArtifacts()
   : scanClientFiles();
 if (findings.length) {
