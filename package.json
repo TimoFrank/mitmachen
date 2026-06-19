@@ -6,7 +6,7 @@
   "scripts": {
     "start:api": "node api/server.mjs",
     "start:demo": "python3 -m http.server 4173",
-    "check:demo": "node --check demo/demo-app.js && node --check data/demo-data.js",
+    "check:demo": "node --check examples/demo/demo-app.js && node --check data/demo-data.js",
     "check:syntax": "node --check data/data-service.js && node --check api/server.mjs && node --check scripts/audit_api_gateway.mjs && node --check scripts/audit_stakeholder_fields.mjs && node --check scripts/prepare_target_frontend_config.mjs && node --check scripts/preflight_target_deployment.mjs && node --check scripts/test_api_validation.mjs && node --check scripts/verify_publication_state.mjs",
     "check": "node --check data/data-service.js && node --check api/server.mjs && node --check scripts/audit_api_gateway.mjs && node --check scripts/audit_stakeholder_fields.mjs && node --check scripts/prepare_target_frontend_config.mjs && node --check scripts/preflight_target_deployment.mjs && node --check scripts/test_api_validation.mjs && node --check scripts/verify_publication_state.mjs && node scripts/audit_public_assets.mjs && node scripts/audit_api_gateway.mjs && node scripts/audit_stakeholder_fields.mjs && node scripts/test_api_validation.mjs && git diff --check",
     "qa:small": "npm run check:syntax && git diff --check",

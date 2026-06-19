@@ -12,7 +12,7 @@ Der produktive Betrieb besteht aus zwei Containern:
 
 | Komponente | Container | Aufgabe |
 | --- | --- | --- |
-| Frontend | `Dockerfile` | Liefert die statische CRM-App aus `docs/` per Nginx aus. |
+| Frontend | `archiv/statischer-frontend-container/Dockerfile` | Alter Entwurf fuer die statische CRM-App aus `docs/` per Nginx. |
 | API | `Dockerfile.api` | Liefert `/api/...`, kapselt Cloud-SQL-PostgreSQL, Cloud Storage und serverseitige Rollenpruefung. |
 
 Der Browser spricht fuer fachliche Daten nur mit der API:

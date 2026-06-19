@@ -30,7 +30,7 @@ python3 -m http.server 4173
 Danach im Browser:
 
 ```text
-http://127.0.0.1:4173/demo/
+http://127.0.0.1:4173/examples/demo/
 ```
 
 Die veroeffentlichte GitHub-Pages-Fassung liegt unter:
@@ -44,8 +44,8 @@ https://timofrank.github.io/mitmachen/demo/
 - `index.html`: Einstieg und App-Shell der Demo.
 - `demo.css`: Gestaltung der Demo-Oberflaeche.
 - `demo-app.js`: lokale Demo-Logik, Navigation, Filter und Tabellen.
-- `../data/demo-data.js`: fiktive Demo-Daten.
-- `../map/versorgungs-kompass-map.html`: eingebettete Kartenansicht fuer lokale Nutzung.
+- `../../data/demo-data.js`: fiktive Demo-Daten.
+- `../../map/versorgungs-kompass-map.html`: eingebettete Kartenansicht fuer lokale Nutzung.
 
 GitHub Pages veroeffentlicht den Ordner `docs/`. Das Sync-Skript kopiert die Demo deshalb nach `docs/demo/` und passt den Kartenpfad fuer die Pages-Struktur an.
 

@@ -10,11 +10,11 @@ Der einfache Standardpfad ist GitHub Pages:
 Quellordner -> scripts/sync_github_pages.sh -> docs/ -> GitHub Pages
 ```
 
-`docs/` ist dabei eine Publish-Kopie. Gepflegt werden die Quellordner `app/`, `login/`, `map/`, `data/`, `demo/`, `public/` und `mitmachen/`.
+`docs/` ist dabei eine Publish-Kopie. Gepflegt werden die Quellordner `app/`, `login/`, `map/`, `data/`, `public/`, `pages/` und `examples/`.
 
 ## Lokale Demo
 
-Die Demo unter `demo/` bleibt aktiv, aber nur als leichtgewichtige Ansicht mit fiktiven Daten. Sie ist hilfreich fuer README-Screenshots, technische Erstpruefung und Abstimmung.
+Die Demo unter `examples/demo/` bleibt aktiv, aber nur als leichtgewichtige Ansicht mit fiktiven Daten. Sie ist hilfreich fuer README-Screenshots, technische Erstpruefung und Abstimmung.
 
 Sie ist kein eigener GCP-Deploypfad mehr. Wenn GitHub Pages aktualisiert wird, kopiert `scripts/sync_github_pages.sh` die Demo nach `docs/demo/`.
 

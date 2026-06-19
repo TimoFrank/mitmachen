@@ -54,13 +54,14 @@ Die konkreten Backend-Variablen haengen von der Zielplattform ab. Details stehen
 - `supabase/`: Legacy-/Migrationsquelle bis zur abgeschlossenen Shared-Postgres-Datenmigration.
 - `deploy/`: Helm Chart und Deployment-Artefakte fuer das gematik Kubernetes-Zielbild.
 - `public/`: Logos, Icons und statische Assets.
+- `pages/`: einzelne statische Zusatzseiten, die nach `docs/` gespiegelt werden.
+- `examples/`: Beispiel- und Demo-Oberflaechen ohne produktive Daten.
 - `scripts/`: Pruef-, Sync- und Importskripte.
 - `tests/`: Playwright-Smoke-Tests.
-- `demo/`: einfache Demo-Ansicht mit fiktiven Daten; wird auch nach `docs/demo/` gespiegelt.
 - `docs/`: Publish-Kopie fuer GitHub Pages. Dieser Ordner wird aus den Quellordnern synchronisiert.
 - `dokumentation/`: Architektur, Betrieb, Design, QA und historische Uebergabeunterlagen.
 
-Die wichtigsten Quellpfade sind `app/`, `login/`, `map/`, `data/`, `api/`, `db/`, `deploy/` und `public/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
+Die wichtigsten Quellpfade sind `app/`, `login/`, `map/`, `data/`, `api/`, `db/`, `deploy/`, `public/`, `pages/` und `examples/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
 
 ## Daten und Backend
 

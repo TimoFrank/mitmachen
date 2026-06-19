@@ -10,15 +10,15 @@ mkdir -p "$DOCS_DIR/data" "$DOCS_DIR/demo" "$DOCS_DIR/public" "$DOCS_DIR/public/
 cp "$ROOT_DIR/login/login.html" "$DOCS_DIR/login.html"
 cp "$ROOT_DIR/login/set-password.html" "$DOCS_DIR/set-password.html"
 cp "$ROOT_DIR/app/versorgungs-kompass.html" "$DOCS_DIR/versorgungs-kompass.html"
-cp "$ROOT_DIR/mitmachen/versorgungs-netzwerk.html" "$DOCS_DIR/mitmachen/versorgungs-netzwerk.html"
+cp "$ROOT_DIR/pages/mitmachen/versorgungs-netzwerk.html" "$DOCS_DIR/mitmachen/versorgungs-netzwerk.html"
 cp "$ROOT_DIR/map/versorgungs-kompass-map.html" "$DOCS_DIR/versorgungs-kompass-map.html"
 cp "$ROOT_DIR/map/versorgungs-kompass-map-teaser.html" "$DOCS_DIR/versorgungs-kompass-map-teaser.html"
 cp "$ROOT_DIR/map/versorgungs-kompass-contact-mini-map.html" "$DOCS_DIR/versorgungs-kompass-contact-mini-map.html"
-cp "$ROOT_DIR/demo/index.html" "$DOCS_DIR/demo/index.html"
-cp "$ROOT_DIR/demo/demo.css" "$DOCS_DIR/demo/demo.css"
-cp "$ROOT_DIR/demo/demo-app.js" "$DOCS_DIR/demo/demo-app.js"
-if [ -f "$ROOT_DIR/demo/README.md" ]; then
-  cp "$ROOT_DIR/demo/README.md" "$DOCS_DIR/demo/README.md"
+cp "$ROOT_DIR/examples/demo/index.html" "$DOCS_DIR/demo/index.html"
+cp "$ROOT_DIR/examples/demo/demo.css" "$DOCS_DIR/demo/demo.css"
+cp "$ROOT_DIR/examples/demo/demo-app.js" "$DOCS_DIR/demo/demo-app.js"
+if [ -f "$ROOT_DIR/examples/demo/README.md" ]; then
+  cp "$ROOT_DIR/examples/demo/README.md" "$DOCS_DIR/demo/README.md"
 fi
 cp "$ROOT_DIR/login/auth-config.js" "$DOCS_DIR/auth-config.js"
 cp "$ROOT_DIR/login/auth-guard.js" "$DOCS_DIR/auth-guard.js"
@@ -51,8 +51,8 @@ cp "$ROOT_DIR/map/data/state-polygons.js" "$DOCS_DIR/deutschlandkarte-project/da
 
 perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./login/login\.html#./login.html#g' "$DOCS_DIR/versorgungs-kompass.html"
 perl -0pi -e 's#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$DOCS_DIR/versorgungs-kompass.html"
-perl -0pi -e 's#\.\./mitmachen/#./mitmachen/#g' "$DOCS_DIR/versorgungs-kompass.html"
-perl -0pi -e 's#\.\./public/#../public/#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$DOCS_DIR/mitmachen/versorgungs-netzwerk.html"
+perl -0pi -e 's#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$DOCS_DIR/versorgungs-kompass.html"
+perl -0pi -e 's#\.\./\.\./public/#../public/#g; s#\.\./public/#../public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$DOCS_DIR/mitmachen/versorgungs-netzwerk.html"
 perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$DOCS_DIR/login.html"
 perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g; s#\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$DOCS_DIR/set-password.html"
 perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./public/#./public/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$DOCS_DIR/versorgungs-kompass-map.html"
@@ -60,6 +60,7 @@ perl -0pi -e 's#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-proje
 perl -0pi -e 's#loginPath: "../login/login.html"#loginPath: "./login.html"#; s#defaultPath: "../app/versorgungs-kompass.html"#defaultPath: "./versorgungs-kompass.html"#' "$DOCS_DIR/auth-config.js"
 perl -0pi -e 's#"start_url": "../app/versorgungs-kompass.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "../"#"scope": "./"#; s#"src": "./app-icon-#"src": "./public/app-icon-#g' "$DOCS_DIR/manifest.webmanifest"
 perl -0pi -e 's#\.\./public/stakeholder-logos/#./public/stakeholder-logos/#g' "$DOCS_DIR/data/stakeholder-data.js"
-perl -0pi -e 's#\.\./map/versorgungs-kompass-map\.html#../versorgungs-kompass-map.html#g' "$DOCS_DIR/demo/demo-app.js"
+perl -0pi -e 's#\.\./\.\./data/#../data/#g' "$DOCS_DIR/demo/index.html"
+perl -0pi -e 's#\.\./\.\./map/versorgungs-kompass-map\.html#../versorgungs-kompass-map.html#g; s#\.\./map/versorgungs-kompass-map\.html#../versorgungs-kompass-map.html#g' "$DOCS_DIR/demo/demo-app.js"
 
 echo "GitHub Pages assets synchronized to docs/."
