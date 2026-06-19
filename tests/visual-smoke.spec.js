@@ -244,6 +244,10 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator(".sidebar-section-label").filter({ hasText: "Planung" })).toHaveCount(1);
   await expect(page.locator(".sidebar-section-label").filter({ hasText: "Admin" })).toHaveCount(1);
   await expect(page.locator('[data-view-tab="map"]')).toContainText("Karte");
+  await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(0);
+  await expect(page.locator('[data-view-tab="organizations"]')).toHaveCount(0);
+  await expect(page.locator('#care-mode-actions [data-care-mode="contacts"]')).toBeVisible();
+  await expect(page.locator('#care-mode-actions [data-care-mode="organizations"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="experts"]')).toContainText("Expertenkreis");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
   if (!testInfo.project.name.includes("mobile")) {
@@ -1364,6 +1368,17 @@ test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
 
   await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();
   await expect(page.locator(".dashboard-grid")).toBeVisible();
+  await expect(page.locator('[data-view-tab="quality"]')).toHaveCount(0);
+  await expect(page.locator("#sidebar-quality-button")).toHaveCount(0);
+  await expect(page.locator("#analytics-mode-actions")).toBeVisible();
+  await expect(page.locator('#analytics-mode-actions [data-analytics-mode="analytics"]')).toHaveAttribute("aria-selected", "true");
+
+  await page.locator('#analytics-mode-actions [data-analytics-mode="quality"]').click();
+  await expect(page.locator('[data-view-panel="quality"]')).toBeVisible();
+  await expect(page.locator("#workspace-view-title")).toHaveText("Auswertung");
+  await expect(page.locator('#analytics-mode-actions [data-analytics-mode="quality"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#sidebar-analytics-button")).toHaveClass(/is-active/);
+  await expect(page).toHaveURL(/#quality$/);
 
   await attachScreenshot(page, testInfo, "auswertung");
 });

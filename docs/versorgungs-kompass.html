@@ -1923,24 +1923,27 @@
         display: none !important;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) .workspace-header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-header {
         grid-template-columns: minmax(0, 1fr);
         align-items: start;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) .workspace-header .workspace-actions {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-header .workspace-actions {
         justify-content: stretch;
         width: 100%;
         min-width: 0;
       }
 
       .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-nav--header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-nav--header,
+      .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions,
+      .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-nav--header {
         width: 100%;
         min-width: 0;
       }
 
-      #care-mode-actions .experts-mode-nav--header {
+      #care-mode-actions .experts-mode-nav--header,
+      #analytics-mode-actions .experts-mode-nav--header {
         width: min(100%, 540px);
       }
 
@@ -19299,7 +19302,8 @@
           touch-action: auto;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions {
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions,
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions {
           overflow-x: auto;
           overflow-y: hidden;
           -webkit-overflow-scrolling: touch;
@@ -19308,11 +19312,13 @@
           scrollbar-width: none;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions::-webkit-scrollbar {
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions::-webkit-scrollbar,
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions::-webkit-scrollbar {
           display: none;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-nav--header {
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-nav--header,
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-nav--header {
           width: max-content;
           min-width: 100%;
           justify-content: flex-start;
@@ -19321,7 +19327,8 @@
           overflow: visible;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .settings-tab-button {
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .settings-tab-button,
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .settings-tab-button {
           flex: 0 0 auto;
           min-width: 128px;
           min-height: 52px;
@@ -19330,7 +19337,8 @@
           font-size: var(--font-size-sm);
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-label {
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-label,
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-label {
           white-space: nowrap;
         }
 
@@ -19510,27 +19518,7 @@
                 <path d="M15 6v15"></path>
               </svg>
               <span>Karte</span>
-            </button>
-            <button class="primary-tab" type="button" data-view-tab="contacts" title="Kontakte">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9.5" cy="7" r="4"></circle>
-                <path d="M20 8v6"></path>
-                <path d="M23 11h-6"></path>
-              </svg>
-              <span>Kontakte</span>
               <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
-            </button>
-            <button class="primary-tab" type="button" data-view-tab="organizations" title="Organisationen">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M3 21h18"></path>
-                <path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path>
-                <path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path>
-                <path d="M9 7h3"></path>
-                <path d="M9 11h3"></path>
-                <path d="M9 15h3"></path>
-              </svg>
-              <span>Organisationen</span>
             </button>
           </div>
           <div class="sidebar-section" aria-label="IOP" data-sidebar-section="iop">
@@ -19587,13 +19575,6 @@
                 <path d="M17 16v-4"></path>
               </svg>
               <span>Auswertung</span>
-            </button>
-            <button class="primary-tab" type="button" data-view-tab="quality" id="sidebar-quality-button" title="Datenqualität">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M12 3 5 6v5c0 4.5 2.9 8.4 7 10 4.1-1.6 7-5.5 7-10V6l-7-3Z"></path>
-                <path d="m9 12 2 2 4-4"></path>
-              </svg>
-              <span>Datenqualität</span>
             </button>
             <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -19689,6 +19670,16 @@
               <button class="settings-tab-button" type="button" role="tab" data-care-mode="organizations" aria-selected="false" aria-controls="view-organizations">
                 <span class="experts-mode-label">Organisationen </span>
                 <span class="experts-mode-count">0</span>
+              </button>
+            </div>
+          </div>
+          <div class="workspace-expert-switcher" id="analytics-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Auswertung">
+              <button class="settings-tab-button is-active" type="button" role="tab" data-analytics-mode="analytics" aria-selected="true" aria-controls="view-analytics">
+                <span class="experts-mode-label">Auswertung</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-analytics-mode="quality" aria-selected="false" aria-controls="view-quality">
+                <span class="experts-mode-label">Datenqualität</span>
               </button>
             </div>
           </div>
@@ -22391,6 +22382,8 @@
       const expertPagination = document.getElementById("experts-pagination");
       const careModeActions = document.getElementById("care-mode-actions");
       const careModeButtons = [...document.querySelectorAll("[data-care-mode]")];
+      const analyticsModeActions = document.getElementById("analytics-mode-actions");
+      const analyticsModeButtons = [...document.querySelectorAll("[data-analytics-mode]")];
       const expertModeButtons = [...document.querySelectorAll("[data-expert-mode]")];
       const expertTables = [...document.querySelectorAll("[data-expert-table]")];
       const stakeholderOrganizationsTable = document.getElementById("stakeholder-organizations-table");
@@ -22478,7 +22471,6 @@
       const sidebarUserBadge = document.getElementById("sidebar-user-badge");
       const sidebarUserName = document.getElementById("sidebar-user-name");
       const sidebarUserRole = document.getElementById("sidebar-user-role");
-      const sidebarQualityButton = document.getElementById("sidebar-quality-button");
       const sidebarImportButton = document.getElementById("sidebar-import-button");
       const sidebarDataCareSection = document.getElementById("sidebar-data-care-section");
       const sidebarAnalyticsButton = document.getElementById("sidebar-analytics-button");
@@ -22958,6 +22950,10 @@
         return careViewModes.includes(view);
       }
 
+      function isAnalyticsView(view = activeView) {
+        return view === "analytics" || view === "quality";
+      }
+
       function canAccessView(view) {
         if (view === "onboarding") return onboardingActive;
         return !["settings", "about", "analytics", "quality", "stakeholders"].includes(view) || canAdministerData();
@@ -23089,7 +23085,6 @@
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
         setRoleElementVisible(sidebarStakeholderButton, canAdministerData());
         setRoleElementVisible(sidebarAnalyticsButton, canAdministerData());
-        setRoleElementVisible(sidebarQualityButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
         setRoleElementVisible(sidebarSettingsButton, true);
         setRoleElementVisible(sidebarAboutButton, canAdministerData());
@@ -27174,6 +27169,18 @@
         });
       }
 
+      function renderAnalyticsModeTabs() {
+        const active = isAnalyticsView(activeView) && canAdministerData();
+        if (analyticsModeActions) analyticsModeActions.hidden = !active;
+        analyticsModeButtons.forEach((button) => {
+          const mode = button.dataset.analyticsMode || "analytics";
+          const selected = activeView === mode;
+          button.classList.toggle("is-active", selected);
+          button.setAttribute("aria-selected", String(selected));
+          button.setAttribute("tabindex", selected ? "0" : "-1");
+        });
+      }
+
       function renderExpertTablesVisibility() {
         if (activeExpertDuplicates && !canAdministerData()) activeExpertDuplicates = false;
         if (appShell) appShell.dataset.expertMode = activeExpertDuplicates ? "duplicates" : activeExpertMode;
@@ -29413,7 +29420,7 @@
           target: ".primary-nav",
           placement: "right",
           title: "Navigation in der Sidebar",
-          body: "Die Sidebar bündelt Kontakte, Expertenkreis und KVn im Abschnitt Kontakte. Planung und Admin bleiben darunter klar getrennt."
+          body: "Die Sidebar bündelt die Hauptbereiche: Versorgung, IOP, Stakeholder, Planung und Admin bleiben klar getrennt."
         },
         {
           view: "contacts",
@@ -29457,14 +29464,14 @@
           target: "#view-analytics .analytics-shell",
           adminOnly: true,
           title: "Auswertung",
-          body: "Die Auswertung liegt im Admin-Abschnitt und beantwortet operative Fragen zur Verteilung, Priorität und regionalen Abdeckung."
+          body: "Die Auswertung liegt im Admin-Abschnitt und beantwortet operative Fragen zur Verteilung, Priorität, Datenqualität und regionalen Abdeckung."
         },
         {
           view: "quality",
           target: "#view-quality .quality-workspace",
           adminOnly: true,
           title: "Datenqualität",
-          body: "Admins sehen hier Arbeitslisten für fehlende Angaben und Datenpflege. So wird Qualität zu einer konkreten Aufgabe statt zu einem abstrakten Hinweis."
+          body: "Der Datenqualitäts-Reiter bündelt Arbeitslisten für fehlende Angaben und Datenpflege. So wird Qualität zu einer konkreten Aufgabe statt zu einem abstrakten Hinweis."
         },
         {
           view: "settings",
@@ -37595,6 +37602,8 @@
       function renderViewChrome() {
         const view = isCareView(activeView)
           ? { title: "Versorgung", subtitle: "Kontakte, Organisationen und Karte in einem gemeinsamen Arbeitsbereich." }
+          : isAnalyticsView(activeView)
+          ? { title: "Auswertung", subtitle: "Reporting und Datenqualität in einem gemeinsamen Arbeitsbereich." }
           : activeView === "settings"
           ? settingsTabItems.find((item) => item.id === activeSettingsTab) || viewLabels.settings
           : activeView === "profile"
@@ -37783,6 +37792,7 @@
           const active = tabView === activeNavigationView || (tab.dataset.viewGroup === "care" && isCareView(activeNavigationView));
           tab.classList.toggle("is-active", active);
         });
+        sidebarAnalyticsButton?.classList.toggle("is-active", isAnalyticsView(view));
         sidebarNotificationsButton?.classList.toggle("is-active", view === "notifications" || (view === "profile" && activeProfileTab === "notifications") || Boolean(notificationPopover && !notificationPopover.hidden));
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "profile");
@@ -37796,6 +37806,7 @@
         if (appShell) appShell.dataset.activeView = view;
         renderViewChrome();
         renderCareModeTabs();
+        renderAnalyticsModeTabs();
         if (view === "profile") {
           renderProfileForm();
           setProfileTab(activeProfileTab);
@@ -39370,6 +39381,17 @@
           closeDetail();
           setActiveView(nextCareMode);
           updateRouteHash(nextCareMode);
+          updateView();
+        });
+      });
+      analyticsModeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const nextAnalyticsMode = button.dataset.analyticsMode || "analytics";
+          if (!isAnalyticsView(nextAnalyticsMode)) return;
+          currentPage = 1;
+          closeDetail();
+          setActiveView(nextAnalyticsMode);
+          updateRouteHash(nextAnalyticsMode);
           updateView();
         });
       });
