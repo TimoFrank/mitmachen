@@ -30729,7 +30729,7 @@
             savedViews = loadLocalSavedViews().map(normalizeSavedView);
           }
         } catch (error) {
-          console.warn("Gespeicherte Ansichten konnten nicht aus Supabase geladen werden. Lokaler Fallback aktiv.", error);
+          console.warn("Gespeicherte Ansichten konnten nicht aus dem Backend geladen werden. Lokaler Fallback aktiv.", error);
           savedViews = loadLocalSavedViews().map(normalizeSavedView);
         }
         renderSavedViews();
@@ -43068,7 +43068,7 @@
             organizations = deriveOrganizationsFromContacts(contacts);
           }
         } catch (organizationError) {
-          console.warn("Organisationen konnten nicht aus Supabase geladen werden. Kontaktbasierter Fallback aktiv.", organizationError);
+          console.warn("Organisationen konnten nicht aus dem Backend geladen werden. Kontaktbasierter Fallback aktiv.", organizationError);
           organizations = deriveOrganizationsFromContacts(contacts);
         }
       }
@@ -43116,7 +43116,7 @@
         applyLegacyOwnerAssignments();
         organizations = deriveOrganizationsFromContacts(contacts);
         loadedContactsFromStorage = false;
-        setStorageStatus(`${contacts.length} Kontakte aus Supabase geladen`);
+        setStorageStatus(`${contacts.length} Kontakte aus dem Backend geladen`);
       }
 
       let deferredInitialDataPromise = null;
@@ -43174,7 +43174,7 @@
           loadedContactsFromStorage = true;
           applyLegacyOwnerAssignments();
           setStorageStatus(`${contacts.length} lokale Kontakte geladen; Supabase ist nicht erreichbar`);
-          window.alert("Kontakte konnten nicht aus Supabase geladen werden. Bitte prüfe Konfiguration, Anmeldung und RLS-Rollen.");
+          window.alert("Kontakte konnten nicht aus dem Backend geladen werden. Bitte prüfe Konfiguration, Anmeldung und Rollen.");
         }
         isInitialDataLoading = false;
         initialDataLoadingSlow = false;

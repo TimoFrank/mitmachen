@@ -4038,7 +4038,7 @@
 
   function avatarHtml(entry){
     if (entry.image) {
-      return `<span class="item-avatar"><img src="${escapeHtml(entry.image)}" alt="" loading="eager" decoding="async" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(entry.name))}';"></span>`;
+      return `<span class="item-avatar"><img src="${escapeHtml(entry.image)}" alt="" loading="eager" decoding="async" onerror="const parent=this.parentElement;this.remove();if(parent)parent.textContent='${escapeHtml(initials(entry.name))}';"></span>`;
     }
     return `<span class="item-avatar">${escapeHtml(initials(entry.name))}</span>`;
   }
@@ -4163,7 +4163,7 @@
     const updatedLabel = formatDetailDate(entry.updatedAt);
     const roleText = hasValue(entry.contact_role) ? entry.contact_role : "";
     const avatar = entry.image
-      ? `<span class="avatar"><img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.name)}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(entry.name))}';" /></span>`
+      ? `<span class="avatar"><img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.name)}" loading="lazy" decoding="async" onerror="const parent=this.parentElement;this.remove();if(parent)parent.textContent='${escapeHtml(initials(entry.name))}';" /></span>`
       : escapeHtml(initials(entry.name));
     elWorkspace?.classList.add('has-map-detail');
     document.body.classList.add('has-map-detail');
@@ -4300,7 +4300,7 @@
     mobilePreviewContactId = entry.id;
     const cityLine = [entry.city, entry.state].filter(Boolean).join(", ");
     const previewAvatar = entry.image
-      ? `<span class="mobile-map-preview-avatar"><img src="${escapeHtml(entry.image)}" alt="" loading="eager" decoding="async" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(entry.name))}';"></span>`
+      ? `<span class="mobile-map-preview-avatar"><img src="${escapeHtml(entry.image)}" alt="" loading="eager" decoding="async" onerror="const parent=this.parentElement;this.remove();if(parent)parent.textContent='${escapeHtml(initials(entry.name))}';"></span>`
       : `<span class="mobile-map-preview-avatar">${escapeHtml(initials(entry.name))}</span>`;
     elMobileMapPreview.hidden = false;
     elMobileMapPreview.innerHTML = `
