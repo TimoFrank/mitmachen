@@ -41,6 +41,7 @@ export async function installAppTestSession(
     dataMode = "demo",
     contactsScript = "",
     expertsScript = "",
+    patientsScript = "",
     stakeholderScript = "",
     demoDataScript = "",
     dataServiceScript = ""
@@ -60,6 +61,11 @@ export async function installAppTestSession(
   if (expertsScript) {
     await page.route("**/data/expertenkreis-data.js", async (route) => {
       await fulfillScript(route, expertsScript);
+    });
+  }
+  if (patientsScript) {
+    await page.route("**/data/patienten-data.js", async (route) => {
+      await fulfillScript(route, patientsScript);
     });
   }
   if (stakeholderScript) {

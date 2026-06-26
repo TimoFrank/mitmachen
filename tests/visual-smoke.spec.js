@@ -559,6 +559,36 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await attachScreenshot(page, testInfo, "expertenkreis");
 });
 
+test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#patients");
+
+  await expect(page.locator('[data-view-panel="patients"]')).toBeVisible();
+  await expect(page.locator('[data-view-tab="patients"]')).toHaveClass(/is-active/);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Patienten");
+  await expect(page.locator('[data-filter-field="category"] summary')).toHaveText("Indikation");
+  await expect(page.locator("#patient-organizations-table")).toBeVisible();
+  await expect(page.locator("#patient-organizations-table-head")).toContainText("Indikation");
+  await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Gruppe");
+  await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Kontakte");
+  await expect(page.locator("#patient-organization-list .row").first()).toBeVisible();
+  await expect(page.locator("#patients-pagination-meta")).toContainText("Organisationen");
+  await expectPageSizeDropdownUsable(page, "#view-patients .page-size-shell");
+
+  await page.locator("#patient-organization-list .row").first().click();
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(page).toHaveURL(/#organization\/patient\//);
+    await expect(page.locator("#organization-profile-page")).toBeVisible();
+    await expect(page.locator("#organization-profile-body")).toContainText("Indikation");
+    await expect(page.locator("#organization-profile-body")).not.toContainText("Zugeordnete Kontakte");
+  } else {
+    await expect(page.locator("#detail-drawer")).toHaveClass(/is-open/);
+    await expect(page.locator("#detail-drawer #patient-organization-overview .detail-line").filter({ hasText: "Indikation" })).toBeVisible();
+    await expect(page.locator("#detail-drawer")).not.toContainText("Zugeordnete Kontakte");
+  }
+
+  await attachScreenshot(page, testInfo, "patienten");
+});
+
 test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts", {
     dataMode: "local",

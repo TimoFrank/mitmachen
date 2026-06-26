@@ -16755,11 +16755,13 @@
           display: none !important;
         }
 
-        .app-shell[data-active-view="experts"] #view-experts .page-size-shell {
+        .app-shell[data-active-view="experts"] #view-experts .page-size-shell,
+        .app-shell[data-active-view="patients"] #view-patients .page-size-shell {
           display: flex !important;
         }
 
-        .app-shell[data-active-view="experts"] #view-experts .table-footer__controls {
+        .app-shell[data-active-view="experts"] #view-experts .table-footer__controls,
+        .app-shell[data-active-view="patients"] #view-patients .table-footer__controls {
           overflow: visible;
         }
 
@@ -19756,13 +19758,13 @@
         display: none;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .workspace-header {
         grid-template-columns: minmax(0, 1fr);
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-header .workspace-actions,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-expert-switcher,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .experts-mode-nav--header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .workspace-header .workspace-actions,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .workspace-expert-switcher,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .experts-mode-nav--header {
         width: 100%;
         min-width: 0;
       }
@@ -19807,20 +19809,20 @@
         }
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .workspace-header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .workspace-header {
         gap: 0;
         padding-bottom: 6px;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls {
         padding-bottom: 10px;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .experts-mode-nav--header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .experts-mode-nav--header {
         margin-bottom: 0;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack {
         grid-template-columns: minmax(0, 1fr);
         gap: 0;
         padding: 0;
@@ -19830,7 +19832,7 @@
         box-shadow: none;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-shell {
         min-height: 56px;
         padding: 0 18px 0 14px;
         border-color: var(--border-strong);
@@ -19840,13 +19842,13 @@
         transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell:hover,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell:focus-within {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-shell:hover,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-shell:focus-within {
         border-color: var(--primary);
         box-shadow: 0 0 0 3px rgba(21, 95, 228, 0.12), var(--shadow-sm);
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-shell svg {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-shell svg {
         width: 34px;
         height: 34px;
         padding: 8px;
@@ -19856,7 +19858,7 @@
         color: var(--primary);
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="stakeholders"]) .controls-stack .search-input {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-input {
         font-size: 1rem;
         font-weight: 700;
       }
@@ -20133,6 +20135,17 @@
                 <path d="M9 17h6"></path>
               </svg>
               <span>Expertenkreis</span>
+            </button>
+          </div>
+          <div class="sidebar-section" aria-label="Patienten" data-sidebar-section="patients">
+            <span class="sidebar-section-label">Patienten</span>
+            <button class="primary-tab" type="button" data-view-tab="patients" title="Patienten">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
+                <path d="M12 8v6"></path>
+                <path d="M9 11h6"></path>
+              </svg>
+              <span>Patienten</span>
             </button>
           </div>
           <div class="sidebar-section" aria-label="Planung" data-sidebar-section="planning">
@@ -20632,6 +20645,35 @@
                   <div class="pagination" id="experts-pagination"></div>
                   <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
                     <select id="experts-page-size-select" aria-label="Einträge im Expertenkreis pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-patients" data-view-panel="patients">
+            <div class="view-card experts-workspace patients-workspace">
+              <div class="table-command-row table-command-row--experts table-command-row--patient-actions">
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions expert-column-actions" id="patient-column-actions"></div>
+              </div>
+              <div class="table-wrap">
+                <section class="table organizations-table patient-organizations-table" id="patient-organizations-table" aria-label="Patienten-Organisationen">
+                  <div class="thead" id="patient-organizations-table-head"></div>
+                  <div id="patient-organization-list"></div>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="patients-pagination-meta">0-0 von 0 Organisationen</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="patients-pagination"></div>
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
+                    <select id="patients-page-size-select" aria-label="Einträge im Patientenbereich pro Seite anzeigen">
                       <option value="10">10 pro Seite</option>
                       <option value="20" selected>20 pro Seite</option>
                       <option value="50">50 pro Seite</option>
@@ -21780,6 +21822,7 @@
     <script src="./data/versorgungs-kompass-data.js"></script>
     <script src="./data/expertenkreis-data.js"></script>
     <script src="./data/stakeholder-data.js"></script>
+    <script src="./data/patienten-data.js"></script>
     <script>
       const XLSX_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
       let xlsxLoadPromise = null;
@@ -22682,6 +22725,9 @@
       const expertOrganizationTableColumns = organizationTableColumns.map((column) =>
         column.key === "sector" ? { ...column, label: "Gruppe" } : column
       );
+      const patientOrganizationTableColumns = expertOrganizationTableColumns
+        .filter((column) => column.key !== "contacts")
+        .map((column) => column.key === "sector" ? { ...column, label: "Indikation" } : column);
       const defaultStakeholderOrganizationColumnKeys = ["organization", "location", "memberCount", "people"];
       const stakeholderOrganizationTableColumns = [
         { key: "organization", label: "Organisation", template: "minmax(210px, 1.05fr)", required: true },
@@ -23027,6 +23073,9 @@
       const expertList = document.getElementById("expert-list");
       const expertOrganizationsTableHead = document.getElementById("expert-organizations-table-head");
       const expertOrganizationList = document.getElementById("expert-organization-list");
+      const patientOrganizationsTable = document.getElementById("patient-organizations-table");
+      const patientOrganizationsTableHead = document.getElementById("patient-organizations-table-head");
+      const patientOrganizationList = document.getElementById("patient-organization-list");
       const expertMatchingTableHead = document.getElementById("expert-matching-table-head");
       const expertMatchingList = document.getElementById("expert-matching-list");
       const expertMatchingMeta = document.getElementById("expert-matching-meta");
@@ -23040,6 +23089,8 @@
       const organizationDuplicatesMeta = document.getElementById("organization-duplicates-meta");
       const expertPaginationMeta = document.getElementById("experts-pagination-meta");
       const expertPagination = document.getElementById("experts-pagination");
+      const patientPaginationMeta = document.getElementById("patients-pagination-meta");
+      const patientPagination = document.getElementById("patients-pagination");
       const careModeActions = document.getElementById("care-mode-actions");
       const careModeButtons = [...document.querySelectorAll("[data-care-mode]")];
       const analyticsModeActions = document.getElementById("analytics-mode-actions");
@@ -23084,6 +23135,7 @@
       const pagination = document.getElementById("pagination");
       const pageSizeSelect = document.getElementById("page-size-select");
       const expertPageSizeSelect = document.getElementById("experts-page-size-select");
+      const patientPageSizeSelect = document.getElementById("patients-page-size-select");
       const activeFilterList = document.getElementById("active-filter-list");
       const filterPanelButton = document.getElementById("filter-panel-button");
       const filterButtonBadge = document.getElementById("filter-button-badge");
@@ -23183,6 +23235,7 @@
       const expertHeaderSearch = document.getElementById("expert-header-search");
       const expertCommandActions = document.getElementById("expert-command-actions");
       const expertColumnActions = document.getElementById("expert-column-actions");
+      const patientColumnActions = document.getElementById("patient-column-actions");
       const stakeholderModeActions = document.getElementById("stakeholder-mode-actions");
       const stakeholderHeaderSearch = document.getElementById("stakeholder-header-search");
       const stakeholderCommandActions = document.getElementById("stakeholder-command-actions");
@@ -23343,6 +23396,7 @@
       let activeOrganizationId = null;
       let activeExpertId = null;
       let activeExpertOrganizationId = null;
+      let activePatientOrganizationId = null;
       let activeStakeholderPersonId = null;
       let activeStakeholderOrganizationId = null;
       let activePersonProfile = { kind: "", id: "", returnTo: "contacts", title: "Personenprofil" };
@@ -23418,7 +23472,7 @@
       let notificationSummary = { unreadTotal: 0, byContext: {} };
       const notificationsPageSize = 30;
       function syncPageSizeSelects() {
-        [pageSizeSelect, expertPageSizeSelect, stakeholderPageSizeSelect].forEach((select) => {
+        [pageSizeSelect, expertPageSizeSelect, patientPageSizeSelect, stakeholderPageSizeSelect].forEach((select) => {
           if (!select) return;
           select.value = String(pageSize);
           syncCustomSelect(select);
@@ -23675,12 +23729,14 @@
         const normalized = String(kind || "").trim().toLowerCase();
         if (["care", "organization", "organizations", "contact", "contacts"].includes(normalized)) return "care";
         if (["expert", "experts", "expert-organization", "expert-organizationen"].includes(normalized)) return "expert";
+        if (["patient", "patients", "patient-organization", "patienten", "patienten-organisation"].includes(normalized)) return "patient";
         if (["stakeholder", "stakeholders", "kv", "stakeholder-organization"].includes(normalized)) return "stakeholder";
         return "";
       }
 
       function organizationProfileParentView(kind = activeOrganizationProfile.kind) {
         if (kind === "expert") return "experts";
+        if (kind === "patient") return "patients";
         if (kind === "stakeholder") return "stakeholders";
         return "organizations";
       }
@@ -26091,9 +26147,33 @@
         .map((entry, index) => normalizeExpertGroupEntry(entry, index))
         .filter((group) => group.name);
 
+      function normalizePatientIndicationEntry(entry, index = 0) {
+        const name = typeof entry === "string"
+          ? entry
+          : entry.name || entry.label || entry.indication || entry.group || "";
+        const indicationName = String(name || "").trim();
+        return {
+          id: String((typeof entry === "object" && (entry.id || entry.indicationId || entry.indication_id || entry.groupId || entry.group_id)) || "").trim() || `patient-indication-${index + 1}`,
+          name: indicationName,
+          sortOrder: Number((typeof entry === "object" && (entry.sortOrder ?? entry.sort_order)) ?? (index + 1) * 10),
+          status: String((typeof entry === "object" && entry.status) || "active").trim() || "active"
+        };
+      }
+
+      const seedPatientIndicationRecords = (window.VERSORGUNGS_COMPASS_PATIENT_INDICATIONS || [])
+        .map((entry, index) => normalizePatientIndicationEntry(entry, index))
+        .filter((indication) => indication.name);
+
       function seedExpertGroups(sourceGroups = seedExpertGroupRecords) {
         return [...new Set(sourceGroups
           .map((group) => String(group.name || group || "").trim())
+          .filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "de"));
+      }
+
+      function seedPatientIndications(sourceIndications = seedPatientIndicationRecords) {
+        return [...new Set(sourceIndications
+          .map((indication) => String(indication.name || indication || "").trim())
           .filter(Boolean))]
           .sort((a, b) => a.localeCompare(b, "de"));
       }
@@ -26103,6 +26183,13 @@
         if (raw) return raw;
         const groups = seedExpertGroups();
         return groups[index % groups.length] || "";
+      }
+
+      function normalizePatientIndication(value, index = 0) {
+        const raw = String(value || "").trim();
+        if (raw) return raw;
+        const indications = seedPatientIndications();
+        return indications[index % indications.length] || "";
       }
 
       function sanitizeExpertContact(entry, index = 0) {
@@ -26161,6 +26248,45 @@
           source: String(entry.source || "").trim(),
           status: entry.status || "active",
           contactCount: Number(entry.contactCount || entry.contact_count || 0),
+          createdAt: entry.createdAt || entry.created_at || "",
+          updatedAt: entry.updatedAt || entry.updated_at || ""
+        };
+      }
+
+      function sanitizePatientOrganization(entry, index = 0) {
+        const name = String(entry.name || entry.organization || entry.organisation || "").trim();
+        const indication = normalizePatientIndication(entry.indication || entry.group || entry.sector || entry.category, index);
+        const normalizedName = normalizeOrganizationName(name);
+        return {
+          id: String(entry.id || `patient-org-${normalizedName || String(index + 1).padStart(2, "0")}`).trim(),
+          name,
+          normalizedName,
+          indicationId: entry.indicationId || entry.indication_id || entry.groupId || entry.group_id || "",
+          indication,
+          groupId: entry.groupId || entry.group_id || entry.indicationId || entry.indication_id || "",
+          group: indication,
+          sector: indication,
+          category: indication,
+          organizationType: String(entry.organizationType || entry.organization_type || entry.type || "Patientenorganisation").trim(),
+          postalCode: String(entry.postalCode || entry.postal_code || "").trim(),
+          city: String(entry.city || "").trim(),
+          state: String(entry.state || entry.federal_state || "").trim(),
+          website: String(entry.website || entry.url || "").trim(),
+          phone: String(entry.phone || "").trim(),
+          email: String(entry.email || "").trim(),
+          logoUrl: String(entry.logoUrl || entry.logo_url || "").trim(),
+          logoSourceUrl: String(entry.logoSourceUrl || entry.logo_source_url || "").trim(),
+          logoSourceLabel: String(entry.logoSourceLabel || entry.logo_source_label || "").trim(),
+          notes: String(entry.notes || entry.note || "").trim(),
+          source: String(entry.source || "").trim(),
+          status: String(entry.status || "active").trim() || "active",
+          contactCount: 0,
+          memberCount: Number.isFinite(Number(entry.memberCount ?? entry.member_count)) ? Number(entry.memberCount ?? entry.member_count) : null,
+          memberCountLabel: String(entry.memberCountLabel || entry.member_count_label || "").trim(),
+          memberCountScope: String(entry.memberCountScope || entry.member_count_scope || "").trim(),
+          memberCountSourceLabel: String(entry.memberCountSourceLabel || entry.member_count_source_label || "").trim(),
+          memberCountSourceUrl: String(entry.memberCountSourceUrl || entry.member_count_source_url || "").trim(),
+          memberCountUpdatedAt: entry.memberCountUpdatedAt || entry.member_count_updated_at || "",
           createdAt: entry.createdAt || entry.created_at || "",
           updatedAt: entry.updatedAt || entry.updated_at || ""
         };
@@ -26276,6 +26402,9 @@
       const seedStakeholderPeople = (window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE || []).map((entry, index) =>
         sanitizeStakeholderPerson(entry, index)
       );
+      const seedPatientOrganizations = (window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATIONS || []).map((entry, index) =>
+        sanitizePatientOrganization(entry, index)
+      );
       const deprecatedImageUrls = new Map([
         [
           "https://www.saxoforn.net/assets/images/3/gerlach_ferdinand-353e54fc.jpg",
@@ -26349,6 +26478,8 @@
       let expertContacts = seedExpertContacts;
       let expertOrganizations = mergeExpertOrganizations(seedExpertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
       let expertEntityLinks = [];
+      let patientIndications = seedPatientIndicationRecords;
+      let patientOrganizations = seedPatientOrganizations;
       let stakeholderTypes = seedStakeholderTypes;
       let stakeholderOrganizations = seedStakeholderOrganizations;
       let stakeholderPeople = seedStakeholderPeople;
@@ -26366,6 +26497,7 @@
         activities: { title: "Aktivitäten", subtitle: "Chronologisches Protokoll der Kontaktänderungen im Versorgungs-Kompass." },
         notifications: { title: "Benachrichtigungen", subtitle: "Persönliche Änderungen und neue Produktinformationen." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
+        patients: { title: "Patienten", subtitle: "Patientenorganisationen nach Indikation, ohne persönliche Kontakte." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         hospitations: { title: "Hospitationen", subtitle: "Termine anfragen, intern buchen und Versorgungskontakte dokumentieren." },
@@ -27439,11 +27571,27 @@
           .sort((a, b) => a.localeCompare(b, "de"));
       }
 
+      function patientIndicationOptions() {
+        return [...new Set([
+          ...seedPatientIndications(patientIndications),
+          ...patientOrganizations.map((organization) => organization.sector)
+        ].filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "de"));
+      }
+
       function activeExpertContactsTotal() {
         return expertContacts.filter((contact) => contact.status !== "archived").length;
       }
 
+      function activePatientOrganizationsTotal() {
+        return patientOrganizations.filter((organization) => organization.status !== "archived").length;
+      }
+
       function expertOrganizationLocation(organization) {
+        return [organization.postalCode, organization.city].filter(Boolean).join(" ");
+      }
+
+      function patientOrganizationLocation(organization) {
         return [organization.postalCode, organization.city].filter(Boolean).join(" ");
       }
 
@@ -27573,6 +27721,21 @@
         return meaningfulOrEmpty(organization.source) || "-";
       }
 
+      function patientOrganizationQualityLabel(organization) {
+        const missing = [
+          organization.sector,
+          organization.city || organization.postalCode,
+          organization.source
+        ].filter((value) => !hasMeaningfulValue(value)).length;
+        if (missing === 0) return { label: "Vollständig", tone: "good" };
+        if (missing <= 2) return { label: "Prüfen", tone: "medium" };
+        return { label: "Lücken", tone: "low" };
+      }
+
+      function patientOrganizationSourceLabel(organization) {
+        return meaningfulOrEmpty(organization.source) || "-";
+      }
+
       function expertOrganizationMatchesContactRange(organization, range) {
         const count = expertOrganizationContacts(organization).length;
         if (range === "with") return count > 0;
@@ -27618,6 +27781,41 @@
             });
           return matchesSearch && matchesGroup && matchesState && matchesCity && matchesContactRange && matchesUpdated && matchesSource && matchesQuality && matchesMissing;
         });
+      }
+
+      function filteredPatientOrganizations() {
+        const search = searchInput.value.trim().toLowerCase();
+        return patientOrganizations
+          .filter((organization) => organization.status !== "archived")
+          .filter((organization) => {
+            const haystack = [
+              organization.name,
+              organization.sector,
+              organization.organizationType,
+              organization.city,
+              organization.state,
+              organization.website,
+              organization.notes
+            ].join(" ").toLowerCase();
+            const matchesSearch = !search || haystack.includes(search);
+            const matchesIndication = !selectedCategories.length || selectedCategories.includes(organization.sector);
+            const matchesState = !selectedStates.length || selectedStates.includes(organization.state);
+            const matchesCity = !selectedOrganizationCities.length || selectedOrganizationCities.includes(organization.city || patientOrganizationLocation(organization));
+            const matchesUpdated =
+              !selectedUpdatedRanges.length || selectedUpdatedRanges.some((range) => organizationMatchesUpdatedRange(organization, range));
+            const matchesSource = !selectedSources.length || selectedSources.includes(patientOrganizationSourceLabel(organization));
+            const matchesQuality = !selectedQualities.length || selectedQualities.includes(patientOrganizationQualityLabel(organization).label);
+            const missingFields = [];
+            if (!hasMeaningfulValue(organization.sector)) missingFields.push("sector");
+            if (!hasMeaningfulValue(organization.city) && !hasMeaningfulValue(organization.postalCode)) missingFields.push("location");
+            if (!hasMeaningfulValue(organization.source)) missingFields.push("source");
+            const matchesMissing =
+              !selectedMissingFields.length || selectedMissingFields.every((field) => {
+                const mapped = field === "specialty" ? "sector" : field;
+                return missingFields.includes(mapped);
+              });
+            return matchesSearch && matchesIndication && matchesState && matchesCity && matchesUpdated && matchesSource && matchesQuality && matchesMissing;
+          });
       }
 
       function filteredOrganizations() {
@@ -28117,6 +28315,118 @@
           button.addEventListener("click", () => {
             currentPage += button.dataset.expertOrgPageNav === "next" ? 1 : -1;
             renderExpertOrganizationsTable(items);
+          });
+        });
+      }
+
+      function patientOrganizationTableCellMarkup(organization, key) {
+        const typeLabel = meaningfulOrEmpty(organization.organizationType);
+        if (key === "organization") {
+          return `
+            <div class="organization-cell">
+              ${organizationLogoMarkup(organization, "sm")}
+              <div class="contact-meta">
+                <button class="organization-name-button" type="button" data-open-patient-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
+                ${typeLabel || organization.website ? `<div class="contact-subline">${escapeHtml(typeLabel || organization.website)}</div>` : ""}
+              </div>
+            </div>
+          `;
+        }
+        if (key === "sector") return sectorBadgeMarkup(organization.sector);
+        if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientOrganizationLocation(organization) || "-")}</div>`;
+        if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.state || "-")}</div>`;
+        if (key === "updated") return `<span class="contact-date">${escapeHtml(formatDateLabel(organization.updatedAt || organization.createdAt) || "-")}</span>`;
+        if (key === "website") {
+          const website = normalizedWebsiteUrl(organization.website);
+          return website ? `<a class="contact-subline contact-subline--primary" href="${escapeHtml(website)}" target="_blank" rel="noopener">${escapeHtml(website.replace(/^https?:\/\//i, ""))}</a>` : `<div class="contact-subline contact-subline--primary">-</div>`;
+        }
+        if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientOrganizationSourceLabel(organization))}</div>`;
+        if (key === "quality") {
+          const quality = patientOrganizationQualityLabel(organization);
+          return `<span class="quality-badge quality-badge--${quality.tone}">${quality.label}</span>`;
+        }
+        return "";
+      }
+
+      function renderPatientOrganizationsTableHead(columns = visiblePatientOrganizationTableColumns()) {
+        if (!patientOrganizationsTableHead) return;
+        patientOrganizationsTableHead.innerHTML = columns
+          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "patient-organizations")}</div>`)
+          .join("");
+        bindHeaderFilterMenus(patientOrganizationsTableHead);
+      }
+
+      function renderPatientOrganizationsTable(items) {
+        if (!patientOrganizationList || !patientPagination || !patientPaginationMeta) return;
+        const columns = visiblePatientOrganizationTableColumns();
+        updatePatientOrganizationTableGrid(columns);
+        renderColumnMenu();
+        if (!items.length) {
+          renderPatientOrganizationsTableHead(columns);
+          patientOrganizationList.innerHTML = `<div class="empty">Noch keine Patientenorganisationen in diesem Modul sichtbar.</div>`;
+          patientPaginationMeta.textContent = "0-0 von 0 Organisationen";
+          patientPagination.innerHTML = "";
+          return;
+        }
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        patientPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Organisationen`;
+        renderPatientOrganizationsTableHead(columns);
+        patientOrganizationList.innerHTML = pageItems
+          .map((organization) => {
+            if (isMobileLayout()) {
+              return `
+                <article class="row organization-mobile-card ${organization.id === activePatientOrganizationId ? "is-active" : ""}" data-patient-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                  <div class="cell--organization">${patientOrganizationTableCellMarkup(organization, "organization")}</div>
+                  <div class="organization-mobile-meta">
+                    <span class="organization-mobile-sector">${sectorBadgeMarkup(organization.sector)}</span>
+                    <span class="organization-mobile-state">${escapeHtml(organization.state || "-")}</span>
+                  </div>
+                </article>
+              `;
+            }
+            return `
+              <article class="row ${organization.id === activePatientOrganizationId ? "is-active" : ""}" data-patient-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                ${columns.map((column) => `<div class="cell--${column.key}">${patientOrganizationTableCellMarkup(organization, column.key)}</div>`).join("")}
+              </article>
+            `;
+          })
+          .join("");
+        patientPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-patient-org-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-patient-org-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-patient-org-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+        patientOrganizationList.querySelectorAll("[data-patient-organization-id]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, input, label, a, select, textarea")) return;
+            openOrganizationEntry("patient", row.dataset.patientOrganizationId, items, { returnTo: "patients" });
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openOrganizationEntry("patient", row.dataset.patientOrganizationId, items, { returnTo: "patients" });
+            }
+          });
+        });
+        patientOrganizationList.querySelectorAll("[data-open-patient-organization]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openOrganizationEntry("patient", button.dataset.openPatientOrganization, items, { returnTo: "patients" });
+          });
+        });
+        patientPagination.querySelectorAll("[data-patient-org-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.patientOrgPage);
+            renderPatientOrganizationsTable(items);
+          });
+        });
+        patientPagination.querySelectorAll("[data-patient-org-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.patientOrgPageNav === "next" ? 1 : -1;
+            renderPatientOrganizationsTable(items);
           });
         });
       }
@@ -31683,6 +31993,9 @@
           if (activeExpertMode === "organizations") return `${items.length} von ${expertOrganizations.length} Organisationen`;
           return `${items.length} von ${activeExpertContactsTotal()} Kontakten`;
         }
+        if (activeView === "patients") {
+          return `${items.length} von ${activePatientOrganizationsTotal()} Organisationen`;
+        }
         if (activeView === "stakeholders") {
           const config = stakeholderTypeConfig();
           return `${items.length} von ${activeStakeholderOrganizationsTotal()} ${config.organizationPlural}`;
@@ -31699,7 +32012,7 @@
 
       function paginatedItems(items, options = {}) {
         const responsiveMobileSize = options.responsiveMobileSize !== false;
-        const effectivePageSize = responsiveMobileSize && isMobileLayout() && activeView !== "experts" ? 6 : pageSize;
+        const effectivePageSize = responsiveMobileSize && isMobileLayout() && activeView !== "experts" && activeView !== "patients" ? 6 : pageSize;
         const totalPages = Math.max(1, Math.ceil(items.length / effectivePageSize));
         currentPage = Math.min(Math.max(1, currentPage), totalPages);
         const startIndex = (currentPage - 1) * effectivePageSize;
@@ -31838,8 +32151,11 @@
       function renderFilterPanel() {
         if (!pendingFilterDraft || filterPanel.hidden) pendingFilterDraft = filterDraftFromSelection();
         const isExpertsView = activeView === "experts";
+        const isPatientsView = activeView === "patients";
         const isExpertOrganizationsMode = isExpertsView && activeExpertMode === "organizations";
-        const categorySource = isExpertOrganizationsMode
+        const categorySource = isPatientsView
+          ? patientIndicationOptions()
+          : isExpertOrganizationsMode
           ? expertOrganizations.map((organization) => organization.sector).filter(Boolean)
           : isExpertsView
             ? expertGroupOptions()
@@ -31852,14 +32168,14 @@
           value,
           label: value
         }));
-        const stateSource = isExpertOrganizationsMode ? expertOrganizations : isExpertsView ? expertContacts : activeView === "organizations" ? organizations : contacts;
+        const stateSource = isPatientsView ? patientOrganizations : isExpertOrganizationsMode ? expertOrganizations : isExpertsView ? expertContacts : activeView === "organizations" ? organizations : contacts;
         const stateCounts = stateSource.reduce((acc, item) => {
-          const label = activeView === "organizations" || isExpertOrganizationsMode ? item.state : stateLabel(item);
+          const label = activeView === "organizations" || isExpertOrganizationsMode || isPatientsView ? item.state : stateLabel(item);
           if (label) acc[label] = (acc[label] || 0) + 1;
           return acc;
         }, {});
         const states = [...new Map(stateSource.map((item) => {
-          const label = activeView === "organizations" || isExpertOrganizationsMode ? item.state : stateLabel(item);
+          const label = activeView === "organizations" || isExpertOrganizationsMode || isPatientsView ? item.state : stateLabel(item);
           return [label, label];
         })).values()]
           .filter(Boolean)
@@ -31880,7 +32196,9 @@
           : themeSuggestions()
         ).map((value) => ({ value, label: value }));
         const qualities = ["Vollständig", "Prüfen", "Lücken"].map((value) => ({ value, label: value }));
-        const sourceSource = isExpertOrganizationsMode
+        const sourceSource = isPatientsView
+          ? patientOrganizations.map((organization) => patientOrganizationSourceLabel(organization)).filter((value) => value && value !== "-")
+          : isExpertOrganizationsMode
           ? expertOrganizations.map((organization) => expertOrganizationSourceLabel(organization)).filter((value) => value && value !== "-")
           : isExpertsView
             ? expertContacts.flatMap((contact) => normalizeSources(contact.sources))
@@ -31904,9 +32222,11 @@
         renderSelectOptions(themeFilterInput, themes, pendingFilterDraft.theme, "Alle");
 
         const specialtyField = filterPanel.querySelector('[data-filter-field="specialty"]');
-        if (specialtyField) specialtyField.hidden = activeView === "organizations" || isExpertOrganizationsMode;
+        if (specialtyField) specialtyField.hidden = activeView === "organizations" || isExpertOrganizationsMode || isPatientsView;
         const ownerField = filterPanel.querySelector('[data-filter-field="owner"]');
-        if (ownerField) ownerField.hidden = activeView === "organizations" || isExpertsView;
+        if (ownerField) ownerField.hidden = activeView === "organizations" || isExpertsView || isPatientsView;
+        const themeField = filterPanel.querySelector('[data-filter-field="theme"]');
+        if (themeField) themeField.hidden = isPatientsView;
         const qualityField = filterPanel.querySelector('[data-filter-field="quality"]');
         if (qualityField) qualityField.hidden = !canAdministerData();
 
@@ -31928,7 +32248,7 @@
       }
 
       function renderActiveFilters() {
-        const categoryFilterTitle = activeView === "experts" ? "Gruppe" : "Sektor";
+        const categoryFilterTitle = activeView === "patients" ? "Indikation" : activeView === "experts" ? "Gruppe" : "Sektor";
         const groupedFilters = [
           { key: "category", title: categoryFilterTitle, values: selectedCategories.map((value) => ({ value, label: value })) },
           { key: "priority", title: "Priorität", values: selectedPriorities.map((value) => ({ value, label: value })) },
@@ -32163,6 +32483,30 @@
           );
           return;
         }
+        if (activeView === "patients") {
+          const total = activePatientOrganizationsTotal();
+          const meta = items.length === total ? "" : `${items.length} Treffer`;
+          renderSummaryCards(
+            summaryGrid,
+            [
+              {
+                label: "Patientenorganisationen",
+                value: total,
+                meta: isMobileLayout() ? "Organisationen" : meta,
+                icon: `
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
+                    <path d="M12 8v6"></path>
+                    <path d="M9 11h6"></path>
+                  </svg>
+                `,
+                iconClass: "summary-icon--blue"
+              }
+            ],
+            "Organisationen"
+          );
+          return;
+        }
         if (activeView === "formats") {
           renderSummaryCards(
             summaryGrid,
@@ -32287,6 +32631,11 @@
         return expertOrganizationTableColumns.filter((column) => column.required || visible.has(column.key));
       }
 
+      function visiblePatientOrganizationTableColumns() {
+        const visible = new Set(visibleOrganizationColumns);
+        return patientOrganizationTableColumns.filter((column) => column.required || visible.has(column.key));
+      }
+
       function stakeholderOrganizationColumnsForType(typeId = activeStakeholderTypeId) {
         const config = stakeholderTypeConfig(typeId);
         return stakeholderOrganizationTableColumns.map((column) => {
@@ -32327,6 +32676,11 @@
       function updateExpertOrganizationTableGrid(columns = visibleExpertOrganizationTableColumns()) {
         const template = columns.map((column) => column.template).join(" ");
         expertOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
+      }
+
+      function updatePatientOrganizationTableGrid(columns = visiblePatientOrganizationTableColumns()) {
+        const template = columns.map((column) => column.template).join(" ");
+        patientOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
       }
 
       function updateStakeholderOrganizationTableGrid(columns = visibleStakeholderOrganizationTableColumns()) {
@@ -35715,6 +36069,12 @@
           ...organizationConfigs,
           sector: { filterKey: "category", label: "Gruppe" }
         };
+        const patientOrganizationConfigs = {
+          ...organizationConfigs,
+          sector: { filterKey: "category", label: "Indikation" },
+          contacts: null
+        };
+        if (context === "patient-organizations") return patientOrganizationConfigs[columnKey] || null;
         if (context === "expert-organizations") return expertOrganizationConfigs[columnKey] || null;
         if (context === "experts") return expertContactConfigs[columnKey] || null;
         if (context === "stakeholder-organizations" || context === "stakeholder-people") return null;
@@ -35738,6 +36098,10 @@
       }
 
       function headerFilterOptions(filterKey) {
+        if (activeView === "patients" && filterKey === "category") {
+          return patientIndicationOptions()
+            .map((value) => ({ value, label: value }));
+        }
         if (activeView === "experts" && filterKey === "category") {
           const source = activeExpertMode === "organizations"
             ? expertOrganizations.map((organization) => organization.sector).filter(Boolean)
@@ -35763,6 +36127,11 @@
             .sort((a, b) => a.localeCompare(b, "de"))
             .map((value) => ({ value, label: value }));
         }
+        if (activeView === "patients" && filterKey === "organizationCity") {
+          return [...new Set(patientOrganizations.map((organization) => organization.city || patientOrganizationLocation(organization)).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, "de"))
+            .map((value) => ({ value, label: value }));
+        }
         if (activeView === "organizations" && filterKey === "organizationCity") {
           return [...new Set(organizations.map((organization) => organization.city || organizationLocation(organization)).filter(Boolean))]
             .sort((a, b) => a.localeCompare(b, "de"))
@@ -35774,6 +36143,11 @@
               ? expertOrganizations.map((organization) => organization.state).filter(Boolean)
               : expertContacts.map((contact) => stateLabel(contact)).filter(Boolean);
             return [...new Set(source)]
+              .sort((a, b) => a.localeCompare(b, "de"))
+              .map((value) => ({ value, label: value }));
+          }
+          if (activeView === "patients") {
+            return [...new Set(patientOrganizations.map((organization) => organization.state).filter(Boolean))]
               .sort((a, b) => a.localeCompare(b, "de"))
               .map((value) => ({ value, label: value }));
           }
@@ -35794,6 +36168,11 @@
         if (filterKey === "updated") return updatedRangeFilterOptions;
         if (filterKey === "quality") return ["Vollständig", "Prüfen", "Lücken"].map((value) => ({ value, label: value }));
         if (filterKey === "source") {
+          if (activeView === "patients") {
+            return [...new Set(patientOrganizations.map((organization) => patientOrganizationSourceLabel(organization)).filter((value) => value && value !== "-"))]
+              .sort((a, b) => a.localeCompare(b, "de"))
+              .map((value) => ({ value, label: value }));
+          }
           if (activeView === "experts") {
             const source = activeExpertMode === "organizations"
               ? expertOrganizations.map((organization) => expertOrganizationSourceLabel(organization)).filter((value) => value && value !== "-")
@@ -35963,10 +36342,13 @@
       function renderColumnMenu() {
         if (!columnOptions) return;
         const isExpertContactsMode = activeView === "experts" && activeExpertMode === "contacts";
-        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
+        const isPatientsView = activeView === "patients";
+        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations") || isPatientsView;
         const isStakeholderOrganizationsMode = activeView === "stakeholders";
         const columns = isStakeholderOrganizationsMode
           ? stakeholderOrganizationColumnsForType()
+          : isPatientsView
+          ? patientOrganizationTableColumns
           : activeView === "experts"
           ? activeExpertMode === "organizations" ? expertOrganizationTableColumns : expertContactTableColumns
           : isOrganizationsView ? organizationTableColumns : contactTableColumns;
@@ -39436,6 +39818,7 @@
 
       function organizationKindLabel(kind = activeOrganizationProfile.kind) {
         if (kind === "expert") return "Expertenkreis-Organisation";
+        if (kind === "patient") return "Patientenorganisation";
         if (kind === "stakeholder") return "Stakeholder-Organisation";
         return "Organisation";
       }
@@ -39483,6 +39866,10 @@
         }
         if (normalizedKind === "expert") {
           const organization = expertOrganizations.find((item) => item.id === id);
+          if (organization) return organization;
+        }
+        if (normalizedKind === "patient") {
+          const organization = patientOrganizations.find((item) => item.id === id);
           if (organization) return organization;
         }
         if (normalizedKind === "stakeholder") {
@@ -39596,6 +39983,8 @@
           if (normalizedKind === "expert") {
             activeExpertMode = "organizations";
             openExpertOrganizationDetail(record.id, expertOrganizations, { mode: "page" });
+          } else if (normalizedKind === "patient") {
+            openPatientOrganizationDetail(record.id, patientOrganizations, { mode: "page" });
           } else if (normalizedKind === "stakeholder") {
             activeStakeholderTypeId = record.stakeholderTypeId || activeStakeholderTypeId;
             await ensureStakeholderPeopleForType(activeStakeholderTypeId);
@@ -39650,6 +40039,10 @@
         }
         if (normalizedKind === "expert") {
           openExpertOrganizationDetail(id, items, { mode: "preview", returnTo });
+          return;
+        }
+        if (normalizedKind === "patient") {
+          openPatientOrganizationDetail(id, items, { mode: "preview", returnTo });
           return;
         }
         if (normalizedKind === "stakeholder") {
@@ -39828,6 +40221,12 @@
             selectedOrganizationCities = [];
             selectedOrganizationContactRanges = [];
           }
+        } else if (view === "patients") {
+          selectedPriorities = [];
+          selectedSpecialties = [];
+          selectedOwners = [];
+          selectedThemes = [];
+          selectedOrganizationContactRanges = [];
         } else if (view === "stakeholders") {
           selectedCategories = [];
           selectedPriorities = [];
@@ -40124,6 +40523,120 @@
         targetPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             organizationDetailActiveTab = normalizeDetailTab(button.dataset.detailTab || "overview", ["overview", "contacts", "themes", "links", "notes", "activity"]);
+            rerenderDetail();
+          });
+        });
+      }
+
+      function openPatientOrganizationDetail(id, items = filteredPatientOrganizations(), options = {}) {
+        const detailMode = options.mode === "page" ? "page" : options.mode === "preview" ? "preview" : "drawer";
+        const isProfilePage = detailMode === "page";
+        const isPreview = detailMode === "preview";
+        const returnTo = options.returnTo || "patients";
+        const targetPanel = isProfilePage ? organizationProfileDetailPanel() : detailPanel;
+        const currentItems = items.length ? items : filteredPatientOrganizations();
+        const organization = currentItems.find((item) => item.id === id) || patientOrganizations.find((item) => item.id === id);
+        if (!organization) return;
+        const rerenderDetail = () => openPatientOrganizationDetail(organization.id, currentItems, { mode: detailMode, returnTo });
+        const currentIndex = currentItems.findIndex((item) => item.id === organization.id);
+        const locationText = patientOrganizationLocation(organization);
+        const quality = patientOrganizationQualityLabel(organization);
+        const typeLabel = meaningfulOrEmpty(organization.organizationType);
+        const memberCountLabel = organization.memberCountLabel || (Number.isFinite(organization.memberCount) ? organization.memberCount.toLocaleString("de-DE") : "");
+        if (activePatientOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
+        const tabs = ["overview", "themes", "notes", "activity"];
+        const activeTab = normalizeDetailTab(organizationDetailActiveTab || "overview", tabs);
+        organizationDetailActiveTab = activeTab;
+        const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
+
+        activePatientOrganizationId = organization.id;
+        activeExpertOrganizationId = null;
+        activeExpertId = null;
+        activeId = null;
+        activeOrganizationId = null;
+        if (!isProfilePage) renderPatientOrganizationsTable(currentItems);
+        targetPanel.classList.add("detail-panel--organization");
+        targetPanel.classList.remove("detail-panel--registration");
+
+        targetPanel.innerHTML = `
+          <div class="detail-toolbar">
+            ${isProfilePage ? organizationProfileBackButtonMarkup() : `<div class="detail-counter">${Math.max(currentIndex, 0) + 1} von ${currentItems.length} Organisationen</div>`}
+            <div class="detail-toolbar-actions">
+              ${isPreview ? `<button class="action-button action-button--primary" type="button" data-open-organization-profile>Profil öffnen</button>` : ""}
+              ${isProfilePage ? "" : `<button class="detail-close" type="button" id="detail-close" aria-label="Details schließen">&times;</button>`}
+            </div>
+          </div>
+          <div class="detail-content ${isPreview ? "detail-preview" : ""}">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
+                <div class="detail-profile-main">
+                  ${organizationLogoMarkup(organization, "lg", "organization-profile-logo")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(organization.name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(typeLabel || organization.sector || "Patientenorganisation")}</div>
+                    <div class="detail-profile-subline">${escapeHtml([locationText, organization.state].filter(Boolean).join(" · ") || "Standort nicht dokumentiert")}</div>
+                    <div class="detail-profile-status">${sectorBadgeMarkup(organization.sector)} <span class="quality-badge quality-badge--${quality.tone}">${quality.label}</span></div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+                ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("themes", "Themen", activeTab)}
+                ${detailTabButton("notes", "Notizen", activeTab)}
+                ${detailTabButton("activity", "Aktivitäten", activeTab)}
+              </div>
+
+              <section ${panelAttrs("overview")} id="patient-organization-overview">
+                <h4 class="detail-section-title">Stammdaten</h4>
+                <div class="detail-line-list">
+                  ${detailLine("Name", organization.name)}
+                  ${detailLine("Indikation", organization.sector)}
+                  ${typeLabel ? detailLine("Organisationstyp", typeLabel) : ""}
+                  ${detailLine("Standort", locationText)}
+                  ${detailLine("Bundesland", organization.state)}
+                  ${memberCountLabel ? detailLine("Mitgliederzahl", memberCountLabel) : ""}
+                  ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
+                  ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
+                  ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
+                  ${detailLine("Quelle", organization.source)}
+                </div>
+              </section>
+
+              <section ${panelAttrs("themes")} id="patient-organization-themes">
+                <h4 class="detail-section-title">Themen</h4>
+                <div class="detail-chip-row">
+                  <span class="theme-tag">${escapeHtml(organization.sector || "Indikation offen")}</span>
+                  ${typeLabel ? `<span class="theme-tag">${escapeHtml(typeLabel)}</span>` : ""}
+                  ${organization.memberCountScope ? `<span class="theme-tag">${escapeHtml(organization.memberCountScope)}</span>` : ""}
+                </div>
+              </section>
+
+              <section ${panelAttrs("notes")} id="patient-organization-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                <div class="detail-note-block ${organization.notes ? "" : "detail-note-block--empty"}">${escapeHtml(organization.notes || "Noch keine Notiz hinterlegt.")}</div>
+              </section>
+
+              <section ${panelAttrs("activity")} id="patient-organization-activity">
+                <div class="history-empty">Noch kein Verlauf für diese Patientenorganisation vorhanden.</div>
+              </section>
+            </div>
+          </div>
+        `;
+
+        if (!isProfilePage) {
+          detailDrawer.classList.add("is-open");
+          detailDrawer.setAttribute("aria-hidden", "false");
+          syncBodyScrollLock();
+        }
+        targetPanel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
+        if (isProfilePage) bindOrganizationProfileBack(targetPanel);
+        targetPanel.querySelector("[data-open-organization-profile]")?.addEventListener("click", () => {
+          openOrganizationProfile("patient", organization.id, { returnTo, title: organization.name });
+        });
+        targetPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            organizationDetailActiveTab = normalizeDetailTab(button.dataset.detailTab || "overview", tabs);
             rerenderDetail();
           });
         });
@@ -41116,6 +41629,7 @@
         const isActivitiesView = activeView === "activities";
         const isNotificationsView = isNotificationsWorkspaceActive();
         const isExpertsView = activeView === "experts";
+        const isPatientsView = activeView === "patients";
         const isStakeholdersView = activeView === "stakeholders";
         const isPersonProfileView = activeView === "personProfile";
         const isOrganizationProfileView = activeView === "organizationProfile";
@@ -41151,6 +41665,8 @@
             ? isOrganizationsDuplicatesMode ? filteredExpertMatchCandidates("organization") : filteredOrganizations()
             : isStakeholdersView
               ? filteredStakeholderOrganizations()
+            : isPatientsView
+              ? filteredPatientOrganizations()
             : isExpertsView
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
@@ -41161,6 +41677,8 @@
           ? "Dubletten suchen..."
           : isOrganizationsView
           ? "Organisationen suchen..."
+          : isPatientsView
+            ? "Patientenorganisationen nach Name, Indikation oder Standort suchen..."
           : isExpertOrganizationsMode
             ? "Expertenkreis-Organisationen suchen..."
           : isExpertsView
@@ -41210,13 +41728,14 @@
         if (contactDuplicatesWorkspace) contactDuplicatesWorkspace.hidden = !isContactsDuplicatesMode;
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
-        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView) || isAnyDuplicateMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
-        filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isExpertsView ? "Gruppe" : "Sektor";
+        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode;
+        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isPatientsView || isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
         if (filterToolbar) filterToolbar.hidden = isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
         if (isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isPatientsView) patientColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isStakeholdersView) stakeholderCommandActions?.append(filterToolbar, viewSelectShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
@@ -41239,6 +41758,8 @@
           renderExpertOrganizationsTable(items);
         } else if (isExpertsView) {
           renderExpertContactsTable(items);
+        } else if (isPatientsView) {
+          renderPatientOrganizationsTable(items);
         } else if (isStakeholdersView) {
           renderStakeholderCurrent();
         } else if (isContactsDuplicatesMode) {
@@ -41278,6 +41799,9 @@
           closeDetail();
         }
         if (isExpertsView && activeExpertMode === "organizations" && activeExpertOrganizationId && !items.some((item) => item.id === activeExpertOrganizationId)) {
+          closeDetail();
+        }
+        if (isPatientsView && activePatientOrganizationId && !items.some((item) => item.id === activePatientOrganizationId)) {
           closeDetail();
         }
         if (isStakeholdersView && activeStakeholderMode === "organizations" && activeStakeholderOrganizationId && !items.some((item) => item.id === activeStakeholderOrganizationId)) {
@@ -41335,7 +41859,7 @@
           renderFormatsView();
         });
       });
-      [pageSizeSelect, expertPageSizeSelect, stakeholderPageSizeSelect].forEach((select) => {
+      [pageSizeSelect, expertPageSizeSelect, patientPageSizeSelect, stakeholderPageSizeSelect].forEach((select) => {
         select?.addEventListener("change", () => {
           applyPageSize(select.value);
         });
@@ -41379,10 +41903,13 @@
         if (!toggle) return;
         const key = toggle.dataset.columnToggle;
         const isExpertContactsMode = activeView === "experts" && activeExpertMode === "contacts";
-        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
+        const isPatientsView = activeView === "patients";
+        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations") || isPatientsView;
         const isStakeholderOrganizationsMode = activeView === "stakeholders";
         const columns = isStakeholderOrganizationsMode
           ? stakeholderOrganizationColumnsForType()
+          : isPatientsView
+          ? patientOrganizationTableColumns
           : activeView === "experts"
           ? activeExpertMode === "organizations" ? expertOrganizationTableColumns : expertContactTableColumns
           : isOrganizationsView ? organizationTableColumns : contactTableColumns;
@@ -41408,7 +41935,8 @@
             .filter((item) => item.required || visible.has(item.key))
             .map((item) => item.key);
           persistVisibleOrganizationColumns();
-          if (activeView === "experts") renderExpertOrganizationsTable(filteredExpertOrganizations());
+          if (activeView === "patients") renderPatientOrganizationsTable(filteredPatientOrganizations());
+          else if (activeView === "experts") renderExpertOrganizationsTable(filteredExpertOrganizations());
           else renderOrganizationsTable(filteredOrganizations());
         } else if (isExpertContactsMode) {
           visibleExpertContactColumns = expertContactTableColumns
@@ -42631,7 +43159,7 @@
         let initialTargetView = initialRouteView || "map";
         try {
           await loadCriticalInitialData();
-          if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "stakeholders", "formats", "hospitations", "map", "analytics"].includes(userSettings?.defaultViewType)) {
+          if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "patients", "stakeholders", "formats", "hospitations", "map", "analytics"].includes(userSettings?.defaultViewType)) {
             initialTargetView = userSettings.defaultViewType;
           }
           scheduleDeferredInitialData();
