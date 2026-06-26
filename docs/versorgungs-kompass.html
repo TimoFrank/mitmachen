@@ -16165,6 +16165,7 @@
         }
 
         .app-shell[data-active-view="experts"] .workspace-header .workspace-actions,
+        .app-shell[data-active-view="patients"] .workspace-header .workspace-actions,
         .app-shell[data-active-view="stakeholders"] .workspace-header .workspace-actions {
           justify-content: stretch;
           width: 100%;
@@ -16172,12 +16173,15 @@
 
         .app-shell[data-active-view="experts"] .workspace-expert-switcher,
         .app-shell[data-active-view="experts"] .experts-mode-nav--header,
+        .app-shell[data-active-view="patients"] .workspace-expert-switcher,
+        .app-shell[data-active-view="patients"] .experts-mode-nav--header,
         .app-shell[data-active-view="stakeholders"] .workspace-expert-switcher,
         .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header {
           width: 100%;
         }
 
         .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button,
+        .app-shell[data-active-view="patients"] .experts-mode-nav--header .settings-tab-button,
         .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
           min-width: 0;
         }
@@ -16514,6 +16518,7 @@
         }
 
         .app-shell[data-active-view="experts"] .workspace-header .workspace-actions,
+        .app-shell[data-active-view="patients"] .workspace-header .workspace-actions,
         .app-shell[data-active-view="stakeholders"] .workspace-header .workspace-actions {
           justify-content: stretch;
           width: 100%;
@@ -16521,12 +16526,15 @@
 
         .app-shell[data-active-view="experts"] .workspace-expert-switcher,
         .app-shell[data-active-view="experts"] .experts-mode-nav--header,
+        .app-shell[data-active-view="patients"] .workspace-expert-switcher,
+        .app-shell[data-active-view="patients"] .experts-mode-nav--header,
         .app-shell[data-active-view="stakeholders"] .workspace-expert-switcher,
         .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header {
           width: 100%;
         }
 
         .app-shell[data-active-view="experts"] .experts-mode-nav--header .settings-tab-button,
+        .app-shell[data-active-view="patients"] .experts-mode-nav--header .settings-tab-button,
         .app-shell[data-active-view="stakeholders"] .experts-mode-nav--header .settings-tab-button {
           min-width: 0;
         }
@@ -23795,6 +23803,7 @@
       }
 
       function personProfileParentView(kind = activePersonProfile.kind) {
+        if (kind === activePersonProfile.kind && activePersonProfile.returnTo) return activePersonProfile.returnTo;
         if (kind === "expert") return "experts";
         if (kind === "stakeholder") return "stakeholders";
         return "contacts";
@@ -27708,7 +27717,8 @@
       function patientIndicationOptions() {
         return [...new Set([
           ...seedPatientIndications(patientIndications),
-          ...patientOrganizations.map((organization) => organization.sector)
+          ...patientOrganizations.map((organization) => organization.sector),
+          ...patientPeople.map((person) => patientPersonIndication(person))
         ].filter(Boolean))]
           .sort((a, b) => a.localeCompare(b, "de"));
       }
@@ -27721,12 +27731,30 @@
         return patientOrganizations.filter((organization) => organization.status !== "archived").length;
       }
 
+      function activePatientPeopleTotal() {
+        return patientPeople.filter((person) => person.status !== "archived").length;
+      }
+
       function expertOrganizationLocation(organization) {
         return [organization.postalCode, organization.city].filter(Boolean).join(" ");
       }
 
       function patientOrganizationLocation(organization) {
         return [organization.postalCode, organization.city].filter(Boolean).join(" ");
+      }
+
+      function patientPersonOrganization(person) {
+        return patientOrganizationForIdentity(person.organizationId, person.organization, patientOrganizations);
+      }
+
+      function patientPersonIndication(person) {
+        return meaningfulOrEmpty(person.indication || person.sector || person.category) ||
+          meaningfulOrEmpty(patientPersonOrganization(person)?.sector) ||
+          "";
+      }
+
+      function patientPersonLocation(person) {
+        return [person.city, person.state].filter(Boolean).join(", ");
       }
 
       function expertOrganizationContacts(organization) {
@@ -27950,6 +27978,36 @@
               });
             return matchesSearch && matchesIndication && matchesState && matchesCity && matchesUpdated && matchesSource && matchesQuality && matchesMissing;
           });
+      }
+
+      function filteredPatientPeople() {
+        const search = searchInput.value.trim().toLowerCase();
+        return patientPeople
+          .filter((person) => person.status !== "archived")
+          .filter((person) => {
+            const organization = patientPersonOrganization(person);
+            const indication = patientPersonIndication(person);
+            const sourceLabel = meaningfulOrEmpty(person.source) || "-";
+            const haystack = [
+              person.name,
+              person.organization,
+              organization?.name,
+              indication,
+              person.role,
+              person.committee,
+              person.city,
+              person.state,
+              sourceLabel,
+              ...(normalizeThemes(person.themes) || [])
+            ].join(" ").toLowerCase();
+            const matchesSearch = !search || haystack.includes(search);
+            const matchesIndication = !selectedCategories.length || selectedCategories.includes(indication);
+            const matchesState = !selectedStates.length || selectedStates.includes(person.state || organization?.state || "");
+            const matchesCity = !selectedOrganizationCities.length || selectedOrganizationCities.includes(person.city || organization?.city || patientPersonLocation(person));
+            const matchesSource = !selectedSources.length || selectedSources.includes(sourceLabel);
+            return matchesSearch && matchesIndication && matchesState && matchesCity && matchesSource;
+          })
+          .sort((left, right) => left.name.localeCompare(right.name, "de"));
       }
 
       function filteredOrganizations() {
@@ -28453,15 +28511,157 @@
         });
       }
 
+      function renderPatientTablesVisibility() {
+        if (appShell) appShell.dataset.patientMode = activePatientMode;
+        const counts = {
+          people: activePatientPeopleTotal(),
+          organizations: activePatientOrganizationsTotal()
+        };
+        patientModeButtons.forEach((button) => {
+          const mode = button.dataset.patientMode || "organizations";
+          const active = mode === activePatientMode;
+          const label = mode === "people" ? "Personen" : "Organisationen";
+          const count = counts[mode] || 0;
+          button.replaceChildren();
+          const labelNode = document.createElement("span");
+          labelNode.className = "experts-mode-label";
+          labelNode.textContent = `${label} `;
+          const countNode = document.createElement("span");
+          countNode.className = "experts-mode-count";
+          countNode.textContent = String(count);
+          button.append(labelNode, countNode);
+          button.setAttribute("aria-label", `${label}: ${count}`);
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-selected", String(active));
+          button.setAttribute("tabindex", active ? "0" : "-1");
+        });
+        patientTables.forEach((table) => {
+          table.hidden = table.dataset.patientTable !== activePatientMode;
+        });
+      }
+
+      function patientPersonTableCellMarkup(person, key) {
+        const organization = patientPersonOrganization(person);
+        if (key === "name") {
+          return `
+            <div class="contact-cell">
+              ${contactAvatarMarkup(person, "sm")}
+              <div class="contact-meta">
+                <div class="contact-name__line">
+                  <button class="contact-name-button" type="button" data-open-patient-person="${escapeHtml(person.id)}">${escapeHtml(person.name) || "&mdash;"}</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        if (key === "organization") {
+          const label = organization?.name || person.organization || "-";
+          return `<div class="contact-subline contact-subline--primary" title="${escapeHtml(label)}">${escapeHtml(label)}</div>`;
+        }
+        if (key === "indication") return sectorBadgeMarkup(patientPersonIndication(person) || "-");
+        if (key === "role") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.role || "-")}</div>`;
+        if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientPersonLocation(person) || "-")}</div>`;
+        if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.state || organization?.state || "-")}</div>`;
+        if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(meaningfulOrEmpty(person.source) || "-")}</div>`;
+        return "";
+      }
+
+      function renderPatientPeopleTableHead(columns = visiblePatientPersonTableColumns()) {
+        if (!patientPeopleTableHead) return;
+        patientPeopleTableHead.innerHTML = columns
+          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "patient-people")}</div>`)
+          .join("");
+        bindHeaderFilterMenus(patientPeopleTableHead);
+      }
+
+      function renderPatientPeopleTable(items) {
+        if (!patientPeopleList || !patientPagination || !patientPaginationMeta) return;
+        activePatientMode = "people";
+        renderPatientTablesVisibility();
+        const columns = visiblePatientPersonTableColumns();
+        updatePatientPersonTableGrid(columns);
+        renderColumnMenu();
+        if (!items.length) {
+          renderPatientPeopleTableHead(columns);
+          patientPeopleList.innerHTML = `<div class="empty">Noch keine Patienten-Personen hinterlegt. Echte Personen erscheinen hier, sobald sie aus Patientenverbänden gepflegt oder importiert wurden.</div>`;
+          patientPaginationMeta.textContent = "0-0 von 0 Personen";
+          patientPagination.innerHTML = "";
+          return;
+        }
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        patientPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Personen`;
+        renderPatientPeopleTableHead(columns);
+        if (isMobileLayout()) {
+          patientPeopleList.innerHTML = `<div class="mobile-contact-list">${pageItems
+            .map((person) => `
+              <article class="mobile-contact-card ${person.id === activePatientPersonId ? "is-active" : ""}" data-patient-person-id="${escapeHtml(person.id)}" tabindex="0">
+                <div class="mobile-contact-top">
+                  ${contactAvatarMarkup(person, "sm")}
+                  <div class="mobile-contact-copy">
+                    <h3 class="mobile-contact-name">${escapeHtml(person.name) || "&mdash;"}</h3>
+                    <div class="mobile-contact-organization">${escapeHtml(person.organization || patientPersonOrganization(person)?.name || "Organisation nicht dokumentiert")}</div>
+                  </div>
+                  <span class="mobile-contact-chevron" aria-hidden="true">›</span>
+                </div>
+              </article>
+            `)
+            .join("")}</div>`;
+        } else {
+          patientPeopleList.innerHTML = pageItems
+            .map((person) => `
+              <article class="row ${person.id === activePatientPersonId ? "is-active" : ""}" data-patient-person-id="${escapeHtml(person.id)}" tabindex="0">
+                ${columns.map((column) => `<div class="cell--${column.key}">${patientPersonTableCellMarkup(person, column.key)}</div>`).join("")}
+              </article>
+            `)
+            .join("");
+        }
+        patientPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-patient-person-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-patient-person-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-patient-person-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+        patientPeopleList.querySelectorAll("[data-patient-person-id]").forEach((row) => {
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("button, input, label, a, select, textarea")) return;
+            openPatientPersonEntry(row.dataset.patientPersonId, items);
+          });
+          row.addEventListener("keydown", (event) => {
+            if ((event.key === "Enter" || event.key === " ") && !event.target.closest("button, input, label, a, select, textarea")) {
+              event.preventDefault();
+              openPatientPersonEntry(row.dataset.patientPersonId, items);
+            }
+          });
+        });
+        patientPeopleList.querySelectorAll("[data-open-patient-person]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openPatientPersonEntry(button.dataset.openPatientPerson, items);
+          });
+        });
+        patientPagination.querySelectorAll("[data-patient-person-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.patientPersonPage);
+            renderPatientPeopleTable(items);
+          });
+        });
+        patientPagination.querySelectorAll("[data-patient-person-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.patientPersonPageNav === "next" ? 1 : -1;
+            renderPatientPeopleTable(items);
+          });
+        });
+      }
+
       function patientOrganizationTableCellMarkup(organization, key) {
-        const typeLabel = meaningfulOrEmpty(organization.organizationType);
         if (key === "organization") {
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm")}
               <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-patient-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
-                ${typeLabel || organization.website ? `<div class="contact-subline">${escapeHtml(typeLabel || organization.website)}</div>` : ""}
               </div>
             </div>
           `;
@@ -28492,6 +28692,8 @@
 
       function renderPatientOrganizationsTable(items) {
         if (!patientOrganizationList || !patientPagination || !patientPaginationMeta) return;
+        activePatientMode = "organizations";
+        renderPatientTablesVisibility();
         const columns = visiblePatientOrganizationTableColumns();
         updatePatientOrganizationTableGrid(columns);
         renderColumnMenu();
@@ -32128,6 +32330,7 @@
           return `${items.length} von ${activeExpertContactsTotal()} Kontakten`;
         }
         if (activeView === "patients") {
+          if (activePatientMode === "people") return `${items.length} von ${activePatientPeopleTotal()} Personen`;
           return `${items.length} von ${activePatientOrganizationsTotal()} Organisationen`;
         }
         if (activeView === "stakeholders") {
@@ -32618,15 +32821,16 @@
           return;
         }
         if (activeView === "patients") {
-          const total = activePatientOrganizationsTotal();
+          const isPeopleMode = activePatientMode === "people";
+          const total = isPeopleMode ? activePatientPeopleTotal() : activePatientOrganizationsTotal();
           const meta = items.length === total ? "" : `${items.length} Treffer`;
           renderSummaryCards(
             summaryGrid,
             [
               {
-                label: "Patientenorganisationen",
+                label: isPeopleMode ? "Patienten-Personen" : "Patientenorganisationen",
                 value: total,
-                meta: isMobileLayout() ? "Organisationen" : meta,
+                meta: isMobileLayout() ? (isPeopleMode ? "Personen" : "Organisationen") : meta,
                 icon: `
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
@@ -32637,7 +32841,7 @@
                 iconClass: "summary-icon--blue"
               }
             ],
-            "Organisationen"
+            isPeopleMode ? "Personen" : "Organisationen"
           );
           return;
         }
@@ -32765,8 +32969,13 @@
         return expertOrganizationTableColumns.filter((column) => column.required || visible.has(column.key));
       }
 
+      function visiblePatientPersonTableColumns() {
+        const visible = new Set(visiblePatientPersonColumns);
+        return patientPersonTableColumns.filter((column) => column.required || visible.has(column.key));
+      }
+
       function visiblePatientOrganizationTableColumns() {
-        const visible = new Set(visibleOrganizationColumns);
+        const visible = new Set(visiblePatientOrganizationColumns);
         return patientOrganizationTableColumns.filter((column) => column.required || visible.has(column.key));
       }
 
@@ -32810,6 +33019,11 @@
       function updateExpertOrganizationTableGrid(columns = visibleExpertOrganizationTableColumns()) {
         const template = columns.map((column) => column.template).join(" ");
         expertOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
+      }
+
+      function updatePatientPersonTableGrid(columns = visiblePatientPersonTableColumns()) {
+        const template = columns.map((column) => column.template).join(" ");
+        patientPeopleTable?.style.setProperty("--contacts-grid-template", template);
       }
 
       function updatePatientOrganizationTableGrid(columns = visiblePatientOrganizationTableColumns()) {
@@ -36476,12 +36690,15 @@
       function renderColumnMenu() {
         if (!columnOptions) return;
         const isExpertContactsMode = activeView === "experts" && activeExpertMode === "contacts";
-        const isPatientsView = activeView === "patients";
-        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations") || isPatientsView;
+        const isPatientPeopleMode = activeView === "patients" && activePatientMode === "people";
+        const isPatientOrganizationsMode = activeView === "patients" && activePatientMode === "organizations";
+        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
         const isStakeholderOrganizationsMode = activeView === "stakeholders";
         const columns = isStakeholderOrganizationsMode
           ? stakeholderOrganizationColumnsForType()
-          : isPatientsView
+          : isPatientPeopleMode
+          ? patientPersonTableColumns
+          : isPatientOrganizationsMode
           ? patientOrganizationTableColumns
           : activeView === "experts"
           ? activeExpertMode === "organizations" ? expertOrganizationTableColumns : expertContactTableColumns
@@ -36489,6 +36706,10 @@
         const visible = new Set(
           isStakeholderOrganizationsMode
             ? visibleStakeholderOrganizationColumns
+            : isPatientPeopleMode
+              ? visiblePatientPersonColumns
+            : isPatientOrganizationsMode
+              ? visiblePatientOrganizationColumns
             : isExpertContactsMode
                 ? visibleExpertContactColumns
               : isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns
@@ -39549,6 +39770,7 @@
 
       function personKindLabel(kind = activePersonProfile.kind) {
         if (kind === "expert") return "Expertenkreis-Kontakt";
+        if (kind === "stakeholder" && activePersonProfile.returnTo === "patients") return "Patienten-Person";
         if (kind === "stakeholder") return "Stakeholder-Kontakt";
         return "Kontakt";
       }
@@ -39642,12 +39864,12 @@
         }
 
         if (kind === "stakeholder") {
-          let person = stakeholderPeople.find((item) => item.id === id);
+          let person = stakeholderPeople.find((item) => item.id === id) || patientPeople.find((item) => item.id === id);
           if (!person && window.dataService?.loadStakeholderPeople) {
             stakeholderPeople = (await window.dataService.loadStakeholderPeople({ includeArchived: canAdministerData() })).map((entry, index) =>
               sanitizeStakeholderPerson(entry, index)
             );
-            person = stakeholderPeople.find((item) => item.id === id);
+            person = stakeholderPeople.find((item) => item.id === id) || patientPeople.find((item) => item.id === id);
           }
           return person || null;
         }
@@ -39658,6 +39880,8 @@
       function renderStakeholderPersonProfile(person) {
         const panel = personProfileDetailPanel();
         const organization = stakeholderPersonOrganization(person);
+        const patientContext = activePersonProfile.returnTo === "patients" || person.stakeholderTypeId === "patient-associations";
+        const linkedOrganization = patientContext ? patientPersonOrganization(person) || organization : organization;
         const locationText = stakeholderPersonLocation(person);
         const mapPosition = stakeholderPersonMapPosition(person);
         const themes = normalizeThemes(person.themes);
@@ -39683,7 +39907,7 @@
                   ${contactAvatarMarkup(person, "lg")}
                   <div class="detail-profile-copy">
                     <h3>${escapeHtml(person.name)}</h3>
-                    <div class="detail-profile-role">${escapeHtml(person.organization || organization?.name || "Organisation nicht dokumentiert")}</div>
+                    <div class="detail-profile-role">${escapeHtml(person.organization || linkedOrganization?.name || "Organisation nicht dokumentiert")}</div>
                     ${person.role ? `<div class="detail-profile-subline">${escapeHtml(person.role)}</div>` : ""}
                     <div class="detail-profile-status">${sectorBadgeMarkup(person.committee || stakeholderTypeLabel(person.stakeholderTypeId))}</div>
                   </div>
@@ -39702,10 +39926,10 @@
                 <div class="detail-line-list">
                   ${detailLineHtml(
                     "Organisation",
-                    organization
-                      ? `<button class="organization-contact-link" type="button" data-open-linked-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>`
+                    linkedOrganization
+                      ? `<button class="organization-contact-link" type="button" data-open-linked-stakeholder-organization="${escapeHtml(linkedOrganization.id)}">${escapeHtml(linkedOrganization.name)}</button>`
                       : escapeHtml(person.organization || "Keine Organisation hinterlegt"),
-                    { empty: !person.organization && !organization }
+                    { empty: !person.organization && !linkedOrganization }
                   )}
                   ${detailLine("Rolle", person.role)}
                   ${detailLine("Gremium", person.committee)}
@@ -39740,6 +39964,10 @@
           </div>
         `;
         panel.querySelector("[data-open-linked-stakeholder-organization]")?.addEventListener("click", (event) => {
+          if (patientContext) {
+            openOrganizationProfile("patient", event.currentTarget.dataset.openLinkedStakeholderOrganization, { returnTo: "patients" });
+            return;
+          }
           openOrganizationProfile("stakeholder", event.currentTarget.dataset.openLinkedStakeholderOrganization, { returnTo: "stakeholders" });
         });
         panel.querySelectorAll("[data-detail-tab]").forEach((button) => {
@@ -39813,18 +40041,21 @@
       function openPersonProfileParent(preferredView = "") {
         const parentView = preferredView || activePersonProfile.returnTo || personProfileParentView();
         if (parentView === "experts") activeExpertMode = "contacts";
+        if (parentView === "patients") activePatientMode = "people";
         if (parentView === "stakeholders") activeStakeholderMode = "organizations";
         setActiveView(parentView);
         updateRouteHash(parentView);
         updateView();
       }
 
-      function openStakeholderPersonPreview(id, items = filteredStakeholderPeople()) {
+      function openStakeholderPersonPreview(id, items = filteredStakeholderPeople(), options = {}) {
         const currentItems = items.length ? items : filteredStakeholderPeople();
         const person = currentItems.find((item) => item.id === id) || stakeholderPeople.find((item) => item.id === id);
         if (!person) return;
+        const returnTo = options.returnTo || "stakeholders";
         const config = stakeholderTypeConfig(person.stakeholderTypeId);
         const organization = stakeholderPersonOrganization(person);
+        const linkedOrganization = returnTo === "patients" ? patientPersonOrganization(person) || organization : organization;
         const personChanged = activeStakeholderPersonId !== person.id;
         const locationText = stakeholderPersonLocation(person);
         const mapPosition = stakeholderPersonMapPosition(person);
@@ -39837,6 +40068,10 @@
         const currentIndex = currentItems.findIndex((item) => item.id === person.id);
         activeStakeholderPersonId = person.id;
         activeStakeholderOrganizationId = null;
+        if (returnTo === "patients") {
+          activePatientPersonId = person.id;
+          activePatientOrganizationId = null;
+        }
         activeExpertId = null;
         activeExpertOrganizationId = null;
         activeId = null;
@@ -39856,7 +40091,7 @@
                   ${contactAvatarMarkup(person, "lg")}
                   <div class="detail-profile-copy">
                     <h3>${escapeHtml(person.name)}</h3>
-                    <div class="detail-profile-role">${escapeHtml(person.organization || organization?.name || "Organisation nicht dokumentiert")}</div>
+                    <div class="detail-profile-role">${escapeHtml(person.organization || linkedOrganization?.name || "Organisation nicht dokumentiert")}</div>
                     ${person.role ? `<div class="detail-profile-subline">${escapeHtml(person.role)}</div>` : ""}
                     <div class="detail-profile-status">${sectorBadgeMarkup(person.committee || stakeholderTypeLabel(person.stakeholderTypeId))}</div>
                   </div>
@@ -39875,10 +40110,10 @@
                 <div class="detail-line-list">
                   ${detailLineHtml(
                     "Organisation",
-                    organization
-                      ? `<button class="organization-contact-link" type="button" data-open-linked-stakeholder-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>`
+                    linkedOrganization
+                      ? `<button class="organization-contact-link" type="button" data-open-linked-stakeholder-organization="${escapeHtml(linkedOrganization.id)}">${escapeHtml(linkedOrganization.name)}</button>`
                       : escapeHtml(person.organization || "Keine Organisation hinterlegt"),
-                    { empty: !person.organization && !organization }
+                    { empty: !person.organization && !linkedOrganization }
                   )}
                   ${detailLine("Rolle", person.role)}
                   ${detailLine("Gremium", person.committee)}
@@ -39916,20 +40151,42 @@
         detailDrawer.setAttribute("aria-hidden", "false");
         syncBodyScrollLock();
         detailPanel.querySelector("#stakeholder-person-open-profile")?.addEventListener("click", () => {
-          openPersonProfile("stakeholder", person.id, { returnTo: "stakeholders", title: person.name });
+          openPersonProfile("stakeholder", person.id, { returnTo, title: person.name });
         });
         detailPanel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
         detailPanel.querySelector("[data-open-linked-stakeholder-organization]")?.addEventListener("click", (event) => {
+          if (returnTo === "patients") {
+            const patientOrganization = patientPersonOrganization(person) || linkedOrganization;
+            if (patientOrganization) {
+              activePatientMode = "organizations";
+              openOrganizationProfile("patient", patientOrganization.id, { returnTo: "patients" });
+              return;
+            }
+          }
           activeStakeholderMode = "organizations";
           openOrganizationProfile("stakeholder", event.currentTarget.dataset.openLinkedStakeholderOrganization, { returnTo: "stakeholders" });
         });
         detailPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             detailActiveTab = normalizeDetailTab(button.dataset.detailTab || "overview", stakeholderProfileTabs);
-            openStakeholderPersonPreview(person.id, currentItems);
+            openStakeholderPersonPreview(person.id, currentItems, { returnTo });
           });
         });
         bindStakeholderNotesThread("person", person, detailPanel);
+      }
+
+      function openPatientPersonEntry(id, items = filteredPatientPeople(), options = {}) {
+        const currentItems = items.length ? items : filteredPatientPeople();
+        const person = currentItems.find((item) => item.id === id) || patientPeople.find((item) => item.id === id);
+        if (!person) return;
+        activePatientMode = "people";
+        activePatientPersonId = person.id;
+        activePatientOrganizationId = null;
+        if (isMobileLayout() || options.forceProfile) {
+          openPersonProfile("stakeholder", person.id, { returnTo: "patients", title: person.name });
+          return;
+        }
+        openStakeholderPersonPreview(person.id, currentItems, { returnTo: "patients" });
       }
 
       function openPersonEntry(kind, id, items = [], options = {}) {
@@ -40118,6 +40375,7 @@
             activeExpertMode = "organizations";
             openExpertOrganizationDetail(record.id, expertOrganizations, { mode: "page" });
           } else if (normalizedKind === "patient") {
+            activePatientMode = "organizations";
             openPatientOrganizationDetail(record.id, patientOrganizations, { mode: "page" });
           } else if (normalizedKind === "stakeholder") {
             activeStakeholderTypeId = record.stakeholderTypeId || activeStakeholderTypeId;
@@ -40157,6 +40415,7 @@
       function openOrganizationProfileParent(preferredView = "") {
         const parentView = preferredView || activeOrganizationProfile.returnTo || organizationProfileParentView();
         if (parentView === "experts") activeExpertMode = "organizations";
+        if (parentView === "patients") activePatientMode = "organizations";
         if (parentView === "stakeholders") activeStakeholderMode = "organizations";
         setActiveView(parentView);
         updateRouteHash(parentView);
@@ -40684,6 +40943,8 @@
         const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
 
         activePatientOrganizationId = organization.id;
+        activePatientPersonId = null;
+        activePatientMode = "organizations";
         activeExpertOrganizationId = null;
         activeExpertId = null;
         activeId = null;
@@ -41764,6 +42025,9 @@
         const isNotificationsView = isNotificationsWorkspaceActive();
         const isExpertsView = activeView === "experts";
         const isPatientsView = activeView === "patients";
+        if (isPatientsView && !["people", "organizations"].includes(activePatientMode)) activePatientMode = "organizations";
+        const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
+        const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
         const isStakeholdersView = activeView === "stakeholders";
         const isPersonProfileView = activeView === "personProfile";
         const isOrganizationProfileView = activeView === "organizationProfile";
@@ -41800,7 +42064,7 @@
             : isStakeholdersView
               ? filteredStakeholderOrganizations()
             : isPatientsView
-              ? filteredPatientOrganizations()
+              ? isPatientOrganizationsMode ? filteredPatientOrganizations() : filteredPatientPeople()
             : isExpertsView
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
@@ -41812,7 +42076,9 @@
           : isOrganizationsView
           ? "Organisationen suchen..."
           : isPatientsView
-            ? "Patientenorganisationen nach Name, Indikation oder Standort suchen..."
+            ? isPatientOrganizationsMode
+              ? "Patientenorganisationen nach Name, Indikation oder Standort suchen..."
+              : "Patienten-Personen nach Name, Organisation, Indikation oder Ort suchen..."
           : isExpertOrganizationsMode
             ? "Expertenkreis-Organisationen suchen..."
           : isExpertsView
@@ -41848,6 +42114,7 @@
         if (organizationMatchingWorklistButton) organizationMatchingWorklistButton.hidden = !isOrganizationsView;
         if (expertModeActions) expertModeActions.hidden = !isExpertsView;
         if (expertCommandActions) expertCommandActions.hidden = !isExpertsView;
+        if (patientModeActions) patientModeActions.hidden = !isPatientsView;
         if (stakeholderModeActions) stakeholderModeActions.hidden = !isStakeholdersView;
         if (stakeholderCommandActions) stakeholderCommandActions.hidden = !isStakeholdersView;
         if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertOrganizationsMode;
@@ -41893,7 +42160,8 @@
         } else if (isExpertsView) {
           renderExpertContactsTable(items);
         } else if (isPatientsView) {
-          renderPatientOrganizationsTable(items);
+          if (isPatientOrganizationsMode) renderPatientOrganizationsTable(items);
+          else renderPatientPeopleTable(items);
         } else if (isStakeholdersView) {
           renderStakeholderCurrent();
         } else if (isContactsDuplicatesMode) {
@@ -41936,6 +42204,9 @@
           closeDetail();
         }
         if (isPatientsView && activePatientOrganizationId && !items.some((item) => item.id === activePatientOrganizationId)) {
+          closeDetail();
+        }
+        if (isPatientsView && activePatientPersonId && !items.some((item) => item.id === activePatientPersonId)) {
           closeDetail();
         }
         if (isStakeholdersView && activeStakeholderMode === "organizations" && activeStakeholderOrganizationId && !items.some((item) => item.id === activeStakeholderOrganizationId)) {
@@ -42037,12 +42308,15 @@
         if (!toggle) return;
         const key = toggle.dataset.columnToggle;
         const isExpertContactsMode = activeView === "experts" && activeExpertMode === "contacts";
-        const isPatientsView = activeView === "patients";
-        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations") || isPatientsView;
+        const isPatientPeopleMode = activeView === "patients" && activePatientMode === "people";
+        const isPatientOrganizationsMode = activeView === "patients" && activePatientMode === "organizations";
+        const isOrganizationsView = activeView === "organizations" || (activeView === "experts" && activeExpertMode === "organizations");
         const isStakeholderOrganizationsMode = activeView === "stakeholders";
         const columns = isStakeholderOrganizationsMode
           ? stakeholderOrganizationColumnsForType()
-          : isPatientsView
+          : isPatientPeopleMode
+          ? patientPersonTableColumns
+          : isPatientOrganizationsMode
           ? patientOrganizationTableColumns
           : activeView === "experts"
           ? activeExpertMode === "organizations" ? expertOrganizationTableColumns : expertContactTableColumns
@@ -42052,6 +42326,10 @@
         const visible = new Set(
           isStakeholderOrganizationsMode
             ? visibleStakeholderOrganizationColumns
+            : isPatientPeopleMode
+              ? visiblePatientPersonColumns
+            : isPatientOrganizationsMode
+              ? visiblePatientOrganizationColumns
             : isExpertContactsMode
                 ? visibleExpertContactColumns
               : isOrganizationsView ? visibleOrganizationColumns : visibleContactColumns
@@ -42064,13 +42342,24 @@
             .map((item) => item.key);
           persistVisibleStakeholderOrganizationColumns();
           renderStakeholderOrganizationsTable(filteredStakeholderOrganizations());
+        } else if (isPatientPeopleMode) {
+          visiblePatientPersonColumns = patientPersonTableColumns
+            .filter((item) => item.required || visible.has(item.key))
+            .map((item) => item.key);
+          persistVisiblePatientPersonColumns();
+          renderPatientPeopleTable(filteredPatientPeople());
+        } else if (isPatientOrganizationsMode) {
+          visiblePatientOrganizationColumns = patientOrganizationTableColumns
+            .filter((item) => item.required || visible.has(item.key))
+            .map((item) => item.key);
+          persistVisiblePatientOrganizationColumns();
+          renderPatientOrganizationsTable(filteredPatientOrganizations());
         } else if (isOrganizationsView) {
           visibleOrganizationColumns = organizationTableColumns
             .filter((item) => item.required || visible.has(item.key))
             .map((item) => item.key);
           persistVisibleOrganizationColumns();
-          if (activeView === "patients") renderPatientOrganizationsTable(filteredPatientOrganizations());
-          else if (activeView === "experts") renderExpertOrganizationsTable(filteredExpertOrganizations());
+          if (activeView === "experts") renderExpertOrganizationsTable(filteredExpertOrganizations());
           else renderOrganizationsTable(filteredOrganizations());
         } else if (isExpertContactsMode) {
           visibleExpertContactColumns = expertContactTableColumns
@@ -42148,6 +42437,23 @@
             selectedThemes = [];
           }
           currentPage = 1;
+          closeDetail();
+          updateView();
+        });
+      });
+      patientModeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const nextPatientMode = button.dataset.patientMode || "organizations";
+          if (!["people", "organizations"].includes(nextPatientMode) || nextPatientMode === activePatientMode) return;
+          activePatientMode = nextPatientMode;
+          selectedOrganizationCities = [];
+          selectedSources = [];
+          selectedQualities = [];
+          selectedMissingFields = [];
+          selectedUpdatedRanges = [];
+          currentPage = 1;
+          activePatientPersonId = null;
+          activePatientOrganizationId = null;
           closeDetail();
           updateView();
         });
@@ -43195,6 +43501,49 @@
         }
       }
 
+      async function loadPatientData({ includeArchived = false } = {}) {
+        const isPatientAssociationEntry = (entry) =>
+          entry?.stakeholderTypeId === "patient-associations" ||
+          entry?.stakeholder_type_id === "patient-associations" ||
+          entry?.stakeholderType === "patient-associations";
+        try {
+          if (window.dataService?.loadStakeholderOrganizations) {
+            const loadedOrganizations = (await window.dataService.loadStakeholderOrganizations({ includeArchived, stakeholderTypeId: "patient-associations" }))
+              .filter(isPatientAssociationEntry)
+              .map((organization, index) =>
+                sanitizePatientOrganization(organization, index)
+              );
+            patientOrganizations = loadedOrganizations.length ? loadedOrganizations : seedPatientOrganizations;
+          } else {
+            patientOrganizations = seedPatientOrganizations;
+          }
+        } catch (organizationError) {
+          console.warn("Patienten-Organisationen konnten nicht geladen werden. Seed-Fallback aktiv.", organizationError);
+          patientOrganizations = seedPatientOrganizations;
+        }
+
+        try {
+          if (window.dataService?.loadStakeholderPeople) {
+            const loadedPeople = (await window.dataService.loadStakeholderPeople({ includeArchived, stakeholderTypeId: "patient-associations" }))
+              .filter(isPatientAssociationEntry)
+              .map((person, index) =>
+                sanitizePatientPerson(person, index, patientOrganizations)
+              );
+            patientPeople = loadedPeople.length ? loadedPeople : seedPatientPeople;
+            stakeholderPeople = [
+              ...stakeholderPeople.filter((person) => person.stakeholderTypeId !== "patient-associations"),
+              ...patientPeople
+            ].sort((left, right) => left.name.localeCompare(right.name, "de"));
+            loadedStakeholderPeopleTypeIds.add("patient-associations");
+          } else {
+            patientPeople = seedPatientPeople;
+          }
+        } catch (peopleError) {
+          console.warn("Patienten-Personen konnten nicht geladen werden. Seed-Fallback aktiv.", peopleError);
+          patientPeople = seedPatientPeople;
+        }
+      }
+
       async function loadOrganizationData({ includeArchived = false } = {}) {
         try {
           if (window.dataService.loadOrganizations) {
@@ -43282,6 +43631,7 @@
           refreshAfter(loadHospitationData({ includeArchived })),
           refreshAfter(loadExpertData({ includeArchived })),
           refreshAfter(loadStakeholderData({ includeArchived })),
+          refreshAfter(loadPatientData({ includeArchived })),
           refreshAfter(loadSavedViews()),
           refreshAfter(refreshNotificationSummary())
         ]);

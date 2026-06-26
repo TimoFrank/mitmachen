@@ -84,3 +84,73 @@ window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATION_INDICATIONS = {
       };
     });
 })();
+
+(function buildPatientPeople() {
+  const normalizeOrganizationName = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ");
+  const patientOrganizations = Array.isArray(window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATIONS)
+    ? window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATIONS
+    : [];
+  const organizationById = new Map(patientOrganizations.map((organization) => [organization.id, organization]));
+  const organizationByName = new Map(
+    patientOrganizations.map((organization) => [normalizeOrganizationName(organization.name), organization])
+  );
+  const stakeholderPeople = Array.isArray(window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE)
+    ? window.VERSORGUNGS_COMPASS_STAKEHOLDER_PEOPLE
+    : [];
+
+  window.VERSORGUNGS_COMPASS_PATIENT_PEOPLE = stakeholderPeople
+    .filter((person) =>
+      person?.stakeholderTypeId === "patient-associations" ||
+      person?.stakeholder_type_id === "patient-associations" ||
+      person?.stakeholderType === "patient-associations"
+    )
+    .map((person) => {
+      const organizationId = person.organizationId || person.organization_id || "";
+      const organizationName = person.organization || "";
+      const organization = organizationById.get(organizationId) || organizationByName.get(normalizeOrganizationName(organizationName));
+      const indication =
+        person.indication ||
+        person.group ||
+        person.sector ||
+        person.category ||
+        organization?.indication ||
+        organization?.sector ||
+        organization?.category ||
+        "Übergreifende Patientenvertretung und Beratung";
+      return {
+        ...person,
+        stakeholderTypeId: "patient-associations",
+        stakeholderType: "patient-associations",
+        organizationId: organization?.id || organizationId,
+        organization: organization?.name || organizationName,
+        indicationId:
+          person.indicationId ||
+          person.indication_id ||
+          person.groupId ||
+          person.group_id ||
+          organization?.indicationId ||
+          organization?.groupId ||
+          "",
+        indication,
+        groupId:
+          person.groupId ||
+          person.group_id ||
+          person.indicationId ||
+          person.indication_id ||
+          organization?.groupId ||
+          organization?.indicationId ||
+          "",
+        group: indication,
+        category: indication,
+        sector: indication,
+        source: person.source || organization?.source || "Patientenverbaende-Stakeholderdaten"
+      };
+    });
+})();

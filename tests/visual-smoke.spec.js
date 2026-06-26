@@ -560,20 +560,92 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
 });
 
 test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#patients");
+  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#patients", {
+    patientsScript: `
+      window.VERSORGUNGS_COMPASS_PATIENT_INDICATIONS = [
+        { id: "patient-indication-oncology", name: "Onkologie und Hämatologie", sortOrder: 10 }
+      ];
+      window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATIONS = [
+        {
+          id: "patient-test-org",
+          name: "Test Patientenverband Onkologie",
+          groupId: "patient-indication-oncology",
+          group: "Onkologie und Hämatologie",
+          category: "Onkologie und Hämatologie",
+          sector: "Onkologie und Hämatologie",
+          organizationType: "Patientenorganisation",
+          postalCode: "10115",
+          city: "Berlin",
+          state: "Berlin",
+          website: "https://patienten.example.test",
+          source: "Testquelle",
+          status: "active",
+          updatedAt: "2026-06-20T00:00:00.000Z"
+        }
+      ];
+      window.VERSORGUNGS_COMPASS_PATIENT_PEOPLE = [
+        {
+          id: "patient-person-test",
+          name: "Paula Patient",
+          organizationId: "patient-test-org",
+          organization: "Test Patientenverband Onkologie",
+          role: "Vorstand",
+          city: "Berlin",
+          state: "Berlin",
+          indicationId: "patient-indication-oncology",
+          indication: "Onkologie und Hämatologie",
+          group: "Onkologie und Hämatologie",
+          category: "Onkologie und Hämatologie",
+          sector: "Onkologie und Hämatologie",
+          source: "Testquelle",
+          status: "active"
+        }
+      ];`
+  });
 
   await expect(page.locator('[data-view-panel="patients"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="patients"]')).toHaveClass(/is-active/);
   await expect(page.locator("#workspace-view-title")).toHaveText("Patienten");
+  await expect(page.locator("#patient-mode-actions")).toBeVisible();
+  await expect(page.locator('#patient-mode-actions [data-patient-mode="organizations"]')).toHaveClass(/is-active/);
+  await expect(page.locator('#patient-mode-actions [data-patient-mode="people"]')).toContainText("Personen");
+  await expect(page.locator('#patient-mode-actions [data-patient-mode="organizations"]')).toContainText("Organisationen");
   await expect(page.locator('[data-filter-field="category"] summary')).toHaveText("Indikation");
   await expect(page.locator("#patient-organizations-table")).toBeVisible();
+  await expect(page.locator("#patient-people-table")).toBeHidden();
   await expect(page.locator("#patient-organizations-table-head")).toContainText("Indikation");
   await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Gruppe");
   await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Kontakte");
   await expect(page.locator("#patient-organization-list .row").first()).toBeVisible();
+  await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .contact-subline")).toHaveCount(0);
   await expect(page.locator("#patients-pagination-meta")).toContainText("Organisationen");
   await expectPageSizeDropdownUsable(page, "#view-patients .page-size-shell");
 
+  await page.locator('#patient-mode-actions [data-patient-mode="people"]').click();
+  await expect(page.locator("#patient-people-table")).toBeVisible();
+  await expect(page.locator("#patient-organizations-table")).toBeHidden();
+  await expect(page.locator("#patient-people-table-head")).toContainText("Person");
+  await expect(page.locator("#patient-people-table-head")).toContainText("Organisation");
+  await expect(page.locator("#patient-people-table-head")).toContainText("Indikation");
+  await expect(page.locator("#patient-people-table-head")).not.toContainText("Gruppe");
+  await expect(page.locator("#patient-people-table-head")).not.toContainText("Kontakte");
+  const mobileProject = testInfo.project.name.includes("mobile");
+  const patientPersonEntry = mobileProject
+    ? page.locator("#patient-people-list .mobile-contact-card").first()
+    : page.locator("#patient-people-list .row").first();
+  await expect(patientPersonEntry).toBeVisible();
+  if (mobileProject) {
+    await expect(patientPersonEntry).toContainText("Paula Patient");
+    await expect(patientPersonEntry).toContainText("Test Patientenverband Onkologie");
+  } else {
+    await expect(patientPersonEntry.locator(".cell--name .contact-subline")).toHaveCount(0);
+    await expect(patientPersonEntry.locator(".cell--indication")).toContainText("Onkologie");
+    await expect(patientPersonEntry.locator(".cell--role")).toContainText("Vorstand");
+  }
+  await expect(page.locator("#patients-pagination-meta")).toContainText("Personen");
+
+  await page.locator('#patient-mode-actions [data-patient-mode="organizations"]').click();
+  await expect(page.locator("#patient-organizations-table")).toBeVisible();
   await page.locator("#patient-organization-list .row").first().click();
   if (testInfo.project.name.includes("mobile")) {
     await expect(page).toHaveURL(/#organization\/patient\//);
