@@ -81,4 +81,4 @@ Dieses Dokument enthält nur noch den allgemeinen, nicht personenbezogenen Zielk
 
 ## Umsetzungshinweis
 
-Das maschinenlesbare Mapping liegt in `data/fachrichtungen-zielkatalog.json`. Produktive Kontaktdaten werden nicht mehr in GitHub gespeichert, sondern in Supabase gepflegt.
+Das maschinenlesbare Mapping liegt in `frontend/data/fachrichtungen-zielkatalog.json`. Produktive Kontaktdaten werden nicht mehr in GitHub gespeichert, sondern in Supabase gepflegt.

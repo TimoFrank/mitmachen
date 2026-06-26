@@ -27546,7 +27546,7 @@
       }
 
       function publicAssetBasePath() {
-        return /\/app\/[^/]*$/i.test(window.location.pathname || "") ? "../public/" : "./public/";
+        return /\/app\/[^/]*$/i.test(window.location.pathname || "") ? "../../public/" : "./public/";
       }
 
       function resolvePublicAssetUrl(value = "") {

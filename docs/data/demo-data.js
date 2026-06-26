@@ -150,7 +150,7 @@
       note: "Fiktiver Demo-Kontakt. Inhalte dienen ausschliesslich Offline-QA und enthalten keine realen CRM-Daten.",
       nextStep: index % 4 === 0 ? "Rueckmeldung zum Versorgungspfad einholen." : "",
       sources: ["Demo-Datensatz", index % 3 === 0 ? "Fiktiver QA-Import" : "Manuelle Demo-Pflege"],
-      image: index % 9 === 0 ? "../public/demo-person-lisa.svg" : index % 11 === 0 ? "../public/demo-person-jens.svg" : "",
+      image: index % 9 === 0 ? "../../public/demo-person-lisa.svg" : index % 11 === 0 ? "../../public/demo-person-jens.svg" : "",
       imageSourceLabel: index % 9 === 0 ? "Lokales Demo-Asset" : "",
       imageRightsNote: index % 9 === 0 ? "Fiktive Illustration im Repository." : "",
       status: "active",

@@ -2,7 +2,7 @@
   "name": "Versorgungs-Kompass",
   "short_name": "Kompass",
   "description": "CRM-Werkzeug fuer Versorgungskontakte im Gesundheitswesen.",
-  "start_url": "../app/versorgungs-kompass.html",
+  "start_url": "../frontend/app/versorgungs-kompass.html",
   "scope": "../",
   "display": "standalone",
   "background_color": "#f5f7fb",

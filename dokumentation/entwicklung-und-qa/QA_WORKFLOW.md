@@ -76,13 +76,13 @@ Playwright-Tests nutzen den gemeinsamen Helper:
 ```js
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
 
-await gotoAuthenticated(page, "/app/versorgungs-kompass.html#contacts", {
+await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
   role: "admin",
   dataMode: "demo"
 });
 ```
 
-Der Helper stubbt `login/auth-guard.js`, setzt `VERSORGUNGS_COMPASS_CONFIG`, schreibt die lokale Testsitzung und kann optionale Seed-Skripte ersetzen. Neue Tests sollen keine eigenen Auth-Stubs, LocalStorage-Hacks oder Browser-Plugin-Workarounds duplizieren.
+Der Helper stubbt `frontend/login/auth-guard.js`, setzt `VERSORGUNGS_COMPASS_CONFIG`, schreibt die lokale Testsitzung und kann optionale Seed-Skripte ersetzen. Neue Tests sollen keine eigenen Auth-Stubs, LocalStorage-Hacks oder Browser-Plugin-Workarounds duplizieren.
 
 Fuer manuelle Sichtpruefungen ist Playwright mit diesem Helper der bevorzugte Weg. Der In-App-Browser ist nuetzlich fuer echte Nutzerpfade, aber nicht fuer lokale Auth-Mutationen.
 

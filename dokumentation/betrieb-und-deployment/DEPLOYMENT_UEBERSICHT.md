@@ -10,7 +10,7 @@ Der einfache Standardpfad ist GitHub Pages:
 Quellordner -> scripts/sync_github_pages.sh -> docs/ -> GitHub Pages
 ```
 
-`docs/` ist dabei eine Publish-Kopie. Gepflegt werden die Quellordner `app/`, `login/`, `map/`, `data/`, `public/`, `pages/` und `examples/`.
+`docs/` ist dabei eine Publish-Kopie. Gepflegt werden die Quellordner `frontend/`, `public/` und `examples/`.
 
 ## Lokale Demo
 

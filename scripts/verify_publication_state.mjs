@@ -82,7 +82,7 @@ function changedFilesForSupabaseRisk() {
     ...gitFiles("git", ["show", "--name-only", "--format=", "HEAD"])
   ]);
   return [...files].filter((file) =>
-    /^(supabase\/migrations\/|supabase\/schema\.sql|data\/stakeholder-data\.js|docs\/data\/stakeholder-data\.js)/.test(file)
+    /^(supabase\/migrations\/|supabase\/schema\.sql|frontend\/data\/stakeholder-data\.js|data\/stakeholder-data\.js|docs\/data\/stakeholder-data\.js)/.test(file)
   );
 }
 

@@ -2,7 +2,7 @@
 
 import fs from "node:fs";
 
-const csvPath = process.argv[2] || "data/versorgungs-kompass-data.csv";
+const csvPath = process.argv[2] || "frontend/data/versorgungs-kompass-data.csv";
 const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const importUserId = process.env.SUPABASE_IMPORT_USER_ID;

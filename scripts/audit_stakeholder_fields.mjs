@@ -28,7 +28,7 @@ function auditFile(file) {
   }
 }
 
-auditFile("data/data-service.js");
+auditFile("frontend/data/data-service.js");
 auditFile("api/server.mjs");
 
 console.log("Stakeholder Field Audit OK: Logo- und Mitgliederfelder werden geladen.");

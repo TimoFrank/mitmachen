@@ -44,11 +44,11 @@ https://timofrank.github.io/mitmachen/demo/
 - `index.html`: Einstieg und App-Shell der Demo.
 - `demo.css`: Gestaltung der Demo-Oberflaeche.
 - `demo-app.js`: lokale Demo-Logik, Navigation, Filter und Tabellen.
-- `../../data/demo-data.js`: fiktive Demo-Daten.
-- `../../map/versorgungs-kompass-map.html`: eingebettete Kartenansicht fuer lokale Nutzung.
+- `../../frontend/data/demo-data.js`: fiktive Demo-Daten.
+- `../../frontend/map/versorgungs-kompass-map.html`: eingebettete Kartenansicht fuer lokale Nutzung.
 
 GitHub Pages veroeffentlicht den Ordner `docs/`. Das Sync-Skript kopiert die Demo deshalb nach `docs/demo/` und passt den Kartenpfad fuer die Pages-Struktur an.
 
 ## Datenschutz
 
-Die Demo nutzt ausschliesslich fiktive Daten aus `data/demo-data.js`. Echte Personen-, Kontakt-, Telefon-, E-Mail-, LinkedIn- oder Beziehungsdaten duerfen nicht in dieses Paket uebernommen werden, weil GitHub Pages oeffentliches statisches Hosting ist.
+Die Demo nutzt ausschliesslich fiktive Daten aus `frontend/data/demo-data.js`. Echte Personen-, Kontakt-, Telefon-, E-Mail-, LinkedIn- oder Beziehungsdaten duerfen nicht in dieses Paket uebernommen werden, weil GitHub Pages oeffentliches statisches Hosting ist.

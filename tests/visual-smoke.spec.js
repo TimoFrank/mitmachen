@@ -235,7 +235,7 @@ async function expectPageSizeDropdownUsable(page, shellSelector, nextValue = "50
 }
 
 test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#contacts");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#filter-panel-button")).toBeVisible();
@@ -260,7 +260,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
 });
 
 test("Onboarding: neuer Supabase-Account richtet Profil ein und startet Tour", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#map", {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map", {
     dataMode: "supabase",
     dataServiceScript: onboardingDataServiceScript()
   });
@@ -297,14 +297,14 @@ test("Onboarding: neuer Supabase-Account richtet Profil ein und startet Tour", a
   await attachScreenshot(page, testInfo, "onboarding");
 });
 
-test("Onboarding: abgeschlossener neuer Account landet direkt in Karte", async ({ page }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", {
+test("Onboarding: abgeschlossener neuer Account landet direkt in Zielansicht", async ({ page }) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
     dataMode: "supabase",
     dataServiceScript: onboardingDataServiceScript({ completed: true })
   });
 
   await expect(page.locator('[data-view-panel="onboarding"]')).toBeHidden();
-  await expect(page.locator('[data-view-panel="map"]')).toBeVisible();
+  await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
   await page.locator("#sidebar-profile-button").click();
   await expect(page.locator("#profile-onboarding-status")).toContainText("Du kannst sie jederzeit erneut starten.");
   const profileOnboardingStatusHtml = await page.locator("#profile-onboarding-status").evaluate((element) => element.innerHTML);
@@ -313,7 +313,7 @@ test("Onboarding: abgeschlossener neuer Account landet direkt in Karte", async (
 });
 
 test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#organizations");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#organizations");
 
   const isMobile = testInfo.project.name.includes("mobile");
   await expect(page.locator('[data-view-panel="organizations"]')).toBeVisible();
@@ -348,7 +348,7 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
 });
 
 test("Organisationsprofil: direkter Deeplink rendert Profilseite", async ({ page }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#organization/care/demo-org-nordstadt");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#organization/care/demo-org-nordstadt");
 
   await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#organization\/care\/demo-org-nordstadt$/);
@@ -359,7 +359,7 @@ test("Organisationsprofil: direkter Deeplink rendert Profilseite", async ({ page
 });
 
 test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#activities", {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#activities", {
     demoDataScript: activitiesDemoDataScript()
   });
 
@@ -387,7 +387,7 @@ test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", asy
 });
 
 test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbox", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#contacts", {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
     localNotifications: [
       {
         id: "visual-notification-contact-update",
@@ -453,7 +453,7 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
 });
 
 test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#experts");
 
   await expect(page.locator('[data-view-panel="experts"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="experts"]')).toHaveClass(/is-active/);
@@ -560,7 +560,7 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
 });
 
 test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#patients", {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#patients", {
     patientsScript: `
       window.VERSORGUNGS_COMPASS_PATIENT_INDICATIONS = [
         { id: "patient-indication-oncology", name: "Onkologie und Hämatologie", sortOrder: 10 }
@@ -662,7 +662,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
 });
 
 test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#experts", {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#experts", {
     dataMode: "local",
     contactsScript: `window.VERSORGUNGS_COMPASS_CONTACTS = [];`,
     expertsScript: `window.VERSORGUNGS_COMPASS_EXPERT_GROUPS = [
@@ -714,7 +714,7 @@ test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async (
 });
 
 test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", {
     dataMode: "local",
     contactsScript: `window.VERSORGUNGS_COMPASS_CONTACTS = [
       { id: "contact-peter", name: "Peter Gocke", organizationId: "11111111-1111-4111-8111-111111111111", organization: "Charite", sector: "Krankenhaus", category: "Krankenhaus", city: "Berlin", state: "Berlin", status: "active" },
@@ -732,6 +732,8 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
     ];`
   });
 
+  await page.locator('#care-mode-actions [data-care-mode="contacts"]').click();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten (2)");
   await page.locator("#contact-matching-worklist-button").click();
 
@@ -801,7 +803,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 });
 
 test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
 
   const isMobile = testInfo.project.name.includes("mobile");
   if (!isMobile) await page.setViewportSize({ width: 1440, height: 720 });
@@ -861,7 +863,7 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
 });
 
 test("Kontaktprofil: direkter Deeplink rendert Profilseite", async ({ page }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#person/contact/demo-contact-01");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#person/contact/demo-contact-01");
 
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#person\/contact\/demo-contact-01$/);
@@ -872,7 +874,7 @@ test("Kontaktprofil: direkter Deeplink rendert Profilseite", async ({ page }) =>
 });
 
 test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
 
   const isMobile = testInfo.project.name.includes("mobile");
   await page.locator("#contact-list .row, #contact-list .mobile-contact-card").first().click();
@@ -911,7 +913,7 @@ test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ pag
 });
 
 test("Kontaktprofil: Notizen als Chat pflegen", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
 
   await page.locator("#contact-list .row, #contact-list .mobile-contact-card").first().click();
   if (!testInfo.project.name.includes("mobile")) {
@@ -943,7 +945,7 @@ test("Kontaktprofil: Notizen als Chat pflegen", async ({ page }, testInfo) => {
 });
 
 test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "viewer" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "viewer" });
 
   await page.locator("#contact-list .row, #contact-list .mobile-contact-card").first().click();
   if (!testInfo.project.name.includes("mobile")) {
@@ -962,7 +964,7 @@ test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }, 
 });
 
 test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/map/versorgungs-kompass-map.html");
+  await gotoAuthenticated(page, "/frontend/map/versorgungs-kompass-map.html");
 
   await expect(page.locator("#map")).toBeVisible();
   if (testInfo.project.name.includes("mobile")) {
@@ -976,7 +978,7 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
 });
 
 test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "viewer" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "viewer" });
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#sidebar-import-button")).toBeHidden();
@@ -988,7 +990,7 @@ test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => 
 });
 
 test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveAttribute("aria-hidden", "false");
@@ -1005,7 +1007,7 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
   await page.setViewportSize(testInfo.project.name.includes("mobile")
     ? { width: 390, height: 460 }
     : { width: 1440, height: 460 });
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
 
   const sidebar = page.locator(".app-sidebar");
   await expect(sidebar).toBeVisible();
@@ -1042,7 +1044,7 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
 });
 
 test("Mein Profil: Einstellungen sind als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#profile-settings", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile-settings", { role: "admin" });
 
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator("#sidebar-settings-button")).toHaveCount(0);
@@ -1055,7 +1057,7 @@ test("Mein Profil: Einstellungen sind als Profil-Reiter erreichbar", async ({ pa
 });
 
 test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#profile-about", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile-about", { role: "admin" });
 
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="about"]')).toHaveAttribute("aria-selected", "true");
@@ -1068,7 +1070,7 @@ test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ pag
 });
 
 test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#profile-changelog", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile-changelog", { role: "admin" });
 
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="changelog"]')).toHaveAttribute("aria-selected", "true");
@@ -1080,7 +1082,7 @@ test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page },
 
 for (const role of ["admin", "editor", "viewer"]) {
   test(`Mein Profil: Onboarding-Tour ist für ${role} startbar`, async ({ page }) => {
-    await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role });
+    await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role });
     const expectedAllowedPermissions = role === "admin" ? 9 : role === "editor" ? 5 : 2;
 
     await page.locator("#sidebar-profile-button").click();
@@ -1105,7 +1107,7 @@ for (const role of ["admin", "editor", "viewer"]) {
 }
 
 test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
   await page.locator("#sidebar-profile-button").click();
   await page.locator("#profile-tour-start").click();
 
@@ -1139,7 +1141,7 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
 });
 
 test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#registrations", { role: "admin" });
 
   await expect(page.locator('[data-settings-tab="registrations"]')).toHaveText("Registrierungen");
   await expect(page.locator('[data-settings-tab="imports"]')).toHaveText("Dateiimport");
@@ -1161,7 +1163,7 @@ test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page },
 });
 
 test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ page }, testInfo) => {
-  await page.goto("/mitmachen/versorgungs-netzwerk.html");
+  await page.goto("/frontend/pages/mitmachen/versorgungs-netzwerk.html");
 
   await expect(page.locator("#registration-form")).toBeVisible();
   await page.locator("#email").fill("versorgung@example.test");
@@ -1178,7 +1180,7 @@ test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ pa
   await expect(page.locator("#confirmation")).toBeVisible();
   await expect(page.locator("#confirmation")).toContainText("Eingang geprüft");
 
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#registrations", { role: "admin" });
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
   await expect(page.locator("#registrations-list")).toContainText("Pflegezentrum Beispielstadt");
   await page.locator("[data-registration-preview]").first().click();
@@ -1193,7 +1195,7 @@ test("Öffentliche Registrierung landet mit DSGVO-Status im Import", async ({ pa
 });
 
 test("Importe: geöffneter Registrierungs-Reiter aktualisiert neue Demo-Eingaenge", async ({ page, context }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#registrations", { role: "admin" });
   await page.evaluate(() => {
     window.localStorage.setItem("versorgungs-kompass-backend-registrations-v1", JSON.stringify([]));
   });
@@ -1201,7 +1203,7 @@ test("Importe: geöffneter Registrierungs-Reiter aktualisiert neue Demo-Eingaeng
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(0);
 
   const formPage = await context.newPage();
-  await formPage.goto("/mitmachen/versorgungs-netzwerk.html");
+  await formPage.goto("/frontend/pages/mitmachen/versorgungs-netzwerk.html");
   await formPage.locator("#email").fill("offener-tab@example.test");
   await formPage.locator("#first_name").fill("Nina");
   await formPage.locator("#last_name").fill("Rueckkehr");
@@ -1222,7 +1224,7 @@ test("Importe: geöffneter Registrierungs-Reiter aktualisiert neue Demo-Eingaeng
 });
 
 test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#registrations", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#registrations", { role: "admin" });
 
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
   await page.locator("[data-registration-preview]").first().click();
@@ -1236,7 +1238,7 @@ test("Importe: Demo-Registrierungen lassen sich zurücksetzen", async ({ page })
 });
 
 test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
   await expect(page.locator("#stakeholder-mode-actions [data-stakeholder-type=\"kv\"]")).toHaveAttribute("aria-selected", "true");
@@ -1341,7 +1343,7 @@ test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async
 });
 
 test("Stakeholder: Krankenkassen und aerztliche Verbaende starten nach Mitgliederzahl", async ({ page }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
 
   await page.locator('[data-stakeholder-type="health-insurance"]').click();
   await expect(page.locator('[data-stakeholder-type="health-insurance"]')).toHaveAttribute("aria-selected", "true");
@@ -1368,7 +1370,7 @@ test("Stakeholder: Patientenverbaende zeigen recherchierte Mitgliederzahlen und 
       JSON.stringify(["organization", "location", "people"])
     );
   });
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
 
   await page.locator('[data-stakeholder-type="patient-associations"]').click();
   await expect(page.locator('[data-stakeholder-type="patient-associations"]')).toHaveAttribute("aria-selected", "true");
@@ -1398,7 +1400,7 @@ test("Stakeholder: Patientenverbaende zeigen recherchierte Mitgliederzahlen und 
 });
 
 test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", async ({ page }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", {
     role: "admin",
     stakeholderScript: `
       window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES = [
@@ -1457,7 +1459,7 @@ test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", asyn
 });
 
 test("Stakeholder: KVn-Bereich ist nur fuer Admins sichtbar", async ({ page }) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#stakeholders", { role: "viewer" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "viewer" });
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCount(0);
@@ -1466,12 +1468,12 @@ test("Stakeholder: KVn-Bereich ist nur fuer Admins sichtbar", async ({ page }) =
 });
 
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html");
 
   await page.locator('[data-view-tab="analytics"]:visible').first().click();
 
   await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();
-  await expect(page.locator(".dashboard-grid")).toBeVisible();
+  await expect(page.locator("#view-analytics .dashboard-grid")).toBeVisible();
   await expect(page.locator("#workspace-view-title")).not.toBeVisible();
   await expect(page.locator("#workspace-view-subtitle")).not.toBeVisible();
   await expect(page.locator('[data-view-tab="quality"]')).toHaveCount(0);
@@ -1491,7 +1493,7 @@ test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
 });
 
 test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/app/versorgungs-kompass.html#formats");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#formats");
 
   await expect(page.locator('[data-view-panel="formats"]')).toBeVisible();
   await expect(page.locator("#new-format-button")).toBeVisible();

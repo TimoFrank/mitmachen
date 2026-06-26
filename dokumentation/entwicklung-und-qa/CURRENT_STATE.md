@@ -1,10 +1,10 @@
 # Current State
 
-Stand: 2026-06-14.
+Stand: 2026-06-26.
 
 ## Aktiver Arbeitsmodus
 
-- Fuehrende App-Dateien: `app/versorgungs-kompass.html`, `map/versorgungs-kompass-map.html`, `login/login.html`.
+- Fuehrende App-Dateien: `frontend/app/versorgungs-kompass.html`, `frontend/map/versorgungs-kompass-map.html`, `frontend/login/login.html`.
 - `docs/` ist der GitHub-Pages-Spiegel und wird nur bei Push-/Live-/GitHub-Pages-Auftraegen synchronisiert.
 - Kleine UI-Wuensche starten im Effizienzmodus aus `QA_WORKFLOW.md`.
 - Bei sichtbaren UI-Aenderungen bleiben `../produkt-und-design/DESIGN_SYSTEM.md`, `../produkt-und-design/UX_PRINCIPLES.md`, `../produkt-und-design/COMPONENT_INVENTORY.md`, `../produkt-und-design/UI_TECH_DEBT.md` und `../produkt-und-design/VISUAL_QA_CHECKLIST.md` die relevanten Leitplanken.
@@ -26,7 +26,7 @@ Stand: 2026-06-14.
 
 - Der In-App-Browser kann je nach Sitzung LocalStorage-Schreibzugriffe blockieren. Fuer reproduzierbare lokale QA daher Playwright mit `gotoAuthenticated` bevorzugen.
 - `playwright.config.js` nutzt Port `4173` und darf bestehende lokale Server wiederverwenden. Bei merkwuerdigen Testergebnissen pruefen, ob ein alter Server noch denselben Port belegt.
-- `app/versorgungs-kompass.html` ist weiterhin gross und override-lastig. Bei kleinen Aenderungen gezielt suchen und patchen, nicht breit refactoren.
+- `frontend/app/versorgungs-kompass.html` ist weiterhin gross und override-lastig. Bei kleinen Aenderungen gezielt suchen und patchen, nicht breit refactoren.
 
 ## Git-Status-Regel
 

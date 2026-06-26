@@ -31,7 +31,7 @@ python3 -m http.server 4173
 Danach im Browser oeffnen:
 
 ```text
-http://127.0.0.1:4173/login/login.html
+http://127.0.0.1:4173/frontend/login/login.html
 ```
 
 Fuer den produktionsnahen Betrieb kann die API-Schicht mit den Backend-Zugangsdaten der Zielumgebung gestartet werden:
@@ -45,33 +45,35 @@ Die konkreten Backend-Variablen haengen von der Zielplattform ab. Details stehen
 
 ## Ordnerstruktur
 
-- `app/`: Hauptanwendung des Versorgungs-Kompass.
-- `login/`: Login-Seite und Auth-Skripte.
-- `map/`: Kartenansichten, Mini-Karten und Kartendaten.
-- `data/`: Datenadapter, Backend-Konfiguration und leere Fallback-Dateien.
+- `frontend/`: fuehrende Frontend-Quellen.
+  - `frontend/app/`: Hauptanwendung des Versorgungs-Kompass.
+  - `frontend/login/`: Login-Seite und Auth-Skripte.
+  - `frontend/map/`: Kartenansichten, Mini-Karten und Kartendaten.
+  - `frontend/data/`: Datenadapter, Backend-Konfiguration und leere Fallback-Dateien.
+  - `frontend/pages/`: einzelne statische Zusatzseiten, die nach `docs/` gespiegelt werden.
 - `api/`: REST-API fuer produktionsnahe Backend-Zugriffe im Zielbild.
 - `supabase/`: Legacy-/Migrationsquelle bis zur abgeschlossenen Shared-Postgres-Datenmigration.
 - `deploy/`: Helm Chart und Deployment-Artefakte fuer das gematik Kubernetes-Zielbild.
 - `public/`: Logos, Icons und statische Assets.
-- `pages/`: einzelne statische Zusatzseiten, die nach `docs/` gespiegelt werden.
 - `examples/`: Beispiel- und Demo-Oberflaechen ohne produktive Daten.
 - `scripts/`: Pruef-, Sync- und Importskripte.
 - `tests/`: Playwright-Smoke-Tests.
 - `docs/`: Publish-Kopie fuer GitHub Pages. Dieser Ordner wird aus den Quellordnern synchronisiert.
 - `dokumentation/`: Architektur, Betrieb, Design, QA und historische Uebergabeunterlagen.
 
-Die wichtigsten Quellpfade sind `app/`, `login/`, `map/`, `data/`, `api/`, `deploy/`, `public/`, `pages/` und `examples/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
+Die wichtigsten Quellpfade sind `frontend/`, `api/`, `deploy/`, `public/`, `examples/`, `scripts/`, `tests/` und `dokumentation/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
 
 ## Daten und Backend
 
 Produktive Kontakt-, Organisations- und Netzwerkdaten gehoeren in ein geschuetztes Backend. Sie werden nicht in GitHub gespeichert.
 
-Die Dateien in `data/` halten Adapter, Konfiguration und leere Fallbacks bereit. Geheimnisse oder administrative Backend-Schluessel duerfen nie in Frontend-Dateien wie `data/supabase-config.js` eingetragen werden.
+Die Dateien in `frontend/data/` halten Adapter, Konfiguration und leere Fallbacks bereit. Geheimnisse oder administrative Backend-Schluessel duerfen nie in Frontend-Dateien wie `frontend/data/supabase-config.js` eingetragen werden.
 
 Weitere Details:
 
 - `dokumentation/architektur/API_CONTRACT.md`: API-Grenzen und Sicherheitsmodell.
 - `dokumentation/architektur/DATA_MODEL.md`: fachliches Datenmodell.
+- `dokumentation/architektur/VERSORGUNGS_NETZWERK_REGISTRIERUNG.md`: Backend-Vertrag fuer die Registrierungs-Inbox.
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`: gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
 - `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/postgres-migrationsentwurf/`: historischer Postgres-/Importentwurf, nicht Teil des aktiven Zielpfads.
 - `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/uebergabe/DEPLOYMENT_GCP_GEMATIK.md`: archivierter Cloud-Run-Entwurf.

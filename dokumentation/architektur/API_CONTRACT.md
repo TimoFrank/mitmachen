@@ -78,7 +78,7 @@ DB-Spalten wie `organization_id`, `postal_code`, `format_type`, `invitation_stat
 
 ## Produktivmodus
 
-`data/supabase-config.js` steuert den Modus:
+`frontend/data/supabase-config.js` steuert den Modus:
 
 - `dataMode: "local"` oder `"demo"`: Demo-/Local-Daten bleiben im Browser verfuegbar.
 - `dataMode: "api"` und `authMode: "trusted-header"` oder `"sso"`: fachliche Datenpfade laufen ueber die Ziel-API; Identitaet kommt vom internen Gateway.

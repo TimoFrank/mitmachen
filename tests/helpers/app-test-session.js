@@ -18,7 +18,7 @@ function authGuardStub() {
       setAuthenticated: () => ({ authenticated: true, expiresAt: Date.now() + 2592000000 }),
       clearAuthenticated: () => {},
       buildLoginUrl: () => "../login/login.html",
-      getDefaultUrl: () => "../app/versorgungs-kompass.html"
+      getDefaultUrl: () => "../frontend/app/versorgungs-kompass.html"
     };
   `;
 }

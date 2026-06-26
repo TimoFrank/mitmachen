@@ -93,9 +93,9 @@ Diese Checkliste ist vor jeder groesseren UI-Aenderung durchzugehen. Screenshots
 
 ## Empfohlene Screenshot-Szenarien
 
-- Kontakte: `app/versorgungs-kompass.html`, Default-Kontaktliste mit Filtertoolbar.
+- Kontakte: `frontend/app/versorgungs-kompass.html`, Default-Kontaktliste mit Filtertoolbar.
 - Kontaktprofil: Kontakt oeffnen, Lesemodus und optional Edit-Modus.
-- Karte: `map/versorgungs-kompass-map.html` oder eingebetteter Karten-View.
+- Karte: `frontend/map/versorgungs-kompass-map.html` oder eingebetteter Karten-View.
 - Auswertung: Analytics-View mit aktiven Daten.
 - Importe: Sidebar-Eintrag, Import-Startseite und Start des bestehenden Import-Wizards.
 - Bulk-Anlage: Import-Startseite, Online-Tabelle, Validierung, Speichern fehlerfreier Zeilen.

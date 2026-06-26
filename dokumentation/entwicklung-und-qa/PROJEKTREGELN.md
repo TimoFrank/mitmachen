@@ -26,7 +26,7 @@ Diese Regeln gelten fuer assistierte und manuelle Arbeit im Versorgungs-Kompass.
 
 - Bei UI-Aenderungen zuerst bestehende Klassen und Muster suchen, dann erweitern.
 - Neue Funktionen zuerst in die Navigationsstruktur einordnen, bevor Topbar- oder Zusatzaktionen entstehen.
-- `app/versorgungs-kompass.html`, `map/versorgungs-kompass-map.html` und `login/login.html` sind fuehrende Quellen.
+- `frontend/app/versorgungs-kompass.html`, `frontend/map/versorgungs-kompass-map.html` und `frontend/login/login.html` sind fuehrende Quellen.
 - Wenn Aenderungen auf GitHub/GitHub Pages live gehen sollen, immer `bash scripts/sync_github_pages.sh` ausfuehren und die aktualisierten `docs/`-Artefakte mitcommitten; der Nutzer muss das nicht extra anfordern.
 - Bestehende uncommitted Aenderungen nicht zuruecksetzen.
 - Keine grossen neuen Features waehrend eines Design-System-Konsolidierungssprints.

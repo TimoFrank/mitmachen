@@ -1,6 +1,6 @@
 # Component Inventory
 
-Stand: 2026-05-16. Analysebasis sind die aktuellen UI-Quellen in `app/versorgungs-kompass.html`, `map/versorgungs-kompass-map.html` und `login/login.html`. `docs/` ist Deploy-Spiegel und darf nicht als fuehrende Quelle fuer neue UI-Entscheidungen dienen.
+Stand: 2026-05-16. Analysebasis sind die aktuellen UI-Quellen in `frontend/app/versorgungs-kompass.html`, `frontend/map/versorgungs-kompass-map.html` und `frontend/login/login.html`. `docs/` ist Deploy-Spiegel und darf nicht als fuehrende Quelle fuer neue UI-Entscheidungen dienen.
 
 ## Buttons
 
@@ -111,6 +111,6 @@ Stand: 2026-05-16. Analysebasis sind die aktuellen UI-Quellen in `app/versorgung
 
 ## Aktuelle Konsolidierungsanker
 
-- Tokens in `:root`: Farben, Radius, Shadow, Spacing und Typografie sind in `app/versorgungs-kompass.html` und `map/versorgungs-kompass-map.html` vorhanden.
-- Spaete Override-Schicht: Kommentar `Design system consolidation layer` in `app/versorgungs-kompass.html` und eine aehnliche Normalisierung am Ende der Karten-CSS.
+- Tokens in `:root`: Farben, Radius, Shadow, Spacing und Typografie sind in `frontend/app/versorgungs-kompass.html` und `frontend/map/versorgungs-kompass-map.html` vorhanden.
+- Spaete Override-Schicht: Kommentar `Design system consolidation layer` in `frontend/app/versorgungs-kompass.html` und eine aehnliche Normalisierung am Ende der Karten-CSS.
 - Zielzustand: Diese Regeln muessen in echte Komponenten-/Tokenstrukturen ueberfuehrt werden, nicht weiter als Override-Schicht wachsen.

@@ -714,7 +714,7 @@ function stakeholderPhysicianAssociationLogoMetadataFor(id) {
     return {};
   }
   return {
-    logoUrl: `../public/stakeholder-logos/physician-associations/${logoMetadata.logoFile}`,
+    logoUrl: `../../public/stakeholder-logos/physician-associations/${logoMetadata.logoFile}`,
     logoSourceUrl: logoMetadata.logoSourceUrl || "",
     logoSourceLabel: logoMetadata.logoSourceLabel || stakeholderPhysicianAssociationLogoSourceLabel
   };
@@ -927,7 +927,7 @@ const stakeholderKvOrganizations = [
   latitude: lat,
   longitude: lon,
   website,
-  logoUrl: `../public/stakeholder-logos/${logoFile}`,
+  logoUrl: `../../public/stakeholder-logos/${logoFile}`,
   logoSourceUrl: stakeholderKvLogoSourceUrls[id] || website,
   logoSourceLabel: "Offizielles Header-/Logo-Asset der Organisation",
   memberCount,
@@ -974,7 +974,7 @@ const stakeholderKvOrganizations = [
     longitude: lon,
     website,
     phone,
-    logoUrl: logoMetadata.logoFile ? `../public/stakeholder-logos/hospital-associations/${logoMetadata.logoFile}` : "",
+    logoUrl: logoMetadata.logoFile ? `../../public/stakeholder-logos/hospital-associations/${logoMetadata.logoFile}` : "",
     logoSourceUrl: logoMetadata.logoSourceUrl || "",
     logoSourceLabel: logoMetadata.logoSourceLabel || (logoMetadata.logoSourceUrl ? "Kuratiertes Logo-Asset" : ""),
     notes: `Adresse laut DKG: ${streetAddress}, ${postalCode} ${city}`,
@@ -1049,7 +1049,7 @@ const stakeholderKvOrganizations = [
     email,
     notes,
     source,
-    logoUrl: logoMetadata.logoFile ? `../public/stakeholder-logos/patient-associations/${logoMetadata.logoFile}` : "",
+    logoUrl: logoMetadata.logoFile ? `../../public/stakeholder-logos/patient-associations/${logoMetadata.logoFile}` : "",
     logoSourceUrl: logoMetadata.logoSourceUrl || "",
     logoSourceLabel: logoMetadata.logoSourceUrl ? stakeholderPatientAssociationLogoSourceLabel : "",
     memberCount: memberCountMetadata.memberCount ?? null,
@@ -1152,467 +1152,467 @@ const stakeholderKvOrganizations = [
 
 const stakeholderHealthInsuranceLogoMetadata = {
   "health-insurance-aok-baden-wurttemberg": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-bayern": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-bremen-bremerhaven": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-hessen": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-niedersachsen": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-nordost": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-nordwest": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-plus": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-aok-plus.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-aok-plus.svg",
     logoSourceUrl: "https://www.aok.de/aokplus",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-rheinland-pfalz-saarland": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-rheinland-hamburg": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/aok.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/aok.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:AOK-2021.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-aok-sachsen-anhalt": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-aok-sachsen-anhalt.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-aok-sachsen-anhalt.svg",
     logoSourceUrl: "https://www.aok.de/sachsen-anhalt",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-audi-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-audi-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-audi-bkk.svg",
     logoSourceUrl: "https://www.audibkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bahn-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bahn-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bahn-bkk.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BAHN-BKK_RGB.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-barmer": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-barmer.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-barmer.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Barmer_Logo_12.2025.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bergische-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bergische-krankenkasse.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bergische-krankenkasse.png",
     logoSourceUrl: "https://www.bergische-krankenkasse.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bertelsmann-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bertelsmann-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bertelsmann-bkk.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Bertelsmann_BKK_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-big-direkt-gesund": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-big-direkt-gesund.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-big-direkt-gesund.svg",
     logoSourceUrl: "https://www.big-direkt.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-akzo-nobel-bayern": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-akzo-nobel-bayern.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-akzo-nobel-bayern.svg",
     logoSourceUrl: "https://www.bkk-akzo.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-b-braun-aesculap": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-b-braun-aesculap.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-b-braun-aesculap.png",
     logoSourceUrl: "https://www.bkk-bba.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-deutsche-bank-ag": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-deutsche-bank-ag.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-deutsche-bank-ag.svg",
     logoSourceUrl: "https://de.wikipedia.org/wiki/Datei:BKK_Deutsche_Bank_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-diakonie": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-diakonie.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-diakonie.png",
     logoSourceUrl: "https://www.bkk-diakonie.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-durkoppadler": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-durkoppadler.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-durkoppadler.png",
     logoSourceUrl: "https://www.bkk-da.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-euregio": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-euregio.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-euregio.png",
     logoSourceUrl: "https://www.bkk-euregio.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-evm": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-evm.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-evm.svg",
     logoSourceUrl: "https://www.bkk-evm.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-ewe": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-ewe.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-ewe.svg",
     logoSourceUrl: "https://www.bkk-ewe.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-exklusiv": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-exklusiv.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-exklusiv.png",
     logoSourceUrl: "https://www.bkkexklusiv.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-faber-castell-partner": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-faber-castell-partner.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-faber-castell-partner.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Faber_Castell_&_Partner_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-firmus": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-firmus.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-firmus.svg",
     logoSourceUrl: "https://www.bkk-firmus.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-freudenberg": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-freudenberg.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-freudenberg.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Freudenberg_BKK_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-gildemeister-seidensticker": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-gildemeister-seidensticker.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-gildemeister-seidensticker.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Gildemeister_Seidensticker_logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-groz-beckert": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-groz-beckert.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-groz-beckert.svg",
     logoSourceUrl: "https://www.bkk-gb.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-herkules": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-herkules.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-herkules.svg",
     logoSourceUrl: "https://www.bkk-herkules.de/",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-karl-mayer": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-karl-mayer.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-karl-mayer.svg",
     logoSourceUrl: "https://www.karlmayer-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-linde": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-linde.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-linde.svg",
     logoSourceUrl: "https://www.bkk-linde.de/",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-mahle": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-mahle.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-mahle.svg",
     logoSourceUrl: "https://www.bkk-mahle.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-melitta-hmr": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-melitta-hmr.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-melitta-hmr.svg",
     logoSourceUrl: "https://www.bkk-melitta-hmr.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-miele": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-miele.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-miele.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Miele_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-mtu": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-mtu.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-mtu.svg",
     logoSourceUrl: "https://www.bkk-mtu.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-pfaff": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-pfaff.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-pfaff.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK-Pfaff-Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-pfalz": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-pfalz.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-pfalz.svg",
     logoSourceUrl: "https://www.bkkpfalz.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-provita": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-provita.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-provita.svg",
     logoSourceUrl: "https://www.bkk-provita.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-public": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-public.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-public.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Public_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-pwc": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-pwc.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-pwc.svg",
     logoSourceUrl: "https://www.bkk-pwc.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-rieker-ricosta-weisser": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-rieker-ricosta-weisser.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-rieker-ricosta-weisser.svg",
     logoSourceUrl: "https://www.bkk-rrw.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-salzgitter": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-salzgitter.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-salzgitter.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Salzgitter_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-sbh": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-sbh.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-sbh.svg",
     logoSourceUrl: "https://www.bkk-sbh.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-scheufelen": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-scheufelen.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-scheufelen.png",
     logoSourceUrl: "https://www.bkk-scheufelen.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-technoform": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-technoform.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-technoform.png",
     logoSourceUrl: "https://www.bkk-technoform.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-vdn": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-vdn.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-vdn.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_VDN_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-verbundplus": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-verbundplus.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-verbundplus.svg",
     logoSourceUrl: "https://www.bkk-verbundplus.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-werra-meissner": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-werra-meissner.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-werra-meissner.svg",
     logoSourceUrl: "https://www.bkk-werra-meissner.de/",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-wirtschaft-finanzen": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-wirtschaft-finanzen.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-wirtschaft-finanzen.png",
     logoSourceUrl: "https://www.bkk-wf.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk-wurth": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk-wurth.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk-wurth.png",
     logoSourceUrl: "https://www.bkk-wuerth.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bkk24": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bkk24.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bkk24.svg",
     logoSourceUrl: "https://www.bkk24.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bmw-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bmw-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bmw-bkk.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BMW_BKK_Logo_2020.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-bosch-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-bosch-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-bosch-bkk.svg",
     logoSourceUrl: "https://www.bosch-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-continentale-betriebskrankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-continentale-betriebskrankenkasse.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-continentale-betriebskrankenkasse.png",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Logo_CBKK.png",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-dak-gesundheit": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-dak-gesundheit.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-dak-gesundheit.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:DAK-Gesundheit_logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-debeka-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-debeka-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-debeka-bkk.svg",
     logoSourceUrl: "https://www.debeka-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-energie-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-energie-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-energie-bkk.svg",
     logoSourceUrl: "https://www.energie-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-ey-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ey-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-ey-bkk.svg",
     logoSourceUrl: "https://www.ey-bkk.de/",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-heimat-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-heimat-krankenkasse.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-heimat-krankenkasse.png",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Heimat_Krankenkasse_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-hek-hanseatische-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-hek-hanseatische-krankenkasse.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-hek-hanseatische-krankenkasse.png",
     logoSourceUrl: "https://www.hek.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-hkk-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-hkk-krankenkasse.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-hkk-krankenkasse.svg",
     logoSourceUrl: "https://www.hkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-ikk-die-innovationskasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-die-innovationskasse.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-ikk-die-innovationskasse.png",
     logoSourceUrl: "https://www.die-ik.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-ikk-brandenburg-und-berlin": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-brandenburg-und-berlin.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-ikk-brandenburg-und-berlin.svg",
     logoSourceUrl: "https://www.ikkbb.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-ikk-classic": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-classic.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-ikk-classic.svg",
     logoSourceUrl: "https://www.ikk-classic.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-ikk-gesund-plus": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-gesund-plus.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-ikk-gesund-plus.svg",
     logoSourceUrl: "https://www.ikk-gesundplus.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-ikk-sudwest": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-ikk-sudwest.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-ikk-sudwest.svg",
     logoSourceUrl: "https://www.ikk-suedwest.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-kkh-kaufmannische-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-kkh-kaufmannische-krankenkasse.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-kkh-kaufmannische-krankenkasse.svg",
     logoSourceUrl: "https://www.kkh.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-knappschaft": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-knappschaft.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-knappschaft.png",
     logoSourceUrl: "https://www.knappschaft.de/",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-koenig-bauer-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-koenig-bauer-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-koenig-bauer-bkk.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:BKK_Koenig_%26_Bauer_Logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-krones-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-krones-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-krones-bkk.svg",
     logoSourceUrl: "https://www.krones-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-mercedes-benz-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-mercedes-benz-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-mercedes-benz-bkk.svg",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_BKK_Logo_2022.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-merck-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-merck-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-merck-bkk.svg",
     logoSourceUrl: "https://www.merck-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-mhplus-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-mhplus-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-mhplus-bkk.svg",
     logoSourceUrl: "https://www.mhplus.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-mkk-meine-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-mkk-meine-krankenkasse.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-mkk-meine-krankenkasse.svg",
     logoSourceUrl: "https://www.meine-krankenkasse.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-mobil-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-mobil-krankenkasse.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-mobil-krankenkasse.svg",
     logoSourceUrl: "https://www.mobil-krankenkasse.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-novitas-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-novitas-bkk.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-novitas-bkk.png",
     logoSourceUrl: "https://www.novitas-bkk.de/",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-pronova-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-pronova-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-pronova-bkk.svg",
     logoSourceUrl: "https://www.pronovabkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-r-v-betriebskrankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-r-v-betriebskrankenkasse.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-r-v-betriebskrankenkasse.svg",
     logoSourceUrl: "https://www.ruv-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-salus-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-salus-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-salus-bkk.svg",
     logoSourceUrl: "https://www.salus-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-sbk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-sbk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-sbk.svg",
     logoSourceUrl: "https://www.sbk.org/",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-securvita-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-securvita-krankenkasse.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-securvita-krankenkasse.png",
     logoSourceUrl: "https://www.securvita.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-skd-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-skd-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-skd-bkk.svg",
     logoSourceUrl: "https://www.skd-bkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-svlfg-landwirtschaftliche-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-svlfg-landwirtschaftliche-krankenkasse.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-svlfg-landwirtschaftliche-krankenkasse.svg",
     logoSourceUrl: "https://www.svlfg.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-sudzucker-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-sudzucker-bkk.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-sudzucker-bkk.png",
     logoSourceUrl: "https://www.xn--sdzucker-bkk-dlb.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-techniker-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-techniker-krankenkasse.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-techniker-krankenkasse.svg",
     logoSourceUrl: "https://www.tk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-tui-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-tui-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-tui-bkk.svg",
     logoSourceUrl: "https://www.tui-bkk.de/",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-viactiv-krankenkasse": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-viactiv-krankenkasse.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-viactiv-krankenkasse.svg",
     logoSourceUrl: "https://www.viactiv.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-vivida-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-vivida-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-vivida-bkk.svg",
     logoSourceUrl: "https://www.vividabkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-wmf-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-wmf-bkk.png",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-wmf-bkk.png",
     logoSourceUrl: "https://commons.wikimedia.org/wiki/File:WMF_BKK_logo.svg",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   },
   "health-insurance-zf-bkk": {
-    logoUrl: "../public/stakeholder-logos/health-insurance/health-insurance-zf-bkk.svg",
+    logoUrl: "../../public/stakeholder-logos/health-insurance/health-insurance-zf-bkk.svg",
     logoSourceUrl: "https://www.zfbkk.de",
     logoSourceLabel: "Kuratiertes Logo-Asset"
   }

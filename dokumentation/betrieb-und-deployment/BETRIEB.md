@@ -13,14 +13,14 @@ Wichtige Komponenten:
 | Komponente | Aufgabe |
 | --- | --- |
 | GitHub Pages / `docs/` | Oeffnet die statische Web-App im Browser. GitHub Pages speichert keine produktiven Kontaktdaten. |
-| Frontend in `app/`, `login/`, `map/`, `data/` | HTML/JavaScript-Oberflaeche, Login, Kartenansicht und Data-Service. |
+| Frontend in `frontend/` | HTML/JavaScript-Oberflaeche, Login, Kartenansicht und Data-Service. |
 | Supabase-Projekt | Gemeinsames Backend fuer Login, Datenbank, Rechte und Datenzugriff. |
 | Supabase Auth | Anmeldung der Nutzer. Nach dem ersten Login wird ein Profil in `profiles` angelegt. |
 | Supabase-Datenbank | Produktiver Datenbestand fuer Kontakte, Profile, Aenderungen, gespeicherte Suchen und Nutzereinstellungen. |
-| `data/supabase-config.js` | Frontend-Konfiguration mit Supabase URL und anon/publishable Key. |
+| `frontend/data/supabase-config.js` | Frontend-Konfiguration mit Supabase URL und anon/publishable Key. |
 | `scripts/` | Lokale Admin-Skripte fuer Import, GitHub-Pages-Sync, Sicherheitspruefung und Backup-Export. |
 
-Produktive Kontakt-, E-Mail-, Telefon- und CRM-Daten duerfen nicht in die oeffentlichen Seed-Dateien oder in GitHub Pages geschrieben werden. Die Dateien `data/versorgungs-kompass-data.csv` und `data/versorgungs-kompass-data.js` bleiben leer und dienen nur als Fallback-Schnittstelle.
+Produktive Kontakt-, E-Mail-, Telefon- und CRM-Daten duerfen nicht in die oeffentlichen Seed-Dateien oder in GitHub Pages geschrieben werden. Die Dateien `frontend/data/versorgungs-kompass-data.csv` und `frontend/data/versorgungs-kompass-data.js` bleiben leer und dienen nur als Fallback-Schnittstelle.
 
 ## 2. Rollen im Betrieb
 
@@ -46,7 +46,7 @@ Aktueller Frontend-Konfigurationsstand:
 
 - Projekt-URL: `https://fntqoqxriipjzfhzxiry.supabase.co`
 - Projekt-Referenz: `fntqoqxriipjzfhzxiry`
-- Frontend-Datei: `data/supabase-config.js`
+- Frontend-Datei: `frontend/data/supabase-config.js`
 - Publish-Kopie: `docs/data/supabase-config.js`
 - Modus: `dataMode: "supabase"`
 - benoetigt im Frontend: `supabaseUrl` und `supabaseAnonKey`
@@ -54,7 +54,7 @@ Aktueller Frontend-Konfigurationsstand:
 Sicherheitsregeln:
 
 - Der Supabase anon/publishable Key darf im Frontend stehen, wenn Auth und RLS korrekt aktiv sind.
-- Der Service-Role-Key darf niemals in `data/`, `docs/`, `app/`, `login/`, GitHub Pages oder andere Frontend-Dateien.
+- Der Service-Role-Key darf niemals in `frontend/`, `docs/`, GitHub Pages oder andere Frontend-Dateien.
 - Der Service-Role-Key darf nur lokal als Umgebungsvariable oder in geschuetzten CI-Secrets genutzt werden.
 - Keine Passwoerter, privaten Tokens oder produktiven Backups ins Repository committen.
 
@@ -226,7 +226,7 @@ Vor einem Deployment:
 
 1. Aktuellen Zustand sichern: `git status --short`.
 2. Bei Daten-/Import-Risiko Backup exportieren.
-3. Keine produktiven Kontaktdaten in `data/versorgungs-kompass-data.*` oder `docs/data/versorgungs-kompass-data.*`.
+3. Keine produktiven Kontaktdaten in `frontend/data/versorgungs-kompass-data.*` oder `docs/data/versorgungs-kompass-data.*`.
 4. Supabase-Konfiguration pruefen: URL und anon/publishable Key korrekt.
 5. Sicherstellen: kein Service-Role-Key im Frontend.
 6. Lokalen Webserver starten, z. B. `python3 -m http.server 4173`.
@@ -237,7 +237,7 @@ Vor einem Deployment:
 11. Checks ausfuehren:
 
 ```bash
-node --check data/data-service.js
+node --check frontend/data/data-service.js
 node --check docs/data/data-service.js
 node scripts/audit_public_assets.mjs
 git diff --check
@@ -292,7 +292,7 @@ GitHub Pages und Supabase spielen korrekt zusammen, wenn die App nach Login Kont
 2. Neu laden und erneut einloggen.
 3. Browser-Konsole oeffnen und Fehlermeldung notieren.
 4. Supabase Dashboard pruefen: Projekt erreichbar, Auth aktiv.
-5. `data/supabase-config.js` und `docs/data/supabase-config.js` pruefen.
+5. `frontend/data/supabase-config.js` und `docs/data/supabase-config.js` pruefen.
 6. RLS/Rechte pruefen: Nutzer hat aktives Profil und passende Rolle.
 7. Browser-Cache oder localStorage leeren, danach neu anmelden.
 
@@ -301,7 +301,7 @@ GitHub Pages und Supabase spielen korrekt zusammen, wenn die App nach Login Kont
 1. Supabase Status/Dashboard pruefen.
 2. Projekt-URL und anon Key in `supabase-config.js` pruefen.
 3. Pruefen, ob der Supabase JS Client im Browser geladen wurde.
-4. Wenn nur GitHub Pages betroffen ist: `docs/data/supabase-config.js` mit `data/supabase-config.js` vergleichen und Sync ausfuehren.
+4. Wenn nur GitHub Pages betroffen ist: `docs/data/supabase-config.js` mit `frontend/data/supabase-config.js` vergleichen und Sync ausfuehren.
 
 ### Speichern funktioniert nicht
 
@@ -421,6 +421,6 @@ find . -maxdepth 4 -type f \( -iname '*backup*' -o -iname '*.env*' \)
 Bewertung:
 
 - `SUPABASE_SERVICE_ROLE_KEY` darf in Skriptdokumentation und Beispielbefehlen vorkommen, aber nie als echter Wert.
-- `passwordHash` in `login/auth-config.js` ist nur die lokale Fallback-Schranke und kein Supabase-Service-Key.
+- `passwordHash` in `frontend/login/auth-config.js` ist nur die lokale Fallback-Schranke und kein Supabase-Service-Key.
 - Produktive Backups gehoeren nicht ins Repository.
 - Falls ein echter geheimer Key gefunden wird: nicht weiterverteilen, Key rotieren, Datei bereinigen, Git-Historie bewerten.
