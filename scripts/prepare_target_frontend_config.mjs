@@ -8,7 +8,7 @@ const [
   authMode = process.env.TARGET_AUTH_MODE || process.env.API_AUTH_MODE || "trusted-header"
 ] = process.argv.slice(2);
 
-const allowedDataModes = new Set(["api", "gcp"]);
+const allowedDataModes = new Set(["api"]);
 const allowedAuthModes = new Set(["trusted-header", "sso"]);
 
 if (!apiBaseUrl) {

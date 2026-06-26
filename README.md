@@ -50,7 +50,6 @@ Die konkreten Backend-Variablen haengen von der Zielplattform ab. Details stehen
 - `map/`: Kartenansichten, Mini-Karten und Kartendaten.
 - `data/`: Datenadapter, Backend-Konfiguration und leere Fallback-Dateien.
 - `api/`: REST-API fuer produktionsnahe Backend-Zugriffe im Zielbild.
-- `db/`: neutrales PostgreSQL-Schema fuer die gematik-Zielumgebung.
 - `supabase/`: Legacy-/Migrationsquelle bis zur abgeschlossenen Shared-Postgres-Datenmigration.
 - `deploy/`: Helm Chart und Deployment-Artefakte fuer das gematik Kubernetes-Zielbild.
 - `public/`: Logos, Icons und statische Assets.
@@ -61,7 +60,7 @@ Die konkreten Backend-Variablen haengen von der Zielplattform ab. Details stehen
 - `docs/`: Publish-Kopie fuer GitHub Pages. Dieser Ordner wird aus den Quellordnern synchronisiert.
 - `dokumentation/`: Architektur, Betrieb, Design, QA und historische Uebergabeunterlagen.
 
-Die wichtigsten Quellpfade sind `app/`, `login/`, `map/`, `data/`, `api/`, `db/`, `deploy/`, `public/`, `pages/` und `examples/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
+Die wichtigsten Quellpfade sind `app/`, `login/`, `map/`, `data/`, `api/`, `deploy/`, `public/`, `pages/` und `examples/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
 
 ## Daten und Backend
 
@@ -74,7 +73,7 @@ Weitere Details:
 - `dokumentation/architektur/API_CONTRACT.md`: API-Grenzen und Sicherheitsmodell.
 - `dokumentation/architektur/DATA_MODEL.md`: fachliches Datenmodell.
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`: gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
-- `db/postgres/schema.sql`: aktives Startschema fuer Shared Postgres.
+- `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/postgres-migrationsentwurf/`: historischer Postgres-/Importentwurf, nicht Teil des aktiven Zielpfads.
 - `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/uebergabe/DEPLOYMENT_GCP_GEMATIK.md`: archivierter Cloud-Run-Entwurf.
 - `supabase/README.md`: aktuelles Legacy-Backend und Quelle fuer die Datenmigration.
 
@@ -99,7 +98,7 @@ Der fruehere Cloud-Run-Entwurf steht nur noch als Referenz in `dokumentation/bet
 
 Wichtig: Ein Git-Push aktualisiert nur den Git-Stand. Wenn eine Aenderung produktive Backend-Daten betrifft, muss sie zusaetzlich in der Zielumgebung angewendet werden.
 
-Wichtig fuer die Sichtbarkeit: GitHub Pages veroeffentlicht nur statische Dateien. Die statische Demo bleibt fuer fiktive Daten geeignet; produktive Daten brauchen im Zielbild die Kubernetes-API und Shared Postgres. Ein Commit und Push einer SQL-Datei macht die Migration als Datei sichtbar, wendet sie aber nicht auf Shared Postgres oder einen Legacy-Supabase-Datenstand an.
+Wichtig fuer die Sichtbarkeit: GitHub Pages veroeffentlicht nur statische Dateien. Die statische Demo bleibt fuer fiktive Daten geeignet; produktive Daten brauchen im Zielbild die Kubernetes-API und Shared Postgres. Ein Commit und Push einer SQL-Datei macht eine Migration nur als Datei sichtbar, wendet sie aber nicht auf Shared Postgres oder einen Legacy-Supabase-Datenstand an.
 
 ## Pruefungen
 

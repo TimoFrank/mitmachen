@@ -128,18 +128,12 @@ Die API mappt E-Mail oder Subject auf `profiles` und prueft `viewer`, `editor` u
 
 ## Datenbank und Migration
 
-Das neutrale Startschema liegt unter:
-
-```text
-db/postgres/schema.sql
-```
-
-Shared Postgres wird nicht automatisch von der App angelegt. Schema- und Datenmigrationen muessen kontrolliert durch Jenkins, ein separates DB-Migrationsticket oder ein freigegebenes Betriebsverfahren angewendet werden.
+Shared Postgres wird nicht automatisch von der App angelegt. Schema- und Datenmigrationen muessen kontrolliert durch Jenkins, ein separates DB-Migrationsticket oder ein freigegebenes Betriebsverfahren angewendet werden. Ein alter GCP-/Cloud-SQL-Migrationsentwurf liegt nur noch im Archiv und ist nicht Teil des aktiven Zielpfads.
 
 Vor einer Umschaltung:
 
 - Supabase exportieren.
-- Schema in Shared Postgres anwenden.
+- abgestimmtes Schema in Shared Postgres anwenden.
 - Daten mit stabilen IDs importieren.
 - Counts und Stichproben vergleichen.
 - Rollen, Owner, Historie, Formate, Hospitationen, Stakeholder, Saved Views und Bilder pruefen.

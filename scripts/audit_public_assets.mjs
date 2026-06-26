@@ -44,7 +44,7 @@ for (const [label, content] of [
   const dataMode = /dataMode\s*:\s*["']([^"']+)["']/.exec(content)?.[1] || "";
   assert(!/service[_-]?role/i.test(content), `${label} enthaelt Service-Role-Hinweis`);
   assert(!/sb_secret_/i.test(content), `${label} enthaelt moeglich geheimen Supabase-Key`);
-  if (["api", "gcp"].includes(dataMode)) {
+  if (dataMode === "api") {
     assert(!/supabaseAnonKey|supabaseUrl/.test(content), `${label} darf im Ziel-API-Modus keine Supabase-Keys enthalten`);
     assert(/authMode\s*:\s*["'](trusted-header|sso)["']/.test(content), `${label} muss im Ziel-API-Modus einen freigegebenen authMode setzen`);
     assert(/requireApiGateway\s*:\s*true/.test(content), `${label} muss im Ziel-API-Modus requireApiGateway=true setzen`);

@@ -128,7 +128,7 @@ Die Rollen `viewer`, `editor` und `admin` werden in der API serverseitig gegen `
 - Helm Chart fuer API-Deployment pflegen.
 - Frontend-Config-Script auf `dataMode: "api"` und `authMode: "trusted-header"` setzen.
 - Preflight- und Audit-Skripte auf neutrale Zielbegriffe umstellen.
-- Aktives Postgres-Schema unter `db/postgres/schema.sql` fuehren.
+- Datenmodell und Migrationsverfahren mit der gematik-IT abstimmen; kein altes GCP-/Cloud-SQL-Schema als aktive Root-Datei fuehren.
 
 ### Phase 3: Auth und Daten vorbereiten
 
@@ -174,6 +174,6 @@ Vor echtem Produktivbetrieb muessen diese Punkte verbindlich sein:
 
 Jetzt nicht Supabase loeschen und nicht den aktuellen GitHub-Pages-Pfad aufgeben.
 
-Der naechste sinnvolle Schritt ist die technische Zielspur im Repo: Kubernetes-Doku, Jenkinsfile, Helm Chart, neutrales API-Config-Script und Postgres-Schema vorbereiten. Danach kann die gematik-IT Namespace, Datenbank, Bucket, Ingress und Berechtigungen konkret anschliessen.
+Der naechste sinnvolle Schritt ist die technische Zielspur im Repo: Kubernetes-Doku, Jenkinsfile, Helm Chart, neutrales API-Config-Script und ein abgestimmtes Datenmodell vorbereiten. Danach kann die gematik-IT Namespace, Datenbank, Bucket, Ingress und Berechtigungen konkret anschliessen.
 
 Die kompakte Zielkonzeption steht zusaetzlich in `dokumentation/betrieb-und-deployment/GEMATIK_K8S_ZIELKONZEPT.md`.

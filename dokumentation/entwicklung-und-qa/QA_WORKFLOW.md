@@ -67,7 +67,7 @@ SUPABASE_LIVE_STATUS=verified npm run verify:publication
 SUPABASE_LIVE_STATUS=not_affected npm run verify:publication
 ```
 
-Wenn Datenmigrationen, `db/postgres/schema.sql`, Supabase-Legacy-Migrationen oder datengetriebene Stakeholder-Aenderungen betroffen sind, darf `not_affected` nicht genutzt werden. Ein Abschluss darf "sichtbar", "verfuegbar" oder "live" nur sagen, wenn die betroffene Auslieferung und der passende Live-Datenstatus in dieser Stufe erfolgreich geprueft wurden.
+Wenn Datenmigrationen, Schema-/Migrationsdateien, Supabase-Legacy-Migrationen oder datengetriebene Stakeholder-Aenderungen betroffen sind, darf `not_affected` nicht genutzt werden. Ein Abschluss darf "sichtbar", "verfuegbar" oder "live" nur sagen, wenn die betroffene Auslieferung und der passende Live-Datenstatus in dieser Stufe erfolgreich geprueft wurden.
 
 ## Standard-Auth-Testmodus
 

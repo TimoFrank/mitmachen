@@ -15,6 +15,6 @@ Dieser Ordner buendelt die Unterlagen, die fuer Uebergabe, Betrieb und Weiterent
 2. `architektur/API_CONTRACT.md` fuer die API-Grenzen lesen.
 3. `betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md` fuer aktive und archivierte Auslieferungswege lesen.
 4. `betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md` fuer das aktuelle Kubernetes-Zielbild lesen.
-5. `../db/postgres/schema.sql` und `../supabase/README.md` nur fuer Datenmodell- und Migrationsdetails lesen.
+5. `../supabase/README.md` nur fuer Legacy-Backend- und Migrationsdetails lesen.
 
 Die GCP-/Cloud-Run-Schrittdokumente, Supabase-Unterlagen und alten Demo-Deployments bleiben im Archiv als Nachvollziehbarkeit erhalten. Fuer den ersten Einstieg sind sie nicht erforderlich.

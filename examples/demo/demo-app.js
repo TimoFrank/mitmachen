@@ -2,7 +2,7 @@
   const CONTACTS_KEY = "versorgungs-kompass-demo-mode-contacts-v1";
   const CHANGES_KEY = "versorgungs-kompass-demo-mode-changes-v1";
   const SELECTED_KEY = "versorgungs-kompass-demo-mode-selected-contact-v1";
-  const CONTACT_COLUMNS_KEY = "versorgungs-kompass-gcp-pilot-contact-columns-v1";
+  const CONTACT_COLUMNS_KEY = "versorgungs-kompass-api-pilot-contact-columns-v1";
   const ACTOR = "Demo-Testzugang";
   const API_MODE = window.VK_DEMO_BACKEND === "api";
   const data = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
@@ -217,7 +217,7 @@
     return {
       authMode: API_MODE ? "demo-profile" : "local-demo-profile",
       authModeLabel: API_MODE ? "Pilot-Profil ohne Login" : "Lokales Pilot-Profil",
-      identitySource: API_MODE ? "Cloud SQL" : "Testdaten",
+      identitySource: API_MODE ? "API/Postgres" : "Testdaten",
       enforcement: "display-only",
       enforcementLabel: "Rollen werden angezeigt, aber noch nicht als Zugriffsschutz erzwungen.",
       profile: currentDemoProfile(),
@@ -388,11 +388,11 @@
     if (API_MODE) {
       try {
         await loadBackendState();
-        elements.status.textContent = `${state.contacts.length} Kontakte aus Cloud SQL geladen`;
+        elements.status.textContent = `${state.contacts.length} Kontakte aus API/Postgres geladen`;
         return;
       } catch (error) {
         console.error(error);
-        elements.status.textContent = `Cloud-SQL-Backend nicht erreichbar: ${error.message}`;
+        elements.status.textContent = `API/Postgres-Backend nicht erreichbar: ${error.message}`;
       }
     }
 
@@ -748,7 +748,7 @@
     const contacts = filteredContacts();
     elements.title.textContent = "Versorgung";
     elements.subtitle.textContent = API_MODE
-      ? "Kontakte suchen, filtern, lesen und in Cloud SQL pflegen."
+      ? "Kontakte suchen, filtern, lesen und in API/Postgres pflegen."
       : "Kontakte suchen, filtern, lesen und Teständerungen lokal simulieren.";
     elements.main.innerHTML = renderContactCommandBar(contacts);
     setTimeout(syncMapFrame, 0);
@@ -1036,7 +1036,7 @@
           <span class="avatar avatar-lg" aria-hidden="true">+</span>
           <div class="detail-title">
             <h2>Kontakt anlegen</h2>
-            <p>Neuer Cloud-SQL-Kontakt</p>
+            <p>Neuer API/Postgres-Kontakt</p>
           </div>
         </div>
         <div class="detail-actions">
@@ -1140,7 +1140,7 @@
           <span class="avatar avatar-lg" aria-hidden="true">${isCreate ? "+" : escapeHtml(initials(organization.name))}</span>
           <div class="detail-title">
             <h2>${isCreate ? "Organisation anlegen" : escapeHtml(organization.name || "Organisation bearbeiten")}</h2>
-            <p>${isCreate ? "Neue Cloud-SQL-Organisation" : "Bearbeitungsmodus"}</p>
+            <p>${isCreate ? "Neue API/Postgres-Organisation" : "Bearbeitungsmodus"}</p>
           </div>
         </div>
         <div class="detail-actions">
@@ -1259,7 +1259,7 @@
   function renderOrganizations() {
     elements.title.textContent = "Versorgung";
     elements.subtitle.textContent = API_MODE
-      ? "Organisationen und Kontaktverteilung aus Cloud SQL."
+      ? "Organisationen und Kontaktverteilung aus API/Postgres."
       : "Organisationen und Kontaktverteilung aus dem lokalen Testdatenbestand.";
     const orgs = filteredOrganizations();
     const gridTemplate = "minmax(260px, 1.4fr) minmax(150px, 0.8fr) minmax(150px, 0.8fr) minmax(110px, 0.46fr)";
@@ -1323,7 +1323,7 @@
     elements.main.innerHTML = `
       <div class="summary-strip">
         <span class="metric"><strong>${state.changes.length}</strong> Änderungen</span>
-        <span class="metric"><strong>${API_MODE ? "Cloud SQL" : ACTOR}</strong></span>
+        <span class="metric"><strong>${API_MODE ? "API/Postgres" : ACTOR}</strong></span>
       </div>
       <div class="activity-panel">
         ${rows.map((change) => {
@@ -1344,9 +1344,9 @@
   function renderMapView() {
     elements.title.textContent = "Karte";
     elements.subtitle.textContent = API_MODE
-      ? "Original-Kartenmodus mit Kontakten aus Cloud SQL."
+      ? "Original-Kartenmodus mit Kontakten aus API/Postgres."
       : "Original-Kartenmodus mit denselben Testkontakten.";
-    elements.status.textContent = API_MODE ? "Original-Kartenmodus mit Cloud-SQL-Daten" : "Original-Kartenmodus mit Testdaten";
+    elements.status.textContent = API_MODE ? "Original-Kartenmodus mit API/Postgres-Daten" : "Original-Kartenmodus mit Testdaten";
     saveState();
     elements.main.innerHTML = `
       <div class="view-shell">
@@ -1380,11 +1380,11 @@
           <div class="activity-row">
             <span>Backend</span>
             <strong>localStorage</strong>
-            <span>Kein Cloud-SQL-Betrieb aktiv.</span>
+            <span>Kein API/Postgres-Betrieb aktiv.</span>
           </div>
         </div>
       `;
-      elements.detail.innerHTML = '<div class="detail-empty">Betriebschecks sind im GCP-Pilot aktiv.</div>';
+      elements.detail.innerHTML = '<div class="detail-empty">Betriebschecks sind im API-Pilot aktiv.</div>';
       return;
     }
 
@@ -1430,7 +1430,7 @@
     `;
     elements.detail.innerHTML = `
       <div class="detail-top">
-        <span class="avatar avatar-lg" aria-hidden="true">GCP</span>
+        <span class="avatar avatar-lg" aria-hidden="true">API</span>
         <div class="detail-title">
           <h2>Monitoring light</h2>
           <p>Step 5.6</p>
@@ -1472,7 +1472,7 @@
     const role = profile?.role || "editor";
     elements.title.textContent = "Mein Profil";
     elements.subtitle.textContent = API_MODE
-      ? "Pilot-Akteur und Rollenmodell aus Cloud SQL."
+      ? "Pilot-Akteur und Rollenmodell aus API/Postgres."
       : "Lokales Pilot-Profil ohne zentrale Anmeldung.";
     elements.main.innerHTML = `
       <div class="summary-strip">
@@ -1552,12 +1552,12 @@
       </section>
       <section class="detail-section">
         <h3>Audit</h3>
-        <p class="muted">Schreibende Aktionen werden in Cloud SQL weiterhin dem Pilot-Akteur zugeordnet. Diese Zuordnung ist fachlich sichtbar, aber noch keine echte Nutzeranmeldung.</p>
+        <p class="muted">Schreibende Aktionen werden in API/Postgres weiterhin dem Pilot-Akteur zugeordnet. Diese Zuordnung ist fachlich sichtbar, aber noch keine echte Nutzeranmeldung.</p>
       </section>
       <section class="detail-section">
         <h3>Späterer Anschluss</h3>
         <div class="meta-grid">
-          ${detailRow("SSO/IAP", "Offen")}
+          ${detailRow("SSO/Gateway", "Offen")}
           ${detailRow("Nutzerverwaltung", "Nicht aktiv")}
           ${detailRow("Rechteprüfung", "Noch nicht erzwungen")}
         </div>
@@ -1568,8 +1568,8 @@
   function renderImportView() {
     elements.title.textContent = "Importe";
     elements.subtitle.textContent = API_MODE
-      ? "Kontakte kontrolliert in Cloud SQL übernehmen."
-      : "Lokaler Importentwurf für die spätere GCP-Pilotversion.";
+      ? "Kontakte kontrolliert in API/Postgres übernehmen."
+      : "Lokaler Importentwurf für die spätere API-Pilotversion.";
     const preview = state.importPreview;
     const summary = preview?.summary || {};
     const rows = Array.isArray(preview?.rows) ? preview.rows : [];
@@ -1660,7 +1660,7 @@
       <section class="detail-section">
         <h3>Grenzen</h3>
         <div class="meta-grid">
-          ${detailRow("Modus", API_MODE ? "Cloud SQL" : "Lokal")}
+          ${detailRow("Modus", API_MODE ? "API/Postgres" : "Lokal")}
           ${detailRow("Format", "CSV")}
           ${detailRow("Zeilen", `${summary.maxRows || 100} pro Lauf`)}
           ${detailRow("Schreiben", "Erst nach Vorschau")}
@@ -1973,7 +1973,7 @@
     }
 
     if (API_MODE) {
-      elements.status.textContent = "Speichere Änderung in Cloud SQL ...";
+      elements.status.textContent = "Speichere Änderung in API/Postgres ...";
       try {
         const payload = await apiRequest(`/api/contacts/${encodeURIComponent(contact.id)}`, {
           method: "PATCH",
@@ -1988,7 +1988,7 @@
         }
         state.editMode = false;
         saveState();
-        elements.status.textContent = `${changed.length} Änderung${changed.length === 1 ? "" : "en"} in Cloud SQL gespeichert`;
+        elements.status.textContent = `${changed.length} Änderung${changed.length === 1 ? "" : "en"} in API/Postgres gespeichert`;
         render();
       } catch (error) {
         console.error(error);
@@ -2026,7 +2026,7 @@
       elements.status.textContent = "Name ist erforderlich";
       return;
     }
-    elements.status.textContent = "Lege Kontakt in Cloud SQL an ...";
+    elements.status.textContent = "Lege Kontakt in API/Postgres an ...";
     try {
       const result = await apiRequest("/api/contacts", {
         method: "POST",
@@ -2035,7 +2035,7 @@
       state.selectedId = result.contact?.id || state.selectedId;
       state.createMode = false;
       await loadBackendState();
-      elements.status.textContent = "Kontakt in Cloud SQL angelegt";
+      elements.status.textContent = "Kontakt in API/Postgres angelegt";
       render();
     } catch (error) {
       console.error(error);
@@ -2089,7 +2089,7 @@
     }
     const isCreate = state.organizationCreateMode;
     const organization = currentOrganization();
-    elements.status.textContent = isCreate ? "Lege Organisation in Cloud SQL an ..." : "Speichere Organisation in Cloud SQL ...";
+    elements.status.textContent = isCreate ? "Lege Organisation in API/Postgres an ..." : "Speichere Organisation in API/Postgres ...";
     try {
       const result = await apiRequest(isCreate ? "/api/organizations" : `/api/organizations/${encodeURIComponent(organization.id)}`, {
         method: isCreate ? "POST" : "PATCH",
@@ -2143,8 +2143,8 @@
 
   async function previewImportCsv() {
     if (!API_MODE) {
-      state.importError = "Die Vorschau schreibt später gegen die GCP-API. Lokal ist nur der Entwurf sichtbar.";
-      elements.status.textContent = "Importvorschau benötigt die GCP-API";
+      state.importError = "Die Vorschau schreibt später gegen die API. Lokal ist nur der Entwurf sichtbar.";
+      elements.status.textContent = "Importvorschau benötigt die API";
       render();
       return;
     }
@@ -2189,7 +2189,7 @@
     }
     state.importLoading = true;
     state.importError = "";
-    elements.status.textContent = "Übernehme Import in Cloud SQL ...";
+    elements.status.textContent = "Übernehme Import in API/Postgres ...";
     render();
     try {
       const result = await apiRequest("/api/import/commit", {
@@ -2287,7 +2287,7 @@
     const currentIndex = owners.findIndex((profile) => profile.id === contact.ownerId);
     const nextOwner = owners[(currentIndex + 1) % owners.length];
     if (API_MODE) {
-      elements.status.textContent = "Speichere Ownerwechsel in Cloud SQL ...";
+      elements.status.textContent = "Speichere Ownerwechsel in API/Postgres ...";
       try {
         const payload = await apiRequest(`/api/contacts/${encodeURIComponent(contact.id)}`, {
           method: "PATCH",
@@ -2360,7 +2360,7 @@
 
     elements.reset.addEventListener("click", async () => {
       if (API_MODE) {
-        elements.status.textContent = "Setze Cloud-SQL-Testdaten zurück ...";
+        elements.status.textContent = "Setze API/Postgres-Testdaten zurück ...";
         try {
           await apiRequest("/api/reset-demo", { method: "POST", body: "{}" });
           await loadBackendState();
@@ -2375,7 +2375,7 @@
           state.importRuns = [];
           clearImportDraft();
           state.view = "map";
-          elements.status.textContent = "Cloud-SQL-Testdaten zurückgesetzt";
+          elements.status.textContent = "API/Postgres-Testdaten zurückgesetzt";
           render();
         } catch (error) {
           console.error(error);
@@ -2443,12 +2443,12 @@
       const statusTitle = statusButton?.querySelector("strong");
       const statusHint = statusButton?.querySelector("span:last-child");
       const statusBadge = statusButton?.querySelector(".sidebar-footer__badge");
-      if (statusTitle) statusTitle.textContent = "GCP Pilot";
-      if (statusHint) statusHint.textContent = "Cloud SQL Backend";
+      if (statusTitle) statusTitle.textContent = "API-Pilot";
+      if (statusHint) statusHint.textContent = "API/Postgres Backend";
       if (statusBadge) statusBadge.textContent = "GP";
       if (elements.reset) {
         elements.reset.textContent = "Testdaten zurücksetzen";
-        elements.reset.setAttribute("title", "Cloud-SQL-Testdaten zurücksetzen");
+        elements.reset.setAttribute("title", "API/Postgres-Testdaten zurücksetzen");
       }
     }
     attachGlobalEvents();

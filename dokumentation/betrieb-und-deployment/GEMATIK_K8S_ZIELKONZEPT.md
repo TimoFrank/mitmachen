@@ -20,7 +20,7 @@ Dieses Konzept beschreibt den Zielpfad fuer den Versorgungs-Kompass nach der Kor
 | Frontend-Konfiguration | `dataMode: "api"`, `authMode: "trusted-header"`, interne `apiBaseUrl`, `requireApiGateway: true` |
 | Gateway / Ingress | interne Zugriffsbeschraenkung, SSO, Entfernen untrusted Identity-Header, Setzen verifizierter Nutzer-Header |
 | API | Node.js-Container aus `Dockerfile.api`, deployt per Helm in den Kubernetes-Namespace |
-| Datenbank | gematik Shared Postgres mit Schema aus `db/postgres/schema.sql` |
+| Datenbank | gematik Shared Postgres; Schema und Migration werden mit der gematik-IT abgestimmt |
 | Authz | Rollen `viewer`, `editor`, `admin` in `profiles`, serverseitig geprueft |
 | Storage | Object Storage fuer Profil- und Kontaktbilder, ausgeliefert ueber API oder freigegebene interne Objektpfade |
 | CI/CD | Software Factory / Jenkins, Artifact Registry, Helm, Smoke Tests |
@@ -53,7 +53,7 @@ Shared Postgres wird die kanonische Datenquelle fuer:
 Die Migration erfolgt kontrolliert:
 
 1. Supabase-Daten exportieren.
-2. Schema aus `db/postgres/schema.sql` in Shared Postgres anwenden.
+2. abgestimmtes Schema in Shared Postgres anwenden.
 3. Daten mit stabilen IDs importieren.
 4. Counts und Stichproben pruefen.
 5. Ziel-Frontend gegen Ziel-API testen.
@@ -89,5 +89,5 @@ Das Helm Chart liegt unter `deploy/helm/versorgungs-kompass`.
 1. GitHub Pages + Supabase als funktionierende Testumgebung stabil halten.
 2. Cloud-Run/IAP-Artefakte im Archiv lassen.
 3. `Dockerfile.api`, Helm Chart, Jenkinsfile und Ziel-Config-Skripte auf Kubernetes/Gateway ausrichten.
-4. Postgres-Schema und Importskripte gegen das gematik Shared-Postgres-Ziel haerten.
+4. Datenmodell, Schemafreigabe und Importverfahren gemeinsam mit der gematik-IT konkretisieren.
 5. Parallelbetrieb testen und erst danach umschalten.

@@ -38,7 +38,7 @@ const disallowedPatterns = [
 const args = process.argv.slice(2);
 const productionConfigIndex = args.indexOf("--production-config");
 const productionConfigPath = productionConfigIndex >= 0 ? args[productionConfigIndex + 1] : "";
-const targetDataModes = new Set(["api", "gcp"]);
+const targetDataModes = new Set(["api"]);
 const targetAuthModes = new Set(["trusted-header", "sso"]);
 const supabaseRuntimePatterns = [
   {

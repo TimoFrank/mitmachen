@@ -9,7 +9,6 @@ const requiredFiles = [
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
   "dokumentation/architektur/API_CONTRACT.md",
   "api/server.mjs",
-  "db/postgres/schema.sql",
   "docs/data/supabase-config.js"
 ];
 

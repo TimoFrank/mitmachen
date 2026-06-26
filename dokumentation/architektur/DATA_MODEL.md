@@ -1,6 +1,6 @@
 # Datenmodell Versorgungs-Kompass
 
-Stand: abgeleitet aus `supabase/schema.sql`, `db/postgres/schema.sql` und `data/data-service.js`.
+Stand: abgeleitet aus `supabase/schema.sql` und `data/data-service.js`. Historische Postgres-Migrationsentwuerfe liegen nur noch im Archiv.
 
 Zielbild-Hinweis: Supabase bleibt in diesem Dokument als Ursprungsschema und Migrationsquelle sichtbar. Die neue gematik-Zielarchitektur fuehrt das relationale Modell in Shared PostgreSQL weiter.
 
