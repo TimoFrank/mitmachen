@@ -17558,7 +17558,7 @@
       .hospitation-table-head,
       .hospitation-row__head {
         display: grid;
-        grid-template-columns: minmax(260px, 1.5fr) minmax(170px, 0.9fr) minmax(190px, 0.9fr) minmax(160px, 0.8fr) minmax(190px, 1fr) 42px;
+        grid-template-columns: minmax(190px, 1.25fr) minmax(155px, 0.9fr) minmax(112px, 0.62fr) minmax(112px, 0.62fr) minmax(120px, 0.68fr) minmax(130px, 0.72fr) 42px;
         align-items: center;
         gap: 12px;
         min-width: 0;
@@ -17655,20 +17655,6 @@
         gap: 6px;
         min-width: 0;
         flex-wrap: wrap;
-      }
-
-      .hospitation-kind-badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 26px;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        background: var(--surface-muted);
-        color: var(--text-muted);
-        padding: 5px 9px;
-        font-size: 0.74rem;
-        font-weight: 850;
-        white-space: nowrap;
       }
 
       .hospitation-row__toggle {
@@ -23401,6 +23387,7 @@
       let hospitationDetailTab = "overview";
       let hospitationCalendarDate = new Date();
       let hospitationStatusFilter = "";
+      let hospitationDateSortDirection = "desc";
       let hospitationLoadErrorMessage = "";
       let editingHospitationId = "";
       let editingHospitationSlotId = "";
@@ -32612,13 +32599,44 @@
         ) || null;
       }
 
+      function hospitationFreeTextContactName(hospitation = {}) {
+        return meaningfulOrEmpty(hospitation.contactName || hospitation.contact_name || hospitation.personName || hospitation.person_name) || "";
+      }
+
+      function hospitationFreeTextOrganizationName(hospitation = {}) {
+        return meaningfulOrEmpty(hospitation.organizationName || hospitation.organization_name) || "";
+      }
+
+      function hospitationLocationLabel(hospitation = {}) {
+        return meaningfulOrEmpty(hospitation.location) || meaningfulOrEmpty(hospitation.city) || "";
+      }
+
+      function hospitationDateOnlyLabel(item = {}) {
+        const value = item.startsAt || item.starts_at || "";
+        return value ? formatDateLabel(value) || "Termin offen" : "Termin offen";
+      }
+
+      function hospitationOrganizationLabel(item = {}) {
+        const organization = hospitationOrganization(item);
+        return organization?.name || hospitationFreeTextOrganizationName(item) || "Nicht hinterlegt";
+      }
+
+      function hospitationOrganizationMeta(item = {}) {
+        const location = hospitationLocationLabel(item);
+        const organization = hospitationOrganizationLabel(item);
+        if (location && organization !== "Nicht hinterlegt" && normalizeOrganizationName(location) === normalizeOrganizationName(organization)) return "";
+        return location ? `Ort: ${location}` : "";
+      }
+
       function hospitationContextLabel(hospitation = {}) {
         const contact = hospitationContact(hospitation);
         const organization = hospitationOrganization(hospitation);
+        const contactName = hospitationFreeTextContactName(hospitation);
+        const organizationName = hospitationFreeTextOrganizationName(hospitation);
         if (contact && organization) return `${contact.displayName || contact.name} · ${organization.name}`;
         if (contact) return contact.displayName || contact.name;
         if (organization) return organization.name;
-        return hospitation.contactName || hospitation.organizationName || "Kontakt oder Organisation offen";
+        return contactName || organizationName || "Kontakt oder Organisation offen";
       }
 
       function hospitationOwnerLabel(ownerId = "") {
@@ -32633,13 +32651,14 @@
       function hospitationStateLabel(hospitation = {}) {
         const contact = hospitationContact(hospitation);
         const organization = hospitationOrganization(hospitation);
-        return contact?.state || (contact ? stateLabel(contact) : "") || organization?.state || "Nicht hinterlegt";
+        return contact?.state || (contact ? stateLabel(contact) : "") || organization?.state || hospitation.state || hospitation.federalState || hospitation.federal_state || "Nicht hinterlegt";
       }
 
       function hospitationSectorLabel(hospitation = {}) {
         const contact = hospitationContact(hospitation);
         const organization = hospitationOrganization(hospitation);
-        return normalizeCategory(contact?.category || organization?.sector || "") || "Nicht hinterlegt";
+        const sector = contact?.category || organization?.sector || hospitation.sector || "";
+        return meaningfulOrEmpty(sector) ? normalizeCategory(sector) : "Nicht hinterlegt";
       }
 
       function sortedHospitations(items = hospitations) {
@@ -32664,10 +32683,14 @@
                 hospitationContextLabel(hospitation),
                 contact?.email,
                 organization?.name,
+                hospitationFreeTextContactName(hospitation),
+                hospitationFreeTextOrganizationName(hospitation),
                 hospitation.status,
+                hospitationDateOnlyLabel(hospitation),
                 hospitation.goal,
                 Array.isArray(hospitation.topics) ? hospitation.topics.join(" ") : hospitation.topics,
                 hospitation.location,
+                hospitation.city,
                 hospitation.requestNote,
                 hospitation.documentationSummary,
                 hospitation.documentationOutcome,
@@ -32687,7 +32710,9 @@
             return [
               hospitationContextLabel(pseudoHospitation),
               slot.status,
+              hospitationDateOnlyLabel(slot),
               slot.location,
+              slot.city,
               slot.notes,
               hospitationOwnerLabel(slot.ownerId)
             ].join(" ").toLowerCase().includes(query);
@@ -32777,8 +32802,12 @@
         const item = entry.item || {};
         const contact = hospitationContact(item);
         const organization = hospitationOrganization(item);
+        const contactName = hospitationFreeTextContactName(item);
+        const organizationName = hospitationFreeTextOrganizationName(item);
         if (contact) return contact.displayName || contact.name || "Kontakt";
+        if (contactName) return contactName;
         if (organization) return organization.name || "Organisation";
+        if (organizationName) return organizationName;
         return entry.kind === "slot" ? "Terminangebot ohne Kontakt" : "Hospitation ohne Kontakt";
       }
 
@@ -32786,18 +32815,21 @@
         const item = entry.item || {};
         const contact = hospitationContact(item);
         const organization = hospitationOrganization(item);
-        const location = item.location || "";
+        const organizationName = hospitationFreeTextOrganizationName(item);
+        const location = hospitationLocationLabel(item);
         if (contact && organization) return organization.name;
         if (organization) return [hospitationStateLabel(item), location].filter(Boolean).join(" · ");
+        if (organizationName && location) return `${organizationName} · ${location}`;
+        if (organizationName) return organizationName;
         if (location) return location;
-        return entry.kind === "slot" ? "Interner Slot" : "Kontakt oder Organisation offen";
+        return entry.kind === "slot" ? "Interner Slot" : "Ort noch nachtragen";
       }
 
       function hospitationAvatarMarkup(item = {}) {
         const contact = hospitationContact(item);
         if (contact) return contactAvatarMarkup(contact, "sm");
         const organization = hospitationOrganization(item);
-        const label = organization?.name || item.organizationName || "Hospitation";
+        const label = hospitationFreeTextContactName(item) || organization?.name || hospitationFreeTextOrganizationName(item) || "Hospitation";
         return `<span class="avatar avatar-fallback avatar-sm" aria-hidden="true">${escapeHtml(initialsFromLabel(label))}</span>`;
       }
 
@@ -32818,8 +32850,6 @@
           .filter((slot) => !hospitationStatusFilter || slot.status === hospitationStatusFilter)
           .map((slot) => ({ kind: "slot", item: slot }));
         const hospitationEntries = filteredHospitations().map((hospitation) => ({ kind: "hospitation", item: hospitation }));
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
         return [...hospitationEntries, ...slotEntries]
           .filter((entry) => entry.item?.id)
           .filter((entry) => {
@@ -32828,7 +32858,9 @@
               hospitationEntryTitle(entry),
               hospitationEntrySubtitle(entry),
               entry.item.status,
+              hospitationDateOnlyLabel(entry.item),
               entry.item.location,
+              entry.item.city,
               entry.item.notes,
               hospitationOwnerLabel(entry.item.ownerId)
             ].join(" ").toLowerCase().includes(query);
@@ -32838,11 +32870,13 @@
             const rightDate = hospitationEntryDate(right);
             const leftTime = leftDate?.getTime();
             const rightTime = rightDate?.getTime();
-            const leftBucket = leftTime ? (leftTime >= startOfToday.getTime() ? 0 : 2) : 1;
-            const rightBucket = rightTime ? (rightTime >= startOfToday.getTime() ? 0 : 2) : 1;
-            if (leftBucket !== rightBucket) return leftBucket - rightBucket;
-            if (leftBucket === 2) return (rightTime || 0) - (leftTime || 0);
-            return (leftTime || Number.MAX_SAFE_INTEGER) - (rightTime || Number.MAX_SAFE_INTEGER) || hospitationEntryTitle(left).localeCompare(hospitationEntryTitle(right), "de");
+            const leftMissing = typeof leftTime !== "number";
+            const rightMissing = typeof rightTime !== "number";
+            if (leftMissing && rightMissing) return hospitationEntryTitle(left).localeCompare(hospitationEntryTitle(right), "de");
+            if (leftMissing) return 1;
+            if (rightMissing) return -1;
+            const dateDelta = hospitationDateSortDirection === "asc" ? leftTime - rightTime : rightTime - leftTime;
+            return dateDelta || hospitationEntryTitle(left).localeCompare(hospitationEntryTitle(right), "de");
           });
       }
 
@@ -32922,6 +32956,9 @@
         const item = entry.item || {};
         const contact = hospitationContact(item);
         const organization = hospitationOrganization(item);
+        const contactName = hospitationFreeTextContactName(item);
+        const organizationName = hospitationFreeTextOrganizationName(item);
+        const location = hospitationLocationLabel(item);
         const activeTab = activeHospitationDetailTab(entry.kind);
         const linkedBooking = entry.kind === "slot" ? hospitations.find((hospitation) => hospitation.slotId === item.id) : null;
         if (entry.kind === "slot") {
@@ -32955,15 +32992,15 @@
               <section class="format-section">
                 <div class="format-facts-grid">
                   ${renderFormatFact("Termin", `<strong>${escapeHtml(hospitationDateRangeLabel(item))}</strong>`)}
-                  ${renderFormatFact("Ort", `<strong>${escapeHtml(item.location || "Nicht hinterlegt")}</strong>`)}
+                  ${renderFormatFact("Ort", `<strong>${escapeHtml(location || "Nicht hinterlegt")}</strong>`)}
                   ${renderFormatFact("Owner", hospitationOwnerMarkup(item.ownerId))}
                   ${renderFormatFact("Status", hospitationStatusBadgeMarkup(item.status || "Frei"))}
                 </div>
               </section>
               <section class="format-section">
                 <div class="detail-line-list">
-                  ${detailLine("Kontakt", contact ? contact.displayName || contact.name : "Nicht hinterlegt")}
-                  ${detailLine("Organisation", organization ? organization.name : "Nicht hinterlegt")}
+                  ${detailLine("Kontakt", contact ? contact.displayName || contact.name : contactName || "Nicht hinterlegt")}
+                  ${detailLine("Organisation", organization ? organization.name : organizationName || "Nicht hinterlegt")}
                   ${detailLine("Sektor", hospitationSectorLabel(item))}
                   ${detailLine("Bundesland", hospitationStateLabel(item))}
                 </div>
@@ -32978,7 +33015,7 @@
               <section class="format-section">
                 <div class="format-facts-grid">
                   ${renderFormatFact("Termin", `<strong>${escapeHtml(hospitationDateRangeLabel(item))}</strong>`)}
-                  ${renderFormatFact("Ort", `<strong>${escapeHtml(item.location || "Nicht hinterlegt")}</strong>`)}
+                  ${renderFormatFact("Ort", `<strong>${escapeHtml(location || "Nicht hinterlegt")}</strong>`)}
                   ${renderFormatFact("Themen", `<strong>${hospitationTopicsMarkup(item)}</strong>`)}
                   ${renderFormatFact("Anfrage", `<strong>${escapeHtml(item.requestNote || "Nicht hinterlegt")}</strong>`)}
                 </div>
@@ -33029,8 +33066,8 @@
             </section>
             <section class="format-section">
               <div class="detail-line-list">
-                ${detailLine("Kontakt", contact ? contact.displayName || contact.name : "Nicht hinterlegt")}
-                ${detailLine("Organisation", organization ? organization.name : "Nicht hinterlegt")}
+                ${detailLine("Kontakt", contact ? contact.displayName || contact.name : contactName || "Nicht hinterlegt")}
+                ${detailLine("Organisation", organization ? organization.name : organizationName || "Nicht hinterlegt")}
                 ${detailLine("Sektor", hospitationSectorLabel(item))}
                 ${detailLine("Bundesland", hospitationStateLabel(item))}
                 ${detailLine("Ziel", item.goal || "Nicht hinterlegt")}
@@ -33056,11 +33093,10 @@
         const item = entry.item || {};
         const key = hospitationEntryKey(entry);
         const isOpen = activeHospitationDetailKey === key;
-        const kindLabel = entry.kind === "slot" ? "Terminangebot" : "Hospitation";
         const status = item.status || (entry.kind === "slot" ? "Frei" : "Angefragt");
-        const secondary = hospitationEntrySubtitle(entry);
         const sector = hospitationSectorLabel(item);
-        const location = item.location || "Ort offen";
+        const organization = hospitationOrganizationLabel(item);
+        const organizationMeta = hospitationOrganizationMeta(item);
         return `
           <article class="hospitation-row ${isOpen ? "is-open" : ""}" data-hospitation-row="${escapeHtml(key)}">
             <div class="hospitation-row__head" data-toggle-hospitation-row="${escapeHtml(key)}" role="button" tabindex="0" aria-expanded="${isOpen ? "true" : "false"}" aria-controls="hospitation-detail-${escapeHtml(key)}">
@@ -33068,25 +33104,24 @@
                 ${hospitationAvatarMarkup(item)}
                 <span class="hospitation-row__copy">
                   <span class="hospitation-row__name">${escapeHtml(hospitationEntryTitle(entry))}</span>
-                  <span class="hospitation-row__meta">${escapeHtml(secondary || "Kontext offen")}</span>
                 </span>
               </div>
               <div class="hospitation-row__cell">
-                <span class="hospitation-row__primary">${escapeHtml(hospitationDateRangeLabel(item))}</span>
-                <span class="hospitation-row__secondary">${escapeHtml(location)}</span>
+                <span class="hospitation-row__primary">${escapeHtml(organization)}</span>
+                ${organizationMeta ? `<span class="hospitation-row__secondary">${escapeHtml(organizationMeta)}</span>` : ""}
+              </div>
+              <div class="hospitation-row__cell">
+                <span class="hospitation-row__primary">${escapeHtml(hospitationDateOnlyLabel(item))}</span>
               </div>
               <div class="hospitation-row__badges">
                 ${hospitationStatusBadgeMarkup(status)}
+              </div>
+              <div class="hospitation-row__badges">
                 ${sectorBadgeMarkup(sector)}
-                <span class="hospitation-kind-badge">${escapeHtml(kindLabel)}</span>
               </div>
               <div class="hospitation-row__cell">
                 <span class="hospitation-row__primary">${hospitationOwnerLabel(hospitationEntryOwnerId(entry)) || "Kein Owner"}</span>
                 <span class="hospitation-row__secondary">Owner</span>
-              </div>
-              <div class="hospitation-row__cell">
-                <span class="hospitation-row__primary">${escapeHtml(entry.kind === "slot" ? item.notes || "Slot pflegen" : item.goal || "Ziel offen")}</span>
-                <span class="hospitation-row__secondary">${escapeHtml(entry.kind === "slot" ? `Kapazität ${item.capacity || 1}` : hospitationFollowUpLabel(item))}</span>
               </div>
               <button class="action-button hospitation-row__toggle" type="button" data-toggle-hospitation-detail="${escapeHtml(key)}" aria-label="${isOpen ? "Details schließen" : "Details öffnen"}" aria-expanded="${isOpen ? "true" : "false"}" aria-controls="hospitation-detail-${escapeHtml(key)}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -33096,6 +33131,23 @@
             </div>
             ${isOpen ? `<div class="hospitation-row__detail" id="hospitation-detail-${escapeHtml(key)}">${renderHospitationDetailPanel(entry)}</div>` : ""}
           </article>
+        `;
+      }
+
+      function renderHospitationDateSortHeader() {
+        const direction = hospitationDateSortDirection === "asc" ? "asc" : "desc";
+        const sortLabel = `Termin ${direction === "asc" ? "aufsteigend" : "absteigend"} sortiert`;
+        return `
+          <button
+            class="column-sort-button is-active"
+            type="button"
+            data-hospitation-date-sort
+            aria-label="${escapeHtml(sortLabel)}"
+            aria-sort="${direction === "asc" ? "ascending" : "descending"}"
+          >
+            <span class="column-head__label">Termin</span>
+            ${columnSortIndicatorMarkup(direction)}
+          </button>
         `;
       }
 
@@ -33115,12 +33167,13 @@
         if (!entries.length) return `<div class="history-empty">Noch keine Hospitationen oder Terminangebote für diese Auswahl.</div>`;
         return `
           <div class="hospitation-table" role="list">
-            <div class="hospitation-table-head" aria-hidden="true">
+            <div class="hospitation-table-head">
               <span>Kontakt</span>
-              <span>Termin</span>
-              <span>Status / Sektor</span>
+              <span>Organisation</span>
+              ${renderHospitationDateSortHeader()}
+              <span>Status</span>
+              <span>Sektor</span>
               <span>Owner</span>
-              <span>Nächster Schritt</span>
               <span></span>
             </div>
             ${entries.map(renderHospitationScheduleRow).join("")}
@@ -33350,6 +33403,12 @@
         root.querySelectorAll("[data-hospitation-schedule-view]").forEach((button) => {
           button.addEventListener("click", () => {
             hospitationScheduleView = button.dataset.hospitationScheduleView === "calendar" ? "calendar" : "list";
+            renderHospitationsView();
+          });
+        });
+        root.querySelectorAll("[data-hospitation-date-sort]").forEach((button) => {
+          button.addEventListener("click", () => {
+            hospitationDateSortDirection = hospitationDateSortDirection === "asc" ? "desc" : "asc";
             renderHospitationsView();
           });
         });

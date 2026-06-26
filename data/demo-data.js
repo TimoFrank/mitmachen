@@ -208,10 +208,60 @@
   contacts[24] = { ...contacts[24], status: "archived", note: "Archivierter Demo-Kontakt fuer Admin-Pruefung." };
   contacts[30] = { ...contacts[30], organization: "MVZ Nordstadt", organizationId: "demo-org-nordstadt", city: "Berlin", state: "Berlin" };
 
+  const hospitationEntries = [
+    ["hospitation-2026-01-27-malinckrodt", "Dr. Malinckrodt", "Hanau", "2026-01-27", "+01:00"],
+    ["hospitation-2026-01-27-rothsching", "Dr. Marcus Rothsching", "", "2026-01-27", "+01:00"],
+    ["hospitation-2026-02-02-claus", "Christoph Claus", "Grebenstein", "2026-02-02", "+01:00"],
+    ["hospitation-2026-02-16-walther", "Felix Walther", "Chemnitz", "2026-02-16", "+01:00"],
+    ["hospitation-2026-02-24-duderstadt", "Tilly Duderstadt", "Berlin", "2026-02-24", "+01:00"],
+    ["hospitation-2026-03-02-froehlich", "Dr. Jonas Fröhlich", "Kaiserslautern", "2026-03-02", "+01:00"],
+    ["hospitation-2026-03-12-rau", "Florian Rau", "Harsfeld", "2026-03-12", "+01:00"],
+    ["hospitation-2026-04-30-antje-weichard", "Dr. Antje Weichard", "Magdeburg", "2026-04-30", "+02:00"],
+    ["hospitation-2026-06-10-deile", "Dr. Martin Deile", "Dresden", "2026-06-10", "+02:00"],
+    ["hospitation-2026-06-24-zimmermann", "Dr. Lars Zimmermann", "Magdeburg", "2026-06-24", "+02:00"],
+    ["hospitation-2026-06-23-cornelia-weichard", "Dr. Cornelia Weichard", "Magdeburg", "2026-06-23", "+02:00"]
+  ];
+
+  const hospitations = hospitationEntries.map(([id, contactName, city, date, offset]) => ({
+    id,
+    contactId: "",
+    contactName,
+    organizationId: "",
+    organizationName: "",
+    requesterProfileId: ownerIds[0],
+    ownerId: ownerIds[0],
+    status: "Durchgeführt",
+    requestedWindows: [],
+    startsAt: `${date}T09:00:00${offset}`,
+    endsAt: `${date}T11:00:00${offset}`,
+    location: city,
+    city,
+    state: "",
+    sector: "",
+    goal: "Hospitationstermin aus persönlicher Liste.",
+    topics: ["Hospitation", "Versorgungskontakt"],
+    requestNote: city
+      ? `Hospitation bei ${contactName} in ${city}. Kontaktprofil wird später ergänzt.`
+      : `Hospitation bei ${contactName}. Ort und Kontaktprofil werden später ergänzt.`,
+    documentationSummary: "",
+    documentationOutcome: "",
+    followUpNote: "",
+    followUpOwnerId: "",
+    followUpDueAt: "",
+    documentedAt: "",
+    documentedBy: "",
+    createdAt: now,
+    createdBy: ownerIds[0],
+    updatedAt: now,
+    updatedBy: ownerIds[0]
+  }));
+
   window.VERSORGUNGS_COMPASS_DEMO_DATA = {
     profiles,
     organizations,
     contacts,
+    hospitationSlots: [],
+    hospitations,
     changes: contacts.slice(0, 8).map((item, index) => ({
       id: index + 1,
       contactId: item.id,
