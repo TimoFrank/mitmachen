@@ -14,7 +14,6 @@
     "qa:full": "npm run check && npm run test:visual",
     "test:api-validation": "node scripts/test_api_validation.mjs",
     "deploy:preflight": "node scripts/preflight_target_deployment.mjs",
-    "simulate:gematik": "bash scripts/simulate_gematik_pipeline.sh",
     "verify:publication": "node scripts/verify_publication_state.mjs",
     "security:api-gateway": "node scripts/audit_api_gateway.mjs",
     "security:audit": "npm audit --audit-level=high",

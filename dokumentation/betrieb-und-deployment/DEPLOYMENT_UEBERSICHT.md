@@ -33,6 +33,7 @@ Es nutzt:
 - statisches Frontend-Hosting in einem separaten Bucket-/Hosting-Projekt
 
 Cloud Run ist nicht mehr Zielarchitektur.
+Ein lokaler Jenkins-/Docker-Compose-Simulator ist bewusst nicht Teil des aktiven Repos. Die konkrete Pipeline-Ausfuehrung soll in der gematik Software Factory angebunden werden.
 
 ## Archivierter GCP-/Cloud-Run-Migrationsentwurf
 

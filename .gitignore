@@ -10,9 +10,6 @@ data/*.sqlite
 data/*.sqlite-shm
 data/*.sqlite-wal
 backups/
-.local-gematik/
-# Archiviertes Cloud-Run/IAP-Experiment: generiertes Frontend-Artefakt nicht versionieren.
-.cloud-run-frontend/
 *_backup_*.csv
 *_backup_*.json
 backup-versorgungs-kompass-*.sql
