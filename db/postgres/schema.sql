@@ -141,6 +141,17 @@ create table if not exists user_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists login_aliases (
+  alias text primary key,
+  email text not null,
+  profile_id text not null references profiles(id) on delete cascade,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (alias = lower(trim(alias))),
+  check (alias ~ '^[a-z0-9._-]{2,32}$')
+);
+
 create table if not exists notification_events (
   id text primary key,
   event_type text not null,
@@ -193,6 +204,61 @@ create table if not exists format_participants (
   updated_at timestamptz not null default now(),
   updated_by text references profiles(id) on delete set null,
   unique (format_id, contact_id)
+);
+
+create table if not exists hospitation_slots (
+  id text primary key,
+  contact_id text references contacts(id) on delete set null,
+  contact_name text,
+  organization_id text references organizations(id) on delete set null,
+  organization_name text,
+  starts_at timestamptz not null,
+  ends_at timestamptz,
+  location text,
+  city text,
+  federal_state text,
+  sector text,
+  capacity integer not null default 1 check (capacity >= 1),
+  owner_id text references profiles(id) on delete set null,
+  status text not null default 'Frei' check (status in ('Frei', 'Reserviert', 'Gebucht', 'Abgesagt', 'Archiviert')),
+  notes text,
+  created_at timestamptz not null default now(),
+  created_by text references profiles(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  updated_by text references profiles(id) on delete set null
+);
+
+create table if not exists hospitations (
+  id text primary key,
+  slot_id text references hospitation_slots(id) on delete set null,
+  contact_id text references contacts(id) on delete set null,
+  contact_name text,
+  organization_id text references organizations(id) on delete set null,
+  organization_name text,
+  requester_profile_id text references profiles(id) on delete set null,
+  owner_id text references profiles(id) on delete set null,
+  status text not null default 'Angefragt' check (status in ('Entwurf', 'Angefragt', 'Angeboten', 'Gebucht', 'Abgelehnt', 'Abgesagt', 'Durchgeführt', 'Dokumentiert', 'Archiviert')),
+  requested_windows jsonb not null default '[]'::jsonb,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  location text,
+  city text,
+  federal_state text,
+  sector text,
+  goal text,
+  topics text[] not null default '{}'::text[],
+  request_note text,
+  documentation_summary text,
+  documentation_outcome text,
+  follow_up_note text,
+  follow_up_owner_id text references profiles(id) on delete set null,
+  follow_up_due_at date,
+  documented_at timestamptz,
+  documented_by text references profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  created_by text references profiles(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  updated_by text references profiles(id) on delete set null
 );
 
 create table if not exists expert_groups (
@@ -504,6 +570,7 @@ create index if not exists contact_owners_profile_idx on contact_owners(profile_
 create index if not exists contact_owners_contact_idx on contact_owners(contact_id);
 create index if not exists saved_views_owner_idx on saved_views(owner_id);
 create index if not exists saved_views_scope_idx on saved_views(scope);
+create index if not exists login_aliases_profile_idx on login_aliases(profile_id);
 create index if not exists notification_events_occurred_idx on notification_events(occurred_at desc);
 create index if not exists notification_events_entity_idx on notification_events(entity_type, entity_id);
 create index if not exists notification_recipients_user_unread_idx on notification_recipients(user_id, read_at, dismissed_at, created_at desc);
@@ -513,6 +580,18 @@ create index if not exists formats_starts_at_idx on formats(starts_at);
 create index if not exists format_participants_format_idx on format_participants(format_id);
 create index if not exists format_participants_contact_idx on format_participants(contact_id);
 create index if not exists format_participants_status_idx on format_participants(invitation_status);
+create index if not exists hospitation_slots_contact_idx on hospitation_slots(contact_id);
+create index if not exists hospitation_slots_organization_idx on hospitation_slots(organization_id);
+create index if not exists hospitation_slots_owner_idx on hospitation_slots(owner_id);
+create index if not exists hospitation_slots_status_idx on hospitation_slots(status);
+create index if not exists hospitation_slots_starts_at_idx on hospitation_slots(starts_at);
+create index if not exists hospitations_slot_idx on hospitations(slot_id);
+create index if not exists hospitations_contact_idx on hospitations(contact_id);
+create index if not exists hospitations_organization_idx on hospitations(organization_id);
+create index if not exists hospitations_owner_idx on hospitations(owner_id);
+create index if not exists hospitations_status_idx on hospitations(status);
+create index if not exists hospitations_starts_at_idx on hospitations(starts_at);
+create index if not exists hospitations_follow_up_due_idx on hospitations(follow_up_due_at);
 create index if not exists expert_groups_status_idx on expert_groups(status);
 create index if not exists expert_organizations_normalized_name_idx on expert_organizations(normalized_name);
 create index if not exists expert_organizations_group_idx on expert_organizations(group_id);
@@ -577,6 +656,16 @@ create trigger format_participants_touch_updated_at
 before update on format_participants
 for each row execute function touch_updated_at();
 
+drop trigger if exists hospitation_slots_touch_updated_at on hospitation_slots;
+create trigger hospitation_slots_touch_updated_at
+before update on hospitation_slots
+for each row execute function touch_updated_at();
+
+drop trigger if exists hospitations_touch_updated_at on hospitations;
+create trigger hospitations_touch_updated_at
+before update on hospitations
+for each row execute function touch_updated_at();
+
 drop trigger if exists expert_groups_touch_updated_at on expert_groups;
 create trigger expert_groups_touch_updated_at
 before update on expert_groups
@@ -620,4 +709,9 @@ for each row execute function touch_updated_at();
 drop trigger if exists user_settings_touch_updated_at on user_settings;
 create trigger user_settings_touch_updated_at
 before update on user_settings
+for each row execute function touch_updated_at();
+
+drop trigger if exists login_aliases_touch_updated_at on login_aliases;
+create trigger login_aliases_touch_updated_at
+before update on login_aliases
 for each row execute function touch_updated_at();

@@ -1,9 +1,8 @@
 window.VERSORGUNGS_COMPASS_CONFIG = {
-  dataMode: "supabase",
-  supabaseUrl: "https://fntqoqxriipjzfhzxiry.supabase.co",
-  supabaseAnonKey: "sb_publishable_ONLajbfULpMRAefOmxFkRA_4SSxBw1C",
-  apiBaseUrl: "",
-  requireApiGateway: false,
+  dataMode: "api",
+  authMode: "trusted-header",
+  apiBaseUrl: "https://versorgungs-kompass-api-765190393967.europe-west3.run.app",
+  requireApiGateway: true,
   capabilities: {
     contactRole: false,
     contactImageSources: false,

@@ -148,10 +148,15 @@ const FORMAT_PARTICIPANT_FIELDS = [
 const HOSPITATION_SLOT_FIELDS = [
   "id",
   "contact_id",
+  "contact_name",
   "organization_id",
+  "organization_name",
   "starts_at",
   "ends_at",
   "location",
+  "city",
+  "federal_state",
+  "sector",
   "capacity",
   "owner_id",
   "status",
@@ -165,7 +170,9 @@ const HOSPITATION_FIELDS = [
   "id",
   "slot_id",
   "contact_id",
+  "contact_name",
   "organization_id",
+  "organization_name",
   "requester_profile_id",
   "owner_id",
   "status",
@@ -173,6 +180,9 @@ const HOSPITATION_FIELDS = [
   "starts_at",
   "ends_at",
   "location",
+  "city",
+  "federal_state",
+  "sector",
   "goal",
   "topics",
   "request_note",
@@ -452,13 +462,22 @@ const HOSPITATION_SLOT_INPUT_FIELDS = [
   "id",
   "contactId",
   "contact_id",
+  "contactName",
+  "contact_name",
   "organizationId",
   "organization_id",
+  "organizationName",
+  "organization_name",
   "startsAt",
   "starts_at",
   "endsAt",
   "ends_at",
   "location",
+  "city",
+  "state",
+  "federalState",
+  "federal_state",
+  "sector",
   "capacity",
   "ownerId",
   "owner_id",
@@ -472,8 +491,12 @@ const HOSPITATION_INPUT_FIELDS = [
   "slot_id",
   "contactId",
   "contact_id",
+  "contactName",
+  "contact_name",
   "organizationId",
   "organization_id",
+  "organizationName",
+  "organization_name",
   "requesterProfileId",
   "requester_profile_id",
   "ownerId",
@@ -487,6 +510,11 @@ const HOSPITATION_INPUT_FIELDS = [
   "endsAt",
   "ends_at",
   "location",
+  "city",
+  "state",
+  "federalState",
+  "federal_state",
+  "sector",
   "goal",
   "topics",
   "requestNote",
@@ -1332,10 +1360,15 @@ function hospitationSlotToDto(row = {}) {
   return {
     id: row.id || "",
     contactId: row.contact_id || "",
+    contactName: row.contact_name || "",
     organizationId: row.organization_id || "",
+    organizationName: row.organization_name || "",
     startsAt: row.starts_at || "",
     endsAt: row.ends_at || "",
     location: row.location || "",
+    city: row.city || "",
+    state: row.federal_state || "",
+    sector: row.sector || "",
     capacity: Number(row.capacity || 1),
     ownerId: row.owner_id || "",
     owner: profileName(row.owner_id),
@@ -1353,7 +1386,9 @@ function hospitationToDto(row = {}) {
     id: row.id || "",
     slotId: row.slot_id || "",
     contactId: row.contact_id || "",
+    contactName: row.contact_name || "",
     organizationId: row.organization_id || "",
+    organizationName: row.organization_name || "",
     requesterProfileId: row.requester_profile_id || "",
     requester: profileName(row.requester_profile_id),
     ownerId: row.owner_id || "",
@@ -1363,6 +1398,9 @@ function hospitationToDto(row = {}) {
     startsAt: row.starts_at || "",
     endsAt: row.ends_at || "",
     location: row.location || "",
+    city: row.city || "",
+    state: row.federal_state || "",
+    sector: row.sector || "",
     goal: row.goal || "",
     topics: Array.isArray(row.topics) ? row.topics : [],
     requestNote: row.request_note || "",
@@ -1386,10 +1424,15 @@ function hospitationSlotToDb(slot = {}) {
   return {
     id: String(slot.id || generatedId("hospitation-slot")).trim(),
     contact_id: slot.contactId || slot.contact_id || null,
+    contact_name: String(slot.contactName || slot.contact_name || "").trim() || null,
     organization_id: slot.organizationId || slot.organization_id || null,
+    organization_name: String(slot.organizationName || slot.organization_name || "").trim() || null,
     starts_at: slot.startsAt || slot.starts_at || null,
     ends_at: slot.endsAt || slot.ends_at || null,
     location: String(slot.location || "").trim() || null,
+    city: String(slot.city || "").trim() || null,
+    federal_state: String(slot.federalState || slot.federal_state || slot.state || "").trim() || null,
+    sector: String(slot.sector || "").trim() || null,
     capacity: Math.max(1, Number.parseInt(slot.capacity || 1, 10) || 1),
     owner_id: slot.ownerId || slot.owner_id || resolveOwnerId(slot.owner) || null,
     status: normalizeHospitationSlotStatus(slot.status),
@@ -1400,10 +1443,15 @@ function hospitationSlotToDb(slot = {}) {
 function hospitationSlotPatchToDb(patch = {}) {
   const db = {};
   if ("contactId" in patch || "contact_id" in patch) db.contact_id = patch.contactId || patch.contact_id || null;
+  if ("contactName" in patch || "contact_name" in patch) db.contact_name = String(patch.contactName || patch.contact_name || "").trim() || null;
   if ("organizationId" in patch || "organization_id" in patch) db.organization_id = patch.organizationId || patch.organization_id || null;
+  if ("organizationName" in patch || "organization_name" in patch) db.organization_name = String(patch.organizationName || patch.organization_name || "").trim() || null;
   if ("startsAt" in patch || "starts_at" in patch) db.starts_at = patch.startsAt || patch.starts_at || null;
   if ("endsAt" in patch || "ends_at" in patch) db.ends_at = patch.endsAt || patch.ends_at || null;
   if ("location" in patch) db.location = String(patch.location || "").trim() || null;
+  if ("city" in patch) db.city = String(patch.city || "").trim() || null;
+  if ("federalState" in patch || "federal_state" in patch || "state" in patch) db.federal_state = String(patch.federalState || patch.federal_state || patch.state || "").trim() || null;
+  if ("sector" in patch) db.sector = String(patch.sector || "").trim() || null;
   if ("capacity" in patch) db.capacity = Math.max(1, Number.parseInt(patch.capacity || 1, 10) || 1);
   if ("ownerId" in patch || "owner_id" in patch) db.owner_id = patch.ownerId || patch.owner_id || null;
   if (!("ownerId" in patch) && !("owner_id" in patch) && "owner" in patch) db.owner_id = resolveOwnerId(patch.owner);
@@ -1417,7 +1465,9 @@ function hospitationToDb(hospitation = {}, userId = "") {
     id: String(hospitation.id || generatedId("hospitation")).trim(),
     slot_id: hospitation.slotId || hospitation.slot_id || null,
     contact_id: hospitation.contactId || hospitation.contact_id || null,
+    contact_name: String(hospitation.contactName || hospitation.contact_name || "").trim() || null,
     organization_id: hospitation.organizationId || hospitation.organization_id || null,
+    organization_name: String(hospitation.organizationName || hospitation.organization_name || "").trim() || null,
     requester_profile_id: hospitation.requesterProfileId || hospitation.requester_profile_id || userId || null,
     owner_id: hospitation.ownerId || hospitation.owner_id || resolveOwnerId(hospitation.owner) || userId || null,
     status: normalizeHospitationStatus(hospitation.status),
@@ -1425,6 +1475,9 @@ function hospitationToDb(hospitation = {}, userId = "") {
     starts_at: hospitation.startsAt || hospitation.starts_at || null,
     ends_at: hospitation.endsAt || hospitation.ends_at || null,
     location: String(hospitation.location || "").trim() || null,
+    city: String(hospitation.city || "").trim() || null,
+    federal_state: String(hospitation.federalState || hospitation.federal_state || hospitation.state || "").trim() || null,
+    sector: String(hospitation.sector || "").trim() || null,
     goal: String(hospitation.goal || "").trim() || null,
     topics: splitList(hospitation.topics),
     request_note: String(hospitation.requestNote || hospitation.request_note || "").trim() || null,
@@ -1442,7 +1495,9 @@ function hospitationPatchToDb(patch = {}) {
   const db = {};
   if ("slotId" in patch || "slot_id" in patch) db.slot_id = patch.slotId || patch.slot_id || null;
   if ("contactId" in patch || "contact_id" in patch) db.contact_id = patch.contactId || patch.contact_id || null;
+  if ("contactName" in patch || "contact_name" in patch) db.contact_name = String(patch.contactName || patch.contact_name || "").trim() || null;
   if ("organizationId" in patch || "organization_id" in patch) db.organization_id = patch.organizationId || patch.organization_id || null;
+  if ("organizationName" in patch || "organization_name" in patch) db.organization_name = String(patch.organizationName || patch.organization_name || "").trim() || null;
   if ("requesterProfileId" in patch || "requester_profile_id" in patch) db.requester_profile_id = patch.requesterProfileId || patch.requester_profile_id || null;
   if ("ownerId" in patch || "owner_id" in patch) db.owner_id = patch.ownerId || patch.owner_id || null;
   if (!("ownerId" in patch) && !("owner_id" in patch) && "owner" in patch) db.owner_id = resolveOwnerId(patch.owner);
@@ -1451,6 +1506,9 @@ function hospitationPatchToDb(patch = {}) {
   if ("startsAt" in patch || "starts_at" in patch) db.starts_at = patch.startsAt || patch.starts_at || null;
   if ("endsAt" in patch || "ends_at" in patch) db.ends_at = patch.endsAt || patch.ends_at || null;
   if ("location" in patch) db.location = String(patch.location || "").trim() || null;
+  if ("city" in patch) db.city = String(patch.city || "").trim() || null;
+  if ("federalState" in patch || "federal_state" in patch || "state" in patch) db.federal_state = String(patch.federalState || patch.federal_state || patch.state || "").trim() || null;
+  if ("sector" in patch) db.sector = String(patch.sector || "").trim() || null;
   if ("goal" in patch) db.goal = String(patch.goal || "").trim() || null;
   if ("topics" in patch) db.topics = splitList(patch.topics);
   if ("requestNote" in patch || "request_note" in patch) db.request_note = String(patch.requestNote || patch.request_note || "").trim() || null;
@@ -3596,10 +3654,15 @@ async function hydrateHospitationFromSlot(request, payload = {}) {
   return {
     ...payload,
     contact_id: payload.contact_id || slot.contactId || null,
+    contact_name: payload.contact_name || slot.contactName || null,
     organization_id: payload.organization_id || slot.organizationId || null,
+    organization_name: payload.organization_name || slot.organizationName || null,
     starts_at: payload.starts_at || slot.startsAt || null,
     ends_at: payload.ends_at || slot.endsAt || null,
     location: payload.location || slot.location || null,
+    city: payload.city || slot.city || null,
+    federal_state: payload.federal_state || slot.state || null,
+    sector: payload.sector || slot.sector || null,
     owner_id: payload.owner_id || slot.ownerId || null
   };
 }
@@ -3642,7 +3705,7 @@ async function createHospitation(request) {
     throw error;
   }
   const payload = await hydrateHospitationFromSlot(request, hospitationToDb(rawBody, userId));
-  if (!payload.contact_id && !payload.organization_id && !payload.slot_id) {
+  if (!payload.contact_id && !payload.contact_name && !payload.organization_id && !payload.organization_name && !payload.slot_id) {
     const error = new Error("Hospitation benötigt Kontakt, Organisation oder Termin-Slot.");
     error.status = 400;
     throw error;
