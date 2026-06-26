@@ -40,6 +40,8 @@ Der fruehere GCP-Migrationsentwurf fuer Cloud Run liegt unter `archiv/gcp-protot
 
 Der aktuelle Root-`Jenkinsfile` folgt dem Kubernetes-Zielbild. Alte Cloud-Run-Kommandos und Prototyp-Dateien liegen im Archiv und duerfen nicht als aktueller Deploypfad gelesen werden.
 
+Im aktiven Root bleibt fuer Container-Builds nur `Dockerfile.api`. Der fruehere statische Frontend-Container liegt unter `archiv/statischer-frontend-container/`.
+
 ## Archivierte GCP-Prototypen
 
 Fruehere GCP-Demos liegen im Archiv:
