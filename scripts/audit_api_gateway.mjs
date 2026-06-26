@@ -130,13 +130,15 @@ function assertProductionConfig(configPath) {
       throw new Error(`${configPath}: Ziel-Produktionsartefakt darf keine oeffentlichen Supabase-Keys enthalten.`);
     }
   }
-  return { dataMode, authMode, apiBaseUrl };
+  const artifactRoot = path.basename(fullPath) === "supabase-config.js" && path.basename(path.dirname(fullPath)) === "data"
+    ? path.dirname(path.dirname(fullPath))
+    : path.dirname(fullPath);
+  return { dataMode, authMode, apiBaseUrl, artifactRoot };
 }
 
-function scanSupabaseRuntimeArtifacts() {
+function scanSupabaseRuntimeArtifacts(artifactRoot = path.join(root, "docs")) {
   const findings = [];
-  const files = ["docs"]
-    .flatMap((dir) => walk(path.join(root, dir)))
+  const files = walk(artifactRoot)
     .filter((file) => !/\/data\/data-service\.js$/.test(file));
   for (const file of files) {
     const relative = path.relative(root, file);
@@ -172,7 +174,7 @@ if (!productionConfigPath) {
 }
 
 const findings = targetDataModes.has(productionConfig?.dataMode)
-  ? scanSupabaseRuntimeArtifacts()
+  ? scanSupabaseRuntimeArtifacts(productionConfig.artifactRoot)
   : scanClientFiles();
 if (findings.length) {
   console.error("API Gateway Audit FAILED: unzulaessige Supabase-Browserpfade im Produktionsartefakt gefunden.");

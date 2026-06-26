@@ -1,0 +1,58 @@
+pipeline {
+  agent any
+
+  parameters {
+    booleanParam(name: 'RUN_INSTALL', defaultValue: false, description: 'Run npm ci instead of using the existing workspace dependencies.')
+    booleanParam(name: 'RUN_SECURITY', defaultValue: false, description: 'Run npm audit plus optional Semgrep/Gitleaks when Docker is available.')
+    booleanParam(name: 'RUN_VISUAL', defaultValue: false, description: 'Run Playwright visual tests.')
+    booleanParam(name: 'RUN_DOCKER', defaultValue: false, description: 'Build the API container image.')
+    booleanParam(name: 'RUN_TRIVY', defaultValue: false, description: 'Scan the API image with Trivy when available.')
+    booleanParam(name: 'RUN_PUSH', defaultValue: false, description: 'Push the API image to the local registry.')
+    booleanParam(name: 'RUN_HELM', defaultValue: true, description: 'Run helm lint and helm template.')
+    booleanParam(name: 'DEPLOY_TO_K8S', defaultValue: false, description: 'Deploy the API to the local Kubernetes namespace.')
+  }
+
+  environment {
+    ARTIFACT_REGISTRY = 'localhost:5001'
+    API_BASE_URL = 'https://versorgungs-kompass-api.local.test'
+    FRONTEND_BASE_URL = 'http://localhost:8088'
+    FRONTEND_ARTIFACT_DIR = '.local-gematik/frontend-artifact'
+    FRONTEND_PUBLISH_DIR = '.local-gematik/published-frontend'
+    K8S_NAMESPACE = 'versorgungs-kompass-local'
+    DB_HOST = 'host.docker.internal'
+    DB_PORT = '55432'
+    DB_NAME = 'versorgungs_kompass'
+    DB_USER = 'vk_app'
+    DB_PASSWORD = 'vk_local_password'
+    DB_PASSWORD_SECRET_NAME = 'versorgungs-kompass-postgres'
+    API_AUTH_MODE = 'trusted-header'
+    AUTH_EMAIL_HEADER = 'x-auth-request-email'
+    AUTH_SUBJECT_HEADER = 'x-auth-request-user'
+  }
+
+  stages {
+    stage('Local gematik simulation') {
+      steps {
+        sh '''
+          set -eu
+          args=""
+          [ "$RUN_INSTALL" = "true" ] && args="$args --install"
+          [ "$RUN_SECURITY" = "true" ] && args="$args --with-security"
+          [ "$RUN_VISUAL" = "true" ] && args="$args --with-visual"
+          [ "$RUN_DOCKER" = "true" ] && args="$args --with-docker"
+          [ "$RUN_TRIVY" = "true" ] && args="$args --with-trivy"
+          [ "$RUN_PUSH" = "true" ] && args="$args --push-image"
+          [ "$RUN_HELM" = "true" ] && args="$args --with-helm"
+          [ "$DEPLOY_TO_K8S" = "true" ] && args="$args --deploy-k8s"
+          bash scripts/simulate_gematik_pipeline.sh $args
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: '.local-gematik/**/*', allowEmptyArchive: true
+    }
+  }
+}

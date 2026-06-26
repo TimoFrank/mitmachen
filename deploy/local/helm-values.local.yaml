@@ -1,0 +1,34 @@
+replicaCount: 1
+
+image:
+  repository: localhost:5001/versorgungs-kompass-api
+  tag: local
+  pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: versorgungs-kompass-api.local.test
+  tls:
+    enabled: false
+
+config:
+  allowedOrigin: "http://localhost:8088"
+  apiAuthMode: "trusted-header"
+  authEmailHeader: "x-auth-request-email"
+  authSubjectHeader: "x-auth-request-user"
+  logRequests: "0"
+
+database:
+  host: "host.docker.internal"
+  port: "55432"
+  name: "versorgungs_kompass"
+  user: "vk_app"
+  ssl: "0"
+
+secrets:
+  databasePasswordSecretName: "versorgungs-kompass-postgres"
+  databasePasswordSecretKey: "password"
+
+storage:
+  profileImageBucket: "local-profile-images"
+  contactImageBucket: "local-contact-images"

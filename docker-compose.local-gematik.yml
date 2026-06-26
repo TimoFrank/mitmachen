@@ -1,0 +1,49 @@
+services:
+  jenkins:
+    build:
+      context: .
+      dockerfile: deploy/local/jenkins/Dockerfile
+    container_name: versorgungs-kompass-jenkins
+    user: root
+    ports:
+      - "8082:8080"
+      - "50000:50000"
+    environment:
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+    volumes:
+      - ./.local-gematik/jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace/versorgungs-crm
+
+  registry:
+    image: registry:2
+    container_name: versorgungs-kompass-registry
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./.local-gematik/registry:/var/lib/registry
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: versorgungs-kompass-postgres
+    ports:
+      - "55432:5432"
+    environment:
+      POSTGRES_DB: versorgungs_kompass
+      POSTGRES_USER: vk_app
+      POSTGRES_PASSWORD: vk_local_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vk_app -d versorgungs_kompass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - ./.local-gematik/postgres:/var/lib/postgresql/data
+
+  frontend:
+    image: nginx:1.27-alpine
+    container_name: versorgungs-kompass-frontend-local
+    ports:
+      - "8088:80"
+    volumes:
+      - ./.local-gematik/published-frontend:/usr/share/nginx/html:ro
