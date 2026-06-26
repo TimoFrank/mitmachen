@@ -6,6 +6,7 @@ Dieser Ordner enthaelt alte GCP-Demo-Staende. Sie sind bewusst aus der Repositor
 
 - `statische-demo/`: frueherer Cloud-Run-Deploypfad fuer eine rein statische Demo.
 - `cloud-sql-prototyp/`: frueherer Cloud-Run-/Cloud-SQL-Prototyp mit eigener Node-Laufzeit.
+- `iap-experiment/`: abgebrochener Cloud-Run/IAP-Versuch mit kombiniertem Frontend/API-Container.
 - `protokoll/`: alte Schrittprotokolle des privaten GCP-Tests.
 - `uebergabe/`: alte Uebergabenotizen, Demo-Hinweise und GCP-Migrationspakete.
 
@@ -16,4 +17,5 @@ Diese Dateien sind Archivmaterial. Sie dokumentieren fruehere Experimente und ko
 Aktive Orientierung:
 
 - GitHub Pages: `../../DEPLOYMENT_UEBERSICHT.md`
-- Archivierter Cloud-Run-Entwurf: `../../DEPLOYMENT_GCP_GEMATIK.md`
+- Archivierter Cloud-Run-Entwurf: `uebergabe/DEPLOYMENT_GCP_GEMATIK.md`
+- Gematik Kubernetes-Zielbild: `../../DEPLOYMENT_GEMATIK_K8S.md`

@@ -1,10 +1,10 @@
 # Deployment GCP/gematik
 
-Archivhinweis: Dieses Dokument beschreibt den frueheren Cloud-Run-Entwurf. Die aktuelle Zielarchitektur fuer die gematik-Migration steht in `DEPLOYMENT_GEMATIK_K8S.md`.
+Archivhinweis: Dieses Dokument beschreibt den frueheren Cloud-Run-Entwurf. Die aktuelle Zielarchitektur fuer die gematik-Migration steht in `../../../DEPLOYMENT_GEMATIK_K8S.md`.
 
 Diese Notiz beschreibt einen moeglichen Migrationsentwurf fuer ein internes Deployment auf Google Cloud mit Jenkins-Pipeline, Cloud SQL, Cloud Storage und IAP/SSO.
 
-Hinweis: Das ist ein offener Architekturentwurf, kein beschlossener gematik-Zielbetrieb. Der aktuelle GitHub-Pages-Pfad mit Supabase bleibt bis zu einer freigegebenen Migration bestehen. Die aktive/archivierte Einordnung steht in `DEPLOYMENT_UEBERSICHT.md`.
+Hinweis: Das ist ein offener Architekturentwurf, kein beschlossener gematik-Zielbetrieb. Der aktuelle GitHub-Pages-Pfad mit Supabase bleibt bis zu einer freigegebenen Migration bestehen. Die aktive/archivierte Einordnung steht in `../../../DEPLOYMENT_UEBERSICHT.md`.
 
 ## Moeglicher Zielentwurf
 

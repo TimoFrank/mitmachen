@@ -109,8 +109,8 @@ if (apiBaseUrl) {
 }
 
 const authMode = process.env.API_AUTH_MODE || "";
-if (authMode && !["trusted-header", "sso", "iap"].includes(authMode)) {
-  failures.push("API_AUTH_MODE muss trusted-header, sso oder iap sein.");
+if (authMode && !["trusted-header", "sso"].includes(authMode)) {
+  failures.push("API_AUTH_MODE muss trusted-header oder sso sein.");
   fail("API_AUTH_MODE ist ungueltig.");
 }
 

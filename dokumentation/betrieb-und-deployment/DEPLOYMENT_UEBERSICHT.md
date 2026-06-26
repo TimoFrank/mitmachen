@@ -21,6 +21,7 @@ Sie ist kein eigener GCP-Deploypfad mehr. Wenn GitHub Pages aktualisiert wird, k
 ## Neues gematik Kubernetes-Zielbild
 
 Das neue Zielbild fuer die interne Infrastrukturuebernahme steht in `DEPLOYMENT_GEMATIK_K8S.md`.
+Die dazugehoerige kompakte Konzeption steht in `GEMATIK_K8S_ZIELKONZEPT.md`.
 
 Es nutzt:
 
@@ -35,7 +36,7 @@ Cloud Run ist nicht mehr Zielarchitektur.
 
 ## Archivierter GCP-/Cloud-Run-Migrationsentwurf
 
-Der fruehere GCP-Migrationsentwurf fuer Cloud Run ist in `DEPLOYMENT_GCP_GEMATIK.md` beschrieben. Er bleibt als technische Referenz erhalten, ist aber nicht mehr fuehrend.
+Der fruehere GCP-Migrationsentwurf fuer Cloud Run liegt unter `archiv/gcp-prototypen/uebergabe/DEPLOYMENT_GCP_GEMATIK.md`. Er bleibt als technische Referenz erhalten, ist aber nicht mehr fuehrend.
 
 Der aktuelle Root-`Jenkinsfile` folgt dem Kubernetes-Zielbild. Alte Cloud-Run-Kommandos und Prototyp-Dateien liegen im Archiv und duerfen nicht als aktueller Deploypfad gelesen werden.
 
@@ -45,7 +46,10 @@ Fruehere GCP-Demos liegen im Archiv:
 
 - `archiv/gcp-prototypen/statische-demo/`: alter Cloud-Run-Container fuer die rein statische Demo `versorgungs-kompass-demo`.
 - `archiv/gcp-prototypen/cloud-sql-prototyp/`: alter Cloud-SQL-Prototyp `versorgungs-kompass-gcp-demo` mit eigener Node-Laufzeit.
+- `archiv/gcp-prototypen/iap-experiment/`: abgebrochener Cloud-Run/IAP-Versuch vom 26. Juni 2026 mit kombiniertem Frontend/API-Container.
 - `archiv/gcp-prototypen/protokoll/`: alte Schrittprotokolle des privaten GCP-Tests.
 - `archiv/gcp-prototypen/uebergabe/`: alte Uebergabenotizen und GCP-Migrationspakete.
 
 Diese Dateien bleiben zur Nachvollziehbarkeit erhalten, sind aber nicht Teil des normalen Build-, Check- oder Publish-Pfads.
+
+Insbesondere `iap-experiment/` ist kein Ersatz fuer das gematik Kubernetes-Zielbild. Fuer neue Zielarbeit gelten `DEPLOYMENT_GEMATIK_K8S.md`, das Helm Chart unter `deploy/helm/versorgungs-kompass`, `Dockerfile.api` und das statische Frontend-Artefakt aus `docs/`.

@@ -5,15 +5,11 @@ const [
   configPath = "docs/data/supabase-config.js",
   apiBaseUrl = process.env.API_BASE_URL || "",
   dataMode = process.env.TARGET_DATA_MODE || "api",
-  authMode = process.env.TARGET_AUTH_MODE || process.env.API_AUTH_MODE || "trusted-header",
-  apiCredentials = process.env.API_CREDENTIALS || ""
+  authMode = process.env.TARGET_AUTH_MODE || process.env.API_AUTH_MODE || "trusted-header"
 ] = process.argv.slice(2);
 
 const allowedDataModes = new Set(["api", "gcp"]);
-const allowedAuthModes = new Set(["trusted-header", "sso", "iap"]);
-
-const usesSameOriginApi = apiBaseUrl === "same-origin";
-const resolvedApiBaseUrl = usesSameOriginApi ? "" : apiBaseUrl;
+const allowedAuthModes = new Set(["trusted-header", "sso"]);
 
 if (!apiBaseUrl) {
   throw new Error("API_BASE_URL fehlt fuer das Ziel-Frontend-Artefakt.");
@@ -46,8 +42,7 @@ source = source.replace(/\n\s*supabaseUrl:\s*"[^"]*",?/g, "");
 source = source.replace(/\n\s*supabaseAnonKey:\s*"[^"]*",?/g, "");
 source = upsertStringProperty(source, "dataMode", dataMode);
 source = upsertStringProperty(source, "authMode", authMode);
-source = upsertStringProperty(source, "apiBaseUrl", resolvedApiBaseUrl);
-if (apiCredentials) source = upsertStringProperty(source, "apiCredentials", apiCredentials, "apiBaseUrl");
+source = upsertStringProperty(source, "apiBaseUrl", apiBaseUrl);
 source = upsertBooleanProperty(source, "requireApiGateway", true);
 
 fs.writeFileSync(configPath, source);
@@ -82,7 +77,7 @@ const expectedAuthMode = new RegExp(`authMode:\\s*"${authMode}"`);
 if (
   !expectedDataMode.test(result) ||
   !expectedAuthMode.test(result) ||
-  !(usesSameOriginApi ? /apiBaseUrl:\s*""/.test(result) : /apiBaseUrl:\s*"https:\/\//.test(result)) ||
+  !/apiBaseUrl:\s*"https:\/\//.test(result) ||
   !/requireApiGateway:\s*true/.test(result) ||
   /supabaseUrl|supabaseAnonKey/.test(result)
 ) {

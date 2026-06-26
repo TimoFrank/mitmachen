@@ -5,7 +5,7 @@ const env = {
   ...process.env,
   PORT: String(port),
   API_AUTH_ALLOW_BEARER_DEV: "1",
-  API_AUTH_MODE: "iap"
+  API_AUTH_MODE: "trusted-header"
 };
 
 function base64Url(value) {

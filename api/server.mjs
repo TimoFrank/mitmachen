@@ -1,7 +1,5 @@
 import http from "node:http";
 import crypto from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
 import { Pool } from "pg";
 
 const CONTACT_FIELDS = [
@@ -313,12 +311,10 @@ const STAKEHOLDER_PEOPLE_FIELDS = [
 ];
 const PORT = Number(process.env.PORT || 8081);
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "";
-const STATIC_ROOT = process.env.STATIC_ROOT ? path.resolve(process.env.STATIC_ROOT) : "";
-const STATIC_INDEX = process.env.STATIC_INDEX || "login.html";
 const LOG_REQUESTS = process.env.API_LOG_REQUESTS === "1";
 const PROFILE_IMAGE_BUCKET = process.env.PROFILE_IMAGE_BUCKET || "";
 const CONTACT_IMAGE_BUCKET = process.env.CONTACT_IMAGE_BUCKET || "";
-const API_AUTH_MODE = process.env.API_AUTH_MODE || "iap";
+const API_AUTH_MODE = process.env.API_AUTH_MODE || "trusted-header";
 const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1";
 const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
 const API_DEV_PROFILE_ID = process.env.API_DEV_PROFILE_ID || process.env.GCP_DEMO_PROFILE_ID || "";
@@ -1815,80 +1811,12 @@ function jsonResponse(response, status, payload, headers = {}) {
 
 function corsHeaders() {
   if (!ALLOWED_ORIGIN) return {};
-  const headers = {
+  return {
     "access-control-allow-origin": ALLOWED_ORIGIN,
     "access-control-allow-headers": `authorization, content-type, x-goog-authenticated-user-email, x-goog-authenticated-user-id, ${AUTH_EMAIL_HEADER}, ${AUTH_SUBJECT_HEADER}`,
     "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     vary: "origin"
   };
-  if (ALLOWED_ORIGIN !== "*") headers["access-control-allow-credentials"] = "true";
-  return headers;
-}
-
-function staticContentType(filePath = "") {
-  const ext = path.extname(filePath).toLowerCase();
-  return {
-    ".css": "text/css; charset=utf-8",
-    ".csv": "text/csv; charset=utf-8",
-    ".html": "text/html; charset=utf-8",
-    ".ico": "image/x-icon",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".js": "text/javascript; charset=utf-8",
-    ".json": "application/json; charset=utf-8",
-    ".png": "image/png",
-    ".svg": "image/svg+xml",
-    ".webmanifest": "application/manifest+json; charset=utf-8",
-    ".webp": "image/webp"
-  }[ext] || "application/octet-stream";
-}
-
-function resolveStaticFile(pathname = "") {
-  if (!STATIC_ROOT) return "";
-  const decodedPath = decodeURIComponent(pathname || "/");
-  const normalizedPath = decodedPath === "/" ? `/${STATIC_INDEX}` : decodedPath;
-  const relativePath = normalizedPath.replace(/^\/+/, "");
-  const resolved = path.resolve(STATIC_ROOT, relativePath);
-  if (resolved !== STATIC_ROOT && !resolved.startsWith(`${STATIC_ROOT}${path.sep}`)) return "";
-  return resolved;
-}
-
-async function serveStaticAsset(request, response, url) {
-  if (!STATIC_ROOT || !["GET", "HEAD"].includes(request.method)) return false;
-  if (url.pathname === "/api" || url.pathname.startsWith("/api/") || url.pathname === "/healthz") return false;
-  let filePath = resolveStaticFile(url.pathname);
-  let stat = null;
-  try {
-    stat = await fs.promises.stat(filePath);
-    if (stat.isDirectory()) {
-      filePath = path.join(filePath, STATIC_INDEX);
-      stat = await fs.promises.stat(filePath);
-    }
-  } catch {
-    if (path.extname(url.pathname)) return false;
-    filePath = path.join(STATIC_ROOT, STATIC_INDEX);
-    try {
-      stat = await fs.promises.stat(filePath);
-    } catch {
-      return false;
-    }
-  }
-  if (!stat?.isFile()) return false;
-  response.writeHead(200, {
-    "content-type": staticContentType(filePath),
-    "cache-control": path.extname(filePath) === ".html" ? "no-store" : "public, max-age=3600"
-  });
-  if (request.method === "HEAD") {
-    response.end();
-    return true;
-  }
-  fs.createReadStream(filePath)
-    .on("error", () => {
-      if (!response.headersSent) response.writeHead(500);
-      response.end();
-    })
-    .pipe(response);
-  return true;
 }
 
 function bearerToken(request) {
@@ -4296,9 +4224,8 @@ async function patchContact(request, id) {
 }
 
 async function handle(request, response) {
-  const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
   if (request.method === "OPTIONS") return jsonResponse(response, 204, {});
-  if (await serveStaticAsset(request, response, url)) return;
+  const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
   if (LOG_REQUESTS) console.log(`${request.method} ${url.pathname}${url.search}`);
   try {
     const profileAvatarMatch = /^\/api\/profile-avatar\/([^/]+)$/.exec(url.pathname);

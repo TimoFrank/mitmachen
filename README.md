@@ -75,7 +75,7 @@ Weitere Details:
 - `dokumentation/architektur/DATA_MODEL.md`: fachliches Datenmodell.
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`: gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
 - `db/postgres/schema.sql`: aktives Startschema fuer Shared Postgres.
-- `dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_GEMATIK.md`: archivierter Cloud-Run-Entwurf.
+- `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/uebergabe/DEPLOYMENT_GCP_GEMATIK.md`: archivierter Cloud-Run-Entwurf.
 - `supabase/README.md`: aktuelles Legacy-Backend und Quelle fuer die Datenmigration.
 
 ## Deployment
@@ -95,7 +95,7 @@ Fuer das interne gematik Kubernetes-Zielbild mit Jenkins, Helm und API-Gateway s
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md`
 
-Der fruehere Cloud-Run-Entwurf steht nur noch als Referenz in `dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_GEMATIK.md`. Historische GCP-Demo-Prototypen, Schrittprotokolle und Uebergabenotizen liegen unter `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/` und gehoeren nicht zum normalen Start- oder Publish-Pfad.
+Der fruehere Cloud-Run-Entwurf steht nur noch als Referenz in `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/uebergabe/DEPLOYMENT_GCP_GEMATIK.md`. Historische GCP-Demo-Prototypen, Schrittprotokolle und Uebergabenotizen liegen unter `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/` und gehoeren nicht zum normalen Start- oder Publish-Pfad.
 
 Wichtig: Ein Git-Push aktualisiert nur den Git-Stand. Wenn eine Aenderung produktive Backend-Daten betrifft, muss sie zusaetzlich in der Zielumgebung angewendet werden.
 

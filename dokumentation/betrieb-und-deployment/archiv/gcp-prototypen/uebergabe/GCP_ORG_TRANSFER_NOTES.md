@@ -292,4 +292,4 @@ Ich brauche entweder die noetigen Rechte und Tools, um das Deployment selbst aus
 
 ## Abgrenzung zu aelteren Zielbildern
 
-`DEPLOYMENT_GCP_GEMATIK.md` beschreibt inzwischen das aktive GCP/gematik-Zielbild mit Cloud-Run-Frontend, Cloud-Run-API, Cloud SQL, Cloud Storage und IAP/SSO. Die frueheren Demo-Strategien bleiben in `README_DEMO_MODE_GCP.md`, `PRIVATE_GCP_TEST.md` und dieser Notiz als historische Referenz sichtbar.
+`DEPLOYMENT_GCP_GEMATIK.md` beschrieb damals das GCP/gematik-Zielbild mit Cloud-Run-Frontend, Cloud-Run-API, Cloud SQL, Cloud Storage und IAP/SSO. Diese Spur ist inzwischen archiviert; das aktive Zielbild steht in `../../../DEPLOYMENT_GEMATIK_K8S.md`.

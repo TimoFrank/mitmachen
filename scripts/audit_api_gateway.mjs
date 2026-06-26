@@ -39,7 +39,7 @@ const args = process.argv.slice(2);
 const productionConfigIndex = args.indexOf("--production-config");
 const productionConfigPath = productionConfigIndex >= 0 ? args[productionConfigIndex + 1] : "";
 const targetDataModes = new Set(["api", "gcp"]);
-const targetAuthModes = new Set(["trusted-header", "sso", "iap"]);
+const targetAuthModes = new Set(["trusted-header", "sso"]);
 const supabaseRuntimePatterns = [
   {
     label: "Supabase Browser-SDK im Ziel-Produktionsartefakt",
@@ -113,8 +113,7 @@ function assertProductionConfig(configPath) {
   const authMode = configString(source, "authMode");
   const dataMode = configString(source, "dataMode");
   const requireApiGateway = configBoolean(source, "requireApiGateway");
-  const usesSameOriginApi = !apiBaseUrl && authMode === "iap";
-  if (!usesSameOriginApi && !/^https:\/\//.test(apiBaseUrl)) {
+  if (!/^https:\/\//.test(apiBaseUrl)) {
     throw new Error(`${configPath}: apiBaseUrl muss fuer das Produktionsartefakt eine HTTPS-URL sein.`);
   }
   if (/localhost|127\.0\.0\.1|\[::1\]/i.test(apiBaseUrl)) {
@@ -125,21 +124,19 @@ function assertProductionConfig(configPath) {
   }
   if (targetDataModes.has(dataMode)) {
     if (!targetAuthModes.has(authMode)) {
-      throw new Error(`${configPath}: authMode muss im Ziel-Produktionsartefakt trusted-header, sso oder iap sein.`);
+      throw new Error(`${configPath}: authMode muss im Ziel-Produktionsartefakt trusted-header oder sso sein.`);
     }
     if (/supabaseUrl|supabaseAnonKey/.test(source)) {
       throw new Error(`${configPath}: Ziel-Produktionsartefakt darf keine oeffentlichen Supabase-Keys enthalten.`);
     }
   }
-  const artifactRoot = path.basename(fullPath) === "supabase-config.js" && path.basename(path.dirname(fullPath)) === "data"
-    ? path.dirname(path.dirname(fullPath))
-    : path.dirname(fullPath);
-  return { dataMode, authMode, apiBaseUrl, artifactRoot };
+  return { dataMode, authMode, apiBaseUrl };
 }
 
-function scanSupabaseRuntimeArtifacts(artifactRoot = path.join(root, "docs")) {
+function scanSupabaseRuntimeArtifacts() {
   const findings = [];
-  const files = walk(artifactRoot)
+  const files = ["docs"]
+    .flatMap((dir) => walk(path.join(root, dir)))
     .filter((file) => !/\/data\/data-service\.js$/.test(file));
   for (const file of files) {
     const relative = path.relative(root, file);
@@ -175,7 +172,7 @@ if (!productionConfigPath) {
 }
 
 const findings = targetDataModes.has(productionConfig?.dataMode)
-  ? scanSupabaseRuntimeArtifacts(productionConfig.artifactRoot)
+  ? scanSupabaseRuntimeArtifacts()
   : scanClientFiles();
 if (findings.length) {
   console.error("API Gateway Audit FAILED: unzulaessige Supabase-Browserpfade im Produktionsartefakt gefunden.");

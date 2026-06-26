@@ -46,7 +46,7 @@ for (const [label, content] of [
   assert(!/sb_secret_/i.test(content), `${label} enthaelt moeglich geheimen Supabase-Key`);
   if (["api", "gcp"].includes(dataMode)) {
     assert(!/supabaseAnonKey|supabaseUrl/.test(content), `${label} darf im Ziel-API-Modus keine Supabase-Keys enthalten`);
-    assert(/authMode\s*:\s*["'](trusted-header|sso|iap)["']/.test(content), `${label} muss im Ziel-API-Modus einen freigegebenen authMode setzen`);
+    assert(/authMode\s*:\s*["'](trusted-header|sso)["']/.test(content), `${label} muss im Ziel-API-Modus einen freigegebenen authMode setzen`);
     assert(/requireApiGateway\s*:\s*true/.test(content), `${label} muss im Ziel-API-Modus requireApiGateway=true setzen`);
   } else {
     assert(/supabaseAnonKey/.test(content), `${label} enthaelt keinen anon/publishable Key`);

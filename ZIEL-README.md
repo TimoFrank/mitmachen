@@ -175,3 +175,5 @@ Vor echtem Produktivbetrieb muessen diese Punkte verbindlich sein:
 Jetzt nicht Supabase loeschen und nicht den aktuellen GitHub-Pages-Pfad aufgeben.
 
 Der naechste sinnvolle Schritt ist die technische Zielspur im Repo: Kubernetes-Doku, Jenkinsfile, Helm Chart, neutrales API-Config-Script und Postgres-Schema vorbereiten. Danach kann die gematik-IT Namespace, Datenbank, Bucket, Ingress und Berechtigungen konkret anschliessen.
+
+Die kompakte Zielkonzeption steht zusaetzlich in `dokumentation/betrieb-und-deployment/GEMATIK_K8S_ZIELKONZEPT.md`.
