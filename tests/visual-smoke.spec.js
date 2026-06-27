@@ -680,7 +680,11 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
     ? page.locator("#patient-organization-list .organization-mobile-sector .patient-indication-badge")
     : page.locator("#patient-organization-list .cell--sector .patient-indication-badge");
   await expect(organizationIndicationBadges.first()).toBeVisible();
-  await expect(organizationIndicationBadges.filter({ hasText: "Onkologie" }).first()).toBeVisible();
+  const oncologyBadge = organizationIndicationBadges.filter({ hasText: "Onkologie" }).first();
+  await expect(oncologyBadge).toBeVisible();
+  const oncologyBadgeTone = await oncologyBadge.evaluate((badge) =>
+    getComputedStyle(badge).getPropertyValue("--patient-indication-bg").trim()
+  );
   expect(await organizationIndicationBadges.count()).toBeGreaterThan(1);
   const organizationBadgeBackgrounds = await organizationIndicationBadges.evaluateAll((badges) =>
     badges.map((badge) => getComputedStyle(badge).backgroundColor)
@@ -718,7 +722,15 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator("#patient-indications-panel")).toBeVisible();
   await expect(page.locator("#patient-people-table")).toBeHidden();
   await expect(page.locator("#patient-organizations-table")).toBeHidden();
-  await expect(page.locator("#patient-indications-list .patient-indication-card").filter({ hasText: "Onkologie und Hämatologie" })).toContainText("Bündelt Krebserkrankungen");
+  const indicationCards = page.locator("#patient-indications-list .patient-indication-card");
+  const oncologyCard = indicationCards.filter({ hasText: "Onkologie und Hämatologie" }).first();
+  await expect(oncologyCard).toContainText("Bündelt Krebserkrankungen");
+  await expect(oncologyCard.locator(".patient-indication-card__icon")).toBeVisible();
+  await expect(page.locator("#patient-indications-list .patient-indication-card__icon")).toHaveCount(await indicationCards.count());
+  const oncologyCardTone = await oncologyCard.evaluate((card) =>
+    getComputedStyle(card).getPropertyValue("--patient-indication-bg").trim()
+  );
+  expect(oncologyCardTone).toBe(oncologyBadgeTone);
   await expect(page.locator("#patient-indications-list .patient-indication-card").filter({ hasText: "Seltene Erkrankungen und Genetik" })).toContainText("genetisch bedingte Erkrankungen");
   await expect(page.locator("#patients-pagination-meta")).toContainText("Indikationen");
 
