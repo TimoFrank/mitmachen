@@ -15,63 +15,63 @@ Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine K
 - Version: [v0.16.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.16.0)
 - Stand: 27. Juni 2026
 - Kurznotiz: Erstes GitHub Release, harmonisiert mit dem App-Changelog bis Version 0.16.
-- Testumgebung: [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html)
+- Repo-Prüfung: [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html)
 - Öffentliche Demo: [GCP-Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app)
 
 ## Schnellstart
 
 Kurz erklärt:
 
-Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen für Übergabe und Betrieb. Produktive Netzwerkdaten liegen nicht im Repository, sondern in einem geschützten Backend.
+Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen für Übergabe und Betrieb. Produktive Daten liegen nicht im Repository, sondern in einem geschützten Backend.
 
 - Der Versorgungs-Kompass ist eine interne Webanwendung für das gematik-Hospitationsnetzwerk.
 - Die Karte ist der Einstieg: Sie zeigt Kontakte, Organisationen, Standorte und regionale Lücken.
 - Für Vorführung und Abstimmung ohne GitHub-Zugriff gibt es die [öffentliche GCP-Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
-- GitHub enthält Quellcode, Dokumentation und die [GitHub-Pages-Testumgebung](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
+- GitHub enthält Quellcode, Dokumentation und die [GitHub-Pages-Prüfung](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
 - Für Betrieb und Migration ist die [gematik-Deployment-Dokumentation](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) der wichtigste technische Startpunkt.
 
-## Ordnerstruktur
+## Welche Umgebung wofür?
 
-- [`frontend/`](frontend/): führende Frontend-Quellen.
-  - [`frontend/app/`](frontend/app/): Hauptanwendung des Versorgungs-Kompass.
-  - [`frontend/login/`](frontend/login/): Login-Seite und Auth-Skripte.
-  - [`frontend/map/`](frontend/map/): Kartenansichten, Mini-Karten und Kartendaten.
-  - [`frontend/data/`](frontend/data/): Datenadapter, Backend-Konfiguration und leere Fallback-Dateien.
-  - [`frontend/pages/`](frontend/pages/): einzelne statische Zusatzseiten, die nach [`docs/`](docs/) gespiegelt werden.
-  - [`frontend/demo/`](frontend/demo/): statische Demo-Oberfläche mit fiktiven Daten.
-- [`api/`](api/): REST-API für produktionsnahe Backend-Zugriffe im Zielbild.
-- [`supabase/`](supabase/): Legacy-/Migrationsquelle bis zur abgeschlossenen Shared-Postgres-Datenmigration.
-- [`public/`](public/): Logos, Icons und statische Assets.
-- [`scripts/`](scripts/): Prüf-, Sync- und Importskripte.
-- [`tests/`](tests/): Playwright-Smoke-Tests.
-- [`docs/`](docs/): Publish-Kopie für GitHub Pages. Dieser Ordner wird aus den Quellordnern synchronisiert.
-- [`dokumentation/`](dokumentation/): Architektur, Betrieb, Design, QA und Übergabeunterlagen.
-  - [`dokumentation/README.md`](dokumentation/README.md): Einstieg und Wegweiser durch die Dokumentation.
-  - [`dokumentation/produkt-und-design/`](dokumentation/produkt-und-design/): Designsystem, UX-Regeln und UI-Checklisten für die Oberfläche.
-  - [`dokumentation/entwicklung-und-qa/`](dokumentation/entwicklung-und-qa/): Projektzustand, Prüfabläufe und Qualitätssicherung.
-  - [`dokumentation/architektur/`](dokumentation/architektur/): API-Grenzen, Datenmodell und Schnittstellen.
-  - [`dokumentation/betrieb-und-deployment/`](dokumentation/betrieb-und-deployment/): Betrieb, Deployment und gematik-Zielbild.
+| Umgebung | Wofür gedacht | Hinweis |
+| --- | --- | --- |
+| [Öffentliche GCP-Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Vorführung, Abstimmung und erste fachliche Rückmeldungen | Öffentlich erreichbar, mit Testdaten und eigenem Cloud-SQL-Backend |
+| [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Technische Prüfung der statischen Oberfläche im Repo | Nicht der Weitergabe-Link für Personen ohne GitHub-Zugriff |
+| gematik-Zielbetrieb | Späterer Betrieb in der gematik-Infrastruktur | Mit interner API, geschützter Datenbank, SSO und Gateway |
+| GitHub-Repository | Quellcode, Dokumentation und Übergabeunterlagen | Keine produktiven Netzwerkdaten |
 
-Die wichtigsten Quellpfade sind [`frontend/`](frontend/), [`api/`](api/), [`public/`](public/), [`scripts/`](scripts/), [`tests/`](tests/) und [`dokumentation/`](dokumentation/). [`supabase/`](supabase/) bleibt vorerst als Legacy- und Migrationsquelle erhalten. [`docs/`](docs/) ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
+## Wichtigste Ordner
+
+| Ordner | Zweck |
+| --- | --- |
+| [`frontend/`](frontend/) | Oberfläche, Login, Karten, Datenadapter, Zusatzseiten und fiktive Demo |
+| [`api/`](api/) | REST-API für produktionsnahe Backend-Zugriffe im Zielbild |
+| [`supabase/`](supabase/) | Legacy- und Migrationsquelle bis zur abgeschlossenen Datenmigration |
+| [`public/`](public/) | Logos, Icons und statische Assets |
+| [`scripts/`](scripts/) | Prüf-, Sync- und Importskripte |
+| [`tests/`](tests/) | Browser-Smoke-Tests |
+| [`docs/`](docs/) | Publish-Kopie für GitHub Pages, nicht direkt pflegen |
+| [`dokumentation/`](dokumentation/) | Einstieg, Design, QA, Architektur, Betrieb und Deployment |
+
+Wichtige Einstiege in die Dokumentation sind [`dokumentation/README.md`](dokumentation/README.md), [`dokumentation/architektur/`](dokumentation/architektur/) und [`dokumentation/betrieb-und-deployment/`](dokumentation/betrieb-und-deployment/).
 
 ## Daten und Backend
 
-Produktive Daten werden im geschützten Backend geführt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und unabhängig vom öffentlichen Quellcode.
+Im Repository liegen Oberfläche, technische Adapter, Dokumentation und fiktive Demo-Daten. Produktive Daten werden im geschützten Backend geführt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und getrennt vom öffentlichen Quellcode.
 
-Die Dateien in [`frontend/data/`](frontend/data/) bündeln Adapter, Laufzeitkonfiguration und schlanke Fallback-Dateien. Administrative Backend-Schlüssel und andere sensible Betriebszugriffe werden über das geschützte Secret-Management der jeweiligen Umgebung bereitgestellt. Frontend-Dateien wie [`frontend/data/supabase-config.js`](frontend/data/supabase-config.js) enthalten nur clientseitige Konfiguration.
+Administrative Schlüssel und andere sensible Betriebszugriffe gehören nicht in das Frontend oder in [`docs/`](docs/). Sie werden im Zielbetrieb über das geschützte Secret-Management der jeweiligen Umgebung bereitgestellt.
 
 Weitere Details:
 
 - [`dokumentation/architektur/API_CONTRACT.md`](dokumentation/architektur/API_CONTRACT.md): API-Grenzen und Sicherheitsmodell.
 - [`dokumentation/architektur/DATA_MODEL.md`](dokumentation/architektur/DATA_MODEL.md): fachliches Datenmodell.
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md): gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
-- [`supabase/README.md`](supabase/README.md): aktuelles Legacy-Backend und Quelle für die Datenmigration.
+- [`supabase/README.md`](supabase/README.md): Legacy-Backend und Quelle für die Datenmigration.
 
-## GitHub-Standardveröffentlichung
+## GitHub-Pages-Prüfung
 
-Die GitHub-Veröffentlichung ist der Standard für Testbetrieb und technische Sichtprüfung im Repo. Sie läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
+Die GitHub-Pages-Prüfung ist der Standard für Testbetrieb und technische Sichtprüfung im Repo. Sie läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
 
-Diese Veröffentlichung ist nicht der gematik-Zielbetrieb und nicht der öffentliche Weitergabe-Link für Kolleginnen und Kollegen ohne GitHub-Zugriff. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration. Produktive Daten, produktive Berechtigungen und geschützte Betriebszugriffe gehören nicht in diese GitHub-Veröffentlichung.
+Diese Prüfung ist nicht der gematik-Zielbetrieb und nicht der öffentliche Weitergabe-Link für Kolleginnen und Kollegen ohne GitHub-Zugriff. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration. Produktive Daten, produktive Berechtigungen und geschützte Betriebszugriffe gehören nicht in diese GitHub-Pages-Prüfung.
 
 Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. [`docs/`](docs/) bleibt dabei ein Auslieferungsartefakt und wird nicht direkt gepflegt.
 
@@ -85,9 +85,16 @@ Die GCP-Demo ist ein eigener Prototyp mit Cloud-SQL-Backend. Sie kann deshalb vo
 
 ## Deployment im Zielbetrieb
 
-Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür wird das statische Frontend bereitgestellt, die API als Dienst im Kubernetes-Umfeld ausgerollt und das Backend an Shared Postgres, Secret-Management, internes SSO und Gateway oder Reverse Proxy angebunden.
+Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür braucht es ein statisches Frontend, eine interne API, eine geschützte Datenbank, Secret-Management, internes SSO und Gateway oder Reverse Proxy.
 
-Die Umsetzung folgt den Betriebs- und Deployment-Unterlagen. Der einfache Ablauf ist: Zielumgebung vorbereiten, Konfiguration und Secrets setzen, Datenbankmigration prüfen, Frontend und API bereitstellen, danach Anmeldung, Navigation, Kartenaufruf und Backend-Zugriffe testen.
+Der einfache Ablauf ist:
+
+1. Zielumgebung vorbereiten.
+2. Frontend bereitstellen.
+3. API betreiben.
+4. Datenbank anbinden.
+5. Konfiguration und Secrets setzen.
+6. Anmeldung, Navigation, Karte und Backend-Zugriffe testen.
 
 Die technischen Detaildokumente für die Implementierung sind:
 
@@ -96,7 +103,7 @@ Die technischen Detaildokumente für die Implementierung sind:
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md)
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md)
 
-Die aktuelle Einordnung der Auslieferungswege steht in der [Deployment-Übersicht](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md). Kurz gesagt: GitHub Pages zeigt die Testveröffentlichung der Oberfläche. Der Zielbetrieb umfasst zusätzlich die geschützte Datenbank und die interne API. Echte Netzwerkdaten werden deshalb in der Zielumgebung gepflegt oder importiert, nicht über einzelne Dateien im Repository.
+Die aktuelle Einordnung der Auslieferungswege steht in der [Deployment-Übersicht](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md). Kurz gesagt: GitHub Pages zeigt die Testansicht der Oberfläche. Der Zielbetrieb umfasst zusätzlich die geschützte Datenbank und die interne API. Echte Netzwerkdaten werden deshalb in der Zielumgebung gepflegt oder importiert, nicht über einzelne Dateien im Repository.
 
 ## Prüfungen
 
@@ -108,10 +115,8 @@ Die detaillierten QA-Regeln stehen in [`dokumentation/entwicklung-und-qa/QA_WORK
 
 ## Lizenz
 
-Der Quellcode und die technische Dokumentation dieses Repositorys stehen unter der [Apache License 2.0](LICENSE).
+Quellcode und technische Dokumentation stehen unter der [Apache License 2.0](LICENSE).
 
-Die im Repository enthaltenen Demo- und Beispieldaten sind fiktiv und werden, sofern in einer Datei nicht anders angegeben, ebenfalls unter der Apache License 2.0 für Entwicklung, Tests und Demonstrationen bereitgestellt.
+Fiktive Demo- und Beispieldaten dürfen für Entwicklung, Tests und Demonstrationen genutzt werden, sofern in einer Datei nichts anderes angegeben ist.
 
-Echte Daten aus angebundenen Systemen, Marken, Logos, Profilbilder, Drittinhalte und andere externe Assets sind nicht Teil dieser Repository-Lizenz. Daten aus externen Systemen wie Supabase werden separat geregelt und nicht durch die Apache-2.0-Lizenz dieses Repositorys freigegeben.
-
-Weitere Hinweise stehen in [NOTICE](dokumentation/rechtliches/NOTICE.md) und [DATA_NOTICE.md](dokumentation/rechtliches/DATA_NOTICE.md).
+Echte Daten aus angebundenen Systemen, Marken, Logos, Profilbilder, Drittinhalte und andere externe Assets sind nicht Teil dieser Repository-Lizenz. Weitere Hinweise stehen in [NOTICE](dokumentation/rechtliches/NOTICE.md) und [DATA_NOTICE.md](dokumentation/rechtliches/DATA_NOTICE.md).
