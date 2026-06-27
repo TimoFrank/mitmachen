@@ -25,7 +25,7 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 - Der Versorgungs-Kompass ist eine interne Webanwendung für das gematik-Hospitationsnetzwerk.
 - Die Karte ist der Einstieg: Sie zeigt Kontakte, Organisationen, Standorte und regionale Lücken.
 - Für Vorführung und Abstimmung gibt es die [öffentliche Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
-- Das aktuell nutzbare Tool im bestehenden Setup ist die [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
+- Das aktuell nutzbare Tool im bestehenden Setup ist das [Live System](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
 - Für Betrieb und Migration ist die [gematik-Deployment-Dokumentation](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) der wichtigste technische Startpunkt.
 
 ## 3. Wichtigste Ordner
@@ -38,7 +38,7 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 | [`public/`](public/) | Logos, Icons und statische Assets |
 | [`scripts/`](scripts/) | Prüf-, Sync- und Importskripte |
 | [`tests/`](tests/) | Browser-Smoke-Tests |
-| [`docs/`](docs/) | Publish-Kopie für die Live Demo, nicht direkt pflegen |
+| [`docs/`](docs/) | Publish-Kopie für das Live System, nicht direkt pflegen |
 | [`dokumentation/`](dokumentation/) | Einstieg, Design, QA, Architektur, Betrieb und Deployment |
 
 Wichtige Einstiege in die Dokumentation sind [`dokumentation/README.md`](dokumentation/README.md), [`dokumentation/architektur/`](dokumentation/architektur/) und [`dokumentation/betrieb-und-deployment/`](dokumentation/betrieb-und-deployment/).
@@ -59,25 +59,25 @@ Weitere Details:
 
 Die drei Wege unterscheiden sich vor allem bei Zielgruppe, Datenstand und technischer Umgebung. Die Tabelle ordnet sie ein, danach folgen die konkreten Hinweise.
 
-| Variante | Wofür gedacht | Hinweis |
+| Variante | Wofür gedacht | Umgebung und Hinweis |
 | --- | --- | --- |
-| [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Öffentliche Vorführung mit Testdaten | Umgebung: GCP Cloud Run mit eigenem Cloud-SQL-Backend |
-| [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Laufendes Tool im bestehenden Setup | Umgebung: GitHub Pages liefert das Frontend, Supabase liefert Daten und Funktionen |
-| Zielbetrieb | Übernahme in die gematik-Infrastruktur | Umgebung: Kubernetes mit Jenkins, Helm, API, Datenbank und Secrets |
+| [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Öffentliche Vorführung mit Testdaten | GCP Cloud Run mit eigenem Cloud-SQL-Backend |
+| [Live System](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Laufendes Tool im bestehenden Setup | GitHub Pages liefert das Frontend, Supabase liefert Daten und Funktionen |
+| Zielbetrieb | Übernahme in die gematik-Infrastruktur | Kubernetes mit Jenkins, Helm, API, Datenbank und Secrets |
 
 ### 5.1 Demo
 
 Die [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) ist der öffentliche Vorführstand mit Testdaten. Sie läuft auf Google Cloud Run und nutzt ein eigenes Cloud-SQL-Backend.
 
-Sie ist der passende Link für Vorführung, Abstimmung und erste fachliche Rückmeldungen, wenn kein Zugriff auf das Repository oder die Live Demo besteht.
+Sie ist der passende Link für Vorführung, Abstimmung und erste fachliche Rückmeldungen, wenn kein Zugriff auf das Repository oder das Live System besteht.
 
-Die Demo enthält keine produktiven Daten und kann vom aktuellen Arbeitsstand der Live Demo abweichen.
+Die Demo enthält keine produktiven Daten und kann vom aktuellen Arbeitsstand des Live Systems abweichen.
 
-### 5.2 Live Demo
+### 5.2 Live System
 
-Die [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) ist das aktuell nutzbare Tool im bestehenden Setup. GitHub Pages liefert das Frontend aus dem Ordner [`docs/`](docs/) aus. Die Anwendung arbeitet mit der angebundenen Supabase-Konfiguration und ist dadurch mehr als eine statische Oberfläche.
+Das [Live System](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) ist das aktuell nutzbare Tool im bestehenden Setup. GitHub Pages liefert das Frontend aus dem Ordner [`docs/`](docs/) aus. Die Anwendung arbeitet mit der angebundenen Supabase-Konfiguration und ist dadurch mehr als eine statische Oberfläche.
 
-Die Live Demo kann mit Anmeldung, Berechtigungen und Backend-Daten arbeiten, soweit die aktuelle Konfiguration dies zulässt. Sie ist damit der wichtigste laufende Stand vor dem Zielbetrieb.
+Das Live System kann mit Anmeldung, Berechtigungen und Backend-Daten arbeiten, soweit die aktuelle Konfiguration dies zulässt. Es ist damit der wichtigste laufende Stand vor dem Zielbetrieb.
 
 Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. Änderungen an Daten, Rechten oder Backend-Struktur müssen zusätzlich in der angebundenen Backend-Umgebung berücksichtigt werden.
 
