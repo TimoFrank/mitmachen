@@ -37,12 +37,17 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 - [`tests/`](tests/): Playwright-Smoke-Tests.
 - [`docs/`](docs/): Publish-Kopie für GitHub Pages. Dieser Ordner wird aus den Quellordnern synchronisiert.
 - [`dokumentation/`](dokumentation/): Architektur, Betrieb, Design, QA und Übergabeunterlagen.
+  - [`dokumentation/README.md`](dokumentation/README.md): Einstieg und Wegweiser durch die Dokumentation.
+  - [`dokumentation/produkt-und-design/`](dokumentation/produkt-und-design/): Designsystem, UX-Regeln und UI-Checklisten für die Oberfläche.
+  - [`dokumentation/entwicklung-und-qa/`](dokumentation/entwicklung-und-qa/): Projektzustand, Prüfabläufe und Qualitätssicherung.
+  - [`dokumentation/architektur/`](dokumentation/architektur/): API-Grenzen, Datenmodell und Schnittstellen.
+  - [`dokumentation/betrieb-und-deployment/`](dokumentation/betrieb-und-deployment/): Betrieb, Deployment und gematik-Zielbild.
 
 Die wichtigsten Quellpfade sind [`frontend/`](frontend/), [`api/`](api/), [`public/`](public/), [`scripts/`](scripts/), [`tests/`](tests/) und [`dokumentation/`](dokumentation/). [`supabase/`](supabase/) bleibt vorerst als Legacy- und Migrationsquelle erhalten. [`docs/`](docs/) ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
 
 ## Daten und Backend
 
-Produktive Kontakt-, Organisations- und Netzwerkdaten werden im geschützten Backend geführt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und unabhängig vom öffentlichen Quellcode.
+Produktive Daten werden im geschützten Backend geführt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und unabhängig vom öffentlichen Quellcode.
 
 Die Dateien in [`frontend/data/`](frontend/data/) bündeln Adapter, Laufzeitkonfiguration und schlanke Fallback-Dateien. Administrative Backend-Schlüssel und andere sensible Betriebszugriffe werden über das geschützte Secret-Management der jeweiligen Umgebung bereitgestellt. Frontend-Dateien wie [`frontend/data/supabase-config.js`](frontend/data/supabase-config.js) enthalten nur clientseitige Konfiguration.
 
@@ -50,7 +55,6 @@ Weitere Details:
 
 - [`dokumentation/architektur/API_CONTRACT.md`](dokumentation/architektur/API_CONTRACT.md): API-Grenzen und Sicherheitsmodell.
 - [`dokumentation/architektur/DATA_MODEL.md`](dokumentation/architektur/DATA_MODEL.md): fachliches Datenmodell.
-- [`dokumentation/architektur/VERSORGUNGS_NETZWERK_REGISTRIERUNG.md`](dokumentation/architektur/VERSORGUNGS_NETZWERK_REGISTRIERUNG.md): Schnittstellenbeschreibung für die Registrierungs-Inbox.
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md): gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
 - [`supabase/README.md`](supabase/README.md): aktuelles Legacy-Backend und Quelle für die Datenmigration.
 
@@ -84,17 +88,3 @@ Das Repository enthält automatisierte Prüfungen. Sie helfen dabei, einfache Fe
 Die schnellen Prüfungen achten auf Syntax, fehlende Dateien und offensichtliche Formatprobleme. Die technischen Checks prüfen zum Beispiel öffentliche Assets, API-Regeln, wichtige Datenfelder und die Backend-Anbindung. Die Browser-Tests öffnen die Oberfläche wie ein Nutzer und prüfen typische Wege, etwa Navigation, Kartenaufruf, Tabellen, Detailansichten und mobile Ansichten.
 
 Die detaillierten QA-Regeln stehen in [`dokumentation/entwicklung-und-qa/QA_WORKFLOW.md`](dokumentation/entwicklung-und-qa/QA_WORKFLOW.md).
-
-## Dokumentation
-
-Die Detaildokumentation liegt gebündelt unter [`dokumentation/`](dokumentation/). Für den ersten Einstieg reicht meistens diese README. Die Unterlagen im Dokumentationsordner erklären danach die fachliche Struktur, die technische Architektur und den Betrieb genauer.
-
-- [`dokumentation/README.md`](dokumentation/README.md): Einstieg und Wegweiser durch die Dokumentation.
-- [`dokumentation/produkt-und-design/`](dokumentation/produkt-und-design/): Designsystem, UX-Regeln und UI-Checklisten für die Oberfläche.
-- [`dokumentation/entwicklung-und-qa/`](dokumentation/entwicklung-und-qa/): Projektzustand, Prüfabläufe und Qualitätssicherung.
-- [`dokumentation/architektur/`](dokumentation/architektur/): API-Grenzen, Datenmodell und Schnittstellen.
-- [`dokumentation/betrieb-und-deployment/`](dokumentation/betrieb-und-deployment/): Betrieb, Deployment und gematik-Zielbild.
-
-## Arbeitsregel
-
-Aktive Änderungen passieren in den Quellordnern. Danach werden Tests ausgeführt und, falls GitHub Pages betroffen ist, [`docs/`](docs/) mit [`scripts/sync_github_pages.sh`](scripts/sync_github_pages.sh) aktualisiert.
