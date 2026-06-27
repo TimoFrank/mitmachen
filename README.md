@@ -61,7 +61,7 @@ Die drei Wege unterscheiden sich vor allem bei Zielgruppe, Datenstand und techni
 
 | Umgebung | Wofür gedacht | Hinweis |
 | --- | --- | --- |
-| [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Öffentliche Vorführung mit Testdaten | Läuft auf GCP Cloud Run mit eigenem Cloud-SQL-Backend |
+| [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Öffentliche Vorführung mit Testdaten | GCP Cloud Run mit eigenem Cloud-SQL-Backend |
 | [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Aktuell nutzbares Tool im bestehenden Setup | GitHub Pages liefert das Frontend, Supabase liefert Daten und Funktionen |
 | gematik-Zielbetrieb | Übernahme in die gematik-Infrastruktur | Jenkins, Kubernetes, Helm, API, Datenbank und Secrets sind vorbereitet |
 
