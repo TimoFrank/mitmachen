@@ -991,6 +991,37 @@ test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }, 
   await expect(profile.locator("#detail-notes .detail-permission-note")).toBeVisible();
 });
 
+test("Hospitationen: Planungsthemen und Anfrageverlauf im Akkordeon", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations");
+
+  const row = page.locator(".hospitation-row", { hasText: "Dr. Martin Deile" }).first();
+  await expect(row).toBeVisible();
+  await row.locator("[data-toggle-hospitation-detail]").click();
+
+  const detail = row.locator(".hospitation-row__detail");
+  await expect(detail).toBeVisible();
+  await expect(detail.locator(".format-facts-grid").first()).not.toContainText("Follow-up");
+
+  await detail.getByRole("tab", { name: "Planung" }).click();
+  await expect(detail.locator(".detail-theme-editor")).toBeVisible();
+  await expect(detail).toContainText("Mögliche Themen");
+  await expect(detail.locator(".format-facts-grid")).toHaveCount(0);
+  await expect(detail).not.toContainText("Hospitation bei Dr. Martin Deile in Dresden. Kontaktprofil wird später ergänzt.");
+
+  await detail.locator("#hospitation-theme-input").fill("Visualtest-Hospitation");
+  await detail.locator("#hospitation-theme-add").click();
+  await expect(detail.locator(".detail-chip-row")).toContainText("Visualtest-Hospitation");
+
+  await detail.getByRole("tab", { name: "Anfrage" }).click();
+  await expect(detail.locator(".hospitation-request-thread")).toBeVisible();
+  await expect(detail.locator(".format-chat-message").first()).toContainText("Hospitation bei Dr. Martin Deile in Dresden");
+  await detail.locator("#hospitation-request-message").fill("Rückfrage aus dem Visualtest");
+  await detail.locator("#hospitation-request-composer").getByRole("button", { name: "Nachricht senden" }).click();
+  await expect(detail.locator(".format-chat-message").filter({ hasText: "Rückfrage aus dem Visualtest" })).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "hospitationen-anfrage-chat", { fullPage: false });
+});
+
 test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/map/versorgungs-kompass-map.html");
 

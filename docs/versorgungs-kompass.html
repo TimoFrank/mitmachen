@@ -23759,6 +23759,7 @@
       let hospitationScheduleView = "list";
       let activeHospitationDetailKey = "";
       let hospitationDetailTab = "overview";
+      let hospitationEditingRequestNoteId = "";
       let hospitationCalendarDate = new Date();
       let hospitationStatusFilter = "";
       let hospitationSectorFilter = "";
@@ -33969,12 +33970,6 @@
         return hospitationOwnerValue(entry.item || {});
       }
 
-      function hospitationFollowUpLabel(item = {}) {
-        if (!meaningfulOrEmpty(item.followUpDueAt)) return "Kein Follow-up";
-        const owner = item.followUpOwnerId ? ` · ${hospitationOwnerLabel(item.followUpOwnerId)}` : "";
-        return `${formatDateLabel(item.followUpDueAt)}${owner}`;
-      }
-
       function hospitationScheduleEntries() {
         const query = hospitationSearchQuery();
         const slotEntries = filteredHospitationSlots()
@@ -34022,6 +34017,7 @@
           : [
               { id: "overview", label: "Überblick" },
               { id: "planning", label: "Planung" },
+              { id: "request", label: "Anfrage" },
               { id: "documentation", label: "Dokumentation" },
               { id: "followUp", label: "Follow-up" }
             ];
@@ -34059,11 +34055,184 @@
         `;
       }
 
-      function hospitationTopicsMarkup(item = {}) {
-        const topics = Array.isArray(item.topics) ? item.topics : String(item.topics || "").split(",");
-        const normalized = topics.map((topic) => String(topic || "").trim()).filter(Boolean);
-        if (!normalized.length) return "Nicht hinterlegt";
-        return normalized.map((topic) => `<span class="theme-tag">${escapeHtml(topic)}</span>`).join(" ");
+      function hospitationThemeTags(item = {}) {
+        return normalizeThemes(item.topics || item.themes || "");
+      }
+
+      function renderHospitationThemeEditor(item = {}) {
+        const themeTags = hospitationThemeTags(item);
+        const suggestions = detailThemeSuggestions();
+        const active = new Set(themeTags);
+        const editable = canEditContacts();
+        const selectedMarkup = themeTags.length
+          ? themeTags.map((tag) => editable
+            ? `
+              <button class="theme-tag theme-tag--editable" type="button" data-hospitation-theme-remove="${escapeHtml(tag)}">
+                ${escapeHtml(tag)}<span class="theme-tag__remove" aria-hidden="true">&times;</span>
+              </button>
+            `
+            : `<span class="theme-tag theme-tag--editable">${escapeHtml(tag)}</span>`
+          ).join("")
+          : `<span class="detail-secondary">Noch keine Themen hinterlegt.</span>`;
+        const suggestionMarkup = suggestions
+          .map((tag) => editable
+            ? `
+              <button class="theme-tag theme-tag--preset ${active.has(tag) ? "is-active" : ""}" type="button" data-hospitation-theme-toggle="${escapeHtml(tag)}">
+                ${escapeHtml(tag)}
+              </button>
+            `
+            : `<span class="theme-tag theme-tag--preset ${active.has(tag) ? "is-active" : ""}">${escapeHtml(tag)}</span>`
+          )
+          .join("");
+        return `
+          <div class="detail-theme-editor" data-hospitation-theme-editor="${escapeHtml(item.id || "")}">
+            <div class="detail-theme-group detail-theme-group--selected">
+              <div class="detail-theme-label">Ausgewählte Themen</div>
+              <div class="detail-chip-row">
+                ${selectedMarkup}
+              </div>
+            </div>
+            <div class="detail-theme-group">
+              <div class="detail-theme-label">Mögliche Themen</div>
+              <div class="detail-theme-presets" aria-label="Mögliche Themen">
+                ${suggestionMarkup}
+              </div>
+            </div>
+            <div class="detail-theme-add">
+              <input class="detail-theme-input" id="hospitation-theme-input" type="text" placeholder="Neues Thema hinzufügen" ${editable ? "" : "readonly data-hospitation-theme-blocked"} />
+              <button class="action-button" type="button" id="hospitation-theme-add" ${editable ? "data-hospitation-theme-add-custom" : "data-hospitation-theme-blocked"}>Hinzufügen</button>
+            </div>
+            ${editable ? "" : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Hinzufügen von Themen"))}</div>`}
+          </div>
+        `;
+      }
+
+      function parseHospitationRequestThread(rawNote = "", item = {}) {
+        const raw = String(rawNote || "").trim();
+        if (!raw) return [];
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed?.kind === "hospitation-request-thread-v1" && Array.isArray(parsed.messages)) {
+            return parsed.messages
+              .map((message) => {
+                const authorName = String(message.authorName || "Unbekannter Nutzer");
+                return {
+                  id: String(message.id || window.crypto?.randomUUID?.() || Date.now()),
+                  text: String(message.text || "").trim(),
+                  authorId: String(message.authorId || ""),
+                  authorName,
+                  authorRole: String(message.authorRole || ""),
+                  createdAt: String(message.createdAt || ""),
+                  editedAt: String(message.editedAt || ""),
+                  readonly: Boolean(message.readonly) || (!message.authorId && authorName === "Anfrage")
+                };
+              })
+              .filter((message) => message.text);
+          }
+        } catch (error) {
+          // Legacy Anfrage-Notizen werden als erste Chatnachricht angezeigt.
+        }
+        return [{
+          id: `legacy-hospitation-request-${item.id || "request"}`,
+          text: raw,
+          authorId: item.requesterProfileId || item.createdBy || "",
+          authorName: item.requester || "Anfrage",
+          authorRole: "",
+          createdAt: item.createdAt || item.updatedAt || item.startsAt || "",
+          editedAt: "",
+          readonly: true
+        }];
+      }
+
+      function serializeHospitationRequestThread(messages = []) {
+        return JSON.stringify({
+          kind: "hospitation-request-thread-v1",
+          messages: messages.map((message) => ({
+            id: message.id,
+            text: message.text,
+            authorId: message.authorId,
+            authorName: message.authorName,
+            authorRole: message.authorRole,
+            createdAt: message.createdAt,
+            editedAt: message.editedAt || "",
+            readonly: Boolean(message.readonly)
+          }))
+        });
+      }
+
+      function isHospitationRequestThread(rawNote = "") {
+        const raw = String(rawNote || "").trim();
+        if (!raw.startsWith("{")) return false;
+        try {
+          const parsed = JSON.parse(raw);
+          return parsed?.kind === "hospitation-request-thread-v1" && Array.isArray(parsed.messages);
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function hospitationRequestEditorValue(item = {}) {
+        const raw = String(item.requestNote || "").trim();
+        if (!raw || !isHospitationRequestThread(raw)) return raw;
+        return parseHospitationRequestThread(raw, item).map((message) => message.text).join("\n").trim();
+      }
+
+      function ownsHospitationRequestMessage(message = {}) {
+        return !message.readonly && ownsFormatNote(message);
+      }
+
+      function renderHospitationRequestThread(item = {}) {
+        const messages = parseHospitationRequestThread(item.requestNote, item);
+        return `
+          <div class="format-notes-thread hospitation-request-thread" data-hospitation-request-thread="${escapeHtml(item.id || "")}">
+            <div class="format-chat-list" aria-live="polite">
+              ${messages.length ? messages.map((message) => {
+                const canManageMessage = canEditContacts() && ownsHospitationRequestMessage(message);
+                const isEditing = canManageMessage && hospitationEditingRequestNoteId === message.id;
+                return `
+                  <article class="format-chat-message" data-hospitation-request-message="${escapeHtml(message.id)}">
+                    <span class="format-chat-avatar" aria-hidden="true">${renderFormatChatAvatar(message)}</span>
+                    <div class="format-chat-content">
+                      <div class="format-chat-meta">
+                        <strong>${escapeHtml(message.authorName)}</strong>
+                        ${message.authorRole ? `<span>${escapeHtml(roleLabel(message.authorRole))}</span>` : ""}
+                        <time datetime="${escapeHtml(message.createdAt)}">${escapeHtml(formatDateTimeLabel(message.createdAt) || "Zeitpunkt offen")}</time>
+                        ${message.editedAt ? `<span>bearbeitet</span>` : ""}
+                        ${canManageMessage ? `
+                          <span class="format-chat-message-actions">
+                            <button type="button" data-edit-hospitation-request-message="${escapeHtml(message.id)}">Bearbeiten</button>
+                            <button type="button" data-delete-hospitation-request-message="${escapeHtml(message.id)}">Löschen</button>
+                          </span>
+                        ` : ""}
+                      </div>
+                      ${isEditing ? `
+                        <form class="format-chat-edit-form" data-hospitation-request-edit-form="${escapeHtml(message.id)}">
+                          <textarea name="message" aria-label="Anfrage bearbeiten">${escapeHtml(message.text)}</textarea>
+                          <div class="format-chat-edit-actions">
+                            <button class="action-button" type="button" data-cancel-hospitation-request-edit="${escapeHtml(message.id)}">Abbrechen</button>
+                            <button class="action-button action-button--primary" type="submit">Speichern</button>
+                          </div>
+                        </form>
+                      ` : `<p class="format-chat-text">${escapeHtml(message.text)}</p>`}
+                    </div>
+                  </article>
+                `;
+              }).join("") : `<div class="empty">Noch keine Anfrage im Verlauf.</div>`}
+            </div>
+            ${canEditContacts() ? `
+              <form class="format-chat-composer" id="hospitation-request-composer" data-hospitation-request-composer="${escapeHtml(item.id || "")}">
+                <textarea id="hospitation-request-message" name="message" placeholder="Neue Nachricht zur Anfrage schreiben..." aria-label="Neue Anfragenachricht"></textarea>
+                <div class="format-chat-composer-footer">
+                  <span class="format-chat-composer-author">
+                    <span class="format-chat-avatar" aria-hidden="true">${renderCurrentFormatAuthorAvatar()}</span>
+                    <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(formatNotesAuthorLabel())}</strong></span>
+                  </span>
+                  <button class="action-button action-button--primary" type="submit">Nachricht senden</button>
+                </div>
+              </form>
+            ` : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Schreiben von Anfragenachrichten"))}</div>`}
+          </div>
+        `;
       }
 
       function hospitationDetailActionsMarkup(entry = {}) {
@@ -34145,16 +34314,22 @@
           return `
             <section class="format-tab-panel">
               <section class="format-section">
-                <div class="format-facts-grid">
-                  ${renderFormatFact("Termin", `<strong>${escapeHtml(hospitationDateRangeLabel(item))}</strong>`)}
-                  ${renderFormatFact("Ort", `<strong>${escapeHtml(location || "Nicht hinterlegt")}</strong>`)}
-                  ${renderFormatFact("Themen", `<strong>${hospitationTopicsMarkup(item)}</strong>`)}
-                  ${renderFormatFact("Anfrage", `<strong>${escapeHtml(item.requestNote || "Nicht hinterlegt")}</strong>`)}
-                </div>
+                <div class="format-section-head"><h4>Themen</h4></div>
+                ${renderHospitationThemeEditor(item)}
               </section>
               <section class="format-section">
                 <div class="format-section-head"><h4>Wunschzeitfenster</h4></div>
                 ${requestedWindowsMarkup(item.requestedWindows)}
+              </section>
+            </section>
+          `;
+        }
+        if (activeTab === "request") {
+          return `
+            <section class="format-tab-panel">
+              <section class="format-section">
+                <div class="format-section-head"><h4>Anfrage</h4></div>
+                ${renderHospitationRequestThread(item)}
               </section>
             </section>
           `;
@@ -34193,7 +34368,6 @@
                 ${renderFormatFact("Termin", `<strong>${escapeHtml(hospitationDateRangeLabel(item))}</strong>`)}
                 ${renderFormatFact("Status", hospitationStatusBadgeMarkup(item.status || "Angefragt"))}
                 ${renderFormatFact("Owner", hospitationOwnerMarkup(item.ownerId))}
-                ${renderFormatFact("Follow-up", `<strong>${escapeHtml(hospitationFollowUpLabel(item))}</strong>`)}
               </div>
             </section>
             <section class="format-section">
@@ -34555,7 +34729,186 @@
         root.querySelectorAll("[data-hospitation-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             hospitationDetailTab = button.dataset.hospitationDetailTab || "overview";
+            hospitationEditingRequestNoteId = "";
             renderHospitationsView();
+          });
+        });
+        const updateHospitationThemes = async (hospitationId, nextThemes) => {
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen"));
+            return;
+          }
+          if (!hospitationId) return;
+          try {
+            const updated = await window.dataService.updateHospitation(hospitationId, { topics: normalizeThemes(nextThemes) });
+            replaceHospitation(updated);
+            setStorageStatus("Themen aktualisiert");
+            renderHospitationsView();
+            updateView();
+          } catch (error) {
+            console.error("Hospitationsthemen konnten nicht gespeichert werden.", error);
+            window.alert("Die Themen konnten nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          }
+        };
+        const themeEditorItem = (element) => {
+          const hospitationId = element.closest("[data-hospitation-theme-editor]")?.dataset.hospitationThemeEditor || "";
+          return hospitations.find((hospitation) => hospitation.id === hospitationId) || null;
+        };
+        root.querySelectorAll("[data-hospitation-theme-blocked]").forEach((element) => {
+          element.addEventListener("click", () => showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen")));
+          element.addEventListener("focus", () => {
+            if (element.matches("input")) showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen"));
+          }, { once: true });
+        });
+        root.querySelectorAll("[data-hospitation-theme-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const item = themeEditorItem(button);
+            const tag = button.dataset.hospitationThemeToggle || "";
+            if (!item || !tag) return;
+            const current = new Set(hospitationThemeTags(item));
+            if (current.has(tag)) current.delete(tag);
+            else current.add(tag);
+            updateHospitationThemes(item.id, [...current]);
+          });
+        });
+        root.querySelectorAll("[data-hospitation-theme-remove]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const item = themeEditorItem(button);
+            const tag = button.dataset.hospitationThemeRemove || "";
+            if (!item || !tag) return;
+            updateHospitationThemes(item.id, hospitationThemeTags(item).filter((theme) => theme !== tag));
+          });
+        });
+        const addHospitationTheme = (editor) => {
+          const item = themeEditorItem(editor);
+          const input = editor.querySelector("#hospitation-theme-input");
+          const value = String(input?.value || "").trim();
+          if (!item || !value) {
+            input?.focus();
+            return;
+          }
+          updateHospitationThemes(item.id, [...hospitationThemeTags(item), value]);
+        };
+        root.querySelectorAll("[data-hospitation-theme-editor]").forEach((editor) => {
+          editor.querySelector("[data-hospitation-theme-add-custom]")?.addEventListener("click", () => addHospitationTheme(editor));
+          editor.querySelector("#hospitation-theme-input")?.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              addHospitationTheme(editor);
+            }
+          });
+        });
+        const requestThreadItem = (element) => {
+          const hospitationId = element.closest("[data-hospitation-request-thread]")?.dataset.hospitationRequestThread || "";
+          return hospitations.find((hospitation) => hospitation.id === hospitationId) || null;
+        };
+        const saveHospitationRequestThread = async (hospitation, messages, storageMessage = "Anfrage gespeichert") => {
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Anfragenachrichten"));
+            return;
+          }
+          if (!hospitation?.id) return;
+          try {
+            const updated = await window.dataService.updateHospitation(hospitation.id, {
+              requestNote: serializeHospitationRequestThread(messages)
+            });
+            hospitationEditingRequestNoteId = "";
+            replaceHospitation(updated);
+            setStorageStatus(storageMessage);
+            renderHospitationsView();
+            updateView();
+          } catch (error) {
+            console.error("Anfrage konnte nicht gespeichert werden.", error);
+            window.alert("Die Anfrage konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          }
+        };
+        root.querySelectorAll("[data-edit-hospitation-request-message]").forEach((button) => {
+          button.addEventListener("click", () => {
+            hospitationEditingRequestNoteId = button.dataset.editHospitationRequestMessage || "";
+            renderHospitationsView();
+          });
+        });
+        root.querySelectorAll("[data-cancel-hospitation-request-edit]").forEach((button) => {
+          button.addEventListener("click", () => {
+            if (hospitationEditingRequestNoteId === button.dataset.cancelHospitationRequestEdit) {
+              hospitationEditingRequestNoteId = "";
+              renderHospitationsView();
+            }
+          });
+        });
+        root.querySelectorAll("[data-hospitation-request-edit-form]").forEach((form) => {
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Anfragenachrichten"));
+              return;
+            }
+            const item = requestThreadItem(form);
+            const messageId = form.dataset.hospitationRequestEditForm || "";
+            const textarea = form.querySelector("textarea[name='message']");
+            const text = String(textarea?.value || "").trim();
+            if (!item || !messageId) return;
+            if (!text) {
+              textarea?.focus();
+              return;
+            }
+            const messages = parseHospitationRequestThread(item.requestNote, item);
+            const message = messages.find((entry) => entry.id === messageId);
+            if (!message || !ownsHospitationRequestMessage(message)) {
+              showPermissionDenied("Du kannst nur eigene Anfragenachrichten bearbeiten.");
+              return;
+            }
+            await saveHospitationRequestThread(
+              item,
+              messages.map((entry) => entry.id === messageId ? { ...entry, text, editedAt: new Date().toISOString() } : entry),
+              "Anfrage aktualisiert"
+            );
+          });
+        });
+        root.querySelectorAll("[data-delete-hospitation-request-message]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Löschen von Anfragenachrichten"));
+              return;
+            }
+            const item = requestThreadItem(button);
+            const messageId = button.dataset.deleteHospitationRequestMessage || "";
+            if (!item || !messageId) return;
+            const messages = parseHospitationRequestThread(item.requestNote, item);
+            const message = messages.find((entry) => entry.id === messageId);
+            if (!message || !ownsHospitationRequestMessage(message)) {
+              showPermissionDenied("Du kannst nur eigene Anfragenachrichten löschen.");
+              return;
+            }
+            if (!window.confirm("Diese Anfragenachricht löschen?")) return;
+            await saveHospitationRequestThread(item, messages.filter((entry) => entry.id !== messageId), "Anfrage gelöscht");
+          });
+        });
+        root.querySelectorAll("[data-hospitation-request-composer]").forEach((form) => {
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Anfragenachrichten"));
+              return;
+            }
+            const item = requestThreadItem(form);
+            const textarea = form.querySelector("textarea[name='message']");
+            const text = String(textarea?.value || "").trim();
+            if (!item) return;
+            if (!text) {
+              textarea?.focus();
+              return;
+            }
+            const messages = parseHospitationRequestThread(item.requestNote, item);
+            const nextMessage = {
+              id: window.crypto?.randomUUID?.() || `hospitation-request-${Date.now()}`,
+              text,
+              authorId: currentProfile?.id || "",
+              authorName: formatNotesAuthorLabel(),
+              authorRole: currentProfile?.role || "",
+              createdAt: new Date().toISOString()
+            };
+            await saveHospitationRequestThread(item, [...messages, nextMessage], "Anfrage gespeichert");
           });
         });
         root.querySelectorAll("[data-hospitation-action]").forEach((button) => {
@@ -34797,11 +35150,16 @@
                 </div>
                 <div class="format-editor-field format-editor-field--wide">
                   <label for="hospitation-topics">Themenliste</label>
-                  <input id="hospitation-topics" name="topics" value="${escapeHtml(Array.isArray(hospitation.topics) ? hospitation.topics.join(", ") : hospitation.topics || "")}" placeholder="z. B. Pflegekoordination, Entlassmanagement" />
+                  <input id="hospitation-topics" name="topics" value="${escapeHtml(hospitationThemeTags(hospitation).join(", "))}" placeholder="z. B. Pflegekoordination, Entlassmanagement" />
                 </div>
                 <div class="format-editor-field format-editor-field--wide">
-                  <label for="hospitation-request-note">Anfrage- / Planungsnotiz</label>
-                  <textarea id="hospitation-request-note" name="requestNote" placeholder="Interner Kontext zur Anfrage">${escapeHtml(hospitation.requestNote || "")}</textarea>
+                  <label for="hospitation-request-note">${isHospitationRequestThread(hospitation.requestNote) ? "Anfrageverlauf" : "Anfrage- / Planungsnotiz"}</label>
+                  ${isHospitationRequestThread(hospitation.requestNote) ? `
+                    <input type="hidden" name="requestNote" value="${escapeHtml(hospitation.requestNote || "")}" />
+                    <textarea id="hospitation-request-note" readonly>${escapeHtml(hospitationRequestEditorValue(hospitation))}</textarea>
+                  ` : `
+                    <textarea id="hospitation-request-note" name="requestNote" placeholder="Interner Kontext zur Anfrage">${escapeHtml(hospitation.requestNote || "")}</textarea>
+                  `}
                 </div>
                 <div class="format-editor-field format-editor-field--wide">
                   <label for="hospitation-documentation-summary">Ergebnisnotiz</label>
