@@ -373,17 +373,21 @@
 
       .sidebar-brand {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 12px;
-        min-height: 52px;
-        padding: 0 8px 18px;
+        flex-shrink: 0;
+        min-height: auto;
+        padding: 0 8px 16px;
         color: #ffffff;
         text-decoration: none;
+        overflow: visible;
       }
 
       .sidebar-brand .brand-mark {
         width: 42px;
         height: 42px;
+        flex: 0 0 42px;
+        margin-top: 18px;
       }
 
       .sidebar-brand .brand-mark span {
@@ -413,34 +417,35 @@
       .sidebar-brand strong {
         display: block;
         max-width: 150px;
-        font-size: inherit;
-        line-height: 1.08;
+        font-size: 1.04rem;
+        line-height: 1.04;
         font-weight: 900;
-        letter-spacing: -0.03em;
+        letter-spacing: 0;
       }
 
       .sidebar-brand-copy {
         display: grid;
-        gap: 3px;
+        gap: 2px;
         min-width: 0;
+        overflow: visible;
       }
 
       .sidebar-brand-kicker,
       .sidebar-brand-subtitle {
         display: block;
         max-width: 158px;
-        line-height: 1.18;
+        line-height: 1.14;
       }
 
       .sidebar-brand-kicker {
         color: rgba(232, 241, 255, 0.86);
-        font-size: 0.74rem;
+        font-size: 0.7rem;
         font-weight: 900;
       }
 
       .sidebar-brand-subtitle {
         color: rgba(232, 241, 255, 0.76);
-        font-size: 0.68rem;
+        font-size: 0.64rem;
         font-weight: 700;
       }
 
@@ -11128,7 +11133,7 @@
       }
 
       .sidebar-brand {
-        overflow: hidden;
+        overflow: visible;
       }
 
       .app-shell.is-sidebar-collapsed .sidebar-brand {
@@ -17099,9 +17104,16 @@
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand {
+          align-items: flex-start;
           justify-content: flex-start;
           gap: 10px;
-          padding-inline: 6px;
+          padding: 2px 6px 16px;
+          overflow: visible;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-brand .brand-mark {
+          flex: 0 0 36px;
+          margin-top: 17px;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand strong {
@@ -17133,6 +17145,14 @@
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand-subtitle {
           max-width: 190px;
           white-space: normal !important;
+          overflow: visible !important;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-brand strong,
+        .app-shell.is-mobile-sidebar-expanded .sidebar-brand-kicker {
+          max-width: 190px;
+          white-space: normal !important;
+          overflow: visible !important;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-section-label {
@@ -20171,7 +20191,7 @@
           <div class="sidebar-brand-copy">
             <span class="sidebar-brand-kicker">#Mitmachen</span>
             <strong>Versorgungs-Kompass</strong>
-            <span class="sidebar-brand-subtitle">Hospitationen, Co-Creation und Veranstaltungen</span>
+            <span class="sidebar-brand-subtitle">Hospitationen, Co-Creation, Veranstaltungen</span>
           </div>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
@@ -33382,10 +33402,7 @@
       }
 
       function hospitationOrganizationMeta(item = {}) {
-        const location = hospitationLocationLabel(item);
-        const organization = hospitationOrganizationLabel(item);
-        if (location && organization !== "Nicht hinterlegt" && normalizeOrganizationName(location) === normalizeOrganizationName(organization)) return "";
-        return location ? `Ort: ${location}` : "";
+        return "";
       }
 
       function hospitationContextLabel(hospitation = {}) {
@@ -33406,6 +33423,10 @@
 
       function hospitationOwnerMarkup(ownerId = "") {
         return ownerBadgeSingleMarkup(ownerId || currentProfile?.id || "");
+      }
+
+      function hospitationOwnerAvatarStackMarkup(ownerId = "") {
+        return ownerAvatarStackMarkup({ ownerId: ownerId || currentProfile?.id || "" }, { maxVisible: 1 });
       }
 
       function hospitationStateLabel(hospitation = {}) {
@@ -33857,6 +33878,7 @@
         const sector = hospitationSectorLabel(item);
         const organization = hospitationOrganizationLabel(item);
         const organizationMeta = hospitationOrganizationMeta(item);
+        const ownerId = hospitationEntryOwnerId(entry);
         return `
           <article class="hospitation-row ${isOpen ? "is-open" : ""}" data-hospitation-row="${escapeHtml(key)}">
             <div class="hospitation-row__head" data-toggle-hospitation-row="${escapeHtml(key)}" role="button" tabindex="0" aria-expanded="${isOpen ? "true" : "false"}" aria-controls="hospitation-detail-${escapeHtml(key)}">
@@ -33880,8 +33902,7 @@
                 ${sectorBadgeMarkup(sector)}
               </div>
               <div class="hospitation-row__cell">
-                <span class="hospitation-row__primary">${hospitationOwnerLabel(hospitationEntryOwnerId(entry)) || "Kein Owner"}</span>
-                <span class="hospitation-row__secondary">Owner</span>
+                ${hospitationOwnerAvatarStackMarkup(ownerId)}
               </div>
               <button class="action-button hospitation-row__toggle" type="button" data-toggle-hospitation-detail="${escapeHtml(key)}" aria-label="${isOpen ? "Details schließen" : "Details öffnen"}" aria-expanded="${isOpen ? "true" : "false"}" aria-controls="hospitation-detail-${escapeHtml(key)}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
