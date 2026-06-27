@@ -241,16 +241,20 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator("#filter-panel-button")).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator('[data-sidebar-section-toggle="care"]').filter({ hasText: "Versorgung" })).toHaveCount(1);
-  await expect(page.locator('[data-sidebar-section-toggle="formats"]').filter({ hasText: "Formate" })).toHaveCount(1);
-  await expect(page.locator('[data-sidebar-section-toggle="hospitations"]').filter({ hasText: "Hospitationen" })).toHaveCount(1);
+  await expect(page.locator('[data-sidebar-section-toggle="formats"]')).toHaveCount(0);
+  await expect(page.locator('[data-sidebar-section-toggle="hospitations"]')).toHaveCount(0);
   await expect(page.locator('[data-sidebar-section-toggle="admin"]').filter({ hasText: "Admin" })).toHaveCount(1);
-  const sidebarSectionOrder = await page.locator("[data-sidebar-section-toggle]").evaluateAll((nodes) => nodes.map((node) => node.textContent.trim()));
-  expect(sidebarSectionOrder.indexOf("Hospitationen")).toBeLessThan(sidebarSectionOrder.indexOf("Formate"));
+  const careTabOrder = await page.locator("#sidebar-section-care-content [data-view-tab]").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
+  expect(careTabOrder).toEqual(["Karte", "Patienten", "Stakeholder", "Expertenkreis"]);
+  const sidebarTabOrder = await page.locator(".sidebar-nav > .primary-tab[data-view-tab]").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
+  expect(sidebarTabOrder).toEqual(["Hospitationen", "Formate"]);
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-active-section/);
-  await expect(page.locator('[data-sidebar-section="formats"]')).toHaveClass(/is-collapsed/);
-  await expect(page.locator('[data-sidebar-section="hospitations"]')).toHaveClass(/is-collapsed/);
+  await expect(page.locator('[data-sidebar-section="formats"]')).toHaveCount(0);
+  await expect(page.locator('[data-sidebar-section="hospitations"]')).toHaveCount(0);
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCount(0);
   await expect(page.locator('[data-view-tab="map"]')).toContainText("Karte");
+  await expect(page.locator('[data-view-tab="hospitations"]')).toContainText("Hospitationen");
+  await expect(page.locator('[data-view-tab="formats"]')).toContainText("Formate");
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(0);
   await expect(page.locator('[data-view-tab="organizations"]')).toHaveCount(0);
   await expect(page.locator('[data-view-tab="stakeholders"]')).toContainText("Stakeholder");
@@ -271,13 +275,13 @@ test("Sidebar: Abschnittsklick öffnet die erste Seite", async ({ page }, testIn
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   const shell = page.locator(".app-shell");
-  await page.locator('[data-sidebar-section-toggle="formats"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "formats");
-  await expect(page).toHaveURL(/#formats$/);
-
-  await page.locator('[data-sidebar-section-toggle="hospitations"]').click();
+  await page.locator('.sidebar-nav > [data-view-tab="hospitations"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "hospitations");
   await expect(page).toHaveURL(/#hospitations$/);
+
+  await page.locator('.sidebar-nav > [data-view-tab="formats"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "formats");
+  await expect(page).toHaveURL(/#formats$/);
 
   await page.locator('[data-sidebar-section-toggle="care"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "map");
