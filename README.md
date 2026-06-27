@@ -59,11 +59,11 @@ Weitere Details:
 
 Die drei Wege unterscheiden sich vor allem bei Zielgruppe, Datenstand und technischer Umgebung. Die Tabelle ordnet sie ein, danach folgen die konkreten Hinweise.
 
-| Umgebung | Wofür gedacht | Hinweis |
+| Variante | Wofür gedacht | Hinweis |
 | --- | --- | --- |
-| [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Öffentliche Vorführung mit Testdaten | GCP Cloud Run mit eigenem Cloud-SQL-Backend |
-| [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Aktuell nutzbares Tool im bestehenden Setup | GitHub Pages liefert das Frontend, Supabase liefert Daten und Funktionen |
-| gematik-Zielbetrieb | Übernahme in die gematik-Infrastruktur | Jenkins, Kubernetes, Helm, API, Datenbank und Secrets sind vorbereitet |
+| [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Öffentliche Vorführung mit Testdaten | Umgebung: GCP Cloud Run mit eigenem Cloud-SQL-Backend |
+| [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Laufendes Tool im bestehenden Setup | Umgebung: GitHub Pages liefert das Frontend, Supabase liefert Daten und Funktionen |
+| Zielbetrieb | Übernahme in die gematik-Infrastruktur | Umgebung: Kubernetes mit Jenkins, Helm, API, Datenbank und Secrets |
 
 ### 5.1 Demo
 
@@ -77,13 +77,13 @@ Die Demo enthält keine produktiven Daten und kann vom aktuellen Arbeitsstand de
 
 Die [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) ist das aktuell nutzbare Tool im bestehenden Setup. GitHub Pages liefert das Frontend aus dem Ordner [`docs/`](docs/) aus. Die Anwendung arbeitet mit der angebundenen Supabase-Konfiguration und ist dadurch mehr als eine statische Oberfläche.
 
-Die Live Demo kann mit Anmeldung, Berechtigungen und Backend-Daten arbeiten, soweit die aktuelle Konfiguration dies zulässt. Sie ist damit der wichtigste laufende Stand vor dem gematik-Zielbetrieb.
+Die Live Demo kann mit Anmeldung, Berechtigungen und Backend-Daten arbeiten, soweit die aktuelle Konfiguration dies zulässt. Sie ist damit der wichtigste laufende Stand vor dem Zielbetrieb.
 
 Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. Änderungen an Daten, Rechten oder Backend-Struktur müssen zusätzlich in der angebundenen Backend-Umgebung berücksichtigt werden.
 
 ### 5.3 Zielbetrieb
 
-Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür sind im Repository bereits konkrete Vorbereitungen vorhanden: Jenkins-Build, Kubernetes- und Helm-Artefakte, Frontend-Konfiguration, API-Anbindung, Datenbank-Vorbereitung, Secret-Handling und Preflight-Checks.
+Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür sind im Repository bereits konkrete Build- und Deployment-Bausteine vorhanden. Es kann also direkt mit Jenkins-Build, Kubernetes-Deployment, Helm-Konfiguration, Frontend-Konfiguration, API-Anbindung, Datenbank-Anbindung, Secret-Handling und Preflight-Checks weitergearbeitet werden.
 
 Der einfache Ablauf ist:
 
@@ -96,14 +96,12 @@ Der einfache Ablauf ist:
 
 Die wichtigsten Startpunkte für die Implementierung sind:
 
-- [`dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md)
-- [`dokumentation/betrieb-und-deployment/BETRIEB.md`](dokumentation/betrieb-und-deployment/BETRIEB.md)
-- [`dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md)
-- [`dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md)
-- [`dokumentation/betrieb-und-deployment/artefakte/Jenkinsfile.gematik`](dokumentation/betrieb-und-deployment/artefakte/Jenkinsfile.gematik)
-- [`dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/`](dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/)
-- [`scripts/prepare_target_frontend_config.mjs`](scripts/prepare_target_frontend_config.mjs)
-- [`scripts/preflight_target_deployment.mjs`](scripts/preflight_target_deployment.mjs)
+- Build: [`dokumentation/betrieb-und-deployment/artefakte/Jenkinsfile.gematik`](dokumentation/betrieb-und-deployment/artefakte/Jenkinsfile.gematik)
+- Helm-Chart: [`Chart.yaml`](dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/Chart.yaml) und [`values.yaml`](dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/values.yaml)
+- Kubernetes-Templates: [`deployment.yaml`](dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/templates/deployment.yaml), [`service.yaml`](dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/templates/service.yaml), [`ingress.yaml`](dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/templates/ingress.yaml) und [`configmap.yaml`](dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/templates/configmap.yaml)
+- Frontend-Konfiguration: [`scripts/prepare_target_frontend_config.mjs`](scripts/prepare_target_frontend_config.mjs)
+- Preflight-Check: [`scripts/preflight_target_deployment.mjs`](scripts/preflight_target_deployment.mjs)
+- Betriebsunterlagen: [`DEPLOYMENT_GEMATIK_K8S.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md), [`DEPLOYMENT_CHECKLIST.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md), [`BETRIEB.md`](dokumentation/betrieb-und-deployment/BETRIEB.md) und [`DEPLOYMENT_UEBERSICHT.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md)
 
 Die aktuelle Einordnung der Auslieferungswege steht in der [Deployment-Übersicht](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md).
 
