@@ -411,7 +411,7 @@ test("Organisationsprofil: direkter Deeplink rendert Profilseite", async ({ page
   await expect(page.locator("#search")).toBeHidden();
 });
 
-test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", async ({ page }, testInfo) => {
+test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollständig", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#activities", {
     demoDataScript: activitiesDemoDataScript()
   });
@@ -419,11 +419,17 @@ test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", asy
   await expect(page.locator('[data-view-panel="activities"]')).toBeVisible();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "activities");
   await expect(page.locator("#search")).toHaveAttribute("placeholder", /Aktivitäten nach Kontakt/);
-  await expect(page.locator("#activities-list .activity-item")).toHaveCount(30);
-  await expect(page.locator("#activities-load-more-row")).toBeVisible();
-
-  await page.locator("#activities-load-more").click();
   await expect(page.locator("#activities-list .activity-item")).toHaveCount(36);
+  await expect(page.locator("#activities-load-more-row")).toHaveCount(0);
+  await expect(page.locator(".app-shell[data-active-view='activities'] #summary-grid")).toBeHidden();
+  await expect(page.locator(".activities-filter-field")).toHaveCount(3);
+  await expect(page.locator("#activities-meta")).toHaveText("36 Aktivitäten");
+  await expect(page.locator(".history-action-pill--update").first()).toBeVisible();
+  await expect(page.locator(".history-action-pill--import").first()).toBeVisible();
+  await expect(page.locator(".history-action-pill--create").first()).toBeVisible();
+  await expect(page.locator(".history-action-pill--archive").first()).toBeVisible();
+
+  await attachScreenshot(page, testInfo, "aktivitaeten");
 
   await page.selectOption("#activity-kind-filter", "owner");
   await expect(page.locator("#activities-list .activity-item").first()).toBeVisible();
@@ -435,8 +441,6 @@ test("Aktivitäten: globaler Kontaktverlauf rendert mit Filtern und Paging", asy
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#person\/contact\//);
   await expect(page.locator("#person-profile-body #detail-overview")).toBeVisible();
-
-  await attachScreenshot(page, testInfo, "aktivitaeten");
 });
 
 test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbox", async ({ page }, testInfo) => {

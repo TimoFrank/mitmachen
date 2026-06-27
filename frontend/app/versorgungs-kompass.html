@@ -4778,11 +4778,11 @@
       .activities-command-row {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        align-items: end;
+        align-items: center;
         gap: 12px;
-        padding: 14px;
+        padding: 12px 14px;
         border-bottom: 1px solid var(--border);
-        background: #f8fafc;
+        background: #ffffff;
       }
 
       .activities-filters {
@@ -4804,6 +4804,7 @@
         font-size: var(--font-size-xs);
         font-weight: 850;
         letter-spacing: 0;
+        text-transform: uppercase;
       }
 
       .activities-filter {
@@ -4811,7 +4812,7 @@
         min-height: 38px;
         border: 1px solid var(--border);
         border-radius: 8px;
-        background: var(--surface);
+        background: #f8fafc;
         color: var(--text-secondary);
         padding: 0 10px;
         font-size: var(--font-size-sm);
@@ -4829,10 +4830,10 @@
         align-items: center;
         justify-content: flex-end;
         padding: 0 10px;
-        border: 1px solid var(--border);
+        border: 1px solid #dbeafe;
         border-radius: 8px;
-        background: var(--surface);
-        color: var(--text-muted);
+        background: #eff6ff;
+        color: #3155ad;
         font-size: var(--font-size-sm);
         font-weight: 800;
         white-space: nowrap;
@@ -4840,20 +4841,20 @@
 
       .activities-feed-shell {
         display: grid;
-        gap: 14px;
-        padding: 18px;
-        background: #ffffff;
+        gap: 12px;
+        padding: 16px;
+        background: #f8fafc;
       }
 
       .activities-timeline {
         display: grid;
-        gap: 18px;
+        gap: 14px;
         width: 100%;
       }
 
       .activity-day-group {
         display: grid;
-        gap: 10px;
+        gap: 8px;
       }
 
       .activity-day-label {
@@ -4882,19 +4883,19 @@
       .activity-item {
         position: relative;
         display: grid;
-        grid-template-columns: 38px minmax(0, 1fr);
-        gap: 12px;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
         cursor: pointer;
       }
 
       .activity-item::before {
         content: "";
         position: absolute;
-        left: 18px;
-        top: 42px;
+        left: 16px;
+        top: 38px;
         bottom: -12px;
         width: 2px;
-        background: var(--border);
+        background: #dbe4f0;
       }
 
       .activity-item:last-child::before {
@@ -4902,8 +4903,8 @@
       }
 
       .activity-actor-avatar {
-        width: 38px;
-        height: 38px;
+        width: 34px;
+        height: 34px;
         border-radius: 999px;
         display: inline-grid;
         place-items: center;
@@ -4913,6 +4914,8 @@
         font-weight: 900;
         overflow: hidden;
         z-index: 1;
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 0 1px #dbeafe;
       }
 
       .activity-actor-avatar img {
@@ -4923,12 +4926,12 @@
 
       .activity-entry {
         display: grid;
-        gap: 10px;
-        padding: 12px 14px;
+        gap: 8px;
+        padding: 10px 12px;
         border: 1px solid var(--border);
         border-radius: 8px;
         background: var(--surface);
-        box-shadow: none;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
         transition: border-color 0.16s ease, box-shadow 0.16s ease;
       }
 
@@ -4957,7 +4960,7 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 6px;
-        padding: 8px 10px;
+        padding: 7px 9px;
         border-radius: 8px;
         background: #f8fafc;
         color: var(--text-muted);
@@ -21203,33 +21206,39 @@
             <div class="view-card activities-workspace">
               <div class="activities-command-row">
                 <div class="activities-filters" aria-label="Aktivitäten filtern">
-                  <select class="activities-filter" id="activity-kind-filter" aria-label="Aktivitätstyp filtern">
-                    <option value="all">Alle Aktivitäten</option>
-                    <option value="update">Updates</option>
-                    <option value="owner">Owner</option>
-                    <option value="archive">Archiv</option>
-                    <option value="restore">Wiederhergestellt</option>
-                    <option value="create">Anlage</option>
-                    <option value="import">Import</option>
-                  </select>
-                  <select class="activities-filter" id="activity-user-filter" aria-label="Bearbeiter filtern">
-                    <option value="all">Alle Nutzer</option>
-                  </select>
-                  <select class="activities-filter" id="activity-range-filter" aria-label="Zeitraum filtern">
-                    <option value="all">Alle Zeiten</option>
-                    <option value="today">Heute</option>
-                    <option value="7d">Letzte 7 Tage</option>
-                    <option value="30d">Letzte 30 Tage</option>
-                  </select>
+                  <label class="activities-filter-field">
+                    <span>Typ</span>
+                    <select class="activities-filter" id="activity-kind-filter" aria-label="Aktivitätstyp filtern">
+                      <option value="all">Alle Aktivitäten</option>
+                      <option value="update">Updates</option>
+                      <option value="owner">Owner</option>
+                      <option value="archive">Archiv</option>
+                      <option value="restore">Wiederhergestellt</option>
+                      <option value="create">Anlage</option>
+                      <option value="import">Import</option>
+                    </select>
+                  </label>
+                  <label class="activities-filter-field">
+                    <span>Nutzer</span>
+                    <select class="activities-filter" id="activity-user-filter" aria-label="Bearbeiter filtern">
+                      <option value="all">Alle Nutzer</option>
+                    </select>
+                  </label>
+                  <label class="activities-filter-field">
+                    <span>Zeitraum</span>
+                    <select class="activities-filter" id="activity-range-filter" aria-label="Zeitraum filtern">
+                      <option value="all">Alle Zeiten</option>
+                      <option value="today">Heute</option>
+                      <option value="7d">Letzte 7 Tage</option>
+                      <option value="30d">Letzte 30 Tage</option>
+                    </select>
+                  </label>
                 </div>
                 <div class="activities-meta" id="activities-meta">Aktivitäten werden geladen</div>
               </div>
               <div class="activities-feed-shell">
                 <div class="activities-timeline" id="activities-list" aria-live="polite">
                   <div class="history-loading">Aktivitäten werden geladen...</div>
-                </div>
-                <div class="activities-load-more-row" id="activities-load-more-row" hidden>
-                  <button class="action-button activities-load-more" type="button" id="activities-load-more">Mehr laden</button>
                 </div>
               </div>
             </div>
@@ -23680,8 +23689,6 @@
       const activityKindFilter = document.getElementById("activity-kind-filter");
       const activityUserFilter = document.getElementById("activity-user-filter");
       const activityRangeFilter = document.getElementById("activity-range-filter");
-      const activitiesLoadMoreRow = document.getElementById("activities-load-more-row");
-      const activitiesLoadMoreButton = document.getElementById("activities-load-more");
       const notificationsList = document.getElementById("notifications-list");
       const notificationsMeta = document.getElementById("notifications-meta");
       const notificationFilterButtons = [...document.querySelectorAll("[data-notification-filter]")];
@@ -24148,7 +24155,8 @@
       let activitiesHasMore = false;
       let activitiesNextOffset = 0;
       let activitiesRequestKey = "";
-      const activitiesPageSize = 30;
+      const activitiesPageSize = 100;
+      const activitiesMaxAutoLoadPages = 100;
       let notifications = [];
       let notificationsLoaded = false;
       let notificationsLoading = false;
@@ -32720,20 +32728,21 @@
 
       function renderActivitiesLoading() {
         if (activitiesList) activitiesList.innerHTML = `<div class="history-loading">Aktivitäten werden geladen...</div>`;
-        if (activitiesMeta) activitiesMeta.textContent = "Aktivitäten werden geladen";
-        if (activitiesLoadMoreRow) activitiesLoadMoreRow.hidden = true;
+        if (activitiesMeta) activitiesMeta.textContent = "Alle Aktivitäten werden geladen";
       }
 
       function renderActivitiesError() {
         if (activitiesList) activitiesList.innerHTML = `<div class="history-error">Die Aktivitäten konnten nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
         if (activitiesMeta) activitiesMeta.textContent = "Laden fehlgeschlagen";
-        if (activitiesLoadMoreRow) activitiesLoadMoreRow.hidden = true;
       }
 
       async function loadActivities({ reset = false } = {}) {
         if (activitiesLoading || !window.dataService?.getActivities) return;
         const key = activityRequestKey();
-        const offset = reset ? 0 : activitiesNextOffset;
+        let offset = reset ? 0 : activitiesNextOffset;
+        let loadedPages = 0;
+        let staleRequest = false;
+        let nextActivities = reset ? [] : [...activities];
         activitiesLoading = true;
         if (reset) {
           activities = [];
@@ -32743,12 +32752,33 @@
           renderActivitiesLoading();
         }
         try {
-          const payload = await window.dataService.getActivities(activityRequestOptions(offset));
-          if (key !== activityRequestKey()) return;
-          const nextItems = Array.isArray(payload?.items) ? payload.items : [];
-          activities = reset ? nextItems : [...activities, ...nextItems];
-          activitiesHasMore = Boolean(payload?.hasMore);
-          activitiesNextOffset = Number(payload?.nextOffset) || activities.length;
+          do {
+            const payload = await window.dataService.getActivities(activityRequestOptions(offset));
+            if (key !== activityRequestKey()) {
+              staleRequest = true;
+              return;
+            }
+            const nextItems = Array.isArray(payload?.items) ? payload.items : [];
+            nextActivities = [...nextActivities, ...nextItems];
+            const rawNextOffset = Number(payload?.nextOffset);
+            const nextOffset = Number.isFinite(rawNextOffset) && rawNextOffset > offset
+              ? rawNextOffset
+              : offset + nextItems.length;
+            activities = nextActivities;
+            activitiesHasMore = Boolean(payload?.hasMore) && nextItems.length > 0;
+            activitiesNextOffset = nextOffset;
+            activitiesLoaded = true;
+            loadedPages += 1;
+            offset = nextOffset;
+            if (activitiesHasMore && activitiesMeta) {
+              activitiesMeta.textContent = `${activities.length} ${activities.length === 1 ? "Aktivität" : "Aktivitäten"} geladen...`;
+            }
+          } while (activitiesHasMore && loadedPages < activitiesMaxAutoLoadPages);
+          if (activitiesHasMore && loadedPages >= activitiesMaxAutoLoadPages) {
+            console.warn("Aktivitäten-Autoload wurde begrenzt.", { loadedPages, loadedItems: activities.length });
+          } else {
+            activitiesHasMore = false;
+          }
           activitiesLoaded = true;
           activitiesLoading = false;
           renderActivitiesView();
@@ -32761,6 +32791,11 @@
           }
         } finally {
           activitiesLoading = false;
+          if (staleRequest && activeView === "activities") {
+            activitiesLoaded = false;
+            activitiesRequestKey = "";
+            renderActivitiesView();
+          }
         }
       }
 
@@ -32793,13 +32828,9 @@
             .join("");
         }
         if (activitiesMeta) {
-          const suffix = activitiesHasMore ? "geladen" : "gesamt";
-          activitiesMeta.textContent = `${activities.length} ${activities.length === 1 ? "Aktivität" : "Aktivitäten"} ${suffix}`;
-        }
-        if (activitiesLoadMoreRow) activitiesLoadMoreRow.hidden = !activitiesHasMore;
-        if (activitiesLoadMoreButton) {
-          activitiesLoadMoreButton.disabled = activitiesLoading;
-          activitiesLoadMoreButton.textContent = activitiesLoading ? "Lädt..." : "Mehr laden";
+          activitiesMeta.textContent = activitiesLoading
+            ? `${activities.length} ${activities.length === 1 ? "Aktivität" : "Aktivitäten"} geladen...`
+            : `${activities.length} ${activities.length === 1 ? "Aktivität" : "Aktivitäten"}`;
         }
         activitiesList.querySelectorAll("[data-activity-contact]").forEach((element) => {
           element.addEventListener("click", (event) => {
@@ -33877,24 +33908,7 @@
           return;
         }
         if (activeView === "activities") {
-          renderSummaryCards(
-            summaryGrid,
-            [
-              {
-                label: "Aktivitäten",
-                value: activities.length,
-                meta: activitiesHasMore ? "geladen" : "",
-                icon: `
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 8v5l3 2"></path>
-                    <circle cx="12" cy="12" r="9"></circle>
-                  </svg>
-                `,
-                iconClass: "summary-icon--blue"
-              }
-            ],
-            "Aktivitäten"
-          );
+          if (summaryGrid) summaryGrid.innerHTML = "";
           return;
         }
         const cards = [
@@ -44232,9 +44246,6 @@
           activitiesRequestKey = "";
           updateView();
         });
-      });
-      activitiesLoadMoreButton?.addEventListener("click", () => {
-        loadActivities({ reset: false });
       });
       notificationFilterButtons.forEach((button) => {
         button.addEventListener("click", () => {
