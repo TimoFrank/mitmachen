@@ -51,32 +51,29 @@ Die konkreten Backend-Variablen haengen von der Zielplattform ab. Details stehen
   - `frontend/map/`: Kartenansichten, Mini-Karten und Kartendaten.
   - `frontend/data/`: Datenadapter, Backend-Konfiguration und leere Fallback-Dateien.
   - `frontend/pages/`: einzelne statische Zusatzseiten, die nach `docs/` gespiegelt werden.
+  - `frontend/demo/`: statische Demo-Oberflaeche mit fiktiven Daten.
 - `api/`: REST-API fuer produktionsnahe Backend-Zugriffe im Zielbild.
 - `supabase/`: Legacy-/Migrationsquelle bis zur abgeschlossenen Shared-Postgres-Datenmigration.
-- `deploy/`: Helm Chart und Deployment-Artefakte fuer das gematik Kubernetes-Zielbild.
 - `public/`: Logos, Icons und statische Assets.
-- `examples/`: Beispiel- und Demo-Oberflaechen ohne produktive Daten.
 - `scripts/`: Pruef-, Sync- und Importskripte.
 - `tests/`: Playwright-Smoke-Tests.
 - `docs/`: Publish-Kopie fuer GitHub Pages. Dieser Ordner wird aus den Quellordnern synchronisiert.
-- `dokumentation/`: Architektur, Betrieb, Design, QA und historische Uebergabeunterlagen.
+- `dokumentation/`: Architektur, Betrieb, Design, QA und Uebergabeunterlagen.
 
-Die wichtigsten Quellpfade sind `frontend/`, `api/`, `deploy/`, `public/`, `examples/`, `scripts/`, `tests/` und `dokumentation/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
+Die wichtigsten Quellpfade sind `frontend/`, `api/`, `public/`, `scripts/`, `tests/` und `dokumentation/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
 
 ## Daten und Backend
 
-Produktive Kontakt-, Organisations- und Netzwerkdaten gehoeren in ein geschuetztes Backend. Sie werden nicht in GitHub gespeichert.
+Produktive Kontakt-, Organisations- und Netzwerkdaten werden im geschuetzten Backend gefuehrt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und unabhaengig vom oeffentlichen Quellcode.
 
-Die Dateien in `frontend/data/` halten Adapter, Konfiguration und leere Fallbacks bereit. Geheimnisse oder administrative Backend-Schluessel duerfen nie in Frontend-Dateien wie `frontend/data/supabase-config.js` eingetragen werden.
+Die Dateien in `frontend/data/` buendeln Adapter, Laufzeitkonfiguration und schlanke Fallback-Dateien. Administrative Backend-Schluessel und andere sensible Betriebszugriffe werden ueber das geschuetzte Secret-Management der jeweiligen Umgebung bereitgestellt; Frontend-Dateien wie `frontend/data/supabase-config.js` enthalten nur clientseitige Konfiguration.
 
 Weitere Details:
 
 - `dokumentation/architektur/API_CONTRACT.md`: API-Grenzen und Sicherheitsmodell.
 - `dokumentation/architektur/DATA_MODEL.md`: fachliches Datenmodell.
-- `dokumentation/architektur/VERSORGUNGS_NETZWERK_REGISTRIERUNG.md`: Backend-Vertrag fuer die Registrierungs-Inbox.
+- `dokumentation/architektur/VERSORGUNGS_NETZWERK_REGISTRIERUNG.md`: Schnittstellenbeschreibung fuer die Registrierungs-Inbox.
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`: gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
-- `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/postgres-migrationsentwurf/`: historischer Postgres-/Importentwurf, nicht Teil des aktiven Zielpfads.
-- `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/uebergabe/DEPLOYMENT_GCP_GEMATIK.md`: archivierter Cloud-Run-Entwurf.
 - `supabase/README.md`: aktuelles Legacy-Backend und Quelle fuer die Datenmigration.
 
 ## Deployment
@@ -96,7 +93,7 @@ Fuer das interne gematik Kubernetes-Zielbild mit Jenkins, Helm und API-Gateway s
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md`
 
-Der fruehere Cloud-Run-Entwurf steht nur noch als Referenz in `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/uebergabe/DEPLOYMENT_GCP_GEMATIK.md`. Historische GCP-Demo-Prototypen, Schrittprotokolle und Uebergabenotizen liegen unter `dokumentation/betrieb-und-deployment/archiv/gcp-prototypen/` und gehoeren nicht zum normalen Start- oder Publish-Pfad.
+Die aktuelle Einordnung der Auslieferungswege steht in der Deployment-Uebersicht.
 
 Wichtig: Ein Git-Push aktualisiert nur den Git-Stand. Wenn eine Aenderung produktive Backend-Daten betrifft, muss sie zusaetzlich in der Zielumgebung angewendet werden.
 

@@ -2,10 +2,10 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 
 const requiredFiles = [
-  "Dockerfile.api",
-  "Jenkinsfile",
-  "deploy/helm/versorgungs-kompass/Chart.yaml",
-  "deploy/helm/versorgungs-kompass/values.yaml",
+  "api/Dockerfile",
+  "dokumentation/betrieb-und-deployment/artefakte/Jenkinsfile.gematik",
+  "dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/Chart.yaml",
+  "dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/values.yaml",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
   "dokumentation/architektur/API_CONTRACT.md",
   "api/server.mjs",

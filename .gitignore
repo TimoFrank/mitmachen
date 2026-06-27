@@ -1,16 +1,26 @@
+# System
 .DS_Store
-.next/
+
+# Dependencies
 node_modules/
+
+# Local environment
 .env
 .env.local
+
+# Logs and test output
 *.log
 playwright-report/
 test-results/
-data/*.sqlite
-data/*.sqlite-shm
-data/*.sqlite-wal
+
+# Local data and backups
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 backups/
 *_backup_*.csv
 *_backup_*.json
 backup-versorgungs-kompass-*.sql
+
+# Local Supabase CLI state
 supabase/.temp/

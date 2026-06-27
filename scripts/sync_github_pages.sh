@@ -15,11 +15,11 @@ cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.html" "$DOCS_DIR/mitmache
 cp "$FRONTEND_DIR/map/versorgungs-kompass-map.html" "$DOCS_DIR/versorgungs-kompass-map.html"
 cp "$FRONTEND_DIR/map/versorgungs-kompass-map-teaser.html" "$DOCS_DIR/versorgungs-kompass-map-teaser.html"
 cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.html" "$DOCS_DIR/versorgungs-kompass-contact-mini-map.html"
-cp "$ROOT_DIR/examples/demo/index.html" "$DOCS_DIR/demo/index.html"
-cp "$ROOT_DIR/examples/demo/demo.css" "$DOCS_DIR/demo/demo.css"
-cp "$ROOT_DIR/examples/demo/demo-app.js" "$DOCS_DIR/demo/demo-app.js"
-if [ -f "$ROOT_DIR/examples/demo/README.md" ]; then
-  cp "$ROOT_DIR/examples/demo/README.md" "$DOCS_DIR/demo/README.md"
+cp "$FRONTEND_DIR/demo/index.html" "$DOCS_DIR/demo/index.html"
+cp "$FRONTEND_DIR/demo/demo.css" "$DOCS_DIR/demo/demo.css"
+cp "$FRONTEND_DIR/demo/demo-app.js" "$DOCS_DIR/demo/demo-app.js"
+if [ -f "$FRONTEND_DIR/demo/README.md" ]; then
+  cp "$FRONTEND_DIR/demo/README.md" "$DOCS_DIR/demo/README.md"
 fi
 cp "$FRONTEND_DIR/login/auth-config.js" "$DOCS_DIR/auth-config.js"
 cp "$FRONTEND_DIR/login/auth-guard.js" "$DOCS_DIR/auth-guard.js"

@@ -1355,7 +1355,7 @@
             <iframe
               class="map-frame map-embed-frame"
               title="Versorgungs-Kompass Karten-Modus"
-              src="../../frontend/map/versorgungs-kompass-map.html?embed=1&demo=1"
+              src="../map/versorgungs-kompass-map.html?embed=1&demo=1"
               loading="eager"
             ></iframe>
           </div>

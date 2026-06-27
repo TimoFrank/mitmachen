@@ -19,7 +19,7 @@ Dieses Konzept beschreibt den Zielpfad fuer den Versorgungs-Kompass nach der Kor
 | Frontend | statisches `docs/`-Artefakt im gematik Bucket-/Hosting-Pfad |
 | Frontend-Konfiguration | `dataMode: "api"`, `authMode: "trusted-header"`, interne `apiBaseUrl`, `requireApiGateway: true` |
 | Gateway / Ingress | interne Zugriffsbeschraenkung, SSO, Entfernen untrusted Identity-Header, Setzen verifizierter Nutzer-Header |
-| API | Node.js-Container aus `Dockerfile.api`, deployt per Helm in den Kubernetes-Namespace |
+| API | Node.js-Container aus `api/Dockerfile`, deployt per Helm in den Kubernetes-Namespace |
 | Datenbank | gematik Shared Postgres; Schema und Migration werden mit der gematik-IT abgestimmt |
 | Authz | Rollen `viewer`, `editor`, `admin` in `profiles`, serverseitig geprueft |
 | Storage | Object Storage fuer Profil- und Kontaktbilder, ausgeliefert ueber API oder freigegebene interne Objektpfade |
@@ -66,14 +66,14 @@ Git Repo
 -> Jenkins Pipeline
 -> npm checks / SAST / Secret Scan / Trivy
 -> docs/ als statisches Frontend-Artefakt vorbereiten
--> API-Container aus Dockerfile.api bauen
+-> API-Container aus api/Dockerfile bauen
 -> Image in Artifact Registry pushen
 -> Helm Chart rendern und deployen
 -> Kubernetes startet API-Pods im Namespace
 -> Smoke Tests gegen /api/healthz, /api/session und Kernpfade
 ```
 
-Das Helm Chart liegt unter `deploy/helm/versorgungs-kompass`.
+Das Helm Chart liegt unter `dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass`.
 
 ## Offene Plattformfragen
 
@@ -88,6 +88,6 @@ Das Helm Chart liegt unter `deploy/helm/versorgungs-kompass`.
 
 1. GitHub Pages + Supabase als funktionierende Testumgebung stabil halten.
 2. Cloud-Run/IAP-Artefakte im Archiv lassen.
-3. `Dockerfile.api`, Helm Chart, Jenkinsfile und Ziel-Config-Skripte auf Kubernetes/Gateway ausrichten.
+3. `api/Dockerfile`, Helm Chart, Jenkins-Referenzdatei und Ziel-Config-Skripte auf Kubernetes/Gateway ausrichten.
 4. Datenmodell, Schemafreigabe und Importverfahren gemeinsam mit der gematik-IT konkretisieren.
 5. Parallelbetrieb testen und erst danach umschalten.

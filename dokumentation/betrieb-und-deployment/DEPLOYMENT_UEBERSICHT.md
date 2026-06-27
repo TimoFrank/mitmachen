@@ -10,11 +10,11 @@ Der einfache Standardpfad ist GitHub Pages:
 Quellordner -> scripts/sync_github_pages.sh -> docs/ -> GitHub Pages
 ```
 
-`docs/` ist dabei eine Publish-Kopie. Gepflegt werden die Quellordner `frontend/`, `public/` und `examples/`.
+`docs/` ist dabei eine Publish-Kopie. Gepflegt werden die Quellordner `frontend/` und `public/`.
 
 ## Lokale Demo
 
-Die Demo unter `examples/demo/` bleibt aktiv, aber nur als leichtgewichtige Ansicht mit fiktiven Daten. Sie ist hilfreich fuer README-Screenshots, technische Erstpruefung und Abstimmung.
+Die Demo unter `frontend/demo/` bleibt aktiv, aber nur als leichtgewichtige Ansicht mit fiktiven Daten. Sie ist hilfreich fuer README-Screenshots, technische Erstpruefung und Abstimmung.
 
 Sie ist kein eigener GCP-Deploypfad mehr. Wenn GitHub Pages aktualisiert wird, kopiert `scripts/sync_github_pages.sh` die Demo nach `docs/demo/`.
 
@@ -22,13 +22,14 @@ Sie ist kein eigener GCP-Deploypfad mehr. Wenn GitHub Pages aktualisiert wird, k
 
 Das neue Zielbild fuer die interne Infrastrukturuebernahme steht in `DEPLOYMENT_GEMATIK_K8S.md`.
 Die dazugehoerige kompakte Konzeption steht in `GEMATIK_K8S_ZIELKONZEPT.md`.
+Der konkrete Uebergabeabschnitt fuer gematik IT heisst dort `Implementierung, Deployment und Migration fuer gematik IT`.
 
 Es nutzt:
 
 - Software Factory / Jenkins
 - Artifact Registry
 - Kubernetes Namespace im Shared-Projekt
-- Helm Chart unter `deploy/helm/versorgungs-kompass`
+- Helm Chart unter `dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass`
 - Shared Postgres
 - statisches Frontend-Hosting in einem separaten Bucket-/Hosting-Projekt
 
@@ -39,9 +40,9 @@ Ein lokaler Jenkins-/Docker-Compose-Simulator ist bewusst nicht Teil des aktiven
 
 Der fruehere GCP-Migrationsentwurf fuer Cloud Run liegt unter `archiv/gcp-prototypen/uebergabe/DEPLOYMENT_GCP_GEMATIK.md`. Er bleibt als technische Referenz erhalten, ist aber nicht mehr fuehrend.
 
-Der aktuelle Root-`Jenkinsfile` folgt dem Kubernetes-Zielbild. Alte Cloud-Run-Kommandos und Prototyp-Dateien liegen im Archiv und duerfen nicht als aktueller Deploypfad gelesen werden.
+Die Jenkins-Referenzdatei liegt unter `artefakte/Jenkinsfile.gematik` und folgt dem Kubernetes-Zielbild. Alte Cloud-Run-Kommandos und Prototyp-Dateien liegen im Archiv und duerfen nicht als aktueller Deploypfad gelesen werden.
 
-Im aktiven Root bleibt fuer Container-Builds nur `Dockerfile.api`. Der fruehere statische Frontend-Container liegt unter `archiv/statischer-frontend-container/`.
+Der API-Container wird ueber `../../api/Dockerfile` beschrieben. Der fruehere statische Frontend-Container liegt unter `archiv/statischer-frontend-container/`.
 
 ## Archivierte GCP-Prototypen
 
@@ -55,4 +56,4 @@ Fruehere GCP-Demos liegen im Archiv:
 
 Diese Dateien bleiben zur Nachvollziehbarkeit erhalten, sind aber nicht Teil des normalen Build-, Check- oder Publish-Pfads.
 
-Insbesondere `iap-experiment/` ist kein Ersatz fuer das gematik Kubernetes-Zielbild. Fuer neue Zielarbeit gelten `DEPLOYMENT_GEMATIK_K8S.md`, das Helm Chart unter `deploy/helm/versorgungs-kompass`, `Dockerfile.api` und das statische Frontend-Artefakt aus `docs/`.
+Insbesondere `iap-experiment/` ist kein Ersatz fuer das gematik Kubernetes-Zielbild. Fuer neue Zielarbeit gelten `DEPLOYMENT_GEMATIK_K8S.md`, das Helm Chart unter `dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass`, `api/Dockerfile` und das statische Frontend-Artefakt aus `docs/`.

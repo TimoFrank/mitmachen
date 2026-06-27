@@ -11,7 +11,7 @@ pipeline {
     FRONTEND_BUCKET_URI = credentials('versorgungs-frontend-bucket-uri')
     K8S_NAMESPACE = credentials('versorgungs-k8s-namespace')
     HELM_RELEASE = 'versorgungs-kompass'
-    HELM_CHART = 'deploy/helm/versorgungs-kompass'
+    HELM_CHART = 'dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass'
     DB_HOST = credentials('versorgungs-postgres-host')
     DB_PORT = '5432'
     DB_NAME = 'versorgungs_kompass'
@@ -74,7 +74,7 @@ pipeline {
 
     stage('Build API image') {
       steps {
-        sh 'docker build -f Dockerfile.api -t "$API_IMAGE" .'
+        sh 'docker build -f api/Dockerfile -t "$API_IMAGE" .'
       }
     }
 

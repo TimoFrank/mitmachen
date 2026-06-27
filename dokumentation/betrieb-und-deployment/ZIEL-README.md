@@ -60,7 +60,7 @@ Git Repo
 -> Kubernetes startet den API-Pod im Namespace
 ```
 
-Das Helm Chart liegt im Repo unter `deploy/helm/versorgungs-kompass`.
+Das Helm Chart liegt im Repo unter `dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass`.
 
 ### Frontend
 
@@ -79,7 +79,7 @@ requireApiGateway: true
 
 ### API
 
-Die API laeuft als Node.js Container aus `Dockerfile.api`. Sie kapselt Datenbank, Rollen, Storage und fachliche Validierung. Der Browser spricht nur mit `/api/...`.
+Die API laeuft als Node.js Container aus `api/Dockerfile`. Sie kapselt Datenbank, Rollen, Storage und fachliche Validierung. Der Browser spricht nur mit `/api/...`.
 
 Wichtige Runtime-Variablen:
 
@@ -124,7 +124,7 @@ Die Rollen `viewer`, `editor` und `admin` werden in der API serverseitig gegen `
 ### Phase 2: Repo auf Zielbetrieb vorbereiten
 
 - `DEPLOYMENT_GEMATIK_K8S.md` als fuehrende technische Deployment-Doku nutzen.
-- Jenkinsfile auf Build, Scan, Artifact Registry, Helm und Bucket-Sync ausrichten.
+- Jenkins-Referenzdatei auf Build, Scan, Artifact Registry, Helm und Bucket-Sync ausrichten.
 - Helm Chart fuer API-Deployment pflegen.
 - Frontend-Config-Script auf `dataMode: "api"` und `authMode: "trusted-header"` setzen.
 - Preflight- und Audit-Skripte auf neutrale Zielbegriffe umstellen.
@@ -174,6 +174,6 @@ Vor echtem Produktivbetrieb muessen diese Punkte verbindlich sein:
 
 Jetzt nicht Supabase loeschen und nicht den aktuellen GitHub-Pages-Pfad aufgeben.
 
-Der naechste sinnvolle Schritt ist die technische Zielspur im Repo: Kubernetes-Doku, Jenkinsfile, Helm Chart, neutrales API-Config-Script und ein abgestimmtes Datenmodell vorbereiten. Danach kann die gematik-IT Namespace, Datenbank, Bucket, Ingress und Berechtigungen konkret anschliessen.
+Der naechste sinnvolle Schritt ist die technische Zielspur im Repo: Kubernetes-Doku, Jenkins-Referenzdatei, Helm Chart, neutrales API-Config-Script und ein abgestimmtes Datenmodell vorbereiten. Danach kann die gematik-IT Namespace, Datenbank, Bucket, Ingress und Berechtigungen konkret anschliessen.
 
 Die kompakte Zielkonzeption steht zusaetzlich in `dokumentation/betrieb-und-deployment/GEMATIK_K8S_ZIELKONZEPT.md`.

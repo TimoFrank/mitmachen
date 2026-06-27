@@ -2,7 +2,7 @@
 
 Kurze Checkliste fuer Aenderungen am Versorgungs-Kompass.
 
-Fuer das interne Jenkins-/Kubernetes-Zieldeployment siehe `DEPLOYMENT_GEMATIK_K8S.md`.
+Fuer das interne Jenkins-/Kubernetes-Zieldeployment siehe `DEPLOYMENT_GEMATIK_K8S.md`, insbesondere den Abschnitt `Implementierung, Deployment und Migration fuer gematik IT`.
 
 ## Vor Deployment
 
