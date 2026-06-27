@@ -24,8 +24,8 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 
 - Der Versorgungs-Kompass ist eine interne Webanwendung für das gematik-Hospitationsnetzwerk.
 - Die Karte ist der Einstieg: Sie zeigt Kontakte, Organisationen, Standorte und regionale Lücken.
-- Für Vorführung und Abstimmung ohne GitHub-Zugriff gibt es die [öffentliche GCP-Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
-- GitHub enthält Quellcode, Dokumentation und die [GitHub-Pages-Ansicht](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
+- Für Vorführung und Abstimmung gibt es die [öffentliche Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
+- Das aktuell nutzbare Tool im bestehenden Setup ist die [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
 - Für Betrieb und Migration ist die [gematik-Deployment-Dokumentation](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) der wichtigste technische Startpunkt.
 
 ## 3. Wichtigste Ordner
@@ -38,7 +38,7 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 | [`public/`](public/) | Logos, Icons und statische Assets |
 | [`scripts/`](scripts/) | Prüf-, Sync- und Importskripte |
 | [`tests/`](tests/) | Browser-Smoke-Tests |
-| [`docs/`](docs/) | Publish-Kopie für GitHub Pages, nicht direkt pflegen |
+| [`docs/`](docs/) | Publish-Kopie für die Live Demo, nicht direkt pflegen |
 | [`dokumentation/`](dokumentation/) | Einstieg, Design, QA, Architektur, Betrieb und Deployment |
 
 Wichtige Einstiege in die Dokumentation sind [`dokumentation/README.md`](dokumentation/README.md), [`dokumentation/architektur/`](dokumentation/architektur/) und [`dokumentation/betrieb-und-deployment/`](dokumentation/betrieb-und-deployment/).
@@ -57,49 +57,53 @@ Weitere Details:
 
 ## 5. Deployment, Demos und Betrieb
 
-Es gibt drei unterschiedliche Betriebs- und Vorführwege. Die GCP-Demo ist der öffentliche Vorführstand mit Testdaten auf Cloud Run. GitHub Pages ist die aktuell nutzbare Web-App-Oberfläche: Das Frontend wird aus dem Repository ausgeliefert, arbeitet aber mit der angebundenen Backend-Konfiguration. Der Zielbetrieb beschreibt die spätere gematik-Umgebung mit interner API, geschützter Datenbank, SSO und Betriebsprozessen.
+Die drei Wege unterscheiden sich vor allem bei Zielgruppe, Datenstand und technischer Umgebung. Die Tabelle ordnet sie ein, danach folgen die konkreten Hinweise.
 
 | Umgebung | Wofür gedacht | Hinweis |
 | --- | --- | --- |
-| [GCP-Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Vorführung, Abstimmung und erste fachliche Rückmeldungen | Öffentlich erreichbar, mit Testdaten und eigenem Cloud-SQL-Backend |
-| [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Laufende Web-App-Oberfläche im aktuellen Setup | Frontend aus [`docs/`](docs/), Daten und Funktionen über die angebundene Supabase-Konfiguration |
-| gematik-Zielbetrieb | Geplanter Betrieb in der gematik-Infrastruktur | Mit interner API, geschützter Datenbank, SSO und Gateway |
+| [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Öffentliche Vorführung mit Testdaten | Läuft auf GCP Cloud Run mit eigenem Cloud-SQL-Backend |
+| [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Aktuell nutzbares Tool im bestehenden Setup | GitHub Pages liefert das Frontend, Supabase liefert Daten und Funktionen |
+| gematik-Zielbetrieb | Übernahme in die gematik-Infrastruktur | Jenkins, Kubernetes, Helm, API, Datenbank und Secrets sind vorbereitet |
 
-### 5.1 GCP-Demo
+### 5.1 Demo
 
-Die öffentlich verfügbare Demo läuft auf Google Cloud Run: [GCP-Demo mit Testdaten öffnen](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
+Die [Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) ist der öffentliche Vorführstand mit Testdaten. Sie läuft auf Google Cloud Run und nutzt ein eigenes Cloud-SQL-Backend.
 
-Sie ist der passende Link für Vorführung, Abstimmung und erste fachliche Rückmeldungen, wenn kein Zugriff auf GitHub oder GitHub Pages besteht. Die Demo nutzt Testdaten und ist kein produktiver Datenbestand.
+Sie ist der passende Link für Vorführung, Abstimmung und erste fachliche Rückmeldungen, wenn kein Zugriff auf das Repository oder die Live Demo besteht.
 
-Die GCP-Demo ist ein eigener Prototyp mit Cloud-SQL-Backend. Sie kann deshalb vom GitHub-Pages-Teststand abweichen und ersetzt nicht den geplanten gematik-Zielbetrieb.
+Die Demo enthält keine produktiven Daten und kann vom aktuellen Arbeitsstand der Live Demo abweichen.
 
-### 5.2 GitHub Pages
+### 5.2 Live Demo
 
-GitHub Pages ist die aktuell nutzbare Web-App-Oberfläche im bestehenden Setup. GitHub Pages liefert das Frontend aus dem Ordner [`docs/`](docs/) aus. Die Anwendung selbst arbeitet mit der angebundenen Supabase-Konfiguration und ist dadurch kein rein statisches Demo-Paket.
+Die [Live Demo](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) ist das aktuell nutzbare Tool im bestehenden Setup. GitHub Pages liefert das Frontend aus dem Ordner [`docs/`](docs/) aus. Die Anwendung arbeitet mit der angebundenen Supabase-Konfiguration und ist dadurch mehr als eine statische Oberfläche.
 
-Diese Ansicht ist nicht der gematik-Zielbetrieb. Sie bleibt aber ein funktionsfähiges Tool mit Backend-Anbindung, soweit Anmeldung, Berechtigungen und Backend-Konfiguration dies zulassen.
+Die Live Demo kann mit Anmeldung, Berechtigungen und Backend-Daten arbeiten, soweit die aktuelle Konfiguration dies zulässt. Sie ist damit der wichtigste laufende Stand vor dem gematik-Zielbetrieb.
 
 Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. Änderungen an Daten, Rechten oder Backend-Struktur müssen zusätzlich in der angebundenen Backend-Umgebung berücksichtigt werden.
 
 ### 5.3 Zielbetrieb
 
-Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür braucht es ein statisches Frontend, eine interne API, eine geschützte Datenbank, Secret-Management, internes SSO und Gateway oder Reverse Proxy.
+Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür sind im Repository bereits konkrete Vorbereitungen vorhanden: Jenkins-Build, Kubernetes- und Helm-Artefakte, Frontend-Konfiguration, API-Anbindung, Datenbank-Vorbereitung, Secret-Handling und Preflight-Checks.
 
 Der einfache Ablauf ist:
 
-1. Zielumgebung vorbereiten.
-2. Frontend bereitstellen.
-3. API betreiben.
-4. Datenbank anbinden.
-5. Konfiguration und Secrets setzen.
+1. Jenkins-Build starten.
+2. Helm-Chart und Kubernetes-Konfiguration anpassen.
+3. Frontend-Konfiguration für die Zielumgebung vorbereiten.
+4. API und Datenbank anbinden.
+5. Secrets und Umgebungskonfiguration setzen.
 6. Anmeldung, Navigation, Karte und Backend-Zugriffe testen.
 
-Die technischen Detaildokumente für die Implementierung sind:
+Die wichtigsten Startpunkte für die Implementierung sind:
 
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md)
 - [`dokumentation/betrieb-und-deployment/BETRIEB.md`](dokumentation/betrieb-und-deployment/BETRIEB.md)
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md)
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md)
+- [`dokumentation/betrieb-und-deployment/artefakte/Jenkinsfile.gematik`](dokumentation/betrieb-und-deployment/artefakte/Jenkinsfile.gematik)
+- [`dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/`](dokumentation/betrieb-und-deployment/artefakte/helm/versorgungs-kompass/)
+- [`scripts/prepare_target_frontend_config.mjs`](scripts/prepare_target_frontend_config.mjs)
+- [`scripts/preflight_target_deployment.mjs`](scripts/preflight_target_deployment.mjs)
 
 Die aktuelle Einordnung der Auslieferungswege steht in der [Deployment-Übersicht](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md).
 
