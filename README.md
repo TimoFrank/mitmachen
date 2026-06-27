@@ -16,6 +16,7 @@ Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine K
 - Stand: 27. Juni 2026
 - Kurznotiz: Erstes GitHub Release, harmonisiert mit dem App-Changelog bis Version 0.16.
 - Testumgebung: [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html)
+- Öffentliche Demo: [GCP-Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app)
 
 ## Schnellstart
 
@@ -25,6 +26,7 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 
 - Der Versorgungs-Kompass ist eine interne Webanwendung für das gematik-Hospitationsnetzwerk.
 - Die Karte ist der Einstieg: Sie zeigt Kontakte, Organisationen, Standorte und regionale Lücken.
+- Für Vorführung und Abstimmung ohne GitHub-Zugriff gibt es die [öffentliche GCP-Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
 - GitHub enthält Quellcode, Dokumentation und die [GitHub-Pages-Testumgebung](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
 - Für Betrieb und Migration ist die [gematik-Deployment-Dokumentation](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) der wichtigste technische Startpunkt.
 
@@ -67,11 +69,19 @@ Weitere Details:
 
 ## GitHub-Standardveröffentlichung
 
-Die GitHub-Veröffentlichung ist der Standard für Testbetrieb, Vorführung und gemeinsame Sichtprüfung. Sie läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
+Die GitHub-Veröffentlichung ist der Standard für Testbetrieb und technische Sichtprüfung im Repo. Sie läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
 
-Diese Veröffentlichung ist nicht der gematik-Zielbetrieb. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration. Produktive Daten, produktive Berechtigungen und geschützte Betriebszugriffe gehören nicht in diese GitHub-Veröffentlichung.
+Diese Veröffentlichung ist nicht der gematik-Zielbetrieb und nicht der öffentliche Weitergabe-Link für Kolleginnen und Kollegen ohne GitHub-Zugriff. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration. Produktive Daten, produktive Berechtigungen und geschützte Betriebszugriffe gehören nicht in diese GitHub-Veröffentlichung.
 
 Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. [`docs/`](docs/) bleibt dabei ein Auslieferungsartefakt und wird nicht direkt gepflegt.
+
+## Öffentliche GCP-Demo
+
+Die öffentlich verfügbare Demo läuft auf Google Cloud Run: [GCP-Demo mit Testdaten öffnen](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
+
+Sie ist der passende Link für Vorführung, Abstimmung und erste fachliche Rückmeldungen, wenn kein Zugriff auf GitHub oder GitHub Pages besteht. Die Demo nutzt Testdaten und ist kein produktiver Datenbestand.
+
+Die GCP-Demo ist ein eigener Prototyp mit Cloud-SQL-Backend. Sie kann deshalb vom GitHub-Pages-Teststand abweichen und ersetzt nicht den geplanten gematik-Zielbetrieb.
 
 ## Deployment im Zielbetrieb
 
