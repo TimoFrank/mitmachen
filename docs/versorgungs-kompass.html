@@ -2332,7 +2332,8 @@
         }
       }
 
-      .app-shell[data-active-view="experts"] #summary-grid {
+      .app-shell[data-active-view="experts"] #summary-grid,
+      .app-shell[data-active-view="patients"] #summary-grid {
         display: none;
       }
 
@@ -12566,6 +12567,29 @@
         white-space: nowrap;
       }
 
+      .patient-indication-badge {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        min-height: 30px;
+        padding: 4px 10px;
+        border: 1px solid var(--patient-indication-border, #cbd5e1);
+        border-radius: 999px;
+        background: var(--patient-indication-bg, #f1f5f9);
+        color: var(--patient-indication-color, #475569);
+        font-size: 0.74rem;
+        font-weight: 850;
+        line-height: 1.15;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      .patient-indication-badge--empty {
+        --patient-indication-bg: #f8fafc;
+        --patient-indication-border: #cbd5e1;
+        --patient-indication-color: #64748b;
+      }
+
       [data-expert-table][hidden],
       [data-patient-table][hidden],
       [data-stakeholder-table][hidden],
@@ -18954,6 +18978,79 @@
         min-height: 122px;
       }
 
+      .hospitation-fact-card {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hospitation-fact-display,
+      .hospitation-meta-display {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .hospitation-display-badge {
+        min-width: 0;
+        width: fit-content;
+        max-width: 100%;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #cfd8ee;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #1f2f57;
+        padding: 8px 11px;
+        font-size: 0.9rem;
+        font-weight: 850;
+        line-height: 1.15;
+      }
+
+      .hospitation-display-badge--date {
+        border-color: #bfd5ff;
+        background: #eef5ff;
+        color: #0f3d83;
+      }
+
+      .hospitation-display-badge--empty {
+        border-style: dashed;
+        color: var(--text-muted);
+      }
+
+      .hospitation-edit-trigger {
+        width: 30px;
+        height: 30px;
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid #d9e2f3;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #506189;
+        cursor: pointer;
+      }
+
+      .hospitation-edit-trigger:hover,
+      .hospitation-edit-trigger:focus-visible {
+        border-color: var(--primary);
+        color: var(--primary);
+        box-shadow: var(--focus-ring);
+        outline: none;
+      }
+
+      .hospitation-edit-trigger svg {
+        width: 15px;
+        height: 15px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.1;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
       .hospitation-overview-facts .format-fact > span,
       .hospitation-overview-meta .detail-line__label {
         letter-spacing: 0.01em;
@@ -18983,8 +19080,47 @@
         align-items: center;
       }
 
+      .hospitation-overview-meta.detail-line-list {
+        gap: 10px;
+      }
+
+      .hospitation-overview-meta .detail-line {
+        border: 1px solid #dfe6f5;
+        border-radius: var(--radius-sm);
+        background: #fbfcff;
+        padding: 10px 12px;
+      }
+
       .hospitation-overview-meta .detail-line__value {
         min-width: 0;
+      }
+
+      .hospitation-meta-value {
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--text);
+        font-weight: 760;
+      }
+
+      .hospitation-meta-value__text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .hospitation-meta-icon {
+        width: 30px;
+        height: 30px;
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        border: 1px solid #cfd8ee;
+        background: #eef3ff;
+        color: #30447f;
+        font-size: 0.78rem;
+        font-weight: 900;
       }
 
       .hospitation-overview-meta .format-fact-control,
@@ -23898,6 +24034,7 @@
       let activeHospitationDetailKey = "";
       let hospitationDetailTab = "overview";
       let hospitationEditingRequestNoteId = "";
+      let hospitationEditingInlineKey = "";
       let hospitationCalendarDate = new Date();
       let hospitationStatusFilter = "";
       let hospitationSectorFilter = "";
@@ -27074,6 +27211,36 @@
       let patientIndications = seedPatientIndicationRecords;
       let patientOrganizations = seedPatientOrganizations;
       let patientPeople = seedPatientPeople;
+      const patientIndicationBadgePalette = [
+        { bg: "#fff1f2", border: "#fecdd3", color: "#be123c" },
+        { bg: "#fef2f2", border: "#fecaca", color: "#b91c1c" },
+        { bg: "#eff6ff", border: "#bfdbfe", color: "#1d4ed8" },
+        { bg: "#f5f3ff", border: "#ddd6fe", color: "#6d28d9" },
+        { bg: "#eef2ff", border: "#c7d2fe", color: "#4338ca" },
+        { bg: "#fffbeb", border: "#fde68a", color: "#92400e" },
+        { bg: "#fff7ed", border: "#fed7aa", color: "#c2410c" },
+        { bg: "#ecfeff", border: "#a5f3fc", color: "#0e7490" },
+        { bg: "#f7fee7", border: "#d9f99d", color: "#4d7c0f" },
+        { bg: "#f0fdfa", border: "#99f6e4", color: "#0f766e" },
+        { bg: "#fdf4ff", border: "#f5d0fe", color: "#a21caf" },
+        { bg: "#f0f9ff", border: "#bae6fd", color: "#0369a1" },
+        { bg: "#f8fafc", border: "#cbd5e1", color: "#475569" }
+      ];
+      const patientIndicationBadgeTones = {
+        "onkologie-und-hamatologie": patientIndicationBadgePalette[0],
+        "herz-kreislauf-erkrankungen": patientIndicationBadgePalette[1],
+        "neurologie-und-neurodegeneration": patientIndicationBadgePalette[3],
+        "psychische-gesundheit-und-neurodivergenz": patientIndicationBadgePalette[4],
+        "stoffwechsel-und-endokrinologie": patientIndicationBadgePalette[5],
+        "autoimmun-rheuma-und-entzundung": patientIndicationBadgePalette[6],
+        "atemwege-allergie-und-lunge": patientIndicationBadgePalette[7],
+        "gastroenterologie-und-verdauung": patientIndicationBadgePalette[8],
+        "seltene-erkrankungen-und-genetik": patientIndicationBadgePalette[9],
+        "padiatrie-familie-und-angeborene-erkrankungen": patientIndicationBadgePalette[10],
+        "augen-und-sinnesorgane": patientIndicationBadgePalette[11],
+        "behinderung-teilhabe-und-pflege": patientIndicationBadgePalette[12],
+        "ubergreifende-patientenvertretung-und-beratung": patientIndicationBadgePalette[2]
+      };
       let stakeholderTypes = seedStakeholderTypes;
       let stakeholderOrganizations = seedStakeholderOrganizations;
       let stakeholderPeople = seedStakeholderPeople;
@@ -29082,7 +29249,7 @@
           const label = organization?.name || person.organization || "-";
           return `<div class="contact-subline contact-subline--primary" title="${escapeHtml(label)}">${escapeHtml(label)}</div>`;
         }
-        if (key === "indication") return sectorBadgeMarkup(patientPersonIndication(person) || "-");
+        if (key === "indication") return patientIndicationBadgeMarkup(patientPersonIndication(person));
         if (key === "role") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.role || "-")}</div>`;
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientPersonLocation(person) || "-")}</div>`;
         if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.state || organization?.state || "-")}</div>`;
@@ -29190,7 +29357,7 @@
             </div>
           `;
         }
-        if (key === "sector") return sectorBadgeMarkup(organization.sector);
+        if (key === "sector") return patientIndicationBadgeMarkup(organization.sector);
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientOrganizationLocation(organization) || "-")}</div>`;
         if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.state || "-")}</div>`;
         if (key === "updated") return `<span class="contact-date">${escapeHtml(formatDateLabel(organization.updatedAt || organization.createdAt) || "-")}</span>`;
@@ -29238,7 +29405,7 @@
                 <article class="row organization-mobile-card ${organization.id === activePatientOrganizationId ? "is-active" : ""}" data-patient-organization-id="${escapeHtml(organization.id)}" tabindex="0">
                   <div class="cell--organization">${patientOrganizationTableCellMarkup(organization, "organization")}</div>
                   <div class="organization-mobile-meta">
-                    <span class="organization-mobile-sector">${sectorBadgeMarkup(organization.sector)}</span>
+                    <span class="organization-mobile-sector">${patientIndicationBadgeMarkup(organization.sector)}</span>
                     <span class="organization-mobile-state">${escapeHtml(organization.state || "-")}</span>
                   </div>
                 </article>
@@ -33277,6 +33444,11 @@
           return;
         }
 
+        if (activeView === "patients") {
+          if (summaryGrid) summaryGrid.innerHTML = "";
+          return;
+        }
+
         if (isInitialDataLoading) {
           if (!summaryGrid) return;
           summaryGrid.innerHTML = `
@@ -33370,32 +33542,6 @@
               }
             ],
             isOrganizationsMode ? "Organisationen" : "Kontakte"
-          );
-          return;
-        }
-        if (activeView === "patients") {
-          const isPeopleMode = activePatientMode === "people";
-          const isIndicationsMode = activePatientMode === "indications";
-          const total = isIndicationsMode ? activePatientIndicationsTotal() : isPeopleMode ? activePatientPeopleTotal() : activePatientOrganizationsTotal();
-          const meta = items.length === total ? "" : `${items.length} Treffer`;
-          renderSummaryCards(
-            summaryGrid,
-            [
-              {
-                label: isIndicationsMode ? "Indikationen" : isPeopleMode ? "Patienten-Personen" : "Patientenorganisationen",
-                value: total,
-                meta: isMobileLayout() ? (isIndicationsMode ? "Indikationen" : isPeopleMode ? "Personen" : "Organisationen") : meta,
-                icon: `
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
-                    <path d="M12 8v6"></path>
-                    <path d="M9 11h6"></path>
-                  </svg>
-                `,
-                iconClass: "summary-icon--blue"
-              }
-            ],
-            isIndicationsMode ? "Indikationen" : isPeopleMode ? "Personen" : "Organisationen"
           );
           return;
         }
@@ -34147,6 +34293,48 @@
         return `data-hospitation-id="${escapeHtml(item.id || "")}" data-hospitation-inline-field="${escapeHtml(field)}"`;
       }
 
+      function hospitationInlineKey(item = {}, field = "") {
+        return `${item.id || ""}:${field}`;
+      }
+
+      function isHospitationInlineEditing(item = {}, field = "") {
+        return hospitationEditingInlineKey === hospitationInlineKey(item, field);
+      }
+
+      function hospitationEditButton(item = {}, field = "", label = "Feld bearbeiten") {
+        if (!canEditContacts()) return "";
+        return `
+          <button class="hospitation-edit-trigger" type="button" data-hospitation-edit-field="${escapeHtml(field)}" data-hospitation-id="${escapeHtml(item.id || "")}" aria-label="${escapeHtml(label)}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+            </svg>
+          </button>
+        `;
+      }
+
+      function hospitationStartLabel(item = {}) {
+        const value = item.startsAt || item.starts_at || "";
+        return value ? formatDateTimeLabel(value) || "Termin offen" : "Termin offen";
+      }
+
+      function hospitationDisplayBadge(content = "", options = {}) {
+        const classes = ["hospitation-display-badge", options.className || "", options.empty ? "hospitation-display-badge--empty" : ""].filter(Boolean).join(" ");
+        return `<span class="${escapeHtml(classes)}">${content}</span>`;
+      }
+
+      function hospitationEditableFact(item = {}, field = "", displayMarkup = "", editMarkup = "", label = "") {
+        if (isHospitationInlineEditing(item, field)) return editMarkup;
+        return `
+          <div class="hospitation-fact-card">
+            <div class="hospitation-fact-display">
+              ${displayMarkup}
+              ${hospitationEditButton(item, field, label || "Feld bearbeiten")}
+            </div>
+          </div>
+        `;
+      }
+
       function hospitationInlineSelectShell(item = {}, field = "", options = "", label = "") {
         return `
           <div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="hospitation-inline-${escapeHtml(field)}">
@@ -34203,6 +34391,27 @@
         if (explicit) return normalizeCategory(explicit);
         const label = hospitationSectorLabel(item);
         return label === "Nicht hinterlegt" ? "" : label;
+      }
+
+      function hospitationMetaAvatarMarkup(item = {}) {
+        const contact = hospitationContact(item);
+        if (contact) return contactAvatarMarkup(contact, "sm");
+        const label = hospitationFreeTextContactName(item) || "Kontakt";
+        return `<span class="avatar avatar-fallback avatar-sm" aria-hidden="true">${escapeHtml(initialsFromLabel(label))}</span>`;
+      }
+
+      function hospitationMetaIconMarkup(label = "") {
+        return `<span class="hospitation-meta-icon" aria-hidden="true">${escapeHtml(initialsFromLabel(label || "•"))}</span>`;
+      }
+
+      function hospitationMetaDisplayMarkup(item = {}, field = "", valueMarkup = "", editMarkup = "", label = "") {
+        if (isHospitationInlineEditing(item, field)) return editMarkup;
+        return `
+          <div class="hospitation-meta-display">
+            <span class="hospitation-meta-value">${valueMarkup}</span>
+            ${hospitationEditButton(item, field, label || "Feld bearbeiten")}
+          </div>
+        `;
       }
 
       function hospitationFactMarkup(label, value) {
@@ -34320,8 +34529,8 @@
             ]
           : [
               { id: "overview", label: "Überblick" },
-              { id: "planning", label: "Planung" },
-              { id: "request", label: "Anfrage" },
+              { id: "planning", label: "Themen" },
+              { id: "request", label: "Notizen" },
               { id: "documentation", label: "Dokumentation" },
               { id: "followUp", label: "Follow-up" }
             ];
@@ -34521,47 +34730,47 @@
                     </div>
                   </article>
                 `;
-              }).join("") : `<div class="empty">Noch keine Anfrage im Verlauf.</div>`}
+              }).join("") : `<div class="empty">Noch keine Notiz im Verlauf.</div>`}
             </div>
             ${canEditContacts() ? `
               <form class="format-chat-composer" id="hospitation-request-composer" data-hospitation-request-composer="${escapeHtml(item.id || "")}">
-                <textarea id="hospitation-request-message" name="message" placeholder="Neue Nachricht zur Anfrage schreiben..." aria-label="Neue Anfragenachricht"></textarea>
+                <textarea id="hospitation-request-message" name="message" placeholder="Neue Notiz schreiben..." aria-label="Neue Hospitationsnotiz"></textarea>
                 <div class="format-chat-composer-footer">
                   <span class="format-chat-composer-author">
                     <span class="format-chat-avatar" aria-hidden="true">${renderCurrentFormatAuthorAvatar()}</span>
                     <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(formatNotesAuthorLabel())}</strong></span>
                   </span>
-                  <button class="action-button action-button--primary" type="submit">Nachricht senden</button>
+                  <button class="action-button action-button--primary" type="submit">Notiz senden</button>
                 </div>
               </form>
-            ` : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Schreiben von Anfragenachrichten"))}</div>`}
+            ` : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Schreiben von Notizen"))}</div>`}
           </div>
         `;
       }
 
       function renderHospitationOverviewFacts(item = {}) {
-        if (!canEditContacts()) {
-          return `
-            ${renderFormatFact("Termin", `<strong>${escapeHtml(hospitationDateRangeLabel(item))}</strong>`)}
-            ${renderFormatFact("Status", hospitationStatusBadgeMarkup(item.status || "Angefragt"))}
-            ${renderFormatFact("Owner", hospitationOwnerMarkup(item.ownerId))}
-          `;
-        }
         return `
-          ${renderFormatFact("Termin", `
-            <div class="hospitation-inline-date-grid">
-              <label>
-                <span class="hospitation-inline-label">Beginn</span>
-                ${hospitationInlineInput(item, "startsAt", dateTimeInputValue(item.startsAt), "Beginn", { type: "datetime-local" })}
-              </label>
-              <label>
-                <span class="hospitation-inline-label">Ende</span>
-                ${hospitationInlineInput(item, "endsAt", dateTimeInputValue(item.endsAt), "Ende", { type: "datetime-local" })}
-              </label>
-            </div>
-          `)}
-          ${renderFormatFact("Status", hospitationInlineSelectShell(item, "status", formatOptionMarkup(hospitationStatusOptions, item.status || "Angefragt"), "Status"))}
-          ${renderFormatFact("Owner", hospitationInlineSelectShell(item, "ownerId", buildOwnerSelectOptions(item.ownerId || currentProfile?.id || ""), "Owner"))}
+          ${renderFormatFact("Termin", hospitationEditableFact(
+            item,
+            "startsAt",
+            hospitationDisplayBadge(escapeHtml(hospitationStartLabel(item)), { className: "hospitation-display-badge--date", empty: !meaningfulOrEmpty(item.startsAt) }),
+            hospitationInlineInput(item, "startsAt", dateTimeInputValue(item.startsAt), "Termin", { type: "datetime-local" }),
+            "Termin bearbeiten"
+          ))}
+          ${renderFormatFact("Status", hospitationEditableFact(
+            item,
+            "status",
+            hospitationStatusBadgeMarkup(item.status || "Angefragt"),
+            hospitationInlineSelectShell(item, "status", formatOptionMarkup(hospitationStatusOptions, item.status || "Angefragt"), "Status"),
+            "Status bearbeiten"
+          ))}
+          ${renderFormatFact("Owner", hospitationEditableFact(
+            item,
+            "ownerId",
+            hospitationOwnerMarkup(item.ownerId),
+            hospitationInlineSelectShell(item, "ownerId", buildOwnerSelectOptions(item.ownerId || currentProfile?.id || ""), "Owner"),
+            "Owner bearbeiten"
+          ))}
         `;
       }
 
@@ -34571,26 +34780,55 @@
         const organization = hospitationOrganization(item);
         const contactName = hospitationFreeTextContactName(item);
         const organizationName = hospitationFreeTextOrganizationName(item);
-        if (!canEditContacts()) {
-          return `
-            <div class="detail-line-list">
-              ${detailLine("Kontakt", contact ? contact.displayName || contact.name : contactName || "Nicht hinterlegt")}
-              ${detailLine("Organisation", organization ? organization.name : organizationName || "Nicht hinterlegt")}
-              ${detailLine("Ort", hospitationLocationLabel(item) || "Nicht hinterlegt")}
-              ${detailLine("Sektor", hospitationSectorLabel(item))}
-              ${detailLine("Bundesland", hospitationStateLabel(item))}
-              ${detailLine("Ziel", item.goal || "Nicht hinterlegt")}
-            </div>
-          `;
-        }
+        const contactLabel = contact ? contact.displayName || contact.name : contactName || "Nicht hinterlegt";
+        const organizationLabel = organization ? organization.name : organizationName || "Nicht hinterlegt";
+        const locationLabel = hospitationLocationLabel(item) || "Nicht hinterlegt";
+        const stateLabelText = hospitationStateLabel(item);
+        const goalText = item.goal || "Nicht hinterlegt";
         return `
           <div class="detail-line-list hospitation-overview-meta">
-            ${detailLineHtml("Kontakt", hospitationInlineSelectShell(item, "contactId", hospitationInlineContactOptions(item), "Kontakt"))}
-            ${detailLineHtml("Organisation", hospitationInlineSelectShell(item, "organizationId", hospitationInlineOrganizationOptions(item), "Organisation"))}
-            ${detailLineHtml("Ort", hospitationInlineInput(item, "location", hospitationLocationLabel(item), "Ort", { placeholder: "Ort hinterlegen" }))}
-            ${detailLineHtml("Sektor", hospitationInlineSelectShell(item, "sector", `<option value="">Nicht hinterlegt</option>${buildCategorySelectOptions(hospitationInlineSectorValue(item))}`, "Sektor"))}
-            ${detailLineHtml("Bundesland", hospitationInlineSelectShell(item, "state", buildStateSelectOptions(hospitationInlineStateValue(item)), "Bundesland"))}
-            ${detailLineHtml("Ziel", hospitationInlineTextarea(item, "goal", item.goal || "", "Ziel", "Ziel oder Kontext hinterlegen"))}
+            ${detailLineHtml("Kontakt", hospitationMetaDisplayMarkup(
+              item,
+              "contactId",
+              `${hospitationMetaAvatarMarkup(item)}<span class="hospitation-meta-value__text">${escapeHtml(contactLabel)}</span>`,
+              hospitationInlineSelectShell(item, "contactId", hospitationInlineContactOptions(item), "Kontakt"),
+              "Kontakt bearbeiten"
+            ))}
+            ${detailLineHtml("Organisation", hospitationMetaDisplayMarkup(
+              item,
+              "organizationId",
+              `${hospitationMetaIconMarkup("Org")}<span class="hospitation-meta-value__text">${escapeHtml(organizationLabel)}</span>`,
+              hospitationInlineSelectShell(item, "organizationId", hospitationInlineOrganizationOptions(item), "Organisation"),
+              "Organisation bearbeiten"
+            ))}
+            ${detailLineHtml("Ort", hospitationMetaDisplayMarkup(
+              item,
+              "location",
+              `${hospitationMetaIconMarkup("Ort")}<span class="hospitation-meta-value__text">${escapeHtml(locationLabel)}</span>`,
+              hospitationInlineInput(item, "location", hospitationLocationLabel(item), "Ort", { placeholder: "Ort hinterlegen" }),
+              "Ort bearbeiten"
+            ))}
+            ${detailLineHtml("Sektor", hospitationMetaDisplayMarkup(
+              item,
+              "sector",
+              sectorBadgeMarkup(hospitationSectorLabel(item)),
+              hospitationInlineSelectShell(item, "sector", `<option value="">Nicht hinterlegt</option>${buildCategorySelectOptions(hospitationInlineSectorValue(item))}`, "Sektor"),
+              "Sektor bearbeiten"
+            ))}
+            ${detailLineHtml("Bundesland", hospitationMetaDisplayMarkup(
+              item,
+              "state",
+              `${hospitationMetaIconMarkup("BL")}<span class="hospitation-meta-value__text">${escapeHtml(stateLabelText)}</span>`,
+              hospitationInlineSelectShell(item, "state", buildStateSelectOptions(hospitationInlineStateValue(item)), "Bundesland"),
+              "Bundesland bearbeiten"
+            ))}
+            ${detailLineHtml("Ziel", hospitationMetaDisplayMarkup(
+              item,
+              "goal",
+              `${hospitationMetaIconMarkup("Ziel")}<span class="hospitation-meta-value__text">${escapeHtml(goalText)}</span>`,
+              hospitationInlineTextarea(item, "goal", item.goal || "", "Ziel", "Ziel oder Kontext hinterlegen"),
+              "Ziel bearbeiten"
+            ))}
           </div>
         `;
       }
@@ -34688,7 +34926,7 @@
           return `
             <section class="format-tab-panel">
               <section class="format-section">
-                <div class="format-section-head"><h4>Anfrage</h4></div>
+                <div class="format-section-head"><h4>Notizen</h4></div>
                 ${renderHospitationRequestThread(item)}
               </section>
             </section>
@@ -34715,7 +34953,6 @@
                 <div class="detail-line-list">
                   ${detailLine("Follow-up", item.followUpNote || "Kein Follow-up hinterlegt")}
                   ${detailLine("Fällig", item.followUpDueAt ? formatDateLabel(item.followUpDueAt) : "Nicht hinterlegt")}
-                  ${detailLine("Owner", item.followUpOwnerId ? hospitationOwnerLabel(item.followUpOwnerId) : "Nicht zugewiesen")}
                 </div>
               </section>
             </section>
@@ -35037,7 +35274,10 @@
           if (!key) return;
           const isSame = activeHospitationDetailKey === key;
           activeHospitationDetailKey = isSame && !forceOpen ? "" : key;
-          if (!isSame || forceOpen) hospitationDetailTab = "overview";
+          if (!isSame || forceOpen) {
+            hospitationDetailTab = "overview";
+            hospitationEditingInlineKey = "";
+          }
           renderHospitationsView();
         };
         root.querySelectorAll("[data-hospitation-schedule-view]").forEach((button) => {
@@ -35083,7 +35323,24 @@
           button.addEventListener("click", () => {
             hospitationDetailTab = button.dataset.hospitationDetailTab || "overview";
             hospitationEditingRequestNoteId = "";
+            hospitationEditingInlineKey = "";
             renderHospitationsView();
+          });
+        });
+        root.querySelectorAll("[data-hospitation-edit-field]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const hospitationId = button.dataset.hospitationId || "";
+            const field = button.dataset.hospitationEditField || "";
+            if (!hospitationId || !field) return;
+            hospitationEditingInlineKey = `${hospitationId}:${field}`;
+            renderHospitationsView();
+            window.requestAnimationFrame(() => {
+              const nextField = [...document.querySelectorAll("[data-hospitation-inline-field]")]
+                .find((element) => element.dataset.hospitationId === hospitationId && element.dataset.hospitationInlineField === field);
+              nextField?.focus();
+              if (nextField && typeof nextField.select === "function" && nextField.tagName !== "SELECT") nextField.select();
+            });
           });
         });
         const saveHospitationInlineField = async (field) => {
@@ -35105,9 +35362,21 @@
             state: hospitationInlineStateValue(item),
             goal: item.goal || ""
           }[key] ?? "";
-          if (value === String(currentValue || "")) return;
+          if (value === String(currentValue || "")) {
+            hospitationEditingInlineKey = "";
+            renderHospitationsView();
+            return;
+          }
           const patch = { [key]: value };
           if (key === "startsAt" || key === "endsAt") patch[key] = dateTimeInputToIso(value);
+          if (key === "startsAt") {
+            const oldStart = new Date(item.startsAt || "");
+            const oldEnd = new Date(item.endsAt || "");
+            const nextStart = new Date(patch.startsAt || "");
+            if (!Number.isNaN(oldStart.getTime()) && !Number.isNaN(oldEnd.getTime()) && !Number.isNaN(nextStart.getTime())) {
+              patch.endsAt = new Date(nextStart.getTime() + Math.max(0, oldEnd.getTime() - oldStart.getTime())).toISOString();
+            }
+          }
           if (key === "state") {
             patch.state = value;
             patch.federalState = value;
@@ -35115,6 +35384,7 @@
           field.classList.add("hospitation-inline-saving");
           try {
             const updated = await window.dataService.updateHospitation(hospitationId, patch);
+            hospitationEditingInlineKey = "";
             replaceHospitation(updated);
             setStorageStatus("Hospitation aktualisiert");
             renderHospitationsView();
@@ -35126,8 +35396,13 @@
           }
         };
         root.querySelectorAll("[data-hospitation-inline-field]").forEach((field) => {
-          if (field.tagName === "SELECT" || field.type === "datetime-local") {
+          if (field.tagName === "SELECT") {
             field.addEventListener("change", () => saveHospitationInlineField(field));
+            return;
+          }
+          if (field.type === "datetime-local") {
+            field.addEventListener("change", () => saveHospitationInlineField(field));
+            field.addEventListener("blur", () => saveHospitationInlineField(field));
             return;
           }
           field.addEventListener("blur", () => saveHospitationInlineField(field));
@@ -37508,6 +37783,27 @@
       function sectorBadgeStyle(value) {
         const color = sectorRegistry.colorFor(value);
         return `--sector-color:${color};--sector-bg:${sectorTint(color)};--sector-border:${sectorTint(color, 0.34)}`;
+      }
+
+      function patientIndicationBadgeTone(value) {
+        const key = normalizeClassPart(value);
+        if (patientIndicationBadgeTones[key]) return patientIndicationBadgeTones[key];
+        let hash = 0;
+        for (const char of key || "indikation") {
+          hash = ((hash * 31) + char.charCodeAt(0)) % patientIndicationBadgePalette.length;
+        }
+        return patientIndicationBadgePalette[hash];
+      }
+
+      function patientIndicationBadgeStyle(value) {
+        const tone = patientIndicationBadgeTone(value);
+        return `--patient-indication-bg:${tone.bg};--patient-indication-border:${tone.border};--patient-indication-color:${tone.color}`;
+      }
+
+      function patientIndicationBadgeMarkup(value) {
+        const label = meaningfulOrEmpty(value) || "Indikation offen";
+        const empty = !meaningfulOrEmpty(value);
+        return `<span class="patient-indication-badge ${empty ? "patient-indication-badge--empty" : ""}" data-patient-indication-badge="${escapeHtml(label)}" style="${patientIndicationBadgeStyle(label)}">${escapeHtml(label)}</span>`;
       }
 
       function sectorBadgeMarkup(value) {

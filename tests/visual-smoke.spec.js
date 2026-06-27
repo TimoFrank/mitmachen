@@ -620,6 +620,22 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
           source: "Testquelle",
           status: "active",
           updatedAt: "2026-06-20T00:00:00.000Z"
+        },
+        {
+          id: "patient-rare-org",
+          name: "Seltene Hilfe Netzwerk",
+          groupId: "patient-indication-rare",
+          group: "Seltene Erkrankungen und Genetik",
+          category: "Seltene Erkrankungen und Genetik",
+          sector: "Seltene Erkrankungen und Genetik",
+          organizationType: "Patientenorganisation",
+          postalCode: "20095",
+          city: "Hamburg",
+          state: "Hamburg",
+          website: "https://rare.example.test",
+          source: "Testquelle",
+          status: "active",
+          updatedAt: "2026-06-21T00:00:00.000Z"
         }
       ];
       window.VERSORGUNGS_COMPASS_PATIENT_PEOPLE = [
@@ -645,6 +661,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator('[data-view-panel="patients"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="patients"]')).toHaveClass(/is-active/);
   await expect(page.locator("#workspace-view-title")).toHaveText("Patienten");
+  await expect(page.locator('.app-shell[data-active-view="patients"] #summary-grid')).toBeHidden();
   const mobileProject = testInfo.project.name.includes("mobile");
   await expect(page.locator("#patient-mode-actions")).toBeVisible();
   await expect(page.locator('#patient-mode-actions [data-patient-mode="organizations"]')).toHaveClass(/is-active/);
@@ -659,6 +676,15 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Kontakte");
   await expect(page.locator("#patient-organization-list .row").first()).toBeVisible();
   await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .contact-subline")).toHaveCount(0);
+  const organizationIndicationBadges = mobileProject
+    ? page.locator("#patient-organization-list .organization-mobile-sector .patient-indication-badge")
+    : page.locator("#patient-organization-list .cell--sector .patient-indication-badge");
+  await expect(organizationIndicationBadges.first()).toContainText("Onkologie");
+  await expect(organizationIndicationBadges).toHaveCount(2);
+  const organizationBadgeBackgrounds = await organizationIndicationBadges.evaluateAll((badges) =>
+    badges.map((badge) => getComputedStyle(badge).backgroundColor)
+  );
+  expect(new Set(organizationBadgeBackgrounds).size).toBeGreaterThan(1);
   if (!mobileProject) {
     await expect(page.locator("#patient-organization-list .row").first().locator(".cell--location")).not.toContainText(/\b\d{5}\b/);
   }
@@ -682,7 +708,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
     await expect(patientPersonEntry).toContainText("Test Patientenverband Onkologie");
   } else {
     await expect(patientPersonEntry.locator(".cell--name .contact-subline")).toHaveCount(0);
-    await expect(patientPersonEntry.locator(".cell--indication")).toContainText("Onkologie");
+    await expect(patientPersonEntry.locator(".cell--indication .patient-indication-badge")).toContainText("Onkologie");
     await expect(patientPersonEntry.locator(".cell--role")).toContainText("Vorstand");
   }
   await expect(page.locator("#patients-pagination-meta")).toContainText("Personen");
@@ -1037,7 +1063,7 @@ test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }, 
   await expect(profile.locator("#detail-notes .detail-permission-note")).toBeVisible();
 });
 
-test("Hospitationen: Planungsthemen und Anfrageverlauf im Akkordeon", async ({ page }, testInfo) => {
+test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations");
 
   const row = page.locator(".hospitation-row", { hasText: "Dr. Martin Deile" }).first();
@@ -1048,19 +1074,30 @@ test("Hospitationen: Planungsthemen und Anfrageverlauf im Akkordeon", async ({ p
   await expect(detail).toBeVisible();
   await expect(detail.locator(".format-facts-grid").first()).not.toContainText("Follow-up");
   await expect(detail.locator(".hospitation-overview-facts")).toBeVisible();
-  await expect(detail.locator('[data-hospitation-inline-field="startsAt"]')).toBeVisible();
-  await expect(detail.locator('[data-hospitation-inline-field="endsAt"]')).toBeVisible();
+  await expect(detail.locator(".hospitation-overview-facts .hospitation-display-badge--date")).toContainText("10.06.2026, 09:00");
+  await expect(detail.locator(".hospitation-overview-facts .hospitation-status-badge")).toContainText("Durchgeführt");
+  await expect(detail.locator(".hospitation-overview-facts .owner-badge")).toBeVisible();
+  await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveCount(0);
+  await detail.locator('[data-hospitation-edit-field="status"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveValue("Durchgeführt");
   await detail.locator('[data-hospitation-inline-field="status"]').selectOption("Dokumentiert");
-  await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveValue("Dokumentiert");
-  await expect(detail.locator('[data-hospitation-inline-field="ownerId"]')).toHaveCount(1);
+  await expect(detail.locator(".hospitation-overview-facts .hospitation-status-badge")).toContainText("Dokumentiert");
+  await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveCount(0);
+  await detail.locator('[data-hospitation-edit-field="startsAt"]').click();
+  await expect(detail.locator('[data-hospitation-inline-field="startsAt"]')).toHaveCount(1);
+  await detail.locator('[data-hospitation-inline-field="startsAt"]').blur();
+  await expect(detail.locator('[data-hospitation-inline-field="startsAt"]')).toHaveCount(0);
+  await expect(detail.locator(".hospitation-overview-meta .avatar").first()).toBeVisible();
+  await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(0);
+  await detail.locator('[data-hospitation-edit-field="contactId"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(1);
-  await expect(detail.locator('[data-hospitation-inline-field="organizationId"]')).toHaveCount(1);
+  await detail.locator('[data-hospitation-edit-field="goal"]').click();
+  await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(0);
   await detail.locator('[data-hospitation-inline-field="goal"]').fill("Inline-Ziel aus dem Visualtest");
   await detail.locator('[data-hospitation-inline-field="goal"]').blur();
-  await expect(detail.locator('[data-hospitation-inline-field="goal"]')).toHaveValue("Inline-Ziel aus dem Visualtest");
+  await expect(detail.locator(".hospitation-overview-meta")).toContainText("Inline-Ziel aus dem Visualtest");
 
-  await detail.getByRole("tab", { name: "Planung" }).click();
+  await detail.getByRole("tab", { name: "Themen" }).click();
   await expect(detail.locator(".detail-theme-editor")).toBeVisible();
   await expect(detail).toContainText("Mögliche Themen");
   await expect(detail.locator(".format-facts-grid")).toHaveCount(0);
@@ -1070,14 +1107,14 @@ test("Hospitationen: Planungsthemen und Anfrageverlauf im Akkordeon", async ({ p
   await detail.locator("#hospitation-theme-add").click();
   await expect(detail.locator(".detail-chip-row")).toContainText("Visualtest-Hospitation");
 
-  await detail.getByRole("tab", { name: "Anfrage" }).click();
+  await detail.getByRole("tab", { name: "Notizen" }).click();
   await expect(detail.locator(".hospitation-request-thread")).toBeVisible();
   await expect(detail.locator(".format-chat-message").first()).toContainText("Hospitation bei Dr. Martin Deile in Dresden");
   await detail.locator("#hospitation-request-message").fill("Rückfrage aus dem Visualtest");
-  await detail.locator("#hospitation-request-composer").getByRole("button", { name: "Nachricht senden" }).click();
+  await detail.locator("#hospitation-request-composer").getByRole("button", { name: "Notiz senden" }).click();
   await expect(detail.locator(".format-chat-message").filter({ hasText: "Rückfrage aus dem Visualtest" })).toBeVisible();
 
-  await attachScreenshot(page, testInfo, "hospitationen-anfrage-chat", { fullPage: false });
+  await attachScreenshot(page, testInfo, "hospitationen-notizen-chat", { fullPage: false });
 });
 
 test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => {
