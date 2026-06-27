@@ -20740,9 +20740,14 @@
               </button>
             </div>
           </div>
-          <div class="sidebar-section" aria-label="Hospitationen und Formate" data-sidebar-section="engagement">
-            <span class="sidebar-section-label">Hospitationen &amp; Formate</span>
-            <div class="sidebar-section-content">
+          <div class="sidebar-section is-collapsed" aria-label="Planung" data-sidebar-section="planning" data-sidebar-group="planning" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-planning-toggle" data-sidebar-section-toggle="planning" aria-expanded="false" aria-controls="sidebar-section-planning-content">
+              <span>Planung</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
+              </svg>
+            </button>
+            <div class="sidebar-section-content" id="sidebar-section-planning-content">
               <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M8 2v4"></path>
@@ -24538,8 +24543,7 @@
             ? organizationProfileParentView()
             : view;
         if (["map", "contacts", "organizations", "experts", "patients", "stakeholders", "onboarding"].includes(normalizedView)) return "care";
-        if (normalizedView === "formats") return "formats";
-        if (normalizedView === "hospitations") return "hospitations";
+        if (["formats", "hospitations"].includes(normalizedView)) return "planning";
         if (["activities", "analytics", "settings", "quality"].includes(normalizedView)) return "admin";
         return "";
       }
@@ -24568,6 +24572,16 @@
         if (!firstTab) return false;
         firstTab.click();
         return true;
+      }
+
+      function toggleSidebarGroup(group = "") {
+        const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
+        if (!section || !isSidebarNavActionVisible(section)) return false;
+        if (section.classList.contains("is-expanded")) {
+          setSidebarSectionExpanded(section, false);
+          return true;
+        }
+        return openFirstSidebarViewInGroup(group);
       }
 
       function syncActiveSidebarSection(view = activeView) {
@@ -44491,7 +44505,7 @@
       sidebarSectionToggles.forEach((toggle) => {
         toggle.addEventListener("click", () => {
           const group = toggle.dataset.sidebarSectionToggle || "";
-          if (!openFirstSidebarViewInGroup(group)) expandSidebarGroup(group);
+          if (!toggleSidebarGroup(group)) expandSidebarGroup(group);
         });
       });
       sidebarCollapseButton?.addEventListener("click", () => {
