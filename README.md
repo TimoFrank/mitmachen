@@ -112,6 +112,6 @@ Der Quellcode und die technische Dokumentation dieses Repositorys stehen unter d
 
 Die im Repository enthaltenen Demo- und Beispieldaten sind fiktiv und werden, sofern in einer Datei nicht anders angegeben, ebenfalls unter der Apache License 2.0 für Entwicklung, Tests und Demonstrationen bereitgestellt.
 
-Produktive Daten, Kundendaten, externe Datenbanken, echte Kontakt- und Organisationsdaten, Marken, Logos, Profilbilder, Drittinhalte und andere externe Assets sind nicht Teil dieser Repository-Lizenz. Live- oder Produktionsdaten aus externen Systemen wie Supabase werden separat geregelt und nicht durch die Apache-2.0-Lizenz dieses Repositorys freigegeben.
+Echte Daten aus angebundenen Systemen, Marken, Logos, Profilbilder, Drittinhalte und andere externe Assets sind nicht Teil dieser Repository-Lizenz. Daten aus externen Systemen wie Supabase werden separat geregelt und nicht durch die Apache-2.0-Lizenz dieses Repositorys freigegeben.
 
 Weitere Hinweise stehen in [NOTICE](dokumentation/rechtliches/NOTICE.md) und [DATA_NOTICE.md](dokumentation/rechtliches/DATA_NOTICE.md).
