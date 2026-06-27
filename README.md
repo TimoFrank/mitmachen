@@ -95,3 +95,13 @@ Das Repository enthält automatisierte Prüfungen. Sie helfen dabei, einfache Fe
 Die schnellen Prüfungen achten auf Syntax, fehlende Dateien und offensichtliche Formatprobleme. Die technischen Checks prüfen zum Beispiel öffentliche Assets, API-Regeln, wichtige Datenfelder und die Backend-Anbindung. Die Browser-Tests öffnen die Oberfläche wie ein Nutzer und prüfen typische Wege, etwa Navigation, Kartenaufruf, Tabellen, Detailansichten und mobile Ansichten.
 
 Die detaillierten QA-Regeln stehen in [`dokumentation/entwicklung-und-qa/QA_WORKFLOW.md`](dokumentation/entwicklung-und-qa/QA_WORKFLOW.md).
+
+## Lizenz
+
+Der Quellcode und die technische Dokumentation dieses Repositorys stehen unter der [Apache License 2.0](LICENSE).
+
+Die im Repository enthaltenen Demo- und Beispieldaten sind fiktiv und werden, sofern in einer Datei nicht anders angegeben, ebenfalls unter der Apache License 2.0 für Entwicklung, Tests und Demonstrationen bereitgestellt.
+
+Produktive Daten, Kundendaten, externe Datenbanken, echte Kontakt- und Organisationsdaten, Marken, Logos, Profilbilder, Drittinhalte und andere externe Assets sind nicht Teil dieser Repository-Lizenz. Live- oder Produktionsdaten aus externen Systemen wie Supabase werden separat geregelt und nicht durch die Apache-2.0-Lizenz dieses Repositorys freigegeben.
+
+Weitere Hinweise stehen in [NOTICE](dokumentation/rechtliches/NOTICE.md) und [DATA_NOTICE.md](dokumentation/rechtliches/DATA_NOTICE.md).
