@@ -437,6 +437,7 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator('[data-view-panel="activities"]')).toBeVisible();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "activities");
   await expect(page.locator("#search")).toHaveAttribute("placeholder", /Aktivitäten nach Kontakt/);
+  await expect(page.locator(".activities-search-slot .search-shell")).toBeVisible();
   await expect(page.locator("#activities-list .activity-item")).toHaveCount(36);
   await expect(page.locator("#activities-load-more-row")).toHaveCount(0);
   await expect(page.locator(".app-shell[data-active-view='activities'] #summary-grid")).toBeHidden();
@@ -446,6 +447,13 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator(".history-action-pill--import").first()).toBeVisible();
   await expect(page.locator(".history-action-pill--create").first()).toBeVisible();
   await expect(page.locator(".history-action-pill--archive").first()).toBeVisible();
+  await expect(page.locator(".activity-item--update").first()).toBeVisible();
+  await expect(page.locator(".activity-item--import").first()).toBeVisible();
+  await expect(page.locator(".activity-item--create").first()).toBeVisible();
+  const badgeBackgrounds = await page.locator("#activities-list .history-action-pill").evaluateAll((nodes) => (
+    [...new Set(nodes.map((node) => getComputedStyle(node).backgroundColor))]
+  ));
+  expect(badgeBackgrounds.length).toBeGreaterThanOrEqual(4);
 
   await attachScreenshot(page, testInfo, "aktivitaeten");
 

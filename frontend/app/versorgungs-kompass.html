@@ -4647,50 +4647,61 @@
       }
 
       .history-action-pill {
-        min-height: 24px;
-        padding: 0 9px;
+        min-height: 28px;
+        padding: 0 11px;
         border-radius: 999px;
-        background: #f2f5ff;
-        border: 1px solid #dce5ff;
-        color: #4f60a0;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        color: #3730a3;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.68rem;
+        gap: 6px;
+        font-size: 0.7rem;
         font-weight: 900;
         line-height: 1;
         text-transform: uppercase;
         white-space: nowrap;
+        box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.06);
+      }
+
+      .history-action-pill::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.9;
       }
 
       .history-action-pill--update {
-        background: #eff6ff;
-        border-color: #bfdbfe;
+        background: #dbeafe;
+        border-color: #60a5fa;
         color: #1d4ed8;
       }
 
       .history-action-pill--import {
-        background: #ecfdf5;
-        border-color: #bbf7d0;
-        color: #047857;
+        background: #dcfce7;
+        border-color: #4ade80;
+        color: #166534;
       }
 
       .history-action-pill--create {
-        background: #f0fdfa;
-        border-color: #99f6e4;
+        background: #ccfbf1;
+        border-color: #2dd4bf;
         color: #0f766e;
       }
 
       .history-action-pill--archive {
-        background: #fff1f2;
-        border-color: #fecdd3;
+        background: #ffe4e6;
+        border-color: #fb7185;
         color: #be123c;
       }
 
       .history-action-pill--restore {
-        background: #fffbeb;
-        border-color: #fde68a;
-        color: #a16207;
+        background: #fef3c7;
+        border-color: #f59e0b;
+        color: #92400e;
       }
 
       .history-change-list {
@@ -4769,92 +4780,156 @@
         display: grid;
         gap: 0;
         overflow: hidden;
-        border: 1px solid var(--border);
+        border: 1px solid #d9e2f5;
         border-radius: 8px;
         background: var(--surface);
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
       }
 
-      .activities-command-row {
+      .app-shell[data-active-view="activities"] .controls {
+        display: none;
+      }
+
+      .activities-toolbar {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 12px;
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
+        padding: 14px;
+        border-bottom: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      }
+
+      .activities-search-slot {
+        min-width: 0;
+      }
+
+      .activities-search-slot .search-shell {
+        min-height: 46px;
+        width: 100%;
+        border: 1px solid #c7d2fe;
+        border-radius: 8px;
         background: #ffffff;
+        box-shadow: 0 10px 28px rgba(49, 75, 153, 0.08);
+      }
+
+      .activities-search-slot .search-shell:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+
+      .activities-search-slot .search-shell svg {
+        color: #2563eb;
+      }
+
+      .activities-search-slot .search-input {
+        font-weight: 800;
+      }
+
+      .activities-command-row {
+        display: block;
+        padding: 12px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
       }
 
       .activities-filters {
         display: grid;
         grid-template-columns: repeat(3, minmax(150px, 1fr));
         align-items: end;
-        gap: 10px;
-        width: min(100%, 760px);
+        gap: 12px;
+        width: 100%;
       }
 
       .activities-filter-field {
+        position: relative;
         display: grid;
-        gap: 5px;
+        gap: 4px;
         min-width: 0;
+        min-height: 56px;
+        padding: 8px 36px 8px 11px;
+        border: 1px solid #d7e0f4;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+        transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+      }
+
+      .activities-filter-field::after {
+        content: "";
+        position: absolute;
+        right: 14px;
+        bottom: 18px;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid #64748b;
+        border-bottom: 2px solid #64748b;
+        transform: rotate(45deg);
+        pointer-events: none;
+      }
+
+      .activities-filter-field:focus-within {
+        border-color: var(--primary);
+        background: #fbfdff;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
 
       .activities-filter-field span {
-        color: var(--text-muted);
+        color: #64748b;
         font-size: var(--font-size-xs);
-        font-weight: 850;
+        font-weight: 900;
         letter-spacing: 0;
         text-transform: uppercase;
       }
 
       .activities-filter {
         width: 100%;
-        min-height: 38px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: #f8fafc;
-        color: var(--text-secondary);
-        padding: 0 10px;
+        min-height: 22px;
+        border: 0;
+        border-radius: 0;
+        appearance: none;
+        background: transparent;
+        color: var(--text-primary);
+        padding: 0;
         font-size: var(--font-size-sm);
-        font-weight: 800;
+        font-weight: 900;
       }
 
       .activities-filter:focus-visible {
-        outline: 2px solid var(--primary);
-        outline-offset: 2px;
+        outline: none;
       }
 
       .activities-meta {
-        min-height: 38px;
+        min-height: 34px;
         display: inline-flex;
         align-items: center;
         justify-content: flex-end;
-        padding: 0 10px;
-        border: 1px solid #dbeafe;
-        border-radius: 8px;
-        background: #eff6ff;
-        color: #3155ad;
+        padding: 0 12px;
+        border: 1px solid #bfdbfe;
+        border-radius: 999px;
+        background: #dbeafe;
+        color: #1d4ed8;
         font-size: var(--font-size-sm);
-        font-weight: 800;
+        font-weight: 900;
         white-space: nowrap;
       }
 
       .activities-feed-shell {
         display: grid;
-        gap: 12px;
-        padding: 16px;
-        background: #f8fafc;
+        gap: 14px;
+        padding: 18px;
+        background: #f1f5f9;
       }
 
       .activities-timeline {
         display: grid;
-        gap: 14px;
+        gap: 16px;
         width: 100%;
       }
 
       .activity-day-group {
         display: grid;
-        gap: 8px;
+        gap: 10px;
       }
 
       .activity-day-label {
@@ -4872,12 +4947,12 @@
         content: "";
         flex: 1 1 auto;
         height: 1px;
-        background: var(--border);
+        background: #d7e0f4;
       }
 
       .activity-feed {
         display: grid;
-        gap: 12px;
+        gap: 14px;
       }
 
       .activity-item {
@@ -4926,18 +5001,43 @@
 
       .activity-entry {
         display: grid;
-        gap: 8px;
-        padding: 10px 12px;
-        border: 1px solid var(--border);
+        gap: 10px;
+        padding: 14px;
+        border: 1px solid #d9e2f5;
+        border-left: 5px solid #2563eb;
         border-radius: 8px;
         background: var(--surface);
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
         transition: border-color 0.16s ease, box-shadow 0.16s ease;
       }
 
       .activity-item:hover .activity-entry {
-        border-color: var(--border-strong);
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        border-color: #cbd5e1;
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
+      }
+
+      .activity-item--update .activity-entry {
+        border-left-color: #2563eb;
+      }
+
+      .activity-item--import .activity-entry {
+        border-left-color: #16a34a;
+      }
+
+      .activity-item--create .activity-entry {
+        border-left-color: #0d9488;
+      }
+
+      .activity-item--archive .activity-entry {
+        border-left-color: #e11d48;
+      }
+
+      .activity-item--restore .activity-entry {
+        border-left-color: #f59e0b;
+      }
+
+      .activity-item--owner .activity-entry {
+        border-left-color: #7c3aed;
       }
 
       .activity-entry-head {
@@ -4960,13 +5060,45 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 6px;
-        padding: 7px 9px;
+        padding: 8px 10px;
         border-radius: 8px;
         background: #f8fafc;
         color: var(--text-muted);
         font-size: var(--font-size-sm);
         font-weight: 750;
         line-height: 1.35;
+      }
+
+      .activity-contact-context {
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+      }
+
+      .activity-meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+      }
+
+      .activity-contact-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #64748b;
+        font-weight: 800;
+      }
+
+      .activity-contact-meta::before {
+        content: "";
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: #94a3b8;
       }
 
       .activity-contact-button {
@@ -4989,6 +5121,89 @@
 
       .activity-contact-avatar {
         flex: 0 0 auto;
+      }
+
+      .activities-workspace .history-action-pill {
+        min-height: 28px;
+        padding: 0 11px;
+        border-radius: 999px;
+        border: 1px solid #c7d2fe;
+        background: #eef2ff;
+        color: #3730a3;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        font-weight: 900;
+        line-height: 1;
+        text-transform: uppercase;
+        white-space: nowrap;
+        box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.06);
+      }
+
+      .activities-workspace .history-action-pill--update {
+        background: #dbeafe;
+        border-color: #60a5fa;
+        color: #1d4ed8;
+      }
+
+      .activities-workspace .history-action-pill--import {
+        background: #dcfce7;
+        border-color: #4ade80;
+        color: #166534;
+      }
+
+      .activities-workspace .history-action-pill--create {
+        background: #ccfbf1;
+        border-color: #2dd4bf;
+        color: #0f766e;
+      }
+
+      .activities-workspace .history-action-pill--archive {
+        background: #ffe4e6;
+        border-color: #fb7185;
+        color: #be123c;
+      }
+
+      .activities-workspace .history-action-pill--restore {
+        background: #fef3c7;
+        border-color: #f59e0b;
+        color: #92400e;
+      }
+
+      .activities-workspace .history-action-pill--owner {
+        background: #ede9fe;
+        border-color: #a78bfa;
+        color: #6d28d9;
+      }
+
+      .activities-workspace .history-details {
+        margin-top: 0;
+      }
+
+      .activities-workspace .history-details summary {
+        min-height: 32px;
+        width: fit-content;
+        border-color: #c7d2fe;
+        background: #ffffff;
+        color: #1d4ed8;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+
+      .activities-workspace .history-change-list {
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .activities-workspace .history-change {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .activities-workspace .history-field {
+        color: #334155;
       }
 
       .notifications-workspace {
@@ -5246,15 +5461,21 @@
       }
 
       .history-action-pill--owner {
-        background: #f5f3ff;
-        border-color: #ddd6fe;
+        background: #ede9fe;
+        border-color: #a78bfa;
         color: #6d28d9;
       }
 
       @media (max-width: 760px) {
+        .activities-toolbar {
+          grid-template-columns: minmax(0, 1fr);
+          align-items: stretch;
+        }
+
         .activities-command-row {
           grid-template-columns: minmax(0, 1fr);
           align-items: stretch;
+          padding: 12px;
         }
 
         .activities-filters {
@@ -5267,6 +5488,7 @@
         }
 
         .activities-meta {
+          justify-content: center;
           white-space: normal;
         }
 
@@ -21209,6 +21431,10 @@
 
           <section class="view-panel" id="view-activities" data-view-panel="activities">
             <div class="view-card activities-workspace">
+              <div class="activities-toolbar">
+                <div class="activities-search-slot" id="activities-search-slot"></div>
+                <div class="activities-meta" id="activities-meta">Aktivitäten werden geladen</div>
+              </div>
               <div class="activities-command-row">
                 <div class="activities-filters" aria-label="Aktivitäten filtern">
                   <label class="activities-filter-field">
@@ -21239,7 +21465,6 @@
                     </select>
                   </label>
                 </div>
-                <div class="activities-meta" id="activities-meta">Aktivitäten werden geladen</div>
               </div>
               <div class="activities-feed-shell">
                 <div class="activities-timeline" id="activities-list" aria-live="polite">
@@ -23694,6 +23919,7 @@
       const activityKindFilter = document.getElementById("activity-kind-filter");
       const activityUserFilter = document.getElementById("activity-user-filter");
       const activityRangeFilter = document.getElementById("activity-range-filter");
+      const activitySearchSlot = document.getElementById("activities-search-slot");
       const notificationsList = document.getElementById("notifications-list");
       const notificationsMeta = document.getElementById("notifications-meta");
       const notificationFilterButtons = [...document.querySelectorAll("[data-notification-filter]")];
@@ -32670,8 +32896,8 @@
           <div class="activity-contact-context">
             <span class="activity-contact-avatar" aria-hidden="true">${contactAvatarMarkup(contact, "sm")}</span>
             <button class="activity-contact-button" type="button" data-activity-contact="${escapeHtml(contact.id)}">${escapeHtml(contact.displayName || contact.name || "Kontakt öffnen")}</button>
-            ${organization ? `<span>${escapeHtml(organization)}</span>` : ""}
-            ${location ? `<span>${escapeHtml(location)}</span>` : ""}
+            ${organization ? `<span class="activity-contact-meta">${escapeHtml(organization)}</span>` : ""}
+            ${location ? `<span class="activity-contact-meta">${escapeHtml(location)}</span>` : ""}
           </div>
         `;
       }
@@ -32681,16 +32907,16 @@
         const contact = activityContact(group.changes[0]);
         const visibleChanges = group.changes.filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by");
         return `
-          <article class="activity-item" data-activity-contact="${escapeHtml(contact.id)}">
+          <article class="activity-item activity-item--${escapeHtml(actionKey)}" data-activity-contact="${escapeHtml(contact.id)}">
             <span class="activity-actor-avatar" aria-hidden="true">${avatarMarkup(group.user)}</span>
             <div class="activity-entry">
               <div class="activity-entry-head">
                 <div>
                   <div class="activity-title">${historyActionLabel(group.action, group.changes)}</div>
                   <div class="activity-meta-line">
-                    <time datetime="${escapeHtml(group.changedAt)}">${escapeHtml(formatDateTimeLabel(group.changedAt) || "Zeitpunkt offen")}</time>
-                    <span>${escapeHtml(activityUserLabel(group))}</span>
-                    ${group.user?.role ? `<span>${escapeHtml(roleLabel(group.user.role))}</span>` : ""}
+                    <time class="activity-meta-chip" datetime="${escapeHtml(group.changedAt)}">${escapeHtml(formatDateTimeLabel(group.changedAt) || "Zeitpunkt offen")}</time>
+                    <span class="activity-meta-chip">${escapeHtml(activityUserLabel(group))}</span>
+                    ${group.user?.role ? `<span class="activity-meta-chip">${escapeHtml(roleLabel(group.user.role))}</span>` : ""}
                   </div>
                 </div>
                 <span class="history-action-pill history-action-pill--${actionKey}">${escapeHtml(historyActionBadgeLabel(actionKey))}</span>
@@ -44121,7 +44347,11 @@
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
-          if (controlsStack && searchShell.parentElement !== controlsStack) controlsStack.prepend(searchShell);
+          if (isActivitiesView && activitySearchSlot) {
+            if (searchShell.parentElement !== activitySearchSlot) activitySearchSlot.append(searchShell);
+          } else if (controlsStack && searchShell.parentElement !== controlsStack) {
+            controlsStack.prepend(searchShell);
+          }
           searchShell.hidden = searchHidden;
         } else if (expertHeaderSearch) {
           expertHeaderSearch.hidden = true;
