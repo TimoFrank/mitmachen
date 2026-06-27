@@ -591,7 +591,18 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#patients", {
     patientsScript: `
       window.VERSORGUNGS_COMPASS_PATIENT_INDICATIONS = [
-        { id: "patient-indication-oncology", name: "Onkologie und Hämatologie", sortOrder: 10 }
+        {
+          id: "patient-indication-oncology",
+          name: "Onkologie und Hämatologie",
+          description: "Bündelt Krebserkrankungen, solide Tumoren sowie Erkrankungen des Blut- und Lymphsystems.",
+          sortOrder: 10
+        },
+        {
+          id: "patient-indication-rare",
+          name: "Seltene Erkrankungen und Genetik",
+          description: "Querschnitt für seltene, häufig genetisch bedingte Erkrankungen.",
+          sortOrder: 20
+        }
       ];
       window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATIONS = [
         {
@@ -634,10 +645,12 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator('[data-view-panel="patients"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="patients"]')).toHaveClass(/is-active/);
   await expect(page.locator("#workspace-view-title")).toHaveText("Patienten");
+  const mobileProject = testInfo.project.name.includes("mobile");
   await expect(page.locator("#patient-mode-actions")).toBeVisible();
   await expect(page.locator('#patient-mode-actions [data-patient-mode="organizations"]')).toHaveClass(/is-active/);
   await expect(page.locator('#patient-mode-actions [data-patient-mode="people"]')).toContainText("Personen");
   await expect(page.locator('#patient-mode-actions [data-patient-mode="organizations"]')).toContainText("Organisationen");
+  await expect(page.locator('#patient-mode-actions [data-patient-mode="indications"]')).toContainText("Indikationen");
   await expect(page.locator('[data-filter-field="category"] summary')).toHaveText("Indikation");
   await expect(page.locator("#patient-organizations-table")).toBeVisible();
   await expect(page.locator("#patient-people-table")).toBeHidden();
@@ -646,6 +659,9 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Kontakte");
   await expect(page.locator("#patient-organization-list .row").first()).toBeVisible();
   await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .contact-subline")).toHaveCount(0);
+  if (!mobileProject) {
+    await expect(page.locator("#patient-organization-list .row").first().locator(".cell--location")).not.toContainText(/\b\d{5}\b/);
+  }
   await expect(page.locator("#patients-pagination-meta")).toContainText("Organisationen");
   await expectPageSizeDropdownUsable(page, "#view-patients .page-size-shell");
 
@@ -657,7 +673,6 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator("#patient-people-table-head")).toContainText("Indikation");
   await expect(page.locator("#patient-people-table-head")).not.toContainText("Gruppe");
   await expect(page.locator("#patient-people-table-head")).not.toContainText("Kontakte");
-  const mobileProject = testInfo.project.name.includes("mobile");
   const patientPersonEntry = mobileProject
     ? page.locator("#patient-people-list .mobile-contact-card").first()
     : page.locator("#patient-people-list .row").first();
@@ -672,6 +687,14 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   }
   await expect(page.locator("#patients-pagination-meta")).toContainText("Personen");
 
+  await page.locator('#patient-mode-actions [data-patient-mode="indications"]').click();
+  await expect(page.locator("#patient-indications-panel")).toBeVisible();
+  await expect(page.locator("#patient-people-table")).toBeHidden();
+  await expect(page.locator("#patient-organizations-table")).toBeHidden();
+  await expect(page.locator("#patient-indications-list .patient-indication-card").filter({ hasText: "Onkologie und Hämatologie" })).toContainText("Bündelt Krebserkrankungen");
+  await expect(page.locator("#patient-indications-list .patient-indication-card").filter({ hasText: "Seltene Erkrankungen und Genetik" })).toContainText("genetisch bedingte Erkrankungen");
+  await expect(page.locator("#patients-pagination-meta")).toContainText("Indikationen");
+
   await page.locator('#patient-mode-actions [data-patient-mode="organizations"]').click();
   await expect(page.locator("#patient-organizations-table")).toBeVisible();
   await page.locator("#patient-organization-list .row").first().click();
@@ -679,10 +702,15 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
     await expect(page).toHaveURL(/#organization\/patient\//);
     await expect(page.locator("#organization-profile-page")).toBeVisible();
     await expect(page.locator("#organization-profile-body")).toContainText("Indikation");
+    await expect(page.locator("#organization-profile-body")).toContainText("PLZ");
+    await expect(page.locator("#organization-profile-body")).toContainText("Stadt");
     await expect(page.locator("#organization-profile-body")).not.toContainText("Zugeordnete Kontakte");
   } else {
     await expect(page.locator("#detail-drawer")).toHaveClass(/is-open/);
     await expect(page.locator("#detail-drawer #patient-organization-overview .detail-line").filter({ hasText: "Indikation" })).toBeVisible();
+    await expect(page.locator("#detail-drawer #patient-organization-overview .detail-line").filter({ hasText: "PLZ" })).toBeVisible();
+    await expect(page.locator("#detail-drawer #patient-organization-overview .detail-line").filter({ hasText: "Stadt" })).toBeVisible();
+    await expect(page.locator("#detail-drawer #patient-organization-overview .detail-line").filter({ hasText: "Standort" })).toHaveCount(0);
     await expect(page.locator("#detail-drawer")).not.toContainText("Zugeordnete Kontakte");
   }
 

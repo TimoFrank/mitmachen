@@ -1,19 +1,84 @@
 // Separate seed data for the Patienten workspace.
 // Reuses the researched Patientenverbaende from stakeholder-data.js and classifies them by indication.
 window.VERSORGUNGS_COMPASS_PATIENT_INDICATIONS = [
-  { id: "patient-indication-cross-cutting", name: "Übergreifende Patientenvertretung und Beratung", sortOrder: 10 },
-  { id: "patient-indication-oncology-hematology", name: "Onkologie und Hämatologie", sortOrder: 20 },
-  { id: "patient-indication-cardiovascular", name: "Herz-Kreislauf-Erkrankungen", sortOrder: 30 },
-  { id: "patient-indication-neurology", name: "Neurologie und Neurodegeneration", sortOrder: 40 },
-  { id: "patient-indication-mental-health", name: "Psychische Gesundheit und Neurodivergenz", sortOrder: 50 },
-  { id: "patient-indication-metabolism", name: "Stoffwechsel und Endokrinologie", sortOrder: 60 },
-  { id: "patient-indication-autoimmune", name: "Autoimmun, Rheuma und Entzündung", sortOrder: 70 },
-  { id: "patient-indication-respiratory", name: "Atemwege, Allergie und Lunge", sortOrder: 80 },
-  { id: "patient-indication-gastro", name: "Gastroenterologie und Verdauung", sortOrder: 90 },
-  { id: "patient-indication-rare", name: "Seltene Erkrankungen und Genetik", sortOrder: 100 },
-  { id: "patient-indication-pediatrics", name: "Pädiatrie, Familie und angeborene Erkrankungen", sortOrder: 110 },
-  { id: "patient-indication-eyes-senses", name: "Augen und Sinnesorgane", sortOrder: 120 },
-  { id: "patient-indication-disability-participation", name: "Behinderung, Teilhabe und Pflege", sortOrder: 130 }
+  {
+    id: "patient-indication-cross-cutting",
+    name: "Übergreifende Patientenvertretung und Beratung",
+    description: "Querschnitt für Patientenrechte, unabhängige Beratung, Patientensicherheit, Selbsthilfe-Infrastruktur und krankheitsübergreifende Interessenvertretung.",
+    sortOrder: 10
+  },
+  {
+    id: "patient-indication-oncology-hematology",
+    name: "Onkologie und Hämatologie",
+    description: "Bündelt Krebserkrankungen, solide Tumoren sowie Erkrankungen des Blut- und Lymphsystems inklusive Krebs-Selbsthilfe.",
+    sortOrder: 20
+  },
+  {
+    id: "patient-indication-cardiovascular",
+    name: "Herz-Kreislauf-Erkrankungen",
+    description: "Umfasst Herz- und Gefäßerkrankungen, angeborene Herzfehler, Herzinsuffizienz, Rhythmusstörungen und kardiovaskuläre Prävention.",
+    sortOrder: 30
+  },
+  {
+    id: "patient-indication-neurology",
+    name: "Neurologie und Neurodegeneration",
+    description: "Für Erkrankungen von Gehirn, Rückenmark und Nerven, darunter Multiple Sklerose, Parkinson, Epilepsie, Alzheimer und Demenz.",
+    sortOrder: 40
+  },
+  {
+    id: "patient-indication-mental-health",
+    name: "Psychische Gesundheit und Neurodivergenz",
+    description: "Fasst psychische Erkrankungen, psychosoziale Versorgung und neurodivergente Lebenslagen wie Autismus oder ADHS zusammen.",
+    sortOrder: 50
+  },
+  {
+    id: "patient-indication-metabolism",
+    name: "Stoffwechsel und Endokrinologie",
+    description: "Für Diabetes, Schilddrüsen- und Hormonerkrankungen sowie weitere Stoffwechselthemen mit langfristiger Versorgungsperspektive.",
+    sortOrder: 60
+  },
+  {
+    id: "patient-indication-autoimmune",
+    name: "Autoimmun, Rheuma und Entzündung",
+    description: "Bündelt autoimmune und chronisch-entzündliche Erkrankungen, etwa Rheuma, Psoriasis und systemische Entzündungserkrankungen.",
+    sortOrder: 70
+  },
+  {
+    id: "patient-indication-respiratory",
+    name: "Atemwege, Allergie und Lunge",
+    description: "Für Asthma, Allergien, chronische Lungenerkrankungen, Mukoviszidose und weitere Atemwegs- oder Lungenindikationen.",
+    sortOrder: 80
+  },
+  {
+    id: "patient-indication-gastro",
+    name: "Gastroenterologie und Verdauung",
+    description: "Umfasst Erkrankungen von Magen, Darm, Leber und Verdauung sowie Stoma- und chronisch-entzündliche Darmthemen.",
+    sortOrder: 90
+  },
+  {
+    id: "patient-indication-rare",
+    name: "Seltene Erkrankungen und Genetik",
+    description: "Querschnitt für seltene, häufig genetisch bedingte Erkrankungen mit besonderem Bedarf an Orientierung, Vernetzung und Expertise.",
+    sortOrder: 100
+  },
+  {
+    id: "patient-indication-pediatrics",
+    name: "Pädiatrie, Familie und angeborene Erkrankungen",
+    description: "Für Kinder, Jugendliche, Familien und angeborene Erkrankungen, wenn Versorgung und Teilhabe familienzentriert organisiert werden.",
+    sortOrder: 110
+  },
+  {
+    id: "patient-indication-eyes-senses",
+    name: "Augen und Sinnesorgane",
+    description: "Bündelt Erkrankungen von Auge, Sehen, Hören und weiteren Sinnesorganen, inklusive Netzhaut- und Sehbehinderungsthemen.",
+    sortOrder: 120
+  },
+  {
+    id: "patient-indication-disability-participation",
+    name: "Behinderung, Teilhabe und Pflege",
+    description: "Für Teilhabe, Pflege, Behinderung, Inklusion und sozialrechtliche Fragen, die häufig indikationsübergreifend wirken.",
+    sortOrder: 130
+  }
 ];
 
 window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATION_INDICATIONS = {

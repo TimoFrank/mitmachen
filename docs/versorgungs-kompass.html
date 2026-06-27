@@ -12503,6 +12503,69 @@
         gap: 10px;
       }
 
+      .patient-indications-panel {
+        min-width: 0;
+        padding: 16px;
+        background: #ffffff;
+      }
+
+      .patient-indications-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+      }
+
+      .patient-indication-card {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+        min-height: 100%;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+      }
+
+      .patient-indication-card__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .patient-indication-card h3 {
+        margin: 0;
+        color: #18235c;
+        font-size: 0.98rem;
+        line-height: 1.25;
+      }
+
+      .patient-indication-card p {
+        margin: 0;
+        color: #56617a;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+
+      .patient-indication-card__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .patient-indication-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #eef3ff;
+        color: #28488f;
+        font-size: 0.72rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
       [data-expert-table][hidden],
       [data-patient-table][hidden],
       [data-stakeholder-table][hidden],
@@ -20574,6 +20637,10 @@
                 <span class="experts-mode-label">Organisationen </span>
                 <span class="experts-mode-count">0</span>
               </button>
+              <button class="settings-tab-button" type="button" role="tab" data-patient-mode="indications" aria-selected="false" aria-controls="patient-indications-panel">
+                <span class="experts-mode-label">Indikationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
             </div>
           </div>
           <div class="workspace-expert-switcher" id="stakeholder-mode-actions" hidden>
@@ -20957,6 +21024,9 @@
                 <section class="table organizations-table patient-organizations-table" id="patient-organizations-table" aria-label="Patienten-Organisationen" data-patient-table="organizations" role="tabpanel">
                   <div class="thead" id="patient-organizations-table-head"></div>
                   <div id="patient-organization-list"></div>
+                </section>
+                <section class="patient-indications-panel" id="patient-indications-panel" aria-label="Patienten-Indikationen" data-patient-table="indications" role="tabpanel" hidden>
+                  <div class="patient-indications-list" id="patient-indications-list"></div>
                 </section>
               </div>
               <div class="table-footer">
@@ -23388,6 +23458,8 @@
       const patientOrganizationsTable = document.getElementById("patient-organizations-table");
       const patientOrganizationsTableHead = document.getElementById("patient-organizations-table-head");
       const patientOrganizationList = document.getElementById("patient-organization-list");
+      const patientIndicationsPanel = document.getElementById("patient-indications-panel");
+      const patientIndicationsList = document.getElementById("patient-indications-list");
       const expertMatchingTableHead = document.getElementById("expert-matching-table-head");
       const expertMatchingList = document.getElementById("expert-matching-list");
       const expertMatchingMeta = document.getElementById("expert-matching-meta");
@@ -26569,6 +26641,7 @@
         return {
           id: String((typeof entry === "object" && (entry.id || entry.indicationId || entry.indication_id || entry.groupId || entry.group_id)) || "").trim() || `patient-indication-${index + 1}`,
           name: indicationName,
+          description: String((typeof entry === "object" && (entry.description || entry.explanation || entry.note)) || "").trim(),
           sortOrder: Number((typeof entry === "object" && (entry.sortOrder ?? entry.sort_order)) ?? (index + 1) * 10),
           status: String((typeof entry === "object" && entry.status) || "active").trim() || "active"
         };
@@ -28047,12 +28120,66 @@
         return patientPeople.filter((person) => person.status !== "archived").length;
       }
 
+      function patientIndicationFallbackDescription(name = "") {
+        const fallback = {
+          "Übergreifende Patientenvertretung und Beratung": "Querschnitt für Patientenrechte, unabhängige Beratung, Patientensicherheit, Selbsthilfe-Infrastruktur und krankheitsübergreifende Interessenvertretung.",
+          "Onkologie und Hämatologie": "Bündelt Krebserkrankungen, solide Tumoren sowie Erkrankungen des Blut- und Lymphsystems inklusive Krebs-Selbsthilfe.",
+          "Herz-Kreislauf-Erkrankungen": "Umfasst Herz- und Gefäßerkrankungen, angeborene Herzfehler, Herzinsuffizienz, Rhythmusstörungen und kardiovaskuläre Prävention.",
+          "Neurologie und Neurodegeneration": "Für Erkrankungen von Gehirn, Rückenmark und Nerven, darunter Multiple Sklerose, Parkinson, Epilepsie, Alzheimer und Demenz.",
+          "Psychische Gesundheit und Neurodivergenz": "Fasst psychische Erkrankungen, psychosoziale Versorgung und neurodivergente Lebenslagen wie Autismus oder ADHS zusammen.",
+          "Stoffwechsel und Endokrinologie": "Für Diabetes, Schilddrüsen- und Hormonerkrankungen sowie weitere Stoffwechselthemen mit langfristiger Versorgungsperspektive.",
+          "Autoimmun, Rheuma und Entzündung": "Bündelt autoimmune und chronisch-entzündliche Erkrankungen, etwa Rheuma, Psoriasis und systemische Entzündungserkrankungen.",
+          "Atemwege, Allergie und Lunge": "Für Asthma, Allergien, chronische Lungenerkrankungen, Mukoviszidose und weitere Atemwegs- oder Lungenindikationen.",
+          "Gastroenterologie und Verdauung": "Umfasst Erkrankungen von Magen, Darm, Leber und Verdauung sowie Stoma- und chronisch-entzündliche Darmthemen.",
+          "Seltene Erkrankungen und Genetik": "Querschnitt für seltene, häufig genetisch bedingte Erkrankungen mit besonderem Bedarf an Orientierung, Vernetzung und Expertise.",
+          "Pädiatrie, Familie und angeborene Erkrankungen": "Für Kinder, Jugendliche, Familien und angeborene Erkrankungen, wenn Versorgung und Teilhabe familienzentriert organisiert werden.",
+          "Augen und Sinnesorgane": "Bündelt Erkrankungen von Auge, Sehen, Hören und weiteren Sinnesorganen, inklusive Netzhaut- und Sehbehinderungsthemen.",
+          "Behinderung, Teilhabe und Pflege": "Für Teilhabe, Pflege, Behinderung, Inklusion und sozialrechtliche Fragen, die häufig indikationsübergreifend wirken."
+        };
+        return fallback[name] || "Zusätzliche Indikation aus den Patientendaten; bitte bei Bedarf fachlich präzisieren.";
+      }
+
+      function patientIndicationItems() {
+        const recordsByName = new Map();
+        const addRecord = (entry = {}, index = 0) => {
+          const name = String(entry.name || entry.label || entry.indication || entry.group || entry || "").trim();
+          if (!name || recordsByName.has(name)) return;
+          recordsByName.set(name, {
+            id: String(entry.id || entry.indicationId || entry.indication_id || entry.groupId || entry.group_id || `patient-indication-${index + 1}`).trim(),
+            name,
+            description: meaningfulOrEmpty(entry.description || entry.explanation || entry.note) || patientIndicationFallbackDescription(name),
+            sortOrder: Number(entry.sortOrder ?? entry.sort_order ?? (index + 1) * 10)
+          });
+        };
+
+        patientIndications.forEach(addRecord);
+        seedPatientIndicationRecords.forEach(addRecord);
+        patientOrganizations.forEach((organization, index) => addRecord({ name: organization.sector, sortOrder: 1000 + index }, index));
+        patientPeople.forEach((person, index) => addRecord({ name: patientPersonIndication(person), sortOrder: 2000 + index }, index));
+
+        return [...recordsByName.values()]
+          .map((indication) => {
+            const organizationCount = patientOrganizations.filter((organization) =>
+              organization.status !== "archived" && organization.sector === indication.name
+            ).length;
+            const personCount = patientPeople.filter((person) =>
+              person.status !== "archived" && patientPersonIndication(person) === indication.name
+            ).length;
+            return { ...indication, organizationCount, personCount };
+          })
+          .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name, "de"));
+      }
+
+      function activePatientIndicationsTotal() {
+        return patientIndicationItems().length;
+      }
+
       function expertOrganizationLocation(organization) {
         return [organization.postalCode, organization.city].filter(Boolean).join(" ");
       }
 
       function patientOrganizationLocation(organization) {
-        return [organization.postalCode, organization.city].filter(Boolean).join(" ");
+        return meaningfulOrEmpty(organization.city);
       }
 
       function patientPersonOrganization(person) {
@@ -28320,6 +28447,19 @@
             return matchesSearch && matchesIndication && matchesState && matchesCity && matchesSource;
           })
           .sort((left, right) => left.name.localeCompare(right.name, "de"));
+      }
+
+      function filteredPatientIndications() {
+        const search = searchInput.value.trim().toLowerCase();
+        return patientIndicationItems().filter((indication) => {
+          const haystack = [
+            indication.name,
+            indication.description,
+            `${indication.organizationCount} Organisationen`,
+            `${indication.personCount} Personen`
+          ].join(" ").toLowerCase();
+          return !search || haystack.includes(search);
+        });
       }
 
       function filteredOrganizations() {
@@ -28827,12 +28967,18 @@
         if (appShell) appShell.dataset.patientMode = activePatientMode;
         const counts = {
           people: activePatientPeopleTotal(),
-          organizations: activePatientOrganizationsTotal()
+          organizations: activePatientOrganizationsTotal(),
+          indications: activePatientIndicationsTotal()
+        };
+        const labels = {
+          people: "Personen",
+          organizations: "Organisationen",
+          indications: "Indikationen"
         };
         patientModeButtons.forEach((button) => {
           const mode = button.dataset.patientMode || "organizations";
           const active = mode === activePatientMode;
-          const label = mode === "people" ? "Personen" : "Organisationen";
+          const label = labels[mode] || "Organisationen";
           const count = counts[mode] || 0;
           button.replaceChildren();
           const labelNode = document.createElement("span");
@@ -29077,6 +29223,34 @@
             renderPatientOrganizationsTable(items);
           });
         });
+      }
+
+      function renderPatientIndicationsPanel(items) {
+        if (!patientIndicationsList || !patientPagination || !patientPaginationMeta) return;
+        activePatientMode = "indications";
+        renderPatientTablesVisibility();
+        if (!items.length) {
+          patientIndicationsList.innerHTML = `<div class="empty">Keine Indikationen gefunden.</div>`;
+          patientPaginationMeta.textContent = "0 von 0 Indikationen";
+          patientPagination.innerHTML = "";
+          return;
+        }
+        patientIndicationsList.innerHTML = items
+          .map((indication) => `
+            <article class="patient-indication-card">
+              <div class="patient-indication-card__head">
+                <h3>${escapeHtml(indication.name)}</h3>
+              </div>
+              <p>${escapeHtml(indication.description)}</p>
+              <div class="patient-indication-card__meta" aria-label="Zugeordnete Einträge">
+                <span class="patient-indication-chip">${escapeHtml(indication.organizationCount)} ${indication.organizationCount === 1 ? "Organisation" : "Organisationen"}</span>
+                <span class="patient-indication-chip">${escapeHtml(indication.personCount)} ${indication.personCount === 1 ? "Person" : "Personen"}</span>
+              </div>
+            </article>
+          `)
+          .join("");
+        patientPaginationMeta.textContent = `${items.length} von ${activePatientIndicationsTotal()} Indikationen`;
+        patientPagination.innerHTML = "";
       }
 
       function activeStakeholderOrganizationsTotal() {
@@ -32642,6 +32816,7 @@
           return `${items.length} von ${activeExpertContactsTotal()} Kontakten`;
         }
         if (activeView === "patients") {
+          if (activePatientMode === "indications") return `${items.length} von ${activePatientIndicationsTotal()} Indikationen`;
           if (activePatientMode === "people") return `${items.length} von ${activePatientPeopleTotal()} Personen`;
           return `${items.length} von ${activePatientOrganizationsTotal()} Organisationen`;
         }
@@ -33134,15 +33309,16 @@
         }
         if (activeView === "patients") {
           const isPeopleMode = activePatientMode === "people";
-          const total = isPeopleMode ? activePatientPeopleTotal() : activePatientOrganizationsTotal();
+          const isIndicationsMode = activePatientMode === "indications";
+          const total = isIndicationsMode ? activePatientIndicationsTotal() : isPeopleMode ? activePatientPeopleTotal() : activePatientOrganizationsTotal();
           const meta = items.length === total ? "" : `${items.length} Treffer`;
           renderSummaryCards(
             summaryGrid,
             [
               {
-                label: isPeopleMode ? "Patienten-Personen" : "Patientenorganisationen",
+                label: isIndicationsMode ? "Indikationen" : isPeopleMode ? "Patienten-Personen" : "Patientenorganisationen",
                 value: total,
-                meta: isMobileLayout() ? (isPeopleMode ? "Personen" : "Organisationen") : meta,
+                meta: isMobileLayout() ? (isIndicationsMode ? "Indikationen" : isPeopleMode ? "Personen" : "Organisationen") : meta,
                 icon: `
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
@@ -33153,7 +33329,7 @@
                 iconClass: "summary-icon--blue"
               }
             ],
-            isPeopleMode ? "Personen" : "Organisationen"
+            isIndicationsMode ? "Indikationen" : isPeopleMode ? "Personen" : "Organisationen"
           );
           return;
         }
@@ -41782,7 +41958,8 @@
                   ${detailLine("Name", organization.name)}
                   ${detailLine("Indikation", organization.sector)}
                   ${typeLabel ? detailLine("Organisationstyp", typeLabel) : ""}
-                  ${detailLine("Standort", locationText)}
+                  ${detailLine("PLZ", organization.postalCode)}
+                  ${detailLine("Stadt", organization.city)}
                   ${detailLine("Bundesland", organization.state)}
                   ${memberCountLabel ? detailLine("Mitgliederzahl", memberCountLabel) : ""}
                   ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
@@ -42819,9 +42996,10 @@
         const isNotificationsView = isNotificationsWorkspaceActive();
         const isExpertsView = activeView === "experts";
         const isPatientsView = activeView === "patients";
-        if (isPatientsView && !["people", "organizations"].includes(activePatientMode)) activePatientMode = "organizations";
+        if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "organizations";
         const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
         const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
+        const isPatientIndicationsMode = isPatientsView && activePatientMode === "indications";
         const isStakeholdersView = activeView === "stakeholders";
         const isPersonProfileView = activeView === "personProfile";
         const isOrganizationProfileView = activeView === "organizationProfile";
@@ -42858,7 +43036,7 @@
             : isStakeholdersView
               ? filteredStakeholderOrganizations()
             : isPatientsView
-              ? isPatientOrganizationsMode ? filteredPatientOrganizations() : filteredPatientPeople()
+              ? isPatientIndicationsMode ? filteredPatientIndications() : isPatientOrganizationsMode ? filteredPatientOrganizations() : filteredPatientPeople()
             : isExpertsView
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
@@ -42870,7 +43048,9 @@
           : isOrganizationsView
           ? "Organisationen suchen..."
           : isPatientsView
-            ? isPatientOrganizationsMode
+            ? isPatientIndicationsMode
+              ? "Indikationen nach Name oder Erklärung suchen..."
+              : isPatientOrganizationsMode
               ? "Patientenorganisationen nach Name, Indikation oder Standort suchen..."
               : "Patienten-Personen nach Name, Organisation, Indikation oder Ort suchen..."
           : isExpertOrganizationsMode
@@ -42924,11 +43104,12 @@
         if (contactDuplicatesWorkspace) contactDuplicatesWorkspace.hidden = !isContactsDuplicatesMode;
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
-        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode;
+        columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
         if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isPatientsView || isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
-        if (isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView) setFilterPanelOpen(false);
+        if (filterToolbar) filterToolbar.hidden = isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
+        patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
+        if (isHospitationsView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -42955,7 +43136,8 @@
         } else if (isExpertsView) {
           renderExpertContactsTable(items);
         } else if (isPatientsView) {
-          if (isPatientOrganizationsMode) renderPatientOrganizationsTable(items);
+          if (isPatientIndicationsMode) renderPatientIndicationsPanel(items);
+          else if (isPatientOrganizationsMode) renderPatientOrganizationsTable(items);
           else renderPatientPeopleTable(items);
         } else if (isStakeholdersView) {
           renderStakeholderCurrent();
@@ -43239,13 +43421,17 @@
       patientModeButtons.forEach((button) => {
         button.addEventListener("click", () => {
           const nextPatientMode = button.dataset.patientMode || "organizations";
-          if (!["people", "organizations"].includes(nextPatientMode) || nextPatientMode === activePatientMode) return;
+          if (!["people", "organizations", "indications"].includes(nextPatientMode) || nextPatientMode === activePatientMode) return;
           activePatientMode = nextPatientMode;
           selectedOrganizationCities = [];
           selectedSources = [];
           selectedQualities = [];
           selectedMissingFields = [];
           selectedUpdatedRanges = [];
+          if (nextPatientMode === "indications") {
+            selectedCategories = [];
+            selectedStates = [];
+          }
           currentPage = 1;
           activePatientPersonId = null;
           activePatientOrganizationId = null;
