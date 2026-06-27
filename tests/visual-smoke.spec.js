@@ -246,8 +246,9 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-sidebar-section-toggle="admin"]').filter({ hasText: "Admin" })).toHaveCount(1);
   const careTabOrder = await page.locator("#sidebar-section-care-content [data-view-tab]").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(careTabOrder).toEqual(["Karte", "Patienten", "Stakeholder", "Expertenkreis"]);
-  const sidebarTabOrder = await page.locator(".sidebar-nav > .primary-tab[data-view-tab]").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
-  expect(sidebarTabOrder).toEqual(["Hospitationen", "Formate"]);
+  await expect(page.locator('[data-sidebar-section="engagement"] .sidebar-section-label')).toHaveText("Hospitationen & Formate");
+  const engagementTabOrder = await page.locator('[data-sidebar-section="engagement"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
+  expect(engagementTabOrder).toEqual(["Hospitationen", "Formate"]);
   const adminTabOrder = await page.locator("#sidebar-section-admin-content .primary-tab").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(adminTabOrder).toEqual(["Auswertung", "Aktivitäten", "Importe"]);
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-active-section/);
@@ -262,7 +263,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-view-tab="stakeholders"]')).toContainText("Stakeholder");
   await expect(page.locator('#care-mode-actions [data-care-mode="contacts"]')).toBeVisible();
   await expect(page.locator('#care-mode-actions [data-care-mode="organizations"]')).toBeVisible();
-  await expect(page.locator('#care-mode-actions [data-care-mode="stakeholders"]')).toBeVisible();
+  await expect(page.locator('#care-mode-actions [data-care-mode="stakeholders"]')).toHaveCount(0);
   await expect(page.locator('[data-view-tab="experts"]')).toContainText("Expertenkreis");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
   if (!testInfo.project.name.includes("mobile")) {
@@ -277,24 +278,34 @@ test("Sidebar: Abschnittsklick öffnet die erste Seite", async ({ page }, testIn
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   const shell = page.locator(".app-shell");
-  await page.locator('.sidebar-nav > [data-view-tab="hospitations"]').click();
+  const careSection = page.locator('[data-sidebar-section="care"]');
+  await page.locator('[data-sidebar-section="engagement"] [data-view-tab="hospitations"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "hospitations");
+  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).not.toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#hospitations$/);
 
-  await page.locator('.sidebar-nav > [data-view-tab="formats"]').click();
+  await page.locator('[data-sidebar-section="engagement"] [data-view-tab="formats"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "formats");
+  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).not.toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#formats$/);
 
   await page.locator('[data-sidebar-section-toggle="care"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "map");
+  await expect(page.locator('#care-mode-actions [data-care-mode="stakeholders"]')).toHaveCount(0);
   await expect(page).toHaveURL(/#map$/);
 
   await page.locator('[data-sidebar-section-toggle="admin"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "analytics");
+  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).not.toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#analytics$/);
 
   await page.locator('#sidebar-section-admin-content [data-view-tab="activities"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "activities");
+  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).not.toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#activities$/);
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveClass(/is-active-section/);
 

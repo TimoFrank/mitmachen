@@ -2073,12 +2073,12 @@
         display: none !important;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"], [data-active-view="analytics"], [data-active-view="quality"], [data-active-view="activities"]) .workspace-header {
         grid-template-columns: minmax(0, 1fr);
         align-items: start;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-header .workspace-actions {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"], [data-active-view="analytics"], [data-active-view="quality"], [data-active-view="activities"]) .workspace-header .workspace-actions {
         justify-content: stretch;
         width: 100%;
         min-width: 0;
@@ -2338,6 +2338,10 @@
       }
 
       .app-shell[data-active-view="stakeholders"] #summary-grid {
+        display: none;
+      }
+
+      .app-shell[data-active-view="activities"] #summary-grid {
         display: none;
       }
 
@@ -4660,20 +4664,20 @@
       }
 
       .history-action-pill--update {
-        background: #edf4ff;
-        border-color: #bfd3ff;
-        color: #155fe4;
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
       }
 
       .history-action-pill--import {
-        background: #eefbf4;
-        border-color: #bce8cf;
-        color: #147a44;
+        background: #ecfdf5;
+        border-color: #bbf7d0;
+        color: #047857;
       }
 
       .history-action-pill--create {
-        background: #f0fdf9;
-        border-color: #b9eee1;
+        background: #f0fdfa;
+        border-color: #99f6e4;
         color: #0f766e;
       }
 
@@ -4684,9 +4688,9 @@
       }
 
       .history-action-pill--restore {
-        background: #fff7ed;
-        border-color: #fed7aa;
-        color: #c2410c;
+        background: #fffbeb;
+        border-color: #fde68a;
+        color: #a16207;
       }
 
       .history-change-list {
@@ -4763,30 +4767,50 @@
 
       .activities-workspace {
         display: grid;
-        gap: var(--section-gap);
+        gap: 0;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
       }
 
       .activities-command-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
         gap: 12px;
-        padding: 12px 14px;
+        padding: 14px;
         border-bottom: 1px solid var(--border);
-        background: var(--surface);
+        background: #f8fafc;
       }
 
       .activities-filters {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(150px, 1fr));
+        align-items: end;
+        gap: 10px;
+        width: min(100%, 760px);
+      }
+
+      .activities-filter-field {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .activities-filter-field span {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        letter-spacing: 0;
       }
 
       .activities-filter {
+        width: 100%;
         min-height: 38px;
         border: 1px solid var(--border);
-        border-radius: var(--radius-md);
+        border-radius: 8px;
         background: var(--surface);
         color: var(--text-secondary);
         padding: 0 10px;
@@ -4800,6 +4824,14 @@
       }
 
       .activities-meta {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
         color: var(--text-muted);
         font-size: var(--font-size-sm);
         font-weight: 800;
@@ -4809,13 +4841,14 @@
       .activities-feed-shell {
         display: grid;
         gap: 14px;
-        padding: 16px;
+        padding: 18px;
+        background: #ffffff;
       }
 
       .activities-timeline {
         display: grid;
         gap: 18px;
-        max-width: 980px;
+        width: 100%;
       }
 
       .activity-day-group {
@@ -4824,11 +4857,21 @@
       }
 
       .activity-day-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         color: var(--text-muted);
         font-size: var(--font-size-xs);
         font-weight: 900;
-        letter-spacing: 0.04em;
+        letter-spacing: 0;
         text-transform: uppercase;
+      }
+
+      .activity-day-label::after {
+        content: "";
+        flex: 1 1 auto;
+        height: 1px;
+        background: var(--border);
       }
 
       .activity-feed {
@@ -4841,6 +4884,7 @@
         display: grid;
         grid-template-columns: 38px minmax(0, 1fr);
         gap: 12px;
+        cursor: pointer;
       }
 
       .activity-item::before {
@@ -4880,17 +4924,23 @@
       .activity-entry {
         display: grid;
         gap: 10px;
-        padding: 12px;
+        padding: 12px 14px;
         border: 1px solid var(--border);
-        border-radius: var(--radius-md);
+        border-radius: 8px;
         background: var(--surface);
-        box-shadow: var(--shadow-sm);
+        box-shadow: none;
+        transition: border-color 0.16s ease, box-shadow 0.16s ease;
+      }
+
+      .activity-item:hover .activity-entry {
+        border-color: var(--border-strong);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
       }
 
       .activity-entry-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
         gap: 12px;
       }
 
@@ -4907,6 +4957,9 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 6px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: #f8fafc;
         color: var(--text-muted);
         font-size: var(--font-size-sm);
         font-weight: 750;
@@ -4921,6 +4974,7 @@
         font: inherit;
         font-weight: 900;
         text-align: left;
+        cursor: pointer;
       }
 
       .activity-contact-button:hover,
@@ -4932,21 +4986,6 @@
 
       .activity-contact-avatar {
         flex: 0 0 auto;
-      }
-
-      .activities-load-more-row {
-        display: flex;
-        justify-content: center;
-        padding-top: 2px;
-      }
-
-      .activities-load-more-row[hidden] {
-        display: none;
-      }
-
-      .activities-load-more {
-        min-width: 160px;
-        justify-content: center;
       }
 
       .notifications-workspace {
@@ -5204,20 +5243,20 @@
       }
 
       .history-action-pill--owner {
-        background: var(--primary-soft);
-        border-color: var(--border-strong);
-        color: var(--primary);
+        background: #f5f3ff;
+        border-color: #ddd6fe;
+        color: #6d28d9;
       }
 
       @media (max-width: 760px) {
         .activities-command-row {
+          grid-template-columns: minmax(0, 1fr);
           align-items: stretch;
-          flex-direction: column;
         }
 
         .activities-filters {
-          align-items: stretch;
-          flex-direction: column;
+          grid-template-columns: minmax(0, 1fr);
+          width: 100%;
         }
 
         .activities-filter {
@@ -5248,8 +5287,7 @@
         }
 
         .activity-entry-head {
-          align-items: flex-start;
-          flex-direction: column;
+          grid-template-columns: minmax(0, 1fr);
         }
 
         .activities-workspace .history-values {
@@ -20699,30 +20737,35 @@
               </button>
             </div>
           </div>
-          <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-              <path d="M8 2v4"></path>
-              <path d="M16 2v4"></path>
-              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-              <path d="M3 10h18"></path>
-              <path d="M12 14v5"></path>
-              <path d="M9.5 16.5h5"></path>
-            </svg>
-            <span>Hospitationen</span>
-          </button>
-          <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-              <path d="M8 2v4"></path>
-              <path d="M16 2v4"></path>
-              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-              <path d="M3 10h18"></path>
-              <path d="M8 15h.01"></path>
-              <path d="M12 15h.01"></path>
-              <path d="M16 15h.01"></path>
-            </svg>
-            <span>Formate</span>
-            <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
-          </button>
+          <div class="sidebar-section" aria-label="Hospitationen und Formate" data-sidebar-section="engagement">
+            <span class="sidebar-section-label">Hospitationen &amp; Formate</span>
+            <div class="sidebar-section-content">
+              <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                  <path d="M12 14v5"></path>
+                  <path d="M9.5 16.5h5"></path>
+                </svg>
+                <span>Hospitationen</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                  <path d="M8 15h.01"></path>
+                  <path d="M12 15h.01"></path>
+                  <path d="M16 15h.01"></path>
+                </svg>
+                <span>Formate</span>
+                <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
+              </button>
+            </div>
+          </div>
           <div class="sidebar-section is-collapsed" id="sidebar-data-care-section" aria-label="Admin" data-sidebar-section="admin" data-sidebar-group="admin" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-admin-toggle" data-sidebar-section-toggle="admin" aria-expanded="false" aria-controls="sidebar-section-admin-content">
               <span>Admin</span>
@@ -20843,10 +20886,6 @@
               </button>
               <button class="settings-tab-button" type="button" role="tab" data-care-mode="organizations" aria-selected="false" aria-controls="view-organizations">
                 <span class="experts-mode-label">Organisationen </span>
-                <span class="experts-mode-count">0</span>
-              </button>
-              <button class="settings-tab-button" type="button" role="tab" data-care-mode="stakeholders" aria-selected="false" aria-controls="view-stakeholders">
-                <span class="experts-mode-label">Stakeholder </span>
                 <span class="experts-mode-count">0</span>
               </button>
             </div>
@@ -24507,7 +24546,8 @@
 
       function expandSidebarGroup(group) {
         sidebarCollapsibleSections.forEach((section) => {
-          setSidebarSectionExpanded(section, section.dataset.sidebarGroup === group);
+          const isCareSection = section.dataset.sidebarGroup === "care";
+          setSidebarSectionExpanded(section, isCareSection || section.dataset.sidebarGroup === group);
         });
       }
 
@@ -24527,7 +24567,8 @@
         sidebarCollapsibleSections.forEach((section) => {
           const active = Boolean(activeGroup) && section.dataset.sidebarGroup === activeGroup;
           section.classList.toggle("is-active-section", active);
-          setSidebarSectionExpanded(section, active);
+          const isCareSection = section.dataset.sidebarGroup === "care";
+          setSidebarSectionExpanded(section, isCareSection || active);
         });
       }
 
