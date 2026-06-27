@@ -1,0 +1,73 @@
+name: Weekly release
+
+on:
+  schedule:
+    - cron: "0 14 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  weekly-release:
+    name: Prepare and publish weekly release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Prepare release notes and changelog
+        id: release
+        run: node scripts/prepare_weekly_release.mjs
+
+      - name: Sync GitHub Pages artifact
+        run: bash scripts/sync_github_pages.sh
+
+      - name: Check project
+        run: npm run check
+
+      - name: Commit release changes
+        run: |
+          git add README.md CHANGELOG.md frontend/app/versorgungs-kompass.html docs/versorgungs-kompass.html
+          git commit -m "Release ${{ steps.release.outputs.tag }}"
+
+      - name: Push release commit
+        run: git push origin HEAD:main
+
+      - name: Verify publication
+        env:
+          SUPABASE_LIVE_STATUS: not_affected
+        run: |
+          sleep 90
+          npm run verify:publication || (sleep 120 && npm run verify:publication)
+
+      - name: Create and push tag
+        run: |
+          git tag -a "${{ steps.release.outputs.tag }}" -m "Versorgungs-Kompass ${{ steps.release.outputs.tag }}"
+          git push origin "${{ steps.release.outputs.tag }}"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.release.outputs.tag }}" \
+            --title "${{ steps.release.outputs.title }}" \
+            --notes-file .weekly-release-notes.md \
+            --latest

@@ -7,6 +7,7 @@ const syntaxFiles = [
   "scripts/audit_public_assets.mjs",
   "scripts/audit_stakeholder_fields.mjs",
   "scripts/check_project.mjs",
+  "scripts/prepare_weekly_release.mjs",
   "scripts/prepare_target_frontend_config.mjs",
   "scripts/preflight_target_deployment.mjs",
   "scripts/test_api_validation.mjs",

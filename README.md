@@ -10,6 +10,13 @@ Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine K
 
 <img src="dokumentation/assets/versorgungs-kompass-karte.png" alt="Kartenansicht des Versorgungs-Kompass" width="560">
 
+## Aktueller Release
+
+- Version: [v0.16.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.16.0)
+- Stand: 27. Juni 2026
+- Kurznotiz: Erstes GitHub Release, harmonisiert mit dem App-Changelog bis Version 0.16.
+- Testumgebung: [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html)
+
 ## Schnellstart
 
 Kurz erklärt:

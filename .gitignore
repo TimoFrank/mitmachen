@@ -10,6 +10,7 @@ node_modules/
 
 # Logs and test output
 *.log
+.weekly-release-notes.md
 playwright-report/
 test-results/
 
