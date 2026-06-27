@@ -15,8 +15,6 @@ Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine K
 - Version: [v0.16.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.16.0)
 - Stand: 27. Juni 2026
 - Kurznotiz: Erstes GitHub Release, harmonisiert mit dem App-Changelog bis Version 0.16.
-- Repo-Ansicht: [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html)
-- Öffentliche Demo: [GCP-Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app)
 
 ## 2. Schnellstart
 
@@ -49,16 +47,17 @@ Wichtige Einstiege in die Dokumentation sind [`dokumentation/README.md`](dokumen
 
 Im Repository liegen Oberfläche, technische Adapter, Dokumentation und fiktive Demo-Daten. Produktive Daten werden im geschützten Backend geführt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und getrennt vom öffentlichen Quellcode.
 
-Administrative Schlüssel und andere sensible Betriebszugriffe gehören nicht in das Frontend oder in [`docs/`](docs/). Sie werden im Zielbetrieb über das geschützte Secret-Management der jeweiligen Umgebung bereitgestellt.
+Administrative Schlüssel und andere sensible Betriebszugriffe werden im Zielbetrieb über das geschützte Secret-Management der jeweiligen Umgebung bereitgestellt.
 
 Weitere Details:
 
 - [`dokumentation/architektur/API_CONTRACT.md`](dokumentation/architektur/API_CONTRACT.md): API-Grenzen und Sicherheitsmodell.
 - [`dokumentation/architektur/DATA_MODEL.md`](dokumentation/architektur/DATA_MODEL.md): fachliches Datenmodell.
-- [`dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md): gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
 - [`supabase/README.md`](supabase/README.md): Legacy-Backend und Quelle für die Datenmigration.
 
 ## 5. Deployment, Demos und Betrieb
+
+Dieser Abschnitt trennt die öffentliche Demo, die GitHub-Pages-Ansicht und den geplanten Zielbetrieb.
 
 | Umgebung | Wofür gedacht | Hinweis |
 | --- | --- | --- |
@@ -106,9 +105,7 @@ Die aktuelle Einordnung der Auslieferungswege steht in der [Deployment-Übersich
 
 ## 6. Prüfungen
 
-Das Repository enthält automatisierte Prüfungen. Sie helfen dabei, einfache Fehler früh zu finden und Änderungen verlässlich zu überprüfen.
-
-Die schnellen Prüfungen achten auf Syntax, fehlende Dateien und offensichtliche Formatprobleme. Die technischen Checks prüfen zum Beispiel öffentliche Assets, API-Regeln, wichtige Datenfelder und die Backend-Anbindung. Die Browser-Tests öffnen die Oberfläche wie ein Nutzer und prüfen typische Wege, etwa Navigation, Kartenaufruf, Tabellen, Detailansichten und mobile Ansichten.
+Das Repository enthält automatisierte Prüfungen. Sie helfen dabei, einfache Fehler früh zu finden und Änderungen verlässlich zu überprüfen. Die schnellen Prüfungen achten auf Syntax, fehlende Dateien und offensichtliche Formatprobleme. Die technischen Checks prüfen zum Beispiel öffentliche Assets, API-Regeln, wichtige Datenfelder und die Backend-Anbindung. Die Browser-Tests öffnen die Oberfläche wie ein Nutzer und prüfen typische Wege, etwa Navigation, Kartenaufruf, Tabellen, Detailansichten und mobile Ansichten.
 
 Die detaillierten QA-Regeln stehen in [`dokumentation/entwicklung-und-qa/QA_WORKFLOW.md`](dokumentation/entwicklung-und-qa/QA_WORKFLOW.md).
 
@@ -116,6 +113,4 @@ Die detaillierten QA-Regeln stehen in [`dokumentation/entwicklung-und-qa/QA_WORK
 
 Quellcode und technische Dokumentation stehen unter der [Apache License 2.0](LICENSE).
 
-Fiktive Demo- und Beispieldaten dürfen für Entwicklung, Tests und Demonstrationen genutzt werden, sofern in einer Datei nichts anderes angegeben ist.
-
-Echte Daten aus angebundenen Systemen, Marken, Logos, Profilbilder, Drittinhalte und andere externe Assets sind nicht Teil dieser Repository-Lizenz. Weitere Hinweise stehen in [NOTICE](dokumentation/rechtliches/NOTICE.md) und [DATA_NOTICE.md](dokumentation/rechtliches/DATA_NOTICE.md).
+Fiktive Demo- und Beispieldaten dürfen für Entwicklung, Tests und Demonstrationen genutzt werden, sofern in einer Datei nichts anderes angegeben ist. Echte Daten aus angebundenen Systemen, Marken, Logos, Profilbilder, Drittinhalte und andere externe Assets sind nicht Teil dieser Repository-Lizenz. Weitere Hinweise stehen in [NOTICE](dokumentation/rechtliches/NOTICE.md) und [DATA_NOTICE.md](dokumentation/rechtliches/DATA_NOTICE.md).
