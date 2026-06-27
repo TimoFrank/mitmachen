@@ -375,20 +375,20 @@
       .sidebar-brand {
         display: flex;
         align-items: flex-start;
-        gap: 12px;
+        gap: 10px;
         flex-shrink: 0;
         min-height: auto;
-        padding: 0 8px 16px;
+        padding: 0 6px 18px;
         color: #ffffff;
         text-decoration: none;
         overflow: visible;
       }
 
       .sidebar-brand .brand-mark {
-        width: 42px;
-        height: 42px;
-        flex: 0 0 42px;
-        margin-top: 4px;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        margin-top: 7px;
       }
 
       .sidebar-brand .brand-mark span {
@@ -417,30 +417,45 @@
 
       .sidebar-brand strong {
         display: block;
-        max-width: 150px;
-        font-size: 1.04rem;
-        line-height: 1.04;
-        font-weight: 900;
+        max-width: 158px;
+        color: rgba(232, 241, 255, 0.78);
+        font-size: 0.82rem;
+        line-height: 1.15;
+        font-weight: 800;
         letter-spacing: 0;
       }
 
       .sidebar-brand-copy {
         display: grid;
-        gap: 2px;
+        gap: 5px;
         min-width: 0;
         overflow: visible;
       }
 
       .sidebar-brand-kicker {
         display: block;
-        max-width: 158px;
-        line-height: 1.14;
+        position: relative;
+        max-width: 168px;
+        padding-bottom: 4px;
+        line-height: 0.98;
+        letter-spacing: 0;
       }
 
       .sidebar-brand-kicker {
-        color: rgba(232, 241, 255, 0.86);
-        font-size: 0.7rem;
-        font-weight: 900;
+        color: #ffffff;
+        font-size: 1.32rem;
+        font-weight: 950;
+      }
+
+      .sidebar-brand-kicker::after {
+        content: "";
+        position: absolute;
+        left: 1px;
+        right: 18px;
+        bottom: 0;
+        height: 3px;
+        border-radius: 999px;
+        background: #ff9a4d;
       }
 
       .sidebar-nav {
