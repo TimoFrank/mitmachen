@@ -10,6 +10,7 @@
     "start:demo": "npm run start",
     "check:demo": "node --check frontend/demo/demo-app.js && node --check frontend/data/demo-data.js",
     "check:syntax": "node scripts/check_project.mjs --syntax",
+    "check:target-readiness": "node scripts/check_target_readiness.mjs",
     "check": "node scripts/check_project.mjs",
     "qa": "npm run check && npm run test:visual",
     "qa:small": "npm run check:syntax && git diff --check",
