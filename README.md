@@ -30,15 +30,6 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 - GitHub enthält Quellcode, Dokumentation und die [GitHub-Pages-Prüfung](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
 - Für Betrieb und Migration ist die [gematik-Deployment-Dokumentation](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) der wichtigste technische Startpunkt.
 
-## Welche Umgebung wofür?
-
-| Umgebung | Wofür gedacht | Hinweis |
-| --- | --- | --- |
-| [Öffentliche GCP-Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Vorführung, Abstimmung und erste fachliche Rückmeldungen | Öffentlich erreichbar, mit Testdaten und eigenem Cloud-SQL-Backend |
-| [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Technische Prüfung der statischen Oberfläche im Repo | Nicht der Weitergabe-Link für Personen ohne GitHub-Zugriff |
-| gematik-Zielbetrieb | Späterer Betrieb in der gematik-Infrastruktur | Mit interner API, geschützter Datenbank, SSO und Gateway |
-| GitHub-Repository | Quellcode, Dokumentation und Übergabeunterlagen | Keine produktiven Netzwerkdaten |
-
 ## Wichtigste Ordner
 
 | Ordner | Zweck |
@@ -67,15 +58,15 @@ Weitere Details:
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md): gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
 - [`supabase/README.md`](supabase/README.md): Legacy-Backend und Quelle für die Datenmigration.
 
-## GitHub-Pages-Prüfung
+## Deployment, Demos und Betrieb
 
-Die GitHub-Pages-Prüfung ist der Standard für Testbetrieb und technische Sichtprüfung im Repo. Sie läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
+| Umgebung | Wofür gedacht | Hinweis |
+| --- | --- | --- |
+| [GCP-Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Vorführung, Abstimmung und erste fachliche Rückmeldungen | Öffentlich erreichbar, mit Testdaten und eigenem Cloud-SQL-Backend |
+| [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Technische Prüfung der statischen Oberfläche im Repo | Nicht der Weitergabe-Link für Personen ohne GitHub-Zugriff |
+| gematik-Zielbetrieb | Geplanter Betrieb in der gematik-Infrastruktur | Mit interner API, geschützter Datenbank, SSO und Gateway |
 
-Diese Prüfung ist nicht der gematik-Zielbetrieb und nicht der öffentliche Weitergabe-Link für Kolleginnen und Kollegen ohne GitHub-Zugriff. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration. Produktive Daten, produktive Berechtigungen und geschützte Betriebszugriffe gehören nicht in diese GitHub-Pages-Prüfung.
-
-Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. [`docs/`](docs/) bleibt dabei ein Auslieferungsartefakt und wird nicht direkt gepflegt.
-
-## Öffentliche GCP-Demo
+### GCP-Demo
 
 Die öffentlich verfügbare Demo läuft auf Google Cloud Run: [GCP-Demo mit Testdaten öffnen](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
 
@@ -83,7 +74,15 @@ Sie ist der passende Link für Vorführung, Abstimmung und erste fachliche Rück
 
 Die GCP-Demo ist ein eigener Prototyp mit Cloud-SQL-Backend. Sie kann deshalb vom GitHub-Pages-Teststand abweichen und ersetzt nicht den geplanten gematik-Zielbetrieb.
 
-## Deployment im Zielbetrieb
+### GitHub Pages
+
+Die GitHub-Pages-Prüfung ist der Standard für Testbetrieb und technische Sichtprüfung im Repo. Sie läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
+
+Diese Prüfung ist nicht der gematik-Zielbetrieb und nicht der öffentliche Weitergabe-Link für Kolleginnen und Kollegen ohne GitHub-Zugriff. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration. Produktive Daten, produktive Berechtigungen und geschützte Betriebszugriffe gehören nicht in diese GitHub-Pages-Prüfung.
+
+Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. [`docs/`](docs/) bleibt dabei ein Auslieferungsartefakt und wird nicht direkt gepflegt.
+
+### Zielbetrieb
 
 Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür braucht es ein statisches Frontend, eine interne API, eine geschützte Datenbank, Secret-Management, internes SSO und Gateway oder Reverse Proxy.
 
