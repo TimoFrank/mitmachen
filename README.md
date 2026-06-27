@@ -2,83 +2,64 @@
 
 Das gematik-Hospitationsnetzwerk sichtbar machen.
 
-Der `Versorgungs-Kompass` ist ein interner Arbeits- und Orientierungskompass fuer das gematik-Hospitationsnetzwerk. Er buendelt Kontakte, Organisationen, Standorte und fachliche Einordnungen so, dass aus einzelnen Anknuepfungspunkten ein gemeinsames Lagebild entsteht: Wer gehoert zu unserem Netzwerk? Wo sind Einrichtungen, Praxen, Kliniken, Kassen, Pflege- und Therapieangebote verortet? Welche Regionen sind bereits gut sichtbar und wo fehlen uns noch Perspektiven?
+Der `Versorgungs-Kompass` ist ein interner Arbeits- und Orientierungskompass für das gematik-Hospitationsnetzwerk. Er bündelt Kontakte, Organisationen, Standorte und fachliche Einordnungen so, dass aus einzelnen Anknüpfungspunkten ein gemeinsames Lagebild entsteht: Wer gehört zu unserem Netzwerk? Wo sind Einrichtungen, Praxen, Kliniken, Kassen, Pflege- und Therapieangebote verortet? Welche Regionen sind bereits gut sichtbar und wo fehlen uns noch Perspektiven?
 
-Im Mittelpunkt steht die `Karte`. Sie soll schnell erfassbar machen, wie unser Hospitations-Netzwerk im Raum verteilt ist. Statt Kontakte nur als Liste zu betrachten, zeigt die Karte Cluster, weisse Flecken, regionale Schwerpunkte und moegliche Nachbarschaften zwischen Akteuren. Damit wird sie zum Einstieg fuer Planung, Abstimmung und Reflexion: Wo koennen Hospitationen sinnvoll gebuendelt werden? Welche Versorgungsbereiche sind in einer Region vertreten? Welche Kontakte liegen nahe beieinander und koennten gemeinsam gedacht werden?
+Im Mittelpunkt steht die `Karte`. Sie soll schnell erfassbar machen, wie unser Hospitations-Netzwerk im Raum verteilt ist. Statt Kontakte nur als Liste zu betrachten, zeigt die Karte Cluster, weiße Flecken, regionale Schwerpunkte und mögliche Nachbarschaften zwischen Akteuren. Damit wird sie zum Einstieg für Planung, Abstimmung und Reflexion: Wo können Hospitationen sinnvoll gebündelt werden? Welche Versorgungsbereiche sind in einer Region vertreten? Welche Kontakte liegen nahe beieinander und könnten gemeinsam gedacht werden?
 
-Das Ziel ist eine lebendige Uebersicht ueber unser Hospitations-Netzwerk: eine Karte, die Orientierung gibt, Gespraeche vorbereitet, Luecken sichtbar macht und hilft, aus vielen Einzelkontakten ein belastbares Bild der Versorgungspraxis zu entwickeln.
+Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine Karte, die Orientierung gibt, Gespräche vorbereitet, Lücken sichtbar macht und hilft, aus vielen Einzelkontakten ein belastbares Bild der Versorgungspraxis zu entwickeln.
 
 ![Kartenansicht des Versorgungs-Kompass mit fiktiven Demo-Daten](dokumentation/assets/versorgungs-kompass-karte.png)
 
 _Demo-Snapshot mit fiktiven Daten._
 
-Das Repository enthaelt die Weboberflaeche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen fuer Uebergabe und Betrieb. Produktive Netzwerkdaten liegen nicht im Repository, sondern in einem geschuetzten Backend.
+Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen für Übergabe und Betrieb. Produktive Netzwerkdaten liegen nicht im Repository, sondern in einem geschützten Backend.
 
 ## Schnellstart
 
-Abhaengigkeiten installieren:
+Kurz erklärt:
 
-```bash
-npm install
-```
-
-Lokalen Webserver starten:
-
-```bash
-python3 -m http.server 4173
-```
-
-Danach im Browser oeffnen:
-
-```text
-http://127.0.0.1:4173/frontend/login/login.html
-```
-
-Fuer den produktionsnahen Betrieb kann die API-Schicht mit den Backend-Zugangsdaten der Zielumgebung gestartet werden:
-
-```bash
-ALLOWED_ORIGIN="http://127.0.0.1:4173" \
-npm run start:api
-```
-
-Die konkreten Backend-Variablen haengen von der Zielplattform ab. Details stehen in der Deployment-Dokumentation.
+- Der Versorgungs-Kompass ist eine interne Webanwendung für das gematik-Hospitationsnetzwerk.
+- Die Karte ist der Einstieg: Sie zeigt Kontakte, Organisationen, Standorte und regionale Lücken.
+- GitHub enthält Quellcode, Dokumentation und die GitHub-Pages-Testumgebung.
+- Produktive Daten werden im geschützten Backend geführt.
+- Für Betrieb und Migration ist die gematik-Deployment-Dokumentation der wichtigste technische Startpunkt.
 
 ## Ordnerstruktur
 
-- `frontend/`: fuehrende Frontend-Quellen.
+- `frontend/`: führende Frontend-Quellen.
   - `frontend/app/`: Hauptanwendung des Versorgungs-Kompass.
   - `frontend/login/`: Login-Seite und Auth-Skripte.
   - `frontend/map/`: Kartenansichten, Mini-Karten und Kartendaten.
   - `frontend/data/`: Datenadapter, Backend-Konfiguration und leere Fallback-Dateien.
   - `frontend/pages/`: einzelne statische Zusatzseiten, die nach `docs/` gespiegelt werden.
-  - `frontend/demo/`: statische Demo-Oberflaeche mit fiktiven Daten.
-- `api/`: REST-API fuer produktionsnahe Backend-Zugriffe im Zielbild.
+  - `frontend/demo/`: statische Demo-Oberfläche mit fiktiven Daten.
+- `api/`: REST-API für produktionsnahe Backend-Zugriffe im Zielbild.
 - `supabase/`: Legacy-/Migrationsquelle bis zur abgeschlossenen Shared-Postgres-Datenmigration.
 - `public/`: Logos, Icons und statische Assets.
-- `scripts/`: Pruef-, Sync- und Importskripte.
+- `scripts/`: Prüf-, Sync- und Importskripte.
 - `tests/`: Playwright-Smoke-Tests.
-- `docs/`: Publish-Kopie fuer GitHub Pages. Dieser Ordner wird aus den Quellordnern synchronisiert.
-- `dokumentation/`: Architektur, Betrieb, Design, QA und Uebergabeunterlagen.
+- `docs/`: Publish-Kopie für GitHub Pages. Dieser Ordner wird aus den Quellordnern synchronisiert.
+- `dokumentation/`: Architektur, Betrieb, Design, QA und Übergabeunterlagen.
 
 Die wichtigsten Quellpfade sind `frontend/`, `api/`, `public/`, `scripts/`, `tests/` und `dokumentation/`. `supabase/` bleibt vorerst als Legacy- und Migrationsquelle erhalten. `docs/` ist ein Auslieferungsartefakt und sollte nicht direkt gepflegt werden.
 
 ## Daten und Backend
 
-Produktive Kontakt-, Organisations- und Netzwerkdaten werden im geschuetzten Backend gefuehrt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und unabhaengig vom oeffentlichen Quellcode.
+Produktive Kontakt-, Organisations- und Netzwerkdaten werden im geschützten Backend geführt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und unabhängig vom öffentlichen Quellcode.
 
-Die Dateien in `frontend/data/` buendeln Adapter, Laufzeitkonfiguration und schlanke Fallback-Dateien. Administrative Backend-Schluessel und andere sensible Betriebszugriffe werden ueber das geschuetzte Secret-Management der jeweiligen Umgebung bereitgestellt; Frontend-Dateien wie `frontend/data/supabase-config.js` enthalten nur clientseitige Konfiguration.
+Die Dateien in `frontend/data/` bündeln Adapter, Laufzeitkonfiguration und schlanke Fallback-Dateien. Administrative Backend-Schlüssel und andere sensible Betriebszugriffe werden über das geschützte Secret-Management der jeweiligen Umgebung bereitgestellt; Frontend-Dateien wie `frontend/data/supabase-config.js` enthalten nur clientseitige Konfiguration.
 
 Weitere Details:
 
 - `dokumentation/architektur/API_CONTRACT.md`: API-Grenzen und Sicherheitsmodell.
 - `dokumentation/architektur/DATA_MODEL.md`: fachliches Datenmodell.
-- `dokumentation/architektur/VERSORGUNGS_NETZWERK_REGISTRIERUNG.md`: Schnittstellenbeschreibung fuer die Registrierungs-Inbox.
+- `dokumentation/architektur/VERSORGUNGS_NETZWERK_REGISTRIERUNG.md`: Schnittstellenbeschreibung für die Registrierungs-Inbox.
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`: gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
-- `supabase/README.md`: aktuelles Legacy-Backend und Quelle fuer die Datenmigration.
+- `supabase/README.md`: aktuelles Legacy-Backend und Quelle für die Datenmigration.
 
 ## Deployment
 
-Die klare Standardveroeffentlichung laeuft ueber GitHub Pages und nutzt den Ordner `docs/`.
+Die klare Standardveröffentlichung läuft über GitHub Pages und nutzt den Ordner `docs/`.
 
 Vor einer Aktualisierung von GitHub Pages:
 
@@ -86,51 +67,51 @@ Vor einer Aktualisierung von GitHub Pages:
 bash scripts/sync_github_pages.sh
 ```
 
-Fuer das interne gematik Kubernetes-Zielbild mit Jenkins, Helm und API-Gateway siehe:
+Für das interne gematik Kubernetes-Zielbild mit Jenkins, Helm und API-Gateway siehe:
 
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`
 - `dokumentation/betrieb-und-deployment/BETRIEB.md`
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md`
 
-Die aktuelle Einordnung der Auslieferungswege steht in der Deployment-Uebersicht.
+Die aktuelle Einordnung der Auslieferungswege steht in der Deployment-Übersicht.
 
-Wichtig: Ein Git-Push aktualisiert nur den Git-Stand. Wenn eine Aenderung produktive Backend-Daten betrifft, muss sie zusaetzlich in der Zielumgebung angewendet werden.
+Wichtig: Ein Git-Push aktualisiert nur den Git-Stand. Wenn eine Änderung produktive Backend-Daten betrifft, muss sie zusätzlich in der Zielumgebung angewendet werden.
 
-Wichtig fuer die Sichtbarkeit: GitHub Pages veroeffentlicht nur statische Dateien. Die statische Demo bleibt fuer fiktive Daten geeignet; produktive Daten brauchen im Zielbild die Kubernetes-API und Shared Postgres. Ein Commit und Push einer SQL-Datei macht eine Migration nur als Datei sichtbar, wendet sie aber nicht auf Shared Postgres oder einen Legacy-Supabase-Datenstand an.
+Wichtig für die Sichtbarkeit: GitHub Pages veröffentlicht nur statische Dateien. Die statische Demo bleibt für fiktive Daten geeignet; produktive Daten brauchen im Zielbild die Kubernetes-API und Shared Postgres. Ein Commit und Push einer SQL-Datei macht eine Migration nur als Datei sichtbar, wendet sie aber nicht auf Shared Postgres oder einen Legacy-Supabase-Datenstand an.
 
-## Pruefungen
+## Prüfungen
 
-Kleine Text-, CSS- oder Doku-Aenderungen:
+Für kleine Text-, CSS- oder Dokumentationsänderungen reicht meistens die schnelle Prüfung. Sie prüft Syntax, offensichtliche Datei-Probleme und Formatfehler, ohne die vollständige Browser-QA zu starten.
 
 ```bash
 npm run qa:small
 ```
 
-Technische Standardpruefung:
+Die technische Standardprüfung ist der normale Qualitätscheck vor einem Commit. Sie prüft öffentliche Assets, API-Gateway-Regeln, zentrale Datenfelder und API-Validierung.
 
 ```bash
 npm run check
 ```
 
-Vollstaendige QA mit visuellen Smokes:
+Die vollständige QA ist für größere UI-, Navigations- oder Datenflussänderungen gedacht. Sie kombiniert die technischen Checks mit Playwright-Smoke-Tests im Browser.
 
 ```bash
 npm run qa:full
 ```
 
-Die QA-Regeln stehen in `dokumentation/entwicklung-und-qa/QA_WORKFLOW.md`.
+Die detaillierten QA-Regeln stehen in `dokumentation/entwicklung-und-qa/QA_WORKFLOW.md`.
 
 ## Dokumentation
 
-Die Detaildokumentation liegt gebuendelt unter `dokumentation/`:
+Die Detaildokumentation liegt gebündelt unter `dokumentation/`. Für den ersten Einstieg reicht meistens diese README; die Unterlagen im Dokumentationsordner erklären danach die fachliche Struktur, die technische Architektur und den Betrieb genauer.
 
-- `dokumentation/README.md`: kurze Doku-Landkarte.
-- `dokumentation/produkt-und-design/`: Designsystem, UX-Regeln und UI-Checklisten.
-- `dokumentation/entwicklung-und-qa/`: aktueller Projektzustand und QA-Ablauf.
-- `dokumentation/architektur/`: API-Kontrakt und Datenmodell.
-- `dokumentation/betrieb-und-deployment/`: Betrieb, Deployment, gematik-Zielbild und historische Schrittunterlagen.
+- `dokumentation/README.md`: Einstieg und Wegweiser durch die Dokumentation.
+- `dokumentation/produkt-und-design/`: Designsystem, UX-Regeln und UI-Checklisten für die Oberfläche.
+- `dokumentation/entwicklung-und-qa/`: Projektzustand, Prüfabläufe und Qualitätssicherung.
+- `dokumentation/architektur/`: API-Grenzen, Datenmodell und Schnittstellen.
+- `dokumentation/betrieb-und-deployment/`: Betrieb, Deployment und gematik-Zielbild.
 
 ## Arbeitsregel
 
-Aktive Aenderungen passieren in den Quellordnern. Danach werden Tests ausgefuehrt und, falls GitHub Pages betroffen ist, `docs/` mit `scripts/sync_github_pages.sh` aktualisiert.
+Aktive Änderungen passieren in den Quellordnern. Danach werden Tests ausgeführt und, falls GitHub Pages betroffen ist, `docs/` mit `scripts/sync_github_pages.sh` aktualisiert.
