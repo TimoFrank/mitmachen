@@ -387,7 +387,7 @@
         width: 42px;
         height: 42px;
         flex: 0 0 42px;
-        margin-top: 18px;
+        margin-top: 4px;
       }
 
       .sidebar-brand .brand-mark span {
@@ -430,8 +430,7 @@
         overflow: visible;
       }
 
-      .sidebar-brand-kicker,
-      .sidebar-brand-subtitle {
+      .sidebar-brand-kicker {
         display: block;
         max-width: 158px;
         line-height: 1.14;
@@ -441,12 +440,6 @@
         color: rgba(232, 241, 255, 0.86);
         font-size: 0.7rem;
         font-weight: 900;
-      }
-
-      .sidebar-brand-subtitle {
-        color: rgba(232, 241, 255, 0.76);
-        font-size: 0.64rem;
-        font-weight: 700;
       }
 
       .sidebar-nav {
@@ -464,7 +457,7 @@
       .sidebar-section,
       .sidebar-account-section {
         display: grid;
-        gap: 4px;
+        gap: 5px;
       }
 
       .sidebar-section + .sidebar-section,
@@ -472,6 +465,55 @@
       .sidebar-account-section {
         padding-top: 14px;
         border-top: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .sidebar-section-toggle {
+        display: flex;
+        width: 100%;
+        min-height: 28px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.46);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        line-height: var(--line-height-tight);
+        text-align: left;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .sidebar-section-toggle:hover,
+      .sidebar-section-toggle:focus-visible,
+      .sidebar-section.is-active-section .sidebar-section-toggle {
+        color: rgba(255, 255, 255, 0.86);
+        outline: none;
+      }
+
+      .sidebar-section-toggle svg {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 auto;
+        opacity: 0.74;
+        transition: transform 160ms ease;
+      }
+
+      .sidebar-section.is-collapsed .sidebar-section-toggle svg {
+        transform: rotate(-90deg);
+      }
+
+      .sidebar-section-content {
+        display: grid;
+        gap: 4px;
+      }
+
+      .sidebar-section.is-collapsed .sidebar-section-content {
+        display: none;
       }
 
       .sidebar-section-label {
@@ -496,19 +538,35 @@
         font-size: 0.9rem;
         font-weight: 800;
         letter-spacing: 0;
+        opacity: 0.74;
       }
 
       .sidebar-nav .primary-tab:hover,
       .sidebar-nav .primary-tab:focus-visible {
         background: rgba(255, 255, 255, 0.1);
         color: #ffffff;
+        opacity: 1;
         outline: none;
       }
 
       .sidebar-nav .primary-tab.is-active {
         background: #155fe4;
         color: #ffffff;
+        opacity: 1;
         box-shadow: 0 8px 22px rgba(0, 24, 80, 0.22);
+      }
+
+      .sidebar-section.is-active-section .primary-tab {
+        opacity: 0.92;
+      }
+
+      .sidebar-section.is-active-section .primary-tab.is-active {
+        background: linear-gradient(90deg, #1769f2 0%, #155fe4 100%);
+        box-shadow: inset 3px 0 0 rgba(232, 241, 255, 0.9), 0 8px 22px rgba(0, 24, 80, 0.2);
+      }
+
+      .sidebar-admin-nav {
+        margin-top: auto;
       }
 
       .sidebar-secondary {
@@ -518,7 +576,7 @@
       }
 
       .sidebar-account-section {
-        margin-top: auto;
+        margin-top: 10px;
       }
 
       .sidebar-link {
@@ -11157,6 +11215,14 @@
         border: 0;
       }
 
+      .app-shell.is-sidebar-collapsed .sidebar-section-toggle {
+        display: none;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-section.is-collapsed .sidebar-section-content {
+        display: grid;
+      }
+
       .app-shell.is-sidebar-collapsed .sidebar-brand .brand-mark {
         width: 36px;
         height: 36px;
@@ -15768,6 +15834,7 @@
         }
 
         .sidebar-nav.primary-nav,
+        .sidebar-admin-nav,
         .sidebar-secondary,
         .sidebar-account-section {
           position: static;
@@ -15794,7 +15861,7 @@
         }
 
         .sidebar-section {
-          grid-auto-rows: 44px;
+          grid-auto-rows: auto;
           gap: 6px;
         }
 
@@ -15805,8 +15872,13 @@
           padding-top: 8px;
         }
 
-        .sidebar-section-label {
+        .sidebar-section-label,
+        .sidebar-section-toggle {
           display: none;
+        }
+
+        .sidebar-section.is-collapsed .sidebar-section-content {
+          display: grid;
         }
 
         .sidebar-nav .primary-tab,
@@ -16480,6 +16552,7 @@
         }
 
         .sidebar-nav.primary-nav,
+        .sidebar-admin-nav,
         .sidebar-secondary,
         .sidebar-account-section {
           grid-auto-rows: auto;
@@ -16490,7 +16563,7 @@
         }
 
         .sidebar-section {
-          grid-auto-rows: 42px;
+          grid-auto-rows: auto;
         }
 
         .sidebar-nav .primary-tab,
@@ -17113,7 +17186,7 @@
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand .brand-mark {
           flex: 0 0 36px;
-          margin-top: 17px;
+          margin-top: 4px;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand strong {
@@ -17126,7 +17199,6 @@
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand strong,
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand-kicker,
-        .app-shell.is-mobile-sidebar-expanded .sidebar-brand-subtitle,
         .app-shell.is-mobile-sidebar-expanded .sidebar-nav .primary-tab span,
         .app-shell.is-mobile-sidebar-expanded .sidebar-link span,
         .app-shell.is-mobile-sidebar-expanded .sidebar-footer div {
@@ -17142,12 +17214,6 @@
           border: 0 !important;
         }
 
-        .app-shell.is-mobile-sidebar-expanded .sidebar-brand-subtitle {
-          max-width: 190px;
-          white-space: normal !important;
-          overflow: visible !important;
-        }
-
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand strong,
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand-kicker {
           max-width: 190px;
@@ -17158,6 +17224,15 @@
         .app-shell.is-mobile-sidebar-expanded .sidebar-section-label {
           display: block;
           padding-inline: 12px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-section-toggle {
+          display: flex;
+          padding-inline: 12px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-section.is-collapsed .sidebar-section-content {
+          display: none;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-section {
@@ -17799,6 +17874,14 @@
         justify-content: space-between;
         align-items: flex-start;
         gap: 14px;
+        min-width: 0;
+      }
+
+      .hospitation-card__identity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1 1 auto;
         min-width: 0;
       }
 
@@ -20191,93 +20274,109 @@
           <div class="sidebar-brand-copy">
             <span class="sidebar-brand-kicker">#Mitmachen</span>
             <strong>Versorgungs-Kompass</strong>
-            <span class="sidebar-brand-subtitle">Hospitationen, Co-Creation, Veranstaltungen</span>
           </div>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
-          <div class="sidebar-section" aria-label="Versorgung" data-sidebar-section="contacts">
-            <span class="sidebar-section-label">Versorgung</span>
-            <button class="primary-tab is-active" type="button" data-view-tab="map" title="Karte">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
-                <path d="M9 3v15"></path>
-                <path d="M15 6v15"></path>
+          <div class="sidebar-section is-expanded is-active-section" aria-label="Versorgung" data-sidebar-section="care" data-sidebar-group="care" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-care-toggle" data-sidebar-section-toggle="care" aria-expanded="true" aria-controls="sidebar-section-care-content">
+              <span>Versorgung</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
               </svg>
-              <span>Karte</span>
-              <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
             </button>
+            <div class="sidebar-section-content" id="sidebar-section-care-content">
+              <button class="primary-tab is-active" type="button" data-view-tab="map" title="Karte">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                  <path d="M9 3v15"></path>
+                  <path d="M15 6v15"></path>
+                </svg>
+                <span>Karte</span>
+                <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="7" r="3"></circle>
+                  <circle cx="6" cy="17" r="3"></circle>
+                  <circle cx="18" cy="17" r="3"></circle>
+                  <path d="m10.2 9.4-2.4 4.2"></path>
+                  <path d="m13.8 9.4 2.4 4.2"></path>
+                  <path d="M9 17h6"></path>
+                </svg>
+                <span>Expertenkreis</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="patients" title="Patienten">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
+                  <path d="M12 8v6"></path>
+                  <path d="M9 11h6"></path>
+                </svg>
+                <span>Patienten</span>
+              </button>
+            </div>
           </div>
-          <div class="sidebar-section" aria-label="IOP" data-sidebar-section="iop">
-            <span class="sidebar-section-label">IOP</span>
-            <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="7" r="3"></circle>
-                <circle cx="6" cy="17" r="3"></circle>
-                <circle cx="18" cy="17" r="3"></circle>
-                <path d="m10.2 9.4-2.4 4.2"></path>
-                <path d="m13.8 9.4 2.4 4.2"></path>
-                <path d="M9 17h6"></path>
+          <div class="sidebar-section is-collapsed" aria-label="Planung" data-sidebar-section="planning" data-sidebar-group="planning" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-planning-toggle" data-sidebar-section-toggle="planning" aria-expanded="false" aria-controls="sidebar-section-planning-content">
+              <span>Planung</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
               </svg>
-              <span>Expertenkreis</span>
             </button>
+            <div class="sidebar-section-content" id="sidebar-section-planning-content">
+              <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                  <path d="M8 15h.01"></path>
+                  <path d="M12 15h.01"></path>
+                  <path d="M16 15h.01"></path>
+                </svg>
+                <span>Formate</span>
+                <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                  <path d="M12 14v5"></path>
+                  <path d="M9.5 16.5h5"></path>
+                </svg>
+                <span>Hospitationen</span>
+              </button>
+            </div>
           </div>
-          <div class="sidebar-section" aria-label="Patienten" data-sidebar-section="patients">
-            <span class="sidebar-section-label">Patienten</span>
-            <button class="primary-tab" type="button" data-view-tab="patients" title="Patienten">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
-                <path d="M12 8v6"></path>
-                <path d="M9 11h6"></path>
+        </nav>
+        <nav class="sidebar-admin-nav sidebar-nav" aria-label="Administration">
+          <div class="sidebar-section is-collapsed" id="sidebar-data-care-section" aria-label="Admin" data-sidebar-section="admin" data-sidebar-group="admin" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-admin-toggle" data-sidebar-section-toggle="admin" aria-expanded="false" aria-controls="sidebar-section-admin-content">
+              <span>Admin</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
               </svg>
-              <span>Patienten</span>
             </button>
-          </div>
-          <div class="sidebar-section" aria-label="Planung" data-sidebar-section="planning">
-            <span class="sidebar-section-label">Planung</span>
-            <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M8 2v4"></path>
-                <path d="M16 2v4"></path>
-                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                <path d="M3 10h18"></path>
-                <path d="M8 15h.01"></path>
-                <path d="M12 15h.01"></path>
-                <path d="M16 15h.01"></path>
-              </svg>
-              <span>Formate</span>
-              <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
-            </button>
-            <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M8 2v4"></path>
-                <path d="M16 2v4"></path>
-                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                <path d="M3 10h18"></path>
-                <path d="M12 14v5"></path>
-                <path d="M9.5 16.5h5"></path>
-              </svg>
-              <span>Hospitationen</span>
-            </button>
-          </div>
-          <div class="sidebar-section" id="sidebar-data-care-section" aria-label="Admin" data-sidebar-section="admin">
-            <span class="sidebar-section-label">Admin</span>
-            <button class="primary-tab" type="button" data-view-tab="analytics" id="sidebar-analytics-button" title="Auswertung">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M4 19h16"></path>
-                <path d="M7 16V9"></path>
-                <path d="M12 16V5"></path>
-                <path d="M17 16v-4"></path>
-              </svg>
-              <span>Auswertung</span>
-            </button>
-            <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <path d="M7 10l5 5 5-5"></path>
-                <path d="M12 15V3"></path>
-              </svg>
-              <span>Importe</span>
-            </button>
+            <div class="sidebar-section-content" id="sidebar-section-admin-content">
+              <button class="primary-tab" type="button" data-view-tab="analytics" id="sidebar-analytics-button" title="Auswertung">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M4 19h16"></path>
+                  <path d="M7 16V9"></path>
+                  <path d="M12 16V5"></path>
+                  <path d="M17 16v-4"></path>
+                </svg>
+                <span>Auswertung</span>
+              </button>
+              <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <path d="M7 10l5 5 5-5"></path>
+                  <path d="M12 15V3"></path>
+                </svg>
+                <span>Importe</span>
+              </button>
+            </div>
           </div>
         </nav>
         <div class="sidebar-account-section" aria-label="Teams, Einstellungen und Profil" data-sidebar-section="account">
@@ -20407,13 +20506,16 @@
           <div class="workspace-expert-switcher" id="hospitation-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header hospitation-tab-nav" role="tablist" aria-label="Hospitationsbereiche">
               <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" data-hospitation-tab="appointments" aria-controls="hospitation-appointments-panel">
-                <span class="experts-mode-label">Termine</span>
+                <span class="experts-mode-label">Termine </span>
+                <span class="experts-mode-count" data-hospitation-tab-count="appointments">0</span>
               </button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" data-hospitation-tab="documentation" aria-controls="hospitation-documentation-panel">
-                <span class="experts-mode-label">Dokumentation</span>
+                <span class="experts-mode-label">Dokumentation </span>
+                <span class="experts-mode-count" data-hospitation-tab-count="documentation">0</span>
               </button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" data-hospitation-tab="dashboard" aria-controls="hospitation-dashboard-panel">
-                <span class="experts-mode-label">Dashboard</span>
+                <span class="experts-mode-label">Dashboard </span>
+                <span class="experts-mode-count" data-hospitation-tab-count="dashboard">0</span>
               </button>
             </div>
           </div>
@@ -23310,6 +23412,8 @@
       const sidebarCollapseButton = document.getElementById("sidebar-collapse-button");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
+      const sidebarCollapsibleSections = [...document.querySelectorAll("[data-sidebar-collapsible]")];
+      const sidebarSectionToggles = [...document.querySelectorAll("[data-sidebar-section-toggle]")];
       const topbarViewTitle = document.getElementById("topbar-view-title");
       const topbarViewMeta = document.getElementById("topbar-view-meta");
       const workspaceViewTitle = document.getElementById("workspace-view-title");
@@ -23578,6 +23682,8 @@
       let hospitationDetailTab = "overview";
       let hospitationCalendarDate = new Date();
       let hospitationStatusFilter = "";
+      let hospitationSectorFilter = "";
+      let hospitationOwnerFilter = "";
       let hospitationDateSortDirection = "desc";
       let hospitationLoadErrorMessage = "";
       let editingHospitationId = "";
@@ -23967,6 +24073,42 @@
           const actions = [...section.querySelectorAll(".primary-tab, .sidebar-link, .sidebar-footer")];
           const visible = actions.some(isSidebarNavActionVisible);
           setRoleElementVisible(section, visible);
+        });
+        syncActiveSidebarSection(activeView);
+      }
+
+      function sidebarGroupForView(view = activeView) {
+        const normalizedView = view === "personProfile"
+          ? personProfileParentView()
+          : view === "organizationProfile"
+            ? organizationProfileParentView()
+            : view;
+        if (["map", "contacts", "organizations", "experts", "patients", "stakeholders", "onboarding"].includes(normalizedView)) return "care";
+        if (["formats", "hospitations"].includes(normalizedView)) return "planning";
+        if (["analytics", "settings", "quality"].includes(normalizedView)) return "admin";
+        return "";
+      }
+
+      function setSidebarSectionExpanded(section, expanded) {
+        if (!section) return;
+        section.classList.toggle("is-expanded", expanded);
+        section.classList.toggle("is-collapsed", !expanded);
+        const toggle = section.querySelector("[data-sidebar-section-toggle]");
+        if (toggle) toggle.setAttribute("aria-expanded", String(expanded));
+      }
+
+      function expandSidebarGroup(group) {
+        sidebarCollapsibleSections.forEach((section) => {
+          setSidebarSectionExpanded(section, section.dataset.sidebarGroup === group);
+        });
+      }
+
+      function syncActiveSidebarSection(view = activeView) {
+        const activeGroup = sidebarGroupForView(view);
+        sidebarCollapsibleSections.forEach((section) => {
+          const active = Boolean(activeGroup) && section.dataset.sidebarGroup === activeGroup;
+          section.classList.toggle("is-active-section", active);
+          setSidebarSectionExpanded(section, active);
         });
       }
 
@@ -33442,6 +33584,120 @@
         return meaningfulOrEmpty(sector) ? normalizeCategory(sector) : "Nicht hinterlegt";
       }
 
+      function hospitationOwnerValue(item = {}) {
+        return item.ownerId || item.owner_id || currentProfile?.id || "";
+      }
+
+      function hospitationMatchesColumnFilters(item = {}, { includeStatus = true } = {}) {
+        const status = item.status || "";
+        const sector = hospitationSectorLabel(item);
+        const ownerValue = hospitationOwnerValue(item);
+        const matchesStatus = !includeStatus || !hospitationStatusFilter || status === hospitationStatusFilter;
+        const matchesSector = !hospitationSectorFilter || sector === hospitationSectorFilter;
+        const matchesOwner = !hospitationOwnerFilter ||
+          (hospitationOwnerFilter === "__none__" ? !ownerValue : ownerValue === hospitationOwnerFilter);
+        return matchesStatus && matchesSector && matchesOwner;
+      }
+
+      function activeHospitationRecords({ includeSlots = true } = {}) {
+        return [
+          ...hospitations.filter((hospitation) => hospitation.status !== "Archiviert"),
+          ...(includeSlots ? hospitationSlots.filter((slot) => slot.status !== "Archiviert") : [])
+        ];
+      }
+
+      function hospitationHeaderFilterOptions(filterKey) {
+        const records = activeHospitationRecords();
+        if (filterKey === "status") {
+          return [...new Set(records.map((item) => item.status).filter(Boolean))]
+            .sort((a, b) => hospitationStatusOptions.indexOf(a) - hospitationStatusOptions.indexOf(b) || a.localeCompare(b, "de"))
+            .map((value) => ({ value, label: value }));
+        }
+        if (filterKey === "sector") {
+          return [...new Set(records.map(hospitationSectorLabel).filter((value) => value && value !== "Nicht hinterlegt"))]
+            .sort((a, b) => a.localeCompare(b, "de"))
+            .map((value) => ({ value, label: value }));
+        }
+        if (filterKey === "owner") {
+          const ownerValues = [...new Set(records.map(hospitationOwnerValue).filter(Boolean))]
+            .sort((a, b) => (ownerDisplayLabel(a) || a).localeCompare(ownerDisplayLabel(b) || b, "de"))
+            .map((value) => ({ value, label: ownerDisplayLabel(value) || value }));
+          const hasUnowned = records.some((item) => !hospitationOwnerValue(item));
+          return hasUnowned ? [{ value: "__none__", label: "Kein Owner" }, ...ownerValues] : ownerValues;
+        }
+        return [];
+      }
+
+      function selectedHospitationHeaderFilterValue(filterKey) {
+        if (filterKey === "status") return hospitationStatusFilter;
+        if (filterKey === "sector") return hospitationSectorFilter;
+        if (filterKey === "owner") return hospitationOwnerFilter;
+        return "";
+      }
+
+      function setHospitationHeaderFilterValue(filterKey, value = "") {
+        if (filterKey === "status") hospitationStatusFilter = value;
+        if (filterKey === "sector") hospitationSectorFilter = value;
+        if (filterKey === "owner") hospitationOwnerFilter = value;
+        activeHospitationDetailKey = "";
+        closeHeaderFilterMenus();
+        renderHospitationsView();
+      }
+
+      function hospitationColumnHeaderMarkup(filterKey, label) {
+        const selectedValue = selectedHospitationHeaderFilterValue(filterKey);
+        const isActive = Boolean(selectedValue);
+        const menuId = `hospitation-header-filter-${filterKey}`;
+        const options = hospitationHeaderFilterOptions(filterKey).slice(0, 12);
+        return `
+          <div class="column-head">
+            <span class="column-head__label">${escapeHtml(label)}</span>
+            <span class="header-filter">
+              <button class="filter-icon-button ${isActive ? "is-active" : ""}" type="button" data-header-filter-button data-hospitation-header-filter-button aria-label="${escapeHtml(label)} in Spalte filtern" aria-expanded="false" aria-controls="${menuId}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M4 6h16"></path>
+                  <path d="M7 12h10"></path>
+                  <path d="M10 18h4"></path>
+                </svg>
+              </button>
+              <div class="filter-menu" id="${menuId}" data-header-filter-menu data-hospitation-header-filter-menu data-hospitation-filter-key="${escapeHtml(filterKey)}" hidden>
+                <div class="filter-menu__hint">${escapeHtml(label)} filtern</div>
+                <div class="filter-menu__list">
+                  <button class="filter-option ${isActive ? "" : "is-active"}" type="button" data-hospitation-filter-value="">Alle</button>
+                  ${options.map((option) => `
+                    <button class="filter-option ${selectedValue === option.value ? "is-active" : ""}" type="button" data-hospitation-filter-value="${escapeHtml(option.value)}">
+                      <span>${escapeHtml(option.label)}</span>
+                    </button>
+                  `).join("")}
+                </div>
+              </div>
+            </span>
+          </div>
+        `;
+      }
+
+      function bindHospitationHeaderFilterMenus(root = document) {
+        root.querySelectorAll("[data-hospitation-header-filter-button]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const menu = document.getElementById(button.getAttribute("aria-controls"));
+            if (!menu) return;
+            const shouldOpen = menu.hidden;
+            closeHeaderFilterMenus(menu);
+            menu.hidden = !shouldOpen;
+            button.setAttribute("aria-expanded", String(shouldOpen));
+          });
+        });
+        root.querySelectorAll("[data-hospitation-header-filter-menu]").forEach((menu) => {
+          menu.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const option = event.target.closest("[data-hospitation-filter-value]");
+            if (!option) return;
+            setHospitationHeaderFilterValue(menu.dataset.hospitationFilterKey, option.dataset.hospitationFilterValue || "");
+          });
+        });
+      }
+
       function sortedHospitations(items = hospitations) {
         return [...items].sort((left, right) => {
           const leftTime = new Date(left.startsAt || left.updatedAt || left.createdAt || 0).getTime();
@@ -33455,7 +33711,7 @@
         return sortedHospitations(
           hospitations
             .filter((hospitation) => hospitation.status !== "Archiviert" || canAdministerData())
-            .filter((hospitation) => !hospitationStatusFilter || hospitation.status === hospitationStatusFilter)
+            .filter((hospitation) => hospitationMatchesColumnFilters(hospitation))
             .filter((hospitation) => {
               if (!query) return true;
               const contact = hospitationContact(hospitation);
@@ -33467,6 +33723,8 @@
                 hospitationFreeTextContactName(hospitation),
                 hospitationFreeTextOrganizationName(hospitation),
                 hospitation.status,
+                hospitationSectorLabel(hospitation),
+                hospitationOwnerLabel(hospitationOwnerValue(hospitation)),
                 hospitationDateOnlyLabel(hospitation),
                 hospitation.goal,
                 Array.isArray(hospitation.topics) ? hospitation.topics.join(" ") : hospitation.topics,
@@ -33485,17 +33743,19 @@
         const query = hospitationSearchQuery();
         return [...hospitationSlots]
           .filter((slot) => slot.status !== "Archiviert" || canAdministerData())
+          .filter((slot) => hospitationMatchesColumnFilters(slot))
           .filter((slot) => {
             if (!query) return true;
             const pseudoHospitation = { contactId: slot.contactId, organizationId: slot.organizationId };
             return [
               hospitationContextLabel(pseudoHospitation),
               slot.status,
+              hospitationSectorLabel(slot),
               hospitationDateOnlyLabel(slot),
               slot.location,
               slot.city,
               slot.notes,
-              hospitationOwnerLabel(slot.ownerId)
+              hospitationOwnerLabel(hospitationOwnerValue(slot))
             ].join(" ").toLowerCase().includes(query);
           })
           .sort((left, right) => new Date(left.startsAt || 0).getTime() - new Date(right.startsAt || 0).getTime());
@@ -33615,7 +33875,7 @@
       }
 
       function hospitationEntryOwnerId(entry = {}) {
-        return entry.item?.ownerId || entry.item?.owner_id || currentProfile?.id || "";
+        return hospitationOwnerValue(entry.item || {});
       }
 
       function hospitationFollowUpLabel(item = {}) {
@@ -33643,7 +33903,7 @@
               entry.item.location,
               entry.item.city,
               entry.item.notes,
-              hospitationOwnerLabel(entry.item.ownerId)
+              hospitationOwnerLabel(hospitationOwnerValue(entry.item))
             ].join(" ").toLowerCase().includes(query);
           })
           .sort((left, right) => {
@@ -33952,9 +34212,9 @@
               <span>Kontakt</span>
               <span>Organisation</span>
               ${renderHospitationDateSortHeader()}
-              <span>Status</span>
-              <span>Sektor</span>
-              <span>Owner</span>
+              ${hospitationColumnHeaderMarkup("status", "Status")}
+              ${hospitationColumnHeaderMarkup("sector", "Sektor")}
+              ${hospitationColumnHeaderMarkup("owner", "Owner")}
               <span></span>
             </div>
             ${entries.map(renderHospitationScheduleRow).join("")}
@@ -34053,9 +34313,12 @@
         return `
           <article class="hospitation-card" data-hospitation-card="${escapeHtml(hospitation.id)}">
             <div class="hospitation-card__head">
-              <div class="hospitation-card__title">
-                <h3>${escapeHtml(hospitationContextLabel(hospitation))}</h3>
-                <div class="hospitation-card__meta">${escapeHtml(hospitationDateRangeLabel(hospitation))}</div>
+              <div class="hospitation-card__identity">
+                ${hospitationAvatarMarkup(hospitation)}
+                <div class="hospitation-card__title">
+                  <h3>${escapeHtml(hospitationContextLabel(hospitation))}</h3>
+                  <div class="hospitation-card__meta">${escapeHtml(hospitationDateRangeLabel(hospitation))}</div>
+                </div>
               </div>
               ${hospitationStatusBadgeMarkup(hospitation.status)}
             </div>
@@ -34174,6 +34437,7 @@
       }
 
       function bindHospitationListActions(root = document) {
+        bindHospitationHeaderFilterMenus(root);
         const openHospitationDetail = (key, { forceOpen = false } = {}) => {
           if (!key) return;
           const isSame = activeHospitationDetailKey === key;
@@ -34271,6 +34535,19 @@
         });
       }
 
+      function updateHospitationTabCounts() {
+        const counts = {
+          appointments: hospitationScheduleEntries().length,
+          documentation: openDocumentationHospitations().length,
+          dashboard: filteredHospitations().length
+        };
+        hospitationTabButtons.forEach((button) => {
+          const tab = button.dataset.hospitationTab || "";
+          const counter = button.querySelector("[data-hospitation-tab-count]");
+          if (counter) counter.textContent = String(counts[tab] ?? 0);
+        });
+      }
+
       function renderHospitationsView() {
         if (activeView !== "hospitations") return;
         const activeTab = hospitationTabItems.some((item) => item.id === activeHospitationTab) ? activeHospitationTab : "appointments";
@@ -34285,6 +34562,7 @@
         });
         renderHospitationStatusLegend();
         const items = filteredHospitations();
+        updateHospitationTabCounts();
         if (resultsCount) resultsCount.textContent = hitCountLabel(items);
         if (hospitationLoadErrorMessage && hospitationList) {
           hospitationList.innerHTML = `<div class="history-error">${escapeHtml(hospitationLoadErrorMessage)}</div>`;
@@ -40730,6 +41008,7 @@
         sidebarImportButton?.classList.toggle("is-active", view === "settings");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
         sidebarProfileButton?.classList.toggle("is-active", view === "profile");
+        syncActiveSidebarSection(activeNavigationView);
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
           panel.setAttribute("aria-hidden", panel.dataset.viewPanel === view ? "false" : "true");
@@ -42556,6 +42835,11 @@
       });
       restoreSidebarState();
       if (isMobileLayout()) setMobileSidebarExpanded(false);
+      sidebarSectionToggles.forEach((toggle) => {
+        toggle.addEventListener("click", () => {
+          expandSidebarGroup(toggle.dataset.sidebarSectionToggle || "");
+        });
+      });
       sidebarCollapseButton?.addEventListener("click", () => {
         if (isMobileLayout()) {
           setMobileSidebarExpanded(!appShell?.classList.contains("is-mobile-sidebar-expanded"));

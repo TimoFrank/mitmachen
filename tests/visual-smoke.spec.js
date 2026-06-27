@@ -240,10 +240,12 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#filter-panel-button")).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
-  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Versorgung" })).toHaveCount(1);
-  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Planung" })).toHaveCount(1);
-  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Admin" })).toHaveCount(1);
-  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Stakeholder" })).toHaveCount(0);
+  await expect(page.locator('[data-sidebar-section-toggle="care"]').filter({ hasText: "Versorgung" })).toHaveCount(1);
+  await expect(page.locator('[data-sidebar-section-toggle="planning"]').filter({ hasText: "Planung" })).toHaveCount(1);
+  await expect(page.locator('[data-sidebar-section-toggle="admin"]').filter({ hasText: "Admin" })).toHaveCount(1);
+  await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-active-section/);
+  await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-collapsed/);
+  await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCount(0);
   await expect(page.locator('[data-view-tab="map"]')).toContainText("Karte");
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(0);
   await expect(page.locator('[data-view-tab="organizations"]')).toHaveCount(0);
@@ -983,7 +985,7 @@ test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#sidebar-import-button")).toBeHidden();
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveAttribute("aria-hidden", "true");
-  await expect(page.locator(".sidebar-section-label").filter({ hasText: "Admin" })).toBeHidden();
+  await expect(page.locator('[data-sidebar-section-toggle="admin"]')).toBeHidden();
   await expect(page.locator("#archive-view-button")).toBeHidden();
 
   await attachScreenshot(page, testInfo, "viewer-rolle");
@@ -994,6 +996,9 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveAttribute("aria-hidden", "false");
+  if (!testInfo.project.name.includes("mobile")) {
+    await page.locator('[data-sidebar-section-toggle="admin"]').click();
+  }
   await expect(page.locator("#sidebar-import-button")).toBeVisible();
   await expect(page.locator("#archive-view-button")).toHaveAttribute("aria-hidden", "false");
   if (!testInfo.project.name.includes("mobile")) {
@@ -1470,6 +1475,9 @@ test("Stakeholder: KVn-Bereich ist nur fuer Admins sichtbar", async ({ page }) =
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html");
 
+  if (!testInfo.project.name.includes("mobile")) {
+    await page.locator('[data-sidebar-section-toggle="admin"]').click();
+  }
   await page.locator('[data-view-tab="analytics"]:visible').first().click();
 
   await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();
