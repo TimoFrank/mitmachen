@@ -355,9 +355,10 @@
         height: 100vh;
         display: flex;
         flex-direction: column;
+        min-height: 0;
         padding: 22px 14px 18px;
         overflow-x: hidden;
-        overflow-y: auto;
+        overflow-y: hidden;
         overscroll-behavior: contain;
         background:
           linear-gradient(180deg, rgba(13, 62, 149, 0.92), rgba(5, 33, 92, 0.98)),
@@ -444,10 +445,16 @@
 
       .sidebar-nav {
         width: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
         display: grid;
+        align-content: start;
         gap: 16px;
         margin-top: 14px;
-        padding: 0;
+        padding: 0 2px 12px 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
         border: 0;
         border-radius: 0;
         background: transparent;
@@ -572,7 +579,12 @@
       }
 
       .sidebar-account-section {
-        margin-top: 10px;
+        flex: 0 0 auto;
+        margin-top: 0;
+      }
+
+      .sidebar-collapse {
+        flex: 0 0 auto;
       }
 
       .sidebar-link {
@@ -11206,7 +11218,7 @@
         width: var(--sidebar-width);
         padding: 22px 14px 18px;
         overflow-x: hidden;
-        overflow-y: auto;
+        overflow-y: hidden;
         overscroll-behavior: contain;
         background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-strong) 100%);
         box-shadow: none;

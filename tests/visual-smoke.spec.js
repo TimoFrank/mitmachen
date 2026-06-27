@@ -1017,9 +1017,11 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
 
   const sidebar = page.locator(".app-sidebar");
+  const sidebarNav = page.locator(".sidebar-nav");
+  const accountSection = page.locator(".sidebar-account-section");
   await expect(sidebar).toBeVisible();
 
-  const scrollMetrics = await sidebar.evaluate((element) => {
+  const scrollMetrics = await sidebarNav.evaluate((element) => {
     element.scrollTop = 0;
     const scrollHeight = element.scrollHeight;
     const clientHeight = element.clientHeight;
@@ -1033,15 +1035,23 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
   });
   expect(scrollMetrics.overflowY).toMatch(/auto|scroll/);
   if (!testInfo.project.name.includes("mobile")) {
+    await expect(sidebar).toHaveCSS("overflow-y", "hidden");
     expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
     expect(scrollMetrics.scrollTop).toBeGreaterThan(0);
+
+    const accountTopBefore = await accountSection.evaluate((element) => element.getBoundingClientRect().top);
+    await sidebarNav.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    const accountTopAfter = await accountSection.evaluate((element) => element.getBoundingClientRect().top);
+    expect(Math.abs(accountTopAfter - accountTopBefore)).toBeLessThanOrEqual(1);
   }
 
   await expect(page.locator("#sidebar-profile-button")).toBeInViewport();
   await page.locator("#sidebar-profile-button").click();
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
 
-  await sidebar.evaluate((element) => {
+  await sidebarNav.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
   await page.locator("#sidebar-team-button").click();
