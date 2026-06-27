@@ -83,8 +83,8 @@
     const useSupabase = Boolean(window.dataService?.isConfigured?.());
     const loginFailureMessage = "Die Anmeldung war nicht erfolgreich. Bitte prüfe Kürzel/E-Mail und Passwort.";
 
-    if (title) title.textContent = config.appName || "Versorgungs-Kompass";
-    if (subtitle) subtitle.textContent = "Das gematik-Hospitationsnetzwerk";
+    if (title) title.textContent = "Der gematik-Versorgungskompass";
+    if (subtitle) subtitle.textContent = "Wissensmanagement für Hospitationen, Co-Creation und Veranstaltungen.";
 
     if (!form || !input || !error || !button) return;
 

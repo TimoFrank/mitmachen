@@ -419,6 +419,31 @@
         letter-spacing: -0.03em;
       }
 
+      .sidebar-brand-copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .sidebar-brand-kicker,
+      .sidebar-brand-subtitle {
+        display: block;
+        max-width: 158px;
+        line-height: 1.18;
+      }
+
+      .sidebar-brand-kicker {
+        color: rgba(232, 241, 255, 0.86);
+        font-size: 0.74rem;
+        font-weight: 900;
+      }
+
+      .sidebar-brand-subtitle {
+        color: rgba(232, 241, 255, 0.76);
+        font-size: 0.68rem;
+        font-weight: 700;
+      }
+
       .sidebar-nav {
         width: 100%;
         display: grid;
@@ -11111,7 +11136,7 @@
         padding-inline: 0;
       }
 
-      .app-shell.is-sidebar-collapsed .sidebar-brand strong,
+      .app-shell.is-sidebar-collapsed .sidebar-brand-copy,
       .app-shell.is-sidebar-collapsed .sidebar-nav .primary-tab span,
       .app-shell.is-sidebar-collapsed .sidebar-link span,
       .app-shell.is-sidebar-collapsed .sidebar-section-label,
@@ -14419,7 +14444,7 @@
           padding: 0 0 12px;
         }
 
-        .sidebar-brand strong,
+        .sidebar-brand-copy,
         .sidebar-nav .primary-tab span,
         .sidebar-link span,
         .sidebar-footer div,
@@ -17083,7 +17108,13 @@
           max-width: none;
         }
 
+        .app-shell.is-mobile-sidebar-expanded .sidebar-brand-copy {
+          display: grid !important;
+        }
+
         .app-shell.is-mobile-sidebar-expanded .sidebar-brand strong,
+        .app-shell.is-mobile-sidebar-expanded .sidebar-brand-kicker,
+        .app-shell.is-mobile-sidebar-expanded .sidebar-brand-subtitle,
         .app-shell.is-mobile-sidebar-expanded .sidebar-nav .primary-tab span,
         .app-shell.is-mobile-sidebar-expanded .sidebar-link span,
         .app-shell.is-mobile-sidebar-expanded .sidebar-footer div {
@@ -17097,6 +17128,11 @@
           clip: auto !important;
           white-space: nowrap !important;
           border: 0 !important;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-brand-subtitle {
+          max-width: 190px;
+          white-space: normal !important;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-section-label {
@@ -17492,7 +17528,11 @@
       }
 
       .hospitation-tab-nav {
-        margin-left: auto;
+        min-width: 0;
+      }
+
+      .workspace-header .hospitation-tab-nav {
+        width: 100%;
       }
 
       .hospitation-status-legend {
@@ -19768,18 +19808,18 @@
 
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-copy,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #summary-grid {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="analytics"], [data-active-view="quality"], [data-active-view="hospitations"]) .workspace-copy,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="hospitations"]) #summary-grid {
         display: none;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .workspace-header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .workspace-header {
         grid-template-columns: minmax(0, 1fr);
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .workspace-header .workspace-actions,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .workspace-expert-switcher,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .experts-mode-nav--header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .workspace-header .workspace-actions,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .workspace-expert-switcher,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .experts-mode-nav--header {
         width: 100%;
         min-width: 0;
       }
@@ -19824,20 +19864,20 @@
         }
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .workspace-header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .workspace-header {
         gap: 0;
         padding-bottom: 6px;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .controls {
         padding-bottom: 10px;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .experts-mode-nav--header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .experts-mode-nav--header {
         margin-bottom: 0;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .controls-stack {
         grid-template-columns: minmax(0, 1fr);
         gap: 0;
         padding: 0;
@@ -19847,7 +19887,7 @@
         box-shadow: none;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-shell {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .controls-stack .search-shell {
         min-height: 56px;
         padding: 0 18px 0 14px;
         border-color: var(--border-strong);
@@ -19857,13 +19897,13 @@
         transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-shell:hover,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-shell:focus-within {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .controls-stack .search-shell:hover,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .controls-stack .search-shell:focus-within {
         border-color: var(--primary);
         box-shadow: 0 0 0 3px rgba(21, 95, 228, 0.12), var(--shadow-sm);
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-shell svg {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .controls-stack .search-shell svg {
         width: 34px;
         height: 34px;
         padding: 8px;
@@ -19873,7 +19913,7 @@
         color: var(--primary);
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"]) .controls-stack .search-input {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="experts"], [data-active-view="patients"], [data-active-view="stakeholders"], [data-active-view="hospitations"]) .controls-stack .search-input {
         font-size: 1rem;
         font-weight: 700;
       }
@@ -19920,7 +19960,8 @@
         }
 
         .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions,
-        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions {
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions,
+        .app-shell[data-active-view="hospitations"] #hospitation-mode-actions {
           overflow-x: auto;
           overflow-y: hidden;
           -webkit-overflow-scrolling: touch;
@@ -19930,12 +19971,14 @@
         }
 
         .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions::-webkit-scrollbar,
-        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions::-webkit-scrollbar {
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions::-webkit-scrollbar,
+        .app-shell[data-active-view="hospitations"] #hospitation-mode-actions::-webkit-scrollbar {
           display: none;
         }
 
         .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-nav--header,
-        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-nav--header {
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-nav--header,
+        .app-shell[data-active-view="hospitations"] #hospitation-mode-actions .experts-mode-nav--header {
           width: max-content;
           min-width: 100%;
           justify-content: flex-start;
@@ -19945,7 +19988,8 @@
         }
 
         .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .settings-tab-button,
-        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .settings-tab-button {
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .settings-tab-button,
+        .app-shell[data-active-view="hospitations"] #hospitation-mode-actions .settings-tab-button {
           flex: 0 0 auto;
           min-width: 128px;
           min-height: 52px;
@@ -19955,7 +19999,8 @@
         }
 
         .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-label,
-        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-label {
+        .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-label,
+        .app-shell[data-active-view="hospitations"] #hospitation-mode-actions .experts-mode-label {
           white-space: nowrap;
         }
 
@@ -20123,7 +20168,11 @@
             <span></span>
             <span></span>
           </div>
-          <strong>Versorgungs-Kompass</strong>
+          <div class="sidebar-brand-copy">
+            <span class="sidebar-brand-kicker">#Mitmachen</span>
+            <strong>Versorgungs-Kompass</strong>
+            <span class="sidebar-brand-subtitle">Hospitationen, Co-Creation und Veranstaltungen</span>
+          </div>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
           <div class="sidebar-section" aria-label="Versorgung" data-sidebar-section="contacts">
@@ -20334,6 +20383,19 @@
           </div>
           <div class="workspace-expert-switcher" id="stakeholder-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header stakeholder-type-nav" id="stakeholder-type-actions" role="tablist" aria-label="Stakeholder-Typen"></div>
+          </div>
+          <div class="workspace-expert-switcher" id="hospitation-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header hospitation-tab-nav" role="tablist" aria-label="Hospitationsbereiche">
+              <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" data-hospitation-tab="appointments" aria-controls="hospitation-appointments-panel">
+                <span class="experts-mode-label">Termine</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" data-hospitation-tab="documentation" aria-controls="hospitation-documentation-panel">
+                <span class="experts-mode-label">Dokumentation</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" data-hospitation-tab="dashboard" aria-controls="hospitation-dashboard-panel">
+                <span class="experts-mode-label">Dashboard</span>
+              </button>
+            </div>
           </div>
           <div class="workspace-header-search" id="expert-header-search" hidden></div>
           <div class="workspace-header-search" id="stakeholder-header-search" hidden></div>
@@ -20784,11 +20846,6 @@
                   <button class="action-button action-button--primary" type="button" id="new-hospitation-request-button"><span class="action-button__icon">+</span>Anfrage</button>
                   <button class="action-button" type="button" id="new-hospitation-booking-button">Direkt buchen</button>
                   <button class="action-button" type="button" id="new-hospitation-slot-button">Termin anbieten</button>
-                </div>
-                <div class="settings-tab-nav hospitation-tab-nav" role="tablist" aria-label="Hospitationsbereiche">
-                  <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" data-hospitation-tab="appointments" aria-controls="hospitation-appointments-panel">Termine</button>
-                  <button class="settings-tab-button" type="button" role="tab" aria-selected="false" data-hospitation-tab="documentation" aria-controls="hospitation-documentation-panel">Dokumentation</button>
-                  <button class="settings-tab-button" type="button" role="tab" aria-selected="false" data-hospitation-tab="dashboard" aria-controls="hospitation-dashboard-panel">Dashboard</button>
                 </div>
               </div>
               <div class="hospitation-status-legend" id="hospitation-status-legend" aria-label="Hospitationsstatus"></div>
@@ -21329,9 +21386,9 @@
               <div class="about-workspace">
                 <section class="about-intro">
                   <div>
-                    <h3>Versorgungs-Kompass</h3>
-                    <div class="about-intro__highlight">Ein gemeinsamer Blick auf Kontakte, Organisationen und regionale Versorgung - klar strukturiert, schnell filterbar und bereit für echte Netzwerkarbeit.</div>
-                    <p>Der Versorgungs-Kompass ist ein gemeinsames Arbeitswerkzeug für Versorgungsteams. Er hilft dabei, Kontakte, Organisationen und regionale Zusammenhänge an einem Ort zu pflegen.</p>
+                    <h3>#Mitmachen</h3>
+                    <div class="about-intro__highlight">#Mitmachen - Der gematik-Versorgungskompass: Ein Wissensmanagement-Tool für Hospitationen, Co-Creation und Veranstaltungen.</div>
+                    <p>Der Versorgungs-Kompass ist ein gemeinsames Arbeitswerkzeug für Versorgungsteams. Er hilft dabei, Kontakte, Organisationen, regionale Zusammenhänge und Formate an einem Ort zu pflegen.</p>
                   </div>
                 </section>
                 <div class="about-topic-list" aria-label="Funktionen des Versorgungs-Kompass">
@@ -21344,7 +21401,7 @@
                     <p>Filter, Tabellen und gespeicherte Arbeitslogik helfen dir, relevante Kontakte nach Region, Thema, Owner oder Datenqualität einzugrenzen.</p>
                   </section>
                   <section class="about-topic">
-                    <h3>CRM-Profile</h3>
+                    <h3>Profile</h3>
                     <p>Kontakt- und Organisationsprofile zeigen erst die wichtigsten Informationen im Lesemodus. Bearbeiten bleibt eine bewusste Aktion.</p>
                   </section>
                   <section class="about-topic">
@@ -23149,6 +23206,7 @@
       const careModeButtons = [...document.querySelectorAll("[data-care-mode]")];
       const analyticsModeActions = document.getElementById("analytics-mode-actions");
       const analyticsModeButtons = [...document.querySelectorAll("[data-analytics-mode]")];
+      const hospitationModeActions = document.getElementById("hospitation-mode-actions");
       const expertModeButtons = [...document.querySelectorAll("[data-expert-mode]")];
       const expertTables = [...document.querySelectorAll("[data-expert-table]")];
       const patientModeButtons = [...document.querySelectorAll("[data-patient-mode]")];
@@ -42116,6 +42174,7 @@
         if (expertCommandActions) expertCommandActions.hidden = !isExpertsView;
         if (patientModeActions) patientModeActions.hidden = !isPatientsView;
         if (stakeholderModeActions) stakeholderModeActions.hidden = !isStakeholdersView;
+        if (hospitationModeActions) hospitationModeActions.hidden = !isHospitationsView;
         if (stakeholderCommandActions) stakeholderCommandActions.hidden = !isStakeholdersView;
         if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertOrganizationsMode;
         if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView || !isExpertOrganizationsMode;

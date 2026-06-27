@@ -1062,7 +1062,7 @@ test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ pag
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="about"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#profile-tab-about")).toBeVisible();
-  await expect(page.locator("#profile-tab-about .about-intro__highlight")).toContainText("Ein gemeinsamer Blick auf Kontakte");
+  await expect(page.locator("#profile-tab-about .about-intro__highlight")).toContainText("Der gematik-Versorgungskompass");
   await expect(page.locator("#profile-tab-about .about-topic")).toHaveCount(6);
   await expect(page.locator("#profile-tab-about")).not.toContainText("Changelog");
 
