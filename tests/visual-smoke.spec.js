@@ -441,7 +441,9 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator("#activities-list .activity-item")).toHaveCount(36);
   await expect(page.locator("#activities-load-more-row")).toHaveCount(0);
   await expect(page.locator(".app-shell[data-active-view='activities'] #summary-grid")).toBeHidden();
-  await expect(page.locator(".activities-filter-field")).toHaveCount(3);
+  await expect(page.locator(".activities-filter-field")).toHaveCount(2);
+  await expect(page.locator(".activity-type-chip")).toHaveCount(7);
+  await expect(page.locator('[data-activity-kind-option="all"]')).toHaveClass(/is-active/);
   await expect(page.locator("#activities-meta")).toHaveText("36 Aktivitäten");
   await expect(page.locator(".history-action-pill--update").first()).toBeVisible();
   await expect(page.locator(".history-action-pill--import").first()).toBeVisible();
@@ -457,7 +459,8 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
 
   await attachScreenshot(page, testInfo, "aktivitaeten");
 
-  await page.selectOption("#activity-kind-filter", "owner");
+  await page.locator('[data-activity-kind-option="owner"]').click();
+  await expect(page.locator("#activity-kind-filter")).toHaveValue("owner");
   await expect(page.locator("#activities-list .activity-item").first()).toBeVisible();
   await expect(page.locator(".history-action-pill--owner").first()).toBeVisible();
   await page.locator(".history-details summary").first().click();

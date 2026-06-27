@@ -4835,10 +4835,134 @@
 
       .activities-filters {
         display: grid;
-        grid-template-columns: repeat(3, minmax(150px, 1fr));
-        align-items: end;
+        grid-template-columns: minmax(280px, 1.45fr) repeat(2, minmax(180px, 0.8fr));
+        align-items: stretch;
         gap: 12px;
         width: 100%;
+      }
+
+      .activities-filter-group {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .activities-filter-label {
+        color: #64748b;
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .activity-type-segments {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        min-height: 56px;
+        padding: 8px;
+        border: 1px solid #d7e0f4;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+      }
+
+      .activity-type-chip {
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 10px;
+        border: 1px solid #d7e0f4;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        line-height: 1;
+        cursor: pointer;
+        transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+      }
+
+      .activity-type-chip::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .activity-type-chip:hover,
+      .activity-type-chip:focus-visible {
+        border-color: #94a3b8;
+        background: #ffffff;
+        outline: none;
+      }
+
+      .activity-type-chip.is-active {
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+
+      .activity-type-chip--all.is-active {
+        border-color: #94a3b8;
+        background: #e2e8f0;
+        color: #334155;
+      }
+
+      .activity-type-chip--update {
+        color: #1d4ed8;
+      }
+
+      .activity-type-chip--update.is-active {
+        border-color: #60a5fa;
+        background: #dbeafe;
+      }
+
+      .activity-type-chip--owner {
+        color: #6d28d9;
+      }
+
+      .activity-type-chip--owner.is-active {
+        border-color: #a78bfa;
+        background: #ede9fe;
+      }
+
+      .activity-type-chip--archive {
+        color: #be123c;
+      }
+
+      .activity-type-chip--archive.is-active {
+        border-color: #fb7185;
+        background: #ffe4e6;
+      }
+
+      .activity-type-chip--restore {
+        color: #92400e;
+      }
+
+      .activity-type-chip--restore.is-active {
+        border-color: #f59e0b;
+        background: #fef3c7;
+      }
+
+      .activity-type-chip--create {
+        color: #0f766e;
+      }
+
+      .activity-type-chip--create.is-active {
+        border-color: #2dd4bf;
+        background: #ccfbf1;
+      }
+
+      .activity-type-chip--import {
+        color: #166534;
+      }
+
+      .activity-type-chip--import.is-active {
+        border-color: #4ade80;
+        background: #dcfce7;
       }
 
       .activities-filter-field {
@@ -4897,6 +5021,14 @@
 
       .activities-filter:focus-visible {
         outline: none;
+      }
+
+      .activities-filter--native-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
       }
 
       .activities-meta {
@@ -21437,9 +21569,18 @@
               </div>
               <div class="activities-command-row">
                 <div class="activities-filters" aria-label="Aktivitäten filtern">
-                  <label class="activities-filter-field">
-                    <span>Typ</span>
-                    <select class="activities-filter" id="activity-kind-filter" aria-label="Aktivitätstyp filtern">
+                  <div class="activities-filter-group">
+                    <span class="activities-filter-label">Typ</span>
+                    <div class="activity-type-segments" aria-label="Aktivitätstyp filtern">
+                      <button class="activity-type-chip activity-type-chip--all is-active" type="button" data-activity-kind-option="all">Alle</button>
+                      <button class="activity-type-chip activity-type-chip--update" type="button" data-activity-kind-option="update">Updates</button>
+                      <button class="activity-type-chip activity-type-chip--owner" type="button" data-activity-kind-option="owner">Owner</button>
+                      <button class="activity-type-chip activity-type-chip--archive" type="button" data-activity-kind-option="archive">Archiv</button>
+                      <button class="activity-type-chip activity-type-chip--restore" type="button" data-activity-kind-option="restore">Restore</button>
+                      <button class="activity-type-chip activity-type-chip--create" type="button" data-activity-kind-option="create">Neu</button>
+                      <button class="activity-type-chip activity-type-chip--import" type="button" data-activity-kind-option="import">Import</button>
+                    </div>
+                    <select class="activities-filter activities-filter--native-hidden" id="activity-kind-filter" aria-label="Aktivitätstyp filtern" tabindex="-1">
                       <option value="all">Alle Aktivitäten</option>
                       <option value="update">Updates</option>
                       <option value="owner">Owner</option>
@@ -21448,7 +21589,7 @@
                       <option value="create">Anlage</option>
                       <option value="import">Import</option>
                     </select>
-                  </label>
+                  </div>
                   <label class="activities-filter-field">
                     <span>Nutzer</span>
                     <select class="activities-filter" id="activity-user-filter" aria-label="Bearbeiter filtern">
@@ -23920,6 +24061,7 @@
       const activityUserFilter = document.getElementById("activity-user-filter");
       const activityRangeFilter = document.getElementById("activity-range-filter");
       const activitySearchSlot = document.getElementById("activities-search-slot");
+      const activityKindButtons = [...document.querySelectorAll("[data-activity-kind-option]")];
       const notificationsList = document.getElementById("notifications-list");
       const notificationsMeta = document.getElementById("notifications-meta");
       const notificationFilterButtons = [...document.querySelectorAll("[data-notification-filter]")];
@@ -32966,6 +33108,15 @@
         activityUserFilter.value = users.some((user) => user.value === activeValue) ? activeValue : "all";
       }
 
+      function syncActivityKindButtons() {
+        const activeValue = activityKindFilter?.value || "all";
+        activityKindButtons.forEach((button) => {
+          const active = (button.dataset.activityKindOption || "all") === activeValue;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+      }
+
       function renderActivitiesLoading() {
         if (activitiesList) activitiesList.innerHTML = `<div class="history-loading">Aktivitäten werden geladen...</div>`;
         if (activitiesMeta) activitiesMeta.textContent = "Alle Aktivitäten werden geladen";
@@ -33041,6 +33192,7 @@
 
       function renderActivitiesView() {
         if (activeView !== "activities" || !activitiesList) return;
+        syncActivityKindButtons();
         renderActivityUserFilter();
         renderSummary(activities);
         const key = activityRequestKey();
@@ -44488,6 +44640,16 @@
         filter?.addEventListener("change", () => {
           activitiesLoaded = false;
           activitiesRequestKey = "";
+          updateView();
+        });
+      });
+      activityKindButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          if (!activityKindFilter) return;
+          activityKindFilter.value = button.dataset.activityKindOption || "all";
+          activitiesLoaded = false;
+          activitiesRequestKey = "";
+          syncActivityKindButtons();
           updateView();
         });
       });
