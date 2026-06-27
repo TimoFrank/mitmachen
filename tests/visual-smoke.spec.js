@@ -929,6 +929,24 @@ test("Kontaktprofil: direkter Deeplink rendert Profilseite", async ({ page }) =>
   await expect(page.locator("#search")).toBeHidden();
 });
 
+test("Kontaktprofil-Drawer: Notizen erscheinen als Chat", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Mobile oeffnet Kontaktprofile direkt als Profilseite.");
+
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
+
+  await page.locator("#contact-list .row").first().click();
+  await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+  await page.locator('#detail-drawer [data-detail-tab="notes"]').click();
+
+  const notesPanel = page.locator("#detail-drawer #detail-notes");
+  await expect(notesPanel.locator(".contact-notes-thread")).toBeVisible();
+  await expect(notesPanel.locator(".format-chat-list")).toBeVisible();
+  await expect(notesPanel.locator("#contact-notes-composer")).toBeVisible();
+  await expect(notesPanel.locator("#contact-notes-message")).toBeVisible();
+  await expect(notesPanel.locator(".detail-note-block")).toHaveCount(0);
+  await expect(notesPanel.locator("#detail-note-input")).toHaveCount(0);
+});
+
 test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
 
