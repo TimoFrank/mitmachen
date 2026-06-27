@@ -1093,22 +1093,43 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveCount(0);
   await detail.locator('[data-hospitation-edit-field="status"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveValue("Durchgeführt");
+  await expect(detail.locator('[data-hospitation-save-field="status"]')).toBeVisible();
   await detail.locator('[data-hospitation-inline-field="status"]').selectOption("Dokumentiert");
+  await detail.locator('[data-hospitation-save-field="status"]').click();
   await expect(detail.locator(".hospitation-overview-facts .hospitation-status-badge")).toContainText("Dokumentiert");
   await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveCount(0);
   await detail.locator('[data-hospitation-edit-field="startsAt"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="startsAt"]')).toHaveCount(1);
-  await detail.locator('[data-hospitation-inline-field="startsAt"]').blur();
+  await expect(detail.locator('[data-hospitation-save-field="startsAt"]')).toBeVisible();
+  await detail.locator('[data-hospitation-save-field="startsAt"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="startsAt"]')).toHaveCount(0);
   await expect(detail.locator(".hospitation-overview-meta .avatar").first()).toBeVisible();
+  await expect(detail.locator(".hospitation-overview-meta .hospitation-meta-icon")).toHaveCount(0);
   await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(0);
   await detail.locator('[data-hospitation-edit-field="contactId"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(1);
   await detail.locator('[data-hospitation-edit-field="goal"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(0);
   await detail.locator('[data-hospitation-inline-field="goal"]').fill("Inline-Ziel aus dem Visualtest");
-  await detail.locator('[data-hospitation-inline-field="goal"]').blur();
+  await detail.locator('[data-hospitation-save-field="goal"]').click();
   await expect(detail.locator(".hospitation-overview-meta")).toContainText("Inline-Ziel aus dem Visualtest");
+
+  await detail.getByRole("tab", { name: "Dokumentation" }).click();
+  await detail.locator('[data-hospitation-edit-field="documentationSummary"]').click();
+  await expect(detail.locator('[data-hospitation-save-field="documentationSummary"]')).toBeVisible();
+  await detail.locator('[data-hospitation-inline-field="documentationSummary"]').fill("Dokumentationsnotiz aus dem Visualtest");
+  await detail.locator('[data-hospitation-save-field="documentationSummary"]').click();
+  await expect(detail.locator(".hospitation-editable-lines")).toContainText("Dokumentationsnotiz aus dem Visualtest");
+
+  await detail.getByRole("tab", { name: "Follow-up" }).click();
+  await detail.locator('[data-hospitation-edit-field="followUpNote"]').click();
+  await detail.locator('[data-hospitation-inline-field="followUpNote"]').fill("Follow-up aus dem Visualtest");
+  await detail.locator('[data-hospitation-save-field="followUpNote"]').click();
+  await detail.locator('[data-hospitation-edit-field="followUpDueAt"]').click();
+  await detail.locator('[data-hospitation-inline-field="followUpDueAt"]').fill("2026-07-01");
+  await detail.locator('[data-hospitation-save-field="followUpDueAt"]').click();
+  await expect(detail.locator(".hospitation-editable-lines")).toContainText("Follow-up aus dem Visualtest");
+  await expect(detail.locator(".hospitation-editable-lines")).toContainText("01.07.2026");
 
   await detail.getByRole("tab", { name: "Themen" }).click();
   await expect(detail.locator(".detail-theme-editor")).toBeVisible();

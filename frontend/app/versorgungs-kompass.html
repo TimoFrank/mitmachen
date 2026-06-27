@@ -19049,7 +19049,8 @@
         color: var(--text-muted);
       }
 
-      .hospitation-edit-trigger {
+      .hospitation-edit-trigger,
+      .hospitation-inline-confirm {
         width: 30px;
         height: 30px;
         flex: 0 0 auto;
@@ -19063,14 +19064,23 @@
       }
 
       .hospitation-edit-trigger:hover,
-      .hospitation-edit-trigger:focus-visible {
+      .hospitation-edit-trigger:focus-visible,
+      .hospitation-inline-confirm:hover,
+      .hospitation-inline-confirm:focus-visible {
         border-color: var(--primary);
         color: var(--primary);
         box-shadow: var(--focus-ring);
         outline: none;
       }
 
-      .hospitation-edit-trigger svg {
+      .hospitation-inline-confirm {
+        border-color: #9fd9ad;
+        background: #edf9f0;
+        color: #217942;
+      }
+
+      .hospitation-edit-trigger svg,
+      .hospitation-inline-confirm svg {
         width: 15px;
         height: 15px;
         fill: none;
@@ -19078,6 +19088,20 @@
         stroke-width: 2.1;
         stroke-linecap: round;
         stroke-linejoin: round;
+      }
+
+      .hospitation-inline-editor {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .hospitation-inline-editor .format-fact-control,
+      .hospitation-inline-editor .format-fact-select-shell {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin-top: 0;
       }
 
       .hospitation-overview-facts .format-fact > span,
@@ -19109,18 +19133,21 @@
         align-items: center;
       }
 
-      .hospitation-overview-meta.detail-line-list {
+      .hospitation-overview-meta.detail-line-list,
+      .hospitation-editable-lines.detail-line-list {
         gap: 10px;
       }
 
-      .hospitation-overview-meta .detail-line {
+      .hospitation-overview-meta .detail-line,
+      .hospitation-editable-lines .detail-line {
         border: 1px solid #dfe6f5;
         border-radius: var(--radius-sm);
         background: #fbfcff;
         padding: 10px 12px;
       }
 
-      .hospitation-overview-meta .detail-line__value {
+      .hospitation-overview-meta .detail-line__value,
+      .hospitation-editable-lines .detail-line__value {
         min-width: 0;
       }
 
@@ -19136,20 +19163,6 @@
       .hospitation-meta-value__text {
         min-width: 0;
         overflow-wrap: anywhere;
-      }
-
-      .hospitation-meta-icon {
-        width: 30px;
-        height: 30px;
-        flex: 0 0 auto;
-        display: inline-grid;
-        place-items: center;
-        border-radius: 999px;
-        border: 1px solid #cfd8ee;
-        background: #eef3ff;
-        color: #30447f;
-        font-size: 0.78rem;
-        font-weight: 900;
       }
 
       .hospitation-overview-meta .format-fact-control,
@@ -34360,6 +34373,17 @@
         `;
       }
 
+      function hospitationConfirmButton(item = {}, field = "", label = "Änderung bestätigen") {
+        if (!canEditContacts()) return "";
+        return `
+          <button class="hospitation-inline-confirm" type="button" data-hospitation-save-field="${escapeHtml(field)}" data-hospitation-id="${escapeHtml(item.id || "")}" aria-label="${escapeHtml(label)}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5"></path>
+            </svg>
+          </button>
+        `;
+      }
+
       function hospitationStartLabel(item = {}) {
         const value = item.startsAt || item.starts_at || "";
         return value ? formatDateTimeLabel(value) || "Termin offen" : "Termin offen";
@@ -34370,8 +34394,17 @@
         return `<span class="${escapeHtml(classes)}">${content}</span>`;
       }
 
+      function hospitationInlineEditorMarkup(item = {}, field = "", fieldMarkup = "", label = "Änderung bestätigen") {
+        return `
+          <div class="hospitation-inline-editor">
+            ${fieldMarkup}
+            ${hospitationConfirmButton(item, field, label)}
+          </div>
+        `;
+      }
+
       function hospitationEditableFact(item = {}, field = "", displayMarkup = "", editMarkup = "", label = "") {
-        if (isHospitationInlineEditing(item, field)) return editMarkup;
+        if (isHospitationInlineEditing(item, field)) return hospitationInlineEditorMarkup(item, field, editMarkup, `${label || "Feld"} speichern`);
         return `
           <div class="hospitation-fact-card">
             <div class="hospitation-fact-display">
@@ -34447,18 +34480,29 @@
         return `<span class="avatar avatar-fallback avatar-sm" aria-hidden="true">${escapeHtml(initialsFromLabel(label))}</span>`;
       }
 
-      function hospitationMetaIconMarkup(label = "") {
-        return `<span class="hospitation-meta-icon" aria-hidden="true">${escapeHtml(initialsFromLabel(label || "•"))}</span>`;
+      function hospitationMetaOrganizationAvatarMarkup(item = {}) {
+        const organization = hospitationOrganization(item);
+        if (organization) return organizationLogoMarkup(organization, "sm");
+        const organizationName = hospitationFreeTextOrganizationName(item);
+        return organizationName ? organizationLogoMarkup({ name: organizationName }, "sm") : "";
       }
 
       function hospitationMetaDisplayMarkup(item = {}, field = "", valueMarkup = "", editMarkup = "", label = "") {
-        if (isHospitationInlineEditing(item, field)) return editMarkup;
+        if (isHospitationInlineEditing(item, field)) return hospitationInlineEditorMarkup(item, field, editMarkup, `${label || "Feld"} speichern`);
         return `
           <div class="hospitation-meta-display">
             <span class="hospitation-meta-value">${valueMarkup}</span>
             ${hospitationEditButton(item, field, label || "Feld bearbeiten")}
           </div>
         `;
+      }
+
+      function hospitationMetaTextMarkup(value = "") {
+        return `<span class="hospitation-meta-value__text">${escapeHtml(value || "Nicht hinterlegt")}</span>`;
+      }
+
+      function hospitationEditableDetailLine(item = {}, label = "", field = "", valueMarkup = "", editMarkup = "", editLabel = "") {
+        return detailLineHtml(label, hospitationMetaDisplayMarkup(item, field, valueMarkup, editMarkup, editLabel || `${label} bearbeiten`));
       }
 
       function hospitationFactMarkup(label, value) {
@@ -34844,14 +34888,14 @@
             ${detailLineHtml("Organisation", hospitationMetaDisplayMarkup(
               item,
               "organizationId",
-              `${hospitationMetaIconMarkup("Org")}<span class="hospitation-meta-value__text">${escapeHtml(organizationLabel)}</span>`,
+              `${hospitationMetaOrganizationAvatarMarkup(item)}${hospitationMetaTextMarkup(organizationLabel)}`,
               hospitationInlineSelectShell(item, "organizationId", hospitationInlineOrganizationOptions(item), "Organisation"),
               "Organisation bearbeiten"
             ))}
             ${detailLineHtml("Ort", hospitationMetaDisplayMarkup(
               item,
               "location",
-              `${hospitationMetaIconMarkup("Ort")}<span class="hospitation-meta-value__text">${escapeHtml(locationLabel)}</span>`,
+              hospitationMetaTextMarkup(locationLabel),
               hospitationInlineInput(item, "location", hospitationLocationLabel(item), "Ort", { placeholder: "Ort hinterlegen" }),
               "Ort bearbeiten"
             ))}
@@ -34865,14 +34909,14 @@
             ${detailLineHtml("Bundesland", hospitationMetaDisplayMarkup(
               item,
               "state",
-              `${hospitationMetaIconMarkup("BL")}<span class="hospitation-meta-value__text">${escapeHtml(stateLabelText)}</span>`,
+              hospitationMetaTextMarkup(stateLabelText),
               hospitationInlineSelectShell(item, "state", buildStateSelectOptions(hospitationInlineStateValue(item)), "Bundesland"),
               "Bundesland bearbeiten"
             ))}
             ${detailLineHtml("Ziel", hospitationMetaDisplayMarkup(
               item,
               "goal",
-              `${hospitationMetaIconMarkup("Ziel")}<span class="hospitation-meta-value__text">${escapeHtml(goalText)}</span>`,
+              hospitationMetaTextMarkup(goalText),
               hospitationInlineTextarea(item, "goal", item.goal || "", "Ziel", "Ziel oder Kontext hinterlegen"),
               "Ziel bearbeiten"
             ))}
@@ -34983,10 +35027,31 @@
           return `
             <section class="format-tab-panel">
               <section class="format-section">
-                <div class="detail-line-list">
-                  ${detailLine("Dokumentiert am", item.documentedAt ? formatDateTimeLabel(item.documentedAt) : "Noch nicht dokumentiert")}
-                  ${detailLine("Ergebnisnotiz", item.documentationSummary || "Noch nicht dokumentiert")}
-                  ${detailLine("Auswertung", item.documentationOutcome || "Nicht hinterlegt")}
+                <div class="detail-line-list hospitation-editable-lines">
+                  ${hospitationEditableDetailLine(
+                    item,
+                    "Dokumentiert am",
+                    "documentedAt",
+                    hospitationMetaTextMarkup(item.documentedAt ? formatDateTimeLabel(item.documentedAt) : "Noch nicht dokumentiert"),
+                    hospitationInlineInput(item, "documentedAt", dateTimeInputValue(item.documentedAt), "Dokumentiert am", { type: "datetime-local" }),
+                    "Dokumentationsdatum bearbeiten"
+                  )}
+                  ${hospitationEditableDetailLine(
+                    item,
+                    "Ergebnisnotiz",
+                    "documentationSummary",
+                    hospitationMetaTextMarkup(item.documentationSummary || "Noch nicht dokumentiert"),
+                    hospitationInlineTextarea(item, "documentationSummary", item.documentationSummary || "", "Ergebnisnotiz", "Was wurde beobachtet oder besprochen?"),
+                    "Ergebnisnotiz bearbeiten"
+                  )}
+                  ${hospitationEditableDetailLine(
+                    item,
+                    "Auswertung",
+                    "documentationOutcome",
+                    hospitationMetaTextMarkup(item.documentationOutcome || "Nicht hinterlegt"),
+                    hospitationInlineTextarea(item, "documentationOutcome", item.documentationOutcome || "", "Auswertung", "Ergebnis, offene Punkte oder Einschätzung"),
+                    "Auswertung bearbeiten"
+                  )}
                 </div>
                 ${hospitationDetailActionsMarkup(entry)}
               </section>
@@ -34997,9 +35062,23 @@
           return `
             <section class="format-tab-panel">
               <section class="format-section">
-                <div class="detail-line-list">
-                  ${detailLine("Follow-up", item.followUpNote || "Kein Follow-up hinterlegt")}
-                  ${detailLine("Fällig", item.followUpDueAt ? formatDateLabel(item.followUpDueAt) : "Nicht hinterlegt")}
+                <div class="detail-line-list hospitation-editable-lines">
+                  ${hospitationEditableDetailLine(
+                    item,
+                    "Follow-up",
+                    "followUpNote",
+                    hospitationMetaTextMarkup(item.followUpNote || "Kein Follow-up hinterlegt"),
+                    hospitationInlineTextarea(item, "followUpNote", item.followUpNote || "", "Follow-up", "Nächster Schritt"),
+                    "Follow-up bearbeiten"
+                  )}
+                  ${hospitationEditableDetailLine(
+                    item,
+                    "Fällig",
+                    "followUpDueAt",
+                    hospitationMetaTextMarkup(item.followUpDueAt ? formatDateLabel(item.followUpDueAt) : "Nicht hinterlegt"),
+                    hospitationInlineInput(item, "followUpDueAt", dateInputValue(item.followUpDueAt), "Fällig", { type: "date" }),
+                    "Fälligkeit bearbeiten"
+                  )}
                 </div>
               </section>
             </section>
@@ -35407,7 +35486,12 @@
             location: hospitationLocationLabel(item),
             sector: hospitationInlineSectorValue(item),
             state: hospitationInlineStateValue(item),
-            goal: item.goal || ""
+            goal: item.goal || "",
+            documentedAt: dateTimeInputValue(item.documentedAt),
+            documentationSummary: item.documentationSummary || "",
+            documentationOutcome: item.documentationOutcome || "",
+            followUpNote: item.followUpNote || "",
+            followUpDueAt: dateInputValue(item.followUpDueAt)
           }[key] ?? "";
           if (value === String(currentValue || "")) {
             hospitationEditingInlineKey = "";
@@ -35415,7 +35499,7 @@
             return;
           }
           const patch = { [key]: value };
-          if (key === "startsAt" || key === "endsAt") patch[key] = dateTimeInputToIso(value);
+          if (key === "startsAt" || key === "endsAt" || key === "documentedAt") patch[key] = dateTimeInputToIso(value);
           if (key === "startsAt") {
             const oldStart = new Date(item.startsAt || "");
             const oldEnd = new Date(item.endsAt || "");
@@ -35443,27 +35527,29 @@
           }
         };
         root.querySelectorAll("[data-hospitation-inline-field]").forEach((field) => {
-          if (field.tagName === "SELECT") {
-            field.addEventListener("change", () => saveHospitationInlineField(field));
-            return;
-          }
-          if (field.type === "datetime-local") {
-            field.addEventListener("change", () => saveHospitationInlineField(field));
-            field.addEventListener("blur", () => saveHospitationInlineField(field));
-            return;
-          }
-          field.addEventListener("blur", () => saveHospitationInlineField(field));
           field.addEventListener("keydown", (event) => {
             if (field.tagName === "TEXTAREA") {
               if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
                 event.preventDefault();
-                field.blur();
+                saveHospitationInlineField(field);
               }
               return;
             }
             if (event.key !== "Enter") return;
             event.preventDefault();
-            field.blur();
+            saveHospitationInlineField(field);
+          });
+        });
+        root.querySelectorAll("[data-hospitation-save-field]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const hospitationId = button.dataset.hospitationId || "";
+            const fieldKey = button.dataset.hospitationSaveField || "";
+            const field = [...root.querySelectorAll("[data-hospitation-inline-field]")]
+              .find((element) => element.dataset.hospitationId === hospitationId && element.dataset.hospitationInlineField === fieldKey);
+            if (!field) return;
+            button.classList.add("hospitation-inline-saving");
+            saveHospitationInlineField(field);
           });
         });
         const updateHospitationThemes = async (hospitationId, nextThemes) => {
