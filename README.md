@@ -10,15 +10,15 @@ Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine K
 
 <img src="dokumentation/assets/versorgungs-kompass-karte.png" alt="Kartenansicht des Versorgungs-Kompass" width="560">
 
-## Aktueller Release
+## 1. Aktueller Release
 
 - Version: [v0.16.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.16.0)
 - Stand: 27. Juni 2026
 - Kurznotiz: Erstes GitHub Release, harmonisiert mit dem App-Changelog bis Version 0.16.
-- Repo-Prüfung: [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html)
+- Repo-Ansicht: [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html)
 - Öffentliche Demo: [GCP-Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app)
 
-## Schnellstart
+## 2. Schnellstart
 
 Kurz erklärt:
 
@@ -27,10 +27,10 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 - Der Versorgungs-Kompass ist eine interne Webanwendung für das gematik-Hospitationsnetzwerk.
 - Die Karte ist der Einstieg: Sie zeigt Kontakte, Organisationen, Standorte und regionale Lücken.
 - Für Vorführung und Abstimmung ohne GitHub-Zugriff gibt es die [öffentliche GCP-Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
-- GitHub enthält Quellcode, Dokumentation und die [GitHub-Pages-Prüfung](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
+- GitHub enthält Quellcode, Dokumentation und die [GitHub-Pages-Ansicht](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
 - Für Betrieb und Migration ist die [gematik-Deployment-Dokumentation](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) der wichtigste technische Startpunkt.
 
-## Wichtigste Ordner
+## 3. Wichtigste Ordner
 
 | Ordner | Zweck |
 | --- | --- |
@@ -45,7 +45,7 @@ Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backe
 
 Wichtige Einstiege in die Dokumentation sind [`dokumentation/README.md`](dokumentation/README.md), [`dokumentation/architektur/`](dokumentation/architektur/) und [`dokumentation/betrieb-und-deployment/`](dokumentation/betrieb-und-deployment/).
 
-## Daten und Backend
+## 4. Daten und Backend
 
 Im Repository liegen Oberfläche, technische Adapter, Dokumentation und fiktive Demo-Daten. Produktive Daten werden im geschützten Backend geführt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und getrennt vom öffentlichen Quellcode.
 
@@ -58,15 +58,15 @@ Weitere Details:
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md): gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
 - [`supabase/README.md`](supabase/README.md): Legacy-Backend und Quelle für die Datenmigration.
 
-## Deployment, Demos und Betrieb
+## 5. Deployment, Demos und Betrieb
 
 | Umgebung | Wofür gedacht | Hinweis |
 | --- | --- | --- |
 | [GCP-Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Vorführung, Abstimmung und erste fachliche Rückmeldungen | Öffentlich erreichbar, mit Testdaten und eigenem Cloud-SQL-Backend |
-| [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Technische Prüfung der statischen Oberfläche im Repo | Nicht der Weitergabe-Link für Personen ohne GitHub-Zugriff |
+| [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Technische Sicht der statischen Oberfläche im Repo | Repo-nahe Testansicht |
 | gematik-Zielbetrieb | Geplanter Betrieb in der gematik-Infrastruktur | Mit interner API, geschützter Datenbank, SSO und Gateway |
 
-### GCP-Demo
+### 5.1 GCP-Demo
 
 Die öffentlich verfügbare Demo läuft auf Google Cloud Run: [GCP-Demo mit Testdaten öffnen](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
 
@@ -74,15 +74,15 @@ Sie ist der passende Link für Vorführung, Abstimmung und erste fachliche Rück
 
 Die GCP-Demo ist ein eigener Prototyp mit Cloud-SQL-Backend. Sie kann deshalb vom GitHub-Pages-Teststand abweichen und ersetzt nicht den geplanten gematik-Zielbetrieb.
 
-### GitHub Pages
+### 5.2 GitHub Pages
 
-Die GitHub-Pages-Prüfung ist der Standard für Testbetrieb und technische Sichtprüfung im Repo. Sie läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
+GitHub Pages ist der Standard für Testbetrieb und technische Sicht im Repo. Die Ansicht läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
 
-Diese Prüfung ist nicht der gematik-Zielbetrieb und nicht der öffentliche Weitergabe-Link für Kolleginnen und Kollegen ohne GitHub-Zugriff. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration. Produktive Daten, produktive Berechtigungen und geschützte Betriebszugriffe gehören nicht in diese GitHub-Pages-Prüfung.
+Diese Ansicht ist nicht der gematik-Zielbetrieb. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration.
 
 Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. [`docs/`](docs/) bleibt dabei ein Auslieferungsartefakt und wird nicht direkt gepflegt.
 
-### Zielbetrieb
+### 5.3 Zielbetrieb
 
 Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür braucht es ein statisches Frontend, eine interne API, eine geschützte Datenbank, Secret-Management, internes SSO und Gateway oder Reverse Proxy.
 
@@ -102,9 +102,9 @@ Die technischen Detaildokumente für die Implementierung sind:
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md)
 - [`dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md`](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md)
 
-Die aktuelle Einordnung der Auslieferungswege steht in der [Deployment-Übersicht](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md). Kurz gesagt: GitHub Pages zeigt die Testansicht der Oberfläche. Der Zielbetrieb umfasst zusätzlich die geschützte Datenbank und die interne API. Echte Netzwerkdaten werden deshalb in der Zielumgebung gepflegt oder importiert, nicht über einzelne Dateien im Repository.
+Die aktuelle Einordnung der Auslieferungswege steht in der [Deployment-Übersicht](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md).
 
-## Prüfungen
+## 6. Prüfungen
 
 Das Repository enthält automatisierte Prüfungen. Sie helfen dabei, einfache Fehler früh zu finden und Änderungen verlässlich zu überprüfen.
 
@@ -112,7 +112,7 @@ Die schnellen Prüfungen achten auf Syntax, fehlende Dateien und offensichtliche
 
 Die detaillierten QA-Regeln stehen in [`dokumentation/entwicklung-und-qa/QA_WORKFLOW.md`](dokumentation/entwicklung-und-qa/QA_WORKFLOW.md).
 
-## Lizenz
+## 7. Lizenz
 
 Quellcode und technische Dokumentation stehen unter der [Apache License 2.0](LICENSE).
 
