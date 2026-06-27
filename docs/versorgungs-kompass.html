@@ -20740,6 +20740,13 @@
                 </svg>
                 <span>Auswertung</span>
               </button>
+              <button class="primary-tab" type="button" data-view-tab="activities" id="sidebar-activities-button" title="Aktivitäten">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 7v5l3 2"></path>
+                </svg>
+                <span>Aktivitäten</span>
+              </button>
               <button class="primary-tab" type="button" id="sidebar-import-button" title="Importe">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -23818,6 +23825,7 @@
       const sidebarImportButton = document.getElementById("sidebar-import-button");
       const sidebarDataCareSection = document.getElementById("sidebar-data-care-section");
       const sidebarAnalyticsButton = document.getElementById("sidebar-analytics-button");
+      const sidebarActivitiesButton = document.getElementById("sidebar-activities-button");
       const sidebarNotificationsButton = document.getElementById("sidebar-notifications-button");
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
@@ -24485,7 +24493,7 @@
         if (["map", "contacts", "organizations", "experts", "patients", "stakeholders", "onboarding"].includes(normalizedView)) return "care";
         if (normalizedView === "formats") return "formats";
         if (normalizedView === "hospitations") return "hospitations";
-        if (["analytics", "settings", "quality"].includes(normalizedView)) return "admin";
+        if (["activities", "analytics", "settings", "quality"].includes(normalizedView)) return "admin";
         return "";
       }
 
@@ -24547,6 +24555,7 @@
         setRoleElementVisible(newFormatButton, canEditContacts());
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
         setRoleElementVisible(sidebarAnalyticsButton, canAdministerData());
+        setRoleElementVisible(sidebarActivitiesButton, canAdministerData());
         setRoleElementVisible(sidebarImportButton, canAdministerData());
         setRoleElementVisible(sidebarSettingsButton, true);
         setRoleElementVisible(sidebarAboutButton, canAdministerData());

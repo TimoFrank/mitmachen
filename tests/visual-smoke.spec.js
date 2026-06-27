@@ -248,6 +248,8 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   expect(careTabOrder).toEqual(["Karte", "Patienten", "Stakeholder", "Expertenkreis"]);
   const sidebarTabOrder = await page.locator(".sidebar-nav > .primary-tab[data-view-tab]").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(sidebarTabOrder).toEqual(["Hospitationen", "Formate"]);
+  const adminTabOrder = await page.locator("#sidebar-section-admin-content .primary-tab").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
+  expect(adminTabOrder).toEqual(["Auswertung", "Aktivitäten", "Importe"]);
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('[data-sidebar-section="formats"]')).toHaveCount(0);
   await expect(page.locator('[data-sidebar-section="hospitations"]')).toHaveCount(0);
@@ -290,6 +292,11 @@ test("Sidebar: Abschnittsklick öffnet die erste Seite", async ({ page }, testIn
   await page.locator('[data-sidebar-section-toggle="admin"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "analytics");
   await expect(page).toHaveURL(/#analytics$/);
+
+  await page.locator('#sidebar-section-admin-content [data-view-tab="activities"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "activities");
+  await expect(page).toHaveURL(/#activities$/);
+  await expect(page.locator('[data-sidebar-section="admin"]')).toHaveClass(/is-active-section/);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
@@ -1369,6 +1376,7 @@ test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => 
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#sidebar-import-button")).toBeHidden();
+  await expect(page.locator("#sidebar-activities-button")).toBeHidden();
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator('[data-sidebar-section-toggle="admin"]')).toBeHidden();
   await expect(page.locator("#archive-view-button")).toBeHidden();
@@ -1390,6 +1398,7 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
     await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "analytics");
   }
   await expect(page.locator("#sidebar-import-button")).toBeVisible();
+  await expect(page.locator("#sidebar-activities-button")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "admin-rolle");
 });
