@@ -2073,19 +2073,19 @@
         display: none !important;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-header {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-header {
         grid-template-columns: minmax(0, 1fr);
         align-items: start;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-header .workspace-actions {
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"], [data-active-view="analytics"], [data-active-view="quality"]) .workspace-header .workspace-actions {
         justify-content: stretch;
         width: 100%;
         min-width: 0;
       }
 
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions,
-      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-nav--header,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"]) #care-mode-actions,
+      .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"]) #care-mode-actions .experts-mode-nav--header,
       .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions,
       .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-nav--header {
         width: 100%;
@@ -20435,7 +20435,7 @@
           touch-action: auto;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions,
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"]) #care-mode-actions,
         .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions,
         .app-shell[data-active-view="hospitations"] #hospitation-mode-actions {
           overflow-x: auto;
@@ -20446,13 +20446,13 @@
           scrollbar-width: none;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions::-webkit-scrollbar,
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"]) #care-mode-actions::-webkit-scrollbar,
         .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions::-webkit-scrollbar,
         .app-shell[data-active-view="hospitations"] #hospitation-mode-actions::-webkit-scrollbar {
           display: none;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-nav--header,
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"]) #care-mode-actions .experts-mode-nav--header,
         .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-nav--header,
         .app-shell[data-active-view="hospitations"] #hospitation-mode-actions .experts-mode-nav--header {
           width: max-content;
@@ -20463,7 +20463,7 @@
           overflow: visible;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .settings-tab-button,
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"]) #care-mode-actions .settings-tab-button,
         .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .settings-tab-button,
         .app-shell[data-active-view="hospitations"] #hospitation-mode-actions .settings-tab-button {
           flex: 0 0 auto;
@@ -20474,13 +20474,13 @@
           font-size: var(--font-size-sm);
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-label,
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"]) #care-mode-actions .experts-mode-label,
         .app-shell:is([data-active-view="analytics"], [data-active-view="quality"]) #analytics-mode-actions .experts-mode-label,
         .app-shell[data-active-view="hospitations"] #hospitation-mode-actions .experts-mode-label {
           white-space: nowrap;
         }
 
-        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"]) #care-mode-actions .experts-mode-count {
+        .app-shell:is([data-active-view="contacts"], [data-active-view="organizations"], [data-active-view="map"], [data-active-view="stakeholders"]) #care-mode-actions .experts-mode-count {
           flex: 0 0 auto;
           min-width: 30px;
           min-height: 22px;
@@ -20686,6 +20686,17 @@
                 </svg>
                 <span>Patienten</span>
               </button>
+              <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Stakeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="7" cy="7" r="3"></circle>
+                  <circle cx="17" cy="7" r="3"></circle>
+                  <circle cx="12" cy="17" r="3"></circle>
+                  <path d="M9.4 9.1 11 14"></path>
+                  <path d="m14.6 9.1-1.6 4.9"></path>
+                  <path d="M9.4 17h5.2"></path>
+                </svg>
+                <span>Stakeholder</span>
+              </button>
             </div>
           </div>
           <div class="sidebar-section is-collapsed" aria-label="Formate" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
@@ -20845,6 +20856,10 @@
               </button>
               <button class="settings-tab-button" type="button" role="tab" data-care-mode="organizations" aria-selected="false" aria-controls="view-organizations">
                 <span class="experts-mode-label">Organisationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-care-mode="stakeholders" aria-selected="false" aria-controls="view-stakeholders">
+                <span class="experts-mode-label">Stakeholder </span>
                 <span class="experts-mode-count">0</span>
               </button>
             </div>
@@ -24013,7 +24028,7 @@
       const organizationEditorStepsNode = document.getElementById("organization-editor-steps");
       const organizationEditorSave = document.getElementById("organization-editor-save");
 
-      const careViewModes = ["contacts", "organizations", "map"];
+      const careViewModes = ["contacts", "organizations", "map", "stakeholders"];
 
       let activeView = "map";
       let activeSettingsTab = "imports";
@@ -24364,7 +24379,7 @@
 
       function canAccessView(view) {
         if (view === "onboarding") return onboardingActive;
-        return !["settings", "about", "analytics", "quality", "stakeholders"].includes(view) || canAdministerData();
+        return !["settings", "about", "analytics", "quality"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
@@ -28983,12 +28998,19 @@
         const counts = {
           contacts: contacts.filter((contact) => contact.status !== "archived").length,
           organizations: organizations.filter((organization) => organization.status !== "archived").length,
-          map: mapContacts().length
+          map: mapContacts().length,
+          stakeholders: stakeholderOrganizations.filter((organization) => organization.status !== "archived").length
+        };
+        const labels = {
+          contacts: "Kontakte",
+          organizations: "Organisationen",
+          map: "Karte",
+          stakeholders: "Stakeholder"
         };
         careModeButtons.forEach((button) => {
           const mode = button.dataset.careMode || "contacts";
           const selected = activeView === mode;
-          const label = mode === "map" ? "Karte" : mode === "organizations" ? "Organisationen" : "Kontakte";
+          const label = labels[mode] || "Kontakte";
           const count = counts[mode] || 0;
           button.replaceChildren();
           const labelNode = document.createElement("span");
@@ -31555,7 +31577,7 @@
           view: "contacts",
           target: "#care-mode-actions",
           title: "Versorgung als Arbeitsbereich",
-          body: "Im Versorgungsbereich wechselst du oben zwischen Kontakten, Organisationen und Karte, ohne den fachlichen Kontext zu verlassen."
+          body: "Im Versorgungsbereich wechselst du oben zwischen Kontakten, Organisationen, Stakeholdern und Karte, ohne den fachlichen Kontext zu verlassen."
         },
         {
           view: "contacts",
@@ -42143,7 +42165,7 @@
 
       function renderViewChrome() {
         const view = isCareView(activeView)
-          ? { title: "Versorgung", subtitle: "Kontakte, Organisationen und Karte in einem gemeinsamen Arbeitsbereich." }
+          ? { title: "Versorgung", subtitle: "Kontakte, Organisationen, Stakeholder und Karte in einem gemeinsamen Arbeitsbereich." }
           : isAnalyticsView(activeView)
           ? { title: "Auswertung", subtitle: "Reporting und Datenqualität in einem gemeinsamen Arbeitsbereich." }
           : activeView === "settings"

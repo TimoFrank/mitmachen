@@ -251,9 +251,10 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-view-tab="map"]')).toContainText("Karte");
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(0);
   await expect(page.locator('[data-view-tab="organizations"]')).toHaveCount(0);
-  await expect(page.locator('[data-view-tab="stakeholders"]')).toHaveCount(0);
+  await expect(page.locator('[data-view-tab="stakeholders"]')).toContainText("Stakeholder");
   await expect(page.locator('#care-mode-actions [data-care-mode="contacts"]')).toBeVisible();
   await expect(page.locator('#care-mode-actions [data-care-mode="organizations"]')).toBeVisible();
+  await expect(page.locator('#care-mode-actions [data-care-mode="stakeholders"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="experts"]')).toContainText("Expertenkreis");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
   if (!testInfo.project.name.includes("mobile")) {
@@ -1751,13 +1752,14 @@ test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", asyn
   await expect(page.locator("#stakeholder-organization-list")).toContainText("Patientenverband Test");
 });
 
-test("Stakeholder: KVn-Bereich ist nur fuer Admins sichtbar", async ({ page }) => {
+test("Stakeholder: Bereich ist im Versorgung-Tab fuer Viewer erreichbar", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "viewer" });
 
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCount(0);
-  await expect(page.locator('button[data-view-tab="stakeholders"]')).toHaveCount(0);
-  await expect(page).toHaveURL(/#contacts$/);
+  await expect(page.locator('button[data-view-tab="stakeholders"]')).toContainText("Stakeholder");
+  await expect(page.locator('#care-mode-actions [data-care-mode="stakeholders"]')).toHaveClass(/is-active/);
+  await expect(page).toHaveURL(/#stakeholders$/);
 });
 
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
