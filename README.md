@@ -57,12 +57,12 @@ Weitere Details:
 
 ## 5. Deployment, Demos und Betrieb
 
-Dieser Abschnitt trennt die öffentliche Demo, die GitHub-Pages-Ansicht und den geplanten Zielbetrieb.
+Es gibt drei unterschiedliche Betriebs- und Vorführwege. Die GCP-Demo ist der öffentliche Vorführstand mit Testdaten auf Cloud Run. GitHub Pages ist die aktuell nutzbare Web-App-Oberfläche: Das Frontend wird aus dem Repository ausgeliefert, arbeitet aber mit der angebundenen Backend-Konfiguration. Der Zielbetrieb beschreibt die spätere gematik-Umgebung mit interner API, geschützter Datenbank, SSO und Betriebsprozessen.
 
 | Umgebung | Wofür gedacht | Hinweis |
 | --- | --- | --- |
 | [GCP-Demo](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) | Vorführung, Abstimmung und erste fachliche Rückmeldungen | Öffentlich erreichbar, mit Testdaten und eigenem Cloud-SQL-Backend |
-| [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Technische Sicht der statischen Oberfläche im Repo | Repo-nahe Testansicht |
+| [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) | Laufende Web-App-Oberfläche im aktuellen Setup | Frontend aus [`docs/`](docs/), Daten und Funktionen über die angebundene Supabase-Konfiguration |
 | gematik-Zielbetrieb | Geplanter Betrieb in der gematik-Infrastruktur | Mit interner API, geschützter Datenbank, SSO und Gateway |
 
 ### 5.1 GCP-Demo
@@ -75,11 +75,11 @@ Die GCP-Demo ist ein eigener Prototyp mit Cloud-SQL-Backend. Sie kann deshalb vo
 
 ### 5.2 GitHub Pages
 
-GitHub Pages ist der Standard für Testbetrieb und technische Sicht im Repo. Die Ansicht läuft über [GitHub Pages](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) und den Ordner [`docs/`](docs/).
+GitHub Pages ist die aktuell nutzbare Web-App-Oberfläche im bestehenden Setup. GitHub Pages liefert das Frontend aus dem Ordner [`docs/`](docs/) aus. Die Anwendung selbst arbeitet mit der angebundenen Supabase-Konfiguration und ist dadurch kein rein statisches Demo-Paket.
 
-Diese Ansicht ist nicht der gematik-Zielbetrieb. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration.
+Diese Ansicht ist nicht der gematik-Zielbetrieb. Sie bleibt aber ein funktionsfähiges Tool mit Backend-Anbindung, soweit Anmeldung, Berechtigungen und Backend-Konfiguration dies zulassen.
 
-Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. [`docs/`](docs/) bleibt dabei ein Auslieferungsartefakt und wird nicht direkt gepflegt.
+Änderungen an der Oberfläche werden aus den Quellordnern nach [`docs/`](docs/) synchronisiert und danach über GitHub Pages sichtbar gemacht. Änderungen an Daten, Rechten oder Backend-Struktur müssen zusätzlich in der angebundenen Backend-Umgebung berücksichtigt werden.
 
 ### 5.3 Zielbetrieb
 
