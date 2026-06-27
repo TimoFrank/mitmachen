@@ -1047,6 +1047,18 @@ test("Hospitationen: Planungsthemen und Anfrageverlauf im Akkordeon", async ({ p
   const detail = row.locator(".hospitation-row__detail");
   await expect(detail).toBeVisible();
   await expect(detail.locator(".format-facts-grid").first()).not.toContainText("Follow-up");
+  await expect(detail.locator(".hospitation-overview-facts")).toBeVisible();
+  await expect(detail.locator('[data-hospitation-inline-field="startsAt"]')).toBeVisible();
+  await expect(detail.locator('[data-hospitation-inline-field="endsAt"]')).toBeVisible();
+  await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveValue("Durchgeführt");
+  await detail.locator('[data-hospitation-inline-field="status"]').selectOption("Dokumentiert");
+  await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveValue("Dokumentiert");
+  await expect(detail.locator('[data-hospitation-inline-field="ownerId"]')).toHaveCount(1);
+  await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(1);
+  await expect(detail.locator('[data-hospitation-inline-field="organizationId"]')).toHaveCount(1);
+  await detail.locator('[data-hospitation-inline-field="goal"]').fill("Inline-Ziel aus dem Visualtest");
+  await detail.locator('[data-hospitation-inline-field="goal"]').blur();
+  await expect(detail.locator('[data-hospitation-inline-field="goal"]')).toHaveValue("Inline-Ziel aus dem Visualtest");
 
   await detail.getByRole("tab", { name: "Planung" }).click();
   await expect(detail.locator(".detail-theme-editor")).toBeVisible();
