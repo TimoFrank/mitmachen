@@ -24195,6 +24195,17 @@
         });
       }
 
+      function openFirstSidebarViewInGroup(group = "") {
+        const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
+        if (!section || !isSidebarNavActionVisible(section)) return false;
+        expandSidebarGroup(group);
+        const firstTab = [...section.querySelectorAll(".primary-tab[data-view-tab]")]
+          .find(isSidebarNavActionVisible);
+        if (!firstTab) return false;
+        firstTab.click();
+        return true;
+      }
+
       function syncActiveSidebarSection(view = activeView) {
         const activeGroup = sidebarGroupForView(view);
         sidebarCollapsibleSections.forEach((section) => {
@@ -42929,7 +42940,8 @@
       if (isMobileLayout()) setMobileSidebarExpanded(false);
       sidebarSectionToggles.forEach((toggle) => {
         toggle.addEventListener("click", () => {
-          expandSidebarGroup(toggle.dataset.sidebarSectionToggle || "");
+          const group = toggle.dataset.sidebarSectionToggle || "";
+          if (!openFirstSidebarViewInGroup(group)) expandSidebarGroup(group);
         });
       });
       sidebarCollapseButton?.addEventListener("click", () => {

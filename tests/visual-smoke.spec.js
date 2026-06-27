@@ -263,6 +263,30 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await attachScreenshot(page, testInfo, "kontakte");
 });
 
+test("Sidebar: Abschnittsklick öffnet die erste Seite", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Der Abschnittsdirektklick wird im Desktop-Sidebar-Layout geprüft.");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
+
+  const shell = page.locator(".app-shell");
+  await page.locator('[data-sidebar-section-toggle="formats"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "formats");
+  await expect(page).toHaveURL(/#formats$/);
+
+  await page.locator('[data-sidebar-section-toggle="hospitations"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "hospitations");
+  await expect(page).toHaveURL(/#hospitations$/);
+
+  await page.locator('[data-sidebar-section-toggle="care"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "map");
+  await expect(page).toHaveURL(/#map$/);
+
+  await page.locator('[data-sidebar-section-toggle="admin"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "analytics");
+  await expect(page).toHaveURL(/#analytics$/);
+
+  await attachScreenshot(page, testInfo, "sidebar-section-first-page");
+});
+
 test("Onboarding: neuer Supabase-Account richtet Profil ein und startet Tour", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map", {
     dataMode: "supabase",
@@ -998,14 +1022,15 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveAttribute("aria-hidden", "false");
-  if (!testInfo.project.name.includes("mobile")) {
-    await page.locator('[data-sidebar-section-toggle="admin"]').click();
-  }
-  await expect(page.locator("#sidebar-import-button")).toBeVisible();
   await expect(page.locator("#archive-view-button")).toHaveAttribute("aria-hidden", "false");
   if (!testInfo.project.name.includes("mobile")) {
     await expect(page.locator("#archive-view-button")).toBeVisible();
   }
+  if (!testInfo.project.name.includes("mobile")) {
+    await page.locator('[data-sidebar-section-toggle="admin"]').click();
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "analytics");
+  }
+  await expect(page.locator("#sidebar-import-button")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "admin-rolle");
 });
