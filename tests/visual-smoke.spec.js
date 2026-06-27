@@ -1752,13 +1752,14 @@ test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", asyn
   await expect(page.locator("#stakeholder-organization-list")).toContainText("Patientenverband Test");
 });
 
-test("Stakeholder: Bereich ist im Versorgung-Tab fuer Viewer erreichbar", async ({ page }) => {
+test("Stakeholder: Bereich ist im Versorgung-Tab ohne obere Modus-Reiter erreichbar", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "viewer" });
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCount(0);
   await expect(page.locator('button[data-view-tab="stakeholders"]')).toContainText("Stakeholder");
-  await expect(page.locator('#care-mode-actions [data-care-mode="stakeholders"]')).toHaveClass(/is-active/);
+  await expect(page.locator("#care-mode-actions")).toBeHidden();
+  await expect(page.locator("#stakeholder-type-actions [data-stakeholder-type]").first()).toBeVisible();
   await expect(page).toHaveURL(/#stakeholders$/);
 });
 

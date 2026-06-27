@@ -28993,7 +28993,7 @@
       }
 
       function renderCareModeTabs() {
-        const active = isCareView(activeView);
+        const active = isCareView(activeView) && activeView !== "stakeholders";
         if (careModeActions) careModeActions.hidden = !active;
         const counts = {
           contacts: contacts.filter((contact) => contact.status !== "archived").length,
