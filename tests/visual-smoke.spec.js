@@ -655,7 +655,8 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
           source: "Testquelle",
           status: "active"
         }
-      ];`
+      ];`,
+    dataServiceScript: "window.dataService = {};"
   });
 
   await expect(page.locator('[data-view-panel="patients"]')).toBeVisible();
@@ -686,10 +687,10 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
     getComputedStyle(badge).getPropertyValue("--patient-indication-bg").trim()
   );
   expect(await organizationIndicationBadges.count()).toBeGreaterThan(1);
-  const organizationBadgeBackgrounds = await organizationIndicationBadges.evaluateAll((badges) =>
-    badges.map((badge) => getComputedStyle(badge).backgroundColor)
+  const organizationBadgeTones = await organizationIndicationBadges.evaluateAll((badges) =>
+    badges.map((badge) => getComputedStyle(badge).getPropertyValue("--patient-indication-bg").trim())
   );
-  expect(new Set(organizationBadgeBackgrounds).size).toBeGreaterThan(1);
+  expect(new Set(organizationBadgeTones).size).toBeGreaterThan(1);
   if (!mobileProject) {
     await expect(page.locator("#patient-organization-list .row").first().locator(".cell--location")).not.toContainText(/\b\d{5}\b/);
   }
@@ -754,6 +755,96 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   }
 
   await attachScreenshot(page, testInfo, "patienten");
+});
+
+test("Patienten: Organisationsindikationen nutzen kuratiertes Mapping nach ID", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#patients", {
+    patientsScript: `
+      window.VERSORGUNGS_COMPASS_PATIENT_INDICATIONS = [
+        {
+          id: "patient-indication-cross-cutting",
+          name: "Übergreifende Patientenvertretung und Beratung",
+          description: "Querschnitt für Patientenrechte, unabhängige Beratung und Patientensicherheit.",
+          sortOrder: 10
+        },
+        {
+          id: "patient-indication-gastro",
+          name: "Gastroenterologie und Verdauung",
+          description: "Umfasst Erkrankungen von Magen, Darm, Leber und Verdauung.",
+          sortOrder: 20
+        },
+        {
+          id: "patient-indication-mental-health",
+          name: "Psychische Gesundheit und Neurodivergenz",
+          description: "Fasst psychische Erkrankungen und psychosoziale Versorgung zusammen.",
+          sortOrder: 30
+        }
+      ];
+      window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATION_INDICATIONS = {
+        "patient-aps": "Übergreifende Patientenvertretung und Beratung",
+        "patient-dccv": "Gastroenterologie und Verdauung",
+        "patient-depressionsliga": "Psychische Gesundheit und Neurodivergenz"
+      };
+      window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATIONS = [
+        {
+          id: "patient-aps",
+          name: "Aktionsbündnis Patientensicherheit e.V. (APS)",
+          organizationType: "Patientensicherheitsnetzwerk",
+          city: "Berlin",
+          state: "Berlin",
+          status: "active"
+        },
+        {
+          id: "patient-dccv",
+          name: "Deutsche Morbus Crohn / Colitis ulcerosa Vereinigung - DCCV - e.V.",
+          organizationType: "Krankheitsbezogene Selbsthilfevertretung",
+          city: "Berlin",
+          state: "Berlin",
+          status: "active"
+        },
+        {
+          id: "patient-depressionsliga",
+          name: "Deutsche DepressionsLiga e.V.",
+          organizationType: "Krankheitsbezogene Patientenvertretung",
+          city: "Bonn",
+          state: "Nordrhein-Westfalen",
+          status: "active"
+        }
+      ];
+      window.VERSORGUNGS_COMPASS_PATIENT_PEOPLE = [
+        {
+          id: "patient-person-depressionsliga",
+          name: "Dana Depression",
+          organizationId: "patient-depressionsliga",
+          organization: "Deutsche DepressionsLiga e.V.",
+          role: "Ansprechperson",
+          city: "Bonn",
+          state: "Nordrhein-Westfalen",
+          status: "active"
+        }
+      ];`,
+    dataServiceScript: "window.dataService = {};"
+  });
+
+  const mobileProject = testInfo.project.name.includes("mobile");
+  const entrySelector = "#patient-organization-list .row";
+  const organizationEntry = (label) => page.locator(entrySelector).filter({ hasText: label }).first();
+
+  await expect(organizationEntry("Aktionsbündnis Patientensicherheit")).toContainText("Übergreifende Patientenvertretung und Beratung");
+  await expect(organizationEntry("DCCV")).toContainText("Gastroenterologie und Verdauung");
+  await expect(organizationEntry("DepressionsLiga")).toContainText("Psychische Gesundheit und Neurodivergenz");
+
+  await page.locator('#patient-mode-actions [data-patient-mode="people"]').click();
+  const personSelector = mobileProject
+    ? "#patient-people-list .mobile-contact-card"
+    : "#patient-people-list .row";
+  const personEntry = page.locator(personSelector).filter({ hasText: "Dana Depression" }).first();
+  await expect(personEntry).toBeVisible();
+  if (mobileProject) {
+    await expect(personEntry).toContainText("Deutsche DepressionsLiga e.V.");
+  } else {
+    await expect(personEntry).toContainText("Psychische Gesundheit und Neurodivergenz");
+  }
 });
 
 test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async ({ page }, testInfo) => {

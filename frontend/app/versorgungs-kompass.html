@@ -26924,6 +26924,34 @@
         return indications[index % indications.length] || "";
       }
 
+      function defaultPatientIndication() {
+        const indications = seedPatientIndications();
+        return indications.includes("Übergreifende Patientenvertretung und Beratung")
+          ? "Übergreifende Patientenvertretung und Beratung"
+          : indications[0] || "";
+      }
+
+      function patientIndicationRecordForName(name = "") {
+        const indicationName = String(name || "").trim();
+        return seedPatientIndicationRecords.find((indication) => indication.name === indicationName) || null;
+      }
+
+      function patientIndicationIdForName(name = "", fallback = "") {
+        return patientIndicationRecordForName(name)?.id || fallback || "";
+      }
+
+      function mappedPatientOrganizationIndication(entry = {}) {
+        const mapping = window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATION_INDICATIONS || {};
+        const organizationId = String(entry.id || entry.organizationId || entry.organization_id || "").trim();
+        return organizationId ? String(mapping[organizationId] || "").trim() : "";
+      }
+
+      function patientOrganizationIndication(entry = {}) {
+        const mappedIndication = mappedPatientOrganizationIndication(entry);
+        if (mappedIndication) return mappedIndication;
+        return String(entry.indication || entry.group || entry.sector || entry.category || "").trim() || defaultPatientIndication();
+      }
+
       function sanitizeExpertContact(entry, index = 0) {
         const group = normalizeExpertGroup(entry.group || entry.category || entry.sector, index);
         const organizationName = String(entry.organization || entry.organisation || "").trim();
@@ -26987,15 +27015,19 @@
 
       function sanitizePatientOrganization(entry, index = 0) {
         const name = String(entry.name || entry.organization || entry.organisation || "").trim();
-        const indication = normalizePatientIndication(entry.indication || entry.group || entry.sector || entry.category, index);
+        const indication = patientOrganizationIndication(entry);
+        const indicationId = patientIndicationIdForName(
+          indication,
+          entry.indicationId || entry.indication_id || entry.groupId || entry.group_id || ""
+        );
         const normalizedName = normalizeOrganizationName(name);
         return {
           id: String(entry.id || `patient-org-${normalizedName || String(index + 1).padStart(2, "0")}`).trim(),
           name,
           normalizedName,
-          indicationId: entry.indicationId || entry.indication_id || entry.groupId || entry.group_id || "",
+          indicationId,
           indication,
-          groupId: entry.groupId || entry.group_id || entry.indicationId || entry.indication_id || "",
+          groupId: indicationId,
           group: indication,
           sector: indication,
           category: indication,
@@ -27043,7 +27075,7 @@
         );
         const organization = patientOrganizationForIdentity(person.organizationId, person.organization, organizationsSource);
         const indication = normalizePatientIndication(
-          entry.indication || entry.group || entry.sector || entry.category || organization?.sector || organization?.category || "",
+          entry.indication || entry.group || entry.sector || entry.category || organization?.sector || organization?.category || defaultPatientIndication(),
           index
         );
         return {
