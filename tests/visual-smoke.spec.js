@@ -241,10 +241,12 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator("#filter-panel-button")).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator('[data-sidebar-section-toggle="care"]').filter({ hasText: "Versorgung" })).toHaveCount(1);
-  await expect(page.locator('[data-sidebar-section-toggle="planning"]').filter({ hasText: "Planung" })).toHaveCount(1);
+  await expect(page.locator('[data-sidebar-section-toggle="formats"]').filter({ hasText: "Formate" })).toHaveCount(1);
+  await expect(page.locator('[data-sidebar-section-toggle="hospitations"]').filter({ hasText: "Hospitationen" })).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section-toggle="admin"]').filter({ hasText: "Admin" })).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-active-section/);
-  await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-collapsed/);
+  await expect(page.locator('[data-sidebar-section="formats"]')).toHaveClass(/is-collapsed/);
+  await expect(page.locator('[data-sidebar-section="hospitations"]')).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCount(0);
   await expect(page.locator('[data-view-tab="map"]')).toContainText("Karte");
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(0);

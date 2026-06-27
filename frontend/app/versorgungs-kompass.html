@@ -565,10 +565,6 @@
         box-shadow: inset 3px 0 0 rgba(232, 241, 255, 0.9), 0 8px 22px rgba(0, 24, 80, 0.2);
       }
 
-      .sidebar-admin-nav {
-        margin-top: auto;
-      }
-
       .sidebar-secondary {
         display: grid;
         gap: 4px;
@@ -593,6 +589,44 @@
         font-weight: 750;
         cursor: pointer;
         text-align: left;
+      }
+
+      .sidebar-team-link {
+        min-height: 50px;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 8px;
+      }
+
+      .sidebar-team-icon {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.88);
+      }
+
+      .sidebar-team-link .sidebar-team-icon svg {
+        width: 19px;
+        height: 19px;
+      }
+
+      .sidebar-team-label {
+        min-width: 0;
+        font-weight: 850;
+      }
+
+      .sidebar-team-link:hover .sidebar-team-icon,
+      .sidebar-team-link:focus-visible .sidebar-team-icon,
+      .sidebar-team-link.is-active .sidebar-team-icon {
+        border-color: rgba(232, 241, 255, 0.42);
+        background: rgba(255, 255, 255, 0.16);
+        color: #ffffff;
       }
 
       .sidebar-account-row {
@@ -11223,6 +11257,21 @@
         display: grid;
       }
 
+      .app-shell.is-sidebar-collapsed .sidebar-team-link {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-team-link .sidebar-team-icon {
+        position: static;
+        width: 38px;
+        height: 38px;
+        margin: 0;
+        overflow: visible;
+        clip: auto;
+        display: grid;
+      }
+
       .app-shell.is-sidebar-collapsed .sidebar-brand .brand-mark {
         width: 36px;
         height: 36px;
@@ -15834,7 +15883,6 @@
         }
 
         .sidebar-nav.primary-nav,
-        .sidebar-admin-nav,
         .sidebar-secondary,
         .sidebar-account-section {
           position: static;
@@ -15878,6 +15926,16 @@
         }
 
         .sidebar-section.is-collapsed .sidebar-section-content {
+          display: grid;
+        }
+
+        .sidebar-team-link {
+          grid-template-columns: 1fr;
+          justify-items: center;
+          padding: 0;
+        }
+
+        .sidebar-team-link .sidebar-team-icon {
           display: grid;
         }
 
@@ -16552,7 +16610,6 @@
         }
 
         .sidebar-nav.primary-nav,
-        .sidebar-admin-nav,
         .sidebar-secondary,
         .sidebar-account-section {
           grid-auto-rows: auto;
@@ -17244,6 +17301,18 @@
           justify-content: flex-start;
           gap: 10px;
           padding-inline: 12px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-team-link {
+          grid-template-columns: 38px minmax(0, 1fr) auto;
+          justify-items: stretch;
+          padding: 6px 8px;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-team-link .sidebar-team-icon {
+          width: 38px !important;
+          height: 38px !important;
+          display: grid !important;
         }
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-account-row {
@@ -20315,14 +20384,14 @@
               </button>
             </div>
           </div>
-          <div class="sidebar-section is-collapsed" aria-label="Planung" data-sidebar-section="planning" data-sidebar-group="planning" data-sidebar-collapsible>
-            <button class="sidebar-section-toggle" type="button" id="sidebar-section-planning-toggle" data-sidebar-section-toggle="planning" aria-expanded="false" aria-controls="sidebar-section-planning-content">
-              <span>Planung</span>
+          <div class="sidebar-section is-collapsed" aria-label="Formate" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-formats-toggle" data-sidebar-section-toggle="formats" aria-expanded="false" aria-controls="sidebar-section-formats-content">
+              <span>Formate</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
             </button>
-            <div class="sidebar-section-content" id="sidebar-section-planning-content">
+            <div class="sidebar-section-content" id="sidebar-section-formats-content">
               <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M8 2v4"></path>
@@ -20336,6 +20405,16 @@
                 <span>Formate</span>
                 <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
               </button>
+            </div>
+          </div>
+          <div class="sidebar-section is-collapsed" aria-label="Hospitationen" data-sidebar-section="hospitations" data-sidebar-group="hospitations" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-hospitations-toggle" data-sidebar-section-toggle="hospitations" aria-expanded="false" aria-controls="sidebar-section-hospitations-content">
+              <span>Hospitationen</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
+              </svg>
+            </button>
+            <div class="sidebar-section-content" id="sidebar-section-hospitations-content">
               <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M8 2v4"></path>
@@ -20349,8 +20428,6 @@
               </button>
             </div>
           </div>
-        </nav>
-        <nav class="sidebar-admin-nav sidebar-nav" aria-label="Administration">
           <div class="sidebar-section is-collapsed" id="sidebar-data-care-section" aria-label="Admin" data-sidebar-section="admin" data-sidebar-group="admin" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-admin-toggle" data-sidebar-section-toggle="admin" aria-expanded="false" aria-controls="sidebar-section-admin-content">
               <span>Admin</span>
@@ -20381,14 +20458,16 @@
         </nav>
         <div class="sidebar-account-section" aria-label="Teams, Einstellungen und Profil" data-sidebar-section="account">
           <span class="sidebar-section-label">Teams &amp; Konto</span>
-          <button class="sidebar-link" type="button" id="sidebar-team-button" title="Teams">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span>Teams</span>
+          <button class="sidebar-link sidebar-team-link" type="button" id="sidebar-team-button" title="Teams">
+            <span class="sidebar-team-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <span class="sidebar-team-label">Teams</span>
             <span class="notification-count-indicator" id="notification-count-team" hidden>0</span>
           </button>
           <div class="sidebar-account-row">
@@ -24084,7 +24163,8 @@
             ? organizationProfileParentView()
             : view;
         if (["map", "contacts", "organizations", "experts", "patients", "stakeholders", "onboarding"].includes(normalizedView)) return "care";
-        if (["formats", "hospitations"].includes(normalizedView)) return "planning";
+        if (normalizedView === "formats") return "formats";
+        if (normalizedView === "hospitations") return "hospitations";
         if (["analytics", "settings", "quality"].includes(normalizedView)) return "admin";
         return "";
       }
