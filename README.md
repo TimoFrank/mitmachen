@@ -20,13 +20,11 @@ Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine K
 
 Kurz erklärt:
 
-Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen für Übergabe und Betrieb. Produktive Daten liegen nicht im Repository, sondern in einem geschützten Backend.
+Der Versorgungs-Kompass zeigt das gematik-Hospitationsnetzwerk auf einer Karte. Er hilft dabei, Kontakte, Organisationen, Standorte und regionale Lücken schnell zu sehen. Echte Daten liegen nicht im Repository, sondern in einem geschützten Backend.
 
-- Der Versorgungs-Kompass ist eine interne Webanwendung für das gematik-Hospitationsnetzwerk.
-- Die Karte ist der Einstieg: Sie zeigt Kontakte, Organisationen, Standorte und regionale Lücken.
-- Für Vorführung und Abstimmung gibt es die [öffentliche Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app).
-- Das aktuell nutzbare Tool im bestehenden Setup ist das [Live System](https://timofrank.github.io/mitmachen/versorgungs-kompass.html).
-- Für Betrieb und Migration ist die [gematik-Deployment-Dokumentation](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) der wichtigste technische Startpunkt.
+- Die Anwendung ist für die interne Arbeit am gematik-Hospitationsnetzwerk gedacht.
+- Die Karte ist der wichtigste Einstieg und zeigt, wo Kontakte und Organisationen zu finden sind.
+- Für die Nutzung gibt es drei Wege: die [Demo mit Testdaten](https://versorgungs-kompass-gcp-demo-765190393967.europe-west3.run.app) für Vorführungen, das [Live System](https://timofrank.github.io/mitmachen/versorgungs-kompass.html) als laufendes System und die [Deployment-Dokumentation](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) für Betrieb und Migration.
 
 ## 3. Wichtigste Ordner
 
