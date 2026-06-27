@@ -8,20 +8,17 @@ Im Mittelpunkt steht die `Karte`. Sie soll schnell erfassbar machen, wie unser H
 
 Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine Karte, die Orientierung gibt, Gespräche vorbereitet, Lücken sichtbar macht und hilft, aus vielen Einzelkontakten ein belastbares Bild der Versorgungspraxis zu entwickeln.
 
-![Kartenansicht des Versorgungs-Kompass mit fiktiven Demo-Daten](dokumentation/assets/versorgungs-kompass-karte.png)
-
-_Demo-Snapshot mit fiktiven Daten._
-
-Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen für Übergabe und Betrieb. Produktive Netzwerkdaten liegen nicht im Repository, sondern in einem geschützten Backend.
+<img src="dokumentation/assets/versorgungs-kompass-karte.png" alt="Kartenansicht des Versorgungs-Kompass" width="560">
 
 ## Schnellstart
 
 Kurz erklärt:
 
+Das Repository enthält die Weboberfläche, Kartenansichten, Datenadapter, Backend-Anbindung und Unterlagen für Übergabe und Betrieb. Produktive Netzwerkdaten liegen nicht im Repository, sondern in einem geschützten Backend.
+
 - Der Versorgungs-Kompass ist eine interne Webanwendung für das gematik-Hospitationsnetzwerk.
 - Die Karte ist der Einstieg: Sie zeigt Kontakte, Organisationen, Standorte und regionale Lücken.
 - GitHub enthält Quellcode, Dokumentation und die GitHub-Pages-Testumgebung.
-- Produktive Daten werden im geschützten Backend geführt.
 - Für Betrieb und Migration ist die gematik-Deployment-Dokumentation der wichtigste technische Startpunkt.
 
 ## Ordnerstruktur
@@ -47,7 +44,7 @@ Die wichtigsten Quellpfade sind `frontend/`, `api/`, `public/`, `scripts/`, `tes
 
 Produktive Kontakt-, Organisations- und Netzwerkdaten werden im geschützten Backend geführt. So bleibt der gemeinsame Datenstand zentral, nachvollziehbar und unabhängig vom öffentlichen Quellcode.
 
-Die Dateien in `frontend/data/` bündeln Adapter, Laufzeitkonfiguration und schlanke Fallback-Dateien. Administrative Backend-Schlüssel und andere sensible Betriebszugriffe werden über das geschützte Secret-Management der jeweiligen Umgebung bereitgestellt; Frontend-Dateien wie `frontend/data/supabase-config.js` enthalten nur clientseitige Konfiguration.
+Die Dateien in `frontend/data/` bündeln Adapter, Laufzeitkonfiguration und schlanke Fallback-Dateien. Administrative Backend-Schlüssel und andere sensible Betriebszugriffe werden über das geschützte Secret-Management der jeweiligen Umgebung bereitgestellt. Frontend-Dateien wie `frontend/data/supabase-config.js` enthalten nur clientseitige Konfiguration.
 
 Weitere Details:
 
@@ -57,54 +54,42 @@ Weitere Details:
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`: gematik-Zielbetrieb mit Jenkins, Kubernetes, Helm, Shared Postgres und statischem Frontend-Hosting.
 - `supabase/README.md`: aktuelles Legacy-Backend und Quelle für die Datenmigration.
 
-## Deployment
+## GitHub-Standardveröffentlichung
 
-Die klare Standardveröffentlichung läuft über GitHub Pages und nutzt den Ordner `docs/`.
+Die GitHub-Veröffentlichung ist der Standard für Testbetrieb, Vorführung und gemeinsame Sichtprüfung. Sie läuft über GitHub Pages und den Ordner `docs/`.
 
-Vor einer Aktualisierung von GitHub Pages:
+Diese Veröffentlichung ist nicht der gematik-Zielbetrieb. Sie zeigt die statische Oberfläche und nutzt die dafür vorgesehene Test- oder Demo-Konfiguration. Produktive Daten, produktive Berechtigungen und geschützte Betriebszugriffe gehören nicht in diese GitHub-Veröffentlichung.
 
-```bash
-bash scripts/sync_github_pages.sh
-```
+Änderungen an der Oberfläche werden aus den Quellordnern nach `docs/` synchronisiert und danach über GitHub Pages sichtbar gemacht. `docs/` bleibt dabei ein Auslieferungsartefakt und wird nicht direkt gepflegt.
 
-Für das interne gematik Kubernetes-Zielbild mit Jenkins, Helm und API-Gateway siehe:
+## Deployment im Zielbetrieb
+
+Im Zielbetrieb wird der Versorgungs-Kompass in der gematik-Infrastruktur betrieben. Dafür wird das statische Frontend bereitgestellt, die API als Dienst im Kubernetes-Umfeld ausgerollt und das Backend an Shared Postgres, Secret-Management, internes SSO und Gateway oder Reverse Proxy angebunden.
+
+Für die Umsetzung arbeiten IT-Kollegen entlang der Betriebs- und Deployment-Unterlagen. Der einfache Ablauf ist: Zielumgebung vorbereiten, Konfiguration und Secrets setzen, Datenbankmigration prüfen, Frontend und API bereitstellen, danach Anmeldung, Navigation, Kartenaufruf und Backend-Zugriffe testen.
+
+Die technischen Detaildokumente für die Implementierung sind:
 
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md`
 - `dokumentation/betrieb-und-deployment/BETRIEB.md`
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md`
 - `dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md`
 
-Die aktuelle Einordnung der Auslieferungswege steht in der Deployment-Übersicht.
+Die aktuelle Einordnung der Auslieferungswege steht in der Deployment-Übersicht. Ein Git-Push aktualisiert nur den Git-Stand. Wenn eine Änderung produktive Backend-Daten betrifft, muss sie zusätzlich in der Zielumgebung angewendet werden.
 
-Wichtig: Ein Git-Push aktualisiert nur den Git-Stand. Wenn eine Änderung produktive Backend-Daten betrifft, muss sie zusätzlich in der Zielumgebung angewendet werden.
-
-Wichtig für die Sichtbarkeit: GitHub Pages veröffentlicht nur statische Dateien. Die statische Demo bleibt für fiktive Daten geeignet; produktive Daten brauchen im Zielbild die Kubernetes-API und Shared Postgres. Ein Commit und Push einer SQL-Datei macht eine Migration nur als Datei sichtbar, wendet sie aber nicht auf Shared Postgres oder einen Legacy-Supabase-Datenstand an.
+Wichtig für die Sichtbarkeit: GitHub Pages veröffentlicht nur statische Dateien. Die statische Demo bleibt für fiktive Daten geeignet. Produktive Daten brauchen im Zielbild die Kubernetes-API und Shared Postgres. Ein Commit und Push einer SQL-Datei macht eine Migration nur als Datei sichtbar, wendet sie aber nicht auf Shared Postgres oder einen Legacy-Supabase-Datenstand an.
 
 ## Prüfungen
 
-Für kleine Text-, CSS- oder Dokumentationsänderungen reicht meistens die schnelle Prüfung. Sie prüft Syntax, offensichtliche Datei-Probleme und Formatfehler, ohne die vollständige Browser-QA zu starten.
+Das Repository enthält automatisierte Prüfungen. Sie helfen dabei, einfache Fehler früh zu finden und Änderungen verlässlich zu überprüfen.
 
-```bash
-npm run qa:small
-```
-
-Die technische Standardprüfung ist der normale Qualitätscheck vor einem Commit. Sie prüft öffentliche Assets, API-Gateway-Regeln, zentrale Datenfelder und API-Validierung.
-
-```bash
-npm run check
-```
-
-Die vollständige QA ist für größere UI-, Navigations- oder Datenflussänderungen gedacht. Sie kombiniert die technischen Checks mit Playwright-Smoke-Tests im Browser.
-
-```bash
-npm run qa:full
-```
+Die schnellen Prüfungen achten auf Syntax, fehlende Dateien und offensichtliche Formatprobleme. Die technischen Checks prüfen zum Beispiel öffentliche Assets, API-Regeln, wichtige Datenfelder und die Backend-Anbindung. Die Browser-Tests öffnen die Oberfläche wie ein Nutzer und prüfen typische Wege, etwa Navigation, Kartenaufruf, Tabellen, Detailansichten und mobile Ansichten.
 
 Die detaillierten QA-Regeln stehen in `dokumentation/entwicklung-und-qa/QA_WORKFLOW.md`.
 
 ## Dokumentation
 
-Die Detaildokumentation liegt gebündelt unter `dokumentation/`. Für den ersten Einstieg reicht meistens diese README; die Unterlagen im Dokumentationsordner erklären danach die fachliche Struktur, die technische Architektur und den Betrieb genauer.
+Die Detaildokumentation liegt gebündelt unter `dokumentation/`. Für den ersten Einstieg reicht meistens diese README. Die Unterlagen im Dokumentationsordner erklären danach die fachliche Struktur, die technische Architektur und den Betrieb genauer.
 
 - `dokumentation/README.md`: Einstieg und Wegweiser durch die Dokumentation.
 - `dokumentation/produkt-und-design/`: Designsystem, UX-Regeln und UI-Checklisten für die Oberfläche.
