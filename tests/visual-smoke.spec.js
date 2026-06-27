@@ -244,6 +244,8 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-sidebar-section-toggle="formats"]').filter({ hasText: "Formate" })).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section-toggle="hospitations"]').filter({ hasText: "Hospitationen" })).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section-toggle="admin"]').filter({ hasText: "Admin" })).toHaveCount(1);
+  const sidebarSectionOrder = await page.locator("[data-sidebar-section-toggle]").evaluateAll((nodes) => nodes.map((node) => node.textContent.trim()));
+  expect(sidebarSectionOrder.indexOf("Hospitationen")).toBeLessThan(sidebarSectionOrder.indexOf("Formate"));
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('[data-sidebar-section="formats"]')).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="hospitations"]')).toHaveClass(/is-collapsed/);
@@ -846,6 +848,107 @@ test("Patienten: Organisationsindikationen nutzen kuratiertes Mapping nach ID", 
   } else {
     await expect(personEntry).toContainText("Psychische Gesundheit und Neurodivergenz");
   }
+});
+
+test("Patienten: Kontakt und Organisation werden im Patientenbereich angelegt", async ({ page }) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#patients", {
+    patientsScript: `
+      window.VERSORGUNGS_COMPASS_PATIENT_INDICATIONS = [
+        {
+          id: "patient-indication-neuro",
+          name: "Neurologie und Neurodegeneration",
+          description: "Für Erkrankungen von Gehirn, Rückenmark und Nerven.",
+          sortOrder: 10
+        },
+        {
+          id: "patient-indication-cross-cutting",
+          name: "Übergreifende Patientenvertretung und Beratung",
+          description: "Querschnitt für Patientenrechte und Beratung.",
+          sortOrder: 20
+        }
+      ];
+      window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATIONS = [];
+      window.VERSORGUNGS_COMPASS_PATIENT_PEOPLE = [];`,
+    dataServiceScript: `
+      (() => {
+        const profile = {
+          id: "11111111-1111-4111-8111-111111111111",
+          email: "admin@example.test",
+          display_name: "Admin Test",
+          initials: "AT",
+          role: "admin",
+          active: true
+        };
+        const types = [];
+        const organizations = [];
+        const people = [];
+        const mergeById = (target, rows = []) => {
+          rows.forEach((row) => {
+            const index = target.findIndex((item) => item.id === row.id);
+            if (index >= 0) target[index] = { ...target[index], ...row };
+            else target.push({ ...row });
+          });
+        };
+        window.dataService = {
+          getProfiles: async () => [profile],
+          getCurrentProfile: async () => profile,
+          upsertStakeholderImport: async (payload = {}) => {
+            mergeById(types, payload.types || []);
+            mergeById(organizations, payload.organizations || []);
+            mergeById(people, payload.people || []);
+            window.__patientCreatePayload = { types, organizations, people };
+            return { types, organizations, people };
+          }
+        };
+      })();
+    `
+  });
+
+  await expect(page.locator("#new-patient-organization-button")).toBeVisible();
+  await page.locator("#new-patient-organization-button").click();
+  await expect(page.locator("#organization-editor-drawer")).toHaveClass(/is-open/);
+  await expect(page.locator("#organization-editor-title")).toHaveText("Patientenorganisation anlegen");
+  await page.locator("#organization-field-name").fill("Migräne Hilfe Deutschland");
+  await page.locator("#organization-field-sector").selectOption("Neurologie und Neurodegeneration");
+  await page.locator("#organization-editor-next").click();
+  await page.locator("#organization-field-postal-code").fill("10115");
+  await page.locator("#organization-field-city").fill("Berlin");
+  await page.locator("#organization-field-state").selectOption("Berlin");
+  await page.locator("#organization-editor-save").click();
+
+  await expect(page.locator("#organization-profile-page.is-active")).toBeVisible();
+  await expect(page.locator("#organization-profile-body")).toContainText("Migräne Hilfe Deutschland");
+  await expect(page.locator("#organization-profile-body")).toContainText("Neurologie und Neurodegeneration");
+  await page.locator("#organization-profile-body [data-organization-profile-back]").click();
+
+  await page.locator('#patient-mode-actions [data-patient-mode="people"]').click();
+  await expect(page.locator("#new-patient-contact-button")).toBeVisible();
+  await page.locator("#new-patient-contact-button").click();
+  await expect(page.locator("#editor-drawer")).toHaveClass(/is-open/);
+  await expect(page.locator("#editor-title")).toHaveText("Patienten-Kontakt anlegen");
+  await expect(page.locator('label[for="field-category"]')).toContainText("Indikation");
+  await page.locator("#field-name").fill("Nora Neurologie");
+  await page.locator("#field-organization").fill("Migräne Hilfe Deutschland");
+  await page.locator("#field-category").selectOption("Neurologie und Neurodegeneration");
+  await page.locator("#field-contact-role").fill("Vorstand");
+  await page.locator("#editor-save").click();
+
+  await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
+  await expect(page.locator("#person-profile-body")).toContainText("Nora Neurologie");
+  await expect(page.locator("#person-profile-body")).toContainText("Migräne Hilfe Deutschland");
+  const savedPayload = await page.evaluate(() => window.__patientCreatePayload);
+  expect(savedPayload.organizations).toHaveLength(1);
+  expect(savedPayload.organizations[0]).toMatchObject({
+    stakeholderTypeId: "patient-associations",
+    name: "Migräne Hilfe Deutschland",
+    sector: "Neurologie und Neurodegeneration"
+  });
+  expect(savedPayload.people).toHaveLength(1);
+  expect(savedPayload.people[0]).toMatchObject({
+    stakeholderTypeId: "patient-associations",
+    name: "Nora Neurologie",
+    organization: "Migräne Hilfe Deutschland"
+  });
 });
 
 test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async ({ page }, testInfo) => {

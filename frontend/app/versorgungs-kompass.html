@@ -20699,6 +20699,27 @@
               </button>
             </div>
           </div>
+          <div class="sidebar-section is-collapsed" aria-label="Hospitationen" data-sidebar-section="hospitations" data-sidebar-group="hospitations" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-hospitations-toggle" data-sidebar-section-toggle="hospitations" aria-expanded="false" aria-controls="sidebar-section-hospitations-content">
+              <span>Hospitationen</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
+              </svg>
+            </button>
+            <div class="sidebar-section-content" id="sidebar-section-hospitations-content">
+              <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                  <path d="M12 14v5"></path>
+                  <path d="M9.5 16.5h5"></path>
+                </svg>
+                <span>Hospitationen</span>
+              </button>
+            </div>
+          </div>
           <div class="sidebar-section is-collapsed" aria-label="Formate" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-formats-toggle" data-sidebar-section-toggle="formats" aria-expanded="false" aria-controls="sidebar-section-formats-content">
               <span>Formate</span>
@@ -20719,27 +20740,6 @@
                 </svg>
                 <span>Formate</span>
                 <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
-              </button>
-            </div>
-          </div>
-          <div class="sidebar-section is-collapsed" aria-label="Hospitationen" data-sidebar-section="hospitations" data-sidebar-group="hospitations" data-sidebar-collapsible>
-            <button class="sidebar-section-toggle" type="button" id="sidebar-section-hospitations-toggle" data-sidebar-section-toggle="hospitations" aria-expanded="false" aria-controls="sidebar-section-hospitations-content">
-              <span>Hospitationen</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m6 9 6 6 6-6"></path>
-              </svg>
-            </button>
-            <div class="sidebar-section-content" id="sidebar-section-hospitations-content">
-              <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <path d="M8 2v4"></path>
-                  <path d="M16 2v4"></path>
-                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                  <path d="M3 10h18"></path>
-                  <path d="M12 14v5"></path>
-                  <path d="M9.5 16.5h5"></path>
-                </svg>
-                <span>Hospitationen</span>
               </button>
             </div>
           </div>
@@ -21272,6 +21272,10 @@
           <section class="view-panel" id="view-patients" data-view-panel="patients">
             <div class="view-card experts-workspace patients-workspace">
               <div class="table-command-row table-command-row--experts table-command-row--patient-actions">
+                <div class="table-command-actions" id="patient-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-patient-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+                  <button class="action-button" type="button" id="new-patient-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
+                </div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions expert-column-actions" id="patient-column-actions"></div>
               </div>
@@ -23884,6 +23888,7 @@
       const expertCommandActions = document.getElementById("expert-command-actions");
       const expertColumnActions = document.getElementById("expert-column-actions");
       const patientModeActions = document.getElementById("patient-mode-actions");
+      const patientCommandActions = document.getElementById("patient-command-actions");
       const patientColumnActions = document.getElementById("patient-column-actions");
       const stakeholderModeActions = document.getElementById("stakeholder-mode-actions");
       const stakeholderHeaderSearch = document.getElementById("stakeholder-header-search");
@@ -23895,6 +23900,8 @@
       const organizationMatchingWorklistButton = document.getElementById("organization-matching-worklist-button");
       const newExpertContactButton = document.getElementById("new-expert-contact-button");
       const newExpertOrganizationButton = document.getElementById("new-expert-organization-button");
+      const newPatientContactButton = document.getElementById("new-patient-contact-button");
+      const newPatientOrganizationButton = document.getElementById("new-patient-organization-button");
       const expertDuplicatesButton = document.getElementById("expert-duplicates-button");
       const categoryChart = document.getElementById("category-chart");
       const stateChart = document.getElementById("state-chart");
@@ -24554,6 +24561,8 @@
         setRoleElementVisible(organizationMatchingWorklistButton, canAdministerData());
         setRoleElementVisible(newExpertContactButton, canEditContacts());
         setRoleElementVisible(newExpertOrganizationButton, canEditContacts());
+        setRoleElementVisible(newPatientContactButton, canEditContacts());
+        setRoleElementVisible(newPatientOrganizationButton, canEditContacts());
         setRoleElementVisible(expertDuplicatesButton, canAdministerData());
         setRoleElementVisible(newFormatButton, canEditContacts());
         setRoleElementVisible(sidebarDataCareSection, canAdministerData());
@@ -26955,6 +26964,19 @@
         return patientIndicationRecordForName(name)?.id || fallback || "";
       }
 
+      function isPatientAssociationEntry(entry = {}) {
+        return entry?.stakeholderTypeId === "patient-associations" ||
+          entry?.stakeholder_type_id === "patient-associations" ||
+          entry?.stakeholderType === "patient-associations";
+      }
+
+      function patientStakeholderId(prefix, ...parts) {
+        const normalizedParts = parts
+          .map((part) => normalizeClassPart(part).slice(0, 80))
+          .filter(Boolean);
+        return `${prefix}-${normalizedParts.join("-") || Date.now().toString(36)}`;
+      }
+
       function mappedPatientOrganizationIndication(entry = {}) {
         const mapping = window.VERSORGUNGS_COMPASS_PATIENT_ORGANIZATION_INDICATIONS || {};
         const organizationId = String(entry.id || entry.organizationId || entry.organization_id || "").trim();
@@ -27108,6 +27130,107 @@
         };
       }
 
+      function mergeRecordsById(current = [], additions = []) {
+        const byId = new Map();
+        current.forEach((entry) => {
+          const id = String(entry.id || "").trim();
+          if (id) byId.set(id, entry);
+        });
+        additions.forEach((entry) => {
+          const id = String(entry.id || "").trim();
+          if (id) byId.set(id, { ...(byId.get(id) || {}), ...entry });
+        });
+        return [...byId.values()];
+      }
+
+      function syncPatientStakeholderCaches() {
+        stakeholderOrganizations = [
+          ...stakeholderOrganizations.filter((organization) => !isPatientAssociationEntry(organization)),
+          ...patientOrganizations.map((organization, index) =>
+            sanitizeStakeholderOrganization({
+              ...organization,
+              stakeholderTypeId: "patient-associations",
+              stakeholderType: "patient-associations",
+              organizationType: organization.organizationType || "Patientenorganisation"
+            }, index)
+          )
+        ].sort((left, right) => left.name.localeCompare(right.name, "de"));
+        stakeholderPeople = [
+          ...stakeholderPeople.filter((person) => !isPatientAssociationEntry(person)),
+          ...patientPeople.map((person, index) =>
+            sanitizeStakeholderPerson({
+              ...person,
+              stakeholderTypeId: "patient-associations",
+              stakeholderType: "patient-associations"
+            }, index)
+          )
+        ].sort((left, right) => left.name.localeCompare(right.name, "de"));
+        loadedStakeholderPeopleTypeIds.add("patient-associations");
+      }
+
+      function applyStakeholderImportResult(imported = {}, fallback = {}) {
+        const importedTypes = Array.isArray(imported.types) ? imported.types : fallback.types || [];
+        if (importedTypes.length) {
+          stakeholderTypes = mergeRecordsById(
+            stakeholderTypes,
+            importedTypes.map((entry, index) => sanitizeStakeholderType(entry, index))
+          ).sort((left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label, "de"));
+        }
+
+        const importedOrganizations = Array.isArray(imported.organizations) ? imported.organizations : fallback.organizations || [];
+        if (importedOrganizations.length) {
+          stakeholderOrganizations = mergeRecordsById(
+            stakeholderOrganizations,
+            importedOrganizations.map((entry, index) => sanitizeStakeholderOrganization(entry, index))
+          ).sort((left, right) => left.name.localeCompare(right.name, "de"));
+          const nextPatientOrganizations = stakeholderOrganizations
+            .filter(isPatientAssociationEntry)
+            .map((entry, index) => sanitizePatientOrganization(entry, index));
+          if (nextPatientOrganizations.length || importedOrganizations.some(isPatientAssociationEntry)) {
+            patientOrganizations = nextPatientOrganizations;
+          }
+        }
+
+        const importedPeople = Array.isArray(imported.people) ? imported.people : fallback.people || [];
+        if (importedPeople.length) {
+          stakeholderPeople = mergeRecordsById(
+            stakeholderPeople,
+            importedPeople.map((entry, index) => sanitizeStakeholderPerson(entry, index))
+          ).sort((left, right) => left.name.localeCompare(right.name, "de"));
+          const nextPatientPeople = stakeholderPeople
+            .filter(isPatientAssociationEntry)
+            .map((entry, index) => sanitizePatientPerson(entry, index, patientOrganizations));
+          if (nextPatientPeople.length || importedPeople.some(isPatientAssociationEntry)) {
+            patientPeople = nextPatientPeople;
+          }
+        }
+
+        syncPatientStakeholderCaches();
+      }
+
+      async function upsertPatientStakeholders(payload = {}) {
+        if (!window.dataService?.upsertStakeholderImport) {
+          throw new Error("Patientendaten können erst gespeichert werden, wenn der Stakeholder-Datendienst verfügbar ist.");
+        }
+        const patientType = stakeholderTypePayloadForId("patient-associations");
+        const normalizedPayload = {
+          types: [patientType, ...(payload.types || [])],
+          organizations: (payload.organizations || []).map((organization) => ({
+            ...organization,
+            stakeholderTypeId: "patient-associations",
+            stakeholderType: "patient-associations"
+          })),
+          people: (payload.people || []).map((person) => ({
+            ...person,
+            stakeholderTypeId: "patient-associations",
+            stakeholderType: "patient-associations"
+          }))
+        };
+        const imported = await window.dataService.upsertStakeholderImport(normalizedPayload);
+        applyStakeholderImportResult(imported, normalizedPayload);
+        return imported;
+      }
+
       function sanitizeStakeholderType(entry = {}, index = 0) {
         const id = String(entry.id || entry.value || entry.type || "kv").trim() || `stakeholder-type-${index + 1}`;
         return {
@@ -27134,6 +27257,7 @@
           name,
           normalizedName,
           organizationType: String(entry.organizationType || entry.organization_type || stakeholderOrganizationTypeFallback(entry.stakeholderTypeId || entry.stakeholder_type_id || entry.stakeholderType || "kv")).trim(),
+          sector: String(entry.sector || entry.indication || entry.category || "").trim(),
           postalCode: String(entry.postalCode || entry.postal_code || "").trim(),
           city: String(entry.city || "").trim(),
           state: String(entry.state || entry.federal_state || "").trim(),
@@ -38766,6 +38890,20 @@
           .sort((a, b) => a.localeCompare(b, "de"));
       }
 
+      function patientFocusOptions(selectedSpecialty = "") {
+        return [...new Set([
+          selectedSpecialty,
+          "Patientenvertretung",
+          "Selbsthilfe",
+          "Beratung",
+          "Angehörigenperspektive",
+          "Versorgungserfahrung",
+          ...patientPeople.map((person) => person.role || person.contactRole || ""),
+          ...patientPeople.flatMap((person) => normalizeThemes(person.themes))
+        ].map((value) => String(value || "").trim()).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "de"));
+      }
+
       function buildOwnerSelectOptions(selectedOwner = "") {
         return ownerSelectOptionsMarkup(selectedOwner);
       }
@@ -38825,6 +38963,15 @@
         ].join("");
       }
 
+      function buildPatientFocusSelectOptions(selectedSpecialty = "") {
+        return [
+          `<option value="">Bitte wählen...</option>`,
+          ...patientFocusOptions(selectedSpecialty).map(
+            (specialty) => `<option value="${escapeHtml(specialty)}" ${selectedSpecialty === specialty ? "selected" : ""}>${escapeHtml(specialty)}</option>`
+          )
+        ].join("");
+      }
+
       function buildOrganizationAssignmentSelectOptions(selectedOrganizationId = "", selectedOrganizationName = "") {
         const selectedName = normalizeOrganizationName(selectedOrganizationName);
         return [
@@ -38855,8 +39002,15 @@
           .sort((a, b) => a.name.localeCompare(b.name, "de"));
       }
 
+      function patientOrganizationOptions() {
+        return [...new Map(patientOrganizations.filter((organization) => organization.name).map((organization) => [organization.name, organization])).values()]
+          .sort((a, b) => a.name.localeCompare(b.name, "de"));
+      }
+
       function editorOrganizationOptions() {
-        return editorScope === "expert" ? expertOrganizationOptions() : organizationOptions();
+        if (editorScope === "expert") return expertOrganizationOptions();
+        if (editorScope === "patient") return patientOrganizationOptions();
+        return organizationOptions();
       }
 
       function buildOrganizationSelectOptions(selectedOrganization = "") {
@@ -38865,9 +39019,14 @@
         const filteredOptions = query
           ? options.filter((organization) => organization.name.toLowerCase().includes(query)).slice(0, 30)
           : options.slice(0, 60);
+        const createPrefix = editorScope === "expert"
+          ? "Neue Expertenkreis-Organisation"
+          : editorScope === "patient"
+            ? "Neue Patientenorganisation"
+            : "Neue Organisation";
         const createLabel = selectedOrganization
-          ? `${editorScope === "expert" ? "Neue Expertenkreis-Organisation" : "Neue Organisation"} anlegen: ${selectedOrganization}`
-          : editorScope === "expert" ? "+ Neue Expertenkreis-Organisation anlegen" : "+ Neue Organisation anlegen";
+          ? `${createPrefix} anlegen: ${selectedOrganization}`
+          : `+ ${createPrefix} anlegen`;
         return [
           `<button class="custom-select-option custom-select-option--create" type="button" data-organization-create>${escapeHtml(createLabel)}</button>`,
           ...filteredOptions.map(
@@ -39051,7 +39210,9 @@
       function renderEditorSpecialtyOptions(selectedSpecialty = "") {
         editorForm.elements.specialty.innerHTML = editorScope === "expert"
           ? buildExpertFocusSelectOptions(selectedSpecialty)
-          : buildSpecialtySelectOptions(selectedSpecialty);
+          : editorScope === "patient"
+            ? buildPatientFocusSelectOptions(selectedSpecialty)
+            : buildSpecialtySelectOptions(selectedSpecialty);
         refreshEditorCustomSelects();
       }
 
@@ -39088,9 +39249,10 @@
       }
 
       function setEditorScope(nextScope = "care") {
-        editorScope = nextScope === "expert" ? "expert" : "care";
+        editorScope = nextScope === "expert" ? "expert" : nextScope === "patient" ? "patient" : "care";
         editorDrawer.dataset.editorScope = editorScope;
         const expert = editorScope === "expert";
+        const patient = editorScope === "patient";
         const categoryLabel = editorForm.querySelector('label[for="field-category"]');
         const organizationLabel = editorForm.querySelector('label[for="field-organization"]');
         const specialtyLabelNode = editorForm.querySelector('label[for="field-specialty"]');
@@ -39099,34 +39261,37 @@
         const imageSourceInput = editorForm.elements.imageSourceLabel;
         const sourceTitle = document.getElementById("editor-section-sources");
         const saveButton = document.getElementById("editor-save");
-        if (categoryLabel) categoryLabel.innerHTML = expert ? 'Gruppe <span class="editor-label__required">*</span>' : "Sektor";
-        if (organizationLabel) organizationLabel.textContent = expert ? "Expertenkreis-Organisation" : "Organisation";
-        if (specialtyLabelNode) specialtyLabelNode.textContent = expert ? "Fachbereich / Fokus" : "Fachrichtung";
-        if (imageLabel) imageLabel.textContent = expert ? "Profil-URL" : "Bild-URL";
-        if (imageInput) imageInput.placeholder = expert ? "Profil-URL der Person..." : "Bild-URL...";
-        if (imageSourceInput) imageSourceInput.placeholder = "z. B. Website der Praxis";
-        if (sourceTitle) sourceTitle.textContent = expert ? "Quelle ergänzen" : "Bild ergänzen";
-        if (saveButton) saveButton.textContent = expert ? "Expertenkreis-Kontakt speichern" : "Kontakt speichern";
-        setEditorFieldHidden("owner", expert);
-        setEditorFieldHidden("priority", expert);
-        setEditorFieldHidden("street", expert);
-        setEditorFieldHidden("imageSourceLabel", expert);
+        if (categoryLabel) categoryLabel.innerHTML = expert ? 'Gruppe <span class="editor-label__required">*</span>' : patient ? "Indikation" : "Sektor";
+        if (organizationLabel) organizationLabel.textContent = expert ? "Expertenkreis-Organisation" : patient ? "Patientenorganisation" : "Organisation";
+        if (specialtyLabelNode) specialtyLabelNode.textContent = expert ? "Fachbereich / Fokus" : patient ? "Fokus / Rolle" : "Fachrichtung";
+        if (imageLabel) imageLabel.textContent = expert || patient ? "Profil-URL" : "Bild-URL";
+        if (imageInput) imageInput.placeholder = expert || patient ? "Profil-URL der Person..." : "Bild-URL...";
+        if (imageSourceInput) imageSourceInput.placeholder = patient ? "z. B. Website der Patientenorganisation" : "z. B. Website der Praxis";
+        if (sourceTitle) sourceTitle.textContent = expert || patient ? "Quelle ergänzen" : "Bild ergänzen";
+        if (saveButton) saveButton.textContent = expert ? "Expertenkreis-Kontakt speichern" : patient ? "Patienten-Kontakt speichern" : "Kontakt speichern";
+        setEditorFieldHidden("owner", expert || patient);
+        setEditorFieldHidden("priority", expert || patient);
+        setEditorFieldHidden("street", expert || patient);
+        setEditorFieldHidden("imageSourceLabel", expert || patient);
       }
 
       function setOrganizationEditorScope(nextScope = "care") {
-        organizationEditorScope = nextScope === "expert" ? "expert" : "care";
+        organizationEditorScope = nextScope === "expert" ? "expert" : nextScope === "patient" ? "patient" : "care";
         organizationEditorDrawer.dataset.editorScope = organizationEditorScope;
         const expert = organizationEditorScope === "expert";
+        const patient = organizationEditorScope === "patient";
         const sectorLabel = organizationEditorForm.querySelector('label[for="organization-field-sector"]');
         const sourceInput = organizationEditorForm.elements.source;
         const saveButton = document.getElementById("organization-editor-save");
         const hint = document.getElementById("organization-editor-hint");
-        if (sectorLabel) sectorLabel.innerHTML = expert ? 'Gruppe <span class="editor-label__required">*</span>' : "Sektor";
-        if (sourceInput) sourceInput.placeholder = expert ? "z. B. Manuell angelegt, INA-Expertenkreis" : "z. B. Kontaktdatenbestand, Recherche";
-        if (saveButton) saveButton.textContent = expert ? "Expertenkreis-Organisation speichern" : "Organisation speichern";
+        if (sectorLabel) sectorLabel.innerHTML = expert ? 'Gruppe <span class="editor-label__required">*</span>' : patient ? "Indikation" : "Sektor";
+        if (sourceInput) sourceInput.placeholder = expert ? "z. B. Manuell angelegt, INA-Expertenkreis" : patient ? "z. B. Manuell angelegt, Patientenmodul" : "z. B. Kontaktdatenbestand, Recherche";
+        if (saveButton) saveButton.textContent = expert ? "Expertenkreis-Organisation speichern" : patient ? "Patientenorganisation speichern" : "Organisation speichern";
         if (hint) hint.textContent = expert
           ? "Speichern schreibt getrennt in den Expertenkreis."
-          : "Speichern schreibt in die Organisationen-Tabelle, sofern die Sprint-4-Migration aktiv ist.";
+          : patient
+            ? "Speichern schreibt in den Patientenbereich."
+            : "Speichern schreibt in die Organisationen-Tabelle, sofern die Sprint-4-Migration aktiv ist.";
       }
 
       function updateEditorDuplicateHint() {
@@ -39137,7 +39302,7 @@
           editorDuplicateHint.classList.remove("is-visible");
           return;
         }
-        const sourceItems = editorScope === "expert" ? expertContacts : contacts;
+        const sourceItems = editorScope === "expert" ? expertContacts : editorScope === "patient" ? patientPeople : contacts;
         const hit = sourceItems.find((contact) => {
           if (editingId && contact.id === editingId) return false;
           const sameName = String(contact.name || "").trim().toLowerCase() === nameValue;
@@ -39151,7 +39316,9 @@
         }
         editorDuplicateHint.textContent = editorScope === "expert"
           ? `Möglicher bestehender Expertenkreis-Kontakt: ${hit.displayName || hit.name} – ${hit.organization || "ohne Organisation"}`
-          : `Möglicher bestehender Kontakt: ${hit.displayName} – ${hit.organization}`;
+          : editorScope === "patient"
+            ? `Möglicher bestehender Patienten-Kontakt: ${hit.displayName || hit.name} – ${hit.organization || "ohne Organisation"}`
+            : `Möglicher bestehender Kontakt: ${hit.displayName} – ${hit.organization}`;
         editorDuplicateHint.classList.add("is-visible");
       }
 
@@ -39204,6 +39371,48 @@
             };
           }
         }
+        if (editorScope === "patient") {
+          const indication = currentGroup || defaultPatientIndication();
+          const payload = sanitizePatientOrganization({
+            id: patientStakeholderId("patient-org", name),
+            stakeholderTypeId: "patient-associations",
+            stakeholderType: "patient-associations",
+            name: String(name || "").trim(),
+            organizationType: "Patientenorganisation",
+            sector: indication,
+            indication,
+            category: indication,
+            postalCode: String(editorForm.elements.postalCode.value || "").trim(),
+            city: String(editorForm.elements.city.value || "").trim(),
+            state: String(editorForm.elements.state.value || "").trim(),
+            source: "Kontaktanlage Patienten"
+          }, patientOrganizations.length);
+          if (!payload.name) return null;
+          try {
+            const existing = patientOrganizationOptions().find((organization) => normalizeOrganizationName(organization.name) === normalizeOrganizationName(payload.name));
+            if (!existing) {
+              await upsertPatientStakeholders({ organizations: [payload] });
+            }
+            const saved = existing || patientOrganizationForIdentity(payload.id, payload.name, patientOrganizations) || payload;
+            pendingEditorOrganizationId = saved.id && !saved.id.startsWith("patient-derived-org-") ? saved.id : "";
+            updateOrganizationSuggestions(saved.name);
+            updateEditorDuplicateHint();
+            validateEditorValues();
+            return { organization: saved, created: !existing, freetext: false };
+          } catch (error) {
+            console.warn("Patientenorganisation konnte nicht angelegt werden. Freitext wird am Kontakt übernommen.", error);
+            pendingEditorOrganizationId = "";
+            updateOrganizationSuggestions(payload.name);
+            updateEditorDuplicateHint();
+            validateEditorValues();
+            return {
+              organization: { id: "", name: payload.name },
+              created: false,
+              freetext: true,
+              error
+            };
+          }
+        }
         const payload = {
           name: String(name || "").trim(),
           sector: currentGroup,
@@ -39239,7 +39448,7 @@
 
       function handleEditorOrganizationInput() {
         const selectedOrganization = selectedEditorOrganization();
-        const derivedPrefix = editorScope === "expert" ? "expert-derived-org-" : "derived-org-";
+        const derivedPrefix = editorScope === "expert" ? "expert-derived-org-" : editorScope === "patient" ? "patient-derived-org-" : "derived-org-";
         pendingEditorOrganizationId = selectedOrganization?.id && !selectedOrganization.id.startsWith(derivedPrefix) ? selectedOrganization.id : "";
         updateOrganizationSuggestions(editorOrganizationValue());
         updateEditorDuplicateHint();
@@ -39258,11 +39467,12 @@
 
         const result = await createEditorOrganizationByName(currentValue);
         if (!result) return null;
+        const organizationLabel = editorScope === "patient" ? "Patientenorganisation" : "Organisation";
         editorStatus.textContent = result.freetext
-          ? "Organisation wird als Freitext am Kontakt übernommen."
+          ? `${organizationLabel} wird als Freitext am Kontakt übernommen.`
           : result.created
-            ? "Organisation angelegt und ausgewählt."
-            : "Bestehende Organisation ausgewählt.";
+            ? `${organizationLabel} angelegt und ausgewählt.`
+            : `Bestehende ${organizationLabel} ausgewählt.`;
         editorStatus.className = `editor-status is-visible editor-status--${result.freetext ? "warning" : "success"}`;
         setOrganizationComboboxOpen(false);
         return result.organization;
@@ -39331,10 +39541,10 @@
           errors.push({ field: "phone", message: "Telefonnummer bitte grob im üblichen Format eingeben." });
         }
 
-        if (!values.organization) warnings.push({ field: "organization", message: editorScope === "expert" ? "Expertenkreis-Organisation kann später ergänzt werden." : "Organisation kann später ergänzt werden." });
-        if (editorScope !== "expert" && !values.category) warnings.push({ field: "category", message: "Sektor kann später ergänzt werden." });
-        if (!values.specialty) warnings.push({ field: "specialty", message: editorScope === "expert" ? "Fokus fehlt noch." : "Fachrichtung fehlt noch." });
-        if (editorScope !== "expert" && !values.owner) warnings.push({ field: "owner", message: "Noch kein Owner zugewiesen." });
+        if (!values.organization) warnings.push({ field: "organization", message: editorScope === "expert" ? "Expertenkreis-Organisation kann später ergänzt werden." : editorScope === "patient" ? "Patientenorganisation kann später ergänzt werden." : "Organisation kann später ergänzt werden." });
+        if (editorScope !== "expert" && !values.category) warnings.push({ field: "category", message: editorScope === "patient" ? "Indikation kann später ergänzt werden." : "Sektor kann später ergänzt werden." });
+        if (!values.specialty) warnings.push({ field: "specialty", message: editorScope === "expert" ? "Fokus fehlt noch." : editorScope === "patient" ? "Fokus oder Rolle fehlt noch." : "Fachrichtung fehlt noch." });
+        if (editorScope !== "expert" && editorScope !== "patient" && !values.owner) warnings.push({ field: "owner", message: "Noch kein Owner zugewiesen." });
         if (!values.location && !(values.postalCode && values.city)) warnings.push({ field: "location", message: "Standort sollte klar benannt sein." });
 
         [
@@ -39406,13 +39616,23 @@
           .join("");
       }
 
+      function buildPatientIndicationSelectOptions(selectedIndication = "") {
+        const selected = String(selectedIndication || "").trim();
+        return patientIndicationOptions()
+          .map((indication) => `<option value="${escapeHtml(indication)}" ${selected === indication ? "selected" : ""}>${escapeHtml(indication)}</option>`)
+          .join("");
+      }
+
       function buildContextCategorySelectOptions(selectedCategory = "", scope = editorScope) {
-        return scope === "expert" ? buildExpertGroupSelectOptions(selectedCategory) : buildCategorySelectOptions(selectedCategory);
+        if (scope === "expert") return buildExpertGroupSelectOptions(selectedCategory);
+        if (scope === "patient") return buildPatientIndicationSelectOptions(selectedCategory);
+        return buildCategorySelectOptions(selectedCategory);
       }
 
       function themeSuggestions(options = {}) {
-        const sourceContacts = options.scope === "expert" ? expertContacts : contacts;
-        return [...new Set([...themeOptions, ...sourceContacts.flatMap((contact) => normalizeThemes(contact.themes))])].sort((a, b) =>
+        const sourceContacts = options.scope === "expert" ? expertContacts : options.scope === "patient" ? patientPeople : contacts;
+        const baseOptions = options.scope === "patient" ? patientIndicationOptions() : themeOptions;
+        return [...new Set([...baseOptions, ...sourceContacts.flatMap((contact) => normalizeThemes(contact.themes))])].sort((a, b) =>
           a.localeCompare(b, "de")
         );
       }
@@ -42969,17 +43189,26 @@
           return;
         }
         const isExpertEditor = options.scope === "expert";
-        setOrganizationEditorScope(isExpertEditor ? "expert" : "care");
+        const isPatientEditor = options.scope === "patient";
+        setOrganizationEditorScope(isExpertEditor ? "expert" : isPatientEditor ? "patient" : "care");
         editingOrganizationId = organization?.id || null;
         organizationEditorCurrentStep = "quick";
         organizationEditorTitle.textContent = isExpertEditor
           ? organization ? "Expertenkreis-Organisation bearbeiten" : "Expertenkreis-Organisation anlegen"
+          : isPatientEditor
+            ? organization ? "Patientenorganisation bearbeiten" : "Patientenorganisation anlegen"
           : organization ? "Organisation bearbeiten" : "Organisation anlegen";
         organizationEditorSubtitle.textContent = isExpertEditor
           ? "Organisation aus der Interoperabilität getrennt vom Versorgungsdatenbestand erfassen."
+          : isPatientEditor
+            ? "Patientenorganisation im Patientenbereich erfassen."
           : organization ? "Stammdaten der Organisation aktualisieren." : "Neue Einrichtung, Institution oder Organisation anlegen.";
         const defaultExpertGroup = expertGroups.find((group) => group.status !== "archived")?.name || seedExpertGroups()[0] || "";
-        const selectedSector = isExpertEditor ? organization?.sector || defaultExpertGroup : normalizeCategory(organization?.sector || defaultCategories[0]);
+        const selectedSector = isExpertEditor
+          ? organization?.sector || defaultExpertGroup
+          : isPatientEditor
+            ? organization?.sector || organization?.indication || defaultPatientIndication()
+            : normalizeCategory(organization?.sector || defaultCategories[0]);
         organizationEditorForm.elements.id.value = organization?.id || "";
         organizationEditorForm.elements.name.value = organization?.name || "";
         organizationEditorForm.elements.sector.innerHTML = buildContextCategorySelectOptions(selectedSector, organizationEditorScope);
@@ -43410,9 +43639,10 @@
           return;
         }
         const isExpertEditor = options.scope === "expert";
-        setEditorScope(isExpertEditor ? "expert" : "care");
+        const isPatientEditor = options.scope === "patient";
+        setEditorScope(isExpertEditor ? "expert" : isPatientEditor ? "patient" : "care");
         const organizationDefaults = options.organization || null;
-        const derivedPrefix = isExpertEditor ? "expert-derived-org-" : "derived-org-";
+        const derivedPrefix = isExpertEditor ? "expert-derived-org-" : isPatientEditor ? "patient-derived-org-" : "derived-org-";
         pendingEditorOrganizationId = organizationDefaults?.id && !organizationDefaults.id.startsWith(derivedPrefix) ? organizationDefaults.id : "";
         editorMode = contact ? "edit" : "create";
         editingId = contact?.id || null;
@@ -43420,20 +43650,30 @@
         editorForm.dataset.submitAction = "save";
         editorTitle.textContent = isExpertEditor
           ? contact ? "Expertenkreis-Kontakt bearbeiten" : "Expertenkreis-Kontakt anlegen"
+          : isPatientEditor
+            ? contact ? "Patienten-Kontakt bearbeiten" : "Patienten-Kontakt anlegen"
           : contact ? "Kontakt bearbeiten" : "Neuen Kontakt anlegen";
         editorSubtitle.textContent = isExpertEditor
           ? "Interoperabilitätskontakt getrennt vom Versorgungsdatenbestand erfassen."
+          : isPatientEditor
+            ? "Kontakt im Patientenbereich erfassen. Nur Name ist Pflicht."
           : contact
             ? "Basisdaten zuerst, Details können laufend ergänzt werden."
             : "Nur Name ist Pflicht. Details kannst du später ergänzen.";
         editorHint.textContent = isExpertEditor
           ? "Neue Expertenkreis-Kontakte werden separat gespeichert."
+          : isPatientEditor
+            ? "Neue Patienten-Kontakte werden im Patientenbereich gespeichert."
           : contact
             ? "Änderungen werden im gemeinsamen Supabase-Datenstand gespeichert und protokolliert."
             : "Neue Kontakte werden im gemeinsamen Supabase-Datenstand angelegt.";
         const selectedOrganizationName = contact?.organization || organizationDefaults?.name || "";
         const defaultExpertGroup = expertGroups.find((group) => group.status !== "archived")?.name || seedExpertGroups()[0] || "";
-        const selectedCategory = isExpertEditor ? contact?.category || defaultExpertGroup : normalizeCategory(contact?.category || organizationDefaults?.sector || defaultCategories[0]);
+        const selectedCategory = isExpertEditor
+          ? contact?.category || defaultExpertGroup
+          : isPatientEditor
+            ? contact?.category || contact?.indication || organizationDefaults?.sector || defaultPatientIndication()
+            : normalizeCategory(contact?.category || organizationDefaults?.sector || defaultCategories[0]);
 
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
@@ -43836,11 +44076,14 @@
         if (expertModeActions) expertModeActions.hidden = !isExpertsView;
         if (expertCommandActions) expertCommandActions.hidden = !isExpertsView;
         if (patientModeActions) patientModeActions.hidden = !isPatientsView;
+        if (patientCommandActions) patientCommandActions.hidden = !isPatientsView || isPatientIndicationsMode;
         if (stakeholderModeActions) stakeholderModeActions.hidden = !isStakeholdersView;
         if (hospitationModeActions) hospitationModeActions.hidden = !isHospitationsView;
         if (stakeholderCommandActions) stakeholderCommandActions.hidden = !isStakeholdersView;
         if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertOrganizationsMode;
         if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView || !isExpertOrganizationsMode;
+        if (newPatientContactButton) newPatientContactButton.hidden = !isPatientsView || !isPatientPeopleMode;
+        if (newPatientOrganizationButton) newPatientOrganizationButton.hidden = !isPatientsView || !isPatientOrganizationsMode;
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
         if (newHospitationRequestButton) newHospitationRequestButton.hidden = !isHospitationsView || !canEditContacts();
         if (newHospitationBookingButton) newHospitationBookingButton.hidden = !isHospitationsView || !canEditContacts();
@@ -44423,6 +44666,8 @@
       organizationMatchingWorklistButton?.addEventListener("click", () => openCareDuplicates("organizations"));
       newExpertContactButton?.addEventListener("click", () => openEditor(null, { scope: "expert" }));
       newExpertOrganizationButton?.addEventListener("click", () => openOrganizationEditor(null, { scope: "expert" }));
+      newPatientContactButton?.addEventListener("click", () => openEditor(null, { scope: "patient" }));
+      newPatientOrganizationButton?.addEventListener("click", () => openOrganizationEditor(null, { scope: "patient" }));
       expertDuplicatesButton?.addEventListener("click", openExpertDuplicates);
       newFormatButton?.addEventListener("click", () => {
         formatActiveTab = "overview";
@@ -44493,7 +44738,11 @@
         const formData = new FormData(organizationEditorForm);
         const payload = {
           name: String(formData.get("name") || "").trim(),
-          sector: organizationEditorScope === "expert" ? String(formData.get("sector") || "").trim() : normalizeCategory(formData.get("sector") || defaultCategories[0]),
+          sector: organizationEditorScope === "expert"
+            ? String(formData.get("sector") || "").trim()
+            : organizationEditorScope === "patient"
+              ? String(formData.get("sector") || "").trim() || defaultPatientIndication()
+              : normalizeCategory(formData.get("sector") || defaultCategories[0]),
           organizationType: String(formData.get("organizationType") || "").trim(),
           postalCode: String(formData.get("postalCode") || "").trim(),
           city: String(formData.get("city") || "").trim(),
@@ -44541,6 +44790,39 @@
           } catch (error) {
             console.error("Expertenkreis-Organisation konnte nicht gespeichert werden.", error);
             organizationEditorStatus.textContent = "Expertenkreis-Organisation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
+            organizationEditorStatus.className = "editor-status is-visible editor-status--error";
+          }
+          return;
+        }
+        if (organizationEditorScope === "patient") {
+          const patientOrganizationEntry = sanitizePatientOrganization({
+            ...payload,
+            id: editingOrganizationId || patientStakeholderId("patient-org", payload.name),
+            stakeholderTypeId: "patient-associations",
+            stakeholderType: "patient-associations",
+            organizationType: payload.organizationType || "Patientenorganisation",
+            indication: payload.sector,
+            category: payload.sector,
+            source: payload.source || "Manuell angelegt",
+            status: "active",
+            updatedAt: new Date().toISOString()
+          }, patientOrganizations.length);
+          try {
+            await upsertPatientStakeholders({ organizations: [patientOrganizationEntry] });
+            const saved = patientOrganizationForIdentity(patientOrganizationEntry.id, patientOrganizationEntry.name, patientOrganizations) || patientOrganizationEntry;
+            setStorageStatus("Patientenorganisation gespeichert");
+            closeOrganizationEditor();
+            activePatientMode = "organizations";
+            activePatientOrganizationId = saved.id;
+            activePatientPersonId = null;
+            activeCareDuplicateView = "";
+            setActiveView("patients");
+            updateRouteHash("patients");
+            updateView();
+            openOrganizationProfile("patient", saved.id, { returnTo: "patients", title: saved.name });
+          } catch (error) {
+            console.error("Patientenorganisation konnte nicht gespeichert werden.", error);
+            organizationEditorStatus.textContent = "Patientenorganisation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
             organizationEditorStatus.className = "editor-status is-visible editor-status--error";
           }
           return;
@@ -44857,7 +45139,11 @@
         }
         const formData = new FormData(editorForm);
         const timestamp = new Date().toISOString();
-        const existingContact = editingId ? contacts.find((contact) => contact.id === editingId) : null;
+        const existingContact = editingId
+          ? editorScope === "patient"
+            ? patientPeople.find((contact) => contact.id === editingId)
+            : contacts.find((contact) => contact.id === editingId)
+          : null;
         const validation = validateEditorValues({ showWarnings: true });
         if (validation.errors.length) {
           const firstErrorField = validation.errors[0]?.field;
@@ -44874,7 +45160,12 @@
           const result = await createEditorOrganizationByName(organizationName);
           selectedOrganization = result?.organization || null;
         }
-        const organizationId = selectedOrganization?.id && !selectedOrganization.id.startsWith("derived-org-")
+        const organizationDerivedPrefix = editorScope === "expert"
+          ? "expert-derived-org-"
+          : editorScope === "patient"
+            ? "patient-derived-org-"
+            : "derived-org-";
+        const organizationId = selectedOrganization?.id && !selectedOrganization.id.startsWith(organizationDerivedPrefix)
           ? selectedOrganization.id
           : pendingEditorOrganizationId || existingContact?.organizationId || "";
         if (editorScope === "expert") {
@@ -44931,6 +45222,64 @@
           } catch (error) {
             console.error("Expertenkreis-Kontakt konnte nicht gespeichert werden.", error);
             editorStatus.textContent = "Expertenkreis-Kontakt konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
+            editorStatus.className = "editor-status is-visible editor-status--error";
+          }
+          return;
+        }
+        if (editorScope === "patient") {
+          const indication = String(formData.get("category") || "").trim() || selectedOrganization?.sector || defaultPatientIndication();
+          const name = String(formData.get("name") || "").trim();
+          const role = String(formData.get("contactRole") || "").trim() || String(formData.get("specialty") || "").trim();
+          const focus = String(formData.get("specialty") || "").trim();
+          const patientEntry = sanitizePatientPerson({
+            id: String(formData.get("id") || "").trim() || patientStakeholderId("patient-person", organizationName || "ohne-organisation", name),
+            stakeholderTypeId: "patient-associations",
+            stakeholderType: "patient-associations",
+            organization: organizationName,
+            organizationId,
+            name,
+            role,
+            contactRole: role,
+            committee: focus,
+            city,
+            state: String(formData.get("state") || "").trim(),
+            email: String(formData.get("email") || "").trim(),
+            phone: String(formData.get("phone") || "").trim(),
+            linkedin: String(formData.get("linkedin") || "").trim(),
+            note: String(formData.get("note") || "").trim() || existingContact?.note || "",
+            themes: normalizeThemes([...editorThemes, focus].filter(Boolean)),
+            url: String(formData.get("image") || "").trim(),
+            source: "Manuell angelegt",
+            indication,
+            sector: indication,
+            category: indication,
+            createdAt: existingContact?.createdAt || timestamp,
+            updatedAt: timestamp,
+            status: "active"
+          }, patientPeople.length, patientOrganizations);
+
+          if (!patientEntry.name) {
+            window.alert("Bitte trage mindestens einen Namen ein.");
+            editorForm.elements.name.focus();
+            return;
+          }
+
+          try {
+            await upsertPatientStakeholders({ people: [patientEntry] });
+            const savedPatient = patientPeople.find((person) => person.id === patientEntry.id) || patientEntry;
+            setStorageStatus("Patienten-Kontakt gespeichert");
+            activePatientMode = "people";
+            activePatientPersonId = savedPatient.id;
+            activePatientOrganizationId = null;
+            editorForm.dataset.submitAction = "save";
+            closeEditor();
+            setActiveView("patients");
+            updateRouteHash("patients");
+            updateView();
+            openPersonProfile("stakeholder", savedPatient.id, { returnTo: "patients", title: savedPatient.name });
+          } catch (error) {
+            console.error("Patienten-Kontakt konnte nicht gespeichert werden.", error);
+            editorStatus.textContent = "Patienten-Kontakt konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.";
             editorStatus.className = "editor-status is-visible editor-status--error";
           }
           return;
@@ -45242,10 +45591,6 @@
       }
 
       async function loadPatientData({ includeArchived = false } = {}) {
-        const isPatientAssociationEntry = (entry) =>
-          entry?.stakeholderTypeId === "patient-associations" ||
-          entry?.stakeholder_type_id === "patient-associations" ||
-          entry?.stakeholderType === "patient-associations";
         try {
           if (window.dataService?.loadStakeholderOrganizations) {
             const loadedOrganizations = (await window.dataService.loadStakeholderOrganizations({ includeArchived, stakeholderTypeId: "patient-associations" }))
@@ -45282,6 +45627,7 @@
           console.warn("Patienten-Personen konnten nicht geladen werden. Seed-Fallback aktiv.", peopleError);
           patientPeople = seedPatientPeople;
         }
+        syncPatientStakeholderCaches();
       }
 
       async function loadOrganizationData({ includeArchived = false } = {}) {

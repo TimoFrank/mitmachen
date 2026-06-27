@@ -267,6 +267,7 @@
     "name",
     "normalized_name",
     "organization_type",
+    "sector",
     "postal_code",
     "city",
     "federal_state",
@@ -366,6 +367,7 @@
   let supportsOrganizationAssets = CAPABILITIES.organizationAssets === true;
   let supportsExpertOrganizationAssets = CAPABILITIES.expertOrganizationAssets === true;
   let supportsStakeholderOrganizationAssets = CAPABILITIES.stakeholderOrganizationAssets !== false;
+  let supportsStakeholderOrganizationSector = CAPABILITIES.stakeholderOrganizationSector !== false;
   let supportsFormats = true;
   let supportsHospitations = true;
   let supportsNotifications = true;
@@ -395,7 +397,10 @@
   }
 
   function stakeholderOrganizationSelectFields() {
-    return STAKEHOLDER_ORGANIZATION_FIELDS.filter((field) => supportsStakeholderOrganizationAssets || !ORGANIZATION_ASSET_FIELDS.has(field)).join(",");
+    return STAKEHOLDER_ORGANIZATION_FIELDS.filter((field) => {
+      if (!supportsStakeholderOrganizationSector && field === "sector") return false;
+      return supportsStakeholderOrganizationAssets || !ORGANIZATION_ASSET_FIELDS.has(field);
+    }).join(",");
   }
 
   function isMissingOrganizationIdError(error) {
@@ -420,6 +425,19 @@
 
   function isMissingOrganizationAssetError(error) {
     return /logo_url|logo_source_url|logo_source_label|member_count|member_count_source_url|member_count_source_label|member_count_updated_at|member_count_scope|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
+  }
+
+  function isMissingStakeholderOrganizationSectorError(error) {
+    const message = String(error?.message || error?.details || error?.hint || "");
+    return /\bsector\b/i.test(message) && /stakeholder_organizations|schema cache/i.test(message);
+  }
+
+  function stakeholderOrganizationRowsForWrite(rows = []) {
+    return rows.map((row) => {
+      const next = { ...row };
+      if (!supportsStakeholderOrganizationSector) delete next.sector;
+      return next;
+    });
   }
 
   function isConfigured() {
@@ -2153,6 +2171,7 @@
       name: row.name || "",
       normalizedName: row.normalized_name || row.normalizedName || normalizeOrganizationName(row.name),
       organizationType: row.organization_type || row.organizationType || "",
+      sector: row.sector || row.indication || row.category || "",
       postalCode: row.postal_code || row.postalCode || "",
       city: row.city || "",
       state: row.federal_state || row.state || "",
@@ -2237,6 +2256,7 @@
       name,
       normalized_name: normalizeOrganizationName(organization.normalizedName || organization.normalized_name || name),
       organization_type: String(organization.organizationType || organization.organization_type || "").trim() || null,
+      sector: String(organization.sector || organization.indication || organization.category || "").trim() || null,
       postal_code: String(organization.postalCode || organization.postal_code || "").trim() || null,
       city: String(organization.city || "").trim() || null,
       federal_state: String(organization.state || organization.federal_state || "").trim() || null,
@@ -3308,10 +3328,20 @@
       if (options.stakeholderTypeId || options.stakeholderType) query = query.eq("stakeholder_type_id", options.stakeholderTypeId || options.stakeholderType);
       return query;
     };
-    let { data, error } = await buildQuery();
-    if (error && supportsStakeholderOrganizationAssets && isMissingOrganizationAssetError(error)) {
-      supportsStakeholderOrganizationAssets = false;
+    let data;
+    let error;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       ({ data, error } = await buildQuery());
+      if (!error) break;
+      if (supportsStakeholderOrganizationSector && isMissingStakeholderOrganizationSectorError(error)) {
+        supportsStakeholderOrganizationSector = false;
+        continue;
+      }
+      if (supportsStakeholderOrganizationAssets && isMissingOrganizationAssetError(error)) {
+        supportsStakeholderOrganizationAssets = false;
+        continue;
+      }
+      break;
     }
     if (error) throw error;
 
@@ -3430,7 +3460,7 @@
     const organizations = (payload.organizations || []).map(stakeholderOrganizationUiToDb).filter((organization) => organization.name);
     const people = (payload.people || []).map(stakeholderPersonUiToDb).filter((person) => person.name);
     if (isLocalMode()) {
-      requireLocalAdmin("Stakeholder importieren");
+      requireLocalWrite("Stakeholder speichern");
       const typeMap = new Map(localStakeholderTypes({ includeArchived: true }).map((type) => [type.id, stakeholderTypeDbToUi(type)]));
       types.forEach((type) => typeMap.set(type.id, stakeholderTypeDbToUi(type)));
       stakeholderTypeCache = [...typeMap.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label, "de"));
@@ -3465,7 +3495,13 @@
       if (error) throw error;
     }
     if (organizations.length) {
-      const { error } = await supabase.from("stakeholder_organizations").upsert(organizations, { onConflict: "id" });
+      let organizationRows = stakeholderOrganizationRowsForWrite(organizations);
+      let { error } = await supabase.from("stakeholder_organizations").upsert(organizationRows, { onConflict: "id" });
+      if (error && supportsStakeholderOrganizationSector && isMissingStakeholderOrganizationSectorError(error)) {
+        supportsStakeholderOrganizationSector = false;
+        organizationRows = stakeholderOrganizationRowsForWrite(organizations);
+        ({ error } = await supabase.from("stakeholder_organizations").upsert(organizationRows, { onConflict: "id" }));
+      }
       if (error) throw error;
     }
     if (people.length) {

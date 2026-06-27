@@ -277,6 +277,7 @@ create table if not exists public.stakeholder_organizations (
   name text not null,
   normalized_name text not null,
   organization_type text,
+  sector text,
   postal_code text,
   city text,
   federal_state text,
@@ -471,6 +472,7 @@ create index if not exists expert_entity_links_expert_organization_idx on public
 create index if not exists stakeholder_types_status_idx on public.stakeholder_types(status);
 create index if not exists stakeholder_organizations_type_idx on public.stakeholder_organizations(stakeholder_type_id);
 create index if not exists stakeholder_organizations_normalized_name_idx on public.stakeholder_organizations(normalized_name);
+create index if not exists stakeholder_organizations_sector_idx on public.stakeholder_organizations(sector);
 create index if not exists stakeholder_organizations_state_idx on public.stakeholder_organizations(federal_state);
 create index if not exists stakeholder_organizations_status_idx on public.stakeholder_organizations(status);
 create index if not exists stakeholder_people_type_idx on public.stakeholder_people(stakeholder_type_id);
