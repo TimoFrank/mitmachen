@@ -17726,13 +17726,6 @@
         width: 100%;
       }
 
-      .hospitation-status-legend {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: wrap;
-      }
-
       .hospitation-tab-panel[hidden] {
         display: none;
       }
@@ -17747,9 +17740,13 @@
       .hospitation-schedule-toolbar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-end;
         gap: 12px;
         min-width: 0;
+      }
+
+      .hospitation-command-view-toggle {
+        margin-left: auto;
       }
 
       .hospitation-view-toggle {
@@ -18086,38 +18083,6 @@
         justify-self: start;
         text-transform: none;
         letter-spacing: 0;
-      }
-
-      .hospitation-status-filter {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 28px;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        background: var(--surface);
-        color: var(--text-secondary);
-        padding: 5px 10px;
-        font: inherit;
-        font-size: 0.76rem;
-        font-weight: 800;
-        line-height: 1;
-        cursor: pointer;
-        transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
-      }
-
-      .hospitation-status-filter:hover,
-      .hospitation-status-filter:focus-visible {
-        border-color: currentColor;
-        box-shadow: var(--focus-ring);
-        outline: none;
-      }
-
-      .hospitation-status-filter.is-active {
-        border-color: var(--primary);
-        background: var(--primary-soft);
-        color: var(--primary);
-        box-shadow: inset 0 0 0 1px currentColor;
       }
 
       .hospitation-dashboard {
@@ -19891,6 +19856,11 @@
           flex-direction: column;
         }
 
+        .hospitation-command-view-toggle {
+          align-self: flex-end;
+          margin-left: 0;
+        }
+
         .app-shell[data-active-view="formats"] .controls-stack,
         .app-shell[data-active-view="hospitations"] .controls-stack {
           grid-template-columns: 1fr;
@@ -21075,8 +21045,11 @@
                   <button class="action-button" type="button" id="new-hospitation-booking-button">Direkt buchen</button>
                   <button class="action-button" type="button" id="new-hospitation-slot-button">Termin anbieten</button>
                 </div>
+                <div class="hospitation-view-toggle hospitation-command-view-toggle" id="hospitation-schedule-view-toggle" role="group" aria-label="Terminansicht">
+                  <button class="is-active" type="button" data-hospitation-schedule-view="list" aria-pressed="true">Liste</button>
+                  <button type="button" data-hospitation-schedule-view="calendar" aria-pressed="false">Kalender</button>
+                </div>
               </div>
-              <div class="hospitation-status-legend" id="hospitation-status-legend" aria-label="Hospitationsstatus"></div>
               <section class="hospitation-tab-panel" id="hospitation-appointments-panel" data-hospitation-tab-panel="appointments" role="tabpanel">
                 <div class="hospitation-list" id="hospitation-list"></div>
               </section>
@@ -23389,7 +23362,7 @@
       const newHospitationSlotButton = document.getElementById("new-hospitation-slot-button");
       const hospitationTabButtons = [...document.querySelectorAll("[data-hospitation-tab]")];
       const hospitationTabPanels = [...document.querySelectorAll("[data-hospitation-tab-panel]")];
-      const hospitationStatusLegend = document.getElementById("hospitation-status-legend");
+      const hospitationScheduleViewToggle = document.getElementById("hospitation-schedule-view-toggle");
       const hospitationList = document.getElementById("hospitation-list");
       const hospitationDocumentationList = document.getElementById("hospitation-documentation-list");
       const hospitationDashboard = document.getElementById("hospitation-dashboard");
@@ -34313,10 +34286,6 @@
       function renderHospitationScheduleToolbar(entries = []) {
         return `
           <div class="hospitation-schedule-toolbar">
-            <div class="hospitation-view-toggle" role="group" aria-label="Terminansicht">
-              <button class="${hospitationScheduleView === "list" ? "is-active" : ""}" type="button" data-hospitation-schedule-view="list" aria-pressed="${hospitationScheduleView === "list" ? "true" : "false"}">Liste</button>
-              <button class="${hospitationScheduleView === "calendar" ? "is-active" : ""}" type="button" data-hospitation-schedule-view="calendar" aria-pressed="${hospitationScheduleView === "calendar" ? "true" : "false"}">Kalender</button>
-            </div>
             <div class="hospitation-schedule-meta">${entries.length} ${entries.length === 1 ? "Termin" : "Termine"} und Angebote</div>
           </div>
         `;
@@ -34484,25 +34453,6 @@
         `;
       }
 
-      function renderHospitationStatusLegend() {
-        if (!hospitationStatusLegend) return;
-        const statuses = ["", "Angefragt", "Angeboten", "Gebucht", "Durchgeführt", "Dokumentiert"];
-        hospitationStatusLegend.innerHTML = statuses
-          .map((status) => `
-            <button class="hospitation-status-filter ${hospitationStatusFilter === status ? "is-active" : ""}" type="button" data-hospitation-status-filter="${escapeHtml(status)}" aria-pressed="${hospitationStatusFilter === status ? "true" : "false"}">
-              ${escapeHtml(status || "Alle")}
-            </button>
-          `)
-          .join("");
-        hospitationStatusLegend.querySelectorAll("[data-hospitation-status-filter]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const nextStatus = button.dataset.hospitationStatusFilter || "";
-            hospitationStatusFilter = hospitationStatusFilter === nextStatus ? "" : nextStatus;
-            renderHospitationsView();
-          });
-        });
-      }
-
       function renderHospitationDashboard() {
         if (!hospitationDashboard) return;
         const visible = filteredHospitations();
@@ -34666,6 +34616,16 @@
         });
       }
 
+      function updateHospitationScheduleViewToggle(activeTab = activeHospitationTab) {
+        if (!hospitationScheduleViewToggle) return;
+        hospitationScheduleViewToggle.hidden = activeTab !== "appointments";
+        hospitationScheduleViewToggle.querySelectorAll("[data-hospitation-schedule-view]").forEach((button) => {
+          const active = button.dataset.hospitationScheduleView === hospitationScheduleView;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+      }
+
       function renderHospitationsView() {
         if (activeView !== "hospitations") return;
         const activeTab = hospitationTabItems.some((item) => item.id === activeHospitationTab) ? activeHospitationTab : "appointments";
@@ -34678,7 +34638,7 @@
         hospitationTabPanels.forEach((panel) => {
           panel.hidden = panel.dataset.hospitationTabPanel !== activeTab;
         });
-        renderHospitationStatusLegend();
+        updateHospitationScheduleViewToggle(activeTab);
         const items = filteredHospitations();
         updateHospitationTabCounts();
         if (resultsCount) resultsCount.textContent = hitCountLabel(items);
@@ -43185,6 +43145,12 @@
       hospitationTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
           activeHospitationTab = button.dataset.hospitationTab || "appointments";
+          renderHospitationsView();
+        });
+      });
+      hospitationScheduleViewToggle?.querySelectorAll("[data-hospitation-schedule-view]").forEach((button) => {
+        button.addEventListener("click", () => {
+          hospitationScheduleView = button.dataset.hospitationScheduleView === "calendar" ? "calendar" : "list";
           renderHospitationsView();
         });
       });
