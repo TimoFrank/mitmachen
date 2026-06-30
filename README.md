@@ -2,11 +2,11 @@
 
 Das gematik-Hospitationsnetzwerk sichtbar machen.
 
-Der `Versorgungs-Kompass` ist ein interner Arbeits- und Orientierungskompass für das gematik-Hospitationsnetzwerk. Er bündelt Kontakte, Organisationen, Standorte und fachliche Einordnungen so, dass aus einzelnen Anknüpfungspunkten ein gemeinsames Lagebild entsteht: Wer gehört zu unserem Netzwerk? Wo sind Einrichtungen, Praxen, Kliniken, Kassen, Pflege- und Therapieangebote verortet? Welche Regionen sind bereits gut sichtbar und wo fehlen uns noch Perspektiven?
+Der `Versorgungs-Kompass` ist ein Tool für das gematik-Hospitationsnetzwerk. Er bündelt Informationen so, dass aus einzelnen Kontakten ein gemeinsames Bild entsteht: Wer gehört zu unserem Netzwerk? Wo sind Einrichtungen, Praxen, Kliniken, Apotheken und Pflegeeinrichtungen verortet? Welche Regionen sind bereits gut sichtbar und wo fehlen uns noch Perspektiven?
 
-Im Mittelpunkt steht die `Karte`. Sie soll schnell erfassbar machen, wie unser Hospitations-Netzwerk im Raum verteilt ist. Statt Kontakte nur als Liste zu betrachten, zeigt die Karte Cluster, weiße Flecken, regionale Schwerpunkte und mögliche Nachbarschaften zwischen Akteuren. Damit wird sie zum Einstieg für Planung, Abstimmung und Reflexion: Wo können Hospitationen sinnvoll gebündelt werden? Welche Versorgungsbereiche sind in einer Region vertreten? Welche Kontakte liegen nahe beieinander und könnten gemeinsam gedacht werden?
+Im Mittelpunkt steht die `Karte`. Sie soll schnell erfassbar machen, wie unser Netzwerk verteilt ist. Sie zeigt weiße Flecken, regionale Schwerpunkte und mögliche Nachbarschaften zwischen Akteuren. Damit bietet sie einen ersten Überblick: Wie können Hospitationen sinnvoll gebündelt werden? Welche Versorgungsbereiche sind in einer Region vertreten? Welche Kontakte liegen nahe beieinander und könnten gemeinsam gedacht werden?
 
-Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine Karte, die Orientierung gibt, Gespräche vorbereitet, Lücken sichtbar macht und hilft, aus vielen Einzelkontakten ein belastbares Bild der Versorgungspraxis zu entwickeln.
+Das Modul `Hospitationen` ermöglicht Terminplanung und Dokumentation - mit dem Ziel, die Erkenntnisse aus dem Versorgungsalltag strukturiert zur weiteren Nutzung aufzubereiten.
 
 <img src="dokumentation/assets/versorgungs-kompass-karte.png" alt="Kartenansicht des Versorgungs-Kompass" width="560">
 
@@ -19,8 +19,6 @@ Das Ziel ist eine lebendige Übersicht über unser Hospitations-Netzwerk: eine K
 ## 2. Schnellstart
 
 Kurz erklärt:
-
-Der Versorgungs-Kompass zeigt das gematik-Hospitationsnetzwerk auf einer Karte. Er hilft dabei, Kontakte, Organisationen, Standorte und regionale Lücken schnell zu sehen. Echte Daten liegen nicht im Repository, sondern in einem geschützten Backend.
 
 - Die Anwendung ist für die interne Arbeit am gematik-Hospitationsnetzwerk gedacht.
 - Die Karte ist der wichtigste Einstieg und zeigt, wo Kontakte und Organisationen zu finden sind.
