@@ -3068,6 +3068,11 @@
         margin-top: 0;
       }
 
+      .controls[hidden],
+      .formats-command-row[hidden] {
+        display: none !important;
+      }
+
       .controls-stack {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -18930,6 +18935,16 @@
         align-items: stretch;
       }
 
+      .hospitation-dashboard-group-title {
+        grid-column: 1 / -1;
+        margin: 4px 2px -4px;
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
       .hospitation-dashboard-card {
         display: grid;
         align-content: start;
@@ -19137,6 +19152,93 @@
       .hospitation-dashboard-chip span {
         color: var(--text-muted);
         font-weight: 900;
+      }
+
+      .hospitation-dashboard-pie-layout {
+        display: grid;
+        grid-template-columns: 156px minmax(0, 1fr);
+        gap: 16px;
+        align-items: center;
+      }
+
+      .hospitation-dashboard-pie {
+        position: relative;
+        width: 156px;
+        aspect-ratio: 1;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        background: conic-gradient(var(--pie-segments, var(--surface-muted) 0 100%));
+      }
+
+      .hospitation-dashboard-pie::after {
+        content: "";
+        position: absolute;
+        inset: 34px;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        background: var(--surface);
+      }
+
+      .hospitation-dashboard-pie__center {
+        position: absolute;
+        inset: 48px;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        color: var(--text);
+        font-size: 1.15rem;
+        font-weight: 950;
+      }
+
+      .hospitation-dashboard-legend {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .hospitation-dashboard-legend-item {
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        min-width: 0;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 760;
+      }
+
+      .hospitation-dashboard-legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--legend-color, var(--primary));
+      }
+
+      .hospitation-dashboard-legend-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-dashboard-word-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .hospitation-dashboard-word {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text);
+        padding: 5px 9px;
+        font-size: calc(0.78rem + var(--word-size, 0) * 0.05rem);
+        font-weight: 850;
+        line-height: 1.2;
       }
 
       .hospitation-dashboard-empty {
@@ -21208,6 +21310,15 @@
           gap: 3px;
         }
 
+        .hospitation-dashboard-pie-layout {
+          grid-template-columns: 1fr;
+          justify-items: center;
+        }
+
+        .hospitation-dashboard-legend {
+          width: 100%;
+        }
+
         .hospitation-calendar-grid {
           grid-template-columns: repeat(7, minmax(40px, 1fr));
           overflow-x: auto;
@@ -22355,7 +22466,7 @@
 
           <section class="view-panel" id="view-hospitations" data-view-panel="hospitations">
             <div class="formats-workspace hospitations-workspace">
-              <div class="formats-command-row" aria-label="Hospitationsaktionen">
+              <div class="formats-command-row" id="hospitation-command-row" aria-label="Hospitationsaktionen">
                 <div class="formats-command-actions">
                   <button class="action-button action-button--primary" type="button" id="new-hospitation-request-button"><span class="action-button__icon">+</span>Anfrage</button>
                   <button class="action-button" type="button" id="new-hospitation-booking-button">Direkt buchen</button>
@@ -24662,6 +24773,7 @@
 
       const searchInput = document.getElementById("search");
       const searchShell = searchInput?.closest(".search-shell");
+      const controlsRoot = document.querySelector(".controls");
       const controlsStack = document.querySelector(".controls-stack");
       const list = document.getElementById("contact-list");
       const organizationList = document.getElementById("organization-list");
@@ -24711,6 +24823,7 @@
       const newHospitationSlotButton = document.getElementById("new-hospitation-slot-button");
       const hospitationTabButtons = [...document.querySelectorAll("[data-hospitation-tab]")];
       const hospitationTabPanels = [...document.querySelectorAll("[data-hospitation-tab-panel]")];
+      const hospitationCommandRow = document.getElementById("hospitation-command-row");
       const hospitationScheduleViewToggle = document.getElementById("hospitation-schedule-view-toggle");
       const hospitationList = document.getElementById("hospitation-list");
       const hospitationDocumentationList = document.getElementById("hospitation-documentation-list");
@@ -36759,13 +36872,10 @@
         return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
       }
 
-      function hospitationDashboardScoreAverageNumber(item = {}) {
-        const payload = hospitationDocumentationPayload(item);
-        const values = hospitationDocumentationScoreQuestions
-          .map((question) => Number(payload.scores?.[question.id]) || 0)
-          .filter((value) => value > 0);
-        if (!values.length) return 0;
-        return values.reduce((sum, value) => sum + value, 0) / values.length;
+      const hospitationDashboardPalette = ["#155fe4", "#16a34a", "#b7791f", "#0891b2", "#dc2626", "#64748b", "#7c3aed", "#0f766e"];
+
+      function hospitationDashboardColor(index = 0) {
+        return hospitationDashboardPalette[index % hospitationDashboardPalette.length];
       }
 
       function hospitationDashboardScoreStats(items = []) {
@@ -36796,9 +36906,48 @@
         return [...counts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "de"));
       }
 
+      function hospitationDashboardSectorCounts(items = []) {
+        return countByValue(items, hospitationSectorLabel);
+      }
+
+      function hospitationDashboardDocumentationText(item = {}) {
+        const payload = hospitationDocumentationPayload(item);
+        return [
+          item.documentationSummary,
+          payload.experience,
+          payload.insight,
+          payload.nextUse,
+          payload.observation,
+          payload.processNotes,
+          payload.risks,
+          payload.transferPotential
+        ].map((value) => String(value || "").trim()).filter(Boolean).join(" ");
+      }
+
+      function hospitationDashboardWordCounts(items = []) {
+        const stopWords = new Set([
+          "aber", "alle", "alles", "also", "auch", "auf", "aus", "bei", "das", "dem", "den", "der", "des", "die", "ein", "eine", "einer", "einem", "einen",
+          "fuer", "für", "hat", "hier", "ist", "mit", "nach", "noch", "oder", "sich", "sind", "und", "von", "war", "was", "werden", "wie", "wir", "zur",
+          "zum", "dass", "nicht", "diese", "dieser", "diesen", "wird", "kann", "soll", "sollen", "durch", "beim", "beim", "ueber", "über"
+        ]);
+        const counts = new Map();
+        items.forEach((item) => {
+          hospitationDashboardDocumentationText(item)
+            .toLowerCase()
+            .split(/[^a-zäöüß0-9]+/i)
+            .map((word) => word.trim())
+            .filter((word) => word.length > 3 && !stopWords.has(word))
+            .forEach((word) => counts.set(word, (counts.get(word) || 0) + 1));
+        });
+        return [...counts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "de")).slice(0, 18);
+      }
+
       function hospitationDashboardAnswerSnippet(item = {}) {
         const payload = hospitationDocumentationPayload(item);
         return meaningfulOrEmpty(item.documentationSummary) ||
+          meaningfulOrEmpty(payload.experience) ||
+          meaningfulOrEmpty(payload.insight) ||
+          meaningfulOrEmpty(payload.nextUse) ||
           meaningfulOrEmpty(payload.observation) ||
           meaningfulOrEmpty(payload.processNotes) ||
           meaningfulOrEmpty(payload.transferPotential) ||
@@ -36838,26 +36987,29 @@
         `;
       }
 
-      function renderHospitationDashboardCompletedList(items = []) {
-        if (!items.length) return `<div class="hospitation-dashboard-empty">Noch keine durchgeführten Hospitationen in dieser Auswahl.</div>`;
+      function renderHospitationDashboardSectorPie(entries = [], total = 0) {
+        if (!entries.length || !total) return `<div class="hospitation-dashboard-empty">Noch keine Sektordaten für diese Auswahl.</div>`;
+        let cursor = 0;
+        const segments = entries.map(([label, count], index) => {
+          const start = cursor;
+          const end = cursor + (count / total) * 100;
+          cursor = end;
+          return `${hospitationDashboardColor(index)} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+        }).join(", ");
         return `
-          <div class="hospitation-dashboard-list">
-            ${items.slice(0, 8).map((item) => {
-              const average = hospitationDashboardScoreAverageNumber(item);
-              const topics = hospitationThemeTags(item).slice(0, 3).join(" · ");
-              return `
-                <div class="hospitation-dashboard-item">
-                  <div class="hospitation-dashboard-item__copy">
-                    <span class="hospitation-dashboard-item__title">${escapeHtml(hospitationContextLabel(item))}</span>
-                    <span class="hospitation-dashboard-item__meta">${escapeHtml([hospitationDateOnlyLabel(item), hospitationOrganizationLabel(item), topics].filter(Boolean).join(" · "))}</span>
-                  </div>
-                  <div class="hospitation-row__badges">
-                    ${hospitationStatusBadgeMarkup(item.status)}
-                    ${average ? `<span class="hospitation-documentation-state hospitation-documentation-state--done">Ø ${average.toLocaleString("de-DE", { maximumFractionDigits: 1 })}</span>` : ""}
-                  </div>
+          <div class="hospitation-dashboard-pie-layout">
+            <div class="hospitation-dashboard-pie" style="--pie-segments: ${segments}" role="img" aria-label="Hospitationen nach Sektoren">
+              <span class="hospitation-dashboard-pie__center">${total}</span>
+            </div>
+            <div class="hospitation-dashboard-legend">
+              ${entries.slice(0, 8).map(([label, count], index) => `
+                <div class="hospitation-dashboard-legend-item">
+                  <span class="hospitation-dashboard-legend-dot" style="--legend-color: ${hospitationDashboardColor(index)}" aria-hidden="true"></span>
+                  <span class="hospitation-dashboard-legend-label">${escapeHtml(label)}</span>
+                  <span>${count} · ${hospitationDashboardPercent(count, total)}%</span>
                 </div>
-              `;
-            }).join("")}
+              `).join("")}
+            </div>
           </div>
         `;
       }
@@ -36884,7 +37036,7 @@
           .map((item) => ({ item, snippet: hospitationDashboardAnswerSnippet(item) }))
           .filter((entry) => meaningfulOrEmpty(entry.snippet))
           .slice(0, 4);
-        if (!answers.length) return `<div class="hospitation-dashboard-empty">Noch keine Textantworten aus der Dokumentation.</div>`;
+        if (!answers.length) return `<div class="hospitation-dashboard-empty">Noch keine Zitate oder Beobachtungen aus der Dokumentation.</div>`;
         return `
           <div class="hospitation-dashboard-answer-list">
             ${answers.map(({ item, snippet }) => `
@@ -36892,6 +37044,18 @@
                 <strong>${escapeHtml(hospitationContextLabel(item))}</strong>
                 <span>${escapeHtml(hospitationDashboardShortText(snippet))}</span>
               </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderHospitationDashboardWordCloud(entries = []) {
+        if (!entries.length) return `<div class="hospitation-dashboard-empty">Noch zu wenig Dokumentationstext für eine Wortwolke.</div>`;
+        const maxCount = entries[0]?.[1] || 1;
+        return `
+          <div class="hospitation-dashboard-word-cloud">
+            ${entries.map(([word, count]) => `
+              <span class="hospitation-dashboard-word" style="--word-size: ${Math.round((count / maxCount) * 8)}" title="${escapeHtml(`${word}: ${count}`)}">${escapeHtml(word)}</span>
             `).join("")}
           </div>
         `;
@@ -36927,26 +37091,32 @@
         const completed = active.filter((hospitation) => ["Durchgeführt", "Dokumentiert"].includes(hospitation.status));
         const documented = active.filter((hospitation) => hospitation.status === "Dokumentiert" || meaningfulOrEmpty(hospitation.documentationSummary));
         const openDocumentation = active.filter((hospitation) => ["Gebucht", "Durchgeführt"].includes(hospitation.status) && !meaningfulOrEmpty(hospitation.documentationSummary));
-        const scored = active.filter((hospitation) => hospitationDashboardScoreAverageNumber(hospitation) > 0);
-        const scoreValues = scored.map(hospitationDashboardScoreAverageNumber);
-        const averageScore = scoreValues.length
-          ? (scoreValues.reduce((sum, value) => sum + value, 0) / scoreValues.length).toLocaleString("de-DE", { maximumFractionDigits: 1 })
-          : "-";
         const documentationPercent = hospitationDashboardPercent(documented.length, completed.length);
         const scoreStats = hospitationDashboardScoreStats(active);
+        const sectorCounts = hospitationDashboardSectorCounts(active);
         const topicCounts = hospitationDashboardTopicCounts(active);
+        const wordCounts = hospitationDashboardWordCounts(documented);
         hospitationDashboard.innerHTML = `
+          <div class="hospitation-dashboard-group-title">Metadaten-Auswertung</div>
           ${renderHospitationDashboardKpi("Hospitationen", active.length, `${visible.length} Treffer`, 100)}
-          ${renderHospitationDashboardKpi("Durchgeführt", completed.length, `${completed.length} von ${active.length}`, hospitationDashboardPercent(completed.length, active.length), { tone: "success" })}
           ${renderHospitationDashboardKpi("Dokumentiert", documented.length, `${openDocumentation.length} offen`, documentationPercent, { tone: documentationPercent >= 50 ? "success" : "warning" })}
-          ${renderHospitationDashboardKpi("Relevanz Ø", averageScore, `${scored.length} mit Scores`, averageScore === "-" ? 0 : Math.round((Number(String(averageScore).replace(",", ".")) / 5) * 100), { tone: "success" })}
+          ${renderHospitationDashboardKpi("Sektoren", sectorCounts.length, `${sectorCounts[0]?.[0] || "offen"}`, hospitationDashboardPercent(sectorCounts[0]?.[1] || 0, active.length))}
+          ${renderHospitationDashboardKpi("Themen / Tags", topicCounts.length, `${topicCounts[0]?.[0] || "noch offen"}`, hospitationDashboardPercent(topicCounts[0]?.[1] || 0, active.length))}
           <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
             <div class="dashboard-card-head">
-              <h4>Durchgeführte Hospitationen</h4>
-              <span class="hospitation-dashboard-section-label">${completed.length}</span>
+              <h4>Sektoren</h4>
+              <span class="hospitation-dashboard-section-label">${sectorCounts.length}</span>
             </div>
-            ${renderHospitationDashboardCompletedList(completed)}
+            ${renderHospitationDashboardSectorPie(sectorCounts, active.length)}
           </article>
+          <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
+            <div class="dashboard-card-head">
+              <h4>Häufige Themen und Tags</h4>
+              <span class="hospitation-dashboard-section-label">${topicCounts.length}</span>
+            </div>
+            ${renderHospitationDashboardTopics(topicCounts, active.length)}
+          </article>
+          <div class="hospitation-dashboard-group-title">Dokumentations-Ergebnisse</div>
           <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
             <div class="dashboard-card-head">
               <h4>Versorgungs-Relevanz-Scores</h4>
@@ -36956,17 +37126,17 @@
           </article>
           <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
             <div class="dashboard-card-head">
-              <h4>Antworten aus der Dokumentation</h4>
-              <span class="hospitation-dashboard-section-label">${documented.length}</span>
+              <h4>Wortwolke</h4>
+              <span class="hospitation-dashboard-section-label">${wordCounts.length}</span>
             </div>
-            ${renderHospitationDashboardAnswers(documented)}
+            ${renderHospitationDashboardWordCloud(wordCounts)}
           </article>
           <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
             <div class="dashboard-card-head">
-              <h4>Häufige Themen und Tags</h4>
-              <span class="hospitation-dashboard-section-label">${topicCounts.length}</span>
+              <h4>Zitate und Beobachtungen</h4>
+              <span class="hospitation-dashboard-section-label">${documented.length}</span>
             </div>
-            ${renderHospitationDashboardTopics(topicCounts, active.length)}
+            ${renderHospitationDashboardAnswers(documented)}
           </article>
         `;
       }
@@ -37391,6 +37561,13 @@
         });
       }
 
+      function updateHospitationDashboardChrome(activeTab = activeHospitationTab) {
+        const dashboardActive = activeView === "hospitations" && activeTab === "dashboard";
+        if (hospitationCommandRow) hospitationCommandRow.hidden = dashboardActive;
+        if (controlsRoot) controlsRoot.hidden = dashboardActive;
+        if (searchShell && activeView === "hospitations") searchShell.hidden = dashboardActive;
+      }
+
       function renderHospitationsView() {
         if (activeView !== "hospitations") return;
         const activeTab = hospitationTabItems.some((item) => item.id === activeHospitationTab) ? activeHospitationTab : "appointments";
@@ -37403,6 +37580,7 @@
         hospitationTabPanels.forEach((panel) => {
           panel.hidden = panel.dataset.hospitationTabPanel !== activeTab;
         });
+        updateHospitationDashboardChrome(activeTab);
         updateHospitationScheduleViewToggle(activeTab);
         const items = filteredHospitations();
         updateHospitationTabCounts();
@@ -45547,7 +45725,8 @@
           : isMobileLayout() ? "Kontakte suchen" : "Nach Name, Organisation, Thema oder Standort suchen";
         searchInput.placeholder = searchPlaceholder;
         searchShell?.setAttribute("aria-label", searchPlaceholder);
-        const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView;
+        const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
+        const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isHospitationDashboardTab;
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -45561,6 +45740,7 @@
           expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
         }
+        if (controlsRoot) controlsRoot.hidden = isHospitationDashboardTab;
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -45571,6 +45751,7 @@
         if (patientCommandActions) patientCommandActions.hidden = !isPatientsView || isPatientIndicationsMode;
         if (stakeholderModeActions) stakeholderModeActions.hidden = !isStakeholdersView;
         if (hospitationModeActions) hospitationModeActions.hidden = !isHospitationsView;
+        if (hospitationCommandRow) hospitationCommandRow.hidden = isHospitationDashboardTab;
         if (stakeholderCommandActions) stakeholderCommandActions.hidden = !isStakeholdersView;
         if (newExpertContactButton) newExpertContactButton.hidden = !isExpertsView || isExpertOrganizationsMode;
         if (newExpertOrganizationButton) newExpertOrganizationButton.hidden = !isExpertsView || !isExpertOrganizationsMode;
