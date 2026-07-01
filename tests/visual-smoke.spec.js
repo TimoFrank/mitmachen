@@ -442,6 +442,15 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator("#activities-load-more-row")).toHaveCount(0);
   await expect(page.locator(".app-shell[data-active-view='activities'] #summary-grid")).toBeHidden();
   await expect(page.locator(".activities-filter-field")).toHaveCount(2);
+  await expect(page.locator(".activities-filter-field[data-custom-select] .custom-select-trigger")).toHaveCount(2);
+  const activityUserSelectShell = page.locator('[data-select-type="activity-user"]');
+  const activityRangeSelectShell = page.locator('[data-select-type="activity-range"]');
+  await expect(activityUserSelectShell.locator(".custom-select-trigger__label")).toHaveText("Alle Nutzer");
+  await expect(activityRangeSelectShell.locator(".custom-select-trigger__label")).toHaveText("Alle Zeiten");
+  await activityRangeSelectShell.locator(".custom-select-trigger").click();
+  await expect(activityRangeSelectShell.locator(".custom-select-panel")).toBeVisible();
+  await expect(activityRangeSelectShell.locator(".custom-select-option")).toHaveCount(4);
+  await activityRangeSelectShell.locator(".custom-select-option", { hasText: "Alle Zeiten" }).click();
   await expect(page.locator(".activity-type-chip")).toHaveCount(7);
   await expect(page.locator('[data-activity-kind-option="all"]')).toHaveClass(/is-active/);
   await expect(page.locator("#activities-meta")).toHaveText("36 Aktivitäten");

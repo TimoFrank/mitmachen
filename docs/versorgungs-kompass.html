@@ -4998,7 +4998,7 @@
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
 
-      .activities-filter-field span {
+      .activities-filter-field > span {
         color: #64748b;
         font-size: var(--font-size-xs);
         font-weight: 900;
@@ -5021,6 +5021,72 @@
 
       .activities-filter:focus-visible {
         outline: none;
+      }
+
+      .activities-filter-field[data-custom-select] {
+        padding: 8px 11px;
+      }
+
+      .activities-filter-field[data-custom-select]::after {
+        display: none;
+      }
+
+      .activities-filter-field[data-custom-select] .activities-filter {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .activities-filter-field[data-custom-select] .custom-select-trigger {
+        min-height: 28px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 900;
+      }
+
+      .activities-filter-field[data-custom-select].is-open .custom-select-trigger,
+      .activities-filter-field[data-custom-select]:focus-within .custom-select-trigger {
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .activities-filter-field[data-custom-select] .custom-select-trigger__label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .activities-filter-field[data-custom-select] .custom-select-trigger__icon {
+        width: 17px;
+        height: 17px;
+        color: #64748b;
+      }
+
+      .activities-filter-field[data-custom-select].is-open .custom-select-trigger__icon {
+        color: var(--primary);
+      }
+
+      .activities-filter-field[data-custom-select] .custom-select-panel {
+        top: calc(100% + 8px);
+        min-width: 100%;
+        border-radius: 8px;
+        z-index: 46;
+      }
+
+      .activities-filter-field[data-custom-select] .custom-select-option {
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: #1e293b;
+        font-size: var(--font-size-sm);
+        font-weight: 850;
       }
 
       .activities-filter--native-hidden {
@@ -21590,13 +21656,13 @@
                       <option value="import">Import</option>
                     </select>
                   </div>
-                  <label class="activities-filter-field">
+                  <label class="activities-filter-field" data-custom-select data-select-type="activity-user">
                     <span>Nutzer</span>
                     <select class="activities-filter" id="activity-user-filter" aria-label="Bearbeiter filtern">
                       <option value="all">Alle Nutzer</option>
                     </select>
                   </label>
-                  <label class="activities-filter-field">
+                  <label class="activities-filter-field" data-custom-select data-select-type="activity-range">
                     <span>Zeitraum</span>
                     <select class="activities-filter" id="activity-range-filter" aria-label="Zeitraum filtern">
                       <option value="all">Alle Zeiten</option>
@@ -33106,6 +33172,7 @@
           ...users.map((user) => `<option value="${escapeHtml(user.value)}">${escapeHtml(user.label)}</option>`)
         ].join("");
         activityUserFilter.value = users.some((user) => user.value === activeValue) ? activeValue : "all";
+        syncCustomSelect(activityUserFilter);
       }
 
       function syncActivityKindButtons() {
