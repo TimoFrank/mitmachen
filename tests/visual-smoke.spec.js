@@ -1428,6 +1428,17 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await documentationDrawer.getByRole("button", { name: "Dokumentation speichern" }).click();
   await expect(documentationDrawer).not.toHaveClass(/is-open/);
   await expect(documentationRow).toContainText("Dokumentationsnotiz aus dem Visualtest");
+
+  await page.locator('[data-hospitation-tab="dashboard"]').click();
+  const dashboard = page.locator("#hospitation-dashboard");
+  await expect(dashboard).toBeVisible();
+  await expect(dashboard).toContainText("Durchgeführte Hospitationen");
+  await expect(dashboard).toContainText("Versorgungs-Relevanz-Scores");
+  await expect(dashboard.locator(".hospitation-dashboard-kpi", { hasText: "Relevanz Ø" })).toContainText("4,5");
+  await expect(dashboard.locator(".hospitation-dashboard-score", { hasText: "Medikationsplan" })).toContainText("Ø 4/5");
+  await expect(dashboard.locator(".hospitation-dashboard-score", { hasText: "Entlassbrief" })).toContainText("Ø 5/5");
+  await expect(dashboard.locator(".hospitation-dashboard-answer", { hasText: "Dr. Martin Deile" })).toContainText("Dokumentationsnotiz aus dem Visualtest");
+  await expect(dashboard).toContainText("Visualtest-Hospitation");
 });
 
 test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => {

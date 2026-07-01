@@ -18827,7 +18827,231 @@
       }
 
       .hospitation-dashboard {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        align-items: stretch;
+      }
+
+      .hospitation-dashboard-card {
+        display: grid;
+        align-content: start;
+        gap: 14px;
+        border-radius: var(--radius-md);
+        box-shadow: none;
+      }
+
+      .hospitation-dashboard-kpi {
+        display: grid;
+        gap: 10px;
+        min-height: 148px;
+      }
+
+      .hospitation-dashboard-kpi__eyebrow,
+      .hospitation-dashboard-section-label {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .hospitation-dashboard-kpi__value {
+        color: var(--text);
+        font-size: 2.45rem;
+        font-weight: 950;
+        line-height: 0.95;
+      }
+
+      .hospitation-dashboard-kpi__meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 760;
+      }
+
+      .hospitation-dashboard-bar {
+        width: 100%;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--surface-muted);
+        overflow: hidden;
+      }
+
+      .hospitation-dashboard-bar__fill {
+        display: block;
+        width: var(--bar-width, 0%);
+        max-width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--bar-color, var(--primary));
+      }
+
+      .hospitation-dashboard-bar--success .hospitation-dashboard-bar__fill {
+        background: var(--success);
+      }
+
+      .hospitation-dashboard-bar--warning .hospitation-dashboard-bar__fill {
+        background: var(--warning);
+      }
+
+      .hospitation-dashboard-list {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .hospitation-dashboard-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        padding: 10px 12px;
+      }
+
+      .hospitation-dashboard-item__copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .hospitation-dashboard-item__title {
+        color: var(--text);
+        font-size: 0.9rem;
+        font-weight: 850;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-dashboard-item__meta,
+      .hospitation-dashboard-item__note {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-dashboard-score-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .hospitation-dashboard-score {
+        display: grid;
+        gap: 7px;
+        min-width: 0;
+      }
+
+      .hospitation-dashboard-score__head,
+      .hospitation-dashboard-topic__head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .hospitation-dashboard-score__label,
+      .hospitation-dashboard-topic__label {
+        min-width: 0;
+        color: var(--text);
+        font-size: 0.86rem;
+        font-weight: 850;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-dashboard-score__value,
+      .hospitation-dashboard-topic__count {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .hospitation-dashboard-answer-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hospitation-dashboard-answer {
+        display: grid;
+        gap: 5px;
+        border-left: 3px solid var(--primary);
+        background: var(--surface-muted);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+      }
+
+      .hospitation-dashboard-answer strong {
+        color: var(--text);
+        font-size: 0.86rem;
+      }
+
+      .hospitation-dashboard-answer span {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+
+      .hospitation-dashboard-topics {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hospitation-dashboard-topic {
+        display: grid;
+        gap: 6px;
+      }
+
+      .hospitation-dashboard-chip-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .hospitation-dashboard-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text);
+        padding: 6px 9px;
+        font-size: 0.78rem;
+        font-weight: 820;
+      }
+
+      .hospitation-dashboard-chip span {
+        color: var(--text-muted);
+        font-weight: 900;
+      }
+
+      .hospitation-dashboard-empty {
+        display: grid;
+        place-items: center;
+        min-height: 120px;
+        border: 1px dashed var(--border-strong);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: 0.86rem;
+        font-weight: 760;
+        text-align: center;
+        padding: 16px;
       }
 
       .hospitation-calendar {
@@ -20864,8 +21088,25 @@
         .hospitation-row__name,
         .hospitation-row__primary,
         .hospitation-row__meta,
-        .hospitation-row__secondary {
+        .hospitation-row__secondary,
+        .hospitation-dashboard-item__title,
+        .hospitation-dashboard-item__meta,
+        .hospitation-dashboard-item__note,
+        .hospitation-dashboard-score__label,
+        .hospitation-dashboard-topic__label {
           white-space: normal;
+        }
+
+        .hospitation-dashboard-item {
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+
+        .hospitation-dashboard-score__head,
+        .hospitation-dashboard-topic__head {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 3px;
         }
 
         .hospitation-calendar-grid {
@@ -36389,53 +36630,219 @@
         `;
       }
 
+      function hospitationDashboardPercent(value, total) {
+        if (!total) return 0;
+        return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
+      }
+
+      function hospitationDashboardScoreAverageNumber(item = {}) {
+        const payload = hospitationDocumentationPayload(item);
+        const values = hospitationDocumentationScoreQuestions
+          .map((question) => Number(payload.scores?.[question.id]) || 0)
+          .filter((value) => value > 0);
+        if (!values.length) return 0;
+        return values.reduce((sum, value) => sum + value, 0) / values.length;
+      }
+
+      function hospitationDashboardScoreStats(items = []) {
+        return hospitationDocumentationScoreQuestions
+          .map((question) => {
+            const values = items
+              .map((item) => Number(hospitationDocumentationPayload(item).scores?.[question.id]) || 0)
+              .filter((value) => value > 0);
+            const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+            return {
+              question,
+              count: values.length,
+              average,
+              percent: average ? Math.round((average / 5) * 100) : 0
+            };
+          })
+          .filter((entry) => entry.count > 0)
+          .sort((left, right) => right.average - left.average || right.count - left.count || left.question.label.localeCompare(right.question.label, "de"));
+      }
+
+      function hospitationDashboardTopicCounts(items = []) {
+        const counts = new Map();
+        items.forEach((item) => {
+          normalizeThemes(item.topics || item.themes || "").forEach((topic) => {
+            counts.set(topic, (counts.get(topic) || 0) + 1);
+          });
+        });
+        return [...counts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "de"));
+      }
+
+      function hospitationDashboardAnswerSnippet(item = {}) {
+        const payload = hospitationDocumentationPayload(item);
+        return meaningfulOrEmpty(item.documentationSummary) ||
+          meaningfulOrEmpty(payload.observation) ||
+          meaningfulOrEmpty(payload.processNotes) ||
+          meaningfulOrEmpty(payload.transferPotential) ||
+          meaningfulOrEmpty(payload.risks) ||
+          "";
+      }
+
+      function hospitationDashboardShortText(value = "", limit = 132) {
+        const text = String(value || "").replace(/\s+/g, " ").trim();
+        if (text.length <= limit) return text;
+        return `${text.slice(0, limit - 3).trim()}...`;
+      }
+
+      function hospitationDashboardBar(percent, options = {}) {
+        const width = Math.max(0, Math.min(100, Number(percent) || 0));
+        const toneClass = options.tone ? ` hospitation-dashboard-bar--${normalizeClassPart(options.tone)}` : "";
+        return `
+          <div class="hospitation-dashboard-bar${toneClass}" aria-hidden="true">
+            <span class="hospitation-dashboard-bar__fill" style="--bar-width: ${width}%"></span>
+          </div>
+        `;
+      }
+
+      function renderHospitationDashboardKpi(label, value, metaLabel, percent, options = {}) {
+        return `
+          <article class="dashboard-card dashboard-card--compact hospitation-dashboard-card hospitation-dashboard-kpi">
+            <span class="hospitation-dashboard-kpi__eyebrow">${escapeHtml(label)}</span>
+            <strong class="hospitation-dashboard-kpi__value">${escapeHtml(String(value))}</strong>
+            <div>
+              <div class="hospitation-dashboard-kpi__meta">
+                <span>${escapeHtml(metaLabel)}</span>
+                <span>${percent}%</span>
+              </div>
+              ${hospitationDashboardBar(percent, options)}
+            </div>
+          </article>
+        `;
+      }
+
+      function renderHospitationDashboardCompletedList(items = []) {
+        if (!items.length) return `<div class="hospitation-dashboard-empty">Noch keine durchgeführten Hospitationen in dieser Auswahl.</div>`;
+        return `
+          <div class="hospitation-dashboard-list">
+            ${items.slice(0, 8).map((item) => {
+              const average = hospitationDashboardScoreAverageNumber(item);
+              const topics = hospitationThemeTags(item).slice(0, 3).join(" · ");
+              return `
+                <div class="hospitation-dashboard-item">
+                  <div class="hospitation-dashboard-item__copy">
+                    <span class="hospitation-dashboard-item__title">${escapeHtml(hospitationContextLabel(item))}</span>
+                    <span class="hospitation-dashboard-item__meta">${escapeHtml([hospitationDateOnlyLabel(item), hospitationOrganizationLabel(item), topics].filter(Boolean).join(" · "))}</span>
+                  </div>
+                  <div class="hospitation-row__badges">
+                    ${hospitationStatusBadgeMarkup(item.status)}
+                    ${average ? `<span class="hospitation-documentation-state hospitation-documentation-state--done">Ø ${average.toLocaleString("de-DE", { maximumFractionDigits: 1 })}</span>` : ""}
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
+
+      function renderHospitationDashboardScores(entries = []) {
+        if (!entries.length) return `<div class="hospitation-dashboard-empty">Noch keine Versorgungs-Relevanz-Scores erfasst.</div>`;
+        return `
+          <div class="hospitation-dashboard-score-grid">
+            ${entries.map((entry) => `
+              <div class="hospitation-dashboard-score">
+                <div class="hospitation-dashboard-score__head">
+                  <span class="hospitation-dashboard-score__label">${escapeHtml(entry.question.label)}</span>
+                  <span class="hospitation-dashboard-score__value">Ø ${entry.average.toLocaleString("de-DE", { maximumFractionDigits: 1 })}/5 · ${entry.count} Antworten</span>
+                </div>
+                ${hospitationDashboardBar(entry.percent, { tone: entry.average >= 4 ? "success" : entry.average >= 3 ? "primary" : "warning" })}
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderHospitationDashboardAnswers(items = []) {
+        const answers = sortedHospitations(items)
+          .map((item) => ({ item, snippet: hospitationDashboardAnswerSnippet(item) }))
+          .filter((entry) => meaningfulOrEmpty(entry.snippet))
+          .slice(0, 4);
+        if (!answers.length) return `<div class="hospitation-dashboard-empty">Noch keine Textantworten aus der Dokumentation.</div>`;
+        return `
+          <div class="hospitation-dashboard-answer-list">
+            ${answers.map(({ item, snippet }) => `
+              <div class="hospitation-dashboard-answer">
+                <strong>${escapeHtml(hospitationContextLabel(item))}</strong>
+                <span>${escapeHtml(hospitationDashboardShortText(snippet))}</span>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderHospitationDashboardTopics(entries = [], total = 0) {
+        if (!entries.length) return `<div class="hospitation-dashboard-empty">Noch keine Themen oder Tags hinterlegt.</div>`;
+        const maxCount = entries[0]?.[1] || 1;
+        return `
+          <div class="hospitation-dashboard-topics">
+            ${entries.slice(0, 8).map(([label, count]) => `
+              <div class="hospitation-dashboard-topic">
+                <div class="hospitation-dashboard-topic__head">
+                  <span class="hospitation-dashboard-topic__label">${escapeHtml(label)}</span>
+                  <span class="hospitation-dashboard-topic__count">${count}x · ${hospitationDashboardPercent(count, total)}%</span>
+                </div>
+                ${hospitationDashboardBar(hospitationDashboardPercent(count, maxCount), { tone: "primary" })}
+              </div>
+            `).join("")}
+            <div class="hospitation-dashboard-chip-cloud">
+              ${entries.slice(0, 12).map(([label, count]) => `
+                <span class="hospitation-dashboard-chip">${escapeHtml(label)} <span>${count}</span></span>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }
+
       function renderHospitationDashboard() {
         if (!hospitationDashboard) return;
         const visible = filteredHospitations();
-        const active = hospitations.filter((hospitation) => hospitation.status !== "Archiviert");
+        const active = visible.filter((hospitation) => hospitation.status !== "Archiviert");
         const completed = active.filter((hospitation) => ["Durchgeführt", "Dokumentiert"].includes(hospitation.status));
         const documented = active.filter((hospitation) => hospitation.status === "Dokumentiert" || meaningfulOrEmpty(hospitation.documentationSummary));
         const openDocumentation = active.filter((hospitation) => ["Gebucht", "Durchgeführt"].includes(hospitation.status) && !meaningfulOrEmpty(hospitation.documentationSummary));
-        const openFollowUps = active.filter((hospitation) => meaningfulOrEmpty(hospitation.followUpNote) && meaningfulOrEmpty(hospitation.followUpDueAt));
-        const statusCounts = countByValue(active, (hospitation) => hospitation.status || "Angefragt").slice(0, 6);
-        const ownerCounts = countByValue(active, (hospitation) => hospitationOwnerLabel(hospitation.ownerId)).slice(0, 5);
-        const sectorCounts = countByValue(active, hospitationSectorLabel).slice(0, 5);
-        const stateCounts = countByValue(active, hospitationStateLabel).slice(0, 5);
-        const listMarkup = (entries) => entries.length
-          ? entries.map(([label, count]) => `<p><strong>${escapeHtml(label)}</strong> <span>${count}</span></p>`).join("")
-          : `<p>Noch keine Daten</p>`;
+        const scored = active.filter((hospitation) => hospitationDashboardScoreAverageNumber(hospitation) > 0);
+        const scoreValues = scored.map(hospitationDashboardScoreAverageNumber);
+        const averageScore = scoreValues.length
+          ? (scoreValues.reduce((sum, value) => sum + value, 0) / scoreValues.length).toLocaleString("de-DE", { maximumFractionDigits: 1 })
+          : "-";
+        const documentationPercent = hospitationDashboardPercent(documented.length, completed.length);
+        const scoreStats = hospitationDashboardScoreStats(active);
+        const topicCounts = hospitationDashboardTopicCounts(active);
         hospitationDashboard.innerHTML = `
-          <article class="dashboard-card dashboard-card--compact">
-            <div class="dashboard-card-head"><h4>Hospitationen</h4><span>${visible.length} Treffer</span></div>
-            <p>${active.length} aktive Einträge</p>
+          ${renderHospitationDashboardKpi("Hospitationen", active.length, `${visible.length} Treffer`, 100)}
+          ${renderHospitationDashboardKpi("Durchgeführt", completed.length, `${completed.length} von ${active.length}`, hospitationDashboardPercent(completed.length, active.length), { tone: "success" })}
+          ${renderHospitationDashboardKpi("Dokumentiert", documented.length, `${openDocumentation.length} offen`, documentationPercent, { tone: documentationPercent >= 50 ? "success" : "warning" })}
+          ${renderHospitationDashboardKpi("Relevanz Ø", averageScore, `${scored.length} mit Scores`, averageScore === "-" ? 0 : Math.round((Number(String(averageScore).replace(",", ".")) / 5) * 100), { tone: "success" })}
+          <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
+            <div class="dashboard-card-head">
+              <h4>Durchgeführte Hospitationen</h4>
+              <span class="hospitation-dashboard-section-label">${completed.length}</span>
+            </div>
+            ${renderHospitationDashboardCompletedList(completed)}
           </article>
-          <article class="dashboard-card dashboard-card--compact">
-            <div class="dashboard-card-head"><h4>Durchgeführt</h4><span>${completed.length}</span></div>
-            <p>${documented.length} dokumentiert</p>
+          <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
+            <div class="dashboard-card-head">
+              <h4>Versorgungs-Relevanz-Scores</h4>
+              <span class="hospitation-dashboard-section-label">${scoreStats.length}</span>
+            </div>
+            ${renderHospitationDashboardScores(scoreStats)}
           </article>
-          <article class="dashboard-card dashboard-card--compact">
-            <div class="dashboard-card-head"><h4>Offene Doku</h4><span>${openDocumentation.length}</span></div>
-            <p>${openFollowUps.length} Follow-ups mit Fälligkeit</p>
+          <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
+            <div class="dashboard-card-head">
+              <h4>Antworten aus der Dokumentation</h4>
+              <span class="hospitation-dashboard-section-label">${documented.length}</span>
+            </div>
+            ${renderHospitationDashboardAnswers(documented)}
           </article>
-          <article class="dashboard-card dashboard-card--compact">
-            <div class="dashboard-card-head"><h4>Freie Termine</h4><span>${hospitationSlots.filter((slot) => slot.status === "Frei").length}</span></div>
-            <p>${hospitationSlots.filter((slot) => slot.status !== "Archiviert").length} Slots gesamt</p>
-          </article>
-          <article class="dashboard-card dashboard-card--medium">
-            <div class="dashboard-card-head"><h4>Status</h4></div>
-            ${listMarkup(statusCounts)}
-          </article>
-          <article class="dashboard-card dashboard-card--medium">
-            <div class="dashboard-card-head"><h4>Owner</h4></div>
-            ${listMarkup(ownerCounts)}
-          </article>
-          <article class="dashboard-card dashboard-card--medium">
-            <div class="dashboard-card-head"><h4>Sektor</h4></div>
-            ${listMarkup(sectorCounts)}
-          </article>
-          <article class="dashboard-card dashboard-card--medium">
-            <div class="dashboard-card-head"><h4>Bundesland</h4></div>
-            ${listMarkup(stateCounts)}
+          <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
+            <div class="dashboard-card-head">
+              <h4>Häufige Themen und Tags</h4>
+              <span class="hospitation-dashboard-section-label">${topicCounts.length}</span>
+            </div>
+            ${renderHospitationDashboardTopics(topicCounts, active.length)}
           </article>
         `;
       }
