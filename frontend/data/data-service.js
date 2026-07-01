@@ -195,6 +195,70 @@
     "updated_at",
     "updated_by"
   ];
+  const ROADMAP_ITEM_FIELDS = [
+    "id",
+    "slug",
+    "roadmap_version",
+    "source_url",
+    "product_area",
+    "product_name",
+    "feature_name",
+    "phase",
+    "roadmap_status",
+    "timeline_label",
+    "deadline_type",
+    "legal_basis",
+    "user_groups",
+    "primary_systems",
+    "description",
+    "sort_order",
+    "active",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
+  const HOSPITATION_ROADMAP_ASSESSMENT_FIELDS = [
+    "id",
+    "hospitation_id",
+    "roadmap_item_id",
+    "respondent_role",
+    "respondent_sector",
+    "care_relevance",
+    "patient_safety",
+    "process_relief",
+    "urgency",
+    "implementation_feasibility",
+    "adoption_likelihood",
+    "confidence_score",
+    "comparison_role",
+    "evidence_note",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
+  const HOSPITATION_UNMET_NEED_FIELDS = [
+    "id",
+    "hospitation_id",
+    "related_roadmap_item_id",
+    "title",
+    "problem",
+    "affected_role",
+    "affected_sector",
+    "classification",
+    "expected_benefit",
+    "urgency",
+    "implementation_feasibility",
+    "confidence_score",
+    "current_workaround",
+    "next_step",
+    "status",
+    "created_at",
+    "created_by",
+    "updated_at",
+    "updated_by"
+  ];
   const EXPERT_GROUP_FIELDS = ["id", "name", "sort_order", "status", "created_at", "updated_at"];
   const EXPERT_CONTACT_FIELDS = [
     "id",
@@ -319,6 +383,9 @@
   const LOCAL_FORMATS_KEY = "versorgungs-kompass-formats-v1";
   const LOCAL_HOSPITATION_SLOTS_KEY = "versorgungs-kompass-hospitation-slots-v1";
   const LOCAL_HOSPITATIONS_KEY = "versorgungs-kompass-hospitations-v1";
+  const LOCAL_ROADMAP_ITEMS_KEY = "versorgungs-kompass-roadmap-items-v1";
+  const LOCAL_HOSPITATION_ROADMAP_ASSESSMENTS_KEY = "versorgungs-kompass-hospitation-roadmap-assessments-v1";
+  const LOCAL_HOSPITATION_UNMET_NEEDS_KEY = "versorgungs-kompass-hospitation-unmet-needs-v1";
   const LOCAL_EXPERT_CONTACTS_KEY = "versorgungs-kompass-expert-contacts-v1";
   const LOCAL_EXPERT_ORGANIZATIONS_KEY = "versorgungs-kompass-expert-organizations-v1";
   const LOCAL_EXPERT_ENTITY_LINKS_KEY = "versorgungs-kompass-expert-entity-links-v1";
@@ -356,6 +423,9 @@
   let formatCache = [];
   let hospitationSlotCache = [];
   let hospitationCache = [];
+  let roadmapItemCache = [];
+  let hospitationRoadmapAssessmentCache = [];
+  let hospitationUnmetNeedCache = [];
   let savedViewCache = [];
   let notificationCache = [];
   let userSettingsCache = null;
@@ -1067,6 +1137,60 @@
     }
   }
 
+  function readLocalStoredRoadmapItems() {
+    try {
+      const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_ROADMAP_ITEMS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Lokale Roadmap-Items konnten nicht gelesen werden.", error);
+      return [];
+    }
+  }
+
+  function writeLocalStoredRoadmapItems(items) {
+    try {
+      window.localStorage?.setItem(LOCAL_ROADMAP_ITEMS_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.warn("Lokale Roadmap-Items konnten nicht gespeichert werden.", error);
+    }
+  }
+
+  function readLocalStoredHospitationRoadmapAssessments() {
+    try {
+      const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_HOSPITATION_ROADMAP_ASSESSMENTS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Lokale Roadmap-Bewertungen konnten nicht gelesen werden.", error);
+      return [];
+    }
+  }
+
+  function writeLocalStoredHospitationRoadmapAssessments(items) {
+    try {
+      window.localStorage?.setItem(LOCAL_HOSPITATION_ROADMAP_ASSESSMENTS_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.warn("Lokale Roadmap-Bewertungen konnten nicht gespeichert werden.", error);
+    }
+  }
+
+  function readLocalStoredHospitationUnmetNeeds() {
+    try {
+      const parsed = JSON.parse(window.localStorage?.getItem(LOCAL_HOSPITATION_UNMET_NEEDS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Lokale neue Anforderungen konnten nicht gelesen werden.", error);
+      return [];
+    }
+  }
+
+  function writeLocalStoredHospitationUnmetNeeds(items) {
+    try {
+      window.localStorage?.setItem(LOCAL_HOSPITATION_UNMET_NEEDS_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.warn("Lokale neue Anforderungen konnten nicht gespeichert werden.", error);
+    }
+  }
+
   function localHospitationSlots(options = {}) {
     const rows = isDemoMode() && Array.isArray(demoData().hospitationSlots)
       ? demoData().hospitationSlots
@@ -1085,12 +1209,53 @@
       .map(hospitationDbToUi);
   }
 
+  function localRoadmapItems(options = {}) {
+    const rows = isDemoMode() && Array.isArray(demoData().roadmapItems)
+      ? demoData().roadmapItems
+      : readLocalStoredRoadmapItems();
+    const withFallback = rows.length ? rows : defaultRoadmapItems();
+    return clone(withFallback)
+      .filter((item) => options.includeInactive || item.active !== false)
+      .map(roadmapItemDbToUi);
+  }
+
+  function localHospitationRoadmapAssessments(options = {}) {
+    const rows = isDemoMode() && Array.isArray(demoData().hospitationRoadmapAssessments)
+      ? demoData().hospitationRoadmapAssessments
+      : readLocalStoredHospitationRoadmapAssessments();
+    return clone(rows)
+      .filter((assessment) => !options.hospitationId || assessment.hospitationId === options.hospitationId || assessment.hospitation_id === options.hospitationId)
+      .map(hospitationRoadmapAssessmentDbToUi);
+  }
+
+  function localHospitationUnmetNeeds(options = {}) {
+    const rows = isDemoMode() && Array.isArray(demoData().hospitationUnmetNeeds)
+      ? demoData().hospitationUnmetNeeds
+      : readLocalStoredHospitationUnmetNeeds();
+    return clone(rows)
+      .filter((need) => options.includeArchived || need.status !== "Archiviert")
+      .filter((need) => !options.hospitationId || need.hospitationId === options.hospitationId || need.hospitation_id === options.hospitationId)
+      .map(hospitationUnmetNeedDbToUi);
+  }
+
   function persistLocalHospitationSlots(items = hospitationSlotCache) {
     if (!isDemoMode()) writeLocalStoredHospitationSlots(items.map(hospitationSlotDbToUi));
   }
 
   function persistLocalHospitations(items = hospitationCache) {
     if (!isDemoMode()) writeLocalStoredHospitations(items.map(hospitationDbToUi));
+  }
+
+  function persistLocalRoadmapItems(items = roadmapItemCache) {
+    if (!isDemoMode()) writeLocalStoredRoadmapItems(items.map(roadmapItemDbToUi));
+  }
+
+  function persistLocalHospitationRoadmapAssessments(items = hospitationRoadmapAssessmentCache) {
+    if (!isDemoMode()) writeLocalStoredHospitationRoadmapAssessments(items.map(hospitationRoadmapAssessmentDbToUi));
+  }
+
+  function persistLocalHospitationUnmetNeeds(items = hospitationUnmetNeedCache) {
+    if (!isDemoMode()) writeLocalStoredHospitationUnmetNeeds(items.map(hospitationUnmetNeedDbToUi));
   }
 
   function roleCanEdit() {
@@ -1116,7 +1281,7 @@
   }
 
   function isMissingHospitationsError(error) {
-    return /hospitation_slots|hospitations|relation .* does not exist|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
+    return /hospitation_slots|hospitations|roadmap_items|hospitation_roadmap_assessments|hospitation_unmet_needs|relation .* does not exist|schema cache/i.test(String(error?.message || error?.details || error?.hint || ""));
   }
 
   function formatSetupError(error) {
@@ -1835,6 +2000,290 @@
       documented_at: hospitation.documentedAt || hospitation.documented_at || null,
       documented_by: hospitation.documentedBy || hospitation.documented_by || null
     };
+  }
+
+  function roadmapTextList(value) {
+    if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+    return splitList(value);
+  }
+
+  function normalizeComparisonRole(value) {
+    const label = String(value || "").trim();
+    if (["top_priority", "low_priority"].includes(label)) return label;
+    return "none";
+  }
+
+  function normalizeUnmetNeedClassification(value) {
+    const label = String(value || "").trim();
+    if (["existing_item_extension", "new_backlog_item", "legal_clarification", "organizational_implementation", "local_system_issue", "communication_or_training"].includes(label)) return label;
+    return "new_backlog_item";
+  }
+
+  function normalizeUnmetNeedStatus(value) {
+    const label = String(value || "").trim();
+    if (["Neu", "In Prüfung", "Übernommen", "Zurückgestellt", "Erledigt", "Archiviert"].includes(label)) return label;
+    return "Neu";
+  }
+
+  function ratingValue(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < 1 || number > 5) return null;
+    return Math.round(number);
+  }
+
+  function roadmapItemDbToUi(row = {}) {
+    return {
+      id: row.id || row.slug || "",
+      slug: row.slug || row.id || "",
+      roadmapVersion: row.roadmap_version || row.roadmapVersion || "OneRoadmap Q2/2026",
+      sourceUrl: row.source_url || row.sourceUrl || "",
+      productArea: row.product_area || row.productArea || "",
+      productName: row.product_name || row.productName || "",
+      featureName: row.feature_name || row.featureName || "",
+      phase: row.phase || "",
+      roadmapStatus: row.roadmap_status || row.roadmapStatus || "Unklar",
+      timelineLabel: row.timeline_label || row.timelineLabel || "",
+      deadlineType: row.deadline_type || row.deadlineType || "Unklar",
+      legalBasis: row.legal_basis || row.legalBasis || "",
+      userGroups: roadmapTextList(row.user_groups || row.userGroups),
+      primarySystems: roadmapTextList(row.primary_systems || row.primarySystems),
+      description: row.description || "",
+      sortOrder: Number(row.sort_order || row.sortOrder || 100),
+      active: row.active !== false,
+      createdAt: row.created_at || row.createdAt || "",
+      createdBy: row.created_by || row.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || ""
+    };
+  }
+
+  function roadmapItemUiToDb(item = {}) {
+    return {
+      slug: String(item.slug || item.id || "").trim(),
+      roadmap_version: String(item.roadmapVersion || item.roadmap_version || "OneRoadmap Q2/2026").trim(),
+      source_url: String(item.sourceUrl || item.source_url || "").trim() || null,
+      product_area: String(item.productArea || item.product_area || "").trim(),
+      product_name: String(item.productName || item.product_name || "").trim(),
+      feature_name: String(item.featureName || item.feature_name || "").trim(),
+      phase: String(item.phase || "").trim() || null,
+      roadmap_status: String(item.roadmapStatus || item.roadmap_status || "Unklar").trim() || "Unklar",
+      timeline_label: String(item.timelineLabel || item.timeline_label || "").trim() || null,
+      deadline_type: String(item.deadlineType || item.deadline_type || "Unklar").trim() || "Unklar",
+      legal_basis: String(item.legalBasis || item.legal_basis || "").trim() || null,
+      user_groups: roadmapTextList(item.userGroups || item.user_groups),
+      primary_systems: roadmapTextList(item.primarySystems || item.primary_systems),
+      description: String(item.description || "").trim() || null,
+      sort_order: Number(item.sortOrder || item.sort_order || 100),
+      active: item.active !== false
+    };
+  }
+
+  function hospitationRoadmapAssessmentDbToUi(row = {}) {
+    return {
+      id: row.id || "",
+      hospitationId: row.hospitation_id || row.hospitationId || "",
+      roadmapItemId: row.roadmap_item_id || row.roadmapItemId || "",
+      respondentRole: row.respondent_role || row.respondentRole || "",
+      respondentSector: row.respondent_sector || row.respondentSector || "",
+      careRelevance: ratingValue(row.care_relevance ?? row.careRelevance),
+      patientSafety: ratingValue(row.patient_safety ?? row.patientSafety),
+      processRelief: ratingValue(row.process_relief ?? row.processRelief),
+      urgency: ratingValue(row.urgency),
+      implementationFeasibility: ratingValue(row.implementation_feasibility ?? row.implementationFeasibility),
+      adoptionLikelihood: ratingValue(row.adoption_likelihood ?? row.adoptionLikelihood),
+      confidenceScore: ratingValue(row.confidence_score ?? row.confidenceScore),
+      comparisonRole: normalizeComparisonRole(row.comparison_role || row.comparisonRole),
+      evidenceNote: row.evidence_note || row.evidenceNote || "",
+      createdAt: row.created_at || row.createdAt || "",
+      createdBy: row.created_by || row.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || ""
+    };
+  }
+
+  function hospitationRoadmapAssessmentUiToDb(assessment = {}) {
+    return {
+      hospitation_id: assessment.hospitationId || assessment.hospitation_id || null,
+      roadmap_item_id: assessment.roadmapItemId || assessment.roadmap_item_id || null,
+      respondent_role: String(assessment.respondentRole || assessment.respondent_role || "").trim() || null,
+      respondent_sector: String(assessment.respondentSector || assessment.respondent_sector || "").trim() || null,
+      care_relevance: ratingValue(assessment.careRelevance ?? assessment.care_relevance),
+      patient_safety: ratingValue(assessment.patientSafety ?? assessment.patient_safety),
+      process_relief: ratingValue(assessment.processRelief ?? assessment.process_relief),
+      urgency: ratingValue(assessment.urgency),
+      implementation_feasibility: ratingValue(assessment.implementationFeasibility ?? assessment.implementation_feasibility),
+      adoption_likelihood: ratingValue(assessment.adoptionLikelihood ?? assessment.adoption_likelihood),
+      confidence_score: ratingValue(assessment.confidenceScore ?? assessment.confidence_score),
+      comparison_role: normalizeComparisonRole(assessment.comparisonRole || assessment.comparison_role),
+      evidence_note: String(assessment.evidenceNote || assessment.evidence_note || "").trim() || null
+    };
+  }
+
+  function hospitationUnmetNeedDbToUi(row = {}) {
+    return {
+      id: row.id || "",
+      hospitationId: row.hospitation_id || row.hospitationId || "",
+      relatedRoadmapItemId: row.related_roadmap_item_id || row.relatedRoadmapItemId || "",
+      title: row.title || "",
+      problem: row.problem || "",
+      affectedRole: row.affected_role || row.affectedRole || "",
+      affectedSector: row.affected_sector || row.affectedSector || "",
+      classification: normalizeUnmetNeedClassification(row.classification),
+      expectedBenefit: ratingValue(row.expected_benefit ?? row.expectedBenefit),
+      urgency: ratingValue(row.urgency),
+      implementationFeasibility: ratingValue(row.implementation_feasibility ?? row.implementationFeasibility),
+      confidenceScore: ratingValue(row.confidence_score ?? row.confidenceScore),
+      currentWorkaround: row.current_workaround || row.currentWorkaround || "",
+      nextStep: row.next_step || row.nextStep || "",
+      status: normalizeUnmetNeedStatus(row.status),
+      createdAt: row.created_at || row.createdAt || "",
+      createdBy: row.created_by || row.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || ""
+    };
+  }
+
+  function hospitationUnmetNeedUiToDb(need = {}) {
+    return {
+      hospitation_id: need.hospitationId || need.hospitation_id || null,
+      related_roadmap_item_id: need.relatedRoadmapItemId || need.related_roadmap_item_id || null,
+      title: String(need.title || "").trim(),
+      problem: String(need.problem || "").trim() || null,
+      affected_role: String(need.affectedRole || need.affected_role || "").trim() || null,
+      affected_sector: String(need.affectedSector || need.affected_sector || "").trim() || null,
+      classification: normalizeUnmetNeedClassification(need.classification),
+      expected_benefit: ratingValue(need.expectedBenefit ?? need.expected_benefit),
+      urgency: ratingValue(need.urgency),
+      implementation_feasibility: ratingValue(need.implementationFeasibility ?? need.implementation_feasibility),
+      confidence_score: ratingValue(need.confidenceScore ?? need.confidence_score),
+      current_workaround: String(need.currentWorkaround || need.current_workaround || "").trim() || null,
+      next_step: String(need.nextStep || need.next_step || "").trim() || null,
+      status: normalizeUnmetNeedStatus(need.status)
+    };
+  }
+
+  function defaultRoadmapItems() {
+    return [
+      {
+        id: "epa-3-1-3-teil-1",
+        slug: "epa-3-1-3-teil-1",
+        productArea: "ART Anwendungen",
+        productName: "Elektronische Patientenakte",
+        featureName: "ePA 3.1.3 - Teil 1",
+        phase: "Zulassung",
+        roadmapStatus: "In Bearbeitung",
+        timelineLabel: "2026/2027",
+        deadlineType: "SGB V",
+        legalBasis: "§ 342 SGB V",
+        userGroups: ["Versicherte", "Versorger", "Kostenträger"],
+        primarySystems: ["PVS", "KIS", "AVS", "ZPVS", "PSW", "FdV"],
+        description: "Fortentwicklung digitaler Medikationsprozess, Push-Notifications, Metadaten und Patient-Service.",
+        sortOrder: 10,
+        active: true
+      },
+      {
+        id: "erp-haeusliche-krankenpflege",
+        slug: "erp-haeusliche-krankenpflege",
+        productArea: "ART Anwendungen",
+        productName: "E-Rezept",
+        featureName: "eRp 27.2 - Häusliche Krankenpflege",
+        phase: "Spezifikation",
+        roadmapStatus: "In Bearbeitung",
+        timelineLabel: "2027",
+        deadlineType: "SGB V",
+        legalBasis: "§ 360 SGB V",
+        userGroups: ["Versicherte", "Pflege", "Privatarztpraxen", "Kostenträger"],
+        primarySystems: ["PVS", "KIS", "AVS", "ZPVS", "PSW", "FdV"],
+        description: "Elektronische Verordnung häuslicher Krankenpflege und Anpassungen an Fachdienst und App.",
+        sortOrder: 30,
+        active: true
+      },
+      {
+        id: "erp-ebtm",
+        slug: "erp-ebtm",
+        productArea: "ART Anwendungen",
+        productName: "E-Rezept",
+        featureName: "eRp 27.3 - eBTM",
+        phase: "Discovery",
+        roadmapStatus: "In Planung",
+        timelineLabel: "2027",
+        deadlineType: "SGB V",
+        legalBasis: "§ 360 SGB V",
+        userGroups: ["Apotheken", "Privatarztpraxen", "Versicherte", "BfArM", "Kostenträger"],
+        primarySystems: ["PVS", "KIS", "AVS", "ZPVS", "PSW", "FdV"],
+        description: "Elektronisches Verordnen und Einlösen von BTM-Rezepten.",
+        sortOrder: 40,
+        active: true
+      },
+      {
+        id: "erp-hilfsmittel-backlog",
+        slug: "erp-hilfsmittel-backlog",
+        productArea: "ART Anwendungen",
+        productName: "E-Rezept",
+        featureName: "E-Rezept Backlog - Hilfsmittel und weitere nach §360 Abs. 7",
+        phase: "Backlog",
+        roadmapStatus: "Im Backlog",
+        timelineLabel: "2027+",
+        deadlineType: "SGB V",
+        legalBasis: "§ 360 SGB V",
+        userGroups: ["Sanitätshäuser", "Homecare", "Versicherte", "Privatarztpraxen", "Kostenträger"],
+        primarySystems: ["PVS", "KIS", "AVS", "ZPVS", "PSW", "FdV"],
+        description: "Backlog-Thema für Hilfsmittel und weitere elektronische Verordnungen nach § 360 Abs. 7 SGB V.",
+        sortOrder: 60,
+        active: true
+      },
+      {
+        id: "epa-impfpass-backlog",
+        slug: "epa-impfpass-backlog",
+        productArea: "ART Anwendungen",
+        productName: "Elektronische Patientenakte",
+        featureName: "ePA Backlog - Impfpass (FHIR)",
+        phase: "Backlog",
+        roadmapStatus: "Im Backlog",
+        timelineLabel: "offen",
+        deadlineType: "Backlog",
+        legalBasis: "Roadmap-Backlog",
+        userGroups: ["Versicherte", "Arztpraxen", "Kostenträger"],
+        primarySystems: ["PVS", "KIS", "FdV"],
+        description: "Digitaler Impfpass als FHIR-basiertes ePA-Backlog-Thema.",
+        sortOrder: 70,
+        active: true
+      },
+      {
+        id: "tim-pro-automation-bots",
+        slug: "tim-pro-automation-bots",
+        productArea: "ART Anwendungen",
+        productName: "TI-Messenger",
+        featureName: "TI-M Pro 1.1 - Technische Enabler Automation & Bots",
+        phase: "Spezifikation",
+        roadmapStatus: "In Bearbeitung",
+        timelineLabel: "2026",
+        deadlineType: "gematik Planung",
+        legalBasis: "OneRoadmap Q2/2026",
+        userGroups: ["Versorger", "Kostenträger"],
+        primarySystems: ["PVS", "KIS"],
+        description: "Technische Enabler für Headless-/Embedded-Clients, strukturierte Daten und Consent Management.",
+        sortOrder: 80,
+        active: true
+      },
+      {
+        id: "vsdm-2-online-stammdatenabruf",
+        slug: "vsdm-2-online-stammdatenabruf",
+        productArea: "ART Anwendungen",
+        productName: "VSDM",
+        featureName: "VSDM 2.0 - Online-Stammdatenabruf und Prüfung Versicherungsverhältnis",
+        phase: "Entwicklung",
+        roadmapStatus: "In Bearbeitung",
+        timelineLabel: "2026",
+        deadlineType: "SGB V",
+        legalBasis: "§ 291b SGB V",
+        userGroups: ["Versorger", "Kostenträger", "Versicherte"],
+        primarySystems: ["PVS", "KIS", "AVS", "ZPVS", "PSW", "FdV"],
+        description: "Online-Abruf und Prüfung von Versichertenstammdaten als Nachfolgepfad zur eGK-Aktualisierung.",
+        sortOrder: 100,
+        active: true
+      }
+    ];
   }
 
   function userSettingsToUi(row) {
@@ -4492,6 +4941,223 @@
     return updated;
   }
 
+  async function loadRoadmapItems(options = {}) {
+    if (isLocalMode() || !supportsHospitations) {
+      roadmapItemCache = localRoadmapItems(options);
+      return roadmapItemCache;
+    }
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/roadmap-items", {
+        includeInactive: options.includeInactive ? "true" : ""
+      });
+      roadmapItemCache = Array.isArray(payload.items) ? payload.items : [];
+      return roadmapItemCache;
+    }
+    const { data, error } = await getClient()
+      .from("roadmap_items")
+      .select(ROADMAP_ITEM_FIELDS.join(","))
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("product_name", { ascending: true, nullsFirst: false });
+    if (error) {
+      if (isMissingHospitationsError(error)) {
+        console.warn("Roadmap-Items sind in Supabase noch nicht eingerichtet. Lokaler Katalog aktiv.", error);
+        roadmapItemCache = defaultRoadmapItems().map(roadmapItemDbToUi);
+        return roadmapItemCache;
+      }
+      throw error;
+    }
+    roadmapItemCache = (data || [])
+      .map(roadmapItemDbToUi)
+      .filter((item) => options.includeInactive || item.active !== false);
+    return roadmapItemCache;
+  }
+
+  async function loadHospitationRoadmapAssessments(options = {}) {
+    if (isLocalMode() || !supportsHospitations) {
+      hospitationRoadmapAssessmentCache = localHospitationRoadmapAssessments(options);
+      return hospitationRoadmapAssessmentCache;
+    }
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/hospitation-roadmap-assessments", {
+        hospitationId: options.hospitationId || ""
+      });
+      hospitationRoadmapAssessmentCache = Array.isArray(payload.items) ? payload.items : [];
+      return hospitationRoadmapAssessmentCache;
+    }
+    let query = getClient()
+      .from("hospitation_roadmap_assessments")
+      .select(HOSPITATION_ROADMAP_ASSESSMENT_FIELDS.join(","))
+      .order("updated_at", { ascending: false, nullsFirst: false });
+    if (options.hospitationId) query = query.eq("hospitation_id", options.hospitationId);
+    const { data, error } = await query;
+    if (error) {
+      if (isMissingHospitationsError(error)) {
+        console.warn("Roadmap-Bewertungen sind in Supabase noch nicht eingerichtet.", error);
+        hospitationRoadmapAssessmentCache = [];
+        return [];
+      }
+      throw error;
+    }
+    hospitationRoadmapAssessmentCache = (data || []).map(hospitationRoadmapAssessmentDbToUi);
+    return hospitationRoadmapAssessmentCache;
+  }
+
+  async function saveHospitationRoadmapAssessments(hospitationId, assessments = []) {
+    if (!hospitationId) return [];
+    const seenRoadmapItems = new Set();
+    const cleanAssessments = assessments
+      .map((assessment) => hospitationRoadmapAssessmentDbToUi({ ...assessment, hospitationId }))
+      .filter((assessment) => {
+        if (!assessment.roadmapItemId || seenRoadmapItems.has(assessment.roadmapItemId)) return false;
+        seenRoadmapItems.add(assessment.roadmapItemId);
+        return true;
+      });
+    if (isLocalMode() || !supportsHospitations) {
+      requireLocalWrite("Roadmap-Bewertung speichern");
+      const now = new Date().toISOString();
+      const next = cleanAssessments.map((assessment) => ({
+        ...assessment,
+        id: assessment.id || `local-roadmap-assessment-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        hospitationId,
+        updatedAt: now,
+        createdAt: assessment.createdAt || now
+      }));
+      hospitationRoadmapAssessmentCache = [
+        ...next,
+        ...hospitationRoadmapAssessmentCache.filter((assessment) => assessment.hospitationId !== hospitationId)
+      ];
+      persistLocalHospitationRoadmapAssessments(hospitationRoadmapAssessmentCache);
+      return next;
+    }
+    if (usesApiGateway()) {
+      const payload = await apiRequest(`/api/hospitations/${encodeURIComponent(hospitationId)}/roadmap-assessments`, {
+        method: "PUT",
+        body: { items: cleanAssessments }
+      });
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      hospitationRoadmapAssessmentCache = [
+        ...items,
+        ...hospitationRoadmapAssessmentCache.filter((assessment) => assessment.hospitationId !== hospitationId)
+      ];
+      return items;
+    }
+    const userId = await getCurrentUserId();
+    const { error: deleteError } = await getClient().from("hospitation_roadmap_assessments").delete().eq("hospitation_id", hospitationId);
+    if (deleteError) throw deleteError;
+    if (!cleanAssessments.length) {
+      hospitationRoadmapAssessmentCache = hospitationRoadmapAssessmentCache.filter((assessment) => assessment.hospitationId !== hospitationId);
+      return [];
+    }
+    const payload = cleanAssessments.map((assessment) => ({
+      ...hospitationRoadmapAssessmentUiToDb({ ...assessment, hospitationId }),
+      created_by: userId,
+      updated_by: userId
+    }));
+    const { data, error } = await getClient()
+      .from("hospitation_roadmap_assessments")
+      .insert(payload)
+      .select(HOSPITATION_ROADMAP_ASSESSMENT_FIELDS.join(","));
+    if (error) throw error;
+    const saved = (data || []).map(hospitationRoadmapAssessmentDbToUi);
+    hospitationRoadmapAssessmentCache = [
+      ...saved,
+      ...hospitationRoadmapAssessmentCache.filter((assessment) => assessment.hospitationId !== hospitationId)
+    ];
+    return saved;
+  }
+
+  async function loadHospitationUnmetNeeds(options = {}) {
+    if (isLocalMode() || !supportsHospitations) {
+      hospitationUnmetNeedCache = localHospitationUnmetNeeds(options);
+      return hospitationUnmetNeedCache;
+    }
+    if (usesApiGateway()) {
+      const payload = await apiGet("/api/hospitation-unmet-needs", {
+        hospitationId: options.hospitationId || "",
+        includeArchived: options.includeArchived ? "true" : ""
+      });
+      hospitationUnmetNeedCache = Array.isArray(payload.items) ? payload.items : [];
+      return hospitationUnmetNeedCache;
+    }
+    let query = getClient()
+      .from("hospitation_unmet_needs")
+      .select(HOSPITATION_UNMET_NEED_FIELDS.join(","))
+      .order("updated_at", { ascending: false, nullsFirst: false });
+    if (options.hospitationId) query = query.eq("hospitation_id", options.hospitationId);
+    const { data, error } = await query;
+    if (error) {
+      if (isMissingHospitationsError(error)) {
+        console.warn("Neue Anforderungen aus Hospitationen sind in Supabase noch nicht eingerichtet.", error);
+        hospitationUnmetNeedCache = [];
+        return [];
+      }
+      throw error;
+    }
+    hospitationUnmetNeedCache = (data || [])
+      .map(hospitationUnmetNeedDbToUi)
+      .filter((need) => options.includeArchived || need.status !== "Archiviert");
+    return hospitationUnmetNeedCache;
+  }
+
+  async function saveHospitationUnmetNeeds(hospitationId, needs = []) {
+    if (!hospitationId) return [];
+    const cleanNeeds = needs
+      .map((need) => hospitationUnmetNeedDbToUi({ ...need, hospitationId }))
+      .filter((need) => String(need.title || "").trim());
+    if (isLocalMode() || !supportsHospitations) {
+      requireLocalWrite("Neue Anforderungen speichern");
+      const now = new Date().toISOString();
+      const next = cleanNeeds.map((need) => ({
+        ...need,
+        id: need.id || `local-unmet-need-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        hospitationId,
+        updatedAt: now,
+        createdAt: need.createdAt || now
+      }));
+      hospitationUnmetNeedCache = [
+        ...next,
+        ...hospitationUnmetNeedCache.filter((need) => need.hospitationId !== hospitationId)
+      ];
+      persistLocalHospitationUnmetNeeds(hospitationUnmetNeedCache);
+      return next;
+    }
+    if (usesApiGateway()) {
+      const payload = await apiRequest(`/api/hospitations/${encodeURIComponent(hospitationId)}/unmet-needs`, {
+        method: "PUT",
+        body: { items: cleanNeeds }
+      });
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      hospitationUnmetNeedCache = [
+        ...items,
+        ...hospitationUnmetNeedCache.filter((need) => need.hospitationId !== hospitationId)
+      ];
+      return items;
+    }
+    const userId = await getCurrentUserId();
+    const { error: deleteError } = await getClient().from("hospitation_unmet_needs").delete().eq("hospitation_id", hospitationId);
+    if (deleteError) throw deleteError;
+    if (!cleanNeeds.length) {
+      hospitationUnmetNeedCache = hospitationUnmetNeedCache.filter((need) => need.hospitationId !== hospitationId);
+      return [];
+    }
+    const payload = cleanNeeds.map((need) => ({
+      ...hospitationUnmetNeedUiToDb({ ...need, hospitationId }),
+      created_by: userId,
+      updated_by: userId
+    }));
+    const { data, error } = await getClient()
+      .from("hospitation_unmet_needs")
+      .insert(payload)
+      .select(HOSPITATION_UNMET_NEED_FIELDS.join(","));
+    if (error) throw error;
+    const saved = (data || []).map(hospitationUnmetNeedDbToUi);
+    hospitationUnmetNeedCache = [
+      ...saved,
+      ...hospitationUnmetNeedCache.filter((need) => need.hospitationId !== hospitationId)
+    ];
+    return saved;
+  }
+
   async function loadNotifications(options = {}) {
     const limit = Math.min(Math.max(Number(options.limit) || 30, 1), 100);
     const offset = Math.max(Number(options.offset) || 0, 0);
@@ -4711,6 +5377,11 @@
     loadHospitations,
     createHospitation,
     updateHospitation,
+    loadRoadmapItems,
+    loadHospitationRoadmapAssessments,
+    saveHospitationRoadmapAssessments,
+    loadHospitationUnmetNeeds,
+    saveHospitationUnmetNeeds,
     loadNotifications,
     getNotificationSummary,
     markNotificationRead,

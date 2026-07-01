@@ -198,6 +198,70 @@ const HOSPITATION_FIELDS = [
   "updated_at",
   "updated_by"
 ];
+const ROADMAP_ITEM_FIELDS = [
+  "id",
+  "slug",
+  "roadmap_version",
+  "source_url",
+  "product_area",
+  "product_name",
+  "feature_name",
+  "phase",
+  "roadmap_status",
+  "timeline_label",
+  "deadline_type",
+  "legal_basis",
+  "user_groups",
+  "primary_systems",
+  "description",
+  "sort_order",
+  "active",
+  "created_at",
+  "created_by",
+  "updated_at",
+  "updated_by"
+];
+const HOSPITATION_ROADMAP_ASSESSMENT_FIELDS = [
+  "id",
+  "hospitation_id",
+  "roadmap_item_id",
+  "respondent_role",
+  "respondent_sector",
+  "care_relevance",
+  "patient_safety",
+  "process_relief",
+  "urgency",
+  "implementation_feasibility",
+  "adoption_likelihood",
+  "confidence_score",
+  "comparison_role",
+  "evidence_note",
+  "created_at",
+  "created_by",
+  "updated_at",
+  "updated_by"
+];
+const HOSPITATION_UNMET_NEED_FIELDS = [
+  "id",
+  "hospitation_id",
+  "related_roadmap_item_id",
+  "title",
+  "problem",
+  "affected_role",
+  "affected_sector",
+  "classification",
+  "expected_benefit",
+  "urgency",
+  "implementation_feasibility",
+  "confidence_score",
+  "current_workaround",
+  "next_step",
+  "status",
+  "created_at",
+  "created_by",
+  "updated_at",
+  "updated_by"
+];
 const EXPERT_GROUP_FIELDS = ["id", "name", "sort_order", "status", "created_at", "updated_at"];
 const EXPERT_CONTACT_FIELDS = [
   "id",
@@ -534,6 +598,60 @@ const HOSPITATION_INPUT_FIELDS = [
   "documented_at",
   "documentedBy",
   "documented_by"
+];
+const HOSPITATION_ROADMAP_ASSESSMENT_INPUT_FIELDS = [
+  "id",
+  "hospitationId",
+  "hospitation_id",
+  "roadmapItemId",
+  "roadmap_item_id",
+  "respondentRole",
+  "respondent_role",
+  "respondentSector",
+  "respondent_sector",
+  "careRelevance",
+  "care_relevance",
+  "patientSafety",
+  "patient_safety",
+  "processRelief",
+  "process_relief",
+  "urgency",
+  "implementationFeasibility",
+  "implementation_feasibility",
+  "adoptionLikelihood",
+  "adoption_likelihood",
+  "confidenceScore",
+  "confidence_score",
+  "comparisonRole",
+  "comparison_role",
+  "evidenceNote",
+  "evidence_note"
+];
+const HOSPITATION_UNMET_NEED_INPUT_FIELDS = [
+  "id",
+  "hospitationId",
+  "hospitation_id",
+  "relatedRoadmapItemId",
+  "related_roadmap_item_id",
+  "title",
+  "problem",
+  "affectedRole",
+  "affected_role",
+  "affectedSector",
+  "affected_sector",
+  "classification",
+  "expectedBenefit",
+  "expected_benefit",
+  "urgency",
+  "implementationFeasibility",
+  "implementation_feasibility",
+  "confidenceScore",
+  "confidence_score",
+  "currentWorkaround",
+  "current_workaround",
+  "nextStep",
+  "next_step",
+  "status"
 ];
 const EXPERT_CONTACT_INPUT_FIELDS = [
   "id",
@@ -1524,6 +1642,140 @@ function hospitationPatchToDb(patch = {}) {
   return db;
 }
 
+function ratingValue(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 1 || number > 5) return null;
+  return Math.round(number);
+}
+
+function normalizeComparisonRole(value) {
+  const label = String(value || "").trim();
+  if (["top_priority", "low_priority"].includes(label)) return label;
+  return "none";
+}
+
+function normalizeUnmetNeedClassification(value) {
+  const label = String(value || "").trim();
+  if (["existing_item_extension", "new_backlog_item", "legal_clarification", "organizational_implementation", "local_system_issue", "communication_or_training"].includes(label)) return label;
+  return "new_backlog_item";
+}
+
+function normalizeUnmetNeedStatus(value) {
+  const label = String(value || "").trim();
+  if (["Neu", "In Prüfung", "Übernommen", "Zurückgestellt", "Erledigt", "Archiviert"].includes(label)) return label;
+  return "Neu";
+}
+
+function roadmapItemToDto(row = {}) {
+  return {
+    id: row.id || "",
+    slug: row.slug || "",
+    roadmapVersion: row.roadmap_version || "",
+    sourceUrl: row.source_url || "",
+    productArea: row.product_area || "",
+    productName: row.product_name || "",
+    featureName: row.feature_name || "",
+    phase: row.phase || "",
+    roadmapStatus: row.roadmap_status || "Unklar",
+    timelineLabel: row.timeline_label || "",
+    deadlineType: row.deadline_type || "Unklar",
+    legalBasis: row.legal_basis || "",
+    userGroups: Array.isArray(row.user_groups) ? row.user_groups : [],
+    primarySystems: Array.isArray(row.primary_systems) ? row.primary_systems : [],
+    description: row.description || "",
+    sortOrder: Number(row.sort_order || 100),
+    active: row.active !== false,
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || ""
+  };
+}
+
+function hospitationRoadmapAssessmentToDto(row = {}) {
+  return {
+    id: row.id || "",
+    hospitationId: row.hospitation_id || "",
+    roadmapItemId: row.roadmap_item_id || "",
+    respondentRole: row.respondent_role || "",
+    respondentSector: row.respondent_sector || "",
+    careRelevance: ratingValue(row.care_relevance),
+    patientSafety: ratingValue(row.patient_safety),
+    processRelief: ratingValue(row.process_relief),
+    urgency: ratingValue(row.urgency),
+    implementationFeasibility: ratingValue(row.implementation_feasibility),
+    adoptionLikelihood: ratingValue(row.adoption_likelihood),
+    confidenceScore: ratingValue(row.confidence_score),
+    comparisonRole: normalizeComparisonRole(row.comparison_role),
+    evidenceNote: row.evidence_note || "",
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || ""
+  };
+}
+
+function hospitationRoadmapAssessmentToDb(assessment = {}, hospitationId = "") {
+  return {
+    hospitation_id: hospitationId || assessment.hospitationId || assessment.hospitation_id || null,
+    roadmap_item_id: assessment.roadmapItemId || assessment.roadmap_item_id || null,
+    respondent_role: String(assessment.respondentRole || assessment.respondent_role || "").trim() || null,
+    respondent_sector: String(assessment.respondentSector || assessment.respondent_sector || "").trim() || null,
+    care_relevance: ratingValue(assessment.careRelevance ?? assessment.care_relevance),
+    patient_safety: ratingValue(assessment.patientSafety ?? assessment.patient_safety),
+    process_relief: ratingValue(assessment.processRelief ?? assessment.process_relief),
+    urgency: ratingValue(assessment.urgency),
+    implementation_feasibility: ratingValue(assessment.implementationFeasibility ?? assessment.implementation_feasibility),
+    adoption_likelihood: ratingValue(assessment.adoptionLikelihood ?? assessment.adoption_likelihood),
+    confidence_score: ratingValue(assessment.confidenceScore ?? assessment.confidence_score),
+    comparison_role: normalizeComparisonRole(assessment.comparisonRole || assessment.comparison_role),
+    evidence_note: String(assessment.evidenceNote || assessment.evidence_note || "").trim() || null
+  };
+}
+
+function hospitationUnmetNeedToDto(row = {}) {
+  return {
+    id: row.id || "",
+    hospitationId: row.hospitation_id || "",
+    relatedRoadmapItemId: row.related_roadmap_item_id || "",
+    title: row.title || "",
+    problem: row.problem || "",
+    affectedRole: row.affected_role || "",
+    affectedSector: row.affected_sector || "",
+    classification: normalizeUnmetNeedClassification(row.classification),
+    expectedBenefit: ratingValue(row.expected_benefit),
+    urgency: ratingValue(row.urgency),
+    implementationFeasibility: ratingValue(row.implementation_feasibility),
+    confidenceScore: ratingValue(row.confidence_score),
+    currentWorkaround: row.current_workaround || "",
+    nextStep: row.next_step || "",
+    status: normalizeUnmetNeedStatus(row.status),
+    createdAt: row.created_at || "",
+    createdBy: row.created_by || "",
+    updatedAt: row.updated_at || "",
+    updatedBy: row.updated_by || ""
+  };
+}
+
+function hospitationUnmetNeedToDb(need = {}, hospitationId = "") {
+  return {
+    hospitation_id: hospitationId || need.hospitationId || need.hospitation_id || null,
+    related_roadmap_item_id: need.relatedRoadmapItemId || need.related_roadmap_item_id || null,
+    title: String(need.title || "").trim(),
+    problem: String(need.problem || "").trim() || null,
+    affected_role: String(need.affectedRole || need.affected_role || "").trim() || null,
+    affected_sector: String(need.affectedSector || need.affected_sector || "").trim() || null,
+    classification: normalizeUnmetNeedClassification(need.classification),
+    expected_benefit: ratingValue(need.expectedBenefit ?? need.expected_benefit),
+    urgency: ratingValue(need.urgency),
+    implementation_feasibility: ratingValue(need.implementationFeasibility ?? need.implementation_feasibility),
+    confidence_score: ratingValue(need.confidenceScore ?? need.confidence_score),
+    current_workaround: String(need.currentWorkaround || need.current_workaround || "").trim() || null,
+    next_step: String(need.nextStep || need.next_step || "").trim() || null,
+    status: normalizeUnmetNeedStatus(need.status)
+  };
+}
+
 function expertEntityLinkToDb(link = {}, userId = "") {
   const linkType = String(link.linkType || link.link_type || "").trim();
   const payload = {
@@ -2112,6 +2364,9 @@ const TABLE_FIELDS = new Map(Object.entries({
   format_participants: FORMAT_PARTICIPANT_FIELDS,
   hospitation_slots: HOSPITATION_SLOT_FIELDS,
   hospitations: HOSPITATION_FIELDS,
+  roadmap_items: ROADMAP_ITEM_FIELDS,
+  hospitation_roadmap_assessments: HOSPITATION_ROADMAP_ASSESSMENT_FIELDS,
+  hospitation_unmet_needs: HOSPITATION_UNMET_NEED_FIELDS,
   expert_groups: EXPERT_GROUP_FIELDS,
   expert_contacts: EXPERT_CONTACT_FIELDS,
   expert_organizations: [...EXPERT_ORGANIZATION_FIELDS, "logo_url", "logo_source_url", "logo_source_label", "member_count", "member_count_source_url", "member_count_source_label", "member_count_updated_at", "member_count_scope"],
@@ -3761,6 +4016,104 @@ async function patchHospitation(request, id) {
   return dto;
 }
 
+async function listRoadmapItems(request, url) {
+  const includeInactive = url.searchParams.get("includeInactive") === "true";
+  const params = new URLSearchParams({
+    select: ROADMAP_ITEM_FIELDS.join(","),
+    order: "sort_order.asc.nullslast,product_name.asc.nullslast"
+  });
+  if (!includeInactive) params.set("active", "eq.true");
+  const rows = await cloudSqlRest("roadmap_items", request, params);
+  return { items: (rows || []).map(roadmapItemToDto) };
+}
+
+async function listHospitationRoadmapAssessments(request, url) {
+  const params = new URLSearchParams({
+    select: HOSPITATION_ROADMAP_ASSESSMENT_FIELDS.join(","),
+    order: "updated_at.desc.nullslast"
+  });
+  const hospitationId = url.searchParams.get("hospitationId");
+  if (hospitationId) params.set("hospitation_id", `eq.${hospitationId}`);
+  const rows = await cloudSqlRest("hospitation_roadmap_assessments", request, params);
+  return { items: (rows || []).map(hospitationRoadmapAssessmentToDto) };
+}
+
+async function replaceHospitationRoadmapAssessments(request, hospitationId) {
+  const body = await readValidatedJsonBody(request, ["items"], "Roadmap-Bewertungen");
+  const items = Array.isArray(body.items) ? body.items : [];
+  items.forEach((item, index) => assertAllowedFields(item, HOSPITATION_ROADMAP_ASSESSMENT_INPUT_FIELDS, `Roadmap-Bewertung ${index + 1}`));
+  const userId = userIdFromToken(request);
+  if (!userId) {
+    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    error.status = 401;
+    throw error;
+  }
+  await cloudSqlRest("hospitation_roadmap_assessments", request, new URLSearchParams({ hospitation_id: `eq.${hospitationId}` }), {
+    method: "DELETE",
+    headers: { prefer: "return=minimal" }
+  });
+  const seenRoadmapItems = new Set();
+  const payload = items
+    .map((item) => hospitationRoadmapAssessmentToDb(item, hospitationId))
+    .filter((item) => {
+      if (!item.hospitation_id || !item.roadmap_item_id || seenRoadmapItems.has(item.roadmap_item_id)) return false;
+      seenRoadmapItems.add(item.roadmap_item_id);
+      return true;
+    })
+    .map((item) => ({ ...item, created_by: userId, updated_by: userId }));
+  if (!payload.length) return { items: [] };
+  const rows = await cloudSqlRest("hospitation_roadmap_assessments", request, new URLSearchParams({
+    select: HOSPITATION_ROADMAP_ASSESSMENT_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  return { items: (rows || []).map(hospitationRoadmapAssessmentToDto) };
+}
+
+async function listHospitationUnmetNeeds(request, url) {
+  const includeArchived = url.searchParams.get("includeArchived") === "true";
+  const params = new URLSearchParams({
+    select: HOSPITATION_UNMET_NEED_FIELDS.join(","),
+    order: "updated_at.desc.nullslast"
+  });
+  const hospitationId = url.searchParams.get("hospitationId");
+  if (hospitationId) params.set("hospitation_id", `eq.${hospitationId}`);
+  if (!includeArchived) params.set("status", "neq.Archiviert");
+  const rows = await cloudSqlRest("hospitation_unmet_needs", request, params);
+  return { items: (rows || []).map(hospitationUnmetNeedToDto) };
+}
+
+async function replaceHospitationUnmetNeeds(request, hospitationId) {
+  const body = await readValidatedJsonBody(request, ["items"], "Neue Anforderungen");
+  const items = Array.isArray(body.items) ? body.items : [];
+  items.forEach((item, index) => assertAllowedFields(item, HOSPITATION_UNMET_NEED_INPUT_FIELDS, `Neue Anforderung ${index + 1}`));
+  const userId = userIdFromToken(request);
+  if (!userId) {
+    const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
+    error.status = 401;
+    throw error;
+  }
+  await cloudSqlRest("hospitation_unmet_needs", request, new URLSearchParams({ hospitation_id: `eq.${hospitationId}` }), {
+    method: "DELETE",
+    headers: { prefer: "return=minimal" }
+  });
+  const payload = items
+    .map((item) => hospitationUnmetNeedToDb(item, hospitationId))
+    .filter((item) => item.hospitation_id && item.title)
+    .map((item) => ({ ...item, created_by: userId, updated_by: userId }));
+  if (!payload.length) return { items: [] };
+  const rows = await cloudSqlRest("hospitation_unmet_needs", request, new URLSearchParams({
+    select: HOSPITATION_UNMET_NEED_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: payload
+  });
+  return { items: (rows || []).map(hospitationUnmetNeedToDto) };
+}
+
 async function createContact(request) {
   await loadProfiles(request);
   const userId = userIdFromToken(request);
@@ -4368,6 +4721,23 @@ async function handle(request, response) {
     }
     if (request.method === "PATCH" && hospitationMatch) {
       return jsonResponse(response, 200, await patchHospitation(request, decodeURIComponent(hospitationMatch[1])));
+    }
+    if (request.method === "GET" && url.pathname === "/api/roadmap-items") {
+      return jsonResponse(response, 200, await listRoadmapItems(request, url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/hospitation-roadmap-assessments") {
+      return jsonResponse(response, 200, await listHospitationRoadmapAssessments(request, url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/hospitation-unmet-needs") {
+      return jsonResponse(response, 200, await listHospitationUnmetNeeds(request, url));
+    }
+    const hospitationRoadmapMatch = /^\/api\/hospitations\/([^/]+)\/roadmap-assessments$/.exec(url.pathname);
+    if (request.method === "PUT" && hospitationRoadmapMatch) {
+      return jsonResponse(response, 200, await replaceHospitationRoadmapAssessments(request, decodeURIComponent(hospitationRoadmapMatch[1])));
+    }
+    const hospitationUnmetNeedsMatch = /^\/api\/hospitations\/([^/]+)\/unmet-needs$/.exec(url.pathname);
+    if (request.method === "PUT" && hospitationUnmetNeedsMatch) {
+      return jsonResponse(response, 200, await replaceHospitationUnmetNeeds(request, decodeURIComponent(hospitationUnmetNeedsMatch[1])));
     }
     if (request.method === "GET" && url.pathname === "/api/formats") {
       return jsonResponse(response, 200, await listFormats(request, url));

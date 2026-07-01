@@ -18849,6 +18849,72 @@
         pointer-events: none;
       }
 
+      .hospitation-roadmap-grid,
+      .hospitation-unmet-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .hospitation-roadmap-card,
+      .hospitation-unmet-card {
+        display: grid;
+        gap: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        padding: 12px;
+      }
+
+      .hospitation-roadmap-card__head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(150px, 0.3fr);
+        gap: 10px;
+        align-items: end;
+      }
+
+      .hospitation-roadmap-card__scores {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .hospitation-roadmap-score {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .hospitation-roadmap-score > span {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .hospitation-roadmap-scale {
+        grid-template-columns: repeat(6, minmax(30px, 1fr));
+      }
+
+      .hospitation-roadmap-scale label:first-child {
+        font-size: 0.72rem;
+      }
+
+      .hospitation-roadmap-note {
+        min-height: 72px;
+      }
+
+      .hospitation-roadmap-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .hospitation-roadmap-empty {
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+
       .hospitation-fact {
         display: grid;
         gap: 3px;
@@ -21340,6 +21406,8 @@
         .participant-board,
         .hospitation-documentation-context,
         .hospitation-score-row,
+        .hospitation-roadmap-card__head,
+        .hospitation-roadmap-card__scores,
         .hospitation-card__facts,
         .hospitation-dashboard,
         .invitation-status-board {
@@ -24647,6 +24715,22 @@
       const invitationStatusOptions = ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt"];
       const hospitationStatusOptions = ["Entwurf", "Angefragt", "Angeboten", "Gebucht", "Abgelehnt", "Abgesagt", "Durchgeführt", "Dokumentiert", "Archiviert"];
       const hospitationSlotStatusOptions = ["Frei", "Reserviert", "Gebucht", "Abgesagt", "Archiviert"];
+      const hospitationRoadmapAssessmentSlots = 3;
+      const hospitationUnmetNeedSlots = 2;
+      const hospitationRespondentRoleOptions = ["", "Arzt/Ärztin", "Apotheke", "Pflege", "Versicherte/Patient", "Krankenhaus", "Kostenträger", "Hersteller/Primärsystem", "Sonstige"];
+      const hospitationComparisonRoleOptions = [
+        { value: "none", label: "Keine Auswahl" },
+        { value: "top_priority", label: "Wichtigstes Thema" },
+        { value: "low_priority", label: "Weniger dringlich" }
+      ];
+      const hospitationUnmetNeedClassificationOptions = [
+        { value: "existing_item_extension", label: "Erweiterung bestehender Roadmap" },
+        { value: "new_backlog_item", label: "Neues Backlog-Thema" },
+        { value: "legal_clarification", label: "Gesetzlich zu klären" },
+        { value: "organizational_implementation", label: "Organisatorische Umsetzung" },
+        { value: "local_system_issue", label: "Lokales Systemproblem" },
+        { value: "communication_or_training", label: "Kommunikation/Schulung" }
+      ];
       const hospitationDocumentationKind = "hospitation-documentation-v1";
       const hospitationDocumentationScoreQuestions = [
         {
@@ -25208,6 +25292,9 @@
       let formats = [];
       let hospitations = [];
       let hospitationSlots = [];
+      let roadmapItems = [];
+      let hospitationRoadmapAssessments = [];
+      let hospitationUnmetNeeds = [];
       let backendRegistrations = [];
       let activeRegistrationId = null;
       let registrationDetailTab = "contact";
@@ -35962,6 +36049,253 @@
         `;
       }
 
+      function hospitationRoadmapItemById(id = "") {
+        return roadmapItems.find((item) => item.id === id || item.slug === id) || null;
+      }
+
+      function hospitationRoadmapItemLabel(item = {}) {
+        const product = item.productName || item.product_name || "Roadmap";
+        const feature = item.featureName || item.feature_name || item.slug || item.id || "Item";
+        return `${product} · ${feature}`;
+      }
+
+      function hospitationRoadmapOptionMarkup(selectedId = "") {
+        const options = roadmapItems
+          .slice()
+          .sort((left, right) => (Number(left.sortOrder || 100) - Number(right.sortOrder || 100)) || hospitationRoadmapItemLabel(left).localeCompare(hospitationRoadmapItemLabel(right), "de"))
+          .map((item) => {
+            const value = item.id || item.slug || "";
+            const selected = value && value === selectedId ? "selected" : "";
+            const suffix = [item.phase, item.deadlineType].filter(Boolean).join(" · ");
+            return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(hospitationRoadmapItemLabel(item))}${suffix ? ` (${escapeHtml(suffix)})` : ""}</option>`;
+          })
+          .join("");
+        return `<option value="">Roadmap-Item auswählen</option>${options}`;
+      }
+
+      function hospitationRoadmapAssessmentsFor(hospitationId = "") {
+        if (!hospitationId) return [];
+        return hospitationRoadmapAssessments.filter((assessment) => assessment.hospitationId === hospitationId);
+      }
+
+      function hospitationUnmetNeedsFor(hospitationId = "") {
+        if (!hospitationId) return [];
+        return hospitationUnmetNeeds.filter((need) => need.hospitationId === hospitationId && need.status !== "Archiviert");
+      }
+
+      function hospitationRatingScaleMarkup(name, selected = "", label = "") {
+        const current = selected ? String(selected) : "";
+        return `
+          <div class="hospitation-likert hospitation-roadmap-scale" role="radiogroup" aria-label="${escapeHtml(label || name)}">
+            ${["", "1", "2", "3", "4", "5"].map((value) => `
+              <label title="${value ? `${value} von 5` : "nicht beurteilbar"}">
+                <input type="radio" name="${escapeHtml(name)}" value="${escapeHtml(value)}" ${current === value ? "checked" : ""} aria-label="${escapeHtml(`${label || name}: ${value || "nicht beurteilbar"}`)}" />
+                <span>${value || "N/A"}</span>
+              </label>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function hospitationRoadmapScoreField(prefix, key, label, selected) {
+        return `
+          <label class="hospitation-roadmap-score">
+            <span>${escapeHtml(label)}</span>
+            ${hospitationRatingScaleMarkup(`${prefix}_${key}`, selected, label)}
+          </label>
+        `;
+      }
+
+      function renderHospitationRoadmapAssessmentInputs(hospitation = {}) {
+        const assessments = hospitationRoadmapAssessmentsFor(hospitation.id);
+        const slots = Array.from({ length: hospitationRoadmapAssessmentSlots }, (_, index) => assessments[index] || {});
+        return `
+          <div class="hospitation-roadmap-grid">
+            ${slots.map((assessment, index) => {
+              const prefix = `roadmapAssessment_${index}`;
+              return `
+                <article class="hospitation-roadmap-card">
+                  <div class="hospitation-roadmap-card__head">
+                    <div class="format-editor-field">
+                      <label for="${prefix}_roadmapItemId">Roadmap-Item ${index + 1}</label>
+                      <div class="editor-select-shell" data-custom-select data-select-type="${prefix}_roadmapItemId">
+                        <select class="editor-select" id="${prefix}_roadmapItemId" name="${prefix}_roadmapItemId">${hospitationRoadmapOptionMarkup(assessment.roadmapItemId || "")}</select>
+                      </div>
+                    </div>
+                    <div class="format-editor-field">
+                      <label for="${prefix}_comparisonRole">Priorisierung</label>
+                      <div class="editor-select-shell" data-custom-select data-select-type="${prefix}_comparisonRole">
+                        <select class="editor-select" id="${prefix}_comparisonRole" name="${prefix}_comparisonRole">${formatOptionMarkup(hospitationComparisonRoleOptions, assessment.comparisonRole || "none")}</select>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="format-editor-grid">
+                    <div class="format-editor-field">
+                      <label for="${prefix}_respondentRole">Perspektive</label>
+                      <div class="editor-select-shell" data-custom-select data-select-type="${prefix}_respondentRole">
+                        <select class="editor-select" id="${prefix}_respondentRole" name="${prefix}_respondentRole">${formatOptionMarkup(hospitationRespondentRoleOptions, assessment.respondentRole || "")}</select>
+                      </div>
+                    </div>
+                    <div class="format-editor-field">
+                      <label for="${prefix}_respondentSector">Sektor</label>
+                      <input id="${prefix}_respondentSector" name="${prefix}_respondentSector" value="${escapeHtml(assessment.respondentSector || hospitationSectorLabel(hospitation) || "")}" placeholder="z. B. Praxis, Pflege, Apotheke" />
+                    </div>
+                  </div>
+                  <div class="hospitation-roadmap-card__scores">
+                    ${hospitationRoadmapScoreField(prefix, "careRelevance", "Versorgungsnutzen", assessment.careRelevance)}
+                    ${hospitationRoadmapScoreField(prefix, "patientSafety", "Patientensicherheit", assessment.patientSafety)}
+                    ${hospitationRoadmapScoreField(prefix, "processRelief", "Prozessentlastung", assessment.processRelief)}
+                    ${hospitationRoadmapScoreField(prefix, "urgency", "Dringlichkeit", assessment.urgency)}
+                    ${hospitationRoadmapScoreField(prefix, "implementationFeasibility", "Umsetzbarkeit", assessment.implementationFeasibility)}
+                    ${hospitationRoadmapScoreField(prefix, "adoptionLikelihood", "Nutzung", assessment.adoptionLikelihood)}
+                  </div>
+                  <div class="format-editor-field">
+                    <label for="${prefix}_evidenceNote">Begründung / Beobachtung</label>
+                    <textarea class="hospitation-roadmap-note" id="${prefix}_evidenceNote" name="${prefix}_evidenceNote" placeholder="Kurzer Beleg aus dem Versorgungskontakt">${escapeHtml(assessment.evidenceNote || "")}</textarea>
+                  </div>
+                </article>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
+
+      function renderHospitationUnmetNeedInputs(hospitation = {}) {
+        const needs = hospitationUnmetNeedsFor(hospitation.id);
+        const slots = Array.from({ length: hospitationUnmetNeedSlots }, (_, index) => needs[index] || {});
+        return `
+          <div class="hospitation-unmet-grid">
+            ${slots.map((need, index) => {
+              const prefix = `unmetNeed_${index}`;
+              return `
+                <article class="hospitation-unmet-card">
+                  <div class="format-editor-grid">
+                    <div class="format-editor-field format-editor-field--wide">
+                      <label for="${prefix}_title">Neue Anforderung ${index + 1}</label>
+                      <input id="${prefix}_title" name="${prefix}_title" value="${escapeHtml(need.title || "")}" placeholder="z. B. Digitaler Impfpass, Hilfsmittelstatus, Lieferstatus" />
+                    </div>
+                    <div class="format-editor-field">
+                      <label for="${prefix}_classification">Einordnung</label>
+                      <div class="editor-select-shell" data-custom-select data-select-type="${prefix}_classification">
+                        <select class="editor-select" id="${prefix}_classification" name="${prefix}_classification">${formatOptionMarkup(hospitationUnmetNeedClassificationOptions, need.classification || "new_backlog_item")}</select>
+                      </div>
+                    </div>
+                    <div class="format-editor-field">
+                      <label for="${prefix}_relatedRoadmapItemId">Roadmap-Bezug</label>
+                      <div class="editor-select-shell" data-custom-select data-select-type="${prefix}_relatedRoadmapItemId">
+                        <select class="editor-select" id="${prefix}_relatedRoadmapItemId" name="${prefix}_relatedRoadmapItemId">${hospitationRoadmapOptionMarkup(need.relatedRoadmapItemId || "")}</select>
+                      </div>
+                    </div>
+                    <div class="format-editor-field format-editor-field--wide">
+                      <label for="${prefix}_problem">Problem / Versorgungslücke</label>
+                      <textarea id="${prefix}_problem" name="${prefix}_problem" placeholder="Was fehlt konkret im Alltag?">${escapeHtml(need.problem || "")}</textarea>
+                    </div>
+                    <div class="format-editor-field">
+                      <label for="${prefix}_affectedRole">Betroffene Rolle</label>
+                      <input id="${prefix}_affectedRole" name="${prefix}_affectedRole" value="${escapeHtml(need.affectedRole || "")}" placeholder="z. B. Praxis, Patient, Pflege" />
+                    </div>
+                    <div class="format-editor-field">
+                      <label for="${prefix}_affectedSector">Betroffener Sektor</label>
+                      <input id="${prefix}_affectedSector" name="${prefix}_affectedSector" value="${escapeHtml(need.affectedSector || hospitationSectorLabel(hospitation) || "")}" placeholder="Sektor" />
+                    </div>
+                  </div>
+                  <div class="hospitation-roadmap-card__scores">
+                    ${hospitationRoadmapScoreField(prefix, "expectedBenefit", "Erwarteter Nutzen", need.expectedBenefit)}
+                    ${hospitationRoadmapScoreField(prefix, "urgency", "Dringlichkeit", need.urgency)}
+                    ${hospitationRoadmapScoreField(prefix, "implementationFeasibility", "Umsetzbarkeit", need.implementationFeasibility)}
+                  </div>
+                  <div class="format-editor-grid">
+                    <div class="format-editor-field">
+                      <label for="${prefix}_currentWorkaround">Heutiger Workaround</label>
+                      <textarea id="${prefix}_currentWorkaround" name="${prefix}_currentWorkaround" placeholder="Wie wird es heute gelöst?">${escapeHtml(need.currentWorkaround || "")}</textarea>
+                    </div>
+                    <div class="format-editor-field">
+                      <label for="${prefix}_nextStep">Nächster Schritt</label>
+                      <textarea id="${prefix}_nextStep" name="${prefix}_nextStep" placeholder="Prüfen, clustern, Roadmap-Abgleich ...">${escapeHtml(need.nextStep || "")}</textarea>
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
+
+      function numberOrEmpty(value) {
+        const number = Number(value);
+        return Number.isFinite(number) && number >= 1 && number <= 5 ? number : "";
+      }
+
+      function hospitationRoadmapAssessmentsFromForm(data, hospitationId = "") {
+        return Array.from({ length: hospitationRoadmapAssessmentSlots }, (_, index) => {
+          const prefix = `roadmapAssessment_${index}`;
+          return {
+            hospitationId,
+            roadmapItemId: String(data.get(`${prefix}_roadmapItemId`) || "").trim(),
+            respondentRole: String(data.get(`${prefix}_respondentRole`) || "").trim(),
+            respondentSector: String(data.get(`${prefix}_respondentSector`) || "").trim(),
+            careRelevance: numberOrEmpty(data.get(`${prefix}_careRelevance`)),
+            patientSafety: numberOrEmpty(data.get(`${prefix}_patientSafety`)),
+            processRelief: numberOrEmpty(data.get(`${prefix}_processRelief`)),
+            urgency: numberOrEmpty(data.get(`${prefix}_urgency`)),
+            implementationFeasibility: numberOrEmpty(data.get(`${prefix}_implementationFeasibility`)),
+            adoptionLikelihood: numberOrEmpty(data.get(`${prefix}_adoptionLikelihood`)),
+            confidenceScore: 4,
+            comparisonRole: String(data.get(`${prefix}_comparisonRole`) || "none").trim() || "none",
+            evidenceNote: String(data.get(`${prefix}_evidenceNote`) || "").trim()
+          };
+        }).filter((assessment) => assessment.roadmapItemId);
+      }
+
+      function hospitationUnmetNeedsFromForm(data, hospitationId = "") {
+        return Array.from({ length: hospitationUnmetNeedSlots }, (_, index) => {
+          const prefix = `unmetNeed_${index}`;
+          return {
+            hospitationId,
+            relatedRoadmapItemId: String(data.get(`${prefix}_relatedRoadmapItemId`) || "").trim(),
+            title: String(data.get(`${prefix}_title`) || "").trim(),
+            problem: String(data.get(`${prefix}_problem`) || "").trim(),
+            affectedRole: String(data.get(`${prefix}_affectedRole`) || "").trim(),
+            affectedSector: String(data.get(`${prefix}_affectedSector`) || "").trim(),
+            classification: String(data.get(`${prefix}_classification`) || "new_backlog_item").trim() || "new_backlog_item",
+            expectedBenefit: numberOrEmpty(data.get(`${prefix}_expectedBenefit`)),
+            urgency: numberOrEmpty(data.get(`${prefix}_urgency`)),
+            implementationFeasibility: numberOrEmpty(data.get(`${prefix}_implementationFeasibility`)),
+            confidenceScore: 4,
+            currentWorkaround: String(data.get(`${prefix}_currentWorkaround`) || "").trim(),
+            nextStep: String(data.get(`${prefix}_nextStep`) || "").trim(),
+            status: "Neu"
+          };
+        }).filter((need) => need.title);
+      }
+
+      function roadmapAssessmentAverage(assessment = {}) {
+        const values = ["careRelevance", "patientSafety", "processRelief", "urgency", "implementationFeasibility", "adoptionLikelihood"]
+          .map((key) => Number(assessment[key]) || 0)
+          .filter((value) => value > 0);
+        if (!values.length) return "";
+        return (values.reduce((sum, value) => sum + value, 0) / values.length).toLocaleString("de-DE", { maximumFractionDigits: 1 });
+      }
+
+      function renderHospitationRoadmapPreview(item = {}) {
+        const assessments = hospitationRoadmapAssessmentsFor(item.id);
+        const needs = hospitationUnmetNeedsFor(item.id);
+        const assessmentMarkup = assessments.map((assessment) => {
+          const roadmapItem = hospitationRoadmapItemById(assessment.roadmapItemId);
+          const score = roadmapAssessmentAverage(assessment);
+          const signal = assessment.comparisonRole === "top_priority" ? "Top" : assessment.comparisonRole === "low_priority" ? "niedriger" : "";
+          return `<span class="format-badge format-badge--quiet">${escapeHtml(hospitationRoadmapItemLabel(roadmapItem || { featureName: assessment.roadmapItemId }))}${score ? ` ${escapeHtml(score)}/5` : ""}${signal ? ` · ${escapeHtml(signal)}` : ""}</span>`;
+        }).join("");
+        const needsMarkup = needs.map((need) => `<span class="format-badge format-badge--quiet">${escapeHtml(need.title)}</span>`).join("");
+        if (!assessmentMarkup && !needsMarkup) return `<div class="hospitation-roadmap-empty">Noch keine Roadmap-Bewertung oder neue Anforderung erfasst.</div>`;
+        return `
+          <div class="hospitation-roadmap-summary">
+            ${assessmentMarkup}
+            ${needsMarkup}
+          </div>
+        `;
+      }
+
       function hospitationMetaAvatarMarkup(item = {}) {
         const contact = hospitationContact(item);
         if (contact) return contactAvatarMarkup(contact, "sm");
@@ -36725,6 +37059,7 @@
             ${detailLine("Erkenntnisse und Einordnung", payload.insight || "Nicht hinterlegt")}
             ${detailLine("Nächste Nutzung", payload.nextUse || "Nicht hinterlegt")}
             ${detailLine("Bewertung", scoreMarkup || "Noch keine Scores", { html: Boolean(scoreMarkup) })}
+            ${detailLine("Roadmap", renderHospitationRoadmapPreview(item), { html: true })}
           </div>
           ${canEditContacts() ? `
             <div class="hospitation-detail-actions">
@@ -37100,6 +37435,82 @@
         `;
       }
 
+      function hospitationDashboardRoadmapStats(items = []) {
+        const visibleIds = new Set(items.map((item) => item.id).filter(Boolean));
+        const stats = new Map();
+        hospitationRoadmapAssessments
+          .filter((assessment) => visibleIds.has(assessment.hospitationId))
+          .forEach((assessment) => {
+            const key = assessment.roadmapItemId;
+            if (!key) return;
+            const roadmapItem = hospitationRoadmapItemById(key) || { id: key, featureName: key };
+            const values = ["careRelevance", "patientSafety", "processRelief", "urgency", "implementationFeasibility", "adoptionLikelihood"]
+              .map((field) => Number(assessment[field]) || 0)
+              .filter((value) => value > 0);
+            const score = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+            const current = stats.get(key) || {
+              roadmapItem,
+              label: hospitationRoadmapItemLabel(roadmapItem),
+              count: 0,
+              scoreTotal: 0,
+              topPriority: 0,
+              lowPriority: 0
+            };
+            current.count += 1;
+            current.scoreTotal += score;
+            if (assessment.comparisonRole === "top_priority") current.topPriority += 1;
+            if (assessment.comparisonRole === "low_priority") current.lowPriority += 1;
+            stats.set(key, current);
+          });
+        return [...stats.values()]
+          .map((entry) => ({
+            ...entry,
+            average: entry.count ? entry.scoreTotal / entry.count : 0,
+            priorityBalance: entry.topPriority - entry.lowPriority
+          }))
+          .sort((left, right) => right.priorityBalance - left.priorityBalance || right.average - left.average || right.count - left.count || left.label.localeCompare(right.label, "de"))
+          .slice(0, 6);
+      }
+
+      function renderHospitationDashboardRoadmapStats(entries = []) {
+        if (!entries.length) return `<div class="hospitation-dashboard-empty">Noch keine Roadmap-Bewertungen erfasst.</div>`;
+        const maxAverage = Math.max(...entries.map((entry) => entry.average || 0), 1);
+        return `
+          <div class="hospitation-dashboard-topics">
+            ${entries.map((entry) => `
+              <div class="hospitation-dashboard-topic">
+                <div class="hospitation-dashboard-topic__head">
+                  <span class="hospitation-dashboard-topic__label">${escapeHtml(entry.label)}</span>
+                  <span class="hospitation-dashboard-topic__count">Ø ${entry.average.toLocaleString("de-DE", { maximumFractionDigits: 1 })}/5 · ${entry.count}x · Saldo ${entry.priorityBalance}</span>
+                </div>
+                ${hospitationDashboardBar(hospitationDashboardPercent(entry.average, maxAverage), { tone: entry.priorityBalance > 0 ? "success" : entry.average >= 3.5 ? "primary" : "warning" })}
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderHospitationDashboardUnmetNeeds(items = []) {
+        const visibleIds = new Set(items.map((item) => item.id).filter(Boolean));
+        const needs = hospitationUnmetNeeds
+          .filter((need) => visibleIds.has(need.hospitationId) && need.status !== "Archiviert")
+          .slice(0, 8);
+        if (!needs.length) return `<div class="hospitation-dashboard-empty">Noch keine neuen Anforderungen erfasst.</div>`;
+        return `
+          <div class="hospitation-dashboard-answer-list">
+            ${needs.map((need) => {
+              const related = need.relatedRoadmapItemId ? hospitationRoadmapItemById(need.relatedRoadmapItemId) : null;
+              return `
+                <div class="hospitation-dashboard-answer">
+                  <strong>${escapeHtml(need.title)}</strong>
+                  <span>${escapeHtml([need.classification, related ? hospitationRoadmapItemLabel(related) : "", need.urgency ? `Dringlichkeit ${need.urgency}/5` : ""].filter(Boolean).join(" · "))}</span>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
+
       function renderHospitationDashboard() {
         if (!hospitationDashboard) return;
         const visible = filteredHospitations();
@@ -37112,6 +37523,7 @@
         const sectorCounts = hospitationDashboardSectorCounts(active);
         const topicCounts = hospitationDashboardTopicCounts(active);
         const wordCounts = hospitationDashboardWordCounts(documented);
+        const roadmapStats = hospitationDashboardRoadmapStats(active);
         hospitationDashboard.innerHTML = `
           <div class="hospitation-dashboard-group-title">Metadaten-Auswertung</div>
           ${renderHospitationDashboardKpi("Hospitationen", active.length, `${visible.length} Treffer`, 100)}
@@ -37153,6 +37565,21 @@
               <span class="hospitation-dashboard-section-label">${documented.length}</span>
             </div>
             ${renderHospitationDashboardAnswers(documented)}
+          </article>
+          <div class="hospitation-dashboard-group-title">Roadmap-Bewertung</div>
+          <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
+            <div class="dashboard-card-head">
+              <h4>Priorisierte Roadmap-Themen</h4>
+              <span class="hospitation-dashboard-section-label">${roadmapStats.length}</span>
+            </div>
+            ${renderHospitationDashboardRoadmapStats(roadmapStats)}
+          </article>
+          <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
+            <div class="dashboard-card-head">
+              <h4>Neue Anforderungen</h4>
+              <span class="hospitation-dashboard-section-label">${hospitationUnmetNeeds.length}</span>
+            </div>
+            ${renderHospitationDashboardUnmetNeeds(active)}
           </article>
         `;
       }
@@ -37746,6 +38173,18 @@
                 </div>
                 ${renderHospitationDocumentationScoreInputs(documentation)}
               </section>
+              <section class="editor-section">
+                <div class="editor-section-head">
+                  <h4 class="editor-section-title">Roadmap-Bewertung</h4>
+                </div>
+                ${roadmapItems.length ? renderHospitationRoadmapAssessmentInputs(hospitation) : `<div class="hospitation-roadmap-empty">Roadmap-Katalog wird nach dem Laden angezeigt.</div>`}
+              </section>
+              <section class="editor-section">
+                <div class="editor-section-head">
+                  <h4 class="editor-section-title">Neue Anforderungen</h4>
+                </div>
+                ${renderHospitationUnmetNeedInputs(hospitation)}
+              </section>
               <div class="format-editor-actions">
                 <button class="action-button" type="button" id="hospitation-editor-cancel">Abbrechen</button>
                 <button class="action-button action-button--primary" type="submit">Dokumentation speichern</button>
@@ -37947,6 +38386,29 @@
               const saved = editingHospitationId
                 ? await window.dataService.updateHospitation(editingHospitationId, payload)
                 : await window.dataService.createHospitation(payload);
+              if (hospitationEditorMode === "documentation" && saved?.id) {
+                const formData = new FormData(form);
+                if (window.dataService.saveHospitationRoadmapAssessments) {
+                  const savedAssessments = await window.dataService.saveHospitationRoadmapAssessments(
+                    saved.id,
+                    hospitationRoadmapAssessmentsFromForm(formData, saved.id)
+                  );
+                  hospitationRoadmapAssessments = [
+                    ...(Array.isArray(savedAssessments) ? savedAssessments : []),
+                    ...hospitationRoadmapAssessments.filter((assessment) => assessment.hospitationId !== saved.id)
+                  ];
+                }
+                if (window.dataService.saveHospitationUnmetNeeds) {
+                  const savedNeeds = await window.dataService.saveHospitationUnmetNeeds(
+                    saved.id,
+                    hospitationUnmetNeedsFromForm(formData, saved.id)
+                  );
+                  hospitationUnmetNeeds = [
+                    ...(Array.isArray(savedNeeds) ? savedNeeds : []),
+                    ...hospitationUnmetNeeds.filter((need) => need.hospitationId !== saved.id)
+                  ];
+                }
+              }
               replaceHospitation(saved);
               setStorageStatus("Hospitation gespeichert");
             }
@@ -38111,7 +38573,11 @@
       }
 
       function formatOptionMarkup(options, selectedValue) {
-        return options.map((value) => `<option value="${escapeHtml(value)}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
+        return options.map((option) => {
+          const value = typeof option === "object" && option ? option.value : option;
+          const label = typeof option === "object" && option ? option.label : option;
+          return `<option value="${escapeHtml(value)}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(label)}</option>`;
+        }).join("");
       }
 
       function renderFormatEditor(format = null) {
@@ -47366,18 +47832,27 @@
 
       async function loadHospitationData({ includeArchived = false } = {}) {
         try {
-          const [loadedSlots, loadedHospitations] = await Promise.all([
+          const [loadedSlots, loadedHospitations, loadedRoadmapItems, loadedRoadmapAssessments, loadedUnmetNeeds] = await Promise.all([
             window.dataService.loadHospitationSlots ? window.dataService.loadHospitationSlots({ includeArchived }) : [],
-            window.dataService.loadHospitations ? window.dataService.loadHospitations({ includeArchived }) : []
+            window.dataService.loadHospitations ? window.dataService.loadHospitations({ includeArchived }) : [],
+            window.dataService.loadRoadmapItems ? window.dataService.loadRoadmapItems() : [],
+            window.dataService.loadHospitationRoadmapAssessments ? window.dataService.loadHospitationRoadmapAssessments({ includeArchived }) : [],
+            window.dataService.loadHospitationUnmetNeeds ? window.dataService.loadHospitationUnmetNeeds({ includeArchived }) : []
           ]);
           hospitationSlots = Array.isArray(loadedSlots) ? loadedSlots : [];
           hospitations = Array.isArray(loadedHospitations) ? loadedHospitations : [];
+          roadmapItems = Array.isArray(loadedRoadmapItems) ? loadedRoadmapItems : [];
+          hospitationRoadmapAssessments = Array.isArray(loadedRoadmapAssessments) ? loadedRoadmapAssessments : [];
+          hospitationUnmetNeeds = Array.isArray(loadedUnmetNeeds) ? loadedUnmetNeeds : [];
           hospitationLoadErrorMessage = "";
         } catch (hospitationError) {
           console.warn("Hospitationen konnten nicht geladen werden.", hospitationError);
           hospitationLoadErrorMessage = String(hospitationError?.message || "Bitte prüfe die Supabase-Tabellen und RLS-Policies für Hospitationen.");
           hospitationSlots = [];
           hospitations = [];
+          roadmapItems = [];
+          hospitationRoadmapAssessments = [];
+          hospitationUnmetNeeds = [];
         }
       }
 
