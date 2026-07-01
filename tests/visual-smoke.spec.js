@@ -461,6 +461,11 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator(".activity-item--update").first()).toBeVisible();
   await expect(page.locator(".activity-item--import").first()).toBeVisible();
   await expect(page.locator(".activity-item--create").first()).toBeVisible();
+  await expect(page.locator(".activity-contact-button")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-time-chip").first()).toBeVisible();
+  await page.locator("#activities-list .activity-item").first().click();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "activities");
+  await expect(page).toHaveURL(/#activities$/);
   const badgeBackgrounds = await page.locator("#activities-list .history-action-pill").evaluateAll((nodes) => (
     [...new Set(nodes.map((node) => getComputedStyle(node).backgroundColor))]
   ));
@@ -474,11 +479,6 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator(".history-action-pill--owner").first()).toBeVisible();
   await page.locator(".history-details summary").first().click();
   await expect(page.locator(".history-change").first()).toBeVisible();
-
-  await page.locator(".activity-contact-button").first().click();
-  await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
-  await expect(page).toHaveURL(/#person\/contact\//);
-  await expect(page.locator("#person-profile-body #detail-overview")).toBeVisible();
 });
 
 test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbox", async ({ page }, testInfo) => {

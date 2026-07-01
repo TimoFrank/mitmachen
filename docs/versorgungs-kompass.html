@@ -5150,25 +5150,17 @@
 
       .activity-feed {
         display: grid;
-        gap: 14px;
+        gap: 10px;
       }
 
       .activity-item {
         position: relative;
-        display: grid;
-        grid-template-columns: 34px minmax(0, 1fr);
-        gap: 10px;
-        cursor: pointer;
+        display: block;
+        cursor: default;
       }
 
       .activity-item::before {
-        content: "";
-        position: absolute;
-        left: 16px;
-        top: 38px;
-        bottom: -12px;
-        width: 2px;
-        background: #dbe4f0;
+        display: none;
       }
 
       .activity-item:last-child::before {
@@ -5176,8 +5168,8 @@
       }
 
       .activity-actor-avatar {
-        width: 34px;
-        height: 34px;
+        width: 24px;
+        height: 24px;
         border-radius: 999px;
         display: inline-grid;
         place-items: center;
@@ -5187,7 +5179,7 @@
         font-weight: 900;
         overflow: hidden;
         z-index: 1;
-        border: 2px solid #ffffff;
+        border: 1px solid #ffffff;
         box-shadow: 0 0 0 1px #dbeafe;
       }
 
@@ -5199,19 +5191,19 @@
 
       .activity-entry {
         display: grid;
-        gap: 10px;
-        padding: 14px;
+        gap: 0;
+        padding: 10px 12px;
         border: 1px solid #d9e2f5;
-        border-left: 5px solid #2563eb;
+        border-left: 4px solid #2563eb;
         border-radius: 8px;
         background: var(--surface);
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
         transition: border-color 0.16s ease, box-shadow 0.16s ease;
       }
 
       .activity-item:hover .activity-entry {
         border-color: #cbd5e1;
-        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
       }
 
       .activity-item--update .activity-entry {
@@ -5241,46 +5233,91 @@
       .activity-entry-head {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        align-items: start;
-        gap: 12px;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .activity-head-main {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .activity-title-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        min-width: 0;
       }
 
       .activity-title {
         color: var(--text-primary);
-        font-size: var(--font-size-md);
+        font-size: var(--font-size-sm);
         font-weight: 900;
         line-height: var(--line-height-tight);
       }
 
-      .activity-meta-line,
+      .activity-actor-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+        line-height: 1.2;
+      }
+
+      .activity-actor-name {
+        color: #334155;
+        white-space: nowrap;
+      }
+
       .activity-contact-context {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
-        gap: 6px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        background: #f8fafc;
+        gap: 5px;
+        min-width: 0;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
         color: var(--text-muted);
-        font-size: var(--font-size-sm);
+        font-size: 0.82rem;
         font-weight: 750;
-        line-height: 1.35;
+        line-height: 1.25;
       }
 
-      .activity-contact-context {
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
+      .activity-contact-name {
+        color: #1e293b;
+        font-weight: 900;
       }
 
-      .activity-meta-chip {
+      .activity-entry-side {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-width: 0;
+        text-align: right;
+      }
+
+      .activity-time-chip {
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        min-height: 24px;
+        min-height: 23px;
         padding: 0 8px;
         border-radius: 999px;
         background: #ffffff;
         border: 1px solid #e2e8f0;
+        color: #334155;
+        font-size: 0.72rem;
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
       }
 
       .activity-contact-meta {
@@ -5299,31 +5336,9 @@
         background: #94a3b8;
       }
 
-      .activity-contact-button {
-        border: 0;
-        background: transparent;
-        color: var(--primary);
-        padding: 0;
-        font: inherit;
-        font-weight: 900;
-        text-align: left;
-        cursor: pointer;
-      }
-
-      .activity-contact-button:hover,
-      .activity-contact-button:focus-visible {
-        color: var(--primary-hover);
-        text-decoration: underline;
-        text-underline-offset: 3px;
-      }
-
-      .activity-contact-avatar {
-        flex: 0 0 auto;
-      }
-
       .activities-workspace .history-action-pill {
-        min-height: 28px;
-        padding: 0 11px;
+        min-height: 23px;
+        padding: 0 8px;
         border-radius: 999px;
         border: 1px solid #c7d2fe;
         background: #eef2ff;
@@ -5332,7 +5347,7 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        font-size: 0.7rem;
+        font-size: 0.66rem;
         font-weight: 900;
         line-height: 1;
         text-transform: uppercase;
@@ -5380,18 +5395,56 @@
         margin-top: 0;
       }
 
-      .activities-workspace .history-details summary {
-        min-height: 32px;
-        width: fit-content;
-        border-color: #c7d2fe;
+      .activities-workspace .activity-details > summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 0;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        box-shadow: none;
+        list-style: none;
+      }
+
+      .activities-workspace .activity-details > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .activities-workspace .activity-details > summary:focus-visible {
+        outline: 2px solid rgba(37, 99, 235, 0.28);
+        outline-offset: 3px;
+      }
+
+      .activity-details-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 23px;
+        padding: 0 8px;
+        border: 1px solid #c7d2fe;
+        border-radius: 999px;
         background: #ffffff;
         color: #1d4ed8;
+        font-size: 0.66rem;
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+
+      .activity-details[open] .activity-details-toggle {
+        background: #dbeafe;
+        color: #1d4ed8;
       }
 
       .activities-workspace .history-change-list {
         gap: 8px;
-        margin-top: 8px;
+        margin-top: 10px;
       }
 
       .activities-workspace .history-change {
@@ -5695,22 +5748,22 @@
         }
 
         .activity-item {
-          grid-template-columns: 34px minmax(0, 1fr);
-          gap: 10px;
+          display: block;
         }
 
         .activity-actor-avatar {
-          width: 34px;
-          height: 34px;
-        }
-
-        .activity-item::before {
-          left: 16px;
-          top: 38px;
+          width: 24px;
+          height: 24px;
         }
 
         .activity-entry-head {
           grid-template-columns: minmax(0, 1fr);
+          align-items: start;
+        }
+
+        .activity-entry-side {
+          justify-content: flex-start;
+          text-align: left;
         }
 
         .activities-workspace .history-values {
@@ -33590,13 +33643,10 @@
 
       function activityContactContextMarkup(contact) {
         const organization = meaningfulOrEmpty(contact.organization);
-        const location = formatLocationDisplay(contact);
         return `
           <div class="activity-contact-context">
-            <span class="activity-contact-avatar" aria-hidden="true">${contactAvatarMarkup(contact, "sm")}</span>
-            <button class="activity-contact-button" type="button" data-activity-contact="${escapeHtml(contact.id)}">${escapeHtml(contact.displayName || contact.name || "Kontakt öffnen")}</button>
+            <span class="activity-contact-name">${escapeHtml(contact.displayName || contact.name || "Kontakt")}</span>
             ${organization ? `<span class="activity-contact-meta">${escapeHtml(organization)}</span>` : ""}
-            ${location ? `<span class="activity-contact-meta">${escapeHtml(location)}</span>` : ""}
           </div>
         `;
       }
@@ -33605,26 +33655,30 @@
         const actionKey = historyActionKey(group.changes[0]);
         const contact = activityContact(group.changes[0]);
         const visibleChanges = group.changes.filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by");
+        const headMarkup = `
+          <div class="activity-head-main">
+            <div class="activity-title-row">
+              <span class="activity-actor-inline">
+                <span class="activity-actor-avatar" aria-hidden="true">${avatarMarkup(group.user)}</span>
+                <span class="activity-actor-name">${escapeHtml(activityUserLabel(group))}</span>
+              </span>
+              <span class="activity-title">${historyActionLabel(group.action, group.changes)}</span>
+            </div>
+            ${activityContactContextMarkup(contact)}
+          </div>
+          <div class="activity-entry-side">
+            <time class="activity-time-chip" datetime="${escapeHtml(group.changedAt)}">${escapeHtml(formatDateTimeLabel(group.changedAt) || "Zeitpunkt offen")}</time>
+            <span class="history-action-pill history-action-pill--${actionKey}">${escapeHtml(historyActionBadgeLabel(actionKey))}</span>
+            ${visibleChanges.length ? `<span class="activity-details-toggle">Details</span>` : ""}
+          </div>
+        `;
         return `
-          <article class="activity-item activity-item--${escapeHtml(actionKey)}" data-activity-contact="${escapeHtml(contact.id)}">
-            <span class="activity-actor-avatar" aria-hidden="true">${avatarMarkup(group.user)}</span>
+          <article class="activity-item activity-item--${escapeHtml(actionKey)}">
             <div class="activity-entry">
-              <div class="activity-entry-head">
-                <div>
-                  <div class="activity-title">${historyActionLabel(group.action, group.changes)}</div>
-                  <div class="activity-meta-line">
-                    <time class="activity-meta-chip" datetime="${escapeHtml(group.changedAt)}">${escapeHtml(formatDateTimeLabel(group.changedAt) || "Zeitpunkt offen")}</time>
-                    <span class="activity-meta-chip">${escapeHtml(activityUserLabel(group))}</span>
-                    ${group.user?.role ? `<span class="activity-meta-chip">${escapeHtml(roleLabel(group.user.role))}</span>` : ""}
-                  </div>
-                </div>
-                <span class="history-action-pill history-action-pill--${actionKey}">${escapeHtml(historyActionBadgeLabel(actionKey))}</span>
-              </div>
-              ${activityContactContextMarkup(contact)}
               ${
                 visibleChanges.length
-                  ? `<details class="history-details">
-                      <summary>Details anzeigen</summary>
+                  ? `<details class="history-details activity-details">
+                      <summary class="activity-entry-head">${headMarkup}</summary>
                       <div class="history-change-list">
                         ${visibleChanges
                           .map(
@@ -33642,7 +33696,7 @@
                           .join("")}
                       </div>
                     </details>`
-                  : ""
+                  : `<div class="activity-entry-head">${headMarkup}</div>`
               }
             </div>
           </article>
@@ -33782,15 +33836,6 @@
             ? `${activities.length} ${activities.length === 1 ? "Aktivität" : "Aktivitäten"} geladen...`
             : `${activities.length} ${activities.length === 1 ? "Aktivität" : "Aktivitäten"}`;
         }
-        activitiesList.querySelectorAll("[data-activity-contact]").forEach((element) => {
-          element.addEventListener("click", (event) => {
-            if (element.matches(".activity-item") && event.target.closest("button, a, summary, details")) return;
-            const id = element.dataset.activityContact;
-            if (!id) return;
-            event.stopPropagation();
-            openPersonProfile("contact", id, { returnTo: "activities" });
-          });
-        });
       }
 
       function seenFeatureVersions() {
