@@ -1411,6 +1411,8 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(documentationRow).toBeVisible();
   await expect(documentationRow).toContainText("Dr. Martin Deile");
   await expect(documentationRow.locator(".hospitation-status-badge")).toHaveCount(0);
+  await expect(documentationRow).not.toContainText("Noch keine Ergebnisnotiz erfasst");
+  await expect(documentationRow).not.toContainText("Ø");
   await documentationRow.click();
 
   const documentationDrawer = page.locator("#hospitation-editor-drawer");
@@ -1420,14 +1422,19 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(documentationDrawer.locator("#hospitation-owner")).toHaveCount(0);
   await expect(documentationDrawer).toContainText("Dr. Martin Deile");
   await expect(documentationDrawer).toContainText("10.06.2026, 09:00");
+  await expect(documentationDrawer).toContainText("Themen / Tags");
+  await documentationDrawer.locator(".hospitation-documentation-topic-badge", { hasText: "Entlassmanagement" }).click();
+  await documentationDrawer.locator("#hospitation-documentation-topics-custom").fill("Dokumentations-Tag");
   await documentationDrawer.locator("#hospitation-documentation-summary").fill("Dokumentationsnotiz aus dem Visualtest");
-  await documentationDrawer.locator("#hospitation-documentation-observation").fill("Beobachtung aus dem strukturierten Formular");
-  await documentationDrawer.locator("#hospitation-documentation-process").fill("Schnittstellenhinweis aus dem Visualtest");
+  await documentationDrawer.locator("#hospitation-documentation-insight").fill("Erkenntnis aus dem strukturierten Formular");
+  await documentationDrawer.locator("#hospitation-documentation-next-use").fill("Nächste Nutzung aus dem Visualtest");
   await documentationDrawer.locator(".hospitation-score-row", { hasText: "Medikationsplans" }).locator("label", { hasText: "4" }).click();
   await documentationDrawer.locator(".hospitation-score-row", { hasText: "Entlassbriefs" }).locator("label", { hasText: "5" }).click();
   await documentationDrawer.getByRole("button", { name: "Dokumentation speichern" }).click();
   await expect(documentationDrawer).not.toHaveClass(/is-open/);
-  await expect(documentationRow).toContainText("Dokumentationsnotiz aus dem Visualtest");
+  await expect(documentationRow).toContainText("Dokumentiert");
+  await expect(documentationRow).not.toContainText("Dokumentationsnotiz aus dem Visualtest");
+  await expect(documentationRow).not.toContainText("Ø");
 
   await page.locator('[data-hospitation-tab="dashboard"]').click();
   const dashboard = page.locator("#hospitation-dashboard");

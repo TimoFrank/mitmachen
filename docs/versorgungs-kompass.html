@@ -18441,7 +18441,7 @@
       }
 
       .hospitation-documentation-row__head {
-        min-height: 66px;
+        min-height: 58px;
       }
 
       .hospitation-documentation-row__head:hover,
@@ -18668,6 +18668,52 @@
 
       .hospitation-documentation-form .format-editor-grid {
         grid-template-columns: 1fr;
+      }
+
+      .hospitation-documentation-field--primary textarea {
+        min-height: 148px;
+      }
+
+      .hospitation-documentation-topics {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hospitation-documentation-topic-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .hospitation-documentation-topic-badge {
+        position: relative;
+        border: 1px solid #d7e0f3;
+        cursor: pointer;
+      }
+
+      .hospitation-documentation-topic-badge input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .hospitation-documentation-topic-badge:has(input:checked) {
+        border-color: #a7c4ff;
+        background: #eaf2ff;
+        color: #0f4ecf;
+        font-weight: 850;
+      }
+
+      .hospitation-documentation-topic-badge:has(input:focus-visible) {
+        box-shadow: var(--focus-ring);
+      }
+
+      .hospitation-documentation-topic-badge span {
+        pointer-events: none;
+      }
+
+      .hospitation-documentation-topics .detail-theme-input {
+        width: 100%;
       }
 
       .hospitation-score-grid {
@@ -35600,6 +35646,9 @@
         const fallback = {
           kind: hospitationDocumentationKind,
           version: 1,
+          experience: "",
+          insight: "",
+          nextUse: "",
           observation: "",
           processNotes: "",
           risks: "",
@@ -35610,20 +35659,27 @@
         try {
           const parsed = JSON.parse(raw);
           if (parsed?.kind === hospitationDocumentationKind) {
+            const processParts = [parsed.processNotes, parsed.risks].map((value) => String(value || "").trim()).filter(Boolean);
             return {
               ...fallback,
               ...parsed,
+              experience: String(parsed.experience || parsed.observation || "").trim(),
+              insight: String(parsed.insight || processParts.join("\n\n")).trim(),
+              nextUse: String(parsed.nextUse || parsed.transferPotential || "").trim(),
               scores: typeof parsed.scores === "object" && parsed.scores ? parsed.scores : {}
             };
           }
         } catch (error) {
           // Legacy-Freitext bleibt lesbar und wird beim nächsten Speichern strukturiert.
         }
-        return { ...fallback, observation: raw };
+        return { ...fallback, experience: raw, observation: raw };
       }
 
       function hospitationDocumentationHasStructuredContent(payload = {}) {
         return Boolean(
+          meaningfulOrEmpty(payload.experience) ||
+          meaningfulOrEmpty(payload.insight) ||
+          meaningfulOrEmpty(payload.nextUse) ||
           meaningfulOrEmpty(payload.observation) ||
           meaningfulOrEmpty(payload.processNotes) ||
           meaningfulOrEmpty(payload.risks) ||
@@ -35643,16 +35699,6 @@
         return `<span class="hospitation-documentation-state hospitation-documentation-state--${escapeHtml(state.tone)}">${escapeHtml(state.label)}</span>`;
       }
 
-      function hospitationDocumentationScoreAverage(item = {}) {
-        const payload = hospitationDocumentationPayload(item);
-        const values = hospitationDocumentationScoreQuestions
-          .map((question) => Number(payload.scores?.[question.id]) || 0)
-          .filter((value) => value > 0);
-        if (!values.length) return "";
-        const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-        return average.toLocaleString("de-DE", { maximumFractionDigits: 1 });
-      }
-
       function serializeHospitationDocumentationPayload(payload = {}) {
         const scores = {};
         hospitationDocumentationScoreQuestions.forEach((question) => {
@@ -35662,10 +35708,13 @@
         return JSON.stringify({
           kind: hospitationDocumentationKind,
           version: 1,
-          observation: String(payload.observation || "").trim(),
-          processNotes: String(payload.processNotes || "").trim(),
+          experience: String(payload.experience || "").trim(),
+          insight: String(payload.insight || "").trim(),
+          nextUse: String(payload.nextUse || "").trim(),
+          observation: String(payload.experience || payload.observation || "").trim(),
+          processNotes: String(payload.insight || payload.processNotes || "").trim(),
           risks: String(payload.risks || "").trim(),
-          transferPotential: String(payload.transferPotential || "").trim(),
+          transferPotential: String(payload.nextUse || payload.transferPotential || "").trim(),
           scores,
           updatedAt: new Date().toISOString()
         });
@@ -35678,12 +35727,44 @@
           if (score) scores[question.id] = score;
         });
         return {
-          observation: String(data.get("documentationObservation") || "").trim(),
-          processNotes: String(data.get("documentationProcessNotes") || "").trim(),
-          risks: String(data.get("documentationRisks") || "").trim(),
-          transferPotential: String(data.get("documentationTransferPotential") || "").trim(),
+          experience: String(data.get("documentationSummary") || "").trim(),
+          insight: String(data.get("documentationInsight") || "").trim(),
+          nextUse: String(data.get("documentationNextUse") || "").trim(),
           scores
         };
+      }
+
+      function hospitationDocumentationTopicsFromForm(data) {
+        return normalizeThemes([
+          ...data.getAll("documentationTopic"),
+          ...normalizeThemes(data.get("documentationTopicsCustom"))
+        ]);
+      }
+
+      function hospitationDocumentationThemeSuggestions(item = {}) {
+        return [...new Set([
+          ...hospitationThemeTags(item),
+          ...detailThemeSuggestions({ scope: "care" })
+        ])].slice(0, 18);
+      }
+
+      function renderHospitationDocumentationTopicInputs(item = {}) {
+        const active = new Set(hospitationThemeTags(item));
+        const suggestions = hospitationDocumentationThemeSuggestions(item);
+        return `
+          <div class="hospitation-documentation-topics">
+            <div class="detail-theme-label">Themen / Tags</div>
+            <div class="hospitation-documentation-topic-list" aria-label="Themen für die Dokumentation">
+              ${suggestions.map((tag) => `
+                <label class="theme-tag theme-tag--preset hospitation-documentation-topic-badge">
+                  <input type="checkbox" name="documentationTopic" value="${escapeHtml(tag)}" ${active.has(tag) ? "checked" : ""} />
+                  <span>${escapeHtml(tag)}</span>
+                </label>
+              `).join("")}
+            </div>
+            <input class="detail-theme-input" id="hospitation-documentation-topics-custom" name="documentationTopicsCustom" type="text" placeholder="Weitere Themen, kommagetrennt" />
+          </div>
+        `;
       }
 
       function renderHospitationDocumentationScoreInputs(payload = {}) {
@@ -36412,7 +36493,6 @@
       }
 
       function renderHospitationDocumentationRow(hospitation = {}) {
-        const average = hospitationDocumentationScoreAverage(hospitation);
         const organization = hospitationOrganizationLabel(hospitation);
         const organizationMeta = hospitationOrganizationMeta(hospitation);
         return `
@@ -36422,7 +36502,6 @@
                 ${hospitationAvatarMarkup(hospitation)}
                 <span class="hospitation-row__copy">
                   <span class="hospitation-row__name">${escapeHtml(hospitationContextLabel(hospitation))}</span>
-                  <span class="hospitation-row__secondary">${escapeHtml(hospitation.documentationSummary || "Noch keine Ergebnisnotiz erfasst")}</span>
                 </span>
               </div>
               <div class="hospitation-row__cell">
@@ -36434,7 +36513,6 @@
               </div>
               <div class="hospitation-row__badges">
                 ${hospitationDocumentationStateBadge(hospitation)}
-                ${average ? `<span class="hospitation-row__secondary">Ø ${escapeHtml(average)}</span>` : ""}
               </div>
               <button class="action-button hospitation-row__toggle" type="button" data-hospitation-action="document" data-hospitation-id="${escapeHtml(hospitation.id || "")}" aria-label="Dokumentation öffnen">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -36474,8 +36552,9 @@
         return `
           <div class="detail-line-list hospitation-editable-lines">
             ${detailLine("Dokumentiert am", item.documentedAt ? formatDateTimeLabel(item.documentedAt) : "Noch nicht dokumentiert")}
-            ${detailLine("Ergebnisnotiz", item.documentationSummary || "Noch nicht dokumentiert")}
-            ${detailLine("Beobachtung", payload.observation || "Nicht hinterlegt")}
+            ${detailLine("Hospitationsnotiz", item.documentationSummary || "Noch nicht dokumentiert")}
+            ${detailLine("Erkenntnisse und Einordnung", payload.insight || "Nicht hinterlegt")}
+            ${detailLine("Nächste Nutzung", payload.nextUse || "Nicht hinterlegt")}
             ${detailLine("Bewertung", scoreMarkup || "Noch keine Scores", { html: Boolean(scoreMarkup) })}
           </div>
           ${canEditContacts() ? `
@@ -37401,24 +37480,19 @@
                 ${renderHospitationDocumentationContext(hospitation)}
                 <div class="format-editor-grid">
                   <div class="format-editor-field format-editor-field--wide">
-                    <label for="hospitation-documentation-summary">Ergebnisnotiz</label>
-                    <textarea id="hospitation-documentation-summary" name="documentationSummary" required placeholder="Kurze zusammenfassende Dokumentation der Hospitation">${escapeHtml(hospitation.documentationSummary || "")}</textarea>
+                    ${renderHospitationDocumentationTopicInputs(hospitation)}
+                  </div>
+                  <div class="format-editor-field format-editor-field--wide hospitation-documentation-field--primary">
+                    <label for="hospitation-documentation-summary">Freie Hospitationsnotiz</label>
+                    <textarea id="hospitation-documentation-summary" name="documentationSummary" required placeholder="Erlebnisse, Beobachtungen, Zitate, Situationen oder erste Gedanken aus der Hospitation">${escapeHtml(hospitation.documentationSummary || documentation.experience || "")}</textarea>
                   </div>
                   <div class="format-editor-field format-editor-field--wide">
-                    <label for="hospitation-documentation-observation">Beobachtung</label>
-                    <textarea id="hospitation-documentation-observation" name="documentationObservation" placeholder="Was wurde konkret beobachtet oder besprochen?">${escapeHtml(documentation.observation || "")}</textarea>
+                    <label for="hospitation-documentation-insight">Erkenntnisse und Einordnung</label>
+                    <textarea id="hospitation-documentation-insight" name="documentationInsight" placeholder="Welche Muster, Probleme, Chancen oder versorgungsrelevanten Erkenntnisse ergeben sich daraus?">${escapeHtml(documentation.insight || "")}</textarea>
                   </div>
                   <div class="format-editor-field format-editor-field--wide">
-                    <label for="hospitation-documentation-process">Prozess- und Schnittstellenhinweise</label>
-                    <textarea id="hospitation-documentation-process" name="documentationProcessNotes" placeholder="Abläufe, Medienbrüche, Zuständigkeiten oder Übergaben">${escapeHtml(documentation.processNotes || "")}</textarea>
-                  </div>
-                  <div class="format-editor-field format-editor-field--wide">
-                    <label for="hospitation-documentation-risks">Auffälligkeiten / Risiken</label>
-                    <textarea id="hospitation-documentation-risks" name="documentationRisks" placeholder="Risiken, Reibungsverluste oder Qualitätsprobleme">${escapeHtml(documentation.risks || "")}</textarea>
-                  </div>
-                  <div class="format-editor-field format-editor-field--wide">
-                    <label for="hospitation-documentation-transfer">Übertragbarkeit / nächste Nutzung</label>
-                    <textarea id="hospitation-documentation-transfer" name="documentationTransferPotential" placeholder="Wofür kann diese Beobachtung weiterverwendet werden?">${escapeHtml(documentation.transferPotential || "")}</textarea>
+                    <label for="hospitation-documentation-next-use">Nächste Nutzung</label>
+                    <textarea id="hospitation-documentation-next-use" name="documentationNextUse" placeholder="Was soll daraus entstehen: Follow-up, These, Produktidee, Rückfrage oder Transfer in ein anderes Modul?">${escapeHtml(documentation.nextUse || "")}</textarea>
                   </div>
                 </div>
               </section>
@@ -37549,9 +37623,11 @@
           };
         }
         if (hospitationEditorMode === "documentation") {
+          const documentationSummary = String(data.get("documentationSummary") || "").trim();
           return {
             status: "Dokumentiert",
-            documentationSummary: String(data.get("documentationSummary") || "").trim(),
+            topics: hospitationDocumentationTopicsFromForm(data),
+            documentationSummary,
             documentationOutcome: serializeHospitationDocumentationPayload(hospitationDocumentationPayloadFromForm(data))
           };
         }
@@ -37605,7 +37681,7 @@
             return;
           }
           if (hospitationEditorMode === "documentation" && !payload.documentationSummary) {
-            window.alert("Bitte erfasse eine Ergebnisnotiz.");
+            window.alert("Bitte erfasse eine Hospitationsnotiz.");
             return;
           }
           try {
@@ -37644,7 +37720,7 @@
           request: ["Hospitation anfragen", "Anfrage mit Kontakt- oder Organisationsbezug erfassen."],
           booking: ["Hospitation buchen", "Freien Termin-Slot oder direkten Termin verbindlich buchen."],
           edit: ["Hospitation bearbeiten", "Termin, Status und Planungsnotizen aktualisieren."],
-          documentation: ["Hospitation dokumentieren", "Beobachtungen, Einschätzungen und Versorgungsrelevanz strukturiert erfassen."],
+          documentation: ["Hospitation dokumentieren", "Themen, Erlebnisse, Erkenntnisse und Versorgungsrelevanz strukturiert erfassen."],
           slot: [record?.id ? "Terminangebot bearbeiten" : "Termin anbieten", "Internen Slot für direkte Buchungen pflegen."]
         };
         const [title, subtitle] = titles[mode] || titles.request;
