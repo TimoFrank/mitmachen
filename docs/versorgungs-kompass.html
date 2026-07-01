@@ -20043,6 +20043,7 @@
         overflow-wrap: anywhere;
       }
 
+      .format-fact > .contact-sector-pill,
       .format-fact > .hospitation-status-badge,
       .format-fact > .owner-badge {
         margin-top: 8px;
@@ -35616,7 +35617,12 @@
           .filter((slot) => hospitationMatchesColumnFilters(slot))
           .filter((slot) => {
             if (!query) return true;
-            const pseudoHospitation = { contactId: slot.contactId, organizationId: slot.organizationId };
+            const pseudoHospitation = {
+              contactId: slot.contactId,
+              contactName: slot.contactName,
+              organizationId: slot.organizationId,
+              organizationName: slot.organizationName
+            };
             return [
               hospitationContextLabel(pseudoHospitation),
               slot.status,
@@ -35652,7 +35658,12 @@
         const options = filteredHospitationSlots()
           .filter((slot) => slot.status === "Frei" || slot.id === selectedSlotId)
           .map((slot) => {
-            const pseudoHospitation = { contactId: slot.contactId, organizationId: slot.organizationId };
+            const pseudoHospitation = {
+              contactId: slot.contactId,
+              contactName: slot.contactName,
+              organizationId: slot.organizationId,
+              organizationName: slot.organizationName
+            };
             const label = `${hospitationDateRangeLabel(slot)} · ${hospitationContextLabel(pseudoHospitation)}${slot.location ? ` · ${slot.location}` : ""}`;
             return `<option value="${escapeHtml(slot.id)}" ${slot.id === selectedSlotId ? "selected" : ""}>${escapeHtml(label)}</option>`;
           });
@@ -36326,6 +36337,13 @@
             hospitationInlineInput(item, "startsAt", dateTimeInputValue(item.startsAt), "Termin", { type: "datetime-local" }),
             "Termin bearbeiten"
           ))}
+          ${renderFormatFact("Sektor", hospitationEditableFact(
+            item,
+            "sector",
+            sectorBadgeMarkup(hospitationSectorLabel(item)),
+            hospitationInlineSelectShell(item, "sector", `<option value="">Nicht hinterlegt</option>${buildCategorySelectOptions(hospitationInlineSectorValue(item))}`, "Sektor"),
+            "Sektor bearbeiten"
+          ))}
           ${renderFormatFact("Status", hospitationEditableFact(
             item,
             "status",
@@ -36353,7 +36371,6 @@
         const organizationLabel = organization ? organization.name : organizationName || "Nicht hinterlegt";
         const locationLabel = hospitationLocationLabel(item) || "Nicht hinterlegt";
         const stateLabelText = hospitationStateLabel(item);
-        const goalText = item.goal || "Nicht hinterlegt";
         return `
           <div class="detail-line-list hospitation-overview-meta">
             ${detailLineHtml("Kontakt", hospitationMetaDisplayMarkup(
@@ -36377,26 +36394,12 @@
               hospitationInlineInput(item, "location", hospitationLocationLabel(item), "Ort", { placeholder: "Ort hinterlegen" }),
               "Ort bearbeiten"
             ))}
-            ${detailLineHtml("Sektor", hospitationMetaDisplayMarkup(
-              item,
-              "sector",
-              sectorBadgeMarkup(hospitationSectorLabel(item)),
-              hospitationInlineSelectShell(item, "sector", `<option value="">Nicht hinterlegt</option>${buildCategorySelectOptions(hospitationInlineSectorValue(item))}`, "Sektor"),
-              "Sektor bearbeiten"
-            ))}
             ${detailLineHtml("Bundesland", hospitationMetaDisplayMarkup(
               item,
               "state",
               hospitationMetaTextMarkup(stateLabelText),
               hospitationInlineSelectShell(item, "state", buildStateSelectOptions(hospitationInlineStateValue(item)), "Bundesland"),
               "Bundesland bearbeiten"
-            ))}
-            ${detailLineHtml("Ziel", hospitationMetaDisplayMarkup(
-              item,
-              "goal",
-              hospitationMetaTextMarkup(goalText),
-              hospitationInlineTextarea(item, "goal", item.goal || "", "Ziel", "Ziel oder Kontext hinterlegen"),
-              "Ziel bearbeiten"
             ))}
           </div>
         `;
@@ -36709,6 +36712,14 @@
           .join("");
         return `
           <div class="detail-line-list hospitation-editable-lines">
+            ${hospitationEditableDetailLine(
+              item,
+              "Ziel",
+              "goal",
+              hospitationMetaTextMarkup(item.goal || "Nicht hinterlegt"),
+              hospitationInlineTextarea(item, "goal", item.goal || "", "Ziel", "Ziel oder Kontext hinterlegen"),
+              "Ziel bearbeiten"
+            )}
             ${detailLine("Dokumentiert am", item.documentedAt ? formatDateTimeLabel(item.documentedAt) : "Noch nicht dokumentiert")}
             ${detailLine("Hospitationsnotiz", item.documentationSummary || "Noch nicht dokumentiert")}
             ${detailLine("Erkenntnisse und Einordnung", payload.insight || "Nicht hinterlegt")}
@@ -36842,7 +36853,12 @@
       }
 
       function hospitationSlotCardMarkup(slot) {
-        const pseudoHospitation = { contactId: slot.contactId, organizationId: slot.organizationId };
+        const pseudoHospitation = {
+          contactId: slot.contactId,
+          contactName: slot.contactName,
+          organizationId: slot.organizationId,
+          organizationName: slot.organizationName
+        };
         const canEdit = canEditContacts();
         return `
           <article class="hospitation-card" data-hospitation-slot-card="${escapeHtml(slot.id)}">
@@ -37515,7 +37531,8 @@
               return;
             }
             if (action === "book-slot") {
-              openHospitationEditor("booking", null, { slotId });
+              const slot = hospitationSlots.find((item) => item.id === slotId) || {};
+              openHospitationEditor("booking", null, { ...slot, slotId });
               return;
             }
             if (action === "edit-slot") {
@@ -37660,6 +37677,10 @@
                     </div>
                   </div>
                   <div class="format-editor-field">
+                    <label for="hospitation-slot-contact-name">Kontakt Freitext</label>
+                    <input id="hospitation-slot-contact-name" name="contactName" value="${escapeHtml(hospitationFreeTextContactName(slot) || "")}" placeholder="Name, falls noch kein Kontaktprofil existiert" />
+                  </div>
+                  <div class="format-editor-field">
                     <label for="hospitation-slot-organization">Organisation</label>
                     <div class="editor-select-shell" data-custom-select data-select-type="hospitation-slot-organization">
                       <select class="editor-select" id="hospitation-slot-organization" name="organizationId">${hospitationOrganizationOptionMarkup(slot.organizationId || context.organizationId || "")}</select>
@@ -37752,6 +37773,10 @@
                   </div>
                 </div>
                 <div class="format-editor-field">
+                  <label for="hospitation-contact-name">Kontakt Freitext</label>
+                  <input id="hospitation-contact-name" name="contactName" value="${escapeHtml(hospitationFreeTextContactName(hospitation) || "")}" placeholder="Name, falls noch kein Kontaktprofil existiert" />
+                </div>
+                <div class="format-editor-field">
                   <label for="hospitation-organization">Organisation</label>
                   <div class="editor-select-shell" data-custom-select data-select-type="hospitation-organization">
                     <select class="editor-select" id="hospitation-organization" name="organizationId">${hospitationOrganizationOptionMarkup(hospitation.organizationId || context.organizationId || "")}</select>
@@ -37833,10 +37858,12 @@
       function hospitationEditorPayload(form) {
         const data = new FormData(form);
         if (hospitationEditorMode === "slot") {
+          const contactId = String(data.get("contactId") || "").trim();
           return {
             startsAt: dateTimeInputToIso(data.get("startsAt")),
             endsAt: dateTimeInputToIso(data.get("endsAt")),
-            contactId: String(data.get("contactId") || "").trim(),
+            contactId,
+            contactName: contactId ? "" : String(data.get("contactName") || "").trim(),
             organizationId: String(data.get("organizationId") || "").trim(),
             location: String(data.get("location") || "").trim(),
             capacity: Math.max(1, Number(data.get("capacity")) || 1),
@@ -37854,9 +37881,11 @@
             documentationOutcome: serializeHospitationDocumentationPayload(hospitationDocumentationPayloadFromForm(data))
           };
         }
+        const contactId = String(data.get("contactId") || "").trim();
         return {
           slotId: String(data.get("slotId") || "").trim(),
-          contactId: String(data.get("contactId") || "").trim(),
+          contactId,
+          contactName: contactId ? "" : String(data.get("contactName") || "").trim(),
           organizationId: String(data.get("organizationId") || "").trim(),
           status: String(data.get("status") || "Angefragt").trim(),
           startsAt: dateTimeInputToIso(data.get("startsAt")),
@@ -37899,8 +37928,8 @@
             window.alert("Bitte trage einen Beginn für den Hospitationstermin ein.");
             return;
           }
-          if (hospitationEditorMode !== "slot" && hospitationEditorMode !== "documentation" && !payload.slotId && !payload.contactId && !payload.organizationId) {
-            window.alert("Bitte wähle Kontakt, Organisation oder Termin-Slot aus.");
+          if (hospitationEditorMode !== "slot" && hospitationEditorMode !== "documentation" && !payload.slotId && !payload.contactId && !payload.contactName && !payload.organizationId) {
+            window.alert("Bitte wähle Kontakt, Organisation oder Termin-Slot aus oder trage einen Kontakt als Freitext ein.");
             return;
           }
           if (hospitationEditorMode === "documentation" && !payload.documentationSummary) {

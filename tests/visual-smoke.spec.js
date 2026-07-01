@@ -1338,6 +1338,17 @@ test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }, 
 test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations");
 
+  await page.locator("#new-hospitation-booking-button").click();
+  const bookingDrawer = page.locator("#hospitation-editor-drawer");
+  await expect(bookingDrawer).toHaveClass(/is-open/);
+  await expect(bookingDrawer.locator("#hospitation-contact-name")).toBeVisible();
+  await bookingDrawer.locator("#hospitation-contact-name").fill("Freitext Kontakt Visualtest");
+  await bookingDrawer.locator("#hospitation-start").fill("2026-07-03T10:00");
+  await bookingDrawer.locator("#hospitation-goal").fill("Freitext-Kontakt Ziel aus dem Visualtest");
+  await bookingDrawer.getByRole("button", { name: "Speichern" }).click();
+  await expect(bookingDrawer).not.toHaveClass(/is-open/);
+  await expect(page.locator(".hospitation-row", { hasText: "Freitext Kontakt Visualtest" })).toBeVisible();
+
   const row = page.locator(".hospitation-row", { hasText: "Dr. Martin Deile" }).first();
   await expect(row).toBeVisible();
   await row.locator("[data-toggle-hospitation-detail]").click();
@@ -1347,6 +1358,8 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(detail.locator(".format-facts-grid").first()).not.toContainText("Follow-up");
   await expect(detail.locator(".hospitation-overview-facts")).toBeVisible();
   await expect(detail.locator(".hospitation-overview-facts .hospitation-display-badge--date")).toContainText("10.06.2026, 09:00");
+  await expect(detail.locator(".hospitation-overview-facts .format-fact").nth(1)).toContainText("Sektor");
+  await expect(detail.locator(".hospitation-overview-facts .format-fact").nth(1).locator(".contact-sector-pill")).toBeVisible();
   await expect(detail.locator(".hospitation-overview-facts .hospitation-status-badge")).toContainText("Durchgeführt");
   await expect(detail.locator(".hospitation-overview-facts .owner-badge")).toBeVisible();
   await expect(detail.locator('[data-hospitation-inline-field="status"]')).toHaveCount(0);
@@ -1367,13 +1380,12 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(0);
   await detail.locator('[data-hospitation-edit-field="contactId"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(1);
+  await detail.getByRole("tab", { name: "Dokumentation" }).click();
   await detail.locator('[data-hospitation-edit-field="goal"]').click();
   await expect(detail.locator('[data-hospitation-inline-field="contactId"]')).toHaveCount(0);
   await detail.locator('[data-hospitation-inline-field="goal"]').fill("Inline-Ziel aus dem Visualtest");
   await detail.locator('[data-hospitation-save-field="goal"]').click();
-  await expect(detail.locator(".hospitation-overview-meta")).toContainText("Inline-Ziel aus dem Visualtest");
-
-  await detail.getByRole("tab", { name: "Dokumentation" }).click();
+  await expect(detail.locator(".hospitation-editable-lines")).toContainText("Inline-Ziel aus dem Visualtest");
   await expect(detail.locator('[data-hospitation-edit-field="documentationSummary"]')).toHaveCount(0);
   await expect(detail.getByRole("button", { name: "Dokumentationsformular öffnen" })).toBeVisible();
 
