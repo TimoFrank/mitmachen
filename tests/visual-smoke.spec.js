@@ -1435,13 +1435,41 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(documentationDrawer).toContainText("Dr. Martin Deile");
   await expect(documentationDrawer).toContainText("10.06.2026, 09:00");
   await expect(documentationDrawer).toContainText("Themen / Tags");
+  await expect(documentationDrawer.locator("details.hospitation-editor-section")).toHaveCount(6);
+  const roadmapDetails = documentationDrawer.locator("details.hospitation-editor-section").filter({ hasText: "Roadmap-Bewertung" });
+  await expect(roadmapDetails).not.toHaveAttribute("open", "");
+  await roadmapDetails.locator("summary").click();
+  await expect(roadmapDetails).toHaveAttribute("open", "");
+  await expect(roadmapDetails.locator('select[id$="_roadmapItemId"]')).toHaveCount(3);
+  await expect(roadmapDetails.locator("[data-score-slider]")).toHaveCount(12);
+  await expect(roadmapDetails).toContainText("Diese Funktion würde in meinem Versorgungsalltag einen relevanten Beitrag zur Patientensicherheit leisten.");
+  const forbiddenRoadmapLabels = await roadmapDetails.locator("label").evaluateAll((labels) =>
+    labels.map((label) => label.textContent || "").filter((text) => /Priorisierung|Perspektive|Sektor/.test(text))
+  );
+  expect(forbiddenRoadmapLabels).toEqual([]);
+  const roadmapOptionTexts = await roadmapDetails.locator('select[id$="_roadmapItemId"]').first().locator("option").evaluateAll((options) =>
+    options.map((option) => option.textContent?.trim() || "").filter(Boolean)
+  );
+  expect(roadmapOptionTexts.some((text) => /\b(?:ePA|KIM|VSDM|ISiK|PoPP|ZETA)?\s*\d+(?:\.\d+)+\b/i.test(text))).toBe(false);
+  await roadmapDetails.locator("summary").click();
   await documentationDrawer.locator(".hospitation-documentation-topic-badge", { hasText: "Entlassmanagement" }).click();
   await documentationDrawer.locator("#hospitation-documentation-topics-custom").fill("Dokumentations-Tag");
   await documentationDrawer.locator("#hospitation-documentation-summary").fill("Dokumentationsnotiz aus dem Visualtest");
   await documentationDrawer.locator("#hospitation-documentation-insight").fill("Erkenntnis aus dem strukturierten Formular");
   await documentationDrawer.locator("#hospitation-documentation-next-use").fill("Nächste Nutzung aus dem Visualtest");
-  await documentationDrawer.locator(".hospitation-score-row", { hasText: "Medikationsplans" }).locator("label", { hasText: "4" }).click();
-  await documentationDrawer.locator(".hospitation-score-row", { hasText: "Entlassbriefs" }).locator("label", { hasText: "5" }).click();
+  await documentationDrawer.locator("#documentationScore_0_itemId").selectOption("medicationPlan");
+  await documentationDrawer.locator("#documentationScore_1_itemId").selectOption("dischargeLetter");
+  await documentationDrawer.locator('[name="documentationScore_0_score"]').evaluate((input) => {
+    input.value = "4";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await documentationDrawer.locator('[name="documentationScore_1_score"]').evaluate((input) => {
+    input.value = "5";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await expect(documentationDrawer.locator('[name="documentationScore_0_score"]').locator("xpath=ancestor::label[1]")).toContainText("4/5");
   await documentationDrawer.getByRole("button", { name: "Dokumentation speichern" }).click();
   await expect(documentationDrawer).not.toHaveClass(/is-open/);
   await expect(documentationRow).toContainText("Dokumentiert");

@@ -18774,6 +18774,37 @@
         width: 100%;
       }
 
+      .hospitation-editor-section {
+        overflow: visible;
+      }
+
+      .hospitation-editor-section > summary {
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .hospitation-editor-section > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .hospitation-editor-section__summary {
+        align-items: center;
+      }
+
+      .hospitation-editor-section__summary::after {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-right: 2px solid var(--text-muted);
+        border-bottom: 2px solid var(--text-muted);
+        transform: rotate(45deg);
+        transition: transform 0.18s ease;
+      }
+
+      .hospitation-editor-section[open] > .hospitation-editor-section__summary::after {
+        transform: rotate(225deg);
+      }
+
       .hospitation-score-grid {
         display: grid;
         gap: 10px;
@@ -18849,6 +18880,83 @@
         pointer-events: none;
       }
 
+      .hospitation-score-row--slider {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .hospitation-score-row__head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .hospitation-score-custom {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .hospitation-score-custom span,
+      .hospitation-slider-score__statement {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 850;
+      }
+
+      .hospitation-slider-score {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .hospitation-slider-score__scale {
+        display: grid;
+        grid-template-columns: auto minmax(160px, 1fr) auto auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .hospitation-slider-score__scale span {
+        color: var(--text-muted);
+        font-size: 0.74rem;
+        font-weight: 780;
+        white-space: nowrap;
+      }
+
+      .hospitation-slider-score input[type="range"] {
+        width: 100%;
+        accent-color: var(--primary);
+      }
+
+      .hospitation-slider-score output {
+        min-width: 40px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 4px 8px;
+        text-align: center;
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .hospitation-score-remove {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        justify-self: end;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .hospitation-score-remove input {
+        width: 16px;
+        height: 16px;
+      }
+
       .hospitation-roadmap-grid,
       .hospitation-unmet-grid {
         display: grid;
@@ -18867,20 +18975,20 @@
 
       .hospitation-roadmap-card__head {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(150px, 0.3fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 10px;
         align-items: end;
       }
 
       .hospitation-roadmap-card__scores {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: 1fr;
         gap: 10px;
       }
 
       .hospitation-roadmap-score {
         display: grid;
-        gap: 5px;
+        gap: 8px;
         min-width: 0;
       }
 
@@ -21406,6 +21514,8 @@
         .participant-board,
         .hospitation-documentation-context,
         .hospitation-score-row,
+        .hospitation-score-row__head,
+        .hospitation-slider-score__scale,
         .hospitation-roadmap-card__head,
         .hospitation-roadmap-card__scores,
         .hospitation-card__facts,
@@ -24717,12 +24827,7 @@
       const hospitationSlotStatusOptions = ["Frei", "Reserviert", "Gebucht", "Abgesagt", "Archiviert"];
       const hospitationRoadmapAssessmentSlots = 3;
       const hospitationUnmetNeedSlots = 2;
-      const hospitationRespondentRoleOptions = ["", "Arzt/Ärztin", "Apotheke", "Pflege", "Versicherte/Patient", "Krankenhaus", "Kostenträger", "Hersteller/Primärsystem", "Sonstige"];
-      const hospitationComparisonRoleOptions = [
-        { value: "none", label: "Keine Auswahl" },
-        { value: "top_priority", label: "Wichtigstes Thema" },
-        { value: "low_priority", label: "Weniger dringlich" }
-      ];
+      const hospitationDocumentationScoreRowSlots = 7;
       const hospitationUnmetNeedClassificationOptions = [
         { value: "existing_item_extension", label: "Erweiterung bestehender Roadmap" },
         { value: "new_backlog_item", label: "Neues Backlog-Thema" },
@@ -24732,36 +24837,78 @@
         { value: "communication_or_training", label: "Kommunikation/Schulung" }
       ];
       const hospitationDocumentationKind = "hospitation-documentation-v1";
-      const hospitationDocumentationScoreQuestions = [
+      const hospitationDocumentationScoreCatalog = [
         {
           id: "medicationPlan",
           label: "Medikationsplan",
-          question: "Versorgungsrelevanz des Medikationsplans",
-          description: "Nutzen für Transparenz, sichere Arzneimitteltherapie und Anschlussfähigkeit."
+          statement: "Der Medikationsplan ist für diesen Versorgungskontakt relevant."
         },
         {
           id: "dischargeLetter",
           label: "Entlassbrief",
-          question: "Versorgungsrelevanz des Entlassbriefs",
-          description: "Bedeutung für Übergaben, Verlauf, Diagnostik und Nachsorge."
+          statement: "Der Entlassbrief ist für diesen Versorgungskontakt relevant."
         },
         {
           id: "btmPrescription",
           label: "Betäubungsmittel-Verordnung",
-          question: "Versorgungsrelevanz der Betäubungsmittel-Verordnung",
-          description: "Relevanz für Rechtssicherheit, Dokumentation und Prozessklarheit."
+          statement: "Die Betäubungsmittel-Verordnung ist für diesen Versorgungskontakt relevant."
         },
         {
           id: "actorCoordination",
           label: "Akteurskoordination",
-          question: "Klarheit der Abstimmung zwischen beteiligten Akteuren",
-          description: "Bewertung der Übergaben, Zuständigkeiten und Kommunikationswege."
+          statement: "Die Abstimmung zwischen beteiligten Akteuren ist für diesen Versorgungskontakt relevant."
         },
         {
           id: "digitalWorkflow",
           label: "Digitaler Prozessnutzen",
-          question: "Potenzial für digitale Unterstützung",
-          description: "Einschätzung, ob digitale Prozesse spürbar entlasten oder Qualität sichern."
+          statement: "Digitale Unterstützung würde diesen Versorgungskontakt spürbar verbessern."
+        },
+        {
+          id: "patientSafety",
+          label: "Patientensicherheit",
+          statement: "Patientensicherheit ist in diesem Versorgungskontakt ein zentrales Bewertungskriterium."
+        },
+        {
+          id: "processRelief",
+          label: "Prozessentlastung",
+          statement: "Prozessentlastung ist in diesem Versorgungskontakt ein zentrales Bewertungskriterium."
+        },
+        {
+          id: "informationContinuity",
+          label: "Informationskontinuität",
+          statement: "Lückenlose Informationen zwischen Einrichtungen sind hier besonders relevant."
+        },
+        {
+          id: "patientParticipation",
+          label: "Patientenbeteiligung",
+          statement: "Patientinnen und Patienten würden von mehr digitaler Transparenz profitieren."
+        },
+        {
+          id: "careCoordination",
+          label: "Versorgungskoordination",
+          statement: "Koordination zwischen Rollen und Sektoren ist hier besonders relevant."
+        }
+      ];
+      const hospitationRoadmapScoreStatements = [
+        {
+          key: "careRelevance",
+          label: "Versorgungsnutzen",
+          statement: "Diese Funktion würde in meinem Versorgungsalltag einen spürbaren Nutzen stiften."
+        },
+        {
+          key: "patientSafety",
+          label: "Patientensicherheit",
+          statement: "Diese Funktion würde in meinem Versorgungsalltag einen relevanten Beitrag zur Patientensicherheit leisten."
+        },
+        {
+          key: "processRelief",
+          label: "Prozessentlastung",
+          statement: "Diese Funktion würde Abläufe vereinfachen und Zeit sparen."
+        },
+        {
+          key: "urgency",
+          label: "Dringlichkeit",
+          statement: "Diese Funktion sollte aus Sicht der Versorgung zeitnah priorisiert werden."
         }
       ];
       const formatEditorSteps = [
@@ -35909,7 +36056,9 @@
           processNotes: "",
           risks: "",
           transferPotential: "",
-          scores: {}
+          scores: {},
+          scoreLabels: {},
+          scoreOrder: []
         };
         if (!raw) return fallback;
         try {
@@ -35922,7 +36071,9 @@
               experience: String(parsed.experience || parsed.observation || "").trim(),
               insight: String(parsed.insight || processParts.join("\n\n")).trim(),
               nextUse: String(parsed.nextUse || parsed.transferPotential || "").trim(),
-              scores: typeof parsed.scores === "object" && parsed.scores ? parsed.scores : {}
+              scores: typeof parsed.scores === "object" && parsed.scores ? parsed.scores : {},
+              scoreLabels: typeof parsed.scoreLabels === "object" && parsed.scoreLabels ? parsed.scoreLabels : {},
+              scoreOrder: Array.isArray(parsed.scoreOrder) ? parsed.scoreOrder : []
             };
           }
         } catch (error) {
@@ -35940,7 +36091,7 @@
           meaningfulOrEmpty(payload.processNotes) ||
           meaningfulOrEmpty(payload.risks) ||
           meaningfulOrEmpty(payload.transferPotential) ||
-          hospitationDocumentationScoreQuestions.some((question) => Number(payload.scores?.[question.id]) > 0)
+          Object.values(payload.scores || {}).some((score) => Number(score) > 0)
         );
       }
 
@@ -35957,9 +36108,15 @@
 
       function serializeHospitationDocumentationPayload(payload = {}) {
         const scores = {};
-        hospitationDocumentationScoreQuestions.forEach((question) => {
-          const score = Math.min(5, Math.max(0, Number(payload.scores?.[question.id]) || 0));
-          if (score) scores[question.id] = score;
+        Object.entries(payload.scores || {}).forEach(([id, rawScore]) => {
+          const score = Math.min(5, Math.max(0, Number(rawScore) || 0));
+          const cleanId = hospitationDocumentationScoreId(id);
+          if (score && cleanId) scores[cleanId] = score;
+        });
+        const scoreLabels = {};
+        Object.keys(scores).forEach((id) => {
+          const label = String(payload.scoreLabels?.[id] || hospitationDocumentationScoreDefinition(id).label || id).trim();
+          if (label) scoreLabels[id] = label;
         });
         return JSON.stringify({
           kind: hospitationDocumentationKind,
@@ -35972,21 +36129,36 @@
           risks: String(payload.risks || "").trim(),
           transferPotential: String(payload.nextUse || payload.transferPotential || "").trim(),
           scores,
+          scoreLabels,
+          scoreOrder: Array.isArray(payload.scoreOrder) ? payload.scoreOrder.filter((id) => scores[id]) : Object.keys(scores),
           updatedAt: new Date().toISOString()
         });
       }
 
       function hospitationDocumentationPayloadFromForm(data) {
         const scores = {};
-        hospitationDocumentationScoreQuestions.forEach((question) => {
-          const score = Number(data.get(`documentationScore_${question.id}`)) || 0;
-          if (score) scores[question.id] = score;
-        });
+        const scoreLabels = {};
+        const scoreOrder = [];
+        for (let index = 0; index < hospitationDocumentationScoreRowSlots; index += 1) {
+          if (data.get(`documentationScore_${index}_remove`) === "on") continue;
+          const selectedId = String(data.get(`documentationScore_${index}_itemId`) || "").trim();
+          const customLabel = String(data.get(`documentationScore_${index}_customLabel`) || "").trim();
+          const definition = selectedId ? hospitationDocumentationScoreDefinition(selectedId) : null;
+          const label = selectedId === "__custom__" ? customLabel : definition?.label || customLabel;
+          const id = selectedId === "__custom__" ? hospitationDocumentationScoreId(customLabel) : hospitationDocumentationScoreId(selectedId || label);
+          const score = Number(data.get(`documentationScore_${index}_score`)) || 0;
+          if (!id || !label || score <= 0) continue;
+          scores[id] = Math.min(5, Math.max(1, score));
+          scoreLabels[id] = label;
+          scoreOrder.push(id);
+        }
         return {
           experience: String(data.get("documentationSummary") || "").trim(),
           insight: String(data.get("documentationInsight") || "").trim(),
           nextUse: String(data.get("documentationNextUse") || "").trim(),
-          scores
+          scores,
+          scoreLabels,
+          scoreOrder
         };
       }
 
@@ -36002,6 +36174,19 @@
           ...hospitationThemeTags(item),
           ...detailThemeSuggestions({ scope: "care" })
         ])].slice(0, 18);
+      }
+
+      function renderHospitationEditorSection(title, body, options = {}) {
+        const open = options.open === false ? "" : " open";
+        const primary = options.primary ? " editor-section--primary" : "";
+        return `
+          <details class="editor-section${primary} hospitation-editor-section"${open}>
+            <summary class="editor-section-head hospitation-editor-section__summary">
+              <h4 class="editor-section-title">${escapeHtml(title)}</h4>
+            </summary>
+            ${body}
+          </details>
+        `;
       }
 
       function renderHospitationDocumentationTopicInputs(item = {}) {
@@ -36023,25 +36208,100 @@
         `;
       }
 
+      function hospitationDocumentationScoreId(value = "") {
+        const direct = String(value || "").trim();
+        const catalogMatch = hospitationDocumentationScoreCatalog.find((item) => item.id === direct);
+        if (catalogMatch) return catalogMatch.id;
+        return direct
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 64);
+      }
+
+      function hospitationDocumentationScoreDefinition(id = "") {
+        const cleanId = hospitationDocumentationScoreId(id);
+        return hospitationDocumentationScoreCatalog.find((item) => item.id === cleanId) || { id: cleanId, label: cleanId, statement: "Dieses Item ist für diesen Versorgungskontakt relevant." };
+      }
+
+      function hospitationDocumentationScoreRows(payload = {}) {
+        const scores = payload.scores || {};
+        const labels = payload.scoreLabels || {};
+        const orderedIds = [
+          ...(Array.isArray(payload.scoreOrder) ? payload.scoreOrder : []),
+          ...Object.keys(scores)
+        ].map(hospitationDocumentationScoreId).filter(Boolean);
+        const uniqueIds = [...new Set(orderedIds)];
+        const rows = uniqueIds
+          .filter((id) => Number(scores[id]) > 0)
+          .map((id) => {
+            const definition = hospitationDocumentationScoreDefinition(id);
+            return {
+              id,
+              label: labels[id] || definition.label,
+              statement: definition.statement,
+              score: Number(scores[id]) || 0,
+              custom: !hospitationDocumentationScoreCatalog.some((item) => item.id === id)
+            };
+          });
+        const desiredRowCount = Math.min(hospitationDocumentationScoreRowSlots, Math.max(3, rows.length + 2));
+        while (rows.length < desiredRowCount) rows.push({ id: "", label: "", statement: "", score: 0, custom: false });
+        return rows.slice(0, hospitationDocumentationScoreRowSlots);
+      }
+
+      function hospitationDocumentationScoreOptionMarkup(selectedId = "") {
+        const selected = hospitationDocumentationScoreId(selectedId);
+        const options = hospitationDocumentationScoreCatalog.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("");
+        return `<option value="">Item auswählen</option>${options}<option value="__custom__" ${selected && !hospitationDocumentationScoreCatalog.some((item) => item.id === selected) ? "selected" : ""}>Eigenes Item</option>`;
+      }
+
+      function renderHospitationScoreSlider(name, selected = 0, statement = "") {
+        const value = Math.max(0, Math.min(5, Number(selected) || 0));
+        return `
+          <label class="hospitation-slider-score">
+            ${statement ? `<span class="hospitation-slider-score__statement" data-score-statement>${escapeHtml(statement)}</span>` : ""}
+            <div class="hospitation-slider-score__scale">
+              <span>keine Angabe</span>
+              <input type="range" min="0" max="5" step="1" name="${escapeHtml(name)}" value="${value}" data-score-slider />
+              <output>${value ? `${value}/5` : "N/A"}</output>
+              <span>trifft voll zu</span>
+            </div>
+          </label>
+        `;
+      }
+
       function renderHospitationDocumentationScoreInputs(payload = {}) {
+        const rows = hospitationDocumentationScoreRows(payload);
         return `
           <div class="hospitation-score-grid">
-            ${hospitationDocumentationScoreQuestions.map((question) => {
-              const selected = Number(payload.scores?.[question.id]) || 0;
+            ${rows.map((row, index) => {
+              const selectedId = row.custom ? "__custom__" : row.id;
+              const definition = row.id ? hospitationDocumentationScoreDefinition(row.id) : null;
+              const statement = row.statement || definition?.statement || "Dieses Item ist für diesen Versorgungskontakt relevant.";
               return `
-                <div class="hospitation-score-row">
+                <div class="hospitation-score-row hospitation-score-row--slider" data-documentation-score-row>
+                  <div class="hospitation-score-row__head">
+                    <div class="format-editor-field">
+                      <label for="documentationScore_${index}_itemId">Item ${index + 1}</label>
+                      <div class="editor-select-shell" data-custom-select data-select-type="documentationScore_${index}_itemId">
+                        <select class="editor-select" id="documentationScore_${index}_itemId" name="documentationScore_${index}_itemId" data-documentation-score-select>${hospitationDocumentationScoreOptionMarkup(selectedId)}</select>
+                      </div>
+                    </div>
+                    <label class="hospitation-score-remove">
+                      <input type="checkbox" name="documentationScore_${index}_remove" />
+                      Entfernen
+                    </label>
+                  </div>
+                  <label class="hospitation-score-custom" for="documentationScore_${index}_customLabel">
+                    <span>Eigenes Item oder Präzisierung</span>
+                    <input id="documentationScore_${index}_customLabel" name="documentationScore_${index}_customLabel" value="${escapeHtml(row.custom ? row.label : "")}" placeholder="z. B. Hilfsmittelversorgung, Impfstatus, Laborwerte" data-documentation-score-custom />
+                  </label>
                   <div class="hospitation-score-copy">
-                    <strong>${escapeHtml(question.question)}</strong>
-                    <span>${escapeHtml(question.description)}</span>
+                    <strong data-documentation-score-label>${escapeHtml(row.label || "Item bewerten")}</strong>
                   </div>
-                  <div class="hospitation-likert" role="radiogroup" aria-label="${escapeHtml(question.question)}">
-                    ${[1, 2, 3, 4, 5].map((value) => `
-                      <label title="${value === 1 ? "gering" : value === 5 ? "hoch" : "mittel"}">
-                        <input type="radio" name="documentationScore_${escapeHtml(question.id)}" value="${value}" ${selected === value ? "checked" : ""} aria-label="${escapeHtml(`${question.question}: ${value}`)}" />
-                        <span>${value}</span>
-                      </label>
-                    `).join("")}
-                  </div>
+                  ${renderHospitationScoreSlider(`documentationScore_${index}_score`, row.score, statement)}
                 </div>
               `;
             }).join("")}
@@ -36054,9 +36314,30 @@
       }
 
       function hospitationRoadmapItemLabel(item = {}) {
-        const product = item.productName || item.product_name || "Roadmap";
-        const feature = item.featureName || item.feature_name || item.slug || item.id || "Item";
-        return `${product} · ${feature}`;
+        const slug = String(item.slug || item.id || "").trim();
+        const friendlyLabels = {
+          "epa-3-1-3-teil-1": "ePA: Medikationsprozess und Patientenbenachrichtigungen",
+          "epa-laborprozess-entlassbericht": "ePA: Laborwerte, Arztbrief und Entlassbericht",
+          "erp-haeusliche-krankenpflege": "E-Rezept: Häusliche Krankenpflege",
+          "erp-ebtm": "E-Rezept: Betäubungsmittel",
+          "erp-heilmittel": "E-Rezept: Heilmittel",
+          "erp-hilfsmittel-backlog": "E-Rezept: Hilfsmittel",
+          "epa-impfpass-backlog": "ePA: Digitaler Impfpass",
+          "tim-pro-automation-bots": "TI-Messenger: Automatisierung und Bots",
+          "kim-1-6-fhir-vzd": "KIM: sichere Adressierung und Verzeichnisdaten",
+          "vsdm-2-online-stammdatenabruf": "Versichertenstammdaten: Online-Prüfung",
+          "dipag-1-digitale-patientenrechnung": "Digitale Patientenrechnung",
+          "popp-1-egk-lokal": "eGK vor Ort: Versorgungskontext nachweisen",
+          "zeta-1-zero-trust-access": "TI-Zugang: Zero-Trust-Anbindung",
+          "isik-6": "Krankenhausdaten: strukturierte Schnittstellen"
+        };
+        if (friendlyLabels[slug]) return friendlyLabels[slug];
+        const product = String(item.productName || item.product_name || "Roadmap").replace(/\b(eRp|ePA|KIM|VSDM)\s*\d[\w.\s-]*/gi, "$1").trim();
+        const feature = String(item.featureName || item.feature_name || slug || "Item")
+          .replace(/\b(eRp|ePA|KIM|VSDM|ISiK|PoPP|ZETA)\s*[\d.]+(?:\s*-\s*)?/gi, "")
+          .replace(/\s{2,}/g, " ")
+          .trim();
+        return [product, feature].filter(Boolean).join(": ") || "Roadmap-Thema";
       }
 
       function hospitationRoadmapOptionMarkup(selectedId = "") {
@@ -36066,11 +36347,10 @@
           .map((item) => {
             const value = item.id || item.slug || "";
             const selected = value && value === selectedId ? "selected" : "";
-            const suffix = [item.phase, item.deadlineType].filter(Boolean).join(" · ");
-            return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(hospitationRoadmapItemLabel(item))}${suffix ? ` (${escapeHtml(suffix)})` : ""}</option>`;
+            return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(hospitationRoadmapItemLabel(item))}</option>`;
           })
           .join("");
-        return `<option value="">Roadmap-Item auswählen</option>${options}`;
+        return `<option value="">Thema auswählen</option>${options}`;
       }
 
       function hospitationRoadmapAssessmentsFor(hospitationId = "") {
@@ -36084,24 +36364,15 @@
       }
 
       function hospitationRatingScaleMarkup(name, selected = "", label = "") {
-        const current = selected ? String(selected) : "";
-        return `
-          <div class="hospitation-likert hospitation-roadmap-scale" role="radiogroup" aria-label="${escapeHtml(label || name)}">
-            ${["", "1", "2", "3", "4", "5"].map((value) => `
-              <label title="${value ? `${value} von 5` : "nicht beurteilbar"}">
-                <input type="radio" name="${escapeHtml(name)}" value="${escapeHtml(value)}" ${current === value ? "checked" : ""} aria-label="${escapeHtml(`${label || name}: ${value || "nicht beurteilbar"}`)}" />
-                <span>${value || "N/A"}</span>
-              </label>
-            `).join("")}
-          </div>
-        `;
+        return renderHospitationScoreSlider(name, selected, label);
       }
 
       function hospitationRoadmapScoreField(prefix, key, label, selected) {
+        const statement = hospitationRoadmapScoreStatements.find((item) => item.key === key);
         return `
           <label class="hospitation-roadmap-score">
-            <span>${escapeHtml(label)}</span>
-            ${hospitationRatingScaleMarkup(`${prefix}_${key}`, selected, label)}
+            <span>${escapeHtml(statement?.label || label)}</span>
+            ${hospitationRatingScaleMarkup(`${prefix}_${key}`, selected, statement?.statement || label)}
           </label>
         `;
       }
@@ -36117,37 +36388,14 @@
                 <article class="hospitation-roadmap-card">
                   <div class="hospitation-roadmap-card__head">
                     <div class="format-editor-field">
-                      <label for="${prefix}_roadmapItemId">Roadmap-Item ${index + 1}</label>
+                      <label for="${prefix}_roadmapItemId">Thema ${index + 1}</label>
                       <div class="editor-select-shell" data-custom-select data-select-type="${prefix}_roadmapItemId">
                         <select class="editor-select" id="${prefix}_roadmapItemId" name="${prefix}_roadmapItemId">${hospitationRoadmapOptionMarkup(assessment.roadmapItemId || "")}</select>
                       </div>
                     </div>
-                    <div class="format-editor-field">
-                      <label for="${prefix}_comparisonRole">Priorisierung</label>
-                      <div class="editor-select-shell" data-custom-select data-select-type="${prefix}_comparisonRole">
-                        <select class="editor-select" id="${prefix}_comparisonRole" name="${prefix}_comparisonRole">${formatOptionMarkup(hospitationComparisonRoleOptions, assessment.comparisonRole || "none")}</select>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="format-editor-grid">
-                    <div class="format-editor-field">
-                      <label for="${prefix}_respondentRole">Perspektive</label>
-                      <div class="editor-select-shell" data-custom-select data-select-type="${prefix}_respondentRole">
-                        <select class="editor-select" id="${prefix}_respondentRole" name="${prefix}_respondentRole">${formatOptionMarkup(hospitationRespondentRoleOptions, assessment.respondentRole || "")}</select>
-                      </div>
-                    </div>
-                    <div class="format-editor-field">
-                      <label for="${prefix}_respondentSector">Sektor</label>
-                      <input id="${prefix}_respondentSector" name="${prefix}_respondentSector" value="${escapeHtml(assessment.respondentSector || hospitationSectorLabel(hospitation) || "")}" placeholder="z. B. Praxis, Pflege, Apotheke" />
-                    </div>
                   </div>
                   <div class="hospitation-roadmap-card__scores">
-                    ${hospitationRoadmapScoreField(prefix, "careRelevance", "Versorgungsnutzen", assessment.careRelevance)}
-                    ${hospitationRoadmapScoreField(prefix, "patientSafety", "Patientensicherheit", assessment.patientSafety)}
-                    ${hospitationRoadmapScoreField(prefix, "processRelief", "Prozessentlastung", assessment.processRelief)}
-                    ${hospitationRoadmapScoreField(prefix, "urgency", "Dringlichkeit", assessment.urgency)}
-                    ${hospitationRoadmapScoreField(prefix, "implementationFeasibility", "Umsetzbarkeit", assessment.implementationFeasibility)}
-                    ${hospitationRoadmapScoreField(prefix, "adoptionLikelihood", "Nutzung", assessment.adoptionLikelihood)}
+                    ${hospitationRoadmapScoreStatements.map((statement) => hospitationRoadmapScoreField(prefix, statement.key, statement.label, assessment[statement.key])).join("")}
                   </div>
                   <div class="format-editor-field">
                     <label for="${prefix}_evidenceNote">Begründung / Beobachtung</label>
@@ -36190,14 +36438,6 @@
                       <label for="${prefix}_problem">Problem / Versorgungslücke</label>
                       <textarea id="${prefix}_problem" name="${prefix}_problem" placeholder="Was fehlt konkret im Alltag?">${escapeHtml(need.problem || "")}</textarea>
                     </div>
-                    <div class="format-editor-field">
-                      <label for="${prefix}_affectedRole">Betroffene Rolle</label>
-                      <input id="${prefix}_affectedRole" name="${prefix}_affectedRole" value="${escapeHtml(need.affectedRole || "")}" placeholder="z. B. Praxis, Patient, Pflege" />
-                    </div>
-                    <div class="format-editor-field">
-                      <label for="${prefix}_affectedSector">Betroffener Sektor</label>
-                      <input id="${prefix}_affectedSector" name="${prefix}_affectedSector" value="${escapeHtml(need.affectedSector || hospitationSectorLabel(hospitation) || "")}" placeholder="Sektor" />
-                    </div>
                   </div>
                   <div class="hospitation-roadmap-card__scores">
                     ${hospitationRoadmapScoreField(prefix, "expectedBenefit", "Erwarteter Nutzen", need.expectedBenefit)}
@@ -36232,16 +36472,16 @@
           return {
             hospitationId,
             roadmapItemId: String(data.get(`${prefix}_roadmapItemId`) || "").trim(),
-            respondentRole: String(data.get(`${prefix}_respondentRole`) || "").trim(),
-            respondentSector: String(data.get(`${prefix}_respondentSector`) || "").trim(),
+            respondentRole: "",
+            respondentSector: "",
             careRelevance: numberOrEmpty(data.get(`${prefix}_careRelevance`)),
             patientSafety: numberOrEmpty(data.get(`${prefix}_patientSafety`)),
             processRelief: numberOrEmpty(data.get(`${prefix}_processRelief`)),
             urgency: numberOrEmpty(data.get(`${prefix}_urgency`)),
-            implementationFeasibility: numberOrEmpty(data.get(`${prefix}_implementationFeasibility`)),
-            adoptionLikelihood: numberOrEmpty(data.get(`${prefix}_adoptionLikelihood`)),
+            implementationFeasibility: "",
+            adoptionLikelihood: "",
             confidenceScore: 4,
-            comparisonRole: String(data.get(`${prefix}_comparisonRole`) || "none").trim() || "none",
+            comparisonRole: "none",
             evidenceNote: String(data.get(`${prefix}_evidenceNote`) || "").trim()
           };
         }).filter((assessment) => assessment.roadmapItemId);
@@ -36255,8 +36495,8 @@
             relatedRoadmapItemId: String(data.get(`${prefix}_relatedRoadmapItemId`) || "").trim(),
             title: String(data.get(`${prefix}_title`) || "").trim(),
             problem: String(data.get(`${prefix}_problem`) || "").trim(),
-            affectedRole: String(data.get(`${prefix}_affectedRole`) || "").trim(),
-            affectedSector: String(data.get(`${prefix}_affectedSector`) || "").trim(),
+            affectedRole: "",
+            affectedSector: "",
             classification: String(data.get(`${prefix}_classification`) || "new_backlog_item").trim() || "new_backlog_item",
             expectedBenefit: numberOrEmpty(data.get(`${prefix}_expectedBenefit`)),
             urgency: numberOrEmpty(data.get(`${prefix}_urgency`)),
@@ -36270,7 +36510,8 @@
       }
 
       function roadmapAssessmentAverage(assessment = {}) {
-        const values = ["careRelevance", "patientSafety", "processRelief", "urgency", "implementationFeasibility", "adoptionLikelihood"]
+        const values = hospitationRoadmapScoreStatements
+          .map((statement) => statement.key)
           .map((key) => Number(assessment[key]) || 0)
           .filter((value) => value > 0);
         if (!values.length) return "";
@@ -36283,8 +36524,7 @@
         const assessmentMarkup = assessments.map((assessment) => {
           const roadmapItem = hospitationRoadmapItemById(assessment.roadmapItemId);
           const score = roadmapAssessmentAverage(assessment);
-          const signal = assessment.comparisonRole === "top_priority" ? "Top" : assessment.comparisonRole === "low_priority" ? "niedriger" : "";
-          return `<span class="format-badge format-badge--quiet">${escapeHtml(hospitationRoadmapItemLabel(roadmapItem || { featureName: assessment.roadmapItemId }))}${score ? ` ${escapeHtml(score)}/5` : ""}${signal ? ` · ${escapeHtml(signal)}` : ""}</span>`;
+          return `<span class="format-badge format-badge--quiet">${escapeHtml(hospitationRoadmapItemLabel(roadmapItem || { featureName: assessment.roadmapItemId }))}${score ? ` ${escapeHtml(score)}/5` : ""}</span>`;
         }).join("");
         const needsMarkup = needs.map((need) => `<span class="format-badge format-badge--quiet">${escapeHtml(need.title)}</span>`).join("");
         if (!assessmentMarkup && !needsMarkup) return `<div class="hospitation-roadmap-empty">Noch keine Roadmap-Bewertung oder neue Anforderung erfasst.</div>`;
@@ -37037,11 +37277,8 @@
 
       function renderHospitationDocumentationPreview(item = {}) {
         const payload = hospitationDocumentationPayload(item);
-        const scoreMarkup = hospitationDocumentationScoreQuestions
-          .map((question) => {
-            const score = Number(payload.scores?.[question.id]) || 0;
-            return score ? `<span class="format-badge format-badge--quiet">${escapeHtml(question.label)} ${score}/5</span>` : "";
-          })
+        const scoreMarkup = hospitationDocumentationScoreRows(payload)
+          .map((row) => row.score ? `<span class="format-badge format-badge--quiet">${escapeHtml(row.label)} ${row.score}/5</span>` : "")
           .filter(Boolean)
           .join("");
         return `
@@ -37230,15 +37467,23 @@
       }
 
       function hospitationDashboardScoreStats(items = []) {
-        return hospitationDocumentationScoreQuestions
-          .map((question) => {
-            const values = items
-              .map((item) => Number(hospitationDocumentationPayload(item).scores?.[question.id]) || 0)
-              .filter((value) => value > 0);
-            const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+        const stats = new Map();
+        items.forEach((item) => {
+          const payload = hospitationDocumentationPayload(item);
+          hospitationDocumentationScoreRows(payload).forEach((row) => {
+            if (!row.id || !row.score) return;
+            const current = stats.get(row.id) || { id: row.id, label: row.label, count: 0, total: 0 };
+            current.count += 1;
+            current.total += Number(row.score) || 0;
+            stats.set(row.id, current);
+          });
+        });
+        return [...stats.values()]
+          .map((entry) => {
+            const average = entry.count ? entry.total / entry.count : 0;
             return {
-              question,
-              count: values.length,
+              question: { label: entry.label },
+              count: entry.count,
               average,
               percent: average ? Math.round((average / 5) * 100) : 0
             };
@@ -37444,31 +37689,26 @@
             const key = assessment.roadmapItemId;
             if (!key) return;
             const roadmapItem = hospitationRoadmapItemById(key) || { id: key, featureName: key };
-            const values = ["careRelevance", "patientSafety", "processRelief", "urgency", "implementationFeasibility", "adoptionLikelihood"]
-              .map((field) => Number(assessment[field]) || 0)
+            const values = hospitationRoadmapScoreStatements
+              .map((statement) => Number(assessment[statement.key]) || 0)
               .filter((value) => value > 0);
             const score = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
             const current = stats.get(key) || {
               roadmapItem,
               label: hospitationRoadmapItemLabel(roadmapItem),
               count: 0,
-              scoreTotal: 0,
-              topPriority: 0,
-              lowPriority: 0
+              scoreTotal: 0
             };
             current.count += 1;
             current.scoreTotal += score;
-            if (assessment.comparisonRole === "top_priority") current.topPriority += 1;
-            if (assessment.comparisonRole === "low_priority") current.lowPriority += 1;
             stats.set(key, current);
           });
         return [...stats.values()]
           .map((entry) => ({
             ...entry,
-            average: entry.count ? entry.scoreTotal / entry.count : 0,
-            priorityBalance: entry.topPriority - entry.lowPriority
+            average: entry.count ? entry.scoreTotal / entry.count : 0
           }))
-          .sort((left, right) => right.priorityBalance - left.priorityBalance || right.average - left.average || right.count - left.count || left.label.localeCompare(right.label, "de"))
+          .sort((left, right) => right.average - left.average || right.count - left.count || left.label.localeCompare(right.label, "de"))
           .slice(0, 6);
       }
 
@@ -37481,9 +37721,9 @@
               <div class="hospitation-dashboard-topic">
                 <div class="hospitation-dashboard-topic__head">
                   <span class="hospitation-dashboard-topic__label">${escapeHtml(entry.label)}</span>
-                  <span class="hospitation-dashboard-topic__count">Ø ${entry.average.toLocaleString("de-DE", { maximumFractionDigits: 1 })}/5 · ${entry.count}x · Saldo ${entry.priorityBalance}</span>
+                  <span class="hospitation-dashboard-topic__count">Ø ${entry.average.toLocaleString("de-DE", { maximumFractionDigits: 1 })}/5 · ${entry.count}x</span>
                 </div>
-                ${hospitationDashboardBar(hospitationDashboardPercent(entry.average, maxAverage), { tone: entry.priorityBalance > 0 ? "success" : entry.average >= 3.5 ? "primary" : "warning" })}
+                ${hospitationDashboardBar(hospitationDashboardPercent(entry.average, maxAverage), { tone: entry.average >= 4 ? "success" : entry.average >= 3 ? "primary" : "warning" })}
               </div>
             `).join("")}
           </div>
@@ -38144,15 +38384,14 @@
           const documentation = hospitationDocumentationPayload(hospitation);
           return `
             <form class="format-editor hospitation-documentation-form" id="hospitation-editor-form">
-              <section class="editor-section editor-section--primary">
-                <div class="editor-section-head">
-                  <h4 class="editor-section-title">Dokumentationsformular</h4>
+              ${renderHospitationEditorSection("Kontext", renderHospitationDocumentationContext(hospitation), { primary: true })}
+              ${renderHospitationEditorSection("Themen / Tags", `
+                <div class="format-editor-field format-editor-field--wide">
+                  ${renderHospitationDocumentationTopicInputs(hospitation)}
                 </div>
-                ${renderHospitationDocumentationContext(hospitation)}
+              `)}
+              ${renderHospitationEditorSection("Notizen", `
                 <div class="format-editor-grid">
-                  <div class="format-editor-field format-editor-field--wide">
-                    ${renderHospitationDocumentationTopicInputs(hospitation)}
-                  </div>
                   <div class="format-editor-field format-editor-field--wide hospitation-documentation-field--primary">
                     <label for="hospitation-documentation-summary">Freie Hospitationsnotiz</label>
                     <textarea id="hospitation-documentation-summary" name="documentationSummary" required placeholder="Erlebnisse, Beobachtungen, Zitate, Situationen oder erste Gedanken aus der Hospitation">${escapeHtml(hospitation.documentationSummary || documentation.experience || "")}</textarea>
@@ -38166,25 +38405,10 @@
                     <textarea id="hospitation-documentation-next-use" name="documentationNextUse" placeholder="Was soll daraus entstehen: Follow-up, These, Produktidee, Rückfrage oder Transfer in ein anderes Modul?">${escapeHtml(documentation.nextUse || "")}</textarea>
                   </div>
                 </div>
-              </section>
-              <section class="editor-section">
-                <div class="editor-section-head">
-                  <h4 class="editor-section-title">Versorgungsrelevanz</h4>
-                </div>
-                ${renderHospitationDocumentationScoreInputs(documentation)}
-              </section>
-              <section class="editor-section">
-                <div class="editor-section-head">
-                  <h4 class="editor-section-title">Roadmap-Bewertung</h4>
-                </div>
-                ${roadmapItems.length ? renderHospitationRoadmapAssessmentInputs(hospitation) : `<div class="hospitation-roadmap-empty">Roadmap-Katalog wird nach dem Laden angezeigt.</div>`}
-              </section>
-              <section class="editor-section">
-                <div class="editor-section-head">
-                  <h4 class="editor-section-title">Neue Anforderungen</h4>
-                </div>
-                ${renderHospitationUnmetNeedInputs(hospitation)}
-              </section>
+              `)}
+              ${renderHospitationEditorSection("Versorgungsrelevanz", renderHospitationDocumentationScoreInputs(documentation))}
+              ${renderHospitationEditorSection("Roadmap-Bewertung", roadmapItems.length ? renderHospitationRoadmapAssessmentInputs(hospitation) : `<div class="hospitation-roadmap-empty">Roadmap-Katalog wird nach dem Laden angezeigt.</div>`, { open: false })}
+              ${renderHospitationEditorSection("Neue Anforderungen", renderHospitationUnmetNeedInputs(hospitation), { open: false })}
               <div class="format-editor-actions">
                 <button class="action-button" type="button" id="hospitation-editor-cancel">Abbrechen</button>
                 <button class="action-button action-button--primary" type="submit">Dokumentation speichern</button>
@@ -38352,9 +38576,49 @@
         hospitationSlots = [updated, ...hospitationSlots.filter((item) => item.id !== updated.id)];
       }
 
+      function bindHospitationScoreSliders(root = document) {
+        root.querySelectorAll("[data-score-slider]").forEach((slider) => {
+          const update = () => {
+            const output = slider.closest(".hospitation-slider-score")?.querySelector("output");
+            if (!output) return;
+            const value = Number(slider.value) || 0;
+            output.textContent = value ? `${value}/5` : "N/A";
+          };
+          slider.addEventListener("input", update);
+          update();
+        });
+      }
+
+      function bindHospitationDocumentationScoreRows(root = document) {
+        root.querySelectorAll("[data-documentation-score-row]").forEach((row) => {
+          const select = row.querySelector("[data-documentation-score-select]");
+          const customInput = row.querySelector("[data-documentation-score-custom]");
+          const labelTarget = row.querySelector("[data-documentation-score-label]");
+          const statementTarget = row.querySelector("[data-score-statement]");
+          const update = () => {
+            const selected = String(select?.value || "").trim();
+            const customLabel = String(customInput?.value || "").trim();
+            const catalogItem = hospitationDocumentationScoreCatalog.find((item) => item.id === selected);
+            const label = selected === "__custom__"
+              ? customLabel || "Eigenes Item"
+              : catalogItem?.label || customLabel || "Item bewerten";
+            const statement = selected === "__custom__"
+              ? customLabel ? `${customLabel} ist für diesen Versorgungskontakt relevant.` : "Dieses Item ist für diesen Versorgungskontakt relevant."
+              : catalogItem?.statement || "Dieses Item ist für diesen Versorgungskontakt relevant.";
+            if (labelTarget) labelTarget.textContent = label;
+            if (statementTarget) statementTarget.textContent = statement;
+          };
+          select?.addEventListener("change", update);
+          customInput?.addEventListener("input", update);
+          update();
+        });
+      }
+
       function bindHospitationEditor() {
         const form = document.getElementById("hospitation-editor-form");
         refreshCustomSelects(form || document);
+        bindHospitationScoreSliders(form || document);
+        bindHospitationDocumentationScoreRows(form || document);
         document.getElementById("hospitation-editor-cancel")?.addEventListener("click", closeHospitationEditor);
         form?.addEventListener("submit", async (event) => {
           event.preventDefault();
