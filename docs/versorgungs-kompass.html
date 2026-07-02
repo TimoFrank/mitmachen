@@ -5252,7 +5252,8 @@
         display: flex;
         align-items: center;
         flex-wrap: wrap;
-        gap: 7px;
+        column-gap: 8px;
+        row-gap: 4px;
         min-width: 0;
       }
 
@@ -5280,11 +5281,12 @@
       }
 
       .activity-contact-context {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 5px;
+        gap: 6px;
+        flex: 0 1 auto;
         min-width: 0;
+        max-width: min(100%, 540px);
         padding: 0;
         border-radius: 0;
         background: transparent;
@@ -5294,18 +5296,43 @@
         line-height: 1.25;
       }
 
+      .activity-contact-avatar {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+      }
+
+      .activity-contact-avatar .avatar {
+        width: 22px;
+        height: 22px;
+        font-size: 0.64rem;
+        box-shadow: none;
+      }
+
+      .activity-contact-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+        white-space: nowrap;
+      }
+
       .activity-contact-name {
+        min-width: 0;
+        max-width: 15rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: #1e293b;
         font-weight: 900;
       }
 
       .activity-entry-side {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-        gap: 6px;
-        min-width: 0;
+        display: grid;
+        align-content: center;
+        justify-items: end;
+        gap: 5px;
+        min-width: max-content;
         text-align: right;
       }
 
@@ -5329,6 +5356,11 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        min-width: 0;
+        max-width: 18rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: #64748b;
         font-weight: 800;
       }
@@ -5398,53 +5430,6 @@
 
       .activities-workspace .history-details {
         margin-top: 0;
-      }
-
-      .activities-workspace .activity-details > summary {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 10px;
-        min-height: 0;
-        width: 100%;
-        padding: 0;
-        border: 0;
-        border-radius: 0;
-        background: transparent;
-        color: inherit;
-        box-shadow: none;
-        list-style: none;
-      }
-
-      .activities-workspace .activity-details > summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .activities-workspace .activity-details > summary:focus-visible {
-        outline: 2px solid rgba(37, 99, 235, 0.28);
-        outline-offset: 3px;
-      }
-
-      .activity-details-toggle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 23px;
-        padding: 0 8px;
-        border: 1px solid #c7d2fe;
-        border-radius: 999px;
-        background: #ffffff;
-        color: #1d4ed8;
-        font-size: 0.66rem;
-        font-weight: 900;
-        line-height: 1;
-        white-space: nowrap;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-      }
-
-      .activity-details[open] .activity-details-toggle {
-        background: #dbeafe;
-        color: #1d4ed8;
       }
 
       .activities-workspace .history-change-list {
@@ -5767,7 +5752,7 @@
         }
 
         .activity-entry-side {
-          justify-content: flex-start;
+          justify-items: start;
           text-align: left;
         }
 
@@ -33992,17 +33977,19 @@
       function activityContactContextMarkup(contact) {
         const organization = meaningfulOrEmpty(contact.organization);
         return `
-          <div class="activity-contact-context">
-            <span class="activity-contact-name">${escapeHtml(contact.displayName || contact.name || "Kontakt")}</span>
-            ${organization ? `<span class="activity-contact-meta">${escapeHtml(organization)}</span>` : ""}
-          </div>
+          <span class="activity-contact-context">
+            <span class="activity-contact-avatar" aria-hidden="true">${contactAvatarMarkup(contact, "sm")}</span>
+            <span class="activity-contact-text">
+              <span class="activity-contact-name">${escapeHtml(contact.displayName || contact.name || "Kontakt")}</span>
+              ${organization ? `<span class="activity-contact-meta">${escapeHtml(organization)}</span>` : ""}
+            </span>
+          </span>
         `;
       }
 
       function activityGroupMarkup(group) {
         const actionKey = historyActionKey(group.changes[0]);
         const contact = activityContact(group.changes[0]);
-        const visibleChanges = group.changes.filter((change) => change.fieldName !== "updated_at" && change.fieldName !== "updated_by");
         const headMarkup = `
           <div class="activity-head-main">
             <div class="activity-title-row">
@@ -34011,41 +33998,18 @@
                 <span class="activity-actor-name">${escapeHtml(activityUserLabel(group))}</span>
               </span>
               <span class="activity-title">${historyActionLabel(group.action, group.changes)}</span>
+              ${activityContactContextMarkup(contact)}
             </div>
-            ${activityContactContextMarkup(contact)}
           </div>
           <div class="activity-entry-side">
             <time class="activity-time-chip" datetime="${escapeHtml(group.changedAt)}">${escapeHtml(formatDateTimeLabel(group.changedAt) || "Zeitpunkt offen")}</time>
             <span class="history-action-pill history-action-pill--${actionKey}">${escapeHtml(historyActionBadgeLabel(actionKey))}</span>
-            ${visibleChanges.length ? `<span class="activity-details-toggle">Details</span>` : ""}
           </div>
         `;
         return `
           <article class="activity-item activity-item--${escapeHtml(actionKey)}">
             <div class="activity-entry">
-              ${
-                visibleChanges.length
-                  ? `<details class="history-details activity-details">
-                      <summary class="activity-entry-head">${headMarkup}</summary>
-                      <div class="history-change-list">
-                        ${visibleChanges
-                          .map(
-                            (change) => `
-                              <div class="history-change">
-                                <div class="history-field">${escapeHtml(historyFieldLabel(change.fieldName))}</div>
-                                <div class="history-values">
-                                  <span class="history-value history-value--old">${escapeHtml(formatHistoryValue(change.fieldName, change.oldValue))}</span>
-                                  <span class="history-arrow">→</span>
-                                  <span class="history-value history-value--new">${escapeHtml(formatHistoryValue(change.fieldName, change.newValue))}</span>
-                                </div>
-                              </div>
-                            `
-                          )
-                          .join("")}
-                      </div>
-                    </details>`
-                  : `<div class="activity-entry-head">${headMarkup}</div>`
-              }
+              <div class="activity-entry-head">${headMarkup}</div>
             </div>
           </article>
         `;

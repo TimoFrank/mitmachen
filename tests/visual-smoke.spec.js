@@ -462,6 +462,10 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator(".activity-item--import").first()).toBeVisible();
   await expect(page.locator(".activity-item--create").first()).toBeVisible();
   await expect(page.locator(".activity-contact-button")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-contact-avatar").first()).toBeVisible();
+  await expect(page.locator("#activities-list .activity-contact-context").first()).toBeVisible();
+  await expect(page.locator("#activities-list .activity-details-toggle")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-details")).toHaveCount(0);
   await expect(page.locator("#activities-list .activity-time-chip").first()).toBeVisible();
   await page.locator("#activities-list .activity-item").first().click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "activities");
@@ -477,8 +481,7 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator("#activity-kind-filter")).toHaveValue("owner");
   await expect(page.locator("#activities-list .activity-item").first()).toBeVisible();
   await expect(page.locator(".history-action-pill--owner").first()).toBeVisible();
-  await page.locator(".history-details summary").first().click();
-  await expect(page.locator(".history-change").first()).toBeVisible();
+  await expect(page.locator("#activities-list .activity-details")).toHaveCount(0);
 });
 
 test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbox", async ({ page }, testInfo) => {
