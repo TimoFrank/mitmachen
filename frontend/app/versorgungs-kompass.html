@@ -37883,8 +37883,6 @@
           <div class="hospitation-dashboard-group-title">Metadaten-Auswertung</div>
           ${renderHospitationDashboardKpi("Hospitationen", active.length, `${visible.length} Treffer`, 100)}
           ${renderHospitationDashboardKpi("Dokumentiert", documented.length, `${openDocumentation.length} offen`, documentationPercent, { tone: documentationPercent >= 50 ? "success" : "warning" })}
-          ${renderHospitationDashboardKpi("Sektoren", sectorCounts.length, `${sectorCounts[0]?.[0] || "offen"}`, hospitationDashboardPercent(sectorCounts[0]?.[1] || 0, active.length))}
-          ${renderHospitationDashboardKpi("Themen / Tags", topicCounts.length, `${topicCounts[0]?.[0] || "noch offen"}`, hospitationDashboardPercent(topicCounts[0]?.[1] || 0, active.length))}
           <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
             <div class="dashboard-card-head">
               <h4>Sektoren</h4>

@@ -1524,18 +1524,22 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(dashboard).toContainText("Dokumentations-Ergebnisse");
   await expect(dashboard).not.toContainText("Durchgeführte Hospitationen");
   await expect(dashboard).not.toContainText("Relevanz Ø");
+  await expect(dashboard.locator(".hospitation-dashboard-kpi", { hasText: "Sektoren" })).toHaveCount(0);
+  await expect(dashboard.locator(".hospitation-dashboard-kpi", { hasText: "Themen / Tags" })).toHaveCount(0);
   await expect(dashboard).toContainText("Sektoren");
   await expect(dashboard.locator(".hospitation-dashboard-pie")).toBeVisible();
   await expect(dashboard).toContainText("Häufige Themen und Tags");
-  await expect(dashboard).toContainText("Dokumentations-Tag");
+  await expect(dashboard).toContainText("KIM-Kommunikation");
   await expect(dashboard).toContainText("Versorgungs-Relevanz-Scores");
-  await expect(dashboard.locator(".hospitation-dashboard-score", { hasText: "Medikationsplan" })).toContainText("Ø 4/5");
+  await expect(dashboard.locator(".hospitation-dashboard-score", { hasText: "Medikationsplan" })).toContainText("Ø 4,3/5");
   await expect(dashboard.locator(".hospitation-dashboard-score", { hasText: "Entlassbrief" })).toContainText("Ø 5/5");
   await expect(dashboard).toContainText("Wortwolke");
-  await expect(dashboard).toContainText("erkenntnis");
+  await expect(dashboard).toContainText("roadmap");
   await expect(dashboard).toContainText("Zitate und Beobachtungen");
   await expect(dashboard.locator(".hospitation-dashboard-answer", { hasText: "Dr. Martin Deile" })).toContainText("Dokumentationsnotiz aus dem Visualtest");
-  await expect(dashboard).toContainText("Visualtest-Hospitation");
+  await expect(dashboard).toContainText("Roadmap-Bewertung");
+  await expect(dashboard).toContainText("Neue Anforderungen");
+  await expect(dashboard).toContainText("Hilfsmittelstatus über Praxis");
 });
 
 test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => {

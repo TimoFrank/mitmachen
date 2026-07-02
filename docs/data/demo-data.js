@@ -222,39 +222,323 @@
     ["hospitation-2026-06-23-cornelia-weichard", "Dr. Cornelia Weichard", "Magdeburg", "2026-06-23", "+02:00"]
   ];
 
-  const hospitations = hospitationEntries.map(([id, contactName, city, date, offset]) => ({
-    id,
-    contactId: "",
-    contactName,
-    organizationId: "",
-    organizationName: "",
-    requesterProfileId: ownerIds[0],
-    ownerId: ownerIds[0],
-    status: "Durchgeführt",
-    requestedWindows: [],
-    startsAt: `${date}T09:00:00${offset}`,
-    endsAt: `${date}T11:00:00${offset}`,
-    location: city,
-    city,
-    state: "",
-    sector: "",
-    goal: "Hospitationstermin aus persönlicher Liste.",
-    topics: ["Hospitation", "Versorgungskontakt"],
-    requestNote: city
-      ? `Hospitation bei ${contactName} in ${city}. Kontaktprofil wird später ergänzt.`
-      : `Hospitation bei ${contactName}. Ort und Kontaktprofil werden später ergänzt.`,
-    documentationSummary: "",
-    documentationOutcome: "",
-    followUpNote: "",
-    followUpOwnerId: "",
-    followUpDueAt: "",
-    documentedAt: "",
-    documentedBy: "",
-    createdAt: now,
-    createdBy: ownerIds[0],
-    updatedAt: now,
-    updatedBy: ownerIds[0]
-  }));
+  const hospitationScoreLabels = {
+    medicationPlan: "Medikationsplan",
+    dischargeLetter: "Entlassbrief",
+    btmPrescription: "Betäubungsmittel-Verordnung",
+    actorCoordination: "Akteurskoordination",
+    digitalWorkflow: "Digitaler Prozessnutzen",
+    patientSafety: "Patientensicherheit",
+    processRelief: "Prozessentlastung",
+    informationContinuity: "Informationskontinuität",
+    patientParticipation: "Patientenbeteiligung",
+    careCoordination: "Versorgungskoordination"
+  };
+
+  function hospitationDocumentationOutcome(details = {}) {
+    const scores = details.scores || {};
+    const scoreOrder = Object.keys(scores);
+    return JSON.stringify({
+      kind: "hospitation-documentation-v1",
+      version: 1,
+      experience: details.experience || "",
+      insight: details.insight || "",
+      nextUse: details.nextUse || "",
+      observation: details.experience || "",
+      processNotes: details.insight || "",
+      risks: details.risks || "",
+      transferPotential: details.nextUse || "",
+      scores,
+      scoreLabels: Object.fromEntries(scoreOrder.map((id) => [id, hospitationScoreLabels[id] || id])),
+      scoreOrder,
+      updatedAt: now
+    });
+  }
+
+  const hospitationInsights = {
+    "hospitation-2026-01-27-malinckrodt": {
+      organizationName: "Hausarztpraxis am Marktplatz",
+      sector: "Ambulante Versorgung",
+      state: "Hessen",
+      goal: "Verstehen, welche digitalen Informationen im hausärztlichen Erstkontakt wirklich entscheidungsrelevant sind.",
+      topics: ["Medikationsplan", "ePA-Befunde", "KIM-Kommunikation", "Patientensicherheit"],
+      requestNote: "Fokus auf Medikationsabgleich, Vorbefunde und Rückfragen an mitbehandelnde Fachärzte.",
+      documentationSummary: "Die Praxis priorisiert einen verlässlichen Medikationsabgleich vor jeder technischen Zusatzfunktion.",
+      experience: "Zitat Praxis: \"Wenn der Medikationsplan nicht stimmt, startet jede weitere digitale Idee mit Misstrauen.\"",
+      insight: "Roadmap-Signal: ePA-Befunde und Medikationsplan müssen im PVS als gemeinsame Arbeitsfläche sichtbar werden.",
+      nextUse: "Cluster 'Medikationssicherheit im Erstkontakt' mit ePA 3.1.3 und Medikationsprozess abgleichen.",
+      scores: { medicationPlan: 5, patientSafety: 5, informationContinuity: 4, digitalWorkflow: 4 },
+      roadmapItemId: "epa-3-1-3-teil-1",
+      respondentRole: "Arzt/Ärztin",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "Medikationsabgleich und Vorbefunde werden als ein Arbeitskontext gebraucht."
+    },
+    "hospitation-2026-01-27-rothsching": {
+      organizationName: "Landapotheke Rothsching",
+      sector: "Apotheke",
+      state: "Hessen",
+      goal: "Rückfragen der Apotheke zu eRezept, Medikationsplan und Sonderverordnungen nachvollziehen.",
+      topics: ["eRezept-Rückfragen", "Betäubungsmittel-Verordnung", "Medikationsplan", "Prozessentlastung"],
+      requestNote: "Beobachtung am HV-Tisch und im Backoffice: Wann wird telefoniert, wann digital recherchiert?",
+      documentationSummary: "Apotheken brauchen priorisierte Rückfragekanäle, nicht noch eine weitere unstrukturierte Nachricht.",
+      experience: "Die meisten Verzögerungen entstehen beim Klären von Dosierung, Packungsgröße und Substitution.",
+      insight: "BTM- und Sonderverordnungen sind ein Roadmap-Kandidat, weil Fehler heute sofort Telefonketten auslösen.",
+      nextUse: "Für eRp 27.3 eBTM und strukturierte Rückfragen als Evidenz nutzen.",
+      scores: { btmPrescription: 5, medicationPlan: 4, processRelief: 4, actorCoordination: 4 },
+      roadmapItemId: "erp-ebtm",
+      respondentRole: "Apotheke",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "Sonderverordnungen erzeugen Wartezeit und manuelle Klärketten."
+    },
+    "hospitation-2026-02-02-claus": {
+      organizationName: "Pflegedienst Nordhessen",
+      sector: "Pflege",
+      state: "Hessen",
+      goal: "Pflegeperspektive auf Verordnungen, Hilfsmittelstatus und Arztkommunikation erfassen.",
+      topics: ["Hilfsmittelstatus", "Häusliche Krankenpflege", "Versorgungskoordination", "Angehörigenkommunikation"],
+      requestNote: "Mitlaufen in Tourenplanung und Pflegekoordination, Schwerpunkt Verordnungs- und Hilfsmittelrückfragen.",
+      documentationSummary: "Pflege erlebt digitale Lücken vor allem als fehlende Statusklarheit.",
+      experience: "Die Koordination führt eine eigene Liste, weil Hilfsmittelstatus, HKP-Verordnung und Praxisrückfragen nicht zusammenlaufen.",
+      insight: "Roadmap-Signal: Der Nutzen entsteht durch Status- und Verantwortlichkeitsklarheit, nicht nur durch digitale Verordnung.",
+      nextUse: "Bedarf 'Hilfsmittelstatus transparent machen' in eRezept/HKP-Backlog spiegeln.",
+      scores: { careCoordination: 5, processRelief: 5, patientParticipation: 4, digitalWorkflow: 4 },
+      roadmapItemId: "erp-haeusliche-krankenpflege",
+      respondentRole: "Pflege",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "HKP- und Hilfsmittelstatus müssen für Pflegekoordination zusammen sichtbar werden.",
+      unmetNeedTitle: "Hilfsmittelstatus über Praxis, Pflege und Kostenträger hinweg",
+      unmetNeedProblem: "Unklar ist oft, ob Verordnung, Genehmigung oder Lieferung der nächste Engpass ist."
+    },
+    "hospitation-2026-02-16-walther": {
+      organizationName: "Klinikum Chemnitz Entlassmanagement",
+      sector: "Krankenhaus",
+      state: "Sachsen",
+      goal: "Entlassinformationen, Medikationsänderungen und Anschlussversorgung im Klinikalltag beobachten.",
+      topics: ["Entlassbrief", "Medikationsänderung", "KIM-Kommunikation", "Anschlussversorgung"],
+      requestNote: "Shadowing im Entlassmanagement: Was fehlt ambulanten Akteuren bei Entlassung am häufigsten?",
+      documentationSummary: "Entlassbriefe sind relevant, aber oft zu spät; entscheidend ist ein frühes Übergabesignal.",
+      experience: "Entlassbriefe enthalten die Information, kommen aber häufig nach dem ersten ambulanten Folgekontakt an.",
+      insight: "Eine frühe digitale Übergabe mit Medikationsänderungen und offenen To-dos hätte hohen Sicherheitsnutzen.",
+      nextUse: "Als Klinik-zu-Praxis-Use-Case für ePA-Dokumente und KIM priorisieren.",
+      scores: { dischargeLetter: 5, informationContinuity: 5, actorCoordination: 4, patientSafety: 4 },
+      roadmapItemId: "epa-3-1-3-teil-1",
+      respondentRole: "Krankenhaus",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "Frühe Übergabesignale vor dem finalen Entlassbrief reduzieren Sicherheitsrisiken.",
+      unmetNeedTitle: "Frühes digitales Entlasssignal vor finalem Entlassbrief",
+      unmetNeedProblem: "Ambulante Weiterbehandlung startet häufig, bevor der finale Entlassbrief verfügbar ist."
+    },
+    "hospitation-2026-02-24-duderstadt": {
+      organizationName: "Versichertenberatung Berlin",
+      sector: "Patienten- und Versichertenperspektive",
+      state: "Berlin",
+      goal: "Verstehen, welche digitalen Statusinformationen Patientinnen und Patienten wirklich entlasten.",
+      topics: ["Patientenbeteiligung", "Status-Transparenz", "ePA-Nutzung", "Terminsteuerung"],
+      requestNote: "Gespräch mit Beratungsteam zu wiederkehrenden Fragen rund um Rezepte, Befunde und Kostenklärung.",
+      documentationSummary: "Patientinnen und Patienten fragen selten nach Produkten, sondern nach dem nächsten klaren Schritt.",
+      experience: "Wiederkehrendes Zitat: \"Ich will nur wissen, wer jetzt dran ist.\"",
+      insight: "Status- und Zuständigkeitsanzeigen können mehr Wirkung haben als zusätzliche Dokumentenablagen.",
+      nextUse: "Als Querschnittskriterium für patientennahe Roadmap-Items nutzen: Status, nächste Aktion, zuständige Stelle.",
+      scores: { patientParticipation: 5, digitalWorkflow: 4, informationContinuity: 4, careCoordination: 4 },
+      roadmapItemId: "epa-3-1-3-teil-1",
+      respondentRole: "Versicherte/Patient",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "Patientinnen brauchen verständlichen Status und den nächsten Handlungsschritt.",
+      unmetNeedTitle: "Patientenverständlicher Status und nächster Schritt",
+      unmetNeedProblem: "Versicherte sehen Daten, wissen aber nicht, was daraus als nächste Handlung folgt."
+    },
+    "hospitation-2026-03-02-froehlich": {
+      organizationName: "Facharztpraxis Fröhlich",
+      sector: "Ambulante Facharztversorgung",
+      state: "Rheinland-Pfalz",
+      goal: "Fachärztliche Informationslücken bei Überweisung, Befunden und Therapieentscheidung erfassen.",
+      topics: ["Überweisung", "ePA-Befunde", "Informationskontinuität", "Therapieentscheidung"],
+      requestNote: "Sprechstundenbeobachtung mit Fokus auf fehlende Vorbefunde und Rückfragen an Zuweiser.",
+      documentationSummary: "Fachärztliche Entscheidungen hängen stark daran, ob Vorbefunde schnell auffindbar sind.",
+      experience: "Mehrere Fälle starteten mit telefonischer Befundsuche, obwohl die Patientinnen davon ausgingen, dass alles digital vorliegt.",
+      insight: "ePA-Mehrwert entsteht erst, wenn relevante Vorbefunde im Fachworkflow leicht auffindbar sind.",
+      nextUse: "Für ePA-Usability und Metadatenpriorisierung als Facharzt-Signal nutzen.",
+      scores: { informationContinuity: 5, digitalWorkflow: 4, patientSafety: 4, patientParticipation: 3 },
+      roadmapItemId: "epa-3-1-3-teil-1",
+      respondentRole: "Arzt/Ärztin",
+      comparisonRole: "none",
+      roadmapEvidence: "Vorbefunde müssen im Fachworkflow ohne Sucharbeit sichtbar sein."
+    },
+    "hospitation-2026-03-12-rau": {
+      organizationName: "Gemeinschaftspraxis Harsfeld",
+      sector: "Ambulante Versorgung",
+      state: "Hessen",
+      goal: "Ländliche Versorgung mit knappen Terminen, DMP und Pflegeanbindung verstehen.",
+      topics: ["DMP", "Terminsteuerung", "Pflegeanbindung", "Versorgungskoordination"],
+      requestNote: "Fokus auf Koordinationsarbeit zwischen Praxis, Pflege und Angehörigen.",
+      documentationSummary: "In ländlichen Settings ist digitale Koordination wertvoll, wenn sie Telefonarbeit ersetzt.",
+      experience: "DMP-Termine, Pflegehinweise und Angehörigenrückfragen laufen parallel über Telefonnotizen.",
+      insight: "Termin- und Aufgabenstatus zwischen Praxis und Pflege ist ein Prozessentlastungshebel.",
+      nextUse: "Als Evidenz für koordinierende Funktionen und TI-Messenger-Automation prüfen.",
+      scores: { careCoordination: 5, processRelief: 4, digitalWorkflow: 4, actorCoordination: 4 },
+      roadmapItemId: "tim-pro-automation-bots",
+      respondentRole: "Arzt/Ärztin",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "Aufgabenstatus zwischen Praxis und Pflege wäre ein direkter Telefonentlaster."
+    },
+    "hospitation-2026-04-30-antje-weichard": {
+      organizationName: "Homecare Magdeburg",
+      sector: "Homecare und Hilfsmittel",
+      state: "Sachsen-Anhalt",
+      goal: "Hilfsmittelversorgung zwischen Praxis, Homecare und Kostenträger nachvollziehen.",
+      topics: ["Hilfsmittelstatus", "Kostenzusage", "Homecare", "Prozessentlastung"],
+      requestNote: "Beobachtung der Fälle von Verordnung bis Lieferung; besondere Aufmerksamkeit auf Medienbrüche.",
+      documentationSummary: "Hilfsmittelversorgung scheitert selten am Bedarf, sondern an fehlender Status-Transparenz.",
+      experience: "Statusfragen binden viel Zeit: Verordnung da, Kostenzusage offen, Lieferung unklar, Rückfrage unbeantwortet.",
+      insight: "Hilfsmittelstatus ist ein starkes Backlog-Thema mit hohem Entlastungspotenzial.",
+      nextUse: "Als neue Anforderung gegen eRezept-Hilfsmittel-Backlog und Patientenstatus spiegeln.",
+      scores: { processRelief: 5, careCoordination: 5, patientParticipation: 4, digitalWorkflow: 4 },
+      roadmapItemId: "erp-hilfsmittel-backlog",
+      respondentRole: "Sonstige",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "Status-Transparenz zu Hilfsmitteln ist wiederkehrender Schmerzpunkt.",
+      unmetNeedTitle: "Hilfsmittelstatus über Praxis, Homecare und Kostenträger hinweg",
+      unmetNeedProblem: "Beteiligte wissen oft nicht, ob Verordnung, Genehmigung oder Lieferung der nächste Engpass ist."
+    },
+    "hospitation-2026-06-10-deile": {
+      organizationName: "Hausarztpraxis Dr. Deile",
+      sector: "Ambulante Versorgung",
+      state: "Sachsen",
+      goal: "Hausärztliche Dokumentationslast und Medikationssicherheit im Versorgungsalltag verstehen.",
+      topics: ["Dokumentations-Tag", "Medikationsplan", "Entlassbrief", "Roadmap-Kandidat"],
+      requestNote: "Hospitation bei Dr. Martin Deile in Dresden. Visualtest-nahe Demo-Hospitation mit Fokus auf Dokumentation, Zitate und Score-Auswertung.",
+      documentationSummary: "Dokumentationsnotiz aus dem Visualtest: Medikationsplan und Entlassbrief zeigen unmittelbar, wo Roadmap-Priorisierung helfen kann.",
+      experience: "Dokumentationsnotiz aus dem Visualtest: Die Praxis erkennt Nutzen, wenn Medikationsplan, Entlassbrief und offene Rückfragen zusammenkommen.",
+      insight: "Die stärkste Erkenntnis ist nicht ein Durchschnittswert, sondern die Kombination aus Score, Zitat und Sektor-Kontext.",
+      nextUse: "Als Referenzfall im Dashboard belassen, um Demo, Test und Roadmap-Steuerung sichtbar zu verbinden.",
+      scores: {},
+      roadmapItemId: "epa-3-1-3-teil-1",
+      respondentRole: "Arzt/Ärztin",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "Medikationsplan, Entlassbrief und Rückfragen gehören in eine priorisierte Sicht."
+    },
+    "hospitation-2026-06-24-zimmermann": {
+      organizationName: "MVZ Magdeburg Süd",
+      sector: "Ambulante Facharztversorgung",
+      state: "Sachsen-Anhalt",
+      goal: "Sektorübergreifende Rückfragen zwischen MVZ, Klinik und Apotheke untersuchen.",
+      topics: ["KIM-Kommunikation", "Akteurskoordination", "eRezept", "Befundtransfer"],
+      requestNote: "Fokus auf strukturierte Kommunikation statt Freitext-Pingpong.",
+      documentationSummary: "Das MVZ braucht weniger Nachrichten und mehr Klarheit, welche Rückfrage für wen handlungsrelevant ist.",
+      experience: "Rückfragen aus Klinik und Apotheke landen in unterschiedlichen Kanälen; Priorität und Verantwortlichkeit sind oft unklar.",
+      insight: "KIM- und TI-Messenger-Flows sollten Aufgabenstatus und Verantwortlichkeit mittransportieren.",
+      nextUse: "Für TI-M Pro Automation und KIM-Strukturierung als Praxis-MVZ-Signal nutzen.",
+      scores: { actorCoordination: 5, digitalWorkflow: 4, processRelief: 4, informationContinuity: 4 },
+      roadmapItemId: "tim-pro-automation-bots",
+      respondentRole: "Arzt/Ärztin",
+      comparisonRole: "none",
+      roadmapEvidence: "Kommunikationskanäle brauchen Aufgabenstatus und klare Verantwortlichkeit.",
+      unmetNeedTitle: "Rückfragen mit Priorität und zuständiger Rolle",
+      unmetNeedProblem: "Nachrichtenkanäle transportieren zu selten, wer bis wann handeln muss."
+    },
+    "hospitation-2026-06-23-cornelia-weichard": {
+      organizationName: "Patientenberatung Sachsen-Anhalt",
+      sector: "Patienten- und Versichertenperspektive",
+      state: "Sachsen-Anhalt",
+      goal: "Patientennahe Anforderungen an ePA, Medikationsinformationen und Verständlichkeit sammeln.",
+      topics: ["Patientenbeteiligung", "ePA", "Medikationsverständnis", "Status-Transparenz"],
+      requestNote: "Beratungssituationen auswerten: Was müssten Patientinnen sehen, um selbst handlungsfähig zu werden?",
+      documentationSummary: "Patientenbeteiligung wird konkret, wenn Informationen verständlich, aktuell und mit nächstem Schritt verbunden sind.",
+      experience: "Viele Fragen entstehen nicht aus Ablehnung digitaler Angebote, sondern aus Unsicherheit über Bedeutung und Aktualität.",
+      insight: "ePA-Informationen brauchen laienverständliche Hinweise und klare nächste Schritte.",
+      nextUse: "Als Gegenpol zu reiner Leistungserbringer-Perspektive in Roadmap-Bewertungen einbauen.",
+      scores: { patientParticipation: 5, medicationPlan: 4, informationContinuity: 4, digitalWorkflow: 3 },
+      roadmapItemId: "epa-3-1-3-teil-1",
+      respondentRole: "Versicherte/Patient",
+      comparisonRole: "top_priority",
+      roadmapEvidence: "Patientenverständlichkeit entscheidet über tatsächliche Nutzung."
+    }
+  };
+
+  const hospitations = hospitationEntries.map(([id, contactName, city, date, offset]) => {
+    const insight = hospitationInsights[id] || {};
+    const hasDocumentation = Boolean(insight.documentationSummary);
+    return {
+      id,
+      contactId: "",
+      contactName,
+      organizationId: "",
+      organizationName: insight.organizationName || "",
+      requesterProfileId: ownerIds[0],
+      ownerId: ownerIds[0],
+      status: "Durchgeführt",
+      requestedWindows: [],
+      startsAt: `${date}T09:00:00${offset}`,
+      endsAt: `${date}T11:00:00${offset}`,
+      location: city,
+      city,
+      state: insight.state || "",
+      sector: insight.sector || "",
+      goal: insight.goal || "Hospitationstermin aus persönlicher Liste.",
+      topics: insight.topics || ["Hospitation", "Versorgungskontakt"],
+      requestNote: insight.requestNote || (city
+        ? `Hospitation bei ${contactName} in ${city}. Kontaktprofil wird später ergänzt.`
+        : `Hospitation bei ${contactName}. Ort und Kontaktprofil werden später ergänzt.`),
+      documentationSummary: insight.documentationSummary || "",
+      documentationOutcome: hasDocumentation ? hospitationDocumentationOutcome(insight) : "",
+      followUpNote: insight.nextUse || "",
+      followUpOwnerId: hasDocumentation ? ownerIds[0] : "",
+      followUpDueAt: hasDocumentation ? "2026-07-15" : "",
+      documentedAt: hasDocumentation ? `${date}T12:30:00${offset}` : "",
+      documentedBy: hasDocumentation ? ownerIds[0] : "",
+      createdAt: now,
+      createdBy: ownerIds[0],
+      updatedAt: now,
+      updatedBy: ownerIds[0]
+    };
+  });
+
+  const hospitationRoadmapAssessments = hospitationEntries
+    .map(([id]) => {
+      const insight = hospitationInsights[id] || {};
+      if (!insight.roadmapItemId) return null;
+      return {
+        id: `demo-assessment-${id}`,
+        hospitationId: id,
+        roadmapItemId: insight.roadmapItemId,
+        respondentRole: insight.respondentRole || "Arzt/Ärztin",
+        respondentSector: insight.sector || "",
+        careRelevance: Math.max(...Object.values(insight.scores || { score: 4 })),
+        patientSafety: insight.scores?.patientSafety || insight.scores?.informationContinuity || 4,
+        processRelief: insight.scores?.processRelief || insight.scores?.digitalWorkflow || 4,
+        urgency: insight.comparisonRole === "top_priority" ? 5 : 3,
+        implementationFeasibility: 3,
+        adoptionLikelihood: insight.scores?.patientParticipation || 4,
+        confidenceScore: 4,
+        comparisonRole: insight.comparisonRole || "none",
+        evidenceNote: insight.roadmapEvidence || insight.insight || "",
+        createdAt: now,
+        updatedAt: now
+      };
+    })
+    .filter(Boolean);
+
+  const hospitationUnmetNeeds = Object.entries(hospitationInsights)
+    .filter(([, insight]) => insight.unmetNeedTitle)
+    .map(([id, insight]) => ({
+      id: `demo-unmet-${id}`,
+      hospitationId: id,
+      relatedRoadmapItemId: insight.roadmapItemId || "",
+      title: insight.unmetNeedTitle,
+      problem: insight.unmetNeedProblem || insight.insight || "",
+      affectedRole: insight.respondentRole || "",
+      affectedSector: insight.sector || "",
+      classification: insight.roadmapItemId ? "existing_item_extension" : "new_backlog_item",
+      expectedBenefit: 5,
+      urgency: insight.comparisonRole === "top_priority" ? 5 : 4,
+      implementationFeasibility: 3,
+      confidenceScore: 4,
+      currentWorkaround: "Telefon, manuelle Liste und erneute Rückfrage im Einzelfall.",
+      nextStep: insight.nextUse || "Mit Roadmap-Cluster abgleichen.",
+      status: "Neu",
+      createdAt: now,
+      updatedAt: now
+    }));
 
   window.VERSORGUNGS_COMPASS_DEMO_DATA = {
     profiles,
@@ -262,6 +546,8 @@
     contacts,
     hospitationSlots: [],
     hospitations,
+    hospitationRoadmapAssessments,
+    hospitationUnmetNeeds,
     changes: contacts.slice(0, 8).map((item, index) => ({
       id: index + 1,
       contactId: item.id,
