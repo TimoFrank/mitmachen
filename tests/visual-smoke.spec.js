@@ -1439,6 +1439,21 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(documentationDrawer).toContainText("10.06.2026, 09:00");
   await expect(documentationDrawer).toContainText("Themen / Tags");
   await expect(documentationDrawer.locator("details.hospitation-editor-section")).toHaveCount(6);
+  await expect(documentationDrawer.locator("details.hospitation-editor-section summary h4")).toHaveText([
+    "Kontext",
+    "Themen / Tags",
+    "Versorgungsrelevanz",
+    "Roadmap-Bewertung",
+    "Neue Anforderungen",
+    "Notizen"
+  ]);
+  await expect(documentationDrawer.locator(".hospitation-editor-section__chevron").first()).toBeVisible();
+  await expect(documentationDrawer.locator("[data-documentation-theme-selected]")).toBeVisible();
+  await expect(documentationDrawer.locator(".detail-theme-group").filter({ hasText: "Ausgewählte Themen" })).toBeVisible();
+  await expect(documentationDrawer.locator(".detail-theme-group").filter({ hasText: "Mögliche Themen" })).toBeVisible();
+  await documentationDrawer.locator("#hospitation-documentation-theme-input").fill("Dokumentations-Tag");
+  await documentationDrawer.locator("#hospitation-documentation-theme-add").click();
+  await expect(documentationDrawer.locator("[data-documentation-theme-selected]")).toContainText("Dokumentations-Tag");
   const roadmapDetails = documentationDrawer.locator("details.hospitation-editor-section").filter({ hasText: "Roadmap-Bewertung" });
   await expect(roadmapDetails).not.toHaveAttribute("open", "");
   await roadmapDetails.locator("summary").click();
@@ -1455,12 +1470,16 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   );
   expect(roadmapOptionTexts.some((text) => /\b(?:ePA|KIM|VSDM|ISiK|PoPP|ZETA)?\s*\d+(?:\.\d+)+\b/i.test(text))).toBe(false);
   await roadmapDetails.locator("summary").click();
-  await documentationDrawer.locator(".hospitation-documentation-topic-badge", { hasText: "Entlassmanagement" }).click();
-  await documentationDrawer.locator("#hospitation-documentation-topics-custom").fill("Dokumentations-Tag");
+  await expect(documentationDrawer.locator("[data-documentation-score-row]:visible")).toHaveCount(1);
+  await expect(documentationDrawer.locator("#documentationScore_0_itemId")).not.toContainText("Eigenes Item");
+  await expect(documentationDrawer.locator(".hospitation-score-custom").first()).toContainText("Präzisierung");
+  await expect(documentationDrawer.locator(".hospitation-slider-score__ticks").first().locator("span")).toHaveText(["1", "2", "3", "4", "5"]);
   await documentationDrawer.locator("#hospitation-documentation-summary").fill("Dokumentationsnotiz aus dem Visualtest");
   await documentationDrawer.locator("#hospitation-documentation-insight").fill("Erkenntnis aus dem strukturierten Formular");
   await documentationDrawer.locator("#hospitation-documentation-next-use").fill("Nächste Nutzung aus dem Visualtest");
   await documentationDrawer.locator("#documentationScore_0_itemId").selectOption("medicationPlan");
+  await documentationDrawer.locator("#hospitation-score-item-add").click();
+  await expect(documentationDrawer.locator("[data-documentation-score-row]:visible")).toHaveCount(2);
   await documentationDrawer.locator("#documentationScore_1_itemId").selectOption("dischargeLetter");
   await documentationDrawer.locator('[name="documentationScore_0_score"]').evaluate((input) => {
     input.value = "4";
@@ -1469,6 +1488,15 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   });
   await documentationDrawer.locator('[name="documentationScore_1_score"]').evaluate((input) => {
     input.value = "5";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await documentationDrawer.locator("#hospitation-score-item-input").fill("Hilfsmittelstatus");
+  await documentationDrawer.locator("#hospitation-score-item-add").click();
+  await expect(documentationDrawer.locator("[data-documentation-score-row]:visible")).toHaveCount(3);
+  await expect(documentationDrawer.locator("[data-documentation-score-label]", { hasText: "Hilfsmittelstatus" })).toBeVisible();
+  await documentationDrawer.locator('[name="documentationScore_2_score"]').evaluate((input) => {
+    input.value = "3";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });

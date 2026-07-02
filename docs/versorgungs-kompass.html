@@ -18719,44 +18719,17 @@
 
       .hospitation-documentation-topics {
         display: grid;
-        gap: 10px;
+        gap: 14px;
       }
 
-      .hospitation-documentation-topic-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 7px;
+      .hospitation-documentation-topics .detail-theme-editor,
+      .hospitation-score-item-editor {
+        padding: 0;
       }
 
-      .hospitation-documentation-topic-badge {
-        position: relative;
-        border: 1px solid #d7e0f3;
-        cursor: pointer;
-      }
-
-      .hospitation-documentation-topic-badge input {
-        position: absolute;
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      .hospitation-documentation-topic-badge:has(input:checked) {
-        border-color: #a7c4ff;
-        background: #eaf2ff;
-        color: #0f4ecf;
-        font-weight: 850;
-      }
-
-      .hospitation-documentation-topic-badge:has(input:focus-visible) {
-        box-shadow: var(--focus-ring);
-      }
-
-      .hospitation-documentation-topic-badge span {
-        pointer-events: none;
-      }
-
-      .hospitation-documentation-topics .detail-theme-input {
-        width: 100%;
+      .hospitation-documentation-theme-hidden,
+      .hospitation-score-row[hidden] {
+        display: none !important;
       }
 
       .hospitation-editor-section {
@@ -18774,20 +18747,44 @@
 
       .hospitation-editor-section__summary {
         align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 0;
+        padding: 2px 0;
       }
 
-      .hospitation-editor-section__summary::after {
-        content: "";
-        width: 10px;
-        height: 10px;
-        border-right: 2px solid var(--text-muted);
-        border-bottom: 2px solid var(--text-muted);
-        transform: rotate(45deg);
+      .hospitation-editor-section[open] > .hospitation-editor-section__summary {
+        margin-bottom: 14px;
+      }
+
+      .hospitation-editor-section__chevron {
+        width: 30px;
+        height: 30px;
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border: 1px solid #d7e0f3;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #ffffff, #f5f8ff);
+        color: #3558a7;
+        box-shadow: 0 1px 2px rgba(42, 63, 120, 0.08);
+        transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+      }
+
+      .hospitation-editor-section__chevron svg {
+        width: 16px;
+        height: 16px;
         transition: transform 0.18s ease;
       }
 
-      .hospitation-editor-section[open] > .hospitation-editor-section__summary::after {
-        transform: rotate(225deg);
+      .hospitation-editor-section > summary:hover .hospitation-editor-section__chevron {
+        border-color: #a7c4ff;
+        background: #eef4ff;
+        color: #0f4ecf;
+      }
+
+      .hospitation-editor-section[open] > .hospitation-editor-section__summary .hospitation-editor-section__chevron svg {
+        transform: rotate(180deg);
       }
 
       .hospitation-score-grid {
@@ -18883,6 +18880,25 @@
         min-width: 0;
       }
 
+      .hospitation-score-custom input {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        padding: 8px 10px;
+        font: inherit;
+        font-size: 0.86rem;
+        font-weight: 650;
+      }
+
+      .hospitation-score-custom input:focus {
+        border-color: #7ca5ff;
+        box-shadow: var(--focus-ring);
+        outline: none;
+      }
+
       .hospitation-score-custom span,
       .hospitation-slider-score__statement {
         color: var(--text-muted);
@@ -18892,27 +18908,63 @@
 
       .hospitation-slider-score {
         display: grid;
-        gap: 8px;
+        gap: 10px;
         min-width: 0;
       }
 
       .hospitation-slider-score__scale {
         display: grid;
-        grid-template-columns: auto minmax(160px, 1fr) auto auto;
-        gap: 10px;
-        align-items: center;
+        grid-template-columns: minmax(170px, 1fr) auto;
+        gap: 12px;
+        align-items: end;
       }
 
-      .hospitation-slider-score__scale span {
+      .hospitation-slider-score__track {
+        display: grid;
+        gap: 7px;
+        min-width: 0;
+      }
+
+      .hospitation-slider-score__ticks {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        padding: 0 8px;
         color: var(--text-muted);
-        font-size: 0.74rem;
-        font-weight: 780;
-        white-space: nowrap;
+        font-size: 0.72rem;
+        font-weight: 850;
+        line-height: 1;
+      }
+
+      .hospitation-slider-score__ticks span {
+        text-align: center;
       }
 
       .hospitation-slider-score input[type="range"] {
         width: 100%;
+        height: 9px;
+        appearance: none;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #155fe4 0 var(--score-ratio, 0%), #dbe5f6 var(--score-ratio, 0%) 100%);
         accent-color: var(--primary);
+      }
+
+      .hospitation-slider-score input[type="range"]::-webkit-slider-thumb {
+        width: 20px;
+        height: 20px;
+        appearance: none;
+        border: 3px solid #ffffff;
+        border-radius: 999px;
+        background: #155fe4;
+        box-shadow: 0 2px 8px rgba(21, 95, 228, 0.28);
+      }
+
+      .hospitation-slider-score input[type="range"]::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border: 3px solid #ffffff;
+        border-radius: 999px;
+        background: #155fe4;
+        box-shadow: 0 2px 8px rgba(21, 95, 228, 0.28);
       }
 
       .hospitation-slider-score output {
@@ -36108,8 +36160,8 @@
           const selectedId = String(data.get(`documentationScore_${index}_itemId`) || "").trim();
           const customLabel = String(data.get(`documentationScore_${index}_customLabel`) || "").trim();
           const definition = selectedId ? hospitationDocumentationScoreDefinition(selectedId) : null;
-          const label = selectedId === "__custom__" ? customLabel : definition?.label || customLabel;
-          const id = selectedId === "__custom__" ? hospitationDocumentationScoreId(customLabel) : hospitationDocumentationScoreId(selectedId || label);
+          const label = definition?.label || customLabel;
+          const id = hospitationDocumentationScoreId(selectedId || label);
           const score = Number(data.get(`documentationScore_${index}_score`)) || 0;
           if (!id || !label || score <= 0) continue;
           scores[id] = Math.min(5, Math.max(1, score));
@@ -36127,10 +36179,7 @@
       }
 
       function hospitationDocumentationTopicsFromForm(data) {
-        return normalizeThemes([
-          ...data.getAll("documentationTopic"),
-          ...normalizeThemes(data.get("documentationTopicsCustom"))
-        ]);
+        return normalizeThemes(data.getAll("documentationTopic"));
       }
 
       function hospitationDocumentationThemeSuggestions(item = {}) {
@@ -36147,6 +36196,11 @@
           <details class="editor-section${primary} hospitation-editor-section"${open}>
             <summary class="editor-section-head hospitation-editor-section__summary">
               <h4 class="editor-section-title">${escapeHtml(title)}</h4>
+              <span class="hospitation-editor-section__chevron" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6"></path>
+                </svg>
+              </span>
             </summary>
             ${body}
           </details>
@@ -36154,20 +36208,44 @@
       }
 
       function renderHospitationDocumentationTopicInputs(item = {}) {
-        const active = new Set(hospitationThemeTags(item));
+        const activeTags = hospitationThemeTags(item);
+        const active = new Set(activeTags);
         const suggestions = hospitationDocumentationThemeSuggestions(item);
         return `
           <div class="hospitation-documentation-topics">
-            <div class="detail-theme-label">Themen / Tags</div>
-            <div class="hospitation-documentation-topic-list" aria-label="Themen für die Dokumentation">
-              ${suggestions.map((tag) => `
-                <label class="theme-tag theme-tag--preset hospitation-documentation-topic-badge">
-                  <input type="checkbox" name="documentationTopic" value="${escapeHtml(tag)}" ${active.has(tag) ? "checked" : ""} />
-                  <span>${escapeHtml(tag)}</span>
-                </label>
-              `).join("")}
+            <div class="detail-theme-editor" data-documentation-theme-editor>
+              <div class="detail-theme-group detail-theme-group--selected">
+                <div class="detail-theme-label">Ausgewählte Themen</div>
+                <div class="detail-chip-row" data-documentation-theme-selected>
+                  ${
+                    activeTags.length
+                      ? activeTags.map((tag) => `
+                          <button class="theme-tag theme-tag--editable" type="button" data-documentation-theme-remove="${escapeHtml(tag)}">
+                            ${escapeHtml(tag)}<span class="theme-tag__remove" aria-hidden="true">&times;</span>
+                          </button>
+                        `).join("")
+                      : `<span class="detail-secondary" data-documentation-theme-empty>Noch keine Themen hinterlegt.</span>`
+                  }
+                </div>
+                <div data-documentation-theme-values>
+                  ${activeTags.map((tag) => `<input class="hospitation-documentation-theme-hidden" type="hidden" name="documentationTopic" value="${escapeHtml(tag)}" />`).join("")}
+                </div>
+              </div>
+              <div class="detail-theme-group">
+                <div class="detail-theme-label">Mögliche Themen</div>
+                <div class="detail-theme-presets" aria-label="Mögliche Themen">
+                  ${suggestions.map((tag) => `
+                    <button class="theme-tag theme-tag--preset ${active.has(tag) ? "is-active" : ""}" type="button" data-documentation-theme-toggle="${escapeHtml(tag)}">
+                      ${escapeHtml(tag)}
+                    </button>
+                  `).join("")}
+                </div>
+              </div>
+              <div class="detail-theme-add">
+                <input class="detail-theme-input" id="hospitation-documentation-theme-input" type="text" placeholder="Neues Thema hinzufügen" />
+                <button class="action-button" type="button" id="hospitation-documentation-theme-add">Hinzufügen</button>
+              </div>
             </div>
-            <input class="detail-theme-input" id="hospitation-documentation-topics-custom" name="documentationTopicsCustom" type="text" placeholder="Weitere Themen, kommagetrennt" />
           </div>
         `;
       }
@@ -36210,15 +36288,15 @@
               custom: !hospitationDocumentationScoreCatalog.some((item) => item.id === id)
             };
           });
-        const desiredRowCount = Math.min(hospitationDocumentationScoreRowSlots, Math.max(3, rows.length + 2));
-        while (rows.length < desiredRowCount) rows.push({ id: "", label: "", statement: "", score: 0, custom: false });
-        return rows.slice(0, hospitationDocumentationScoreRowSlots);
+        const visibleRowCount = Math.min(hospitationDocumentationScoreRowSlots, Math.max(1, rows.length));
+        while (rows.length < hospitationDocumentationScoreRowSlots) rows.push({ id: "", label: "", statement: "", score: 0, custom: false });
+        return rows.slice(0, hospitationDocumentationScoreRowSlots).map((row, index) => ({ ...row, visible: index < visibleRowCount }));
       }
 
       function hospitationDocumentationScoreOptionMarkup(selectedId = "") {
         const selected = hospitationDocumentationScoreId(selectedId);
         const options = hospitationDocumentationScoreCatalog.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("");
-        return `<option value="">Item auswählen</option>${options}<option value="__custom__" ${selected && !hospitationDocumentationScoreCatalog.some((item) => item.id === selected) ? "selected" : ""}>Eigenes Item</option>`;
+        return `<option value="">Item auswählen</option>${options}`;
       }
 
       function renderHospitationScoreSlider(name, selected = 0, statement = "") {
@@ -36227,10 +36305,17 @@
           <label class="hospitation-slider-score">
             ${statement ? `<span class="hospitation-slider-score__statement" data-score-statement>${escapeHtml(statement)}</span>` : ""}
             <div class="hospitation-slider-score__scale">
-              <span>keine Angabe</span>
-              <input type="range" min="0" max="5" step="1" name="${escapeHtml(name)}" value="${value}" data-score-slider />
+              <span class="hospitation-slider-score__track">
+                <input type="range" min="0" max="5" step="1" name="${escapeHtml(name)}" value="${value}" data-score-slider />
+                <span class="hospitation-slider-score__ticks" aria-hidden="true">
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                </span>
+              </span>
               <output>${value ? `${value}/5` : "N/A"}</output>
-              <span>trifft voll zu</span>
             </div>
           </label>
         `;
@@ -36241,11 +36326,12 @@
         return `
           <div class="hospitation-score-grid">
             ${rows.map((row, index) => {
-              const selectedId = row.custom ? "__custom__" : row.id;
+              const selectedId = row.custom ? "" : row.id;
               const definition = row.id ? hospitationDocumentationScoreDefinition(row.id) : null;
               const statement = row.statement || definition?.statement || "Dieses Item ist für diesen Versorgungskontakt relevant.";
+              const hidden = row.visible ? "" : " hidden";
               return `
-                <div class="hospitation-score-row hospitation-score-row--slider" data-documentation-score-row>
+                <div class="hospitation-score-row hospitation-score-row--slider" data-documentation-score-row${hidden}>
                   <div class="hospitation-score-row__head">
                     <div class="format-editor-field">
                       <label for="documentationScore_${index}_itemId">Item ${index + 1}</label>
@@ -36259,7 +36345,7 @@
                     </label>
                   </div>
                   <label class="hospitation-score-custom" for="documentationScore_${index}_customLabel">
-                    <span>Eigenes Item oder Präzisierung</span>
+                    <span>Präzisierung</span>
                     <input id="documentationScore_${index}_customLabel" name="documentationScore_${index}_customLabel" value="${escapeHtml(row.custom ? row.label : "")}" placeholder="z. B. Hilfsmittelversorgung, Impfstatus, Laborwerte" data-documentation-score-custom />
                   </label>
                   <div class="hospitation-score-copy">
@@ -36269,6 +36355,10 @@
                 </div>
               `;
             }).join("")}
+            <div class="detail-theme-add hospitation-score-item-add">
+              <input class="detail-theme-input" id="hospitation-score-item-input" type="text" placeholder="Neues Item hinzufügen" data-documentation-score-new-item />
+              <button class="action-button" type="button" id="hospitation-score-item-add" data-add-documentation-score-item>Hinzufügen</button>
+            </div>
           </div>
         `;
       }
@@ -38354,6 +38444,9 @@
                   ${renderHospitationDocumentationTopicInputs(hospitation)}
                 </div>
               `)}
+              ${renderHospitationEditorSection("Versorgungsrelevanz", renderHospitationDocumentationScoreInputs(documentation))}
+              ${renderHospitationEditorSection("Roadmap-Bewertung", roadmapItems.length ? renderHospitationRoadmapAssessmentInputs(hospitation) : `<div class="hospitation-roadmap-empty">Roadmap-Katalog wird nach dem Laden angezeigt.</div>`, { open: false })}
+              ${renderHospitationEditorSection("Neue Anforderungen", renderHospitationUnmetNeedInputs(hospitation), { open: false })}
               ${renderHospitationEditorSection("Notizen", `
                 <div class="format-editor-grid">
                   <div class="format-editor-field format-editor-field--wide hospitation-documentation-field--primary">
@@ -38370,9 +38463,6 @@
                   </div>
                 </div>
               `)}
-              ${renderHospitationEditorSection("Versorgungsrelevanz", renderHospitationDocumentationScoreInputs(documentation))}
-              ${renderHospitationEditorSection("Roadmap-Bewertung", roadmapItems.length ? renderHospitationRoadmapAssessmentInputs(hospitation) : `<div class="hospitation-roadmap-empty">Roadmap-Katalog wird nach dem Laden angezeigt.</div>`, { open: false })}
-              ${renderHospitationEditorSection("Neue Anforderungen", renderHospitationUnmetNeedInputs(hospitation), { open: false })}
               <div class="format-editor-actions">
                 <button class="action-button" type="button" id="hospitation-editor-cancel">Abbrechen</button>
                 <button class="action-button action-button--primary" type="submit">Dokumentation speichern</button>
@@ -38547,9 +38637,66 @@
             if (!output) return;
             const value = Number(slider.value) || 0;
             output.textContent = value ? `${value}/5` : "N/A";
+            slider.style.setProperty("--score-ratio", `${value ? Math.round((value / 5) * 100) : 0}%`);
           };
           slider.addEventListener("input", update);
           update();
+        });
+      }
+
+      function bindHospitationDocumentationThemes(root = document) {
+        root.querySelectorAll("[data-documentation-theme-editor]").forEach((editor) => {
+          const selectedNode = editor.querySelector("[data-documentation-theme-selected]");
+          const valuesNode = editor.querySelector("[data-documentation-theme-values]");
+          const input = editor.querySelector("#hospitation-documentation-theme-input");
+          const tagsFromInputs = () => normalizeThemes([...valuesNode?.querySelectorAll("input[name='documentationTopic']") || []].map((field) => field.value));
+          const render = (tags) => {
+            const normalized = normalizeThemes(tags);
+            if (selectedNode) {
+              selectedNode.innerHTML = normalized.length
+                ? normalized.map((tag) => `
+                    <button class="theme-tag theme-tag--editable" type="button" data-documentation-theme-remove="${escapeHtml(tag)}">
+                      ${escapeHtml(tag)}<span class="theme-tag__remove" aria-hidden="true">&times;</span>
+                    </button>
+                  `).join("")
+                : `<span class="detail-secondary" data-documentation-theme-empty>Noch keine Themen hinterlegt.</span>`;
+            }
+            if (valuesNode) {
+              valuesNode.innerHTML = normalized.map((tag) => `<input class="hospitation-documentation-theme-hidden" type="hidden" name="documentationTopic" value="${escapeHtml(tag)}" />`).join("");
+            }
+            editor.querySelectorAll("[data-documentation-theme-toggle]").forEach((button) => {
+              button.classList.toggle("is-active", normalized.includes(button.dataset.documentationThemeToggle));
+            });
+          };
+          const addTheme = () => {
+            const value = String(input?.value || "").trim();
+            if (!value) return;
+            render([...tagsFromInputs(), value]);
+            if (input) input.value = "";
+          };
+          editor.addEventListener("click", (event) => {
+            const removeButton = event.target.closest("[data-documentation-theme-remove]");
+            if (removeButton) {
+              render(tagsFromInputs().filter((tag) => tag !== removeButton.dataset.documentationThemeRemove));
+              return;
+            }
+            const toggleButton = event.target.closest("[data-documentation-theme-toggle]");
+            if (toggleButton) {
+              const tag = toggleButton.dataset.documentationThemeToggle;
+              const current = new Set(tagsFromInputs());
+              if (current.has(tag)) current.delete(tag);
+              else current.add(tag);
+              render([...current]);
+            }
+          });
+          editor.querySelector("#hospitation-documentation-theme-add")?.addEventListener("click", addTheme);
+          input?.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              addTheme();
+            }
+          });
+          render(tagsFromInputs());
         });
       }
 
@@ -38563,12 +38710,8 @@
             const selected = String(select?.value || "").trim();
             const customLabel = String(customInput?.value || "").trim();
             const catalogItem = hospitationDocumentationScoreCatalog.find((item) => item.id === selected);
-            const label = selected === "__custom__"
-              ? customLabel || "Eigenes Item"
-              : catalogItem?.label || customLabel || "Item bewerten";
-            const statement = selected === "__custom__"
-              ? customLabel ? `${customLabel} ist für diesen Versorgungskontakt relevant.` : "Dieses Item ist für diesen Versorgungskontakt relevant."
-              : catalogItem?.statement || "Dieses Item ist für diesen Versorgungskontakt relevant.";
+            const label = catalogItem?.label || customLabel || "Item bewerten";
+            const statement = catalogItem?.statement || (customLabel ? `${customLabel} ist für diesen Versorgungskontakt relevant.` : "Dieses Item ist für diesen Versorgungskontakt relevant.");
             if (labelTarget) labelTarget.textContent = label;
             if (statementTarget) statementTarget.textContent = statement;
           };
@@ -38576,12 +38719,55 @@
           customInput?.addEventListener("input", update);
           update();
         });
+        const addButton = root.querySelector("[data-add-documentation-score-item]");
+        const newItemInput = root.querySelector("[data-documentation-score-new-item]");
+        const revealNextRow = () => {
+          const nextRow = root.querySelector("[data-documentation-score-row][hidden]");
+          if (!nextRow) return null;
+          nextRow.hidden = false;
+          return nextRow;
+        };
+        const updateAddButton = () => {
+          if (!addButton) return;
+          addButton.hidden = !root.querySelector("[data-documentation-score-row][hidden]");
+          if (newItemInput) newItemInput.hidden = addButton.hidden;
+        };
+        const addItem = () => {
+          const nextRow = revealNextRow();
+          if (!nextRow) {
+            updateAddButton();
+            return;
+          }
+          const customLabel = String(newItemInput?.value || "").trim();
+          const select = nextRow.querySelector("[data-documentation-score-select]");
+          const customInput = nextRow.querySelector("[data-documentation-score-custom]");
+          if (select) {
+            select.value = "";
+            syncCustomSelect(select);
+          }
+          if (customLabel && customInput) {
+            customInput.value = customLabel;
+            customInput.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          if (newItemInput) newItemInput.value = "";
+          (customLabel ? nextRow.querySelector("[data-score-slider]") : select || customInput)?.focus();
+          updateAddButton();
+        };
+        addButton?.addEventListener("click", addItem);
+        newItemInput?.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            addItem();
+          }
+        });
+        updateAddButton();
       }
 
       function bindHospitationEditor() {
         const form = document.getElementById("hospitation-editor-form");
         refreshCustomSelects(form || document);
         bindHospitationScoreSliders(form || document);
+        bindHospitationDocumentationThemes(form || document);
         bindHospitationDocumentationScoreRows(form || document);
         document.getElementById("hospitation-editor-cancel")?.addEventListener("click", closeHospitationEditor);
         form?.addEventListener("submit", async (event) => {
@@ -38674,12 +38860,15 @@
         hospitationEditorDrawer?.setAttribute("aria-hidden", "false");
         syncBodyScrollLock();
         window.setTimeout(() => {
+          if (mode === "documentation") {
+            hospitationEditorBody?.scrollTo({ top: 0, left: 0 });
+            hospitationEditorClose?.focus({ preventScroll: true });
+            return;
+          }
           const focusId = mode === "slot"
             ? "hospitation-slot-start"
-            : mode === "documentation"
-              ? "hospitation-documentation-summary"
-              : "hospitation-contact";
-          document.getElementById(focusId)?.focus();
+            : "hospitation-contact";
+          document.getElementById(focusId)?.focus({ preventScroll: true });
         }, 0);
       }
 
