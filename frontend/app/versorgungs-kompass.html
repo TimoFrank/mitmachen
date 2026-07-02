@@ -19221,6 +19221,92 @@
         align-items: stretch;
       }
 
+      .hospitation-dashboard-preview-card {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-color: #c7d7f4;
+        background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+      }
+
+      .hospitation-dashboard-preview-card.is-preview {
+        border-color: #93c5fd;
+        background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+      }
+
+      .hospitation-dashboard-preview-copy {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .hospitation-dashboard-preview-copy span {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .hospitation-dashboard-preview-copy strong {
+        color: var(--text);
+        font-size: 1rem;
+        font-weight: 900;
+        line-height: 1.25;
+      }
+
+      .hospitation-dashboard-preview-copy p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.84rem;
+        font-weight: 680;
+        line-height: 1.4;
+      }
+
+      .hospitation-dashboard-preview-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        flex: 0 0 auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        padding: 3px;
+      }
+
+      .hospitation-dashboard-preview-toggle button {
+        min-height: 32px;
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 850;
+        padding: 6px 11px;
+        white-space: nowrap;
+      }
+
+      .hospitation-dashboard-preview-toggle button:hover,
+      .hospitation-dashboard-preview-toggle button:focus-visible {
+        background: var(--surface-muted);
+        color: var(--text);
+        outline: none;
+      }
+
+      .hospitation-dashboard-preview-toggle button.is-active {
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .hospitation-dashboard-preview-toggle button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
       .hospitation-dashboard-group-title {
         grid-column: 1 / -1;
         margin: 4px 2px -4px;
@@ -21588,6 +21674,19 @@
         .hospitation-dashboard-item {
           grid-template-columns: 1fr;
           align-items: start;
+        }
+
+        .hospitation-dashboard-preview-card {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .hospitation-dashboard-preview-toggle {
+          width: 100%;
+        }
+
+        .hospitation-dashboard-preview-toggle button {
+          flex: 1 1 0;
         }
 
         .hospitation-dashboard-score__head,
@@ -25603,6 +25702,7 @@
       let hospitationOwnerFilter = "";
       let hospitationDateSortDirection = "desc";
       let hospitationLoadErrorMessage = "";
+      let hospitationDashboardPreviewMode = "live";
       let editingHospitationId = "";
       let editingHospitationSlotId = "";
       let hospitationEditorMode = "request";
@@ -37758,6 +37858,59 @@
         `;
       }
 
+      function hospitationDashboardCloneRows(rows = []) {
+        if (!Array.isArray(rows)) return [];
+        try {
+          return JSON.parse(JSON.stringify(rows));
+        } catch (error) {
+          return rows.map((row) => ({ ...row }));
+        }
+      }
+
+      function hospitationDashboardDemoData() {
+        return window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
+      }
+
+      function hospitationDashboardDemoRows(key = "") {
+        const rows = hospitationDashboardDemoData()[key];
+        return hospitationDashboardCloneRows(Array.isArray(rows) ? rows : []);
+      }
+
+      function hospitationDashboardDataSet() {
+        const demoHospitations = hospitationDashboardDemoRows("hospitations");
+        const demoAvailable = demoHospitations.length > 0;
+        const isPreview = hospitationDashboardPreviewMode === "demo" && demoAvailable;
+        return {
+          isPreview,
+          demoAvailable,
+          visible: isPreview ? demoHospitations : filteredHospitations(),
+          roadmapAssessments: isPreview ? hospitationDashboardDemoRows("hospitationRoadmapAssessments") : hospitationRoadmapAssessments,
+          unmetNeeds: isPreview ? hospitationDashboardDemoRows("hospitationUnmetNeeds") : hospitationUnmetNeeds
+        };
+      }
+
+      function renderHospitationDashboardPreviewControl(context = {}) {
+        const isPreview = Boolean(context.isPreview);
+        const demoDisabled = context.demoAvailable ? "" : " disabled";
+        const title = isPreview ? "Demo-Preview" : "Echte Dokumentationen";
+        const detail = isPreview
+          ? `${context.activeCount} gepflegte Demo-Hospitationen mit Themen, Scores, Zitaten und Roadmap-Bezug.`
+          : `${context.documentedCount} dokumentierte Hospitationen aus dem aktuellen Datenbestand.`;
+        return `
+          <article class="dashboard-card hospitation-dashboard-preview-card ${isPreview ? "is-preview" : ""}">
+            <div class="hospitation-dashboard-preview-copy">
+              <span>Dashboard-Daten</span>
+              <strong>${escapeHtml(title)}</strong>
+              <p>${escapeHtml(detail)}</p>
+            </div>
+            <div class="hospitation-dashboard-preview-toggle" role="group" aria-label="Dashboard-Datenmodus">
+              <button class="${isPreview ? "" : "is-active"}" type="button" data-hospitation-dashboard-preview-mode="live" aria-pressed="${isPreview ? "false" : "true"}">Echte Daten</button>
+              <button class="${isPreview ? "is-active" : ""}" type="button" data-hospitation-dashboard-preview-mode="demo" aria-pressed="${isPreview ? "true" : "false"}"${demoDisabled}>Demo</button>
+            </div>
+          </article>
+        `;
+      }
+
       function renderHospitationDashboardSectorPie(entries = [], total = 0) {
         if (!entries.length || !total) return `<div class="hospitation-dashboard-empty">Noch keine Sektordaten für diese Auswahl.</div>`;
         let cursor = 0;
@@ -37855,10 +38008,10 @@
         `;
       }
 
-      function hospitationDashboardRoadmapStats(items = []) {
+      function hospitationDashboardRoadmapStats(items = [], assessments = hospitationRoadmapAssessments) {
         const visibleIds = new Set(items.map((item) => item.id).filter(Boolean));
         const stats = new Map();
-        hospitationRoadmapAssessments
+        assessments
           .filter((assessment) => visibleIds.has(assessment.hospitationId))
           .forEach((assessment) => {
             const key = assessment.roadmapItemId;
@@ -37905,9 +38058,9 @@
         `;
       }
 
-      function renderHospitationDashboardUnmetNeeds(items = []) {
+      function renderHospitationDashboardUnmetNeeds(items = [], needsSource = hospitationUnmetNeeds) {
         const visibleIds = new Set(items.map((item) => item.id).filter(Boolean));
-        const needs = hospitationUnmetNeeds
+        const needs = needsSource
           .filter((need) => visibleIds.has(need.hospitationId) && need.status !== "Archiviert")
           .slice(0, 8);
         if (!needs.length) return `<div class="hospitation-dashboard-empty">Noch keine neuen Anforderungen erfasst.</div>`;
@@ -37928,7 +38081,8 @@
 
       function renderHospitationDashboard() {
         if (!hospitationDashboard) return;
-        const visible = filteredHospitations();
+        const dataSet = hospitationDashboardDataSet();
+        const visible = dataSet.visible;
         const active = visible.filter((hospitation) => hospitation.status !== "Archiviert");
         const completed = active.filter((hospitation) => ["Durchgeführt", "Dokumentiert"].includes(hospitation.status));
         const documented = active.filter((hospitation) => hospitation.status === "Dokumentiert" || meaningfulOrEmpty(hospitation.documentationSummary));
@@ -37938,8 +38092,14 @@
         const sectorCounts = hospitationDashboardSectorCounts(active);
         const topicCounts = hospitationDashboardTopicCounts(active);
         const wordCounts = hospitationDashboardWordCounts(documented);
-        const roadmapStats = hospitationDashboardRoadmapStats(active);
+        const roadmapStats = hospitationDashboardRoadmapStats(active, dataSet.roadmapAssessments);
         hospitationDashboard.innerHTML = `
+          ${renderHospitationDashboardPreviewControl({
+            isPreview: dataSet.isPreview,
+            demoAvailable: dataSet.demoAvailable,
+            activeCount: active.length,
+            documentedCount: documented.length
+          })}
           <div class="hospitation-dashboard-group-title">Metadaten-Auswertung</div>
           ${renderHospitationDashboardKpi("Hospitationen", active.length, `${visible.length} Treffer`, 100)}
           ${renderHospitationDashboardKpi("Dokumentiert", documented.length, `${openDocumentation.length} offen`, documentationPercent, { tone: documentationPercent >= 50 ? "success" : "warning" })}
@@ -37990,11 +38150,22 @@
           <article class="dashboard-card dashboard-card--half hospitation-dashboard-card">
             <div class="dashboard-card-head">
               <h4>Neue Anforderungen</h4>
-              <span class="hospitation-dashboard-section-label">${hospitationUnmetNeeds.length}</span>
+              <span class="hospitation-dashboard-section-label">${dataSet.unmetNeeds.length}</span>
             </div>
-            ${renderHospitationDashboardUnmetNeeds(active)}
+            ${renderHospitationDashboardUnmetNeeds(active, dataSet.unmetNeeds)}
           </article>
         `;
+      }
+
+      function bindHospitationDashboardActions(root = document) {
+        root.querySelectorAll("[data-hospitation-dashboard-preview-mode]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const mode = button.dataset.hospitationDashboardPreviewMode === "demo" ? "demo" : "live";
+            if (hospitationDashboardPreviewMode === mode) return;
+            hospitationDashboardPreviewMode = mode;
+            renderHospitationsView();
+          });
+        });
       }
 
       function bindHospitationListActions(root = document) {
@@ -38457,6 +38628,7 @@
         }
         if (activeTab === "dashboard") {
           renderHospitationDashboard();
+          bindHospitationDashboardActions(hospitationDashboard);
         }
       }
 

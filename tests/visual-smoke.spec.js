@@ -1545,6 +1545,12 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(dashboard).toBeVisible();
   await expect(page.locator(".controls")).toBeHidden();
   await expect(page.locator("#hospitation-command-row")).toBeHidden();
+  const liveDataButton = dashboard.getByRole("button", { name: "Echte Daten" });
+  const demoButton = dashboard.getByRole("button", { name: "Demo" });
+  await expect(dashboard).toContainText("Dashboard-Daten");
+  await expect(dashboard).toContainText("Echte Dokumentationen");
+  await expect(liveDataButton).toHaveClass(/is-active/);
+  await expect(demoButton).toBeVisible();
   await expect(dashboard).toContainText("Metadaten-Auswertung");
   await expect(dashboard).toContainText("Dokumentations-Ergebnisse");
   await expect(dashboard).not.toContainText("Durchgeführte Hospitationen");
@@ -1565,6 +1571,13 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await expect(dashboard).toContainText("Roadmap-Bewertung");
   await expect(dashboard).toContainText("Neue Anforderungen");
   await expect(dashboard).toContainText("Hilfsmittelstatus über Praxis");
+  await demoButton.click();
+  await expect(dashboard).toContainText("Demo-Preview");
+  await expect(dashboard).toContainText("gepflegte Demo-Hospitationen");
+  await expect(demoButton).toHaveClass(/is-active/);
+  await liveDataButton.click();
+  await expect(dashboard).toContainText("Echte Dokumentationen");
+  await expect(liveDataButton).toHaveClass(/is-active/);
 });
 
 test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => {
