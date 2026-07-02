@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hospitations-Dokumentation</title>
+    <meta name="theme-color" content="#155fe4" />
+    <meta name="apple-mobile-web-app-title" content="Hospitationen" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./public/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./public/app-icon-32.png" />
+    <script src="./data/supabase-config.js"></script>
+    <script src="./auth-config.js"></script>
+    <script src="./auth-guard.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --background: #f5f7fb;
+        --text-primary: #17275f;
+        --text-muted: #64748b;
+        --font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        color: var(--text-primary);
+        background: var(--background);
+        font-family: var(--font-family);
+      }
+
+      .hospitation-documentation-export {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        background: var(--background);
+      }
+
+      .hospitation-documentation-export iframe {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: var(--background);
+      }
+
+      .hospitation-documentation-loading {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.94rem;
+        font-weight: 700;
+        pointer-events: none;
+        transition: opacity 160ms ease;
+      }
+
+      body.is-loaded .hospitation-documentation-loading {
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="hospitation-documentation-export">
+      <iframe
+        id="hospitation-documentation-frame"
+        title="Hospitations-Dokumentation"
+        src="./versorgungs-kompass.html?standalone=hospitation-documentation#hospitations:documentation"
+      ></iframe>
+      <p class="hospitation-documentation-loading" aria-live="polite">Hospitations-Dokumentation wird geladen...</p>
+    </main>
+    <script>
+      document.getElementById("hospitation-documentation-frame")?.addEventListener("load", () => {
+        document.body.classList.add("is-loaded");
+      });
+    </script>
+  </body>
+</html>

@@ -11775,6 +11775,18 @@
         grid-template-columns: 76px minmax(0, 1fr);
       }
 
+      .app-shell[data-standalone-module="hospitation-documentation"] {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .app-shell[data-standalone-module="hospitation-documentation"] .app-sidebar {
+        display: none;
+      }
+
+      .app-shell[data-standalone-module="hospitation-documentation"] .wrap {
+        padding: 0;
+      }
+
       .app-sidebar {
         width: var(--sidebar-width);
         padding: 22px 14px 18px;
@@ -25011,6 +25023,19 @@
         { id: "documentation", label: "Dokumentation" },
         { id: "dashboard", label: "Dashboard" }
       ];
+      function normalizeHospitationTab(tab = "") {
+        const normalized = String(tab || "").trim();
+        return hospitationTabItems.some((item) => item.id === normalized) ? normalized : "appointments";
+      }
+      function hospitationRouteForTab(tab = activeHospitationTab) {
+        const normalized = normalizeHospitationTab(tab);
+        return normalized === "appointments" ? "hospitations" : `hospitations:${normalized}`;
+      }
+      function parseHospitationRoute(hashValue = "") {
+        const hash = String(hashValue || "").replace(/^#/, "");
+        const match = /^hospitations(?:(?::|\/)(appointments|documentation|dashboard))?$/.exec(hash);
+        return match ? { tab: normalizeHospitationTab(match[1] || "appointments") } : null;
+      }
       const settingsTabItems = [
         { id: "registrations", title: "Registrierungen", subtitle: "Eingänge aus dem Versorgungs-Netzwerk prüfen und kontrolliert übernehmen." },
         { id: "imports", title: "Dateiimport", subtitle: "Kontakte per Datei hochladen, zuordnen und geprüft importieren." },
@@ -25261,6 +25286,14 @@
       const sourceFilterMeta = document.getElementById("source-filter-meta");
       const mapViewFrame = document.getElementById("map-view-frame");
       const appShell = document.querySelector(".app-shell");
+      const standaloneModule = new URLSearchParams(window.location.search).get("standalone") || "";
+      const isHospitationDocumentationStandalone =
+        standaloneModule === "hospitation-documentation" ||
+        /hospitations-dokumentation\.html$/i.test(window.location.pathname || "");
+      if (isHospitationDocumentationStandalone) {
+        if (appShell) appShell.dataset.standaloneModule = "hospitation-documentation";
+        document.title = "Hospitations-Dokumentation";
+      }
       const viewShell = document.querySelector(".view-shell");
       const sidebarCollapseButton = document.getElementById("sidebar-collapse-button");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
@@ -45147,7 +45180,9 @@
           ? `#${routeView === "personProfile" ? personProfileRoute() : routeView}`
           : routeView === "organizationProfile" || String(routeView).startsWith("organization/")
             ? `#${routeView === "organizationProfile" ? organizationProfileRoute() : routeView}`
-            : `#${safeViewForRole(routeView)}`;
+            : routeView === "hospitations" || String(routeView).startsWith("hospitations:")
+              ? `#${hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab)}`
+              : `#${safeViewForRole(routeView)}`;
         if (window.location.hash !== nextHash) {
           window.history.pushState(null, "", nextHash);
         }
@@ -47332,6 +47367,7 @@
       hospitationTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
           activeHospitationTab = button.dataset.hospitationTab || "appointments";
+          updateRouteHash("hospitations");
           renderHospitationsView();
         });
       });
@@ -48073,6 +48109,15 @@
 
       function routeViewFromHash() {
         const hashView = String(window.location.hash || "").replace(/^#/, "");
+        if (!hashView && isHospitationDocumentationStandalone) {
+          activeHospitationTab = "documentation";
+          return "hospitations";
+        }
+        const hospitationRoute = parseHospitationRoute(hashView);
+        if (hospitationRoute) {
+          activeHospitationTab = hospitationRoute.tab;
+          return "hospitations";
+        }
         const personRoute = parsePersonProfileRoute(hashView);
         if (personRoute) {
           detailActiveTab = "overview";

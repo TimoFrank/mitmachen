@@ -9,6 +9,7 @@ const defaultBaseUrl = "https://timofrank.github.io/mitmachen";
 const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || defaultBaseUrl).replace(/\/+$/, "");
 const defaultAssets = [
   "versorgungs-kompass.html",
+  "hospitations-dokumentation.html",
   "data/supabase-config.js",
   "data/data-service.js",
   "data/stakeholder-data.js"
