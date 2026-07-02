@@ -18726,24 +18726,46 @@
 
       .hospitation-documentation-context {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(160px, 0.45fr);
-        gap: 12px;
-        margin-bottom: 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
       }
 
       .hospitation-documentation-context-card {
         min-width: 0;
         display: grid;
-        gap: 4px;
-        border: 1px solid var(--border);
+        align-content: start;
+        gap: 3px;
+        min-height: 62px;
+        border: 1px solid var(--hospitation-context-border, var(--border));
+        border-left: 4px solid var(--hospitation-context-accent, var(--accent));
         border-radius: var(--radius-sm);
-        background: var(--surface-muted);
-        padding: 10px 12px;
+        background:
+          linear-gradient(135deg, var(--hospitation-context-bg, var(--surface-muted)) 0%, var(--surface) 100%);
+        padding: 9px 10px;
+      }
+
+      .hospitation-documentation-context-card--contact {
+        --hospitation-context-accent: #2563eb;
+        --hospitation-context-border: #bfdbfe;
+        --hospitation-context-bg: #eff6ff;
+      }
+
+      .hospitation-documentation-context-card--date {
+        --hospitation-context-accent: #0f9f6e;
+        --hospitation-context-border: #b7ead6;
+        --hospitation-context-bg: #ecfdf5;
+      }
+
+      .hospitation-documentation-context-card--organization {
+        --hospitation-context-accent: #7c3aed;
+        --hospitation-context-border: #ddd6fe;
+        --hospitation-context-bg: #f5f3ff;
       }
 
       .hospitation-documentation-context-card span {
         color: var(--text-muted);
-        font-size: 0.7rem;
+        font-size: 0.66rem;
         font-weight: 850;
         letter-spacing: 0.04em;
         text-transform: uppercase;
@@ -18752,8 +18774,8 @@
       .hospitation-documentation-context-card strong {
         min-width: 0;
         color: var(--text);
-        font-size: 0.95rem;
-        line-height: 1.25;
+        font-size: 0.86rem;
+        line-height: 1.2;
         overflow-wrap: anywhere;
       }
 
@@ -35773,6 +35795,11 @@
         return contactName || organizationName || "Kontakt oder Organisation offen";
       }
 
+      function hospitationDocumentationContactLabel(hospitation = {}) {
+        const contact = hospitationContact(hospitation);
+        return contact?.displayName || contact?.name || hospitationFreeTextContactName(hospitation) || "Nicht hinterlegt";
+      }
+
       function hospitationOwnerLabel(ownerId = "") {
         const label = ownerDisplayLabel(ownerId);
         return ownerBadgeLabel(label || ownerId || currentProfile?.displayName || "");
@@ -38436,15 +38463,15 @@
       function renderHospitationDocumentationContext(hospitation = {}) {
         return `
           <div class="hospitation-documentation-context" aria-label="Kontext der Hospitation">
-            <div class="hospitation-documentation-context-card">
+            <div class="hospitation-documentation-context-card hospitation-documentation-context-card--contact">
               <span>Kontakt</span>
-              <strong>${escapeHtml(hospitationContextLabel(hospitation))}</strong>
+              <strong>${escapeHtml(hospitationDocumentationContactLabel(hospitation))}</strong>
             </div>
-            <div class="hospitation-documentation-context-card">
+            <div class="hospitation-documentation-context-card hospitation-documentation-context-card--date">
               <span>Termin</span>
               <strong>${escapeHtml(hospitationStartLabel(hospitation))}</strong>
             </div>
-            <div class="hospitation-documentation-context-card">
+            <div class="hospitation-documentation-context-card hospitation-documentation-context-card--organization">
               <span>Organisation</span>
               <strong>${escapeHtml(hospitationOrganizationLabel(hospitation))}</strong>
             </div>
@@ -38536,7 +38563,7 @@
                   ${renderHospitationDocumentationTopicInputs(hospitation)}
                 </div>
               `)}
-              ${renderHospitationEditorSection("Versorgungsrelevanz", renderHospitationDocumentationScoreInputs(documentation))}
+              ${renderHospitationEditorSection("Versorgungsrelevanz", renderHospitationDocumentationScoreInputs(documentation), { open: false })}
               ${renderHospitationEditorSection("Roadmap-Bewertung", roadmapItems.length ? renderHospitationRoadmapAssessmentInputs(hospitation) : `<div class="hospitation-roadmap-empty">Roadmap-Katalog wird nach dem Laden angezeigt.</div>`, { open: false })}
               ${renderHospitationEditorSection("Neue Anforderungen", renderHospitationUnmetNeedInputs(hospitation), { open: false })}
               ${renderHospitationEditorSection("Notizen", `
@@ -38554,7 +38581,7 @@
                     <textarea id="hospitation-documentation-next-use" name="documentationNextUse" placeholder="Was soll daraus entstehen: Follow-up, These, Produktidee, Rückfrage oder Transfer in ein anderes Modul?">${escapeHtml(documentation.nextUse || "")}</textarea>
                   </div>
                 </div>
-              `)}
+              `, { open: false })}
               <div class="format-editor-actions">
                 <button class="action-button" type="button" id="hospitation-editor-cancel">Abbrechen</button>
                 <button class="action-button action-button--primary" type="submit">Dokumentation speichern</button>

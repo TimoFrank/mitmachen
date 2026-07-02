@@ -1455,6 +1455,27 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
     "Neue Anforderungen",
     "Notizen"
   ]);
+  const documentationSections = documentationDrawer.locator("details.hospitation-editor-section");
+  const contextDetails = documentationSections.nth(0);
+  const themeDetails = documentationSections.nth(1);
+  const scoreDetails = documentationSections.nth(2);
+  const roadmapDetails = documentationSections.nth(3);
+  const unmetNeedsDetails = documentationSections.nth(4);
+  const notesDetails = documentationSections.nth(5);
+  await expect(contextDetails).toHaveAttribute("open", "");
+  await expect(themeDetails).toHaveAttribute("open", "");
+  await expect(scoreDetails).not.toHaveAttribute("open", "");
+  await expect(roadmapDetails).not.toHaveAttribute("open", "");
+  await expect(unmetNeedsDetails).not.toHaveAttribute("open", "");
+  await expect(notesDetails).not.toHaveAttribute("open", "");
+  const contextCards = contextDetails.locator(".hospitation-documentation-context-card");
+  await expect(contextCards).toHaveCount(3);
+  await expect(contextCards.nth(0)).toContainText("Kontakt");
+  await expect(contextCards.nth(0)).toContainText("Dr. Martin Deile");
+  await expect(contextCards.nth(0)).not.toContainText("Hausarztpraxis");
+  await expect(contextCards.nth(1)).toContainText("Termin");
+  await expect(contextCards.nth(2)).toContainText("Organisation");
+  await expect(contextCards.nth(2)).toContainText("Hausarztpraxis");
   await expect(documentationDrawer.locator(".hospitation-editor-section__chevron").first()).toBeVisible();
   await expect(documentationDrawer.locator("[data-documentation-theme-selected]")).toBeVisible();
   await expect(documentationDrawer.locator(".detail-theme-group").filter({ hasText: "Ausgewählte Themen" })).toBeVisible();
@@ -1462,7 +1483,6 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   await documentationDrawer.locator("#hospitation-documentation-theme-input").fill("Dokumentations-Tag");
   await documentationDrawer.locator("#hospitation-documentation-theme-add").click();
   await expect(documentationDrawer.locator("[data-documentation-theme-selected]")).toContainText("Dokumentations-Tag");
-  const roadmapDetails = documentationDrawer.locator("details.hospitation-editor-section").filter({ hasText: "Roadmap-Bewertung" });
   await expect(roadmapDetails).not.toHaveAttribute("open", "");
   await roadmapDetails.locator("summary").click();
   await expect(roadmapDetails).toHaveAttribute("open", "");
@@ -1478,16 +1498,21 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   );
   expect(roadmapOptionTexts.some((text) => /\b(?:ePA|KIM|VSDM|ISiK|PoPP|ZETA)?\s*\d+(?:\.\d+)+\b/i.test(text))).toBe(false);
   await roadmapDetails.locator("summary").click();
-  await expect(documentationDrawer.locator("[data-documentation-score-row]:visible")).toHaveCount(1);
-  await expect(documentationDrawer.locator("#documentationScore_0_itemId")).not.toContainText("Eigenes Item");
-  await expect(documentationDrawer.locator(".hospitation-score-custom").first()).toContainText("Präzisierung");
-  await expect(documentationDrawer.locator(".hospitation-slider-score__ticks").first().locator("span")).toHaveText(["1", "2", "3", "4", "5"]);
-  await documentationDrawer.locator("#hospitation-documentation-summary").fill("Dokumentationsnotiz aus dem Visualtest");
-  await documentationDrawer.locator("#hospitation-documentation-insight").fill("Erkenntnis aus dem strukturierten Formular");
-  await documentationDrawer.locator("#hospitation-documentation-next-use").fill("Nächste Nutzung aus dem Visualtest");
+  await expect(roadmapDetails).not.toHaveAttribute("open", "");
+  await scoreDetails.locator("summary").click();
+  await expect(scoreDetails).toHaveAttribute("open", "");
+  await expect(scoreDetails.locator("[data-documentation-score-row]:visible")).toHaveCount(1);
+  await expect(scoreDetails.locator("#documentationScore_0_itemId")).not.toContainText("Eigenes Item");
+  await expect(scoreDetails.locator(".hospitation-score-custom").first()).toContainText("Präzisierung");
+  await expect(scoreDetails.locator(".hospitation-slider-score__ticks").first().locator("span")).toHaveText(["1", "2", "3", "4", "5"]);
+  await notesDetails.locator("summary").click();
+  await expect(notesDetails).toHaveAttribute("open", "");
+  await notesDetails.locator("#hospitation-documentation-summary").fill("Dokumentationsnotiz aus dem Visualtest");
+  await notesDetails.locator("#hospitation-documentation-insight").fill("Erkenntnis aus dem strukturierten Formular");
+  await notesDetails.locator("#hospitation-documentation-next-use").fill("Nächste Nutzung aus dem Visualtest");
   await documentationDrawer.locator("#documentationScore_0_itemId").selectOption("medicationPlan");
   await documentationDrawer.locator("#hospitation-score-item-add").click();
-  await expect(documentationDrawer.locator("[data-documentation-score-row]:visible")).toHaveCount(2);
+  await expect(scoreDetails.locator("[data-documentation-score-row]:visible")).toHaveCount(2);
   await documentationDrawer.locator("#documentationScore_1_itemId").selectOption("dischargeLetter");
   await documentationDrawer.locator('[name="documentationScore_0_score"]').evaluate((input) => {
     input.value = "4";
@@ -1501,7 +1526,7 @@ test("Hospitationen: Themen und Notizen im Akkordeon", async ({ page }, testInfo
   });
   await documentationDrawer.locator("#hospitation-score-item-input").fill("Hilfsmittelstatus");
   await documentationDrawer.locator("#hospitation-score-item-add").click();
-  await expect(documentationDrawer.locator("[data-documentation-score-row]:visible")).toHaveCount(3);
+  await expect(scoreDetails.locator("[data-documentation-score-row]:visible")).toHaveCount(3);
   await expect(documentationDrawer.locator("[data-documentation-score-label]", { hasText: "Hilfsmittelstatus" })).toBeVisible();
   await documentationDrawer.locator('[name="documentationScore_2_score"]').evaluate((input) => {
     input.value = "3";
