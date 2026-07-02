@@ -5237,14 +5237,15 @@
 
       .activity-entry-head {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(132px, 0.32fr) minmax(0, 1fr) max-content;
         align-items: center;
-        gap: 10px;
+        column-gap: 12px;
+        min-width: 0;
       }
 
       .activity-head-main {
         display: grid;
-        gap: 5px;
+        gap: 4px;
         min-width: 0;
       }
 
@@ -5257,6 +5258,16 @@
         min-width: 0;
       }
 
+      .activity-actor-cell {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        padding-right: 12px;
+        border-right: 1px solid #e2e8f0;
+      }
+
       .activity-title {
         color: var(--text-primary);
         font-size: var(--font-size-sm);
@@ -5264,19 +5275,30 @@
         line-height: var(--line-height-tight);
       }
 
-      .activity-actor-inline {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+      .activity-actor-copy {
+        display: grid;
+        gap: 2px;
         min-width: 0;
-        color: var(--text-muted);
-        font-size: 0.78rem;
-        font-weight: 850;
-        line-height: 1.2;
       }
 
       .activity-actor-name {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
         color: #334155;
+        white-space: nowrap;
+      }
+
+      .activity-actor-team {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #64748b;
+        font-size: 0.68rem;
+        font-weight: 800;
+        line-height: 1.15;
         white-space: nowrap;
       }
 
@@ -5333,6 +5355,8 @@
         justify-items: end;
         gap: 5px;
         min-width: max-content;
+        padding-left: 12px;
+        border-left: 1px solid #e2e8f0;
         text-align: right;
       }
 
@@ -5749,11 +5773,28 @@
         .activity-entry-head {
           grid-template-columns: minmax(0, 1fr);
           align-items: start;
+          row-gap: 8px;
+        }
+
+        .activity-actor-cell {
+          padding-right: 0;
+          border-right: 0;
+        }
+
+        .activity-head-main {
+          padding-top: 1px;
         }
 
         .activity-entry-side {
           justify-items: start;
+          min-width: 0;
+          padding-left: 0;
+          border-left: 0;
           text-align: left;
+        }
+
+        .activity-contact-text {
+          white-space: normal;
         }
 
         .activities-workspace .history-values {
@@ -34000,6 +34041,23 @@
         return change.user?.displayName || ownerOptionLabel(change.changedBy || "") || "Unbekannter Nutzer";
       }
 
+      function activityUserProfile(group = {}) {
+        const user = group.user || {};
+        return ownerProfileForValue(group.changedBy || user.id || user.displayName || user.display_name || user.email || user.initials);
+      }
+
+      function activityUserTeamLabel(group = {}) {
+        const profile = activityUserProfile(group);
+        const user = group.user || {};
+        const explicitTeam = String(profile?.team || user.team || "").trim();
+        const team = canonicalTeamName(explicitTeam) || explicitTeam || (profile ? resolvedProfileTeam(profile) : resolvedProfileTeam(user));
+        return team || TEAM_UNASSIGNED_LABEL;
+      }
+
+      function activityUserAvatarMarkup(group = {}) {
+        return avatarMarkup(activityUserProfile(group) || group.user || {});
+      }
+
       function activityDayLabel(value = "") {
         const parsed = new Date(value);
         if (Number.isNaN(parsed.getTime())) return "Zeitpunkt offen";
@@ -34043,15 +34101,18 @@
         const actionKey = historyActionKey(group.changes[0]);
         const contact = activityContact(group.changes[0]);
         const headMarkup = `
+          <div class="activity-actor-cell">
+            <span class="activity-actor-avatar" aria-hidden="true">${activityUserAvatarMarkup(group)}</span>
+            <span class="activity-actor-copy">
+              <span class="activity-actor-name">${escapeHtml(activityUserLabel(group))}</span>
+              <span class="activity-actor-team">${escapeHtml(activityUserTeamLabel(group))}</span>
+            </span>
+          </div>
           <div class="activity-head-main">
             <div class="activity-title-row">
-              <span class="activity-actor-inline">
-                <span class="activity-actor-avatar" aria-hidden="true">${avatarMarkup(group.user)}</span>
-                <span class="activity-actor-name">${escapeHtml(activityUserLabel(group))}</span>
-              </span>
               <span class="activity-title">${historyActionLabel(group.action, group.changes)}</span>
-              ${activityContactContextMarkup(contact)}
             </div>
+            ${activityContactContextMarkup(contact)}
           </div>
           <div class="activity-entry-side">
             <time class="activity-time-chip" datetime="${escapeHtml(group.changedAt)}">${escapeHtml(formatDateTimeLabel(group.changedAt) || "Zeitpunkt offen")}</time>

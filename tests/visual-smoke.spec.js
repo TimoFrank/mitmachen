@@ -462,8 +462,16 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator(".activity-item--import").first()).toBeVisible();
   await expect(page.locator(".activity-item--create").first()).toBeVisible();
   await expect(page.locator(".activity-contact-button")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-actor-cell").first()).toBeVisible();
+  await expect(page.locator("#activities-list .activity-actor-team").first()).toHaveText("Versorgung");
   await expect(page.locator("#activities-list .activity-contact-avatar").first()).toBeVisible();
   await expect(page.locator("#activities-list .activity-contact-context").first()).toBeVisible();
+  const firstActivityHasTitleAboveContact = await page.locator("#activities-list .activity-item").first().evaluate((node) => {
+    const title = node.querySelector(".activity-title")?.getBoundingClientRect();
+    const contact = node.querySelector(".activity-contact-context")?.getBoundingClientRect();
+    return Boolean(title && contact && contact.top > title.top);
+  });
+  expect(firstActivityHasTitleAboveContact).toBe(true);
   await expect(page.locator("#activities-list .activity-details-toggle")).toHaveCount(0);
   await expect(page.locator("#activities-list .activity-details")).toHaveCount(0);
   await expect(page.locator("#activities-list .activity-time-chip").first()).toBeVisible();
