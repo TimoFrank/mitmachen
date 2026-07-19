@@ -1,6 +1,6 @@
 # Git-Historie datenschutzgerecht bereinigen
 
-Status: freigegeben und in Ausfuehrung; Abschluss erst nach Remote-, Cache- und Pages-Abnahme
+Status: betreiberseitig ausgefuehrt; GitHub-Supportbereinigung fuer interne PR-Refs und Pages-Altbauten ausstehend
 
 ## Warum ein eigener Eingriff nötig ist
 
@@ -69,3 +69,11 @@ Vor Beginn müssen schriftlich entschieden sein:
 - verbleibende Grenzen wie fremde Offline-Kopien oder Suchmaschinen-Caches sind im Datenschutzprotokoll festgehalten.
 
 Ohne diese Abnahme darf nur von „aus dem aktuellen Repository entfernt“, nicht von „vollständig gelöscht“ gesprochen werden.
+
+## Ausfuehrungsstand vom 19. Juli 2026
+
+Der aktuelle `main` beginnt mit dem datenschutzbereinigten Wurzel-Commit `fac533f154355a00e8bc1bb78112ec476ae68fef`. Sein Dateibaum war vor dem Rewrite bytegleich zum gruen geprueften Merge von PR 54. Der Force-Push erfolgte mit Lease-Schutz in einem kurzen Wartungsfenster; danach wurde die Force-Push-Sperre des Branchschutzes wieder aktiviert.
+
+Entfernt wurden alle alten normalen Branches, Tags, Releases, historischen Actions-Laeufe und -Artefakte, Actions-Caches sowie historische Deployment-Datensaetze. Ein frischer Klon sieht nur `main`, genau einen Commit und keine Tags. GitHub Pages wurde aus diesem Commit neu gebaut; die Demo- und Abwesenheitspruefung ist gruen. Ein GKE- oder `pre-gematik`-Deployment wurde nicht ausgeloest.
+
+Nicht durch Repository-Admins loeschbar sind 22 GitHub-interne Pull-Request-Head-Refs und 648 Eintraege der alten internen Pages-Buildhistorie. Dafuer ist eine datenfreie Supportanfrage vorbereitet. Die endgueltige Aussage „vollstaendig aus allen GitHub-Betreiberkopien entfernt“ setzt die Supportbestaetigung und anschliessende Nachpruefung voraus.
