@@ -1,7 +1,7 @@
 # Datenschutz-Bereinigungsnachweis
 
 Stand: 19. Juli 2026
-Status: Schutzuebernahme und Bereinigung des neuen Quellstands abgeschlossen; Remote-Historien- und Cache-Abnahme in Ausfuehrung
+Status: Schutzuebernahme und betreiberseitig moegliche Remote-Bereinigung abgeschlossen; GitHub-Supportbereinigung ausstehend
 
 Dieser Nachweis enthaelt bewusst keine Namen, Kontaktwerte, internen IDs oder Quelldateien. Die Detailpruefung wurde in einem zugriffsbeschraenkten Arbeitsbereich vorgenommen.
 
@@ -59,15 +59,28 @@ Die oeffentliche Demo wird ausschliesslich aus synthetischen, eindeutig als fikt
 
 Ein wertbasierter Scan des neuen Quellstands ergab keine Treffer fuer die aus den historischen Kontakt-, Expertenkreis-, Stakeholder- und Patientendaten abgeleiteten Pruefmerkmale. Dieser Scan ist ein technischer Nachweis und ersetzt keine organisatorische Datenschutzabnahme.
 
-## 4. Noch abzuschliessende Remote-Abnahme
+## 4. Remote-Abnahme
 
-Das Loeschen im neuen Quellstand entfernt alte Git-Objekte, Actions-Artefakte, Caches und CDN-Ausgaben nicht automatisch. Deshalb wird nach dem geprueften Pages-Deployment das [Runbook zur Bereinigung der Git-Historie](GIT_HISTORY_DATENSCHUTZBEREINIGUNG.md) ausgefuehrt. Der Abschlussnachweis erfordert:
+Die betreiberseitig moegliche Bereinigung wurde am 19. Juli 2026 ausgefuehrt:
 
-1. neue, bereinigte `main`-Historie und entfernte alte Remote-Refs,
-2. entfernte alte Releases, Tags, Workflow-Artefakte und Caches,
-3. eine frisch gebaute Pages-Demo, in der bekannte Altpfade HTTP 404 liefern,
-4. einen frischen Klon- und Wertscan,
-5. einen GitHub-Support-Nachweis fuer nicht selbst loeschbare Pull-Request-Refs und Betreiber-Caches,
-6. die Bestaetigung, dass GKE und das Environment `pre-gematik` nicht deployed oder veraendert wurden.
+| Kontrolle | Ergebnis |
+| --- | --- |
+| PR 54 | geprueft und gemergt |
+| Neuer `main`-Wurzel-Commit | `fac533f154355a00e8bc1bb78112ec476ae68fef` |
+| Erreichbare Commits in frischem Einzelbranch-Klon | 1 |
+| Verbleibende normale Remote-Branches | nur `main` |
+| Verbleibende Tags und Releases | 0 |
+| Geloeschte historische Actions-Laeufe | 996 |
+| Geloeschte historische Actions-Artefakte | 37; nur das neue Pages-Artefakt bleibt |
+| Geloeschte Actions-Caches | 37 mit zusammen 428.608.999 Bytes |
+| Geloeschte historische Deployment-Datensaetze | 659; nur das neue Pages-Deployment bleibt |
+| Neues Pages-Deployment | erfolgreich aus dem neuen Wurzel-Commit |
+| Bekannte entfernte Pages-Pfade | HTTP 404 |
+| Branchschutz | Force-Push nur im Wartungsfenster aktiviert und danach wieder gesperrt |
+| GKE-/`pre-gematik`-Deployment | nicht ausgeloest |
 
-Bis diese Punkte abgeschlossen sind, lautet die belastbare Aussage: **vollstaendig in den geschuetzten Bestand uebernommen und aus dem neuen oeffentlichen Quellstand entfernt**.
+Der unabhaengige Wertscan des frischen Klons und seiner 346 erreichbaren Git-Objekte verwendet dieselben geschuetzten Prueffingerprints wie die Quellstandsabnahme. Er fand keine geschuetzten Kontakte, Stakeholder oder Expertenentitaeten. Zwei Treffer waren ausschliesslich die generischen Woerter `gematik` und `selbst` in Dokumenten, keine Personen oder Organisationen.
+
+GitHub verwaltet weiterhin 22 interne Pull-Request-Head-Refs mit zusammen 703 alten Commits und 7.186 erreichbaren Objekten sowie 648 alte Pages-Build-Datensaetze, die ein Repository-Admin weder aendern noch loeschen kann. Die vorbereitete Supportanfrage bittet GitHub deshalb um Entfernung dieser internen Referenzen und Caches sowie um serverseitige Garbage Collection. Bis GitHub dies bestaetigt, lautet die belastbare Aussage:
+
+**Die Daten sind vollstaendig in den geschuetzten Bestand uebernommen, aus dem neuen oeffentlichen Quellstand und allen vom Repository-Admin loeschbaren GitHub-Referenzen entfernt; die abschliessende Bereinigung betreiberverwalteter Altobjekte ist bei GitHub Support anzufordern.**
