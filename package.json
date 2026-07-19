@@ -10,7 +10,7 @@
     "start:demo": "npm run start",
     "build:pages": "bash scripts/build_static_frontend.sh --profile pages --output dist/pages",
     "build:target": "bash scripts/build_static_frontend.sh --profile target --output dist/target --api-base-url \"$API_BASE_URL\" --auth-mode \"${TARGET_AUTH_MODE:-oidc}\"",
-    "check:demo": "node --check frontend/demo/demo-app.js && node --check frontend/data/demo-data.js && node scripts/test_hospitation_demo_data.mjs",
+    "check:demo": "node --check frontend/data/demo-data.js && node --check frontend/data/demo-api.js && node scripts/test_hospitation_demo_data.mjs && node scripts/test_demo_api.mjs",
     "check:syntax": "node scripts/check_project.mjs --syntax",
     "check:target-readiness": "node scripts/check_target_readiness.mjs",
     "check:gcp-autopilot": "node scripts/check_gcp_autopilot_readiness.mjs",

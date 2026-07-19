@@ -77,16 +77,19 @@ const profileExpectations = [
     status: "active",
     buildProfile: "pages",
     sourceRoots: [
-      "frontend/demo",
+      "frontend/app",
       "frontend/map",
+      "frontend/pages/mitmachen",
       "frontend/data/demo-data.js",
+      "frontend/data/demo-api.js",
+      "frontend/data/data-service.js",
       "frontend/data/sector-registry.js",
-      "frontend/vendor/leaflet",
-      "public/app-icon-32.png",
-      "public/gematik-logo.svg",
-      "public/demo-profile-admin.svg",
-      "public/demo-profile-editor.svg",
-      "public/demo-profile-viewer.svg"
+      "frontend/data/hospitation-model.js",
+      "frontend/data/hospitation-export.js",
+      "frontend/data/activity-model.js",
+      "frontend/data/document-text-extractor.js",
+      "frontend/vendor",
+      "public"
     ],
     artifactPath: "dist/pages",
     infrastructureRoot: null,
@@ -96,7 +99,7 @@ const profileExpectations = [
       entrypoint: ".github/workflows/deploy-pages.yml",
       trigger: "main-push"
     },
-    route: "/demo/",
+    route: "/",
     dataMode: "demo",
     dataPolicy: "synthetic-only",
     authModes: ["anonymous-demo"],
@@ -104,10 +107,11 @@ const profileExpectations = [
       "dist/target",
       "deploy",
       "config/pre-gematik",
-      "frontend/app",
+      "api",
+      "supabase",
+      "frontend/demo",
       "frontend/login",
-      "frontend/data/runtime-config.js",
-      "frontend/data/data-service.js"
+      "frontend/data/runtime-config.js"
     ]
   },
   {
@@ -214,7 +218,8 @@ requirePattern(pagesFile, pages, /pages:\s*write/, "pages: write fehlt.");
 requirePattern(pagesFile, pages, /id-token:\s*write/, "id-token: write fuer die Pages-Bestaetigung fehlt.");
 requirePattern(pagesFile, pages, /audit_public_assets\.mjs/, "Pages muss vor dem Upload gegen die Demo-Positivliste geprueft werden.");
 forbidPattern(pagesFile, pages, /dist\/target|pre-gematik|FRONTEND_BUCKET|pages-legacy/, "Pages darf keine Legacy-, Target- oder GCP-Deploymentwerte verwenden.");
-requirePattern(pagesFile, pages, /forbidden_path[\s\S]*data\/runtime-config\.js/, "Pages muss nach dem Deployment pruefen, dass keine Target-Runtimekonfiguration oeffentlich ist.");
+requirePattern(pagesFile, pages, /data\/runtime-config\.js[\s\S]*dataMode:[^\n]*demo[\s\S]*authMode:[^\n]*anonymous-demo/, "Pages muss die veroeffentlichte Runtime als anonyme Demo-Konfiguration abnehmen.");
+requirePattern(pagesFile, pages, /versorgungs-kompass\.html[\s\S]*demo-data\.js[\s\S]*demo-api\.js[\s\S]*data-service\.js/, "Pages muss Voll-App-Shell und Demo-Adapter nach dem Deployment abnehmen.");
 requirePattern(pagesFile, pages, /forbidden_path[\s\S]*data\/supabase-config\.js/, "Pages muss den historischen Supabase-Konfigurationspfad mit HTTP 404 abnehmen.");
 
 const targetFile = ".github/workflows/deploy-pre-gematik.yml";

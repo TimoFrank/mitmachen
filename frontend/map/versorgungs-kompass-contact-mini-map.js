@@ -32,10 +32,12 @@
       zoomDelta: 0.2
     });
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd",
-      maxZoom: 19
-    }).addTo(map);
+    if (window.VERSORGUNGS_COMPASS_CONFIG?.dataMode !== "demo") {
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+        subdomains: "abcd",
+        maxZoom: 19
+      }).addTo(map);
+    }
 
     const germanyGeoJson = window.MAP_DE_GEOJSON;
     const worldRing = [[-90,-180],[-90,180],[90,180],[90,-180]];

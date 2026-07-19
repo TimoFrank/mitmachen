@@ -98,15 +98,29 @@
         function transportConfig() {
           const config = window.VERSORGUNGS_COMPASS_CONFIG || {};
           const baseUrl = String(config.apiBaseUrl || "").trim().replace(/\/+$/, "");
-          const configured = config.dataMode === "api" && config.requireApiGateway === true && /^https:\/\//i.test(baseUrl);
+          const targetApi = config.dataMode === "api" && config.requireApiGateway === true && /^https:\/\//i.test(baseUrl);
+          const demoProfile = config.dataMode === "demo" && config.authMode === "anonymous-demo";
+          const demoRuntime = window.VERSORGUNGS_COMPASS_DEMO_RUNTIME;
+          const demoAdapter = window.VersorgungsCompassDemoApi;
+          const localDemo = demoProfile
+            && demoRuntime?.publicDemo === true
+            && demoRuntime?.persistence === "memory-only"
+            && demoAdapter?.active === true;
           return {
-            endpoint: configured ? baseUrl + "/api/network-registrations" : "",
-            credentials: config.apiCredentials || "include",
-            configured: configured
+            endpoint: targetApi ? baseUrl + "/api/network-registrations" : localDemo ? window.location.origin + "/api/network-registrations" : "",
+            credentials: localDemo ? "same-origin" : config.apiCredentials || "include",
+            configured: targetApi || localDemo,
+            localDemo: localDemo,
+            blockedDemo: demoProfile && !localDemo
           };
         }
         async function postRegistration(payload) {
           const transport = transportConfig();
+          if (transport.blockedDemo) {
+            const error = new Error("Die lokale Demo ist derzeit nicht verfügbar. Es wurden keine Angaben gesendet.");
+            error.code = "DEMO_ADAPTER_UNAVAILABLE";
+            throw error;
+          }
           if (!transport.configured) throw new Error("Die sichere Übermittlung ist derzeit nicht konfiguriert.");
           const response = await fetch(transport.endpoint, {
             method: "POST",
@@ -134,17 +148,23 @@
           if (!validateContactStep()) { setStep(1); return; }
           if (!form.checkValidity()) { form.reportValidity(); setStatus("Bitte prüfen Sie die markierten Angaben.", "error"); return; }
           setSubmitting(true);
-          setStatus("Ihre Registrierung wird sicher übermittelt …");
+          setStatus(transportConfig().localDemo ? "Die Demo-Registrierung wird nur lokal simuliert …" : "Ihre Registrierung wird sicher übermittelt …");
           try {
-            await postRegistration(payloadFromForm(stage));
+            const result = await postRegistration(payloadFromForm(stage));
             form.reset();
             form.hidden = true;
             document.querySelector(".form-head").hidden = true;
+            if (result && result.demo === true) {
+              confirmation.querySelector("strong").textContent = "Demo-Registrierung erfolgreich simuliert.";
+              confirmation.querySelector("p").textContent = "Es wurden keine Angaben übertragen oder dauerhaft gespeichert. Beim Neuladen wird dieser Eintrag vollständig verworfen.";
+            }
             confirmation.classList.add("is-visible");
             confirmation.scrollIntoView({ behavior: "smooth", block: "center" });
           } catch (error) {
             console.error("Registrierung fehlgeschlagen", error);
-            setStatus("Die Registrierung konnte gerade nicht übermittelt werden. Bitte versuchen Sie es später erneut.", "error");
+            setStatus(error?.code === "DEMO_ADAPTER_UNAVAILABLE"
+              ? error.message
+              : "Die Registrierung konnte gerade nicht übermittelt werden. Bitte versuchen Sie es später erneut.", "error");
           } finally { setSubmitting(false); }
         }
         nextButton.addEventListener("click", function () { if (validateContactStep()) setStep(2); });

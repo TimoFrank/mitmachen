@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
-const DEMO_DATA_SOURCE = readFileSync(
-  new URL("../../frontend/data/demo-data.js", import.meta.url),
+const UI_REGRESSION_DATA_SOURCE = readFileSync(
+  new URL("../fixtures/ui-regression-data.js", import.meta.url),
   "utf8"
 );
 
@@ -219,7 +219,7 @@ function mapPatientFixtures(window, organizations, people) {
 
 export function createProtectedBackendFixture({ role = "admin", fixtureScript = "", notifications = [], registrations } = {}) {
   const usesDefaultFixture = !String(fixtureScript || "").trim();
-  const window = runFixtureScript(usesDefaultFixture ? DEMO_DATA_SOURCE : fixtureScript);
+  const window = runFixtureScript(usesDefaultFixture ? UI_REGRESSION_DATA_SOURCE : fixtureScript);
   const demo = window.VERSORGUNGS_COMPASS_PROTECTED_TEST_DATA || window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
   const protectedDomain = usesDefaultFixture ? protectedDomainFixture() : {};
   const stakeholderOrganizations = clone(window.VERSORGUNGS_COMPASS_STAKEHOLDER_ORGANIZATIONS || demo.stakeholderOrganizations || protectedDomain.stakeholderOrganizations || []);

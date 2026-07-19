@@ -37,6 +37,14 @@ const SYNTHETIC_PROFILE_IDS = Object.freeze(Object.keys(EXPECTED_SYNTHETIC_PROFI
 
 const generatedSyntheticSeed = await buildPreGematikSyntheticSeed();
 assert.equal(syntheticSeedSql, generatedSyntheticSeed.sql, "seed.synthetic.sql ist nicht aus dem aktuellen Generatorstand erzeugt.");
+const syntheticContactNames = new Map(generatedSyntheticSeed.rows.contacts.map((contact) => [contact.id, contact.name]));
+for (const hospitation of generatedSyntheticSeed.rows.hospitations) {
+  assert.equal(
+    hospitation.contact_name,
+    syntheticContactNames.get(hospitation.contact_id) || null,
+    `Hospitation ${hospitation.id} muss denselben neutralisierten Kontaktnamen wie ihr Kontakt verwenden.`
+  );
+}
 assert.doesNotMatch(syntheticSeedSql, /^\s*(?:truncate|delete|drop|alter|create)\b/im,
   "Der synthetische Seed darf keine destruktiven oder DDL-Anweisungen enthalten.");
 assert.doesNotMatch(syntheticSeedSql, /supabase\.co|storage\/v1|profile-images|contact-images/i,

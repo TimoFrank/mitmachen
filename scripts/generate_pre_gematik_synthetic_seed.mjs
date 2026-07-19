@@ -14,29 +14,33 @@ const defaultOutputUrl = new URL(
 
 export const SEED_NAMESPACE = "pre-gematik-synthetic-v1";
 export const EXPECTED_SYNTHETIC_SEED_COUNTS = Object.freeze({
-  profiles: 3,
-  organizations: 14,
-  organization_primary_systems: 14,
-  contacts: 36,
-  contact_owners: 41,
-  formats: 2,
-  format_participants: 20,
-  hospitations: 13,
+  profiles: 5,
+  organizations: 32,
+  organization_primary_systems: 32,
+  contacts: 64,
+  contact_owners: 74,
+  formats: 8,
+  format_participants: 75,
+  hospitations: 18,
   hospitation_observations: 39,
   observation_create_audits: 39,
   import_runs: 1,
-  active_map_contacts: 36
+  active_map_contacts: 64
 });
 
 const PROFILE_IDS = Object.freeze([
   "demo-profile-admin",
   "demo-profile-editor",
-  "demo-profile-viewer"
+  "demo-profile-viewer",
+  "demo-profile-hospitation",
+  "demo-profile-formate"
 ]);
 const PROFILE_REPLACEMENTS = Object.freeze([
   { id: PROFILE_IDS[0], email: "admin@versorgungs-kompass.example.invalid", display_name: "Demo Administration", initials: "DA", role: "admin" },
   { id: PROFILE_IDS[1], email: "redaktion@versorgungs-kompass.example.invalid", display_name: "Demo Redaktion", initials: "DR", role: "editor" },
-  { id: PROFILE_IDS[2], email: "lesekonto@versorgungs-kompass.example.invalid", display_name: "Demo Lesekonto", initials: "DL", role: "viewer" }
+  { id: PROFILE_IDS[2], email: "lesekonto@versorgungs-kompass.example.invalid", display_name: "Demo Lesekonto", initials: "DL", role: "viewer" },
+  { id: PROFILE_IDS[3], email: "hospitation@versorgungs-kompass.example.invalid", display_name: "Demo Hospitation", initials: "DH", role: "editor" },
+  { id: PROFILE_IDS[4], email: "formate@versorgungs-kompass.example.invalid", display_name: "Demo Formate", initials: "DF", role: "editor" }
 ]);
 
 class SqlRaw {
@@ -226,6 +230,7 @@ function transformDemoData(data) {
     updated_at: source.updatedAt,
     updated_by: seedActor
   }));
+  const contactNameById = new Map(contacts.map((contact) => [contact.id, contact.name]));
 
   const contactOwners = data.contacts.flatMap((contact) =>
     [...new Set(contact.ownerIds || [contact.ownerId].filter(Boolean))].map((sourceProfileId) => ({
@@ -275,7 +280,19 @@ function transformDemoData(data) {
 
   const observations = [];
   const hospitations = data.hospitations.map((source) => {
-    const documentation = JSON.parse(source.documentationOutcome);
+    const documentation = String(source.documentationOutcome || "").trim()
+      ? JSON.parse(source.documentationOutcome)
+      : {
+          kind: "hospitation-documentation-v2",
+          version: 2,
+          sourceType: "synthetic_demo_scenario",
+          limitations: "Rein synthetischer Workflow-Fall ohne dokumentierte Feldbeobachtung.",
+          observations: [],
+          quotes: [],
+          mediaArtifacts: [],
+          impulses: [],
+          updatedAt: source.updatedAt
+        };
     documentation.observations = (documentation.observations || []).map((observation) => {
       const id = observationId(observation.id);
       const originalEvidenceType = observation.evidenceType || "synthetic_source_based";
@@ -321,7 +338,7 @@ function transformDemoData(data) {
       id: source.id,
       slot_id: source.slotId || null,
       contact_id: source.contactId || null,
-      contact_name: source.contactName,
+      contact_name: contactNameById.get(source.contactId) || null,
       organization_id: source.organizationId || null,
       organization_name: source.organizationName,
       requester_profile_id: mappedProfileId(source.requesterProfileId, profileIdMap),

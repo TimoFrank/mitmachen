@@ -68,59 +68,122 @@ try {
   const firstPagesFingerprint = fingerprint(pagesDir);
 
   assert.equal(fs.existsSync(path.join(pagesDir, "demo", "index.html")), true, "Pages muss die oeffentliche Demo enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "versorgungs-kompass.html")), true, "Pages muss dieselbe Voll-App-Shell wie das Target enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "demo-data.js")), true, "Pages muss den synthetischen Demo-Datensatz enthalten");
-  assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "leaflet", "leaflet.js")), true, "Pages muss nur die Kartenbibliothek enthalten");
-  assert.match(fs.readFileSync(path.join(pagesDir, "index.html"), "utf8"), /url=\.\/demo\//);
-  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /href="\.\.\/public\/app-icon-32\.png"/);
+  assert.equal(fs.existsSync(path.join(pagesDir, "data", "demo-api.js")), true, "Pages muss den lokalen Demo-API-Adapter enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "data", "data-service.js")), true, "Pages muss denselben API-Vertrag wie das Target enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "data", "runtime-config.js")), true, "Pages muss eine explizite Demo-Runtime enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "leaflet", "leaflet.js")), true, "Pages muss die Kartenbibliothek enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
+  assert.match(fs.readFileSync(path.join(pagesDir, "index.html"), "utf8"), /url=\.\/versorgungs-kompass\.html#map/);
+  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#map/);
   assertMissing(
     pagesDir,
     "login.html",
     "set-password.html",
-    "versorgungs-kompass.html",
-    "hospitation",
-    "mitmachen",
-    "data/runtime-config.js",
-    "data/data-service.js",
+    "auth-config.js",
+    "auth-guard.js",
+    "auth-login.js",
+    "demo/demo.css",
+    "demo/demo-app.js",
     "data/versorgungs-kompass-data.js",
     "data/expertenkreis-data.js",
     "data/stakeholder-data.js",
     "data/patienten-data.js",
     "vendor/supabase",
-    "vendor/xlsx",
-    "vendor/mammoth",
-    "vendor/pdfjs",
     "public/stakeholder-logos",
     "public/hospitation-avatars"
   );
 
   const pagesText = textArtifact(pagesDir);
-  assert.doesNotMatch(pagesText, /supabase(?:\.co|-js|AnonKey|Url)|apiBaseUrl|service[_-]?role/i);
+  assert.doesNotMatch(pagesText, /supabase(?:\.co|-js|AnonKey|Url)|service[_-]?role/i);
   assert.doesNotMatch(pagesText, /expertenkreis-data|stakeholder-data|versorgungs-kompass-data/i);
   assert.doesNotMatch(pagesText, /\bVK_DEMO_BACKEND\b/, "Pages darf keinen umschaltbaren Demo-Backendmodus enthalten");
-  assert.doesNotMatch(pagesText, /\bapiRequest\s*\(/, "Pages darf keine API-Hilfsfunktion enthalten");
-  assert.doesNotMatch(pagesText, /\/api\//i, "Pages darf keine API-Endpunktroute enthalten");
+
+  const pagesConfig = fs.readFileSync(path.join(pagesDir, "data", "runtime-config.js"), "utf8");
+  assert.match(pagesConfig, /dataMode:\s*"demo"/);
+  assert.match(pagesConfig, /authMode:\s*"anonymous-demo"/);
+  assert.match(pagesConfig, /apiBaseUrl:\s*""/);
+  assert.match(pagesConfig, /requireApiGateway:\s*false/);
+
+  const pagesHtml = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8");
+  const demoDataPosition = pagesHtml.indexOf("./data/demo-data.js");
+  const demoApiPosition = pagesHtml.indexOf("./data/demo-api.js");
+  const dataServicePosition = pagesHtml.indexOf("./data/data-service.js");
+  assert.ok(demoDataPosition >= 0 && demoDataPosition < demoApiPosition && demoApiPosition < dataServicePosition, "Pages muss Datensatz, Demo-Adapter und API-Vertrag in sicherer Reihenfolge laden");
+  assert.doesNotMatch(pagesHtml, /auth-(?:config|guard|login)\.js/i);
+  for (const label of ["Versorgung", "Auswertung", "Aktivitäten", "Stakeholder", "Expertenkreis", "Hospitationen", "Beobachtungen", "Fragebogen", "Dashboard", "Formate", "Teams"]) {
+    assert.match(pagesHtml, new RegExp(label), `Pages muss den Voll-App-Bereich ${label} enthalten`);
+  }
+  const pagesRegistrationHtml = fs.readFileSync(path.join(pagesDir, "mitmachen", "versorgungs-netzwerk.html"), "utf8");
+  const registrationPositions = [
+    "../data/runtime-config.js",
+    "../data/demo-data.js",
+    "../data/demo-api.js",
+    "./versorgungs-netzwerk.js"
+  ].map((value) => pagesRegistrationHtml.indexOf(value));
+  assert.ok(
+    registrationPositions.every((position) => position >= 0) && registrationPositions.every((position, index) => index === 0 || registrationPositions[index - 1] < position),
+    "Pages muss die Netzwerkregistrierung ebenfalls an die lokale Demo-API anbinden"
+  );
   assert.doesNotMatch(
     fs.readFileSync(path.join(pagesDir, "versorgungs-kompass-map.html"), "utf8"),
-    /runtime-config|auth-config|auth-guard/i,
-    "Die oeffentliche Karte darf keine Runtime- oder Auth-Konfiguration referenzieren"
+    /auth-config|auth-guard/i,
+    "Die oeffentliche Karte darf keine Auth-Konfiguration referenzieren"
+  );
+  assert.match(
+    fs.readFileSync(path.join(pagesDir, "versorgungs-kompass-map.js"), "utf8"),
+    /IS_PUBLIC_DEMO[\s\S]*if\s*\(\s*!IS_PUBLIC_DEMO\s*\)[\s\S]*L\.tileLayer/,
+    "Die oeffentliche Hauptkarte darf externe Kacheln nur ausserhalb des Demo-Modus laden"
+  );
+  assert.match(
+    fs.readFileSync(path.join(pagesDir, "versorgungs-kompass-contact-mini-map.html"), "utf8"),
+    /data\/runtime-config\.js/,
+    "Die Kontakt-Minikarte muss den Demo-Modus kennen"
+  );
+  assert.match(
+    fs.readFileSync(path.join(pagesDir, "versorgungs-kompass-contact-mini-map.js"), "utf8"),
+    /dataMode\s*!==\s*"demo"[\s\S]*L\.tileLayer/,
+    "Die Kontakt-Minikarte darf externe Kacheln nur ausserhalb des Demo-Modus laden"
   );
 
-  const pagesDemoAppPath = path.join(pagesDir, "demo", "demo-app.js");
-  const cleanPagesDemoApp = fs.readFileSync(pagesDemoAppPath, "utf8");
-  for (const [marker, label] of [
-    ['window.VK_DEMO_BACKEND = "api";', "Backendmodus"],
-    ["function apiRequest() {}", "API-Hilfsfunktion"],
-    ['const forbiddenDemoRoute = "/api/contacts";', "API-Endpunktroute"]
+  const pagesDemoApiPath = path.join(pagesDir, "data", "demo-api.js");
+  const cleanPagesDemoApi = fs.readFileSync(pagesDemoApiPath, "utf8");
+  fs.writeFileSync(pagesDemoApiPath, `${cleanPagesDemoApi}\nconst forbiddenSupabaseOrigin = "https://forbidden.supabase.co";\n`);
+  let auditResult = spawnSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(auditResult.status, 0, "Public Asset Audit muss einen Supabase-Origin fail-closed ablehnen");
+  assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /Public Asset Audit FAILED/);
+  fs.writeFileSync(pagesDemoApiPath, cleanPagesDemoApi);
+
+  const pagesConfigPath = path.join(pagesDir, "data", "runtime-config.js");
+  const cleanPagesConfig = fs.readFileSync(pagesConfigPath, "utf8");
+  fs.writeFileSync(pagesConfigPath, cleanPagesConfig.replace('apiBaseUrl: ""', 'apiBaseUrl: "https://forbidden.example.invalid"'));
+  auditResult = spawnSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(auditResult.status, 0, "Public Asset Audit muss einen externen Demo-API-Origin fail-closed ablehnen");
+  assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /Public Asset Audit FAILED/);
+  fs.writeFileSync(pagesConfigPath, cleanPagesConfig);
+
+  for (const [relativePath, marker, label] of [
+    ["data/demo-api.js", 'window.VK_DEMO_BACKEND = "api";', "umschaltbaren Backendmodus"],
+    ["versorgungs-kompass.html", '<script src="./auth-guard.js"></script>', "Auth-Skript"]
   ]) {
-    fs.writeFileSync(pagesDemoAppPath, `${cleanPagesDemoApp}\n${marker}\n`);
+    const filePath = path.join(pagesDir, relativePath);
+    const cleanContent = fs.readFileSync(filePath, "utf8");
+    fs.writeFileSync(filePath, `${cleanContent}\n${marker}\n`);
     const auditResult = spawnSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], {
       cwd: root,
       encoding: "utf8"
     });
     assert.notEqual(auditResult.status, 0, `Public Asset Audit muss ${label} fail-closed ablehnen`);
     assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /Public Asset Audit FAILED/);
+    fs.writeFileSync(filePath, cleanContent);
   }
-  fs.writeFileSync(pagesDemoAppPath, cleanPagesDemoApp);
   execFileSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], { cwd: root, stdio: "pipe" });
 
   fs.writeFileSync(path.join(pagesDir, "stale-file.txt"), "must be removed\n");
@@ -162,6 +225,7 @@ try {
     targetDir,
     "demo",
     "data/demo-data.js",
+    "data/demo-api.js",
     "data/versorgungs-kompass-data.js",
     "data/versorgungs-kompass-data.csv",
     "data/expertenkreis-data.js",
@@ -181,6 +245,17 @@ try {
   const targetText = textArtifact(targetDir);
   assert.doesNotMatch(targetText, /https:\/\/[a-z0-9-]+\.supabase\.co/i, "Target darf keine direkte Supabase-Projekt-URL enthalten");
   assert.doesNotMatch(targetText, /@supabase\/supabase-js|supabase-js@/i, "Target darf kein Supabase Browser-SDK laden");
+
+  assert.equal(
+    fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.css"), "utf8"),
+    fs.readFileSync(path.join(targetDir, "versorgungs-kompass.css"), "utf8"),
+    "Pages und Target muessen dieselben App-Styles verwenden"
+  );
+  assert.equal(
+    fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.js"), "utf8"),
+    fs.readFileSync(path.join(targetDir, "versorgungs-kompass.js"), "utf8"),
+    "Pages und Target muessen dieselbe App-Logik verwenden"
+  );
 
   const pagesOnly = new Set(relativeFiles(pagesDir).filter((file) => file !== "build-manifest.json"));
   const forbiddenOverlap = relativeFiles(targetDir).filter((file) => pagesOnly.has(file) && /(?:^|\/)(?:demo|demo-data|demo-profile|demo-person|demo-org)/i.test(file));
@@ -216,7 +291,7 @@ try {
   assert.notEqual(apiUrlWithPath.status, 0, "--api-base-url muss Pfade ausser / ablehnen");
   assert.match(`${apiUrlWithPath.stderr}\n${apiUrlWithPath.stdout}`, /HTTPS-Origin ohne Pfad/);
 
-  console.log("Deployment separation test OK: Pages-Demo und geschuetzte Realanwendung besitzen disjunkte Daten-, Auth- und Laufzeitgrenzen.");
+  console.log("Deployment separation test OK: Pages und Target teilen die Voll-App-Shell, besitzen aber disjunkte Daten-, Auth- und Laufzeitgrenzen.");
 } finally {
   fs.rmSync(fixtureRoot, { recursive: true, force: true });
 }

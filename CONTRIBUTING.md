@@ -15,13 +15,16 @@ Vorausgesetzt werden Node.js und npm.
 
 ```bash
 npm install
+npm run build:pages
 npm start
 ```
 
 Danach sind die wichtigsten Einstiege erreichbar:
 
 - App: `http://localhost:4173/frontend/app/versorgungs-kompass.html`
-- Demo: `http://localhost:4173/frontend/demo/`
+- Demo: `http://localhost:4173/dist/pages/`
+
+Die beiden Einstiege verwenden dieselbe App-Oberfläche. Die gebaute Pages-Demo lädt ausschließlich `demo-data.js` und den lokalen `demo-api.js`-Adapter, hat keinen Login und sendet keine Fachdaten an ein externes API. Die App-Quelle benötigt dagegen die geschützte Target-Runtime und API-Konfiguration.
 
 ## Änderungen prüfen
 

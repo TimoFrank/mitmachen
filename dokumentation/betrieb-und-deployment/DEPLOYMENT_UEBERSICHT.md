@@ -23,8 +23,8 @@ Die Entscheidung ist in [ADR 001](ADR_001_DEPLOYMENT_TRENNUNG.md) dokumentiert.
 | Frontend-Artefakt | `dist/pages/` | `dist/target/` | `dist/target/` |
 | Auslieferung | direktes Actions-Artefakt | privates Target-Artefakt | freigegebenes Target-Artefakt |
 | Daten | ausschliesslich fiktiv | ausschliesslich synthetisch oder belastbar anonymisiert | nur freigegebene Datenklassen |
-| Browser-Datenzugriff | lokaler Demo-Datensatz | ausschliesslich `/api` | ausschliesslich `/api` |
-| Identitaet | keine | signiertes GCP-IAP-JWT als Pre-Integrationsadapter | OIDC oder gleichwertig signierte/verifizierte Plattformidentitaet; Anbieter offen |
+| Browser-Datenzugriff | lokaler, speicherbasierter Demo-Adapter | ausschliesslich `/api` | ausschliesslich `/api` |
+| Identitaet | anonyme, sichtbare Demo-Identitaet; kein Login | signiertes GCP-IAP-JWT als Pre-Integrationsadapter | OIDC oder gleichwertig signierte/verifizierte Plattformidentitaet; Anbieter offen |
 | Backend | kein produktives Backend | Node.js API auf GKE + temporaeres Cloud SQL | Node.js API im Namespace + Shared Postgres |
 | Storage | synthetische Demo-Assets | private GCS-Buckets | freigegebener Object Storage, Auspraegung offen |
 | Pipeline | Pages-Pipeline | GitHub Actions/WIF | Software Factory/Jenkins, konkrete Anbindung offen |
@@ -44,7 +44,7 @@ frontend/ + public/ + Buildskripte
 Regeln:
 
 1. `frontend/` und `public/` sind fuehrende Quellen; `dist/` wird reproduzierbar erzeugt und nicht manuell gepflegt.
-2. `dist/pages/` enthaelt nur Demo-Code, synthetische Demo-Daten und oeffentliche Demo-Assets; Realanwendung, Login und Backend-Konfiguration sind ausgeschlossen.
+2. `dist/pages/` enthaelt dieselbe vollstaendige App-Oberflaeche wie das Target, aber nur die lokale Demo-Runtime, synthetische Daten und oeffentliche Assets; Login, Supabase, externe Fach-APIs und geschuetzte Daten sind ausgeschlossen.
 3. `dist/target/` setzt `dataMode: "api"`, im Zieldefault `authMode: "oidc"` und `requireApiGateway: true`; `iap` bleibt dem Pre-GKE-Overlay vorbehalten.
 4. `dist/target/` darf keine Supabase-Projekt-URL, keinen Supabase-Key, kein Supabase Browser SDK, keinen direkten Tabellenzugriff und keinen Registrierungsaufruf an Supabase enthalten.
 5. Eine versionierte `docs/`-Publish-Kopie existiert nicht mehr. GitHub Actions veroeffentlicht `dist/pages/` direkt.
@@ -78,7 +78,7 @@ Direkte Bot-Commits nach `main` sind kein Zielverfahren fuer Zielbetriebsrelease
 
 ### GitHub Pages
 
-Der Pages-Pfad baut `dist/pages/` und uebergibt genau dieses Verzeichnis als GitHub-Actions-Artefakt an GitHub Pages. Die lokale Demo unter `frontend/demo/` verwendet fiktive Daten.
+Der Pages-Pfad baut `dist/pages/` und uebergibt genau dieses Verzeichnis als GitHub-Actions-Artefakt an GitHub Pages. Er verwendet die gemeinsame Oberfläche aus `frontend/app/` und schaltet ausschließlich fuer Pages `frontend/data/demo-data.js` und `frontend/data/demo-api.js` vor. Der lokale Einstieg ist `dist/pages/`; die eigentliche App liegt unter `dist/pages/versorgungs-kompass.html`.
 
 ### GCP-Pre-Integration
 
