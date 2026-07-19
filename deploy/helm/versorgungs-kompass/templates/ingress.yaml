@@ -1,0 +1,54 @@
+{{- if .Values.ingress.enabled -}}
+{{- $annotations := deepCopy (.Values.ingress.annotations | default dict) -}}
+{{- if .Values.gke.managedCertificate.enabled -}}
+{{- $_ := set $annotations "networking.gke.io/managed-certificates" (include "versorgungs-kompass.gkeManagedCertificateName" .) -}}
+{{- end -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "versorgungs-kompass.fullname" . }}-api
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+  {{- with $annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          {{- if .Values.frontend.enabled }}
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.fullname" . }}-api
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendFullname" . }}
+                port:
+                  name: http
+          {{- else }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.fullname" . }}-api
+                port:
+                  name: http
+          {{- end }}
+{{- end }}

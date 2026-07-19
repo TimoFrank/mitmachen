@@ -1,0 +1,322 @@
+      :root {
+        color-scheme: light;
+        --background: #eef3f8;
+        --surface: #ffffff;
+        --surface-muted: #f7fafc;
+        --line: #d8e2ef;
+        --primary: #155fe4;
+        --primary-soft: #eaf1ff;
+        --accent: #0f766e;
+        --accent-soft: #e8f7f4;
+        --text-primary: #17275f;
+        --text-secondary: #334155;
+        --text-muted: #64748b;
+        --shadow: 0 24px 70px rgba(23, 39, 95, 0.14);
+        --font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-width: 0;
+        min-height: 100%;
+        margin: 0;
+        overflow: auto;
+        color: var(--text-primary);
+        background: var(--background);
+        font-family: var(--font-family);
+      }
+
+      .hospitation-documentation-export {
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 10px;
+      }
+
+      .hospitation-app-window {
+        width: min(1380px, calc(100vw - 20px));
+        height: min(920px, calc(100dvh - 20px));
+        min-height: min(640px, calc(100dvh - 20px));
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .hospitation-app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-width: 0;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .hospitation-app-title {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 9px;
+      }
+
+      .hospitation-app-mark {
+        position: relative;
+        width: 33px;
+        height: 31px;
+        flex: 0 0 auto;
+        overflow: visible;
+      }
+
+      .hospitation-app-dot {
+        position: absolute;
+        display: block;
+        width: 13px;
+        height: 13px;
+        border-radius: 999px;
+        box-shadow: 0 1px 3px rgba(23, 39, 95, 0.16);
+      }
+
+      .hospitation-app-dot--blue {
+        top: 2px;
+        left: 3px;
+        background: #64b5ff;
+      }
+
+      .hospitation-app-dot--orange {
+        top: 11px;
+        left: 17px;
+        background: #ff9b4b;
+      }
+
+      .hospitation-app-dot--light {
+        top: 18px;
+        left: 5px;
+        background: #d8ecff;
+      }
+
+      .hospitation-app-copy {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .hospitation-app-copy strong {
+        position: relative;
+        width: max-content;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        color: var(--text-primary);
+        font-size: 1.22rem;
+        font-weight: 900;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-app-copy strong::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -3px;
+        height: 4px;
+        border-radius: 999px;
+        background: #ff7a3d;
+      }
+
+      .hospitation-app-copy span {
+        margin-top: 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .hospitation-app-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+
+      .hospitation-app-switcher {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        gap: 2px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface-muted);
+      }
+
+      .hospitation-app-switch {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      }
+
+      .hospitation-app-switch.is-active,
+      .hospitation-app-switch[aria-current="page"] {
+        background: var(--surface);
+        color: var(--primary);
+        box-shadow: 0 2px 8px rgba(23, 39, 95, 0.09);
+      }
+
+      .hospitation-app-switch:hover,
+      .hospitation-app-switch:focus-visible {
+        background: #ffffff;
+        color: var(--primary);
+        outline: none;
+      }
+
+      .hospitation-app-stage {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        padding: 10px;
+        background: #f1f5f9;
+      }
+
+      .hospitation-documentation-export iframe {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 8px;
+        background: var(--surface);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 180ms ease;
+      }
+
+      body.is-loaded .hospitation-documentation-export iframe {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .hospitation-documentation-loading {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: 0;
+        padding: 24px;
+        background: #f1f5f9;
+        transition: opacity 160ms ease;
+      }
+
+      .hospitation-loading-card {
+        width: min(420px, 100%);
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 14px 34px rgba(23, 39, 95, 0.08);
+      }
+
+      .hospitation-loading-card strong {
+        color: var(--text-primary);
+        font-size: 0.98rem;
+        font-weight: 850;
+      }
+
+      .hospitation-loading-card span {
+        color: var(--text-muted);
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .hospitation-loading-bar {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 8px;
+        background: var(--surface-muted);
+      }
+
+      .hospitation-loading-bar::before {
+        content: "";
+        display: block;
+        width: 42%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--primary);
+        animation: hospitation-loading 1200ms ease-in-out infinite alternate;
+      }
+
+      @keyframes hospitation-loading {
+        from {
+          transform: translateX(0);
+        }
+
+        to {
+          transform: translateX(140%);
+        }
+      }
+
+      body.is-loaded .hospitation-documentation-loading {
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+      }
+
+      @media (max-width: 760px) {
+        .hospitation-documentation-export {
+          padding: 8px;
+          place-items: stretch;
+        }
+
+        .hospitation-app-window {
+          width: 100%;
+          height: calc(100dvh - 16px);
+          min-height: 0;
+        }
+
+        .hospitation-app-header {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 10px;
+          padding: 12px;
+        }
+
+        .hospitation-app-actions {
+          justify-content: flex-start;
+          overflow-x: auto;
+          padding-bottom: 2px;
+        }
+
+        .hospitation-app-switcher {
+          flex: 0 0 auto;
+        }
+
+        .hospitation-app-stage {
+          padding: 8px;
+        }
+      }

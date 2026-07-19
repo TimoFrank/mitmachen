@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "deployment-profile.schema.json",
+  "title": "Versorgungs-Kompass deployment profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "id",
+    "purpose",
+    "status",
+    "buildProfile",
+    "sourceRoots",
+    "artifactPath",
+    "infrastructureRoot",
+    "githubEnvironment",
+    "delivery",
+    "route",
+    "dataMode",
+    "dataPolicy",
+    "authModes",
+    "forbiddenInputs"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": {
+      "enum": ["pages-demo", "pre-gematik", "target"]
+    },
+    "purpose": { "type": "string", "minLength": 1 },
+    "status": {
+      "enum": ["active", "pre-integration", "planned"]
+    },
+    "buildProfile": { "enum": ["pages", "target"] },
+    "sourceRoots": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "artifactPath": {
+      "enum": ["dist/pages", "dist/target"]
+    },
+    "infrastructureRoot": {
+      "type": ["string", "null"]
+    },
+    "githubEnvironment": {
+      "type": ["string", "null"]
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "entrypoint", "trigger"],
+      "properties": {
+        "kind": {
+          "enum": ["github-pages-actions", "github-actions-gke", "software-factory"]
+        },
+        "entrypoint": { "type": "string", "minLength": 1 },
+        "trigger": {
+          "enum": ["main-push", "manual-approval", "controlled-release"]
+        }
+      }
+    },
+    "route": { "type": ["string", "null"] },
+    "dataMode": { "enum": ["demo", "api"] },
+    "dataPolicy": {
+      "enum": ["synthetic-only", "approved-classes-only"]
+    },
+    "authModes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["anonymous-demo", "iap", "oidc"]
+      }
+    },
+    "forbiddenInputs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

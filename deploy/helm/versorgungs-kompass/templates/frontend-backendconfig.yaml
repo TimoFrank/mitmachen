@@ -1,0 +1,24 @@
+{{- if .Values.frontend.enabled -}}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "versorgungs-kompass.frontendBackendConfigName" . }}
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+spec:
+  timeoutSec: {{ .Values.frontend.backendConfig.timeoutSec }}
+  healthCheck:
+    type: "HTTP"
+    requestPath: {{ .Values.frontend.backendConfig.healthCheck.requestPath | quote }}
+    port: {{ .Values.frontend.backendConfig.healthCheck.port }}
+    checkIntervalSec: {{ .Values.frontend.backendConfig.healthCheck.checkIntervalSec }}
+    timeoutSec: {{ .Values.frontend.backendConfig.healthCheck.timeoutSec }}
+    healthyThreshold: {{ .Values.frontend.backendConfig.healthCheck.healthyThreshold }}
+    unhealthyThreshold: {{ .Values.frontend.backendConfig.healthCheck.unhealthyThreshold }}
+  iap:
+    enabled: {{ .Values.frontend.backendConfig.iap.enabled }}
+    {{- with .Values.frontend.backendConfig.iap.oauthClientCredentialsSecretName }}
+    oauthclientCredentials:
+      secretName: {{ . | quote }}
+    {{- end }}
+{{- end }}

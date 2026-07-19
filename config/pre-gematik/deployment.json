@@ -1,0 +1,21 @@
+{
+  "$schema": "../deployment-profile.schema.json",
+  "id": "pre-gematik",
+  "purpose": "Temporäre technische GKE-Pre-Integration mit kontrollierter manueller Freigabe",
+  "status": "pre-integration",
+  "buildProfile": "target",
+  "sourceRoots": ["frontend", "public", "api"],
+  "artifactPath": "dist/target",
+  "infrastructureRoot": "deploy",
+  "githubEnvironment": "pre-gematik",
+  "delivery": {
+    "kind": "github-actions-gke",
+    "entrypoint": ".github/workflows/deploy-pre-gematik.yml",
+    "trigger": "manual-approval"
+  },
+  "route": "/",
+  "dataMode": "api",
+  "dataPolicy": "approved-classes-only",
+  "authModes": ["iap"],
+  "forbiddenInputs": ["dist/pages", "frontend/demo", "frontend/data/demo-data.js"]
+}

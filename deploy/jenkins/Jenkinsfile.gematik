@@ -1,0 +1,352 @@
+pipeline {
+  agent any
+
+  environment {
+    ARTIFACT_REGISTRY = credentials('versorgungs-artifact-registry')
+    API_SERVICE = 'versorgungs-kompass-api'
+    API_IMAGE_REPOSITORY = "${ARTIFACT_REGISTRY}/${API_SERVICE}"
+    API_IMAGE = "${API_IMAGE_REPOSITORY}:${env.BUILD_NUMBER}"
+    API_BASE_URL = credentials('versorgungs-api-base-url')
+    FRONTEND_BASE_URL = credentials('versorgungs-frontend-base-url')
+    FRONTEND_BUCKET_URI = credentials('versorgungs-frontend-bucket-uri')
+    FRONTEND_ARTIFACT_DIR = 'dist/target'
+    K8S_NAMESPACE = credentials('versorgungs-k8s-namespace')
+    HELM_RELEASE = 'versorgungs-kompass'
+    HELM_CHART = 'deploy/helm/versorgungs-kompass'
+    DB_HOST = credentials('versorgungs-postgres-host')
+    DB_PORT = '5432'
+    DB_NAME = 'versorgungs_kompass'
+    DB_USER = 'vk_app'
+    DB_PASSWORD_SECRET_NAME = credentials('versorgungs-postgres-password-secret-name')
+    API_AUTH_MODE = 'oidc'
+    OIDC_ISSUER = credentials('versorgungs-oidc-issuer')
+    OIDC_AUDIENCE = credentials('versorgungs-oidc-audience')
+    OIDC_JWKS_URL = credentials('versorgungs-oidc-jwks-url')
+    OIDC_EMAIL_CLAIM = 'email'
+    OIDC_SUBJECT_CLAIM = 'sub'
+    PROFILE_IMAGE_BUCKET = credentials('versorgungs-profile-image-bucket')
+    CONTACT_IMAGE_BUCKET = credentials('versorgungs-contact-image-bucket')
+    CONTACT_NOTE_ATTACHMENT_BUCKET = credentials('versorgungs-contact-note-attachment-bucket')
+  }
+
+  stages {
+    stage('Install') {
+      steps {
+        sh 'npm ci'
+      }
+    }
+
+    stage('Static checks') {
+      steps {
+        sh 'npm run check'
+        sh 'npm run deploy:preflight'
+      }
+    }
+
+    stage('Dependency audit') {
+      steps {
+        sh '''
+          npm run security:audit
+          npm audit signatures
+        '''
+      }
+    }
+
+    stage('SAST') {
+      steps {
+        sh '''
+          docker run --rm \
+            --network=none \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --tmpfs /tmp:rw,noexec,nosuid,size=256m \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            -e SEMGREP_SEND_METRICS=off \
+            -e SEMGREP_ENABLE_VERSION_CHECK=0 \
+            -v "$PWD:/src:ro" \
+            semgrep/semgrep:1.164.0@sha256:207983631beecdbe7fa29196c7f4a7a5f29033933cdb76c687ce4a672e07618d \
+            semgrep scan --error --metrics=off --config /src/config/security/semgrep.yml /src
+        '''
+      }
+    }
+
+    stage('Secret scan') {
+      steps {
+        sh '''
+          docker run --rm \
+            --network=none \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            -v "$PWD:/repo:ro" \
+            ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            detect --source /repo --config /repo/config/security/gitleaks.toml --gitleaks-ignore-path /repo/config/security/gitleaksignore --redact --verbose
+          docker run --rm \
+            --network=none \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --user "$(id -u):$(id -g)" \
+            --workdir /repo \
+            -e HOME=/tmp \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            -v "$PWD:/repo:ro" \
+            ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            dir . --config /repo/config/security/gitleaks.toml --gitleaks-ignore-path /repo/config/security/gitleaksignore --redact --verbose
+        '''
+      }
+    }
+
+    stage('Visual smoke') {
+      steps {
+        sh 'npx playwright install --with-deps chromium'
+        sh 'npm run test:visual'
+      }
+    }
+
+    stage('Prepare frontend artifact') {
+      steps {
+        sh '''
+          set -eu
+          test "$API_AUTH_MODE" = "oidc"
+          node -e '
+            const required = ["OIDC_ISSUER", "OIDC_AUDIENCE", "OIDC_JWKS_URL"];
+            for (const name of required) {
+              if (!String(process.env[name] || "").trim()) throw new Error(`${name} is required.`);
+            }
+            for (const name of ["OIDC_ISSUER", "OIDC_JWKS_URL"]) {
+              const url = new URL(process.env[name]);
+              if (url.protocol !== "https:" || url.username || url.password || url.hash) {
+                throw new Error(`${name} must be an HTTPS URL without credentials or fragment.`);
+              }
+            }
+          '
+          bash scripts/build_static_frontend.sh \
+            --profile target \
+            --output "$FRONTEND_ARTIFACT_DIR" \
+            --api-base-url "$API_BASE_URL" \
+            --auth-mode "$API_AUTH_MODE"
+          node scripts/audit_target_assets.mjs --artifact-root "$FRONTEND_ARTIFACT_DIR"
+          npm run security:api-gateway -- \
+            --production-config "$FRONTEND_ARTIFACT_DIR/data/runtime-config.js"
+        '''
+      }
+    }
+
+    stage('Build API image') {
+      steps {
+        sh 'docker build -f api/Dockerfile -t "$API_IMAGE" .'
+      }
+    }
+
+    stage('Trivy image scan') {
+      steps {
+        sh '''
+          set -eu
+          scan_dir="$(mktemp -d)"
+          trap 'rm -rf -- "$scan_dir"' EXIT
+          mkdir -p "$scan_dir/trivy-cache"
+          docker image save --output "$scan_dir/api-image.tar" "$API_IMAGE"
+          trivy_image='aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e'
+          trivy_run() {
+            docker run --rm \
+              --cap-drop=ALL \
+              --security-opt=no-new-privileges \
+              --user "$(id -u):$(id -g)" \
+              -e HOME=/tmp \
+              --tmpfs /tmp:rw,nosuid,size=2g \
+              -v "$scan_dir:/scan:ro" \
+              -v "$scan_dir/trivy-cache:/cache" \
+              -v "$PWD:/out" \
+              "$trivy_image" \
+              image --skip-version-check --cache-dir /cache --input /scan/api-image.tar "$@"
+          }
+          trivy_run --scanners vuln --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed
+          trivy_run --scanners vuln --format cyclonedx --output /out/api-sbom.cdx.json
+        '''
+        archiveArtifacts artifacts: 'api-sbom.cdx.json', fingerprint: true
+      }
+    }
+
+    stage('Push API image') {
+      steps {
+        sh '''
+          REGISTRY_HOST="$(printf "%s" "$ARTIFACT_REGISTRY" | cut -d/ -f1)"
+          if command -v gcloud >/dev/null 2>&1; then
+            gcloud auth configure-docker "$REGISTRY_HOST" --quiet
+          fi
+          docker push "$API_IMAGE"
+        '''
+        script {
+          def imageDigest = sh(
+            script: 'gcloud artifacts docker images describe "$API_IMAGE" --format="value(image_summary.digest)"',
+            returnStdout: true
+          ).trim()
+          if (!(imageDigest ==~ /sha256:[0-9a-f]{64}/)) {
+            error('Artifact Registry did not return a valid immutable API image digest.')
+          }
+          env.API_IMAGE_DIGEST = imageDigest
+        }
+      }
+    }
+
+    stage('Helm validate') {
+      steps {
+        sh '''
+          API_HOST="$(node -e 'console.log(new URL(process.env.API_BASE_URL).host)')"
+          helm lint "$HELM_CHART" \
+            --set image.repository="$API_IMAGE_REPOSITORY" \
+            --set image.tag="$BUILD_NUMBER" \
+            --set-string image.digest="$API_IMAGE_DIGEST" \
+            --set ingress.host="$API_HOST"
+          helm template "$HELM_RELEASE" "$HELM_CHART" \
+            --namespace "$K8S_NAMESPACE" \
+            --set image.repository="$API_IMAGE_REPOSITORY" \
+            --set image.tag="$BUILD_NUMBER" \
+            --set-string image.digest="$API_IMAGE_DIGEST" \
+            --set ingress.host="$API_HOST" \
+            --set config.allowedOrigin="$FRONTEND_BASE_URL" \
+            --set config.apiAuthMode="$API_AUTH_MODE" \
+            --set-string config.oidcIssuer="$OIDC_ISSUER" \
+            --set-string config.oidcAudience="$OIDC_AUDIENCE" \
+            --set-string config.oidcJwksUrl="$OIDC_JWKS_URL" \
+            --set-string config.oidcEmailClaim="$OIDC_EMAIL_CLAIM" \
+            --set-string config.oidcSubjectClaim="$OIDC_SUBJECT_CLAIM" \
+            --set database.host="$DB_HOST" \
+            --set database.port="$DB_PORT" \
+            --set database.name="$DB_NAME" \
+            --set database.user="$DB_USER" \
+            --set secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
+            --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
+            --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
+            --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" >/tmp/versorgungs-kompass-rendered.yaml
+        '''
+      }
+    }
+
+    stage('Stage versioned frontend release') {
+      steps {
+        script {
+          def sourceRevision = sh(
+            script: 'git rev-parse --verify HEAD',
+            returnStdout: true
+          ).trim()
+          if (!(sourceRevision ==~ /[0-9a-f]{40}/)) {
+            error('Could not resolve an immutable Git source revision for the frontend release.')
+          }
+          env.FRONTEND_SOURCE_REVISION = sourceRevision
+          env.FRONTEND_RELEASE_ID = "git-${sourceRevision.take(12)}-build-${env.BUILD_NUMBER}"
+          env.FRONTEND_RELEASE_URI = "${env.FRONTEND_BUCKET_URI.replaceAll('/+$', '')}/releases/${env.FRONTEND_RELEASE_ID}"
+        }
+        sh '''
+          set -eu
+          manifest_path="$WORKSPACE/frontend-release-manifest.json"
+          marker_error="$WORKSPACE/frontend-release-marker-describe.err"
+          frontend_artifact_digest="$(jq --exit-status --raw-output \
+            '.artifactDigest | select(type == "string" and test("^sha256:[0-9a-f]{64}$"))' \
+            "$FRONTEND_ARTIFACT_DIR/build-manifest.json")"
+          if gcloud storage objects describe \
+            "$FRONTEND_RELEASE_URI/deployment-manifest.json" \
+            --format='value(name)' >/dev/null 2>"$marker_error"; then
+            echo "Frontend release $FRONTEND_RELEASE_ID already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          if ! grep -Eiq 'NOT_FOUND:|not found:[[:space:]]*404|does not exist' "$marker_error"; then
+            cat "$marker_error" >&2
+            echo "Could not prove that frontend release $FRONTEND_RELEASE_ID is unused." >&2
+            exit 1
+          fi
+
+          gcloud storage rsync \
+            --recursive \
+            "$FRONTEND_ARTIFACT_DIR" \
+            "$FRONTEND_RELEASE_URI"
+
+          jq --null-input \
+            --arg schema_version "1" \
+            --arg release_id "$FRONTEND_RELEASE_ID" \
+            --arg source_revision "$FRONTEND_SOURCE_REVISION" \
+            --arg build_number "$BUILD_NUMBER" \
+            --arg artifact_uri "$FRONTEND_RELEASE_URI" \
+            --arg api_image_digest "$API_IMAGE_DIGEST" \
+            --arg frontend_artifact_digest "$frontend_artifact_digest" \
+            '{
+              schemaVersion: ($schema_version | tonumber),
+              releaseId: $release_id,
+              sourceRevision: $source_revision,
+              buildNumber: $build_number,
+              artifactUri: $artifact_uri,
+              apiImageDigest: $api_image_digest,
+              frontendArtifactDigest: $frontend_artifact_digest,
+              promotionRequired: true
+            }' > "$manifest_path"
+          gcloud storage cp \
+            "$manifest_path" \
+            "$FRONTEND_RELEASE_URI/deployment-manifest.json"
+          gcloud storage objects describe \
+            "$FRONTEND_RELEASE_URI/data/runtime-config.js" \
+            --format='value(name)'
+          gcloud storage objects describe \
+            "$FRONTEND_RELEASE_URI/build-manifest.json" \
+            --format='value(name)'
+          gcloud storage objects describe \
+            "$FRONTEND_RELEASE_URI/deployment-manifest.json" \
+            --format='value(name)'
+          echo "Frontend release $FRONTEND_RELEASE_ID is staged; the hosting platform must promote this immutable release explicitly."
+        '''
+        archiveArtifacts artifacts: 'frontend-release-manifest.json', fingerprint: true
+      }
+    }
+
+    stage('Deploy API to Kubernetes') {
+      steps {
+        sh '''
+          API_HOST="$(node -e 'console.log(new URL(process.env.API_BASE_URL).host)')"
+          helm upgrade --install "$HELM_RELEASE" "$HELM_CHART" \
+            --namespace "$K8S_NAMESPACE" \
+            --atomic \
+            --wait \
+            --timeout 10m \
+            --set image.repository="$API_IMAGE_REPOSITORY" \
+            --set image.tag="$BUILD_NUMBER" \
+            --set-string image.digest="$API_IMAGE_DIGEST" \
+            --set ingress.host="$API_HOST" \
+            --set config.allowedOrigin="$FRONTEND_BASE_URL" \
+            --set config.apiAuthMode="$API_AUTH_MODE" \
+            --set-string config.oidcIssuer="$OIDC_ISSUER" \
+            --set-string config.oidcAudience="$OIDC_AUDIENCE" \
+            --set-string config.oidcJwksUrl="$OIDC_JWKS_URL" \
+            --set-string config.oidcEmailClaim="$OIDC_EMAIL_CLAIM" \
+            --set-string config.oidcSubjectClaim="$OIDC_SUBJECT_CLAIM" \
+            --set database.host="$DB_HOST" \
+            --set database.port="$DB_PORT" \
+            --set database.name="$DB_NAME" \
+            --set database.user="$DB_USER" \
+            --set secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
+            --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
+            --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
+            --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET"
+        '''
+      }
+    }
+
+    stage('Smoke test') {
+      steps {
+        sh '''
+          kubectl -n "$K8S_NAMESPACE" rollout status "deployment/${HELM_RELEASE}-api" --timeout=180s
+          curl -fsS "$API_BASE_URL/api/healthz"
+          session_status="$(curl -sS -o /dev/null -w '%{http_code}' "$API_BASE_URL/api/session")"
+          case "$session_status" in
+            302|401|403) ;;
+            *)
+              echo "Unauthenticated OIDC session request returned unexpected HTTP $session_status." >&2
+              exit 1
+              ;;
+          esac
+        '''
+      }
+    }
+  }
+}

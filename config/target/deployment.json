@@ -1,0 +1,21 @@
+{
+  "$schema": "../deployment-profile.schema.json",
+  "id": "target",
+  "purpose": "Künftiger interner gematik-Zielbetrieb über die kontrollierte Software Factory",
+  "status": "planned",
+  "buildProfile": "target",
+  "sourceRoots": ["frontend", "public", "api"],
+  "artifactPath": "dist/target",
+  "infrastructureRoot": "deploy",
+  "githubEnvironment": null,
+  "delivery": {
+    "kind": "software-factory",
+    "entrypoint": "deploy/jenkins/Jenkinsfile.gematik",
+    "trigger": "controlled-release"
+  },
+  "route": null,
+  "dataMode": "api",
+  "dataPolicy": "approved-classes-only",
+  "authModes": ["oidc"],
+  "forbiddenInputs": ["dist/pages", "frontend/demo", "frontend/data/demo-data.js"]
+}

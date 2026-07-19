@@ -1,0 +1,39 @@
+GCP_PROJECT_ID = "example-pre-gematik-project"
+GCP_REGION     = "europe-west3"
+GKE_LOCATION   = "europe-west3"
+
+# Optional alerting budget only; it does not impose a hard spending limit. Null creates no budget.
+BILLING_ACCOUNT_ID   = null
+MONTHLY_BUDGET_AMOUNT = 100
+BUDGET_CURRENCY_CODE  = "EUR"
+
+GKE_CLUSTER_NAME       = "versorgungs-kompass-pre-gematik"
+K8S_NAMESPACE           = "pre-gematik"
+GAR_REPOSITORY          = "versorgungs-kompass-pre-gematik"
+CLOUD_DNS_MANAGED_ZONE = "example-pre-gematik-zone"
+PUBLIC_HOSTNAME         = "pre-gematik.example.invalid"
+
+GITHUB_REPOSITORY  = "TimoFrank/mitmachen"
+GITHUB_ENVIRONMENT = "pre-gematik"
+
+DB_NAME                 = "versorgungs_kompass"
+DB_USER                 = "vk_app"
+DB_PASSWORD_SECRET_NAME = "vk-pre-gematik-postgres-password"
+IAP_OAUTH_BOOTSTRAP_SECRET_NAME = "vk-pre-gematik-iap-oauth-bootstrap"
+
+# Optional overrides for globally unique bucket names. Null derives names from GCP_PROJECT_ID.
+FRONTEND_BUCKET                = null
+PROFILE_IMAGE_BUCKET           = null
+CONTACT_IMAGE_BUCKET           = null
+CONTACT_NOTE_ATTACHMENT_BUCKET = null
+
+# Keep enabled until the environment is deliberately decommissioned.
+DELETION_PROTECTION = true
+
+# Keep only direct accounts as project-level break-glass access.
+IAP_ACCESS_MEMBERS = [
+  "user:break-glass@example.invalid",
+]
+
+# The workflow binds this group only after it has identified the two generated IAP backend services.
+IAP_RESOURCE_ACCESS_GROUP = "group:pre-gematik-access@example.invalid"

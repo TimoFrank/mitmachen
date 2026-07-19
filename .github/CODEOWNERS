@@ -1,0 +1,24 @@
+# Uebergangs-Ownership fuer das persoenliche Quell-Repository.
+# Vor dem Pilotbetrieb durch bestaetigte institutionelle Teamhandles ersetzen.
+
+* @TimoFrank
+
+# Anwendung und API
+/frontend/ @TimoFrank
+/api/ @TimoFrank
+
+# Deployment, Lieferkette und Konfiguration
+/.github/workflows/ @TimoFrank
+/config/ @TimoFrank
+/deploy/ @TimoFrank
+/scripts/build_static_frontend.sh @TimoFrank
+/scripts/prepare_target_frontend_config.mjs @TimoFrank
+
+# Datenvertrag und Migrationen
+/supabase/migrations/ @TimoFrank
+/deploy/postgres/ @TimoFrank
+
+# Sicherheitsgrenzen
+/SECURITY.md @TimoFrank
+/config/security/ @TimoFrank
+/api/security-policy.mjs @TimoFrank

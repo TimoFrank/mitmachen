@@ -1,0 +1,2659 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Versorgungs-Kompass</title>
+    <meta name="theme-color" content="#155fe4" />
+    <meta name="apple-mobile-web-app-title" content="Kompass" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="../../public/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../../public/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../../public/app-icon-32.png" />
+    <script src="../data/runtime-config.js"></script>
+    <script src="../login/auth-config.js"></script>
+    <script src="../login/auth-guard.js"></script>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="%23f4f6ff"/><rect x="11" y="9" width="18" height="18" rx="6" transform="rotate(45 20 18)" fill="%232788f6"/><rect x="34" y="24" width="18" height="18" rx="6" transform="rotate(45 43 33)" fill="%23ff7f3f"/><rect x="11" y="39" width="18" height="18" rx="6" transform="rotate(45 20 48)" fill="%2310236e"/></svg>'
+    />
+    <link rel="stylesheet" href="./versorgungs-kompass.css" />
+  </head>
+  <body>
+    <div class="app-shell is-initializing" aria-busy="true">
+      <aside class="app-sidebar" aria-label="Hauptnavigation">
+        <a class="sidebar-brand" href="#map" id="brand-home-link" aria-label="Zur Karte">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="sidebar-brand-copy">
+            <span class="sidebar-brand-kicker">#Mitmachen</span>
+            <strong>Versorgungs-Kompass</strong>
+          </div>
+        </a>
+        <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
+          <div class="sidebar-section is-expanded" aria-label="Versorgung" data-sidebar-section="care" data-sidebar-group="care" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-care-toggle" data-sidebar-section-toggle="care" aria-expanded="true" aria-controls="sidebar-section-care-content">
+              <span>Versorgung</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
+              </svg>
+            </button>
+            <div class="sidebar-section-content" id="sidebar-section-care-content">
+              <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                  <path d="M9 3v15"></path>
+                  <path d="M15 6v15"></path>
+                </svg>
+                <span>Karte</span>
+                <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="contacts" title="Kontakte">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M4 21a8 8 0 0 1 16 0"></path>
+                </svg>
+                <span>Kontakte</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="organizations" title="Organisationen">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M4 21V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15"></path>
+                  <path d="M16 9h2a2 2 0 0 1 2 2v10"></path>
+                  <path d="M8 8h4M8 12h4M8 16h4M2 21h20"></path>
+                </svg>
+                <span>Organisationen</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="analytics" id="sidebar-analytics-button" title="Auswertung">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M4 19h16"></path>
+                  <path d="M7 16V9"></path>
+                  <path d="M12 16V5"></path>
+                  <path d="M17 16v-4"></path>
+                </svg>
+                <span>Auswertung</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="activities" id="sidebar-activities-button" title="Aktivitäten">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 7v5l3 2"></path>
+                </svg>
+                <span>Aktivitäten</span>
+              </button>
+            </div>
+          </div>
+          <div class="sidebar-section is-collapsed" aria-label="Stakeholder" data-sidebar-section="stakeholders" data-sidebar-group="stakeholders" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-stakeholders-toggle" data-sidebar-section-toggle="stakeholders" aria-expanded="false" aria-controls="sidebar-section-stakeholders-content">
+              <span>Stakeholder</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
+              </svg>
+            </button>
+            <div class="sidebar-section-content" id="sidebar-section-stakeholders-content">
+              <button class="primary-tab" type="button" data-view-tab="patients" title="Patienten">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
+                  <path d="M12 8v6"></path>
+                  <path d="M9 11h6"></path>
+                </svg>
+                <span>Patienten</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Stakeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="7" cy="7" r="3"></circle>
+                  <circle cx="17" cy="7" r="3"></circle>
+                  <circle cx="12" cy="17" r="3"></circle>
+                  <path d="M9.4 9.1 11 14"></path>
+                  <path d="m14.6 9.1-1.6 4.9"></path>
+                  <path d="M9.4 17h5.2"></path>
+                </svg>
+                <span>Stakeholder</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="7" r="3"></circle>
+                  <circle cx="6" cy="17" r="3"></circle>
+                  <circle cx="18" cy="17" r="3"></circle>
+                  <path d="m10.2 9.4-2.4 4.2"></path>
+                  <path d="m13.8 9.4 2.4 4.2"></path>
+                  <path d="M9 17h6"></path>
+                </svg>
+                <span>Expertenkreis</span>
+              </button>
+            </div>
+          </div>
+          <div class="sidebar-section is-collapsed" aria-label="Hospitation" data-sidebar-section="planning" data-sidebar-group="planning" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-planning-toggle" data-sidebar-section-toggle="planning" aria-expanded="false" aria-controls="sidebar-section-planning-content">
+              <span>Hospitation</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
+              </svg>
+            </button>
+            <div class="sidebar-section-content" id="sidebar-section-planning-content">
+              <button class="primary-tab" type="button" data-view-tab="framework" title="Framework">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M4 6h16"></path>
+                  <path d="M4 12h10"></path>
+                  <path d="M4 18h7"></path>
+                  <path d="m15 15 3 3 3-6"></path>
+                </svg>
+                <span>Framework</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                  <path d="M12 14v5"></path>
+                  <path d="M9.5 16.5h5"></path>
+                </svg>
+                <span>Hospitationen</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="hospitations:observations" title="Beobachtungen">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                  <circle cx="12" cy="12" r="2.6"></circle>
+                </svg>
+                <span>Beobachtungen</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="questionnaire" title="Fragebogen">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M9 3h6l2 2v16H7V5l2-2Z"></path>
+                  <path d="M9 9h6"></path>
+                  <path d="M9 13h6"></path>
+                  <path d="M9 17h3"></path>
+                  <path d="m15 16 1.2 1.2L19 14.5"></path>
+                </svg>
+                <span>Fragebogen</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="hospitations:dashboard" title="Dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M4 19V5"></path>
+                  <path d="M4 19h16"></path>
+                  <rect x="7" y="11" width="2.8" height="5" rx="1"></rect>
+                  <rect x="12" y="7" width="2.8" height="9" rx="1"></rect>
+                  <rect x="17" y="9" width="2.8" height="7" rx="1"></rect>
+                </svg>
+                <span>Dashboard</span>
+              </button>
+            </div>
+          </div>
+          <div class="sidebar-section is-collapsed" aria-label="Formate" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-formats-toggle" data-sidebar-section-toggle="formats" aria-expanded="false" aria-controls="sidebar-section-formats-content">
+              <span>Formate</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
+              </svg>
+            </button>
+            <div class="sidebar-section-content" id="sidebar-section-formats-content">
+              <button class="primary-tab" type="button" data-view-tab="formats" title="Formate">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                  <path d="M8 15h.01"></path>
+                  <path d="M12 15h.01"></path>
+                  <path d="M16 15h.01"></path>
+                </svg>
+                <span>Formate</span>
+                <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
+              </button>
+            </div>
+          </div>
+        </nav>
+        <div class="sidebar-account-section" aria-label="App-Tour, Teams und Profil" data-sidebar-section="account">
+          <span class="sidebar-section-label">Hilfe &amp; Konto</span>
+          <button class="sidebar-link" type="button" id="sidebar-tour-button" aria-label="App-Tour starten" title="App-Tour starten">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="m10 8 6 4-6 4Z"></path>
+            </svg>
+            <span>App-Tour</span>
+          </button>
+          <button class="sidebar-link sidebar-team-link" type="button" id="sidebar-team-button" title="Teams">
+            <span class="sidebar-team-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <span class="sidebar-team-label">Teams</span>
+            <span class="notification-count-indicator" id="notification-count-team" hidden>0</span>
+          </button>
+          <div class="sidebar-account-row">
+            <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
+              <span class="sidebar-footer__badge" id="sidebar-user-badge">VK</span>
+              <div>
+                <strong id="sidebar-user-name">Nutzerprofil</strong>
+                <span id="sidebar-user-role">Wird geladen</span>
+              </div>
+            </button>
+            <button class="sidebar-notification-button" type="button" id="sidebar-notifications-button" aria-label="Benachrichtigungen öffnen" aria-controls="notification-popover" aria-expanded="false" title="Benachrichtigungen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
+              </svg>
+              <span class="notification-count-indicator" id="notification-count-total" hidden>0</span>
+            </button>
+          </div>
+          <div class="notification-popover" id="notification-popover" role="dialog" aria-labelledby="notification-popover-title" hidden>
+            <div class="notification-popover__head">
+              <div>
+                <h3 class="notification-popover__title" id="notification-popover-title">Benachrichtigungen</h3>
+              </div>
+              <button class="detail-close" type="button" id="notification-popover-close" aria-label="Benachrichtigungen schließen">×</button>
+            </div>
+            <div class="notification-popover__list" id="notification-popover-list" aria-live="polite"></div>
+            <div class="notification-popover__footer">
+              <button class="action-button action-button--compact" type="button" id="notification-popover-all">Alle Benachrichtigungen</button>
+            </div>
+          </div>
+        </div>
+        <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" title="Menü einklappen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+          <span class="sidebar-collapse-label">Menü einklappen</span>
+        </button>
+      </aside>
+
+      <div class="app-main">
+        <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,.xlsx,.xls,.doc,.docx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+        <input class="visually-hidden" type="file" id="stakeholder-file-input" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+        <input class="visually-hidden" type="file" id="format-participants-file-input" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+        <input class="visually-hidden" type="file" id="profile-photo-input" accept="image/jpeg,image/png,image/webp" />
+        <input class="visually-hidden" type="file" id="onboarding-photo-input" accept="image/jpeg,image/png,image/webp" />
+
+    <main class="wrap">
+      <section class="crm-shell">
+        <section class="app-initial-skeleton" id="app-initial-skeleton" role="status" aria-live="polite" aria-label="Ansicht wird geladen">
+          <div class="app-initial-skeleton__header" aria-hidden="true">
+            <div class="app-initial-skeleton__copy">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--title"></span>
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--subtitle"></span>
+            </div>
+            <span class="app-initial-skeleton__block app-initial-skeleton__block--icon"></span>
+          </div>
+          <div class="app-initial-skeleton__summary" aria-hidden="true">
+            <div class="app-initial-skeleton__summary-card">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--subtitle"></span>
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--metric"></span>
+            </div>
+            <div class="app-initial-skeleton__summary-card">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--subtitle"></span>
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--metric"></span>
+            </div>
+            <div class="app-initial-skeleton__summary-card">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--subtitle"></span>
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--metric"></span>
+            </div>
+          </div>
+          <div class="app-initial-skeleton__toolbar" aria-hidden="true">
+            <span class="app-initial-skeleton__block app-initial-skeleton__block--search"></span>
+            <span class="app-initial-skeleton__block app-initial-skeleton__block--action"></span>
+          </div>
+          <div class="app-initial-skeleton__list" aria-hidden="true">
+            <div class="app-initial-skeleton__row">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--avatar"></span>
+              <span class="app-initial-skeleton__row-copy"><span class="app-initial-skeleton__block app-initial-skeleton__block--primary"></span><span class="app-initial-skeleton__block app-initial-skeleton__block--secondary"></span></span>
+            </div>
+            <div class="app-initial-skeleton__row">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--avatar"></span>
+              <span class="app-initial-skeleton__row-copy"><span class="app-initial-skeleton__block app-initial-skeleton__block--primary"></span><span class="app-initial-skeleton__block app-initial-skeleton__block--secondary"></span></span>
+            </div>
+            <div class="app-initial-skeleton__row">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--avatar"></span>
+              <span class="app-initial-skeleton__row-copy"><span class="app-initial-skeleton__block app-initial-skeleton__block--primary"></span><span class="app-initial-skeleton__block app-initial-skeleton__block--secondary"></span></span>
+            </div>
+            <div class="app-initial-skeleton__row">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--avatar"></span>
+              <span class="app-initial-skeleton__row-copy"><span class="app-initial-skeleton__block app-initial-skeleton__block--primary"></span><span class="app-initial-skeleton__block app-initial-skeleton__block--secondary"></span></span>
+            </div>
+            <div class="app-initial-skeleton__row">
+              <span class="app-initial-skeleton__block app-initial-skeleton__block--avatar"></span>
+              <span class="app-initial-skeleton__row-copy"><span class="app-initial-skeleton__block app-initial-skeleton__block--primary"></span><span class="app-initial-skeleton__block app-initial-skeleton__block--secondary"></span></span>
+            </div>
+          </div>
+          <span class="visually-hidden">Die angeforderte Ansicht wird geladen.</span>
+        </section>
+        <div class="workspace-header">
+          <div class="workspace-copy">
+            <h2 id="workspace-view-title">Kontakte</h2>
+            <p id="workspace-view-subtitle">Willkommen, Timo</p>
+          </div>
+          <div class="workspace-expert-switcher" id="analytics-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Auswertung">
+              <button class="settings-tab-button is-active" type="button" role="tab" data-analytics-mode="analytics" aria-selected="true" aria-controls="view-analytics">
+                <span class="experts-mode-label">Auswertung</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-analytics-mode="quality" aria-selected="false" aria-controls="view-quality">
+                <span class="experts-mode-label">Datenqualität</span>
+              </button>
+            </div>
+          </div>
+          <div class="workspace-expert-switcher" id="expert-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Expertenkreis-Listen">
+              <button class="settings-tab-button is-active" type="button" role="tab" data-expert-mode="contacts" aria-selected="true" aria-controls="expert-contacts-table">
+                <span class="experts-mode-label">Kontakte </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-expert-mode="organizations" aria-selected="false" aria-controls="expert-organizations-table">
+                <span class="experts-mode-label">Organisationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+            </div>
+          </div>
+          <div class="workspace-expert-switcher" id="patient-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Patienten-Listen">
+              <button class="settings-tab-button" type="button" role="tab" data-patient-mode="people" aria-selected="false" aria-controls="patient-people-table">
+                <span class="experts-mode-label">Personen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button is-active" type="button" role="tab" data-patient-mode="organizations" aria-selected="true" aria-controls="patient-organizations-table">
+                <span class="experts-mode-label">Organisationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-patient-mode="indications" aria-selected="false" aria-controls="patient-indications-panel">
+                <span class="experts-mode-label">Indikationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+            </div>
+          </div>
+          <div class="workspace-expert-switcher" id="stakeholder-mode-actions" hidden>
+            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header stakeholder-type-nav" id="stakeholder-type-actions" role="tablist" aria-label="Stakeholder-Typen"></div>
+          </div>
+          <div class="workspace-header-search" id="expert-header-search" hidden></div>
+          <div class="workspace-header-search" id="stakeholder-header-search" hidden></div>
+          <div class="workspace-actions">
+            <div class="summary summary--compact" id="summary-grid"></div>
+            <div class="permission-banner" id="permission-banner" aria-live="polite">
+              <span class="permission-banner__icon" aria-hidden="true">i</span>
+              <span id="permission-banner-text">Rollenrechte werden geladen.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="controls-stack">
+            <label class="search-shell" aria-label="Kontakte durchsuchen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.5-3.5"></path>
+              </svg>
+              <input
+                class="search-input"
+                id="search"
+                type="search"
+                placeholder="Nach Name, Organisation, Thema oder Standort suchen"
+              />
+              <button class="search-clear-button" type="button" id="search-clear-button" aria-label="Suche löschen" title="Suche löschen" hidden>
+                &times;
+              </button>
+            </label>
+
+            <div class="filter-toolbar" aria-label="Filter und Ergebnisanzahl">
+              <div class="active-filter-row">
+                <div class="active-filter-list" id="active-filter-list"></div>
+              </div>
+              <div class="filter-results" id="results-count">0 von 0 Kontakten</div>
+              <div class="filter-shell">
+                <button class="filter-panel-button" type="button" id="filter-panel-button" aria-label="Filter öffnen" aria-expanded="false" aria-controls="filter-panel">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M4 6h16"></path>
+                    <path d="M7 12h10"></path>
+                    <path d="M10 18h4"></path>
+                  </svg>
+                  <span class="filter-panel-button__label">
+                    <span>Filter</span>
+                    <span class="filter-panel-button__badge" id="filter-button-badge">0</span>
+                  </span>
+                  <span class="filter-panel-button__caret">⌄</span>
+                </button>
+                <div class="filter-panel" id="filter-panel" hidden>
+                  <div class="filter-panel-head">
+                    <div>
+                      <h3 class="filter-panel-title">Filter</h3>
+                    </div>
+                    <div class="filter-panel-actions">
+                      <button class="filter-panel-close" type="button" id="filter-panel-close" aria-label="Filter schließen">&times;</button>
+                    </div>
+                  </div>
+                  <div class="filter-panel-grid">
+                    <section class="filter-group" data-filter-group="schnellfilter">
+                      <div class="filter-group-title">Schnellfilter</div>
+                      <details class="filter-field filter-field--accordion" data-filter-field="category" open>
+                        <summary>Sektor</summary>
+                        <div class="filter-choice-list" id="category-filter-select" data-draft-filter="category"></div>
+                      </details>
+                      <details class="filter-field filter-field--accordion" data-filter-field="state">
+                        <summary>Bundesland</summary>
+                        <div class="filter-choice-list" id="state-filter-select" data-draft-filter="state"></div>
+                      </details>
+                      <details class="filter-field filter-field--accordion" data-filter-field="specialty">
+                        <summary>Fachrichtung</summary>
+                        <div class="filter-choice-list" id="specialty-filter-select" data-draft-filter="specialty"></div>
+                      </details>
+                      <details class="filter-field filter-field--accordion" data-filter-field="owner">
+                        <summary>Owner</summary>
+                        <div class="filter-choice-list" id="owner-filter-select" data-draft-filter="owner"></div>
+                      </details>
+                      <details class="filter-field filter-field--accordion" data-filter-field="consent">
+                        <summary>Einwilligung</summary>
+                        <div class="filter-choice-list" id="consent-filter-select" data-draft-filter="consent"></div>
+                      </details>
+                      <details class="filter-field filter-field--accordion filter-field--wide" data-filter-field="theme">
+                        <summary>Themen</summary>
+                        <div class="filter-choice-list" id="theme-filter-input" data-draft-filter="theme"></div>
+                      </details>
+                    </section>
+                    <details class="filter-field filter-field--accordion" data-filter-field="priority">
+                      <summary>Priorität</summary>
+                      <div class="filter-choice-list" id="priority-filter-select" data-draft-filter="priority"></div>
+                    </details>
+                  </div>
+                  <div class="filter-panel-footer">
+                    <button class="filter-reset filter-reset--all" type="button" id="filter-panel-reset">
+                      <svg class="filter-reset__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M3 6h18"></path>
+                        <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6"></path>
+                        <path d="M10 11v5"></path>
+                        <path d="M14 11v5"></path>
+                        <path d="M9 6l1-2h4l1 2"></path>
+                      </svg>
+                      <span>Alle Filter zurücksetzen</span>
+                    </button>
+                    <button class="filter-panel-apply" type="button" id="filter-panel-apply">Anwenden</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <section class="contact-content-search-results" id="contact-content-search-results" aria-label="Treffer in Kontakten, Notizen und Anhängen" aria-live="polite" hidden></section>
+        </div>
+
+        <div class="view-shell">
+          <section class="view-panel" id="view-contacts" data-view-panel="contacts">
+            <div class="view-card">
+              <div class="table-command-row">
+                <div class="bulk-toolbar" id="bulk-toolbar" hidden>
+                  <span class="bulk-toolbar__count" id="bulk-selection-count">0 Kontakte ausgewählt</span>
+                  <button class="bulk-toolbar__link" type="button" id="bulk-clear-selection">Auswahl aufheben</button>
+                  <span class="bulk-toolbar__divider" aria-hidden="true"></span>
+                  <button class="action-button action-button--compact" type="button" id="bulk-export">Exportieren</button>
+                  <label class="bulk-owner-select">
+                    <span>Owner</span>
+                    <select id="bulk-owner-select" aria-label="Owner für ausgewählte Kontakte"></select>
+                  </label>
+                  <button class="action-button action-button--compact" type="button" id="bulk-assign-owner">Hinzufügen</button>
+                  <button class="action-button action-button--compact action-button--danger-soft" type="button" id="bulk-archive">Archivieren</button>
+                </div>
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions" id="contact-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+                </div>
+                <div class="view-select-shell">
+                  <button class="view-select-button" type="button" id="view-select-button" aria-expanded="false" aria-controls="view-select-menu">
+                    <svg class="view-select-button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9.5" cy="7" r="4"></circle>
+                      <path d="M19 8v6"></path>
+                      <path d="M22 11h-6"></path>
+                    </svg>
+                    <span id="view-select-label">Owner: Alle</span>
+                    <span aria-hidden="true">⌄</span>
+                  </button>
+                  <div class="view-select-menu" id="view-select-menu" hidden>
+                    <div class="view-select-section">
+                      <div class="view-select-title">Standardansichten</div>
+                      <button class="view-select-option is-active" type="button" data-standard-view="all">Alle Kontakte</button>
+                      <button class="view-select-option" type="button" data-standard-view="unowned">Ohne Owner</button>
+                    </div>
+                    <div class="view-select-section">
+                      <div class="view-select-title">Gespeicherte Ansichten</div>
+                      <div class="saved-view-list" id="view-select-saved-views"></div>
+                    </div>
+                    <div class="view-select-section">
+                      <div class="view-select-title">Owner</div>
+                      <div class="view-select-owner-list" id="view-select-owner-list"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="column-menu-shell" id="column-menu-shell">
+                  <button class="action-button action-button--compact" type="button" id="columns-button" aria-expanded="false" aria-controls="columns-menu">
+                    <span class="action-button__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                        <path d="M9 4v16"></path>
+                        <path d="M15 4v16"></path>
+                      </svg>
+                    </span>
+                    Spalten
+                  </button>
+                  <div class="column-menu" id="columns-menu" hidden>
+                    <div class="column-menu__title">Sichtbare Spalten</div>
+                    <div class="column-menu__options" id="column-options"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <section class="table contacts-table" aria-labelledby="kontaktliste-title">
+                  <div class="thead" id="contacts-table-head"></div>
+                  <div id="contact-list"></div>
+                </section>
+                <section class="expert-matching-workspace care-duplicates-workspace" aria-label="Kontakt-Dubletten" id="contact-duplicates-workspace" hidden>
+                  <div class="expert-matching-toolbar">
+                    <div class="expert-matching-meta" id="contact-duplicates-meta">0 offen</div>
+                  </div>
+                  <section class="table expert-matching-table" aria-label="Offene Dubletten">
+                    <div class="thead" id="contact-duplicates-table-head">
+                      <div>Art</div>
+                      <div>Ausgangspunkt</div>
+                      <div>Kandidat</div>
+                      <div>Grund</div>
+                      <div>Score</div>
+                      <div>Aktion</div>
+                    </div>
+                    <div id="contact-duplicates-list"></div>
+                  </section>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="pagination-meta">0–0 von 0 Kontakten</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="pagination"></div>
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
+                    <select id="page-size-select" aria-label="Kontakte pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div class="table-secondary-actions" id="contact-secondary-actions">
+                <button class="action-button" type="button" id="archive-view-button">Archiv</button>
+                <button class="action-button" type="button" id="contact-matching-worklist-button">Dubletten</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-organizations" data-view-panel="organizations">
+            <div class="view-card organizations-workspace">
+              <div class="table-command-row table-command-row--organizations">
+                <div class="table-command-actions organization-column-actions" id="organization-column-actions"></div>
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions" id="organization-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
+                  <button class="action-button" type="button" id="organization-matching-worklist-button">Dubletten</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <section class="table organizations-table" aria-labelledby="organisationen-title">
+                  <div class="thead" id="organizations-table-head">
+                    <div class="cell--organization">Organisation</div>
+                    <div class="cell--sector">Sektor</div>
+                    <div class="cell--location">Standort</div>
+                    <div class="cell--state">Bundesland</div>
+                    <div class="cell--contacts">Kontakte</div>
+                    <div class="cell--updated">Aktualisiert</div>
+                  </div>
+                  <div id="organization-list"></div>
+                </section>
+                <section class="expert-matching-workspace care-duplicates-workspace" aria-label="Organisations-Dubletten" id="organization-duplicates-workspace" hidden>
+                  <div class="expert-matching-toolbar">
+                    <div class="expert-matching-meta" id="organization-duplicates-meta">0 offen</div>
+                  </div>
+                  <section class="table expert-matching-table" aria-label="Offene Dubletten">
+                    <div class="thead" id="organization-duplicates-table-head">
+                      <div>Art</div>
+                      <div>Ausgangspunkt</div>
+                      <div>Kandidat</div>
+                      <div>Grund</div>
+                      <div>Score</div>
+                      <div>Aktion</div>
+                    </div>
+                    <div id="organization-duplicates-list"></div>
+                  </section>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="organizations-pagination-meta">0-0 von 0 Organisationen</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="organizations-pagination"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-activities" data-view-panel="activities">
+            <div class="view-card activities-workspace">
+              <div class="activities-toolbar">
+                <div class="activities-search-slot" id="activities-search-slot"></div>
+                <div class="activities-meta" id="activities-meta">Aktivitäten werden geladen</div>
+              </div>
+              <div class="activities-command-row">
+                <div class="activities-filters" aria-label="Aktivitäten filtern">
+                  <label class="activities-filter-field" data-custom-select data-select-type="activity-category">
+                    <span>Kategorie</span>
+                    <select class="activities-filter" id="activity-kind-filter" aria-label="Aktivitätskategorie filtern">
+                      <option value="all">Alle Kategorien</option>
+                      <option value="master_data">Stammdaten</option>
+                      <option value="ownership">Zuständigkeit</option>
+                      <option value="consent">Einwilligung</option>
+                      <option value="hospitation">Hospitation</option>
+                      <option value="format">Format</option>
+                      <option value="note_document">Notiz und Dokument</option>
+                      <option value="unknown">Nicht zugeordnet</option>
+                    </select>
+                  </label>
+                  <label class="activities-filter-field" data-custom-select data-select-type="activity-user">
+                    <span>Nutzer</span>
+                    <select class="activities-filter" id="activity-user-filter" aria-label="Bearbeiter filtern">
+                      <option value="all">Alle Nutzer</option>
+                    </select>
+                  </label>
+                  <label class="activities-filter-field" data-custom-select data-select-type="activity-range">
+                    <span>Zeitraum</span>
+                    <select class="activities-filter" id="activity-range-filter" aria-label="Zeitraum filtern">
+                      <option value="all">Alle Zeiten</option>
+                      <option value="today">Heute</option>
+                      <option value="7d">Letzte 7 Tage</option>
+                      <option value="30d">Letzte 30 Tage</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div class="activities-feed-shell">
+                <div class="activities-timeline" id="activities-list" aria-live="polite">
+                  <div class="history-loading">Aktivitäten werden geladen...</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-experts" data-view-panel="experts">
+            <div class="view-card experts-workspace">
+              <div class="table-command-row table-command-row--experts table-command-row--expert-actions">
+                <div class="bulk-toolbar expert-bulk-toolbar" id="expert-bulk-toolbar" hidden>
+                  <span class="bulk-toolbar__count" id="expert-bulk-selection-count">0 Kontakte ausgewählt</span>
+                  <button class="bulk-toolbar__link" type="button" id="expert-bulk-clear-selection">Auswahl aufheben</button>
+                  <span class="bulk-toolbar__divider" aria-hidden="true"></span>
+                  <button class="action-button action-button--compact" type="button" id="expert-bulk-export">Exportieren</button>
+                </div>
+                <div class="table-command-actions" id="expert-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-expert-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+                  <button class="action-button" type="button" id="new-expert-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
+                  <button class="action-button" type="button" id="expert-duplicates-button">Dubletten</button>
+                </div>
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions expert-column-actions" id="expert-column-actions"></div>
+              </div>
+              <div class="table-wrap">
+                <section class="table contacts-table experts-table" id="expert-contacts-table" aria-label="Expertenkreis-Kontakte" data-expert-table="contacts" role="tabpanel">
+                  <div class="thead" id="experts-table-head"></div>
+                  <div id="expert-list"></div>
+                </section>
+                <section class="table organizations-table expert-organizations-table" id="expert-organizations-table" aria-label="Expertenkreis-Organisationen" data-expert-table="organizations" role="tabpanel" hidden>
+                  <div class="thead" id="expert-organizations-table-head"></div>
+                  <div id="expert-organization-list"></div>
+                </section>
+                <section class="expert-matching-workspace" id="expert-duplicates-workspace" aria-label="Expertenkreis-Dubletten" data-expert-table="duplicates" role="tabpanel" hidden>
+                  <div class="expert-matching-toolbar">
+                    <div class="expert-matching-meta" id="expert-matching-meta">0 offen</div>
+                  </div>
+                  <section class="table expert-matching-table" aria-label="Offene Dubletten">
+                    <div class="thead" id="expert-matching-table-head">
+                      <div>Art</div>
+                      <div>Ausgangspunkt</div>
+                      <div>Kandidat</div>
+                      <div>Grund</div>
+                      <div>Score</div>
+                      <div>Aktion</div>
+                    </div>
+                    <div id="expert-matching-list"></div>
+                  </section>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="experts-pagination-meta">0-0 von 0 Kontakten</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="experts-pagination"></div>
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
+                    <select id="experts-page-size-select" aria-label="Einträge im Expertenkreis pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-patients" data-view-panel="patients">
+            <div class="view-card experts-workspace patients-workspace">
+              <div class="table-command-row table-command-row--experts table-command-row--patient-actions">
+                <div class="table-command-actions" id="patient-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-patient-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
+                  <button class="action-button" type="button" id="new-patient-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
+                </div>
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions expert-column-actions" id="patient-column-actions"></div>
+              </div>
+              <div class="table-wrap">
+                <section class="table contacts-table patient-people-table" id="patient-people-table" aria-label="Patienten-Personen" data-patient-table="people" role="tabpanel" hidden>
+                  <div class="thead" id="patient-people-table-head"></div>
+                  <div id="patient-people-list"></div>
+                </section>
+                <section class="table organizations-table patient-organizations-table" id="patient-organizations-table" aria-label="Patienten-Organisationen" data-patient-table="organizations" role="tabpanel">
+                  <div class="thead" id="patient-organizations-table-head"></div>
+                  <div id="patient-organization-list"></div>
+                </section>
+                <section class="patient-indications-panel" id="patient-indications-panel" aria-label="Patienten-Indikationen" data-patient-table="indications" role="tabpanel" hidden>
+                  <div class="patient-indications-list" id="patient-indications-list"></div>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="patients-pagination-meta">0-0 von 0 Organisationen</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="patients-pagination"></div>
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
+                    <select id="patients-page-size-select" aria-label="Einträge im Patientenbereich pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-stakeholders" data-view-panel="stakeholders">
+            <div class="view-card stakeholders-workspace">
+              <div class="table-command-row table-command-row--stakeholders">
+                <div class="table-command-spacer" aria-hidden="true"></div>
+                <div class="table-command-actions stakeholder-column-actions" id="stakeholder-command-actions"></div>
+              </div>
+              <div class="table-wrap">
+                <section class="table organizations-table stakeholder-organizations-table" id="stakeholder-organizations-table" aria-label="Stakeholder-Organisationen" data-stakeholder-table="organizations" role="tabpanel">
+                  <div class="thead" id="stakeholder-organizations-table-head"></div>
+                  <div id="stakeholder-organization-list"></div>
+                </section>
+              </div>
+              <div class="table-footer">
+                <div class="table-footer__meta" id="stakeholders-pagination-meta">0-0 von 0 Organisationen</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="stakeholders-pagination"></div>
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
+                    <select id="stakeholders-page-size-select" aria-label="Stakeholder pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-framework" data-view-panel="framework">
+            <div class="framework-workspace">
+              <section class="dashboard-card hospitation-dashboard-preview-card framework-header" aria-labelledby="framework-title">
+                <div class="hospitation-dashboard-preview-copy">
+                  <span>Hospitations-Framework</span>
+                  <strong id="framework-title">Hospitationen als Wissensformat</strong>
+                  <p>Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten.</p>
+                </div>
+              </section>
+
+              <section class="dashboard-card framework-model-section" aria-labelledby="framework-model-title">
+                <div class="framework-model-heading">
+                  <h4 id="framework-model-title">Von Beobachtung zu Evidenz</h4>
+                  <p class="framework-model-note">Aus einzelnen Situationen entstehen wiederkehrende Muster, daraus prüfbare Hypothesen und schließlich Evidenz für Produkt- und Portfolioentscheidungen.</p>
+                </div>
+                <div class="framework-model-card" aria-label="Von Beobachtung zu Evidenz mit Beispielzahlen">
+                  <div class="hospitation-dashboard-funnel framework-funnel framework-process-flow">
+                    <div class="hospitation-dashboard-funnel-step" style="--funnel-color: var(--hospitation-dashboard-green)">
+                      <span class="hospitation-dashboard-funnel-badge">12</span>
+                      <div class="hospitation-dashboard-funnel-copy">
+                        <strong>Beobachtungen</strong>
+                        <button class="framework-process-button" type="button" data-framework-accordion-target="observations" aria-controls="framework-accordion-observations" aria-expanded="false" aria-label="Mehr zum Schritt Beobachtungen">Mehr zum Schritt</button>
+                      </div>
+                    </div>
+                    <div class="hospitation-dashboard-funnel-step" style="--funnel-color: var(--hospitation-dashboard-blue)">
+                      <span class="hospitation-dashboard-funnel-badge">7</span>
+                      <div class="hospitation-dashboard-funnel-copy">
+                        <strong>Muster</strong>
+                        <button class="framework-process-button" type="button" data-framework-accordion-target="patterns" aria-controls="framework-accordion-patterns" aria-expanded="false" aria-label="Mehr zum Schritt Muster">Mehr zum Schritt</button>
+                      </div>
+                    </div>
+                    <div class="hospitation-dashboard-funnel-step" style="--funnel-color: var(--hospitation-dashboard-amber)">
+                      <span class="hospitation-dashboard-funnel-badge">4</span>
+                      <div class="hospitation-dashboard-funnel-copy">
+                        <strong>Hypothesen</strong>
+                        <button class="framework-process-button" type="button" data-framework-accordion-target="hypothesis" aria-controls="framework-accordion-hypothesis" aria-expanded="false" aria-label="Mehr zum Schritt Hypothesen">Mehr zum Schritt</button>
+                      </div>
+                    </div>
+                    <div class="hospitation-dashboard-funnel-step" style="--funnel-color: var(--hospitation-dashboard-red)">
+                      <span class="hospitation-dashboard-funnel-badge">2</span>
+                      <div class="hospitation-dashboard-funnel-copy">
+                        <strong>Evidenz</strong>
+                        <button class="framework-process-button" type="button" data-framework-accordion-target="evidence" aria-controls="framework-accordion-evidence" aria-expanded="false" aria-label="Mehr zum Schritt Evidenz">Mehr zum Schritt</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="framework-model-divider" aria-hidden="true">
+                <div class="framework-model-divider__nodes">
+                  <span></span>
+                  <i></i>
+                  <span></span>
+                  <i></i>
+                  <span></span>
+                </div>
+              </div>
+
+              <div class="framework-accordion-list" aria-label="Vier Schritte des Hospitations-Frameworks">
+                <details class="dashboard-card framework-accordion framework-section-card" id="framework-accordion-observations" data-framework-accordion="observations" style="--framework-color: var(--hospitation-dashboard-green)">
+                  <summary>
+                    <span class="framework-accordion-number">01</span>
+                    <span class="framework-accordion-summary">
+                      <span class="framework-accordion-title">Beobachtungen</span>
+                    </span>
+                  </summary>
+                  <div class="framework-accordion-body">
+                    <div class="framework-step-layout">
+                      <div class="framework-step-guide" aria-label="Beobachtungs-Dokumentation im Framework">
+                        <p class="framework-step-guide__lead">In gematik-Hospitationen ist Beobachtung ein qualitativer Zugang: reale Versorgung wird mit Ablauf und Beteiligten gesehen, knapp dokumentiert und erst danach eingeordnet.</p>
+                        <div class="framework-step-thread">
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Qualitative Logik</span>
+                            <p>Beobachtung ergänzt Gespräche: Ablauf und Beteiligte werden direkt wahrgenommen. So wird sichtbar, wie Arbeit tatsächlich abläuft, wo Unterbrechungen entstehen und welche digitalen oder organisatorischen Wege genutzt werden.</p>
+                          </div>
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Beispielpfad</span>
+                            <p>Bei der Aufnahme fehlt ein aktueller Befund oder Medikationsplan. Die MFA sucht während des Termins in mehreren Systemen und ruft eine andere Praxis an. Der Fragebogen ordnet die Szene als Befund / Dokumentation, fehlende Information und Arbeitsfluss unterbrochen ein.</p>
+                          </div>
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Qualität</span>
+                            <p>Eine gute Beobachtung wird kurz, sachlich und ohne Bewertung festgehalten. Sie trennt Beschreibung und Deutung, bleibt datenschutzarm und ist über Codes wie Relevanz, Prozessphase, Problemtyp, Auswirkung und Beobachtungsart vergleichbar.</p>
+                          </div>
+                        </div>
+                      </div>
+                      <a class="framework-publication-card" href="https://www.sciencedirect.com/science/article/pii/S2532204425001108" target="_blank" rel="noopener" aria-label="Publikation von Weston, Krein und Harrod öffnen">
+                        <span class="framework-publication-preview" aria-hidden="true">
+                          <span class="framework-publication-preview__tag">PDF</span>
+                          <span class="framework-publication-preview__title">Observation im Gesundheitswesen</span>
+                          <span class="framework-publication-preview__line"></span>
+                          <span class="framework-publication-preview__line"></span>
+                          <span class="framework-publication-preview__line"></span>
+                        </span>
+                        <span class="framework-publication-info">
+                          <span class="framework-publication-label">Wissenschaftliche Grundlage</span>
+                          <strong>Using observation to better understand the healthcare context</strong>
+                          <span class="framework-publication-summary">Die Publikation zeigt, dass Beobachtungen reale Abläufe, Rollen und Kontext sichtbar machen. Sie begründet, warum Hospitationen neben Gesprächen eine belastbare qualitative Quelle sind.</span>
+                          <span>Weston, Krein &amp; Harrod</span>
+                          <span>Qualitative Research in Medicine &amp; Healthcare, 2021</span>
+                          <span class="framework-publication-cta">Publikation öffnen</span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </details>
+
+                <details class="dashboard-card framework-accordion framework-section-card" id="framework-accordion-patterns" data-framework-accordion="patterns" style="--framework-color: var(--hospitation-dashboard-blue)">
+                  <summary>
+                    <span class="framework-accordion-number">02</span>
+                    <span class="framework-accordion-summary">
+                      <span class="framework-accordion-title">Muster</span>
+                    </span>
+                  </summary>
+                  <div class="framework-accordion-body">
+                    <div class="framework-step-layout">
+                      <div class="framework-step-guide" aria-label="Musterbildung im Framework">
+                        <p class="framework-step-guide__lead">Ein Muster entsteht erst, wenn mehrere Beobachtungen vergleichbar nebeneinander liegen und ein wiederkehrender Zusammenhang sichtbar wird.</p>
+                        <div class="framework-step-thread">
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Qualitative Logik</span>
+                            <p>Ähnliche Beobachtungen werden nebeneinander gelegt und über Fälle hinweg verglichen. Wiederholen sich gleiche Reibungen oder Umgehungen, wird ein möglicher Zusammenhang sichtbar. Dabei zählen auch Rollen, Prozessphasen, Ausnahmen und Kontext.</p>
+                          </div>
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Beispielpfad</span>
+                            <p>In mehreren Hospitationen fehlen Befunde bei Aufnahme oder Überweisung. Die gleichen Codes tauchen wieder auf: Befund / Dokumentation, fehlende Information, Unterbrechung des Arbeitsflusses.</p>
+                          </div>
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Qualität</span>
+                            <p>Ein gutes Muster behauptet nicht zu früh Ursache. Es beschreibt, was sich wiederholt, klärt seine Grenzen und hält fest, wann es nicht auftritt und welche Beobachtungen als Gegenbeispiele wichtig sind.</p>
+                          </div>
+                        </div>
+                      </div>
+                      <a class="framework-publication-card" href="https://link.springer.com/content/pdf/10.1186/1471-2288-13-117.pdf" target="_blank" rel="noopener" aria-label="PDF zur Framework Method öffnen">
+                        <span class="framework-publication-preview" aria-hidden="true">
+                          <span class="framework-publication-preview__tag">PDF</span>
+                          <span class="framework-publication-preview__title">Framework Method</span>
+                          <span class="framework-publication-preview__line"></span>
+                          <span class="framework-publication-preview__line"></span>
+                          <span class="framework-publication-preview__line"></span>
+                        </span>
+                        <span class="framework-publication-info">
+                          <span class="framework-publication-label">Wissenschaftliche Grundlage</span>
+                          <strong>Using the framework method for the analysis of qualitative data</strong>
+                          <span class="framework-publication-summary">Die Publikation beschreibt, wie qualitative Daten systematisch nach Fällen und Themen geordnet werden. Das passt zur Musterbildung, weil Beobachtungen vergleichbar bleiben und trotzdem verdichtet werden.</span>
+                          <span>Gale, Heath, Cameron et al.</span>
+                          <span>BMC Medical Research Methodology, 2013</span>
+                          <span class="framework-publication-cta">PDF öffnen</span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </details>
+
+                <details class="dashboard-card framework-accordion framework-section-card" id="framework-accordion-hypothesis" data-framework-accordion="hypothesis" style="--framework-color: var(--hospitation-dashboard-amber)">
+                  <summary>
+                    <span class="framework-accordion-number">03</span>
+                    <span class="framework-accordion-summary">
+                      <span class="framework-accordion-title">Hypothesen</span>
+                    </span>
+                  </summary>
+                  <div class="framework-accordion-body">
+                    <div class="framework-step-layout">
+                      <div class="framework-step-guide" aria-label="Hypothesenbildung im Framework">
+                        <p class="framework-step-guide__lead">Eine Hypothese übersetzt ein Muster in eine prüfbare Annahme. Sie beschreibt noch keine fertige Lösung.</p>
+                        <div class="framework-step-thread">
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Qualitative Logik</span>
+                            <p>Die Deutung wird als Annahme transparent gemacht: Welche Ursache, Wirkung oder welcher Bedarf könnte hinter dem Muster stehen, und was müsste sich bei einer Verbesserung verändern?</p>
+                          </div>
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Beispielpfad</span>
+                            <p>Wenn Befunde bei Aufnahme nicht digital verfügbar sind, entstehen Rückfragen, Suchaufwand und Unterbrechungen. Eine bessere Verfügbarkeit könnte den Arbeitsfluss stabilisieren.</p>
+                          </div>
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Qualität</span>
+                            <p>Eine gute Hypothese ist prüfbar und offen für Widerlegung. Weitere Hospitationen, kurze Tests und Gegenbeispiele zeigen, ob sie bestätigt, verändert oder verworfen werden muss.</p>
+                          </div>
+                        </div>
+                      </div>
+                      <a class="framework-publication-card" href="https://www.sciencedirect.com/science/article/pii/S0165178119307917" target="_blank" rel="noopener" aria-label="Publikation von Hamilton und Finley öffnen">
+                        <span class="framework-publication-preview" aria-hidden="true">
+                          <span class="framework-publication-preview__tag">Artikel</span>
+                          <span class="framework-publication-preview__title">Qualitative Implementierung</span>
+                          <span class="framework-publication-preview__line"></span>
+                          <span class="framework-publication-preview__line"></span>
+                          <span class="framework-publication-preview__line"></span>
+                        </span>
+                        <span class="framework-publication-info">
+                          <span class="framework-publication-label">Wissenschaftliche Grundlage</span>
+                          <strong>Qualitative methods in implementation research</strong>
+                          <span class="framework-publication-summary">Die Publikation erklärt, warum qualitative Forschung in der Implementierung die Warum- und Wie-Fragen klärt. Daraus können prüfbare Annahmen entstehen, ohne sofort eine Lösung festzulegen.</span>
+                          <span>Hamilton &amp; Finley</span>
+                          <span>Psychiatry Research, 2019</span>
+                          <span class="framework-publication-cta">Publikation öffnen</span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </details>
+
+                <details class="dashboard-card framework-accordion framework-section-card" id="framework-accordion-evidence" data-framework-accordion="evidence" style="--framework-color: var(--hospitation-dashboard-red)">
+                  <summary>
+                    <span class="framework-accordion-number">04</span>
+                    <span class="framework-accordion-summary">
+                      <span class="framework-accordion-title">Evidenz</span>
+                    </span>
+                  </summary>
+                  <div class="framework-accordion-body">
+                    <div class="framework-step-layout">
+                      <div class="framework-step-guide" aria-label="Evidenzbildung im Framework">
+                        <p class="framework-step-guide__lead">Evidenz entsteht, wenn Beobachtungen, Muster und geprüfte Hypothese zusammen tragfähig genug sind, um eine Entscheidung zu begründen.</p>
+                        <div class="framework-step-thread">
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Qualitative Logik</span>
+                            <p>Mehrere Quellen werden zusammengeführt: Beobachtungen, Codes, Zitate, Gegenbeispiele und Prüfungsergebnisse. So wird aus Einblicken belastbares Versorgungswissen.</p>
+                          </div>
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Beispielpfad</span>
+                            <p>Mehrere Hospitationen zeigen denselben Befund-Bruch, die Hypothese wird durch zusätzliche Gespräche oder kurze Tests gestützt und kann eine Produkt-, Prozess-, Roadmap- oder Portfolioentscheidung begründen.</p>
+                          </div>
+                          <div class="framework-step-row">
+                            <span class="framework-step-label">Qualität</span>
+                            <p>Gute Evidenz macht Quellenstatus, Gegenbeispiele, Unsicherheit und Grenzen sichtbar. Sie sagt nicht nur, was beobachtet wurde, sondern auch, wie stark die Entscheidung darauf beruhen darf.</p>
+                          </div>
+                        </div>
+                      </div>
+                      <a class="framework-publication-card" href="https://www.sciencedirect.com/science/article/pii/S2772628222000218" target="_blank" rel="noopener" aria-label="Publikation von Fix, Kim, Ruben und McCullough öffnen">
+                        <span class="framework-publication-preview" aria-hidden="true">
+                          <span class="framework-publication-preview__tag">PDF</span>
+                          <span class="framework-publication-preview__title">Direct Observation Methods</span>
+                          <span class="framework-publication-preview__line"></span>
+                          <span class="framework-publication-preview__line"></span>
+                          <span class="framework-publication-preview__line"></span>
+                        </span>
+                        <span class="framework-publication-info">
+                          <span class="framework-publication-label">Wissenschaftliche Grundlage</span>
+                          <strong>Direct observation methods: A practical guide</strong>
+                          <span class="framework-publication-summary">Die Publikation zeigt, wie direkte Beobachtung in Gesundheitsforschung sauber geplant und dokumentiert wird. Sie stützt die Idee, aus mehreren geprüften Hinweisen tragfähige Entscheidungsgrundlagen zu bilden.</span>
+                          <span>Fix, Kim, Ruben &amp; McCullough</span>
+                          <span>PEC Innovation, 2022</span>
+                          <span class="framework-publication-cta">Publikation öffnen</span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-formats" data-view-panel="formats">
+            <div class="formats-workspace">
+              <div class="formats-command-row" aria-label="Formataktionen">
+                <div class="formats-command-actions">
+                  <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
+                  <div class="format-contact-filter" id="format-contact-filter" hidden>
+                    <span>Kontakt: <strong id="format-contact-filter-name"></strong></span>
+                    <button type="button" id="format-contact-filter-clear">Filter aufheben</button>
+                  </div>
+                </div>
+                <div class="format-status-legend" aria-label="Status-Legende">
+                  <button class="format-badge format-status-badge format-status-filter format-badge--status-planning" type="button" data-format-status-filter="Planung" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10"></path><path d="M4 12h7"></path><path d="M4 18h5"></path><path d="M17 10v6l4 2"></path></svg>
+                    Planung
+                  </button>
+                  <button class="format-badge format-status-badge format-status-filter format-badge--status-active" type="button" data-format-status-filter="Aktiv" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12h10"></path><path d="m13 8 4 4-4 4"></path><circle cx="12" cy="12" r="9"></circle></svg>
+                    Aktiv
+                  </button>
+                  <button class="format-badge format-status-badge format-status-filter format-badge--status-done" type="button" data-format-status-filter="Abgeschlossen" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path><circle cx="12" cy="12" r="9"></circle></svg>
+                    Abgeschlossen
+                  </button>
+                </div>
+              </div>
+              <div class="formats-layout">
+                <section class="format-detail-panel" id="format-detail-panel" aria-label="Formatdetail">
+                  <div class="format-empty-state">
+                    <strong>Kein Format ausgewählt</strong>
+                    <span>Lege ein Format an oder nutze die Suche, um vorhandene Formate zu finden.</span>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-hospitations" data-view-panel="hospitations">
+            <div class="formats-workspace hospitations-workspace">
+              <div class="dashboard-card hospitation-dashboard-preview-card hospitation-appointments-header" id="hospitation-command-row" aria-label="Hospitationsaktionen">
+                <div class="hospitation-appointments-header__top">
+                  <div class="hospitation-dashboard-preview-copy">
+                    <strong>Hospitations-Termine</strong>
+                  </div>
+                  <div class="hospitation-appointments-header__tools">
+                    <div class="hospitation-header-search-slot" id="hospitation-header-search-slot" hidden></div>
+                    <button class="hospitation-header-search-button" type="button" id="hospitation-header-search-toggle" aria-label="Hospitationen durchsuchen" aria-controls="hospitation-header-search-slot" aria-expanded="false" title="Suchen">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="m20 20-3.5-3.5"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <section class="hospitation-tab-panel" id="hospitation-appointments-panel" data-hospitation-tab-panel="appointments" role="tabpanel">
+                <div class="hospitation-appointments-action-row">
+                  <div class="hospitation-appointments-action-row__left">
+                    <div class="bulk-toolbar hospitation-bulk-toolbar" id="hospitation-bulk-toolbar" hidden>
+                      <span class="bulk-toolbar__count" id="hospitation-bulk-selection-count">0 Termine ausgewählt</span>
+                      <button class="bulk-toolbar__link" type="button" id="hospitation-bulk-clear-selection">Auswahl aufheben</button>
+                      <span class="bulk-toolbar__divider" aria-hidden="true"></span>
+                      <button class="action-button action-button--compact action-button--danger-soft" type="button" id="hospitation-bulk-archive">Archivieren</button>
+                    </div>
+                    <div class="formats-command-actions">
+                      <button class="action-button action-button--primary" type="button" id="new-hospitation-request-button"><span class="action-button__icon">+</span>Neuer Termin</button>
+                    </div>
+                  </div>
+                  <div class="hospitation-appointments-action-row__center"></div>
+                  <div class="hospitation-appointments-action-row__right">
+                    <div class="hospitation-export-actions" role="group" aria-label="Hospitations-Termine exportieren">
+                      <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-export="docx" title="Erstellt beim Download neu aus dem aktuellen Datenstand">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M7 3.5h6.5L18 8v12.5H7z"></path>
+                          <path d="M13.5 3.5V8H18"></path>
+                          <path d="M9.2 14.2l.9 3.1 1.1-3.1 1.1 3.1.9-3.1"></path>
+                        </svg>
+                        Word
+                      </button>
+                      <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-export="pdf" title="Erstellt beim Download neu aus dem aktuellen Datenstand">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M7 3.5h6.5L18 8v12.5H7z"></path>
+                          <path d="M13.5 3.5V8H18"></path>
+                          <path d="M9.2 16.9v-3h1.4a1 1 0 0 1 0 2H9.2m4 1v-3h1.1c1.6 0 1.6 3 0 3h-1.1m4.1 0v-3h2"></path>
+                        </svg>
+                        PDF
+                      </button>
+                    </div>
+                    <div class="hospitation-view-toggle hospitation-command-view-toggle" id="hospitation-schedule-view-toggle" role="group" aria-label="Terminansicht">
+                      <button class="is-active" type="button" data-hospitation-schedule-view="list" aria-pressed="true">Liste</button>
+                      <button type="button" data-hospitation-schedule-view="calendar" aria-pressed="false">Kalender</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="hospitation-list" id="hospitation-list"></div>
+              </section>
+              <section class="hospitation-tab-panel" id="hospitation-dashboard-panel" data-hospitation-tab-panel="dashboard" role="tabpanel" hidden>
+                <div class="dashboard-grid hospitation-dashboard" id="hospitation-dashboard"></div>
+              </section>
+              <section class="hospitation-tab-panel" id="hospitation-observations-panel" data-hospitation-tab-panel="observations" role="tabpanel" hidden>
+                <div class="hospitation-observations-workbench" id="hospitation-observations-workbench"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-questionnaire" data-view-panel="questionnaire">
+            <form class="questionnaire-workspace" id="hospitation-questionnaire-form">
+              <div class="dashboard-card hospitation-dashboard-preview-card questionnaire-toolbar" aria-label="Fragebogenaktionen">
+                <div class="hospitation-dashboard-preview-copy questionnaire-toolbar__copy">
+                  <strong data-questionnaire-copy>Hospitations-Fragebogen</strong>
+                </div>
+                <div class="hospitation-dashboard-preview-actions questionnaire-toolbar__actions">
+                  <a class="action-button questionnaire-download-link" href="../../public/hospitation/mitmachen-hospitations-framework.docx" download="Mitmachen-Hospitations-Framework.docx">
+                    <span class="action-button__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="img" focusable="false">
+                        <path d="M7 3.5h6.5L18 8v12.5H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                        <path d="M13.5 3.5V8H18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                        <path d="M9.2 14.2l.9 3.1 1.1-3.1 1.1 3.1.9-3.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                    Word
+                  </a>
+                  <a class="action-button questionnaire-download-link" href="../../public/hospitation/mitmachen-hospitations-framework.pdf" download="Mitmachen-Hospitations-Framework.pdf">
+                    <span class="action-button__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="img" focusable="false">
+                        <path d="M7 3.5h6.5L18 8v12.5H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                        <path d="M13.5 3.5V8H18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                        <path d="M9.2 16.9v-3h1.4a1 1 0 0 1 0 2H9.2m4 1v-3h1.1c1.6 0 1.6 3 0 3h-1.1m4.1 0v-3h2" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                    PDF
+                  </a>
+                </div>
+              </div>
+
+              <div class="questionnaire-mobile-progress" data-questionnaire-mobile-progress aria-live="polite">
+                <div class="questionnaire-mobile-progress__copy">
+                  <strong data-questionnaire-progress-label>Schritt 1 von 7</strong>
+                  <span data-questionnaire-progress-title>Hospitationskontext</span>
+                </div>
+                <div class="questionnaire-mobile-progress__track" aria-hidden="true">
+                  <span data-questionnaire-progress-bar style="width: 14.2857%"></span>
+                </div>
+              </div>
+
+              <div class="questionnaire-layout">
+                <div class="questionnaire-section-stack">
+                  <details class="questionnaire-section questionnaire-section--context questionnaire-section--meta" data-questionnaire-section data-questionnaire-step="1" aria-labelledby="questionnaire-context-title" open>
+                    <summary>
+                      <div class="questionnaire-section__head">
+                        <div>
+                          <h3 id="questionnaire-context-title" data-questionnaire-copy>1 | Hospitationskontext</h3>
+                          <p data-questionnaire-copy>Meta-Informationen für Termin, Organisation, Kontakt und Ziel der Hospitation festhalten.</p>
+                        </div>
+                        <span class="questionnaire-section-number" aria-hidden="true">01</span>
+                      </div>
+                    </summary>
+                    <div class="questionnaire-section__body">
+                      <div class="questionnaire-meta-grid">
+                        <div class="questionnaire-field questionnaire-field--container">
+                          <label for="questionnaire-hospitation-container">Termin</label>
+                          <div class="editor-select-shell questionnaire-select-shell" data-custom-select data-select-type="questionnaire-hospitation-container" data-select-search="true">
+                            <select class="editor-select" id="questionnaire-hospitation-container" name="questionnaireHospitationContainer" data-questionnaire-container-select required>
+                              <option value="__new__">Neuen Termin anlegen</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div class="questionnaire-field questionnaire-field--date">
+                          <label for="questionnaire-date">Datum</label>
+                          <input id="questionnaire-date" name="questionnaireDate" type="date" />
+                        </div>
+                        <div class="questionnaire-field questionnaire-field--sector">
+                          <label for="questionnaire-setting">Sektor</label>
+                          <div class="editor-select-shell questionnaire-select-shell" data-custom-select data-select-type="questionnaire-sector" data-select-search="true">
+                            <select class="editor-select" id="questionnaire-setting" name="questionnaireSector" data-questionnaire-sector-select>
+                              <option value="">Sektor auswählen...</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div class="questionnaire-field questionnaire-field--organization">
+                          <label for="questionnaire-organization">Organisation</label>
+                          <div class="editor-select-shell questionnaire-select-shell" data-custom-select data-select-type="questionnaire-organization" data-select-search="true">
+                            <select class="editor-select" id="questionnaire-organization" name="questionnaireOrganization" data-questionnaire-organization-select>
+                              <option value="">Organisation auswählen...</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div class="questionnaire-field questionnaire-field--contact">
+                          <label for="questionnaire-contact">Kontaktperson</label>
+                          <div class="editor-select-shell questionnaire-select-shell" data-custom-select data-select-type="questionnaire-contact" data-select-search="true">
+                            <select class="editor-select" id="questionnaire-contact" name="questionnaireContact" data-questionnaire-contact-select>
+                              <option value="">Kontaktperson auswählen...</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div class="questionnaire-context-goal" aria-labelledby="questionnaire-context-goal-title">
+                          <h4 id="questionnaire-context-goal-title" data-questionnaire-copy>Ziel</h4>
+                          <div class="questionnaire-field">
+                            <textarea id="questionnaire-context-notes" name="questionnaireContextNotes" aria-label="Ziel der Hospitation" placeholder="Nach der Hospitation möchte ich besser verstehen, ..."></textarea>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="questionnaire-step-actions">
+                        <button class="action-button action-button--primary" type="button" data-questionnaire-step-complete>Schritt abschließen</button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="questionnaire-section questionnaire-section--workflow" data-questionnaire-section data-questionnaire-step="2" aria-labelledby="questionnaire-section-observe">
+                    <summary>
+                      <div class="questionnaire-section__head">
+                        <div>
+                          <h3 id="questionnaire-section-observe" data-questionnaire-copy>2 | Beobachtungen</h3>
+                          <p data-questionnaire-copy>Konkrete Situationen so festhalten, dass sie später codiert, verglichen und als Signale für Muster und Evidenz genutzt werden können.</p>
+                        </div>
+                        <span class="questionnaire-section-number" aria-hidden="true">02</span>
+                      </div>
+                    </summary>
+                    <div class="questionnaire-section__body">
+                      <div class="questionnaire-observation-list" id="questionnaire-observations-list" data-questionnaire-observations-list></div>
+                      <div class="questionnaire-step-actions">
+                        <button class="action-button" type="button" data-questionnaire-observation-add><span class="action-button__icon">+</span>Beobachtung</button>
+                        <button class="action-button action-button--primary" type="button" data-questionnaire-step-complete>Schritt abschließen</button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="questionnaire-section questionnaire-section--workflow" data-questionnaire-section data-questionnaire-step="3" aria-labelledby="questionnaire-section-coding">
+                    <summary>
+                      <div class="questionnaire-section__head">
+                        <div>
+                          <h3 id="questionnaire-section-coding" data-questionnaire-copy>3 | Beobachtung codieren</h3>
+                          <p data-questionnaire-copy>Pro Beobachtung Codes für Muster- und Evidenzbildung auswählen.</p>
+                        </div>
+                        <span class="questionnaire-section-number" aria-hidden="true">03</span>
+                      </div>
+                    </summary>
+                    <div class="questionnaire-section__body">
+                      <div class="questionnaire-observation-list" id="questionnaire-observation-coding-list" data-questionnaire-observation-coding-list></div>
+                      <div class="questionnaire-step-actions">
+                        <button class="action-button action-button--primary" type="button" data-questionnaire-step-complete>Schritt abschließen</button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="questionnaire-section questionnaire-section--digital" data-questionnaire-section data-questionnaire-step="4" aria-labelledby="questionnaire-section-material">
+                    <summary>
+                      <div class="questionnaire-section__head">
+                        <div>
+                          <h3 id="questionnaire-section-material" data-questionnaire-copy>4 | Zitate und Bilder</h3>
+                          <p data-questionnaire-copy>Optional Stimmen und visuelle Fundstücke zur Beobachtung ergänzen.</p>
+                        </div>
+                        <span class="questionnaire-section-number" aria-hidden="true">04</span>
+                      </div>
+                    </summary>
+                    <div class="questionnaire-section__body">
+                      <div class="questionnaire-notes-grid">
+                        <div class="questionnaire-field">
+                          <label for="questionnaire-supporting-quote">Zitat</label>
+                          <textarea id="questionnaire-supporting-quote" name="questionnaireSupportingQuote" placeholder="Wörtliche oder sinngemäße Stimme, falls relevant"></textarea>
+                        </div>
+                        <div class="questionnaire-field">
+                          <label for="questionnaire-supporting-image">Bild</label>
+                          <input id="questionnaire-supporting-image" name="questionnaireSupportingImage" type="file" accept="image/*" />
+                        </div>
+                      </div>
+                      <div class="questionnaire-step-actions">
+                        <button class="action-button action-button--primary" type="button" data-questionnaire-step-complete>Schritt abschließen</button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="questionnaire-section questionnaire-section--digital" data-questionnaire-section data-questionnaire-step="5" aria-labelledby="questionnaire-section-product">
+                    <summary>
+                      <div class="questionnaire-section__head">
+                        <div>
+                          <h3 id="questionnaire-section-product" data-questionnaire-copy>5 | Produktbezug</h3>
+                          <p data-questionnaire-copy>Einordnen, ob die Beobachtung ein konkretes Produkt oder eine digitale Infrastruktur betrifft.</p>
+                        </div>
+                        <span class="questionnaire-section-number" aria-hidden="true">05</span>
+                      </div>
+                    </summary>
+                    <div class="questionnaire-section__body">
+                      <div class="questionnaire-notes-grid">
+                        <div class="questionnaire-field questionnaire-field--wide questionnaire-product-field">
+                          <span class="questionnaire-scale-label" id="questionnaire-product-reference-label" data-questionnaire-copy>Produktbezug</span>
+                          <div class="hospitation-documentation-topics questionnaire-product-selector" role="group" aria-labelledby="questionnaire-product-reference-label" data-questionnaire-product-editor>
+                            <div class="detail-theme-editor">
+                              <div class="detail-theme-group detail-theme-group--selected">
+                                <div class="detail-theme-label">Ausgewählte Produkte</div>
+                                <div class="detail-chip-row" data-questionnaire-product-selected>
+                                  <span class="detail-secondary" data-questionnaire-product-empty>Noch keine betroffenen Produkte ausgewählt.</span>
+                                </div>
+                                <div data-questionnaire-product-values></div>
+                              </div>
+                              <div class="detail-theme-group detail-theme-group--suggestions">
+                                <div class="detail-theme-label">gematik-Anwendungen und Dienste</div>
+                                <div class="detail-theme-presets" aria-label="gematik-Anwendungen und Dienste" data-questionnaire-product-options></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="questionnaire-step-actions">
+                        <button class="action-button action-button--primary" type="button" data-questionnaire-step-complete>Schritt abschließen</button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="questionnaire-section questionnaire-section--people" data-questionnaire-section data-questionnaire-step="6" aria-labelledby="questionnaire-section-reflect">
+                    <summary>
+                      <div class="questionnaire-section__head">
+                        <div>
+                          <h3 id="questionnaire-section-reflect" data-questionnaire-copy>6 | Interne Kommunikation</h3>
+                          <p data-questionnaire-copy>Kurze Notizen festhalten, die Beobachtungen neutral teilbar machen und in Muster, Hypothesen oder Dokumentation einfließen können.</p>
+                        </div>
+                        <span class="questionnaire-section-number" aria-hidden="true">06</span>
+                      </div>
+                    </summary>
+                    <div class="questionnaire-section__body">
+                      <div class="questionnaire-field">
+                        <label for="questionnaire-reflection-note">Notiz</label>
+                        <div class="format-notes-thread questionnaire-reflection-thread" data-questionnaire-reflection-thread>
+                          <div class="format-chat-list" aria-live="polite" data-questionnaire-reflection-list>
+                            <div class="empty">Noch keine Notiz im Verlauf.</div>
+                          </div>
+                          <div class="format-chat-composer" data-questionnaire-reflection-composer>
+                            <textarea id="questionnaire-reflection-note" name="questionnaireReflectionDraft" placeholder="Neue Notiz schreiben..." aria-label="Neue Notiz"></textarea>
+                            <input id="questionnaire-reflection-note-value" name="questionnaireReflectionNote" type="hidden" data-questionnaire-reflection-value />
+                            <div class="format-chat-composer-footer">
+                              <span class="format-chat-composer-author">
+                                <span class="format-chat-avatar" aria-hidden="true" data-questionnaire-reflection-author-avatar>TN</span>
+                                <span class="format-chat-meta">Schreibt als <strong data-questionnaire-reflection-author-label>Angemeldeter Nutzer</strong></span>
+                              </span>
+                              <button class="action-button action-button--primary" type="button" data-questionnaire-reflection-send>Notiz senden</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="questionnaire-step-actions">
+                        <button class="action-button action-button--primary" type="button" data-questionnaire-step-complete>Schritt abschließen</button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="questionnaire-section questionnaire-section--needs" data-questionnaire-section data-questionnaire-step="7" aria-labelledby="questionnaire-section-followup">
+                    <summary>
+                      <div class="questionnaire-section__head">
+                        <div>
+                          <h3 id="questionnaire-section-followup" data-questionnaire-copy>7 | Muster, Hypothese, Evidenz</h3>
+                          <p data-questionnaire-copy>Einordnen, ob die Beobachtung ein Muster stützt, eine Hypothese öffnet oder Evidenz stärkt.</p>
+                        </div>
+                        <span class="questionnaire-section-number" aria-hidden="true">07</span>
+                      </div>
+                    </summary>
+                    <div class="questionnaire-section__body">
+                      <ul class="questionnaire-question-list">
+                        <li data-questionnaire-copy>Passt die Beobachtung zu einem vorhandenen Muster?</li>
+                        <li data-questionnaire-copy>Welche Hypothese wird gestützt oder neu formuliert?</li>
+                        <li data-questionnaire-copy>Welche zusätzliche Evidenz wäre für eine Entscheidung nötig?</li>
+                      </ul>
+                      <div class="questionnaire-scale" role="group" aria-labelledby="questionnaire-evidence-stage-label">
+                        <span class="questionnaire-scale-label" id="questionnaire-evidence-stage-label" data-questionnaire-copy>Ergebnisstufe</span>
+                        <label><input type="radio" name="questionnaireEvidenceStage" value="Musterhinweis" />Musterhinweis</label>
+                        <label><input type="radio" name="questionnaireEvidenceStage" value="Hypothese" />Hypothese</label>
+                        <label><input type="radio" name="questionnaireEvidenceStage" value="Evidenzbaustein" />Evidenzbaustein</label>
+                        <label><input type="radio" name="questionnaireEvidenceStage" value="kein weiterer Schritt" />kein weiterer Schritt</label>
+                      </div>
+                      <div class="questionnaire-notes-grid">
+                        <div class="questionnaire-field">
+                          <label for="questionnaire-followup-notes">Muster / Hypothese</label>
+                          <textarea id="questionnaire-followup-notes" name="questionnaireFollowupNotes"></textarea>
+                        </div>
+                        <div class="questionnaire-field">
+                          <label for="questionnaire-next-step">Nächster Evidenzschritt</label>
+                          <textarea id="questionnaire-next-step" name="questionnaireNextStep"></textarea>
+                        </div>
+                      </div>
+                      <div class="questionnaire-step-actions questionnaire-step-actions--submit">
+                        <button class="action-button action-button--primary" type="submit" data-questionnaire-submit>In Termin übernehmen</button>
+                        <button class="action-button" type="button" data-questionnaire-open-container hidden>Termin öffnen</button>
+                        <span class="detail-secondary" data-questionnaire-save-status aria-live="polite"></span>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+              <div class="questionnaire-mobile-navigation" data-questionnaire-mobile-navigation aria-label="Fragebogen-Navigation">
+                <button class="action-button" type="button" data-questionnaire-step-previous disabled>Zurück</button>
+                <span class="questionnaire-mobile-navigation__status" data-questionnaire-navigation-status>1 / 7</span>
+                <button class="action-button action-button--primary" type="button" data-questionnaire-step-next>Weiter</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="view-panel" id="view-map" data-view-panel="map">
+            <div class="view-card view-card--map">
+              <iframe
+                class="map-embed-frame"
+                id="map-view-frame"
+                title="Karte des Versorgungs-Kompass"
+                src="../map/versorgungs-kompass-map.html?embed=1&amp;channel=contacts"
+                data-message-channel="contacts"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+              ></iframe>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-analytics" data-view-panel="analytics">
+            <div class="view-card analytics-shell">
+              <div class="analytics-head">
+                <div>
+                  <h3>Auswertung</h3>
+                </div>
+              <div class="analytics-actions">
+                </div>
+              </div>
+              <div class="dashboard-grid">
+                <div class="dashboard-cluster-title">Verteilung</div>
+                <article class="dashboard-card dashboard-card--distribution-main">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Kontakte nach Sektor</h4>
+                    </div>
+                    <span class="dashboard-info" tabindex="0" aria-label="Statistik Kontakte nach Sektor erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Statistik zeigt, aus welchen Versorgungsbereichen die Kontakte in der aktuellen Auswahl stammen. Die Zahl im Balken ist die Anzahl der Kontakte, der Prozentwert zeigt den Anteil an allen ausgewählten Kontakten.</span></span>
+                  </div>
+                  <div id="category-chart"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--distribution-side">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Prioritätsverteilung</h4>
+                    </div>
+                    <span class="dashboard-info" tabindex="0" aria-label="Statistik Prioritätsverteilung erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Statistik zeigt, wie viele Kontakte in der aktuellen Auswahl welcher Priorität zugeordnet sind. Die Zahl im Balken ist die Anzahl, der Prozentwert rechts ist der Anteil an der Auswahl.</span></span>
+                  </div>
+                  <div id="priority-chart"></div>
+                </article>
+
+                <div class="dashboard-cluster-title">Regionale Verteilung</div>
+                <article class="dashboard-card dashboard-card--geo-map">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Regionale Verteilung</h4>
+                    </div>
+                    <span class="dashboard-info" tabindex="0" aria-label="Regionale Verteilung erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Heatmap zeigt, wie sich die Kontakte der aktuellen Auswahl auf die Bundesländer verteilen. Dunklere Flächen bedeuten: In diesem Bundesland liegt ein größerer Anteil der ausgewählten Kontakte.</span></span>
+                  </div>
+                  <div id="coverage-map"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--geo-bars">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Kontakte nach Bundesland</h4>
+                      <p>Sortiert nach Anzahl der Kontakte.</p>
+                    </div>
+                  </div>
+                  <div id="state-chart"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--geo-top">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Top Städte nach Kontakten</h4>
+                      <p>Regionale Schwerpunkte der aktuellen Auswahl.</p>
+                    </div>
+                    <span class="dashboard-info" title="Nach Ort und Bundesland gruppiert">i</span>
+                  </div>
+                  <div id="top-regions"></div>
+                </article>
+
+                <div class="dashboard-cluster-title">Reporting-Hinweise</div>
+                <article class="dashboard-card dashboard-card--insight">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Unterrepräsentierte Bereiche</h4>
+                      <p>Bereiche mit wenigen Kontakten in der aktuellen Auswahl.</p>
+                    </div>
+                    <span class="dashboard-info" tabindex="0" aria-label="Unterrepräsentierte Bereiche erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Hinweise zeigen Sektoren und Bundesländer, die im aktuellen Datenbestand nur schwach vertreten sind. Das ist eine Verteilungsbetrachtung und kein Abgleich mit externen Referenzwerten.</span></span>
+                  </div>
+                  <div id="gap-analysis"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--quality-link dashboard-card--subtle" id="analytics-quality-card">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Datenqualität</h4>
+                      <p>Offene Datenpflege im Blick.</p>
+                    </div>
+                    <span class="dashboard-info" title="Datenqualität ist als eigener Arbeitsbereich verfügbar">i</span>
+                  </div>
+                  <div id="analytics-quality-summary"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-quality" data-view-panel="quality">
+            <div class="analytics-shell quality-workspace">
+              <div class="quality-workspace-grid">
+                <article class="dashboard-card dashboard-card--quality-overview">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Daten prüfen</h4>
+                      <p>Die wichtigsten offenen Punkte in den Kontakten.</p>
+                    </div>
+                  </div>
+                  <div id="quality-chart"></div>
+                </article>
+                <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h4>Arbeitslisten</h4>
+                      <p>Öffne eine Liste und ergänze die fehlenden Angaben Schritt für Schritt.</p>
+                    </div>
+                  </div>
+                  <div id="care-queue"></div>
+                  <div class="care-workbench" id="care-workbench" tabindex="-1" hidden></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-team" data-view-panel="team">
+            <div class="team-workspace">
+              <section class="team-overview" aria-labelledby="team-overview-title">
+                <div class="team-overview__copy">
+                  <span class="team-overview__eyebrow">Gemeinsamer Arbeitsraum</span>
+                  <h2 id="team-overview-title">Zusammenarbeit im Überblick</h2>
+                  <p>Finde Teammitglieder, Rollen und Zuständigkeiten, ohne lange Kontaktlisten durchsuchen zu müssen.</p>
+                </div>
+                <dl class="team-metrics" aria-label="Team-Kennzahlen">
+                  <div>
+                    <dt>Aktive Nutzer</dt>
+                    <dd id="team-user-count">–</dd>
+                  </div>
+                  <div>
+                    <dt>Teams</dt>
+                    <dd id="team-group-count">–</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section class="team-directory" aria-label="Teams">
+                <div class="team-account-list" id="team-account-list" aria-label="Nutzer nach Teams" aria-busy="true">
+                  <div class="saved-view-empty">Nutzer werden nach dem Laden des Profils angezeigt.</div>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="view-panel onboarding-page" id="view-onboarding" data-view-panel="onboarding" aria-hidden="true">
+            <div class="onboarding-workspace">
+              <section class="onboarding-panel" aria-labelledby="onboarding-title">
+                <div class="onboarding-stepper" aria-label="Onboarding-Schritte">
+                  <span class="onboarding-step-dot is-active" data-onboarding-step-dot="profile">Profil</span>
+                  <span class="onboarding-step-dot" data-onboarding-step-dot="tour">Tour</span>
+                </div>
+                <div class="onboarding-panel__body">
+                  <form class="profile-tab-panel" id="onboarding-profile-form" data-onboarding-step-panel="profile" novalidate>
+                    <div class="onboarding-heading">
+                      <h3 id="onboarding-title">Willkommen im Versorgungs-Kompass</h3>
+                      <p>Richte kurz dein Profil ein, damit Zuständigkeiten, Team-Ansichten und Owner-Zuweisungen sauber angezeigt werden.</p>
+                    </div>
+                    <div class="onboarding-profile">
+                      <div class="onboarding-photo">
+                        <div class="onboarding-avatar" id="onboarding-avatar-preview" aria-hidden="true">VK</div>
+                        <button class="action-button" type="button" id="onboarding-photo-button">Foto hochladen</button>
+                        <div class="profile-status" id="onboarding-photo-status" aria-live="polite"></div>
+                      </div>
+                      <div class="onboarding-fields">
+                        <div class="profile-grid">
+                          <div class="profile-field profile-field--wide">
+                            <label for="onboarding-display-name">Anzeigename</label>
+                            <input id="onboarding-display-name" name="displayName" autocomplete="name" required />
+                          </div>
+                          <div class="profile-field">
+                            <label for="onboarding-email">E-Mail</label>
+                            <input id="onboarding-email" name="email" type="email" readonly />
+                          </div>
+                          <div class="profile-field">
+                            <label for="onboarding-team">Team</label>
+                            <div class="select-shell" data-custom-select>
+                              <select id="onboarding-team" name="team">
+                                <option value="">Bitte auswählen</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="profile-status" id="onboarding-status" aria-live="polite"></div>
+                        <div class="onboarding-actions">
+                          <button class="action-button action-button--primary" type="submit" id="onboarding-profile-submit">Profil speichern und weiter</button>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                  <section class="profile-tab-panel" id="onboarding-tour-panel" data-onboarding-step-panel="tour" hidden>
+                    <div class="onboarding-heading">
+                      <h3>#Mitmachen kennenlernen</h3>
+                      <p>Die App-Tour beginnt mit dem gemeinsamen Konzept und führt dich anschließend durch die wichtigsten Arbeitsbereiche. Du kannst sie jederzeit über die Sidebar oder in Mein Profil erneut starten.</p>
+                    </div>
+                    <div class="onboarding-tour-list" aria-label="Tour-Inhalte">
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">1</span>
+                        <span><strong>#Mitmachen als gemeinsames Prinzip</strong><span>Menschen, Beobachtungen und Wissen aus der Versorgung werden gemeinsam nutzbar.</span></span>
+                      </div>
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">2</span>
+                        <span><strong>Im Team sichtbar zusammenarbeiten</strong><span>Profile, Zuständigkeiten und Aktivitäten machen Beiträge und Ansprechpersonen transparent.</span></span>
+                      </div>
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">3</span>
+                        <span><strong>Versorgung regional verstehen</strong><span>Deutschlandkarte, Kontakte, Organisationen und weitere Perspektiven zeigen die Versorgungslandschaft.</span></span>
+                      </div>
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">4</span>
+                        <span><strong>Beobachtungen weiterentwickeln</strong><span>Der Bereich Hospitation verbindet Framework, Termine und Fragebogen mit Mustern, Evidenz und Formaten.</span></span>
+                      </div>
+                      <div class="onboarding-tour-item">
+                        <span class="onboarding-tour-index" aria-hidden="true">5</span>
+                        <span><strong>Neue Mitwirkende aufnehmen</strong><span>Der Registrierungs-Flow führt geprüfte Eingänge kontrolliert in die gemeinsame Kontaktpflege.</span></span>
+                      </div>
+                    </div>
+                    <div class="profile-status" id="onboarding-tour-status" aria-live="polite"></div>
+                    <div class="onboarding-actions">
+                      <button class="action-button" type="button" id="onboarding-tour-skip">Tour überspringen</button>
+                      <button class="action-button action-button--primary" type="button" id="onboarding-tour-start">Tour starten</button>
+                    </div>
+                  </section>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-settings" data-view-panel="settings">
+            <div class="settings-workspace">
+              <div class="settings-tab-nav" role="tablist" aria-label="Importbereiche">
+                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierungen</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Dateiimport</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-online-entry" data-settings-tab="onlineEntry">Online-Erfassung</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-import-history" data-settings-tab="importHistory">Historie</button>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-registrations" role="tabpanel" data-settings-tab-panel="registrations">
+                <div class="imports-workspace">
+                  <header class="registration-page-head">
+                    <div>
+                      <span class="registration-page-kicker">#Mitmachen Netzwerk</span>
+                      <h3>Registrierungen verwalten</h3>
+                      <p>Neue Netzwerkprofile prüfen, Dubletten klären und kontrolliert mit Kontakten und Organisationen im Versorgungs-Kompass verbinden.</p>
+                    </div>
+                    <a class="action-button action-button--primary" id="public-registration-link" href="../pages/mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Registrierung öffnen</a>
+                  </header>
+
+                  <section class="registration-process-guide" aria-labelledby="registration-process-title">
+                    <div class="registration-process-guide__head">
+                      <div>
+                        <span class="registration-page-kicker">Prozessanleitung</span>
+                        <h4 id="registration-process-title">Vom Eingang zum aktiven Netzwerkprofil</h4>
+                      </div>
+                      <span class="status-pill status-pill--review">EHC-Zielprozess</span>
+                    </div>
+                    <p>Jeder Eingang bleibt zunächst vom Kontaktbestand getrennt. Erst nach Prüfung werden bestehende Daten ergänzt oder neue Datensätze angelegt. Unsichere Treffer werden nie automatisch zusammengeführt.</p>
+                    <ol class="registration-process-flow">
+                      <li><span>1</span><strong>Kurz anmelden</strong><small>Name und E-Mail genügen für den Start.</small></li>
+                      <li><span>2</span><strong>E-Mail bestätigen</strong><small>Double-Opt-in schützt vor Fremdanmeldungen.</small></li>
+                      <li><span>3</span><strong>Profil ergänzen</strong><small>Rolle, Einrichtung und Arbeitsumgebung erfassen.</small></li>
+                      <li><span>4</span><strong>Prüfen &amp; zuordnen</strong><small>Dubletten klären, Kontakt und Organisation verknüpfen.</small></li>
+                      <li><span>5</span><strong>Passend einladen</strong><small>Nur geeignete Befragungen und Formate auswählen.</small></li>
+                    </ol>
+                    <p class="registration-process-note"><strong>Prüfreihenfolge:</strong> Einwilligungen und Profilstand kontrollieren, Dubletten vergleichen, verknüpfen oder anlegen, Owner festlegen. Double-Opt-in, transaktionale Übernahme und die fachlich freigegebene Datenschutzfassung sind die nächsten Produktions-Gates für den vollständigen EHC-Ersatz.</p>
+                  </section>
+
+                  <div class="registration-metrics" aria-label="Registrierungskennzahlen">
+                    <div><strong id="registration-metric-new">0</strong><span>Neue Eingänge</span></div>
+                    <div><strong id="registration-metric-complete">0</strong><span>Profile vollständig</span></div>
+                    <div><strong id="registration-metric-duplicates">0</strong><span>Dubletten prüfen</span></div>
+                    <div><strong id="registration-metric-consent">0</strong><span>#Mitmachen vorgemerkt</span></div>
+                  </div>
+
+                  <section class="import-profile-card registrations-card" id="registrations-section" tabindex="-1">
+                    <div class="dashboard-card-head">
+                      <div>
+                        <h4>Registrierungseingänge</h4>
+                        <p>Serverseitige Eingänge prüfen und nachvollziehbar bearbeiten.</p>
+                      </div>
+                    </div>
+                    <div class="registrations-toolbar">
+                      <div class="registrations-summary" id="registrations-summary">Registrierungen werden geladen.</div>
+                      <div class="registrations-toolbar__actions">
+                        <button class="action-button action-button--ghost" type="button" id="registrations-refresh">Aktualisieren</button>
+                      </div>
+                    </div>
+                    <div class="registrations-filterbar">
+                      <label class="registrations-search">
+                        <span class="sr-only">Registrierungen durchsuchen</span>
+                        <input id="registrations-search" type="search" placeholder="Name, E-Mail oder Einrichtung suchen" autocomplete="off" />
+                      </label>
+                      <label class="registrations-status-filter">
+                        <span>Status</span>
+                        <select id="registrations-status-filter">
+                          <option value="open">Offene Eingänge</option>
+                          <option value="all">Alle Status</option>
+                          <option value="neu">Neu</option>
+                          <option value="in_pruefung">In Prüfung</option>
+                          <option value="zurueckgestellt">Zurückgestellt</option>
+                          <option value="completed">Abgeschlossen</option>
+                          <option value="abgelehnt">Abgelehnt</option>
+                          <option value="widerrufen">Widerrufen</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="registrations-list" id="registrations-list">
+                      <div class="imports-history-empty">Noch keine Registrierungen geladen.</div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-imports" role="tabpanel" data-settings-tab-panel="imports" hidden>
+                <div class="imports-workspace">
+                  <div class="import-start-grid">
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <path d="M7 10l5 5 5-5"></path>
+                          <path d="M12 15V3"></path>
+                        </svg>
+                      </div>
+                      <h3>Dateiimport</h3>
+                      <p>Kontakte aus CSV, Excel, Word oder PDF importieren.</p>
+                      <button class="action-button action-button--primary" type="button" id="imports-start-file">Import starten</button>
+                    </article>
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 21h18"></path>
+                          <path d="M5 21V7l7-4 7 4v14"></path>
+                          <path d="M9 21v-7h6v7"></path>
+                          <path d="M8 10h.01"></path>
+                          <path d="M12 10h.01"></path>
+                          <path d="M16 10h.01"></path>
+                        </svg>
+                      </div>
+                      <h3>Stakeholder-Import</h3>
+                      <p>Stakeholder-Organisationen und Kontakte aus CSV oder Excel übernehmen.</p>
+                      <button class="action-button" type="button" id="imports-start-stakeholder">Stakeholder importieren</button>
+                    </article>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-online-entry" role="tabpanel" data-settings-tab-panel="onlineEntry" hidden>
+                <div class="imports-workspace">
+                  <div class="import-start-grid">
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 3h18v18H3Z"></path>
+                          <path d="M3 9h18"></path>
+                          <path d="M3 15h18"></path>
+                          <path d="M9 3v18"></path>
+                          <path d="M15 3v18"></path>
+                        </svg>
+                      </div>
+                      <h3>Online-Erfassung</h3>
+                      <p>Mehrere Kontakte direkt in einer Tabelle erfassen und anlegen.</p>
+                      <button class="action-button" type="button" id="imports-open-table">Tabelle öffnen</button>
+                    </article>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-tab-panel" id="settings-tab-import-history" role="tabpanel" data-settings-tab-panel="importHistory" hidden>
+                <div class="imports-workspace">
+                  <div class="import-start-grid">
+                    <article class="import-format-card">
+                      <div class="import-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                          <path d="M3 4v5h5"></path>
+                          <path d="M12 7v5l3 2"></path>
+                        </svg>
+                      </div>
+                      <h3>Importhistorie</h3>
+                      <p>Vergangene Importe einsehen und Ergebnisse prüfen.</p>
+                      <button class="action-button" type="button" id="imports-show-history">Importe anzeigen</button>
+                    </article>
+                  </div>
+                  <section class="import-profile-card imports-history-card" id="imports-history-section" tabindex="-1">
+                    <div class="dashboard-card-head">
+                      <div>
+                        <h4>Abgeschlossene Importe</h4>
+                        <p>Hier erscheinen nur Importe, die wirklich abgeschlossen wurden. Abgebrochene Importentwürfe werden nicht angezeigt.</p>
+                      </div>
+                    </div>
+                    <div class="imports-history-list">
+                      <div class="imports-history-empty">Noch keine abgeschlossenen Importe vorhanden.</div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </section>
+
+    </main>
+      </div>
+    </div>
+
+    <section class="view-panel profile-page" id="profile-page" data-view-panel="profile" aria-hidden="true">
+      <section class="profile-panel" aria-label="Profilformular">
+        <form id="profile-form">
+          <div class="profile-panel__body">
+            <div class="settings-tab-nav" role="tablist" aria-label="Profilbereiche">
+              <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-profile" data-profile-tab="profile">Profil</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-notifications" data-profile-tab="notifications">Benachrichtigungen</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-imports" data-profile-tab="imports">Importe</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-settings" data-profile-tab="settings" hidden>Einstellungen</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-changelog" data-profile-tab="changelog">Changelog</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-about" data-profile-tab="about">Über die App</button>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-profile" role="tabpanel" data-profile-tab-panel="profile">
+              <section class="profile-section">
+                <div class="profile-hero">
+                  <div class="profile-photo-action">
+                    <div class="profile-avatar" id="profile-avatar-preview">VK</div>
+                    <button class="action-button" type="button" id="profile-photo-open">Foto ändern</button>
+                  </div>
+                  <div class="profile-identity-copy">
+                    <h3 id="profile-display-title">Nutzerprofil</h3>
+                    <div class="profile-team-line" id="profile-team-line">Ohne Team</div>
+                    <div class="profile-status" id="profile-status" aria-live="polite"></div>
+                  </div>
+                </div>
+              </section>
+              <section class="profile-section">
+                <h3>Basisdaten</h3>
+                <div class="profile-grid">
+                  <div class="profile-field">
+                    <label for="profile-display-name">Anzeigename</label>
+                    <input id="profile-display-name" name="displayName" autocomplete="name" required />
+                  </div>
+                  <div class="profile-field">
+                    <label for="profile-initials">Initialen</label>
+                    <input id="profile-initials" name="initials" maxlength="4" />
+                  </div>
+                  <div class="profile-field">
+                    <label for="profile-email">E-Mail</label>
+                    <input id="profile-email" name="email" type="email" readonly />
+                  </div>
+                  <div class="profile-field">
+                    <label for="profile-team">Team</label>
+                    <div class="select-shell" data-custom-select>
+                      <select id="profile-team" name="team">
+                        <option value="">Bitte auswählen</option>
+                        <option value="Stabsstelle Versorgung">Stabsstelle Versorgung</option>
+                        <option value="Kommunikation">Kommunikation</option>
+                        <option value="Strategie und Standards">Strategie und Standards</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section class="profile-section">
+                <h3>Meine Zuständigkeiten</h3>
+                <details class="profile-owner-details" id="profile-owner-details">
+                  <summary id="profile-owner-summary">Du bist Owner von 0 Kontakten.</summary>
+                  <div class="profile-owner-list" id="profile-owner-list"></div>
+                </details>
+              </section>
+              <section class="profile-section profile-onboarding-section" aria-labelledby="profile-onboarding-title">
+                <h3 id="profile-onboarding-title">Onboarding</h3>
+                <div class="profile-onboarding-card">
+                  <div class="profile-onboarding-copy">
+                    <strong>Produkttour durch den Versorgungs-Kompass</strong>
+                    <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
+                  </div>
+                  <div class="profile-onboarding-actions">
+                    <button class="action-button action-button--primary" type="button" id="profile-tour-start">Tour starten</button>
+                  </div>
+                </div>
+              </section>
+              <section class="profile-section">
+                <h3>Rolle &amp; Berechtigungen</h3>
+                <div class="profile-role-card">
+                  <div class="profile-role-card__copy">
+                    <div class="profile-role-label">Deine Rolle im System</div>
+                    <div class="profile-setting__note" id="profile-role-description">Rollenrechte werden geladen.</div>
+                  </div>
+                  <span class="account-role-pill" id="profile-role-display">Nutzer</span>
+                  <details class="profile-permission-details" id="profile-permission-details">
+                    <summary id="profile-permissions-summary">Berechtigungen anzeigen</summary>
+                    <div class="profile-permission-list" id="profile-permissions-list" aria-label="Rollenbasierte Berechtigungen"></div>
+                  </details>
+                </div>
+              </section>
+              <section class="profile-section">
+                <h3>Sitzung</h3>
+                <div class="profile-session-row">
+                  <div>
+                    <strong>Angemeldete Sitzung</strong>
+                    <span>Setzt die App- und IAP-Anmeldung zurück. Dein Google-Konto bleibt im Browser angemeldet.</span>
+                  </div>
+                  <button class="action-button action-button--danger" type="button" id="profile-logout">Abmelden</button>
+                </div>
+              </section>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-notifications" role="tabpanel" data-profile-tab-panel="notifications" hidden>
+              <section class="profile-section">
+                <div class="notifications-workspace profile-notifications-workspace">
+                  <div class="notifications-command-row">
+                    <div class="notifications-filters" role="tablist" aria-label="Benachrichtigungen filtern">
+                      <button class="notification-filter is-active" type="button" data-notification-filter="unread" aria-pressed="true">Ungelesen</button>
+                      <button class="notification-filter" type="button" data-notification-filter="all" aria-pressed="false">Alle</button>
+                      <button class="notification-filter" type="button" data-notification-filter="contacts" aria-pressed="false">Kontakte</button>
+                      <button class="notification-filter" type="button" data-notification-filter="organizations" aria-pressed="false">Organisationen</button>
+                      <button class="notification-filter" type="button" data-notification-filter="formats" aria-pressed="false">Formate</button>
+                      <button class="notification-filter" type="button" data-notification-filter="team" aria-pressed="false">Team</button>
+                      <button class="notification-filter" type="button" data-notification-filter="product" aria-pressed="false">Produkt</button>
+                    </div>
+                    <div class="notifications-command-actions">
+                      <div class="notifications-meta" id="notifications-meta"></div>
+                      <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>
+                    </div>
+                  </div>
+                  <div class="notifications-feed-shell">
+                    <div class="notifications-list" id="notifications-list" aria-live="polite"></div>
+                    <div class="notifications-load-more-row" id="notifications-load-more-row" hidden>
+                      <button class="action-button notifications-load-more" type="button" id="notifications-load-more">Mehr laden</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section class="profile-section">
+                <h3>Benachrichtigungskanäle</h3>
+                <div class="profile-setting-toggle profile-setting-toggle--disabled">
+                  <label class="profile-switch" for="profile-notifications">
+                    <input id="profile-notifications" name="notificationsEnabled" type="checkbox" disabled />
+                    <span></span>
+                  </label>
+                  <div>
+                    <div class="profile-setting__label">Benachrichtigungen per E-Mail erhalten</div>
+                    <div class="profile-setting__note">Diese Funktion ist noch nicht verfügbar.</div>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <div class="profile-tab-panel profile-tab-panel--imports" id="profile-tab-imports" role="tabpanel" data-profile-tab-panel="imports" hidden></div>
+            <div class="profile-tab-panel" id="profile-tab-settings" role="tabpanel" data-profile-tab-panel="settings" hidden>
+              <div class="settings-wip-note">
+                <span class="settings-status-pill">Entwurf</span>
+                <strong>Dieser Bereich ist noch in Arbeit.</strong>
+                <p>Im Moment gibt es hier noch keine Einstellung, die du aktiv ändern musst. Die Punkte unten zeigen nur, was später in diesen Bereich passen könnte.</p>
+              </div>
+              <section class="profile-section">
+                <h3>Was hier später entstehen könnte</h3>
+                <div class="detail-line-list settings-feature-list">
+                  <div class="detail-line">
+                    <span class="settings-feature-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M3 10.5 12 3l9 7.5"></path>
+                        <path d="M5 10v10h14V10"></path>
+                        <path d="M9 20v-6h6v6"></path>
+                      </svg>
+                    </span>
+                    <span class="detail-line__label">Startansicht</span>
+                    <span class="detail-line__value">Später könnte hier festgelegt werden, mit welchem Bereich die App startet, zum Beispiel Kontakte, Karte oder Auswertung.</span>
+                  </div>
+                  <div class="detail-line">
+                    <span class="settings-feature-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                        <path d="M4 10h16"></path>
+                        <path d="M9 5v14"></path>
+                        <path d="M15 5v14"></path>
+                      </svg>
+                    </span>
+                    <span class="detail-line__label">Tabellenansicht</span>
+                    <span class="detail-line__value">Hier könnten Standardspalten und die Dichte der Tabelle verwaltet werden.</span>
+                  </div>
+                  <div class="detail-line">
+                    <span class="settings-feature-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M12 3 5 6v5c0 4.5 2.9 8.4 7 10 4.1-1.6 7-5.5 7-10V6l-7-3Z"></path>
+                        <path d="m9 12 2 2 4-4"></path>
+                      </svg>
+                    </span>
+                    <span class="detail-line__label">Rechte und Freigaben</span>
+                    <span class="detail-line__value">Die Verwaltung von Admin-, Editor- und Viewer-Rechten gehört fachlich hierher, ist aber noch nicht als Oberfläche umgesetzt.</span>
+                  </div>
+                  <div class="detail-line">
+                    <span class="settings-feature-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M6 4h12v16l-6-3-6 3V4Z"></path>
+                      </svg>
+                    </span>
+                    <span class="detail-line__label">Gespeicherte Ansichten</span>
+                    <span class="detail-line__value">Später könnten hier gespeicherte Filter und Ansichten verwaltet werden. Im aktuellen Frontend ist diese Funktion noch ausgeblendet.</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-about" role="tabpanel" data-profile-tab-panel="about" hidden>
+              <div class="about-workspace">
+                <section class="about-intro">
+                  <div>
+                    <h3>#Mitmachen</h3>
+                    <div class="about-intro__highlight">#Mitmachen - Der gematik-Versorgungskompass: Ein Wissensmanagement-Tool für Hospitationen, Co-Creation und Veranstaltungen.</div>
+                    <p>Der Versorgungs-Kompass ist ein gemeinsames Arbeitswerkzeug für Versorgungsteams. Er hilft dabei, Kontakte, Organisationen, regionale Zusammenhänge und Formate an einem Ort zu pflegen.</p>
+                  </div>
+                </section>
+                <div class="about-topic-list" aria-label="Funktionen des Versorgungs-Kompass">
+                  <section class="about-topic">
+                    <h3>Kontakte und Organisationen</h3>
+                    <p>Du sammelst wichtige Kontakte, Einrichtungen und Netzwerke strukturiert und findest schnell, wer wofür zuständig ist.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Suchen und filtern</h3>
+                    <p>Filter, Tabellen und gespeicherte Arbeitslogik helfen dir, relevante Kontakte nach Region, Thema, Owner oder Datenqualität einzugrenzen.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Profile</h3>
+                    <p>Kontakt- und Organisationsprofile zeigen erst die wichtigsten Informationen im Lesemodus. Bearbeiten bleibt eine bewusste Aktion.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Karte und Auswertung</h3>
+                    <p>Regionale Versorgung wird sichtbar, damit Teams Lücken, Schwerpunkte und Netzwerke besser einschätzen können.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Formate und Zusammenarbeit</h3>
+                    <p>Formate unterstützen Planung, Teilnehmende und nächste Schritte. Owner und Teams behalten ihre Aufgaben im Blick.</p>
+                  </section>
+                  <section class="about-topic">
+                    <h3>Benachrichtigungen und Profil</h3>
+                    <p>Benachrichtigungen zeigen persönliche Hinweise zu relevanten Änderungen. Im Profil verwaltest du deine Angaben, Rolle und App-Informationen.</p>
+                  </section>
+                </div>
+              </div>
+            </div>
+            <div class="profile-tab-panel" id="profile-tab-changelog" role="tabpanel" data-profile-tab-panel="changelog" hidden>
+              <div class="about-workspace">
+                <h3 class="about-version-heading">Changelog</h3>
+                <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
+              </div>
+            </div>
+          </div>
+          <div class="profile-panel__footer" id="profile-edit-actions" hidden>
+            <button class="action-button" type="button" id="profile-cancel">Änderungen verwerfen</button>
+            <button class="action-button action-button--primary" type="submit" id="profile-save">Speichern</button>
+          </div>
+        </form>
+      </section>
+    </section>
+
+    <section class="view-panel person-profile-page" id="person-profile-page" data-view-panel="personProfile" aria-hidden="true">
+      <div class="person-profile-shell">
+        <div class="person-profile-body" id="person-profile-body" aria-live="polite">
+          <section class="detail-panel">
+            <div class="detail-content">
+              <div class="empty">Profil wird geladen.</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="view-panel organization-profile-page" id="organization-profile-page" data-view-panel="organizationProfile" aria-hidden="true">
+      <div class="organization-profile-shell">
+        <div class="organization-profile-body" id="organization-profile-body" aria-live="polite">
+          <section class="detail-panel detail-panel--organization">
+            <div class="detail-content">
+              <div class="empty">Organisationsprofil wird geladen.</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <aside class="profile-photo-modal" id="profile-photo-modal" aria-hidden="true">
+      <section class="profile-photo-panel" aria-labelledby="profile-photo-title" aria-modal="true" role="dialog">
+        <div class="profile-photo-head">
+          <h3 id="profile-photo-title">Profilfoto ändern</h3>
+          <button class="detail-close" type="button" id="profile-photo-close" aria-label="Foto-Dialog schließen">×</button>
+        </div>
+        <div class="profile-photo-preview" id="profile-photo-preview">VK</div>
+        <div class="profile-photo-actions">
+          <button class="action-button action-button--primary" type="button" id="profile-photo-pick">Foto auswählen</button>
+          <div class="account-popover__email">PNG, JPG oder WebP · max. 5 MB</div>
+          <div class="profile-status" id="profile-photo-status" aria-live="polite"></div>
+        </div>
+        <div class="profile-photo-remove">
+          <div>
+            <strong>Foto entfernen</strong>
+            <span>Dein Profil wird wieder mit deinen Initialen angezeigt.</span>
+          </div>
+          <button class="action-button action-button--danger" type="button" id="profile-photo-remove">Entfernen</button>
+        </div>
+        <div class="profile-notice"><span aria-hidden="true">i</span><span>Quadratische Bilder werden automatisch rund zugeschnitten. Die Initialen werden angezeigt, wenn kein Foto hinterlegt ist.</span></div>
+      </section>
+    </aside>
+
+    <aside class="product-tour" id="product-tour" aria-hidden="true" hidden>
+      <div class="product-tour__backdrop" id="product-tour-backdrop"></div>
+      <div class="product-tour__spotlight" id="product-tour-spotlight" aria-hidden="true" hidden></div>
+      <section class="product-tour__panel" id="product-tour-panel" role="dialog" aria-modal="true" aria-labelledby="product-tour-title" aria-describedby="product-tour-copy product-tour-details product-tour-example" tabindex="-1">
+        <div class="product-tour__visual" aria-hidden="true">
+          <div class="product-tour__brand-lockup">
+            <div class="product-tour__brand-mark">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="product-tour__brand-copy">
+              <strong>#Mitmachen</strong>
+              <span>Versorgungs-Kompass</span>
+            </div>
+          </div>
+          <div class="product-tour__step-icon" id="product-tour-step-icon">✦</div>
+        </div>
+        <div class="product-tour__meta-row">
+          <div class="product-tour__meta" id="product-tour-meta">Schritt 1</div>
+          <div class="product-tour__motivation" id="product-tour-motivation">Gemeinsam Versorgung gestalten</div>
+        </div>
+        <h3 id="product-tour-title">Willkommen bei #Mitmachen</h3>
+        <p id="product-tour-copy">Menschen, Beobachtungen und Wissen aus der Versorgung werden im Versorgungs-Kompass gemeinsam nutzbar.</p>
+        <ul class="product-tour__details" id="product-tour-details" hidden></ul>
+        <section class="product-tour__example" id="product-tour-example" aria-label="Schreibgeschütztes Beispiel" hidden></section>
+        <div class="product-tour__progress" aria-hidden="true"><span id="product-tour-progress"></span></div>
+        <div class="product-tour__actions">
+          <button class="action-button" type="button" id="product-tour-skip">Tour überspringen</button>
+          <button class="action-button" type="button" id="product-tour-prev">Zurück</button>
+          <button class="action-button action-button--primary" type="button" id="product-tour-next">Tour starten</button>
+        </div>
+      </section>
+    </aside>
+
+    <aside class="detail-drawer" id="detail-drawer" aria-hidden="true">
+      <div class="detail-overlay" id="detail-overlay"></div>
+      <section class="detail-panel" id="detail-panel" aria-live="polite"></section>
+    </aside>
+
+    <aside class="editor-drawer contact-editor-drawer" id="editor-drawer" aria-hidden="true">
+      <div class="editor-overlay" id="editor-overlay"></div>
+      <section class="editor-panel contact-editor-panel" aria-labelledby="editor-title" aria-modal="true" role="dialog">
+        <div class="editor-toolbar contact-editor-header">
+          <div>
+            <h3 id="editor-title">Kontakt pflegen</h3>
+            <p id="editor-subtitle">Schnell erfassen. Details k&ouml;nnen sp&auml;ter erg&auml;nzt werden.</p>
+          </div>
+          <button class="detail-close" type="button" id="editor-close" aria-label="Editor schlie&szlig;en">&times;</button>
+        </div>
+        <form class="editor-form contact-quick-form" id="editor-form">
+          <input type="hidden" name="id" />
+          <input type="hidden" name="themesText" id="field-themes-hidden" class="editor-theme-hidden" />
+          <div class="editor-status" id="editor-status"></div>
+          <div class="import-steps contact-editor-steps" id="editor-steps" aria-label="Kontaktanlage-Schritte"></div>
+
+          <section class="editor-section editor-section--primary contact-editor-step" data-editor-step="quick" aria-labelledby="editor-section-basic">
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="editor-section-basic">Schnellerfassung</h4>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="field-name">Name <span class="editor-label__required">*</span></label>
+                <input class="editor-input" id="field-name" name="name" required placeholder="Name des Kontakts" autocomplete="off" />
+                <div class="editor-help editor-help--duplicate" id="editor-duplicate-hint"></div>
+                <div class="editor-message editor-message--error" id="field-name-error"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-organization">Organisation</label>
+                <div class="editor-combobox" data-organization-combobox>
+                  <input class="editor-input" id="field-organization" name="organization" placeholder="Organisation suchen oder neu eingeben..." autocomplete="off" />
+                  <button class="editor-combobox__toggle" type="button" id="organization-combobox-toggle" aria-label="Organisationen anzeigen" aria-expanded="false">
+                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3.25 5.75 8 10.5l4.75-4.75" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="editor-combobox__panel" id="organization-combobox-panel" role="listbox" hidden></div>
+                </div>
+                <div class="editor-message editor-message--error" id="field-organization-error"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-category">Sektor</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="category">
+                  <select class="editor-select" id="field-category" name="category"></select>
+                </div>
+                <div class="editor-message editor-message--error" id="field-category-error"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-specialty">Fachrichtung</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="specialty">
+                  <select class="editor-select" id="field-specialty" name="specialty"></select>
+                </div>
+                <div class="editor-message editor-message--warning" id="field-specialty-warning"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-contact-role">Rolle</label>
+                <input class="editor-input" id="field-contact-role" name="contactRole" placeholder="Funktion, Beruf oder Stelle..." autocomplete="off" />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-owner">Owner</label>
+                <input type="hidden" id="field-owner" name="owner" value="" />
+                <div class="owner-multi-select" id="field-owner-picker" data-owner-multi-picker="editor"></div>
+                <div class="editor-message editor-message--warning" id="field-owner-warning"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-priority">Priorität</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="priority">
+                  <select class="editor-select" id="field-priority" name="priority">
+                    <option value="Hoch">Hoch</option>
+                    <option value="Mittel">Mittel</option>
+                    <option value="Niedrig">Niedrig</option>
+                    <option value="">Keine / Unbekannt</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section contact-editor-step" data-editor-step="location" aria-labelledby="editor-section-location" hidden>
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="editor-section-location">Standort genauer ergänzen</h4>
+              <span class="contact-editor-step__meta">Optional</span>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="field-postal-code">PLZ</label>
+                <input class="editor-input" id="field-postal-code" name="postalCode" inputmode="numeric" placeholder="z. B. 10117" />
+                <div class="editor-message editor-message--error" id="field-postal-code-error"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-city">Ort</label>
+                <input class="editor-input" id="field-city" name="city" placeholder="z. B. Berlin" />
+                <div class="editor-message editor-message--error" id="field-city-error"></div>
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="field-state">Bundesland</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="state">
+                  <select class="editor-select" id="field-state" name="state"></select>
+                </div>
+                <div class="editor-message editor-message--error" id="field-state-error"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section contact-editor-step" data-editor-step="contactways" aria-labelledby="editor-section-contactways" hidden>
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="editor-section-contactways">Kontakt ergänzen</h4>
+              <span class="contact-editor-step__meta">Optional</span>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="field-email">E-Mail</label>
+                <input class="editor-input" id="field-email" name="email" type="email" placeholder="E-Mail eingeben..." />
+                <div class="editor-message editor-message--warning" id="field-email-warning"></div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="field-phone">Telefon</label>
+                <input class="editor-input" id="field-phone" name="phone" placeholder="Telefonnummer eingeben..." />
+                <div class="editor-message editor-message--error" id="field-phone-error"></div>
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="field-linkedin">LinkedIn</label>
+                <input class="editor-input" id="field-linkedin" name="linkedin" type="url" placeholder="LinkedIn-Profil (URL)..." />
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section contact-editor-step" data-editor-step="topics" aria-labelledby="editor-section-topics" hidden>
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="editor-section-topics">Themen und Notiz ergänzen</h4>
+              <span class="contact-editor-step__meta">Optional</span>
+            </div>
+            <div class="editor-grid">
+              <fieldset class="editor-field editor-field--full editor-fieldset">
+                <label class="editor-label" for="field-theme-input">Themen</label>
+                <input class="editor-input" id="field-theme-input" type="text" placeholder="Thema hinzufügen..." />
+                <div class="editor-chip-row" id="editor-theme-presets"></div>
+                <div class="editor-chip-row" id="editor-theme-selected"></div>
+                <div class="editor-message editor-message--warning" id="field-themes-warning"></div>
+              </fieldset>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="field-note">Notiz</label>
+                <textarea class="editor-textarea" id="field-note" name="note" placeholder="Kurze Notiz zum Kontakt..."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section contact-editor-step" data-editor-step="sources" aria-labelledby="editor-section-sources" hidden>
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="editor-section-sources">Bild ergänzen</h4>
+              <span class="contact-editor-step__meta">Optional</span>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="field-street">Stra&szlig;e</label>
+                <input class="editor-input" id="field-street" name="street" placeholder="Stra&szlig;e und Hausnummer..." />
+              </div>
+              <div class="editor-field editor-field--full">
+                <div class="contact-image-editor" data-contact-image-editor="editor">
+                  <div class="contact-image-editor__preview" id="editor-contact-image-preview" aria-live="polite"></div>
+                  <div class="contact-image-editor__controls">
+                    <label class="contact-image-dropzone" data-contact-image-dropzone>
+                      <input id="field-image-file" name="imageFile" type="file" accept="image/jpeg,image/png,image/webp" />
+                      <strong>Bild hochladen oder hier ablegen</strong>
+                      <span>JPG, PNG oder WebP · max. 5 MB · max. 4096 × 4096 px</span>
+                    </label>
+                    <div class="contact-image-editor__separator">oder per Link</div>
+                    <div class="editor-field">
+                      <label class="editor-label" for="field-image">HTTPS-Bildlink</label>
+                      <input class="editor-input" id="field-image" name="image" type="url" inputmode="url" placeholder="https://..." />
+                    </div>
+                    <div class="editor-field">
+                      <label class="editor-label" for="field-image-source-label">Bildquelle</label>
+                      <input class="editor-input" id="field-image-source-label" name="imageSourceLabel" placeholder="z. B. Website der Praxis" />
+                    </div>
+                    <div class="editor-field">
+                      <label class="editor-label" for="field-image-rights-note">Hinweis zur Nutzung</label>
+                      <textarea class="editor-textarea" id="field-image-rights-note" name="imageRightsNote" placeholder="Quelle und Nutzungskontext kurz dokumentieren"></textarea>
+                    </div>
+                    <input name="imageRemove" type="hidden" value="" />
+                    <div class="contact-image-editor__notice">Externe Links werden direkt vom Quellserver geladen. Dabei können technische Zugriffsdaten an diesen Server übertragen werden.</div>
+                    <div class="contact-image-editor__actions">
+                      <button class="action-button action-button--danger" type="button" data-contact-image-remove>Bild entfernen</button>
+                    </div>
+                    <div class="contact-image-editor__status" data-contact-image-status aria-live="polite"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </form>
+        <div class="editor-footer">
+          <div class="editor-footer__hint" id="editor-hint" hidden>Änderungen werden über die geschützte API gespeichert und protokolliert.</div>
+          <button class="action-button" type="button" id="editor-back">Zurück</button>
+          <div class="editor-actions">
+            <button class="action-button" type="button" id="editor-cancel">Abbrechen</button>
+            <button class="action-button" type="button" id="editor-next">Weiter</button>
+            <button class="action-button action-button--primary" type="submit" form="editor-form" id="editor-save">Kontakt speichern</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <aside class="editor-drawer contact-editor-drawer" id="organization-editor-drawer" aria-hidden="true">
+      <div class="editor-overlay" id="organization-editor-overlay"></div>
+      <section class="editor-panel contact-editor-panel" aria-labelledby="organization-editor-title" aria-modal="true" role="dialog">
+        <div class="editor-toolbar contact-editor-header">
+          <div>
+            <h3 id="organization-editor-title">Organisation anlegen</h3>
+            <p id="organization-editor-subtitle">Stammdaten der Einrichtung oder Institution pflegen.</p>
+          </div>
+          <button class="detail-close" type="button" id="organization-editor-close" aria-label="Editor schließen">&times;</button>
+        </div>
+        <form class="editor-form contact-quick-form" id="organization-editor-form">
+          <input type="hidden" name="id" />
+          <div class="editor-status" id="organization-editor-status"></div>
+          <div class="import-steps contact-editor-steps" id="organization-editor-steps" aria-label="Organisationsanlage-Schritte"></div>
+
+          <section class="editor-section editor-section--primary contact-editor-step" data-organization-step="quick" aria-labelledby="organization-section-basic">
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="organization-section-basic">Schnellerfassung</h4>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-name">Name <span class="editor-label__required">*</span></label>
+                <input class="editor-input" id="organization-field-name" name="name" required placeholder="Name der Organisation" autocomplete="off" />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-sector">Sektor</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="category">
+                  <select class="editor-select" id="organization-field-sector" name="sector"></select>
+                </div>
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-type">Organisationstyp</label>
+                <input class="editor-input" id="organization-field-type" name="organizationType" placeholder="z. B. Universitätsklinikum" />
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section contact-editor-step" data-organization-step="location" aria-labelledby="organization-section-location" hidden>
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="organization-section-location">Standort genauer ergänzen</h4>
+              <span class="contact-editor-step__meta">Optional</span>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-postal-code">PLZ</label>
+                <input class="editor-input" id="organization-field-postal-code" name="postalCode" inputmode="numeric" placeholder="z. B. 53127" />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-city">Ort</label>
+                <input class="editor-input" id="organization-field-city" name="city" placeholder="z. B. Bonn" />
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-state">Bundesland</label>
+                <div class="editor-select-shell" data-custom-select data-select-type="state">
+                  <select class="editor-select" id="organization-field-state" name="state"></select>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section contact-editor-step" data-organization-step="contactways" aria-labelledby="organization-section-contactways" hidden>
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="organization-section-contactways">Kontaktwege ergänzen</h4>
+              <span class="contact-editor-step__meta">Optional</span>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-website">Website</label>
+                <input class="editor-input" id="organization-field-website" name="website" type="url" placeholder="https://..." />
+              </div>
+              <div class="editor-field">
+                <label class="editor-label" for="organization-field-phone">Telefon</label>
+                <input class="editor-input" id="organization-field-phone" name="phone" placeholder="+49 ..." />
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-email">E-Mail</label>
+                <input class="editor-input" id="organization-field-email" name="email" type="email" placeholder="info@organisation.example.invalid" />
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-section contact-editor-step" data-organization-step="primary-systems" aria-labelledby="organization-section-primary-systems" hidden>
+            <div class="editor-section-head">
+              <div>
+                <h4 class="editor-section-title" id="organization-section-primary-systems">Primärsysteme</h4>
+                <p class="editor-section-description">Systemtyp sowie optional Hersteller, Produkt und öffentliche Quelle erfassen.</p>
+              </div>
+              <span class="contact-editor-step__meta">Optional</span>
+            </div>
+            <div id="organization-primary-systems-editor"></div>
+            <button class="action-button" type="button" id="organization-primary-system-add">Primärsystem hinzufügen</button>
+          </section>
+
+          <section class="editor-section contact-editor-step" data-organization-step="sources" aria-labelledby="organization-section-sources" hidden>
+            <div class="editor-section-head">
+              <h4 class="editor-section-title" id="organization-section-sources">Quelle und Notiz ergänzen</h4>
+              <span class="contact-editor-step__meta">Optional</span>
+            </div>
+            <div class="editor-grid">
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-source">Quelle</label>
+                <input class="editor-input" id="organization-field-source" name="source" placeholder="z. B. Kontaktdatenbestand, Recherche" />
+              </div>
+              <div class="editor-field editor-field--full">
+                <label class="editor-label" for="organization-field-notes">Notiz</label>
+                <textarea class="editor-textarea" id="organization-field-notes" name="notes" placeholder="Kurze Notiz zur Organisation..."></textarea>
+              </div>
+            </div>
+          </section>
+        </form>
+        <div class="editor-footer">
+          <div class="editor-footer__hint" id="organization-editor-hint" hidden>Speichern schreibt in die Organisationen-Tabelle, sofern die Sprint-4-Migration aktiv ist.</div>
+          <button class="action-button" type="button" id="organization-editor-back">Zurück</button>
+          <div class="editor-actions">
+            <button class="action-button" type="button" id="organization-editor-cancel">Abbrechen</button>
+            <button class="action-button" type="button" id="organization-editor-next">Weiter</button>
+            <button class="action-button action-button--primary" type="submit" form="organization-editor-form" id="organization-editor-save">Organisation speichern</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <aside class="import-drawer" id="import-drawer" aria-hidden="true">
+      <div class="import-overlay" id="import-overlay"></div>
+      <section class="import-panel" aria-labelledby="import-title" aria-modal="true" role="dialog">
+        <div class="import-header">
+          <div>
+            <h3 id="import-title">Kontakte importieren</h3>
+            <p id="import-subtitle">Neue Versorgungskontakte aus CSV, Excel, Word oder PDF hinzufügen.</p>
+          </div>
+          <button class="import-close" type="button" id="import-close" aria-label="Import schließen">&times;</button>
+        </div>
+        <div class="import-body" id="import-body"></div>
+        <div class="import-footer" id="import-footer"></div>
+      </section>
+    </aside>
+
+    <aside class="format-participant-drawer" id="format-participant-drawer" aria-hidden="true">
+      <div class="format-participant-overlay" id="format-participant-overlay"></div>
+      <section class="format-participant-panel" aria-labelledby="format-participant-title" aria-modal="true" role="dialog">
+        <div class="format-participant-header">
+          <div>
+            <h3 id="format-participant-title">Teilnehmer zusammenstellen</h3>
+            <p id="format-participant-subtitle">Kontakte suchen und zur Einladungsliste hinzufügen.</p>
+          </div>
+          <button class="import-close" type="button" id="format-participant-close" aria-label="Teilnehmerauswahl schließen">&times;</button>
+        </div>
+        <div class="format-participant-body">
+          <div class="import-steps contact-editor-steps format-participant-steps" id="format-participant-steps" aria-label="Teilnehmerauswahl-Schritte"></div>
+          <section class="editor-section editor-section--primary format-participant-step" data-format-participant-step="filters" aria-labelledby="format-participant-step-filters">
+            <div class="editor-section-head">
+              <div>
+                <h4 id="format-participant-step-filters">Eingrenzen</h4>
+                <p>Suche und Filter helfen, ein passendes Teilnehmerfeld vorzubereiten.</p>
+              </div>
+            </div>
+            <div class="format-participant-controls">
+              <label class="search-shell format-participant-search" aria-label="Teilnehmer suchen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m20 20-3.5-3.5"></path>
+                </svg>
+                <input class="search-input" id="format-participant-search" type="search" placeholder="Nach Name, Organisation, Ort oder Thema suchen" />
+              </label>
+              <div class="format-participant-filter-grid">
+                <label class="format-editor-field">
+                  <span>Sektor</span>
+                  <select id="format-participant-sector"></select>
+                </label>
+                <label class="format-editor-field">
+                  <span>Bundesland</span>
+                  <select id="format-participant-state"></select>
+                </label>
+                <label class="format-editor-field">
+                  <span>Fachrichtung</span>
+                  <select id="format-participant-specialty"></select>
+                </label>
+              </div>
+            </div>
+          </section>
+          <section class="editor-section editor-section--primary format-participant-step" data-format-participant-step="select" aria-labelledby="format-participant-step-select" hidden>
+            <div class="editor-section-head">
+              <div>
+                <h4 id="format-participant-step-select">Auswählen</h4>
+                <p>Kontakte markieren und gemeinsam zur Einladungsliste hinzufügen.</p>
+              </div>
+            </div>
+            <div class="format-participant-results-head">
+              <span id="format-participant-results">0 Kontakte</span>
+              <button class="action-button action-button--compact" type="button" id="format-participant-clear">Auswahl leeren</button>
+            </div>
+            <div class="format-participant-list" id="format-participant-list"></div>
+          </section>
+        </div>
+        <div class="format-participant-footer">
+          <span id="format-participant-selection-count">0 ausgewählt</span>
+          <div class="format-editor-actions">
+            <button class="action-button" type="button" id="format-participant-cancel">Abbrechen</button>
+            <button class="action-button" type="button" id="format-participant-back" hidden>Zurück</button>
+            <button class="action-button action-button--primary" type="button" id="format-participant-next">Weiter</button>
+            <button class="action-button action-button--primary" type="button" id="format-participant-add">Auswahl hinzufügen</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <aside class="format-participant-drawer format-editor-drawer" id="format-editor-drawer" aria-hidden="true">
+      <div class="format-participant-overlay" id="format-editor-overlay"></div>
+      <section class="format-participant-panel" aria-labelledby="format-editor-drawer-title" aria-modal="true" role="dialog">
+        <div class="format-participant-header">
+          <div>
+            <h3 id="format-editor-drawer-title">Neues Format</h3>
+            <p id="format-editor-drawer-subtitle">Basisdaten für Roundtable, Workshop oder Fachgespräch erfassen.</p>
+          </div>
+          <button class="import-close" type="button" id="format-editor-drawer-close" aria-label="Format-Editor schließen">&times;</button>
+        </div>
+        <div class="format-participant-body" id="format-editor-drawer-body"></div>
+      </section>
+    </aside>
+
+    <aside class="format-participant-drawer format-editor-drawer contact-editor-drawer" id="hospitation-editor-drawer" aria-hidden="true">
+      <div class="format-participant-overlay" id="hospitation-editor-overlay"></div>
+      <section class="format-participant-panel" aria-labelledby="hospitation-editor-title" aria-modal="true" role="dialog">
+        <div class="format-participant-header">
+          <div>
+            <h3 id="hospitation-editor-title">Hospitation</h3>
+            <p id="hospitation-editor-subtitle">Termin, Kontaktbezug und Dokumentation erfassen.</p>
+          </div>
+          <div class="hospitation-editor-header-actions" id="hospitation-editor-header-actions" hidden></div>
+          <button class="import-close" type="button" id="hospitation-editor-close" aria-label="Hospitations-Editor schließen">&times;</button>
+        </div>
+        <div class="format-participant-body" id="hospitation-editor-body"></div>
+      </section>
+    </aside>
+
+    <aside class="format-participant-drawer format-editor-drawer contact-editor-drawer" id="observation-detail-drawer" aria-hidden="true">
+      <div class="format-participant-overlay" id="observation-detail-overlay"></div>
+      <section class="format-participant-panel" aria-labelledby="observation-detail-title" aria-modal="true" role="dialog">
+        <div class="format-participant-header">
+          <div>
+            <h3 id="observation-detail-title">Beobachtung</h3>
+            <p id="observation-detail-subtitle">Qualitativer Befund mit Bezug zur Ursprungshospitation.</p>
+          </div>
+          <button class="import-close" type="button" id="observation-detail-close" aria-label="Beobachtung schließen">&times;</button>
+        </div>
+        <div class="format-participant-body" id="observation-detail-body"></div>
+      </section>
+    </aside>
+
+    <script src="../map/data/state-polygons.js"></script>
+    <script src="../data/sector-registry.js"></script>
+    <script src="../data/hospitation-model.js"></script>
+    <script src="../data/hospitation-export.js"></script>
+    <script src="../data/activity-model.js"></script>
+    <script src="../data/document-text-extractor.js"></script>
+    <script src="../data/data-service.js"></script>
+    <script src="./versorgungs-kompass.js"></script>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+# System
+.DS_Store
+
+# Local Codex tooling (never part of the product repository)
+/.codex-pet-runs/
+
+# Dependencies
+node_modules/
+
+# Local environment
+.env
+.env.local
+
+# Logs and test output
+*.log
+.weekly-release-notes.md
+playwright-report/
+test-results/
+.playwright-cli/
+/dist/*
+!/dist/README.md
+
+# Retired publication and export paths
+/docs/
+/output/
+/outputs/
+
+# Temporary Microsoft Office lock files
+~$*
+
+# Local data and backups
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+backups/
+*_backup_*.csv
+*_backup_*.json
+backup-versorgungs-kompass-*.sql
+
+# Local Supabase CLI state
+supabase/.temp/

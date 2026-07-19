@@ -1,0 +1,71 @@
+{
+  "generatedFromLockfile": "package-lock.json",
+  "assets": [
+    {
+      "package": "leaflet",
+      "version": "1.9.4",
+      "path": "frontend/vendor/leaflet/leaflet.js",
+      "sha256": "db49d009c841f5ca34a888c96511ae936fd9f5533e90d8b2c4d57596f4e5641a"
+    },
+    {
+      "package": "leaflet",
+      "version": "1.9.4",
+      "path": "frontend/vendor/leaflet/leaflet.css",
+      "sha256": "a7837102824184820dfa198d1ebcd109ff6d0ff9a2672a074b9a1b4d147d04c6"
+    },
+    {
+      "package": "leaflet",
+      "version": "1.9.4",
+      "path": "frontend/vendor/leaflet/images/layers-2x.png",
+      "sha256": "066daca850d8ffbef007af00b06eac0015728dee279c51f3cb6c716df7c42edf"
+    },
+    {
+      "package": "leaflet",
+      "version": "1.9.4",
+      "path": "frontend/vendor/leaflet/images/layers.png",
+      "sha256": "1dbbe9d028e292f36fcba8f8b3a28d5e8932754fc2215b9ac69e4cdecf5107c6"
+    },
+    {
+      "package": "leaflet",
+      "version": "1.9.4",
+      "path": "frontend/vendor/leaflet/images/marker-icon-2x.png",
+      "sha256": "00179c4c1ee830d3a108412ae0d294f55776cfeb085c60129a39aa6fc4ae2528"
+    },
+    {
+      "package": "leaflet",
+      "version": "1.9.4",
+      "path": "frontend/vendor/leaflet/images/marker-icon.png",
+      "sha256": "574c3a5cca85f4114085b6841596d62f00d7c892c7b03f28cbfa301deb1dc437"
+    },
+    {
+      "package": "leaflet",
+      "version": "1.9.4",
+      "path": "frontend/vendor/leaflet/images/marker-shadow.png",
+      "sha256": "264f5c640339f042dd729062cfc04c17f8ea0f29882b538e3848ed8f10edb4da"
+    },
+    {
+      "package": "mammoth",
+      "version": "1.12.0",
+      "path": "frontend/vendor/mammoth/mammoth.browser.min.js",
+      "sha256": "5d4c0e7c9165d70b78f789c5274a2c7846d9e1c06ec19b69afa6ef45f789a3b9"
+    },
+    {
+      "package": "pdfjs-dist",
+      "version": "6.1.200",
+      "path": "frontend/vendor/pdfjs/pdf.min.mjs",
+      "sha256": "4ba2f15599b03fde8755ad91349920c21dadd3e8fd6b6460a7663d46d4cf21b5"
+    },
+    {
+      "package": "pdfjs-dist",
+      "version": "6.1.200",
+      "path": "frontend/vendor/pdfjs/pdf.worker.min.mjs",
+      "sha256": "2ab9e09667296dab1a618868b3ce6e6c23d5b8f48120ae7c5b34e7e335ed01fa"
+    },
+    {
+      "package": "xlsx-js-style",
+      "version": "1.2.0",
+      "path": "frontend/vendor/xlsx/xlsx.bundle.js",
+      "sha256": "1c7abf2993ff2cd61e508f9268e9acda0098c9796f3925d2ba0d2579072653e2"
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+replicaCount: 2
+
+image:
+  repository: artifact-registry.example/versorgungs-kompass-api
+  tag: REPLACE_WITH_IMMUTABLE_IMAGE_TAG
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+podAnnotations: {}
+
+serviceAccount:
+  create: true
+  name: "versorgungs-kompass-api"
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  annotations: {}
+
+containerPort: 8080
+
+ingress:
+  enabled: true
+  className: ""
+  host: versorgungs-kompass-api.example.internal
+  annotations: {}
+  tls:
+    enabled: true
+    secretName: "REPLACE_WITH_TLS_SECRET"
+
+config:
+  allowedOrigin: "https://versorgungs-kompass.example.internal"
+  apiAuthMode: "oidc"
+  iapJwtAudience: ""
+  oidcIssuer: "https://identity.example.invalid"
+  oidcAudience: "REPLACE_WITH_OIDC_AUDIENCE"
+  oidcJwksUrl: "https://identity.example.invalid/.well-known/jwks.json"
+  oidcEmailClaim: "email"
+  oidcSubjectClaim: "sub"
+  attachmentUploadMode: "disabled"
+  imageUploadMode: "disabled"
+  logRequests: "0"
+
+database:
+  host: ""
+  port: "5432"
+  name: "versorgungs_kompass"
+  user: "vk_app"
+  ssl: "verify-full"
+  poolMax: "5"
+
+secrets:
+  databasePasswordSecretName: "versorgungs-kompass-postgres"
+  databasePasswordSecretKey: "password"
+
+storage:
+  profileImageBucket: ""
+  contactImageBucket: ""
+  contactNoteAttachmentBucket: ""
+
+frontend:
+  enabled: false
+  bucketName: ""
+  releasePrefix: "releases"
+  contentRevision: ""
+  replicaCount: 2
+  podAnnotations: {}
+  contentSizeLimit: 512Mi
+  serviceAccount:
+    create: true
+    name: "versorgungs-kompass-frontend"
+    annotations: {}
+    automountServiceAccountToken: false
+  sync:
+    image: "gcr.io/google.com/cloudsdktool/google-cloud-cli:569.0.0-slim@sha256:a443f0233e9476f41db019f2b4f07bb6d72dace55aa2b176deefeb6205a2a83a"
+    imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 101
+      capabilities:
+        drop:
+          - ALL
+  nginx:
+    image: "nginxinc/nginx-unprivileged:1.31.2-alpine3.23@sha256:6320020c7da8714feab524e02c08c5a1958675c4e68700e93a2fd8970b065786"
+    imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      capabilities:
+        drop:
+          - ALL
+  podSecurityContext:
+    runAsNonRoot: true
+    fsGroup: 101
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    port: 80
+    annotations: {}
+  backendConfig:
+    name: ""
+    timeoutSec: 30
+    healthCheck:
+      requestPath: /index.html
+      port: 8080
+      checkIntervalSec: 15
+      timeoutSec: 5
+      healthyThreshold: 1
+      unhealthyThreshold: 3
+    iap:
+      enabled: true
+      oauthClientCredentialsSecretName: ""
+
+gke:
+  cloudSqlProxy:
+    enabled: false
+    image: "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.22.0@sha256:fa4c7308245407157c5e9c4e16f1c0f1113899d6f29dc8f8be3e30efae86467f"
+    imagePullPolicy: IfNotPresent
+    instanceConnectionName: ""
+    port: 5432
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      capabilities:
+        drop:
+          - ALL
+  neg:
+    enabled: false
+  backendConfig:
+    enabled: false
+    name: ""
+    timeoutSec: 30
+    connectionDrainingTimeoutSec: 0
+    healthCheck:
+      type: HTTP
+      requestPath: /api/readyz
+      port: 8080
+      checkIntervalSec: 15
+      timeoutSec: 5
+      healthyThreshold: 1
+      unhealthyThreshold: 3
+    iap:
+      enabled: false
+      oauthClientCredentialsSecretName: ""
+  managedCertificate:
+    enabled: false
+    name: ""
+    domains: []
+  secretSync:
+    enabled: false
+    projectId: ""
+    secretName: ""
+    secretVersion: latest
+    secretProviderClassName: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  capabilities:
+    drop:
+      - ALL
+
+rollout:
+  maxUnavailable: 0
+  maxSurge: 1
+
+terminationGracePeriodSeconds: 30
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingress:
+    # Fail-closed TEST-NET defaults. Replace them with the exact gateway or
+    # load-balancer source ranges of the target platform before deployment.
+    apiAllowedCidrs:
+      - 192.0.2.0/32
+    frontendAllowedCidrs:
+      - 192.0.2.0/32
+  metadataServer:
+    dataplaneV2Ip: 169.254.169.254/32
+    workloadIdentityIp: 169.254.169.252/32
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

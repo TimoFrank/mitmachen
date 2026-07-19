@@ -1,0 +1,11 @@
+# Generated or third-party code is covered by reproducible builds and dependency audits.
+dist/
+frontend/vendor/
+node_modules/
+output/
+outputs/
+playwright-report/
+test-results/
+
+# Historical, non-deployable prototypes are retained only as documentation.
+dokumentation/betrieb-und-deployment/archiv/

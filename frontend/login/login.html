@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | Versorgungs-Kompass</title>
+    <meta name="theme-color" content="#155fe4" />
+    <meta name="apple-mobile-web-app-title" content="Kompass" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="../../public/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../../public/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../../public/app-icon-32.png" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="%23f4f6ff"/><rect x="11" y="9" width="18" height="18" rx="6" transform="rotate(45 20 18)" fill="%232788f6"/><rect x="34" y="24" width="18" height="18" rx="6" transform="rotate(45 43 33)" fill="%23ff7f3f"/><rect x="11" y="39" width="18" height="18" rx="6" transform="rotate(45 20 48)" fill="%2310236e"/></svg>'
+    />
+    <script src="../data/runtime-config.js"></script>
+    <script src="./auth-config.js"></script>
+    <script src="./auth-guard.js"></script>
+    <link rel="stylesheet" href="./login.css" />
+  </head>
+  <body>
+    <main class="login-shell">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="brand-copy">
+          <span class="brand-kicker">#Mitmachen</span>
+          <strong id="login-app-name">Der gematik-Versorgungskompass</strong>
+          <p>Wissensmanagement für Hospitationen, Co-Creation und Veranstaltungen.</p>
+        </div>
+      </div>
+
+      <div class="login-stack">
+        <section class="teaser-card" aria-label="Karten-Vorschau">
+          <iframe
+            class="teaser-frame"
+            title="Mini-Vorschau des Karten-Modus"
+            src="../map/versorgungs-kompass-map-teaser.html"
+            loading="lazy"
+            tabindex="-1"
+            sandbox="allow-scripts"
+            referrerpolicy="no-referrer"
+          ></iframe>
+        </section>
+
+        <section class="login-card" id="login-card" aria-labelledby="login-app-name">
+          <p id="login-copy">Die Anmeldung erfolgt über den organisationsweiten SSO-Zugang.</p>
+          <button class="login-button" id="external-login-submit" type="button" hidden>Erneut anmelden</button>
+        </section>
+      </div>
+    </main>
+
+    <script src="./auth-login.js"></script>
+  </body>
+</html>

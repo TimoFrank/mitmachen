@@ -1,0 +1,22 @@
+{{- if .Values.frontend.enabled -}}
+{{- $annotations := deepCopy (.Values.frontend.service.annotations | default dict) -}}
+{{- $_ := set $annotations "cloud.google.com/neg" "{\"ingress\": true}" -}}
+{{- $_ := set $annotations "cloud.google.com/backend-config" (printf "{\"ports\": {\"http\": \"%s\"}}" (include "versorgungs-kompass.frontendBackendConfigName" .)) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "versorgungs-kompass.frontendFullname" . }}
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.frontend.service.port }}
+      targetPort: frontend-http
+      protocol: TCP
+  selector:
+    {{- include "versorgungs-kompass.frontendSelectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,26 @@
+{{- $annotations := deepCopy (.Values.service.annotations | default dict) -}}
+{{- if .Values.gke.neg.enabled -}}
+{{- $_ := set $annotations "cloud.google.com/neg" "{\"ingress\": true}" -}}
+{{- end -}}
+{{- if .Values.gke.backendConfig.enabled -}}
+{{- $_ := set $annotations "cloud.google.com/backend-config" (printf "{\"ports\": {\"http\": \"%s\"}}" (include "versorgungs-kompass.gkeBackendConfigName" .)) -}}
+{{- end -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "versorgungs-kompass.fullname" . }}-api
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+  {{- with $annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "versorgungs-kompass.selectorLabels" . | nindent 4 }}

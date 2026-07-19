@@ -1,0 +1,40 @@
+{
+  "$schema": "../deployment-profile.schema.json",
+  "id": "pages-demo",
+  "purpose": "Öffentliche Produktdemo mit ausschließlich fiktiven Daten",
+  "status": "active",
+  "buildProfile": "pages",
+  "sourceRoots": [
+    "frontend/demo",
+    "frontend/map",
+    "frontend/data/demo-data.js",
+    "frontend/data/sector-registry.js",
+    "frontend/vendor/leaflet",
+    "public/app-icon-32.png",
+    "public/gematik-logo.svg",
+    "public/demo-profile-admin.svg",
+    "public/demo-profile-editor.svg",
+    "public/demo-profile-viewer.svg"
+  ],
+  "artifactPath": "dist/pages",
+  "infrastructureRoot": null,
+  "githubEnvironment": "github-pages",
+  "delivery": {
+    "kind": "github-pages-actions",
+    "entrypoint": ".github/workflows/deploy-pages.yml",
+    "trigger": "main-push"
+  },
+  "route": "/demo/",
+  "dataMode": "demo",
+  "dataPolicy": "synthetic-only",
+  "authModes": ["anonymous-demo"],
+  "forbiddenInputs": [
+    "dist/target",
+    "deploy",
+    "config/pre-gematik",
+    "frontend/app",
+    "frontend/login",
+    "frontend/data/runtime-config.js",
+    "frontend/data/data-service.js"
+  ]
+}

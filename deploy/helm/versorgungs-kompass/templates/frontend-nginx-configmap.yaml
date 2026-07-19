@@ -1,0 +1,11 @@
+{{- if .Values.frontend.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "versorgungs-kompass.frontendFullname" . }}-nginx
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+data:
+  default.conf: |
+{{ .Files.Get "files/frontend-default.conf" | indent 4 }}
+{{- end }}

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Versorgungs-Kompass – Karten-Modus</title>
+  <script src="../data/runtime-config.js"></script>
+  <script src="../login/auth-config.js"></script>
+  <script src="../login/auth-guard.js"></script>
+
+  <link rel="stylesheet" href="../vendor/leaflet/leaflet.css"/>
+
+  <link rel="stylesheet" href="./versorgungs-kompass-map.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <img class="topbar-logo" src="../../public/gematik-logo.svg" alt="gematik"/>
+      <h1>Versorgungs-Kompass</h1>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-version">Karten-Modus</div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="panel">
+          <div class="hdr">
+            <div class="panel-title">Kontakte</div>
+            <div class="panel-count"><span id="count"></span></div>
+            <button class="map-list-toggle" id="map-list-toggle" type="button" aria-label="Kontaktliste einklappen" aria-expanded="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6"></path>
+              </svg>
+            </button>
+          </div>
+          <button class="mobile-sheet-header" id="mobile-sheet-toggle" type="button" aria-label="Kontaktliste öffnen">
+            <span class="mobile-sheet-grip" aria-hidden="true"></span>
+            <span class="mobile-sheet-summary">
+              <span class="mobile-sheet-title" id="mobile-sheet-count">0 Kontakte</span>
+              <span class="mobile-sheet-meta" id="mobile-sheet-meta">Liste und Kartenkontext</span>
+            </span>
+          </button>
+          <div class="body">
+            <div id="filters" class="filters" aria-label="Kategorie-Filter"></div>
+            <section class="mobile-map-filter-bar" aria-labelledby="mobile-map-filter-title">
+              <div class="mobile-map-filter-bar__header">
+                <span class="mobile-map-filter-bar__title" id="mobile-map-filter-title">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2.5 3h11L9.4 7.7v3.6l-2.8 1.2V7.7z"></path>
+                  </svg>
+                  Filter
+                </span>
+                <span class="mobile-map-filter-bar__hint">Kartenansicht eingrenzen</span>
+              </div>
+              <div class="mobile-map-quick-filters" id="mobile-map-quick-filters" aria-label="Schnellfilter"></div>
+            </section>
+            <div class="map-controls map-controls--legacy" aria-label="Kartenfilter">
+              <div class="map-dropdown">
+                <button id="state-filter-toggle" class="map-toggle" type="button">
+                  <span class="map-toggle-icon" aria-hidden="true">
+                    <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1.5 2.1h9L7.2 5.9v3.1l-2.4.9V5.9z" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <span id="state-filter-label">Bundesland</span>
+                </button>
+                <div id="state-filter-menu" class="map-dropdown-menu"></div>
+              </div>
+              <div id="mobile-map-filter-group" class="mobile-map-filter-group" aria-label="Kartenfilter mobil"></div>
+            </div>
+            <div id="map-active-filters" class="map-active-filters" aria-label="Aktive Kartenfilter"></div>
+          </div>
+          <div id="mobile-map-preview" class="mobile-map-preview" hidden></div>
+          <div id="list" class="list" style="display:block;"></div>
+          <div id="map-pagination" class="map-pagination" aria-label="Kontaktseiten"></div>
+        </div>
+      </aside>
+
+      <main class="map-area">
+        <div class="map-search-shell">
+          <label class="map-search-field" for="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m20 20-3.5-3.5"></path>
+            </svg>
+            <input id="search" type="search" placeholder="Name, Organisation, Ort oder Thema suchen" autocomplete="off"/>
+          </label>
+        </div>
+        <div class="map-box">
+          <div class="map-mode-controls" aria-label="Kartenmodus">
+            <button id="points-toggle" class="map-toggle" type="button" aria-pressed="true">
+              <span class="map-toggle-icon" aria-hidden="true">●</span>
+              <span>Punkte</span>
+            </button>
+            <button id="heatmap-toggle" class="map-toggle" type="button">
+              <span class="map-toggle-icon" aria-hidden="true">
+                <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="currentColor"/>
+                  <path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.82)"/>
+                </svg>
+              </span>
+              <span>Verteilung</span>
+            </button>
+          </div>
+          <aside class="map-legend" aria-label="Legende Kontaktpunkte">
+            <div class="map-legend-title">Legende</div>
+            <div class="map-legend-list" id="map-legend-list"></div>
+          </aside>
+          <div id="map"></div>
+          <section id="state-view" class="state-view" aria-hidden="true">
+            <div class="state-view-header">
+              <div class="state-view-copy">
+                <div class="state-view-kicker">Bundesland-Ansicht</div>
+                <div id="state-view-title" class="state-view-title">Bundesland</div>
+                <div id="state-view-meta" class="state-view-meta"></div>
+              </div>
+              <div class="state-view-spacer"></div>
+              <div class="state-view-filter">
+                <button id="state-view-filter-toggle" class="map-toggle" type="button">
+                  <span class="map-toggle-icon" aria-hidden="true">
+                    <svg viewBox="0 0 12 12" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1.5 2.1h9L7.2 5.9v3.1l-2.4.9V5.9z" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <span id="state-view-filter-label">Bundesland</span>
+                </button>
+              </div>
+              <button id="state-view-close" class="state-view-close" type="button">Zurück</button>
+            </div>
+            <div id="state-map"></div>
+          </section>
+        </div>
+      </main>
+      <aside id="map-detail-panel" class="map-detail-panel" aria-live="polite"></aside>
+    </div>
+  </div>
+
+<script src="../vendor/leaflet/leaflet.js"></script>
+
+<script src="./data/de-geojson.js"></script>
+<script src="./data/city-labels.js"></script>
+<script src="./data/state-labels.js"></script>
+<script src="./data/state-polygons.js"></script>
+<script src="../data/sector-registry.js"></script>
+
+<script src="./versorgungs-kompass-map.js"></script>
+</body>
+</html>

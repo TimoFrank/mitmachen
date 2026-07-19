@@ -1,0 +1,96 @@
+name: Target readiness
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - "api/**"
+      - "config/**"
+      - "deploy/**"
+      - "dokumentation/architektur/**"
+      - "dokumentation/betrieb-und-deployment/**"
+      - "frontend/**"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - "api/**"
+      - "config/**"
+      - "deploy/**"
+      - "dokumentation/architektur/**"
+      - "dokumentation/betrieb-und-deployment/**"
+      - "frontend/**"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/**"
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  target-readiness:
+    name: Zielbetriebs-Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enforce security contracts
+        run: npm run security:contracts
+
+      - name: Check migration target readiness
+        run: npm run check:target-readiness
+
+      - name: Check GCP Autopilot pre-integration readiness
+        run: npm run check:gcp-autopilot
+
+      - name: Check deployment artifact separation
+        run: node scripts/test_deployment_separation.mjs
+
+      - name: Check deployment governance
+        run: node scripts/check_deployment_governance.mjs
+
+      - name: Setup Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: v3.19.0
+
+      - name: Render and validate hardened Helm chart
+        run: |
+          chart='deploy/helm/versorgungs-kompass'
+          helm lint "$chart" --values "$chart/values-gcp-autopilot.yaml"
+          helm template security-readiness "$chart" \
+            --values "$chart/values-gcp-autopilot.yaml" \
+            --set image.repository=europe-west3-docker.pkg.dev/example/versorgungs-kompass/api \
+            --set-string image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+            --set ingress.host=api.example.invalid \
+            --set config.allowedOrigin=https://app.example.invalid \
+            --set config.oidcIssuer=https://identity.example.invalid \
+            --set config.oidcAudience=versorgungs-kompass \
+            --set config.oidcJwksUrl=https://identity.example.invalid/.well-known/jwks.json \
+            --set database.host=127.0.0.1 \
+            --set secrets.databasePasswordSecretName=versorgungs-kompass-db \
+            --set gke.cloudSqlProxy.instanceConnectionName=example:europe-west3:versorgungs-kompass \
+            --set frontend.bucketName=example-frontend \
+            --set frontend.contentRevision=git-security-readiness >/tmp/versorgungs-kompass.yaml

@@ -1,0 +1,95 @@
+name: Weekly release
+
+on:
+  schedule:
+    - cron: "0 14 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  weekly-release:
+    name: Prepare reviewable weekly release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare release notes and changelog
+        id: release
+        run: node scripts/prepare_weekly_release.mjs
+
+      - name: Check project
+        run: npm run check
+
+      - name: Verify release change scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- . ':!README.md' ':!CHANGELOG.md' ':!frontend/app/versorgungs-kompass.js'
+          test -s dist/release/weekly-notes.md
+
+      - name: Preserve release notes as workflow artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: weekly-release-${{ steps.release.outputs.tag }}
+          path: dist/release/weekly-notes.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Open draft release pull request
+        id: pull-request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        with:
+          token: ${{ github.token }}
+          base: main
+          branch: automation/weekly-release-${{ steps.release.outputs.tag }}
+          delete-branch: true
+          draft: always-true
+          sign-commits: true
+          commit-message: Release ${{ steps.release.outputs.tag }}
+          title: ${{ steps.release.outputs.title }}
+          body-path: dist/release/weekly-notes.md
+          add-paths: |
+            README.md
+            CHANGELOG.md
+            frontend/app/versorgungs-kompass.js
+
+      - name: Summarize release preparation
+        shell: bash
+        env:
+          PULL_REQUEST_URL: ${{ steps.pull-request.outputs.pull-request-url }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          {
+            echo "## Weekly release prepared"
+            echo
+            echo "- Candidate: \`${RELEASE_TAG}\`"
+            if [[ -n "$PULL_REQUEST_URL" ]]; then
+              echo "- Draft pull request: ${PULL_REQUEST_URL}"
+            else
+              echo "- No pull request was created because the release files were unchanged."
+            fi
+            echo "- No tag, GitHub Release, Pages artifact, or direct push to \`main\` was created."
+          } >> "$GITHUB_STEP_SUMMARY"

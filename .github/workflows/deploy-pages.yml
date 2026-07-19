@@ -1,0 +1,147 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - frontend/demo/**
+      - frontend/map/**
+      - frontend/data/demo-data.js
+      - frontend/data/sector-registry.js
+      - frontend/vendor/leaflet/**
+      - public/app-icon-32.png
+      - public/gematik-logo.svg
+      - public/demo-profile-*.svg
+      - config/pages-demo/**
+      - config/deployment-profile.schema.json
+      - package.json
+      - package-lock.json
+      - scripts/build_static_frontend.sh
+      - scripts/audit_public_assets.mjs
+      - scripts/check_deployment_governance.mjs
+      - .github/workflows/deploy-pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build isolated Pages artifact
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run repository checks
+        run: npm run check
+
+      - name: Build Pages artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/build_static_frontend.sh \
+            --profile pages \
+            --output dist/pages
+          node scripts/audit_public_assets.mjs --artifact-root dist/pages
+          jq --exit-status --raw-output \
+            '.artifactDigest | select(type == "string" and test("^sha256:[0-9a-f]{64}$"))' \
+            dist/pages/build-manifest.json >/dev/null
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: dist/pages
+
+  deploy:
+    name: Publish Pages artifact
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
+
+      - name: Verify public Demo profile
+        shell: bash
+        env:
+          PUBLIC_PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          page_root="${PUBLIC_PAGE_URL%/}"
+          demo_data_path="${RUNNER_TEMP}/pages-demo-data.js"
+
+          curl --fail --silent --show-error \
+            --retry 6 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --max-time 30 \
+            "${page_root}/" >/dev/null
+          curl --fail --silent --show-error \
+            --retry 6 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --max-time 30 \
+            "${page_root}/demo/" >/dev/null
+          curl --fail --silent --show-error \
+            --retry 6 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --max-time 30 \
+            "${page_root}/data/demo-data.js" \
+            --output "$demo_data_path"
+
+          grep --extended-regexp --ignore-case --quiet 'synthetisch|fiktiv' "$demo_data_path"
+          if grep --extended-regexp --ignore-case --quiet 'supabase|service[_-]?role|stakeholder-data|expertenkreis-data' "$demo_data_path"; then
+            echo "GitHub Pages serves data or runtime references outside the public Demo contract." >&2
+            exit 1
+          fi
+
+          for forbidden_path in \
+            login.html \
+            set-password.html \
+            versorgungs-kompass.html \
+            data/runtime-config.js \
+            data/supabase-config.js \
+            data/data-service.js \
+            data/versorgungs-kompass-data.csv \
+            data/versorgungs-kompass-data.js \
+            data/expertenkreis-data.js \
+            data/stakeholder-data.js \
+            data/patienten-data.js; do
+            status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "${page_root}/${forbidden_path}")"
+            if [ "$status" != "404" ]; then
+              echo "GitHub Pages unexpectedly serves forbidden asset ${forbidden_path} (HTTP ${status})." >&2
+              exit 1
+            fi
+          done

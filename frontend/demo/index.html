@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Versorgungs-Kompass Demo</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../../public/app-icon-32.png">
+    <link rel="stylesheet" href="./demo.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="app-sidebar" aria-label="Hauptnavigation">
+        <a class="sidebar-brand" href="./index.html" aria-label="Zur Karte">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <strong>Versorgungs-Kompass</strong>
+        </a>
+
+        <nav class="primary-nav sidebar-nav" aria-label="App-Bereiche">
+          <div class="sidebar-section" aria-label="Karte">
+            <span class="sidebar-section-label">Karte</span>
+            <button class="primary-tab is-active" type="button" data-view="map" title="Karte">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                <path d="M9 3v15"></path>
+                <path d="M15 6v15"></path>
+              </svg>
+              <span>Karte</span>
+            </button>
+          </div>
+
+          <div class="sidebar-section" aria-label="Kontakte" data-sidebar-section="contacts">
+            <span class="sidebar-section-label">Kontakte</span>
+            <button class="primary-tab" type="button" data-view="contacts" data-view-tab="contacts" data-view-group="care" title="Versorgung">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9.5" cy="7" r="4"></circle>
+                <path d="M20 8v6"></path>
+                <path d="M23 11h-6"></path>
+              </svg>
+              <span>Versorgung</span>
+              <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
+            </button>
+          </div>
+        </nav>
+
+        <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" title="Menü einklappen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+        </button>
+      </aside>
+
+      <div class="app-main">
+        <main class="wrap">
+          <section class="crm-shell">
+            <div class="workspace-header">
+              <div class="workspace-copy">
+                <h1 id="view-title">Kontakte</h1>
+                <p id="view-subtitle">Öffentliche Demo mit ausschließlich synthetischen Testdaten.</p>
+              </div>
+              <div class="workspace-expert-switcher" id="care-mode-actions" hidden>
+                <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Versorgung">
+                  <button class="settings-tab-button is-active" type="button" role="tab" data-care-mode="contacts" aria-selected="true" aria-controls="main-view">
+                    <span class="experts-mode-label">Kontakte </span>
+                    <span class="experts-mode-count">0</span>
+                  </button>
+                  <button class="settings-tab-button" type="button" role="tab" data-care-mode="organizations" aria-selected="false" aria-controls="main-view">
+                    <span class="experts-mode-label">Organisationen </span>
+                    <span class="experts-mode-count">0</span>
+                  </button>
+                  <button class="settings-tab-button" type="button" role="tab" data-care-mode="map" aria-selected="false" aria-controls="main-view">
+                    <span class="experts-mode-label">Karte </span>
+                    <span class="experts-mode-count">0</span>
+                  </button>
+                </div>
+              </div>
+              <div class="workspace-actions">
+                <span class="permission-banner" id="demo-mode-banner" role="status">
+                  <span class="permission-banner__icon" aria-hidden="true">i</span>
+                  <span id="status-line">Synthetische Demo-Daten geladen</span>
+                </span>
+                <button class="button button--secondary" type="button" id="reset-demo">Demo-Daten zurücksetzen</button>
+              </div>
+            </div>
+
+            <div class="workspace">
+              <section class="content-panel" id="main-view" aria-live="polite"></section>
+              <aside class="detail-panel" id="detail-panel" aria-label="Kontaktdetail"></aside>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="../data/demo-data.js"></script>
+    <script src="./demo-app.js"></script>
+  </body>
+</html>

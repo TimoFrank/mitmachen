@@ -1,0 +1,134 @@
+replicaCount: 2
+
+image:
+  repository: europe-west3-docker.pkg.dev/example-pre-gematik-project/versorgungs-kompass-pre-gematik/versorgungs-kompass-api
+  tag: REPLACE_WITH_IMMUTABLE_IMAGE_TAG
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: versorgungs-kompass-api
+  annotations: {}
+  automountServiceAccountToken: false
+
+securityContext:
+  readOnlyRootFilesystem: true
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: ""
+  host: pre-gematik.example.invalid
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.allow-http: "false"
+    kubernetes.io/ingress.global-static-ip-name: vk-pre-gematik-api
+  tls:
+    enabled: false
+    secretName: ""
+
+config:
+  allowedOrigin: https://pre-gematik.example.invalid
+  apiAuthMode: iap
+  iapJwtAudience: REPLACE_AFTER_FIRST_INGRESS_RECONCILIATION
+  logRequests: "0"
+
+database:
+  host: 127.0.0.1
+  port: "5432"
+  name: versorgungs_kompass
+  user: vk_app
+  ssl: "disable"
+  poolMax: "5"
+
+secrets:
+  databasePasswordSecretName: vk-pre-gematik-postgres-password
+  databasePasswordSecretKey: password
+
+storage:
+  profileImageBucket: example-pre-gematik-profiles
+  contactImageBucket: example-pre-gematik-contacts
+  contactNoteAttachmentBucket: example-pre-gematik-attachments
+
+networkPolicy:
+  enabled: true
+  ingress:
+    # Google Front End / External Application Load Balancer proxy ranges.
+    # Revalidate these platform ranges during the GKE acceptance.
+    apiAllowedCidrs:
+      - 35.191.0.0/16
+      - 130.211.0.0/22
+    frontendAllowedCidrs:
+      - 35.191.0.0/16
+      - 130.211.0.0/22
+
+frontend:
+  enabled: true
+  bucketName: example-pre-gematik-frontend
+  contentRevision: REPLACE_WITH_IMMUTABLE_FRONTEND_CONTENT_REVISION
+  replicaCount: 2
+  serviceAccount:
+    create: true
+    name: versorgungs-kompass-frontend
+    annotations: {}
+    automountServiceAccountToken: false
+  sync:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:569.0.0-slim@sha256:a443f0233e9476f41db019f2b4f07bb6d72dace55aa2b176deefeb6205a2a83a
+    imagePullPolicy: IfNotPresent
+  nginx:
+    image: nginxinc/nginx-unprivileged:1.31.2-alpine3.23@sha256:6320020c7da8714feab524e02c08c5a1958675c4e68700e93a2fd8970b065786
+    imagePullPolicy: IfNotPresent
+  backendConfig:
+    name: versorgungs-kompass-frontend
+    iap:
+      enabled: true
+      oauthClientCredentialsSecretName: versorgungs-kompass-iap-oauth
+
+gke:
+  cloudSqlProxy:
+    enabled: true
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.22.0@sha256:fa4c7308245407157c5e9c4e16f1c0f1113899d6f29dc8f8be3e30efae86467f
+    imagePullPolicy: IfNotPresent
+    instanceConnectionName: example-pre-gematik-project:europe-west3:vk-pre-gematik-postgres
+    port: 5432
+  neg:
+    enabled: true
+  backendConfig:
+    enabled: true
+    name: versorgungs-kompass-api
+    timeoutSec: 30
+    connectionDrainingTimeoutSec: 0
+    healthCheck:
+      type: HTTP
+      requestPath: /api/readyz
+      port: 8080
+      checkIntervalSec: 15
+      timeoutSec: 5
+      healthyThreshold: 1
+      unhealthyThreshold: 3
+    iap:
+      enabled: true
+      oauthClientCredentialsSecretName: versorgungs-kompass-iap-oauth
+  managedCertificate:
+    enabled: true
+    name: versorgungs-kompass-api
+    domains:
+      - pre-gematik.example.invalid
+  secretSync:
+    enabled: true
+    projectId: example-pre-gematik-project
+    secretName: vk-pre-gematik-postgres-password
+    secretVersion: latest
+    secretProviderClassName: versorgungs-kompass-db
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

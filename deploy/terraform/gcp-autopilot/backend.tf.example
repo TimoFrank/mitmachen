@@ -1,0 +1,6 @@
+terraform {
+  backend "gcs" {
+    bucket = "example-pre-gematik-tfstate"
+    prefix = "versorgungs-kompass/pre-gematik/gcp-autopilot"
+  }
+}

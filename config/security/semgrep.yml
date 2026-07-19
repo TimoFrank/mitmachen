@@ -1,0 +1,41 @@
+rules:
+  - id: javascript-no-eval
+    message: Dynamic code execution is forbidden in application code.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: javascript-no-shell-exec
+    message: Shell-string execution is forbidden; use argument-safe process APIs.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: child_process.exec(...)
+      - pattern: child_process.execSync(...)
+      - pattern: childProcess.exec(...)
+      - pattern: childProcess.execSync(...)
+
+  - id: browser-no-wildcard-postmessage
+    message: postMessage must use an exact target origin.
+    severity: ERROR
+    languages: [javascript, typescript]
+    patterns:
+      - pattern: $TARGET.postMessage($PAYLOAD, "*")
+
+  - id: browser-no-inline-handler-construction
+    message: Do not construct executable inline event attributes.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: $ELEMENT.setAttribute("on$EVENT", $VALUE)
+      - pattern: $ELEMENT.innerHTML = $PREFIX + "onerror=" + $SUFFIX
+
+  - id: node-no-tls-verification-disable
+    message: TLS certificate verification must not be disabled.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: "{..., rejectUnauthorized: false, ...}"
+      - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: versorgungs-kompass
+description: Versorgungs-Kompass API for the gematik Kubernetes target setup.
+type: application
+version: 0.3.0
+appVersion: "0.1.0"

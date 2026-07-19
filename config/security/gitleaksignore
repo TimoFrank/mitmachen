@@ -1,0 +1,53 @@
+# Reviewed 2026-07-18: deterministic browser-local storage identifiers, not secrets.
+# Current-tree fingerprints are intentionally line-specific so source movement
+# requires a new review instead of silently widening the exception.
+frontend/data/data-service.js:generic-api-key:561
+frontend/data/data-service.js:generic-api-key:562
+frontend/data/data-service.js:generic-api-key:563
+frontend/data/data-service.js:generic-api-key:568
+frontend/data/data-service.js:generic-api-key:570
+frontend/data/data-service.js:generic-api-key:573
+docs/data/data-service.js:generic-api-key:561
+docs/data/data-service.js:generic-api-key:562
+docs/data/data-service.js:generic-api-key:563
+docs/data/data-service.js:generic-api-key:568
+docs/data/data-service.js:generic-api-key:570
+docs/data/data-service.js:generic-api-key:573
+36d69a258a69e78c0e586a633bdca17112e96bf1:data/data-service.js:generic-api-key:234
+593078358fb9ca7cb0958ec2e16031a9247a8acd:app/versorgungs-kompass.html:generic-api-key:20894
+593078358fb9ca7cb0958ec2e16031a9247a8acd:data/data-service.js:generic-api-key:246
+593078358fb9ca7cb0958ec2e16031a9247a8acd:docs/data/data-service.js:generic-api-key:246
+593078358fb9ca7cb0958ec2e16031a9247a8acd:docs/versorgungs-kompass.html:generic-api-key:20894
+67426c3cfcbb2da0a5cb915d48628c4158dd3017:app/versorgungs-kompass.html:generic-api-key:22694
+67426c3cfcbb2da0a5cb915d48628c4158dd3017:app/versorgungs-kompass.html:generic-api-key:22695
+67426c3cfcbb2da0a5cb915d48628c4158dd3017:docs/versorgungs-kompass.html:generic-api-key:22694
+67426c3cfcbb2da0a5cb915d48628c4158dd3017:docs/versorgungs-kompass.html:generic-api-key:22695
+a37e5bb0387d6f0c6fc7f2710005e62745340a5b:data/data-service.js:generic-api-key:309
+a37e5bb0387d6f0c6fc7f2710005e62745340a5b:data/data-service.js:generic-api-key:310
+a37e5bb0387d6f0c6fc7f2710005e62745340a5b:docs/data/data-service.js:generic-api-key:309
+a37e5bb0387d6f0c6fc7f2710005e62745340a5b:docs/data/data-service.js:generic-api-key:310
+ba041dd6137dce892a07d95c1a05f602818f621f:data/data-service.js:generic-api-key:186
+ba041dd6137dce892a07d95c1a05f602818f621f:docs/data/data-service.js:generic-api-key:186
+d13fa77db7008b86d315763ec2bbb8e8b6385317:app/versorgungs-kompass.html:generic-api-key:13175
+d13fa77db7008b86d315763ec2bbb8e8b6385317:app/versorgungs-kompass.html:generic-api-key:13177
+d13fa77db7008b86d315763ec2bbb8e8b6385317:docs/versorgungs-kompass.html:generic-api-key:13175
+d13fa77db7008b86d315763ec2bbb8e8b6385317:docs/versorgungs-kompass.html:generic-api-key:13177
+d6db43ca951fd1f41e7fac331dd2e6471e7a2f5c:docs/data/data-service.js:generic-api-key:234
+f40b7f4b19caa8e6863a960a24f0cd74ea2b62be:docs/data/data-service.js:generic-api-key:563
+f40b7f4b19caa8e6863a960a24f0cd74ea2b62be:docs/versorgungs-kompass.html:generic-api-key:37076
+f40b7f4b19caa8e6863a960a24f0cd74ea2b62be:frontend/app/versorgungs-kompass.html:generic-api-key:37076
+f40b7f4b19caa8e6863a960a24f0cd74ea2b62be:frontend/data/data-service.js:generic-api-key:563
+
+# Reviewed 2026-07-18: historical Supabase anon-key fingerprints in retired
+# publication paths. The current runtime-config.js contains no Supabase key.
+67426c3cfcbb2da0a5cb915d48628c4158dd3017:data/supabase-config.js:generic-api-key:4
+67426c3cfcbb2da0a5cb915d48628c4158dd3017:docs/data/supabase-config.js:generic-api-key:4
+76d975d1596e30e4e4c897e7111e0dc942e97e65:data/supabase-config.js:generic-api-key:4
+76d975d1596e30e4e4c897e7111e0dc942e97e65:docs/data/supabase-config.js:generic-api-key:4
+cf48b1018f1d96fdba387e8324e6b92fcf361e95:data/supabase-config.js:generic-api-key:4
+cf48b1018f1d96fdba387e8324e6b92fcf361e95:docs/data/supabase-config.js:generic-api-key:4
+
+# Reviewed 2026-07-18: obsolete browser-login hashes; the client-side password mechanism was removed.
+# Acceptance gate: confirm that the former password is not reused elsewhere; rotate it if reuse cannot be excluded.
+aebc80ba2a4405ce4d7a7f7a4c494a1a4c2f7bd2:auth-config.js:generic-api-key:7
+b5348a57fb768e07bc3414cc0f3da769db632d55:docs/auth-config.js:generic-api-key:7

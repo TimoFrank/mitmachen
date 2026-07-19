@@ -1,0 +1,41 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated local test and build output; source and committed publication artifacts are scanned separately."
+paths = [
+  '''^dist/''',
+  '''^playwright-report/''',
+  '''^test-results/'''
+]
+
+[[allowlists]]
+description = "Reviewed browser-local storage identifiers in the data service; exact declarations only."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^frontend/data/data-service\.js$''']
+regexes = [
+  '''^\s*const LOCAL_HOSPITATION_SLOTS_KEY = "versorgungs-kompass-hospitation-slots-v1";\s*$''',
+  '''^\s*const LOCAL_EXPERT_ORGANIZATIONS_KEY = "versorgungs-kompass-expert-organizations-v1";\s*$''',
+  '''^\s*const LOCAL_STAKEHOLDER_ORGANIZATIONS_KEY = "versorgungs-kompass-stakeholder-organizations-v1";\s*$''',
+  '''^\s*const LOCAL_NOTIFICATIONS_KEY = "versorgungs-kompass-notifications-v1";\s*$'''
+]
+
+[[allowlists]]
+description = "Reviewed browser-local table preference identifiers; exact declarations only."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^frontend/app/versorgungs-kompass\.js$''',
+  '''^docs/versorgungs-kompass\.js$'''
+]
+regexes = [
+  '''^\s*const legacyOwnerAssignmentsStorageKey = "versorgungs-kompass-legacy-owner-assignments-v1";\s*$''',
+  '''^\s*const visibleOrganizationColumnsStorageKey = "versorgungs-kompass-visible-organization-columns-v1";\s*$''',
+  '''^\s*const visiblePatientPersonColumnsStorageKey = "versorgungs-kompass-visible-patient-person-columns-v1";\s*$''',
+  '''^\s*const visiblePatientOrganizationColumnsStorageKey = "versorgungs-kompass-visible-patient-organization-columns-v1";\s*$''',
+  '''^\s*const visibleStakeholderOrganizationColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-organization-columns-v1";\s*$''',
+  '''^\s*const visibleHospitationObservationColumnsStorageKey = "versorgungs-kompass-visible-hospitation-observation-columns-v1";\s*$'''
+]

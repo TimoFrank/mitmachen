@@ -1,0 +1,16 @@
+*.docx binary
+*.gif binary
+*.pdf binary
+*.png binary
+*.pptx binary
+*.webp binary
+*.xlsx binary
+
+# Vendored browser bundles are verified byte-for-byte via THIRD_PARTY_ASSETS.json.
+frontend/vendor/** -diff -whitespace
+
+# Lokale Arbeitsmaterialien duerfen auch bei einer versehentlichen Aenderung
+# nicht als lesbarer Inhalt in einem oeffentlichen Pull-Request-Diff erscheinen.
+.codex-pet-runs/** -diff
+output/** -diff
+outputs/** -diff

@@ -1,0 +1,12 @@
+project_id = "versorgungs-crm"
+
+[auth]
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+
+[functions.network-registration]
+verify_jwt = false

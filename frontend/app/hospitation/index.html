@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hospitations-Dokumentation</title>
+    <meta name="theme-color" content="#155fe4" />
+    <meta name="apple-mobile-web-app-title" content="Hospitationen" />
+    <link rel="manifest" href="../../../public/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../../../public/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../public/app-icon-32.png" />
+    <script src="../../data/runtime-config.js"></script>
+    <script src="../../login/auth-config.js"></script>
+    <script src="../../login/auth-guard.js"></script>
+    <link rel="stylesheet" href="./hospitation.css" />
+  </head>
+  <body>
+    <main class="hospitation-documentation-export">
+      <section class="hospitation-app-window" aria-label="Hospitations-Dokumentation">
+        <header class="hospitation-app-header">
+          <div class="hospitation-app-title">
+            <span class="hospitation-app-mark" aria-hidden="true">
+              <span class="hospitation-app-dot hospitation-app-dot--blue"></span>
+              <span class="hospitation-app-dot hospitation-app-dot--orange"></span>
+              <span class="hospitation-app-dot hospitation-app-dot--light"></span>
+            </span>
+            <span class="hospitation-app-copy">
+              <strong>#Mitmachen</strong>
+              <span>Hospitation</span>
+            </span>
+          </div>
+          <div class="hospitation-app-actions" aria-label="Bereich wechseln">
+            <nav class="hospitation-app-switcher" aria-label="Hospitationsbereiche">
+              <a
+                class="hospitation-app-switch"
+                href="../versorgungs-kompass.html?standalone=hospitation-documentation#framework"
+                target="hospitation-documentation-frame"
+                data-hospitation-switcher-link="framework"
+              >Framework</a>
+              <a
+                class="hospitation-app-switch is-active"
+                href="../versorgungs-kompass.html?standalone=hospitation-documentation#hospitations"
+                target="hospitation-documentation-frame"
+                aria-current="page"
+                data-hospitation-switcher-link="appointments"
+              >Termine</a>
+              <a
+                class="hospitation-app-switch"
+                href="../versorgungs-kompass.html?standalone=hospitation-documentation#hospitations:observations"
+                target="hospitation-documentation-frame"
+                data-hospitation-switcher-link="observations"
+              >Beobachtungen</a>
+              <a
+                class="hospitation-app-switch"
+                href="../versorgungs-kompass.html?standalone=hospitation-documentation#hospitations:dashboard"
+                target="hospitation-documentation-frame"
+                data-hospitation-switcher-link="dashboard"
+              >Dashboard</a>
+              <a
+                class="hospitation-app-switch"
+                href="../versorgungs-kompass.html?standalone=hospitation-documentation#questionnaire"
+                target="hospitation-documentation-frame"
+                data-hospitation-switcher-link="questionnaire"
+              >Fragebogen</a>
+            </nav>
+          </div>
+        </header>
+        <div class="hospitation-app-stage">
+          <iframe
+            id="hospitation-documentation-frame"
+            name="hospitation-documentation-frame"
+            title="Hospitations-Dokumentation"
+            src="../versorgungs-kompass.html?standalone=hospitation-documentation#hospitations"
+          ></iframe>
+          <div class="hospitation-documentation-loading" aria-live="polite">
+            <span class="hospitation-loading-card">
+              <strong>Hospitations-Dokumentation</strong>
+              <span>Wird geladen...</span>
+              <span class="hospitation-loading-bar" aria-hidden="true"></span>
+            </span>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="./hospitation.js"></script>
+  </body>
+</html>

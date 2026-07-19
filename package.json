@@ -1,0 +1,52 @@
+{
+  "name": "versorgungs-kompass",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "start:api": "node api/server.mjs",
+    "start:demo": "npm run start",
+    "build:pages": "bash scripts/build_static_frontend.sh --profile pages --output dist/pages",
+    "build:target": "bash scripts/build_static_frontend.sh --profile target --output dist/target --api-base-url \"$API_BASE_URL\" --auth-mode \"${TARGET_AUTH_MODE:-oidc}\"",
+    "check:demo": "node --check frontend/demo/demo-app.js && node --check frontend/data/demo-data.js && node scripts/test_hospitation_demo_data.mjs",
+    "check:syntax": "node scripts/check_project.mjs --syntax",
+    "check:target-readiness": "node scripts/check_target_readiness.mjs",
+    "check:gcp-autopilot": "node scripts/check_gcp_autopilot_readiness.mjs",
+    "check:deployment-governance": "node scripts/check_deployment_governance.mjs",
+    "check": "node scripts/check_project.mjs",
+    "qa": "npm run check && npm run test:visual",
+    "qa:small": "npm run check:syntax && git diff --check",
+    "qa:focused": "playwright test tests/visual-smoke.spec.js",
+    "qa:full": "npm run qa",
+    "test:api-runtime": "node scripts/test_api_runtime_config.mjs",
+    "test:api-postgres-contracts": "node scripts/test_api_postgres_contracts.mjs",
+    "test:pre-gematik-schema": "node scripts/test_pre_gematik_postgres_schema.mjs",
+    "generate:pre-gematik-seed": "node scripts/generate_pre_gematik_synthetic_seed.mjs",
+    "build:browser-vendor": "node scripts/build_browser_vendor.mjs",
+    "test:api-validation": "node scripts/test_api_validation.mjs",
+    "test:auth-avatar-contract": "node scripts/test_auth_avatar_contract.mjs",
+    "test:hospitation-export": "node scripts/test_hospitation_document_export.mjs",
+    "test:target-config": "node scripts/test_target_frontend_config.mjs",
+    "test:deployment-separation": "node scripts/test_deployment_separation.mjs",
+    "deploy:preflight": "node scripts/preflight_target_deployment.mjs",
+    "verify:publication": "node scripts/verify_publication_state.mjs",
+    "security:api-gateway": "node scripts/audit_api_gateway.mjs",
+    "security:audit": "npm audit --audit-level=high && node scripts/test_security_contracts.mjs",
+    "security:contracts": "node scripts/test_security_contracts.mjs",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0",
+    "esbuild": "0.28.1"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4",
+    "mammoth": "1.12.0",
+    "pdfjs-dist": "6.1.200",
+    "pg": "8.21.0",
+    "xlsx-js-style": "1.2.0"
+  }
+}

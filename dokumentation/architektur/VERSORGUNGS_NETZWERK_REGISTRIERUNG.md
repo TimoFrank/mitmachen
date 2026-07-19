@@ -1,0 +1,128 @@
+# Versorgungs-Netzwerk Registrierung
+
+Stand: 19.07.2026
+
+Dieses Dokument beschreibt den vorbereiteten Registrierungsvertrag der geschuetzten Realanwendung. Die Route ist noch kein freigegebener Live-Intake.
+
+## Zwei-App-Abgrenzung
+
+- Die oeffentliche GitHub-Pages-Anwendung ist eine dauerhaft bestehende Produktdemo. Sie verwendet ausschliesslich synthetische, im Demo-Artefakt gebuendelte Daten und sendet keine Registrierung.
+- Die Realanwendung ist ein separates Target-Artefakt. Sie authentisiert im GKE-Vorbereitungspfad ueber IAP und im gematik-Zielbetrieb ueber OIDC. Jeder fachliche Browserzugriff laeuft ausschliesslich ueber `/api/...`.
+- Pages und Realanwendung teilen weder Laufzeitkonfiguration noch Sitzung, Supabase-Client, Backend-Key oder persistente Browserdaten.
+
+## Zielbild
+
+Ein institutionell betriebenes Formular kann spaeter ueber die geschuetzte API an einen freigegebenen Intake-Service gekoppelt werden. Das Formular schreibt nie direkt in den produktiven CRM-Bestand. Fuehrende Eingangsschicht ist die Target-API; eine Anbindung an ein nachgelagertes gematik Backend erfolgt ausschliesslich serverseitig.
+
+Die Realanwendung zeigt neue Registrierungen nach Freigabe im Bereich `Importe` als Pruef-Inbox. Erst die Uebernahme durch einen Admin legt einen aktiven Kontakt und optional eine Organisation an.
+
+## Aktueller Route-Status: fail-closed
+
+Das Target-Frontend bereitet `POST /api/network-registrations` nur vor, wenn das API-Profil aktiv ist und `requireApiGateway: true` gesetzt wurde. Die Route ist ein GKE-Vorbereitungsgate. Solange im ausgerollten API-Backend kein freigegebener Handler existiert, muss der Request mit einem HTTP-Fehler enden und die Oberflaeche einen Uebermittlungsfehler anzeigen.
+
+Insbesondere unzulaessig sind:
+
+- direkter Browserzugriff auf Supabase, Tabellen, Storage oder einen externen Intake-Service,
+- Speicherung der Eingabe in LocalStorage, IndexedDB oder einer Browser-Warteschlange,
+- Umschalten auf synthetische Demo-Daten nach einem API- oder Authentisierungsfehler,
+- eine Erfolgsmeldung, bevor das Backend die Registrierung bestaetigt hat.
+
+## Minimaler Server-zu-Server-Vertrag nach Freigabe
+
+Die folgenden `/versorgungs-netzwerk/...`-Pfade beschreiben eine moegliche nachgelagerte Backendkopplung. Sie sind kein Browservertrag. Die Target-API kapselt sie hinter `/api/...`, setzt Authentisierung und Rollen durch und gibt nur validierte DTOs zurueck.
+
+### Oeffentlicher Eingang
+
+`POST /versorgungs-netzwerk/registrierungen`
+
+Pflichtlogik im Backend:
+
+- Pflichtfelder, E-Mail-Format und Datenschutzeinwilligung validieren.
+- Honeypot/Captcha, Rate-Limit und erlaubte Herkunft pruefen.
+- Rohmeldung, Formularversion, Quelle und Consent-Zeitpunkt speichern.
+- Dublettenhinweise berechnen, aber noch keinen CRM-Kontakt erzeugen.
+- `submission_id` idempotent verarbeiten und Nachweiszeitpunkte serverseitig setzen.
+- Keine Klartext-PII, Tokens oder Request-Bodies in Sicherheits- und Zugriffslogs schreiben.
+
+### Interner Abruf fuer den Versorgungs-Kompass
+
+`GET /versorgungs-netzwerk/registrierungen?status=neu`
+
+Antwortform:
+
+```json
+{
+  "items": [
+    {
+      "id": "reg_123",
+      "submitted_at": "2026-05-20T10:15:00Z",
+      "status": "neu",
+      "email": "kontakt@example.org",
+      "salutation": "Frau",
+      "title": "Dr. med.",
+      "first_name": "Lea",
+      "last_name": "Muster",
+      "organization": "Hausarztpraxis Musterstadt",
+      "sector": "Praxis",
+      "city": "Musterstadt",
+      "federal_state": "Nordrhein-Westfalen",
+      "role": "Praxisinhaberin",
+      "message": "Wir moechten Einblicke geben.",
+      "consent_text_version": "mitmachen-versorgungs-netzwerk-v1",
+      "consent_accepted_at": "2026-05-20T10:15:00Z",
+      "source_url": "https://www.gematik.de/mitmachen/versorgungs-netzwerk",
+      "duplicate_hint": ""
+    }
+  ]
+}
+```
+
+### Statusaenderung
+
+`PATCH /versorgungs-netzwerk/registrierungen/{id}`
+
+Der Versorgungs-Kompass sendet mindestens:
+
+```json
+{
+  "status": "uebernommen",
+  "processed_at": "2026-05-20T10:30:00Z",
+  "processed_by": "admin@example.invalid",
+  "contact_id": "contact-local-example"
+}
+```
+
+Unterstuetzte Statuswerte fuer V1:
+
+- `neu`
+- `uebernommen`
+- `verknuepft`
+- `zurueckgestellt`
+- `abgelehnt`
+
+## Frontend-Konfiguration
+
+Nur das geschuetzte Target-Artefakt erhaelt eine Runtime-Konfiguration fuer die Realanwendung:
+
+```js
+window.VERSORGUNGS_COMPASS_CONFIG = {
+  dataMode: "api",
+  authMode: "oidc", // "iap" nur fuer die getrennte GKE-Pre-Integration
+  apiBaseUrl: "https://target.example.invalid",
+  apiCredentials: "include",
+  requireApiGateway: true
+};
+```
+
+Die Pages-Demo erhaelt diese Konfiguration nicht. Im Target fuehren eine fehlende API-Konfiguration, eine fehlende OIDC-/IAP-Sitzung oder eine nicht implementierte Backendroute zu einem sichtbaren Fehler. Registrierungen und Statusaenderungen werden dann weder synthetisch ersetzt noch lokal im Browser gespeichert.
+
+## Freigabegate
+
+Vor Aktivierung von `POST /api/network-registrations` sind mindestens nachzuweisen:
+
+- Route-Policy, OIDC-/IAP-Authentisierung und erforderliche Fachrolle,
+- Request-Allowlist, Laengen- und Mengenlimits sowie ein generisches Fehlerschema,
+- Idempotenz, Rate Limit, Missbrauchsschutz und sichere Wiederholbarkeit,
+- versionierter Datenschutztext, Einwilligungsnachweis und festgelegte Aufbewahrung,
+- serverseitige Auditierung, Betriebsmonitoring und Alarmierung ohne PII-Leakage,
+- Negativtests fuer fehlende Route, fehlende Session, falsche Rolle, unbekannte Felder, Wiederholung und Backendausfall.

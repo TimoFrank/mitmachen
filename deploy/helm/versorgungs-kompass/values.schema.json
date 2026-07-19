@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Versorgungs-Kompass Helm values",
+  "type": "object",
+  "required": ["image", "config", "frontend"],
+  "properties": {
+    "image": {
+      "type": "object",
+      "required": ["repository", "tag", "digest"],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "^(?:latest|stable|main|master)$"
+          }
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^(|sha256:[a-f0-9]{64})$"
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "required": ["apiAuthMode"],
+      "properties": {
+        "apiAuthMode": {
+          "type": "string",
+          "enum": ["iap", "oidc"]
+        },
+        "oidcIssuer": {
+          "type": "string"
+        },
+        "oidcAudience": {
+          "type": "string"
+        },
+        "oidcJwksUrl": {
+          "type": "string"
+        },
+        "attachmentUploadMode": {
+          "const": "disabled"
+        },
+        "imageUploadMode": {
+          "const": "disabled"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "apiAuthMode": {
+                "const": "oidc"
+              }
+            }
+          },
+          "then": {
+            "required": ["oidcIssuer", "oidcAudience", "oidcJwksUrl"],
+            "properties": {
+              "oidcIssuer": {
+                "pattern": "^https://[^\\s]+$"
+              },
+              "oidcAudience": {
+                "minLength": 1
+              },
+              "oidcJwksUrl": {
+                "pattern": "^https://[^\\s]+$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "database": {
+      "type": "object",
+      "required": ["ssl"],
+      "properties": {
+        "ssl": {
+          "type": "string",
+          "enum": ["verify-full", "disable"]
+        }
+      }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "required": ["enabled", "ingress"],
+      "properties": {
+        "enabled": {
+          "const": true
+        },
+        "ingress": {
+          "type": "object",
+          "required": ["apiAllowedCidrs", "frontendAllowedCidrs"],
+          "properties": {
+            "apiAllowedCidrs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F:.]+/[0-9]{1,3}$"
+              }
+            },
+            "frontendAllowedCidrs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F:.]+/[0-9]{1,3}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "frontend": {
+      "type": "object",
+      "required": ["enabled", "bucketName", "releasePrefix", "contentRevision"],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "bucketName": {
+          "type": "string"
+        },
+        "releasePrefix": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "contentRevision": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$|^$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": ["enabled"]
+          },
+          "then": {
+            "properties": {
+              "bucketName": {
+                "minLength": 1
+              },
+              "contentRevision": {
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

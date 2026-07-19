@@ -1,0 +1,40 @@
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(180deg, #f9fbff 0%, #f1f5ff 100%);
+      font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #f6f7f8;
+    }
+
+    .map-fade {
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 40px;
+      background: linear-gradient(180deg, rgba(243,245,247,0) 0%, rgba(243,245,247,0.28) 60%, rgba(243,245,247,0.62) 100%);
+      pointer-events: none;
+      z-index: 400;
+    }
+
+    .map-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 3px solid rgba(255,255,255,0.95);
+      box-shadow: 0 4px 14px rgba(45, 102, 237, 0.22);
+      background: #2d66ed;
+    }
+
+    .leaflet-control-container,
+    .leaflet-control-attribution {
+      display: none;
+    }
+
+    .leaflet-tile {
+      filter: saturate(0.78) contrast(0.96) brightness(1.02);
+    }

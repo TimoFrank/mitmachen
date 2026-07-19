@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "versorgungs-kompass.fullname" . }}-api
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+data:
+  PORT: {{ .Values.containerPort | quote }}
+  ALLOWED_ORIGIN: {{ .Values.config.allowedOrigin | quote }}
+  API_AUTH_MODE: {{ .Values.config.apiAuthMode | quote }}
+  IAP_JWT_AUDIENCE: {{ .Values.config.iapJwtAudience | quote }}
+  OIDC_ISSUER: {{ .Values.config.oidcIssuer | quote }}
+  OIDC_AUDIENCE: {{ .Values.config.oidcAudience | quote }}
+  OIDC_JWKS_URL: {{ .Values.config.oidcJwksUrl | quote }}
+  OIDC_EMAIL_CLAIM: {{ .Values.config.oidcEmailClaim | quote }}
+  OIDC_SUBJECT_CLAIM: {{ .Values.config.oidcSubjectClaim | quote }}
+  ATTACHMENT_UPLOAD_MODE: {{ .Values.config.attachmentUploadMode | quote }}
+  IMAGE_UPLOAD_MODE: {{ .Values.config.imageUploadMode | quote }}
+  API_LOG_REQUESTS: {{ .Values.config.logRequests | quote }}
+  DB_HOST: {{ .Values.database.host | quote }}
+  DB_PORT: {{ .Values.database.port | quote }}
+  DB_NAME: {{ .Values.database.name | quote }}
+  DB_USER: {{ .Values.database.user | quote }}
+  DB_SSL: {{ .Values.database.ssl | quote }}
+  DB_POOL_MAX: {{ .Values.database.poolMax | quote }}
+  PROFILE_IMAGE_BUCKET: {{ .Values.storage.profileImageBucket | quote }}
+  CONTACT_IMAGE_BUCKET: {{ .Values.storage.contactImageBucket | quote }}
+  CONTACT_NOTE_ATTACHMENT_BUCKET: {{ .Values.storage.contactNoteAttachmentBucket | quote }}
