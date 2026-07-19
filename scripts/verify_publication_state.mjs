@@ -10,9 +10,17 @@ const defaultAssets = [
   "index.html",
   "build-manifest.json",
   "demo/index.html",
-  "demo/demo-app.js",
+  "versorgungs-kompass.html",
+  "versorgungs-kompass.css",
+  "versorgungs-kompass.js",
+  "hospitation/index.html",
+  "mitmachen/index.html",
+  "data/runtime-config.js",
   "data/demo-data.js",
-  "versorgungs-kompass-map.html"
+  "data/demo-api.js",
+  "data/data-service.js",
+  "versorgungs-kompass-map.html",
+  "versorgungs-kompass-map-teaser.html"
 ];
 const overriddenAssets = String(process.env.PUBLICATION_ASSETS || "")
   .split(",")
@@ -22,11 +30,10 @@ const publicationAssets = overriddenAssets.length ? overriddenAssets : defaultAs
 const forbiddenAssets = [
   "login.html",
   "set-password.html",
-  "versorgungs-kompass.html",
-  "hospitation/index.html",
-  "mitmachen/versorgungs-netzwerk.html",
-  "data/runtime-config.js",
-  "data/data-service.js",
+  "auth-config.js",
+  "auth-guard.js",
+  "auth-login.js",
+  "data/supabase-config.js",
   "data/versorgungs-kompass-data.js",
   "data/expertenkreis-data.js",
   "data/stakeholder-data.js",
@@ -103,4 +110,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("\nPublication Verification OK: GitHub Pages liefert ausschliesslich den geprueften Demo-Vertrag; Realapp und geschuetzte Datenpfade sind nicht oeffentlich.");
+console.log("\nPublication Verification OK: GitHub Pages liefert die gepruefte Voll-App-Shell mit lokaler Demo-Runtime; Login, Supabase und geschuetzte Datenpfade bleiben ausgeschlossen.");

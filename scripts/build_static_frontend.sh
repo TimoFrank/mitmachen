@@ -149,55 +149,160 @@ build_pages() {
   mkdir -p \
     "$STAGE_DIR/data" \
     "$STAGE_DIR/demo" \
-    "$STAGE_DIR/public" \
+    "$STAGE_DIR/public/hospitation" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
+    "$STAGE_DIR/mitmachen" \
+    "$STAGE_DIR/hospitation" \
     "$STAGE_DIR/vendor"
 
   touch "$STAGE_DIR/.nojekyll"
-  cp "$FRONTEND_DIR/demo/index.html" "$STAGE_DIR/demo/index.html"
-  cp "$FRONTEND_DIR/demo/demo.css" "$STAGE_DIR/demo/demo.css"
-  cp "$FRONTEND_DIR/demo/demo-app.js" "$STAGE_DIR/demo/demo-app.js"
-  cp "$FRONTEND_DIR/data/demo-data.js" "$STAGE_DIR/data/demo-data.js"
-  cp "$FRONTEND_DIR/data/sector-registry.js" "$STAGE_DIR/data/sector-registry.js"
+  cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
+  cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
+  cp "$FRONTEND_DIR/app/versorgungs-kompass.js" "$STAGE_DIR/versorgungs-kompass.js"
+  cp "$FRONTEND_DIR/app/hospitation/index.html" "$STAGE_DIR/hospitation/index.html"
+  cp "$FRONTEND_DIR/app/hospitation/hospitation.css" "$STAGE_DIR/hospitation/hospitation.css"
+  cp "$FRONTEND_DIR/app/hospitation/hospitation.js" "$STAGE_DIR/hospitation/hospitation.js"
+  cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/mitmachen/index.html"
+  cp "$FRONTEND_DIR/pages/mitmachen/mitmachen.css" "$STAGE_DIR/mitmachen/mitmachen.css"
+  cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.html" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
+  cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.css" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.css"
+  cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.js" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.js"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-map.html" "$STAGE_DIR/versorgungs-kompass-map.html"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-map.css" "$STAGE_DIR/versorgungs-kompass-map.css"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-map.js" "$STAGE_DIR/versorgungs-kompass-map.js"
+  cp "$FRONTEND_DIR/map/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-map-teaser.html"
+  cp "$FRONTEND_DIR/map/versorgungs-kompass-map-teaser.css" "$STAGE_DIR/versorgungs-kompass-map-teaser.css"
+  cp "$FRONTEND_DIR/map/versorgungs-kompass-map-teaser.js" "$STAGE_DIR/versorgungs-kompass-map-teaser.js"
+  cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
+  cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.css" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.css"
+  cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.js" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.js"
+
+  # Pages verwendet dieselbe App-Shell wie das Target. Ausschliesslich der
+  # Runtime- und Datenadapter wird durch eine anonyme, lokale Demo-API ersetzt.
+  cp "$FRONTEND_DIR/data/demo-data.js" "$STAGE_DIR/data/demo-data.js"
+  cp "$FRONTEND_DIR/data/demo-api.js" "$STAGE_DIR/data/demo-api.js"
+  cp "$FRONTEND_DIR/data/data-service.js" "$STAGE_DIR/data/data-service.js"
+  cp "$FRONTEND_DIR/data/sector-registry.js" "$STAGE_DIR/data/sector-registry.js"
+  cp "$FRONTEND_DIR/data/hospitation-model.js" "$STAGE_DIR/data/hospitation-model.js"
+  cp "$FRONTEND_DIR/data/hospitation-export.js" "$STAGE_DIR/data/hospitation-export.js"
+  cp "$FRONTEND_DIR/data/activity-model.js" "$STAGE_DIR/data/activity-model.js"
+  cp "$FRONTEND_DIR/data/document-text-extractor.js" "$STAGE_DIR/data/document-text-extractor.js"
+  cp -R "$FRONTEND_DIR/vendor/." "$STAGE_DIR/vendor/"
+
+  cat > "$STAGE_DIR/data/runtime-config.js" <<'EOF'
+window.VERSORGUNGS_COMPASS_CONFIG = {
+  dataMode: "demo",
+  authMode: "anonymous-demo",
+  demoRole: "admin",
+  apiBaseUrl: "",
+  apiCredentials: "same-origin",
+  requireApiGateway: false,
+  capabilities: {
+    contactRole: true,
+    contactConsent: true,
+    organizationPrimarySystems: true,
+    registrationIntake: true,
+    contactImageSources: true,
+    organizationAssets: false,
+    expertOrganizationAssets: false,
+    stakeholderOrganizationAssets: true
+  }
+};
+EOF
+
   cp "$FRONTEND_DIR/map/data/de-geojson.js" "$STAGE_DIR/deutschlandkarte-project/data/de-geojson.js"
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
-  cp -R "$FRONTEND_DIR/vendor/leaflet" "$STAGE_DIR/vendor/leaflet"
 
-  for asset in \
-    app-icon-32.png \
-    gematik-logo.svg \
-    demo-profile-admin.svg \
-    demo-profile-editor.svg \
-    demo-profile-viewer.svg; do
+  for asset in gematik-logo.svg format-roundtable-hero.jpg versorgungs-kompass-logo.png app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png demo-profile-admin.svg demo-profile-editor.svg demo-profile-viewer.svg; do
     if [ -f "$ROOT_DIR/public/$asset" ]; then
       cp "$ROOT_DIR/public/$asset" "$STAGE_DIR/public/$asset"
     fi
   done
+  cp "$ROOT_DIR/public/manifest.webmanifest" "$STAGE_DIR/manifest.webmanifest"
+  for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
+    if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
+      cp "$ROOT_DIR/public/hospitation/$asset" "$STAGE_DIR/public/hospitation/$asset"
+    fi
+  done
 
-  node - "$STAGE_DIR/index.html" <<'NODE'
+  perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./login/login\.html#./login.html#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.js"
+  perl -0pi -e 's#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
+  perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html"
+  perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./public/#../public/#g; s#\.\./public/#../public/#g; s#\.\./\.\./data/#../data/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
+  perl -0pi -e 's#\.\./data/#../data/#g; s#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./app/hospitation/index\.html#../hospitation/index.html#g; s#\.\./\.\./map/versorgungs-kompass-map-teaser\.html#../versorgungs-kompass-map-teaser.html#g; s#\./versorgungs-netzwerk\.html#./versorgungs-netzwerk.html#g' "$STAGE_DIR/mitmachen/index.html"
+  perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./\.\./public/#./public/#g; s#\.\./public/#./public/#g; s#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map.html"
+  perl -0pi -e 's#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
+  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
+
+  node - "$STAGE_DIR" <<'NODE'
 const fs = require("node:fs");
-const output = process.argv[2];
-fs.writeFileSync(output, `<!doctype html>
+const path = require("node:path");
+const root = process.argv[2];
+
+function walk(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) return walk(fullPath);
+    return entry.isFile() && entry.name.endsWith(".html") ? [fullPath] : [];
+  });
+}
+
+for (const htmlPath of walk(root)) {
+  const html = fs.readFileSync(htmlPath, "utf8").replace(
+    /\n?\s*<script\b[^>]*src=["'][^"']*(?:auth-config|auth-guard)\.js[^"']*["'][^>]*><\/script>/gi,
+    ""
+  );
+  fs.writeFileSync(htmlPath, html);
+}
+
+const appPath = path.join(root, "versorgungs-kompass.html");
+let appHtml = fs.readFileSync(appPath, "utf8");
+appHtml = appHtml.replace(
+  /\n?\s*<section\b[^>]*data-target-session[^>]*>[\s\S]*?<\/section>/i,
+  ""
+);
+const dataServiceScript = '<script src="./data/data-service.js"></script>';
+if (!appHtml.includes(dataServiceScript)) {
+  throw new Error("Pages-Build konnte den Data-Service-Einstieg in der App-Shell nicht finden.");
+}
+appHtml = appHtml.replace(
+  dataServiceScript,
+  '<script src="./data/demo-data.js"></script>\n    <script src="./data/demo-api.js"></script>\n    ' + dataServiceScript
+);
+fs.writeFileSync(appPath, appHtml);
+
+const registrationPath = path.join(root, "mitmachen", "versorgungs-netzwerk.html");
+let registrationHtml = fs.readFileSync(registrationPath, "utf8");
+const registrationScript = '<script src="./versorgungs-netzwerk.js"></script>';
+if (!registrationHtml.includes(registrationScript)) {
+  throw new Error("Pages-Build konnte den Einstieg der Netzwerkregistrierung nicht finden.");
+}
+registrationHtml = registrationHtml.replace(
+  registrationScript,
+  '<script src="../data/demo-data.js"></script>\n    <script src="../data/demo-api.js"></script>\n    ' + registrationScript
+);
+fs.writeFileSync(registrationPath, registrationHtml);
+
+function redirectDocument(target) {
+  return `<!doctype html>
 <html lang="de">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="0; url=./demo/">
+    <meta http-equiv="refresh" content="0; url=${target}">
     <title>Versorgungs-Kompass Demo</title>
-    <link rel="canonical" href="./demo/">
+    <link rel="canonical" href="${target}">
   </head>
-  <body><p><a href="./demo/">Oeffentliche Demo oeffnen</a></p></body>
+  <body><p><a href="${target}">Oeffentliche Demo oeffnen</a></p></body>
 </html>
-`);
-NODE
+`;
+}
 
-  perl -0pi -e 's#\.\./\.\./public/#../public/#g' "$STAGE_DIR/demo/index.html"
-  perl -0pi -e 's#\.\./\.\./frontend/map/versorgungs-kompass-map\.html#../versorgungs-kompass-map.html#g; s#\.\./\.\./map/versorgungs-kompass-map\.html#../versorgungs-kompass-map.html#g; s#\.\./map/versorgungs-kompass-map\.html#../versorgungs-kompass-map.html#g' "$STAGE_DIR/demo/demo-app.js"
+fs.writeFileSync(path.join(root, "index.html"), redirectDocument("./versorgungs-kompass.html#map"));
+fs.writeFileSync(path.join(root, "demo", "index.html"), redirectDocument("../versorgungs-kompass.html#map"));
+NODE
 
   node - "$STAGE_DIR/data/demo-data.js" <<'NODE'
 const fs = require("node:fs");
@@ -217,27 +322,6 @@ source = source.replace(
   (_, prefix) => `${prefix}demoAssetUrl("../public/${profileAssets[profileIndex++ % profileAssets.length]}");`
 );
 fs.writeFileSync(file, source);
-NODE
-
-  node - "$STAGE_DIR/versorgungs-kompass-map.html" <<'NODE'
-const fs = require("node:fs");
-const file = process.argv[2];
-let html = fs.readFileSync(file, "utf8");
-html = html.replace(
-  /\n?\s*<script\b[^>]*src=["'][^"']*(?:runtime-config|supabase-config|auth-config|auth-guard|versorgungs-kompass-data)\.js[^"']*["'][^>]*><\/script>/gi,
-  ""
-);
-html = html
-  .replaceAll("../vendor/", "./vendor/")
-  .replaceAll("../../public/", "./public/")
-  .replaceAll("../public/", "./public/")
-  .replaceAll("./data/de-geojson.js", "./deutschlandkarte-project/data/de-geojson.js")
-  .replaceAll("./data/city-labels.js", "./deutschlandkarte-project/data/city-labels.js")
-  .replaceAll("./data/state-labels.js", "./deutschlandkarte-project/data/state-labels.js")
-  .replaceAll("./data/state-polygons.js", "./deutschlandkarte-project/data/state-polygons.js")
-  .replaceAll("../data/sector-registry.js", "./data/sector-registry.js")
-  .replaceAll("../data/demo-data.js", "./data/demo-data.js");
-fs.writeFileSync(file, html);
 NODE
 }
 

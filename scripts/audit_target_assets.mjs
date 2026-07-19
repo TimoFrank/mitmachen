@@ -47,6 +47,7 @@ for (const required of [
 for (const forbidden of [
   "demo/index.html",
   "data/demo-data.js",
+  "data/demo-api.js",
   "data/versorgungs-kompass-data.csv",
   "data/versorgungs-kompass-data.js",
   "data/expertenkreis-data.js",
@@ -107,6 +108,7 @@ if (existsSync(targetHtmlPath)) {
   assert(!/data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i.test(html), `${artifactLabel}/versorgungs-kompass.html referenziert statische Demo- oder Realbestandsdaten`);
   assert(!/data-hospitation-(?:data-mode|documentation-data-mode|dashboard-preview-mode)=["']demo["']/i.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt einen Demo-/Echt-Umschalter`);
   assert(!/id=["']registrations-reset-demo["']/i.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt eine Demo-Reset-Funktion`);
+  assert(/data-target-session/.test(html) && /id=["']profile-logout["']/.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt die Target-Sitzungssteuerung nicht`);
 }
 
 const targetAppPath = join(artifactRoot, "versorgungs-kompass.js");

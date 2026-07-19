@@ -1,4 +1,6 @@
       const XLSX_SCRIPT_SRC = "../vendor/xlsx/xlsx.bundle.js";
+      const IS_PUBLIC_DEMO_PROFILE = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo"
+        && window.VERSORGUNGS_COMPASS_CONFIG?.authMode === "anonymous-demo";
       let xlsxLoadPromise = null;
 
       function ensureXlsxLoaded() {
@@ -1956,6 +1958,10 @@
       }
 
       async function logout() {
+        if (IS_PUBLIC_DEMO_PROFILE) {
+          window.location.reload();
+          return;
+        }
         try {
           if (window.dataService?.getClient && window.dataService.isConfigured?.()) {
             await window.dataService.getClient().auth.signOut();
@@ -5036,8 +5042,9 @@
 
       function loadStoredContacts() {
         loadedContactsFromStorage = false;
+        const isPublicDemo = String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo";
         setStorageStatus(window.dataService?.isConfigured?.()
-          ? "Geschütztes Backend wird geladen"
+          ? isPublicDemo ? "Lokale synthetische Demo-Daten werden geladen" : "Geschütztes Backend wird geladen"
           : "Geschütztes Backend ist nicht konfiguriert");
         return [];
       }
@@ -5107,7 +5114,7 @@
       let editorScope = "care";
       let organizationEditorScope = "care";
       let showingArchive = false;
-      let greetingLabel = "Willkommen, Timo";
+      let greetingLabel = "Willkommen im Versorgungs-Kompass";
       const viewLabels = {
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
@@ -6059,7 +6066,7 @@
           };
         }
 
-        if (!allowGenerated) return null;
+        if (!allowGenerated || String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo") return null;
 
         const website = normalizedWebsiteUrl(organization?.website);
         if (!website) return null;
@@ -11867,6 +11874,15 @@
           setActiveView("formats");
           updateRouteHash("formats");
           updateView();
+          return;
+        }
+        if (notification.entityType === "hospitation" && notification.entityId) {
+          const record = hospitations.find((item) => item.id === notification.entityId);
+          activeHospitationTab = "appointments";
+          setActiveView("hospitations");
+          updateRouteHash(hospitationRouteForTab(activeHospitationTab));
+          updateView();
+          if (record) openHospitationEditor("edit", record);
           return;
         }
         renderNotificationsView();
@@ -35037,7 +35053,9 @@
         contacts = (await window.dataService.loadContacts({ includeArchived: canAdministerData() })).map((contact, index) => sanitizeContact(contact, index));
         organizations = deriveOrganizationsFromContacts(contacts);
         loadedContactsFromStorage = false;
-        setStorageStatus(`${contacts.length} Kontakte aus dem Backend geladen`);
+        setStorageStatus(String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo"
+          ? `${contacts.length} synthetische Demo-Kontakte lokal geladen`
+          : `${contacts.length} Kontakte aus dem Backend geladen`);
       }
 
       let deferredInitialDataPromise = null;

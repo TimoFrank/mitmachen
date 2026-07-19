@@ -124,6 +124,7 @@
   const MAP_MAX_ZOOM = 11;
   const STATE_MAP_MAX_ZOOM = 12;
   const MAP_WHEEL_PX_PER_ZOOM = 140;
+  const IS_PUBLIC_DEMO = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo";
   function currentMapMinZoom(){
     return window.matchMedia('(max-width: 760px)').matches ? MOBILE_MAP_MIN_ZOOM : MAP_MIN_ZOOM;
   }
@@ -134,12 +135,14 @@
     wheelPxPerZoomLevel: MAP_WHEEL_PX_PER_ZOOM
   });
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
-    maxZoom: MAP_MAX_ZOOM,
-    opacity: 0.58,
-    attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
-  }).addTo(map);
+  if (!IS_PUBLIC_DEMO) {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: MAP_MAX_ZOOM,
+      opacity: 0.58,
+      attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
+    }).addTo(map);
+  }
 
   // ---- Build exact Germany mask (inverse polygon) ----
   function toLatLngs(ringLngLat){
@@ -1580,7 +1583,7 @@
       zoomDelta: 1,
       wheelPxPerZoomLevel: MAP_WHEEL_PX_PER_ZOOM
     });
-    stateMapTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    stateMapTiles = IS_PUBLIC_DEMO ? null : L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
       subdomains: 'abcd',
       maxZoom: STATE_MAP_MAX_ZOOM,
       opacity: 0.52,

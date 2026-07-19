@@ -112,13 +112,48 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await page.setViewportSize({ width: 320, height: 760 });
   await expectNoHorizontalOverflow(page);
 
+  const publicDemoExternalRequests = [];
+  page.on("request", (outgoingRequest) => {
+    const hostname = new URL(outgoingRequest.url()).hostname;
+    if (!new Set(["127.0.0.1", "localhost"]).has(hostname)) publicDemoExternalRequests.push(outgoingRequest.url());
+  });
   await page.goto("/dist/pages/index.html");
-  await expect(page).toHaveURL(/\/dist\/pages\/demo\/$/);
-  await expect(page).toHaveTitle("Versorgungs-Kompass Demo");
-  await expect(page.locator("#view-subtitle")).toContainText("ausschließlich synthetischen");
-  await expect(page.locator("#demo-mode-banner")).toContainText("Demo");
+  await expect(page).toHaveURL(/\/dist\/pages\/versorgungs-kompass\.html#map$/);
+  await expect(page).toHaveTitle("Versorgungs-Kompass");
+  await expect(page.locator(".app-sidebar")).toBeVisible();
+  await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(1);
+  await expect(page.locator('[data-view-tab="stakeholders"]')).toHaveCount(1);
+  await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
+  await expect(page.locator('[data-view-tab="formats"]')).toHaveCount(1);
+  await expect(page.locator('script[src="./data/demo-data.js"]')).toHaveCount(1);
+  await expect(page.locator('script[src="./data/demo-api.js"]')).toHaveCount(1);
+  await expect(page.locator('script[src="./data/data-service.js"]')).toHaveCount(1);
+  await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
+  await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
+  await page.locator("#sidebar-profile-button").click();
+  await expect(page.locator("#profile-page")).toBeVisible();
+  await expect(page.locator("#profile-logout")).toHaveCount(0);
+  await expect(page.getByText(/IAP-Anmeldung|Angemeldete Sitzung/)).toHaveCount(0);
+  expect(publicDemoExternalRequests).toEqual([]);
+
+  const publicDemoPosts = [];
+  page.on("request", (outgoingRequest) => {
+    if (outgoingRequest.method() === "POST") publicDemoPosts.push(outgoingRequest.url());
+  });
+  await page.goto("/dist/pages/mitmachen/versorgungs-netzwerk.html");
   await expect(page.locator('script[src="../data/demo-data.js"]')).toHaveCount(1);
-  await expect(page.locator('script[src*="data-service.js"]')).toHaveCount(0);
+  await expect(page.locator('script[src="../data/demo-api.js"]')).toHaveCount(1);
+  await page.getByLabel(/Vorname/).fill("Demo");
+  await page.getByLabel(/Nachname/).fill("Registrierung");
+  await page.getByLabel(/E-Mail-Adresse/).fill("demo.registrierung@example.invalid");
+  await page.getByLabel(/Teilnahmeberechtigung/).check();
+  await page.getByLabel(/Netzwerkregistrierung und passende Befragungen/).check();
+  await page.getByRole("button", { name: /Weiter zum Profil/ }).click();
+  await page.getByRole("button", { name: "Ohne Profil registrieren" }).click();
+  await expect(page.locator("#confirmation")).toBeVisible();
+  await expect(page.locator("#confirmation")).toContainText("Demo-Registrierung erfolgreich simuliert");
+  await expect(page.locator("#confirmation")).toContainText("keine Angaben übertragen oder dauerhaft gespeichert");
+  expect(publicDemoPosts).toEqual([]);
 });
 
 test("Phase 4: die vier Module bleiben ohne JavaScript vollständig lesbar", async ({ browser, baseURL }) => {
@@ -130,6 +165,32 @@ test("Phase 4: die vier Module bleiben ohne JavaScript vollständig lesbar", asy
   await expect(page.getByText(/registrier/i)).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await context.close();
+});
+
+test("Phase 4: die Pages-Registrierung bleibt ohne lokalen Demo-Adapter fail-closed", async ({ page }) => {
+  const writes = [];
+  page.on("request", (request) => {
+    if (!["GET", "HEAD"].includes(request.method())) writes.push(`${request.method()} ${request.url()}`);
+  });
+  await page.route("**/data/demo-api.js", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/javascript",
+    body: "/* absichtlich simulierter Adapter-Ausfall */"
+  }));
+
+  await page.goto("/dist/pages/mitmachen/versorgungs-netzwerk.html");
+  await page.getByLabel(/Vorname/).fill("Demo");
+  await page.getByLabel(/Nachname/).fill("Fail Closed");
+  await page.getByLabel(/E-Mail-Adresse/).fill("fail-closed@example.invalid");
+  await page.getByLabel(/Teilnahmeberechtigung/).check();
+  await page.getByLabel(/Netzwerkregistrierung und passende Befragungen/).check();
+  await page.getByRole("button", { name: /Weiter zum Profil/ }).click();
+  await page.getByRole("button", { name: "Ohne Profil registrieren" }).click();
+
+  await expect(page.locator("#form-status")).toContainText("lokale Demo ist derzeit nicht verfügbar");
+  await expect(page.locator("#form-status")).toContainText("keine Angaben gesendet");
+  await expect(page.locator("#confirmation")).not.toBeVisible();
+  expect(writes).toEqual([]);
 });
 
 test("Phase 4: Teams starten kompakt und eingeklappt, zeigen Mitglieder und laden Kontakte erst bei Bedarf", async ({ page }) => {

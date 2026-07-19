@@ -1,5 +1,7 @@
+// Frozen, synthetic fixture for exact UI regression assertions.
+// Public demo content evolves independently in frontend/data/demo-data.js.
 (function () {
-  const now = "2026-07-19T12:00:00.000Z";
+  const now = "2026-05-19T08:00:00.000Z";
   const demoDataScriptUrl =
     (typeof document === "object" && document.currentScript?.src) ||
     (typeof window === "object" && window.location?.href) ||
@@ -7,7 +9,6 @@
   const demoAssetUrl = (relativePath) => demoDataScriptUrl
     ? new URL(relativePath, demoDataScriptUrl).href
     : relativePath;
-  const demoReservedUrl = (hostname, path = "") => `https://${hostname}.example.invalid${path}`;
   const demoProfileImageAdmin = demoAssetUrl("../../public/demo-profile-admin.svg");
   const demoProfileImageEditor = demoAssetUrl("../../public/demo-profile-editor.svg");
   const demoProfileImageViewer = demoAssetUrl("../../public/demo-profile-viewer.svg");
@@ -57,32 +58,6 @@
       bio: "Rein synthetisches Viewer-Profil für Demo und Offline-QA.",
       created_at: now,
       updated_at: now
-    },
-    {
-      id: "demo-profile-hospitation",
-      email: "hospitation@versorgungs-kompass.example.invalid",
-      display_name: "Demo Hospitation",
-      initials: "DH",
-      role: "editor",
-      active: true,
-      avatar_url: demoProfileImageEditor,
-      team: "Versorgung erleben",
-      bio: "Rein synthetisches Owner-Profil für Hospitationen und Beobachtungen.",
-      created_at: now,
-      updated_at: now
-    },
-    {
-      id: "demo-profile-formate",
-      email: "formate@versorgungs-kompass.example.invalid",
-      display_name: "Demo Formate",
-      initials: "DF",
-      role: "editor",
-      active: true,
-      avatar_url: demoProfileImageViewer,
-      team: "Dialog und Beteiligung",
-      bio: "Rein synthetisches Owner-Profil für Dialogformate und Netzwerkpflege.",
-      created_at: now,
-      updated_at: now
     }
   ];
 
@@ -90,35 +65,17 @@
     ["demo-org-nordstadt", "Demo-MVZ Nordstadt", "Praxis", "MVZ", "10115", "Berlin", "Berlin", 52.532, 13.384],
     ["demo-org-havelpflege", "Demo-Pflegeverbund Havelblick", "Pflege", "Pflegeeinrichtung", "14467", "Potsdam", "Brandenburg", 52.4009, 13.0591],
     ["demo-org-elbufer", "Demo-Klinik Elbufer", "Krankenhaus", "Akutkrankenhaus", "01067", "Dresden", "Sachsen", 51.0504, 13.7373],
-    ["demo-org-rheinapotheke", "Demo-Apotheke Rheinmitte", "Apotheke", "Vor-Ort-Apotheke", "50667", "Köln", "Nordrhein-Westfalen", 50.9375, 6.9603],
+    ["demo-org-rheinapotheke", "Demo-Apotheke Rheinmitte", "Apotheke", "Vor-Ort-Apotheke", "50667", "Koeln", "Nordrhein-Westfalen", 50.9375, 6.9603],
     ["demo-org-mainnetz", "Demo-Praxisnetz Mainbogen", "Praxis", "Praxisnetz", "60311", "Frankfurt am Main", "Hessen", 50.1109, 8.6821],
-    ["demo-org-isar", "Demo-Therapiezentrum Isarpark", "Therapie", "Heilmittelpraxis", "80331", "München", "Bayern", 48.1374, 11.5755],
+    ["demo-org-isar", "Demo-Therapiezentrum Isarpark", "Therapie", "Heilmittelpraxis", "80331", "Muenchen", "Bayern", 48.1374, 11.5755],
     ["demo-org-alster", "Demo-Krankenkasse Alster", "Krankenkasse", "Regionalstelle", "20095", "Hamburg", "Hamburg", 53.5503, 10.0007],
-    ["demo-org-neckar", "Demo-Reha-Zentrum Neckarbogen", "Reha", "Rehabilitationsklinik", "70173", "Stuttgart", "Baden-Württemberg", 48.7758, 9.1829],
+    ["demo-org-neckar", "Demo-Reha-Zentrum Neckarbogen", "Reha", "Rehabilitationsklinik", "70173", "Stuttgart", "Baden-Wuerttemberg", 48.7758, 9.1829],
     ["demo-org-weser", "Demo-Sozialdienst Weserquartier", "Sozialdienst", "Beratungsstelle", "28195", "Bremen", "Bremen", 53.0793, 8.8017],
     ["demo-org-foerde", "Demo-Hausarztzentrum Foerde", "Praxis", "Hausarztzentrum", "24103", "Kiel", "Schleswig-Holstein", 54.3233, 10.1228],
     ["demo-org-saar", "Demo-Apothekenkooperation Saar", "Apotheke", "Kooperation", "66111", "Saarbruecken", "Saarland", 49.2402, 6.9969],
     ["demo-org-leine", "Demo-Kinderklinik Leinepark", "Krankenhaus", "Fachklinik", "30159", "Hannover", "Niedersachsen", 52.3759, 9.732],
-    ["demo-org-erfurt", "Demo-Versorgungszentrum Domplatz", "Praxis", "Facharztzentrum", "99084", "Erfurt", "Thüringen", 50.9787, 11.0328],
-    ["demo-org-rostock", "Demo-Ambulanzverbund Warnow", "Praxis", "Ambulanzverbund", "18055", "Rostock", "Mecklenburg-Vorpommern", 54.0924, 12.0991],
-    ["demo-org-mosellabor", "Demo-Laborverbund Moselbogen", "Labor", "Medizinisches Labor", "56068", "Koblenz", "Rheinland-Pfalz", 50.3569, 7.5889],
-    ["demo-org-elberettung", "Demo-Rettungsdienst Elbauen", "Rettungsdienst", "Rettungsdienst", "39104", "Magdeburg", "Sachsen-Anhalt", 52.1205, 11.6276],
-    ["demo-org-donauhebammen", "Demo-Hebammennetz Donaubogen", "Hebammen", "Hebammennetzwerk", "89073", "Ulm", "Baden-Württemberg", 48.4011, 9.9876],
-    ["demo-org-saaleoegd", "Demo-Gesundheitsamt Saaleblick", "ÖGD", "Gesundheitsamt", "07743", "Jena", "Thüringen", 50.9271, 11.5892],
-    ["demo-org-ruhrhilfen", "Demo-Hilfsmittelzentrum Ruhrtal", "Hilfsmittel", "Hilfsmittelversorgung", "45127", "Essen", "Nordrhein-Westfalen", 51.4556, 7.0116],
-    ["demo-org-innpflege", "Demo-Pflegecampus Innviertel", "Pflege", "Ambulanter Pflegedienst", "83022", "Rosenheim", "Bayern", 47.8564, 12.1288],
-    ["demo-org-lippepsyche", "Demo-Psychotherapiezentrum Lippe", "Therapie", "Psychotherapiepraxis", "32756", "Detmold", "Nordrhein-Westfalen", 51.9363, 8.8792],
-    ["demo-org-oderklinik", "Demo-Klinikverbund Oderland", "Krankenhaus", "Grund- und Regelversorgung", "15230", "Frankfurt (Oder)", "Brandenburg", 52.3471, 14.5506],
-    ["demo-org-kuestenkasse", "Demo-Gesundheitskasse Küstenland", "Krankenkasse", "Kostenträger", "19053", "Schwerin", "Mecklenburg-Vorpommern", 53.6294, 11.4148],
-    ["demo-org-weinstadtpraxis", "Demo-Hausarztverbund Weinstraße", "Praxis", "Praxisverbund", "67433", "Neustadt an der Weinstraße", "Rheinland-Pfalz", 49.3502, 8.1487],
-    ["demo-org-heidepraxis", "Demo-Praxisgemeinschaft Lüneburger Heide", "Praxis", "Gemeinschaftspraxis", "21335", "Lüneburg", "Niedersachsen", 53.2464, 10.4115],
-    ["demo-org-spreeapotheke", "Demo-Apothekennetz Spreebogen", "Apotheke", "Apothekennetz", "10117", "Berlin", "Berlin", 52.517, 13.3889],
-    ["demo-org-taunusreha", "Demo-Reha-Netz Taunushöhe", "Reha", "Ambulante Rehabilitation", "65183", "Wiesbaden", "Hessen", 50.0826, 8.2493],
-    ["demo-org-hanselabor", "Demo-Labornetz Hanseblick", "Labor", "Labornetzwerk", "28195", "Bremen", "Bremen", 53.0758, 8.8072],
-    ["demo-org-rheinrettung", "Demo-Rettungsverbund Rheinufer", "Rettungsdienst", "Rettungsdienst", "40213", "Düsseldorf", "Nordrhein-Westfalen", 51.2254, 6.7763],
-    ["demo-org-albhebammen", "Demo-Hebammenverbund Schwäbische Alb", "Hebammen", "Hebammenverbund", "72764", "Reutlingen", "Baden-Württemberg", 48.4914, 9.2043],
-    ["demo-org-mitteoegd", "Demo-Gesundheitsdienst Mitte", "ÖGD", "Gesundheitsdienst", "34117", "Kassel", "Hessen", 51.3155, 9.4924],
-    ["demo-org-elbesozial", "Demo-Sozialberatung Elbtor", "Sozialdienst", "Beratungsnetz", "22767", "Hamburg", "Hamburg", 53.5461, 9.9661]
+    ["demo-org-erfurt", "Demo-Versorgungszentrum Domplatz", "Praxis", "Facharztzentrum", "99084", "Erfurt", "Thueringen", 50.9787, 11.0328],
+    ["demo-org-rostock", "Demo-Ambulanzverbund Warnow", "Praxis", "Ambulanzverbund", "18055", "Rostock", "Mecklenburg-Vorpommern", 54.0924, 12.0991]
   ].map(([id, name, sector, organizationType, postalCode, city, state, lat, lon]) => ({
     id,
     name,
@@ -141,25 +98,19 @@
   }));
 
   organizations.forEach((organization) => {
-    const systemTypes = {
-      Krankenhaus: "KIS",
-      Apotheke: "AVS",
-      Pflege: "PFLEGE",
-      Labor: "LIS",
-      Rettungsdienst: "SONSTIGES",
-      Hebammen: "PVS",
-      "ÖGD": "SONSTIGES",
-      Hilfsmittel: "SONSTIGES",
-      Krankenkasse: "SONSTIGES",
-      Sozialdienst: "SONSTIGES"
-    };
-    const systemType = systemTypes[organization.sector] || "PVS";
+    const systemType = organization.sector === "Krankenhaus"
+      ? "KIS"
+      : organization.sector === "Apotheke"
+        ? "AVS"
+        : organization.sector === "Pflege"
+          ? "PFLEGE"
+          : "PVS";
     organization.primarySystems = [{
       id: `demo-primary-system-${organization.id}`,
       organizationId: organization.id,
       systemType,
       vendorName: "DemoSoft",
-      productName: systemType === "PVS" ? "Praxis Pilot" : `${systemType} Demo`,
+      productName: systemType === "PVS" ? "Praxis Pilot" : `${systemType} Pilot`,
       sourceUrl: `${organization.website}/primaersystem`,
       createdAt: now,
       updatedAt: now
@@ -236,15 +187,10 @@
     };
   }
 
-  const demoFirstNames = [
-    "Leonie", "Murat", "Sophie", "Jonas", "Aylin", "Felix", "Nora", "David",
-    "Miriam", "Can", "Hannah", "Samir", "Julia", "Tobias", "Elif", "Max"
-  ];
-  const demoLastNames = ["Albrecht", "Demir", "Hoffmann", "Kramer", "Özdemir", "Neumann"];
-  const names = Array.from({ length: 64 }, (_, index) => {
-    const title = index % 7 === 0 ? "Dr. " : "";
-    return `Demo ${title}${demoFirstNames[index % demoFirstNames.length]} ${demoLastNames[Math.floor(index / demoFirstNames.length) % demoLastNames.length]}`;
-  });
+  const names = Array.from(
+    { length: 36 },
+    (_, index) => `Demo-Kontakt ${String(index + 1).padStart(2, "0")}`
+  );
 
   const contacts = names.map((name, index) => contact(index, index % organizations.length, name));
   contacts[5] = { ...contacts[5], email: "", note: "Fiktiver Kontakt mit fehlender E-Mail fuer Datenqualitaets-QA." };
@@ -253,6 +199,7 @@
   contacts[16] = { ...contacts[16], ownerId: "", ownerIds: [], owner: "", note: "Fiktiver Kontakt ohne Owner fuer Pflege-Queue und Owner-Filter." };
   contacts[20] = { ...contacts[20], lat: null, lon: null, note: "Fiktiver Kontakt ohne Koordinaten fuer Karten- und Datenqualitaets-QA." };
   contacts[24] = { ...contacts[24], status: "archived", note: "Archivierter Demo-Kontakt fuer Admin-Pruefung." };
+  contacts[30] = { ...contacts[30], organization: organizations[0].name, organizationId: "demo-org-nordstadt", city: "Berlin", state: "Berlin" };
 
   const hospitationDemoSources = {
     kbv2024: "Synthetischer Demo-Quellenhinweis 01 · https://demo-source-01.example.invalid/praxis-digitalisierung",
@@ -476,33 +423,24 @@
 
   const hospitations = hospitationDefinitions.map((definition, index) => {
     const ownerId = ownerIds[index % ownerIds.length] || ownerIds[0] || "";
-    const contactSector = {
-      "Ambulante Versorgung": "Praxis",
-      "Ambulante Facharztversorgung": "Praxis",
-      "Homecare und Hilfsmittel": "Hilfsmittel",
-      "Psychosoziale Versorgung": "Therapie"
-    }[definition.sector] || definition.sector;
-    const sectorContacts = contacts.filter((entry) => entry.category === contactSector && entry.status !== "archived");
-    const linkedContact = sectorContacts[index % sectorContacts.length] || contacts[index % contacts.length];
-    const linkedOrganization = organizations.find((entry) => entry.id === linkedContact.organizationId) || organizations[index % organizations.length];
     const offset = definition.date >= "2026-03-29" ? "+02:00" : "+01:00";
     return {
       id: definition.id,
-      contactId: linkedContact.id,
-      contactName: linkedContact.name,
-      contactImage: linkedContact.image || "",
-      organizationId: linkedOrganization.id,
-      organizationName: linkedOrganization.name,
+      contactId: "",
+      contactName: definition.contactName,
+      contactImage: "",
+      organizationId: "",
+      organizationName: definition.organizationName,
       requesterProfileId: ownerId,
       ownerId,
-      status: "Dokumentiert",
+      status: "Durchgeführt",
       requestedWindows: [],
       startsAt: `${definition.date}T${definition.start}:00${offset}`,
       endsAt: `${definition.date}T${definition.end}:00${offset}`,
-      location: linkedOrganization.city,
-      city: linkedOrganization.city,
-      state: linkedOrganization.state,
-      sector: linkedOrganization.sector,
+      location: definition.city,
+      city: definition.city,
+      state: definition.state,
+      sector: definition.sector,
       observedRoles: definition.observedRoles,
       goal: definition.goal,
       topics: ["Hospitation", "Versorgungskontakt", ...definition.topics],
@@ -521,105 +459,8 @@
     };
   });
 
-  const plannedHospitationStatuses = ["Angefragt", "Angeboten", "Gebucht", "Durchgeführt", "Abgesagt"];
-  plannedHospitationStatuses.forEach((status, index) => {
-    const linkedContact = contacts[40 + index];
-    const linkedOrganization = organizations.find((entry) => entry.id === linkedContact.organizationId);
-    const startsAt = new Date(Date.UTC(2026, 7 + index, 6 + index * 3, 8 + index, 30, 0));
-    const endsAt = new Date(startsAt.getTime() + (90 + index * 15) * 60 * 1000);
-    hospitations.push({
-      id: `demo-hospitation-workflow-${String(index + 1).padStart(2, "0")}`,
-      contactId: linkedContact.id,
-      contactName: linkedContact.name,
-      contactImage: linkedContact.image || "",
-      organizationId: linkedOrganization.id,
-      organizationName: linkedOrganization.name,
-      requesterProfileId: ownerIds[(index + 1) % ownerIds.length],
-      ownerId: ownerIds[(index + 1) % ownerIds.length],
-      status,
-      requestedWindows: [],
-      startsAt: startsAt.toISOString(),
-      endsAt: endsAt.toISOString(),
-      location: index === 1 ? "Online" : linkedOrganization.city,
-      city: linkedOrganization.city,
-      state: linkedOrganization.state,
-      sector: linkedOrganization.sector,
-      observedRoles: [linkedContact.contactRole, "Demo-Beobachtungsteam"],
-      goal: [
-        "ePA-Medikationsübersicht im Übergang zwischen Praxis und Apotheke beobachten.",
-        "Einsatzmöglichkeiten des TI-Messengers für kurze sektorenübergreifende Rückfragen vorbereiten.",
-        "Befundübergabe über KIM und strukturierte Krankenhausdaten nachvollziehen.",
-        "Arbeitsablauf rund um E-Rezept und Medikationsabgleich dokumentieren.",
-        "Abgesagtes Szenario für Termin- und Statusfilter sichtbar halten."
-      ][index],
-      topics: ["Hospitation", ["ePA", "TI-Messenger", "KIM", "E-Rezept", "Terminsteuerung"][index]],
-      requestNote: "Realitätsnahes synthetisches Szenario; keine reale Einrichtung oder Feldbeobachtung.",
-      documentationSummary: status === "Durchgeführt" ? "Beobachtung abgeschlossen; strukturierte Dokumentation ist noch offen." : "",
-      documentationOutcome: "",
-      createdAt: now,
-      createdBy: ownerIds[(index + 1) % ownerIds.length],
-      updatedAt: now,
-      updatedBy: ownerIds[(index + 1) % ownerIds.length]
-    });
-  });
-
-  const roadmapItems = [
-    { id: "demo-roadmap-epa-medikation", slug: "epa-3-1-3-teil-1", productName: "ePA", featureName: "Medikationsprozess und Patientenbenachrichtigungen", sortOrder: 10, status: "active" },
-    { id: "demo-roadmap-epa-entlassung", slug: "epa-laborprozess-entlassbericht", productName: "ePA", featureName: "Laborwerte, Arztbrief und Entlassbericht", sortOrder: 20, status: "active" },
-    { id: "demo-roadmap-tim-pro", slug: "tim-pro-automation-bots", productName: "TI-Messenger", featureName: "Sektorenübergreifende Echtzeitkommunikation", sortOrder: 30, status: "active" },
-    { id: "demo-roadmap-kim", slug: "kim-1-6-fhir-vzd", productName: "KIM", featureName: "Sichere Adressierung und strukturierte Nachrichten", sortOrder: 40, status: "active" },
-    { id: "demo-roadmap-ti-gateway", slug: "zeta-1-zero-trust-access", productName: "TI-Zugang", featureName: "TI-Gateway und Zero-Trust-Anbindung", sortOrder: 50, status: "active" },
-    { id: "demo-roadmap-isik", slug: "isik-6", productName: "ISiK", featureName: "Strukturierte Krankenhausdaten und FHIR", sortOrder: 60, status: "active" }
-  ];
-  const hospitationRoadmapAssessments = hospitations.slice(0, 6).flatMap((hospitation, hospitationIndex) =>
-    [0, 1].map((offset) => ({
-      id: `demo-roadmap-assessment-${String(hospitationIndex * 2 + offset + 1).padStart(2, "0")}`,
-      hospitationId: hospitation.id,
-      roadmapItemId: roadmapItems[(hospitationIndex + offset) % roadmapItems.length].id,
-      respondentRole: hospitation.observedRoles[0] || "Versorgungsrolle",
-      respondentSector: hospitation.sector,
-      careRelevance: 4 + ((hospitationIndex + offset) % 2),
-      patientSafety: 3 + ((hospitationIndex + offset) % 3),
-      processRelief: 3 + (offset % 2),
-      urgency: 3 + (hospitationIndex % 3),
-      implementationFeasibility: 2 + ((hospitationIndex + offset) % 3),
-      adoptionLikelihood: 3 + (offset % 2),
-      confidenceScore: 4,
-      comparisonRole: offset === 0 ? "top_priority" : "none",
-      evidenceNote: "Synthetische Übungsbewertung auf Basis der dokumentierten Demo-Beobachtung.",
-      createdAt: now,
-      updatedAt: now
-    }))
-  );
-  const unmetNeedTitles = [
-    "Medikationsänderung ohne Medienbruch sichtbar machen",
-    "Kurze Rückfragen sicher an die richtige Rolle adressieren",
-    "Entlassinformationen in nachgelagerten Systemen auffindbar machen",
-    "Strukturierte Laborbefunde ohne manuelle Übertragung nutzen",
-    "Status eines E-Rezepts im Versorgungsgespräch verständlich erklären",
-    "TI-Zugangsprobleme früh und rollengerecht melden",
-    "Pflegeübergaben mit eindeutigem nächsten Schritt versehen",
-    "Patienteninformation und Fachinformation synchron halten"
-  ];
-  const hospitationUnmetNeeds = unmetNeedTitles.map((title, index) => ({
-    id: `demo-unmet-need-${String(index + 1).padStart(2, "0")}`,
-    hospitationId: hospitations[index % 8].id,
-    relatedRoadmapItemId: roadmapItems[index % roadmapItems.length].id,
-    title,
-    problem: "Der beobachtete Demo-Ablauf zeigt einen wiederkehrenden manuellen Zwischenschritt mit unklarer Zuständigkeit.",
-    affectedRole: hospitations[index % 8].observedRoles[0] || "Versorgungsrolle",
-    affectedSector: hospitations[index % 8].sector,
-    classification: index % 3 === 0 ? "organizational_implementation" : index % 3 === 1 ? "existing_item_extension" : "communication_or_training",
-    expectedBenefit: 4 + (index % 2),
-    urgency: 3 + (index % 3),
-    implementationFeasibility: 3 + (index % 2),
-    confidenceScore: 4,
-    currentWorkaround: "Telefonische Rückfrage und parallele Dokumentation in einer lokalen Arbeitsliste.",
-    nextStep: "In einem weiteren synthetischen Versorgungsszenario mit zwei Sektoren validieren.",
-    status: index < 5 ? "In Prüfung" : "Neu",
-    createdAt: now,
-    updatedAt: now
-  }));
+  const hospitationRoadmapAssessments = [];
+  const hospitationUnmetNeeds = [];
   const formats = [
     {
       id: "demo-format-krankenhausentlassbrief",
@@ -685,577 +526,58 @@
     }
   ];
 
-  const additionalFormatDefinitions = [
-    ["demo-format-epa-medikation", "Praxisdialog ePA: Medikationsliste und E-Rezept im Arbeitsablauf", "Workshop", "2026-08-27T08:00:00.000Z", "2026-08-27T11:00:00.000Z", "Leipzig", "Aktiv", "Sichere Medikationsabgleiche zwischen Praxis, Apotheke und Patient:innen anhand synthetischer Abläufe erproben."],
-    ["demo-format-ti-messenger", "Fachgespräch TI-Messenger: kurze Rückfragen sektorenübergreifend klären", "Fachgespräch", "2026-09-15T11:00:00.000Z", "2026-09-15T13:00:00.000Z", "Online", "Planung", "Rückfragen zu Medikation, Befunden und Übergaben als realitätsnahe Demo-Szenarien vergleichen."],
-    ["demo-format-ti-gateway", "Roundtable TI-Gateway: Betriebsrealität nach RSA2ECC", "Roundtable", "2026-11-05T09:00:00.000Z", "2026-11-05T11:30:00.000Z", "Berlin", "Planung", "Stabilität, Supportwege und Übergänge bei der TI-Anbindung aus verschiedenen Versorgungssektoren betrachten."],
-    ["demo-format-isik-fhir", "Interoperabilitätslabor ISiK/FHIR: Befunde anschlussfähig austauschen", "Workshop", "2026-05-21T08:30:00.000Z", "2026-05-21T14:00:00.000Z", "Hamburg", "Abgeschlossen", "Strukturierte Krankenhausdaten, Laborbefunde und Entlassinformationen in einem fiktiven Versorgungspfad testen."],
-    ["demo-format-kim-entlassung", "Sektorforum KIM: Entlassbrief und Rückfragen ohne Medienbruch", "Diskussionsformat", "2026-07-30T12:00:00.000Z", "2026-07-30T14:00:00.000Z", "Online", "Aktiv", "KIM für formale Nachrichten und TI-Messenger für kurze organisatorische Rückfragen voneinander abgrenzen."],
-    ["demo-format-vsdm-popp", "Werkstatt VSDM 2.0 und PoPP: Versorgungskontext im Praxisworkflow", "Werkstatt", "2027-01-28T09:00:00.000Z", "2027-01-28T12:00:00.000Z", "Köln", "Planung", "Zugriffs- und Nachweissituationen anhand rein synthetischer Rollen und Abläufe verständlich machen."]
-  ];
-  additionalFormatDefinitions.forEach((definition, formatIndex) => {
-    const [id, title, formatType, startsAt, endsAt, location, status, goal] = definition;
-    const participantCount = 8 + (formatIndex % 4);
-    const participants = Array.from({ length: participantCount }, (_, participantIndex) => {
-      const contactEntry = contacts[(formatIndex * 7 + participantIndex) % contacts.length];
-      const invitationStatuses = status === "Abgeschlossen"
-        ? ["Teilgenommen", "Teilgenommen", "Abgesagt"]
-        : ["Eingeladen", "Zugesagt", "Keine Rückmeldung", "Kandidat"];
-      const invitationStatus = invitationStatuses[participantIndex % invitationStatuses.length];
-      return {
-        id: `demo-format-participant-${id.replace("demo-format-", "")}-${String(participantIndex + 1).padStart(2, "0")}`,
-        formatId: id,
-        contactId: contactEntry.id,
-        invitationStatus,
-        participantRole: participantIndex === 0 ? "Versorgungsperspektive" : "",
-        notes: "Synthetische Teilnahmebeziehung für die öffentliche Demo.",
-        invitedAt: "2026-07-19T09:00:00.000Z",
-        respondedAt: ["Zugesagt", "Abgesagt", "Teilgenommen"].includes(invitationStatus) ? "2026-07-20T09:00:00.000Z" : "",
-        participatedAt: invitationStatus === "Teilgenommen" ? endsAt : "",
-        statusChangedAt: "2026-07-20T09:00:00.000Z",
-        createdAt: now,
-        createdBy: ownerIds[(formatIndex + 1) % ownerIds.length],
-        updatedAt: now,
-        updatedBy: ownerIds[(formatIndex + 1) % ownerIds.length]
-      };
-    });
-    formats.push({
-      id,
-      title,
-      formatType,
-      startsAt,
-      endsAt,
-      location,
-      goal,
-      ownerId: ownerIds[(formatIndex + 1) % ownerIds.length],
-      status,
-      notes: "Synthetisches Demo-Format, fachlicher Themenstand Juli 2026; keine reale gematik-Veranstaltung.",
-      createdAt: now,
-      createdBy: ownerIds[(formatIndex + 1) % ownerIds.length],
-      updatedAt: now,
-      updatedBy: ownerIds[(formatIndex + 1) % ownerIds.length],
-      participants
-    });
-  });
-
-  const hospitationSlots = Array.from({ length: 6 }, (_, index) => {
-    const linkedContact = contacts[24 + index];
-    const linkedOrganization = organizations.find((entry) => entry.id === linkedContact.organizationId);
-    return {
-      id: `demo-hospitation-slot-${String(index + 1).padStart(2, "0")}`,
-      contactId: linkedContact.id,
-      contactName: linkedContact.name,
-      organizationId: linkedOrganization.id,
-      organizationName: linkedOrganization.name,
-      ownerId: ownerIds[index % ownerIds.length],
-      status: ["Frei", "Frei", "Reserviert", "Gebucht", "Frei", "Abgesagt"][index],
-      startsAt: new Date(Date.UTC(2026, 8 + index, 4 + index * 3, 8 + (index % 3), 0, 0)).toISOString(),
-      endsAt: new Date(Date.UTC(2026, 8 + index, 4 + index * 3, 10 + (index % 3), 0, 0)).toISOString(),
-      capacity: 1 + (index % 3),
-      location: index === 4 ? "Online" : linkedOrganization.city,
-      city: linkedOrganization.city,
-      state: linkedOrganization.state,
-      sector: linkedOrganization.sector,
-      notes: "Synthetisches Terminangebot für Status-, Kalender- und Buchungsdemo.",
-      createdAt: now,
-      updatedAt: now
-    };
-  });
-
-  const stakeholderTypes = [
-    ["kv", "Kassenärztliche Vereinigungen"],
-    ["health-insurance", "Krankenkassen"],
-    ["patient-associations", "Patientenorganisationen"],
-    ["hospital-associations", "Krankenhausgesellschaften"],
-    ["physician-associations", "Ärztliche Berufsverbände"]
-  ].map(([id, label], index) => ({ id, key: id, value: id, label, description: "Synthetischer Stakeholdertyp für die öffentliche Demo.", sortOrder: (index + 1) * 10, status: "active" }));
-  const stakeholderTypePlans = [
-    ["kv", "Versorgungsregion", 6],
-    ["health-insurance", "Gesundheitskasse", 5],
-    ["patient-associations", "Patientennetz", 9],
-    ["hospital-associations", "Klinikgesellschaft", 5],
-    ["physician-associations", "Berufsverband", 5]
-  ];
-  const stakeholderOrganizations = stakeholderTypePlans.flatMap(([typeId, label, count], typeIndex) =>
-    Array.from({ length: count }, (_, index) => {
-      const location = organizations[(typeIndex * 6 + index) % organizations.length];
-      return {
-        id: `demo-stakeholder-org-${typeId}-${String(index + 1).padStart(2, "0")}`,
-        stakeholderTypeId: typeId,
-        stakeholderType: typeId,
-        name: `Demo-${label} ${location.state} ${String(index + 1).padStart(2, "0")}`,
-        normalizedName: `demo ${label} ${location.state} ${index + 1}`.toLowerCase(),
-        organizationType: label,
-        sector: typeId === "patient-associations" ? ["Onkologie", "Herz-Kreislauf", "Neurologie", "Psychische Gesundheit", "Stoffwechsel", "Seltene Erkrankungen", "Pädiatrie", "Teilhabe", "Pflege"][index] : "Sektorübergreifend",
-        postalCode: location.postalCode,
-        city: location.city,
-        state: location.state,
-        lat: location.lat,
-        lon: location.lon,
-        website: demoReservedUrl(`demo-stakeholder-${typeId}-${String(index + 1).padStart(2, "0")}`),
-        email: `stakeholder-${typeId}-${String(index + 1).padStart(2, "0")}@example.invalid`,
-        phone: `+49 000 ${String(310000 + typeIndex * 100 + index).padStart(6, "0")}`,
-        memberCount: 300 + typeIndex * 240 + index * 75,
-        memberCountLabel: `${300 + typeIndex * 240 + index * 75}`,
-        memberCountSourceUrl: demoReservedUrl(`demo-stakeholder-source-${typeId}-${String(index + 1).padStart(2, "0")}`),
-        memberCountSourceLabel: "Synthetische Demo-Größe",
-        memberCountScope: "synthetische Demo-Größe",
-        notes: "Fiktive Stakeholderorganisation; keine reale Institution oder Mitgliederzahl.",
-        source: "Demo-Datensatz",
-        status: "active",
-        createdAt: now,
-        updatedAt: now
-      };
-    })
-  );
-  const stakeholderPeople = Array.from({ length: 45 }, (_, index) => {
-    const organization = stakeholderOrganizations[index % stakeholderOrganizations.length];
-    return {
-      id: `demo-stakeholder-person-${String(index + 1).padStart(2, "0")}`,
-      stakeholderTypeId: organization.stakeholderTypeId,
-      stakeholderType: organization.stakeholderTypeId,
-      organizationId: organization.id,
-      organization: organization.name,
-      name: `Demo ${demoFirstNames[(index + 3) % demoFirstNames.length]} ${demoLastNames[(index * 5) % demoLastNames.length]} S${String(index + 1).padStart(2, "0")}`,
-      role: ["Versorgungsreferent:in", "Patientenvertretung", "Digitalisierungskoordination", "Gremienarbeit"][index % 4],
-      contactRole: ["Versorgungsreferent:in", "Patientenvertretung", "Digitalisierungskoordination", "Gremienarbeit"][index % 4],
-      committee: index % 3 === 0 ? "Demo-Fachausschuss Versorgung" : "",
-      city: organization.city,
-      state: organization.state,
-      lat: organization.lat,
-      lon: organization.lon,
-      email: `stakeholder-person-${String(index + 1).padStart(2, "0")}@example.invalid`,
-      themes: ["ePA", "Versorgungsprozesse", index % 2 ? "Interoperabilität" : "Patientenperspektive"],
-      note: "Fiktive Ansprechperson für Filter-, Karten- und Profildemo.",
-      source: "Demo-Datensatz",
-      status: "active",
-      createdAt: now,
-      updatedAt: now
-    };
-  });
-
-  const expertGroupNames = [
-    "Ambulante Primärsysteme",
-    "Klinische Systeme und ISiK",
-    "Apotheken und Arzneimittel",
-    "Pflege und Rehabilitation",
-    "Interoperabilität und FHIR",
-    "TI-Betrieb und Identitäten"
-  ];
-  const expertGroups = expertGroupNames.map((name, index) => ({ id: `demo-expert-group-${String(index + 1).padStart(2, "0")}`, name: `Demo ${name}`, description: "Synthetische Expertengruppe.", sortOrder: (index + 1) * 10, status: "active" }));
-  const expertOrganizations = Array.from({ length: 18 }, (_, index) => {
-    const group = expertGroups[index % expertGroups.length];
-    const location = organizations[(index * 5) % organizations.length];
-    return {
-      id: `demo-expert-org-${String(index + 1).padStart(2, "0")}`,
-      name: `Demo-Fachnetz ${expertGroupNames[index % expertGroupNames.length]} ${String(index + 1).padStart(2, "0")}`,
-      normalizedName: `demo fachnetz ${index + 1}`,
-      groupId: group.id,
-      group: group.name,
-      groupName: group.name,
-      organizationType: "Synthetische Fachorganisation",
-      city: location.city,
-      state: location.state,
-      website: demoReservedUrl(`demo-expert-org-${String(index + 1).padStart(2, "0")}`),
-      email: `expert-org-${String(index + 1).padStart(2, "0")}@example.invalid`,
-      notes: "Fiktive Organisation für Expert:innen-, Dubletten- und Verknüpfungsdemo.",
-      source: "Demo-Datensatz",
-      status: "active",
-      createdAt: now,
-      updatedAt: now
-    };
-  });
-  const expertContacts = Array.from({ length: 36 }, (_, index) => {
-    const organization = expertOrganizations[Math.floor(index / 2)];
-    const group = expertGroups.find((entry) => entry.id === organization.groupId) || expertGroups[0];
-    return {
-      id: `demo-expert-contact-${String(index + 1).padStart(2, "0")}`,
-      name: `Demo ${index % 4 === 0 ? "Dr. " : ""}${demoFirstNames[(index + 7) % demoFirstNames.length]} ${demoLastNames[(index * 3) % demoLastNames.length]} E${String(index + 1).padStart(2, "0")}`,
-      organizationId: organization.id,
-      organization: organization.name,
-      groupId: group.id,
-      group: group.name,
-      groupName: group.name,
-      specialty: ["Interoperabilität", "Versorgungsinformatik", "Arzneimitteltherapiesicherheit", "Pflegewissenschaft", "FHIR", "Informationssicherheit"][index % 6],
-      contactRole: ["Fachexpert:in", "Produktverantwortung", "Versorgungsberatung"][index % 3],
-      role: ["Fachexpert:in", "Produktverantwortung", "Versorgungsberatung"][index % 3],
-      city: organization.city,
-      state: organization.state,
-      email: `expert-contact-${String(index + 1).padStart(2, "0")}@example.invalid`,
-      ownerId: ownerIds[index % ownerIds.length],
-      ownerIds: [ownerIds[index % ownerIds.length]],
-      themes: ["ePA", "TI", group.name.replace(/^Demo\s+/, "")],
-      note: "Fiktiver Expertenkontakt; alle Angaben sind synthetisch.",
-      source: "Demo-Datensatz",
-      status: "active",
-      createdAt: now,
-      updatedAt: now
-    };
-  });
-  const expertEntityLinks = Array.from({ length: 8 }, (_, index) => {
-    const shared = {
-      id: `demo-expert-link-${String(index + 1).padStart(2, "0")}`,
-      matchReason: "Synthetische, manuell bestätigte Querverknüpfung für die Demo.",
-      confidence: 1,
-      createdAt: now,
-      updatedAt: now
-    };
-    if (index % 2 === 0) {
-      return {
-        ...shared,
-        linkType: "contact",
-        expertContactId: expertContacts[index].id,
-        contactId: contacts[index * 2].id
-      };
-    }
-    return {
-      ...shared,
-      linkType: "organization",
-      expertOrganizationId: expertContacts[index].organizationId,
-      organizationId: contacts[index * 2].organizationId
-    };
-  });
-
-  const hospitationObservations = hospitations.flatMap((hospitation) => {
-    let documentation = {};
-    try {
-      documentation = JSON.parse(hospitation.documentationOutcome || "{}");
-    } catch (_error) {
-      documentation = {};
-    }
-    return (documentation.observations || []).map((observation, index) => {
-      const originalEvidenceType = observation.evidenceType || "";
-      const evidenceType = ["directly_observed", "reported", "interpreted"].includes(originalEvidenceType)
-        ? originalEvidenceType
-        : "interpreted";
-      return {
-        ...observation,
-        id: observation.id || `demo-observation-${hospitation.id}-${index + 1}`,
-        hospitationId: hospitation.id,
-        situation: observation.situationContext || observation.situation || "",
-        description: observation.observed || observation.description || "",
-        evidenceType,
-        originalEvidenceType,
-        ownerId: observation.ownerId || hospitation.ownerId,
-        payload: {
-          ...observation,
-          evidenceType,
-          originalEvidenceType
-        },
-        status: observation.status || "active",
-        createdAt: observation.createdAt || hospitation.createdAt,
-        createdBy: observation.createdBy || hospitation.createdBy,
-        updatedAt: observation.updatedAt || hospitation.updatedAt,
-        updatedBy: observation.updatedBy || hospitation.updatedBy
-      };
-    });
-  });
-
-  const activityDefinitions = [
-    ["contact.updated", "master_data", "update", "Kontaktdaten aktualisiert"],
-    ["contact.owner.assigned", "ownership", "assign", "Verantwortung zugeordnet"],
-    ["contact.note.created", "note_document", "create", "Gesprächsnotiz ergänzt"],
-    ["hospitation.created", "hospitation", "create", "Hospitation angefragt"],
-    ["hospitation.documented", "hospitation", "document", "Beobachtung dokumentiert"],
-    ["format.participant.invited", "format", "invite", "Teilnahme angefragt"],
-    ["format.participant.confirmed", "format", "confirm", "Teilnahme zugesagt"],
-    ["contact.consent.granted", "consent", "grant", "Mitmachen-Einwilligung dokumentiert"]
-  ];
-  const activityEvents = Array.from({ length: 72 }, (_, index) => {
-    const [eventKey, categoryKey, actionKey, title] = activityDefinitions[index % activityDefinitions.length];
-    const profile = profiles[index % profiles.length];
-    const hospitation = hospitations[index % hospitations.length];
-    const format = formats[index % formats.length];
-    const isHospitation = categoryKey === "hospitation";
-    const isFormat = categoryKey === "format";
-    const defaultContact = contacts[index % contacts.length];
-    const relatedContactId = isHospitation
-      ? hospitation.contactId
-      : isFormat
-        ? format.participants[index % format.participants.length]?.contactId
-        : defaultContact.id;
-    const contactEntry = contacts.find((entry) => entry.id === relatedContactId) || defaultContact;
-    const objectId = isHospitation ? hospitation.id : isFormat ? format.id : contactEntry.id;
-    const objectType = isHospitation ? "hospitation" : isFormat ? "format" : "contact";
-    return {
-      id: `demo-activity-${String(index + 1).padStart(3, "0")}`,
-      eventKey,
-      categoryKey,
-      actionKey,
-      title,
-      objectType,
-      objectId,
-      contactId: contactEntry.id,
-      actorId: profile.id,
-      actor: {
-        id: profile.id,
-        displayName: profile.display_name,
-        email: profile.email,
-        role: profile.role,
-        team: profile.team
-      },
-      contact: {
-        id: contactEntry.id,
-        name: contactEntry.name,
-        organization: contactEntry.organization,
-        sector: contactEntry.category,
-        city: contactEntry.city,
-        state: contactEntry.state
-      },
-      occurredAt: new Date(Date.UTC(2026, 6, 19 - (index % 18), 8 + (index % 9), (index * 7) % 60)).toISOString(),
-      originKey: index % 9 === 0 ? "data_import" : "manual",
-      originRef: "synthetic-demo",
-      references: [{ type: objectType, id: objectId, label: isHospitation ? hospitation.goal : isFormat ? format.title : contactEntry.name }],
-      changes: [{ fieldName: categoryKey === "ownership" ? "owner_ids" : "status", oldValue: "Demo-Ausgangswert", newValue: "Demo-Aktualisierung" }],
-      metadata: { entityLabel: isHospitation ? hospitation.organizationName : isFormat ? format.title : contactEntry.name, synthetic: true }
-    };
-  }).sort((left, right) => String(right.occurredAt).localeCompare(String(left.occurredAt)));
-
-  const changes = activityEvents.slice(0, 40).map((activity, index) => ({
-    id: `demo-change-${String(index + 1).padStart(3, "0")}`,
-    contactId: activity.contactId,
-    contact_id: activity.contactId,
-    action: activity.actionKey,
-    eventKey: activity.eventKey,
-    event_key: activity.eventKey,
-    categoryKey: activity.categoryKey,
-    fieldName: activity.changes[0].fieldName,
-    field_name: activity.changes[0].fieldName,
-    oldValue: activity.changes[0].oldValue,
-    old_value: activity.changes[0].oldValue,
-    newValue: activity.changes[0].newValue,
-    new_value: activity.changes[0].newValue,
-    changedAt: activity.occurredAt,
-    changed_at: activity.occurredAt,
-    changedBy: activity.actorId,
-    changed_by: activity.actorId
-  }));
-
-  const notificationContexts = ["contacts", "organizations", "hospitations", "formats", "team"];
-  const notifications = Array.from({ length: 12 }, (_, index) => {
-    const contactEntry = contacts[index];
-    const context = notificationContexts[index % notificationContexts.length];
-    const organizationEntry = organizations[index % organizations.length];
-    const hospitationEntry = hospitations[index % hospitations.length];
-    const formatEntry = formats[index % formats.length];
-    const definition = {
-      contacts: {
-        eventKey: "contact.follow_up.due",
-        title: "Nächster Schritt ist fällig",
-        entityType: "contact",
-        entityId: contactEntry.id,
-        entityLabel: contactEntry.name
-      },
-      organizations: {
-        eventKey: "organization.updated",
-        title: "Organisation wurde ergänzt",
-        entityType: "organization",
-        entityId: organizationEntry.id,
-        entityLabel: organizationEntry.name
-      },
-      hospitations: {
-        eventKey: "hospitation.upcoming",
-        title: "Hospitation steht bevor",
-        entityType: "hospitation",
-        entityId: hospitationEntry.id,
-        entityLabel: hospitationEntry.organizationName
-      },
-      formats: {
-        eventKey: "format.participant.confirmed",
-        title: "Teilnahme wurde zugesagt",
-        entityType: "format",
-        entityId: formatEntry.id,
-        entityLabel: formatEntry.title
-      },
-      team: {
-        eventKey: "contact.owner.assigned",
-        title: "Verantwortung wurde zugeordnet",
-        entityType: "contact",
-        entityId: contactEntry.id,
-        entityLabel: contactEntry.name
-      }
-    }[context];
-    return {
-      id: `demo-notification-${String(index + 1).padStart(2, "0")}`,
-      eventId: `demo-notification-event-${String(index + 1).padStart(2, "0")}`,
-      eventKey: definition.eventKey,
-      context,
-      title: definition.title,
-      body: `Synthetischer Hinweis zu ${definition.entityLabel}; es sind keine echten Personen, Organisationen oder Termine betroffen.`,
-      objectType: definition.entityType,
-      objectId: definition.entityId,
-      entityType: definition.entityType,
-      entityId: definition.entityId,
-      occurredAt: new Date(Date.UTC(2026, 6, 19 - index, 9, index * 3)).toISOString(),
-      unread: index < 7,
-      readAt: index < 7 ? "" : new Date(Date.UTC(2026, 6, 19 - index, 10, 0)).toISOString(),
-      createdAt: now
-    };
-  });
-
-  const registrationSectors = ["Praxis", "Apotheke", "Pflege", "Krankenhaus", "Therapie", "Reha", "Labor", "Rettungsdienst", "Hebammen", "ÖGD"];
-  const registrations = Array.from({ length: 10 }, (_, index) => {
-    const location = organizations[index];
-    const statuses = ["neu", "in_pruefung", "uebernommen", "verknuepft", "abgelehnt"];
-    return {
-      id: `demo-registration-${String(index + 1).padStart(3, "0")}`,
-      submissionId: `demo-submission-${String(index + 1).padStart(3, "0")}`,
-      submission_id: `demo-submission-${String(index + 1).padStart(3, "0")}`,
-      submittedAt: new Date(Date.UTC(2026, 6, 18 - index, 8 + (index % 4), 0)).toISOString(),
-      submitted_at: new Date(Date.UTC(2026, 6, 18 - index, 8 + (index % 4), 0)).toISOString(),
-      status: statuses[index % statuses.length],
-      email: `registrierung-${String(index + 1).padStart(2, "0")}@example.invalid`,
-      salutation: index % 2 ? "Herr" : "Frau",
-      title: index % 4 === 0 ? "Dr." : "",
-      firstName: `Demo ${demoFirstNames[index]}`,
-      first_name: `Demo ${demoFirstNames[index]}`,
-      lastName: `${demoLastNames[index % demoLastNames.length]} R${String(index + 1).padStart(2, "0")}`,
-      last_name: `${demoLastNames[index % demoLastNames.length]} R${String(index + 1).padStart(2, "0")}`,
-      organization: `Demo-Netzwerkinteresse ${String(index + 1).padStart(2, "0")}`,
-      sector: registrationSectors[index],
-      onboardingStage: "profile_complete",
-      onboarding_stage: "profile_complete",
-      postalCode: location.postalCode,
-      postal_code: location.postalCode,
-      city: location.city,
-      federalState: location.state,
-      federal_state: location.state,
-      professionalGroup: ["Ärztin / Arzt", "Apotheker:in", "Pflegefachperson", "Therapeut:in"][index % 4],
-      professional_group: ["Ärztin / Arzt", "Apotheker:in", "Pflegefachperson", "Therapeut:in"][index % 4],
-      role: "Synthetische Ansprechperson",
-      primarySystemType: location.primarySystems[0].systemType,
-      primary_system_type: location.primarySystems[0].systemType,
-      tiApplications: ["ePA", "E-Rezept", index % 2 ? "KIM" : "TI-Messenger"],
-      ti_applications: ["ePA", "E-Rezept", index % 2 ? "KIM" : "TI-Messenger"],
-      participationFormats: ["Hospitationen", "Fachgespräche"],
-      participation_formats: ["Hospitationen", "Fachgespräche"],
-      interestTopics: ["Versorgungsprozesse", index % 2 ? "Interoperabilität" : "Medikationssicherheit"],
-      interest_topics: ["Versorgungsprozesse", index % 2 ? "Interoperabilität" : "Medikationssicherheit"],
-      preferredContact: "E-Mail",
-      preferred_contact: "E-Mail",
-      message: "Rein synthetischer Registrierungseingang für die öffentliche Funktionsdemo.",
-      privacyCheckStatus: "synthetic_demo",
-      privacy_check_status: "synthetic_demo",
-      emailConfirmationStatus: "confirmed",
-      email_confirmation_status: "confirmed",
-      sourceUrl: "https://registrierung.example.invalid/demo",
-      source_url: "https://registrierung.example.invalid/demo"
-    };
-  });
-
-  const contactNotes = Array.from({ length: 16 }, (_, index) => {
-    const contactEntry = contacts[index];
-    return {
-      id: `demo-note-${String(index + 1).padStart(2, "0")}`,
-      contactId: contactEntry.id,
-      contact_id: contactEntry.id,
-      body: [
-        "Im synthetischen Gespräch wurde ein Medienbruch beim Medikationsabgleich nachvollzogen.",
-        "Für den Demo-Termin sollen ePA, KIM und TI-Messenger anhand klar getrennter Anwendungsfälle besprochen werden.",
-        "Die fiktive Organisation hat Interesse an einer Hospitation zum Entlassmanagement signalisiert.",
-        "Synthetischer Folgeschritt: Rollen und nächsten Übergabepunkt im Versorgungspfad konkretisieren."
-      ][index % 4],
-      text: "",
-      noteType: index % 3 === 0 ? "meeting" : "free_note",
-      title: index % 3 === 0 ? "Synthetisches Versorgungsgespräch" : "Demo-Notiz",
-      occurredAt: new Date(Date.UTC(2026, 5, 3 + index, 10, 0)).toISOString(),
-      createdAt: now,
-      created_at: now,
-      createdBy: ownerIds[index % ownerIds.length],
-      created_by: ownerIds[index % ownerIds.length],
-      updatedAt: now,
-      updated_at: now
-    };
-  });
-  const contactNoteAttachments = contactNotes.slice(0, 4).map((note, index) => ({
-    id: `demo-attachment-${String(index + 1).padStart(2, "0")}`,
-    contactId: note.contactId,
-    contact_id: note.contactId,
-    noteId: note.id,
-    note_id: note.id,
-    fileName: `synthetisches-gespraech-${String(index + 1).padStart(2, "0")}.txt`,
-    file_name: `synthetisches-gespraech-${String(index + 1).padStart(2, "0")}.txt`,
-    mimeType: "text/plain",
-    mime_type: "text/plain",
-    fileSize: 156 + index * 17,
-    file_size: 156 + index * 17,
-    description: "Synthetischer Textanhang ohne reale Kontakt- oder Versorgungsdaten.",
-    extractedText: "Realitätsnahes synthetisches Szenario – keine reale Person, Organisation oder Feldbeobachtung.",
-    extracted_text: "Realitätsnahes synthetisches Szenario – keine reale Person, Organisation oder Feldbeobachtung.",
-    extractionStatus: "complete",
-    extraction_status: "complete",
-    uploadedAt: now,
-    uploaded_at: now,
-    uploaderId: ownerIds[index % ownerIds.length],
-    uploader_id: ownerIds[index % ownerIds.length]
-  }));
-
-  const savedViews = [
-    ["demo-view-high-priority", "Priorisierte Versorgungskontakte", "contacts", { priorities: ["Hoch"] }],
-    ["demo-view-organizations-north", "Versorgungsorganisationen Nord und Ost", "organizations", { states: ["Berlin", "Brandenburg", "Sachsen"] }],
-    ["demo-view-formats-active", "Aktive Dialogformate", "formats", { statuses: ["Aktiv", "Planung"] }],
-    ["demo-view-unassigned", "Kontakte ohne Owner", "contacts", { ownerIds: ["unassigned"] }]
-  ].map(([id, name, viewType, filters], index) => ({
-    id,
-    ownerId: ownerIds[index % ownerIds.length],
-    name,
-    description: "Kuratiere synthetische Ansicht für die öffentliche Demo.",
-    scope: index === 0 ? "team" : "private",
-    viewType,
-    filters,
-    searchQuery: "",
-    sortKey: "updated_at",
-    sortDirection: "desc",
-    pageSize: 20,
-    isDefault: index === 0,
-    createdAt: now,
-    updatedAt: now
-  }));
-
   window.VERSORGUNGS_COMPASS_DEMO_DATA = {
     profiles,
     organizations,
     contacts,
     formats,
-    hospitationSlots,
+    hospitationSlots: [],
     hospitations,
-    hospitationObservations,
-    roadmapItems,
     hospitationRoadmapAssessments,
     hospitationUnmetNeeds,
-    expertGroups,
-    expertOrganizations,
-    expertContacts,
-    expertEntityLinks,
-    stakeholderTypes,
-    stakeholderOrganizations,
-    stakeholderPeople,
-    activityEvents,
-    changes,
-    notifications,
-    registrations,
-    contactNotes,
-    contactNoteAttachments,
-    savedViews,
+    changes: contacts.slice(0, 8).map((item, index) => ({
+      id: `demo-change-${String(index + 1).padStart(2, "0")}`,
+      contactId: item.id,
+      contact_id: item.id,
+      action: index % 3 === 0 ? "create" : "update",
+      fieldName: index % 3 === 0 ? "" : "priority",
+      field_name: index % 3 === 0 ? "" : "priority",
+      oldValue: index % 3 === 0 ? "" : "Mittel",
+      old_value: index % 3 === 0 ? "" : "Mittel",
+      newValue: item.priority,
+      new_value: item.priority,
+      changedAt: item.updatedAt,
+      changed_at: item.updatedAt,
+      changedBy: ownerIds[index % ownerIds.length],
+      changed_by: ownerIds[index % ownerIds.length]
+    })),
+    savedViews: [
+      {
+        id: "demo-view-high-priority",
+        ownerId: ownerIds[0],
+        name: "Hohe Prioritaet",
+        description: "Fiktive Teamansicht fuer priorisierte Kontakte.",
+        scope: "team",
+        viewType: "contacts",
+        filters: { priorities: ["Hoch"] },
+        searchQuery: "",
+        sortKey: "updated_at",
+        sortDirection: "desc",
+        pageSize: 20,
+        isDefault: false,
+        createdAt: now,
+        updatedAt: now
+      }
+    ],
     userSettings: {
       userId: ownerIds[0],
-      defaultViewId: "demo-view-high-priority",
+      defaultViewId: "",
       defaultViewType: "contacts",
       tableDensity: "comfortable",
       theme: "system",
       fontScale: 1,
       pageSize: 20,
-      preferences: {
-        onboarding: {
-          version: 1,
-          profileCompletedAt: now,
-          tourSkippedAt: now
-        },
-        demo: {
-          dataPolicyAcknowledged: true,
-          resetOnReload: true
-        }
-      },
+      preferences: {},
       createdAt: now,
       updatedAt: now
     }

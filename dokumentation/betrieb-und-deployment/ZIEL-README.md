@@ -12,14 +12,16 @@ Der Versorgungs-Kompass verbindet Kontakte, Organisationen, Hospitationen und Be
 
 ```text
 Oeffentliche Demo
-frontend/demo/ + freigegebene Demo-Assets -> dist/pages/ -> GitHub Pages
+frontend/app/ + frontend/map/ + public/
+frontend/data/demo-data.js + demo-api.js -> dist/pages/ -> GitHub Pages
 
 Pre-Integration/Zielbetrieb
-frontend/ + public/ -> dist/target/ -> internes Target-Hosting
-api/                -> Image-Digest -> Helm/Kubernetes
+dieselbe App-Oberflaeche + API-Runtime -> dist/target/ -> internes Target-Hosting
+api/                                  -> Image-Digest -> Helm/Kubernetes
 ```
 
 - GitHub Pages erhaelt ausschliesslich `dist/pages/`; GKE, Jenkins und Target-Hosting ausschliesslich die Target-Artefakte.
+- Beide Frontends verwenden dieselbe Oberflaeche. Pages hat eine anonyme, lokale Demo-Runtime ohne Login oder externes Daten-API; das Target nutzt ausschliesslich geschuetzte API- und Authentisierungspfade.
 - GitHub Pages ist kein Staging.
 - `pre-gematik` ist keine Produktion.
 - Target-Frontend und API-Image bilden ein gemeinsames, revisionsfestes Releasepaar.

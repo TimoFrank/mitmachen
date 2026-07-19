@@ -5,14 +5,19 @@ on:
     branches:
       - main
     paths:
-      - frontend/demo/**
+      - frontend/app/**
       - frontend/map/**
+      - frontend/pages/mitmachen/**
       - frontend/data/demo-data.js
+      - frontend/data/demo-api.js
+      - frontend/data/data-service.js
       - frontend/data/sector-registry.js
-      - frontend/vendor/leaflet/**
-      - public/app-icon-32.png
-      - public/gematik-logo.svg
-      - public/demo-profile-*.svg
+      - frontend/data/hospitation-model.js
+      - frontend/data/hospitation-export.js
+      - frontend/data/activity-model.js
+      - frontend/data/document-text-extractor.js
+      - frontend/vendor/**
+      - public/**
       - config/pages-demo/**
       - config/deployment-profile.schema.json
       - package.json
@@ -99,30 +104,64 @@ jobs:
         run: |
           set -euo pipefail
           page_root="${PUBLIC_PAGE_URL%/}"
+          cache_buster="revision=${GITHUB_SHA}"
+          curl_retry_args=(
+            --silent
+            --show-error
+            --retry 6
+            --retry-delay 5
+            --retry-all-errors
+            --max-time 30
+          )
           demo_data_path="${RUNNER_TEMP}/pages-demo-data.js"
+          demo_api_path="${RUNNER_TEMP}/pages-demo-api.js"
+          runtime_config_path="${RUNNER_TEMP}/pages-runtime-config.js"
+          app_path="${RUNNER_TEMP}/pages-versorgungs-kompass.html"
+          registration_path="${RUNNER_TEMP}/pages-versorgungs-netzwerk.html"
 
-          curl --fail --silent --show-error \
-            --retry 6 \
-            --retry-delay 5 \
-            --retry-all-errors \
-            --max-time 30 \
-            "${page_root}/" >/dev/null
-          curl --fail --silent --show-error \
-            --retry 6 \
-            --retry-delay 5 \
-            --retry-all-errors \
-            --max-time 30 \
-            "${page_root}/demo/" >/dev/null
-          curl --fail --silent --show-error \
-            --retry 6 \
-            --retry-delay 5 \
-            --retry-all-errors \
-            --max-time 30 \
-            "${page_root}/data/demo-data.js" \
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/?${cache_buster}" >/dev/null
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/demo/?${cache_buster}" >/dev/null
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/data/demo-data.js?${cache_buster}" \
             --output "$demo_data_path"
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/data/demo-api.js?${cache_buster}" --output "$demo_api_path"
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/data/runtime-config.js?${cache_buster}" --output "$runtime_config_path"
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/versorgungs-kompass.html?${cache_buster}" --output "$app_path"
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/mitmachen/versorgungs-netzwerk.html?${cache_buster}" --output "$registration_path"
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/data/data-service.js?${cache_buster}" >/dev/null
 
           grep --extended-regexp --ignore-case --quiet 'synthetisch|fiktiv' "$demo_data_path"
-          if grep --extended-regexp --ignore-case --quiet 'supabase|service[_-]?role|stakeholder-data|expertenkreis-data' "$demo_data_path"; then
+          grep --extended-regexp --quiet 'dataMode:[[:space:]]*"demo"' "$runtime_config_path"
+          grep --extended-regexp --quiet 'authMode:[[:space:]]*"anonymous-demo"' "$runtime_config_path"
+          grep --extended-regexp --quiet 'apiBaseUrl:[[:space:]]*""' "$runtime_config_path"
+          grep --extended-regexp --quiet 'requireApiGateway:[[:space:]]*false' "$runtime_config_path"
+          for app_label in Versorgung Auswertung Aktivitäten Stakeholder Expertenkreis Hospitationen Beobachtungen Fragebogen Dashboard Formate Teams; do
+            grep --fixed-strings --quiet "$app_label" "$app_path"
+          done
+          node - "$app_path" "$registration_path" <<'NODE'
+          const fs = require("node:fs");
+          const html = fs.readFileSync(process.argv[2], "utf8");
+          const positions = ["./data/demo-data.js", "./data/demo-api.js", "./data/data-service.js"].map((value) => html.indexOf(value));
+          if (!(positions[0] >= 0 && positions[0] < positions[1] && positions[1] < positions[2])) {
+            throw new Error("Demo-Datensatz, Demo-API und Data-Service werden nicht in der freigegebenen Reihenfolge geladen.");
+          }
+          if (/auth-(?:config|guard|login)\.js/i.test(html)) {
+            throw new Error("Die Pages-App referenziert ein Auth-Skript.");
+          }
+          const registrationHtml = fs.readFileSync(process.argv[3], "utf8");
+          const registrationPositions = ["../data/runtime-config.js", "../data/demo-data.js", "../data/demo-api.js", "./versorgungs-netzwerk.js"].map((value) => registrationHtml.indexOf(value));
+          if (!(registrationPositions.every((position) => position >= 0) && registrationPositions.every((position, index) => index === 0 || registrationPositions[index - 1] < position))) {
+            throw new Error("Die Netzwerkregistrierung ist nicht an die lokale Demo-API angebunden.");
+          }
+          NODE
+          if grep --extended-regexp --ignore-case --quiet 'supabase|service[_-]?role|stakeholder-data|expertenkreis-data|versorgungs-kompass-data' "$demo_data_path" "$demo_api_path" "$runtime_config_path" "$app_path" "$registration_path"; then
             echo "GitHub Pages serves data or runtime references outside the public Demo contract." >&2
             exit 1
           fi
@@ -130,16 +169,16 @@ jobs:
           for forbidden_path in \
             login.html \
             set-password.html \
-            versorgungs-kompass.html \
-            data/runtime-config.js \
+            auth-config.js \
+            auth-guard.js \
+            auth-login.js \
             data/supabase-config.js \
-            data/data-service.js \
             data/versorgungs-kompass-data.csv \
             data/versorgungs-kompass-data.js \
             data/expertenkreis-data.js \
             data/stakeholder-data.js \
             data/patienten-data.js; do
-            status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "${page_root}/${forbidden_path}")"
+            status="$(curl "${curl_retry_args[@]}" --output /dev/null --write-out '%{http_code}' "${page_root}/${forbidden_path}?${cache_buster}")"
             if [ "$status" != "404" ]; then
               echo "GitHub Pages unexpectedly serves forbidden asset ${forbidden_path} (HTTP ${status})." >&2
               exit 1

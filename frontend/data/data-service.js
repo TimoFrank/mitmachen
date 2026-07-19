@@ -33,6 +33,7 @@
   const CONTACT_NOTE_ATTACHMENT_TYPES = Object.freeze([ "text/plain", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ]);
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   const CAPABILITIES = CONFIG.capabilities || {};
+  const IS_PUBLIC_DEMO_PROFILE = CONFIG.dataMode === "demo" && CONFIG.authMode === "anonymous-demo";
   let client = null, profileCache = new Map, profileLoadPromise = null, currentProfilePromise = null, contactCache = [], contactNoteCache = [], contactNoteAttachmentCache = [], organizationCache = [], organizationPrimarySystemCache = [], expertGroupCache = [], expertContactCache = [], expertOrganizationCache = [], expertEntityLinkCache = [], stakeholderTypeCache = [], stakeholderOrganizationCache = [], stakeholderPeopleCache = [], formatCache = [], hospitationSlotCache = [], hospitationCache = [], hospitationObservationCache = [], roadmapItemCache = [], hospitationRoadmapAssessmentCache = [], hospitationUnmetNeedCache = [], supportsOrganizationPrimarySystems = (CAPABILITIES.contactImageSources,
   CAPABILITIES.contactRole, CAPABILITIES.contactConsent, !0 === CAPABILITIES.organizationPrimarySystems), supportsNotifications = (CAPABILITIES.registrationIntake,
   CAPABILITIES.organizationAssets, CAPABILITIES.expertOrganizationAssets, CAPABILITIES.stakeholderOrganizationAssets,
@@ -40,7 +41,15 @@
   function apiBaseUrl() {
     return String(CONFIG.apiBaseUrl || "").replace(/\/+$/, "");
   }
+  function assertDemoAdapterReady() {
+    if (!IS_PUBLIC_DEMO_PROFILE) return;
+    const runtime = window.VERSORGUNGS_COMPASS_DEMO_RUNTIME;
+    const adapter = window.VersorgungsCompassDemoApi;
+    if (runtime?.publicDemo === true && runtime?.persistence === "memory-only" && adapter?.active === true) return;
+    throw new Error("Die lokale Demo-Datenquelle ist nicht verfügbar. Es wurde keine Anfrage gesendet.");
+  }
   async function apiRequest(path, {method: method = "GET", params: params = {}, body: body} = {}) {
+    assertDemoAdapterReady();
     const url = new URL(`${apiBaseUrl()}${path}`, window.location.origin);
     Object.entries(params).forEach(([key, value]) => {
       null != value && "" !== value && url.searchParams.set(key, String(value));
@@ -194,6 +203,7 @@
       const id = function(value) {
         const owner = String(value || "").trim();
         if (!owner) return null;
+        if (profileCache.has(owner)) return owner;
         if (/^[0-9a-f-]{36}$/i.test(owner)) return owner;
         const normalizedOwner = owner.toLowerCase(), profile = [ ...profileCache.values() ].find(item => [ item.display_name, item.email, item.initials ].some(candidate => String(candidate || "").trim().toLowerCase() === normalizedOwner));
         return profile?.id || null;

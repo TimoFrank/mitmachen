@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const host = "127.0.0.1";
-const port = 4173;
+const port = Number(process.env.PLAYWRIGHT_PORT || 4173);
 const baseURL = `http://${host}:${port}`;
 
 export default defineConfig({
