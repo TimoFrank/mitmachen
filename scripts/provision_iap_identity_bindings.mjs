@@ -437,11 +437,8 @@ function numericCount(value) {
 }
 
 export function validateIdentityAdministrationSession(sessionState) {
-  const memberships = Array.isArray(sessionState?.login_memberships)
-    ? sessionState.login_memberships
-    : [];
-  const exactMembership = memberships.length === 1
-    && memberships[0] === EXPECTED_IDENTITY_ADMIN_ROLE;
+  const exactMembership = numericCount(sessionState?.login_membership_count) === 1
+    && numericCount(sessionState?.login_identity_admin_membership_count) === 1;
   const safeLogin = booleanPrivilege(sessionState?.login_can_login)
     && booleanPrivilege(sessionState?.login_inherits_roles)
     && !booleanPrivilege(sessionState?.login_superuser)
@@ -499,12 +496,17 @@ export async function assumeIdentityAdministrationRole(client) {
        pg_has_role(session_user, 'vk_identity_admin', 'MEMBER') as identity_admin_member,
        pg_has_role(session_user, 'cloudsqlsuperuser', 'MEMBER') as cloudsql_superuser_member,
        pg_has_role(session_user, 'postgres', 'MEMBER') as postgres_member,
-       coalesce((
-         select array_agg(granted_role.rolname order by granted_role.rolname)
+       (
+         select count(*)::int
            from pg_catalog.pg_auth_members membership
-           join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
           where membership.member = login.oid
-       ), '{}'::text[]) as login_memberships,
+       ) as login_membership_count,
+       (
+         select count(*)::int
+           from pg_catalog.pg_auth_members membership
+          where membership.member = login.oid
+            and membership.roleid = identity_admin.oid
+       ) as login_identity_admin_membership_count,
        (
          select count(*)::int
            from pg_catalog.pg_auth_members membership
