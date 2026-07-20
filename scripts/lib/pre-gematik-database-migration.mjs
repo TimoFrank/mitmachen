@@ -934,15 +934,31 @@ function canonicalFingerprint(domain, lines) {
   return `sha256:${hash.digest("hex")}`;
 }
 
-function tableAggregateFromRows(plan, rows) {
-  const primaryKeys = rows.map((row) => canonicalJson(plan.primaryKey.map((column) => row[column])));
-  const contents = rows.map((row) => canonicalJson(Object.fromEntries(
-    plan.columns.map((column) => [column, row[column]])
-  )));
+export function tableAggregateFromRows(plan, rows) {
+  // PostgreSQL ORDER BY text follows the database/column collation. Source
+  // and target can therefore return the same primary-key set in different
+  // orders. Fingerprints must be independent of that database-local order.
+  const canonicalRows = rows
+    .map((row) => Object.freeze({
+      primaryKey: canonicalJson(plan.primaryKey.map((column) => row[column])),
+      content: canonicalJson(Object.fromEntries(
+        plan.columns.map((column) => [column, row[column]])
+      ))
+    }))
+    .sort((left, right) => Buffer.compare(
+      Buffer.from(left.primaryKey, "utf8"),
+      Buffer.from(right.primaryKey, "utf8")
+    ));
   return Object.freeze({
     count: rows.length,
-    primaryKeyFingerprint: canonicalFingerprint(`${plan.table}:primary-keys:v1`, primaryKeys),
-    contentFingerprint: canonicalFingerprint(`${plan.table}:migrated-columns:v1`, contents)
+    primaryKeyFingerprint: canonicalFingerprint(
+      `${plan.table}:primary-keys:v2`,
+      canonicalRows.map((row) => row.primaryKey)
+    ),
+    contentFingerprint: canonicalFingerprint(
+      `${plan.table}:migrated-columns:v2`,
+      canonicalRows.map((row) => row.content)
+    )
   });
 }
 
@@ -960,7 +976,7 @@ function totalRows(aggregates) {
 
 function aggregateSnapshotFingerprint(aggregates) {
   return canonicalFingerprint(
-    "complete-transformed-source-snapshot:v1",
+    "complete-transformed-source-snapshot:v2",
     MIGRATION_TABLES.map((table) => canonicalJson({ table, ...aggregates[table] }))
   );
 }
@@ -1829,11 +1845,13 @@ function assertReconciliation(sourceAggregates, targetAggregates) {
   for (const table of MIGRATION_TABLES) {
     const source = sourceAggregates[table];
     const target = targetAggregates[table];
-    if (source.count !== target.count
-        || source.primaryKeyFingerprint !== target.primaryKeyFingerprint
-        || source.contentFingerprint !== target.contentFingerprint) {
+    const differences = [];
+    if (source.count !== target.count) differences.push("count");
+    if (source.primaryKeyFingerprint !== target.primaryKeyFingerprint) differences.push("primary-key");
+    if (source.contentFingerprint !== target.contentFingerprint) differences.push("content");
+    if (differences.length > 0) {
       throw new MigrationSafetyError(
-        `Reconciliation failed for ${table}: count, primary-key or canonical content fingerprint differs.`,
+        `Reconciliation failed for ${table}: ${differences.join(", ")} differs.`,
         "RECONCILIATION_FAILED"
       );
     }
