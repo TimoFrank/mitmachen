@@ -105,9 +105,9 @@ jobs:
             --set-string ingress.host=pre-gematik.example.invalid \
             --set-string "ingress.aliasHosts[0]=legacy-pre-gematik.example.invalid" \
             --set-string "ingress.annotations.kubernetes\\.io/ingress\\.global-static-ip-name=example-static-ip" \
-            --set-string gke.managedCertificate.name=versorgungs-kompass-mitmachen \
+            --set-string gke.managedCertificate.name=versorgungs-kompass-api \
             --set-string "gke.managedCertificate.domains[0]=pre-gematik.example.invalid" \
-            --set-string "gke.managedCertificate.additionalCertificates[0].name=versorgungs-kompass-api" \
+            --set-string "gke.managedCertificate.additionalCertificates[0].name=versorgungs-kompass-mitmachen" \
             --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=legacy-pre-gematik.example.invalid" \
             --set-string config.allowedOrigin=https://pre-gematik.example.invalid \
             --set-string config.apiAuthMode=iap \
@@ -713,12 +713,28 @@ jobs:
             local iap_audience="$1"
             local -a domain_migration_args=()
             if [[ -n "${LEGACY_FRONTEND_HOST:-}" ]]; then
+              local primary_certificate_name=""
+              local alias_certificate_name=""
+              case "${API_HOST}|${LEGACY_FRONTEND_HOST}" in
+                "pre-gematik.versorgungs-kompass.timo-frank.de|mitmachen.timo-frank.de")
+                  primary_certificate_name="${HELM_RELEASE}-api"
+                  alias_certificate_name="${HELM_RELEASE}-mitmachen"
+                  ;;
+                "mitmachen.timo-frank.de|pre-gematik.versorgungs-kompass.timo-frank.de")
+                  primary_certificate_name="${HELM_RELEASE}-mitmachen"
+                  alias_certificate_name="${HELM_RELEASE}-api"
+                  ;;
+                *)
+                  echo "The canonical and legacy domains do not match the approved pre-gematik certificate pair." >&2
+                  return 1
+                  ;;
+              esac
               domain_migration_args=(
                 --set-string "ingress.aliasHosts[0]=${LEGACY_FRONTEND_HOST}"
                 --set-string "frontend.hostRedirects[0].host=${LEGACY_FRONTEND_HOST}"
                 --set-string "frontend.hostRedirects[0].targetOrigin=${FRONTEND_BASE_URL}"
-                --set-string "gke.managedCertificate.name=${HELM_RELEASE}-mitmachen"
-                --set-string "gke.managedCertificate.additionalCertificates[0].name=${HELM_RELEASE}-api"
+                --set-string "gke.managedCertificate.name=${primary_certificate_name}"
+                --set-string "gke.managedCertificate.additionalCertificates[0].name=${alias_certificate_name}"
                 --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=${LEGACY_FRONTEND_HOST}"
               )
             fi
