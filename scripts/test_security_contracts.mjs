@@ -405,9 +405,10 @@ for (const contract of [
 }
 assert.doesNotMatch(valuesSource, /tag:\s*latest\b/i, "Produktionsimages duerfen nicht per latest referenziert werden.");
 
+const deployWorkflowSource = read(".github/workflows/deploy-pre-gematik.yml");
 const ciSource = [
   read(".github/workflows/repo-check.yml"),
-  read(".github/workflows/deploy-pre-gematik.yml"),
+  deployWorkflowSource,
   read(".github/workflows/target-readiness.yml"),
   read("deploy/jenkins/Jenkinsfile.gematik")
 ].join("\n");
@@ -425,6 +426,11 @@ assert.match(ciSource, /dir \. --config \/repo\/config\/security\/gitleaks\.toml
 assert.match(ciSource, /SEMGREP_ENABLE_VERSION_CHECK=0/, "Der netzisolierte Semgrep-Lauf darf nicht auf einen Versionsdienst warten.");
 assert.match(ciSource, /semgrep scan[^\n]*--timeout=60[^\n]*--max-target-bytes=5000000/, "Semgrep muss auch die grosse zentrale Anwendungsdatei ohne Regel-Timeout pruefen.");
 assert.match(ciSource, /npm run deploy:preflight/, "Jenkins muss den fail-closed Ziel-Preflight vor dem Artefaktbau ausfuehren.");
+assert.match(
+  deployWorkflowSource,
+  /Build and smoke-test API container[\s\S]*--env API_AUTH_MODE=iap[\s\S]*--env ALLOWED_ORIGIN=https:\/\/pre-gematik\.example\.invalid[\s\S]*--env IAP_JWT_AUDIENCE=/,
+  "Der produktive API-Container-Smoke-Test muss alle fail-closed Identity- und Origin-Pflichtwerte setzen."
+);
 assert.match(
   ciSource,
   /Scan immutable API image for deploy-blocking vulnerabilities[\s\S]*--severity HIGH,CRITICAL/,

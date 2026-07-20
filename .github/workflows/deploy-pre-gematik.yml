@@ -172,6 +172,7 @@ jobs:
             --tmpfs /tmp:rw,noexec,nosuid,size=64m \
             --publish 127.0.0.1:18081:8080 \
             --env API_AUTH_MODE=iap \
+            --env ALLOWED_ORIGIN=https://pre-gematik.example.invalid \
             --env IAP_JWT_AUDIENCE=/projects/123456789/global/backendServices/123456789 \
             "${IMAGE_NAME}:${IMAGE_TAG}"
 
