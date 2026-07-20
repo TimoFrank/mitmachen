@@ -29,6 +29,7 @@ const syntaxFiles = [
   "scripts/prepare_weekly_release.mjs",
   "scripts/prepare_target_frontend_config.mjs",
   "scripts/preflight_target_deployment.mjs",
+  "scripts/prepare_pre_gematik_identity_operator.mjs",
   "scripts/provision_iap_identity_bindings.mjs",
   "scripts/test_activity_model.mjs",
   "scripts/test_activity_pagination.mjs",

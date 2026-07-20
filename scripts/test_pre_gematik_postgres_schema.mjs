@@ -13,6 +13,7 @@ const root = new URL("../", import.meta.url);
 const schemaUrl = new URL("deploy/postgres/pre-gematik/schema.sql", root);
 const runtimeRoleUrl = new URL("deploy/postgres/pre-gematik/runtime-role.sql", root);
 const grantsUrl = new URL("deploy/postgres/pre-gematik/grants.sql", root);
+const identityAdminRoleUrl = new URL("deploy/postgres/pre-gematik/identity-admin-role.sql", root);
 const seedUrl = new URL("deploy/postgres/pre-gematik/seed.example.sql", root);
 const syntheticSeedUrl = new URL("deploy/postgres/pre-gematik/seed.synthetic.sql", root);
 const syntheticProfileAvatarsUrl = new URL(
@@ -24,6 +25,7 @@ const apiUrl = new URL("api/server.mjs", root);
 const schemaSql = readFileSync(schemaUrl, "utf8");
 const runtimeRoleSql = readFileSync(runtimeRoleUrl, "utf8");
 const grantsSql = readFileSync(grantsUrl, "utf8");
+const identityAdminRoleSql = readFileSync(identityAdminRoleUrl, "utf8");
 const seedSql = readFileSync(seedUrl, "utf8");
 const syntheticSeedSql = readFileSync(syntheticSeedUrl, "utf8");
 const syntheticProfileAvatarsSql = readFileSync(syntheticProfileAvatarsUrl, "utf8");
@@ -307,6 +309,13 @@ assert.match(schemaSql, /drop trigger if exists hospitation_observations_pre_gem
 assert.match(runtimeRoleSql, /create\s+role\s+vk_app_runtime\s+nologin/i);
 assert.match(runtimeRoleSql, /alter\s+role\s+vk_app_runtime\s+nologin/i);
 assert.match(runtimeRoleSql, /revoke\s+create\s+on\s+schema\s+public\s+from\s+public/i);
+assert.match(identityAdminRoleSql, /create\s+role\s+vk_identity_admin\s+nologin\s+noinherit/i);
+assert.match(identityAdminRoleSql, /grant\s+select\s+on\s+table\s+public\.profiles\s+to\s+vk_identity_admin/i);
+assert.match(
+  identityAdminRoleSql,
+  /grant\s+select,\s*insert,\s*update\s+on\s+table\s+public\.identity_bindings\s+to\s+vk_identity_admin/i
+);
+assert.doesNotMatch(identityAdminRoleSql, /security\s+definer/i);
 assert.match(grantsSql, /\\if\s+:\{\?runtime_role\}/);
 assert.match(grantsSql, /to\s+:"runtime_role"/i);
 assert.match(grantsSql, /rolcanlogin/i);
@@ -703,6 +712,141 @@ async function assertIdentityBindingBoundary(adminPool, appPool) {
   } finally {
     await adminPool.query("delete from identity_bindings where issuer = $1 and subject = $2", [issuer, subject]);
   }
+}
+
+async function assertIdentityAdminRoleContract(adminPool, connectionString) {
+  const identityAdminRole = "vk_identity_admin";
+  const identityOperator = "vk_identity_operator_contract";
+  const identityOperatorPassword = `vk-identity-operator-contract-${process.pid}`;
+
+  const roleState = await adminPool.query(`
+    select rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole,
+           rolreplication, rolbypassrls
+      from pg_catalog.pg_roles
+     where rolname = $1
+  `, [identityAdminRole]);
+  assert.equal(roleState.rowCount, 1, "Die separate Identity-Admin-Rolle fehlt.");
+  assert.deepEqual(roleState.rows[0], {
+    rolcanlogin: false,
+    rolinherit: false,
+    rolsuper: false,
+    rolcreatedb: false,
+    rolcreaterole: false,
+    rolreplication: false,
+    rolbypassrls: false
+  }, "Die Identity-Admin-Rolle muss NOLOGIN/NOINHERIT und frei von Verwaltungsattributen sein.");
+
+  const membersBefore = await adminPool.query(`
+    select count(*)::int as count
+      from pg_catalog.pg_auth_members membership
+      join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+     where granted_role.rolname = $1
+  `, [identityAdminRole]);
+  assert.equal(membersBefore.rows[0].count, 0,
+    "Der Rollen-Bootstrap darf keine dauerhafte Identity-Operator-Mitgliedschaft anlegen.");
+
+  await adminPool.query(
+    `create role ${identityOperator} login inherit in role ${identityAdminRole} password '${identityOperatorPassword}'`
+  );
+  const parsedAdminUrl = new URL(connectionString);
+  parsedAdminUrl.username = identityOperator;
+  parsedAdminUrl.password = identityOperatorPassword;
+  const operatorPool = new Pool({ connectionString: parsedAdminUrl.toString(), max: 1 });
+  try {
+    const membership = await operatorPool.query(`
+      select granted_role.rolname as granted_role
+        from pg_catalog.pg_auth_members membership
+        join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+        join pg_catalog.pg_roles member_role on member_role.oid = membership.member
+       where member_role.rolname = current_user
+       order by granted_role.rolname
+    `);
+    assert.deepEqual(membership.rows, [{ granted_role: identityAdminRole }],
+      "Der kurzlebige Identity-Operator darf genau eine Rollenmitgliedschaft besitzen.");
+
+    const client = await operatorPool.connect();
+    try {
+      await client.query("begin");
+      await client.query("set local role vk_identity_admin");
+      const effective = await client.query(`
+        select
+          current_user = 'vk_identity_admin' as expected_role,
+          has_schema_privilege(current_user, 'public', 'USAGE') as schema_usage,
+          has_schema_privilege(current_user, 'public', 'CREATE') as schema_create,
+          has_table_privilege(current_user, 'public.profiles', 'SELECT') as profile_select,
+          has_table_privilege(current_user, 'public.profiles', 'INSERT') as profile_insert,
+          has_table_privilege(current_user, 'public.profiles', 'UPDATE') as profile_update,
+          has_table_privilege(current_user, 'public.profiles', 'DELETE') as profile_delete,
+          has_table_privilege(current_user, 'public.identity_bindings', 'SELECT') as binding_select,
+          has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as binding_insert,
+          has_table_privilege(current_user, 'public.identity_bindings', 'UPDATE') as binding_update,
+          has_table_privilege(current_user, 'public.identity_bindings', 'DELETE') as binding_delete,
+          has_table_privilege(current_user, 'public.contacts', 'SELECT') as contacts_select,
+          has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'USAGE') as sequence_usage,
+          has_function_privilege(
+            current_user,
+            'public.pre_gematik_touch_updated_at()',
+            'EXECUTE'
+          ) as touch_function_execute
+      `);
+      assert.deepEqual(effective.rows[0], {
+        expected_role: true,
+        schema_usage: true,
+        schema_create: false,
+        profile_select: true,
+        profile_insert: false,
+        profile_update: false,
+        profile_delete: false,
+        binding_select: true,
+        binding_insert: true,
+        binding_update: true,
+        binding_delete: false,
+        contacts_select: false,
+        sequence_usage: false,
+        touch_function_execute: true
+      }, "Die Identity-Admin-Rolle muss exakt auf Profile-Lesen und Binding-Upsert begrenzt sein.");
+
+      const inserted = await client.query(`
+        insert into public.identity_bindings (issuer, subject, profile_id, active)
+        values ('https://identity-admin.contract.example.invalid', $1, 'pre-gematik-admin', false)
+        returning active
+      `, [`identity-admin-contract-${process.pid}`]);
+      assert.deepEqual(inserted.rows, [{ active: false }]);
+      const updated = await client.query(`
+        update public.identity_bindings
+           set active = true
+         where issuer = 'https://identity-admin.contract.example.invalid'
+           and subject = $1
+        returning active
+      `, [`identity-admin-contract-${process.pid}`]);
+      assert.deepEqual(updated.rows, [{ active: true }]);
+      await assert.rejects(
+        client.query(`
+          delete from public.identity_bindings
+           where issuer = 'https://identity-admin.contract.example.invalid'
+             and subject = $1
+        `, [`identity-admin-contract-${process.pid}`]),
+        (error) => error?.code === "42501",
+        "Die Identity-Admin-Rolle darf Bindungen nicht loeschen."
+      );
+      await client.query("rollback");
+    } finally {
+      await client.query("rollback").catch(() => {});
+      client.release();
+    }
+  } finally {
+    await operatorPool.end();
+    await adminPool.query(`drop role if exists ${identityOperator}`);
+  }
+
+  const membersAfter = await adminPool.query(`
+    select count(*)::int as count
+      from pg_catalog.pg_auth_members membership
+      join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+     where granted_role.rolname = $1
+  `, [identityAdminRole]);
+  assert.equal(membersAfter.rows[0].count, 0,
+    "Nach Cleanup darf die NOLOGIN-Identity-Admin-Rolle keine Mitglieder behalten.");
 }
 
 async function assertSqlState(pool, sql, params, expectedCode, message) {
@@ -1392,6 +1536,17 @@ try {
       "psql", "-v", "ON_ERROR_STOP=1", "-v", `runtime_role=${runtimeRole}`,
       "-U", "vk_contract", "-d", "versorgungs_kompass"
     ], { input: grantsSql });
+    runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", "vk_contract", "-d", "versorgungs_kompass"
+    ], { input: identityAdminRoleSql });
+    runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", "vk_contract", "-d", "versorgungs_kompass"
+    ], { input: identityAdminRoleSql });
+    await assertIdentityAdminRoleContract(pool, connectionString);
     await pool.query(`create role ${appUser} login inherit in role ${runtimeRole} password '${appPassword}'`);
     const portOutput = runDocker(["port", containerName, "5432/tcp"]);
     const portMatch = /:(\d+)\s*$/m.exec(portOutput);
@@ -1422,7 +1577,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Vollschema und drei Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-Grenze, explicit updated_at, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und drei Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-Grenze, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {

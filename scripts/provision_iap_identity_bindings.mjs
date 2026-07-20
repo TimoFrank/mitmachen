@@ -30,6 +30,7 @@ const APPLY_OPERATION_CONFIRMATION = "UPSERT_IAP_IDENTITY_BINDINGS";
 const DATABASE_URL_ENV = "PRE_GEMATIK_IDENTITY_ADMIN_DATABASE_URL";
 const TARGET_FINGERPRINT_ENV = "PRE_GEMATIK_IDENTITY_TARGET_SHA256";
 const ADVISORY_LOCK_NAME = "versorgungs-kompass:pre-gematik:identity-bindings";
+export const EXPECTED_IDENTITY_ADMIN_ROLE = "vk_identity_admin";
 export const EXPECTED_IAP_ISSUER = "https://cloud.google.com/iap";
 
 export class SafeCliError extends Error {
@@ -409,6 +410,126 @@ function booleanPrivilege(value) {
   return value === true || value === "t";
 }
 
+function numericCount(value) {
+  if (typeof value === "number" && Number.isSafeInteger(value)) return value;
+  if (typeof value === "string" && /^(?:0|[1-9][0-9]*)$/u.test(value)) return Number(value);
+  return Number.NaN;
+}
+
+export function validateIdentityAdministrationSession(sessionState) {
+  const memberships = Array.isArray(sessionState?.login_memberships)
+    ? sessionState.login_memberships
+    : [];
+  const exactMembership = memberships.length === 1
+    && memberships[0] === EXPECTED_IDENTITY_ADMIN_ROLE;
+  const safeLogin = booleanPrivilege(sessionState?.login_can_login)
+    && !booleanPrivilege(sessionState?.login_superuser)
+    && !booleanPrivilege(sessionState?.login_create_database)
+    && !booleanPrivilege(sessionState?.login_create_role)
+    && !booleanPrivilege(sessionState?.login_replication)
+    && !booleanPrivilege(sessionState?.login_bypass_rls);
+  const safeAdminRole = !booleanPrivilege(sessionState?.admin_can_login)
+    && !booleanPrivilege(sessionState?.admin_inherits_roles)
+    && !booleanPrivilege(sessionState?.admin_superuser)
+    && !booleanPrivilege(sessionState?.admin_create_database)
+    && !booleanPrivilege(sessionState?.admin_create_role)
+    && !booleanPrivilege(sessionState?.admin_replication)
+    && !booleanPrivilege(sessionState?.admin_bypass_rls);
+
+  if (
+    !booleanPrivilege(sessionState?.unassumed_session)
+    || !safeLogin
+    || !safeAdminRole
+    || !exactMembership
+    || !booleanPrivilege(sessionState?.identity_admin_member)
+    || booleanPrivilege(sessionState?.cloudsql_superuser_member)
+    || booleanPrivilege(sessionState?.postgres_member)
+    || numericCount(sessionState?.admin_parent_membership_count) !== 0
+    || numericCount(sessionState?.admin_member_count) !== 1
+  ) {
+    throw new SafeCliError(
+      "Das Datenbankkonto entspricht nicht dem exklusiven kurzlebigen vk_identity_admin-Rollenvertrag."
+    );
+  }
+}
+
+export async function assumeIdentityAdministrationRole(client) {
+  const sessionResult = await client.query(
+    `select
+       current_user = session_user as unassumed_session,
+       login.rolcanlogin as login_can_login,
+       login.rolsuper as login_superuser,
+       login.rolcreatedb as login_create_database,
+       login.rolcreaterole as login_create_role,
+       login.rolreplication as login_replication,
+       login.rolbypassrls as login_bypass_rls,
+       identity_admin.rolcanlogin as admin_can_login,
+       identity_admin.rolinherit as admin_inherits_roles,
+       identity_admin.rolsuper as admin_superuser,
+       identity_admin.rolcreatedb as admin_create_database,
+       identity_admin.rolcreaterole as admin_create_role,
+       identity_admin.rolreplication as admin_replication,
+       identity_admin.rolbypassrls as admin_bypass_rls,
+       pg_has_role(session_user, 'vk_identity_admin', 'MEMBER') as identity_admin_member,
+       pg_has_role(session_user, 'cloudsqlsuperuser', 'MEMBER') as cloudsql_superuser_member,
+       pg_has_role(session_user, 'postgres', 'MEMBER') as postgres_member,
+       coalesce((
+         select array_agg(granted_role.rolname order by granted_role.rolname)
+           from pg_catalog.pg_auth_members membership
+           join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+          where membership.member = login.oid
+       ), '{}'::text[]) as login_memberships,
+       (
+         select count(*)::int
+           from pg_catalog.pg_auth_members membership
+          where membership.member = identity_admin.oid
+       ) as admin_parent_membership_count,
+       (
+         select count(*)::int
+           from pg_catalog.pg_auth_members membership
+          where membership.roleid = identity_admin.oid
+       ) as admin_member_count
+     from pg_catalog.pg_roles login
+     join pg_catalog.pg_roles identity_admin
+       on identity_admin.rolname = 'vk_identity_admin'
+    where login.rolname = session_user`
+  );
+  if (sessionResult.rowCount !== 1) {
+    throw new SafeCliError("Die dedizierte Identity-Administrationsrolle oder der Login fehlt.");
+  }
+  validateIdentityAdministrationSession(sessionResult.rows[0]);
+  await client.query("set local role vk_identity_admin");
+}
+
+export function validateIdentityAdministrationPrivileges(privileges) {
+  if (
+    !booleanPrivilege(privileges?.expected_admin_role)
+    || !booleanPrivilege(privileges?.schema_usage)
+    || booleanPrivilege(privileges?.schema_create)
+    || !booleanPrivilege(privileges?.profile_select)
+    || booleanPrivilege(privileges?.profile_insert)
+    || booleanPrivilege(privileges?.profile_update)
+    || booleanPrivilege(privileges?.profile_delete)
+    || booleanPrivilege(privileges?.profile_truncate)
+    || booleanPrivilege(privileges?.profile_references)
+    || booleanPrivilege(privileges?.profile_trigger)
+    || !booleanPrivilege(privileges?.binding_select)
+    || !booleanPrivilege(privileges?.binding_insert)
+    || !booleanPrivilege(privileges?.binding_update)
+    || booleanPrivilege(privileges?.binding_delete)
+    || booleanPrivilege(privileges?.binding_truncate)
+    || booleanPrivilege(privileges?.binding_references)
+    || booleanPrivilege(privileges?.binding_trigger)
+    || !booleanPrivilege(privileges?.touch_function_execute)
+    || numericCount(privileges?.unsafe_other_table_privilege_count) !== 0
+    || numericCount(privileges?.unsafe_sequence_privilege_count) !== 0
+  ) {
+    throw new SafeCliError(
+      "Die dedizierte Identity-Administrationsrolle besitzt nicht exakt die freigegebenen Minimalrechte."
+    );
+  }
+}
+
 export async function executeIdentityBindingTransaction({
   client,
   document,
@@ -424,6 +545,7 @@ export async function executeIdentityBindingTransaction({
     transactionOpen = true;
     await client.query("set local lock_timeout = '5s'");
     await client.query("set local statement_timeout = '30s'");
+    await assumeIdentityAdministrationRole(client);
     await client.query("select pg_advisory_xact_lock(hashtext($1))", [ADVISORY_LOCK_NAME]);
 
     const databaseResult = await client.query("select current_database() as database_name");
@@ -433,18 +555,59 @@ export async function executeIdentityBindingTransaction({
 
     const privilegeResult = await client.query(
       `select
+         current_user = 'vk_identity_admin' as expected_admin_role,
+         has_schema_privilege(current_user, 'public', 'USAGE') as schema_usage,
+         has_schema_privilege(current_user, 'public', 'CREATE') as schema_create,
          has_table_privilege(current_user, 'public.profiles', 'SELECT') as profile_select,
+         has_table_privilege(current_user, 'public.profiles', 'INSERT') as profile_insert,
+         has_table_privilege(current_user, 'public.profiles', 'UPDATE') as profile_update,
+         has_table_privilege(current_user, 'public.profiles', 'DELETE') as profile_delete,
+         has_table_privilege(current_user, 'public.profiles', 'TRUNCATE') as profile_truncate,
+         has_table_privilege(current_user, 'public.profiles', 'REFERENCES') as profile_references,
+         has_table_privilege(current_user, 'public.profiles', 'TRIGGER') as profile_trigger,
          has_table_privilege(current_user, 'public.identity_bindings', 'SELECT') as binding_select,
          has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as binding_insert,
-         has_table_privilege(current_user, 'public.identity_bindings', 'UPDATE') as binding_update`
+         has_table_privilege(current_user, 'public.identity_bindings', 'UPDATE') as binding_update,
+         has_table_privilege(current_user, 'public.identity_bindings', 'DELETE') as binding_delete,
+         has_table_privilege(current_user, 'public.identity_bindings', 'TRUNCATE') as binding_truncate,
+         has_table_privilege(current_user, 'public.identity_bindings', 'REFERENCES') as binding_references,
+         has_table_privilege(current_user, 'public.identity_bindings', 'TRIGGER') as binding_trigger,
+         has_function_privilege(
+           current_user,
+           'public.pre_gematik_touch_updated_at()',
+           'EXECUTE'
+         ) as touch_function_execute,
+         (
+           select count(*)::int
+             from pg_catalog.pg_class relation
+             join pg_catalog.pg_namespace namespace on namespace.oid = relation.relnamespace
+            where namespace.nspname = 'public'
+              and relation.relkind in ('r', 'p', 'v', 'm', 'f')
+              and relation.relname not in ('profiles', 'identity_bindings')
+              and (
+                has_table_privilege(current_user, relation.oid, 'SELECT')
+                or has_table_privilege(current_user, relation.oid, 'INSERT')
+                or has_table_privilege(current_user, relation.oid, 'UPDATE')
+                or has_table_privilege(current_user, relation.oid, 'DELETE')
+                or has_table_privilege(current_user, relation.oid, 'TRUNCATE')
+                or has_table_privilege(current_user, relation.oid, 'REFERENCES')
+                or has_table_privilege(current_user, relation.oid, 'TRIGGER')
+              )
+         ) as unsafe_other_table_privilege_count,
+         (
+           select count(*)::int
+             from pg_catalog.pg_class sequence_relation
+             join pg_catalog.pg_namespace namespace on namespace.oid = sequence_relation.relnamespace
+            where namespace.nspname = 'public'
+              and sequence_relation.relkind = 'S'
+              and (
+                has_sequence_privilege(current_user, sequence_relation.oid, 'USAGE')
+                or has_sequence_privilege(current_user, sequence_relation.oid, 'SELECT')
+                or has_sequence_privilege(current_user, sequence_relation.oid, 'UPDATE')
+              )
+         ) as unsafe_sequence_privilege_count`
     );
-    const privileges = privilegeResult.rows[0] || {};
-    if (!booleanPrivilege(privileges.profile_select) || !booleanPrivilege(privileges.binding_select)) {
-      throw new SafeCliError("Das Datenbankkonto besitzt nicht die erforderlichen Leserechte.");
-    }
-    if (apply && (!booleanPrivilege(privileges.binding_insert) || !booleanPrivilege(privileges.binding_update))) {
-      throw new SafeCliError("Das Datenbankkonto besitzt nicht die erforderlichen administrativen Schreibrechte.");
-    }
+    validateIdentityAdministrationPrivileges(privilegeResult.rows[0]);
 
     const profileIds = [...new Set(document.bindings.map((binding) => binding.profile_id))];
     const profileResult = await client.query(
@@ -550,9 +713,13 @@ Apply nach geprueftem Preview:
     [--allow-active-bindings]
 
 Die Datenbankverbindung wird ausschliesslich aus ${DATABASE_URL_ENV} gelesen. Ein
-Ein Preview darf ein Remote-Ziel nur mit sslmode=verify-full und absoluter CA-Datei
+Preview darf ein Remote-Ziel nur mit sslmode=verify-full und absoluter CA-Datei
 verwenden. Apply verlangt eine Loopback-Credential-Vorlage mit sslmode=disable. Zusaetzlich
 wird ${TARGET_FINGERPRINT_ENV} (SHA-256 ueber Host, Port und Datenbank) geprueft.
+Preview und Apply verlangen denselben kurzlebigen Login mit exakt einer Mitgliedschaft
+in ${EXPECTED_IDENTITY_ADMIN_ROLE}; postgres, cloudsqlsuperuser, DDL-, DELETE- und
+sonstige Fachdatenrechte werden fail-closed abgewiesen. Innerhalb der Transaktion wird
+mit SET LOCAL ROLE auf die gepruefte NOLOGIN-Rolle reduziert.
 Apply fuehrt zusaetzlich den read-only GCP-/Cloud-SQL-/Backup-Gate mit den
 Operatorvariablen aus config/pre-gematik/migration.env.example erneut aus und
 startet den per SHA-256 gepinnten offiziellen Cloud SQL Auth Proxy selbst fuer

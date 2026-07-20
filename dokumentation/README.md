@@ -28,6 +28,7 @@ Dieser Ordner buendelt die Unterlagen fuer Produktverstaendnis, technische Ueber
 - [Betriebsverantwortung/RACI](betrieb-und-deployment/BETRIEBSVERANTWORTUNG_RACI.md)
 - [Migration, Cutover und Rollback](betrieb-und-deployment/MIGRATION_CUTOVER_ROLLBACK.md)
 - [Supabase nach Cloud SQL: Migrations- und Freigabeplan](betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md)
+- [Kurzlebige Administration der IAP-Identity-Bindung](betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md)
 - [Befristete Echtdaten-Pilotentscheidung fuer pre-gematik](betrieb-und-deployment/PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md)
 - [GCP-Pre-Integration mit GKE Autopilot](betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md) - temporaeres Test-Runbook, kein Zielbetriebsstandard
 - [Stabiler Einstieg fuer ausfuehrbare Deployment-Artefakte](../deploy/README.md)
