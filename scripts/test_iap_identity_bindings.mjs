@@ -175,7 +175,8 @@ const safeIdentityAdminSession = Object.freeze({
   identity_admin_member: true,
   cloudsql_superuser_member: false,
   postgres_member: false,
-  login_memberships: [EXPECTED_IDENTITY_ADMIN_ROLE],
+  login_membership_count: 1,
+  login_identity_admin_membership_count: 1,
   admin_parent_membership_count: 0,
   admin_member_count: 2,
   identity_objects_share_owner: true,
@@ -213,12 +214,24 @@ const safeIdentityAdminPrivileges = Object.freeze({
 });
 
 validateIdentityAdministrationSession(safeIdentityAdminSession);
+validateIdentityAdministrationSession({
+  ...safeIdentityAdminSession,
+  login_membership_count: "1",
+  login_identity_admin_membership_count: "1"
+});
 validateIdentityAdministrationPrivileges(safeIdentityAdminPrivileges);
 assertSafeFailure(
   () => validateIdentityAdministrationSession({
     ...safeIdentityAdminSession,
+    login_membership_count: 2
+  }),
+  /exklusiven kurzlebigen/u
+);
+assertSafeFailure(
+  () => validateIdentityAdministrationSession({
+    ...safeIdentityAdminSession,
     cloudsql_superuser_member: true,
-    login_memberships: ["cloudsqlsuperuser", EXPECTED_IDENTITY_ADMIN_ROLE]
+    login_membership_count: 2
   }),
   /exklusiven kurzlebigen/u
 );
@@ -490,7 +503,7 @@ class MockClient {
     if (sql.startsWith("begin ") || sql.startsWith("set local ") || sql === "commit" || sql === "rollback") {
       return { rows: [], rowCount: null };
     }
-    if (sql.includes("as login_memberships") && sql.includes("admin_member_count")) {
+    if (sql.includes("as login_membership_count") && sql.includes("admin_member_count")) {
       return { rows: [{ ...this.sessionState }], rowCount: 1 };
     }
     if (sql.includes("pg_advisory_xact_lock")) return { rows: [{}], rowCount: 1 };
@@ -578,7 +591,7 @@ const overprivilegedLoginClient = new MockClient({
     ...safeIdentityAdminSession,
     login_create_role: true,
     cloudsql_superuser_member: true,
-    login_memberships: ["cloudsqlsuperuser", EXPECTED_IDENTITY_ADMIN_ROLE]
+    login_membership_count: 2
   }
 });
 await assert.rejects(
