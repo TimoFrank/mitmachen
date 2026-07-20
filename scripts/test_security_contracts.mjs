@@ -393,6 +393,7 @@ for (const contract of [
 for (const contract of [
   "path: /api/readyz",
   "kind: NetworkPolicy",
+  "port: 3307",
   "kind: PodDisruptionBudget",
   "script-src 'self'",
   "script-src-attr 'none'",
