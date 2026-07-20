@@ -32,6 +32,7 @@ const requiredFiles = [
   "deploy/helm/versorgungs-kompass/templates/frontend-serviceaccount.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-service.yaml",
   "deploy/helm/versorgungs-kompass/templates/managedcertificate.yaml",
+  "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
   "deploy/helm/versorgungs-kompass/templates/secretsync.yaml",
   "deploy/helm/versorgungs-kompass/templates/serviceaccount.yaml",
   "deploy/terraform/gcp-autopilot/gke.tf",
@@ -142,6 +143,15 @@ const contentChecks = [
     file: "scripts/build_static_frontend.sh",
     patterns: [/demo-profile-admin\.svg/, /demo-profile-editor\.svg/, /demo-profile-viewer\.svg/],
     reason: "Die neutralen Demo-Avatare werden in beide getrennten Frontend-Artefakte uebernommen."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
+    patterns: [
+      /cidr: 10\.0\.0\.0\/8/,
+      /port: 5432/,
+      /port: 3307/
+    ],
+    reason: "Die API-NetworkPolicy erlaubt PostgreSQL und den privaten Cloud-SQL-Proxy-Transport nur in private Adressbereiche."
   },
   {
     file: "deploy/helm/versorgungs-kompass/values-gcp-autopilot.yaml",
