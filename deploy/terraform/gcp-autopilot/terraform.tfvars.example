@@ -26,6 +26,7 @@ FRONTEND_BUCKET                = null
 PROFILE_IMAGE_BUCKET           = null
 CONTACT_IMAGE_BUCKET           = null
 CONTACT_NOTE_ATTACHMENT_BUCKET = null
+STAKEHOLDER_LOGO_BUCKET         = null
 
 # Keep enabled until the environment is deliberately decommissioned.
 DELETION_PROTECTION = true

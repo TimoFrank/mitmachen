@@ -61,6 +61,7 @@ for (const [method, pathname, expectedRole] of [
   ["GET", "/api/contacts/contact-1/history", "viewer"],
   ["GET", "/api/profile-avatar/profile-1", "viewer"],
   ["GET", "/api/contact-images/contact-1", "viewer"],
+  ["GET", "/api/stakeholder-logos/stakeholder-1", "viewer"],
   ["PATCH", "/api/profile", "viewer"],
   ["POST", "/api/profile/avatar", "viewer"],
   ["DELETE", "/api/profile/avatar", "viewer"],
@@ -225,6 +226,11 @@ assert.match(
   apiSource,
   /async function readContactImage[\s\S]{0,400}?await authorizeRequest/,
   "Kontaktbilder duerfen die API-Autorisierung nicht umgehen."
+);
+assert.match(
+  apiSource,
+  /async function readStakeholderLogo[\s\S]{0,400}?await authorizeRequest/,
+  "Stakeholder-Logos duerfen die API-Autorisierung nicht umgehen."
 );
 assert.match(
   apiSource,

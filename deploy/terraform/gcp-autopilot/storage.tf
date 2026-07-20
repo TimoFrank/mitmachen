@@ -52,14 +52,39 @@ resource "google_storage_bucket" "data" {
   depends_on = [google_project_service.required["storage.googleapis.com"]]
 }
 
-resource "google_storage_bucket_iam_member" "workload_object_user" {
+data "google_iam_policy" "data_bucket" {
+  for_each = local.data_buckets
+
+  binding {
+    role = (
+      each.key == "stakeholder_logos"
+      ? "roles/storage.objectViewer"
+      : "roles/storage.objectUser"
+    )
+    members = [local.gke_api_workload_principal]
+  }
+}
+
+# Daten-Buckets erhalten eine vollstaendig explizite Policy. Dadurch bleiben die
+# bei der Bucket-Anlage automatisch gesetzten Legacy-Rechte fuer Project Viewer
+# und Project Editor nicht als unbeabsichtigter Zugriffspfad auf Echtdaten aktiv.
+resource "google_storage_bucket_iam_policy" "data" {
   for_each = google_storage_bucket.data
 
-  bucket = each.value.name
-  role   = "roles/storage.objectUser"
-  member = local.gke_api_workload_principal
+  bucket      = each.value.name
+  policy_data = data.google_iam_policy.data_bucket[each.key].policy_data
 
   depends_on = [google_container_cluster.autopilot]
+}
+
+# Der bisherige additive Member wird ohne Remote-Loeschung aus dem State geloest;
+# die neue autoritative Policy uebernimmt denselben Workload-Zugriff atomar.
+removed {
+  from = google_storage_bucket_iam_member.workload_object_user
+
+  lifecycle {
+    destroy = false
+  }
 }
 
 resource "google_storage_bucket_iam_member" "frontend_deployer" {

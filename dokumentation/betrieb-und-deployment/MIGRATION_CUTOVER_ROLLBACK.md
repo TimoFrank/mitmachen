@@ -11,7 +11,7 @@ Dieses Runbook fuehrt den geschuetzten Ausgangsdatenbestand kontrolliert in den 
 Leitprinzipien:
 
 - GitHub Pages ist kein Staging. Die Zielabnahme erfolgt im Target-Pfad.
-- `pre-gematik` dient nur der technischen Pre-Integration mit synthetischen oder belastbar anonymisierten Daten.
+- `pre-gematik` verwendet standardmaessig nur synthetische oder belastbar anonymisierte Daten. Ein Echtdaten-Pilot ist erst nach den expliziten Gates im [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) zulaessig.
 - Datenmigration und Anwendungsdeployment sind getrennte, koordinierte Arbeitspakete.
 - API-Image und `dist/target/` werden als unveraenderliches Releasepaar freigegeben.
 - Ein Cutover beginnt erst nach erfuellter Definition of Ready und benanntem Go/No-Go-Gremium.

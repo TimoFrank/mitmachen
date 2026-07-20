@@ -31,11 +31,16 @@ locals {
     var.CONTACT_NOTE_ATTACHMENT_BUCKET,
     "${var.GCP_PROJECT_ID}-${local.name_prefix}-attachments"
   )
+  stakeholder_logo_bucket = coalesce(
+    var.STAKEHOLDER_LOGO_BUCKET,
+    "${var.GCP_PROJECT_ID}-${local.name_prefix}-stakeholder-logos"
+  )
 
   data_buckets = {
-    profile_images = local.profile_image_bucket
-    contact_images = local.contact_image_bucket
-    attachments    = local.contact_note_attachment_bucket
+    profile_images    = local.profile_image_bucket
+    contact_images    = local.contact_image_bucket
+    attachments       = local.contact_note_attachment_bucket
+    stakeholder_logos = local.stakeholder_logo_bucket
   }
 
   gke_api_workload_principal      = "principal://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.GCP_PROJECT_ID}.svc.id.goog/subject/ns/${var.K8S_NAMESPACE}/sa/${local.api_ksa_name}"

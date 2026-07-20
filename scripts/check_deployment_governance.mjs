@@ -227,7 +227,7 @@ const target = read(targetFile);
 requirePattern(targetFile, target, /environment:\s*[\s\S]*?name:\s*pre-gematik/, "Environment pre-gematik fehlt.");
 requirePattern(targetFile, target, /dist\/target/, "Pre-Integration muss aus dist/target deployen.");
 requirePattern(targetFile, target, /image\.digest/, "Helm-Deployment muss den gebauten Image-Digest setzen.");
-requirePattern(targetFile, target, /releases\/\$\{?[^\n}]*IMAGE_TAG/, "Frontend muss in einen versionierten Release-Praefix geschrieben werden.");
+requirePattern(targetFile, target, /releases\/\$\{?[^\n}]*(?:IMAGE_TAG|FRONTEND_RELEASE_ID)/, "Frontend muss in einen versionierten Release-Praefix geschrieben werden.");
 requirePattern(targetFile, target, /audit_target_assets\.mjs/, "Pre-Integration muss das gebaute Target gegen seine eigene Positiv-/Negativgrenze pruefen.");
 forbidPattern(targetFile, target, /audit_public_assets\.mjs\s+--artifact-root\s+dist\/target/, "Der Pages-Demo-Auditor darf nicht auf das Target-Artefakt angewendet werden.");
 forbidPattern(targetFile, target, /sync_github_pages\.sh|docs\/data\/supabase-config\.js|\brsync\b[^\n]*\bdocs\b/, "Pre-Integration darf nicht aus dem Pages-Artefakt docs/ deployen.");

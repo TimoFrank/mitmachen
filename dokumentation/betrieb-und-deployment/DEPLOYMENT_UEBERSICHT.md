@@ -22,7 +22,7 @@ Die Entscheidung ist in [ADR 001](ADR_001_DEPLOYMENT_TRENNUNG.md) dokumentiert.
 | Betriebsstatus | aktiv | temporaer, nicht produktiv | Freigabe offen |
 | Frontend-Artefakt | `dist/pages/` | `dist/target/` | `dist/target/` |
 | Auslieferung | direktes Actions-Artefakt | privates Target-Artefakt | freigegebenes Target-Artefakt |
-| Daten | ausschliesslich fiktiv | ausschliesslich synthetisch oder belastbar anonymisiert | nur freigegebene Datenklassen |
+| Daten | ausschliesslich fiktiv | standardmaessig synthetisch/anonymisiert; Echtdaten-Pilot nur nach den dokumentierten G-01-bis-G-07-Freigaben | nur freigegebene Datenklassen |
 | Browser-Datenzugriff | lokaler, speicherbasierter Demo-Adapter | ausschliesslich `/api` | ausschliesslich `/api` |
 | Identitaet | anonyme, sichtbare Demo-Identitaet; kein Login | signiertes GCP-IAP-JWT als Pre-Integrationsadapter | OIDC oder gleichwertig signierte/verifizierte Plattformidentitaet; Anbieter offen |
 | Backend | kein produktives Backend | Node.js API auf GKE + temporaeres Cloud SQL | Node.js API im Namespace + Shared Postgres |
@@ -82,7 +82,7 @@ Der Pages-Pfad baut `dist/pages/` und uebergibt genau dieses Verzeichnis als Git
 
 ### GCP-Pre-Integration
 
-Das Runbook [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md) beschreibt `pre-gematik`. GKE Autopilot, Cloud SQL, IAP, private Buckets, persoenliche Projektwerte und der persoenliche Break-glass-Zugang sind ausschliesslich temporaere Pre-Integrationsentscheidungen. Aus ihnen folgt keine Vorgabe fuer den Zielbetrieb.
+Das Runbook [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md) beschreibt `pre-gematik`. GKE Autopilot, Cloud SQL, IAP, private Buckets, persoenliche Projektwerte und der persoenliche Break-glass-Zugang sind ausschliesslich temporaere Pre-Integrationsentscheidungen. Aus ihnen folgt keine Vorgabe fuer den Zielbetrieb. Der [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) ist das zusaetzliche Pflichtverfahren, wenn diese geschuetzte Zwischenumgebung zeitlich begrenzt mit freigegebenen Echtdaten erprobt werden soll.
 
 ### gematik Zielbetrieb
 

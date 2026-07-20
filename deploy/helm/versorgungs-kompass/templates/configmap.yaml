@@ -26,3 +26,4 @@ data:
   PROFILE_IMAGE_BUCKET: {{ .Values.storage.profileImageBucket | quote }}
   CONTACT_IMAGE_BUCKET: {{ .Values.storage.contactImageBucket | quote }}
   CONTACT_NOTE_ATTACHMENT_BUCKET: {{ .Values.storage.contactNoteAttachmentBucket | quote }}
+  STAKEHOLDER_LOGO_BUCKET: {{ .Values.storage.stakeholderLogoBucket | quote }}

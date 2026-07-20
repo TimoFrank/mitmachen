@@ -63,6 +63,11 @@ output "CONTACT_NOTE_ATTACHMENT_BUCKET" {
   value       = google_storage_bucket.data["attachments"].name
 }
 
+output "STAKEHOLDER_LOGO_BUCKET" {
+  description = "Private stakeholder-logo bucket."
+  value       = google_storage_bucket.data["stakeholder_logos"].name
+}
+
 output "DB_HOST" {
   description = "Private Cloud SQL address reachable from the GKE VPC."
   value       = google_sql_database_instance.postgres.private_ip_address

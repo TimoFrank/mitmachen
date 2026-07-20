@@ -11,7 +11,7 @@ Dieses Handbuch beschreibt den erwarteten Regelbetrieb des internen Kubernetes-Z
 | Modus | Zweck | Fuehrende Unterlage |
 | --- | --- | --- |
 | GitHub Pages Demo | oeffentliche Ansicht mit fiktiven Daten | `DEMO.md` |
-| `pre-gematik` | temporaere technische Pre-Integration ohne Echtdaten | `DEPLOYMENT_GCP_AUTOPILOT.md` |
+| `pre-gematik` | temporaere technische Pre-Integration; Echtdaten-Pilot nur nach dokumentierten G-01-bis-G-07-Freigaben | `DEPLOYMENT_GCP_AUTOPILOT.md`, `SUPABASE_CLOUD_SQL_MIGRATION.md` |
 | gematik Zielbetrieb | interner, institutionell verantworteter Service | dieses Handbuch und `DEPLOYMENT_GEMATIK_K8S.md` |
 
 GitHub Pages ist kein Staging und veroeffentlicht `dist/pages/` direkt ueber GitHub Actions. Zielreleases verwenden `dist/target/` und ein unveraenderliches API-Image.

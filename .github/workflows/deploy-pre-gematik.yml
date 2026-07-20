@@ -126,6 +126,7 @@ jobs:
             --set-string storage.profileImageBucket=example-profile-images \
             --set-string storage.contactImageBucket=example-contact-images \
             --set-string storage.contactNoteAttachmentBucket=example-contact-attachments \
+            --set-string storage.stakeholderLogoBucket=example-stakeholder-logos \
             > /tmp/pre-gematik-rendered.yaml
           test -s /tmp/pre-gematik-rendered.yaml
           if grep --quiet 'REPLACE_' /tmp/pre-gematik-rendered.yaml; then
@@ -221,11 +222,13 @@ jobs:
       PROFILE_IMAGE_BUCKET: ${{ vars.PROFILE_IMAGE_BUCKET }}
       CONTACT_IMAGE_BUCKET: ${{ vars.CONTACT_IMAGE_BUCKET }}
       CONTACT_NOTE_ATTACHMENT_BUCKET: ${{ vars.CONTACT_NOTE_ATTACHMENT_BUCKET }}
+      STAKEHOLDER_LOGO_BUCKET: ${{ vars.STAKEHOLDER_LOGO_BUCKET }}
       CLOUD_SQL_INSTANCE_CONNECTION_NAME: ${{ vars.CLOUD_SQL_INSTANCE_CONNECTION_NAME }}
       GKE_INGRESS_IP_NAME: ${{ vars.GKE_INGRESS_IP_NAME }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME: ${{ vars.IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME }}
       IAP_RESOURCE_ACCESS_GROUP: ${{ vars.IAP_RESOURCE_ACCESS_GROUP }}
+      IAP_PROJECT_BREAK_GLASS_SHA256: ${{ secrets.IAP_PROJECT_BREAK_GLASS_SHA256 }}
 
     steps:
       - name: Checkout validated revision
@@ -243,9 +246,10 @@ jobs:
             DB_NAME DB_USER DB_PASSWORD_SECRET_NAME
             IAP_OAUTH_BOOTSTRAP_SECRET_NAME
             PROFILE_IMAGE_BUCKET CONTACT_IMAGE_BUCKET
-            CONTACT_NOTE_ATTACHMENT_BUCKET CLOUD_SQL_INSTANCE_CONNECTION_NAME
+            CONTACT_NOTE_ATTACHMENT_BUCKET STAKEHOLDER_LOGO_BUCKET CLOUD_SQL_INSTANCE_CONNECTION_NAME
             GKE_INGRESS_IP_NAME K8S_NAMESPACE
             IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME IAP_RESOURCE_ACCESS_GROUP
+            IAP_PROJECT_BREAK_GLASS_SHA256
           )
           for name in "${required[@]}"; do
             if [[ -z "${!name:-}" ]]; then
@@ -270,8 +274,17 @@ jobs:
             echo "DEPLOYER_SERVICE_ACCOUNT is invalid." >&2
             exit 1
           fi
+          if [[ "$DEPLOYER_SERVICE_ACCOUNT" != *@"${GCP_PROJECT_ID}.iam.gserviceaccount.com" ]]; then
+            echo "DEPLOYER_SERVICE_ACCOUNT does not belong to GCP_PROJECT_ID." >&2
+            exit 1
+          fi
           if [[ ! "$GAR_REPOSITORY" =~ ^[a-z0-9-]+-docker\.pkg\.dev/[a-z][a-z0-9-]+/[a-z0-9._-]+$ ]]; then
             echo "GAR_REPOSITORY must be the full Terraform output URI without an image name." >&2
+            exit 1
+          fi
+          IFS=/ read -r registry_host registry_project registry_repository <<< "$GAR_REPOSITORY"
+          if [[ "$registry_project" != "$GCP_PROJECT_ID" ]] || [[ "${registry_host%-docker.pkg.dev}" != "$GCP_REGION" ]]; then
+            echo "GAR_REPOSITORY does not belong to GCP_PROJECT_ID/GCP_REGION." >&2
             exit 1
           fi
           if [[ ! "$K8S_NAMESPACE" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
@@ -290,20 +303,34 @@ jobs:
             echo "IAP_RESOURCE_ACCESS_GROUP must use group:name@example.org syntax." >&2
             exit 1
           fi
+          if [[ ! "$IAP_PROJECT_BREAK_GLASS_SHA256" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "IAP_PROJECT_BREAK_GLASS_SHA256 must be the protected canonical project-IAP policy pin." >&2
+            exit 1
+          fi
           if [[ ! "$CLOUD_SQL_INSTANCE_CONNECTION_NAME" =~ ^[^:]+:[^:]+:[^:]+$ ]]; then
             echo "CLOUD_SQL_INSTANCE_CONNECTION_NAME is invalid." >&2
+            exit 1
+          fi
+          IFS=: read -r sql_project sql_region sql_instance <<< "$CLOUD_SQL_INSTANCE_CONNECTION_NAME"
+          if [[ "$sql_project" != "$GCP_PROJECT_ID" ]] || [[ "$sql_region" != "$GCP_REGION" ]] || [[ -z "$sql_instance" ]]; then
+            echo "CLOUD_SQL_INSTANCE_CONNECTION_NAME does not belong to GCP_PROJECT_ID/GCP_REGION." >&2
             exit 1
           fi
           if [[ ! "$GKE_INGRESS_IP_NAME" =~ ^[a-z]([-a-z0-9]*[a-z0-9])?$ ]]; then
             echo "GKE_INGRESS_IP_NAME is invalid." >&2
             exit 1
           fi
-          for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET"; do
+          for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET"; do
             if [[ ! "$bucket" =~ ^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$ ]]; then
               echo "A bucket variable is not a plain valid bucket name." >&2
               exit 1
             fi
           done
+          bucket_count="$(printf '%s\n' "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET" | sort --unique | wc -l | tr -d '[:space:]')"
+          if [[ "$bucket_count" != "5" ]]; then
+            echo "All frontend and protected data buckets must be distinct." >&2
+            exit 1
+          fi
 
           if [[ "$API_BASE_URL" =~ ^https://([A-Za-z0-9.-]+)$ ]]; then
             api_host="${BASH_REMATCH[1]}"
@@ -330,7 +357,6 @@ jobs:
             fi
           fi
 
-          registry_host="${GAR_REPOSITORY%%/*}"
           image_repository="${GAR_REPOSITORY}/${IMAGE_NAME}"
           echo "api_host=$api_host" >> "$GITHUB_OUTPUT"
           echo "registry_host=$registry_host" >> "$GITHUB_OUTPUT"
@@ -349,6 +375,69 @@ jobs:
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
         with:
           install_components: gke-gcloud-auth-plugin
+
+      - name: Verify approved GCP resource identities and storage hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          project_number="$(gcloud projects describe "$GCP_PROJECT_ID" --format='value(projectNumber)')"
+          if [[ -z "$project_number" ]] || [[ "$WIF_PROVIDER" != "projects/${project_number}/locations/global/"* ]]; then
+            echo "WIF_PROVIDER does not belong to GCP_PROJECT_ID." >&2
+            exit 1
+          fi
+
+          project_policy="$(gcloud projects get-iam-policy "$GCP_PROJECT_ID" --format=json)"
+          project_iap_bindings="$(jq --compact-output '
+            [.bindings[]? | select(.role == "roles/iap.httpsResourceAccessor")]
+          ' <<< "$project_policy")"
+          if ! jq --exit-status '
+            length == 1 and
+            (.[0] | has("condition") | not) and
+            (.[0].members | length) > 0 and
+            ([.[0].members[] | startswith("user:")] | all) and
+            ((.[0].members | unique | length) == (.[0].members | length))
+          ' <<< "$project_iap_bindings" >/dev/null; then
+            echo "Project-level IAP access is not the approved user-only break-glass policy." >&2
+            exit 1
+          fi
+          canonical_break_glass="$(jq --compact-output '.[0].members | sort' <<< "$project_iap_bindings")"
+          actual_break_glass_sha256="sha256:$(printf '%s' "$canonical_break_glass" | sha256sum | awk '{print $1}')"
+          if [[ "$actual_break_glass_sha256" != "$IAP_PROJECT_BREAK_GLASS_SHA256" ]]; then
+            echo "Project-level IAP break-glass membership differs from the protected approved policy pin." >&2
+            exit 1
+          fi
+
+          registry_repository="${GAR_REPOSITORY##*/}"
+          gcloud artifacts repositories describe "$registry_repository" \
+            --project "$GCP_PROJECT_ID" \
+            --location "$GCP_REGION" \
+            --format='value(name)' >/dev/null
+
+          sql_instance="${CLOUD_SQL_INSTANCE_CONNECTION_NAME##*:}"
+          actual_sql_identity="$(gcloud sql instances describe "$sql_instance" \
+            --project "$GCP_PROJECT_ID" \
+            --format='value(connectionName,region)')"
+          if [[ "$actual_sql_identity" != "${CLOUD_SQL_INSTANCE_CONNECTION_NAME}"$'\t'"${GCP_REGION}" ]]; then
+            echo "Cloud SQL resource identity differs from the approved project/region/instance tuple." >&2
+            exit 1
+          fi
+
+          for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET"; do
+            bucket_metadata="$(gcloud storage buckets describe "gs://${bucket}" --format=json)"
+            if ! jq --exit-status \
+              --arg bucket "$bucket" \
+              --arg region "$GCP_REGION" \
+              --arg project_number "$project_number" '
+                .name == $bucket and
+                ((.location // "") | ascii_downcase) == ($region | ascii_downcase) and
+                ((.projectNumber // "") | tostring) == $project_number and
+                .iamConfiguration.uniformBucketLevelAccess.enabled == true and
+                .iamConfiguration.publicAccessPrevention == "enforced"
+              ' <<< "$bucket_metadata" >/dev/null; then
+              echo "A configured bucket is not an approved, private resource of GCP_PROJECT_ID/GCP_REGION." >&2
+              exit 1
+            fi
+          done
 
       - name: Connect to GKE through the DNS endpoint
         shell: bash
@@ -659,7 +748,8 @@ jobs:
               --set-string gke.secretSync.secretName="$DB_PASSWORD_SECRET_NAME" \
               --set-string storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
               --set-string storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
-              --set-string storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET"
+              --set-string storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" \
+              --set-string storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET"
           }
 
           # Fail closed while the GKE Ingress controller creates the backend service.
@@ -782,28 +872,64 @@ jobs:
             exit 1
           fi
 
-          # Grant the regular test group only on the two backend services proven
-          # to belong to this Ingress. Project-level IAP access remains break-glass only.
+          # Make the resource policy authoritative on exactly the approved group.
+          # Project-level IAP access remains the separately managed break-glass path.
+          iap_policy_dir="$(mktemp -d)"
+          cleanup_iap_policy() {
+            rm -f "${iap_policy_dir}"/*.json
+            rmdir "$iap_policy_dir" 2>/dev/null || true
+          }
+          trap cleanup_iap_policy EXIT
+          umask 077
           for candidate in "$backend_service" "$frontend_backend_service"; do
-            gcloud iap web add-iam-policy-binding \
+            current_policy="${iap_policy_dir}/${candidate}-current.json"
+            desired_policy="${iap_policy_dir}/${candidate}-desired.json"
+            verified_policy="${iap_policy_dir}/${candidate}-verified.json"
+            gcloud iap web get-iam-policy \
               --project "$GCP_PROJECT_ID" \
               --resource-type=backend-services \
               --service "$candidate" \
-              --member "$IAP_RESOURCE_ACCESS_GROUP" \
-              --role roles/iap.httpsResourceAccessor \
-              --condition=None \
+              --format=json > "$current_policy"
+            if ! jq --exit-status --arg member "$IAP_RESOURCE_ACCESS_GROUP" '
+              (.bindings // []) as $bindings |
+              ($bindings | length) == 0 or
+              (
+                ($bindings | length) == 1 and
+                $bindings[0].role == "roles/iap.httpsResourceAccessor" and
+                $bindings[0].members == [$member] and
+                ($bindings[0].condition? == null)
+              )
+            ' "$current_policy" >/dev/null; then
+              echo "A backend-specific IAP policy already contains an unknown member, role or condition; refusing automatic reconciliation." >&2
+              exit 1
+            fi
+            jq --arg member "$IAP_RESOURCE_ACCESS_GROUP" '
+              {
+                version: (.version // 1),
+                etag: .etag,
+                bindings: [{
+                  role: "roles/iap.httpsResourceAccessor",
+                  members: [$member]
+                }]
+              }
+              | with_entries(select(.value != null))
+            ' "$current_policy" > "$desired_policy"
+            gcloud iap web set-iam-policy "$desired_policy" \
+              --project "$GCP_PROJECT_ID" \
+              --resource-type=backend-services \
+              --service "$candidate" \
               --quiet >/dev/null
-
-            backend_policy="$(gcloud iap web get-iam-policy \
+            gcloud iap web get-iam-policy \
               --project "$GCP_PROJECT_ID" \
               --resource-type=backend-services \
               --service "$candidate" \
-              --format=json)"
-            if ! jq --exit-status \
-              --arg member "$IAP_RESOURCE_ACCESS_GROUP" \
-              'any(.bindings[]?; .role == "roles/iap.httpsResourceAccessor" and any(.members[]?; . == $member))' \
-              <<< "$backend_policy" >/dev/null; then
-              echo "The resource-specific IAP access group binding is missing on backend $candidate." >&2
+              --format=json > "$verified_policy"
+            if ! jq --exit-status --arg member "$IAP_RESOURCE_ACCESS_GROUP" '
+              (.bindings | length) == 1 and
+              .bindings[0].role == "roles/iap.httpsResourceAccessor" and
+              .bindings[0].members == [$member]
+            ' "$verified_policy" >/dev/null; then
+              echo "A backend-specific IAP policy contains an unapproved member or role." >&2
               exit 1
             fi
           done
@@ -1060,18 +1186,14 @@ jobs:
       - name: Summarize deployment
         shell: bash
         env:
-          IMAGE_REPOSITORY: ${{ steps.config.outputs.image_repository }}
           IMAGE_TAG: ${{ needs.validate.outputs.image_tag }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
-          IAP_AUDIENCE: ${{ steps.iap.outputs.audience }}
-          API_BACKEND_SERVICE: ${{ steps.iap.outputs.api_backend_service }}
-          FRONTEND_BACKEND_SERVICE: ${{ steps.iap.outputs.frontend_backend_service }}
         run: |
           {
             echo "## pre-gematik deployment"
             echo
             echo "- Revision: \`${GITHUB_SHA}\`"
-            echo "- Image: \`${IMAGE_REPOSITORY}:${IMAGE_TAG}\`"
+            echo "- Release: \`${IMAGE_TAG}\`"
             echo "- Digest: \`${IMAGE_DIGEST}\`"
             echo "- Namespace: \`${K8S_NAMESPACE}\`"
             echo "- Canonical origin: \`${FRONTEND_BASE_URL}\`"
@@ -1083,6 +1205,7 @@ jobs:
             echo "- Frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"
             echo "- Resource-specific IAP group: \`${IAP_RESOURCE_ACCESS_GROUP}\`"
             echo "- IAP audience: \`${IAP_AUDIENCE}\`"
+            echo "- GCP resource identities, private bucket policy and IAP bindings: verified (values redacted)"
             echo "- Internal API/frontend health and target frontend config: passed"
             echo "- Cloud SQL connection and required schema: passed"
             echo "- Unsigned-header rejection: passed"

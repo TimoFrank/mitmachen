@@ -19,7 +19,7 @@ GitHub Pages und der Kubernetes-Zielbetrieb haben unterschiedliche Sicherheitsgr
 4. Der Target-Build schreibt ausschliesslich nach `dist/target/`.
 5. GitHub Actions veroeffentlicht `dist/pages/` direkt. Die fruehere versionierte `docs/`-Publish-Kopie wird nicht fortgefuehrt.
 6. GitHub Pages ist ausschliesslich eine synthetische Demo. Es ist weder Realanwendung noch Staging fuer GKE.
-7. `pre-gematik` ist eine temporaere Pre-Integration mit synthetischen oder belastbar anonymisierten Daten. GCP Autopilot, Cloud SQL, IAP, persoenliche Projektwerte und persoenliche Break-glass-Werte sind nicht auf den Zielbetrieb uebertragbar.
+7. `pre-gematik` ist eine temporaere Pre-Integration und standardmaessig auf synthetische oder belastbar anonymisierte Daten begrenzt. Ein geschuetzter, zeitlich begrenzter Echtdaten-Pilot benoetigt die expliziten Fach-, Datenschutz-, Security-, Identitaets-, Backup- und Cutover-Freigaben im [Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md). GCP Autopilot, Cloud SQL, IAP, persoenliche Projektwerte und persoenliche Break-glass-Werte sind nicht auf den Zielbetrieb uebertragbar.
 8. Der Zielbetrieb verwendet `dist/target/`, ein unveraenderliches API-Image und getrennte, kontrollierte Deployments.
 9. Target-Frontend und API werden ueber eine gemeinsame Release-ID gekoppelt. Promotion verwendet gepruefte Artefakte, keinen erneuten Build aus einer Umgebungsbranch.
 10. Umgebungen werden ueber Pipelines, Environments, Konfiguration, Secrets und Freigaben getrennt, nicht ueber langlebige Deployment-Branches.

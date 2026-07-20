@@ -32,7 +32,7 @@ api/                                  -> Image-Digest -> Helm/Kubernetes
 | Umgebung | Rolle | Daten | Auth | Betriebsstatus |
 | --- | --- | --- | --- | --- |
 | GitHub Pages Demo | Produkt zeigen | fiktiv | Demo/keine | aktiv, keine Zielbetriebszusage |
-| `pre-gematik` | technische GCP-Pre-Integration | synthetisch/anonymisiert | GCP IAP | temporaer, keine Produktivzusage |
+| `pre-gematik` | technische GCP-Pre-Integration | standardmaessig synthetisch/anonymisiert; geschuetzter Echtdaten-Pilot nur nach G-01 bis G-07 | GCP IAP | temporaer, keine Produktivzusage |
 | gematik Zielbetrieb | interner IT-Service | freigegebene Daten | gematik Gateway/SSO | Freigabe offen |
 
 GKE Autopilot, Cloud SQL und IAP gehoeren ausschliesslich zur technischen Stufe `pre-gematik`. Projekt, Domain und Break-glass-/OAuth-Testnutzer werden ueber geschuetzte Umgebungswerte gesetzt und nicht als Zielvorgaben im Repository verankert.

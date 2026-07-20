@@ -126,6 +126,13 @@ variable "CONTACT_NOTE_ATTACHMENT_BUCKET" {
   nullable    = true
 }
 
+variable "STAKEHOLDER_LOGO_BUCKET" {
+  description = "Globally unique private stakeholder-logo bucket name. Null derives a project-specific name."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "DB_NAME" {
   description = "Application database name."
   type        = string
