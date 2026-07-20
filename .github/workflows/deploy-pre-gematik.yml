@@ -423,23 +423,15 @@ jobs:
             exit 1
           fi
 
-          project_buckets="$(gcloud storage buckets list \
-            --project "$GCP_PROJECT_ID" \
-            --format=json)"
           for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET"; do
             bucket_metadata="$(gcloud storage buckets describe "gs://${bucket}" --raw --format=json)"
             if ! jq --exit-status \
               --arg bucket "$bucket" \
-              '[.[] | select(.name == $bucket)] | length == 1' \
-              <<< "$project_buckets" >/dev/null; then
-              echo "A configured bucket does not belong to GCP_PROJECT_ID." >&2
-              exit 1
-            fi
-            if ! jq --exit-status \
-              --arg bucket "$bucket" \
-              --arg region "$GCP_REGION" '
+              --arg region "$GCP_REGION" \
+              --arg project_number "$project_number" '
                 .name == $bucket and
                 ((.location // "") | ascii_downcase) == ($region | ascii_downcase) and
+                ((.projectNumber // "") | tostring) == $project_number and
                 (
                   .uniform_bucket_level_access == true or
                   .iamConfiguration.uniformBucketLevelAccess.enabled == true

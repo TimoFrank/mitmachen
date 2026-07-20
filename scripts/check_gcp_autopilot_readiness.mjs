@@ -71,14 +71,13 @@ const contentChecks = [
       /GAR_REPOSITORY does not belong to GCP_PROJECT_ID\/GCP_REGION/,
       /CLOUD_SQL_INSTANCE_CONNECTION_NAME does not belong to GCP_PROJECT_ID\/GCP_REGION/,
       /All frontend and protected data buckets must be distinct/,
-      /gcloud storage buckets list/,
       /gcloud storage buckets describe/,
       /gcloud storage buckets describe[^\n]+--raw/,
+      /\.projectNumber/,
       /uniform_bucket_level_access == true/,
       /uniformBucketLevelAccess\.enabled == true/,
       /public_access_prevention == "enforced"/,
       /publicAccessPrevention == "enforced"/,
-      /A configured bucket does not belong to GCP_PROJECT_ID/,
       /WIF_PROVIDER does not belong to GCP_PROJECT_ID/,
       /gcloud iap web set-iam-policy/,
       /already contains an unknown member, role or condition; refusing automatic reconciliation/,
@@ -208,8 +207,8 @@ const contentChecks = [
 const forbiddenChecks = [
   {
     files: [".github/workflows/deploy-pre-gematik.yml"],
-    patterns: [/backends_json:-\{\}/, /-- node --input-type=module --eval '/],
-    reason: "IAP-JSON und DB-Smoke-Skript muessen ohne Shell-bedingte Zeichenveraenderungen ausgewertet werden."
+    patterns: [/backends_json:-\{\}/, /-- node --input-type=module --eval '/, /gcloud storage buckets list/],
+    reason: "IAP-JSON und DB-Smoke-Skript muessen ohne Shell-bedingte Zeichenveraenderungen ausgewertet werden; der Least-Privilege-Deployer darf keine projektweite Bucket-Liste benoetigen."
   },
   {
     files: [".github/workflows/deploy-pre-gematik.yml"],
