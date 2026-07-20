@@ -21,7 +21,8 @@ import {
   logoRemediationOutputFiles,
   phaseExecution,
   resolveProjectedInput,
-  stageLogoRemediationObjects
+  stageLogoRemediationObjects,
+  waitForEvidenceCollection
 } from "../deploy/migration-operator/operator-entrypoint.mjs";
 import { renderJob } from "../deploy/migration-operator/render-job.mjs";
 
@@ -236,6 +237,38 @@ try {
   await rm(projectedInputTestRoot, { recursive: true, force: true });
 }
 
+const evidenceHandoffRoot = await mkdtemp(join(tmpdir(), "vk-operator-evidence-handoff-"));
+try {
+  const acknowledgementPath = join(evidenceHandoffRoot, ".evidence-collected");
+  assert.equal(
+    await waitForEvidenceCollection({ environment: {}, acknowledgementPath }),
+    false
+  );
+  await writeFile(acknowledgementPath, "", { mode: 0o600 });
+  assert.equal(
+    await waitForEvidenceCollection({
+      environment: { MIGRATION_OPERATOR_REQUIRE_EVIDENCE_ACK: "true" },
+      acknowledgementPath,
+      timeoutMs: 100,
+      pollIntervalMs: 5
+    }),
+    true
+  );
+  await writeFile(acknowledgementPath, "not-empty", { mode: 0o600 });
+  await assert.rejects(
+    waitForEvidenceCollection({
+      environment: { MIGRATION_OPERATOR_REQUIRE_EVIDENCE_ACK: "true" },
+      acknowledgementPath,
+      timeoutMs: 100,
+      pollIntervalMs: 5
+    }),
+    (error) => error instanceof MigrationOperatorError
+      && /acknowledgement is malformed/u.test(error.message)
+  );
+} finally {
+  await rm(evidenceHandoffRoot, { recursive: true, force: true });
+}
+
 assert.match(dockerfile, /^FROM node:[^\n]+@sha256:[a-f0-9]{64}/mu);
 assert.match(dockerfile, /^FROM gcr\.io\/cloud-sql-connectors\/cloud-sql-proxy:[^\n]+@sha256:[a-f0-9]{64}/mu);
 assert.match(dockerfile, /^FROM gcr\.io\/google\.com\/cloudsdktool\/google-cloud-cli:[^\n]+@sha256:[a-f0-9]{64}/mu);
@@ -254,6 +287,7 @@ assert.match(jobTemplate, /allowPrivilegeEscalation: false/u);
 assert.match(jobTemplate, /runAsNonRoot: true/u);
 assert.match(jobTemplate, /kubernetes\.io\/arch: amd64/u);
 assert.match(jobTemplate, /CLOUD_SQL_AUTH_PROXY_CONNECT_MODE[\s\S]*value: private-ip/u);
+assert.match(jobTemplate, /MIGRATION_OPERATOR_REQUIRE_EVIDENCE_ACK[\s\S]*value: "true"/u);
 assert.match(jobTemplate, /secretRef:\s+name: vk-pre-gematik-migration-environment/u);
 assert.match(jobTemplate, /secretName: vk-pre-gematik-migration-input/u);
 assert.doesNotMatch(jobTemplate, /service_role|postgresql:\/\/|password:/iu);

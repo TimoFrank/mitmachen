@@ -269,20 +269,21 @@ node deploy/migration-operator/render-job.mjs \
   --project PROJEKT \
   --region REGION \
   | kubectl apply --filename=-
-
-kubectl --namespace pre-gematik wait \
-  --for=condition=complete \
-  --timeout=3600s \
-  job/vk-pre-gematik-migration-operator
 ```
 
-Bei `Failed` nicht erneut starten. Zuerst Status und geschützten Report sichern
-und den konkreten Fehler klassifizieren.
+Der Operator schreibt danach `status.json` und hält den Container maximal
+15 Minuten ausschließlich für die geschützte Evidenzübergabe offen. Der Job
+wird erst nach der unten beschriebenen Bestätigung erfolgreich oder
+fehlgeschlagen beendet. Bei `Failed` nicht erneut starten. Zuerst Status und
+geschützten Report sichern und den konkreten Fehler klassifizieren.
 
 ## 5. Ergebnisse vor jedem Cleanup abrufen
 
-Den exakten Podnamen read-only aus dem Job ermitteln und das gesamte
-owner-only Ergebnisverzeichnis in einen neuen lokalen Phasenordner kopieren:
+Den exakten Podnamen read-only aus dem Job ermitteln. Sobald das generische Log
+`outputs are ready` meldet, das gesamte owner-only Ergebnisverzeichnis in einen
+neuen, vorher noch nicht vorhandenen lokalen Phasenordner kopieren. Der Pod
+bleibt dafür absichtlich `Running`; ein bereits beendeter Container kann sein
+`emptyDir` nicht mehr sicher per `kubectl cp` herausgeben.
 
 ```bash
 kubectl --namespace pre-gematik get pods \
@@ -295,8 +296,25 @@ kubectl --namespace pre-gematik cp \
 
 Danach lokal Besitzer und Modi prüfen. Erwartet werden `status.json`, das
 Phasenlog und bei Storage zusätzlich Preview-/Apply-Manifest sowie beim Apply
-das Recovery-Journal. Erst nach Prüfung von `status.json` darf die nächste
-Phase vorbereitet werden.
+das Recovery-Journal. Erst wenn die lokale Kopie vollständig und owner-only
+ist, wird genau im noch laufenden Operator-Container eine leere Datei mit Modus
+`0600` als Übergabebestätigung angelegt:
+
+```bash
+kubectl --namespace pre-gematik exec PODNAME -- \
+  sh -c 'umask 077; : > /protected-output/run/.evidence-collected'
+
+kubectl --namespace pre-gematik wait \
+  --for=condition=complete \
+  --timeout=120s \
+  job/vk-pre-gematik-migration-operator
+```
+
+Wenn `status.json` `succeeded: false` meldet, ist statt `Complete` anschließend
+`Failed` erwartet. Die Evidenz wird trotzdem zuerst bestätigt und gesichert.
+Erst nach Prüfung von `status.json` und Phasenlog darf die nächste Phase
+vorbereitet werden. Ohne Bestätigung endet der Job nach 15 Minuten fail-closed;
+das ist kein Grund für einen ungeprüften Wiederholungsversuch.
 
 ## 6. Vollständiger Cleanup
 

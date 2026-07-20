@@ -38,6 +38,8 @@ spec:
           env:
             - name: CLOUD_SQL_AUTH_PROXY_CONNECT_MODE
               value: private-ip
+            - name: MIGRATION_OPERATOR_REQUIRE_EVIDENCE_ACK
+              value: "true"
             - name: CLOUD_SQL_AUTH_PROXY_EXECUTABLE
               value: /usr/local/bin/cloud-sql-proxy
             - name: HOME
