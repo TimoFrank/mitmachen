@@ -43,18 +43,30 @@ begin
      where rolname = 'vk_identity_admin'
   ) then
     execute 'create role vk_identity_admin nologin noinherit';
+    execute $comment$
+      comment on role vk_identity_admin is
+        'NOLOGIN role for reviewed pre-gematik IAP identity-binding upserts; assign only to a short-lived Cloud SQL login'
+    $comment$;
+  end if;
+
+  -- PostgreSQL 16 automatically records this safe creator membership for a
+  -- non-superuser with CREATEROLE. A real superuser test harness does not, so
+  -- add the same no-SET/no-INHERIT membership only when it is absent.
+  if not exists (
+    select 1
+      from pg_catalog.pg_auth_members membership
+      join pg_catalog.pg_roles admin_role on admin_role.oid = membership.roleid
+      join pg_catalog.pg_roles member_role on member_role.oid = membership.member
+     where admin_role.rolname = 'vk_identity_admin'
+       and member_role.rolname = current_user
+  ) then
+    execute format(
+      'grant vk_identity_admin to %I with admin option, inherit false, set false',
+      current_user
+    );
   end if;
 end
 $pre_gematik_identity_admin_create$;
-
-alter role vk_identity_admin
-  nologin
-  noinherit
-  nosuperuser
-  nocreatedb
-  nocreaterole
-  noreplication
-  nobypassrls;
 
 do $pre_gematik_identity_admin_precondition$
 declare
@@ -65,6 +77,27 @@ begin
     from pg_catalog.pg_roles
    where rolname = 'vk_identity_admin';
 
+  -- A Cloud SQL object owner with CREATEROLE is intentionally not a
+  -- SUPERUSER. It may create a safe role, but PostgreSQL rejects even
+  -- `ALTER ROLE ... NOSUPERUSER` from that owner. Fail closed on every
+  -- attribute instead of trying to rewrite privileged role attributes.
+  if exists (
+    select 1
+      from pg_catalog.pg_roles
+     where oid = identity_admin_oid
+       and (
+         rolcanlogin
+         or rolinherit
+         or rolsuper
+         or rolcreatedb
+         or rolcreaterole
+         or rolreplication
+         or rolbypassrls
+       )
+  ) then
+    raise exception 'vk_identity_admin has unsafe role attributes';
+  end if;
+
   if exists (
     select 1
       from pg_catalog.pg_auth_members
@@ -73,12 +106,21 @@ begin
     raise exception 'vk_identity_admin must not inherit another database role';
   end if;
 
-  if exists (
-    select 1
-      from pg_catalog.pg_auth_members
-     where roleid = identity_admin_oid
-  ) then
-    raise exception 'vk_identity_admin still has a member; bootstrap is only allowed before or after a short-lived operator session';
+  if (
+    select count(*)
+      from pg_catalog.pg_auth_members membership
+     where membership.roleid = identity_admin_oid
+  ) <> 1 or (
+    select count(*)
+      from pg_catalog.pg_auth_members membership
+      join pg_catalog.pg_roles member_role on member_role.oid = membership.member
+     where membership.roleid = identity_admin_oid
+       and member_role.rolname = current_user
+       and membership.admin_option
+       and not membership.inherit_option
+       and not membership.set_option
+  ) <> 1 then
+    raise exception 'vk_identity_admin creator membership does not match the safe owner-only contract';
   end if;
 
   if exists (
@@ -114,14 +156,12 @@ grant select on table public.profiles to vk_identity_admin;
 grant select, insert, update on table public.identity_bindings to vk_identity_admin;
 grant execute on function public.pre_gematik_touch_updated_at() to vk_identity_admin;
 
-comment on role vk_identity_admin is
-  'NOLOGIN role for reviewed pre-gematik IAP identity-binding upserts; assign only to a short-lived Cloud SQL login';
-
 do $pre_gematik_identity_admin_verify$
 declare
   identity_admin_oid oid;
   unsafe_other_table_privileges integer;
   unsafe_sequence_privileges integer;
+  unsafe_other_function_privileges integer;
 begin
   select oid
     into identity_admin_oid
@@ -206,7 +246,17 @@ begin
        or has_sequence_privilege('vk_identity_admin', sequence_relation.oid, 'UPDATE')
      );
 
-  if unsafe_other_table_privileges <> 0 or unsafe_sequence_privileges <> 0 then
+  select count(*)
+    into unsafe_other_function_privileges
+    from pg_catalog.pg_proc routine
+    join pg_catalog.pg_namespace namespace on namespace.oid = routine.pronamespace
+   where namespace.nspname = 'public'
+     and routine.oid <> 'public.pre_gematik_touch_updated_at()'::pg_catalog.regprocedure
+     and has_function_privilege('vk_identity_admin', routine.oid, 'EXECUTE');
+
+  if unsafe_other_table_privileges <> 0
+     or unsafe_sequence_privileges <> 0
+     or unsafe_other_function_privileges <> 0 then
     raise exception 'vk_identity_admin has privileges outside the explicit identity-binding allowlist';
   end if;
 end

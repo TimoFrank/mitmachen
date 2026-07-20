@@ -325,7 +325,8 @@ nach 24 Stunden:
 2. exakt die Secrets `vk-pre-gematik-migration-environment` und
    `vk-pre-gematik-migration-input` löschen,
 3. den kurzlebigen Cloud-SQL-Identity-Login löschen und read-only bestätigen,
-   dass `vk_identity_admin` kein Mitglied mehr hat,
+   dass an `vk_identity_admin` nur noch die sichere, nicht erbende und nicht
+   setzbare Creator-Administration des verifizierten Objekt-Owners besteht,
 4. alle vier temporären Projekt-IAM-Zuordnungen vom dedizierten Principal
    entfernen und die IAM-Policy erneut read-only prüfen,
 5. `networkpolicy/vk-pre-gematik-migration-operator` und

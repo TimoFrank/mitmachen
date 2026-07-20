@@ -310,6 +310,16 @@ assert.match(runtimeRoleSql, /create\s+role\s+vk_app_runtime\s+nologin/i);
 assert.match(runtimeRoleSql, /alter\s+role\s+vk_app_runtime\s+nologin/i);
 assert.match(runtimeRoleSql, /revoke\s+create\s+on\s+schema\s+public\s+from\s+public/i);
 assert.match(identityAdminRoleSql, /create\s+role\s+vk_identity_admin\s+nologin\s+noinherit/i);
+assert.doesNotMatch(identityAdminRoleSql, /alter\s+role\s+vk_identity_admin/i,
+  "Cloud-SQL-Owner ohne SUPERUSER darf keine privilegierten Rollenattribute umschreiben müssen.");
+assert.match(identityAdminRoleSql, /vk_identity_admin has unsafe role attributes/i,
+  "Unsichere bestehende Rollenattribute müssen vor dem Grant fail-closed abbrechen.");
+assert.match(identityAdminRoleSql, /with\s+admin\s+option,\s*inherit\s+false,\s*set\s+false/i,
+  "Die PostgreSQL-16-Creator-Mitgliedschaft muss SET und INHERIT ausschließen.");
+assert.match(identityAdminRoleSql, /safe owner-only contract/i,
+  "Als dauerhaftes Mitglied ist nur der geprüfte Objekt-Owner erlaubt.");
+assert.match(identityAdminRoleSql, /unsafe_other_function_privileges/i,
+  "Alle weiteren effektiven Funktionsrechte müssen fail-closed geprüft werden.");
 assert.match(identityAdminRoleSql, /grant\s+select\s+on\s+table\s+public\.profiles\s+to\s+vk_identity_admin/i);
 assert.match(
   identityAdminRoleSql,
@@ -737,13 +747,21 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
   }, "Die Identity-Admin-Rolle muss NOLOGIN/NOINHERIT und frei von Verwaltungsattributen sein.");
 
   const membersBefore = await adminPool.query(`
-    select count(*)::int as count
+    select member_role.rolname = current_user as expected_owner,
+           membership.admin_option,
+           membership.inherit_option,
+           membership.set_option
       from pg_catalog.pg_auth_members membership
       join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+      join pg_catalog.pg_roles member_role on member_role.oid = membership.member
      where granted_role.rolname = $1
   `, [identityAdminRole]);
-  assert.equal(membersBefore.rows[0].count, 0,
-    "Der Rollen-Bootstrap darf keine dauerhafte Identity-Operator-Mitgliedschaft anlegen.");
+  assert.deepEqual(membersBefore.rows, [{
+    expected_owner: true,
+    admin_option: true,
+    inherit_option: false,
+    set_option: false
+  }], "Nur der Objekt-Owner darf als nicht erbendes, nicht setzbares ADMIN-Mitglied bestehen.");
 
   await adminPool.query(
     `create role ${identityOperator} login inherit in role ${identityAdminRole} password '${identityOperatorPassword}'`
@@ -754,18 +772,53 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
   const operatorPool = new Pool({ connectionString: parsedAdminUrl.toString(), max: 1 });
   try {
     const membership = await operatorPool.query(`
-      select granted_role.rolname as granted_role
+      select granted_role.rolname as granted_role,
+             membership.admin_option,
+             membership.inherit_option,
+             membership.set_option
         from pg_catalog.pg_auth_members membership
         join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
         join pg_catalog.pg_roles member_role on member_role.oid = membership.member
        where member_role.rolname = current_user
        order by granted_role.rolname
     `);
-    assert.deepEqual(membership.rows, [{ granted_role: identityAdminRole }],
-      "Der kurzlebige Identity-Operator darf genau eine Rollenmitgliedschaft besitzen.");
+    assert.deepEqual(membership.rows, [{
+      granted_role: identityAdminRole,
+      admin_option: false,
+      inherit_option: true,
+      set_option: true
+    }], "Der kurzlebige Login muss genau die erbende, setzbare Minimalrolle ohne ADMIN besitzen.");
 
     const client = await operatorPool.connect();
     try {
+      await client.query("begin");
+      const inherited = await client.query(`
+        select current_user = session_user as unassumed_session,
+               has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as binding_insert,
+               has_table_privilege(current_user, 'public.identity_bindings', 'DELETE') as binding_delete,
+               has_table_privilege(current_user, 'public.contacts', 'SELECT') as contacts_select
+      `);
+      assert.deepEqual(inherited.rows, [{
+        unassumed_session: true,
+        binding_insert: true,
+        binding_delete: false,
+        contacts_select: false
+      }], "Die einzige geerbte Rolle muss bereits exakt dieselben Minimalrechte begrenzen.");
+      await client.query(`
+        insert into public.identity_bindings (issuer, subject, profile_id, active)
+        values ('https://identity-admin.contract.example.invalid', $1, 'pre-gematik-admin', false)
+      `, [`identity-admin-inherited-contract-${process.pid}`]);
+      await assert.rejects(
+        client.query(`
+          delete from public.identity_bindings
+           where issuer = 'https://identity-admin.contract.example.invalid'
+             and subject = $1
+        `, [`identity-admin-inherited-contract-${process.pid}`]),
+        (error) => error?.code === "42501",
+        "Auch vor SET LOCAL ROLE darf der Login keine Bindungen löschen."
+      );
+      await client.query("rollback");
+
       await client.query("begin");
       await client.query("set local role vk_identity_admin");
       const effective = await client.query(`
@@ -795,7 +848,15 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
             current_user,
             'public.pre_gematik_touch_updated_at()',
             'EXECUTE'
-          ) as touch_function_execute
+          ) as touch_function_execute,
+          (
+            select count(*)::int
+              from pg_catalog.pg_proc routine
+              join pg_catalog.pg_namespace namespace on namespace.oid = routine.pronamespace
+             where namespace.nspname = 'public'
+               and routine.oid <> 'public.pre_gematik_touch_updated_at()'::pg_catalog.regprocedure
+               and has_function_privilege(current_user, routine.oid, 'EXECUTE')
+          ) as unsafe_other_function_privilege_count
       `);
       assert.deepEqual(effective.rows[0], {
         expected_role: true,
@@ -815,7 +876,8 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
         binding_column_references: false,
         contacts_select: false,
         sequence_usage: false,
-        touch_function_execute: true
+        touch_function_execute: true,
+        unsafe_other_function_privilege_count: 0
       }, "Die Identity-Admin-Rolle muss exakt auf Profile-Lesen und Binding-Upsert begrenzt sein.");
 
       const inserted = await client.query(`
@@ -852,13 +914,21 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
   }
 
   const membersAfter = await adminPool.query(`
-    select count(*)::int as count
+    select member_role.rolname = current_user as expected_owner,
+           membership.admin_option,
+           membership.inherit_option,
+           membership.set_option
       from pg_catalog.pg_auth_members membership
       join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+      join pg_catalog.pg_roles member_role on member_role.oid = membership.member
      where granted_role.rolname = $1
   `, [identityAdminRole]);
-  assert.equal(membersAfter.rows[0].count, 0,
-    "Nach Cleanup darf die NOLOGIN-Identity-Admin-Rolle keine Mitglieder behalten.");
+  assert.deepEqual(membersAfter.rows, [{
+    expected_owner: true,
+    admin_option: true,
+    inherit_option: false,
+    set_option: false
+  }], "Nach Cleanup darf nur die sichere Objekt-Owner-Administration bestehen.");
 }
 
 async function assertSqlState(pool, sql, params, expectedCode, message) {
@@ -1548,6 +1618,63 @@ try {
       "psql", "-v", "ON_ERROR_STOP=1", "-v", `runtime_role=${runtimeRole}`,
       "-U", "vk_contract", "-d", "versorgungs_kompass"
     ], { input: grantsSql });
+    const cloudSqlLikeOwner = "vk_cloudsql_owner_contract";
+    const cloudSqlLikeDatabase = "vk_identity_bootstrap_contract";
+    runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", "vk_contract", "-d", "postgres"
+    ], {
+      input: `
+        create role ${cloudSqlLikeOwner} login createrole noinherit;
+        create database ${cloudSqlLikeDatabase} owner ${cloudSqlLikeOwner};
+      `
+    });
+    runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", cloudSqlLikeOwner, "-d", cloudSqlLikeDatabase
+    ], {
+      input: `
+        create table public.profiles (id text primary key);
+        create table public.identity_bindings (id text primary key);
+        create function public.pre_gematik_touch_updated_at()
+        returns trigger language plpgsql as $$ begin return new; end $$;
+        create function public.identity_bootstrap_unsafe_public_function()
+        returns integer language sql as $$ select 1 $$;
+      `
+    });
+    assert.throws(() => runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", cloudSqlLikeOwner, "-d", cloudSqlLikeDatabase
+    ], { input: identityAdminRoleSql }), /privileges outside the explicit identity-binding allowlist/i,
+    "Ein zusätzlich über PUBLIC ausführbares Funktionsobjekt muss den Bootstrap fail-closed abbrechen.");
+    runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", cloudSqlLikeOwner, "-d", cloudSqlLikeDatabase
+    ], { input: "drop function public.identity_bootstrap_unsafe_public_function();" });
+    runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", cloudSqlLikeOwner, "-d", cloudSqlLikeDatabase
+    ], { input: identityAdminRoleSql });
+    runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", cloudSqlLikeOwner, "-d", cloudSqlLikeDatabase
+    ], { input: identityAdminRoleSql });
+    runDocker([
+      "exec", "-i", containerName,
+      "psql", "-v", "ON_ERROR_STOP=1",
+      "-U", "vk_contract", "-d", "postgres"
+    ], {
+      input: `
+        drop database ${cloudSqlLikeDatabase};
+        drop role ${cloudSqlLikeOwner};
+      `
+    });
     runDocker([
       "exec", "-i", containerName,
       "psql", "-v", "ON_ERROR_STOP=1",

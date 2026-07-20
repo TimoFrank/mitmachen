@@ -52,6 +52,16 @@ assert.match(identityAdminRoleSql, /relation\.relowner\s*=\s*\(/u,
 assert.match(identityAdminRoleSql, /rolcreaterole/iu,
   "Der Rollen-Bootstrap muss zusätzlich CREATEROLE verlangen.");
 assert.match(identityAdminRoleSql, /create role vk_identity_admin nologin noinherit/iu);
+assert.doesNotMatch(identityAdminRoleSql, /alter role vk_identity_admin/iu,
+  "Cloud SQL's non-superuser object owner must not alter privileged role attributes.");
+assert.match(identityAdminRoleSql, /vk_identity_admin has unsafe role attributes/iu,
+  "Unsafe pre-existing role attributes must fail closed before privileges are reset.");
+assert.match(identityAdminRoleSql, /with admin option, inherit false, set false/iu,
+  "PostgreSQL 16's creator membership must be pinned to no SET and no INHERIT.");
+assert.match(identityAdminRoleSql, /safe owner-only contract/iu,
+  "The only persistent member must be the verified object owner.");
+assert.match(identityAdminRoleSql, /unsafe_other_function_privileges/iu,
+  "Every other effective public-function privilege must fail closed.");
 assert.match(identityAdminRoleSql, /grant select on table public\.profiles to vk_identity_admin/iu);
 assert.match(
   identityAdminRoleSql,
@@ -149,6 +159,7 @@ function assertSafeFailure(action, pattern) {
 const safeIdentityAdminSession = Object.freeze({
   unassumed_session: true,
   login_can_login: true,
+  login_inherits_roles: true,
   login_superuser: false,
   login_create_database: false,
   login_create_role: false,
@@ -166,7 +177,11 @@ const safeIdentityAdminSession = Object.freeze({
   postgres_member: false,
   login_memberships: [EXPECTED_IDENTITY_ADMIN_ROLE],
   admin_parent_membership_count: 0,
-  admin_member_count: 1
+  admin_member_count: 2,
+  identity_objects_share_owner: true,
+  admin_login_member_count: 1,
+  admin_owner_member_count: 1,
+  admin_unexpected_member_count: 0
 });
 
 const safeIdentityAdminPrivileges = Object.freeze({
@@ -193,7 +208,8 @@ const safeIdentityAdminPrivileges = Object.freeze({
   binding_column_references: false,
   touch_function_execute: true,
   unsafe_other_table_privilege_count: 0,
-  unsafe_sequence_privilege_count: 0
+  unsafe_sequence_privilege_count: 0,
+  unsafe_other_function_privilege_count: 0
 });
 
 validateIdentityAdministrationSession(safeIdentityAdminSession);
@@ -209,7 +225,24 @@ assertSafeFailure(
 assertSafeFailure(
   () => validateIdentityAdministrationSession({
     ...safeIdentityAdminSession,
-    admin_member_count: 2
+    login_inherits_roles: false,
+    admin_login_member_count: 0,
+    admin_unexpected_member_count: 1
+  }),
+  /exklusiven kurzlebigen/u
+);
+assertSafeFailure(
+  () => validateIdentityAdministrationSession({
+    ...safeIdentityAdminSession,
+    admin_unexpected_member_count: 1
+  }),
+  /exklusiven kurzlebigen/u
+);
+assertSafeFailure(
+  () => validateIdentityAdministrationSession({
+    ...safeIdentityAdminSession,
+    identity_objects_share_owner: false,
+    admin_owner_member_count: 0
   }),
   /exklusiven kurzlebigen/u
 );
@@ -217,6 +250,13 @@ assertSafeFailure(
   () => validateIdentityAdministrationPrivileges({
     ...safeIdentityAdminPrivileges,
     binding_delete: true
+  }),
+  /Minimalrechte/u
+);
+assertSafeFailure(
+  () => validateIdentityAdministrationPrivileges({
+    ...safeIdentityAdminPrivileges,
+    unsafe_other_function_privilege_count: 1
   }),
   /Minimalrechte/u
 );
