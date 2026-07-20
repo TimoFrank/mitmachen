@@ -82,9 +82,9 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 
 ## Registrierungs-Intake
 
-Die synthetische GitHub-Pages-Demo sendet keine Registrierungen und enthaelt weder Projekt-URL noch Backend-Key. Ihr Formular ist keine produktive Dateneingangsstrecke.
+Die synthetische GitHub-Pages-Demo sendet keine Registrierungen und enthaelt weder Projekt-URL noch Backend-Key. Die separate #Mitmachen-Konzeptdemo bleibt auch im Target technisch inert: Sie ruft keine Intake-Route auf, speichert keine Eingaben und ist keine produktive Dateneingangsstrecke.
 
-`POST /api/network-registrations` ist derzeit ein Vorbereitungsgate fuer die geschuetzte GKE-Anwendung, kein bereits freigegebener Backendvertrag. Das Target-Frontend darf den Request nur im API-Profil mit `requireApiGateway: true` aufbauen. Solange der Handler im ausgerollten Backend fehlt oder nicht betrieblich freigegeben ist, endet der Aufruf mit einem HTTP-Fehler und die Oberflaeche zeigt einen Uebermittlungsfehler. Es gibt dabei weder einen Supabase-, LocalStorage- noch Demo-Daten-Fallback und auch keine lokale Warteschlange.
+`POST /api/network-registrations` ist nur ein dokumentiertes Vorbereitungsgate fuer einen möglichen späteren geschützten Intake, kein freigegebener Backendvertrag. Die aktuelle Konzeptdemo baut diesen Request ausdrücklich nicht auf; automatisierte Tests sichern null Netzwerkaufrufe ab. Ein Handler darf erst zusammen mit einem realen, ausdrücklich freigegebenen Prozess implementiert und aktiviert werden. Es gibt weder einen Supabase-, LocalStorage- noch Demo-Daten-Fallback und auch keine lokale Warteschlange.
 
 Vor einer Aktivierung muessen API-Handler und Route-Policy gemeinsam implementiert und abgenommen werden. Dazu gehoeren mindestens Feld- und Laengen-Allowlisten, serverseitige Formular- und Einwilligungsversionen, Idempotenz ueber `submission_id`, Rate Limit und Missbrauchsschutz, Auditierung ohne Klartext-PII in Logs sowie eine festgelegte Betriebs- und Datenschutzverantwortung. Der Browser erhaelt keine Tabellen- oder Storage-Rechte. Die interne Admin-App darf Registrierungen ebenfalls nur ueber geschuetzte `/api/...`-Routen und mit der erforderlichen Rolle lesen oder bearbeiten.
 

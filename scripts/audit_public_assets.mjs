@@ -94,22 +94,20 @@ const requiredFiles = new Set([
   "vendor/pdfjs/pdf.min.mjs",
   "vendor/pdfjs/pdf.worker.min.mjs",
   "vendor/xlsx/xlsx.bundle.js",
-  "public/app-icon-32.png",
-  "public/app-icon-180.png",
-  "public/app-icon-192.png",
-  "public/app-icon-512.png",
-  "public/gematik-logo.svg",
-  "public/format-roundtable-hero.jpg",
-  "public/versorgungs-kompass-logo.png",
   "public/brand/mitmachen/lockup-horizontal.svg",
   "public/brand/mitmachen/mark-on-dark.svg",
+  "public/brand/versorgungs-kompass/icons/app-icon-180.png",
+  "public/brand/versorgungs-kompass/icons/app-icon-192.png",
   "public/brand/versorgungs-kompass/icons/app-icon-32.png",
+  "public/brand/versorgungs-kompass/icons/app-icon-512.png",
+  "public/brand/versorgungs-kompass/mark-on-dark.svg",
   "public/brand/versorgungs-kompass/mark.svg",
   "public/demo-profile-admin.svg",
   "public/demo-profile-editor.svg",
   "public/demo-profile-viewer.svg",
   "public/hospitation/mitmachen-hospitations-framework.docx",
-  "public/hospitation/mitmachen-hospitations-framework.pdf"
+  "public/hospitation/mitmachen-hospitations-framework.pdf",
+  "public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
 ]);
 
 for (const required of requiredFiles) {
@@ -188,15 +186,16 @@ if (existsSync(publicAppSourcePath)) {
 const registrationHtmlPath = join(artifactRoot, "mitmachen", "versorgungs-netzwerk.html");
 if (existsSync(registrationHtmlPath)) {
   const registrationHtml = readFileSync(registrationHtmlPath, "utf8");
-  const runtimePosition = registrationHtml.indexOf("../data/runtime-config.js");
-  const demoDataPosition = registrationHtml.indexOf("../data/demo-data.js");
-  const demoApiPosition = registrationHtml.indexOf("../data/demo-api.js");
   const registrationAppPosition = registrationHtml.indexOf("./versorgungs-netzwerk.js");
-  assert(
-    runtimePosition >= 0 && runtimePosition < demoDataPosition && demoDataPosition < demoApiPosition && demoApiPosition < registrationAppPosition,
-    `${artifactLabel}/mitmachen/versorgungs-netzwerk.html laedt Runtime, Demodaten, Demo-API und Formularlogik nicht in sicherer Reihenfolge`
-  );
+  assert(registrationAppPosition >= 0, `${artifactLabel}/mitmachen/versorgungs-netzwerk.html laedt die Formularlogik nicht`);
+  assert(!/data\/(?:runtime-config|demo-data|demo-api)\.js/.test(registrationHtml), `${artifactLabel}/mitmachen/versorgungs-netzwerk.html bindet die Konzeptdemo an einen Daten- oder API-Adapter`);
   assert(!/(?:auth-config|auth-guard|auth-login)\.js/i.test(registrationHtml), `${artifactLabel}/mitmachen/versorgungs-netzwerk.html referenziert Authentisierungscode`);
+
+  const registrationAppPath = join(artifactRoot, "mitmachen", "versorgungs-netzwerk.js");
+  if (existsSync(registrationAppPath)) {
+    const registrationApp = readFileSync(registrationAppPath, "utf8");
+    assert(!/\b(?:fetch|XMLHttpRequest|sendBeacon)\b/.test(registrationApp), `${artifactLabel}/mitmachen/versorgungs-netzwerk.js verwendet eine Transport-API`);
+  }
 }
 
 const mapHtmlPath = join(artifactRoot, "versorgungs-kompass-map.html");

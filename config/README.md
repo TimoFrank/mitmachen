@@ -17,3 +17,7 @@ Die Profile enthalten keine Secrets. Reale Deploymentwerte fuer `pre-gematik` we
 Ein Daten-, Storage- oder Identity-Migrationslauf ist davon getrennt. [`migration.env.example`](pre-gematik/migration.env.example) dokumentiert die dafuer benoetigten lokalen Operatorvariablen und verweist nur auf Platzhalter. Eine aufgeloeste Kopie, Verbindungs-URLs, Zugangsdaten, Projekt-, Bucket- und Binaer-Pins, Backup-IDs und Manifestpfade duerfen weder committed noch in das GitHub-Environment kopiert werden; sie werden nur in einer geschuetzten, kurzlebigen Operator-Session gesetzt. Schreibende Datenbank- und Identity-Laeufe starten den unabhaengig gepinnten offiziellen Cloud SQL Auth Proxy selbst fuer exakt die vom GCP-Gate bestaetigte Instanz. Das verbindliche Verfahren steht im [Supabase-Cloud-SQL-Migrationsplan](../dokumentation/betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md).
 
 Security-Konfigurationen liegen gebündelt unter [`security/`](security/README.md). Toolbedingt verbleibt nur `.semgrepignore` im Repository-Root.
+
+## Gemeinsamer Markenvertrag
+
+[`brand-architecture.json`](brand-architecture.json) hält Namen, Basisbeschreibung, Logo-Pfade und die Farbzuordnung der vier Produktmodule maschinenlesbar fest. Die redaktionellen Regeln und Freigabegrenzen stehen im [Markenkit](../dokumentation/produkt-und-design/MARKENARCHITEKTUR.md).

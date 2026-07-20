@@ -73,7 +73,7 @@ Nicht durch Autopilot mitigiert werden insbesondere Authentisierung/RBAC, XSS/In
 ## Noch gemeinsam extern abzuhaken
 
 - [ ] **Zwei-App-Scope:** Pages weiterhin nur mit synthetischen Demo-Daten und ohne Target-Konfiguration, echte Sitzung, Supabase oder Registrierungsannahme verifizieren; Target ausschliesslich API-only ausliefern.
-- [ ] **Registrierungsroute:** `POST /api/network-registrations` bis zur implementierten und freigegebenen Backendroute sichtbar fail-closed belassen; danach Route-Policy, OIDC/IAP, Idempotenz, Limits, Datenschutz und Backendausfall testen.
+- [ ] **Registrierungsroute:** Die Konzeptdemo ohne Intake-Aufruf belassen; einen realen Prozess und `POST /api/network-registrations` erst gemeinsam nach Route-Policy, OIDC/IAP, Idempotenz, Limits, Datenschutz und Backendausfalltests aktivieren.
 - [ ] **Supabase-Übergang:** Migration, Auth-Schalter, Nutzer/Sessions, RLS, Grants, Data-API-Exposition, Storage und Advisors zuerst in Staging, dann produktiv prüfen. RLS und API-/Rollen-Grants sind getrennte Kontrollschichten.
 - [ ] **Identity/Gateway:** fremde Identity- und Authorization-Header vor Auth entfernen; nur verifizierten Kontext neu etablieren; direkten API-Zugriff sperren; TLS auf jedem Hop.
 - [ ] **Tokenvertrag:** Issuer, Audience, JWKS, Algorithmen, Zeitclaims, `sub`-Stabilität, Rotation, Revocation und Fehlerfälle mit synthetischen Konten abnehmen.

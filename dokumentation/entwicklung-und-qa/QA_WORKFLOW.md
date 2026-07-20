@@ -74,7 +74,7 @@ npm run verify:publication
 
 `verified` ist nur nach einer passenden DB- oder API-Stichprobe zulaessig. Wenn Datenmigrationen, Schema-/Migrationsdateien oder datengetriebene Fachinhalte betroffen sind, darf `not_affected` nicht genutzt werden. Ein Abschluss darf "sichtbar", "verfuegbar" oder "live" nur sagen, wenn die betroffene Auslieferung und der passende Backend-Nachweis erfolgreich geprueft wurden.
 
-Fuer `POST /api/network-registrations` gilt bis zur Implementierung und Betriebsfreigabe des Backendhandlers ein negatives Gate: Ein fehlender Handler muss als HTTP-Fehler sichtbar bleiben. Der Test darf weder einen erfolgreichen Intake behaupten noch eine lokale Speicherung oder synthetische Ersatzantwort einbauen. Erst ein autorisierter End-to-End-Test mit OIDC-/IAP-Session, Route-Policy, Idempotenz und sicherem Backendausfall darf den Status `verified` setzen.
+Fuer `POST /api/network-registrations` gilt bis zur fachlichen und betrieblichen Freigabe ein negatives Gate: Die #Mitmachen-Konzeptdemo darf keinen Request aufbauen; der Test weist null Intake-Aufrufe, null lokale Speicherung und eine reine Demo-Bestätigung nach. Erst ein autorisierter realer Prozess mit OIDC-/IAP-Session, Route-Policy, Idempotenz und sicherem Backendausfall darf diesen Vertrag ersetzen und den Status `verified` erhalten.
 
 ## Standard-Auth-Testmodus
 

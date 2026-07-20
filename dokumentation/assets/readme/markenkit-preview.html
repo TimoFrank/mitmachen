@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Markenkit – #Mitmachen und Versorgungs-Kompass</title>
+    <style>
+      :root { font-family: Arial, Helvetica, sans-serif; color: #17275f; background: #eef3fa; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: linear-gradient(180deg, #f8faff, #edf2f9); }
+      main { width: min(1600px, 100%); margin: 0 auto; padding: 54px; }
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 12px; color: #010e52; font-size: 54px; letter-spacing: -2px; }
+      .lead { max-width: 900px; margin-bottom: 42px; color: #59677f; font-size: 21px; line-height: 1.5; }
+      .header-preview { overflow: hidden; margin-bottom: 48px; border-radius: 28px; box-shadow: 0 24px 60px rgba(16,35,110,.16); }
+      .header-preview img { width: 100%; display: block; }
+      .brand-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+      .brand-panel { overflow: hidden; border: 1px solid #d5deec; border-radius: 24px; background: #fff; box-shadow: 0 18px 44px rgba(16,35,110,.08); }
+      .brand-panel__head { padding: 26px 28px 18px; }
+      .brand-panel h2 { margin-bottom: 7px; color: #10236e; font-size: 28px; }
+      .brand-panel p { margin-bottom: 0; color: #65728a; line-height: 1.45; }
+      .asset-row { min-height: 172px; display: grid; grid-template-columns: 110px 1fr; gap: 24px; align-items: center; padding: 26px 28px; border-top: 1px solid #dce4f0; }
+      .asset-row--dark { background: #010e52; }
+      .asset-row__mark { width: 76px; height: 76px; justify-self: center; }
+      .asset-row__lockup { width: 100%; max-width: 510px; }
+      .palette { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-top: 28px; }
+      .swatch { overflow: hidden; border: 1px solid #d5deec; border-radius: 18px; background: #fff; }
+      .swatch__color { height: 86px; background: var(--accent); }
+      .swatch__copy { padding: 18px 20px 20px; }
+      .swatch strong, .swatch span { display: block; }
+      .swatch strong { margin-bottom: 5px; color: #17275f; font-size: 18px; }
+      .swatch span { color: #65728a; font-size: 14px; }
+      footer { margin-top: 30px; color: #65728a; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Markenkit</h1>
+      <p class="lead">Ein konsistentes Dach für #Mitmachen, eine eigenständige Produktmarke für den Versorgungs-Kompass und vier klar codierte Module.</p>
+
+      <section class="header-preview" aria-label="README-Header">
+        <img src="./versorgungs-kompass-header-v2.svg" alt="#Mitmachen und Versorgungs-Kompass mit vier Modulbadges" />
+      </section>
+
+      <div class="brand-grid">
+        <section class="brand-panel">
+          <header class="brand-panel__head"><h2>#Mitmachen</h2><p>Visuelle Identität für das Beteiligungsdach.</p></header>
+          <div class="asset-row"><img class="asset-row__mark" src="../../../public/brand/mitmachen/mark.svg" alt="#Mitmachen Bildmarke" /><img class="asset-row__lockup" src="../../../public/brand/mitmachen/lockup-horizontal.svg" alt="#Mitmachen Logo mit Schriftzug" /></div>
+          <div class="asset-row asset-row--dark"><img class="asset-row__mark" src="../../../public/brand/mitmachen/mark-on-dark.svg" alt="#Mitmachen Bildmarke für dunkle Flächen" /><img class="asset-row__lockup" src="../../../public/brand/mitmachen/lockup-horizontal-on-dark.svg" alt="#Mitmachen Logo mit Schriftzug für dunkle Flächen" /></div>
+        </section>
+
+        <section class="brand-panel">
+          <header class="brand-panel__head"><h2>Versorgungs-Kompass</h2><p>Produktidentität mit klar getrenntem Signet und Schriftzug.</p></header>
+          <div class="asset-row"><img class="asset-row__mark" src="../../../public/brand/versorgungs-kompass/mark.svg" alt="Versorgungs-Kompass Bildmarke" /><img class="asset-row__lockup" src="../../../public/brand/versorgungs-kompass/lockup-horizontal.svg" alt="Versorgungs-Kompass Logo mit Schriftzug" /></div>
+          <div class="asset-row asset-row--dark"><img class="asset-row__mark" src="../../../public/brand/versorgungs-kompass/mark-on-dark.svg" alt="Versorgungs-Kompass Bildmarke für dunkle Flächen" /><img class="asset-row__lockup" src="../../../public/brand/versorgungs-kompass/lockup-horizontal-on-dark.svg" alt="Versorgungs-Kompass Logo mit Schriftzug für dunkle Flächen" /></div>
+        </section>
+
+        <section class="palette" aria-label="Modulfarben">
+          <article class="swatch" style="--accent:#559ee8"><div class="swatch__color"></div><div class="swatch__copy"><strong>Versorgung</strong><span>#559EE8</span></div></article>
+          <article class="swatch" style="--accent:#43b391"><div class="swatch__color"></div><div class="swatch__copy"><strong>Stakeholder</strong><span>#43B391</span></div></article>
+          <article class="swatch" style="--accent:#e0a44d"><div class="swatch__color"></div><div class="swatch__copy"><strong>Hospitation</strong><span>#E0A44D</span></div></article>
+          <article class="swatch" style="--accent:#a980da"><div class="swatch__color"></div><div class="swatch__copy"><strong>Formate</strong><span>#A980DA</span></div></article>
+        </section>
+      </div>
+
+      <footer>Das gematik-Original bleibt als institutioneller Absender separat. Ein formales Co-Branding benötigt eine eigene Freigabe.</footer>
+    </main>
+  </body>
+</html>

@@ -77,6 +77,14 @@ try {
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
   assert.match(fs.readFileSync(path.join(pagesDir, "index.html"), "utf8"), /url=\.\/versorgungs-kompass\.html#map/);
   assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#map/);
+  assert.match(
+    fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8"),
+    /href="\.\/public\/brand\/versorgungs-kompass\/icons\/app-icon-32\.png"/
+  );
+  assert.match(
+    fs.readFileSync(path.join(pagesDir, "manifest.webmanifest"), "utf8"),
+    /"src": "\.\/public\/brand\/versorgungs-kompass\/icons\/app-icon-192\.png"/
+  );
   assertMissing(
     pagesDir,
     "login.html",
@@ -91,6 +99,13 @@ try {
     "data/stakeholder-data.js",
     "data/patienten-data.js",
     "vendor/supabase",
+    "public/app-icon-32.png",
+    "public/app-icon-180.png",
+    "public/app-icon-192.png",
+    "public/app-icon-512.png",
+    "public/gematik-logo.svg",
+    "public/format-roundtable-hero.jpg",
+    "public/versorgungs-kompass-logo.png",
     "public/stakeholder-logos",
     "public/hospitation-avatars"
   );
@@ -116,15 +131,16 @@ try {
     assert.match(pagesHtml, new RegExp(label), `Pages muss den Voll-App-Bereich ${label} enthalten`);
   }
   const pagesRegistrationHtml = fs.readFileSync(path.join(pagesDir, "mitmachen", "versorgungs-netzwerk.html"), "utf8");
-  const registrationPositions = [
-    "../data/runtime-config.js",
-    "../data/demo-data.js",
-    "../data/demo-api.js",
-    "./versorgungs-netzwerk.js"
-  ].map((value) => pagesRegistrationHtml.indexOf(value));
-  assert.ok(
-    registrationPositions.every((position) => position >= 0) && registrationPositions.every((position, index) => index === 0 || registrationPositions[index - 1] < position),
-    "Pages muss die Netzwerkregistrierung ebenfalls an die lokale Demo-API anbinden"
+  assert.match(pagesRegistrationHtml, /<script src="\.\/versorgungs-netzwerk\.js"><\/script>/);
+  assert.doesNotMatch(
+    pagesRegistrationHtml,
+    /data\/(?:runtime-config|demo-data|demo-api)\.js/,
+    "Die Konzeptdemo darf keinen Daten- oder API-Adapter laden"
+  );
+  assert.doesNotMatch(
+    fs.readFileSync(path.join(pagesDir, "mitmachen", "versorgungs-netzwerk.js"), "utf8"),
+    /\b(?:fetch|XMLHttpRequest|sendBeacon)\b/,
+    "Die Konzeptdemo darf keine Transport-API verwenden"
   );
   assert.doesNotMatch(
     fs.readFileSync(path.join(pagesDir, "versorgungs-kompass-map.html"), "utf8"),
@@ -269,8 +285,13 @@ try {
   );
 
   const pagesOnly = new Set(relativeFiles(pagesDir).filter((file) => file !== "build-manifest.json"));
-  const forbiddenOverlap = relativeFiles(targetDir).filter((file) => pagesOnly.has(file) && /(?:^|\/)(?:demo|demo-data|demo-profile|demo-person|demo-org)/i.test(file));
-  assert.deepEqual(forbiddenOverlap, [], `Demo-Dateien duerfen nicht in das Target gelangen: ${forbiddenOverlap.join(", ")}`);
+  const approvedPresentationAssets = new Set(["public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"]);
+  const forbiddenOverlap = relativeFiles(targetDir).filter((file) =>
+    pagesOnly.has(file)
+    && /(?:^|\/)(?:demo|demo-data|demo-profile|demo-person|demo-org)/i.test(file)
+    && !approvedPresentationAssets.has(file)
+  );
+  assert.deepEqual(forbiddenOverlap, [], `Demo-Runtime oder Demo-Daten duerfen nicht in das Target gelangen: ${forbiddenOverlap.join(", ")}`);
 
   for (const [directory, profile] of [[pagesDir, "pages"], [targetDir, "target"]]) {
     const manifest = JSON.parse(fs.readFileSync(path.join(directory, "build-manifest.json"), "utf8"));

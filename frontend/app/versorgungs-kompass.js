@@ -792,7 +792,7 @@
         return match ? { tab: normalizeHospitationTab(match[1] || "appointments") } : null;
       }
       const settingsTabItems = [
-        { id: "registrations", title: "Registrierungen", subtitle: "Eingänge aus dem Versorgungs-Netzwerk prüfen und kontrolliert übernehmen." },
+        { id: "registrations", title: "Registrierungskonzept", subtitle: "Beispieleingänge aus dem Zukunftsszenario prüfen; kein aktueller gematik-Prozess." },
         { id: "imports", title: "Dateiimport", subtitle: "Kontakte per Datei hochladen, zuordnen und geprüft importieren." },
         { id: "onlineEntry", title: "Online-Erfassung", subtitle: "Mehrere Kontakte direkt in einer Tabelle erfassen und gemeinsam speichern." },
         { id: "importHistory", title: "Importhistorie", subtitle: "Abgeschlossene Importe und Ergebnisse nachvollziehen." }
@@ -2378,8 +2378,8 @@
       function renderRegistrations() {
         if (!registrationsList || !registrationsSummary) return;
         if (registrationsLoading) {
-          registrationsSummary.textContent = "Registrierungen werden geladen.";
-          registrationsList.innerHTML = `<div class="imports-history-empty">Geschützte Registrierungseingänge werden geladen.</div>`;
+          registrationsSummary.textContent = "Beispieleingänge werden geladen.";
+          registrationsList.innerHTML = `<div class="imports-history-empty">Beispieleingänge des Registrierungsszenarios werden geladen.</div>`;
           return;
         }
         if (!registrationsLoaded) {

@@ -1,12 +1,15 @@
-# Versorgungs-Netzwerk Registrierung
+# Versorgungs-Netzwerk – Konzeptdemo und möglicher späterer Intake
 
-Stand: 19.07.2026
+Stand: 20.07.2026
 
-Dieses Dokument beschreibt den vorbereiteten Registrierungsvertrag der geschuetzten Realanwendung. Die Route ist noch kein freigegebener Live-Intake.
+Die Repo-Seite `frontend/pages/mitmachen/versorgungs-netzwerk.html` ist ausschließlich eine technisch inerte Konzeptdemo. Sie zeigt ein mögliches zukünftiges Wunschszenario, bildet den realen Prozess auf der gematik-Website nicht ab und übermittelt oder speichert keine Formulardaten.
+
+Der nachfolgende Vertrag dokumentiert nur eine mögliche spätere Kopplung der geschützten Realanwendung. Er ist weder ein freigegebener Live-Intake noch der aktuelle öffentliche Registrierungsweg der gematik. Aktuelle Beteiligungsmöglichkeiten liegen unter <https://www.gematik.de/mitmachen>.
 
 ## Zwei-App-Abgrenzung
 
 - Die oeffentliche GitHub-Pages-Anwendung ist eine dauerhaft bestehende Produktdemo. Sie verwendet ausschliesslich synthetische, im Demo-Artefakt gebuendelte Daten und sendet keine Registrierung.
+- Die #Mitmachen- und Versorgungs-Netzwerk-Seiten im Repo sind davon getrennte Konzeptdemos. Auch im Target-Artefakt bleiben ihre Formulare inert, bis ein realer Prozess fachlich ersetzt und ausdrücklich freigegeben wurde.
 - Die Realanwendung ist ein separates Target-Artefakt. Sie authentisiert im GKE-Vorbereitungspfad ueber IAP und im gematik-Zielbetrieb ueber OIDC. Jeder fachliche Browserzugriff laeuft ausschliesslich ueber `/api/...`.
 - Pages und Realanwendung teilen weder Laufzeitkonfiguration noch Sitzung, Supabase-Client, Backend-Key oder persistente Browserdaten.
 
@@ -16,9 +19,9 @@ Ein institutionell betriebenes Formular kann spaeter ueber die geschuetzte API a
 
 Die Realanwendung zeigt neue Registrierungen nach Freigabe im Bereich `Importe` als Pruef-Inbox. Erst die Uebernahme durch einen Admin legt einen aktiven Kontakt und optional eine Organisation an.
 
-## Aktueller Route-Status: fail-closed
+## Aktueller Route-Status: nicht an die Konzeptdemo gekoppelt
 
-Das Target-Frontend bereitet `POST /api/network-registrations` nur vor, wenn das API-Profil aktiv ist und `requireApiGateway: true` gesetzt wurde. Die Route ist ein GKE-Vorbereitungsgate. Solange im ausgerollten API-Backend kein freigegebener Handler existiert, muss der Request mit einem HTTP-Fehler enden und die Oberflaeche einen Uebermittlungsfehler anzeigen.
+Die Konzeptdemo ruft `POST /api/network-registrations` nicht auf. Ein möglicher späterer Handler bleibt ein separates Freigabegate und darf erst nach Austausch der Demo durch einen fachlich, rechtlich, sicherheitsbezogen und betrieblich freigegebenen Prozess aktiviert werden.
 
 Insbesondere unzulaessig sind:
 
@@ -114,7 +117,7 @@ window.VERSORGUNGS_COMPASS_CONFIG = {
 };
 ```
 
-Die Pages-Demo erhaelt diese Konfiguration nicht. Im Target fuehren eine fehlende API-Konfiguration, eine fehlende OIDC-/IAP-Sitzung oder eine nicht implementierte Backendroute zu einem sichtbaren Fehler. Registrierungen und Statusaenderungen werden dann weder synthetisch ersetzt noch lokal im Browser gespeichert.
+Die Pages-Demo erhaelt diese Konfiguration nicht. Auch die im Target enthaltene Konzeptseite bleibt technisch inert und nutzt die Runtime-Konfiguration nicht für eine Registrierung. Die Konfiguration gilt ausschließlich für die geschützte interne Anwendung und einen später separat freigegebenen Intake-Vertrag; Registrierungen und Statusaenderungen werden weder synthetisch ersetzt noch lokal im Browser gespeichert.
 
 ## Freigabegate
 

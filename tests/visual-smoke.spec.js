@@ -2,31 +2,6 @@ import { expect, test } from "@playwright/test";
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
 import { createProtectedBackendFixture } from "./helpers/protected-backend-fixture.js";
 
-async function installPublicRegistrationApi(page) {
-  const submissions = [];
-  await page.route("**/frontend/data/runtime-config.js", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/javascript; charset=utf-8",
-      body: `window.VERSORGUNGS_COMPASS_CONFIG = {
-        dataMode: "api",
-        apiBaseUrl: "https://gateway.tests.example.invalid",
-        apiCredentials: "include",
-        requireApiGateway: true
-      };`
-    });
-  });
-  await page.route("https://gateway.tests.example.invalid/api/network-registrations", async (route) => {
-    submissions.push(route.request().postDataJSON());
-    await route.fulfill({
-      status: 201,
-      contentType: "application/json; charset=utf-8",
-      body: JSON.stringify({ ok: true, id: `test-registration-${submissions.length}` })
-    });
-  });
-  return submissions;
-}
-
 async function expectTourPanelInteractive(page) {
   await expect(page.locator("#product-tour-panel")).toBeVisible();
   const panelReceivesPointer = await page.locator("#product-tour-panel").evaluate((panel) => {
@@ -4868,7 +4843,7 @@ test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ pag
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="about"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#profile-tab-about")).toBeVisible();
-  await expect(page.locator("#profile-tab-about .about-intro__highlight")).toContainText("Der gematik-Versorgungskompass");
+  await expect(page.locator("#profile-tab-about .about-intro__highlight")).toContainText("verbindet Menschen");
   await expect(page.locator("#profile-tab-about .about-topic")).toHaveCount(6);
   await expect(page.locator("#profile-tab-about")).not.toContainText("Changelog");
 
@@ -5245,11 +5220,12 @@ test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page },
 
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="imports"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator('[data-settings-tab="registrations"]')).toHaveText("Registrierungen");
+  await expect(page.locator('[data-settings-tab="registrations"]')).toHaveText("Registrierungskonzept");
   await expect(page.locator('[data-settings-tab="imports"]')).toHaveText("Dateiimport");
   await expect(page.locator('[data-settings-tab="onlineEntry"]')).toHaveText("Online-Erfassung");
   await expect(page.locator('[data-settings-tab="registrations"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".registration-page-head")).toContainText("Registrierungen verwalten");
+  await expect(page.locator(".registration-page-head")).toContainText("Registrierungsszenario");
+  await expect(page.locator(".registration-page-head")).toContainText("später freigegebenen gematik-Prozess");
   await expect(page.locator(".registration-process-flow li")).toHaveCount(5);
   await expect(page.locator(".registration-process-guide")).toContainText("Double-Opt-in");
   await expect(page.locator("#registration-metric-new")).toHaveText("2");
@@ -5293,10 +5269,16 @@ test("Importe: optionale #Mitmachen-Einwilligung wird strukturiert übernommen",
   await expect(page.locator("#person-profile-body #detail-consent")).toContainText("Versorgungs-Netzwerk-Registrierung demo-registration-001");
 });
 
-test("Öffentliche Registrierung übermittelt Datenschutz-Nachweise an die geschützte API", async ({ page }, testInfo) => {
-  const submissions = await installPublicRegistrationApi(page);
+test("#Mitmachen-Registrierungsdemo ist sichtbar gekennzeichnet und übermittelt keine Daten", async ({ page }, testInfo) => {
+  let submissionAttempts = 0;
+  await page.route("**/api/network-registrations", async (route) => {
+    submissionAttempts += 1;
+    await route.abort();
+  });
   await page.goto("/frontend/pages/mitmachen/versorgungs-netzwerk.html");
 
+  await expect(page.locator(".concept-banner")).toContainText("Demo");
+  await expect(page.locator(".concept-banner")).toContainText("keine echten personenbezogenen Daten");
   await expect(page.locator("#registration-form")).toBeVisible();
   await page.locator("#email").fill("versorgung@example.test");
   await page.locator("#first_name").fill("Mara");
@@ -5313,20 +5295,11 @@ test("Öffentliche Registrierung übermittelt Datenschutz-Nachweise an die gesch
   await page.locator('.submit-button[type="submit"]').click();
 
   await expect(page.locator("#confirmation")).toBeVisible();
-  await expect(page.locator("#confirmation")).toContainText("sicher eingegangen");
+  await expect(page.locator("#confirmation")).toContainText("keine Daten");
+  await expect(page.locator("#confirmation")).toContainText("übermittelt oder gespeichert");
+  expect(submissionAttempts).toBe(0);
 
-  expect(submissions).toHaveLength(1);
-  expect(submissions[0]).toMatchObject({
-    organization: "Pflegezentrum Beispielstadt",
-    postal_code: "60311",
-    onboarding_stage: "profile_complete"
-  });
-  expect(submissions[0].submission_id).toMatch(/^[0-9a-f-]{36}$/);
-  expect(submissions[0].eligibility_confirmed_at).toBeTruthy();
-  expect(submissions[0].consent_processing_accepted_at).toBeTruthy();
-  expect(submissions[0].privacy_notice_version).toBeTruthy();
-
-  await attachScreenshot(page, testInfo, "public-registration-import");
+  await attachScreenshot(page, testInfo, "mitmachen-concept-registration");
 });
 
 test("Importe: geöffneter Registrierungs-Reiter aktualisiert neue geschützte API-Eingänge", async ({ page }) => {
@@ -5341,8 +5314,12 @@ test("Importe: geöffneter Registrierungs-Reiter aktualisiert neue geschützte A
   await expect(page.locator("#registrations-list")).toContainText("Demo-Praxis Registrierung");
 });
 
-test("Öffentliche Registrierung erlaubt ein Minimalprofil", async ({ page }) => {
-  const submissions = await installPublicRegistrationApi(page);
+test("#Mitmachen-Registrierungsdemo erlaubt den inerten Ablauf ohne Beispielprofil", async ({ page }) => {
+  let submissionAttempts = 0;
+  await page.route("**/api/network-registrations", async (route) => {
+    submissionAttempts += 1;
+    await route.abort();
+  });
   await page.goto("/frontend/pages/mitmachen/versorgungs-netzwerk.html");
   await page.locator("#first_name").fill("Mina");
   await page.locator("#last_name").fill("Minimal");
@@ -5353,14 +5330,8 @@ test("Öffentliche Registrierung erlaubt ein Minimalprofil", async ({ page }) =>
   await page.locator("#submit-minimal").click();
 
   await expect(page.locator("#confirmation")).toBeVisible();
-  expect(submissions).toHaveLength(1);
-  expect(submissions[0]).toMatchObject({
-    first_name: "Mina",
-    last_name: "Minimal",
-    onboarding_stage: "registered",
-    organization: null
-  });
-  expect(submissions[0].submission_id).toMatch(/^[0-9a-f-]{36}$/);
+  await expect(page.locator("#confirmation")).toContainText("Alle Formulareingaben wurden verworfen");
+  expect(submissionAttempts).toBe(0);
 });
 
 test("Importe: geschützte Registrierungen lassen sich zurückstellen", async ({ page }) => {

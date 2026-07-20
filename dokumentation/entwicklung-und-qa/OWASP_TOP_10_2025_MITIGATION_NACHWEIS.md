@@ -147,7 +147,7 @@ Diese Anwendungsrisiken wurden deshalb unabhängig von Autopilot mitigiert bezie
 - `[x]` Target-Frontend und API sind same-origin; GitHub Pages und Target besitzen getrennte Artefakte und Deployments.
 - `[x]` Das Pages-Artefakt enthaelt ausschliesslich synthetische Demo-Daten; es besitzt keine Fach-API-, Supabase- oder Target-Identity-Konfiguration.
 - `[x]` Das Target greift fachlich nur ueber `/api/...` zu und besitzt keinen Browser-Supabase- oder LocalStorage-Datenfallback.
-- `[~]` `POST /api/network-registrations` bleibt bis zur implementierten und freigegebenen Backendroute ein GKE-Vorbereitungsgate; eine fehlende Route muss sichtbar fail-closed enden.
+- `[x]` Die #Mitmachen-Konzeptdemo ist technisch inert und baut keinen Request an `POST /api/network-registrations` auf; ein späterer Handler bleibt bis zur separaten Freigabe deaktiviert.
 - `[x]` Pods sind Non-Root, ohne Privilege Escalation, ohne Capabilities und ohne Kubernetes-API-Token.
 - `[x]` Readiness prüft nicht nur den Prozess, sondern Datenbank und Identity-Bindungsschema.
 - `[x]` Sicherheitskritische Features bleiben bei fehlender Plattformstrecke deaktiviert, statt unsicher zurückzufallen.
@@ -170,7 +170,7 @@ Diese Punkte sind **keine offenen Codebefunde**, aber Release-Gates für reale U
 - [ ] **Supply Chain:** Branch Protection, Pflichtreviews, Environment-Approvals, Runnerhärtung, Signatur-/Provenance-/SBOM-Aufbewahrung und Admission/Binary Authorization nachweisen.
 - [ ] **Uploads:** falls aktiviert, Quarantäne, Malware-Scan, Re-Encoding, Metadatenentfernung, sichere Auslieferung und Retention vollständig abnehmen.
 - [ ] **Pages-Scope:** bestaetigen, dass GitHub Pages weiterhin ausschliesslich synthetische Demo-Daten und keine Target-Konfiguration, echte Sitzung oder Registrierungsannahme ausliefert; keine Annahme machen, dass Target-Header dort gelten.
-- [ ] **Registrierungsroute:** `POST /api/network-registrations` erst nach Route-Policy, OIDC-/IAP-Abnahme, Input-Allowlist, Idempotenz, Rate Limit, Datenschutz- und Backendausfalltests aktivieren; bis dahin fehlende Route fail-closed belassen.
+- [ ] **Registrierungsroute:** Einen realen Ersatz für die inerte Konzeptdemo und `POST /api/network-registrations` nur gemeinsam nach Route-Policy, OIDC-/IAP-Abnahme, Input-Allowlist, Idempotenz, Rate Limit, Datenschutz- und Backendausfalltests aktivieren.
 - [ ] **Cutover:** Staging-End-to-End, Rollen-/Archiv-/Audit-Negativmatrix, Canary, Monitoringfenster, Rollback und fachliches Go/No-Go protokollieren.
 - [ ] **Alt-Credentials:** verifizieren, dass historisch dokumentierte Passwortwerte nirgends wiederverwendet werden; bei Unsicherheit rotieren.
 

@@ -34,6 +34,7 @@ Dieser Ordner buendelt die Unterlagen fuer Produktverstaendnis, technische Ueber
 
 ## Fachliche und technische Referenzen
 
+- [Markenarchitektur und Markenkit](produkt-und-design/MARKENARCHITEKTUR.md)
 - [Demo und Screenshots](betrieb-und-deployment/DEMO.md)
 - [API-Vertrag](architektur/API_CONTRACT.md)
 - [Datenmodell](architektur/DATA_MODEL.md)
@@ -47,7 +48,7 @@ Dieser Ordner buendelt die Unterlagen fuer Produktverstaendnis, technische Ueber
 - `architektur/`: API-Vertrag, Datenmodell und Schnittstellenbeschreibungen.
 - `betrieb-und-deployment/`: Betriebsmodell, Deployments, Uebergabe und Migration.
 - `entwicklung-und-qa/`: Projektzustand, QA-Ablauf und Nachweise.
-- `produkt-und-design/`: Designsystem, UX-Leitplanken und UI-Inventar.
+- `produkt-und-design/`: Markenarchitektur, Designsystem, UX-Leitplanken und UI-Inventar.
 
 ## Dokumentationsregel fuer Umgebungen
 

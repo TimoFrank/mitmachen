@@ -103,8 +103,8 @@
     }
     .topbar-logo {
       display: block;
-      width: 58px;
-      height: 58px;
+      width: 42px;
+      height: 42px;
       object-fit: contain;
       flex: 0 0 auto;
     }

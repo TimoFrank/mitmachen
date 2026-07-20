@@ -285,7 +285,7 @@ Rechte:
 
 Zweck:
 
-- Datenschutzarmer Intake fuer die oeffentliche #Mitmachen-Registrierung.
+- Vorbereitendes Datenmodell fuer einen möglichen später freigegebenen #Mitmachen-Intake; die aktuelle Repo-Konzeptdemo schreibt keine Daten.
 - Trennung ungeklaerter Eingänge vom aktiven Kontakt- und Organisationsbestand.
 - Strukturierte Erfassung von Profilstand, beruflichem Kontext, Organisation, Primaersystem, TI-Anwendungen und getrennten Einwilligungsnachweisen.
 
@@ -308,7 +308,7 @@ Wichtigste Felder:
 
 Sicherheitsmodell:
 
-- Die oeffentliche Landingpage schreibt ausschliesslich ueber die Edge Function `network-registration`.
+- Ein später freigegebener öffentlicher Prozess dürfte ausschließlich über einen geschützten serverseitigen Intake schreiben. Die aktuelle Landingpage ist technisch inert; die vorhandene Edge Function ist kein aktiver Vertrag der Konzeptdemo.
 - `anon` hat auf der Intake-Tabelle weder Lese- noch Schreibrechte. Nur die Edge Function schreibt mit Service-Identitaet.
 - Ausschliesslich Admins duerfen Intake-Zeilen lesen oder loeschen. Schreibrechte sind auf Workflow-, Zuordnungs- und Prueffelder begrenzt; Identitaet, Profilantworten und Einwilligungsnachweise sind unveraenderlich.
 - `network_registration_rate_limits` speichert nur per HMAC und geheimem Pepper pseudonymisierte technische Fingerprints fuer ein kurzes Missbrauchsfenster und ist fuer Browserrollen vollstaendig gesperrt. Ein atomarer SQL-Zaehler verhindert parallele Lost Updates.
@@ -317,7 +317,7 @@ Sicherheitsmodell:
 Bewusste Grenze:
 
 - Der Status fuer Double-Opt-in beziehungsweise einen belastbaren manuellen E-Mail-Nachweis ist umgesetzt. Automatischer E-Mail-Versand, Bestaetigungslink, Teilnehmerkonto, Incentives und Befragungsantworten sind noch keine Funktionen dieses Schemas.
-- Der Registrierungen-Tab zeigt diese Schritte als EHC-Zielprozess. Eine rechtliche Produktionsfreigabe erfordert weiterhin abgestimmte Datenschutzinformationen, Loeschfristen, Auftragsverarbeitung und gegebenenfalls eine DSFA-Pruefung.
+- Der Reiter `Registrierungskonzept` zeigt diese Schritte ausschließlich als mögliches Zukunftsszenario. Eine Aktivierung erfordert einen realen gematik-Prozess sowie abgestimmte Datenschutzinformationen, Loeschfristen, Auftragsverarbeitung und gegebenenfalls eine DSFA-Pruefung.
 
 ## Tabellen `stakeholder_types`, `stakeholder_organizations`, `stakeholder_people`
 

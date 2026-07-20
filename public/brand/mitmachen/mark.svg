@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen Bildmarke</title>
+  <desc id="description">Gezeichneter Hashtag in Dunkelblau und Grün.</desc>
+  <path d="M24 11 19 53M44 11l-5 42" fill="none" stroke="#010E52" stroke-width="7" stroke-linecap="round"/>
+  <path d="M12 25h41M10 41h41" fill="none" stroke="#00D95A" stroke-width="7" stroke-linecap="round"/>
+</svg>
