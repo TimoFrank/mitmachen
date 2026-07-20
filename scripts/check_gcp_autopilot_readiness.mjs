@@ -83,6 +83,7 @@ const contentChecks = [
       /pre-gematik\.versorgungs-kompass\.timo-frank\.de\|mitmachen\.timo-frank\.de/,
       /primary_certificate_name="\$\{HELM_RELEASE\}-api"/,
       /alias_certificate_name="\$\{HELM_RELEASE\}-mitmachen"/,
+      /pre-gematik must remain the canonical origin and mitmachen\.timo-frank\.de its redirect-only alias/,
       /The canonical and legacy domains do not match the approved pre-gematik certificate pair/,
       /WIF_PROVIDER does not belong to GCP_PROJECT_ID/,
       /gcloud iap web set-iam-policy/,
