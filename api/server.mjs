@@ -2650,6 +2650,14 @@ function cleanIdentityHeader(value = "") {
   return raw.includes(":") ? raw.split(":").slice(1).join(":") : raw;
 }
 
+function canonicalIapSubject(value = "") {
+  const subject = String(value || "").trim();
+  const googleAccountPrefix = "accounts.google.com:";
+  if (!subject.startsWith(googleAccountPrefix)) return subject;
+  const googleAccountId = subject.slice(googleAccountPrefix.length);
+  return /^[0-9]{1,64}$/u.test(googleAccountId) ? googleAccountId : subject;
+}
+
 function requestHeader(request, name) {
   return request.headers[String(name || "").toLowerCase()] || "";
 }
@@ -2968,8 +2976,9 @@ async function resolveRequestProfile(request) {
   const iapPayload = await verifyIapJwt(request);
   const oidcPayload = await verifyOidcJwt(request);
   const unsignedHeaderMode = !IDENTITY_CONFIGURATION.production && API_AUTH_MODE === "trusted-header";
-  const subject = String(
-    iapPayload?.sub || oidcPayload?.sub || (unsignedHeaderMode ? trustedHeaderSubject(request) || iapSubject(request) : "")
+  const subject = String(iapPayload
+    ? canonicalIapSubject(iapPayload.sub)
+    : oidcPayload?.sub || (unsignedHeaderMode ? trustedHeaderSubject(request) || iapSubject(request) : "")
   ).trim();
   const email = String(
     iapPayload?.email || oidcPayload?.email || (unsignedHeaderMode ? trustedHeaderEmail(request) || iapEmail(request) : "")
