@@ -363,10 +363,12 @@
       }
 
       .sidebar-brand .brand-mark {
+        display: block;
         width: 40px;
         height: 40px;
         flex: 0 0 40px;
         margin-top: 7px;
+        object-fit: contain;
       }
 
       .sidebar-brand .brand-mark span {
@@ -17190,12 +17192,15 @@
 
       .product-tour__brand-mark {
         position: relative;
+        display: block;
         width: 46px;
         height: 46px;
         flex: 0 0 46px;
         border-radius: 14px;
         background: linear-gradient(160deg, #0d3e95, #06245e);
         box-shadow: 0 10px 24px rgba(8, 35, 94, 0.2);
+        object-fit: contain;
+        padding: 5px;
       }
 
       .product-tour__brand-mark span {

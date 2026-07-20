@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "lastReviewed": "2026-07-20",
+  "assets": [
+    {
+      "path": "public/brand/gematik/gematik-logo-standard.png",
+      "role": "institutional-sender-logo",
+      "owner": "gematik GmbH",
+      "source": "https://www.gematik.de/media/gematik/Medien/Newsroom/Mediaservice/Logo/Gematik_Logo_Flag.png",
+      "sourceGuide": "https://www.gematik.de/media/gematik/Medien/Newsroom/Mediaservice/Logo/gematik_Markenleitfaden_Dachmarke_web.pdf",
+      "sha256": "81f822511f5bf03891817a323be10a1d0787fb9bf4e09be333138b80418a1df7",
+      "status": "original-source-verified-approval-required-for-co-branding",
+      "mayBeModified": false
+    },
+    {
+      "path": "public/brand/mitmachen/",
+      "role": "participation-umbrella-identity",
+      "owner": "Versorgungs-Kompass project",
+      "source": "repo-authored; visually aligned with the official #Mitmachen web context",
+      "sourceReference": "https://www.gematik.de/mitmachen",
+      "status": "repo-authored-project-identity-not-gematik-corporate-mark",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/mark.svg",
+      "role": "product-mark",
+      "owner": "Versorgungs-Kompass project",
+      "source": "repo-authored",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/mark-on-dark.svg",
+      "role": "product-mark-on-dark",
+      "owner": "Versorgungs-Kompass project",
+      "source": "contrast-variant-of-product-mark",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/wordmark.svg",
+      "role": "product-wordmark",
+      "owner": "Versorgungs-Kompass project",
+      "source": "repo-authored",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/wordmark-on-dark.svg",
+      "role": "product-wordmark-on-dark",
+      "owner": "Versorgungs-Kompass project",
+      "source": "contrast-variant-of-product-wordmark",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/lockup-horizontal.svg",
+      "role": "product-lockup",
+      "owner": "Versorgungs-Kompass project",
+      "source": "derived-from-product-mark-and-wordmark",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/lockup-horizontal-on-dark.svg",
+      "role": "product-lockup-on-dark",
+      "owner": "Versorgungs-Kompass project",
+      "source": "contrast-variant-of-product-lockup",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/icons/",
+      "role": "application-icons",
+      "owner": "Versorgungs-Kompass project",
+      "source": "derived-from-product-mark",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg",
+      "role": "registration-demo-illustration",
+      "owner": "Versorgungs-Kompass project",
+      "source": "repo-authored",
+      "status": "demo-only",
+      "mayBeModified": true
+    }
+  ]
+}

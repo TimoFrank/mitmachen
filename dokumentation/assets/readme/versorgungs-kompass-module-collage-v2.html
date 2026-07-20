@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Versorgungs-Kompass – Vier Module</title>
+    <style>
+      :root {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #17275f;
+        background: #eef3fa;
+      }
+
+      * { box-sizing: border-box; }
+
+      html,
+      body {
+        width: 1600px;
+        height: 1200px;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 92% 4%, rgba(0, 255, 101, .10), transparent 24%),
+          linear-gradient(180deg, #f8faff 0%, #edf2f9 100%);
+      }
+
+      .collage {
+        width: 100%;
+        height: 100%;
+        padding: 48px 54px 46px;
+      }
+
+      .collage__header {
+        height: 132px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 42px;
+      }
+
+      .collage__headline {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+      }
+
+      .product-lockup {
+        width: 500px;
+        height: auto;
+      }
+
+      .header-divider {
+        width: 1px;
+        height: 64px;
+        background: #cbd6e8;
+      }
+
+      .collage__title {
+        max-width: 540px;
+        margin: 0;
+        color: #10236e;
+        font-size: 34px;
+        line-height: 1.08;
+        letter-spacing: -1.1px;
+      }
+
+      .umbrella-wordmark {
+        width: 238px;
+        height: auto;
+      }
+
+      .module-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: repeat(2, 1fr);
+        gap: 26px;
+        height: 964px;
+      }
+
+      .module-card {
+        --accent: #559ee8;
+        --strong: #0b5cad;
+        overflow: hidden;
+        border: 1px solid #d5deec;
+        border-top: 8px solid var(--accent);
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 18px 44px rgba(16, 35, 110, .10);
+      }
+
+      .module-card--stakeholder { --accent: #43b391; --strong: #0f766e; }
+      .module-card--hospitation { --accent: #e0a44d; --strong: #a84c16; }
+      .module-card--formate { --accent: #a980da; --strong: #7a3e91; }
+
+      .module-card__media {
+        height: 310px;
+        overflow: hidden;
+        border-bottom: 1px solid #dce4f0;
+        background: #eef3fa;
+      }
+
+      .module-card__media img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      .module-card__body {
+        min-height: 156px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 20px;
+        align-items: start;
+        padding: 24px 27px 26px;
+      }
+
+      .module-card__number {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 15px;
+        background: var(--accent);
+        color: #17275f;
+        font-size: 16px;
+        font-weight: 900;
+      }
+
+      .module-card h2 {
+        margin: 0 0 8px;
+        color: var(--strong);
+        font-size: 29px;
+        letter-spacing: -.7px;
+      }
+
+      .module-card p {
+        max-width: 570px;
+        margin: 0;
+        color: #59677f;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.38;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="collage" aria-labelledby="collage-title">
+      <header class="collage__header">
+        <div class="collage__headline">
+          <img class="product-lockup" src="../../../public/brand/versorgungs-kompass/lockup-horizontal.svg" alt="Versorgungs-Kompass" />
+          <span class="header-divider" aria-hidden="true"></span>
+          <h1 class="collage__title" id="collage-title">Vier Module.<br />Ein gemeinsamer Kompass.</h1>
+        </div>
+        <img class="umbrella-wordmark" src="../../../public/brand/mitmachen/wordmark.svg" alt="#Mitmachen" />
+      </header>
+
+      <section class="module-grid" aria-label="Produktmodule">
+        <article class="module-card">
+          <div class="module-card__media"><img src="./module-previews/versorgung.png" alt="Kartenansicht mit regional verteilten Kontakten" /></div>
+          <div class="module-card__body">
+            <span class="module-card__number">01</span>
+            <div><h2>Versorgung</h2><p>Versorgung regional sehen und Beziehungen gezielt pflegen.</p></div>
+          </div>
+        </article>
+
+        <article class="module-card module-card--stakeholder">
+          <div class="module-card__media"><img src="./module-previews/stakeholder.png" alt="Stakeholder-Organisationen in einer strukturierten Übersicht" /></div>
+          <div class="module-card__body">
+            <span class="module-card__number">02</span>
+            <div><h2>Stakeholder</h2><p>Organisationen, Vertretungen und Ansprechpersonen im Zusammenhang verstehen.</p></div>
+          </div>
+        </article>
+
+        <article class="module-card module-card--hospitation">
+          <div class="module-card__media"><img src="./module-previews/hospitation.png" alt="Hospitations-Framework von Beobachtungen bis Evidenz" /></div>
+          <div class="module-card__body">
+            <span class="module-card__number">03</span>
+            <div><h2>Hospitation</h2><p>Vor Ort beobachten und Erfahrungen in belastbares Versorgungswissen übersetzen.</p></div>
+          </div>
+        </article>
+
+        <article class="module-card module-card--formate">
+          <div class="module-card__media"><img src="./module-previews/formate.png" alt="Formate-Modul mit Roundtables und Fachgesprächen" /></div>
+          <div class="module-card__body">
+            <span class="module-card__number">04</span>
+            <div><h2>Formate</h2><p>Die richtigen Perspektiven in Roundtables, Fachgesprächen und Veranstaltungen zusammenbringen.</p></div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

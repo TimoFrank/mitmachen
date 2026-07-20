@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title description">
+  <title id="title">Konzeptillustration für ein mögliches Versorgungs-Netzwerk</title>
+  <desc id="description">Abstrakte Darstellung vernetzter Perspektiven aus Praxis, Pflege, Apotheke und Krankenhaus. Es werden keine realen Personen gezeigt.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f9ff"/>
+      <stop offset="1" stop-color="#e8efff"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f6f8fd"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#071b46" flood-opacity=".13"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="900" rx="60" fill="url(#background)"/>
+  <path d="M112 642C260 510 337 620 455 493S670 293 794 389s179 55 294-88" fill="none" stroke="#155fe4" stroke-width="12" stroke-linecap="round"/>
+  <path d="M111 697c161-32 262 52 410-37s231-143 363-61 181 26 234-28" fill="none" stroke="#00c976" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 26"/>
+  <g filter="url(#shadow)">
+    <rect x="90" y="92" width="390" height="255" rx="34" fill="url(#card)"/>
+    <rect x="720" y="90" width="390" height="255" rx="34" fill="url(#card)"/>
+    <rect x="405" y="505" width="390" height="255" rx="34" fill="url(#card)"/>
+  </g>
+  <g font-family="Inter, Arial, Helvetica, sans-serif">
+    <g transform="translate(132 138)">
+      <circle cx="58" cy="58" r="58" fill="#eaf2ff"/>
+      <path d="M58 25v66M25 58h66" stroke="#155fe4" stroke-width="18" stroke-linecap="round"/>
+      <text x="142" y="49" fill="#10236e" font-size="30" font-weight="800">Versorgung</text>
+      <text x="142" y="87" fill="#59657a" font-size="22">Einblicke aus dem Alltag</text>
+      <rect x="142" y="113" width="188" height="18" rx="9" fill="#dfe6f2"/>
+      <rect x="142" y="148" width="130" height="18" rx="9" fill="#dfe6f2"/>
+    </g>
+    <g transform="translate(762 138)">
+      <circle cx="58" cy="58" r="58" fill="#fff2eb"/>
+      <circle cx="58" cy="45" r="22" fill="#ff7f3f"/>
+      <path d="M20 102c7-27 22-40 38-40s31 13 38 40" fill="#ff7f3f"/>
+      <text x="142" y="49" fill="#10236e" font-size="30" font-weight="800">Perspektiven</text>
+      <text x="142" y="87" fill="#59657a" font-size="22">Menschen einbeziehen</text>
+      <rect x="142" y="113" width="185" height="18" rx="9" fill="#dfe6f2"/>
+      <rect x="142" y="148" width="148" height="18" rx="9" fill="#dfe6f2"/>
+    </g>
+    <g transform="translate(447 553)">
+      <circle cx="58" cy="58" r="58" fill="#e5fbf1"/>
+      <path d="m28 60 20 20 43-48" fill="none" stroke="#087b5c" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="142" y="49" fill="#10236e" font-size="30" font-weight="800">Gemeinsam lernen</text>
+      <text x="142" y="87" fill="#59657a" font-size="22">Beobachtungen verbinden</text>
+      <rect x="142" y="113" width="185" height="18" rx="9" fill="#dfe6f2"/>
+      <rect x="142" y="148" width="116" height="18" rx="9" fill="#dfe6f2"/>
+    </g>
+  </g>
+  <g fill="#ffffff" stroke="#155fe4" stroke-width="8">
+    <circle cx="112" cy="642" r="22"/>
+    <circle cx="455" cy="493" r="22"/>
+    <circle cx="794" cy="389" r="22"/>
+    <circle cx="1088" cy="301" r="22"/>
+  </g>
+  <g transform="translate(984 748)">
+    <rect width="126" height="54" rx="27" fill="#10236e"/>
+    <text x="63" y="35" text-anchor="middle" fill="#ffffff" font-family="Inter, Arial, Helvetica, sans-serif" font-size="21" font-weight="800">DEMO</text>
+  </g>
+</svg>

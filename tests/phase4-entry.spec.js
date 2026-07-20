@@ -82,7 +82,8 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await page.goto("/frontend/pages/mitmachen/index.html");
 
   await expect(page).toHaveTitle(/#Mitmachen/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Willkommen.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Gemeinsam Versorgung gestalten.");
+  await expect(page.locator(".concept-notice")).toHaveCount(0);
   await expect(page.locator(".destinations > li")).toHaveCount(4);
   await expect(page.locator(".destinations strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
   await expect(page.locator(".module-sidebar")).toBeVisible();
@@ -91,7 +92,7 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(page.locator(".destinations").getByRole("link", { name: /Stakeholder/ })).toHaveAttribute("href", "../../app/versorgungs-kompass.html#stakeholders");
   await expect(page.locator(".destinations").getByRole("link", { name: /Hospitation/ })).toHaveAttribute("href", "../../app/versorgungs-kompass.html#planning");
   await expect(page.locator(".destinations").getByRole("link", { name: /Formate/ })).toHaveAttribute("href", "../../app/versorgungs-kompass.html#formats");
-  await expect(page.getByText(/registrier/i)).toHaveCount(0);
+  await expect(page.locator("#registration-form")).toHaveCount(0);
 
   const localLinks = await page.locator('a[href]:not([href^="http"])').evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")).filter(Boolean)
@@ -141,18 +142,19 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
     if (outgoingRequest.method() === "POST") publicDemoPosts.push(outgoingRequest.url());
   });
   await page.goto("/dist/pages/mitmachen/versorgungs-netzwerk.html");
-  await expect(page.locator('script[src="../data/demo-data.js"]')).toHaveCount(1);
-  await expect(page.locator('script[src="../data/demo-api.js"]')).toHaveCount(1);
+  await expect(page.locator('script[src*="data/demo-data.js"]')).toHaveCount(0);
+  await expect(page.locator('script[src*="data/demo-api.js"]')).toHaveCount(0);
   await page.getByLabel(/Vorname/).fill("Demo");
   await page.getByLabel(/Nachname/).fill("Registrierung");
   await page.getByLabel(/E-Mail-Adresse/).fill("demo.registrierung@example.invalid");
-  await page.getByLabel(/Teilnahmeberechtigung/).check();
-  await page.getByLabel(/Netzwerkregistrierung und passende Befragungen/).check();
-  await page.getByRole("button", { name: /Weiter zum Profil/ }).click();
-  await page.getByRole("button", { name: "Ohne Profil registrieren" }).click();
+  await page.getByLabel(/Demo-Hinweis verstanden/).check();
+  await page.getByLabel(/Keine Datenverarbeitung/).check();
+  await page.getByRole("button", { name: /Demo fortsetzen/ }).click();
+  await page.getByRole("button", { name: /Demo ohne Profil abschließen/ }).click();
   await expect(page.locator("#confirmation")).toBeVisible();
-  await expect(page.locator("#confirmation")).toContainText("Demo-Registrierung erfolgreich simuliert");
-  await expect(page.locator("#confirmation")).toContainText("keine Angaben übertragen oder dauerhaft gespeichert");
+  await expect(page.locator("#confirmation")).toContainText("Demo abgeschlossen");
+  await expect(page.locator("#confirmation")).toContainText("keine Daten an die gematik oder einen anderen Dienst übermittelt oder gespeichert");
+  await expect(page.locator("#confirmation")).toContainText("Formulareingaben wurden verworfen");
   expect(publicDemoPosts).toEqual([]);
 });
 
@@ -160,37 +162,34 @@ test("Phase 4: die vier Module bleiben ohne JavaScript vollständig lesbar", asy
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   await page.goto(`${baseURL}/frontend/pages/mitmachen/index.html`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Willkommen.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Gemeinsam Versorgung gestalten.");
   await expect(page.locator(".destinations strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
-  await expect(page.getByText(/registrier/i)).toHaveCount(0);
+  await expect(page.locator("#registration-form")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await context.close();
 });
 
-test("Phase 4: die Pages-Registrierung bleibt ohne lokalen Demo-Adapter fail-closed", async ({ page }) => {
+test("Phase 4: die Pages-Registrierung bleibt technisch inert", async ({ page }) => {
   const writes = [];
+  const adapterRequests = [];
   page.on("request", (request) => {
     if (!["GET", "HEAD"].includes(request.method())) writes.push(`${request.method()} ${request.url()}`);
+    if (/\/data\/(?:demo-api|demo-data|runtime-config)\.js(?:$|\?)/.test(request.url())) adapterRequests.push(request.url());
   });
-  await page.route("**/data/demo-api.js", (route) => route.fulfill({
-    status: 200,
-    contentType: "application/javascript",
-    body: "/* absichtlich simulierter Adapter-Ausfall */"
-  }));
 
   await page.goto("/dist/pages/mitmachen/versorgungs-netzwerk.html");
   await page.getByLabel(/Vorname/).fill("Demo");
-  await page.getByLabel(/Nachname/).fill("Fail Closed");
-  await page.getByLabel(/E-Mail-Adresse/).fill("fail-closed@example.invalid");
-  await page.getByLabel(/Teilnahmeberechtigung/).check();
-  await page.getByLabel(/Netzwerkregistrierung und passende Befragungen/).check();
-  await page.getByRole("button", { name: /Weiter zum Profil/ }).click();
-  await page.getByRole("button", { name: "Ohne Profil registrieren" }).click();
+  await page.getByLabel(/Nachname/).fill("Inerte Demo");
+  await page.getByLabel(/E-Mail-Adresse/).fill("inert@example.invalid");
+  await page.getByLabel(/Demo-Hinweis verstanden/).check();
+  await page.getByLabel(/Keine Datenverarbeitung/).check();
+  await page.getByRole("button", { name: /Demo fortsetzen/ }).click();
+  await page.getByRole("button", { name: /Demo ohne Profil abschließen/ }).click();
 
-  await expect(page.locator("#form-status")).toContainText("lokale Demo ist derzeit nicht verfügbar");
-  await expect(page.locator("#form-status")).toContainText("keine Angaben gesendet");
-  await expect(page.locator("#confirmation")).not.toBeVisible();
+  await expect(page.locator("#confirmation")).toBeVisible();
+  await expect(page.locator("#confirmation")).toContainText("Formulareingaben wurden verworfen");
   expect(writes).toEqual([]);
+  expect(adapterRequests).toEqual([]);
 });
 
 test("Phase 4: Teams starten kompakt und eingeklappt, zeigen Mitglieder und laden Kontakte erst bei Bedarf", async ({ page }) => {

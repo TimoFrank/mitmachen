@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-07-20",
+  "organization": {
+    "name": "gematik",
+    "legalName": "gematik GmbH",
+    "role": "institutional-sender"
+  },
+  "umbrella": {
+    "name": "#Mitmachen",
+    "role": "participation-campaign",
+    "officialUrl": "https://www.gematik.de/mitmachen",
+    "repoIdentityStatus": "repo-authored-project-identity-not-gematik-corporate-mark"
+  },
+  "product": {
+    "name": "Versorgungs-Kompass",
+    "role": "protected-workspace",
+    "tagline": "Menschen vernetzen. Beobachtungen verstehen. Wissen gemeinsam nutzen.",
+    "shortDescription": "Der Versorgungs-Kompass verbindet Kontakte, Organisationen, Hospitationen und Formate zu gemeinsam nutzbarem Versorgungswissen."
+  },
+  "modules": [
+    {
+      "name": "Versorgung",
+      "accent": "#559EE8",
+      "strong": "#0B5CAD",
+      "soft": "#EAF3FC",
+      "description": "Regionen, Kontakte und Organisationen im Blick."
+    },
+    {
+      "name": "Stakeholder",
+      "accent": "#43B391",
+      "strong": "#0F766E",
+      "soft": "#E8F7F4",
+      "description": "Perspektiven und Netzwerke gezielt verbinden."
+    },
+    {
+      "name": "Hospitation",
+      "accent": "#E0A44D",
+      "strong": "#A84C16",
+      "soft": "#FFF3E8",
+      "description": "Beobachtungen in belastbares Wissen überführen."
+    },
+    {
+      "name": "Formate",
+      "accent": "#A980DA",
+      "strong": "#7A3E91",
+      "soft": "#F4ECFA",
+      "description": "Austausch planen und Wirkung gemeinsam gestalten."
+    }
+  ],
+  "demoTypes": {
+    "productDemo": "Öffentliche Anwendungsvorschau mit fiktiven Beispieldaten.",
+    "registrationDemo": "Eigenständige Demoidee; nicht das offizielle gematik-Formular; keine Übermittlung oder Speicherung.",
+    "preIntegration": "Technische Vorintegration mit Testdaten oder belastbar anonymisierten Daten.",
+    "protectedApplication": "Geschützter Arbeitsbereich nach fachlicher, technischer und betrieblicher Freigabe."
+  },
+  "assets": {
+    "gematikLogo": "public/brand/gematik/gematik-logo-standard.png",
+    "umbrellaMark": "public/brand/mitmachen/mark.svg",
+    "umbrellaWordmark": "public/brand/mitmachen/wordmark.svg",
+    "umbrellaLockup": "public/brand/mitmachen/lockup-horizontal.svg",
+    "productMark": "public/brand/versorgungs-kompass/mark.svg",
+    "productWordmark": "public/brand/versorgungs-kompass/wordmark.svg",
+    "productLockup": "public/brand/versorgungs-kompass/lockup-horizontal.svg",
+    "appIcons": "public/brand/versorgungs-kompass/icons/"
+  }
+}

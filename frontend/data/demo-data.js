@@ -27,8 +27,8 @@
       role: "admin",
       active: true,
       avatar_url: demoProfileImageAdmin,
-      team: "Synthetische Qualitätssicherung",
-      bio: "Rein synthetisches Admin-Profil für Demo und Offline-QA.",
+      team: "Demo-Qualitätssicherung",
+      bio: "Fiktives Admin-Profil für Demo und Offline-QA.",
       created_at: now,
       updated_at: now
     },
@@ -40,8 +40,8 @@
       role: "editor",
       active: true,
       avatar_url: demoProfileImageEditor,
-      team: "Synthetische Qualitätssicherung",
-      bio: "Rein synthetisches Editor-Profil für Demo und Offline-QA.",
+      team: "Demo-Qualitätssicherung",
+      bio: "Fiktives Editor-Profil für Demo und Offline-QA.",
       created_at: now,
       updated_at: now
     },
@@ -53,8 +53,8 @@
       role: "viewer",
       active: true,
       avatar_url: demoProfileImageViewer,
-      team: "Synthetische Qualitätssicherung",
-      bio: "Rein synthetisches Viewer-Profil für Demo und Offline-QA.",
+      team: "Demo-Qualitätssicherung",
+      bio: "Fiktives Viewer-Profil für Demo und Offline-QA.",
       created_at: now,
       updated_at: now
     },

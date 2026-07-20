@@ -71,10 +71,12 @@
 
       .hospitation-app-mark {
         position: relative;
+        display: block;
         width: 33px;
         height: 31px;
         flex: 0 0 auto;
         overflow: visible;
+        object-fit: contain;
       }
 
       .hospitation-app-dot {

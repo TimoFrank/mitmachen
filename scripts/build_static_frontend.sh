@@ -151,8 +151,9 @@ build_pages() {
     "$STAGE_DIR/demo" \
     "$STAGE_DIR/public/hospitation" \
     "$STAGE_DIR/public/brand/mitmachen" \
-    "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
     "$STAGE_DIR/public/brand/versorgungs-kompass" \
+    "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
+    "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
     "$STAGE_DIR/mitmachen" \
     "$STAGE_DIR/hospitation" \
@@ -217,8 +218,10 @@ EOF
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
-
-  for asset in gematik-logo.svg format-roundtable-hero.jpg versorgungs-kompass-logo.png app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png demo-profile-admin.svg demo-profile-editor.svg demo-profile-viewer.svg; do
+  for asset in \
+    demo-profile-admin.svg \
+    demo-profile-editor.svg \
+    demo-profile-viewer.svg; do
     if [ -f "$ROOT_DIR/public/$asset" ]; then
       cp "$ROOT_DIR/public/$asset" "$STAGE_DIR/public/$asset"
     fi
@@ -226,7 +229,11 @@ EOF
   cp "$ROOT_DIR/public/brand/mitmachen/mark-on-dark.svg" "$STAGE_DIR/public/brand/mitmachen/mark-on-dark.svg"
   cp "$ROOT_DIR/public/brand/mitmachen/lockup-horizontal.svg" "$STAGE_DIR/public/brand/mitmachen/lockup-horizontal.svg"
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark.svg"
-  cp "$ROOT_DIR/public/brand/versorgungs-kompass/icons/app-icon-32.png" "$STAGE_DIR/public/brand/versorgungs-kompass/icons/app-icon-32.png"
+  cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
+  for asset in app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png; do
+    cp "$ROOT_DIR/public/brand/versorgungs-kompass/icons/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/icons/$asset"
+  done
+  cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
   cp "$ROOT_DIR/public/manifest.webmanifest" "$STAGE_DIR/manifest.webmanifest"
   for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
     if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
@@ -235,13 +242,13 @@ EOF
   done
 
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./login/login\.html#./login.html#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.js"
-  perl -0pi -e 's#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
-  perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html"
+  perl -0pi -e 's#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
+  perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/brand/#../public/brand/#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./public/#../public/#g; s#\.\./public/#../public/#g; s#\.\./\.\./data/#../data/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
   perl -0pi -e 's#\.\./data/#../data/#g; s#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./app/hospitation/index\.html#../hospitation/index.html#g; s#\.\./\.\./map/versorgungs-kompass-map-teaser\.html#../versorgungs-kompass-map-teaser.html#g; s#\./versorgungs-netzwerk\.html#./versorgungs-netzwerk.html#g' "$STAGE_DIR/mitmachen/index.html"
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./\.\./public/#./public/#g; s#\.\./public/#./public/#g; s#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map.html"
   perl -0pi -e 's#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
-  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
+  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
 
   node - "$STAGE_DIR" <<'NODE'
 const fs = require("node:fs");
@@ -279,18 +286,6 @@ appHtml = appHtml.replace(
   '<script src="./data/demo-data.js"></script>\n    <script src="./data/demo-api.js"></script>\n    ' + dataServiceScript
 );
 fs.writeFileSync(appPath, appHtml);
-
-const registrationPath = path.join(root, "mitmachen", "versorgungs-netzwerk.html");
-let registrationHtml = fs.readFileSync(registrationPath, "utf8");
-const registrationScript = '<script src="./versorgungs-netzwerk.js"></script>';
-if (!registrationHtml.includes(registrationScript)) {
-  throw new Error("Pages-Build konnte den Einstieg der Netzwerkregistrierung nicht finden.");
-}
-registrationHtml = registrationHtml.replace(
-  registrationScript,
-  '<script src="../data/demo-data.js"></script>\n    <script src="../data/demo-api.js"></script>\n    ' + registrationScript
-);
-fs.writeFileSync(registrationPath, registrationHtml);
 
 function redirectDocument(target) {
   return `<!doctype html>
@@ -336,9 +331,10 @@ build_target() {
   mkdir -p \
     "$STAGE_DIR/data" \
     "$STAGE_DIR/public/hospitation" \
+    "$STAGE_DIR/public/brand/gematik" \
     "$STAGE_DIR/public/brand/mitmachen" \
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
-    "$STAGE_DIR/public/brand/versorgungs-kompass" \
+    "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
     "$STAGE_DIR/mitmachen" \
     "$STAGE_DIR/hospitation" \
@@ -384,15 +380,14 @@ build_target() {
   cp "$FRONTEND_DIR/data/data-service.js" "$STAGE_DIR/data/data-service.js"
   cp -R "$FRONTEND_DIR/vendor/." "$STAGE_DIR/vendor/"
 
-  for asset in gematik-logo.svg format-roundtable-hero.jpg versorgungs-kompass-logo.png app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png; do
-    if [ -f "$ROOT_DIR/public/$asset" ]; then
-      cp "$ROOT_DIR/public/$asset" "$STAGE_DIR/public/$asset"
-    fi
-  done
-  cp "$ROOT_DIR/public/brand/mitmachen/mark-on-dark.svg" "$STAGE_DIR/public/brand/mitmachen/mark-on-dark.svg"
-  cp "$ROOT_DIR/public/brand/mitmachen/lockup-horizontal.svg" "$STAGE_DIR/public/brand/mitmachen/lockup-horizontal.svg"
+  cp "$ROOT_DIR/public/brand/gematik/gematik-logo-standard.png" "$STAGE_DIR/public/brand/gematik/gematik-logo-standard.png"
+  cp -R "$ROOT_DIR/public/brand/mitmachen/." "$STAGE_DIR/public/brand/mitmachen/"
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark.svg"
-  cp "$ROOT_DIR/public/brand/versorgungs-kompass/icons/app-icon-32.png" "$STAGE_DIR/public/brand/versorgungs-kompass/icons/app-icon-32.png"
+  cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
+  for asset in app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png; do
+    cp "$ROOT_DIR/public/brand/versorgungs-kompass/icons/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/icons/$asset"
+  done
+  cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
   cp "$ROOT_DIR/public/manifest.webmanifest" "$STAGE_DIR/manifest.webmanifest"
   for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
     if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
@@ -406,14 +401,14 @@ build_target() {
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
 
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./login/login\.html#./login.html#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.js"
-  perl -0pi -e 's#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
-  perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html"
+  perl -0pi -e 's#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
+  perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/brand/#../public/brand/#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./public/#../public/#g; s#\.\./public/#../public/#g; s#\.\./\.\./data/#../data/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
-  perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$STAGE_DIR/login.html"
+  perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$STAGE_DIR/login.html"
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./\.\./public/#./public/#g; s#\.\./public/#./public/#g; s#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map.html"
   perl -0pi -e 's#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
   perl -0pi -e 's#loginPath: "\.\./login/login\.html"#loginPath: "./login.html"#; s#defaultPath: "\.\./app/versorgungs-kompass\.html"#defaultPath: "./versorgungs-kompass.html"#' "$STAGE_DIR/auth-config.js"
-  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
+  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./app/hospitation/index\.html#../hospitation/index.html#g; s#\.\./\.\./map/versorgungs-kompass-map-teaser\.html#../versorgungs-kompass-map-teaser.html#g; s#\./versorgungs-netzwerk\.html#./versorgungs-netzwerk.html#g' "$STAGE_DIR/mitmachen/index.html"
   perl -0pi -e 's#\./mitmachen\.css#./mitmachen/mitmachen.css#g; s#\.\./\.\./\.\./public/#./public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g' "$STAGE_DIR/index.html"
 

@@ -9,27 +9,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="manifest" href="../../public/manifest.webmanifest" />
-    <link rel="apple-touch-icon" sizes="180x180" href="../../public/app-icon-180.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../../public/app-icon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../../public/brand/versorgungs-kompass/icons/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../../public/brand/versorgungs-kompass/icons/app-icon-32.png" />
     <script src="../data/runtime-config.js"></script>
     <script src="../login/auth-config.js"></script>
     <script src="../login/auth-guard.js"></script>
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="%23f4f6ff"/><rect x="11" y="9" width="18" height="18" rx="6" transform="rotate(45 20 18)" fill="%232788f6"/><rect x="34" y="24" width="18" height="18" rx="6" transform="rotate(45 43 33)" fill="%23ff7f3f"/><rect x="11" y="39" width="18" height="18" rx="6" transform="rotate(45 20 48)" fill="%2310236e"/></svg>'
-    />
+    <link rel="icon" type="image/svg+xml" href="../../public/brand/versorgungs-kompass/mark.svg" />
     <link rel="stylesheet" href="./versorgungs-kompass.css" />
   </head>
   <body>
     <div class="app-shell is-initializing" aria-busy="true">
       <aside class="app-sidebar" aria-label="Hauptnavigation">
         <a class="sidebar-brand" href="#map" id="brand-home-link" aria-label="Zur Karte">
-          <div class="brand-mark" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
+          <img class="brand-mark" src="../../public/brand/versorgungs-kompass/mark-on-dark.svg" alt="" aria-hidden="true" />
           <div class="sidebar-brand-copy">
             <span class="sidebar-brand-kicker">#Mitmachen</span>
             <strong>Versorgungs-Kompass</strong>
@@ -1676,7 +1668,7 @@
                       </div>
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">5</span>
-                        <span><strong>Neue Mitwirkende aufnehmen</strong><span>Der Registrierungs-Flow führt geprüfte Eingänge kontrolliert in die gemeinsame Kontaktpflege.</span></span>
+                        <span><strong>Registrierungsszenario prüfen</strong><span>Die Konzeptdemo zeigt einen möglichen späteren Übergang in die gemeinsame Kontaktpflege.</span></span>
                       </div>
                     </div>
                     <div class="profile-status" id="onboarding-tour-status" aria-live="polite"></div>
@@ -1693,7 +1685,7 @@
           <section class="view-panel" id="view-settings" data-view-panel="settings">
             <div class="settings-workspace">
               <div class="settings-tab-nav" role="tablist" aria-label="Importbereiche">
-                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierungen</button>
+                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierungskonzept</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Dateiimport</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-online-entry" data-settings-tab="onlineEntry">Online-Erfassung</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-import-history" data-settings-tab="importHistory">Historie</button>
@@ -1702,11 +1694,11 @@
                 <div class="imports-workspace">
                   <header class="registration-page-head">
                     <div>
-                      <span class="registration-page-kicker">#Mitmachen Netzwerk</span>
-                      <h3>Registrierungen verwalten</h3>
-                      <p>Neue Netzwerkprofile prüfen, Dubletten klären und kontrolliert mit Kontakten und Organisationen im Versorgungs-Kompass verbinden.</p>
+                      <span class="registration-page-kicker">#Mitmachen · Konzept</span>
+                      <h3>Registrierungsszenario</h3>
+                      <p>Diese Ansicht zeigt beispielhaft, wie Eingänge aus einem später freigegebenen gematik-Prozess geprüft und mit Kontakten oder Organisationen verbunden werden könnten.</p>
                     </div>
-                    <a class="action-button action-button--primary" id="public-registration-link" href="../pages/mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Registrierung öffnen</a>
+                    <a class="action-button action-button--primary" id="public-registration-link" href="../pages/mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Konzeptdemo öffnen</a>
                   </header>
 
                   <section class="registration-process-guide" aria-labelledby="registration-process-title">
@@ -1715,7 +1707,7 @@
                         <span class="registration-page-kicker">Prozessanleitung</span>
                         <h4 id="registration-process-title">Vom Eingang zum aktiven Netzwerkprofil</h4>
                       </div>
-                      <span class="status-pill status-pill--review">EHC-Zielprozess</span>
+                      <span class="status-pill status-pill--review">Konzept · nicht produktiv</span>
                     </div>
                     <p>Jeder Eingang bleibt zunächst vom Kontaktbestand getrennt. Erst nach Prüfung werden bestehende Daten ergänzt oder neue Datensätze angelegt. Unsichere Treffer werden nie automatisch zusammengeführt.</p>
                     <ol class="registration-process-flow">
@@ -1725,7 +1717,7 @@
                       <li><span>4</span><strong>Prüfen &amp; zuordnen</strong><small>Dubletten klären, Kontakt und Organisation verknüpfen.</small></li>
                       <li><span>5</span><strong>Passend einladen</strong><small>Nur geeignete Befragungen und Formate auswählen.</small></li>
                     </ol>
-                    <p class="registration-process-note"><strong>Prüfreihenfolge:</strong> Einwilligungen und Profilstand kontrollieren, Dubletten vergleichen, verknüpfen oder anlegen, Owner festlegen. Double-Opt-in, transaktionale Übernahme und die fachlich freigegebene Datenschutzfassung sind die nächsten Produktions-Gates für den vollständigen EHC-Ersatz.</p>
+                    <p class="registration-process-note"><strong>Konzeptstatus:</strong> Die gezeigten Eingänge sind Beispieldaten. Der reale öffentliche Prozess liegt auf der gematik-Website; eine spätere technische Kopplung benötigt eine eigenständige fachliche, rechtliche und betriebliche Freigabe.</p>
                   </section>
 
                   <div class="registration-metrics" aria-label="Registrierungskennzahlen">
@@ -1738,12 +1730,12 @@
                   <section class="import-profile-card registrations-card" id="registrations-section" tabindex="-1">
                     <div class="dashboard-card-head">
                       <div>
-                        <h4>Registrierungseingänge</h4>
+                        <h4>Beispieleingänge</h4>
                         <p>Serverseitige Eingänge prüfen und nachvollziehbar bearbeiten.</p>
                       </div>
                     </div>
                     <div class="registrations-toolbar">
-                      <div class="registrations-summary" id="registrations-summary">Registrierungen werden geladen.</div>
+                      <div class="registrations-summary" id="registrations-summary">Beispieleingänge werden geladen.</div>
                       <div class="registrations-toolbar__actions">
                         <button class="action-button action-button--ghost" type="button" id="registrations-refresh">Aktualisieren</button>
                       </div>
@@ -2063,8 +2055,8 @@
                 <section class="about-intro">
                   <div>
                     <h3>#Mitmachen</h3>
-                    <div class="about-intro__highlight">#Mitmachen - Der gematik-Versorgungskompass: Ein Wissensmanagement-Tool für Hospitationen, Co-Creation und Veranstaltungen.</div>
-                    <p>Der Versorgungs-Kompass ist ein gemeinsames Arbeitswerkzeug für Versorgungsteams. Er hilft dabei, Kontakte, Organisationen, regionale Zusammenhänge und Formate an einem Ort zu pflegen.</p>
+                    <div class="about-intro__highlight">Versorgungs-Kompass verbindet Menschen, Organisationen, Hospitationen und Formate im Kontext von #Mitmachen.</div>
+                    <p>Das gemeinsame Arbeitswerkzeug hilft Versorgungsteams dabei, Kontakte, Organisationen, Hospitationen, Beobachtungen und Formate an einem Ort nachvollziehbar zu verbinden.</p>
                   </div>
                 </section>
                 <div class="about-topic-list" aria-label="Funktionen des Versorgungs-Kompass">
@@ -2163,11 +2155,7 @@
       <section class="product-tour__panel" id="product-tour-panel" role="dialog" aria-modal="true" aria-labelledby="product-tour-title" aria-describedby="product-tour-copy product-tour-details product-tour-example" tabindex="-1">
         <div class="product-tour__visual" aria-hidden="true">
           <div class="product-tour__brand-lockup">
-            <div class="product-tour__brand-mark">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
+            <img class="product-tour__brand-mark" src="../../public/brand/versorgungs-kompass/mark-on-dark.svg" alt="" aria-hidden="true" />
             <div class="product-tour__brand-copy">
               <strong>#Mitmachen</strong>
               <span>Versorgungs-Kompass</span>

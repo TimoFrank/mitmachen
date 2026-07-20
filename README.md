@@ -1,11 +1,12 @@
-<h1 align="center">Versorgungs-Kompass</h1>
-
-<p align="center"><strong>Menschen vernetzen. Beobachtungen verstehen. Wissen gemeinsam nutzen.</strong></p>
+<p align="center">
+  <img src="dokumentation/assets/readme/versorgungs-kompass-header-v2.svg" alt="#Mitmachen und Versorgungs-Kompass mit den Modulen Versorgung, Stakeholder, Hospitation und Formate" width="100%" />
+</p>
 
 <p align="center">
-  <a href="https://timofrank.github.io/mitmachen/demo/"><strong>Oeffentliche Demo ansehen</strong></a>
+  <a href="https://timofrank.github.io/mitmachen/demo/"><strong>Öffentliche Demo ansehen</strong></a>
   · <a href="dokumentation/betrieb-und-deployment/ZIEL-README.md">Zielbetrieb verstehen</a>
-  · <a href="CHANGELOG.md">Aenderungshistorie</a>
+  · <a href="dokumentation/produkt-und-design/MARKENARCHITEKTUR.md">Markenkit</a>
+  · <a href="CHANGELOG.md">Änderungshistorie</a>
 </p>
 
 <p align="center">
@@ -17,7 +18,18 @@
   · <a href="dokumentation/README.md">Dokumentation</a>
 </p>
 
-Der Versorgungs-Kompass macht Versorgung sichtbar. Er verbindet Kontakte, Organisationen, Hospitationen und Beobachtungen in einem gemeinsamen Arbeitsraum. So wird aus vielen einzelnen Informationen ein Bild, das Teams gemeinsam nutzen koennen.
+> [!IMPORTANT]
+> **Demos klar getrennt:** Die öffentliche Produktdemo arbeitet mit fiktiven Beispieldaten. Die Registrierungsseite im Repo ist eine eigenständige Demoidee und weder Kopie noch Bestandteil des offiziellen gematik-Angebots; Eingaben werden nicht übermittelt oder gespeichert. Verbindliche Informationen stehen bei [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) auf gematik.de.
+
+<p align="center">
+  <img src="dokumentation/assets/readme/versorgungs-kompass-module-collage-v2.png" alt="Die vier Module Versorgung, Stakeholder, Hospitation und Formate im Versorgungs-Kompass" width="100%" />
+</p>
+
+<p align="center"><sub>Vier Module, ein gemeinsamer Arbeitsraum. Sämtliche dargestellten Personen, Organisationen und Fachdaten sind fiktiv.</sub></p>
+
+**Versorgungs-Kompass** verbindet Kontakte, Organisationen, Hospitationen und Formate in einem gemeinsamen Arbeitsraum. So werden regionale Perspektiven sichtbar, Erfahrungen nachvollziehbar und Erkenntnisse für die gemeinsame Arbeit nutzbar.
+
+Die Markenarchitektur ist bewusst mehrstufig: **gematik** ist der institutionelle Absender, **#Mitmachen** das Beteiligungsdach und **Versorgungs-Kompass** die Produktmarke. Verbindliche Texte, Logoquellen, Modulfarben, Demo-Begriffe und Regeln für einen späteren Namenswechsel stehen im [Markenkit](dokumentation/produkt-und-design/MARKENARCHITEKTUR.md).
 
 ## Was der Versorgungs-Kompass moeglich macht
 
@@ -32,17 +44,19 @@ Der Versorgungs-Kompass macht Versorgung sichtbar. Er verbindet Kontakte, Organi
 
 | Zugang | Status | Wofuer geeignet |
 | --- | --- | --- |
-| [Oeffentliche Demo](https://timofrank.github.io/mitmachen/demo/) | Demo | Schneller Einblick mit ausschliesslich fiktiven Daten. |
-| Geschuetzte Realanwendung | Zielbetrieb in Vorbereitung | Interner IT-Service mit Gateway/SSO, API im Kubernetes-Namespace, Shared Postgres und kontrolliertem Betrieb. |
+| [Öffentliche Demo](https://timofrank.github.io/mitmachen/demo/) | Demo | Schneller Produkteinblick mit fiktiven Beispieldaten. |
+| [#Mitmachen Modulstart](frontend/pages/mitmachen/index.html) | Anwendungsstart | Führt in die vier Module des geschützten Versorgungs-Kompasses. |
+| [Demo zum Versorgungs-Netzwerk](frontend/pages/mitmachen/versorgungs-netzwerk.html) | Demo | Eigenständige Interaktionsidee; keine Datenübermittlung und nicht das offizielle gematik-Formular. |
+| Geschützter Versorgungs-Kompass | Zielbetrieb in Vorbereitung | Arbeitsbereich mit Gateway/SSO, API im Kubernetes-Namespace, Shared Postgres und kontrolliertem Betrieb. |
 
-GitHub Pages liefert ausschliesslich die oeffentliche Demo mit synthetischen Daten. Die geschuetzte Realanwendung wird separat gebaut und greift ausschliesslich ueber `/api` auf geschuetzte Daten zu. Pages ist keine Vorstufe des GKE-Deployments. Die GCP-Autopilot-Umgebung `pre-gematik` ist eine temporaere technische Pre-Integration und keine Produktivumgebung.
+GitHub Pages liefert nur die öffentliche Demo mit fiktiven Beispieldaten. Der geschützte Arbeitsbereich wird separat gebaut und greift ausschließlich über `/api` auf geschützte Daten zu. Pages ist keine Vorstufe des GKE-Deployments. Die GCP-Autopilot-Umgebung `pre-gematik` ist eine temporäre technische Pre-Integration und keine Produktivumgebung.
 
 Weitere Bilder und Hinweise stehen auf der Seite [Demo und Screenshots](dokumentation/betrieb-und-deployment/DEMO.md).
 
 ## Aktueller Stand
 
-- Stand: 19. Juli 2026
-- Oeffentlicher Kanal: [synthetische GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/demo/)
+- Stand: 20. Juli 2026
+- Öffentlicher Kanal: [GitHub-Pages-Demo mit fiktiven Beispieldaten](https://timofrank.github.io/mitmachen/demo/)
 - Geschuetzter Kanal: Realanwendung ueber Gateway, Anmeldung, API und private Datenspeicher
 - Release-Historie: [CHANGELOG](CHANGELOG.md)
 
