@@ -43,7 +43,9 @@ const environment = {
   CONFIRM_SOURCE_SNAPSHOT_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_PREVIEW_FINGERPRINT: fingerprint,
   CONFIRM_QUARANTINED_OBJECT_COUNT: "0",
-  CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT: fingerprint
+  CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT: fingerprint,
+  CONFIRM_IDENTITY_BINDING_COUNT: "1",
+  CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT: "1"
 };
 
 assert.deepEqual(
@@ -116,9 +118,24 @@ assert.equal(identityApply.arguments.includes("--apply"), true);
 assert.equal(identityApply.arguments.includes("UPSERT_IAP_IDENTITY_BINDINGS"), true);
 assert.equal(identityApply.arguments.includes("--allow-active-bindings"), true);
 assert.equal(identityApply.arguments.includes(fingerprint), true);
+assert.deepEqual(
+  identityApply.arguments.slice(
+    identityApply.arguments.indexOf("--confirm-binding-count"),
+    identityApply.arguments.indexOf("--confirm-binding-count") + 4
+  ),
+  ["--confirm-binding-count", "1", "--confirm-active-binding-count", "1"]
+);
 assert.deepEqual(identityApply.protectedInputs, ["iap-bindings.json"]);
 assert.throws(
   () => phaseExecution("identity-apply", { ...environment, CONFIRM_IDENTITY_PREVIEW_FINGERPRINT: "" }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("identity-apply", { ...environment, CONFIRM_IDENTITY_BINDING_COUNT: "" }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("identity-apply", { ...environment, CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT: "-1" }),
   (error) => error instanceof MigrationOperatorError
 );
 

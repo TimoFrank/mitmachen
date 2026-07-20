@@ -218,7 +218,13 @@ Fingerprint-Zeile muss identisch sein.
 - `--confirm-database versorgungs_kompass`,
 - `--confirm-operation UPSERT_IAP_IDENTITY_BINDINGS`,
 - den exakten Fingerprint aus dem unmittelbar bestätigten Preview,
+- `--confirm-binding-count 1` für die exakte Gesamtzahl der Bindungen,
+- `--confirm-active-binding-count 1` für die exakte Zahl aktiver Bindungen,
 - `--allow-active-bindings` für den freigegebenen aktiven Admin.
+
+Die Werte `1` und `1` gelten für den aktuellen persönlichen Pilot. Jede
+spätere Änderung des vollständigen Sollzustands erfordert neue, ausdrücklich
+geprüfte Zähler und einen neuen Preview-Fingerprint.
 
 Es gibt keinen impliziten Delete- oder Remap-Pfad. Unbekannte bestehende
 Bindungen, ein fehlendes/inaktives Profil, ein zweites Subject für dasselbe

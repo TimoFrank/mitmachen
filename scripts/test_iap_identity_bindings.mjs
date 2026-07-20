@@ -286,6 +286,15 @@ assertSafeFailure(() => validateExecutionConfirmations(
   ordered,
   bindingDocumentFingerprint(ordered)
 ), /nur zusammen mit --apply/u);
+assertSafeFailure(() => validateExecutionConfirmations(
+  parseArguments([
+    "--input", "/protected/bindings.json",
+    "--confirm-binding-count", "2",
+    "--confirm-active-binding-count", "1"
+  ]),
+  ordered,
+  bindingDocumentFingerprint(ordered)
+), /nur zusammen mit --apply/u);
 
 const fingerprint = bindingDocumentFingerprint(ordered);
 const completeApplyOptions = parseArguments([
@@ -295,6 +304,8 @@ const completeApplyOptions = parseArguments([
   "--confirm-database", "versorgungs_kompass",
   "--confirm-operation", "UPSERT_IAP_IDENTITY_BINDINGS",
   "--confirm-fingerprint", fingerprint,
+  "--confirm-binding-count", "2",
+  "--confirm-active-binding-count", "1",
   "--allow-active-bindings"
 ]);
 validateExecutionConfirmations(completeApplyOptions, ordered, fingerprint);
@@ -308,6 +319,16 @@ assertSafeFailure(() => validateExecutionConfirmations(
   ordered,
   fingerprint
 ), /exakten Fingerprint/u);
+assertSafeFailure(() => validateExecutionConfirmations(
+  { ...completeApplyOptions, confirmBindingCount: "1" },
+  ordered,
+  fingerprint
+), /exakte bestaetigte Gesamtzahl/u);
+assertSafeFailure(() => validateExecutionConfirmations(
+  { ...completeApplyOptions, confirmActiveBindingCount: "2" },
+  ordered,
+  fingerprint
+), /exakte bestaetigte Zahl aktiver/u);
 
 const targetUrl = "postgresql://identity-admin:private-secret@127.0.0.1:5433/versorgungs_kompass?sslmode=disable";
 const targetFingerprint = identityTargetFingerprint(targetUrl);

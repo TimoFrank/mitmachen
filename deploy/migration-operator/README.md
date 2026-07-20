@@ -135,6 +135,8 @@ CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT=sha256:<NUR-WENN-PREVIEW-MELDET>
 LOGO_REMEDIATION_MANIFEST_PATH=/protected-input/run/logo-remediation-preview.json
 LOGO_REMEDIATION_OBJECT_DIRECTORY=/protected-input/run/logo-remediation-objects
 CONFIRM_IDENTITY_PREVIEW_FINGERPRINT=sha256:<NUR-FUER-IDENTITY-APPLY>
+CONFIRM_IDENTITY_BINDING_COUNT=1
+CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT=1
 ```
 
 Die beiden `LOGO_REMEDIATION_*`-Werte werden nur gesetzt, wenn ein geprüftes
@@ -241,7 +243,9 @@ Verbindliche Reihenfolge nach aktivierter Quell-Schreibsperre:
 4. `database-apply` einmal mit dem abgerufenen Storage-Apply-Manifest.
 5. `identity-preview` zweimal gegen den importierten Profilbestand; Eingabe-,
    Ist- und Sollzustands-Fingerprint müssen jeweils identisch sein.
-6. `identity-apply` einmal mit dem unmittelbar bestätigten Preview-Fingerprint.
+6. `identity-apply` einmal mit dem unmittelbar bestätigten Preview-Fingerprint
+   sowie der bestätigten Gesamtzahl und Zahl aktiver Bindungen. Für den
+   aktuellen persönlichen Pilot sind beide Werte exakt `1`.
 
 Zwischen 4 und 5 wird die statische `NOLOGIN`-Rolle kontrolliert gebootstrappt
 und der kurzlebige Login exakt dieser Custom-Rolle zugeordnet. Der Dienst bleibt

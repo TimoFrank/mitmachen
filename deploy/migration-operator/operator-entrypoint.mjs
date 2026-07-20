@@ -35,6 +35,7 @@ const IDENTITY_OPERATION = "UPSERT_IAP_IDENTITY_BINDINGS";
 const TARGET_DATABASE_NAME = "versorgungs_kompass";
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const NON_NEGATIVE_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/u;
+const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/u;
 const BACKUP_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{2,255}$/u;
 const PROTECTED_INPUT_FILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/u;
 const LOGO_REMEDIATION_OUTPUT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}\.png$/u;
@@ -193,6 +194,16 @@ export function phaseExecution(phase, environment = process.env) {
       "CONFIRM_IDENTITY_PREVIEW_FINGERPRINT",
       SHA256_PATTERN
     );
+    const bindingCount = required(
+      environment,
+      "CONFIRM_IDENTITY_BINDING_COUNT",
+      POSITIVE_INTEGER_PATTERN
+    );
+    const activeBindingCount = required(
+      environment,
+      "CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT",
+      NON_NEGATIVE_INTEGER_PATTERN
+    );
     return Object.freeze({
       script: "scripts/provision_iap_identity_bindings.mjs",
       arguments: Object.freeze([
@@ -202,6 +213,8 @@ export function phaseExecution(phase, environment = process.env) {
         "--confirm-database", TARGET_DATABASE_NAME,
         "--confirm-operation", IDENTITY_OPERATION,
         "--confirm-fingerprint", previewFingerprint,
+        "--confirm-binding-count", bindingCount,
+        "--confirm-active-binding-count", activeBindingCount,
         "--allow-active-bindings"
       ]),
       protectedInputs: Object.freeze(["iap-bindings.json"]),

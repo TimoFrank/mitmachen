@@ -230,14 +230,18 @@ export function parseArguments(argv) {
     confirmEnvironment: "",
     confirmDatabase: "",
     confirmOperation: "",
-    confirmFingerprint: ""
+    confirmFingerprint: "",
+    confirmBindingCount: "",
+    confirmActiveBindingCount: ""
   };
   const valueOptions = new Map([
     ["--input", "input"],
     ["--confirm-environment", "confirmEnvironment"],
     ["--confirm-database", "confirmDatabase"],
     ["--confirm-operation", "confirmOperation"],
-    ["--confirm-fingerprint", "confirmFingerprint"]
+    ["--confirm-fingerprint", "confirmFingerprint"],
+    ["--confirm-binding-count", "confirmBindingCount"],
+    ["--confirm-active-binding-count", "confirmActiveBindingCount"]
   ]);
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -296,6 +300,9 @@ export function validateExecutionConfirmations(options, document, fingerprint) {
     if (options.allowActiveBindings) {
       throw new SafeCliError("--allow-active-bindings ist nur zusammen mit --apply erlaubt.");
     }
+    if (options.confirmBindingCount || options.confirmActiveBindingCount) {
+      throw new SafeCliError("Binding-Zaehlerbestaetigungen sind nur zusammen mit --apply erlaubt.");
+    }
     return;
   }
   if (options.confirmEnvironment !== EXPECTED_ENVIRONMENT) {
@@ -309,6 +316,18 @@ export function validateExecutionConfirmations(options, document, fingerprint) {
   }
   if (options.confirmFingerprint !== fingerprint) {
     throw new SafeCliError("Apply erfordert den exakten Fingerprint aus dem unmittelbar zuvor geprueften Preview.");
+  }
+  if (
+    !/^[1-9][0-9]*$/u.test(options.confirmBindingCount)
+    || Number(options.confirmBindingCount) !== document.bindings.length
+  ) {
+    throw new SafeCliError("Apply erfordert die exakte bestaetigte Gesamtzahl der Identity-Bindungen.");
+  }
+  if (
+    !/^(?:0|[1-9][0-9]*)$/u.test(options.confirmActiveBindingCount)
+    || Number(options.confirmActiveBindingCount) !== activeRequestedCount
+  ) {
+    throw new SafeCliError("Apply erfordert die exakte bestaetigte Zahl aktiver Identity-Bindungen.");
   }
   if (activeRequestedCount > 0 && !options.allowActiveBindings) {
     throw new SafeCliError("Aktive Bindungen erfordern zusaetzlich --allow-active-bindings.");
@@ -745,6 +764,8 @@ Apply nach geprueftem Preview:
     --confirm-database versorgungs_kompass \\
     --confirm-operation ${APPLY_OPERATION_CONFIRMATION} \\
     --confirm-fingerprint sha256:<fingerprint-aus-preview> \\
+    --confirm-binding-count <bestaetigte-gesamtzahl> \\
+    --confirm-active-binding-count <bestaetigte-aktive-anzahl> \\
     [--allow-active-bindings]
 
 Die Datenbankverbindung wird ausschliesslich aus ${DATABASE_URL_ENV} gelesen. Ein

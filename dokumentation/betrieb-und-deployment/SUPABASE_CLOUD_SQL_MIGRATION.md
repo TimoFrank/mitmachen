@@ -235,8 +235,14 @@ node scripts/provision_iap_identity_bindings.mjs \
   --confirm-database versorgungs_kompass \
   --confirm-operation UPSERT_IAP_IDENTITY_BINDINGS \
   --confirm-fingerprint 'sha256:<fingerprint-aus-dem-identity-preview>' \
+  --confirm-binding-count 1 \
+  --confirm-active-binding-count 1 \
   --allow-active-bindings
 ```
+
+Die beiden Zähler bestätigen für den aktuellen persönlichen Pilot unabhängig
+vom Fingerprint: exakt eine Bindung insgesamt und exakt eine aktive Bindung.
+Eine abweichende Datei wird vor jedem Schreibzugriff abgewiesen.
 
 Vor der Dienstoeffnung muessen mindestens der positive Test eines aktiven Admins und der negative `403`-Test einer unbekannten Identitaet dokumentiert sein.
 
