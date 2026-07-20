@@ -556,7 +556,7 @@ jobs:
             exit 1
           fi
           if ! grep --extended-regexp --ignore-case --quiet \
-            'NOT_FOUND:|not found:[[:space:]]*404|does not exist' "$describe_error"; then
+            'NOT_FOUND:|not found:[[:space:]]*404|image not found\.|does not exist' "$describe_error"; then
             cat "$describe_error" >&2
             echo "Could not prove that API image tag ${IMAGE_TAG} is unused." >&2
             exit 1
