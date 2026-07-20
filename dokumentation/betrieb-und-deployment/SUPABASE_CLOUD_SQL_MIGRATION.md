@@ -208,6 +208,16 @@ Wenn die Verbindung genau beim Ziel-COMMIT abbricht, ist dessen Ergebnis nicht s
 
 Nach dem erfolgreichen Datenbank-COMMIT bleibt der Dienst fuer Nutzer gesperrt. Nun wird G-04b gegen die importierten Zielprofile ausgefuehrt. Die geschuetzte Eingabedatei muss den vollstaendigen freigegebenen Sollzustand enthalten; unbekannte bestehende Bindungen blockieren Preview und Apply. Das Werkzeug akzeptiert ausschliesslich den IAP-Issuer `https://cloud.google.com/iap` und prueft das Datenbankziel gegen `PRE_GEMATIK_IDENTITY_TARGET_SHA256`.
 
+Der Datenbanklogin ist dabei weder `postgres` noch `vk_app`: Verbindlich ist
+das Verfahren im [Identity-Admin-Runbook](PRE_GEMATIK_IDENTITY_ADMIN.md). Eine
+statische, geheimnisfreie Owner-Anwendung legt die `NOLOGIN`-Rolle
+`vk_identity_admin` mit ausschließlich `SELECT` auf `profiles` sowie
+`SELECT`/`INSERT`/`UPDATE` auf `identity_bindings` an. Ein kurzlebiger
+Cloud-SQL-`BUILT_IN`-Login wird exakt dieser Custom-Rolle zugeordnet und nach
+Abnahme gelöscht. Das Werkzeug verweigert `postgres`, `cloudsqlsuperuser`,
+weitere Rollenmitglieder, DDL-, Delete- und sonstige Fachdatenrechte und setzt
+innerhalb der Transaktion explizit `SET LOCAL ROLE vk_identity_admin`.
+
 Zuerst erfolgt das transaktional zurueckgerollte Preview:
 
 ```bash
@@ -225,8 +235,14 @@ node scripts/provision_iap_identity_bindings.mjs \
   --confirm-database versorgungs_kompass \
   --confirm-operation UPSERT_IAP_IDENTITY_BINDINGS \
   --confirm-fingerprint 'sha256:<fingerprint-aus-dem-identity-preview>' \
+  --confirm-binding-count 1 \
+  --confirm-active-binding-count 1 \
   --allow-active-bindings
 ```
+
+Die beiden Zähler bestätigen für den aktuellen persönlichen Pilot unabhängig
+vom Fingerprint: exakt eine Bindung insgesamt und exakt eine aktive Bindung.
+Eine abweichende Datei wird vor jedem Schreibzugriff abgewiesen.
 
 Vor der Dienstoeffnung muessen mindestens der positive Test eines aktiven Admins und der negative `403`-Test einer unbekannten Identitaet dokumentiert sein.
 
@@ -278,6 +294,7 @@ Supabase wird erst nach bestandener technischer Abnahme, bestaetigter Restore-Pr
 - [GCP-Autopilot-Pre-Integration](DEPLOYMENT_GCP_AUTOPILOT.md)
 - [Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md)
 - [Geschuetzte lokale Operatorvariablen](../../config/pre-gematik/migration.env.example)
+- [Kurzlebige Administration der IAP-Identity-Bindung](PRE_GEMATIK_IDENTITY_ADMIN.md)
 - [Betriebsverantwortung/RACI](BETRIEBSVERANTWORTUNG_RACI.md)
 - [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md)
 - [Befristete Echtdaten-Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md)

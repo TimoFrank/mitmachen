@@ -7,6 +7,7 @@ import path from "node:path";
 import { rootCertificates } from "node:tls";
 
 import {
+  EXPECTED_IDENTITY_ADMIN_ROLE,
   EXPECTED_IAP_ISSUER,
   IdentityCommitOutcomeUnknownError,
   SafeCliError,
@@ -15,11 +16,15 @@ import {
   buildIdentityBindingPlan,
   executeIdentityBindingTransaction,
   formatPlanSummary,
+  identityManagedProxyRequired,
+  identityRepositoryRoot,
   identityTargetFingerprint,
   loadProtectedBindingDocument,
   parseArguments,
   validateBindingDocument,
   validateExecutionConfirmations,
+  validateIdentityAdministrationPrivileges,
+  validateIdentityAdministrationSession,
   validateIdentityTargetFingerprint
 } from "./provision_iap_identity_bindings.mjs";
 import {
@@ -31,8 +36,33 @@ import {
   startManagedCloudSqlAuthProxy,
   validateCloudSqlProxyExecutable
 } from "./lib/cloud-sql-managed-proxy.mjs";
+import {
+  parseIdentityOperatorArguments,
+  prepareIdentityOperatorFiles
+} from "./prepare_pre_gematik_identity_operator.mjs";
 
 const issuer = EXPECTED_IAP_ISSUER;
+const identityAdminRoleSql = await fs.readFile(
+  new URL("../deploy/postgres/pre-gematik/identity-admin-role.sql", import.meta.url),
+  "utf8"
+);
+
+assert.match(identityAdminRoleSql, /relation\.relowner\s*=\s*\(/u,
+  "Der Rollen-Bootstrap muss den bestehenden Objekt-Owner explizit verlangen.");
+assert.match(identityAdminRoleSql, /rolcreaterole/iu,
+  "Der Rollen-Bootstrap muss zusätzlich CREATEROLE verlangen.");
+assert.match(identityAdminRoleSql, /create role vk_identity_admin nologin noinherit/iu);
+assert.match(identityAdminRoleSql, /grant select on table public\.profiles to vk_identity_admin/iu);
+assert.match(
+  identityAdminRoleSql,
+  /grant select, insert, update on table public\.identity_bindings to vk_identity_admin/iu
+);
+assert.doesNotMatch(identityAdminRoleSql, /grant[^;]*(?:delete|truncate|create|alter|drop)[^;]*vk_identity_admin/iu,
+  "Die Identity-Admin-Rolle darf keine destruktiven oder DDL-Rechte erhalten.");
+assert.doesNotMatch(identityAdminRoleSql, /security\s+definer/iu,
+  "Der Rollen-Bootstrap darf keine privilegierte Funktion als Umgehungsweg anlegen.");
+assert.doesNotMatch(identityAdminRoleSql, /(?:subject|profile_id)\s*=\s*'[^']+'/iu,
+  "Der statische Rollen-Bootstrap darf keine umgebungsspezifischen Identity-Werte enthalten.");
 
 const syntheticGateFingerprint = `sha256:${"9".repeat(64)}`;
 const syntheticConnectionName = "example-target-project:example-region1:example-postgres";
@@ -116,6 +146,88 @@ function assertSafeFailure(action, pattern) {
   assert.throws(action, (error) => error instanceof SafeCliError && pattern.test(error.message));
 }
 
+const safeIdentityAdminSession = Object.freeze({
+  unassumed_session: true,
+  login_can_login: true,
+  login_superuser: false,
+  login_create_database: false,
+  login_create_role: false,
+  login_replication: false,
+  login_bypass_rls: false,
+  admin_can_login: false,
+  admin_inherits_roles: false,
+  admin_superuser: false,
+  admin_create_database: false,
+  admin_create_role: false,
+  admin_replication: false,
+  admin_bypass_rls: false,
+  identity_admin_member: true,
+  cloudsql_superuser_member: false,
+  postgres_member: false,
+  login_memberships: [EXPECTED_IDENTITY_ADMIN_ROLE],
+  admin_parent_membership_count: 0,
+  admin_member_count: 1
+});
+
+const safeIdentityAdminPrivileges = Object.freeze({
+  expected_admin_role: true,
+  schema_usage: true,
+  schema_create: false,
+  profile_select: true,
+  profile_insert: false,
+  profile_update: false,
+  profile_delete: false,
+  profile_truncate: false,
+  profile_references: false,
+  profile_trigger: false,
+  profile_column_insert: false,
+  profile_column_update: false,
+  profile_column_references: false,
+  binding_select: true,
+  binding_insert: true,
+  binding_update: true,
+  binding_delete: false,
+  binding_truncate: false,
+  binding_references: false,
+  binding_trigger: false,
+  binding_column_references: false,
+  touch_function_execute: true,
+  unsafe_other_table_privilege_count: 0,
+  unsafe_sequence_privilege_count: 0
+});
+
+validateIdentityAdministrationSession(safeIdentityAdminSession);
+validateIdentityAdministrationPrivileges(safeIdentityAdminPrivileges);
+assertSafeFailure(
+  () => validateIdentityAdministrationSession({
+    ...safeIdentityAdminSession,
+    cloudsql_superuser_member: true,
+    login_memberships: ["cloudsqlsuperuser", EXPECTED_IDENTITY_ADMIN_ROLE]
+  }),
+  /exklusiven kurzlebigen/u
+);
+assertSafeFailure(
+  () => validateIdentityAdministrationSession({
+    ...safeIdentityAdminSession,
+    admin_member_count: 2
+  }),
+  /exklusiven kurzlebigen/u
+);
+assertSafeFailure(
+  () => validateIdentityAdministrationPrivileges({
+    ...safeIdentityAdminPrivileges,
+    binding_delete: true
+  }),
+  /Minimalrechte/u
+);
+assertSafeFailure(
+  () => validateIdentityAdministrationPrivileges({
+    ...safeIdentityAdminPrivileges,
+    unsafe_other_table_privilege_count: 1
+  }),
+  /Minimalrechte/u
+);
+
 const unordered = document([
   binding("subject-z", "profile-z", false),
   binding("subject-a", "profile-a", true)
@@ -154,9 +266,32 @@ assertSafeFailure(() => validateBindingDocument({
 
 const previewOptions = parseArguments(["--input", "/protected/bindings.json"]);
 validateExecutionConfirmations(previewOptions, ordered, bindingDocumentFingerprint(ordered));
+assert.equal(identityManagedProxyRequired(previewOptions, {}), false);
+assert.equal(
+  identityManagedProxyRequired(previewOptions, { CLOUD_SQL_AUTH_PROXY_CONNECT_MODE: "private-ip" }),
+  true
+);
+assert.equal(identityManagedProxyRequired({ ...previewOptions, apply: true }, {}), true);
+assert.equal(
+  identityRepositoryRoot({ PRE_GEMATIK_IDENTITY_REPOSITORY_ROOT: "/workspace" }),
+  "/workspace"
+);
+assertSafeFailure(
+  () => identityRepositoryRoot({ PRE_GEMATIK_IDENTITY_REPOSITORY_ROOT: "relative/workspace" }),
+  /normalisierter absoluter Pfad/u
+);
 assertSafeFailure(() => parseArguments(["--unexpected"]), /Unbekannte/u);
 assertSafeFailure(() => validateExecutionConfirmations(
   parseArguments(["--input", "/protected/bindings.json", "--allow-active-bindings"]),
+  ordered,
+  bindingDocumentFingerprint(ordered)
+), /nur zusammen mit --apply/u);
+assertSafeFailure(() => validateExecutionConfirmations(
+  parseArguments([
+    "--input", "/protected/bindings.json",
+    "--confirm-binding-count", "2",
+    "--confirm-active-binding-count", "1"
+  ]),
   ordered,
   bindingDocumentFingerprint(ordered)
 ), /nur zusammen mit --apply/u);
@@ -169,6 +304,8 @@ const completeApplyOptions = parseArguments([
   "--confirm-database", "versorgungs_kompass",
   "--confirm-operation", "UPSERT_IAP_IDENTITY_BINDINGS",
   "--confirm-fingerprint", fingerprint,
+  "--confirm-binding-count", "2",
+  "--confirm-active-binding-count", "1",
   "--allow-active-bindings"
 ]);
 validateExecutionConfirmations(completeApplyOptions, ordered, fingerprint);
@@ -182,6 +319,16 @@ assertSafeFailure(() => validateExecutionConfirmations(
   ordered,
   fingerprint
 ), /exakten Fingerprint/u);
+assertSafeFailure(() => validateExecutionConfirmations(
+  { ...completeApplyOptions, confirmBindingCount: "1" },
+  ordered,
+  fingerprint
+), /exakte bestaetigte Gesamtzahl/u);
+assertSafeFailure(() => validateExecutionConfirmations(
+  { ...completeApplyOptions, confirmActiveBindingCount: "2" },
+  ordered,
+  fingerprint
+), /exakte bestaetigte Zahl aktiver/u);
 
 const targetUrl = "postgresql://identity-admin:private-secret@127.0.0.1:5433/versorgungs_kompass?sslmode=disable";
 const targetFingerprint = identityTargetFingerprint(targetUrl);
@@ -274,12 +421,21 @@ assertSafeFailure(() => buildIdentityBindingPlan(
 ), /1 aktive Bindungen/u);
 
 class MockClient {
-  constructor({ profiles, existing, failCommit = false, tamperFinalState = false }) {
+  constructor({
+    profiles,
+    existing,
+    failCommit = false,
+    tamperFinalState = false,
+    sessionState = safeIdentityAdminSession,
+    privilegeState = safeIdentityAdminPrivileges
+  }) {
     this.profiles = profiles.map((row) => ({ ...row }));
     this.existing = existing.map((row) => ({ ...row }));
     this.queries = [];
     this.failCommit = failCommit;
     this.tamperFinalState = tamperFinalState;
+    this.sessionState = { ...sessionState };
+    this.privilegeState = { ...privilegeState };
     this.bindingStateReads = 0;
   }
 
@@ -294,11 +450,14 @@ class MockClient {
     if (sql.startsWith("begin ") || sql.startsWith("set local ") || sql === "commit" || sql === "rollback") {
       return { rows: [], rowCount: null };
     }
+    if (sql.includes("as login_memberships") && sql.includes("admin_member_count")) {
+      return { rows: [{ ...this.sessionState }], rowCount: 1 };
+    }
     if (sql.includes("pg_advisory_xact_lock")) return { rows: [{}], rowCount: 1 };
     if (sql.includes("current_database()")) return { rows: [{ database_name: "versorgungs_kompass" }], rowCount: 1 };
     if (sql.includes("has_table_privilege")) {
       return {
-        rows: [{ profile_select: true, binding_select: true, binding_insert: true, binding_update: true }],
+        rows: [{ ...this.privilegeState }],
         rowCount: 1
       };
     }
@@ -366,9 +525,60 @@ await executeIdentityBindingTransaction({
 });
 assert.equal(previewClient.existing.length, 2, "Preview darf den Mock-Datenbestand nicht veraendern.");
 assert.ok(previewClient.queries.some(({ sql }) => sql === "rollback"));
+assert.ok(previewClient.queries.some(({ sql }) => sql === "set local role vk_identity_admin"),
+  "Preview und Apply muessen innerhalb der Transaktion auf die gepruefte NOLOGIN-Rolle reduzieren.");
 assert.ok(!previewClient.queries.some(({ sql }) => /^(insert|update|delete) /u.test(sql)));
 assert.equal(previewLogs.length, 1);
 assert.doesNotMatch(previewLogs[0], /private\.person|new-subject|preserved-secret|profile-/u);
+
+const overprivilegedLoginClient = new MockClient({
+  profiles: [{ id: "profile-a", active: true }],
+  existing: [],
+  sessionState: {
+    ...safeIdentityAdminSession,
+    login_create_role: true,
+    cloudsql_superuser_member: true,
+    login_memberships: ["cloudsqlsuperuser", EXPECTED_IDENTITY_ADMIN_ROLE]
+  }
+});
+await assert.rejects(
+  executeIdentityBindingTransaction({
+    client: overprivilegedLoginClient,
+    document: document([binding("blocked-subject", "profile-a")]),
+    fingerprint,
+    apply: false,
+    expectedDatabase: "",
+    log: () => {}
+  }),
+  (error) => error instanceof SafeCliError && /exklusiven kurzlebigen/u.test(error.message)
+);
+assert.ok(overprivilegedLoginClient.queries.some(({ sql }) => sql === "rollback"));
+assert.ok(!overprivilegedLoginClient.queries.some(({ sql }) => sql === "set local role vk_identity_admin"));
+
+const overprivilegedRoleClient = new MockClient({
+  profiles: [{ id: "profile-a", active: true }],
+  existing: [],
+  privilegeState: {
+    ...safeIdentityAdminPrivileges,
+    unsafe_other_table_privilege_count: 1
+  }
+});
+await assert.rejects(
+  executeIdentityBindingTransaction({
+    client: overprivilegedRoleClient,
+    document: document([binding("blocked-subject", "profile-a")]),
+    fingerprint,
+    apply: false,
+    expectedDatabase: "",
+    log: () => {}
+  }),
+  (error) => error instanceof SafeCliError && /Minimalrechte/u.test(error.message)
+);
+assert.ok(overprivilegedRoleClient.queries.some(({ sql }) => sql === "rollback"));
+assert.ok(!overprivilegedRoleClient.queries.some(({ sql }) => (
+  sql.startsWith("insert into public.identity_bindings")
+  || sql.startsWith("update public.identity_bindings")
+)));
 
 const applyClient = new MockClient({
   profiles: [
@@ -465,6 +675,63 @@ assert.ok(!tamperedFinalStateClient.queries.some(({ sql }) => sql === "commit"),
 
 const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "vk-iap-binding-test-"));
 try {
+  const preparedOptions = parseIdentityOperatorArguments([
+    "--output-directory", temporaryDirectory,
+    "--project", "example-target-project",
+    "--instance", "example-postgres",
+    "--database", "versorgungs_kompass"
+  ]);
+  let randomInvocation = 0;
+  const credentialLogs = [];
+  const preparedCredentials = await prepareIdentityOperatorFiles(preparedOptions, {
+    repositoryRoot: process.cwd(),
+    now: new Date("2026-07-20T12:00:00.000Z"),
+    randomBytes(size) {
+      randomInvocation += 1;
+      return Buffer.alloc(size, randomInvocation === 1 ? 0x11 : 0x22);
+    },
+    log: (line) => credentialLogs.push(line)
+  });
+  const createUserFlags = JSON.parse(await fs.readFile(preparedCredentials.createUserFlagsPath, "utf8"));
+  const protectedOperatorEnvironment = await fs.readFile(
+    preparedCredentials.operatorEnvironmentPath,
+    "utf8"
+  );
+  const protectedManifest = JSON.parse(await fs.readFile(preparedCredentials.manifestPath, "utf8"));
+  assert.equal(createUserFlags["--database-roles"], EXPECTED_IDENTITY_ADMIN_ROLE);
+  assert.equal(createUserFlags["--type"], "BUILT_IN");
+  assert.equal("--cloudsqlsuperuser" in createUserFlags, false);
+  assert.match(createUserFlags["--password"], /^[A-Za-z0-9_-]{64}$/u);
+  assert.match(
+    protectedOperatorEnvironment,
+    /^PRE_GEMATIK_IDENTITY_ADMIN_DATABASE_URL=postgresql:\/\/vk_identity_operator_20260720_/u
+  );
+  assert.match(protectedOperatorEnvironment, /\nPRE_GEMATIK_IDENTITY_TARGET_SHA256=sha256:[a-f0-9]{64}\n$/u);
+  assert.equal(protectedManifest.requiredRole, EXPECTED_IDENTITY_ADMIN_ROLE);
+  assert.doesNotMatch(JSON.stringify(protectedManifest), /password|private-secret|vk_identity_operator_/iu);
+  assert.equal(credentialLogs.length, 1);
+  assert.doesNotMatch(credentialLogs[0], /postgresql|password|vk_identity_operator_|sha256:/iu);
+  for (const protectedFile of [
+    preparedCredentials.createUserFlagsPath,
+    preparedCredentials.operatorEnvironmentPath,
+    preparedCredentials.operatorNamePath,
+    preparedCredentials.manifestPath
+  ]) {
+    const metadata = await fs.stat(protectedFile);
+    assert.equal(metadata.mode & 0o777, 0o600);
+  }
+  await assert.rejects(
+    prepareIdentityOperatorFiles(preparedOptions, { repositoryRoot: process.cwd(), log: () => {} }),
+    (error) => error instanceof SafeCliError && /existiert bereits/u.test(error.message)
+  );
+  await assert.rejects(
+    prepareIdentityOperatorFiles(
+      { ...preparedOptions, outputDirectory: process.cwd() },
+      { repositoryRoot: process.cwd(), log: () => {} }
+    ),
+    (error) => error instanceof SafeCliError && /ausserhalb des Git-Worktrees/u.test(error.message)
+  );
+
   const proxyExecutable = path.join(temporaryDirectory, "cloud-sql-proxy");
   const proxyBytes = "#!/bin/sh\nexit 0\n";
   await fs.writeFile(proxyExecutable, proxyBytes, { mode: 0o700 });

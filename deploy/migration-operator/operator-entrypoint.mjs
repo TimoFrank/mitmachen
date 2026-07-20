@@ -31,8 +31,11 @@ const LOGO_REMEDIATION_MANIFEST_PATH = `${PROTECTED_INPUT}/${LOGO_REMEDIATION_MA
 const LOGO_REMEDIATION_OBJECT_DIRECTORY = `${PROTECTED_INPUT}/logo-remediation-objects`;
 const LOGO_REMEDIATION_SCHEMA = "versorgungs-kompass-logo-remediation-v1";
 const MAX_LOGO_REMEDIATION_OBJECTS = 128;
+const IDENTITY_OPERATION = "UPSERT_IAP_IDENTITY_BINDINGS";
+const TARGET_DATABASE_NAME = "versorgungs_kompass";
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const NON_NEGATIVE_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/u;
+const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/u;
 const BACKUP_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{2,255}$/u;
 const PROTECTED_INPUT_FILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/u;
 const LOGO_REMEDIATION_OUTPUT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}\.png$/u;
@@ -133,7 +136,8 @@ export function phaseExecution(phase, environment = process.env) {
       arguments: Object.freeze([]),
       protectedInputs: Object.freeze(["supabase-root-ca.crt"]),
       logoRemediationBundle: false,
-      managedTarget: true
+      managedTarget: true,
+      requiresSourceCa: true
     });
   }
 
@@ -166,7 +170,57 @@ export function phaseExecution(phase, environment = process.env) {
       arguments: Object.freeze(argumentsList),
       protectedInputs: Object.freeze(["supabase-root-ca.crt", "storage-apply.json"]),
       logoRemediationBundle: false,
-      managedTarget: true
+      managedTarget: true,
+      requiresSourceCa: true
+    });
+  }
+
+  if (phase === "identity-preview") {
+    return Object.freeze({
+      script: "scripts/provision_iap_identity_bindings.mjs",
+      arguments: Object.freeze([
+        "--input", `${PROTECTED_INPUT}/iap-bindings.json`
+      ]),
+      protectedInputs: Object.freeze(["iap-bindings.json"]),
+      logoRemediationBundle: false,
+      managedTarget: true,
+      requiresSourceCa: false
+    });
+  }
+
+  if (phase === "identity-apply") {
+    const previewFingerprint = required(
+      environment,
+      "CONFIRM_IDENTITY_PREVIEW_FINGERPRINT",
+      SHA256_PATTERN
+    );
+    const bindingCount = required(
+      environment,
+      "CONFIRM_IDENTITY_BINDING_COUNT",
+      POSITIVE_INTEGER_PATTERN
+    );
+    const activeBindingCount = required(
+      environment,
+      "CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT",
+      NON_NEGATIVE_INTEGER_PATTERN
+    );
+    return Object.freeze({
+      script: "scripts/provision_iap_identity_bindings.mjs",
+      arguments: Object.freeze([
+        "--input", `${PROTECTED_INPUT}/iap-bindings.json`,
+        "--apply",
+        "--confirm-environment", "pre-gematik",
+        "--confirm-database", TARGET_DATABASE_NAME,
+        "--confirm-operation", IDENTITY_OPERATION,
+        "--confirm-fingerprint", previewFingerprint,
+        "--confirm-binding-count", bindingCount,
+        "--confirm-active-binding-count", activeBindingCount,
+        "--allow-active-bindings"
+      ]),
+      protectedInputs: Object.freeze(["iap-bindings.json"]),
+      logoRemediationBundle: false,
+      managedTarget: true,
+      requiresSourceCa: false
     });
   }
 
@@ -390,7 +444,12 @@ export async function main(environment = process.env) {
     }
     required(environment, "CLOUD_SQL_AUTH_PROXY_SHA256", SHA256_PATTERN);
     await access(PROXY_EXECUTABLE, fsConstants.X_OK);
-    childEnvironment.SOURCE_DATABASE_URL = sourceUrlWithProtectedCa(environment);
+    if (execution.requiresSourceCa) {
+      childEnvironment.SOURCE_DATABASE_URL = sourceUrlWithProtectedCa(environment);
+    }
+    if (phase === "identity-preview" || phase === "identity-apply") {
+      childEnvironment.PRE_GEMATIK_IDENTITY_REPOSITORY_ROOT = WORKSPACE;
+    }
     if (phase === "database-apply") {
       childEnvironment.STORAGE_MIGRATION_MANIFEST_PATH = `${PROTECTED_INPUT}/storage-apply.json`;
     }

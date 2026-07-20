@@ -2,7 +2,9 @@
 
 Dieser Operator ist der eng begrenzte Ausführungsweg für die einmalige Migration
 von Supabase nach `pre-gematik`, wenn Cloud SQL ausschließlich eine private IP
-hat. Er läuft als kurzlebiger Job im GKE-Netz und ist **kein** Bestandteil des
+hat. Nach dem Datenimport führt derselbe gehärtete Ausführungsweg auch die
+getrennten IAP-Identity-Preview-/Apply-Phasen aus. Er läuft als kurzlebiger Job
+im GKE-Netz und ist **kein** Bestandteil des
 Anwendungs-Deployments. Weder Job noch ServiceAccount oder Migrations-Secrets
 dürfen nach der Abnahme bestehen bleiben.
 
@@ -132,6 +134,9 @@ CONFIRM_QUARANTINED_OBJECT_COUNT=<GEPRUEFTER-ZAEHLER>
 CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT=sha256:<NUR-WENN-PREVIEW-MELDET>
 LOGO_REMEDIATION_MANIFEST_PATH=/protected-input/run/logo-remediation-preview.json
 LOGO_REMEDIATION_OBJECT_DIRECTORY=/protected-input/run/logo-remediation-objects
+CONFIRM_IDENTITY_PREVIEW_FINGERPRINT=sha256:<NUR-FUER-IDENTITY-APPLY>
+CONFIRM_IDENTITY_BINDING_COUNT=1
+CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT=1
 ```
 
 Die beiden `LOGO_REMEDIATION_*`-Werte werden nur gesetzt, wenn ein geprüftes
@@ -153,6 +158,14 @@ passendem Projekt-Suffix im Benutzernamen; TLS bleibt `verify-full`.
 `sslmode=disable`. Keine Zugangsdaten werden als Kommandozeilenargumente
 übergeben.
 
+Für `identity-preview` und `identity-apply` kommt die separat erzeugte
+`identity-operator.env` hinzu. Sie enthält ausschließlich die geschützte
+Loopback-Credential-Vorlage des kurzlebigen Logins und den Ziel-Fingerprint.
+Der Login muss exakt der `NOLOGIN`-Rolle `vk_identity_admin` zugeordnet sein;
+`postgres`, `cloudsqlsuperuser` oder weitere Mitgliedschaften werden vom
+Provisionierungswerkzeug abgewiesen. Vorbereitung und Cleanup stehen im
+[Identity-Admin-Runbook](../../dokumentation/betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md).
+
 Die Env-Datei wird ohne Ausgabe ihrer Inhalte als kurzlebiges Secret angelegt.
 Der Befehl muss fehlschlagen, falls ein gleichnamiges Secret noch existiert;
 dies verhindert eine unbeabsichtigte Wiederverwendung. Bewusst kein
@@ -163,6 +176,16 @@ einer weiteren base64-Kopie der Secret-Daten.
 kubectl --namespace pre-gematik create secret generic \
   vk-pre-gematik-migration-environment \
   --from-env-file=/ABSOLUT/GESCHUETZT/operator.env
+```
+
+Für Identity-Phasen wird das Secret stattdessen mit zwei voneinander getrennten
+owner-only Dateien erzeugt:
+
+```bash
+kubectl --namespace pre-gematik create secret generic \
+  vk-pre-gematik-migration-environment \
+  --from-env-file=/ABSOLUT/GESCHUETZT/operator.env \
+  --from-env-file=/ABSOLUT/GESCHUETZT/identity-run/identity-operator.env
 ```
 
 Für Datenbankphasen wird ein zweites Secret angelegt. Beim Apply kommt das
@@ -197,6 +220,15 @@ freigegebene Acht-Dateien-Bundle erfüllt diese Bedingung. Der Operator kopiert
 nur die im Manifest referenzierten Schlüssel und verwirft keine Prüfung an die
 Secret-Projektion.
 
+Identity-Phasen verwenden statt CA, Storage-Manifest und Logo-Bundle
+ausschließlich die vollständige, geschützte Soll-Liste:
+
+```bash
+kubectl --namespace pre-gematik create secret generic \
+  vk-pre-gematik-migration-input \
+  --from-file=iap-bindings.json=/ABSOLUT/GESCHUETZT/iap-bindings.json
+```
+
 ## 4. Phasen ausführen
 
 Verbindliche Reihenfolge nach aktivierter Quell-Schreibsperre:
@@ -209,6 +241,17 @@ Verbindliche Reihenfolge nach aktivierter Quell-Schreibsperre:
 3. `storage-apply` einmal mit den geprüften Bestätigungswerten und demselben
    unveränderten Logo-Remediation-Bundle.
 4. `database-apply` einmal mit dem abgerufenen Storage-Apply-Manifest.
+5. `identity-preview` zweimal gegen den importierten Profilbestand; Eingabe-,
+   Ist- und Sollzustands-Fingerprint müssen jeweils identisch sein.
+6. `identity-apply` einmal mit dem unmittelbar bestätigten Preview-Fingerprint
+   sowie der bestätigten Gesamtzahl und Zahl aktiver Bindungen. Für den
+   aktuellen persönlichen Pilot sind beide Werte exakt `1`.
+
+Zwischen 4 und 5 wird die statische `NOLOGIN`-Rolle kontrolliert gebootstrappt
+und der kurzlebige Login exakt dieser Custom-Rolle zugeordnet. Der Dienst bleibt
+bis nach Identity-Abnahme geschlossen. Identity-Phasen benötigen keine
+Supabase-Verbindung und kopieren deshalb keine Source-CA; Zielproxy, Instanz-,
+Projekt- und Backup-Gate bleiben trotzdem identisch verbindlich.
 
 Für jeden Storage-Lauf wird unmittelbar vorher ein neuer kurzlebiger Google-
 OAuth-Access-Token mit ausreichender Restlaufzeit ausgestellt. Der Operator
@@ -263,14 +306,17 @@ nach 24 Stunden:
 1. exakt `job/vk-pre-gematik-migration-operator` löschen,
 2. exakt die Secrets `vk-pre-gematik-migration-environment` und
    `vk-pre-gematik-migration-input` löschen,
-3. alle vier temporären Projekt-IAM-Zuordnungen vom dedizierten Principal
+3. den kurzlebigen Cloud-SQL-Identity-Login löschen und read-only bestätigen,
+   dass `vk_identity_admin` kein Mitglied mehr hat,
+4. alle vier temporären Projekt-IAM-Zuordnungen vom dedizierten Principal
    entfernen und die IAM-Policy erneut read-only prüfen,
-4. `networkpolicy/vk-pre-gematik-migration-operator` und
+5. `networkpolicy/vk-pre-gematik-migration-operator` und
    `serviceaccount/vk-pre-gematik-migration-operator` löschen,
-5. den Operator-Image-Digest nach der vereinbarten Nachweisfrist aus der
+6. den Operator-Image-Digest nach der vereinbarten Nachweisfrist aus der
    Registry entfernen; nie ein anderes Image über einen Tag-Selektor löschen,
-6. OAuth-Token ablaufen lassen beziehungsweise widerrufen und die geschützte
-   Env-Datei vernichten; Cutover-Nachweise und Recovery-Journal gemäß der
+7. OAuth-Token ablaufen lassen beziehungsweise widerrufen und die beiden
+   geschützten Credential-Env-Dateien vernichten; Cutover-Nachweise und
+   Recovery-Journal gemäß der
    dokumentierten Aufbewahrung geschützt behalten.
 
 Zum Abschluss müssen die normale API-Workload-IAM-Policy, die vier exakten

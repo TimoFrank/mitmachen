@@ -41,8 +41,11 @@ const environment = {
   CONFIRM_STORAGE_PREVIEW_FINGERPRINT: fingerprint,
   CONFIRM_STORAGE_MANIFEST_FINGERPRINT: fingerprint,
   CONFIRM_SOURCE_SNAPSHOT_FINGERPRINT: fingerprint,
+  CONFIRM_IDENTITY_PREVIEW_FINGERPRINT: fingerprint,
   CONFIRM_QUARANTINED_OBJECT_COUNT: "0",
-  CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT: fingerprint
+  CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT: fingerprint,
+  CONFIRM_IDENTITY_BINDING_COUNT: "1",
+  CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT: "1"
 };
 
 assert.deepEqual(
@@ -99,6 +102,42 @@ assert.equal(databaseApply.arguments.includes("--replace-synthetic-target"), tru
 assert.equal(databaseApply.arguments.includes("pre-gematik-synthetic-v1"), true);
 assert.equal(databaseApply.arguments.includes("/protected-input/run/storage-apply.json"), true);
 assert.deepEqual(databaseApply.protectedInputs, ["supabase-root-ca.crt", "storage-apply.json"]);
+
+const identityPreview = phaseExecution("identity-preview", environment);
+assert.equal(identityPreview.managedTarget, true);
+assert.equal(identityPreview.requiresSourceCa, false);
+assert.deepEqual(identityPreview.arguments, [
+  "--input", "/protected-input/run/iap-bindings.json"
+]);
+assert.deepEqual(identityPreview.protectedInputs, ["iap-bindings.json"]);
+
+const identityApply = phaseExecution("identity-apply", environment);
+assert.equal(identityApply.managedTarget, true);
+assert.equal(identityApply.requiresSourceCa, false);
+assert.equal(identityApply.arguments.includes("--apply"), true);
+assert.equal(identityApply.arguments.includes("UPSERT_IAP_IDENTITY_BINDINGS"), true);
+assert.equal(identityApply.arguments.includes("--allow-active-bindings"), true);
+assert.equal(identityApply.arguments.includes(fingerprint), true);
+assert.deepEqual(
+  identityApply.arguments.slice(
+    identityApply.arguments.indexOf("--confirm-binding-count"),
+    identityApply.arguments.indexOf("--confirm-binding-count") + 4
+  ),
+  ["--confirm-binding-count", "1", "--confirm-active-binding-count", "1"]
+);
+assert.deepEqual(identityApply.protectedInputs, ["iap-bindings.json"]);
+assert.throws(
+  () => phaseExecution("identity-apply", { ...environment, CONFIRM_IDENTITY_PREVIEW_FINGERPRINT: "" }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("identity-apply", { ...environment, CONFIRM_IDENTITY_BINDING_COUNT: "" }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("identity-apply", { ...environment, CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT: "-1" }),
+  (error) => error instanceof MigrationOperatorError
+);
 
 assert.throws(
   () => phaseExecution("shell", environment),
@@ -202,6 +241,7 @@ assert.match(dockerfile, /^FROM gcr\.io\/cloud-sql-connectors\/cloud-sql-proxy:[
 assert.match(dockerfile, /^FROM gcr\.io\/google\.com\/cloudsdktool\/google-cloud-cli:[^\n]+@sha256:[a-f0-9]{64}/mu);
 assert.match(dockerfile, /^USER 65532:65532$/mu);
 assert.match(dockerfile, /^ENTRYPOINT \["node", "\/opt\/operator\/operator-entrypoint\.mjs"\]$/mu);
+assert.match(dockerfile, /COPY scripts\/provision_iap_identity_bindings\.mjs/u);
 assert.doesNotMatch(dockerfile, /SUPABASE_SERVICE_ROLE_KEY|SOURCE_DATABASE_URL|TARGET_DATABASE_URL/u);
 assert.match(dockerignore, /^\*\*$/mu);
 assert.doesNotMatch(dockerignore, /^!\.env/mu);
@@ -220,6 +260,7 @@ assert.doesNotMatch(jobTemplate, /service_role|postgresql:\/\/|password:/iu);
 assert.match(serviceAccount, /automountServiceAccountToken: false/u);
 assert.match(networkPolicy, /ingress: \[\]/u);
 assert.match(networkPolicy, /- ports:\s+- protocol: TCP\s+port: 5432/u);
+assert.match(networkPolicy, /cidr: 10\.0\.0\.0\/8[\s\S]*port: 3307/u);
 assert.match(networkPolicy, /169\.254\.169\.252\/32/u);
 assert.match(operatorRunbook, /separate[^\n]*Env-Datei/u);
 assert.match(operatorRunbook, /kubectl --from-env-file/u);
@@ -229,6 +270,8 @@ assert.match(operatorRunbook, /Bewusst kein\s+`kubectl apply`/u);
 assert.match(operatorRunbook, /erneuert ihn nicht automatisch/u);
 assert.match(operatorRunbook, /\/protected-input\/run\/logo-remediation-preview\.json/u);
 assert.match(operatorRunbook, /demselben\s+unveränderten Logo-Remediation-Bundle/u);
+assert.match(operatorRunbook, /identity-preview/u);
+assert.match(operatorRunbook, /identity-apply/u);
 
 const image = `europe-west3-docker.pkg.dev/target-project-123/migrations/operator@sha256:${"b".repeat(64)}`;
 const rendered = renderJob({

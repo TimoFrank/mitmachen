@@ -9,6 +9,7 @@ Es ist ausdrücklich **kein freigegebenes gematik-Zielschema**, keine Festlegung
 - `schema.sql`: idempotenter PostgreSQL-16-Bootstrap für eine frische Pre-Integrationsdatenbank.
 - `runtime-role.sql`: idempotente Anlage der festen `NOLOGIN`-Rolle `vk_app_runtime`; entzieht `PUBLIC` zusätzlich das Erstellen von Objekten im Schema `public`.
 - `grants.sql`: idempotente Least-Privilege-Laufzeitrechte für eine bereits angelegte `NOLOGIN`-Rolle; benötigt eine verpflichtende `psql`-Variable.
+- `identity-admin-role.sql`: geheimnisfreier, fail-closed Bootstrap der separaten `NOLOGIN`-Rolle `vk_identity_admin`; sie darf ausschließlich Profile lesen und IAP-Identity-Bindungen lesen/anlegen/aktivieren. Der Rollen-Bootstrap läuft nur als bestehender Objekt-Owner und verweigert vorhandene Mitglieder, Elternrollen, Objektbesitz oder unsichere Attribute.
 - `seed.example.sql`: optionaler, ausschließlich synthetischer Admin-Seed. Er enthält die reservierte Beispieldomain `example.invalid` und keine echten Personen- oder Kontaktdaten.
 - `seed.synthetic.sql`: generierter, versionierter Fachdaten-Seed für die GCP-Pre-Integration. Er enthält ausschließlich synthetische Profile, Organisationen, Kontakte, Formate, Hospitationen und Beobachtungen.
 - `seed.synthetic-profile-avatars.sql`: enger, idempotenter Nachzug für drei lokale SVG-Avatare der reservierten Demo-Profile. Er verändert keine IAP-Nutzerprofile.
@@ -69,6 +70,21 @@ select granted_role.rolname as granted_role
 ```
 
 Dasselbe beim Cloud-SQL-User gesetzte Passwort wird als aktive Version von `vk-pre-gematik-postgres-password` gespeichert. Es gehört weder in Git, Terraform-State, GitHub noch in Prozessargumente oder Protokolle.
+
+## Kurzlebige Identity-Administration
+
+Die Laufzeitrolle wird für Identity-Schreibzugriffe ausdrücklich nicht erweitert.
+Nach dem Echtdatenimport wird `identity-admin-role.sql` einmal kontrolliert als
+bestehender Objekt-Owner angewendet. Anschließend erhält ein zufälliger,
+kurzlebiger Cloud-SQL-Login über `databaseRoles` ausschließlich
+`vk_identity_admin`; die explizite Custom-Rolle verhindert die automatische
+Zuweisung von `cloudsqlsuperuser`. Preview und Apply prüfen Rollenattribute,
+exklusive Mitgliedschaft und sämtliche effektiven Grants erneut, wechseln mit
+`SET LOCAL ROLE` auf die `NOLOGIN`-Rolle und brechen bei jeder Erweiterung ab.
+
+Der Rollen-Bootstrap ohne bekanntes `postgres`-Passwort, die geschützte
+Credential-Erzeugung, Operatorausführung, Abnahme und der Login-Cleanup stehen
+im verbindlichen [Identity-Admin-Runbook](../../../dokumentation/betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md).
 
 Das optionale Beispielprofil darf nur in einer Testdatenbank verwendet werden:
 
