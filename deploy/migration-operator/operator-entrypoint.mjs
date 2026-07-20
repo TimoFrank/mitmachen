@@ -18,11 +18,14 @@ import {
 } from "node:fs/promises";
 import { isAbsolute, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 
 const WORKSPACE = "/workspace";
 const SECRET_INPUT = "/secret-input";
 const PROTECTED_INPUT = "/protected-input/run";
 const PROTECTED_OUTPUT = "/protected-output/run";
+const EVIDENCE_ACKNOWLEDGEMENT = `${PROTECTED_OUTPUT}/.evidence-collected`;
+const EVIDENCE_ACKNOWLEDGEMENT_TIMEOUT_MS = 15 * 60 * 1000;
 const PROXY_EXECUTABLE = "/usr/local/bin/cloud-sql-proxy";
 const SYNTHETIC_SEED_ID = "pre-gematik-synthetic-v1";
 const STORAGE_OPERATION = "MIGRATE_ALLOWLISTED_SUPABASE_STORAGE_TO_GCS";
@@ -384,6 +387,57 @@ async function writeStatus(status) {
   }
 }
 
+export async function waitForEvidenceCollection({
+  environment = process.env,
+  acknowledgementPath = EVIDENCE_ACKNOWLEDGEMENT,
+  timeoutMs = EVIDENCE_ACKNOWLEDGEMENT_TIMEOUT_MS,
+  pollIntervalMs = 500
+} = {}) {
+  if (environment.MIGRATION_OPERATOR_REQUIRE_EVIDENCE_ACK !== "true") return false;
+  if (
+    !Number.isSafeInteger(timeoutMs)
+    || timeoutMs < 1
+    || !Number.isSafeInteger(pollIntervalMs)
+    || pollIntervalMs < 1
+  ) {
+    throw new MigrationOperatorError("The protected evidence handoff timing is invalid.");
+  }
+
+  process.stdout.write(
+    "Migration operator outputs are ready; retrieve and acknowledge the protected evidence.\n"
+  );
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const metadata = await lstat(acknowledgementPath);
+      const currentUid = typeof process.getuid === "function" ? process.getuid() : metadata.uid;
+      if (
+        !metadata.isFile()
+        || metadata.isSymbolicLink()
+        || metadata.uid !== currentUid
+        || (metadata.mode & 0o777) !== 0o600
+        || metadata.size !== 0
+      ) {
+        throw new MigrationOperatorError(
+          "The protected evidence acknowledgement is malformed."
+        );
+      }
+      return true;
+    } catch (error) {
+      if (error instanceof MigrationOperatorError) throw error;
+      if (error?.code !== "ENOENT") {
+        throw new MigrationOperatorError(
+          "The protected evidence acknowledgement could not be inspected."
+        );
+      }
+    }
+    await delay(pollIntervalMs);
+  }
+  throw new MigrationOperatorError(
+    "Protected evidence was not acknowledged before the bounded handoff timeout."
+  );
+}
+
 async function runChild(execution, environment) {
   const logPath = `${PROTECTED_OUTPUT}/${environment.MIGRATION_OPERATOR_PHASE}.log`;
   const log = createWriteStream(logPath, { flags: "wx", mode: 0o600 });
@@ -467,6 +521,7 @@ export async function main(environment = process.env) {
     startedAt,
     finishedAt: new Date().toISOString()
   });
+  await waitForEvidenceCollection({ environment });
   if (!succeeded) {
     throw new MigrationOperatorError("The protected migration phase failed; retrieve its owner-only report.");
   }
