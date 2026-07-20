@@ -25,7 +25,8 @@ import {
   normalizeSyntheticSeedRecord,
   runDatabaseMigration,
   sourceUrlMatchesProject,
-  syntheticSeedContentFingerprint
+  syntheticSeedContentFingerprint,
+  tableAggregateFromRows
 } from "./lib/pre-gematik-database-migration.mjs";
 import { parseArguments } from "./migrate_supabase_to_pre_gematik.mjs";
 import { buildStorageMigrationManifest } from "./migrate_supabase_storage_to_gcs.mjs";
@@ -235,6 +236,45 @@ assert.equal(
   ),
   false
 );
+
+{
+  const plan = Object.freeze({
+    table: "expert_organizations",
+    primaryKey: Object.freeze(["id"]),
+    columns: Object.freeze(["id", "name", "website"])
+  });
+  const firstOrder = [
+    { id: "expert-A", name: "Organisation A", website: "https://Example.Invalid/A" },
+    { id: "expert-ä", name: "Organisation Ä", website: "https://Example.Invalid/%C3%84" }
+  ];
+  const reverseOrder = [...firstOrder].reverse();
+  const firstAggregate = tableAggregateFromRows(plan, firstOrder);
+  assert.deepEqual(
+    tableAggregateFromRows(plan, reverseOrder),
+    firstAggregate,
+    "Reconciliation fingerprints must not depend on a database's text collation order."
+  );
+
+  const changedContent = tableAggregateFromRows(plan, [
+    firstOrder[0],
+    { ...firstOrder[1], name: "Fachlich geänderte Organisation" }
+  ]);
+  assert.equal(changedContent.primaryKeyFingerprint, firstAggregate.primaryKeyFingerprint);
+  assert.notEqual(changedContent.contentFingerprint, firstAggregate.contentFingerprint);
+
+  const changedPrimaryKey = tableAggregateFromRows(plan, [
+    firstOrder[0],
+    { ...firstOrder[1], id: "expert-z" }
+  ]);
+  assert.notEqual(changedPrimaryKey.primaryKeyFingerprint, firstAggregate.primaryKeyFingerprint);
+  assert.notEqual(changedPrimaryKey.contentFingerprint, firstAggregate.contentFingerprint);
+
+  const missingRow = tableAggregateFromRows(plan, [firstOrder[0]]);
+  assert.notEqual(missingRow.count, firstAggregate.count);
+  assert.notEqual(missingRow.primaryKeyFingerprint, firstAggregate.primaryKeyFingerprint);
+  assert.notEqual(missingRow.contentFingerprint, firstAggregate.contentFingerprint);
+}
+
 assert.match(migrationSource, /begin isolation level repeatable read, read only/i);
 assert.match(migrationSource, /begin isolation level serializable, read write/i);
 assert.match(migrationSource, /pg_advisory_xact_lock/i);
