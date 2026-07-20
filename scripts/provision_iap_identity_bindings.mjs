@@ -443,6 +443,7 @@ export function validateIdentityAdministrationSession(sessionState) {
   const exactMembership = memberships.length === 1
     && memberships[0] === EXPECTED_IDENTITY_ADMIN_ROLE;
   const safeLogin = booleanPrivilege(sessionState?.login_can_login)
+    && booleanPrivilege(sessionState?.login_inherits_roles)
     && !booleanPrivilege(sessionState?.login_superuser)
     && !booleanPrivilege(sessionState?.login_create_database)
     && !booleanPrivilege(sessionState?.login_create_role)
@@ -465,7 +466,11 @@ export function validateIdentityAdministrationSession(sessionState) {
     || booleanPrivilege(sessionState?.cloudsql_superuser_member)
     || booleanPrivilege(sessionState?.postgres_member)
     || numericCount(sessionState?.admin_parent_membership_count) !== 0
-    || numericCount(sessionState?.admin_member_count) !== 1
+    || !booleanPrivilege(sessionState?.identity_objects_share_owner)
+    || numericCount(sessionState?.admin_member_count) !== 2
+    || numericCount(sessionState?.admin_login_member_count) !== 1
+    || numericCount(sessionState?.admin_owner_member_count) !== 1
+    || numericCount(sessionState?.admin_unexpected_member_count) !== 0
   ) {
     throw new SafeCliError(
       "Das Datenbankkonto entspricht nicht dem exklusiven kurzlebigen vk_identity_admin-Rollenvertrag."
@@ -478,6 +483,7 @@ export async function assumeIdentityAdministrationRole(client) {
     `select
        current_user = session_user as unassumed_session,
        login.rolcanlogin as login_can_login,
+       login.rolinherit as login_inherits_roles,
        login.rolsuper as login_superuser,
        login.rolcreatedb as login_create_database,
        login.rolcreaterole as login_create_role,
@@ -508,7 +514,65 @@ export async function assumeIdentityAdministrationRole(client) {
          select count(*)::int
            from pg_catalog.pg_auth_members membership
           where membership.roleid = identity_admin.oid
-       ) as admin_member_count
+       ) as admin_member_count,
+       (
+         select count(*) = 2 and count(distinct relation.relowner) = 1
+           from pg_catalog.pg_class relation
+           join pg_catalog.pg_namespace namespace on namespace.oid = relation.relnamespace
+          where namespace.nspname = 'public'
+            and relation.relname in ('profiles', 'identity_bindings')
+       ) as identity_objects_share_owner,
+       (
+         select count(*)::int
+           from pg_catalog.pg_auth_members membership
+          where membership.roleid = identity_admin.oid
+            and membership.member = login.oid
+            and not membership.admin_option
+            and membership.inherit_option
+            and membership.set_option
+       ) as admin_login_member_count,
+       (
+         select count(*)::int
+           from pg_catalog.pg_auth_members membership
+          where membership.roleid = identity_admin.oid
+            and membership.member = (
+              select relation.relowner
+                from pg_catalog.pg_class relation
+                join pg_catalog.pg_namespace namespace on namespace.oid = relation.relnamespace
+               where namespace.nspname = 'public'
+                 and relation.relname in ('profiles', 'identity_bindings')
+               limit 1
+            )
+            and membership.admin_option
+            and not membership.inherit_option
+            and not membership.set_option
+       ) as admin_owner_member_count,
+       (
+         select count(*)::int
+           from pg_catalog.pg_auth_members membership
+          where membership.roleid = identity_admin.oid
+            and not (
+              (
+                membership.member = login.oid
+                and not membership.admin_option
+                and membership.inherit_option
+                and membership.set_option
+              )
+              or (
+                membership.member = (
+                  select relation.relowner
+                    from pg_catalog.pg_class relation
+                    join pg_catalog.pg_namespace namespace on namespace.oid = relation.relnamespace
+                   where namespace.nspname = 'public'
+                     and relation.relname in ('profiles', 'identity_bindings')
+                   limit 1
+                )
+                and membership.admin_option
+                and not membership.inherit_option
+                and not membership.set_option
+              )
+            )
+       ) as admin_unexpected_member_count
      from pg_catalog.pg_roles login
      join pg_catalog.pg_roles identity_admin
        on identity_admin.rolname = 'vk_identity_admin'
@@ -547,6 +611,7 @@ export function validateIdentityAdministrationPrivileges(privileges) {
     || !booleanPrivilege(privileges?.touch_function_execute)
     || numericCount(privileges?.unsafe_other_table_privilege_count) !== 0
     || numericCount(privileges?.unsafe_sequence_privilege_count) !== 0
+    || numericCount(privileges?.unsafe_other_function_privilege_count) !== 0
   ) {
     throw new SafeCliError(
       "Die dedizierte Identity-Administrationsrolle besitzt nicht exakt die freigegebenen Minimalrechte."
@@ -641,7 +706,15 @@ export async function executeIdentityBindingTransaction({
                 or has_sequence_privilege(current_user, sequence_relation.oid, 'SELECT')
                 or has_sequence_privilege(current_user, sequence_relation.oid, 'UPDATE')
               )
-         ) as unsafe_sequence_privilege_count`
+         ) as unsafe_sequence_privilege_count,
+         (
+           select count(*)::int
+             from pg_catalog.pg_proc routine
+             join pg_catalog.pg_namespace namespace on namespace.oid = routine.pronamespace
+            where namespace.nspname = 'public'
+              and routine.oid <> 'public.pre_gematik_touch_updated_at()'::pg_catalog.regprocedure
+              and has_function_privilege(current_user, routine.oid, 'EXECUTE')
+         ) as unsafe_other_function_privilege_count`
     );
     validateIdentityAdministrationPrivileges(privilegeResult.rows[0]);
 

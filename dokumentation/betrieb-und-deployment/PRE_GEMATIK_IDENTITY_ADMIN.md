@@ -28,9 +28,13 @@ Der engste vorbereitete Weg ist:
 
 Die Rolle besitzt kein Login, keine Rollen- oder Datenbankverwaltung, kein
 `CREATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER`, keine Sequenzrechte und
-keine Rechte auf andere Fachtabellen. Das Provisionierungswerkzeug prüft diese
-Grenze bei jedem Preview und Apply erneut und reduziert die Transaktion mit
-`SET LOCAL ROLE vk_identity_admin` auf genau diese Rechte.
+keine Rechte auf andere Fachtabellen. Cloud SQL vergibt die einzige Login-
+Mitgliedschaft mit `ADMIN FALSE`, `INHERIT TRUE` und `SET TRUE`; dadurch gelten
+bereits vor dem Rollenwechsel ausschließlich dieselben Minimalrechte. Das
+Provisionierungswerkzeug prüft diese Grenze bei jedem Preview und Apply erneut
+und setzt `SET LOCAL ROLE vk_identity_admin`, damit `current_user` und der
+Audit-/Privilegkontext während der Transaktion eindeutig die Minimalrolle
+ausweisen. Der Rollenwechsel erweitert die Rechte nicht.
 
 ## Warum dieser Weg
 
@@ -49,8 +53,13 @@ Grenze bei jedem Preview und Apply erneut und reduziert die Transaktion mit
 
 Der einmalige Rollen-Bootstrap läuft zwar als Objekt-Owner, enthält aber keine
 Identity-Werte, Passwörter oder Fachdaten. Er ist statisch, hashbar, reviewbar
-und bricht ab, wenn die Rolle bereits Mitglieder, Elternrollen, unsichere
-Attribute oder Objektbesitz hat.
+und bricht ab, wenn die Rolle unerwartete Mitglieder, Elternrollen, unsichere
+Attribute oder Objektbesitz hat. PostgreSQL 16 hinterlegt beim Anlegen durch
+einen Nicht-Superuser mit `CREATEROLE` automatisch genau eine administrative
+Creator-Mitgliedschaft. Der Vertrag erlaubt sie ausschließlich für den
+geprüften Objekt-Owner, mit `ADMIN OPTION`, aber ausdrücklich ohne `SET` und
+ohne `INHERIT`. Dadurch kann der Owner die Rolle nicht annehmen; seine bereits
+bestehenden Owner-Rechte werden nicht erweitert.
 
 Der passwortlose Bootstrap über `gcloud sql import sql --user=postgres` folgt
 dem dokumentierten Cloud-SQL-Importpfad für SQL-Anweisungen, die von einem
@@ -139,10 +148,19 @@ select granted_role.rolname
   join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
   join pg_catalog.pg_roles member_role on member_role.oid = membership.member
  where member_role.rolname = 'vk_identity_admin';
+
+select member_role.rolname, membership.admin_option,
+       membership.inherit_option, membership.set_option
+  from pg_catalog.pg_auth_members membership
+  join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+  join pg_catalog.pg_roles member_role on member_role.oid = membership.member
+ where granted_role.rolname = 'vk_identity_admin';
 ```
 
 Erwartet ist genau eine `NOLOGIN`-/`NOINHERIT`-Rolle ohne Verwaltungsattribute
-und ohne Elternrolle. Die Grant-Prüfung in
+und ohne Elternrolle. Als Mitglied ist nur die sichere PostgreSQL-16-Creator-
+Mitgliedschaft des nachgewiesenen Objekt-Owners erlaubt (`ADMIN OPTION`,
+`INHERIT FALSE`, `SET FALSE`). Die Grant-Prüfung in
 `scripts/provision_iap_identity_bindings.mjs` ist zusätzlich verbindlich.
 
 Nach erfolgreicher Prüfung wird nur der exakt benannte temporäre Bucket samt
@@ -184,10 +202,14 @@ gcloud sql users assign-roles "$IDENTITY_OPERATOR_LOGIN" \
   --quiet
 ```
 
-Der zweite Befehl ist ein zusätzlicher fail-closed Abgleich: Es darf danach
-genau eine Mitgliedschaft geben, `vk_identity_admin`. Das Provisionierungswerkzeug
-lehnt den Login ab, wenn `postgres`, `cloudsqlsuperuser`, ein zweites Mitglied
-der Adminrolle oder ein gefährliches Rollenattribut vorhanden ist.
+Der zweite Befehl ist ein zusätzlicher fail-closed Abgleich: Der kurzlebige
+Login darf danach genau eine Mitgliedschaft besitzen, `vk_identity_admin`.
+Die Adminrolle selbst hat während des Laufs genau zwei Mitglieder: diesen Login
+und den verifizierten Objekt-Owner mit seiner nicht erbenden, nicht setzbaren
+Creator-Administration. Das Provisionierungswerkzeug lehnt den Login ab, wenn
+er Mitglied von `postgres` oder `cloudsqlsuperuser` ist, wenn ein drittes oder
+abweichendes Mitglied existiert oder ein gefährliches Rollenattribut vorhanden
+ist.
 
 ## 3. Preview und Apply im GKE-Migrationsoperator
 
@@ -255,7 +277,8 @@ erst danach über Fortsetzung oder Restore entscheiden.
 Nach bestandener Abnahme:
 
 1. exakt den kurzlebigen Cloud-SQL-Login löschen,
-2. read-only bestätigen, dass `vk_identity_admin` kein Mitglied mehr hat,
+2. read-only bestätigen, dass nur noch die sichere Creator-Mitgliedschaft des
+   verifizierten Objekt-Owners an `vk_identity_admin` besteht,
 3. exakt den Operator-Job und die beiden Operator-Secrets löschen,
 4. temporäre Workload-IAM-Bindungen und ServiceAccount/NetworkPolicy gemäß dem
    Migrationsoperator-Runbook entfernen,
@@ -265,9 +288,10 @@ Nach bestandener Abnahme:
 6. Fingerprints, Cloud-SQL-Operation, Backup-ID und Abnahmenachweis geschützt
    gemäß Aufbewahrungsentscheidung behalten.
 
-`vk_identity_admin` bleibt als gesperrte `NOLOGIN`-Rolle ohne Mitglied bestehen.
-Das vermeidet einen erneuten Owner-Bootstrap für eine spätere kontrollierte
-Deaktivierung und erweitert ohne zugeordneten Login keinen Zugriffsweg.
+`vk_identity_admin` bleibt als gesperrte `NOLOGIN`-Rolle mit ausschließlich der
+nicht erbenden und nicht setzbaren Owner-Administration bestehen. Das vermeidet
+einen erneuten Owner-Bootstrap für eine spätere kontrollierte Deaktivierung und
+erweitert ohne zugeordneten Login keinen fachlichen Zugriffsweg.
 
 ## Rollback
 
