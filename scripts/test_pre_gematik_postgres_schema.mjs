@@ -777,10 +777,18 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
           has_table_privilege(current_user, 'public.profiles', 'INSERT') as profile_insert,
           has_table_privilege(current_user, 'public.profiles', 'UPDATE') as profile_update,
           has_table_privilege(current_user, 'public.profiles', 'DELETE') as profile_delete,
+          has_any_column_privilege(current_user, 'public.profiles', 'INSERT') as profile_column_insert,
+          has_any_column_privilege(current_user, 'public.profiles', 'UPDATE') as profile_column_update,
+          has_any_column_privilege(current_user, 'public.profiles', 'REFERENCES') as profile_column_references,
           has_table_privilege(current_user, 'public.identity_bindings', 'SELECT') as binding_select,
           has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as binding_insert,
           has_table_privilege(current_user, 'public.identity_bindings', 'UPDATE') as binding_update,
           has_table_privilege(current_user, 'public.identity_bindings', 'DELETE') as binding_delete,
+          has_any_column_privilege(
+            current_user,
+            'public.identity_bindings',
+            'REFERENCES'
+          ) as binding_column_references,
           has_table_privilege(current_user, 'public.contacts', 'SELECT') as contacts_select,
           has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'USAGE') as sequence_usage,
           has_function_privilege(
@@ -797,10 +805,14 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
         profile_insert: false,
         profile_update: false,
         profile_delete: false,
+        profile_column_insert: false,
+        profile_column_update: false,
+        profile_column_references: false,
         binding_select: true,
         binding_insert: true,
         binding_update: true,
         binding_delete: false,
+        binding_column_references: false,
         contacts_select: false,
         sequence_usage: false,
         touch_function_execute: true

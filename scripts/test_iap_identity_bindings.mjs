@@ -180,6 +180,9 @@ const safeIdentityAdminPrivileges = Object.freeze({
   profile_truncate: false,
   profile_references: false,
   profile_trigger: false,
+  profile_column_insert: false,
+  profile_column_update: false,
+  profile_column_references: false,
   binding_select: true,
   binding_insert: true,
   binding_update: true,
@@ -187,6 +190,7 @@ const safeIdentityAdminPrivileges = Object.freeze({
   binding_truncate: false,
   binding_references: false,
   binding_trigger: false,
+  binding_column_references: false,
   touch_function_execute: true,
   unsafe_other_table_privilege_count: 0,
   unsafe_sequence_privilege_count: 0

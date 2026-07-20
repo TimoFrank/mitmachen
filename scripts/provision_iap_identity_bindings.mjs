@@ -514,6 +514,9 @@ export function validateIdentityAdministrationPrivileges(privileges) {
     || booleanPrivilege(privileges?.profile_truncate)
     || booleanPrivilege(privileges?.profile_references)
     || booleanPrivilege(privileges?.profile_trigger)
+    || booleanPrivilege(privileges?.profile_column_insert)
+    || booleanPrivilege(privileges?.profile_column_update)
+    || booleanPrivilege(privileges?.profile_column_references)
     || !booleanPrivilege(privileges?.binding_select)
     || !booleanPrivilege(privileges?.binding_insert)
     || !booleanPrivilege(privileges?.binding_update)
@@ -521,6 +524,7 @@ export function validateIdentityAdministrationPrivileges(privileges) {
     || booleanPrivilege(privileges?.binding_truncate)
     || booleanPrivilege(privileges?.binding_references)
     || booleanPrivilege(privileges?.binding_trigger)
+    || booleanPrivilege(privileges?.binding_column_references)
     || !booleanPrivilege(privileges?.touch_function_execute)
     || numericCount(privileges?.unsafe_other_table_privilege_count) !== 0
     || numericCount(privileges?.unsafe_sequence_privilege_count) !== 0
@@ -566,6 +570,9 @@ export async function executeIdentityBindingTransaction({
          has_table_privilege(current_user, 'public.profiles', 'TRUNCATE') as profile_truncate,
          has_table_privilege(current_user, 'public.profiles', 'REFERENCES') as profile_references,
          has_table_privilege(current_user, 'public.profiles', 'TRIGGER') as profile_trigger,
+         has_any_column_privilege(current_user, 'public.profiles', 'INSERT') as profile_column_insert,
+         has_any_column_privilege(current_user, 'public.profiles', 'UPDATE') as profile_column_update,
+         has_any_column_privilege(current_user, 'public.profiles', 'REFERENCES') as profile_column_references,
          has_table_privilege(current_user, 'public.identity_bindings', 'SELECT') as binding_select,
          has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as binding_insert,
          has_table_privilege(current_user, 'public.identity_bindings', 'UPDATE') as binding_update,
@@ -573,6 +580,11 @@ export async function executeIdentityBindingTransaction({
          has_table_privilege(current_user, 'public.identity_bindings', 'TRUNCATE') as binding_truncate,
          has_table_privilege(current_user, 'public.identity_bindings', 'REFERENCES') as binding_references,
          has_table_privilege(current_user, 'public.identity_bindings', 'TRIGGER') as binding_trigger,
+         has_any_column_privilege(
+           current_user,
+           'public.identity_bindings',
+           'REFERENCES'
+         ) as binding_column_references,
          has_function_privilege(
            current_user,
            'public.pre_gematik_touch_updated_at()',
@@ -593,6 +605,10 @@ export async function executeIdentityBindingTransaction({
                 or has_table_privilege(current_user, relation.oid, 'TRUNCATE')
                 or has_table_privilege(current_user, relation.oid, 'REFERENCES')
                 or has_table_privilege(current_user, relation.oid, 'TRIGGER')
+                or has_any_column_privilege(current_user, relation.oid, 'SELECT')
+                or has_any_column_privilege(current_user, relation.oid, 'INSERT')
+                or has_any_column_privilege(current_user, relation.oid, 'UPDATE')
+                or has_any_column_privilege(current_user, relation.oid, 'REFERENCES')
               )
          ) as unsafe_other_table_privilege_count,
          (

@@ -154,6 +154,9 @@ begin
      or has_table_privilege('vk_identity_admin', 'public.profiles', 'TRUNCATE')
      or has_table_privilege('vk_identity_admin', 'public.profiles', 'REFERENCES')
      or has_table_privilege('vk_identity_admin', 'public.profiles', 'TRIGGER')
+     or has_any_column_privilege('vk_identity_admin', 'public.profiles', 'INSERT')
+     or has_any_column_privilege('vk_identity_admin', 'public.profiles', 'UPDATE')
+     or has_any_column_privilege('vk_identity_admin', 'public.profiles', 'REFERENCES')
      or not has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'SELECT')
      or not has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'INSERT')
      or not has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'UPDATE')
@@ -161,6 +164,7 @@ begin
      or has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'TRUNCATE')
      or has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'REFERENCES')
      or has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'TRIGGER')
+     or has_any_column_privilege('vk_identity_admin', 'public.identity_bindings', 'REFERENCES')
      or not has_function_privilege(
        'vk_identity_admin',
        'public.pre_gematik_touch_updated_at()',
@@ -184,6 +188,10 @@ begin
        or has_table_privilege('vk_identity_admin', relation.oid, 'TRUNCATE')
        or has_table_privilege('vk_identity_admin', relation.oid, 'REFERENCES')
        or has_table_privilege('vk_identity_admin', relation.oid, 'TRIGGER')
+       or has_any_column_privilege('vk_identity_admin', relation.oid, 'SELECT')
+       or has_any_column_privilege('vk_identity_admin', relation.oid, 'INSERT')
+       or has_any_column_privilege('vk_identity_admin', relation.oid, 'UPDATE')
+       or has_any_column_privilege('vk_identity_admin', relation.oid, 'REFERENCES')
      );
 
   select count(*)
