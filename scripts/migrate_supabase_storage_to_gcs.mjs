@@ -6,7 +6,9 @@ import {
   constants as fsConstants,
   fstatSync,
   fsyncSync,
+  lstatSync,
   openSync,
+  readFileSync,
   realpathSync,
   statSync,
   writeSync,
@@ -19,6 +21,8 @@ import { checkPreGematikMigrationGcp } from "./check_pre_gematik_migration_gcp.m
 
 export const OPERATION_CONFIRMATION = "MIGRATE_ALLOWLISTED_SUPABASE_STORAGE_TO_GCS";
 export const PROTECTED_SOURCE_BUCKET = "protected-source-assets";
+export const STORAGE_MANIFEST_SCHEMA = "versorgungs-kompass-storage-manifest-v2";
+export const LOGO_REMEDIATION_SCHEMA = "versorgungs-kompass-logo-remediation-v1";
 
 const LIST_PAGE_SIZE = 1000;
 const MAX_OBJECTS = 100_000;
@@ -29,12 +33,30 @@ const BACKUP_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{2,255}$/u;
 const GCS_BUCKET_PATTERN = /^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/u;
 const OBJECT_PATH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,1023}$/u;
 const HASH_METADATA_KEY = "versorgungs-kompass-sha256";
+const REMEDIATION_METADATA_KEY = "versorgungs-kompass-remediation";
+const REMEDIATION_SOURCE_HASH_METADATA_KEY = "versorgungs-kompass-source-sha256";
 const SOURCE_PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,62}$/u;
 const TARGET_PROJECT_ID_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u;
 const NON_NEGATIVE_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/u;
 const GCP_RESOURCE_NAME_PATTERN = /^[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?$/u;
 const STANDARD_W3C_SVG_DOCTYPE_PATTERN = /^<!DOCTYPE\s+svg\s+PUBLIC\s+["']-\/\/W3C\/\/DTD SVG (?:1\.0|1\.1)\/\/EN["']\s+["']https?:\/\/www\.w3\.org\/Graphics\/SVG\/(?:1\.0\/DTD\/svg10|1\.1\/DTD\/svg11)\.dtd["']\s*>/iu;
 const PROJECT_ROOT = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
+const MAX_LOGO_REMEDIATION_MANIFEST_BYTES = 1024 * 1024;
+const LOGO_REMEDIATION_STRATEGY = "private-target-only-same-logical-path-rasterized-png";
+const LOGO_REMEDIATION_RENDERER = "@resvg/resvg-js";
+const LOGO_REMEDIATION_RENDERER_VERSION = "2.6.2";
+const LOGO_REMEDIATION_RENDERER_INTEGRITY = "sha512-xBaJish5OeGmniDj9cW5PRa/PtmuVU3ziqrbr5xJj901ZDN4TosrVaNZpEiLZAxdfnhAe7uQ7QFWfjPe9d9K2Q==";
+const LOGO_REMEDIATION_NATIVE_PACKAGE = "@resvg/resvg-js-darwin-arm64";
+const LOGO_REMEDIATION_NATIVE_INTEGRITY = "sha512-nmok2LnAd6nLUKI16aEB9ydMC6Lidiiq2m1nEBDR1LaaP7FGs4AJ90qDraxX+CWlVuRlvNjyYJTNv8qFjtL9+A==";
+const LOGO_REMEDIATION_MAX_DIMENSION = 2048;
+const LOGO_REMEDIATION_MAX_BYTES = 2 * 1024 * 1024;
+const LOGO_REMEDIATION_REASONS = new Set([
+  "png-dimensions-exceeded",
+  "png-structure-invalid",
+  "svg-doctype-internal-subset",
+  "svg-embedded-raster-data",
+  "xml-non-svg"
+]);
 
 const SOURCE_BUCKET_POLICIES = Object.freeze({
   "profile-images": Object.freeze({
@@ -297,7 +319,9 @@ export function parseStorageMigrationArguments(argv) {
     confirmOperation: "",
     confirmQuarantinedObjectCount: "",
     manifestOutput: "",
-    recoveryJournal: ""
+    recoveryJournal: "",
+    logoRemediationManifest: "",
+    logoRemediationObjectDirectory: ""
   };
   const valueOptions = new Map([
     ["--confirm-source-project", "confirmSourceProject"],
@@ -307,7 +331,9 @@ export function parseStorageMigrationArguments(argv) {
     ["--confirm-operation", "confirmOperation"],
     ["--confirm-quarantined-object-count", "confirmQuarantinedObjectCount"],
     ["--manifest-output", "manifestOutput"],
-    ["--recovery-journal", "recoveryJournal"]
+    ["--recovery-journal", "recoveryJournal"],
+    ["--logo-remediation-manifest", "logoRemediationManifest"],
+    ["--logo-remediation-object-directory", "logoRemediationObjectDirectory"]
   ]);
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -367,6 +393,318 @@ export function validateApplyConfirmations(options, config = null) {
 function isPathInside(candidate, parent) {
   const relative = path.relative(parent, candidate);
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function assertExactObjectKeys(value, expectedKeys, code) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new StorageMigrationSafetyError("The logo remediation manifest is malformed.", code);
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new StorageMigrationSafetyError("The logo remediation manifest is malformed.", code);
+  }
+}
+
+function currentUserOwns(fileStat) {
+  return typeof process.getuid !== "function" || fileStat.uid === process.getuid();
+}
+
+function readOwnerOnlyRegularFile(filePath, maximumBytes, code) {
+  let descriptor;
+  try {
+    const unresolved = path.resolve(filePath);
+    const linkStat = lstatSync(unresolved);
+    if (linkStat.isSymbolicLink() || !linkStat.isFile()) throw new Error("unsafe-file");
+    const realPath = realpathSync(unresolved);
+    if (isPathInside(realPath, PROJECT_ROOT)) throw new Error("inside-repository");
+    descriptor = openSync(
+      realPath,
+      fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW || 0)
+    );
+    const fileStat = fstatSync(descriptor);
+    if (
+      !fileStat.isFile()
+      || (fileStat.mode & 0o777) !== 0o600
+      || !currentUserOwns(fileStat)
+      || fileStat.size < 1
+      || fileStat.size > maximumBytes
+    ) throw new Error("unsafe-file-contract");
+    return Object.freeze({ realPath, buffer: readFileSync(descriptor) });
+  } catch {
+    throw new StorageMigrationSafetyError(
+      "A protected logo remediation input is not an owner-only regular file outside the repository.",
+      code
+    );
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+export function validateLogoRemediationInputPaths(manifestPath, objectDirectory) {
+  if (
+    typeof manifestPath !== "string"
+    || !path.isAbsolute(manifestPath)
+    || typeof objectDirectory !== "string"
+    || !path.isAbsolute(objectDirectory)
+  ) {
+    throw new StorageMigrationSafetyError(
+      "Logo remediation inputs require absolute protected paths.",
+      "LOGO_REMEDIATION_PATH_INVALID"
+    );
+  }
+  let realDirectory;
+  try {
+    const unresolvedDirectory = path.resolve(objectDirectory);
+    const directoryLinkStat = lstatSync(unresolvedDirectory);
+    if (directoryLinkStat.isSymbolicLink() || !directoryLinkStat.isDirectory()) {
+      throw new Error("unsafe-directory");
+    }
+    realDirectory = realpathSync(unresolvedDirectory);
+    const directoryStat = statSync(realDirectory);
+    if (
+      isPathInside(realDirectory, PROJECT_ROOT)
+      || !currentUserOwns(directoryStat)
+      || (directoryStat.mode & 0o022) !== 0
+    ) throw new Error("unsafe-directory-contract");
+  } catch {
+    throw new StorageMigrationSafetyError(
+      "The protected logo remediation object directory is invalid.",
+      "LOGO_REMEDIATION_DIRECTORY_INVALID"
+    );
+  }
+  const manifest = readOwnerOnlyRegularFile(
+    manifestPath,
+    MAX_LOGO_REMEDIATION_MANIFEST_BYTES,
+    "LOGO_REMEDIATION_MANIFEST_FILE_INVALID"
+  );
+  return Object.freeze({
+    manifestPath: manifest.realPath,
+    manifestBuffer: manifest.buffer,
+    objectDirectory: realDirectory
+  });
+}
+
+function logoRemediationPayload(manifest) {
+  return {
+    schemaVersion: manifest.schemaVersion,
+    sourceProject: manifest.sourceProject,
+    targetProject: manifest.targetProject,
+    projectPairFingerprint: manifest.projectPairFingerprint,
+    sourceStorageSnapshotFingerprint: manifest.sourceStorageSnapshotFingerprint,
+    toolReceipt: manifest.toolReceipt,
+    strategy: manifest.strategy,
+    remediatedObjectCount: manifest.remediatedObjectCount,
+    entries: manifest.entries
+  };
+}
+
+export function loadVerifiedLogoRemediationBundle({
+  manifestPath,
+  objectDirectory,
+  config,
+  sourceStorageSnapshotFingerprint
+}) {
+  const paths = validateLogoRemediationInputPaths(manifestPath, objectDirectory);
+  let manifest;
+  try {
+    manifest = JSON.parse(paths.manifestBuffer.toString("utf8"));
+  } catch {
+    throw new StorageMigrationSafetyError(
+      "The protected logo remediation manifest is not valid JSON.",
+      "LOGO_REMEDIATION_MANIFEST_JSON_INVALID"
+    );
+  }
+  assertExactObjectKeys(manifest, [
+    "schemaVersion",
+    "sourceProject",
+    "targetProject",
+    "projectPairFingerprint",
+    "sourceStorageSnapshotFingerprint",
+    "toolReceipt",
+    "strategy",
+    "remediatedObjectCount",
+    "entries",
+    "remediationFingerprint"
+  ], "LOGO_REMEDIATION_MANIFEST_STRUCTURE_INVALID");
+  assertExactObjectKeys(manifest.toolReceipt, [
+    "renderer",
+    "version",
+    "packageIntegrity",
+    "nativePackage",
+    "nativeVersion",
+    "nativePackageIntegrity",
+    "loadSystemFonts",
+    "maxOutputDimension",
+    "maxOutputBytes"
+  ], "LOGO_REMEDIATION_TOOL_RECEIPT_INVALID");
+  if (
+    manifest.schemaVersion !== LOGO_REMEDIATION_SCHEMA
+    || manifest.strategy !== LOGO_REMEDIATION_STRATEGY
+    || manifest.sourceProject !== config.expectedSourceProjectId
+    || manifest.targetProject !== config.expectedTargetProjectId
+    || manifest.projectPairFingerprint !== config.expectedProjectPairFingerprint
+    || manifest.sourceStorageSnapshotFingerprint !== sourceStorageSnapshotFingerprint
+    || !SHA256_PATTERN.test(manifest.sourceStorageSnapshotFingerprint || "")
+  ) {
+    throw new StorageMigrationSafetyError(
+      "The logo remediation manifest is not bound to the current approved source snapshot and target.",
+      "LOGO_REMEDIATION_ENVIRONMENT_MISMATCH"
+    );
+  }
+  const receipt = manifest.toolReceipt;
+  if (
+    receipt.renderer !== LOGO_REMEDIATION_RENDERER
+    || receipt.version !== LOGO_REMEDIATION_RENDERER_VERSION
+    || receipt.packageIntegrity !== LOGO_REMEDIATION_RENDERER_INTEGRITY
+    || receipt.nativePackage !== LOGO_REMEDIATION_NATIVE_PACKAGE
+    || receipt.nativeVersion !== LOGO_REMEDIATION_RENDERER_VERSION
+    || receipt.nativePackageIntegrity !== LOGO_REMEDIATION_NATIVE_INTEGRITY
+    || receipt.loadSystemFonts !== false
+    || receipt.maxOutputDimension !== LOGO_REMEDIATION_MAX_DIMENSION
+    || receipt.maxOutputBytes !== LOGO_REMEDIATION_MAX_BYTES
+  ) {
+    throw new StorageMigrationSafetyError(
+      "The logo remediation renderer receipt is not the approved pinned contract.",
+      "LOGO_REMEDIATION_TOOL_RECEIPT_INVALID"
+    );
+  }
+  if (
+    !Array.isArray(manifest.entries)
+    || !Number.isSafeInteger(manifest.remediatedObjectCount)
+    || manifest.remediatedObjectCount < 1
+    || manifest.remediatedObjectCount > MAX_OBJECTS
+    || manifest.entries.length !== manifest.remediatedObjectCount
+  ) {
+    throw new StorageMigrationSafetyError(
+      "The logo remediation manifest count is invalid.",
+      "LOGO_REMEDIATION_COUNT_INVALID"
+    );
+  }
+  const calculatedFingerprint = `sha256:${crypto.createHash("sha256")
+    .update(JSON.stringify(logoRemediationPayload(manifest)))
+    .digest("hex")}`;
+  if (
+    !SHA256_PATTERN.test(manifest.remediationFingerprint || "")
+    || !crypto.timingSafeEqual(
+      Buffer.from(calculatedFingerprint),
+      Buffer.from(manifest.remediationFingerprint)
+    )
+  ) {
+    throw new StorageMigrationSafetyError(
+      "The logo remediation manifest fingerprint is invalid.",
+      "LOGO_REMEDIATION_FINGERPRINT_INVALID"
+    );
+  }
+
+  const sourceKeys = new Set();
+  const targetKeys = new Set();
+  const outputFiles = new Set();
+  const entries = [];
+  for (const entry of manifest.entries) {
+    assertExactObjectKeys(entry, [
+      "sourceRef",
+      "sourceSha256",
+      "sourceSize",
+      "sourceMimeType",
+      "quarantineReason",
+      "targetObject",
+      "outputFile",
+      "outputSha256",
+      "outputSize",
+      "outputMimeType",
+      "width",
+      "height"
+    ], "LOGO_REMEDIATION_ENTRY_INVALID");
+    assertExactObjectKeys(entry.sourceRef, ["bucket", "object"], "LOGO_REMEDIATION_ENTRY_INVALID");
+    assertExactObjectKeys(entry.targetObject, ["bucket", "object"], "LOGO_REMEDIATION_ENTRY_INVALID");
+    assertSafeObjectPath(entry.sourceRef.object);
+    assertSafeObjectPath(entry.targetObject.object);
+    const sourceKey = `${entry.sourceRef.bucket}\u0000${entry.sourceRef.object}`;
+    const targetKey = `${entry.targetObject.bucket}\u0000${entry.targetObject.object}`;
+    if (
+      entry.sourceRef.bucket !== "stakeholder-logos"
+      || entry.targetObject.bucket !== config.targetBuckets["stakeholder-logos"]
+      || entry.targetObject.object !== migrationTargetObjectName(
+        entry.sourceRef.bucket,
+        entry.sourceRef.object
+      )
+      || !SHA256_PATTERN.test(entry.sourceSha256 || "")
+      || !SHA256_PATTERN.test(entry.outputSha256 || "")
+      || !Number.isSafeInteger(entry.sourceSize)
+      || entry.sourceSize < 1
+      || entry.sourceSize > SOURCE_BUCKET_POLICIES["stakeholder-logos"].maxBytes
+      || !SOURCE_BUCKET_POLICIES["stakeholder-logos"].mimeTypes.includes(entry.sourceMimeType)
+      || !LOGO_REMEDIATION_REASONS.has(entry.quarantineReason)
+      || typeof entry.outputFile !== "string"
+      || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,200}\.png$/u.test(entry.outputFile)
+      || entry.outputMimeType !== "image/png"
+      || !Number.isSafeInteger(entry.outputSize)
+      || entry.outputSize < 1
+      || entry.outputSize > LOGO_REMEDIATION_MAX_BYTES
+      || !Number.isSafeInteger(entry.width)
+      || !Number.isSafeInteger(entry.height)
+      || entry.width < 1
+      || entry.height < 1
+      || entry.width > LOGO_REMEDIATION_MAX_DIMENSION
+      || entry.height > LOGO_REMEDIATION_MAX_DIMENSION
+      || sourceKeys.has(sourceKey)
+      || targetKeys.has(targetKey)
+      || outputFiles.has(entry.outputFile)
+    ) {
+      throw new StorageMigrationSafetyError(
+        "A logo remediation entry violates the exact source-to-private-target contract.",
+        "LOGO_REMEDIATION_ENTRY_INVALID"
+      );
+    }
+    const unresolvedOutput = path.join(paths.objectDirectory, entry.outputFile);
+    if (path.dirname(unresolvedOutput) !== paths.objectDirectory) {
+      throw new StorageMigrationSafetyError(
+        "A logo remediation output path is invalid.",
+        "LOGO_REMEDIATION_OUTPUT_FILE_INVALID"
+      );
+    }
+    const output = readOwnerOnlyRegularFile(
+      unresolvedOutput,
+      LOGO_REMEDIATION_MAX_BYTES,
+      "LOGO_REMEDIATION_OUTPUT_FILE_INVALID"
+    );
+    if (!isPathInside(output.realPath, paths.objectDirectory)) {
+      throw new StorageMigrationSafetyError(
+        "A logo remediation output escapes its protected directory.",
+        "LOGO_REMEDIATION_OUTPUT_FILE_INVALID"
+      );
+    }
+    const outputHash = `sha256:${crypto.createHash("sha256").update(output.buffer).digest("hex")}`;
+    const outputMetadata = pngImageMetadata(output.buffer);
+    const outputContract = contentMatchesMimeType(output.buffer, "image/png");
+    if (
+      outputHash !== entry.outputSha256
+      || output.buffer.length !== entry.outputSize
+      || !outputContract.valid
+      || !outputMetadata
+      || outputMetadata.width !== entry.width
+      || outputMetadata.height !== entry.height
+      || outputMetadata.width > LOGO_REMEDIATION_MAX_DIMENSION
+      || outputMetadata.height > LOGO_REMEDIATION_MAX_DIMENSION
+    ) {
+      throw new StorageMigrationSafetyError(
+        "A logo remediation output failed its pinned content contract.",
+        "LOGO_REMEDIATION_OUTPUT_CONTRACT_INVALID"
+      );
+    }
+    sourceKeys.add(sourceKey);
+    targetKeys.add(targetKey);
+    outputFiles.add(entry.outputFile);
+    entries.push(Object.freeze({ ...entry, buffer: output.buffer }));
+  }
+  return Object.freeze({
+    ...manifest,
+    entries: Object.freeze(entries),
+    remediationFingerprint: calculatedFingerprint,
+    manifestPathVerified: true,
+    objectDirectoryVerified: true
+  });
 }
 
 export function validateManifestOutputPath(value) {
@@ -1230,7 +1568,118 @@ export async function collectSourceStorageSnapshot({ fetchImpl, config, sourceRe
   });
 }
 
-export function storageSnapshotFingerprint(snapshot, targetBuckets, quarantined = []) {
+function summarizeQuarantinedObjects(quarantined) {
+  const aggregates = new Map();
+  for (const object of quarantined) {
+    const key = `${object.sourceBucket}\u0000${object.mimeType}\u0000${object.signatureClass}`;
+    const aggregate = aggregates.get(key) || {
+      sourceBucket: object.sourceBucket,
+      mimeType: object.mimeType,
+      signatureClass: object.signatureClass,
+      count: 0
+    };
+    aggregate.count += 1;
+    aggregates.set(key, aggregate);
+  }
+  return Object.freeze([...aggregates.values()]
+    .sort((left, right) => (
+      left.sourceBucket.localeCompare(right.sourceBucket)
+      || left.mimeType.localeCompare(right.mimeType)
+      || left.signatureClass.localeCompare(right.signatureClass)
+    ))
+    .map((aggregate) => Object.freeze({ ...aggregate })));
+}
+
+export function applyLogoRemediationBundle({ sourceSnapshot, bundle, sourceReferences }) {
+  if (!bundle) {
+    return Object.freeze({
+      sourceSnapshot,
+      snapshot: sourceSnapshot.objects,
+      remediated: Object.freeze([]),
+      remediationManifestFingerprint: null
+    });
+  }
+  if (!(sourceReferences instanceof Set)) {
+    throw new StorageMigrationSafetyError(
+      "Logo remediation requires the immutable database-reference snapshot.",
+      "LOGO_REMEDIATION_REFERENCES_REQUIRED"
+    );
+  }
+  const quarantinedBySource = new Map(sourceSnapshot.quarantined.map((object) => [
+    `${object.sourceBucket}\u0000${object.name}`,
+    object
+  ]));
+  const remediatedSourceKeys = new Set();
+  const remediated = [];
+  for (const entry of bundle.entries) {
+    const sourceKey = `${entry.sourceRef.bucket}\u0000${entry.sourceRef.object}`;
+    const source = quarantinedBySource.get(sourceKey);
+    if (
+      !source
+      || !sourceReferences.has(sourceKey)
+      || `sha256:${source.sha256}` !== entry.sourceSha256
+      || source.size !== entry.sourceSize
+      || source.mimeType !== entry.sourceMimeType
+      || source.signatureClass !== entry.quarantineReason
+    ) {
+      throw new StorageMigrationSafetyError(
+        "A logo remediation no longer matches the current referenced quarantined source object.",
+        "LOGO_REMEDIATION_SOURCE_MISMATCH"
+      );
+    }
+    remediatedSourceKeys.add(sourceKey);
+    remediated.push(Object.freeze({
+      ...source,
+      size: entry.outputSize,
+      mimeType: entry.outputMimeType,
+      targetMimeType: entry.outputMimeType,
+      buffer: entry.buffer,
+      sha256: entry.outputSha256.slice("sha256:".length),
+      remediation: Object.freeze({
+        manifestFingerprint: bundle.remediationFingerprint,
+        sourceSha256: entry.sourceSha256,
+        sourceSize: entry.sourceSize,
+        sourceMimeType: entry.sourceMimeType,
+        quarantineReason: entry.quarantineReason
+      })
+    }));
+  }
+  const remainingQuarantined = sourceSnapshot.quarantined.filter((object) => (
+    !remediatedSourceKeys.has(`${object.sourceBucket}\u0000${object.name}`)
+  ));
+  if (remainingQuarantined.some((object) => (
+    sourceReferences.has(`${object.sourceBucket}\u0000${object.name}`)
+  ))) {
+    throw new StorageMigrationSafetyError(
+      "A database-referenced quarantined object remains without an approved remediation.",
+      "REFERENCED_QUARANTINE_REMAINS"
+    );
+  }
+  const snapshot = [...sourceSnapshot.objects, ...remediated]
+    .sort((left, right) => (
+      left.sourceBucket.localeCompare(right.sourceBucket) || left.name.localeCompare(right.name)
+    ));
+  const effectiveSourceSnapshot = Object.freeze({
+    ...sourceSnapshot,
+    objects: Object.freeze(snapshot),
+    quarantined: Object.freeze(remainingQuarantined),
+    quarantineSummary: summarizeQuarantinedObjects(remainingQuarantined),
+    remediated: Object.freeze(remediated)
+  });
+  return Object.freeze({
+    sourceSnapshot: effectiveSourceSnapshot,
+    snapshot: effectiveSourceSnapshot.objects,
+    remediated: effectiveSourceSnapshot.remediated,
+    remediationManifestFingerprint: bundle.remediationFingerprint
+  });
+}
+
+export function storageSnapshotFingerprint(
+  snapshot,
+  targetBuckets,
+  quarantined = [],
+  remediationManifestFingerprint = null
+) {
   const targetKeys = new Set();
   const canonical = snapshot.map((object) => {
     const mappedName = migrationTargetObjectName(object.sourceBucket, object.name);
@@ -1249,7 +1698,8 @@ export function storageSnapshotFingerprint(snapshot, targetBuckets, quarantined 
       targetName: mappedName,
       size: object.size,
       mimeType: object.targetMimeType,
-      sha256: object.sha256
+      sha256: object.sha256,
+      ...(object.remediation ? { remediation: object.remediation } : {})
     };
   });
   const canonicalQuarantine = quarantined.map((object) => ({
@@ -1261,11 +1711,19 @@ export function storageSnapshotFingerprint(snapshot, targetBuckets, quarantined 
     signatureClass: object.signatureClass,
     sha256: object.sha256
   }));
-  return `sha256:${crypto.createHash("sha256").update(JSON.stringify({
-    schemaVersion: 2,
-    migratable: canonical,
-    quarantined: canonicalQuarantine
-  })).digest("hex")}`;
+  const payload = remediationManifestFingerprint
+    ? {
+      schemaVersion: 3,
+      remediationManifestFingerprint,
+      migratable: canonical,
+      quarantined: canonicalQuarantine
+    }
+    : {
+      schemaVersion: 2,
+      migratable: canonical,
+      quarantined: canonicalQuarantine
+    };
+  return `sha256:${crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex")}`;
 }
 
 function expectedBucketRole(sourceBucket) {
@@ -1423,6 +1881,17 @@ async function inspectTargetObject(fetchImpl, config, object) {
   if (recordedHash !== undefined && recordedHash !== object.sha256) {
     throw new StorageMigrationSafetyError("A target object has conflicting migration metadata.", "TARGET_HASH_METADATA_CONFLICT");
   }
+  if (object.remediation) {
+    if (
+      metadata.metadata?.[REMEDIATION_METADATA_KEY] !== object.remediation.manifestFingerprint
+      || metadata.metadata?.[REMEDIATION_SOURCE_HASH_METADATA_KEY] !== object.remediation.sourceSha256
+    ) {
+      throw new StorageMigrationSafetyError(
+        "A remediated target object is missing its exact protected transformation receipt.",
+        "TARGET_REMEDIATION_METADATA_CONFLICT"
+      );
+    }
+  }
   return Object.freeze({ state: "identical", object });
 }
 
@@ -1446,7 +1915,11 @@ function multipartUploadBody(object) {
     cacheControl: "private, no-store",
     metadata: {
       [HASH_METADATA_KEY]: object.sha256,
-      "versorgungs-kompass-migration": "supabase-storage-v1"
+      "versorgungs-kompass-migration": "supabase-storage-v2",
+      ...(object.remediation ? {
+        [REMEDIATION_METADATA_KEY]: object.remediation.manifestFingerprint,
+        [REMEDIATION_SOURCE_HASH_METADATA_KEY]: object.remediation.sourceSha256
+      } : {})
     }
   }), "utf8");
   const body = Buffer.concat([
@@ -1523,8 +1996,22 @@ export function buildStorageMigrationManifest({
   config,
   plan,
   targetStatuses,
-  snapshotFingerprint
+  snapshotFingerprint,
+  remediationManifestFingerprint = null,
+  remediatedObjectCount = 0
 }) {
+  if (
+    !Number.isSafeInteger(remediatedObjectCount)
+    || remediatedObjectCount < 0
+    || remediatedObjectCount > snapshot.length
+    || (remediatedObjectCount === 0 && remediationManifestFingerprint !== null)
+    || (remediatedObjectCount > 0 && !SHA256_PATTERN.test(remediationManifestFingerprint || ""))
+  ) {
+    throw new StorageMigrationSafetyError(
+      "The storage manifest remediation receipt is inconsistent.",
+      "MANIFEST_REMEDIATION_INVALID"
+    );
+  }
   const planStatus = new Map([
     ...plan.missing.map((object) => [sourceObjectKey(object), "planned-create"]),
     ...plan.identical.map((object) => [sourceObjectKey(object), "verified-identical"])
@@ -1561,22 +2048,34 @@ export function buildStorageMigrationManifest({
     throw new StorageMigrationSafetyError("A manifest entry is missing target status.", "MANIFEST_STATUS_INVALID");
   }
   const payload = Object.freeze({
-    schemaVersion: "versorgungs-kompass-storage-manifest-v1",
+    schemaVersion: STORAGE_MANIFEST_SCHEMA,
     mode: apply ? "apply" : "preview",
     sourceProject: config.expectedSourceProjectId,
     targetProject: config.expectedTargetProjectId,
     projectPairFingerprint: config.expectedProjectPairFingerprint,
     snapshotFingerprint,
+    remediationManifestFingerprint,
     sourceObjectCount: sourceSnapshot.sourceObjectCount,
     migratableObjectCount: snapshot.length,
     quarantinedObjectCount: sourceSnapshot.quarantined.length,
+    remediatedObjectCount,
     entries: Object.freeze(entries)
   });
   const manifestFingerprint = `sha256:${crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex")}`;
   return Object.freeze({ ...payload, manifestFingerprint });
 }
 
-function summaryLine({ apply, snapshot, sourceSnapshot, plan, fingerprint, manifestFingerprint, createdCount }) {
+function summaryLine({
+  apply,
+  snapshot,
+  sourceSnapshot,
+  plan,
+  fingerprint,
+  manifestFingerprint,
+  remediationManifestFingerprint,
+  remediatedObjectCount,
+  createdCount
+}) {
   const byteCount = snapshot.reduce((sum, object) => sum + object.size, 0);
   return [
     `mode=${apply ? "APPLY" : "PREVIEW"}`,
@@ -1585,9 +2084,11 @@ function summaryLine({ apply, snapshot, sourceSnapshot, plan, fingerprint, manif
     `byte_count=${byteCount}`,
     `create_count=${apply ? createdCount : plan.missing.length}`,
     `identical_count=${apply ? snapshot.length - createdCount : plan.identical.length}`,
+    `remediated_count=${remediatedObjectCount}`,
     `quarantine_count=${sourceSnapshot.quarantined.length}`,
     `quarantine=${quarantineSummaryValue(sourceSnapshot.quarantineSummary)}`,
     `fingerprint=${fingerprint}`,
+    `remediation_fingerprint=${remediationManifestFingerprint || "none"}`,
     `manifest_fingerprint=${manifestFingerprint}`
   ].join(" ");
 }
@@ -1606,6 +2107,21 @@ export async function runStorageMigration({
   const manifestOutput = validateManifestOutputPath(
     options.manifestOutput || environment.STORAGE_MIGRATION_MANIFEST_PATH || ""
   );
+  const requestedLogoRemediationManifest = options.logoRemediationManifest
+    || environment.LOGO_REMEDIATION_MANIFEST_PATH
+    || "";
+  const requestedLogoRemediationObjectDirectory = options.logoRemediationObjectDirectory
+    || environment.LOGO_REMEDIATION_OBJECT_DIRECTORY
+    || "";
+  if (
+    Boolean(requestedLogoRemediationManifest)
+    !== Boolean(requestedLogoRemediationObjectDirectory)
+  ) {
+    throw new StorageMigrationSafetyError(
+      "Logo remediation requires both protected manifest and object-directory inputs.",
+      "LOGO_REMEDIATION_INPUT_PAIR_REQUIRED"
+    );
+  }
   const requestedJournalPath = options.recoveryJournal
     || environment.STORAGE_MIGRATION_RECOVERY_JOURNAL_PATH
     || "";
@@ -1619,7 +2135,7 @@ export async function runStorageMigration({
     ? validateRecoveryJournalPath(requestedJournalPath)
     : "";
   const referencesBefore = await collectSourceDatabaseStorageReferences({ fetchImpl, config });
-  const sourceSnapshot = await collectSourceStorageSnapshot({
+  const rawSourceSnapshot = await collectSourceStorageSnapshot({
     fetchImpl,
     config,
     sourceReferences: referencesBefore.references
@@ -1631,8 +2147,34 @@ export async function runStorageMigration({
       "SOURCE_DATABASE_REFERENCES_CHANGED"
     );
   }
-  const snapshot = sourceSnapshot.objects;
-  const fingerprint = storageSnapshotFingerprint(snapshot, config.targetBuckets, sourceSnapshot.quarantined);
+  const sourceStorageSnapshotFingerprint = storageSnapshotFingerprint(
+    rawSourceSnapshot.objects,
+    config.targetBuckets,
+    rawSourceSnapshot.quarantined
+  );
+  const logoRemediationBundle = requestedLogoRemediationManifest
+    ? loadVerifiedLogoRemediationBundle({
+      manifestPath: requestedLogoRemediationManifest,
+      objectDirectory: requestedLogoRemediationObjectDirectory,
+      config,
+      sourceStorageSnapshotFingerprint
+    })
+    : null;
+  const remediation = applyLogoRemediationBundle({
+    sourceSnapshot: rawSourceSnapshot,
+    bundle: logoRemediationBundle,
+    sourceReferences: referencesBefore.references
+  });
+  const sourceSnapshot = remediation.sourceSnapshot;
+  const snapshot = remediation.snapshot;
+  const remediationManifestFingerprint = remediation.remediationManifestFingerprint;
+  const remediatedObjectCount = remediation.remediated.length;
+  const fingerprint = storageSnapshotFingerprint(
+    snapshot,
+    config.targetBuckets,
+    sourceSnapshot.quarantined,
+    remediationManifestFingerprint
+  );
   if (options.apply && options.confirmPreviewFingerprint !== fingerprint) {
     throw new StorageMigrationSafetyError(
       "The current source snapshot differs from the confirmed Preview fingerprint.",
@@ -1674,6 +2216,8 @@ export async function runStorageMigration({
       journal.record({
         event: "apply-start",
         snapshotFingerprint: fingerprint,
+        remediationManifestFingerprint,
+        remediatedObjectCount,
         backupId: options.preImportBackupId,
         plannedCreateCount: plan.missing.length
       });
@@ -1685,7 +2229,11 @@ export async function runStorageMigration({
           sourceObject: object.name,
           targetBucket: config.targetBuckets[object.sourceBucket],
           targetObject: migrationTargetObjectName(object.sourceBucket, object.name),
-          sha256: `sha256:${object.sha256}`
+          sha256: `sha256:${object.sha256}`,
+          ...(object.remediation ? {
+            remediationManifestFingerprint: object.remediation.manifestFingerprint,
+            remediationSourceSha256: object.remediation.sourceSha256
+          } : {})
         });
         const result = await createTargetObject(fetchImpl, config, object);
         const status = result === "created" ? "created" : "verified-identical";
@@ -1696,7 +2244,11 @@ export async function runStorageMigration({
           sourceBucket: object.sourceBucket,
           sourceObject: object.name,
           status,
-          sha256: `sha256:${object.sha256}`
+          sha256: `sha256:${object.sha256}`,
+          ...(object.remediation ? {
+            remediationManifestFingerprint: object.remediation.manifestFingerprint,
+            remediationSourceSha256: object.remediation.sourceSha256
+          } : {})
         });
         if (result === "created") createdCount += 1;
       }
@@ -1708,7 +2260,9 @@ export async function runStorageMigration({
       config,
       plan,
       targetStatuses,
-      snapshotFingerprint: fingerprint
+      snapshotFingerprint: fingerprint,
+      remediationManifestFingerprint,
+      remediatedObjectCount
     });
     manifestWriter(manifestOutput, manifest);
     if (journal) {
@@ -1716,6 +2270,8 @@ export async function runStorageMigration({
         event: "apply-complete",
         snapshotFingerprint: fingerprint,
         manifestFingerprint: manifest.manifestFingerprint,
+        remediationManifestFingerprint,
+        remediatedObjectCount,
         createdCount
       });
     }
@@ -1729,6 +2285,8 @@ export async function runStorageMigration({
     plan,
     fingerprint,
     manifestFingerprint: manifest.manifestFingerprint,
+    remediationManifestFingerprint,
+    remediatedObjectCount,
     createdCount
   }));
   return Object.freeze({
@@ -1737,6 +2295,8 @@ export async function runStorageMigration({
     sourceObjectCount: sourceSnapshot.sourceObjectCount,
     quarantineCount: sourceSnapshot.quarantined.length,
     quarantineSummary: sourceSnapshot.quarantineSummary,
+    remediationManifestFingerprint,
+    remediatedObjectCount,
     manifestFingerprint: manifest.manifestFingerprint,
     createdCount,
     plan
@@ -1748,7 +2308,9 @@ export function storageMigrationUsage() {
 
 Preview (default, read-only):
   node scripts/migrate_supabase_storage_to_gcs.mjs \\
-    --manifest-output /absolute/protected/path/storage-preview.json
+    --manifest-output /absolute/protected/path/storage-preview.json \\
+    --logo-remediation-manifest /absolute/protected/path/logo-remediation-preview.json \\
+    --logo-remediation-object-directory /absolute/protected/path/logo-remediation-objects
 
 Apply after a reviewed Preview:
   node scripts/migrate_supabase_storage_to_gcs.mjs \\
@@ -1760,6 +2322,8 @@ Apply after a reviewed Preview:
     --confirm-quarantined-object-count <preview-count> \\
     --manifest-output /absolute/protected/path/storage-apply.json \\
     --recovery-journal /absolute/protected/path/storage-apply.ndjson \\
+    --logo-remediation-manifest /absolute/protected/path/logo-remediation-preview.json \\
+    --logo-remediation-object-directory /absolute/protected/path/logo-remediation-objects \\
     --confirm-operation ${OPERATION_CONFIRMATION}
 
 Required environment:
@@ -1771,10 +2335,15 @@ Required environment:
   CONTACT_NOTE_ATTACHMENT_BUCKET, STAKEHOLDER_LOGO_BUCKET
   STORAGE_MIGRATION_MANIFEST_PATH may replace --manifest-output.
   STORAGE_MIGRATION_RECOVERY_JOURNAL_PATH may replace --recovery-journal.
+  LOGO_REMEDIATION_MANIFEST_PATH and LOGO_REMEDIATION_OBJECT_DIRECTORY may
+  replace the matching options; both inputs are optional but inseparable.
 
 Only database-referenced objects from four immutable source buckets are eligible.
 Unreferenced objects and legacy PDF/DOCX files without an approved malware/CDR
 scan are quarantined and never uploaded. ${PROTECTED_SOURCE_BUCKET} is always forbidden.
+An approved owner-only logo-remediation bundle may replace only current,
+database-referenced quarantined stakeholder logos with pinned safe PNG bytes at
+the same private target object path. It never writes to or deletes from Supabase.
 The create-only manifest and durable recovery journal use mode 0600 outside the
 repository. Their paths and contents are never logged. No object names, URLs,
 credentials or response bodies are logged.`;

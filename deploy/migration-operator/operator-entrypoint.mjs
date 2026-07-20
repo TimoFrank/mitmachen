@@ -12,6 +12,7 @@ import {
   lstat,
   mkdir,
   open,
+  readFile,
   realpath,
   stat
 } from "node:fs/promises";
@@ -25,9 +26,16 @@ const PROTECTED_OUTPUT = "/protected-output/run";
 const PROXY_EXECUTABLE = "/usr/local/bin/cloud-sql-proxy";
 const SYNTHETIC_SEED_ID = "pre-gematik-synthetic-v1";
 const STORAGE_OPERATION = "MIGRATE_ALLOWLISTED_SUPABASE_STORAGE_TO_GCS";
+const LOGO_REMEDIATION_MANIFEST_FILE = "logo-remediation-preview.json";
+const LOGO_REMEDIATION_MANIFEST_PATH = `${PROTECTED_INPUT}/${LOGO_REMEDIATION_MANIFEST_FILE}`;
+const LOGO_REMEDIATION_OBJECT_DIRECTORY = `${PROTECTED_INPUT}/logo-remediation-objects`;
+const LOGO_REMEDIATION_SCHEMA = "versorgungs-kompass-logo-remediation-v1";
+const MAX_LOGO_REMEDIATION_OBJECTS = 128;
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const NON_NEGATIVE_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/u;
 const BACKUP_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{2,255}$/u;
+const PROTECTED_INPUT_FILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/u;
+const LOGO_REMEDIATION_OUTPUT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}\.png$/u;
 
 export class MigrationOperatorError extends Error {
   constructor(message) {
@@ -44,19 +52,56 @@ function required(environment, name, pattern) {
   return value;
 }
 
+function logoRemediationExecution(environment) {
+  const manifestPath = environment.LOGO_REMEDIATION_MANIFEST_PATH || "";
+  const objectDirectory = environment.LOGO_REMEDIATION_OBJECT_DIRECTORY || "";
+  if (Boolean(manifestPath) !== Boolean(objectDirectory)) {
+    throw new MigrationOperatorError(
+      "Logo remediation requires both protected operator paths."
+    );
+  }
+  if (!manifestPath) {
+    return Object.freeze({
+      enabled: false,
+      arguments: Object.freeze([]),
+      protectedInputs: Object.freeze([])
+    });
+  }
+  if (
+    manifestPath !== LOGO_REMEDIATION_MANIFEST_PATH
+    || objectDirectory !== LOGO_REMEDIATION_OBJECT_DIRECTORY
+  ) {
+    throw new MigrationOperatorError(
+      "Logo remediation paths must use the fixed owner-only operator locations."
+    );
+  }
+  return Object.freeze({
+    enabled: true,
+    arguments: Object.freeze([
+      "--logo-remediation-manifest", LOGO_REMEDIATION_MANIFEST_PATH,
+      "--logo-remediation-object-directory", LOGO_REMEDIATION_OBJECT_DIRECTORY
+    ]),
+    protectedInputs: Object.freeze([LOGO_REMEDIATION_MANIFEST_FILE])
+  });
+}
+
 export function phaseExecution(phase, environment = process.env) {
   if (phase === "storage-preview") {
+    const logoRemediation = logoRemediationExecution(environment);
     return Object.freeze({
       script: "scripts/migrate_supabase_storage_to_gcs.mjs",
       arguments: Object.freeze([
-        "--manifest-output", `${PROTECTED_OUTPUT}/storage-preview.json`
+        "--manifest-output", `${PROTECTED_OUTPUT}/storage-preview.json`,
+        ...logoRemediation.arguments
       ]),
-      protectedInputs: Object.freeze([]),
+      protectedInputs: logoRemediation.protectedInputs,
+      logoRemediationBundle: logoRemediation.enabled,
       managedTarget: false
     });
   }
 
   if (phase === "storage-apply") {
+    const logoRemediation = logoRemediationExecution(environment);
     const sourceProject = required(environment, "EXPECTED_SOURCE_PROJECT_ID", /^[a-z0-9][a-z0-9-]{2,62}$/u);
     const targetProject = required(environment, "EXPECTED_TARGET_PROJECT_ID", /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u);
     const backupId = required(environment, "PRE_IMPORT_BACKUP_ID", BACKUP_ID_PATTERN);
@@ -73,9 +118,11 @@ export function phaseExecution(phase, environment = process.env) {
         "--confirm-quarantined-object-count", quarantineCount,
         "--manifest-output", `${PROTECTED_OUTPUT}/storage-apply.json`,
         "--recovery-journal", `${PROTECTED_OUTPUT}/storage-apply.ndjson`,
-        "--confirm-operation", STORAGE_OPERATION
+        "--confirm-operation", STORAGE_OPERATION,
+        ...logoRemediation.arguments
       ]),
-      protectedInputs: Object.freeze([]),
+      protectedInputs: logoRemediation.protectedInputs,
+      logoRemediationBundle: logoRemediation.enabled,
       managedTarget: false
     });
   }
@@ -85,6 +132,7 @@ export function phaseExecution(phase, environment = process.env) {
       script: "scripts/migrate_supabase_to_pre_gematik.mjs",
       arguments: Object.freeze([]),
       protectedInputs: Object.freeze(["supabase-root-ca.crt"]),
+      logoRemediationBundle: false,
       managedTarget: true
     });
   }
@@ -117,6 +165,7 @@ export function phaseExecution(phase, environment = process.env) {
       script: "scripts/migrate_supabase_to_pre_gematik.mjs",
       arguments: Object.freeze(argumentsList),
       protectedInputs: Object.freeze(["supabase-root-ca.crt", "storage-apply.json"]),
+      logoRemediationBundle: false,
       managedTarget: true
     });
   }
@@ -165,13 +214,20 @@ export async function resolveProjectedInput(source, inputRoot = SECRET_INPUT) {
   return resolved;
 }
 
-async function copyProtectedInput(fileName) {
-  const source = `${SECRET_INPUT}/${fileName}`;
-  const destination = `${PROTECTED_INPUT}/${fileName}`;
+async function copyProtectedInput(
+  fileName,
+  inputRoot = SECRET_INPUT,
+  destinationRoot = PROTECTED_INPUT
+) {
+  if (!PROTECTED_INPUT_FILE_PATTERN.test(fileName)) {
+    throw new MigrationOperatorError("A protected operator input has an unsafe file name.");
+  }
+  const source = `${inputRoot}/${fileName}`;
+  const destination = `${destinationRoot}/${fileName}`;
   // Kubernetes Secret volumes expose each key as a symlink through ..data.
   // Resolve that projection once, prove that its immutable target remains
   // inside the read-only mount, and copy the resolved regular file.
-  const resolvedSource = await resolveProjectedInput(source);
+  const resolvedSource = await resolveProjectedInput(source, inputRoot);
   await copyFile(resolvedSource, destination, fsConstants.COPYFILE_EXCL);
   await chmod(destination, 0o600);
   const destinationMetadata = await lstat(destination);
@@ -184,6 +240,69 @@ async function copyProtectedInput(fileName) {
   ) {
     throw new MigrationOperatorError("A copied operator input is not owner-only.");
   }
+}
+
+export function logoRemediationOutputFiles(manifestBytes) {
+  let manifest;
+  try {
+    manifest = JSON.parse(Buffer.from(manifestBytes).toString("utf8"));
+  } catch {
+    throw new MigrationOperatorError("The protected logo remediation manifest is not valid JSON.");
+  }
+  if (
+    manifest === null
+    || typeof manifest !== "object"
+    || Array.isArray(manifest)
+    || manifest.schemaVersion !== LOGO_REMEDIATION_SCHEMA
+    || !SHA256_PATTERN.test(manifest.remediationFingerprint || "")
+    || !Number.isSafeInteger(manifest.remediatedObjectCount)
+    || manifest.remediatedObjectCount < 1
+    || manifest.remediatedObjectCount > MAX_LOGO_REMEDIATION_OBJECTS
+    || !Array.isArray(manifest.entries)
+    || manifest.entries.length !== manifest.remediatedObjectCount
+  ) {
+    throw new MigrationOperatorError("The protected logo remediation manifest is malformed.");
+  }
+  const outputFiles = manifest.entries.map((entry) => entry?.outputFile);
+  if (
+    outputFiles.some((fileName) => (
+      typeof fileName !== "string" || !LOGO_REMEDIATION_OUTPUT_PATTERN.test(fileName)
+    ))
+    || new Set(outputFiles).size !== outputFiles.length
+  ) {
+    throw new MigrationOperatorError("The protected logo remediation output list is unsafe.");
+  }
+  return Object.freeze([...outputFiles].sort((left, right) => left.localeCompare(right)));
+}
+
+export async function stageLogoRemediationObjects({
+  inputRoot = SECRET_INPUT,
+  protectedRoot = PROTECTED_INPUT
+} = {}) {
+  const manifestPath = `${protectedRoot}/${LOGO_REMEDIATION_MANIFEST_FILE}`;
+  const manifestMetadata = await lstat(manifestPath);
+  const currentUid = typeof process.getuid === "function" ? process.getuid() : manifestMetadata.uid;
+  if (
+    !manifestMetadata.isFile()
+    || manifestMetadata.isSymbolicLink()
+    || manifestMetadata.uid !== currentUid
+    || (manifestMetadata.mode & 0o777) !== 0o600
+    || manifestMetadata.size < 1
+    || manifestMetadata.size > 1024 * 1024
+  ) {
+    throw new MigrationOperatorError("The staged logo remediation manifest is not owner-only.");
+  }
+  const outputFiles = logoRemediationOutputFiles(await readFile(manifestPath));
+  const objectDirectory = `${protectedRoot}/logo-remediation-objects`;
+  await createOwnerOnlyDirectory(objectDirectory);
+  for (const fileName of outputFiles) {
+    await copyProtectedInput(fileName, inputRoot, objectDirectory);
+  }
+  return Object.freeze({
+    manifestPath,
+    objectDirectory,
+    outputFiles
+  });
 }
 
 function sourceUrlWithProtectedCa(environment) {
@@ -255,11 +374,16 @@ export async function main(environment = process.env) {
   await mkdir(environment.CLOUDSDK_CONFIG || "/tmp/gcloud", { recursive: true, mode: 0o700 });
 
   for (const fileName of execution.protectedInputs) await copyProtectedInput(fileName);
+  if (execution.logoRemediationBundle) await stageLogoRemediationObjects();
 
   const childEnvironment = {
     ...environment,
     CLOUD_SQL_AUTH_PROXY_EXECUTABLE: PROXY_EXECUTABLE
   };
+  if (execution.logoRemediationBundle) {
+    childEnvironment.LOGO_REMEDIATION_MANIFEST_PATH = LOGO_REMEDIATION_MANIFEST_PATH;
+    childEnvironment.LOGO_REMEDIATION_OBJECT_DIRECTORY = LOGO_REMEDIATION_OBJECT_DIRECTORY;
+  }
   if (execution.managedTarget) {
     if (environment.CLOUD_SQL_AUTH_PROXY_CONNECT_MODE !== "private-ip") {
       throw new MigrationOperatorError("Database phases require the explicit private-ip proxy mode.");

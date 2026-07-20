@@ -1,23 +1,36 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { mkdtempSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import {
   OPERATION_CONFIRMATION,
   PROTECTED_SOURCE_BUCKET,
+  LOGO_REMEDIATION_SCHEMA,
   StorageMigrationSafetyError,
+  applyLogoRemediationBundle,
   buildStorageConfiguration,
   collectSourceStorageSnapshot,
   createProtectedRecoveryJournal,
   listSupabaseBucketObjects,
+  loadVerifiedLogoRemediationBundle,
   migrationTargetObjectName,
   parseStorageMigrationArguments,
   runStorageMigration,
   storageSnapshotFingerprint,
   validateApplyConfirmations,
   validateManifestOutputPath,
+  validateLogoRemediationInputPaths,
   validateRecoveryJournalPath,
   writeProtectedMigrationManifest
 } from "./migrate_supabase_storage_to_gcs.mjs";
@@ -374,6 +387,76 @@ function assertSafeFailure(action, pattern) {
 }
 
 const config = buildStorageConfiguration(ENVIRONMENT);
+
+function pngDimensions(buffer) {
+  assert.equal(buffer.subarray(12, 16).toString("ascii"), "IHDR");
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+}
+
+function writeLogoRemediationFixture({
+  label,
+  sourceStorageSnapshotFingerprint,
+  source,
+  output = syntheticPng(64, 32),
+  mutatePayload = (value) => value,
+  mutateOutput = () => {}
+}) {
+  const directory = realpathSync(mkdtempSync(path.join(TEST_OUTPUT_DIRECTORY, `${label}-`)));
+  const outputFile = "01.resvg.png";
+  const outputPath = path.join(directory, outputFile);
+  writeFileSync(outputPath, output, { mode: 0o600 });
+  chmodSync(outputPath, 0o600);
+  mutateOutput({ directory, outputPath });
+  const dimensions = pngDimensions(output);
+  const entry = {
+    sourceRef: { bucket: source.sourceBucket, object: source.name },
+    sourceSha256: `sha256:${source.sha256}`,
+    sourceSize: source.size,
+    sourceMimeType: source.mimeType,
+    quarantineReason: source.signatureClass,
+    targetObject: {
+      bucket: TARGET_BUCKETS["stakeholder-logos"],
+      object: source.name
+    },
+    outputFile,
+    outputSha256: `sha256:${crypto.createHash("sha256").update(output).digest("hex")}`,
+    outputSize: output.length,
+    outputMimeType: "image/png",
+    width: dimensions.width,
+    height: dimensions.height
+  };
+  const payload = mutatePayload({
+    schemaVersion: LOGO_REMEDIATION_SCHEMA,
+    sourceProject: EXPECTED_SOURCE_PROJECT_ID,
+    targetProject: EXPECTED_TARGET_PROJECT_ID,
+    projectPairFingerprint: EXPECTED_PROJECT_PAIR_FINGERPRINT,
+    sourceStorageSnapshotFingerprint,
+    toolReceipt: {
+      renderer: "@resvg/resvg-js",
+      version: "2.6.2",
+      packageIntegrity: "sha512-xBaJish5OeGmniDj9cW5PRa/PtmuVU3ziqrbr5xJj901ZDN4TosrVaNZpEiLZAxdfnhAe7uQ7QFWfjPe9d9K2Q==",
+      nativePackage: "@resvg/resvg-js-darwin-arm64",
+      nativeVersion: "2.6.2",
+      nativePackageIntegrity: "sha512-nmok2LnAd6nLUKI16aEB9ydMC6Lidiiq2m1nEBDR1LaaP7FGs4AJ90qDraxX+CWlVuRlvNjyYJTNv8qFjtL9+A==",
+      loadSystemFonts: false,
+      maxOutputDimension: 2048,
+      maxOutputBytes: 2 * 1024 * 1024
+    },
+    strategy: "private-target-only-same-logical-path-rasterized-png",
+    remediatedObjectCount: 1,
+    entries: [entry]
+  });
+  const manifest = {
+    ...payload,
+    remediationFingerprint: `sha256:${crypto.createHash("sha256")
+      .update(JSON.stringify(payload))
+      .digest("hex")}`
+  };
+  const manifestPath = path.join(directory, "logo-remediation-preview.json");
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(manifestPath, 0o600);
+  return { directory, output, outputPath, manifest, manifestPath };
+}
 assert.equal(config.sourceUrl, `https://${EXPECTED_SOURCE_PROJECT_ID}.supabase.co`);
 assert.deepEqual(config.targetBuckets, TARGET_BUCKETS);
 assertSafeFailure(() => buildStorageConfiguration({
@@ -623,6 +706,379 @@ await assert.rejects(
   }),
   (error) => error instanceof StorageMigrationSafetyError && error.code === "SOURCE_DATABASE_REFERENCE_MISSING"
 );
+
+const remediationMock = new StorageFetchMock();
+remediationMock.sourceFiles.set("stakeholder-logos\u0000logos/partner.svg", {
+  buffer: malformedPng,
+  mimeType: "image/png",
+  etag: 'W/"transport-remediation-source"'
+});
+remediationMock.sourceListings.set("stakeholder-logos\u0000logos", [
+  fileEntry("partner.svg", malformedPng, "image/png", "logo")
+]);
+const rawRemediationSnapshot = await collectSourceStorageSnapshot({
+  fetchImpl: remediationMock.fetch.bind(remediationMock),
+  config,
+  sourceReferences: referencedObjectKeys
+});
+assert.equal(rawRemediationSnapshot.quarantined.length, 1);
+assert.equal(rawRemediationSnapshot.quarantined[0].signatureClass, "png-structure-invalid");
+const rawRemediationFingerprint = storageSnapshotFingerprint(
+  rawRemediationSnapshot.objects,
+  TARGET_BUCKETS,
+  rawRemediationSnapshot.quarantined
+);
+const remediationFixture = writeLogoRemediationFixture({
+  label: "valid-logo-remediation",
+  sourceStorageSnapshotFingerprint: rawRemediationFingerprint,
+  source: rawRemediationSnapshot.quarantined[0]
+});
+assert.deepEqual(
+  validateLogoRemediationInputPaths(
+    remediationFixture.manifestPath,
+    remediationFixture.directory
+  ).objectDirectory,
+  remediationFixture.directory
+);
+const verifiedRemediationBundle = loadVerifiedLogoRemediationBundle({
+  manifestPath: remediationFixture.manifestPath,
+  objectDirectory: remediationFixture.directory,
+  config,
+  sourceStorageSnapshotFingerprint: rawRemediationFingerprint
+});
+assert.equal(verifiedRemediationBundle.entries.length, 1);
+assert.equal(verifiedRemediationBundle.entries[0].buffer.equals(remediationFixture.output), true);
+const effectiveRemediation = applyLogoRemediationBundle({
+  sourceSnapshot: rawRemediationSnapshot,
+  bundle: verifiedRemediationBundle,
+  sourceReferences: referencedObjectKeys
+});
+assert.equal(effectiveRemediation.remediated.length, 1);
+assert.equal(effectiveRemediation.sourceSnapshot.quarantined.length, 0);
+assert.equal(effectiveRemediation.snapshot.length, rawRemediationSnapshot.sourceObjectCount);
+assert.equal(effectiveRemediation.remediated[0].targetMimeType, "image/png");
+assert.equal(
+  `sha256:${effectiveRemediation.remediated[0].sha256}`,
+  verifiedRemediationBundle.entries[0].outputSha256
+);
+const effectiveRemediationFingerprint = storageSnapshotFingerprint(
+  effectiveRemediation.snapshot,
+  TARGET_BUCKETS,
+  effectiveRemediation.sourceSnapshot.quarantined,
+  effectiveRemediation.remediationManifestFingerprint
+);
+assert.match(effectiveRemediationFingerprint, /^sha256:[a-f0-9]{64}$/u);
+
+await assert.rejects(
+  runStorageMigration({
+    environment: ENVIRONMENT,
+    options: Object.freeze({
+      ...previewOptions,
+      logoRemediationManifest: remediationFixture.manifestPath
+    }),
+    fetchImpl: async () => { throw new Error("must fail before source access"); },
+    manifestWriter: captureManifest,
+    log: () => {}
+  }),
+  (error) => error instanceof StorageMigrationSafetyError
+    && error.code === "LOGO_REMEDIATION_INPUT_PAIR_REQUIRED"
+);
+
+const wrongOutputHashFixture = writeLogoRemediationFixture({
+  label: "wrong-output-hash",
+  sourceStorageSnapshotFingerprint: rawRemediationFingerprint,
+  source: rawRemediationSnapshot.quarantined[0],
+  mutatePayload(payload) {
+    payload.entries[0].outputSha256 = `sha256:${"0".repeat(64)}`;
+    return payload;
+  }
+});
+assertSafeFailure(
+  () => loadVerifiedLogoRemediationBundle({
+    manifestPath: wrongOutputHashFixture.manifestPath,
+    objectDirectory: wrongOutputHashFixture.directory,
+    config,
+    sourceStorageSnapshotFingerprint: rawRemediationFingerprint
+  }),
+  /output failed its pinned content contract/u
+);
+
+const staleRemediationFixture = writeLogoRemediationFixture({
+  label: "stale-source-snapshot",
+  sourceStorageSnapshotFingerprint: `sha256:${"1".repeat(64)}`,
+  source: rawRemediationSnapshot.quarantined[0]
+});
+assertSafeFailure(
+  () => loadVerifiedLogoRemediationBundle({
+    manifestPath: staleRemediationFixture.manifestPath,
+    objectDirectory: staleRemediationFixture.directory,
+    config,
+    sourceStorageSnapshotFingerprint: rawRemediationFingerprint
+  }),
+  /current approved source snapshot/u
+);
+
+const unsafeModeFixture = writeLogoRemediationFixture({
+  label: "unsafe-output-mode",
+  sourceStorageSnapshotFingerprint: rawRemediationFingerprint,
+  source: rawRemediationSnapshot.quarantined[0],
+  mutateOutput({ outputPath }) {
+    chmodSync(outputPath, 0o644);
+  }
+});
+assertSafeFailure(
+  () => loadVerifiedLogoRemediationBundle({
+    manifestPath: unsafeModeFixture.manifestPath,
+    objectDirectory: unsafeModeFixture.directory,
+    config,
+    sourceStorageSnapshotFingerprint: rawRemediationFingerprint
+  }),
+  /owner-only regular file/u
+);
+
+const symlinkFixture = writeLogoRemediationFixture({
+  label: "symlink-output",
+  sourceStorageSnapshotFingerprint: rawRemediationFingerprint,
+  source: rawRemediationSnapshot.quarantined[0],
+  mutateOutput({ outputPath }) {
+    rmSync(outputPath);
+    symlinkSync(remediationFixture.outputPath, outputPath);
+  }
+});
+assertSafeFailure(
+  () => loadVerifiedLogoRemediationBundle({
+    manifestPath: symlinkFixture.manifestPath,
+    objectDirectory: symlinkFixture.directory,
+    config,
+    sourceStorageSnapshotFingerprint: rawRemediationFingerprint
+  }),
+  /owner-only regular file/u
+);
+
+const duplicateEntryFixture = writeLogoRemediationFixture({
+  label: "duplicate-entry",
+  sourceStorageSnapshotFingerprint: rawRemediationFingerprint,
+  source: rawRemediationSnapshot.quarantined[0],
+  mutatePayload(payload) {
+    payload.entries.push({ ...payload.entries[0], outputFile: "02.resvg.png" });
+    payload.remediatedObjectCount = 2;
+    return payload;
+  }
+});
+assertSafeFailure(
+  () => loadVerifiedLogoRemediationBundle({
+    manifestPath: duplicateEntryFixture.manifestPath,
+    objectDirectory: duplicateEntryFixture.directory,
+    config,
+    sourceStorageSnapshotFingerprint: rawRemediationFingerprint
+  }),
+  /source-to-private-target contract/u
+);
+
+const wrongSourceHashFixture = writeLogoRemediationFixture({
+  label: "wrong-source-hash",
+  sourceStorageSnapshotFingerprint: rawRemediationFingerprint,
+  source: rawRemediationSnapshot.quarantined[0],
+  mutatePayload(payload) {
+    payload.entries[0].sourceSha256 = `sha256:${"2".repeat(64)}`;
+    return payload;
+  }
+});
+const wrongSourceHashBundle = loadVerifiedLogoRemediationBundle({
+  manifestPath: wrongSourceHashFixture.manifestPath,
+  objectDirectory: wrongSourceHashFixture.directory,
+  config,
+  sourceStorageSnapshotFingerprint: rawRemediationFingerprint
+});
+assertSafeFailure(
+  () => applyLogoRemediationBundle({
+    sourceSnapshot: rawRemediationSnapshot,
+    bundle: wrongSourceHashBundle,
+    sourceReferences: referencedObjectKeys
+  }),
+  /no longer matches/u
+);
+
+const additionalReferencedQuarantine = Object.freeze({
+  ...rawRemediationSnapshot.quarantined[0],
+  name: "logos/second-invalid.png",
+  sourceId: "second-invalid",
+  sha256: "3".repeat(64)
+});
+assertSafeFailure(
+  () => applyLogoRemediationBundle({
+    sourceSnapshot: Object.freeze({
+      ...rawRemediationSnapshot,
+      sourceObjectCount: rawRemediationSnapshot.sourceObjectCount + 1,
+      quarantined: Object.freeze([
+        ...rawRemediationSnapshot.quarantined,
+        additionalReferencedQuarantine
+      ])
+    }),
+    bundle: verifiedRemediationBundle,
+    sourceReferences: new Set([
+      ...referencedObjectKeys,
+      objectKey(additionalReferencedQuarantine.sourceBucket, additionalReferencedQuarantine.name)
+    ])
+  }),
+  /referenced quarantined object remains/u
+);
+
+const remediationPreviewOptions = parseStorageMigrationArguments([
+  "--manifest-output", TEST_MANIFEST_PATH,
+  "--logo-remediation-manifest", remediationFixture.manifestPath,
+  "--logo-remediation-object-directory", remediationFixture.directory
+]);
+const remediationPreviewLogs = [];
+const remediationPreview = await runStorageMigration({
+  environment: ENVIRONMENT,
+  options: remediationPreviewOptions,
+  fetchImpl: remediationMock.fetch.bind(remediationMock),
+  manifestWriter: captureManifest,
+  log: (line) => remediationPreviewLogs.push(line)
+});
+const remediationPreviewManifest = capturedManifests.at(-1);
+assert.equal(remediationPreview.quarantineCount, 0);
+assert.equal(remediationPreview.remediatedObjectCount, 1);
+assert.equal(
+  remediationPreview.remediationManifestFingerprint,
+  verifiedRemediationBundle.remediationFingerprint
+);
+assert.equal(remediationPreviewManifest.schemaVersion, "versorgungs-kompass-storage-manifest-v2");
+assert.equal(remediationPreviewManifest.remediatedObjectCount, 1);
+assert.equal(remediationPreviewManifest.quarantinedObjectCount, 0);
+assert.equal(
+  remediationPreviewManifest.remediationManifestFingerprint,
+  verifiedRemediationBundle.remediationFingerprint
+);
+assert.match(remediationPreviewLogs[0], /remediated_count=1 quarantine_count=0/u);
+assert.doesNotMatch(remediationPreviewLogs[0], /partner\.svg|01\.resvg\.png/u);
+
+const repeatedRemediationPreview = await runStorageMigration({
+  environment: ENVIRONMENT,
+  options: remediationPreviewOptions,
+  fetchImpl: remediationMock.fetch.bind(remediationMock),
+  manifestWriter: captureManifest,
+  log: () => {}
+});
+assert.equal(repeatedRemediationPreview.fingerprint, remediationPreview.fingerprint);
+assert.equal(
+  repeatedRemediationPreview.manifestFingerprint,
+  remediationPreview.manifestFingerprint
+);
+
+const remediationJournalEvents = [];
+const remediationApplyOptions = parseStorageMigrationArguments([
+  "--apply",
+  "--confirm-source-project", EXPECTED_SOURCE_PROJECT_ID,
+  "--confirm-target-project", EXPECTED_TARGET_PROJECT_ID,
+  "--pre-import-backup-id", "cloudsql-logo-remediation-20260720-001",
+  "--confirm-preview-fingerprint", remediationPreview.fingerprint,
+  "--confirm-quarantined-object-count", "0",
+  "--manifest-output", TEST_MANIFEST_PATH,
+  "--recovery-journal", TEST_RECOVERY_JOURNAL_PATH,
+  "--logo-remediation-manifest", remediationFixture.manifestPath,
+  "--logo-remediation-object-directory", remediationFixture.directory,
+  "--confirm-operation", OPERATION_CONFIRMATION
+]);
+const remediationApplied = await runStorageMigration({
+  environment: ENVIRONMENT,
+  options: remediationApplyOptions,
+  fetchImpl: remediationMock.fetch.bind(remediationMock),
+  manifestWriter: captureManifest,
+  log: () => {},
+  gcpGate: async () => ({ ok: true, fingerprint: `sha256:${"4".repeat(64)}` }),
+  journalFactory: () => ({
+    record(event) { remediationJournalEvents.push(event); },
+    close() {}
+  })
+});
+assert.equal(remediationApplied.remediatedObjectCount, 1);
+const remediationApplyManifest = capturedManifests.at(-1);
+assert.equal(remediationApplyManifest.mode, "apply");
+assert.equal(remediationApplyManifest.remediatedObjectCount, 1);
+const migratedLogoEntry = remediationApplyManifest.entries.find((entry) => (
+  entry.sourceRef.bucket === "stakeholder-logos"
+));
+assert.equal(migratedLogoEntry.status, "created");
+assert.equal(migratedLogoEntry.mimeType, "image/png");
+assert.equal(migratedLogoEntry.targetObject.object, migratedLogoEntry.sourceRef.object);
+assert.equal(migratedLogoEntry.sha256, verifiedRemediationBundle.entries[0].outputSha256);
+assert.ok(remediationJournalEvents.some((event) => (
+  event.event === "apply-start"
+  && event.remediationManifestFingerprint === verifiedRemediationBundle.remediationFingerprint
+  && event.remediatedObjectCount === 1
+)));
+assert.ok(remediationJournalEvents.some((event) => (
+  event.event === "object-verified"
+  && event.remediationSourceSha256 === verifiedRemediationBundle.entries[0].sourceSha256
+)));
+const logoUpload = remediationMock.calls.find((call) => (
+  call.method === "POST"
+  && call.url.includes("/upload/storage/v1/")
+  && parseMultipartRequest({ headers: call.headers, body: call.body }).metadata.name
+    === migratedLogoEntry.targetObject.object
+));
+assert.ok(logoUpload, "Das sichere Ziel-Logo muss create-only hochgeladen werden.");
+const parsedLogoUpload = parseMultipartRequest({ headers: logoUpload.headers, body: logoUpload.body });
+assert.equal(parsedLogoUpload.metadata.contentType, "image/png");
+assert.equal(parsedLogoUpload.buffer.equals(remediationFixture.output), true);
+assert.equal(
+  parsedLogoUpload.metadata.metadata["versorgungs-kompass-remediation"],
+  verifiedRemediationBundle.remediationFingerprint
+);
+assert.equal(
+  parsedLogoUpload.metadata.metadata["versorgungs-kompass-source-sha256"],
+  verifiedRemediationBundle.entries[0].sourceSha256
+);
+const supabaseMutationCalls = remediationMock.calls.filter((call) => {
+  const url = new URL(call.url);
+  if (!url.hostname.endsWith("supabase.co")) return false;
+  const approvedList = call.method === "POST" && url.pathname.includes("/storage/v1/object/list/");
+  return !approvedList && call.method !== "GET";
+});
+assert.deepEqual(supabaseMutationCalls, [], "Die Remediation darf keine Quellschreibzugriffe ausfuehren.");
+
+const idempotentRemediationPreview = await runStorageMigration({
+  environment: ENVIRONMENT,
+  options: remediationPreviewOptions,
+  fetchImpl: remediationMock.fetch.bind(remediationMock),
+  manifestWriter: captureManifest,
+  log: () => {}
+});
+assert.equal(idempotentRemediationPreview.fingerprint, remediationPreview.fingerprint);
+assert.equal(idempotentRemediationPreview.plan.missing.length, 0);
+assert.equal(idempotentRemediationPreview.plan.identical.length, 3);
+
+const remediationConflictMock = new StorageFetchMock();
+remediationConflictMock.sourceFiles.set("stakeholder-logos\u0000logos/partner.svg", {
+  buffer: malformedPng,
+  mimeType: "image/png",
+  etag: 'W/"transport-remediation-conflict-source"'
+});
+remediationConflictMock.sourceListings.set("stakeholder-logos\u0000logos", [
+  fileEntry("partner.svg", malformedPng, "image/png", "logo")
+]);
+remediationConflictMock.putTargetObject(
+  TARGET_BUCKETS["stakeholder-logos"],
+  "logos/partner.svg",
+  Buffer.alloc(remediationFixture.output.length, 0x41),
+  "image/png",
+  "99"
+);
+await assert.rejects(
+  runStorageMigration({
+    environment: ENVIRONMENT,
+    options: remediationPreviewOptions,
+    fetchImpl: remediationConflictMock.fetch.bind(remediationConflictMock),
+    manifestWriter: captureManifest,
+    log: () => {}
+  }),
+  (error) => error instanceof StorageMigrationSafetyError
+    && error.code === "TARGET_OBJECT_CONFLICT"
+);
+assert.ok(!remediationConflictMock.calls.some((call) => call.url.includes("/upload/storage/v1/")));
+
 const invalidPreviewLogs = [];
 const invalidPreview = await runStorageMigration({
   environment: ENVIRONMENT,

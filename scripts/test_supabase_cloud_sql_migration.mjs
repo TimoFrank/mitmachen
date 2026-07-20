@@ -926,7 +926,9 @@ try {
       ["stakeholder-logos\0migration-smoke/logo.png", "created"],
       ["contact-note-attachments\0migration-smoke/synthetic.txt", "created"]
     ]),
-    snapshotFingerprint: `sha256:${"a".repeat(64)}`
+    snapshotFingerprint: `sha256:${"a".repeat(64)}`,
+    remediationManifestFingerprint: `sha256:${"8".repeat(64)}`,
+    remediatedObjectCount: 1
   });
   const { manifestFingerprint: storageManifestFingerprint, ...storageManifestPayload } =
     generatedStorageManifest;
@@ -957,6 +959,78 @@ try {
     loadVerifiedStorageManifest(baseConfig).manifestFingerprint,
     generatedStorageManifest.manifestFingerprint,
     "Das vom Storage-Werkzeug erzeugte Apply-Manifest muss unveraendert vom DB-Importer akzeptiert werden."
+  );
+  assert.equal(loadVerifiedStorageManifest(baseConfig).remediatedObjectCount, 1);
+  assert.equal(
+    loadVerifiedStorageManifest(baseConfig).remediationManifestFingerprint,
+    `sha256:${"8".repeat(64)}`
+  );
+
+  function writeStorageManifestFixture(fileName, payload) {
+    const fingerprint = `sha256:${createHash("sha256")
+      .update(JSON.stringify(payload))
+      .digest("hex")}`;
+    const manifestPath = join(certificateDirectory, fileName);
+    writeFileSync(
+      manifestPath,
+      `${JSON.stringify({ ...payload, manifestFingerprint: fingerprint }, null, 2)}\n`
+    );
+    chmodSync(manifestPath, 0o600);
+    return { fingerprint, manifestPath };
+  }
+
+  const missingRemediationFingerprintPayload = {
+    ...storageManifestPayload,
+    remediationManifestFingerprint: null
+  };
+  const missingRemediationFingerprintFixture = writeStorageManifestFixture(
+    "storage-apply-missing-remediation-fingerprint.json",
+    missingRemediationFingerprintPayload
+  );
+  assert.throws(
+    () => loadVerifiedStorageManifest({
+      ...baseConfig,
+      storageMigrationManifestPath: missingRemediationFingerprintFixture.manifestPath,
+      confirmStorageManifestFingerprint: missingRemediationFingerprintFixture.fingerprint
+    }),
+    (error) => error instanceof MigrationSafetyError
+      && error.code === "STORAGE_MANIFEST_COUNT_INVALID"
+  );
+
+  const excessiveRemediationCountPayload = {
+    ...storageManifestPayload,
+    remediatedObjectCount: storageManifestPayload.migratableObjectCount + 1
+  };
+  const excessiveRemediationCountFixture = writeStorageManifestFixture(
+    "storage-apply-excessive-remediation-count.json",
+    excessiveRemediationCountPayload
+  );
+  assert.throws(
+    () => loadVerifiedStorageManifest({
+      ...baseConfig,
+      storageMigrationManifestPath: excessiveRemediationCountFixture.manifestPath,
+      confirmStorageManifestFingerprint: excessiveRemediationCountFixture.fingerprint
+    }),
+    (error) => error instanceof MigrationSafetyError
+      && error.code === "STORAGE_MANIFEST_COUNT_INVALID"
+  );
+
+  const legacyStorageManifestPayload = {
+    ...storageManifestPayload,
+    schemaVersion: "versorgungs-kompass-storage-manifest-v1"
+  };
+  const legacyStorageManifestFixture = writeStorageManifestFixture(
+    "storage-apply-legacy-v1.json",
+    legacyStorageManifestPayload
+  );
+  assert.throws(
+    () => loadVerifiedStorageManifest({
+      ...baseConfig,
+      storageMigrationManifestPath: legacyStorageManifestFixture.manifestPath,
+      confirmStorageManifestFingerprint: legacyStorageManifestFixture.fingerprint
+    }),
+    (error) => error instanceof MigrationSafetyError
+      && error.code === "STORAGE_MANIFEST_MODE_INVALID"
   );
   const silentLogger = { log() {} };
   const syntheticTargetConnectionName = "migration-smoke-target:europe-west3:migration-smoke-postgres";
@@ -1448,6 +1522,11 @@ try {
   assert.equal(applied.writesPerformed, true);
   assert.equal(applied.supportedTableCount, 29);
   assert.ok(applied.verifiedForeignKeyCount > 0);
+  assert.equal(applied.storageMigration.remediatedObjectCount, 1);
+  assert.equal(
+    applied.storageMigration.remediationManifestFingerprint,
+    `sha256:${"8".repeat(64)}`
+  );
   for (const table of MIGRATION_TABLES) {
     assert.ok(applied.source[table].count > 0, `Der PG16-Smoke muss ${table} mit mindestens einer Zeile migrieren.`);
     assert.deepEqual(applied.targetAfter[table], applied.source[table], `${table} wurde nicht exakt reconciled.`);

@@ -3,8 +3,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  lstat,
   mkdir,
   mkdtemp,
+  readFile,
+  readdir,
   realpath,
   rm,
   symlink,
@@ -15,8 +18,10 @@ import { join } from "node:path";
 
 import {
   MigrationOperatorError,
+  logoRemediationOutputFiles,
   phaseExecution,
-  resolveProjectedInput
+  resolveProjectedInput,
+  stageLogoRemediationObjects
 } from "../deploy/migration-operator/operator-entrypoint.mjs";
 import { renderJob } from "../deploy/migration-operator/render-job.mjs";
 
@@ -48,6 +53,42 @@ const storageApply = phaseExecution("storage-apply", environment);
 assert.equal(storageApply.arguments.includes("--apply"), true);
 assert.equal(storageApply.arguments.includes("MIGRATE_ALLOWLISTED_SUPABASE_STORAGE_TO_GCS"), true);
 assert.equal(storageApply.arguments.includes("/protected-output/run/storage-apply.ndjson"), true);
+
+const logoEnvironment = {
+  ...environment,
+  LOGO_REMEDIATION_MANIFEST_PATH: "/protected-input/run/logo-remediation-preview.json",
+  LOGO_REMEDIATION_OBJECT_DIRECTORY: "/protected-input/run/logo-remediation-objects"
+};
+const logoStoragePreview = phaseExecution("storage-preview", logoEnvironment);
+assert.equal(logoStoragePreview.logoRemediationBundle, true);
+assert.deepEqual(logoStoragePreview.protectedInputs, ["logo-remediation-preview.json"]);
+assert.equal(
+  logoStoragePreview.arguments.includes("/protected-input/run/logo-remediation-preview.json"),
+  true
+);
+assert.equal(
+  logoStoragePreview.arguments.includes("/protected-input/run/logo-remediation-objects"),
+  true
+);
+const logoStorageApply = phaseExecution("storage-apply", logoEnvironment);
+assert.equal(logoStorageApply.logoRemediationBundle, true);
+assert.deepEqual(logoStorageApply.protectedInputs, ["logo-remediation-preview.json"]);
+assert.throws(
+  () => phaseExecution("storage-preview", {
+    ...environment,
+    LOGO_REMEDIATION_MANIFEST_PATH: "/protected-input/run/logo-remediation-preview.json"
+  }),
+  (error) => error instanceof MigrationOperatorError
+    && /requires both protected operator paths/u.test(error.message)
+);
+assert.throws(
+  () => phaseExecution("storage-preview", {
+    ...logoEnvironment,
+    LOGO_REMEDIATION_OBJECT_DIRECTORY: "/tmp/logo-remediation-objects"
+  }),
+  (error) => error instanceof MigrationOperatorError
+    && /fixed owner-only operator locations/u.test(error.message)
+);
 
 const databasePreview = phaseExecution("database-preview", environment);
 assert.equal(databasePreview.managedTarget, true);
@@ -83,6 +124,65 @@ try {
     await realpath(projectedTarget),
     "Kubernetes' versioned Secret projection must be accepted after containment verification."
   );
+
+  const logoOutputFiles = ["01.resvg.png", "02.resvg.png"];
+  const logoManifest = {
+    schemaVersion: "versorgungs-kompass-logo-remediation-v1",
+    remediatedObjectCount: logoOutputFiles.length,
+    remediationFingerprint: fingerprint,
+    entries: logoOutputFiles.map((outputFile) => ({ outputFile }))
+  };
+  assert.deepEqual(
+    logoRemediationOutputFiles(Buffer.from(JSON.stringify(logoManifest))),
+    logoOutputFiles
+  );
+  assert.throws(
+    () => logoRemediationOutputFiles(Buffer.from(JSON.stringify({
+      ...logoManifest,
+      entries: [{ outputFile: "../unsafe.png" }, { outputFile: "02.resvg.png" }]
+    }))),
+    (error) => error instanceof MigrationOperatorError
+      && /output list is unsafe/u.test(error.message)
+  );
+  assert.throws(
+    () => logoRemediationOutputFiles(Buffer.from(JSON.stringify({
+      ...logoManifest,
+      entries: [{ outputFile: "01.resvg.png" }, { outputFile: "01.resvg.png" }]
+    }))),
+    (error) => error instanceof MigrationOperatorError
+      && /output list is unsafe/u.test(error.message)
+  );
+
+  for (const [index, outputFile] of logoOutputFiles.entries()) {
+    const projectedOutput = join(versionDirectory, outputFile);
+    await writeFile(projectedOutput, `synthetic-safe-png-${index}`, { mode: 0o600 });
+    await symlink(`..data/${outputFile}`, join(secretRoot, outputFile));
+  }
+  await writeFile(join(versionDirectory, "unreferenced.png"), "must-not-be-staged", { mode: 0o600 });
+  await symlink("..data/unreferenced.png", join(secretRoot, "unreferenced.png"));
+  const protectedRoot = join(projectedInputTestRoot, "protected-input");
+  await mkdir(protectedRoot, { mode: 0o700 });
+  await writeFile(
+    join(protectedRoot, "logo-remediation-preview.json"),
+    JSON.stringify(logoManifest),
+    { mode: 0o600 }
+  );
+  const stagedLogoBundle = await stageLogoRemediationObjects({
+    inputRoot: secretRoot,
+    protectedRoot
+  });
+  assert.deepEqual(stagedLogoBundle.outputFiles, logoOutputFiles);
+  assert.deepEqual(await readdir(stagedLogoBundle.objectDirectory), logoOutputFiles);
+  const stagedDirectoryMetadata = await lstat(stagedLogoBundle.objectDirectory);
+  assert.equal(stagedDirectoryMetadata.mode & 0o777, 0o700);
+  for (const [index, outputFile] of logoOutputFiles.entries()) {
+    const stagedOutput = join(stagedLogoBundle.objectDirectory, outputFile);
+    const metadata = await lstat(stagedOutput);
+    assert.equal(metadata.isFile(), true);
+    assert.equal(metadata.isSymbolicLink(), false);
+    assert.equal(metadata.mode & 0o777, 0o600);
+    assert.equal(await readFile(stagedOutput, "utf8"), `synthetic-safe-png-${index}`);
+  }
 
   const outsidePath = join(projectedInputTestRoot, "outside.json");
   await writeFile(outsidePath, "{}", { mode: 0o600 });
@@ -127,6 +227,8 @@ assert.match(operatorRunbook, /keine\s+äußeren Shell-Anführungszeichen/u);
 assert.match(operatorRunbook, /percent-encodiert/u);
 assert.match(operatorRunbook, /Bewusst kein\s+`kubectl apply`/u);
 assert.match(operatorRunbook, /erneuert ihn nicht automatisch/u);
+assert.match(operatorRunbook, /\/protected-input\/run\/logo-remediation-preview\.json/u);
+assert.match(operatorRunbook, /demselben\s+unveränderten Logo-Remediation-Bundle/u);
 
 const image = `europe-west3-docker.pkg.dev/target-project-123/migrations/operator@sha256:${"b".repeat(64)}`;
 const rendered = renderJob({

@@ -136,7 +136,7 @@ const BACKUP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_.:/-]{2,255}$/;
 const GCS_BUCKET_PATTERN = /^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/;
 const SHA256_FINGERPRINT_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const GCP_PROJECT_ID_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
-const STORAGE_MANIFEST_SCHEMA = "versorgungs-kompass-storage-manifest-v1";
+const STORAGE_MANIFEST_SCHEMA = "versorgungs-kompass-storage-manifest-v2";
 const MAX_STORAGE_MANIFEST_BYTES = 16 * 1024 * 1024;
 const PROJECT_ROOT = realpathSync(fileURLToPath(new URL("../../", import.meta.url)));
 const PROFILE_IMAGE_EXTENSIONS = new Map([
@@ -433,9 +433,11 @@ export function loadVerifiedStorageManifest(config) {
     "targetProject",
     "projectPairFingerprint",
     "snapshotFingerprint",
+    "remediationManifestFingerprint",
     "sourceObjectCount",
     "migratableObjectCount",
     "quarantinedObjectCount",
+    "remediatedObjectCount",
     "entries",
     "manifestFingerprint"
   ], "STORAGE_MANIFEST_STRUCTURE_INVALID");
@@ -461,13 +463,19 @@ export function loadVerifiedStorageManifest(config) {
       || !Number.isSafeInteger(manifest.sourceObjectCount)
       || !Number.isSafeInteger(manifest.migratableObjectCount)
       || !Number.isSafeInteger(manifest.quarantinedObjectCount)
+      || !Number.isSafeInteger(manifest.remediatedObjectCount)
       || Math.min(
         manifest.sourceObjectCount,
         manifest.migratableObjectCount,
-        manifest.quarantinedObjectCount
+        manifest.quarantinedObjectCount,
+        manifest.remediatedObjectCount
       ) < 0
       || manifest.entries.length !== manifest.sourceObjectCount
-      || manifest.migratableObjectCount + manifest.quarantinedObjectCount !== manifest.sourceObjectCount) {
+      || manifest.migratableObjectCount + manifest.quarantinedObjectCount !== manifest.sourceObjectCount
+      || manifest.remediatedObjectCount > manifest.migratableObjectCount
+      || (manifest.remediatedObjectCount === 0
+        ? manifest.remediationManifestFingerprint !== null
+        : !SHA256_FINGERPRINT_PATTERN.test(manifest.remediationManifestFingerprint || ""))) {
     throw new MigrationSafetyError("Storage manifest aggregate counts are inconsistent.", "STORAGE_MANIFEST_COUNT_INVALID");
   }
 
@@ -525,9 +533,11 @@ export function loadVerifiedStorageManifest(config) {
     targetProject: manifest.targetProject,
     projectPairFingerprint: manifest.projectPairFingerprint,
     snapshotFingerprint: manifest.snapshotFingerprint,
+    remediationManifestFingerprint: manifest.remediationManifestFingerprint,
     sourceObjectCount: manifest.sourceObjectCount,
     migratableObjectCount: manifest.migratableObjectCount,
     quarantinedObjectCount: manifest.quarantinedObjectCount,
+    remediatedObjectCount: manifest.remediatedObjectCount,
     entries: manifest.entries
   };
   const calculatedFingerprint = storageManifestFingerprint(payload);
@@ -1596,8 +1606,10 @@ function verifyStorageManifestReferences(sourceRows, config, manifest) {
   }
   return Object.freeze({
     manifestFingerprint: manifest.manifestFingerprint,
+    remediationManifestFingerprint: manifest.remediationManifestFingerprint,
     sourceObjectCount: manifest.sourceObjectCount,
     quarantinedObjectCount: manifest.quarantinedObjectCount,
+    remediatedObjectCount: manifest.remediatedObjectCount,
     profileImageReferenceCount,
     contactImageReferenceCount,
     contactNoteAttachmentReferenceCount,
