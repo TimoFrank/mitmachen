@@ -21,7 +21,11 @@ frischen GCP-/Backup-Gate.
   Privilege Escalation und mit schreibgeschütztem Root-Dateisystem.
 - Secret-Projektionen werden vor Benutzung in ein kurzlebiges Volume kopiert.
   Erst die Kopie gehört dem Operator und hat Modus `0600`; das erfüllt die
-  bestehenden Schutzprüfungen für CA und Storage-Apply-Manifest.
+  bestehenden Schutzprüfungen für CA, Storage-Apply-Manifest und das optionale
+  Logo-Remediation-Bundle. Dessen Manifest bestimmt eine begrenzte Liste
+  sicherer PNG-Dateinamen; nur diese Dateien werden in ein Verzeichnis mit
+  Modus `0700` übernommen und anschließend vollständig gegen Hashes, Snapshot,
+  Projektpaar, PNG-Struktur und Renderer-Beleg geprüft.
 - Ergebnisdateien liegen unter `/protected-output/run`, gehören dem Operator
   und haben Modus `0600`. Kubernetes-Logs enthalten nur eine generische
   Erfolgs- oder Fehlermeldung. Ergebnisse müssen vor dem Löschen des Jobs in
@@ -126,7 +130,16 @@ CONFIRM_STORAGE_MANIFEST_FINGERPRINT=sha256:<NUR-FUER-DB-APPLY>
 CONFIRM_SOURCE_SNAPSHOT_FINGERPRINT=sha256:<NUR-FUER-DB-APPLY>
 CONFIRM_QUARANTINED_OBJECT_COUNT=<GEPRUEFTER-ZAEHLER>
 CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT=sha256:<NUR-WENN-PREVIEW-MELDET>
+LOGO_REMEDIATION_MANIFEST_PATH=/protected-input/run/logo-remediation-preview.json
+LOGO_REMEDIATION_OBJECT_DIRECTORY=/protected-input/run/logo-remediation-objects
 ```
+
+Die beiden `LOGO_REMEDIATION_*`-Werte werden nur gesetzt, wenn ein geprüftes
+Bundle benötigt wird, und dann immer gemeinsam mit exakt diesen festen Pfaden.
+Andere Operator-Pfade sowie nur ein gesetzter Wert werden vor dem Start
+abgewiesen. Preview und Apply verwenden dasselbe unveränderte Bundle; dessen
+Fingerprint geht in Storage-Snapshot, Storage-Manifest, Zielobjekt-Metadaten
+und Recovery-Journal ein.
 
 `SOURCE_DATABASE_URL` muss weiter genau einen Parameter `sslrootcert`
 enthalten; der Operator ersetzt nur dessen Pfad durch seine owner-only Kopie.
@@ -163,17 +176,38 @@ kubectl --namespace pre-gematik create secret generic \
 ```
 
 Beim Datenbank-Preview wird `--from-file=storage-apply.json=…` ausgelassen.
-Für Storage-Phasen darf das optionale Input-Secret ganz fehlen.
+Für Storage-Phasen darf das Input-Secret nur dann ganz fehlen, wenn kein
+Logo-Remediation-Bundle benötigt wird. Andernfalls wird für jeden Storage-Lauf
+ein neues Secret erstellt. Es enthält exakt das Manifest und die darin
+genannten, bereits visuell geprüften PNG-Dateien; weitere Zwischenstände oder
+ursprüngliche SVG/XML/PNG-Dateien werden nicht aufgenommen:
+
+```bash
+kubectl --namespace pre-gematik create secret generic \
+  vk-pre-gematik-migration-input \
+  --from-file=logo-remediation-preview.json=/ABSOLUT/GESCHUETZT/logo-remediation-preview.json \
+  --from-file=01.resvg.png=/ABSOLUT/GESCHUETZT/01.resvg.png \
+  --from-file=02.resvg.png=/ABSOLUT/GESCHUETZT/02.resvg.png
+```
+
+Die PNG-Zeilen werden vollständig für alle im Manifest genannten
+`outputFile`-Werte ergänzt. Die Beispielnamen sind keine fachlichen
+Objektnamen. Das Secret muss unter der Kubernetes-Größengrenze bleiben; das
+freigegebene Acht-Dateien-Bundle erfüllt diese Bedingung. Der Operator kopiert
+nur die im Manifest referenzierten Schlüssel und verwirft keine Prüfung an die
+Secret-Projektion.
 
 ## 4. Phasen ausführen
 
 Verbindliche Reihenfolge nach aktivierter Quell-Schreibsperre:
 
 1. `storage-preview` zweimal; Snapshot- und Manifest-Fingerprint müssen jeweils
-   identisch sein.
+   identisch sein. Bei Logo-Remediation müssen zusätzlich Remediation-
+   Fingerprint und Anzahl identisch sein und die Quarantäne muss `0` bleiben.
 2. `database-preview` zweimal; Source-Snapshot-, Target-Klassifikation- und
    Bootstrap-Profil-Fingerprint müssen jeweils identisch sein.
-3. `storage-apply` einmal mit den geprüften Bestätigungswerten.
+3. `storage-apply` einmal mit den geprüften Bestätigungswerten und demselben
+   unveränderten Logo-Remediation-Bundle.
 4. `database-apply` einmal mit dem abgerufenen Storage-Apply-Manifest.
 
 Für jeden Storage-Lauf wird unmittelbar vorher ein neuer kurzlebiger Google-
