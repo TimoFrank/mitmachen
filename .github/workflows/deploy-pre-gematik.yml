@@ -103,8 +103,12 @@ jobs:
             --set-string image.repository=europe-west3-docker.pkg.dev/example-project/versorgungs-kompass/versorgungs-kompass-api \
             --set-string image.tag="$IMAGE_TAG" \
             --set-string ingress.host=pre-gematik.example.invalid \
+            --set-string "ingress.aliasHosts[0]=legacy-pre-gematik.example.invalid" \
             --set-string "ingress.annotations.kubernetes\\.io/ingress\\.global-static-ip-name=example-static-ip" \
+            --set-string gke.managedCertificate.name=versorgungs-kompass-mitmachen \
             --set-string "gke.managedCertificate.domains[0]=pre-gematik.example.invalid" \
+            --set-string "gke.managedCertificate.additionalCertificates[0].name=versorgungs-kompass-api" \
+            --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=legacy-pre-gematik.example.invalid" \
             --set-string config.allowedOrigin=https://pre-gematik.example.invalid \
             --set-string config.apiAuthMode=iap \
             --set-string config.iapJwtAudience=/projects/123456789/global/backendServices/123456789 \
@@ -114,6 +118,8 @@ jobs:
             --set-string database.ssl=disable \
             --set-string frontend.bucketName=example-frontend \
             --set-string frontend.contentRevision="$IMAGE_TAG" \
+            --set-string "frontend.hostRedirects[0].host=legacy-pre-gematik.example.invalid" \
+            --set-string "frontend.hostRedirects[0].targetOrigin=https://pre-gematik.example.invalid" \
             --set-string gke.cloudSqlProxy.instanceConnectionName=example-project:europe-west3:example-postgres \
             --set-string gke.secretSync.projectId=example-project \
             --set-string gke.secretSync.secretName=versorgungs-kompass-postgres \
@@ -206,6 +212,7 @@ jobs:
       GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY }}
       API_BASE_URL: ${{ vars.API_BASE_URL }}
       FRONTEND_BASE_URL: ${{ vars.FRONTEND_BASE_URL }}
+      LEGACY_FRONTEND_HOST: ${{ vars.LEGACY_FRONTEND_HOST }}
       FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET }}
       DB_NAME: ${{ vars.DB_NAME }}
       DB_USER: ${{ vars.DB_USER }}
@@ -311,6 +318,16 @@ jobs:
           if [[ "$API_BASE_URL" != "$FRONTEND_BASE_URL" ]]; then
             echo "API_BASE_URL and FRONTEND_BASE_URL must use the same origin in pre-gematik." >&2
             exit 1
+          fi
+          if [[ -n "${LEGACY_FRONTEND_HOST:-}" ]]; then
+            if [[ ! "$LEGACY_FRONTEND_HOST" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]]; then
+              echo "LEGACY_FRONTEND_HOST must be a lowercase DNS host without scheme, port, path, query, or fragment." >&2
+              exit 1
+            fi
+            if [[ "$LEGACY_FRONTEND_HOST" == "${api_host,,}" ]]; then
+              echo "LEGACY_FRONTEND_HOST must differ from the canonical API/Frontend host." >&2
+              exit 1
+            fi
           fi
 
           registry_host="${GAR_REPOSITORY%%/*}"
@@ -598,6 +615,17 @@ jobs:
 
           deploy_release() {
             local iap_audience="$1"
+            local -a domain_migration_args=()
+            if [[ -n "${LEGACY_FRONTEND_HOST:-}" ]]; then
+              domain_migration_args=(
+                --set-string "ingress.aliasHosts[0]=${LEGACY_FRONTEND_HOST}"
+                --set-string "frontend.hostRedirects[0].host=${LEGACY_FRONTEND_HOST}"
+                --set-string "frontend.hostRedirects[0].targetOrigin=${FRONTEND_BASE_URL}"
+                --set-string "gke.managedCertificate.name=${HELM_RELEASE}-mitmachen"
+                --set-string "gke.managedCertificate.additionalCertificates[0].name=${HELM_RELEASE}-api"
+                --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=${LEGACY_FRONTEND_HOST}"
+              )
+            fi
             helm upgrade --install "$HELM_RELEASE" "$CHART_PATH" \
               --namespace "$K8S_NAMESPACE" \
               --create-namespace \
@@ -605,6 +633,7 @@ jobs:
               --wait \
               --timeout 15m \
               -f "$GCP_VALUES_PATH" \
+              "${domain_migration_args[@]}" \
               --set-string image.repository="$IMAGE_REPOSITORY" \
               --set-string image.tag="$IMAGE_TAG" \
               --set-string image.digest="$IMAGE_DIGEST" \
@@ -1045,6 +1074,10 @@ jobs:
             echo "- Image: \`${IMAGE_REPOSITORY}:${IMAGE_TAG}\`"
             echo "- Digest: \`${IMAGE_DIGEST}\`"
             echo "- Namespace: \`${K8S_NAMESPACE}\`"
+            echo "- Canonical origin: \`${FRONTEND_BASE_URL}\`"
+            if [[ -n "${LEGACY_FRONTEND_HOST:-}" ]]; then
+              echo "- Legacy origin: \`https://${LEGACY_FRONTEND_HOST}\` (certificate retained; redirects to canonical origin)"
+            fi
             echo "- Frontend release: \`gs://${FRONTEND_BUCKET}/releases/${IMAGE_TAG}\`"
             echo "- API backend service: \`${API_BACKEND_SERVICE}\`"
             echo "- Frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"

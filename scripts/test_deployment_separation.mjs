@@ -215,12 +215,15 @@ try {
   assert.equal((contactsApiUrl.pathname.match(/\/api(?=\/|$)/g) || []).length, 1, "Die zusammengesetzte URL darf nur eine /api-Route enthalten");
 
   assert.equal(fs.existsSync(path.join(targetDir, "login.html")), true, "Target muss die geschuetzte Anmeldung enthalten");
+  assert.equal(fs.existsSync(path.join(targetDir, "index.html")), true, "Target muss den zentralen #Mitmachen-Einstieg enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "versorgungs-kompass.html")), true, "Target muss die Realanwendung enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "data", "data-service.js")), true, "Target muss den API-Datenservice enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "manifest.webmanifest")), true, "Target muss das PWA-Manifest am referenzierten Root-Pfad enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "public", "manifest.webmanifest")), false, "Das Target darf keine zweite, falsch platzierte Manifestkopie enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "vendor", "leaflet", "leaflet.js")), true, "Target muss allgemeine Vendor-Assets enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Target muss das Export-Asset enthalten");
+  assert.equal(fs.existsSync(path.join(targetDir, "public", "brand", "mitmachen", "mark-on-dark.svg")), true, "Target muss die #Mitmachen-Sidebar-Marke enthalten");
+  assert.equal(fs.existsSync(path.join(targetDir, "public", "brand", "mitmachen", "lockup-horizontal.svg")), true, "Target muss die #Mitmachen-Wortmarke enthalten");
   assertMissing(
     targetDir,
     "demo",
@@ -233,6 +236,14 @@ try {
     "data/patienten-data.js",
     "vendor/supabase"
   );
+
+  const targetIndexHtml = fs.readFileSync(path.join(targetDir, "index.html"), "utf8");
+  assert.match(targetIndexHtml, /<aside class="module-sidebar"/);
+  assert.match(targetIndexHtml, /<h1 id="welcome-title">Gemeinsam Versorgung gestalten\.<\/h1>/);
+  assert.match(targetIndexHtml, /href="\.\/versorgungs-kompass\.html#map"/);
+  assert.match(targetIndexHtml, /href="\.\/mitmachen\/mitmachen\.css"/);
+  assert.match(targetIndexHtml, /src="\.\/public\/brand\/mitmachen\/lockup-horizontal\.svg"/);
+  assert.doesNotMatch(targetIndexHtml, /dokumentation\//, "Der Live-Einstieg darf nicht auf nicht ausgelieferte Repository-Dokumentation verweisen");
 
   const targetHtml = fs.readFileSync(path.join(targetDir, "versorgungs-kompass.html"), "utf8");
   assert.doesNotMatch(targetHtml, /data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i);

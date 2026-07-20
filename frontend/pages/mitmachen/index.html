@@ -5,28 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Willkommen bei #Mitmachen – der zentrale Einstieg in Versorgung, Stakeholder, Hospitation und Formate."
+      content="#Mitmachen Modulstart für Versorgung, Stakeholder, Hospitation und Formate im Versorgungs-Kompass."
     />
-    <title>Willkommen | #Mitmachen</title>
+    <title>#Mitmachen | Versorgungs-Kompass</title>
     <meta name="theme-color" content="#f5f7fb" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../../../public/app-icon-32.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../public/brand/versorgungs-kompass/icons/app-icon-32.png" />
     <link rel="stylesheet" href="./mitmachen.css" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
 
     <aside class="module-sidebar" aria-label="Eingeklappte Modulnavigation">
-      <a class="module-sidebar__brand" href="#main-content" aria-label="#Mitmachen Startseite" aria-current="page" title="#Mitmachen Startseite">
-        <span class="rail-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+      <a class="module-sidebar__brand" href="#main-content" aria-label="#Mitmachen Modulstart" aria-current="page" title="#Mitmachen Modulstart">
+        <img src="../../../public/brand/mitmachen/mark-on-dark.svg" alt="" aria-hidden="true" />
       </a>
       <nav class="module-sidebar__nav" aria-label="Module">
-        <a class="module-sidebar__link" href="../../app/versorgungs-kompass.html#map" aria-label="Versorgung" title="Versorgung">
+        <a class="module-sidebar__link module-sidebar__link--versorgung" href="../../app/versorgungs-kompass.html#map" aria-label="Versorgung" title="Versorgung">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
             <path d="M9 3v15M15 6v15"></path>
           </svg>
         </a>
-        <a class="module-sidebar__link" href="../../app/versorgungs-kompass.html#stakeholders" aria-label="Stakeholder" title="Stakeholder">
+        <a class="module-sidebar__link module-sidebar__link--stakeholder" href="../../app/versorgungs-kompass.html#stakeholders" aria-label="Stakeholder" title="Stakeholder">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="7" cy="7" r="3"></circle>
             <circle cx="17" cy="7" r="3"></circle>
@@ -34,14 +34,14 @@
             <path d="M9.4 9.1 11 14m3.6-4.9L13 14m-3.6 3h5.2"></path>
           </svg>
         </a>
-        <a class="module-sidebar__link" href="../../app/versorgungs-kompass.html#planning" aria-label="Hospitation" title="Hospitation">
+        <a class="module-sidebar__link module-sidebar__link--hospitation" href="../../app/versorgungs-kompass.html#planning" aria-label="Hospitation" title="Hospitation">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M8 2v4M16 2v4"></path>
             <rect x="3" y="4" width="18" height="18" rx="2"></rect>
             <path d="M3 10h18M12 14v5M9.5 16.5h5"></path>
           </svg>
         </a>
-        <a class="module-sidebar__link" href="../../app/versorgungs-kompass.html#formats" aria-label="Formate" title="Formate">
+        <a class="module-sidebar__link module-sidebar__link--formate" href="../../app/versorgungs-kompass.html#formats" aria-label="Formate" title="Formate">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M8 2v4M16 2v4"></path>
             <rect x="3" y="4" width="18" height="18" rx="2"></rect>
@@ -62,12 +62,15 @@
       <main id="main-content">
         <section class="welcome" aria-labelledby="welcome-title">
           <div class="welcome__copy">
-            <div class="welcome__brand" aria-label="#Mitmachen">
-              <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
-              <span>#Mitmachen</span>
+            <div class="welcome__brand">
+              <img class="welcome__mitmachen-logo" src="../../../public/brand/mitmachen/lockup-horizontal.svg" alt="#Mitmachen" />
+              <span class="welcome__product-context">
+                <img src="../../../public/brand/versorgungs-kompass/mark.svg" alt="" aria-hidden="true" />
+                <span>Versorgungs-Kompass</span>
+              </span>
             </div>
-            <h1 id="welcome-title">Willkommen.</h1>
-            <p class="welcome__lead">Wählen Sie einen Bereich und steigen Sie direkt ein.</p>
+            <h1 id="welcome-title">Gemeinsam Versorgung gestalten.</h1>
+            <p class="welcome__lead">Wähle das Modul, in dem du weiterarbeiten möchtest. Alle vier Bereiche führen in den Versorgungs-Kompass.</p>
           </div>
 
           <nav aria-label="Bereiche von #Mitmachen">
@@ -79,7 +82,7 @@
                     <span class="destination-link__arrow" aria-hidden="true">↗</span>
                   </span>
                   <strong>Versorgung</strong>
-                  <span class="destination-link__description">Karte, Kontakte und Organisationen</span>
+                  <span class="destination-link__description">Regionen, Kontakte und Organisationen im Blick.</span>
                 </a>
               </li>
               <li>
@@ -89,7 +92,7 @@
                     <span class="destination-link__arrow" aria-hidden="true">↗</span>
                   </span>
                   <strong>Stakeholder</strong>
-                  <span class="destination-link__description">Perspektiven und Netzwerke</span>
+                  <span class="destination-link__description">Perspektiven und Netzwerke gezielt verbinden.</span>
                 </a>
               </li>
               <li>
@@ -99,7 +102,7 @@
                     <span class="destination-link__arrow" aria-hidden="true">↗</span>
                   </span>
                   <strong>Hospitation</strong>
-                  <span class="destination-link__description">Framework, Hospitationen und Fragebogen</span>
+                  <span class="destination-link__description">Beobachtungen in belastbares Wissen überführen.</span>
                 </a>
               </li>
               <li>
@@ -109,7 +112,7 @@
                     <span class="destination-link__arrow" aria-hidden="true">↗</span>
                   </span>
                   <strong>Formate</strong>
-                  <span class="destination-link__description">Formate entwickeln und steuern</span>
+                  <span class="destination-link__description">Austausch planen und Wirkung gemeinsam gestalten.</span>
                 </a>
               </li>
             </ul>
@@ -118,11 +121,11 @@
       </main>
 
       <footer class="site-footer">
-        <p>Ein #Mitmachen-Angebot der gematik.</p>
+        <p>#Mitmachen · Versorgungs-Kompass</p>
         <nav aria-label="Rechtliche Hinweise">
+          <a href="https://www.gematik.de/mitmachen" target="_blank" rel="noopener noreferrer">#Mitmachen auf gematik.de</a>
           <a href="https://www.gematik.de/impressum" target="_blank" rel="noopener noreferrer">Impressum</a>
           <a href="https://www.gematik.de/datenschutz" target="_blank" rel="noopener noreferrer">Datenschutz</a>
-          <a href="https://www.gematik.de/barrierefreiheit" target="_blank" rel="noopener noreferrer">Barrierefreiheit</a>
         </nav>
       </footer>
     </div>

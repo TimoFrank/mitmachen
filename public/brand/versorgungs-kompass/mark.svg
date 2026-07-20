@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">Versorgungs-Kompass Signet</title>
+  <desc id="description">Drei diagonal angeordnete, abgerundete Quadrate in Blau, Orange und Dunkelblau.</desc>
+  <rect x="11" y="9" width="18" height="18" rx="6" transform="rotate(45 20 18)" fill="#2788f6"/>
+  <rect x="34" y="24" width="18" height="18" rx="6" transform="rotate(45 43 33)" fill="#ff7f3f"/>
+  <rect x="11" y="39" width="18" height="18" rx="6" transform="rotate(45 20 48)" fill="#10236e"/>
+</svg>
