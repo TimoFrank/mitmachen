@@ -1,7 +1,40 @@
 {{- if .Values.ingress.enabled -}}
 {{- $annotations := deepCopy (.Values.ingress.annotations | default dict) -}}
+{{- $aliasHosts := .Values.ingress.aliasHosts | default (list) -}}
+{{- $hostRedirects := .Values.frontend.hostRedirects | default (list) -}}
+{{- if has .Values.ingress.host $aliasHosts -}}
+{{- fail "ingress.aliasHosts must not contain ingress.host" -}}
+{{- end -}}
+{{- if and (not .Values.frontend.enabled) (gt (len $hostRedirects) 0) -}}
+{{- fail "frontend.enabled must be true when frontend.hostRedirects is configured" -}}
+{{- end -}}
+{{- $redirectHosts := dict -}}
+{{- range $hostRedirects -}}
+{{- if eq .host $.Values.ingress.host -}}
+{{- fail "frontend.hostRedirects must not redirect ingress.host" -}}
+{{- end -}}
+{{- if not (has .host $aliasHosts) -}}
+{{- fail (printf "frontend.hostRedirects host %q must also be listed in ingress.aliasHosts" .host) -}}
+{{- end -}}
+{{- if hasKey $redirectHosts .host -}}
+{{- fail (printf "duplicate frontend.hostRedirects host %q" .host) -}}
+{{- end -}}
+{{- $_ := set $redirectHosts .host true -}}
+{{- end -}}
+{{- $ingressHosts := list .Values.ingress.host -}}
+{{- range $aliasHosts -}}
+{{- $ingressHosts = append $ingressHosts . -}}
+{{- end -}}
 {{- if .Values.gke.managedCertificate.enabled -}}
-{{- $_ := set $annotations "networking.gke.io/managed-certificates" (include "versorgungs-kompass.gkeManagedCertificateName" .) -}}
+{{- $certificateNames := list (include "versorgungs-kompass.gkeManagedCertificateName" .) -}}
+{{- range .Values.gke.managedCertificate.additionalCertificates | default (list) -}}
+{{- $certificateName := required "gke.managedCertificate.additionalCertificates[].name is required" .name -}}
+{{- if has $certificateName $certificateNames -}}
+{{- fail (printf "duplicate GKE ManagedCertificate name %q" $certificateName) -}}
+{{- end -}}
+{{- $certificateNames = append $certificateNames $certificateName -}}
+{{- end -}}
+{{- $_ := set $annotations "networking.gke.io/managed-certificates" (join "," $certificateNames) -}}
 {{- end -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -20,26 +53,37 @@ spec:
   {{- if .Values.ingress.tls.enabled }}
   tls:
     - hosts:
-        - {{ .Values.ingress.host | quote }}
+        {{- range $ingressHosts }}
+        - {{ . | quote }}
+        {{- end }}
       secretName: {{ .Values.ingress.tls.secretName | quote }}
   {{- end }}
   rules:
-    - host: {{ .Values.ingress.host | quote }}
+    {{- range $host := $ingressHosts }}
+    - host: {{ $host | quote }}
       http:
         paths:
-          {{- if .Values.frontend.enabled }}
+          {{- if and $.Values.frontend.enabled (hasKey $redirectHosts $host) }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendFullname" $ }}
+                port:
+                  name: http
+          {{- else if $.Values.frontend.enabled }}
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: {{ include "versorgungs-kompass.fullname" . }}-api
+                name: {{ include "versorgungs-kompass.fullname" $ }}-api
                 port:
                   name: http
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: {{ include "versorgungs-kompass.frontendFullname" . }}
+                name: {{ include "versorgungs-kompass.frontendFullname" $ }}
                 port:
                   name: http
           {{- else }}
@@ -47,8 +91,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "versorgungs-kompass.fullname" . }}-api
+                name: {{ include "versorgungs-kompass.fullname" $ }}-api
                 port:
                   name: http
           {{- end }}
+    {{- end }}
 {{- end }}

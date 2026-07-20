@@ -8,4 +8,16 @@ metadata:
 spec:
   domains:
     {{- required "gke.managedCertificate.domains must contain at least one domain" .Values.gke.managedCertificate.domains | toYaml | nindent 4 }}
+{{- range .Values.gke.managedCertificate.additionalCertificates | default (list) }}
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: {{ required "gke.managedCertificate.additionalCertificates[].name is required" .name }}
+  labels:
+    {{- include "versorgungs-kompass.labels" $ | nindent 4 }}
+spec:
+  domains:
+    {{- required "gke.managedCertificate.additionalCertificates[].domains must contain at least one domain" .domains | toYaml | nindent 4 }}
+{{- end }}
 {{- end }}

@@ -23,6 +23,7 @@ ingress:
   enabled: true
   className: ""
   host: pre-gematik.example.invalid
+  aliasHosts: []
   annotations:
     kubernetes.io/ingress.class: gce
     kubernetes.io/ingress.allow-http: "false"
@@ -70,6 +71,7 @@ frontend:
   enabled: true
   bucketName: example-pre-gematik-frontend
   contentRevision: REPLACE_WITH_IMMUTABLE_FRONTEND_CONTENT_REVISION
+  hostRedirects: []
   replicaCount: 2
   serviceAccount:
     create: true
@@ -118,6 +120,7 @@ gke:
     name: versorgungs-kompass-api
     domains:
       - pre-gematik.example.invalid
+    additionalCertificates: []
   secretSync:
     enabled: true
     projectId: example-pre-gematik-project

@@ -7,6 +7,10 @@
         --sidebar-bg: #062f75;
         --sidebar-bg-strong: #05235f;
         --sidebar-active: #155fe4;
+        --module-versorgung: #559ee8;
+        --module-stakeholder: #43b391;
+        --module-hospitation: #e0a44d;
+        --module-formate: #a980da;
         font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
@@ -87,14 +91,40 @@
         background: rgba(255, 255, 255, 0.1);
       }
 
+      .module-sidebar__brand img {
+        width: 34px;
+        height: 34px;
+      }
+
       .module-sidebar__brand:hover,
       .module-sidebar__brand:focus-visible,
-      .module-sidebar__link:hover,
-      .module-sidebar__link:focus-visible,
       .module-sidebar__login:hover,
       .module-sidebar__login:focus-visible {
         background: var(--sidebar-active);
         color: #ffffff;
+        outline: none;
+      }
+
+      .module-sidebar__link {
+        --module-accent: var(--module-versorgung);
+      }
+
+      .module-sidebar__link--stakeholder {
+        --module-accent: var(--module-stakeholder);
+      }
+
+      .module-sidebar__link--hospitation {
+        --module-accent: var(--module-hospitation);
+      }
+
+      .module-sidebar__link--formate {
+        --module-accent: var(--module-formate);
+      }
+
+      .module-sidebar__link:hover,
+      .module-sidebar__link:focus-visible {
+        background: var(--module-accent);
+        color: #17275f;
         outline: none;
       }
 
@@ -122,38 +152,6 @@
         background: rgba(255, 255, 255, 0.06);
       }
 
-      .rail-mark {
-        position: relative;
-        width: 32px;
-        height: 32px;
-      }
-
-      .rail-mark span {
-        position: absolute;
-        width: 11px;
-        height: 11px;
-        border-radius: 4px;
-        transform: rotate(45deg);
-      }
-
-      .rail-mark span:nth-child(1) {
-        top: 1px;
-        left: 5px;
-        background: #2788f6;
-      }
-
-      .rail-mark span:nth-child(2) {
-        top: 10px;
-        left: 14px;
-        background: #ff7f3f;
-      }
-
-      .rail-mark span:nth-child(3) {
-        top: 19px;
-        left: 5px;
-        background: #ffffff;
-      }
-
       .page {
         width: min(1280px, 100%);
         min-height: 100vh;
@@ -168,7 +166,7 @@
         min-width: 0;
         display: grid;
         align-items: center;
-        padding: clamp(44px, 8vh, 96px) 0 clamp(64px, 10vh, 116px);
+        padding: clamp(48px, 8vh, 90px) 0 clamp(56px, 8vh, 88px);
       }
 
       .welcome {
@@ -178,63 +176,48 @@
 
       .welcome__copy {
         min-width: 0;
-        max-width: 760px;
+        max-width: 920px;
         margin: 0 auto clamp(52px, 7vw, 78px);
         text-align: center;
       }
 
       .welcome__brand {
-        width: fit-content;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 36px;
+      }
+
+      .welcome__mitmachen-logo {
+        display: block;
+        width: clamp(250px, 28vw, 360px);
+        height: auto;
+      }
+
+      .welcome__product-context {
         display: inline-flex;
         align-items: center;
-        gap: 16px;
-        margin-bottom: 32px;
-        color: var(--navy);
-        font-size: clamp(1.5rem, 2.6vw, 2rem);
-        font-weight: 900;
-        letter-spacing: -0.04em;
+        gap: 8px;
+        color: var(--text-soft);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
-      .brand-mark {
-        position: relative;
-        width: 52px;
-        height: 52px;
-        flex: 0 0 auto;
-      }
-
-      .brand-mark span {
-        position: absolute;
-        width: 18px;
-        height: 18px;
-        border-radius: 8px;
-        transform: rotate(45deg);
-      }
-
-      .brand-mark span:nth-child(1) {
-        top: 2px;
-        left: 7px;
-        background: var(--blue);
-      }
-
-      .brand-mark span:nth-child(2) {
-        top: 17px;
-        left: 21px;
-        background: #ff7f3f;
-      }
-
-      .brand-mark span:nth-child(3) {
-        top: 31px;
-        left: 7px;
-        background: var(--navy);
+      .welcome__product-context img {
+        width: 28px;
+        height: 28px;
       }
 
       h1 {
         margin: 0 0 18px;
         color: var(--text);
-        font-size: clamp(3.3rem, 7vw, 6.4rem);
+        font-size: clamp(3rem, 6vw, 5.5rem);
         font-weight: 850;
         letter-spacing: -0.065em;
-        line-height: 0.95;
+        line-height: 0.98;
       }
 
       .welcome__lead {
@@ -246,39 +229,44 @@
       .destinations {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: clamp(20px, 3vw, 42px);
+        gap: clamp(14px, 2vw, 24px);
         margin: 0;
         padding: 0;
         list-style: none;
       }
 
       .destination-link {
-        --accent: var(--blue);
-        min-height: 154px;
+        --accent: var(--module-versorgung);
+        min-height: 196px;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        border-top: 1px solid var(--line);
-        padding: 18px 2px 8px;
+        border: 1px solid var(--line);
+        border-top: 6px solid var(--accent);
+        border-radius: 18px;
+        background: #ffffff;
+        padding: 20px 20px 22px;
+        box-shadow: 0 14px 34px rgba(16, 35, 110, 0.07);
         text-decoration: none;
-        transition: transform 180ms ease, border-color 180ms ease;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
       }
 
       .destination-link--stakeholder {
-        --accent: #e60028;
+        --accent: var(--module-stakeholder);
       }
 
       .destination-link--planung {
-        --accent: #087b5c;
+        --accent: var(--module-hospitation);
       }
 
       .destination-link--formate {
-        --accent: #9b6b00;
+        --accent: var(--module-formate);
       }
 
       .destination-link:hover {
         transform: translateY(-3px);
         border-color: var(--accent);
+        box-shadow: 0 20px 46px rgba(16, 35, 110, 0.12);
       }
 
       .destination-link:focus-visible {
@@ -321,9 +309,9 @@
       }
 
       .destination-link strong {
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         color: var(--text);
-        font-size: 1.08rem;
+        font-size: 1.18rem;
         font-weight: 850;
         letter-spacing: -0.02em;
       }
@@ -331,7 +319,7 @@
       .destination-link__description {
         max-width: 210px;
         color: var(--text-soft);
-        font-size: 0.82rem;
+        font-size: 0.86rem;
         line-height: 1.45;
       }
 
@@ -418,7 +406,11 @@
 
         .welcome__brand {
           margin-bottom: 26px;
-          font-size: 1.45rem;
+          gap: 10px;
+        }
+
+        .welcome__mitmachen-logo {
+          width: 244px;
         }
 
         h1 {
@@ -433,8 +425,9 @@
         }
 
         .destination-link {
-          min-height: 118px;
-          padding: 15px 2px 16px;
+          min-height: 148px;
+          border-top-width: 5px;
+          padding: 17px 18px 18px;
         }
 
         .destination-link__top {
@@ -453,6 +446,13 @@
 
         .site-footer nav {
           justify-content: flex-start;
+        }
+
+      }
+
+      @media (max-width: 360px) {
+        .welcome__mitmachen-logo {
+          width: 220px;
         }
       }
 

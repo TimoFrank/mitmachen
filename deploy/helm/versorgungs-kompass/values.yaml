@@ -29,6 +29,7 @@ ingress:
   enabled: true
   className: ""
   host: versorgungs-kompass-api.example.internal
+  aliasHosts: []
   annotations: {}
   tls:
     enabled: true
@@ -69,6 +70,7 @@ frontend:
   bucketName: ""
   releasePrefix: "releases"
   contentRevision: ""
+  hostRedirects: []
   replicaCount: 2
   podAnnotations: {}
   contentSizeLimit: 512Mi
@@ -179,6 +181,7 @@ gke:
     enabled: false
     name: ""
     domains: []
+    additionalCertificates: []
   secretSync:
     enabled: false
     projectId: ""
