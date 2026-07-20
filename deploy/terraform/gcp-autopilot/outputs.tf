@@ -93,9 +93,9 @@ output "IAP_OAUTH_BOOTSTRAP_SECRET_NAME" {
   value       = var.IAP_OAUTH_BOOTSTRAP_SECRET_NAME
 }
 
-output "IAP_RESOURCE_ACCESS_GROUP" {
-  description = "Group that the workflow binds only to the generated API and frontend IAP backend services."
-  value       = var.IAP_RESOURCE_ACCESS_GROUP
+output "IAP_RESOURCE_ACCESS_PRINCIPAL" {
+  description = "Principal that the workflow binds only to the generated API and frontend IAP backend services."
+  value       = var.IAP_RESOURCE_ACCESS_PRINCIPAL
 }
 
 output "K8S_NAMESPACE" {

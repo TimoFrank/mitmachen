@@ -65,7 +65,9 @@ const contentChecks = [
       /--out-file "\$oauth_source_file"/,
       /create secret generic "\$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME"/,
       /oauthClientCredentialsSecretName/,
-      /IAP_RESOURCE_ACCESS_GROUP/,
+      /IAP_RESOURCE_ACCESS_PRINCIPAL/,
+      /\^\(group\|user\):/,
+      /group:name@example\.org or user:name@example\.org/,
       /IAP_PROJECT_BREAK_GLASS_SHA256/,
       /Project-level IAP break-glass membership differs from the protected approved policy pin/,
       /DEPLOYER_SERVICE_ACCOUNT does not belong to GCP_PROJECT_ID/,
@@ -269,7 +271,7 @@ const requiredEnvironment = [
   "GKE_INGRESS_IP_NAME",
   "K8S_NAMESPACE",
   "IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME",
-  "IAP_RESOURCE_ACCESS_GROUP",
+  "IAP_RESOURCE_ACCESS_PRINCIPAL",
   "IAP_PROJECT_BREAK_GLASS_SHA256"
 ];
 
@@ -343,7 +345,7 @@ if (/group:/.test(projectIapMembers)) {
   ok("Projektweiter IAP-Zugriff enthaelt nur den direkten Break-glass-Nutzer.");
 }
 
-if (!/IAP_RESOURCE_ACCESS_GROUP\s*=\s*"group:[a-z0-9._%+-]+@example\.invalid"/i.test(terraformExample)) {
+if (!/IAP_RESOURCE_ACCESS_PRINCIPAL\s*=\s*"group:[a-z0-9._%+-]+@example\.invalid"/i.test(terraformExample)) {
   fail("Die ressourcenspezifische pre-gematik IAP-Gruppe fehlt als neutraler example.invalid-Platzhalter in terraform.tfvars.example.");
 } else {
   ok("Die regulaere IAP-Gruppe ist separat und ohne reale Gruppenadresse fuer ressourcenspezifische Bindungen deklariert.");

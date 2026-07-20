@@ -242,13 +242,13 @@ variable "IAP_ACCESS_MEMBERS" {
   }
 }
 
-variable "IAP_RESOURCE_ACCESS_GROUP" {
-  description = "Google Group bound by the deployment workflow to only the generated API and frontend IAP backend services."
+variable "IAP_RESOURCE_ACCESS_PRINCIPAL" {
+  description = "Google Group, or a directly auditable user for the single-person pilot, bound only to the generated API and frontend IAP backend services."
   type        = string
   default     = "group:pre-gematik-access@example.invalid"
 
   validation {
-    condition     = can(regex("^group:[^@\\s]+@[^@\\s]+$", var.IAP_RESOURCE_ACCESS_GROUP))
-    error_message = "IAP_RESOURCE_ACCESS_GROUP must use group:name@example.org syntax."
+    condition     = can(regex("^(group|user):[^@\\s]+@[^@\\s]+$", var.IAP_RESOURCE_ACCESS_PRINCIPAL))
+    error_message = "IAP_RESOURCE_ACCESS_PRINCIPAL must use group:name@example.org or user:name@example.org syntax."
   }
 }

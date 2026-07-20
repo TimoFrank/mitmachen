@@ -228,7 +228,7 @@ jobs:
       GKE_INGRESS_IP_NAME: ${{ vars.GKE_INGRESS_IP_NAME }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME: ${{ vars.IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME }}
-      IAP_RESOURCE_ACCESS_GROUP: ${{ vars.IAP_RESOURCE_ACCESS_GROUP }}
+      IAP_RESOURCE_ACCESS_PRINCIPAL: ${{ vars.IAP_RESOURCE_ACCESS_PRINCIPAL }}
       IAP_PROJECT_BREAK_GLASS_SHA256: ${{ secrets.IAP_PROJECT_BREAK_GLASS_SHA256 }}
 
     steps:
@@ -249,7 +249,7 @@ jobs:
             PROFILE_IMAGE_BUCKET CONTACT_IMAGE_BUCKET
             CONTACT_NOTE_ATTACHMENT_BUCKET STAKEHOLDER_LOGO_BUCKET CLOUD_SQL_INSTANCE_CONNECTION_NAME
             GKE_INGRESS_IP_NAME K8S_NAMESPACE
-            IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME IAP_RESOURCE_ACCESS_GROUP
+            IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME IAP_RESOURCE_ACCESS_PRINCIPAL
             IAP_PROJECT_BREAK_GLASS_SHA256
           )
           for name in "${required[@]}"; do
@@ -300,8 +300,8 @@ jobs:
             echo "IAP_OAUTH_BOOTSTRAP_SECRET_NAME is not a valid Secret Manager secret ID." >&2
             exit 1
           fi
-          if [[ ! "$IAP_RESOURCE_ACCESS_GROUP" =~ ^group:[^@[:space:]]+@[^@[:space:]]+$ ]]; then
-            echo "IAP_RESOURCE_ACCESS_GROUP must use group:name@example.org syntax." >&2
+          if [[ ! "$IAP_RESOURCE_ACCESS_PRINCIPAL" =~ ^(group|user):[^@[:space:]]+@[^@[:space:]]+$ ]]; then
+            echo "IAP_RESOURCE_ACCESS_PRINCIPAL must use group:name@example.org or user:name@example.org syntax." >&2
             exit 1
           fi
           if [[ ! "$IAP_PROJECT_BREAK_GLASS_SHA256" =~ ^sha256:[a-f0-9]{64}$ ]]; then
@@ -915,7 +915,7 @@ jobs:
               --resource-type=backend-services \
               --service "$candidate" \
               --format=json > "$current_policy"
-            if ! jq --exit-status --arg member "$IAP_RESOURCE_ACCESS_GROUP" '
+            if ! jq --exit-status --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" '
               (.bindings // []) as $bindings |
               ($bindings | length) == 0 or
               (
@@ -928,7 +928,7 @@ jobs:
               echo "A backend-specific IAP policy already contains an unknown member, role or condition; refusing automatic reconciliation." >&2
               exit 1
             fi
-            jq --arg member "$IAP_RESOURCE_ACCESS_GROUP" '
+            jq --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" '
               {
                 version: (.version // 1),
                 etag: .etag,
@@ -949,7 +949,7 @@ jobs:
               --resource-type=backend-services \
               --service "$candidate" \
               --format=json > "$verified_policy"
-            if ! jq --exit-status --arg member "$IAP_RESOURCE_ACCESS_GROUP" '
+            if ! jq --exit-status --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" '
               (.bindings | length) == 1 and
               .bindings[0].role == "roles/iap.httpsResourceAccessor" and
               .bindings[0].members == [$member]
