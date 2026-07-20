@@ -4,6 +4,51 @@ import vm from "node:vm";
 
 const projectRoot = new URL("../", import.meta.url);
 
+function assertIapSubjectContract() {
+  const source = readFileSync(new URL("api/server.mjs", projectRoot), "utf8");
+  const start = source.indexOf("function canonicalIapSubject(");
+  const end = source.indexOf("\n}\n", start) + 2;
+  assert.ok(start >= 0 && end > start, "Die kanonische IAP-Subject-Abbildung wurde nicht gefunden.");
+  const sandbox = {};
+  vm.runInNewContext([
+    source.slice(start, end),
+    "globalThis.canonicalIapSubjectForTest = canonicalIapSubject;"
+  ].join("\n"), sandbox, { filename: "iap-subject-contract.js" });
+  const canonicalIapSubject = sandbox.canonicalIapSubjectForTest;
+
+  assert.equal(
+    canonicalIapSubject("accounts.google.com:118133858486581853996"),
+    "118133858486581853996",
+    "Der signierte Google-IAP-Namespace muss exakt auf die stabile Google-Konto-ID abgebildet werden."
+  );
+  assert.equal(canonicalIapSubject("118133858486581853996"), "118133858486581853996");
+  assert.equal(
+    canonicalIapSubject("securetoken.google.com/example/tenant:external-subject"),
+    "securetoken.google.com/example/tenant:external-subject",
+    "Externe IAP-Subjects duerfen nicht namespace-los und damit kollisionsfaehig werden."
+  );
+  assert.equal(
+    canonicalIapSubject("accounts.google.com:not-a-google-account-id"),
+    "accounts.google.com:not-a-google-account-id",
+    "Nur der eng definierte numerische Google-Konto-Identifier darf normalisiert werden."
+  );
+  for (const lookalike of [
+    "accounts.google.com.evil:123",
+    "Accounts.google.com:123",
+    "accounts.google.com:123:456"
+  ]) {
+    assert.equal(canonicalIapSubject(lookalike), lookalike,
+      `Ein IAP-Namespace-Lookalike darf nicht normalisiert werden: ${lookalike}`);
+  }
+  assert.match(
+    source,
+    /iapPayload\s*\?\s*canonicalIapSubject\(iapPayload\.sub\)\s*:\s*oidcPayload\?\.sub/u,
+    "Nur das verifizierte IAP-Subject darf der Google-IAP-Namespace-Abbildung folgen."
+  );
+  assert.doesNotMatch(source, /canonicalIapSubject\(oidcPayload\?*\.sub\)/u,
+    "Ein allgemeines OIDC-Subject darf nicht als Google-IAP-Subject normalisiert werden.");
+}
+
 function createStorage(entries = {}) {
   const values = new Map(Object.entries(entries));
   return {
@@ -294,6 +339,7 @@ async function assertApiAvatarContract() {
   assert.equal(requests.length, 3, "Die Cache-Prüfung darf keinen zusätzlichen GET auslösen.");
 }
 
+assertIapSubjectContract();
 assertIapLogoutContract();
 assertLoginReturnUrlContract();
 await assertApiAvatarContract();

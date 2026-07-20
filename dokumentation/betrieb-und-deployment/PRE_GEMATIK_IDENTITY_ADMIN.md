@@ -8,6 +8,15 @@ Nach dem Echtdatenimport wird genau der freigegebene IAP-Subject auf genau ein
 vorhandenes aktives Profil in `public.identity_bindings` gebunden. Die normale
 Anwendung darf diese Zuordnung nur lesen.
 
+Fuer ein Google-Konto enthaelt die geschuetzte Soll-Liste die stabile,
+namespace-lose numerische Google-Konto-ID. Das signierte IAP-JWT liefert gemaess
+dem Google-Vertrag zu
+[signierten IAP-Headern](https://cloud.google.com/iap/docs/signed-headers-howto#retrieving_the_user_identity)
+denselben Identifier mit dem festen Prefix `accounts.google.com:`. Die API
+entfernt ausschliesslich diesen exakt bekannten Prefix und nur vor einem
+numerischen Identifier. Externe Identity-Platform-Subjects bleiben vollstaendig
+namespaced; ein E-Mail-Fallback findet nicht statt.
+
 Der engste vorbereitete Weg ist:
 
 1. die statische, geheimnisfreie Datei

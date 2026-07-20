@@ -19,6 +19,13 @@ Das Zielbild nutzt eine interne Gateway-/Identity-Schicht vor Frontend und API. 
 
 Die API vertraut keinem blossen Identitaetsheader. Sie akzeptiert nur ein signiertes JWT, dessen Signatur gegen die konfigurierte HTTPS-JWKS-Quelle geprueft wurde. `issuer`, `audience`, Signaturalgorithmus, Schluesseltyp, `exp`, `nbf`, `iat` und ein stabiles `sub` muessen exakt dem konfigurierten Vertrag entsprechen. Das Paar `(issuer, subject)` wird anschliessend ueber `public.identity_bindings` auf genau ein aktives internes Profil abgebildet; E-Mail oder frei gesetzte Token-Metadaten verleihen keine Rolle. Fehlende, inaktive, mehrdeutige oder technisch nicht pruefbare Bindungen enden fail-closed mit `401`, `403` beziehungsweise `503`.
 
+Im IAP-Pilot wird nur das bereits signaturgepruefte Google-Subject kanonisiert:
+Der feste Namespace `accounts.google.com:` wird ausschliesslich vor einer
+vollstaendig numerischen Google-Konto-ID entfernt. Dadurch entspricht der Wert
+der geschuetzten, namespace-losen Google-ID in `identity_bindings`. OIDC-
+Subjects und externe IAP-/Identity-Platform-Namespaces bleiben bytegenau
+erhalten; insbesondere gibt es kein Mapping ueber E-Mail-Adressen.
+
 Am Gateway muessen eingehende Identitaets- und Autorisierungsheader entfernt und nach erfolgreicher Tokenpruefung neu gesetzt werden. Die API darf netzseitig nur ueber diesen Gatewaypfad erreichbar sein. Die Plattformabnahme muss Header-Stripping, TLS, exakte Issuer-/Audience-/JWKS-Werte, Schluesselrotation sowie die Netzwerkisolation nachweisen. Schreibende und administrative Endpunkte pruefen `viewer`, `editor` und `admin` zusaetzlich serverseitig ueber die zentrale Route-Policy.
 
 ## Endpunkte
