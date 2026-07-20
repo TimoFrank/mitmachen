@@ -26,6 +26,7 @@ import {
   CloudSqlManagedProxyError,
   assertManagedCloudSqlProxyMatchesGate,
   cloudSqlProxyArguments,
+  cloudSqlProxyConnectMode,
   managedProxyClientOptions,
   startManagedCloudSqlAuthProxy,
   validateCloudSqlProxyExecutable
@@ -61,6 +62,41 @@ assert.deepEqual(
     "--quiet",
     `${syntheticConnectionName}?unix-socket-path=%2Ftmp%2Fvk-proxy-test%2F.s.PGSQL.5432`
   ]
+);
+assert.equal(cloudSqlProxyConnectMode({}), "sql-data");
+assert.equal(
+  cloudSqlProxyConnectMode({ CLOUD_SQL_AUTH_PROXY_CONNECT_MODE: "private-ip" }),
+  "private-ip"
+);
+assert.deepEqual(
+  cloudSqlProxyArguments(
+    syntheticConnectionName,
+    "/tmp/vk-proxy-test/.s.PGSQL.5432",
+    "private-ip"
+  ),
+  [
+    "--private-ip",
+    "--run-connection-test",
+    "--max-connections=8",
+    "--max-sigterm-delay=0s",
+    "--exit-zero-on-sigterm",
+    "--quiet",
+    `${syntheticConnectionName}?unix-socket-path=%2Ftmp%2Fvk-proxy-test%2F.s.PGSQL.5432`
+  ]
+);
+assert.throws(
+  () => cloudSqlProxyConnectMode({ CLOUD_SQL_AUTH_PROXY_CONNECT_MODE: "private" }),
+  (error) => error instanceof CloudSqlManagedProxyError
+    && error.code === "TARGET_PROXY_CONNECT_MODE_INVALID"
+);
+assert.throws(
+  () => cloudSqlProxyArguments(
+    syntheticConnectionName,
+    "/tmp/vk-proxy-test/.s.PGSQL.5432",
+    "auto"
+  ),
+  (error) => error instanceof CloudSqlManagedProxyError
+    && error.code === "TARGET_PROXY_CONNECT_MODE_INVALID"
 );
 assert.throws(
   () => assertManagedCloudSqlProxyMatchesGate({ isActive: () => true }, syntheticGateResult),
@@ -441,6 +477,19 @@ try {
     (error) => error instanceof CloudSqlManagedProxyError
       && error.code === "TARGET_PROXY_BINARY_PIN_MISMATCH"
   );
+  await assert.rejects(
+    startManagedCloudSqlAuthProxy({
+      gateResult: syntheticGateResult,
+      targetDatabaseUrl: targetUrl,
+      environment: {
+        CLOUD_SQL_AUTH_PROXY_EXECUTABLE: proxyExecutable,
+        CLOUD_SQL_AUTH_PROXY_SHA256: proxyFingerprint,
+        CLOUD_SQL_AUTH_PROXY_CONNECT_MODE: "private"
+      }
+    }),
+    (error) => error instanceof CloudSqlManagedProxyError
+      && error.code === "TARGET_PROXY_CONNECT_MODE_INVALID"
+  );
 
   class FakeProxyChild extends EventEmitter {
     constructor() {
@@ -470,6 +519,7 @@ try {
     environment: {
       CLOUD_SQL_AUTH_PROXY_EXECUTABLE: proxyExecutable,
       CLOUD_SQL_AUTH_PROXY_SHA256: proxyFingerprint,
+      CLOUD_SQL_AUTH_PROXY_CONNECT_MODE: "private-ip",
       HOME: temporaryDirectory,
       SOURCE_DATABASE_URL: "must-not-reach-proxy-child"
     }
@@ -488,7 +538,9 @@ try {
   const managedClient = managedSession.createClient("vk-managed-proxy-test");
   assert.equal(managedClient.options.application_name, "vk-managed-proxy-test");
   assert.equal(managedClient.options.host.startsWith("/tmp/vk-cloud-sql-proxy-"), true);
+  assert.equal(managedSession.connectMode, "private-ip");
   assert.equal(proxySpawns.length, 1);
+  assert.equal(proxySpawns[0].argumentsList[0], "--private-ip");
   assert.equal(proxySpawns[0].argumentsList.at(-1).startsWith(`${syntheticConnectionName}?`), true);
   assert.equal("SOURCE_DATABASE_URL" in proxySpawns[0].options.env, false);
   assert.throws(

@@ -19,6 +19,7 @@ import {
   assertTargetDatabaseConnection,
   closeSourceSnapshotBeforeTargetCommit,
   commitTargetMigration,
+  inspectSchema,
   isTypeCompatible,
   loadVerifiedStorageManifest,
   normalizeSyntheticSeedRecord,
@@ -77,6 +78,56 @@ const EXPECTED_TABLES = Object.freeze([
   "notification_events",
   "notification_recipients"
 ]);
+
+class ConcurrentQueryRejectingClient {
+  constructor() {
+    this.active = false;
+    this.queryCount = 0;
+  }
+
+  async query(statement) {
+    if (this.active) throw new Error("concurrent query on one pg.Client");
+    this.active = true;
+    this.queryCount += 1;
+    try {
+      await new Promise((resolve) => setImmediate(resolve));
+      if (/information_schema\.columns/u.test(statement)) {
+        return {
+          rowCount: 1,
+          rows: [{
+            column_name: "id",
+            data_type: "text",
+            udt_name: "text",
+            is_nullable: "NO",
+            column_default: null,
+            is_generated: "NEVER",
+            identity_generation: null,
+            character_maximum_length: null,
+            numeric_precision: null,
+            numeric_scale: null,
+            datetime_precision: null,
+            ordinal_position: 1
+          }]
+        };
+      }
+      if (/pg_catalog\.pg_index/u.test(statement)) {
+        return { rowCount: 1, rows: [{ column_name: "id" }] };
+      }
+      throw new Error("unexpected schema inspection query");
+    } finally {
+      this.active = false;
+    }
+  }
+}
+
+{
+  const source = new ConcurrentQueryRejectingClient();
+  const target = new ConcurrentQueryRejectingClient();
+  const plans = await inspectSchema(source, target);
+  assert.equal(plans.length, EXPECTED_TABLES.length);
+  assert.equal(source.queryCount, EXPECTED_TABLES.length * 2);
+  assert.equal(target.queryCount, EXPECTED_TABLES.length * 2);
+}
 
 assert.equal(MIGRATION_TABLES.length, 29, "Die Allowlist muss exakt 29 unterstützte Fachtabellen enthalten.");
 assert.deepEqual(MIGRATION_TABLES, EXPECTED_TABLES, "Allowlist oder FK-Reihenfolge wurde unbeabsichtigt geändert.");
@@ -234,6 +285,10 @@ assert.match(migrationSource, /PRE_IMPORT_BACKUP_ID:\s*config\.preImportBackupId
   "Der GCP-Gate muss zwingend die im Datenbank-Apply bestaetigte Backup-ID verwenden.");
 assert.match(managedProxySource, /"--sql-data"/,
   "Der lokale Operator-Proxy muss den geschuetzten Cloud-SQL-Datentunnel ohne oeffentliche DB-IP verwenden.");
+assert.match(managedProxySource, /"--private-ip"/,
+  "Der GKE-Operator muss den expliziten privaten Cloud-SQL-IP-Pfad unterstuetzen.");
+assert.match(managedProxySource, /TARGET_PROXY_CONNECT_MODE_INVALID/,
+  "Unbekannte Proxy-Verbindungsmodi muessen fail-closed abgewiesen werden.");
 assert.match(managedProxySource, /"unix-socket-path"/,
   "Der werkzeugverwaltete Proxy muss einen exklusiven Unix-Socket verwenden.");
 assert.match(managedProxySource, /CLOUD_SQL_AUTH_PROXY_SHA256/,

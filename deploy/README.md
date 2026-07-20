@@ -8,6 +8,7 @@ Dieser Ordner enthaelt die einzigen fuehrenden, ausfuehrbaren Zielbetriebsartefa
 | Helm-Chart | [`helm/versorgungs-kompass/`](helm/versorgungs-kompass/) |
 | GCP-Pre-Integrations-Terraform | [`terraform/gcp-autopilot/`](terraform/gcp-autopilot/) |
 | Temporaerer Pre-Integrations-Postgresvertrag | [`postgres/pre-gematik/`](postgres/pre-gematik/) |
+| Einmaliger privater Datenmigrationspfad | [`migration-operator/`](migration-operator/) |
 
 Die zugehoerigen, maschinenlesbaren Umgebungsvertraege stehen unter [`config/`](../config/README.md). Es gibt keine parallelen Kopien der Deployment-Artefakte.
 

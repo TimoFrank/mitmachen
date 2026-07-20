@@ -1,0 +1,16 @@
+**
+!.dockerignore
+!api/
+!api/package.json
+!api/package-lock.json
+!scripts/
+!scripts/check_pre_gematik_migration_gcp.mjs
+!scripts/migrate_supabase_storage_to_gcs.mjs
+!scripts/migrate_supabase_to_pre_gematik.mjs
+!scripts/lib/
+!scripts/lib/cloud-sql-managed-proxy.mjs
+!scripts/lib/pre-gematik-database-migration.mjs
+!scripts/lib/target-database-connection.mjs
+!deploy/
+!deploy/migration-operator/
+!deploy/migration-operator/operator-entrypoint.mjs

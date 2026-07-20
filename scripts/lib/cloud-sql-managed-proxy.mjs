@@ -24,6 +24,11 @@ const CONNECTION_NAME_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]:[a-z](?:[-a-z0-9]
 const PROXY_SOCKET_NAME = ".s.PGSQL.5432";
 const PROXY_START_TIMEOUT_MS = 30_000;
 const PROXY_STOP_TIMEOUT_MS = 5_000;
+const DEFAULT_PROXY_CONNECT_MODE = "sql-data";
+const ALLOWED_PROXY_CONNECT_MODES = new Set([
+  DEFAULT_PROXY_CONNECT_MODE,
+  "private-ip"
+]);
 const MANAGED_PROXY_ENVIRONMENT = Object.freeze([
   "CLOUDSDK_CONFIG",
   "GOOGLE_APPLICATION_CREDENTIALS",
@@ -134,13 +139,35 @@ export async function validateCloudSqlProxyExecutable(executablePath, expectedFi
   return Object.freeze({ resolvedPath, fingerprint: actualFingerprint });
 }
 
-export function cloudSqlProxyArguments(connectionName, socketPath) {
+export function cloudSqlProxyConnectMode(environment = process.env) {
+  const value = environment?.CLOUD_SQL_AUTH_PROXY_CONNECT_MODE;
+  if (value === undefined) return DEFAULT_PROXY_CONNECT_MODE;
+  if (typeof value !== "string" || !ALLOWED_PROXY_CONNECT_MODES.has(value)) {
+    throw proxyError(
+      "The Cloud SQL Auth Proxy connection mode is not explicitly allowed.",
+      "TARGET_PROXY_CONNECT_MODE_INVALID"
+    );
+  }
+  return value;
+}
+
+export function cloudSqlProxyArguments(
+  connectionName,
+  socketPath,
+  connectMode = DEFAULT_PROXY_CONNECT_MODE
+) {
   if (!CONNECTION_NAME_PATTERN.test(String(connectionName || "")) || !isAbsolute(String(socketPath || ""))) {
     throw proxyError("The managed Cloud SQL Auth Proxy target is invalid.");
   }
+  if (!ALLOWED_PROXY_CONNECT_MODES.has(connectMode)) {
+    throw proxyError(
+      "The Cloud SQL Auth Proxy connection mode is not explicitly allowed.",
+      "TARGET_PROXY_CONNECT_MODE_INVALID"
+    );
+  }
   const instanceQuery = new URLSearchParams({ "unix-socket-path": socketPath });
   return Object.freeze([
-    "--sql-data",
+    connectMode === "private-ip" ? "--private-ip" : "--sql-data",
     "--run-connection-test",
     "--max-connections=8",
     "--max-sigterm-delay=0s",
@@ -262,6 +289,7 @@ export async function startManagedCloudSqlAuthProxy({
     environment.CLOUD_SQL_AUTH_PROXY_EXECUTABLE,
     environment.CLOUD_SQL_AUTH_PROXY_SHA256
   );
+  const connectMode = cloudSqlProxyConnectMode(environment);
 
   // Validate the credential template before creating any local artifact.
   managedProxyClientOptions(
@@ -283,7 +311,7 @@ export async function startManagedCloudSqlAuthProxy({
     );
     child = spawnProcess(
       binary.resolvedPath,
-      cloudSqlProxyArguments(target.connectionName, socketPath),
+      cloudSqlProxyArguments(target.connectionName, socketPath, connectMode),
       {
         env: childEnvironment(environment),
         stdio: ["ignore", "pipe", "pipe"],
@@ -323,6 +351,7 @@ export async function startManagedCloudSqlAuthProxy({
 
   const session = Object.freeze({
     connectionName: target.connectionName,
+    connectMode,
     gateFingerprint: gateResult.fingerprint,
     createClient(applicationName) {
       if (!active || child.exitCode !== null) {
