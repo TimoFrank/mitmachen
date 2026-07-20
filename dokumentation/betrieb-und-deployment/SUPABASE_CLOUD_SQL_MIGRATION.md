@@ -96,7 +96,7 @@ Der technische Auftrag zur Vorbereitung ersetzt keine organisatorische Echtdaten
 | G-01 Datenzweck | vor erstem Apply | Kontakte, Expertenkreis, Stakeholder, Historie und Profilbilder duerfen fuer den befristeten Pilotzweck in `pre-gematik` verarbeitet werden | Fachverantwortung und Datenschutz |
 | G-02 Schutzbedarf | vor erstem Apply | GCP-Projekt, IAP, Cloud SQL, private Buckets, Logging und Restrisiken sind fuer diesen Umfang akzeptiert | Informationssicherheit |
 | G-03 Zugriff | vor erstem Apply | Mitglieder der IAP-Gruppe sind geprueft; Joiner/Mover/Leaver und Break-glass sind benannt | IAM-/Plattformverantwortung |
-| G-04a Identitaetsplan | vor Datenimport | Eine geschuetzte, vollstaendige Soll-Liste ordnet die exakten IAP-Subjects den stabilen Quellprofil-IDs und Rollen zu; Inhalt und Vollstaendigkeit sind im Vier-Augen-Prinzip geprueft. Es werden noch keine Zielbindungen geschrieben. | Fachverantwortung und IAM |
+| G-04a Identitaetsplan | vor Datenimport | Eine geschuetzte, vollstaendige Soll-Liste ordnet die exakten IAP-Subjects den stabilen Quellprofil-IDs und Rollen zu. Im Zielbetrieb gilt das Vier-Augen-Prinzip. Fuer den persoenlichen Pilot ist die Abweichung gemaess Pilotentscheidung akzeptiert; zwei getrennte, identische Eigenpruefungs-Previews ersetzen keine unabhaengige Kontrolle. Es werden noch keine Zielbindungen geschrieben. | Fachverantwortung und IAM |
 | G-04b Identitaetsbindung | nach Datenimport, vor Dienstoeffnung | Die freigegebene Soll-Liste ist vollstaendig auf die nun vorhandenen Zielprofile angewendet; mindestens ein aktiver Admin ist positiv sowie eine unbekannte Identitaet negativ getestet | Fachverantwortung und IAM |
 | G-05 Wiederherstellung | vor erstem Apply | erfolgreiche automatische Sicherung, konkreter Vorimport-Backup-Identifier und Restore-Verantwortung liegen vor | DB-Verantwortung |
 | G-06 Cutover | vor erstem Apply | Schreibfreeze oder nachweislich unveraenderter Quell-Fingerprint; Go/No-Go-Person ist erreichbar | Fach- und Service-Owner |
@@ -215,7 +215,7 @@ node scripts/provision_iap_identity_bindings.mjs \
   --input '/geschuetzter/pfad/bindings.json'
 ```
 
-Nach Vier-Augen-Pruefung des aktuellen Fingerprints folgt der Apply. `--allow-active-bindings` ist hier bewusst erforderlich, weil der freigegebene Sollzustand mindestens den aktiven Admin enthaelt:
+Nach Vier-Augen-Pruefung des aktuellen Fingerprints folgt der Apply. Ausschliesslich fuer den persoenlichen Pilot ist stattdessen die in der [Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md) dokumentierte Abweichung mit zwei getrennten identischen Eigenpruefungs-Previews zulaessig; sie gilt nicht als Vier-Augen-Erfuellung. `--allow-active-bindings` ist hier bewusst erforderlich, weil der freigegebene Sollzustand mindestens den aktiven Admin enthaelt:
 
 ```bash
 node scripts/provision_iap_identity_bindings.mjs \
