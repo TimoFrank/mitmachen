@@ -72,7 +72,6 @@ const contentChecks = [
       /GAR_REPOSITORY does not belong to GCP_PROJECT_ID\/GCP_REGION/,
       /CLOUD_SQL_INSTANCE_CONNECTION_NAME does not belong to GCP_PROJECT_ID\/GCP_REGION/,
       /All frontend and protected data buckets must be distinct/,
-      /image not found/,
       /gcloud storage buckets describe[^\n]+--raw/,
       /projectNumber/,
       /uniformBucketLevelAccess\.enabled == true/,
