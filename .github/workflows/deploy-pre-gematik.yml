@@ -547,18 +547,20 @@ jobs:
           IMAGE_TAG: ${{ needs.validate.outputs.image_tag }}
         run: |
           set -euo pipefail
-          describe_error="${RUNNER_TEMP}/api-image-tag-describe.err"
-          if gcloud artifacts docker images describe \
-            "${IMAGE_REPOSITORY}:${IMAGE_TAG}" \
-            --format='value(image_summary.digest)' \
-            >/dev/null 2>"$describe_error"; then
-            echo "API image tag ${IMAGE_TAG} already exists; refusing to overwrite it." >&2
+          image_tags="$(gcloud artifacts docker tags list \
+            "$IMAGE_REPOSITORY" \
+            --format=json)"
+          if ! jq --exit-status \
+            'type == "array" and all(.[]; (.tag | type) == "string")' \
+            <<< "$image_tags" >/dev/null; then
+            echo "Artifact Registry returned an invalid tag inventory." >&2
             exit 1
           fi
-          if ! grep --extended-regexp --ignore-case --quiet \
-            'NOT_FOUND:|not found:[[:space:]]*404|image not found\.|does not exist' "$describe_error"; then
-            cat "$describe_error" >&2
-            echo "Could not prove that API image tag ${IMAGE_TAG} is unused." >&2
+          if jq --exit-status \
+            --arg suffix "/tags/${IMAGE_TAG}" \
+            '[.[] | select(.tag | endswith($suffix))] | length > 0' \
+            <<< "$image_tags" >/dev/null; then
+            echo "API image tag ${IMAGE_TAG} already exists; refusing to overwrite it." >&2
             exit 1
           fi
 
@@ -634,17 +636,21 @@ jobs:
 
           release_uri="gs://${FRONTEND_BUCKET}/releases/${FRONTEND_RELEASE_ID}"
           manifest_path="${RUNNER_TEMP}/frontend-release-manifest.json"
-          marker_error="${RUNNER_TEMP}/frontend-release-marker-describe.err"
-          if gcloud storage objects describe \
+          marker_object="releases/${FRONTEND_RELEASE_ID}/deployment-manifest.json"
+          marker_inventory="$(gcloud storage objects list \
             "${release_uri}/deployment-manifest.json" \
-            --format='value(name)' >/dev/null 2>"$marker_error"; then
-            echo "Frontend release ${FRONTEND_RELEASE_ID} already exists; refusing to overwrite it." >&2
+            --format=json)"
+          if ! jq --exit-status \
+            'type == "array" and all(.[]; (.name | type) == "string")' \
+            <<< "$marker_inventory" >/dev/null; then
+            echo "Cloud Storage returned an invalid release-marker inventory." >&2
             exit 1
           fi
-          if ! grep --extended-regexp --ignore-case --quiet \
-            'NOT_FOUND:|not found:[[:space:]]*404|does not exist' "$marker_error"; then
-            cat "$marker_error" >&2
-            echo "Could not prove that frontend release ${FRONTEND_RELEASE_ID} is unused." >&2
+          if jq --exit-status \
+            --arg marker "$marker_object" \
+            '[.[] | select(.name == $marker)] | length > 0' \
+            <<< "$marker_inventory" >/dev/null; then
+            echo "Frontend release ${FRONTEND_RELEASE_ID} already exists; refusing to overwrite it." >&2
             exit 1
           fi
 
