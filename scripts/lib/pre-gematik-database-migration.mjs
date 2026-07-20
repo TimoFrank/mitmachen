@@ -15,6 +15,7 @@ import {
   CloudSqlManagedProxyError,
   assertCloudSqlGateTarget,
   assertManagedCloudSqlProxyMatchesGate,
+  cloudSqlProxyConnectMode,
   startManagedCloudSqlAuthProxy
 } from "./cloud-sql-managed-proxy.mjs";
 import {
@@ -813,15 +814,16 @@ export function isTypeCompatible(source, target) {
   return source.udt_name === "float4" && target.udt_name === "float8";
 }
 
-async function inspectSchema(source, target) {
+export async function inspectSchema(source, target) {
   const plans = [];
   for (const table of MIGRATION_TABLES) {
-    const [sourceColumns, targetColumns, sourcePrimaryKey, targetPrimaryKey] = await Promise.all([
-      loadColumns(source, table),
-      loadColumns(target, table),
-      loadPrimaryKey(source, table),
-      loadPrimaryKey(target, table)
-    ]);
+    // node-postgres serializes work on one Client. Keeping these awaits
+    // explicit also prevents concurrent query calls from corrupting the
+    // protocol state or surfacing a misleading TABLE_MISSING result.
+    const sourceColumns = await loadColumns(source, table);
+    const sourcePrimaryKey = await loadPrimaryKey(source, table);
+    const targetColumns = await loadColumns(target, table);
+    const targetPrimaryKey = await loadPrimaryKey(target, table);
     const sourceByName = new Map(sourceColumns.map((column) => [column.column_name, column]));
     const targetByName = new Map(targetColumns.map((column) => [column.column_name, column]));
     const declaredGenerated = new Set(GENERATED_COLUMNS[table] || []);
@@ -1956,6 +1958,20 @@ export async function runDatabaseMigration(
   assertSourceUrlIdentity(config);
   assertTargetDatabaseConnection(config.targetDatabaseUrl);
   const storageManifest = config.apply ? loadVerifiedStorageManifest(config) : null;
+  const proxyEnvironment = inputConfig.gcpEnvironment || inputConfig;
+  let proxyConnectMode;
+  try {
+    proxyConnectMode = cloudSqlProxyConnectMode(proxyEnvironment);
+  } catch (error) {
+    if (error instanceof CloudSqlManagedProxyError) {
+      throw new MigrationSafetyError(error.message, error.code);
+    }
+    throw error;
+  }
+  // A dry-run normally supports a direct verify-full target connection. Inside
+  // GKE the target has no public IP, so the explicitly selected private-ip mode
+  // uses the same pinned, instance-bound managed proxy as Apply.
+  const managedProxyRequired = config.apply || proxyConnectMode === "private-ip";
 
   const source = clientFactory(config.sourceDatabaseUrl, `${MIGRATION_VERSION}-source`, "source");
   let target = null;
@@ -1965,13 +1981,13 @@ export async function runDatabaseMigration(
 
   const requireFreshGcpGate = async () => {
     const gateEnvironment = Object.freeze({
-      ...(inputConfig.gcpEnvironment || inputConfig),
+      ...proxyEnvironment,
       PRE_IMPORT_BACKUP_ID: config.preImportBackupId
     });
     const gateResult = await gcpGate(gateEnvironment);
     if (gateResult?.ok !== true || !SHA256_FINGERPRINT_PATTERN.test(gateResult.fingerprint || "")) {
       throw new MigrationSafetyError(
-        "Apply requires a fresh successful GCP project, cluster, Cloud SQL and backup gate.",
+        "A managed target connection requires a fresh successful GCP project, cluster, Cloud SQL and backup gate.",
         "GCP_GATE_REQUIRED"
       );
     }
@@ -1980,7 +1996,7 @@ export async function runDatabaseMigration(
     } catch (error) {
       if (error instanceof CloudSqlManagedProxyError) {
         throw new MigrationSafetyError(
-          "Apply requires a fresh successful GCP project, cluster, Cloud SQL and backup gate.",
+          "A managed target connection requires a fresh successful GCP project, cluster, Cloud SQL and backup gate.",
           "GCP_GATE_REQUIRED"
         );
       }
@@ -1990,13 +2006,13 @@ export async function runDatabaseMigration(
   };
 
   try {
-    if (config.apply) {
+    if (managedProxyRequired) {
       const initialGateResult = await requireFreshGcpGate();
       try {
         managedProxy = await cloudSqlProxyFactory({
           gateResult: initialGateResult,
           targetDatabaseUrl: config.targetDatabaseUrl,
-          environment: inputConfig.gcpEnvironment || inputConfig
+          environment: proxyEnvironment
         });
         managedProxyGateVerifier(managedProxy, initialGateResult);
         target = managedProxy.createClient(`${MIGRATION_VERSION}-target`);

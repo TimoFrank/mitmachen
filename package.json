@@ -29,6 +29,7 @@
     "test:pre-gematik-migration": "node scripts/test_supabase_cloud_sql_migration.mjs",
     "test:pre-gematik-migration-gcp": "node scripts/test_pre_gematik_migration_gcp.mjs",
     "test:pre-gematik-storage-migration": "node scripts/test_supabase_storage_migration.mjs",
+    "test:pre-gematik-migration-operator": "node scripts/test_migration_operator_contract.mjs",
     "test:request-log-privacy": "node scripts/test_request_log_privacy.mjs",
     "test:iap-identity-bindings": "node scripts/test_iap_identity_bindings.mjs",
     "test:stakeholder-logo-contract": "node scripts/test_stakeholder_logo_contract.mjs",

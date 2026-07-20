@@ -51,6 +51,7 @@ const syntaxFiles = [
   "scripts/test_pre_gematik_migration_gcp.mjs",
   "scripts/test_supabase_cloud_sql_migration.mjs",
   "scripts/test_supabase_storage_migration.mjs",
+  "scripts/test_migration_operator_contract.mjs",
   "scripts/test_security_contracts.mjs",
   "scripts/verify_publication_state.mjs"
 ];
@@ -80,6 +81,7 @@ const auditCommands = [
   ["node", ["scripts/test_pre_gematik_migration_gcp.mjs"]],
   ["node", ["scripts/test_supabase_cloud_sql_migration.mjs"]],
   ["node", ["scripts/test_supabase_storage_migration.mjs"]],
+  ["node", ["scripts/test_migration_operator_contract.mjs"]],
   ["node", ["scripts/test_security_contracts.mjs"]],
   ["node", ["scripts/prepare_weekly_release.mjs", "--dry-run"]],
   ["node", ["scripts/check_gcp_autopilot_readiness.mjs"]],

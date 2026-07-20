@@ -1,0 +1,301 @@
+#!/usr/bin/env node
+
+import { spawn } from "node:child_process";
+import {
+  constants as fsConstants,
+  createWriteStream
+} from "node:fs";
+import {
+  access,
+  chmod,
+  copyFile,
+  lstat,
+  mkdir,
+  open,
+  realpath,
+  stat
+} from "node:fs/promises";
+import { isAbsolute, relative, sep } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const WORKSPACE = "/workspace";
+const SECRET_INPUT = "/secret-input";
+const PROTECTED_INPUT = "/protected-input/run";
+const PROTECTED_OUTPUT = "/protected-output/run";
+const PROXY_EXECUTABLE = "/usr/local/bin/cloud-sql-proxy";
+const SYNTHETIC_SEED_ID = "pre-gematik-synthetic-v1";
+const STORAGE_OPERATION = "MIGRATE_ALLOWLISTED_SUPABASE_STORAGE_TO_GCS";
+const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const NON_NEGATIVE_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/u;
+const BACKUP_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{2,255}$/u;
+
+export class MigrationOperatorError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "MigrationOperatorError";
+  }
+}
+
+function required(environment, name, pattern) {
+  const value = environment[name];
+  if (typeof value !== "string" || !pattern.test(value)) {
+    throw new MigrationOperatorError(`Required protected operator value ${name} is missing or malformed.`);
+  }
+  return value;
+}
+
+export function phaseExecution(phase, environment = process.env) {
+  if (phase === "storage-preview") {
+    return Object.freeze({
+      script: "scripts/migrate_supabase_storage_to_gcs.mjs",
+      arguments: Object.freeze([
+        "--manifest-output", `${PROTECTED_OUTPUT}/storage-preview.json`
+      ]),
+      protectedInputs: Object.freeze([]),
+      managedTarget: false
+    });
+  }
+
+  if (phase === "storage-apply") {
+    const sourceProject = required(environment, "EXPECTED_SOURCE_PROJECT_ID", /^[a-z0-9][a-z0-9-]{2,62}$/u);
+    const targetProject = required(environment, "EXPECTED_TARGET_PROJECT_ID", /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u);
+    const backupId = required(environment, "PRE_IMPORT_BACKUP_ID", BACKUP_ID_PATTERN);
+    const previewFingerprint = required(environment, "CONFIRM_STORAGE_PREVIEW_FINGERPRINT", SHA256_PATTERN);
+    const quarantineCount = required(environment, "CONFIRM_QUARANTINED_OBJECT_COUNT", NON_NEGATIVE_INTEGER_PATTERN);
+    return Object.freeze({
+      script: "scripts/migrate_supabase_storage_to_gcs.mjs",
+      arguments: Object.freeze([
+        "--apply",
+        "--confirm-source-project", sourceProject,
+        "--confirm-target-project", targetProject,
+        "--pre-import-backup-id", backupId,
+        "--confirm-preview-fingerprint", previewFingerprint,
+        "--confirm-quarantined-object-count", quarantineCount,
+        "--manifest-output", `${PROTECTED_OUTPUT}/storage-apply.json`,
+        "--recovery-journal", `${PROTECTED_OUTPUT}/storage-apply.ndjson`,
+        "--confirm-operation", STORAGE_OPERATION
+      ]),
+      protectedInputs: Object.freeze([]),
+      managedTarget: false
+    });
+  }
+
+  if (phase === "database-preview") {
+    return Object.freeze({
+      script: "scripts/migrate_supabase_to_pre_gematik.mjs",
+      arguments: Object.freeze([]),
+      protectedInputs: Object.freeze(["supabase-root-ca.crt"]),
+      managedTarget: true
+    });
+  }
+
+  if (phase === "database-apply") {
+    const backupId = required(environment, "PRE_IMPORT_BACKUP_ID", BACKUP_ID_PATTERN);
+    const manifestFingerprint = required(environment, "CONFIRM_STORAGE_MANIFEST_FINGERPRINT", SHA256_PATTERN);
+    const sourceFingerprint = required(environment, "CONFIRM_SOURCE_SNAPSHOT_FINGERPRINT", SHA256_PATTERN);
+    const quarantineCount = required(environment, "CONFIRM_QUARANTINED_OBJECT_COUNT", NON_NEGATIVE_INTEGER_PATTERN);
+    const argumentsList = [
+      "--apply",
+      "--replace-synthetic-target",
+      "--confirm-replacement", SYNTHETIC_SEED_ID,
+      "--pre-import-backup-id", backupId,
+      "--storage-manifest", `${PROTECTED_INPUT}/storage-apply.json`,
+      "--confirm-storage-manifest-fingerprint", manifestFingerprint,
+      "--confirm-source-snapshot-fingerprint", sourceFingerprint,
+      "--confirm-quarantined-object-count", quarantineCount
+    ];
+    const bootstrapFingerprint = environment.CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT;
+    if (bootstrapFingerprint !== undefined && bootstrapFingerprint !== "") {
+      if (!SHA256_PATTERN.test(bootstrapFingerprint)) {
+        throw new MigrationOperatorError(
+          "Required protected operator value CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT is malformed."
+        );
+      }
+      argumentsList.push("--confirm-bootstrap-profile-fingerprint", bootstrapFingerprint);
+    }
+    return Object.freeze({
+      script: "scripts/migrate_supabase_to_pre_gematik.mjs",
+      arguments: Object.freeze(argumentsList),
+      protectedInputs: Object.freeze(["supabase-root-ca.crt", "storage-apply.json"]),
+      managedTarget: true
+    });
+  }
+
+  throw new MigrationOperatorError("MIGRATION_OPERATOR_PHASE is not an allowed one-time operation.");
+}
+
+async function createOwnerOnlyDirectory(path) {
+  await mkdir(path, { mode: 0o700 });
+  await chmod(path, 0o700);
+  const metadata = await lstat(path);
+  const currentUid = typeof process.getuid === "function" ? process.getuid() : metadata.uid;
+  if (
+    !metadata.isDirectory()
+    || metadata.isSymbolicLink()
+    || metadata.uid !== currentUid
+    || (metadata.mode & 0o777) !== 0o700
+  ) {
+    throw new MigrationOperatorError("A protected operator directory is not owner-only.");
+  }
+  return realpath(path);
+}
+
+function isPathInside(candidate, parent) {
+  const pathFromParent = relative(parent, candidate);
+  return pathFromParent === ""
+    || (pathFromParent !== ".."
+      && !pathFromParent.startsWith(`..${sep}`)
+      && !isAbsolute(pathFromParent));
+}
+
+export async function resolveProjectedInput(source, inputRoot = SECRET_INPUT) {
+  const root = await realpath(inputRoot);
+  const linkMetadata = await lstat(source);
+  if (!linkMetadata.isFile() && !linkMetadata.isSymbolicLink()) {
+    throw new MigrationOperatorError("A required projected operator input is not a file projection.");
+  }
+  const resolved = await realpath(source);
+  if (!isPathInside(resolved, root)) {
+    throw new MigrationOperatorError("A projected operator input escapes its read-only Secret mount.");
+  }
+  const metadata = await stat(resolved);
+  if (!metadata.isFile() || metadata.size < 1 || metadata.size > 2 * 1024 * 1024) {
+    throw new MigrationOperatorError("A required projected operator input is not a bounded regular file.");
+  }
+  return resolved;
+}
+
+async function copyProtectedInput(fileName) {
+  const source = `${SECRET_INPUT}/${fileName}`;
+  const destination = `${PROTECTED_INPUT}/${fileName}`;
+  // Kubernetes Secret volumes expose each key as a symlink through ..data.
+  // Resolve that projection once, prove that its immutable target remains
+  // inside the read-only mount, and copy the resolved regular file.
+  const resolvedSource = await resolveProjectedInput(source);
+  await copyFile(resolvedSource, destination, fsConstants.COPYFILE_EXCL);
+  await chmod(destination, 0o600);
+  const destinationMetadata = await lstat(destination);
+  const currentUid = typeof process.getuid === "function" ? process.getuid() : destinationMetadata.uid;
+  if (
+    !destinationMetadata.isFile()
+    || destinationMetadata.isSymbolicLink()
+    || destinationMetadata.uid !== currentUid
+    || (destinationMetadata.mode & 0o777) !== 0o600
+  ) {
+    throw new MigrationOperatorError("A copied operator input is not owner-only.");
+  }
+}
+
+function sourceUrlWithProtectedCa(environment) {
+  let parsed;
+  try {
+    parsed = new URL(environment.SOURCE_DATABASE_URL);
+  } catch {
+    throw new MigrationOperatorError("SOURCE_DATABASE_URL is missing or malformed.");
+  }
+  if (parsed.searchParams.getAll("sslrootcert").length !== 1) {
+    throw new MigrationOperatorError("SOURCE_DATABASE_URL requires one protected CA path.");
+  }
+  parsed.searchParams.set("sslrootcert", `${PROTECTED_INPUT}/supabase-root-ca.crt`);
+  return parsed.toString();
+}
+
+async function writeStatus(status) {
+  const path = `${PROTECTED_OUTPUT}/status.json`;
+  const handle = await open(path, "wx", 0o600);
+  try {
+    await handle.writeFile(`${JSON.stringify(status, null, 2)}\n`, "utf8");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+async function runChild(execution, environment) {
+  const logPath = `${PROTECTED_OUTPUT}/${environment.MIGRATION_OPERATOR_PHASE}.log`;
+  const log = createWriteStream(logPath, { flags: "wx", mode: 0o600 });
+  await new Promise((resolve, reject) => {
+    log.once("open", resolve);
+    log.once("error", reject);
+  });
+
+  const child = spawn(
+    process.execPath,
+    [`${WORKSPACE}/${execution.script}`, ...execution.arguments],
+    {
+      cwd: WORKSPACE,
+      env: environment,
+      stdio: ["ignore", log, log],
+      windowsHide: true
+    }
+  );
+  const stopChild = () => {
+    if (child.exitCode === null) child.kill("SIGTERM");
+  };
+  process.once("SIGTERM", stopChild);
+  process.once("SIGINT", stopChild);
+  const outcome = await new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("exit", (code, signal) => resolve({ code, signal }));
+  }).finally(() => {
+    process.removeListener("SIGTERM", stopChild);
+    process.removeListener("SIGINT", stopChild);
+  });
+  await new Promise((resolve, reject) => log.end((error) => error ? reject(error) : resolve()));
+  return outcome;
+}
+
+export async function main(environment = process.env) {
+  process.umask(0o077);
+  const phase = environment.MIGRATION_OPERATOR_PHASE;
+  const execution = phaseExecution(phase, environment);
+  await createOwnerOnlyDirectory(PROTECTED_INPUT);
+  await createOwnerOnlyDirectory(PROTECTED_OUTPUT);
+  await mkdir(environment.HOME || "/tmp/home", { recursive: true, mode: 0o700 });
+  await mkdir(environment.CLOUDSDK_CONFIG || "/tmp/gcloud", { recursive: true, mode: 0o700 });
+
+  for (const fileName of execution.protectedInputs) await copyProtectedInput(fileName);
+
+  const childEnvironment = {
+    ...environment,
+    CLOUD_SQL_AUTH_PROXY_EXECUTABLE: PROXY_EXECUTABLE
+  };
+  if (execution.managedTarget) {
+    if (environment.CLOUD_SQL_AUTH_PROXY_CONNECT_MODE !== "private-ip") {
+      throw new MigrationOperatorError("Database phases require the explicit private-ip proxy mode.");
+    }
+    required(environment, "CLOUD_SQL_AUTH_PROXY_SHA256", SHA256_PATTERN);
+    await access(PROXY_EXECUTABLE, fsConstants.X_OK);
+    childEnvironment.SOURCE_DATABASE_URL = sourceUrlWithProtectedCa(environment);
+    if (phase === "database-apply") {
+      childEnvironment.STORAGE_MIGRATION_MANIFEST_PATH = `${PROTECTED_INPUT}/storage-apply.json`;
+    }
+  }
+
+  const startedAt = new Date().toISOString();
+  const outcome = await runChild(execution, childEnvironment);
+  const succeeded = outcome.code === 0 && outcome.signal === null;
+  await writeStatus({
+    schemaVersion: 1,
+    phase,
+    succeeded,
+    exitCode: outcome.code,
+    signal: outcome.signal,
+    startedAt,
+    finishedAt: new Date().toISOString()
+  });
+  if (!succeeded) {
+    throw new MigrationOperatorError("The protected migration phase failed; retrieve its owner-only report.");
+  }
+  process.stdout.write(`Migration operator phase ${phase} completed; retrieve protected outputs before cleanup.\n`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    const message = error instanceof MigrationOperatorError
+      ? error.message
+      : "The migration operator failed safely.";
+    process.stderr.write(`MigrationOperatorError: ${message}\n`);
+    process.exitCode = 1;
+  });
+}
