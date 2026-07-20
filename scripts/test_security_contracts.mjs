@@ -357,9 +357,10 @@ for (const asset of browserAssetManifest.assets) {
 }
 
 const valuesSource = read("deploy/helm/versorgungs-kompass/values.yaml");
+const configMapSource = read("deploy/helm/versorgungs-kompass/templates/configmap.yaml");
 const helmSource = [
   valuesSource,
-  read("deploy/helm/versorgungs-kompass/templates/configmap.yaml"),
+  configMapSource,
   read("deploy/helm/versorgungs-kompass/templates/deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/frontend-deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/frontend-nginx-configmap.yaml"),
@@ -371,6 +372,11 @@ assert.doesNotMatch(
   helmSource,
   /AUTH_(?:EMAIL|SUBJECT)_HEADER|auth(?:Email|Subject)Header/,
   "Produktive Helm-Artefakte duerfen keine unsignierten Identity-Header konfigurieren."
+);
+assert.match(
+  configMapSource,
+  /if eq \.Values\.config\.apiAuthMode "oidc"[\s\S]*OIDC_AUDIENCE: \{\{ \.Values\.config\.oidcAudience \| quote \}\}[\s\S]*else[\s\S]*OIDC_AUDIENCE: ""[\s\S]*end/,
+  "Der IAP-Modus darf keine unbenutzten OIDC-Platzhalter in die Runtime-Config rendern."
 );
 for (const contract of [
   "automountServiceAccountToken: false",
