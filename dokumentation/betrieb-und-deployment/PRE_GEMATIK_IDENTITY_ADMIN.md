@@ -205,8 +205,8 @@ kubectl --namespace pre-gematik create secret generic \
   --from-file=iap-bindings.json='/ABSOLUT/GESCHUETZT/iap-bindings.json'
 ```
 
-Der dedizierte Operator muss die Phasen `identity-preview` und
-`identity-apply` bereitstellen. Beide verwenden den privaten, gepinnten Cloud
+Der dedizierte Operator stellt die Phasen `identity-preview` und
+`identity-apply` bereit. Beide verwenden den privaten, gepinnten Cloud
 SQL Auth Proxy und denselben frischen GCP-/Backup-Gate. `identity-preview`
 führt immer `ROLLBACK` aus. Für den persönlichen Pilot werden zwei getrennte
 Preview-Jobs erzeugt und deren vollständige, nicht personenbezogene

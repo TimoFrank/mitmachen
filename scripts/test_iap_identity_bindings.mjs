@@ -16,6 +16,8 @@ import {
   buildIdentityBindingPlan,
   executeIdentityBindingTransaction,
   formatPlanSummary,
+  identityManagedProxyRequired,
+  identityRepositoryRoot,
   identityTargetFingerprint,
   loadProtectedBindingDocument,
   parseArguments,
@@ -260,6 +262,20 @@ assertSafeFailure(() => validateBindingDocument({
 
 const previewOptions = parseArguments(["--input", "/protected/bindings.json"]);
 validateExecutionConfirmations(previewOptions, ordered, bindingDocumentFingerprint(ordered));
+assert.equal(identityManagedProxyRequired(previewOptions, {}), false);
+assert.equal(
+  identityManagedProxyRequired(previewOptions, { CLOUD_SQL_AUTH_PROXY_CONNECT_MODE: "private-ip" }),
+  true
+);
+assert.equal(identityManagedProxyRequired({ ...previewOptions, apply: true }, {}), true);
+assert.equal(
+  identityRepositoryRoot({ PRE_GEMATIK_IDENTITY_REPOSITORY_ROOT: "/workspace" }),
+  "/workspace"
+);
+assertSafeFailure(
+  () => identityRepositoryRoot({ PRE_GEMATIK_IDENTITY_REPOSITORY_ROOT: "relative/workspace" }),
+  /normalisierter absoluter Pfad/u
+);
 assertSafeFailure(() => parseArguments(["--unexpected"]), /Unbekannte/u);
 assertSafeFailure(() => validateExecutionConfirmations(
   parseArguments(["--input", "/protected/bindings.json", "--allow-active-bindings"]),

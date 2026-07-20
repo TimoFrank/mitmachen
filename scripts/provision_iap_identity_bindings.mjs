@@ -29,6 +29,7 @@ const MAX_INPUT_BYTES = 1024 * 1024;
 const APPLY_OPERATION_CONFIRMATION = "UPSERT_IAP_IDENTITY_BINDINGS";
 const DATABASE_URL_ENV = "PRE_GEMATIK_IDENTITY_ADMIN_DATABASE_URL";
 const TARGET_FINGERPRINT_ENV = "PRE_GEMATIK_IDENTITY_TARGET_SHA256";
+const REPOSITORY_ROOT_ENV = "PRE_GEMATIK_IDENTITY_REPOSITORY_ROOT";
 const ADVISORY_LOCK_NAME = "versorgungs-kompass:pre-gematik:identity-bindings";
 export const EXPECTED_IDENTITY_ADMIN_ROLE = "vk_identity_admin";
 export const EXPECTED_IAP_ISSUER = "https://cloud.google.com/iap";
@@ -696,6 +697,24 @@ export function repositoryRootFromGit(cwd = process.cwd()) {
   }
 }
 
+export function identityRepositoryRoot(environment = process.env, cwd = process.cwd()) {
+  const configuredRoot = environment[REPOSITORY_ROOT_ENV];
+  if (configuredRoot === undefined) return repositoryRootFromGit(cwd);
+  if (
+    typeof configuredRoot !== "string"
+    || !path.isAbsolute(configuredRoot)
+    || configuredRoot !== path.normalize(configuredRoot)
+    || /[\u0000-\u001f\u007f]/u.test(configuredRoot)
+  ) {
+    throw new SafeCliError(`${REPOSITORY_ROOT_ENV} muss ein normalisierter absoluter Pfad sein.`);
+  }
+  return configuredRoot;
+}
+
+export function identityManagedProxyRequired(options, environment = process.env) {
+  return options.apply || environment.CLOUD_SQL_AUTH_PROXY_CONNECT_MODE !== undefined;
+}
+
 export function usage() {
   return `IAP-Identity-Bindungen fuer pre-gematik sicher provisionieren
 
@@ -720,6 +739,10 @@ Preview und Apply verlangen denselben kurzlebigen Login mit exakt einer Mitglied
 in ${EXPECTED_IDENTITY_ADMIN_ROLE}; postgres, cloudsqlsuperuser, DDL-, DELETE- und
 sonstige Fachdatenrechte werden fail-closed abgewiesen. Innerhalb der Transaktion wird
 mit SET LOCAL ROLE auf die gepruefte NOLOGIN-Rolle reduziert.
+Ein Preview startet den werkzeugverwalteten Proxy ebenfalls, sobald
+CLOUD_SQL_AUTH_PROXY_CONNECT_MODE explizit gesetzt ist; der GKE-Operator setzt
+private-ip. ${REPOSITORY_ROOT_ENV} ist nur der vom Operator fest auf /workspace
+gesetzte Pfadanker fuer die geschuetzte Eingabedatei.
 Apply fuehrt zusaetzlich den read-only GCP-/Cloud-SQL-/Backup-Gate mit den
 Operatorvariablen aus config/pre-gematik/migration.env.example erneut aus und
 startet den per SHA-256 gepinnten offiziellen Cloud SQL Auth Proxy selbst fuer
@@ -763,7 +786,7 @@ export async function main(
     console.log(usage());
     return;
   }
-  const repositoryRoot = repositoryRootFromGit();
+  const repositoryRoot = identityRepositoryRoot(env);
   const document = await loadProtectedBindingDocument(options.input, { repositoryRoot });
   const fingerprint = bindingDocumentFingerprint(document);
   validateExecutionConfirmations(options, document, fingerprint);
@@ -773,7 +796,8 @@ export async function main(
     throw new SafeCliError(`Die Umgebungsvariable ${DATABASE_URL_ENV} fehlt.`);
   }
   validateIdentityTargetFingerprint(connectionString, env[TARGET_FINGERPRINT_ENV]);
-  const gateResult = options.apply ? await assertFreshGcpMigrationGate(env, gcpGate) : null;
+  const managedProxyRequired = identityManagedProxyRequired(options, env);
+  const gateResult = managedProxyRequired ? await assertFreshGcpMigrationGate(env, gcpGate) : null;
 
   let managedProxy = null;
   let client = null;
