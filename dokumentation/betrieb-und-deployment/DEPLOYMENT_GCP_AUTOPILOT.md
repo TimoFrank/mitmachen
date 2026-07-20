@@ -195,7 +195,7 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `GKE_INGRESS_IP_NAME` | Terraform-Output `GKE_INGRESS_IP_NAME` |
 | `K8S_NAMESPACE` | Terraform-Output `K8S_NAMESPACE` |
 | `IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME` | fester Kubernetes-Secret-Name `versorgungs-kompass-iap-oauth`; keine Credential-Werte |
-| `IAP_RESOURCE_ACCESS_GROUP` | Terraform-Output `IAP_RESOURCE_ACCESS_GROUP`; Gruppe wird nur an die zwei erzeugten Backend Services gebunden |
+| `IAP_RESOURCE_ACCESS_PRINCIPAL` | Terraform-Output `IAP_RESOURCE_ACCESS_PRINCIPAL`; im Zielbetrieb eine Gruppe, im befristeten Einpersonen-Pilot ausnahmsweise der direkt pruefbare Pilot-Owner; nur an die zwei erzeugten Backend Services gebunden |
 | `API_BASE_URL` | gemeinsamer HTTPS-Origin, ohne abschliessenden Slash oder Pfad |
 | `FRONTEND_BASE_URL` | exakt derselbe gemeinsame HTTPS-Origin |
 

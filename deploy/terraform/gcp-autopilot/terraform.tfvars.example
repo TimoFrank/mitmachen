@@ -41,4 +41,4 @@ IAP_ACCESS_MEMBERS = [
 ]
 
 # The workflow binds this group only after it has identified the two generated IAP backend services.
-IAP_RESOURCE_ACCESS_GROUP = "group:pre-gematik-access@example.invalid"
+IAP_RESOURCE_ACCESS_PRINCIPAL = "group:pre-gematik-access@example.invalid"
