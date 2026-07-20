@@ -32,6 +32,7 @@ const requiredFiles = [
   "deploy/helm/versorgungs-kompass/templates/frontend-serviceaccount.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-service.yaml",
   "deploy/helm/versorgungs-kompass/templates/managedcertificate.yaml",
+  "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
   "deploy/helm/versorgungs-kompass/templates/secretsync.yaml",
   "deploy/helm/versorgungs-kompass/templates/serviceaccount.yaml",
   "deploy/terraform/gcp-autopilot/gke.tf",
@@ -71,11 +72,18 @@ const contentChecks = [
       /GAR_REPOSITORY does not belong to GCP_PROJECT_ID\/GCP_REGION/,
       /CLOUD_SQL_INSTANCE_CONNECTION_NAME does not belong to GCP_PROJECT_ID\/GCP_REGION/,
       /All frontend and protected data buckets must be distinct/,
-      /image not found/,
       /gcloud storage buckets describe[^\n]+--raw/,
       /projectNumber/,
       /uniformBucketLevelAccess\.enabled == true/,
       /publicAccessPrevention == "enforced"/,
+      /gcloud artifacts docker tags list/,
+      /Artifact Registry returned an invalid tag inventory/,
+      /gcloud storage objects list/,
+      /Cloud Storage returned an invalid release-marker inventory/,
+      /pre-gematik\.versorgungs-kompass\.timo-frank\.de\|mitmachen\.timo-frank\.de/,
+      /primary_certificate_name="\$\{HELM_RELEASE\}-api"/,
+      /alias_certificate_name="\$\{HELM_RELEASE\}-mitmachen"/,
+      /The canonical and legacy domains do not match the approved pre-gematik certificate pair/,
       /WIF_PROVIDER does not belong to GCP_PROJECT_ID/,
       /gcloud iap web set-iam-policy/,
       /already contains an unknown member, role or condition; refusing automatic reconciliation/,
@@ -138,6 +146,15 @@ const contentChecks = [
     file: "scripts/build_static_frontend.sh",
     patterns: [/demo-profile-admin\.svg/, /demo-profile-editor\.svg/, /demo-profile-viewer\.svg/],
     reason: "Die neutralen Demo-Avatare werden in beide getrennten Frontend-Artefakte uebernommen."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
+    patterns: [
+      /cidr: 10\.0\.0\.0\/8/,
+      /port: 5432/,
+      /port: 3307/
+    ],
+    reason: "Die API-NetworkPolicy erlaubt PostgreSQL und den privaten Cloud-SQL-Proxy-Transport nur in private Adressbereiche."
   },
   {
     file: "deploy/helm/versorgungs-kompass/values-gcp-autopilot.yaml",
