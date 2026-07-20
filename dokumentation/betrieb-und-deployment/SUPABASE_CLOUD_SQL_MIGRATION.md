@@ -279,14 +279,15 @@ Supabase wird erst nach bestandener technischer Abnahme, bestaetigter Restore-Pr
 - [x] Fail-closed IAP-Identity-Binding-Werkzeug vorbereitet.
 - [x] Read-only GCP-Instanz-/Backup-Gate, werkzeugverwalteter und binaer gepinnter Auth Proxy fuer exakt diese Instanz sowie geschuetzter Storage-Manifest-Vertrag vorbereitet.
 - [x] G-01, G-02 und G-07 als transparente persoenliche Pilot-Selbstentscheidung dokumentiert; keine institutionelle oder unabhaengige Freigabe behauptet.
-- [ ] G-03, G-04a, G-05 und G-06 vor dem ersten Apply mit geschuetzten technischen Nachweisen vervollstaendigt.
-- [ ] On-demand-Vorimport-Backup mit konkreter ID angelegt.
-- [ ] GCP-Gate fuer konkrete Live-Instanz und Backup bestanden und im geschuetzten Ticket bestaetigt.
-- [ ] Referenzierte Storage-Quarantaene-Befunde fachlich und technisch aufgeloest; DB-Apply bleibt bis dahin gesperrt.
-- [ ] Preview-Fingerprints unabhaengig geprueft oder die dokumentierte Pilot-Eigenpruefungs-Ausnahme mit zwei getrennten identischen Durchlaeufen erfuellt.
-- [ ] G-04b nach Datenimport und vor Dienstoeffnung angewendet; aktiver Admin und unbekannte Identitaet getestet.
-- [ ] Generalprobe, Restore-Probe und fachliche Abnahme durchgefuehrt.
-- [ ] Echtdatenimport und anschliessender GKE-Rollout freigegeben.
+- [x] G-03, G-04a, G-05 und G-06 vor dem ersten Apply mit geschuetzten technischen Nachweisen vervollstaendigt.
+- [x] On-demand-Vorimport-Backup mit konkreter ID angelegt.
+- [x] GCP-Gate fuer konkrete Live-Instanz und Backup bestanden und im geschuetzten Ticket bestaetigt.
+- [x] Referenzierte Storage-Quarantaene-Befunde fachlich und technisch aufgeloest; finaler Quarantaenebestand ist leer.
+- [x] Dokumentierte Pilot-Eigenpruefungs-Ausnahme mit zwei getrennten byte-identischen Preview-Durchlaeufen erfuellt; keine unabhaengige Vier-Augen-Pruefung behauptet.
+- [x] G-04b nach Datenimport und vor Dienstoeffnung angewendet: aktiver Admin live positiv; automatisierte Rollen- und Spoofing-Negativtests bestanden. Eine zweite gueltig signierte unbekannte Identitaet stand im Einpersonen-Pilot nicht zur Verfuegung und bleibt dokumentierte Pilotauflage.
+- [x] Generalprobe, getrennte DB-/Storage-Restore-Proben und persoenliche fachliche Eigenabnahme durchgefuehrt.
+- [x] Echtdatenimport und anschliessender GKE-Rollout persoenlich freigegeben und technisch erfolgreich abgeschlossen.
+- [x] Temporaere Import-Ressourcen, Rollen und lokale Klartext-Credentials nach bestandener Abnahme entfernt; Supabase bleibt global read-only als geschuetzte Rueckfallquelle erhalten.
 
 ## Verwandte Dokumente
 
