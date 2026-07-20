@@ -427,7 +427,7 @@ jobs:
             --project "$GCP_PROJECT_ID" \
             --format=json)"
           for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET"; do
-            bucket_metadata="$(gcloud storage buckets describe "gs://${bucket}" --format=json)"
+            bucket_metadata="$(gcloud storage buckets describe "gs://${bucket}" --raw --format=json)"
             if ! jq --exit-status \
               --arg bucket "$bucket" \
               '[.[] | select(.name == $bucket)] | length == 1' \
