@@ -423,17 +423,31 @@ jobs:
             exit 1
           fi
 
+          project_buckets="$(gcloud storage buckets list \
+            --project "$GCP_PROJECT_ID" \
+            --format=json)"
           for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET"; do
             bucket_metadata="$(gcloud storage buckets describe "gs://${bucket}" --format=json)"
             if ! jq --exit-status \
               --arg bucket "$bucket" \
-              --arg region "$GCP_REGION" \
-              --arg project_number "$project_number" '
+              '[.[] | select(.name == $bucket)] | length == 1' \
+              <<< "$project_buckets" >/dev/null; then
+              echo "A configured bucket does not belong to GCP_PROJECT_ID." >&2
+              exit 1
+            fi
+            if ! jq --exit-status \
+              --arg bucket "$bucket" \
+              --arg region "$GCP_REGION" '
                 .name == $bucket and
                 ((.location // "") | ascii_downcase) == ($region | ascii_downcase) and
-                ((.projectNumber // "") | tostring) == $project_number and
-                .iamConfiguration.uniformBucketLevelAccess.enabled == true and
-                .iamConfiguration.publicAccessPrevention == "enforced"
+                (
+                  .uniform_bucket_level_access == true or
+                  .iamConfiguration.uniformBucketLevelAccess.enabled == true
+                ) and
+                (
+                  .public_access_prevention == "enforced" or
+                  .iamConfiguration.publicAccessPrevention == "enforced"
+                )
               ' <<< "$bucket_metadata" >/dev/null; then
               echo "A configured bucket is not an approved, private resource of GCP_PROJECT_ID/GCP_REGION." >&2
               exit 1
