@@ -1,6 +1,6 @@
 # Supabase nach Cloud SQL: Migrations- und Freigabeplan
 
-Status: Technisch vorbereitet; der persoenliche Pilot ist als Eigenentscheidung dokumentiert, ersetzt aber keine institutionelle Fach-, Datenschutz- oder Security-Freigabe
+Status: Persoenlicher Pilot-Cutover technisch abgeschlossen; Zielbetrieb weiterhin nicht institutionell freigegeben
 
 Stand: 20. Juli 2026
 
@@ -97,8 +97,8 @@ Der technische Auftrag zur Vorbereitung ersetzt keine organisatorische Echtdaten
 | G-02 Schutzbedarf | vor erstem Apply | GCP-Projekt, IAP, Cloud SQL, private Buckets, Logging und Restrisiken sind fuer diesen Umfang akzeptiert | Informationssicherheit |
 | G-03 Zugriff | vor erstem Apply | Der ressourcenspezifische IAP-Principal ist geprueft; fuer den persoenlichen Pilot ist er exakt derselbe direkte Nutzer wie der projektweite Break-glass-Zugang, im Zielbetrieb eine administrierbare Gruppe. Joiner/Mover/Leaver und Break-glass sind benannt. | IAM-/Plattformverantwortung |
 | G-04a Identitaetsplan | vor Datenimport | Eine geschuetzte, vollstaendige Soll-Liste ordnet die exakten IAP-Subjects den stabilen Quellprofil-IDs und Rollen zu. Im Zielbetrieb gilt das Vier-Augen-Prinzip. Fuer den persoenlichen Pilot ist die Abweichung gemaess Pilotentscheidung akzeptiert; zwei getrennte, identische Eigenpruefungs-Previews ersetzen keine unabhaengige Kontrolle. Es werden noch keine Zielbindungen geschrieben. | Fachverantwortung und IAM |
-| G-04b Identitaetsbindung | nach Datenimport, vor Dienstoeffnung | Die freigegebene Soll-Liste ist vollstaendig auf die nun vorhandenen Zielprofile angewendet; mindestens ein aktiver Admin ist positiv sowie eine unbekannte Identitaet negativ getestet | Fachverantwortung und IAM |
-| G-05 Wiederherstellung | vor erstem Apply | erfolgreiche automatische Sicherung, konkreter Vorimport-Backup-Identifier und Restore-Verantwortung liegen vor | DB-Verantwortung |
+| G-04b Identitaetsbindung | nach Datenimport, vor Dienstoeffnung | Die freigegebene Soll-Liste ist vollstaendig auf die nun vorhandenen Zielprofile angewendet; mindestens ein aktiver Admin ist positiv sowie eine unbekannte Identitaet negativ getestet. Fuer den Einpersonen-Pilot gilt die dokumentierte Ausnahme: Mangels zweiter gueltig signierter Identitaet ersetzen automatisierte Autorisierungs- und Spoofing-Tests keinen spaeteren Live-Negativtest. | Fachverantwortung und IAM |
+| G-05 Wiederherstellung | vor erstem Apply | erfolgreiche automatische Sicherung, konkreter Vorimport-Backup-Identifier und Restore-Verantwortung liegen vor. Fuer den Pilot genuegen die dokumentierten getrennten DB- und synthetischen Storage-Proben; vor institutionellem Zielbetrieb ist eine koordinierte Probe mit Reconciliation und gemessener RTO/RPO erforderlich. | DB-Verantwortung |
 | G-06 Cutover | vor erstem Apply | Schreibfreeze oder nachweislich unveraenderter Quell-Fingerprint; Go/No-Go-Person ist erreichbar | Fach- und Service-Owner |
 | G-07 Plattformrisiko | vor erstem Apply | Fuer die persoenliche, befristete Pre-Integration ist das zonale Risiko aus Kostengruenden ausdruecklich akzeptiert; Live-Instanz und Terraform-Pilotsoll bleiben `ZONAL`. Es besteht keine Hochverfuegbarkeitszusage. `REGIONAL` bleibt eine spaetere, separat freizugebende Zielbetriebsentscheidung. | Service-Owner und Plattformbetrieb |
 
@@ -279,15 +279,15 @@ Supabase wird erst nach bestandener technischer Abnahme, bestaetigter Restore-Pr
 - [x] Fail-closed IAP-Identity-Binding-Werkzeug vorbereitet.
 - [x] Read-only GCP-Instanz-/Backup-Gate, werkzeugverwalteter und binaer gepinnter Auth Proxy fuer exakt diese Instanz sowie geschuetzter Storage-Manifest-Vertrag vorbereitet.
 - [x] G-01, G-02 und G-07 als transparente persoenliche Pilot-Selbstentscheidung dokumentiert; keine institutionelle oder unabhaengige Freigabe behauptet.
-- [x] G-03, G-04a, G-05 und G-06 vor dem ersten Apply mit geschuetzten technischen Nachweisen vervollstaendigt.
+- [x] G-03, G-04a und G-06 vor dem ersten Apply mit geschuetzten technischen Nachweisen vervollstaendigt; G-05 mit Vorimport-Backup und getrennten Restore-Proben belegt, koordinierte Probe mit gemessener RTO/RPO bleibt Pilotauflage.
 - [x] On-demand-Vorimport-Backup mit konkreter ID angelegt.
 - [x] GCP-Gate fuer konkrete Live-Instanz und Backup bestanden und im geschuetzten Ticket bestaetigt.
 - [x] Referenzierte Storage-Quarantaene-Befunde fachlich und technisch aufgeloest; finaler Quarantaenebestand ist leer.
 - [x] Dokumentierte Pilot-Eigenpruefungs-Ausnahme mit zwei getrennten byte-identischen Preview-Durchlaeufen erfuellt; keine unabhaengige Vier-Augen-Pruefung behauptet.
 - [x] G-04b nach Datenimport und vor Dienstoeffnung angewendet: aktiver Admin live positiv; automatisierte Rollen- und Spoofing-Negativtests bestanden. Eine zweite gueltig signierte unbekannte Identitaet stand im Einpersonen-Pilot nicht zur Verfuegung und bleibt dokumentierte Pilotauflage.
-- [x] Generalprobe, getrennte DB-/Storage-Restore-Proben und persoenliche fachliche Eigenabnahme durchgefuehrt.
+- [x] Getrennte DB- und synthetische Storage-Restore-Proben sowie technische Browserabnahme im Auftrag durchgefuehrt; koordinierte gemeinsame Wiederherstellung und gemessene RTO/RPO bleiben Pilotauflage.
 - [x] Echtdatenimport und anschliessender GKE-Rollout persoenlich freigegeben und technisch erfolgreich abgeschlossen.
-- [x] Temporaere Import-Ressourcen, Rollen und lokale Klartext-Credentials nach bestandener Abnahme entfernt; Supabase bleibt global read-only als geschuetzte Rueckfallquelle erhalten.
+- [x] Temporaere Import-Ressourcen, Rollen, lokale Klartext-Credentials und redundante Klartext-Preflight-Dumps nach bestandener Abnahme entfernt; der Dump-Schluessel ist von den verschluesselten Dumps getrennt und Supabase bleibt global read-only als geschuetzte Rueckfallquelle erhalten.
 
 ## Verwandte Dokumente
 
