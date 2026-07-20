@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -63,8 +63,11 @@ const ENVIRONMENT = Object.freeze({
   CONTACT_NOTE_ATTACHMENT_BUCKET: TARGET_BUCKETS["contact-note-attachments"],
   STAKEHOLDER_LOGO_BUCKET: TARGET_BUCKETS["stakeholder-logos"]
 });
-const TEST_MANIFEST_PATH = "/private/tmp/versorgungs-storage-migration-test-manifest.json";
-const TEST_RECOVERY_JOURNAL_PATH = "/private/tmp/versorgungs-storage-migration-test.ndjson";
+const TEST_OUTPUT_DIRECTORY = realpathSync(mkdtempSync(path.join(os.tmpdir(), "vk-storage-migration-run-")));
+const TEST_MANIFEST_PATH = path.join(TEST_OUTPUT_DIRECTORY, "storage-migration-manifest.json");
+const TEST_RECOVERY_JOURNAL_PATH = path.join(TEST_OUTPUT_DIRECTORY, "storage-migration-recovery.ndjson");
+
+try {
 const capturedManifests = [];
 function captureManifest(manifestPath, manifest) {
   assert.equal(manifestPath, TEST_MANIFEST_PATH);
@@ -906,3 +909,6 @@ try {
 }
 
 console.log("Supabase-Storage-zu-GCS-Vertrag erfolgreich geprueft.");
+} finally {
+  rmSync(TEST_OUTPUT_DIRECTORY, { recursive: true, force: true });
+}
