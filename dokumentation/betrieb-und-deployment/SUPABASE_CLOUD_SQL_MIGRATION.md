@@ -1,6 +1,6 @@
 # Supabase nach Cloud SQL: Migrations- und Freigabeplan
 
-Status: Technisch vorbereitet; Echtdatenimport wartet auf dokumentierte Fach-, Datenschutz- und Security-Freigabe
+Status: Technisch vorbereitet; der persoenliche Pilot ist als Eigenentscheidung dokumentiert, ersetzt aber keine institutionelle Fach-, Datenschutz- oder Security-Freigabe
 
 Stand: 20. Juli 2026
 
@@ -100,9 +100,9 @@ Der technische Auftrag zur Vorbereitung ersetzt keine organisatorische Echtdaten
 | G-04b Identitaetsbindung | nach Datenimport, vor Dienstoeffnung | Die freigegebene Soll-Liste ist vollstaendig auf die nun vorhandenen Zielprofile angewendet; mindestens ein aktiver Admin ist positiv sowie eine unbekannte Identitaet negativ getestet | Fachverantwortung und IAM |
 | G-05 Wiederherstellung | vor erstem Apply | erfolgreiche automatische Sicherung, konkreter Vorimport-Backup-Identifier und Restore-Verantwortung liegen vor | DB-Verantwortung |
 | G-06 Cutover | vor erstem Apply | Schreibfreeze oder nachweislich unveraenderter Quell-Fingerprint; Go/No-Go-Person ist erreichbar | Fach- und Service-Owner |
-| G-07 Plattformrisiko | vor erstem Apply | Die aktuell laufende Instanz ist `ZONAL`, waehrend das Terraform-Soll `REGIONAL` ist. Vor Apply wird bewusst dokumentiert entschieden: Live-Instanz zuerst regionalisieren oder das befristete zonale Pilotrisiko ausdruecklich akzeptieren. | Service-Owner und Plattformbetrieb |
+| G-07 Plattformrisiko | vor erstem Apply | Fuer die persoenliche, befristete Pre-Integration ist das zonale Risiko aus Kostengruenden ausdruecklich akzeptiert; Live-Instanz und Terraform-Pilotsoll bleiben `ZONAL`. Es besteht keine Hochverfuegbarkeitszusage. `REGIONAL` bleibt eine spaetere, separat freizugebende Zielbetriebsentscheidung. | Service-Owner und Plattformbetrieb |
 
-Freigaben gehoeren in das Abnahmeprotokoll oder ein verlinktes, zugriffsgeschuetztes Ticketsystem. Personenbezogene Inhalte, IAP-Subjects und Zugangsdaten gehoeren nicht in Git.
+Die nicht personenbezogene Selbstentscheidung fuer den persoenlichen Pilot steht in der [Echtdaten-Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md). Ausfuehrungsfreigaben gehoeren in das Abnahmeprotokoll oder ein verlinktes, zugriffsgeschuetztes Ticketsystem. Personenbezogene Inhalte, IAP-Subjects und Zugangsdaten gehoeren nicht in Git.
 
 ## Technischer Ablauf
 
@@ -250,7 +250,7 @@ Vor der fachlichen Freigabe bleibt Supabase die fuehrende Quelle und `pre-gemati
 - Fehler nach Zielschreibzugriffen: beide Systeme schreibsperren; kein automatisches Zurueckschalten. Service- und Daten-Owner entscheiden zwischen Forward Fix, vollstaendiger Rueckmigration oder Restore gemaess beschlossenem RPO.
 - Storage-Objekte werden im Import nicht geloescht oder ueberschrieben. Verwaiste neu angelegte Objekte werden erst nach Abgleich anhand des Laufmanifests kontrolliert bereinigt.
 
-Supabase wird erst nach bestandener Hypercare, bestaetigter Restore-Probe und eigener Abschaltentscheidung read-only gesetzt oder deaktiviert.
+Supabase wird erst nach bestandener technischer Abnahme, bestaetigter Restore-Probe und eigener Abschaltentscheidung read-only gesetzt oder deaktiviert. Fuer den persoenlichen Nicht-Produktivpilot gibt es gemaess [Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md) keine gesonderte Hypercare-Phase.
 
 ## Aktueller Vorbereitungsstand
 
@@ -262,11 +262,12 @@ Supabase wird erst nach bestandener Hypercare, bestaetigter Restore-Probe und ei
 - [x] Geschuetzte API-Auslieferung fuer Stakeholder-Logos vorbereitet.
 - [x] Fail-closed IAP-Identity-Binding-Werkzeug vorbereitet.
 - [x] Read-only GCP-Instanz-/Backup-Gate, werkzeugverwalteter und binaer gepinnter Auth Proxy fuer exakt diese Instanz sowie geschuetzter Storage-Manifest-Vertrag vorbereitet.
-- [ ] G-01 bis G-03, G-04a und G-05 bis G-07 vor dem ersten Apply dokumentiert freigegeben.
+- [x] G-01, G-02 und G-07 als transparente persoenliche Pilot-Selbstentscheidung dokumentiert; keine institutionelle oder unabhaengige Freigabe behauptet.
+- [ ] G-03, G-04a, G-05 und G-06 vor dem ersten Apply mit geschuetzten technischen Nachweisen vervollstaendigt.
 - [ ] On-demand-Vorimport-Backup mit konkreter ID angelegt.
 - [ ] GCP-Gate fuer konkrete Live-Instanz und Backup bestanden und im geschuetzten Ticket bestaetigt.
 - [ ] Referenzierte Storage-Quarantaene-Befunde fachlich und technisch aufgeloest; DB-Apply bleibt bis dahin gesperrt.
-- [ ] Preview-Fingerprints durch zweite Person geprueft.
+- [ ] Preview-Fingerprints unabhaengig geprueft oder die dokumentierte Pilot-Eigenpruefungs-Ausnahme mit zwei getrennten identischen Durchlaeufen erfuellt.
 - [ ] G-04b nach Datenimport und vor Dienstoeffnung angewendet; aktiver Admin und unbekannte Identitaet getestet.
 - [ ] Generalprobe, Restore-Probe und fachliche Abnahme durchgefuehrt.
 - [ ] Echtdatenimport und anschliessender GKE-Rollout freigegeben.
@@ -279,3 +280,4 @@ Supabase wird erst nach bestandener Hypercare, bestaetigter Restore-Probe und ei
 - [Geschuetzte lokale Operatorvariablen](../../config/pre-gematik/migration.env.example)
 - [Betriebsverantwortung/RACI](BETRIEBSVERANTWORTUNG_RACI.md)
 - [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md)
+- [Befristete Echtdaten-Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md)

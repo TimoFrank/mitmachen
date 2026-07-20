@@ -21,6 +21,10 @@ DB_USER                 = "vk_app"
 DB_PASSWORD_SECRET_NAME = "vk-pre-gematik-postgres-password"
 IAP_OAUTH_BOOTSTRAP_SECRET_NAME = "vk-pre-gematik-iap-oauth-bootstrap"
 
+# The personal, temporary pilot intentionally uses one zone to limit cost.
+# Set REGIONAL only as a separately approved target-operation decision.
+DB_AVAILABILITY_TYPE = "ZONAL"
+
 # Optional overrides for globally unique bucket names. Null derives names from GCP_PROJECT_ID.
 FRONTEND_BUCKET                = null
 PROFILE_IMAGE_BUCKET           = null

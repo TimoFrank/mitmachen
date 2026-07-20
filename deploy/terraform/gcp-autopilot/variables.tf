@@ -168,6 +168,17 @@ variable "DB_TIER" {
   default     = "db-f1-micro"
 }
 
+variable "DB_AVAILABILITY_TYPE" {
+  description = "Cloud SQL availability for the personal pre-integration. ZONAL limits pilot cost; REGIONAL must be an explicit target-operation decision."
+  type        = string
+  default     = "ZONAL"
+
+  validation {
+    condition     = contains(["ZONAL", "REGIONAL"], var.DB_AVAILABILITY_TYPE)
+    error_message = "DB_AVAILABILITY_TYPE must be ZONAL or REGIONAL."
+  }
+}
+
 variable "DB_DISK_SIZE_GB" {
   description = "Initial Cloud SQL SSD size in GiB."
   type        = number

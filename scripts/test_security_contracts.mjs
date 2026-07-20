@@ -442,7 +442,17 @@ assert.match(supabaseConfig, /enable_signup\s*=\s*false/, "Der Supabase-Uebergan
 assert.match(supabaseConfig, /enable_anonymous_sign_ins\s*=\s*false/, "Anonyme Supabase-Sitzungen muessen deaktiviert sein.");
 
 const terraformSql = read("deploy/terraform/gcp-autopilot/sql.tf");
-assert.match(terraformSql, /availability_type\s*=\s*"REGIONAL"/, "Cloud SQL muss fuer den Zielbetrieb regional vorbereitet sein.");
+const terraformVariables = read("deploy/terraform/gcp-autopilot/variables.tf");
+assert.match(
+  terraformSql,
+  /availability_type\s*=\s*var\.DB_AVAILABILITY_TYPE/,
+  "Cloud SQL muss die bewusst entschiedene Pilot-Verfuegbarkeit verwenden."
+);
+assert.match(
+  terraformVariables,
+  /variable "DB_AVAILABILITY_TYPE"[\s\S]*default\s*=\s*"ZONAL"[\s\S]*contains\(\["ZONAL", "REGIONAL"\]/,
+  "Die persoenliche Pre-Integration muss kostenbewusst ZONAL bleiben und REGIONAL nur explizit erlauben."
+);
 assert.match(terraformSql, /retained_backups\s*=\s*14/, "Cloud SQL benoetigt eine definierte Backup-Aufbewahrung.");
 
 console.log("Security Contracts OK: Identity/RBAC, Browsergrenzen, Supply Chain, Uploads, Transaktionen, Supabase, Helm/GKE und Resilienz sind fail-closed abgesichert.");

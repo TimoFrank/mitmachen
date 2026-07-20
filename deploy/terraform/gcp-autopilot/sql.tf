@@ -8,7 +8,7 @@ resource "google_sql_database_instance" "postgres" {
   settings {
     tier                        = var.DB_TIER
     edition                     = "ENTERPRISE"
-    availability_type           = "REGIONAL"
+    availability_type           = var.DB_AVAILABILITY_TYPE
     disk_type                   = "PD_SSD"
     disk_size                   = var.DB_DISK_SIZE_GB
     disk_autoresize             = true

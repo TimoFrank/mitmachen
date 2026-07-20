@@ -32,7 +32,7 @@ Die Pre-Integration prueft:
 - IAP als vorgelagerte Identitaetsgrenze,
 - Rollout, Health Check und Ablehnung gefaelschter Identity-Header.
 
-Sie ist keine Produktivumgebung und hat keine Hochverfuegbarkeitszusage. Standardmaessig enthaelt sie nur synthetische oder belastbar anonymisierte Testdaten. Ein zeitlich begrenzter Echtdaten-Pilot ist ausschliesslich nach den dokumentierten Fach-, Datenschutz-, Security-, Zugriffs-, Backup- und Cutover-Freigaben im [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) zulaessig. Das Deployment installiert das mitgelieferte Pre-Integration-Schema nicht automatisch, erstellt keine Testnutzer und migriert keine Supabase-Daten. Das Schema ist ein ausdruecklich temporaerer API-Vertrag und keine Freigabe fuer den spaeteren gematik-Zielbetrieb.
+Sie ist keine Produktivumgebung und hat keine Hochverfuegbarkeitszusage. `DB_AVAILABILITY_TYPE` steht fuer diesen persoenlichen, kostenbegrenzten Pilot bewusst auf `ZONAL`; `REGIONAL` wird erst durch eine separate Zielbetriebsentscheidung aktiviert. Standardmaessig enthaelt die Umgebung nur synthetische oder belastbar anonymisierte Testdaten. Ein zeitlich begrenzter Echtdaten-Pilot ist ausschliesslich nach den dokumentierten Fach-, Datenschutz-, Security-, Zugriffs-, Backup- und Cutover-Freigaben im [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) zulaessig. Das Deployment installiert das mitgelieferte Pre-Integration-Schema nicht automatisch, erstellt keine Testnutzer und migriert keine Supabase-Daten. Das Schema ist ein ausdruecklich temporaerer API-Vertrag und keine Freigabe fuer den spaeteren gematik-Zielbetrieb.
 
 ## Zielbild
 
