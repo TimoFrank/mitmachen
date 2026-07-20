@@ -357,6 +357,12 @@ jobs:
               exit 1
             fi
           fi
+          if [[ "$API_BASE_URL" != "https://pre-gematik.versorgungs-kompass.timo-frank.de" ]] || \
+             [[ "$FRONTEND_BASE_URL" != "https://pre-gematik.versorgungs-kompass.timo-frank.de" ]] || \
+             [[ "${LEGACY_FRONTEND_HOST:-}" != "mitmachen.timo-frank.de" ]]; then
+            echo "pre-gematik must remain the canonical origin and mitmachen.timo-frank.de its redirect-only alias." >&2
+            exit 1
+          fi
 
           image_repository="${GAR_REPOSITORY}/${IMAGE_NAME}"
           echo "api_host=$api_host" >> "$GITHUB_OUTPUT"
@@ -719,10 +725,6 @@ jobs:
                 "pre-gematik.versorgungs-kompass.timo-frank.de|mitmachen.timo-frank.de")
                   primary_certificate_name="${HELM_RELEASE}-api"
                   alias_certificate_name="${HELM_RELEASE}-mitmachen"
-                  ;;
-                "mitmachen.timo-frank.de|pre-gematik.versorgungs-kompass.timo-frank.de")
-                  primary_certificate_name="${HELM_RELEASE}-mitmachen"
-                  alias_certificate_name="${HELM_RELEASE}-api"
                   ;;
                 *)
                   echo "The canonical and legacy domains do not match the approved pre-gematik certificate pair." >&2
