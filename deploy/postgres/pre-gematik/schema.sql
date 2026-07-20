@@ -15,7 +15,9 @@ security invoker
 set search_path = pg_catalog, public
 as $$
 begin
-  new.updated_at := now();
+  if new.updated_at is not distinct from old.updated_at then
+    new.updated_at := now();
+  end if;
   return new;
 end;
 $$;
@@ -915,7 +917,18 @@ create table if not exists public.stakeholder_organizations (
   updated_at timestamptz not null default now(),
   check (nullif(btrim(name), '') is not null),
   check (latitude is null or latitude between -90 and 90),
-  check (longitude is null or longitude between -180 and 180)
+  check (longitude is null or longitude between -180 and 180),
+  constraint stakeholder_organizations_logo_url_private_check check (
+    logo_url is null
+    or (
+      logo_url like 'private://stakeholder-logos/%'
+      and length(logo_url) <= 1052
+      and substring(logo_url from 29) ~ '^[A-Za-z0-9][A-Za-z0-9._/-]*$'
+      and substring(logo_url from 29) not like '%//%'
+      and right(substring(logo_url from 29), 1) <> '/'
+      and substring(logo_url from 29) !~ '(^|/)[.]([.]?)($|/)'
+    )
+  )
 );
 
 create index if not exists stakeholder_organizations_type_idx

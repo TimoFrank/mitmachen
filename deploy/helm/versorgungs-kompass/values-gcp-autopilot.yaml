@@ -54,6 +54,7 @@ storage:
   profileImageBucket: example-pre-gematik-profiles
   contactImageBucket: example-pre-gematik-contacts
   contactNoteAttachmentBucket: example-pre-gematik-attachments
+  stakeholderLogoBucket: example-pre-gematik-stakeholder-logos
 
 networkPolicy:
   enabled: true

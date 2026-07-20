@@ -11,7 +11,7 @@ Der Versorgungs-Kompass wird als interner IT-Service uebernommen: Ein statisches
 ## Leitentscheidungen
 
 - GitHub Pages ist kein Staging und kein Zielbetrieb.
-- `pre-gematik` ist eine temporaere GCP-Pre-Integration mit synthetischen Daten, keine Produktivplattform.
+- `pre-gematik` ist eine temporaere GCP-Pre-Integration und keine Produktivplattform. Sie arbeitet standardmaessig synthetisch; ein geschuetzter, zeitlich begrenzter Echtdaten-Pilot ist nur nach den expliziten Freigaben im [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) zulaessig.
 - Der Pages-Build erzeugt `dist/pages/`; der Target-Build erzeugt `dist/target/`.
 - `dist/pages/` gehoert ausschliesslich zum Pages-Pfad und wird im Zielpfad nicht gelesen oder veraendert.
 - Das Zielrelease besteht aus unveraenderlichem API-Image, Target-Frontend und Migrationsversion mit gemeinsamer Release-ID.

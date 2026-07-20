@@ -16,7 +16,7 @@ export const ROUTE_POLICIES = Object.freeze([
   route(["GET"], /^\/api\/(?:contacts|contact-content-search|contact-notes|contact-note-attachments|organizations|organization-primary-systems|expert-groups|expert-contacts|expert-organizations|expert-entity-links|stakeholder-types|stakeholder-organizations|stakeholder-people|profiles|saved-views|user-settings|hospitation-slots|hospitations|hospitation-observations|roadmap-items|hospitation-roadmap-assessments|hospitation-unmet-needs|formats|activities|notifications|notifications\/summary)$/, "viewer", "collection.read"),
   route(["GET"], /^\/api\/(?:contacts|organizations|formats|hospitations)\/[^/]+$/, "viewer", "entity.read"),
   route(["GET"], /^\/api\/contacts\/[^/]+\/history$/, "viewer", "contact.history.read"),
-  route(["GET"], /^\/api\/(?:profile-avatar|contact-images)\/[^/]+$/, "viewer", "image.read"),
+  route(["GET"], /^\/api\/(?:profile-avatar|contact-images|stakeholder-logos)\/[^/]+$/, "viewer", "image.read"),
   route(["GET"], /^\/api\/contact-note-attachments\/[^/]+\/content$/, "viewer", "attachment.read"),
   route(["GET"], /^\/api\/profile$/, "viewer", "profile.self.read"),
 

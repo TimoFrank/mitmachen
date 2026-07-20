@@ -64,12 +64,30 @@ resource "google_project_iam_custom_role" "iap_audience_reader" {
     "compute.backendServices.get",
     "compute.backendServices.list",
     "resourcemanager.projects.get",
+    "resourcemanager.projects.getIamPolicy",
   ]
 }
 
 resource "google_project_iam_member" "deployer_iap_audience_reader" {
   project = var.GCP_PROJECT_ID
   role    = google_project_iam_custom_role.iap_audience_reader.name
+  member  = "serviceAccount:${google_service_account.deployer.email}"
+}
+
+resource "google_project_iam_custom_role" "deployment_resource_verifier" {
+  role_id     = "preGematikDeploymentVerifier"
+  title       = "Pre-gematik deployment resource verifier"
+  description = "Read only Cloud SQL and bucket metadata needed to prove that a deployment targets the approved project and hardened storage resources."
+  stage       = "GA"
+  permissions = [
+    "cloudsql.instances.get",
+    "storage.buckets.get",
+  ]
+}
+
+resource "google_project_iam_member" "deployer_deployment_resource_verifier" {
+  project = var.GCP_PROJECT_ID
+  role    = google_project_iam_custom_role.deployment_resource_verifier.name
   member  = "serviceAccount:${google_service_account.deployer.email}"
 }
 

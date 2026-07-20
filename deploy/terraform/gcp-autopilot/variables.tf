@@ -126,6 +126,13 @@ variable "CONTACT_NOTE_ATTACHMENT_BUCKET" {
   nullable    = true
 }
 
+variable "STAKEHOLDER_LOGO_BUCKET" {
+  description = "Globally unique private stakeholder-logo bucket name. Null derives a project-specific name."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "DB_NAME" {
   description = "Application database name."
   type        = string
@@ -159,6 +166,17 @@ variable "DB_TIER" {
   description = "Cloud SQL machine tier. db-f1-micro is intended only for this temporary integration test."
   type        = string
   default     = "db-f1-micro"
+}
+
+variable "DB_AVAILABILITY_TYPE" {
+  description = "Cloud SQL availability for the personal pre-integration. ZONAL limits pilot cost; REGIONAL must be an explicit target-operation decision."
+  type        = string
+  default     = "ZONAL"
+
+  validation {
+    condition     = contains(["ZONAL", "REGIONAL"], var.DB_AVAILABILITY_TYPE)
+    error_message = "DB_AVAILABILITY_TYPE must be ZONAL or REGIONAL."
+  }
 }
 
 variable "DB_DISK_SIZE_GB" {

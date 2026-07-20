@@ -2,12 +2,12 @@
 
 Status: verbindliche Repo-Checkliste; Zielplattformwerte und Freigaberollen zu bestaetigen
 
-Stand: 18. Juli 2026
+Stand: 20. Juli 2026
 
 ## Zuerst den Kanal bestimmen
 
 - [ ] **Pages Demo:** `dist/pages/`, ausschliesslich synthetisch und niemals als GKE-Staging oder Realanwendung bezeichnen.
-- [ ] **`pre-gematik`:** `dist/target/`, temporaere GCP-Pre-Integration, ausschliesslich synthetische/anonymisierte Daten.
+- [ ] **`pre-gematik`:** `dist/target/`, temporaere GCP-Pre-Integration; standardmaessig synthetisch/anonymisiert, geschuetzte Echtdaten nur in einem ausdruecklich freigegebenen, befristeten Pilot nach G-01 bis G-07 einschliesslich G-04a und G-04b im [Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md). Eine Pilotfreigabe ist keine Zielbetriebs- oder Produktionsfreigabe.
 - [ ] **Zielbetrieb:** `dist/target/` plus API-Image-Digest, Software Factory und bestaetigte Betriebsfreigabe.
 - [ ] Es gibt keine versionierte Pages-Publish-Kopie; `dist/pages/` wird als GitHub-Actions-Artefakt direkt veroeffentlicht.
 
@@ -54,7 +54,7 @@ Fuehrendes Runbook: [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md).
 
 ### Grenzen
 
-- [ ] ausschliesslich synthetische oder belastbar anonymisierte Daten.
+- [ ] Standardbetrieb ausschliesslich mit synthetischen oder belastbar anonymisierten Daten; ein geschuetzter Echtdaten-Pilot ist ausdruecklich freigegeben, zeitlich befristet und besitzt dokumentierte Verantwortliche, einen konkreten Datenstand sowie alle Nachweise G-01 bis G-07 einschliesslich G-04a und G-04b. Er begruendet keinen Produktionsstatus.
 - [ ] GCP-Projekt, Domain, IAP, Cloud SQL und persoenliche Break-glass-/OAuth-Werte sind als temporaer dokumentiert.
 - [ ] kein Wert wird ohne institutionelle Entscheidung als Zielbetriebsstandard uebernommen.
 - [ ] Environment `pre-gematik` und Required Reviewer sind aktiv.
@@ -75,6 +75,7 @@ Fuehrendes Runbook: [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md).
 - [ ] GKE Secret Sync/Secret Manager ohne Secret-Ausgabe in Logs.
 - [ ] Frontend-Workload kann nur das benoetigte Releasepraefix lesen.
 - [ ] API-Workload besitzt nur erforderliche DB-/Storage-/Secret-Rechte.
+- [ ] Fuenf Ziel-Buckets sind getrennt, privat und gehaertet: ein Frontend-Release-Bucket sowie vier API-Daten-Buckets fuer Profilbilder, Kontaktbilder, Notizanhaenge und Stakeholder-Logos. Nur die vier API-Daten-Buckets gehoeren zum Datenmigrationsumfang.
 - [ ] IAP ist fuer Frontend und API aktiv; reale Audience wurde fail-closed gebunden.
 - [ ] gefaelschte, unsignierte Identity-Header werden abgewiesen.
 - [ ] unauthentifizierter externer Request erhaelt keinen oeffentlichen `200`.
@@ -83,9 +84,10 @@ Fuehrendes Runbook: [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md).
 ### Funktion
 
 - [ ] Rollout, `/api/healthz`, DB-Smoke und Pre-Integrationsschema-Check sind gruen.
+- [ ] G-04a wurde vor dem Datenimport als vollstaendige freigegebene Identity-Soll-Liste geprueft; G-04b wurde nach dem Import und vor Dienstoeffnung angewendet.
 - [ ] aktives Profil liefert erwartete Rolle; unbekanntes Profil erhaelt `403`.
 - [ ] Lesen/Anlegen/Aendern/Ruecksetzen eines synthetischen Kontakts funktionieren.
-- [ ] private Profil-/Kontaktbilder und Notizanhaenge funktionieren.
+- [ ] private Profil-/Kontaktbilder, Notizanhaenge und Stakeholder-Logos funktionieren.
 - [ ] Frontendnetzwerk zeigt ausschliesslich den erwarteten Target-Vertrag.
 - [ ] Ergebnisse und offene Zielabweichungen sind dokumentiert.
 

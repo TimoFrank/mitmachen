@@ -61,6 +61,7 @@ for (const [method, pathname, expectedRole] of [
   ["GET", "/api/contacts/contact-1/history", "viewer"],
   ["GET", "/api/profile-avatar/profile-1", "viewer"],
   ["GET", "/api/contact-images/contact-1", "viewer"],
+  ["GET", "/api/stakeholder-logos/stakeholder-1", "viewer"],
   ["PATCH", "/api/profile", "viewer"],
   ["POST", "/api/profile/avatar", "viewer"],
   ["DELETE", "/api/profile/avatar", "viewer"],
@@ -228,6 +229,11 @@ assert.match(
 );
 assert.match(
   apiSource,
+  /async function readStakeholderLogo[\s\S]{0,400}?await authorizeRequest/,
+  "Stakeholder-Logos duerfen die API-Autorisierung nicht umgehen."
+);
+assert.match(
+  apiSource,
   /access-control-allow-headers[\s\S]{0,160}?authorization, content-type, x-request-id/,
   "Browser-CORS darf keine vertrauenswuerdigen Gateway-Identity-Header freigeben."
 );
@@ -351,9 +357,10 @@ for (const asset of browserAssetManifest.assets) {
 }
 
 const valuesSource = read("deploy/helm/versorgungs-kompass/values.yaml");
+const configMapSource = read("deploy/helm/versorgungs-kompass/templates/configmap.yaml");
 const helmSource = [
   valuesSource,
-  read("deploy/helm/versorgungs-kompass/templates/configmap.yaml"),
+  configMapSource,
   read("deploy/helm/versorgungs-kompass/templates/deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/frontend-deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/frontend-nginx-configmap.yaml"),
@@ -365,6 +372,11 @@ assert.doesNotMatch(
   helmSource,
   /AUTH_(?:EMAIL|SUBJECT)_HEADER|auth(?:Email|Subject)Header/,
   "Produktive Helm-Artefakte duerfen keine unsignierten Identity-Header konfigurieren."
+);
+assert.match(
+  configMapSource,
+  /if eq \.Values\.config\.apiAuthMode "oidc"[\s\S]*OIDC_AUDIENCE: \{\{ \.Values\.config\.oidcAudience \| quote \}\}[\s\S]*else[\s\S]*OIDC_AUDIENCE: ""[\s\S]*end/,
+  "Der IAP-Modus darf keine unbenutzten OIDC-Platzhalter in die Runtime-Config rendern."
 );
 for (const contract of [
   "automountServiceAccountToken: false",
@@ -393,9 +405,10 @@ for (const contract of [
 }
 assert.doesNotMatch(valuesSource, /tag:\s*latest\b/i, "Produktionsimages duerfen nicht per latest referenziert werden.");
 
+const deployWorkflowSource = read(".github/workflows/deploy-pre-gematik.yml");
 const ciSource = [
   read(".github/workflows/repo-check.yml"),
-  read(".github/workflows/deploy-pre-gematik.yml"),
+  deployWorkflowSource,
   read(".github/workflows/target-readiness.yml"),
   read("deploy/jenkins/Jenkinsfile.gematik")
 ].join("\n");
@@ -414,6 +427,11 @@ assert.match(ciSource, /SEMGREP_ENABLE_VERSION_CHECK=0/, "Der netzisolierte Semg
 assert.match(ciSource, /semgrep scan[^\n]*--timeout=60[^\n]*--max-target-bytes=5000000/, "Semgrep muss auch die grosse zentrale Anwendungsdatei ohne Regel-Timeout pruefen.");
 assert.match(ciSource, /npm run deploy:preflight/, "Jenkins muss den fail-closed Ziel-Preflight vor dem Artefaktbau ausfuehren.");
 assert.match(
+  deployWorkflowSource,
+  /Build and smoke-test API container[\s\S]*--env API_AUTH_MODE=iap[\s\S]*--env ALLOWED_ORIGIN=https:\/\/pre-gematik\.example\.invalid[\s\S]*--env IAP_JWT_AUDIENCE=/,
+  "Der produktive API-Container-Smoke-Test muss alle fail-closed Identity- und Origin-Pflichtwerte setzen."
+);
+assert.match(
   ciSource,
   /Scan immutable API image for deploy-blocking vulnerabilities[\s\S]*--severity HIGH,CRITICAL/,
   "Der GitHub-GKE-Pfad muss HIGH/CRITICAL-Imagebefunde vor dem Deployment blockieren."
@@ -424,7 +442,17 @@ assert.match(supabaseConfig, /enable_signup\s*=\s*false/, "Der Supabase-Uebergan
 assert.match(supabaseConfig, /enable_anonymous_sign_ins\s*=\s*false/, "Anonyme Supabase-Sitzungen muessen deaktiviert sein.");
 
 const terraformSql = read("deploy/terraform/gcp-autopilot/sql.tf");
-assert.match(terraformSql, /availability_type\s*=\s*"REGIONAL"/, "Cloud SQL muss fuer den Zielbetrieb regional vorbereitet sein.");
+const terraformVariables = read("deploy/terraform/gcp-autopilot/variables.tf");
+assert.match(
+  terraformSql,
+  /availability_type\s*=\s*var\.DB_AVAILABILITY_TYPE/,
+  "Cloud SQL muss die bewusst entschiedene Pilot-Verfuegbarkeit verwenden."
+);
+assert.match(
+  terraformVariables,
+  /variable "DB_AVAILABILITY_TYPE"[\s\S]*default\s*=\s*"ZONAL"[\s\S]*contains\(\["ZONAL", "REGIONAL"\]/,
+  "Die persoenliche Pre-Integration muss kostenbewusst ZONAL bleiben und REGIONAL nur explizit erlauben."
+);
 assert.match(terraformSql, /retained_backups\s*=\s*14/, "Cloud SQL benoetigt eine definierte Backup-Aufbewahrung.");
 
 console.log("Security Contracts OK: Identity/RBAC, Browsergrenzen, Supply Chain, Uploads, Transaktionen, Supabase, Helm/GKE und Resilienz sind fail-closed abgesichert.");

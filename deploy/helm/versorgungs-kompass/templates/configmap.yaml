@@ -9,9 +9,15 @@ data:
   ALLOWED_ORIGIN: {{ .Values.config.allowedOrigin | quote }}
   API_AUTH_MODE: {{ .Values.config.apiAuthMode | quote }}
   IAP_JWT_AUDIENCE: {{ .Values.config.iapJwtAudience | quote }}
+  {{- if eq .Values.config.apiAuthMode "oidc" }}
   OIDC_ISSUER: {{ .Values.config.oidcIssuer | quote }}
   OIDC_AUDIENCE: {{ .Values.config.oidcAudience | quote }}
   OIDC_JWKS_URL: {{ .Values.config.oidcJwksUrl | quote }}
+  {{- else }}
+  OIDC_ISSUER: ""
+  OIDC_AUDIENCE: ""
+  OIDC_JWKS_URL: ""
+  {{- end }}
   OIDC_EMAIL_CLAIM: {{ .Values.config.oidcEmailClaim | quote }}
   OIDC_SUBJECT_CLAIM: {{ .Values.config.oidcSubjectClaim | quote }}
   ATTACHMENT_UPLOAD_MODE: {{ .Values.config.attachmentUploadMode | quote }}
@@ -26,3 +32,4 @@ data:
   PROFILE_IMAGE_BUCKET: {{ .Values.storage.profileImageBucket | quote }}
   CONTACT_IMAGE_BUCKET: {{ .Values.storage.contactImageBucket | quote }}
   CONTACT_NOTE_ATTACHMENT_BUCKET: {{ .Values.storage.contactNoteAttachmentBucket | quote }}
+  STAKEHOLDER_LOGO_BUCKET: {{ .Values.storage.stakeholderLogoBucket | quote }}

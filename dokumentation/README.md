@@ -27,6 +27,8 @@ Dieser Ordner buendelt die Unterlagen fuer Produktverstaendnis, technische Ueber
 - [OWASP Top 10:2025 – Mitigations- und Abnahmenachweis](entwicklung-und-qa/OWASP_TOP_10_2025_MITIGATION_NACHWEIS.md)
 - [Betriebsverantwortung/RACI](betrieb-und-deployment/BETRIEBSVERANTWORTUNG_RACI.md)
 - [Migration, Cutover und Rollback](betrieb-und-deployment/MIGRATION_CUTOVER_ROLLBACK.md)
+- [Supabase nach Cloud SQL: Migrations- und Freigabeplan](betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md)
+- [Befristete Echtdaten-Pilotentscheidung fuer pre-gematik](betrieb-und-deployment/PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md)
 - [GCP-Pre-Integration mit GKE Autopilot](betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md) - temporaeres Test-Runbook, kein Zielbetriebsstandard
 - [Stabiler Einstieg fuer ausfuehrbare Deployment-Artefakte](../deploy/README.md)
 
@@ -52,7 +54,7 @@ Dieser Ordner buendelt die Unterlagen fuer Produktverstaendnis, technische Ueber
 Die Begriffe sind verbindlich:
 
 - **GitHub Pages:** ausschliesslich oeffentliche Demo mit synthetischen Daten; nie Staging oder Realanwendung.
-- **`pre-gematik`:** temporaere GCP-Pre-Integration mit synthetischen Daten; nie Produktivbetrieb.
+- **`pre-gematik`:** temporaere GCP-Pre-Integration, standardmaessig synthetisch; geschuetzte Echtdaten nur als zeitlich begrenzter Pilot nach den dokumentierten G-01-bis-G-07-Freigaben; nie Produktivbetrieb.
 - **Zielbetrieb:** erst nach technischer, fachlicher, sicherheitsbezogener und betrieblicher Freigabe durch die zustaendigen Stellen.
 
 Frontend-Buildausgaben sind getrennt: `dist/pages/` gehoert zum Pages-Pfad, `dist/target/` zum Kubernetes-Zielpfad. Beide sind reproduzierbar und nicht versioniert; GitHub Actions veroeffentlicht das Pages-Artefakt direkt.

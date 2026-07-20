@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import vm from "node:vm";
 import { Pool } from "pg";
 import {
@@ -19,6 +19,7 @@ const syntheticProfileAvatarsUrl = new URL(
   "deploy/postgres/pre-gematik/seed.synthetic-profile-avatars.sql",
   root
 );
+const migrationsUrl = new URL("deploy/postgres/pre-gematik/migrations/", root);
 const apiUrl = new URL("api/server.mjs", root);
 const schemaSql = readFileSync(schemaUrl, "utf8");
 const runtimeRoleSql = readFileSync(runtimeRoleUrl, "utf8");
@@ -26,7 +27,66 @@ const grantsSql = readFileSync(grantsUrl, "utf8");
 const seedSql = readFileSync(seedUrl, "utf8");
 const syntheticSeedSql = readFileSync(syntheticSeedUrl, "utf8");
 const syntheticProfileAvatarsSql = readFileSync(syntheticProfileAvatarsUrl, "utf8");
+const expectedMigrationFiles = Object.freeze([
+  "202607200001_create_identity_bindings.sql",
+  "202607200002_preserve_explicit_updated_at.sql",
+  "202607200003_restrict_stakeholder_logo_urls.sql"
+]);
+const migrationFiles = readdirSync(migrationsUrl)
+  .filter((fileName) => /^\d+_[a-z0-9_]+\.sql$/u.test(fileName))
+  .sort();
+assert.deepEqual(
+  migrationFiles,
+  expectedMigrationFiles,
+  "Der PG16-Upgrade-Test muss jede versionierte Pre-gematik-Migration in Dateireihenfolge abdecken."
+);
+const migrationSqlByFile = new Map(
+  migrationFiles.map((fileName) => [fileName, readFileSync(new URL(fileName, migrationsUrl), "utf8")])
+);
 const apiSource = readFileSync(apiUrl, "utf8");
+
+function replaceSchemaFragmentExactlyOnce(source, pattern, replacement, description) {
+  const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+  const matches = source.match(new RegExp(pattern.source, flags)) || [];
+  assert.equal(matches.length, 1, `Legacy-Testbaseline: ${description} muss exakt einmal vorkommen.`);
+  return source.replace(pattern, replacement);
+}
+
+// Reconstruct the exact capabilities that existed immediately before the
+// three versioned migrations. Keeping this derived from today's full schema
+// makes the upgrade smoke exercise all current tables while deliberately
+// removing only the three capabilities supplied by those migrations.
+let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  schemaSql,
+  /  if new\.updated_at is not distinct from old\.updated_at then\n    new\.updated_at := now\(\);\n  end if;/u,
+  "  new.updated_at := now();",
+  "alte Touch-Trigger-Semantik"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ncreate table if not exists public\.identity_bindings \([\s\S]*?\ncreate index if not exists identity_bindings_active_profile_idx\n  on public\.identity_bindings \(profile_id, active\);\n/u,
+  "\n",
+  "Identity-Tabelle vor Migration 001"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ndrop trigger if exists identity_bindings_pre_gematik_touch_updated_at on public\.identity_bindings;\ncreate trigger identity_bindings_pre_gematik_touch_updated_at before update on public\.identity_bindings\nfor each row execute function public\.pre_gematik_touch_updated_at\(\);\n/u,
+  "\n",
+  "Identity-Trigger vor Migration 001"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /,\n  constraint stakeholder_organizations_logo_url_private_check check \([\s\S]*?\n  \)(?=\n\);\n\ncreate index if not exists stakeholder_organizations_type_idx)/u,
+  "",
+  "Logo-Constraint vor Migration 003"
+);
+assert.doesNotMatch(legacyUpgradeSchemaSql, /public\.identity_bindings|identity_bindings_/u);
+assert.doesNotMatch(legacyUpgradeSchemaSql, /stakeholder_organizations_logo_url_private_check/u);
+assert.match(
+  legacyUpgradeSchemaSql,
+  /begin\n  new\.updated_at := now\(\);\n  return new;/u,
+  "Die Upgrade-Baseline muss die alte, explizite Zeitstempel ueberschreibende Triggerfunktion enthalten."
+);
 
 const EXPECTED_SYNTHETIC_PROFILE_AVATARS = Object.freeze({
   "demo-profile-admin": "/public/demo-profile-admin.svg",
@@ -451,9 +511,27 @@ async function databaseSmoke(pool) {
       insert into stakeholder_types (id, label) values ('stakeholder-type-contract', 'Synthetischer Typ')
     `);
     await client.query(`
-      insert into stakeholder_organizations (id, stakeholder_type_id, name, normalized_name)
-      values ('stakeholder-org-contract', 'stakeholder-type-contract', 'Synthetischer Stakeholder', 'synthetischer stakeholder')
+      insert into stakeholder_organizations (id, stakeholder_type_id, name, normalized_name, logo_url)
+      values (
+        'stakeholder-org-contract', 'stakeholder-type-contract',
+        'Synthetischer Stakeholder', 'synthetischer stakeholder',
+        'private://stakeholder-logos/contract/logo.svg'
+      )
     `);
+    await client.query("savepoint invalid_external_stakeholder_logo");
+    await assert.rejects(
+      client.query(`update stakeholder_organizations set logo_url = 'https://tracking.example.invalid/logo.svg' where id = 'stakeholder-org-contract'`),
+      (error) => error?.code === "23514",
+      "Der Zielvertrag muss externe Stakeholder-Logo-URLs auf Datenbankebene ablehnen."
+    );
+    await client.query("rollback to savepoint invalid_external_stakeholder_logo");
+    await client.query("savepoint invalid_traversal_stakeholder_logo");
+    await assert.rejects(
+      client.query(`update stakeholder_organizations set logo_url = 'private://stakeholder-logos/../secret.svg' where id = 'stakeholder-org-contract'`),
+      (error) => error?.code === "23514",
+      "Der Zielvertrag muss Traversal-Segmente in Stakeholder-Logo-Pfaden ablehnen."
+    );
+    await client.query("rollback to savepoint invalid_traversal_stakeholder_logo");
     await client.query(`
       insert into stakeholder_people (id, stakeholder_type_id, organization_id, name, topics)
       values (
@@ -624,6 +702,341 @@ async function assertIdentityBindingBoundary(adminPool, appPool) {
     );
   } finally {
     await adminPool.query("delete from identity_bindings where issuer = $1 and subject = $2", [issuer, subject]);
+  }
+}
+
+async function assertSqlState(pool, sql, params, expectedCode, message) {
+  await assert.rejects(
+    pool.query(sql, params),
+    (error) => error?.code === expectedCode,
+    message
+  );
+}
+
+async function applyVersionedMigrations(pool) {
+  const client = await pool.connect();
+  try {
+    for (const fileName of migrationFiles) {
+      await client.query(migrationSqlByFile.get(fileName));
+    }
+  } finally {
+    client.release();
+  }
+}
+
+async function migrationUpgradeDataSnapshot(pool) {
+  const result = await pool.query(`
+    select jsonb_build_object(
+      'profiles', coalesce((
+        select jsonb_agg(to_jsonb(snapshot_row) order by snapshot_row.id)
+          from (
+            select profile.*, profile.xmin::text as row_xmin
+              from public.profiles profile
+             where profile.id like 'upgrade-%'
+          ) snapshot_row
+      ), '[]'::jsonb),
+      'stakeholderOrganizations', coalesce((
+        select jsonb_agg(to_jsonb(snapshot_row) order by snapshot_row.id)
+          from (
+            select stakeholder.*, stakeholder.xmin::text as row_xmin
+              from public.stakeholder_organizations stakeholder
+             where stakeholder.id like 'upgrade-%'
+          ) snapshot_row
+      ), '[]'::jsonb),
+      'identityBindings', coalesce((
+        select jsonb_agg(to_jsonb(snapshot_row) order by snapshot_row.issuer, snapshot_row.subject)
+          from (
+            select binding.*, binding.xmin::text as row_xmin
+              from public.identity_bindings binding
+             where binding.subject like 'upgrade-%'
+          ) snapshot_row
+      ), '[]'::jsonb)
+    ) as snapshot
+  `);
+  return result.rows[0].snapshot;
+}
+
+async function migrationUpgradeSemanticSnapshot(pool) {
+  const result = await pool.query(`
+    select
+      to_regclass('public.identity_bindings')::text as identity_table,
+      to_regclass('public.identity_bindings_active_profile_idx')::text as identity_active_index,
+      (
+        select array_agg(pg_get_constraintdef(constraint_state.oid, true) order by constraint_state.contype, constraint_state.conname)
+          from pg_catalog.pg_constraint constraint_state
+         where constraint_state.conrelid = 'public.identity_bindings'::regclass
+      ) as identity_constraints,
+      (
+        select array_agg(pg_get_constraintdef(constraint_state.oid, true) order by constraint_state.conname)
+          from pg_catalog.pg_constraint constraint_state
+         where constraint_state.conrelid = 'public.stakeholder_organizations'::regclass
+           and constraint_state.conname = 'stakeholder_organizations_logo_url_private_check'
+           and constraint_state.convalidated
+      ) as logo_constraints,
+      (
+        select array_agg(pg_get_triggerdef(trigger_state.oid, true) order by trigger_state.tgname)
+          from pg_catalog.pg_trigger trigger_state
+         where trigger_state.tgrelid = 'public.identity_bindings'::regclass
+           and not trigger_state.tgisinternal
+      ) as identity_triggers,
+      pg_get_functiondef('public.pre_gematik_touch_updated_at()'::regprocedure) as touch_function,
+      has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'SELECT') as runtime_select,
+      has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'INSERT') as runtime_insert,
+      has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'UPDATE') as runtime_update,
+      has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'DELETE') as runtime_delete,
+      has_function_privilege('vk_app_runtime', 'public.pre_gematik_touch_updated_at()', 'EXECUTE') as runtime_execute
+  `);
+  return result.rows[0];
+}
+
+async function assertVersionedMigrationUpgrade(connectionString, containerName) {
+  const databaseName = `vk_upgrade_${process.pid}`;
+  runDocker([
+    "exec", containerName,
+    "createdb", "-U", "vk_contract", databaseName
+  ]);
+  const upgradeUrl = new URL(connectionString);
+  upgradeUrl.pathname = `/${databaseName}`;
+  const upgradePool = new Pool({
+    connectionString: upgradeUrl.toString(),
+    max: 2,
+    connectionTimeoutMillis: 1000
+  });
+
+  try {
+    await waitForPostgres(upgradePool);
+    const version = await upgradePool.query("show server_version_num");
+    assert.match(String(version.rows[0].server_version_num), /^16\d{4}$/u,
+      "Der Migrationstest muss tatsaechlich auf PostgreSQL 16 laufen.");
+    await upgradePool.query(legacyUpgradeSchemaSql);
+
+    const legacyIdentity = await upgradePool.query(
+      "select to_regclass('public.identity_bindings')::text as table_name"
+    );
+    assert.equal(legacyIdentity.rows[0].table_name, null,
+      "Die Legacy-Baseline darf Migration 001 nicht vorwegnehmen.");
+    const legacyLogoConstraint = await upgradePool.query(`
+      select count(*)::int as count
+        from pg_catalog.pg_constraint constraint_state
+       where constraint_state.conrelid = 'public.stakeholder_organizations'::regclass
+         and constraint_state.conname = 'stakeholder_organizations_logo_url_private_check'
+    `);
+    assert.equal(legacyLogoConstraint.rows[0].count, 0,
+      "Die Legacy-Baseline darf Migration 003 nicht vorwegnehmen.");
+
+    await upgradePool.query(`
+      insert into public.profiles (
+        id, email, display_name, initials, role, active, created_at, updated_at
+      ) values (
+        'upgrade-profile', 'upgrade-profile@example.invalid', 'Legacy Upgrade Profile', 'UP',
+        'admin', true, '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'
+      );
+      insert into public.stakeholder_types (id, label, created_at, updated_at)
+      values (
+        'upgrade-stakeholder-type', 'Legacy Upgrade Type',
+        '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'
+      );
+      insert into public.stakeholder_organizations (
+        id, stakeholder_type_id, name, normalized_name, logo_url, created_at, updated_at
+      ) values
+        (
+          'upgrade-logo-external', 'upgrade-stakeholder-type', 'Legacy External Logo',
+          'legacy external logo', 'https://tracking.example.invalid/logo.svg',
+          '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'
+        ),
+        (
+          'upgrade-logo-traversal', 'upgrade-stakeholder-type', 'Legacy Traversal Logo',
+          'legacy traversal logo', 'private://stakeholder-logos/../secret.svg',
+          '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'
+        ),
+        (
+          'upgrade-logo-private', 'upgrade-stakeholder-type', 'Legacy Private Logo',
+          'legacy private logo', 'private://stakeholder-logos/legacy/logo.svg',
+          '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'
+        ),
+        (
+          'upgrade-logo-null', 'upgrade-stakeholder-type', 'Legacy Null Logo',
+          'legacy null logo', null,
+          '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'
+        );
+    `);
+    const logosBeforeUpgrade = await upgradePool.query(`
+      select id, logo_url, updated_at, xmin::text as row_xmin
+        from public.stakeholder_organizations
+       where id like 'upgrade-logo-%'
+       order by id
+    `);
+
+    await applyVersionedMigrations(upgradePool);
+
+    const columns = await upgradePool.query(`
+      select column_name, is_nullable
+        from information_schema.columns
+       where table_schema = 'public' and table_name = 'identity_bindings'
+       order by ordinal_position
+    `);
+    assert.deepEqual(columns.rows, [
+      { column_name: "issuer", is_nullable: "NO" },
+      { column_name: "subject", is_nullable: "NO" },
+      { column_name: "profile_id", is_nullable: "NO" },
+      { column_name: "active", is_nullable: "NO" },
+      { column_name: "created_at", is_nullable: "NO" },
+      { column_name: "updated_at", is_nullable: "NO" }
+    ], "Migration 001 muss die vollstaendige, nicht-nullbare Identity-Tabelle anlegen.");
+
+    const firstSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
+    assert.equal(firstSemantics.identity_table, "identity_bindings");
+    assert.equal(firstSemantics.identity_active_index, "identity_bindings_active_profile_idx");
+    assert.equal(firstSemantics.identity_constraints.length, 6,
+      "Identity-Bindings brauchen PK, Unique, FK und drei Check-Constraints.");
+    const identityConstraintContract = firstSemantics.identity_constraints.join("\n");
+    assert.match(identityConstraintContract, /PRIMARY KEY \(issuer, subject\)/iu);
+    assert.match(identityConstraintContract, /UNIQUE \(issuer, profile_id\)/iu);
+    assert.match(
+      identityConstraintContract,
+      /FOREIGN KEY \(profile_id\) REFERENCES profiles\(id\) ON DELETE CASCADE/iu
+    );
+    assert.equal(firstSemantics.logo_constraints.length, 1,
+      "Migration 003 muss genau einen validierten privaten Logo-Constraint anlegen.");
+    assert.equal(firstSemantics.identity_triggers.length, 1,
+      "Migration 001 muss genau einen updated_at-Trigger auf Identity-Bindings anlegen.");
+    assert.match(firstSemantics.touch_function, /if new\.updated_at is not distinct from old\.updated_at then/iu,
+      "Migration 002 muss explizite updated_at-Werte bewahren.");
+    assert.deepEqual({
+      runtime_select: firstSemantics.runtime_select,
+      runtime_insert: firstSemantics.runtime_insert,
+      runtime_update: firstSemantics.runtime_update,
+      runtime_delete: firstSemantics.runtime_delete,
+      runtime_execute: firstSemantics.runtime_execute
+    }, {
+      runtime_select: true,
+      runtime_insert: false,
+      runtime_update: false,
+      runtime_delete: false,
+      runtime_execute: true
+    }, "Die Migrationen muessen die Laufzeitrolle auf SELECT plus Trigger-EXECUTE begrenzen.");
+
+    const logosAfterUpgrade = await upgradePool.query(`
+      select id, logo_url, updated_at, xmin::text as row_xmin
+        from public.stakeholder_organizations
+       where id like 'upgrade-logo-%'
+       order by id
+    `);
+    const logoByIdBefore = new Map(logosBeforeUpgrade.rows.map((row) => [row.id, row]));
+    const logoByIdAfter = new Map(logosAfterUpgrade.rows.map((row) => [row.id, row]));
+    for (const invalidId of ["upgrade-logo-external", "upgrade-logo-traversal"]) {
+      assert.equal(logoByIdAfter.get(invalidId).logo_url, null,
+        `${invalidId}: Migration 003 muss den Legacy-Wert entfernen.`);
+      assert.notEqual(logoByIdAfter.get(invalidId).row_xmin, logoByIdBefore.get(invalidId).row_xmin,
+        `${invalidId}: Die Legacy-Bereinigung muss die betroffene Zeile aktualisieren.`);
+    }
+    for (const unchangedId of ["upgrade-logo-private", "upgrade-logo-null"]) {
+      assert.deepEqual(logoByIdAfter.get(unchangedId), logoByIdBefore.get(unchangedId),
+        `${unchangedId}: Ein bereits sicherer Legacy-Wert muss einschliesslich xmin unveraendert bleiben.`);
+    }
+
+    await assertSqlState(
+      upgradePool,
+      "update public.stakeholder_organizations set logo_url = $1 where id = 'upgrade-logo-private'",
+      ["https://tracking.example.invalid/new.svg"],
+      "23514",
+      "Der neue Logo-Constraint muss externe URLs ablehnen."
+    );
+    await assertSqlState(
+      upgradePool,
+      "update public.stakeholder_organizations set logo_url = $1 where id = 'upgrade-logo-private'",
+      ["private://stakeholder-logos/../new.svg"],
+      "23514",
+      "Der neue Logo-Constraint muss Traversal-Pfade ablehnen."
+    );
+
+    await upgradePool.query(`
+      insert into public.identity_bindings (issuer, subject, profile_id, active)
+      values ('https://identity.upgrade.example.invalid', 'upgrade-subject', 'upgrade-profile', true)
+    `);
+    await assertSqlState(
+      upgradePool,
+      `insert into public.identity_bindings (issuer, subject, profile_id, active)
+       values ('not-https', 'upgrade-invalid-issuer', 'upgrade-profile', true)`,
+      [],
+      "23514",
+      "Der Identity-Issuer-Check muss ungueltige Issuer ablehnen."
+    );
+    await assertSqlState(
+      upgradePool,
+      `insert into public.identity_bindings (issuer, subject, profile_id, active)
+       values ('https://identity-blank.upgrade.example.invalid', '   ', 'upgrade-profile', true)`,
+      [],
+      "23514",
+      "Der Identity-Subject-Check muss leere Subjects ablehnen."
+    );
+    await assertSqlState(
+      upgradePool,
+      `insert into public.identity_bindings (issuer, subject, profile_id, active)
+       values ('https://identity.upgrade.example.invalid', 'upgrade-subject-2', 'upgrade-profile', true)`,
+      [],
+      "23505",
+      "Ein Profil darf nur eine Identity-Bindung pro Umgebung besitzen."
+    );
+    await assertSqlState(
+      upgradePool,
+      `insert into public.identity_bindings (issuer, subject, profile_id, active)
+       values ('https://identity-3.upgrade.example.invalid', 'upgrade-missing-profile', 'missing-profile', true)`,
+      [],
+      "23503",
+      "Identity-Bindings muessen auf ein vorhandenes Profil zeigen."
+    );
+
+    const explicitProfileTimestamp = new Date("2001-02-03T04:05:06.789Z");
+    const explicitProfile = await upgradePool.query(`
+      update public.profiles
+         set display_name = 'Explicit Timestamp Preserved', updated_at = $1
+       where id = 'upgrade-profile'
+      returning updated_at
+    `, [explicitProfileTimestamp]);
+    assert.equal(explicitProfile.rows[0].updated_at.toISOString(), explicitProfileTimestamp.toISOString(),
+      "Migration 002 muss explizite Profil-updated_at-Werte unveraendert bewahren.");
+    const ordinaryProfile = await upgradePool.query(`
+      update public.profiles
+         set team = 'Ordinary Update'
+       where id = 'upgrade-profile'
+      returning updated_at
+    `);
+    assert.ok(ordinaryProfile.rows[0].updated_at > explicitProfileTimestamp,
+      "Ein normales Update ohne expliziten Zeitstempel muss weiterhin now() erhalten.");
+
+    const explicitBindingTimestamp = new Date("2002-03-04T05:06:07.890Z");
+    const explicitBinding = await upgradePool.query(`
+      update public.identity_bindings
+         set active = false, updated_at = $1
+       where issuer = 'https://identity.upgrade.example.invalid'
+         and subject = 'upgrade-subject'
+      returning updated_at
+    `, [explicitBindingTimestamp]);
+    assert.equal(explicitBinding.rows[0].updated_at.toISOString(), explicitBindingTimestamp.toISOString(),
+      "Der neue Identity-Trigger muss explizite updated_at-Werte ebenfalls bewahren.");
+
+    const dataBeforeSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
+    await applyVersionedMigrations(upgradePool);
+    const dataAfterSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
+    const secondSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
+    assert.deepEqual(dataAfterSecondPass, dataBeforeSecondPass,
+      "Der zweite Lauf aller drei Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
+    assert.deepEqual(secondSemantics, firstSemantics,
+      "Der zweite Lauf aller drei Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
+
+    const secondExplicitTimestamp = new Date("2003-04-05T06:07:08.901Z");
+    const secondExplicit = await upgradePool.query(`
+      update public.identity_bindings
+         set active = true, updated_at = $1
+       where issuer = 'https://identity.upgrade.example.invalid'
+         and subject = 'upgrade-subject'
+      returning updated_at
+    `, [secondExplicitTimestamp]);
+    assert.equal(secondExplicit.rows[0].updated_at.toISOString(), secondExplicitTimestamp.toISOString(),
+      "Explicit-updated_at-Erhalt muss auch nach dem idempotenten zweiten Migrationslauf gelten.");
+  } finally {
+    await upgradePool.end().catch(() => {});
   }
 }
 
@@ -963,6 +1376,7 @@ try {
       "psql", "-v", "ON_ERROR_STOP=1",
       "-U", "vk_contract", "-d", "versorgungs_kompass"
     ], { input: runtimeRoleSql });
+    await assertVersionedMigrationUpgrade(connectionString, containerName);
     runDocker([
       "exec", "-i", containerName,
       "psql", "-v", "ON_ERROR_STOP=1",
@@ -1008,7 +1422,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Schema, Laufzeitrolle und synthetischer Avatar-Patch idempotent; Least-Privilege-Vererbung und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und drei Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-Grenze, explicit updated_at, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {

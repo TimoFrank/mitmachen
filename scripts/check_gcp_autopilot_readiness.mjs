@@ -65,7 +65,19 @@ const contentChecks = [
       /create secret generic "\$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME"/,
       /oauthClientCredentialsSecretName/,
       /IAP_RESOURCE_ACCESS_GROUP/,
-      /gcloud iap web add-iam-policy-binding/,
+      /IAP_PROJECT_BREAK_GLASS_SHA256/,
+      /Project-level IAP break-glass membership differs from the protected approved policy pin/,
+      /DEPLOYER_SERVICE_ACCOUNT does not belong to GCP_PROJECT_ID/,
+      /GAR_REPOSITORY does not belong to GCP_PROJECT_ID\/GCP_REGION/,
+      /CLOUD_SQL_INSTANCE_CONNECTION_NAME does not belong to GCP_PROJECT_ID\/GCP_REGION/,
+      /All frontend and protected data buckets must be distinct/,
+      /gcloud storage buckets describe/,
+      /uniformBucketLevelAccess\.enabled == true/,
+      /publicAccessPrevention == "enforced"/,
+      /WIF_PROVIDER does not belong to GCP_PROJECT_ID/,
+      /gcloud iap web set-iam-policy/,
+      /already contains an unknown member, role or condition; refusing automatic reconciliation/,
+      /A backend-specific IAP policy contains an unapproved member or role/,
       /--resource-type=backend-services/,
       /api_backend_service/,
       /frontend_backend_service/,
@@ -81,7 +93,7 @@ const contentChecks = [
       /dist\/target\/data\/runtime-config\.js/,
       /steps\.build\.outputs\.digest/,
       /image\.digest/,
-      /releases\/\$\{IMAGE_TAG\}/
+      /release_uri="gs:\/\/\$\{FRONTEND_BUCKET\}\/releases\/\$\{FRONTEND_RELEASE_ID\}"/
     ],
     reason: "GitHub Actions nutzt Environment, schluesselloses WIF, DNS-Endpunkt, den zweistufigen IAP-Rollout und den vollstaendigen DB-Vertragscheck."
   },
@@ -168,13 +180,13 @@ const contentChecks = [
   },
   {
     file: "deploy/terraform/gcp-autopilot/identities.tf",
-    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/],
-    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL- und granulare IAP-Policy-Rechte sind explizit."
+    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/],
+    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-Metadaten- und granulare IAP-Policy-Rechte sind explizit."
   },
   {
     file: "deploy/terraform/gcp-autopilot/storage.tf",
-    patterns: [/gke_frontend_workload_principal/, /gke_api_workload_principal/, /frontend_deployer_bucket_reader[\s\S]*roles\/storage\.legacyBucketReader/, /frontend_workload_bucket_reader[\s\S]*roles\/storage\.legacyBucketReader/, /frontend_workload_viewer/, /roles\/storage\.objectViewer/, /roles\/storage\.objectUser/, /workload_object_user[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /frontend_workload_viewer[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /frontend_workload_bucket_reader[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/],
-    reason: "Getrennte Frontend-, API- und Deployment-Principals erhalten nur die jeweils benoetigten Bucket-Rechte; Deployer und Frontend-Sync duerfen die fuer gcloud storage rsync erforderlichen Bucket-Metadaten lesen."
+    patterns: [/gke_frontend_workload_principal/, /gke_api_workload_principal/, /frontend_deployer_bucket_reader[\s\S]*roles\/storage\.legacyBucketReader/, /frontend_workload_bucket_reader[\s\S]*roles\/storage\.legacyBucketReader/, /frontend_workload_viewer/, /data\s+"google_iam_policy"\s+"data_bucket"/, /each\.key\s*==\s*"stakeholder_logos"[\s\S]*roles\/storage\.objectViewer[\s\S]*roles\/storage\.objectUser/, /members\s*=\s*\[local\.gke_api_workload_principal\]/, /resource\s+"google_storage_bucket_iam_policy"\s+"data"/, /removed\s*\{[\s\S]*from\s*=\s*google_storage_bucket_iam_member\.workload_object_user[\s\S]*destroy\s*=\s*false/, /frontend_workload_viewer[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /frontend_workload_bucket_reader[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/],
+    reason: "Frontend-Sync und Deployment bleiben getrennt; alle privaten Daten-Buckets erhalten eine autoritative, ausschliesslich auf den API-Workload begrenzte IAM-Policy."
   },
   {
     file: "deploy/terraform/gcp-autopilot/sql.tf",
@@ -196,7 +208,7 @@ const forbiddenChecks = [
   },
   {
     files: [".github/workflows/deploy-pre-gematik.yml"],
-    patterns: [/credentials_json\s*:/, /DB_PASSWORD\s*:/, /--from-literal=(?:client_id|client_secret)/, /sync_github_pages\.sh/, /docs\/data\/supabase-config\.js/, /\brsync\b[^\n]*\bdocs\b/],
+    patterns: [/credentials_json\s*:/, /DB_PASSWORD\s*:/, /--from-literal=(?:client_id|client_secret)/, /sync_github_pages\.sh/, /docs\/data\/supabase-config\.js/, /\brsync\b[^\n]*\bdocs\b/, /echo "- Resource-specific IAP group:/, /echo "- IAP audience:/, /echo "- Frontend release:.*gs:\/\//],
     reason: "Workflow darf weder Service-Account-Key noch Datenbankpasswort transportieren und OAuth-Werte nicht als Prozessargumente uebergeben. Das Target-Artefakt darf nicht aus docs/ stammen."
   },
   {
@@ -232,11 +244,13 @@ const requiredEnvironment = [
   "PROFILE_IMAGE_BUCKET",
   "CONTACT_IMAGE_BUCKET",
   "CONTACT_NOTE_ATTACHMENT_BUCKET",
+  "STAKEHOLDER_LOGO_BUCKET",
   "CLOUD_SQL_INSTANCE_CONNECTION_NAME",
   "GKE_INGRESS_IP_NAME",
   "K8S_NAMESPACE",
   "IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME",
-  "IAP_RESOURCE_ACCESS_GROUP"
+  "IAP_RESOURCE_ACCESS_GROUP",
+  "IAP_PROJECT_BREAK_GLASS_SHA256"
 ];
 
 const failures = [];
@@ -268,6 +282,20 @@ for (const check of contentChecks) {
   } else {
     ok(check.reason);
   }
+}
+
+const storageTerraform = source("deploy/terraform/gcp-autopilot/storage.tf");
+const dataPolicyStart = storageTerraform.indexOf('data "google_iam_policy" "data_bucket"');
+const dataPolicyEnd = storageTerraform.indexOf('resource "google_storage_bucket_iam_policy" "data"', dataPolicyStart);
+const dataPolicySource = dataPolicyStart >= 0 && dataPolicyEnd > dataPolicyStart
+  ? storageTerraform.slice(dataPolicyStart, dataPolicyEnd)
+  : "";
+if (!dataPolicySource) {
+  fail("Die autoritative IAM-Definition fuer private Daten-Buckets konnte nicht abgegrenzt werden.");
+} else if (/deployer|serviceAccount:|project(?:Viewer|Editor)|allUsers|allAuthenticatedUsers/i.test(dataPolicySource)) {
+  fail("Die Daten-Bucket-Policy darf weder Deployer/Projektrollen noch oeffentliche oder statische Service-Account-Member enthalten.");
+} else {
+  ok("Die Daten-Bucket-Policy enthaelt keinen Deployer-, Projektrollen- oder oeffentlichen Zugriffspfad.");
 }
 
 for (const check of forbiddenChecks) {

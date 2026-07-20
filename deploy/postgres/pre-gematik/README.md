@@ -12,8 +12,9 @@ Es ist ausdrücklich **kein freigegebenes gematik-Zielschema**, keine Festlegung
 - `seed.example.sql`: optionaler, ausschließlich synthetischer Admin-Seed. Er enthält die reservierte Beispieldomain `example.invalid` und keine echten Personen- oder Kontaktdaten.
 - `seed.synthetic.sql`: generierter, versionierter Fachdaten-Seed für die GCP-Pre-Integration. Er enthält ausschließlich synthetische Profile, Organisationen, Kontakte, Formate, Hospitationen und Beobachtungen.
 - `seed.synthetic-profile-avatars.sql`: enger, idempotenter Nachzug für drei lokale SVG-Avatare der reservierten Demo-Profile. Er verändert keine IAP-Nutzerprofile.
+- [`migrations/`](migrations/README.md): geordnete, versionierte Upgrades für bereits bestehende Datenbanken. Die dortige Anleitung ist für jede Aktualisierung einer bestehenden Instanz verbindlich.
 
-`seed.synthetic.sql` wird aus `frontend/data/demo-data.js` durch `scripts/generate_pre_gematik_synthetic_seed.mjs` erzeugt. Der Generator neutralisiert Profile, E-Mail-Adressen, Telefone und Bildreferenzen, verwendet ausschließlich reservierte `demo-*`-IDs und normalisiert alle 36 Kontakte für den Karten-Smoke-Test auf `active`.
+`seed.synthetic.sql` wird aus `frontend/data/demo-data.js` durch `scripts/generate_pre_gematik_synthetic_seed.mjs` erzeugt. Der Generator neutralisiert Profile, E-Mail-Adressen, Telefone und Bildreferenzen, verwendet ausschließlich reservierte `demo-*`-IDs und normalisiert alle 64 Kontakte für den Karten-Smoke-Test auf `active`.
 
 Das Schema wurde aus dem aktiven Vertrag in `api/server.mjs`, dem Datenmodell und den historischen Plain-PostgreSQL-/Supabase-Quellen abgeleitet. Die historischen Quellen bleiben Quellen; dieses Artefakt führt weder Supabase Auth noch Supabase-Rollen, Storage-Tabellen, Grants oder Row Level Security fort.
 
@@ -43,6 +44,8 @@ psql "$PRE_GEMATIK_SCHEMA_DATABASE_URL" -v ON_ERROR_STOP=1 -v runtime_role=vk_ap
 ```
 
 `runtime-role.sql` kann gefahrlos erneut angewendet werden. Es stellt `vk_app_runtime` als Rolle ohne Login her und entzieht der impliziten PostgreSQL-Rolle `PUBLIC` das Recht `CREATE` auf dem Schema `public`. `grants.sql` quotiert `runtime_role` als PostgreSQL-Identifier, prüft Existenz und `NOLOGIN` und vergibt nur `USAGE` auf das Schema, DML auf die explizit aufgeführten Tabellen, `USAGE/SELECT` auf die drei Identity-Sequenzen sowie `EXECUTE` auf die vier benötigten Funktionen. Es vergibt insbesondere kein `CREATE`, `ALTER`, `DROP` oder Rollenverwaltungsrecht. Nach jeder späteren Schema-Migration muss die Rechtezuordnung bewusst erneut geprüft und bei neuen Objekten erweitert werden.
+
+Die Befehle oben sind ausschließlich für eine frische Datenbank bestimmt. Für eine bereits bestehende Instanz gilt stattdessen das Verfahren in [`migrations/README.md`](migrations/README.md): Vorimport-Backup und Restore-Pfad bestätigen, ausstehenden Migrationspfad prüfen, Migrationen in aufsteigender Reihenfolge anwenden, Laufzeitrechte erneut abgleichen und anschließend Vertrags- sowie Anwendungstests ausführen. Das erneute Anwenden von `schema.sql` ersetzt diesen Ablauf nicht.
 
 Der eigentliche Login `vk_app` bleibt ein von Cloud SQL verwalteter `BUILT_IN`-User. Beim Anlegen über die Cloud-SQL-Admin-API muss `databaseRoles` bereits ausschließlich `vk_app_runtime` enthalten; Passwort und Request-Body werden dabei aus restriktiv berechtigten temporären Dateien gelesen und weder als Prozessargument noch im Log ausgegeben. Danach beziehungsweise für einen bereits vorhandenen User wird die Rollenliste idempotent auf genau diese eine benutzerdefinierte Rolle abgeglichen:
 
@@ -77,14 +80,14 @@ psql "$PRE_GEMATIK_SCHEMA_DATABASE_URL" -v ON_ERROR_STOP=1 -f seed.example.sql
 
 Der versionierte Seed `pre-gematik-synthetic-v1` erzeugt:
 
-- 3 neutrale Demo-Profile, ohne ein vorhandenes IAP-Profil zu verändern,
-- 14 Organisationen und 14 Primärsysteme,
-- 36 aktive Kontakte und 41 Owner-Zuordnungen,
-- 2 Formate und 20 Teilnahmen,
-- 13 Hospitationen und 39 synthetische Beobachtungen,
+- 5 neutrale Demo-Profile, ohne ein vorhandenes IAP-Profil zu verändern,
+- 32 Organisationen und 32 Primärsysteme,
+- 64 aktive Kontakte und 74 Owner-Zuordnungen,
+- 8 Formate und 75 Teilnahmen,
+- 18 Hospitationen und 39 synthetische Beobachtungen,
 - 39 automatisch durch den Schema-Trigger erzeugte Beobachtungs-Audits.
 
-Alle 36 Kontakte erhalten materialisierte, von `0/0` verschiedene Koordinaten; fehlende Demo-Kontaktwerte werden beim Generieren einmalig aus der zugehörigen Organisation übernommen. Der Seed arbeitet in einer Transaktion, hält einen Advisory Lock, prüft ID-Kollisionen vorab, verwendet ausschließlich `ON CONFLICT DO NOTHING` und enthält weder `TRUNCATE` noch `DELETE` oder DDL. Ein zweiter Lauf verändert deshalb keine Seed-Zeile und erzeugt keine zusätzlichen Beobachtungs-Audits.
+Alle 64 Kontakte erhalten materialisierte, von `0/0` verschiedene Koordinaten; fehlende Demo-Kontaktwerte werden beim Generieren einmalig aus der zugehörigen Organisation übernommen. Der Seed arbeitet in einer Transaktion, hält einen Advisory Lock, prüft ID-Kollisionen vorab, verwendet ausschließlich `ON CONFLICT DO NOTHING` und enthält weder `TRUNCATE` noch `DELETE` oder DDL. Ein zweiter Lauf verändert deshalb keine Seed-Zeile und erzeugt keine zusätzlichen Beobachtungs-Audits.
 
 Vor einer Anwendung müssen Generatorstand und PostgreSQL-16-Vertrag grün sein:
 

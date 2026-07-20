@@ -98,6 +98,21 @@
         }
       }
     },
+    "storage": {
+      "type": "object",
+      "required": [
+        "profileImageBucket",
+        "contactImageBucket",
+        "contactNoteAttachmentBucket",
+        "stakeholderLogoBucket"
+      ],
+      "properties": {
+        "profileImageBucket": { "type": "string" },
+        "contactImageBucket": { "type": "string" },
+        "contactNoteAttachmentBucket": { "type": "string" },
+        "stakeholderLogoBucket": { "type": "string" }
+      }
+    },
     "networkPolicy": {
       "type": "object",
       "required": ["enabled", "ingress"],

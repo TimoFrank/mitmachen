@@ -35,7 +35,7 @@ Der bestehende Weekly-Release-Prozess muss einen Pull Request erzeugen und darf 
 - Keine Service-Account-JSON-Datei, kein Datenbankpasswort und keine OAuth-Clientwerte in GitHub speichern.
 - `prevent self-review` und `disallow admin bypass` aktivieren, wenn Tarif und Organisationsrichtlinie dies erlauben.
 
-Die Pre-Integration darf nur synthetische oder belastbar anonymisierte Daten enthalten. Das persoenliche GCP-Projekt und persoenliche Break-glass-Konto aus der aktuellen Pre-Integration sind nicht fuer den Zielbetrieb freigegeben.
+Die Pre-Integration verwendet standardmaessig nur synthetische oder belastbar anonymisierte Daten. Ein geschuetzter, zeitlich begrenzter Echtdaten-Pilot ist ausschliesslich nach G-01 bis G-07 im [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) zulaessig. Das persoenliche GCP-Projekt und persoenliche Break-glass-Konto aus der aktuellen Pre-Integration sind nicht fuer den Zielbetrieb freigegeben.
 
 ## 4. Zielbetrieb
 

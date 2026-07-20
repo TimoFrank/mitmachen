@@ -54,6 +54,7 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `POST` | `/api/profile/avatar` | Profilbild des angemeldeten Nutzers in Object Storage hochladen |
 | `DELETE` | `/api/profile/avatar` | Profilbild-Dateien entfernen und `avatar_url` leeren |
 | `GET` | `/api/profile-avatar/:id` | Profilbild ueber API aus privatem Object Storage ausliefern |
+| `GET` | `/api/stakeholder-logos/:id` | Stakeholder-Logo nach IAP-, Rollen-, Pfad-, MIME- und Inhaltspruefung aus privatem Object Storage ausliefern |
 | `GET` | `/api/saved-views` | Gespeicherte Ansichten laden |
 | `POST` | `/api/saved-views` | Gespeicherte Ansicht anlegen |
 | `PATCH` | `/api/saved-views/:id` | Gespeicherte Ansicht aktualisieren |

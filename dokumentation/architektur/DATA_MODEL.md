@@ -341,6 +341,8 @@ Pflegeweg:
 
 - Stakeholderdaten werden nicht mehr im Repository oder im GitHub-Pages-Artefakt ausgeliefert.
 - Die geschuetzte Anwendung liest sie ausschliesslich ueber die authentifizierte API aus `stakeholder_organizations`; historische Quellstaende liegen zugriffsgeschuetzt in `private.protected_source_snapshots`.
+- `logo_url` ist im geschuetzten Ziel entweder leer oder eine validierte logische Referenz `private://stakeholder-logos/<objektpfad>`. Externe HTTP(S)-URLs sind dort nicht zulaessig; die API liefert Altwerte fail-closed nicht an den Browser aus.
+- Ein Logo wird ausschliesslich ueber `GET /api/stakeholder-logos/:id` aus dem privaten Bucket ausgeliefert. Objektpfad, Groesse, MIME-Typ und Dateiinhalt werden serverseitig geprueft; der Browser erhaelt weder Bucket-Zugang noch eine dauerhafte GCS-URL.
 - Sichtbare Korrekturen werden als geschuetzte Datenpflege oder kontrollierter Backfill vorgenommen.
 - Eine automatische Aktualisierung oeffentlicher Mitgliederzahlen ist ein separater Datenjob mit Quellenpruefung, Konfliktlogik und Live-Backfill. Sie ist kein Teil normaler UI-Fixes.
 
@@ -767,6 +769,13 @@ RLS/Policy-Hinweise:
 - Authentifizierte Nutzer duerfen nur im eigenen Ordner hochladen, ersetzen und loeschen.
 - Der Bucket ist privat. Es gibt keine anonyme Lesepolicy.
 - Lesen und Anzeigen erfolgen ausschliesslich autorisiert ueber die geschuetzte API beziehungsweise kurzlebige signierte URLs; dauerhafte oeffentliche Profilbild-URLs werden nicht gespeichert.
+
+## Storage `stakeholder-logos`
+
+- Der Zielbucket ist privat, verwendet Uniform Bucket-Level Access, Public Access Prevention und Versionierung.
+- Der kanonische Datenbankwert ist `private://stakeholder-logos/<objektpfad>`; externe Logo-URLs sind im geschuetzten Zielvertrag ausgeschlossen.
+- Nur der API-Workload besitzt Objekt-Leserechte. Frontend, GitHub-Pages-Demo und Deployment-Identitaet erhalten keinen Zugriff auf Logo-Inhalte.
+- Die API akzeptiert ausschliesslich den freigegebenen Bildvertrag und liefert SVG mit restriktiver Content Security Policy aus. Unsichere, strukturell ungueltige oder uebergrosse Quelldateien werden vor einer Migration quarantänisiert und nicht still uebernommen.
 
 ## RLS- und Rechtehinweise
 

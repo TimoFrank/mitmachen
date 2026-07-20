@@ -32,7 +32,7 @@ Die Pre-Integration prueft:
 - IAP als vorgelagerte Identitaetsgrenze,
 - Rollout, Health Check und Ablehnung gefaelschter Identity-Header.
 
-Sie ist keine Produktivumgebung, hat keine Hochverfuegbarkeitszusage und darf nur synthetische oder belastbar anonymisierte Testdaten enthalten. Das Deployment installiert das mitgelieferte Pre-Integration-Schema nicht automatisch, erstellt keine Testnutzer und migriert keine Supabase-Daten. Das Schema ist ein ausdruecklich temporaerer API-Vertrag und keine Freigabe fuer den spaeteren gematik-Zielbetrieb.
+Sie ist keine Produktivumgebung und hat keine Hochverfuegbarkeitszusage. `DB_AVAILABILITY_TYPE` steht fuer diesen persoenlichen, kostenbegrenzten Pilot bewusst auf `ZONAL`; `REGIONAL` wird erst durch eine separate Zielbetriebsentscheidung aktiviert. Standardmaessig enthaelt die Umgebung nur synthetische oder belastbar anonymisierte Testdaten. Ein zeitlich begrenzter Echtdaten-Pilot ist ausschliesslich nach den dokumentierten Fach-, Datenschutz-, Security-, Zugriffs-, Backup- und Cutover-Freigaben im [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) zulaessig. Das Deployment installiert das mitgelieferte Pre-Integration-Schema nicht automatisch, erstellt keine Testnutzer und migriert keine Supabase-Daten. Das Schema ist ein ausdruecklich temporaerer API-Vertrag und keine Freigabe fuer den spaeteren gematik-Zielbetrieb.
 
 ## Zielbild
 
@@ -97,11 +97,11 @@ Vor Terraform muessen vorhanden sein:
 - ein privater, versionierter Terraform-State-Bucket, dessen Name beim `terraform init` geschuetzt uebergeben wird,
 - ein freigegebener HTTPS-Origin aus `FRONTEND_BASE_URL`,
 - Festlegung, welche Google-Nutzer oder -Gruppen ueber IAP zugreifen duerfen,
-- fuer die Zwischenumgebung eine bewusste Freigabe des mitgelieferten Pre-Integration-Schemas sowie ein Verfahren zum Einspielen ausschliesslich synthetischer Daten; das spaetere gematik-Schema bleibt davon getrennt.
+- fuer die Zwischenumgebung eine bewusste Freigabe des mitgelieferten Pre-Integration-Schemas; standardmaessig werden ausschliesslich synthetische Daten eingespielt. Ein zeitlich begrenzter Echtdaten-Pilot folgt zusaetzlich und ausschliesslich den Gates G-01 bis G-07 im [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md). Das spaetere gematik-Schema bleibt davon getrennt.
 
 Das Frontend wird nicht direkt aus einem oeffentlichen Bucket ausgeliefert. Ein Init-Container liest das Zielartefakt per Workload Identity aus dem privaten `FRONTEND_BUCKET` in ein gemeinsames Volume; ein unprivilegierter nginx-Container stellt es intern bereit. Der gemeinsame GKE Ingress routet `/api` zur API und `/` zum Frontend. IAP schuetzt beide Pfade am selben Origin.
 
-Das gemeinsam genutzte Demo-Projekt ist nur fuer diese Zwischenumgebung akzeptabel. Alle neuen Ressourcen tragen `pre-gematik` beziehungsweise `vk-pre-gematik` im Namen. Das bestehende Artifact Registry Repository, die oeffentliche Demo-Cloud-SQL-Instanz, Demo-Secrets und Default Service Accounts werden nicht wiederverwendet. Echtdaten sind ausgeschlossen. IAM, Quoten, Billing und Projektloeschung bleiben trotzdem eine gemeinsame Fehlerdomaene; deshalb ist diese Ausnahme nicht auf den Zielbetrieb uebertragbar.
+Das persoenlich verantwortete Pre-Integrationsprojekt ist nur fuer diese Zwischenumgebung akzeptabel. Alle neuen Ressourcen tragen `pre-gematik` beziehungsweise `vk-pre-gematik` im Namen. Das bestehende Artifact Registry Repository, eine fruehere Demo-Cloud-SQL-Instanz, Demo-Secrets und Default Service Accounts werden nicht wiederverwendet. Echtdaten bleiben im Standardbetrieb ausgeschlossen; eine befristete Ausnahme ist nur nach G-01 bis G-07 und mit dokumentiertem Go/No-Go zulaessig. IAM, Quoten, Billing und Projektloeschung bleiben trotzdem eine gemeinsame Fehlerdomaene; deshalb ist diese Ausnahme nicht auf den Zielbetrieb uebertragbar.
 
 ## Phase 2: Infrastruktur anwenden
 
@@ -145,7 +145,7 @@ Ein Cloud-Billing-Budget ist nur eine Warnung und kein hartes Ausgabenlimit. Ins
 9. `runtime-role.sql` anwenden und danach `grants.sql` mit der verpflichtenden Variable `runtime_role=vk_app_runtime` ausfuehren. Damit liegen die Laufzeitrechte ausschliesslich auf der festen `NOLOGIN`-Rolle; `PUBLIC` darf im Schema `public` keine Objekte erstellen.
 10. Den Cloud-SQL-`BUILT_IN`-User aus `DB_USER` ueber die Admin-API mit `databaseRoles=[vk_app_runtime]` anlegen. Bei einer vorhandenen Rolle mit `gcloud sql users assign-roles "$DB_USER" --type=BUILT_IN --database-roles=vk_app_runtime --revoke-existing-roles` die Rollenliste auf genau diesen Wert abgleichen; dadurch wird insbesondere eine fruehere Cloud-SQL-Administrationsrolle entfernt. Passwort und Request-Body nur aus restriktiv berechtigten Temporaerdateien lesen, denselben Passwortwert als Secret-Manager-Version unter `DB_PASSWORD_SECRET_NAME` speichern und die Rollenmitgliedschaft vor dem Deployment abfragen. Die genauen Befehle und Grenzen stehen in `deploy/postgres/pre-gematik/README.md`.
 11. Den lokalen Vertragscheck ausfuehren; er wendet Schema und Laufzeitrolle in einem temporaeren PostgreSQL-16-Container zweimal an, verbindet sich ueber ein separates Login-Mitglied, prueft effektive Laufzeit- und fehlende DDL-Rechte und fuehrt einen relationalen Smoke-Test ueber alle Tabellen aus.
-12. Erst danach ein dokumentiertes, ausschliesslich synthetisches Testprofil anlegen; der Repository-Seed ist nur eine Vorlage und wird nicht automatisch ausgefuehrt.
+12. Erst danach den dokumentierten synthetischen Ausgangsbestand anlegen; der Repository-Seed ist nur eine Vorlage und wird nicht automatisch ausgefuehrt. Eine spaetere Echtdatenuebernahme ist ein separater Adminvorgang nach dem [Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md), kein Teil dieses Infrastruktur-Deployments.
 
 Terraform erstellt fuer die Datenbank bewusst nur das Secret-Objekt, nicht dessen geheime Version, die `NOLOGIN`-Laufzeitrolle oder den eingeschraenkten Datenbank-Login. Diese Schritte sind vor dem ersten vollstaendigen Deployment Pflicht. GKE Secret Sync materialisiert danach das Datenbank-Kubernetes-Secret mit demselben Namen und dem Key `password`. Das separate IAP-OAuth-Bootstrap-Secret existiert bereits ausserhalb dieses Terraform-Roots; Terraform verwaltet daran nur die secret-spezifische Leseberechtigung des Deployers.
 
@@ -190,6 +190,7 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `PROFILE_IMAGE_BUCKET` | Terraform-Output `PROFILE_IMAGE_BUCKET` |
 | `CONTACT_IMAGE_BUCKET` | Terraform-Output `CONTACT_IMAGE_BUCKET` |
 | `CONTACT_NOTE_ATTACHMENT_BUCKET` | Terraform-Output `CONTACT_NOTE_ATTACHMENT_BUCKET` |
+| `STAKEHOLDER_LOGO_BUCKET` | Terraform-Output `STAKEHOLDER_LOGO_BUCKET` |
 | `CLOUD_SQL_INSTANCE_CONNECTION_NAME` | Terraform-Output `CLOUD_SQL_INSTANCE_CONNECTION_NAME` |
 | `GKE_INGRESS_IP_NAME` | Terraform-Output `GKE_INGRESS_IP_NAME` |
 | `K8S_NAMESPACE` | Terraform-Output `K8S_NAMESPACE` |
@@ -199,6 +200,8 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `FRONTEND_BASE_URL` | exakt derselbe gemeinsame HTTPS-Origin |
 
 `WIF_PROVIDER` ist der volle Ressourcenname mit numerischer Projektnummer. `GAR_REPOSITORY` hat die Form `REGION-docker.pkg.dev/PROJECT/REPOSITORY`. Bucket-Werte enthalten nur den Namen, kein `gs://`. Der Workflow bricht ab, wenn `API_BASE_URL` und `FRONTEND_BASE_URL` nicht exakt denselben Origin bezeichnen.
+
+Zusaetzlich liegt `IAP_PROJECT_BREAK_GLASS_SHA256` als geschuetztes Environment-Secret vor. Es ist der SHA-256-Pin der kanonisch sortierten, projektweiten IAP-Break-glass-Nutzerliste und kein Zugangswert. Der Workflow liest die Projekt-IAM-Policy nur als Metadatum, verlangt genau eine unbedingte, ausschliesslich aus `user:`-Mitgliedern bestehende Break-glass-Bindung und stoppt bei jeder Mitgliedschaftsaenderung. Der Klartext der Nutzerliste wird weder in Git noch in der Actions-Zusammenfassung ausgegeben.
 
 ## Phase 5: Workflow ausfuehren
 
@@ -217,7 +220,7 @@ Die Validierung fuehrt Repository-Checks, Helm-Lint und -Render, Ziel-Frontend-E
 Danach denselben Workflow mit `validate_only` deaktiviert ausfuehren. Der Deploy-Job:
 
 1. wartet auf die Freigabe des Environments `pre-gematik`,
-2. tauscht das GitHub-OIDC-Token per WIF gegen kurzlebige GCP-Credentials,
+2. tauscht das GitHub-OIDC-Token per WIF gegen kurzlebige GCP-Credentials und prueft Projekt, Region, Registry, Cloud SQL, private Buckets sowie den gepinnten Break-glass-Sollzustand,
 3. verbindet sich ueber den GKE-DNS-Endpunkt,
 4. liest das JSON-formatierte OAuth-Bootstrap-Secret aus Secret Manager ohne Inhaltsausgabe, materialisiert daraus exakt `client_id` und `client_secret` im Kubernetes Secret und validiert dessen Form,
 5. baut und pusht ein unveraenderlich getaggtes API-Image inklusive Provenance und SBOM,

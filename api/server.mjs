@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { checkServerIdentity } from "node:tls";
 import { Pool } from "pg";
 import "../frontend/data/activity-model.js";
+import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
 import {
   assertSensitiveQueryPermission,
   policyForRequest,
@@ -488,6 +489,7 @@ const LOG_REQUESTS = process.env.API_LOG_REQUESTS === "1";
 const PROFILE_IMAGE_BUCKET = process.env.PROFILE_IMAGE_BUCKET || "";
 const CONTACT_IMAGE_BUCKET = process.env.CONTACT_IMAGE_BUCKET || "";
 const CONTACT_NOTE_ATTACHMENT_BUCKET = process.env.CONTACT_NOTE_ATTACHMENT_BUCKET || "";
+const STAKEHOLDER_LOGO_BUCKET = process.env.STAKEHOLDER_LOGO_BUCKET || "";
 const ATTACHMENT_UPLOAD_MODE = String(
   process.env.ATTACHMENT_UPLOAD_MODE || (process.env.NODE_ENV === "production" ? "disabled" : "text-only")
 ).toLowerCase();
@@ -1413,6 +1415,13 @@ function stakeholderTypeToDto(row, index = 0) {
   };
 }
 
+function stakeholderLogoUrl(row = {}) {
+  const value = String(row.logo_url || "").trim();
+  return stakeholderLogoObjectName(value)
+    ? `/api/stakeholder-logos/${encodeURIComponent(row.id || "")}`
+    : "";
+}
+
 function stakeholderOrganizationToDto(row, personCount = 0) {
   return {
     id: row.id || "",
@@ -1432,7 +1441,7 @@ function stakeholderOrganizationToDto(row, personCount = 0) {
     website: row.website || "",
     phone: row.phone || "",
     email: row.email || "",
-    logoUrl: row.logo_url || "",
+    logoUrl: stakeholderLogoUrl(row),
     logoSourceUrl: row.logo_source_url || "",
     logoSourceLabel: row.logo_source_label || "",
     memberCount: Number.isFinite(Number(row.member_count)) ? Number(row.member_count) : null,
@@ -2486,6 +2495,12 @@ function stakeholderTypeToDb(type = {}) {
 
 function stakeholderOrganizationToDb(organization = {}) {
   const name = String(organization.name || organization.organization || "").trim();
+  const logoUrl = String(organization.logoUrl || organization.logo_url || "").trim();
+  if (logoUrl && !stakeholderLogoObjectName(logoUrl)) {
+    const error = new Error("Stakeholder-Logos müssen aus dem geschützten Logo-Speicher stammen.");
+    error.status = 400;
+    throw error;
+  }
   return {
     id: String(organization.id || generatedId("stakeholder-org")).trim(),
     stakeholder_type_id: String(organization.stakeholderTypeId || organization.stakeholder_type_id || organization.stakeholderType || "kv").trim() || "kv",
@@ -2501,7 +2516,7 @@ function stakeholderOrganizationToDb(organization = {}) {
     website: String(organization.website || organization.url || "").trim() || null,
     phone: String(organization.phone || "").trim() || null,
     email: String(organization.email || "").trim() || null,
-    logo_url: String(organization.logoUrl || organization.logo_url || "").trim() || null,
+    logo_url: logoUrl || null,
     logo_source_url: String(organization.logoSourceUrl || organization.logo_source_url || "").trim() || null,
     logo_source_label: String(organization.logoSourceLabel || organization.logo_source_label || "").trim() || null,
     member_count: parseLocalizedInteger(organization.memberCount ?? organization.member_count),
@@ -3993,15 +4008,71 @@ async function deleteStorageObject(bucket, objectName) {
   });
 }
 
-async function readStorageObject(bucket, objectName) {
-  const metadata = await storageFetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`);
+async function boundedStorageResponseBuffer(response, maximumBytes = 0) {
+  const declaredLength = Number(response.headers.get("content-length") || 0);
+  if (maximumBytes > 0 && declaredLength > maximumBytes) {
+    const error = new Error("Cloud-Storage-Objekt überschreitet die erlaubte Größe.");
+    error.status = 415;
+    throw error;
+  }
+  if (!maximumBytes || !response.body?.getReader) return Buffer.from(await response.arrayBuffer());
+  const chunks = [];
+  let total = 0;
+  const reader = response.body.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maximumBytes) {
+        await reader.cancel().catch(() => {});
+        const error = new Error("Cloud-Storage-Objekt überschreitet die erlaubte Größe.");
+        error.status = 415;
+        throw error;
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, total);
+}
+
+async function readStorageObject(bucket, objectName, { maxBytes = 0, allowedContentTypes = [] } = {}) {
+  const metadataUrl = new URL(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`);
+  metadataUrl.searchParams.set("fields", "name,size,contentType,generation");
+  const metadata = await storageFetch(metadataUrl.toString());
   if (metadata.status === 404) return null;
   const meta = await metadata.json();
-  const media = await storageFetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}?alt=media`);
+  const size = Number(meta.size);
+  const contentType = String(meta.contentType || "application/octet-stream").toLowerCase().split(";", 1)[0].trim();
+  const generation = String(meta.generation || "");
+  if (
+    meta.name !== objectName
+    || !Number.isSafeInteger(size)
+    || size < 1
+    || (maxBytes > 0 && size > maxBytes)
+    || !/^[0-9]+$/.test(generation)
+    || (allowedContentTypes.length > 0 && !allowedContentTypes.includes(contentType))
+  ) {
+    const error = new Error("Cloud-Storage-Objektmetadaten sind nicht freigegeben.");
+    error.status = 415;
+    throw error;
+  }
+  const mediaUrl = new URL(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`);
+  mediaUrl.searchParams.set("alt", "media");
+  mediaUrl.searchParams.set("generation", generation);
+  const media = await storageFetch(mediaUrl.toString());
   if (media.status === 404) return null;
+  const buffer = await boundedStorageResponseBuffer(media, maxBytes);
+  if (buffer.length !== size) {
+    const error = new Error("Cloud-Storage-Objekt stimmt nicht mit seinen Metadaten überein.");
+    error.status = 415;
+    throw error;
+  }
   return {
-    buffer: Buffer.from(await media.arrayBuffer()),
-    contentType: meta.contentType || "application/octet-stream"
+    buffer,
+    contentType
   };
 }
 
@@ -4416,6 +4487,136 @@ async function readContactImage(request, response, contactId) {
     ...corsHeaders()
   });
   response.end(object.buffer);
+}
+
+function stakeholderLogoObjectName(logoUrl) {
+  const prefix = "private://stakeholder-logos/";
+  const value = String(logoUrl || "").trim();
+  if (!value.startsWith(prefix)) return "";
+  const objectName = value.slice(prefix.length);
+  if (
+    !objectName
+    || objectName.length > 1024
+    || !/^[A-Za-z0-9._/-]+$/.test(objectName)
+    || objectName.startsWith("/")
+    || objectName.split("/").some((segment) => !segment || segment === "." || segment === "..")
+  ) return "";
+  return objectName;
+}
+
+const STANDARD_W3C_SVG_DOCTYPE = /^<!DOCTYPE\s+svg\s+PUBLIC\s+["']-\/\/W3C\/\/DTD SVG (?:1\.0|1\.1)\/\/EN["']\s+["']https?:\/\/www\.w3\.org\/Graphics\/SVG\/(?:1\.0\/DTD\/svg10|1\.1\/DTD\/svg11)\.dtd["']\s*>/i;
+
+function svgLeadingTrivia(text) {
+  let offset = text.startsWith("\uFEFF") ? 1 : 0;
+  while (/\s/.test(text[offset] || "")) offset += 1;
+  if (/^<\?xml\b/i.test(text.slice(offset))) {
+    const declarationEnd = text.indexOf("?>", offset + 5);
+    if (declarationEnd < 0) return null;
+    offset = declarationEnd + 2;
+    while (/\s/.test(text[offset] || "")) offset += 1;
+  }
+  while (text.startsWith("<!--", offset)) {
+    const commentEnd = text.indexOf("-->", offset + 4);
+    if (commentEnd < 0) return null;
+    offset = commentEnd + 3;
+    while (/\s/.test(text[offset] || "")) offset += 1;
+  }
+  return offset;
+}
+
+function svgWithoutTrailingComments(text) {
+  let remainder = text.trimEnd();
+  while (remainder.endsWith("-->")) {
+    const commentStart = remainder.lastIndexOf("<!--");
+    if (commentStart < 0) return "";
+    remainder = remainder.slice(0, commentStart).trimEnd();
+  }
+  return remainder;
+}
+
+function sanitizedStakeholderLogoSvg(buffer) {
+  const text = buffer.toString("utf8");
+  if (!Buffer.from(text, "utf8").equals(buffer)) return null;
+  let sanitized = text;
+  let leadingOffset = svgLeadingTrivia(sanitized);
+  if (leadingOffset === null) return null;
+  if (/^<!DOCTYPE\s+svg\b/i.test(sanitized.slice(leadingOffset))) {
+    const standardDoctype = STANDARD_W3C_SVG_DOCTYPE.exec(sanitized.slice(leadingOffset));
+    if (!standardDoctype) return null;
+    sanitized = `${sanitized.slice(0, leadingOffset)}${sanitized.slice(leadingOffset + standardDoctype[0].length)}`;
+    leadingOffset = svgLeadingTrivia(sanitized);
+    if (leadingOffset === null) return null;
+  }
+  const svgDocument = sanitized.slice(leadingOffset);
+  if (
+    !/^<svg\b/i.test(svgDocument)
+    || /<!DOCTYPE|<!ENTITY|<script\b|<foreignObject\b|\son[a-z]+\s*=|(?:href|src)\s*=\s*["']\s*(?:https?:|\/\/|data:|javascript:)/i.test(svgDocument)
+  ) return null;
+  const withoutTrailingComments = svgWithoutTrailingComments(svgDocument);
+  if (
+    !/<\/svg>$/i.test(withoutTrailingComments)
+    && !/^<svg\b(?:[^>"']|"[^"]*"|'[^']*')*\/>$/i.test(withoutTrailingComments)
+  ) return null;
+  return Buffer.from(sanitized, "utf8");
+}
+
+function stakeholderLogoMetadata(object) {
+  const contentType = String(object?.contentType || "").toLowerCase().split(";", 1)[0].trim();
+  const buffer = object?.buffer;
+  if (!Buffer.isBuffer(buffer) || !buffer.length || buffer.length > 2 * 1024 * 1024) return null;
+  if (["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
+    const metadata = profileAvatarMetadata(buffer);
+    if (!metadata || metadata.contentType !== contentType || metadata.width > 4096 || metadata.height > 4096) return null;
+    return { contentType, buffer, contentSecurityPolicy: "default-src 'none'; sandbox" };
+  }
+  if (contentType === "image/gif") {
+    const isGif = buffer.length >= 13 && ["GIF87a", "GIF89a"].includes(buffer.subarray(0, 6).toString("ascii"));
+    if (!isGif) return null;
+    const width = buffer.readUInt16LE(6);
+    const height = buffer.readUInt16LE(8);
+    if (!width || !height || width > 4096 || height > 4096) return null;
+    return { contentType, buffer, contentSecurityPolicy: "default-src 'none'; sandbox" };
+  }
+  if (contentType === "image/svg+xml") {
+    const sanitizedBuffer = sanitizedStakeholderLogoSvg(buffer);
+    if (!sanitizedBuffer) return null;
+    return { contentType, buffer: sanitizedBuffer, contentSecurityPolicy: "default-src 'none'; img-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; connect-src 'none'; font-src 'none'; style-src 'unsafe-inline'; sandbox" };
+  }
+  return null;
+}
+
+async function readStakeholderLogo(request, response, organizationId) {
+  await authorizeRequest(request, new URL(`/api/stakeholder-logos/${encodeURIComponent(organizationId)}`, "http://local"));
+  if (!STAKEHOLDER_LOGO_BUCKET) return jsonResponse(response, 404, { error: "Stakeholder-Logo-Bucket ist nicht konfiguriert." });
+  const rows = await cloudSqlRest("stakeholder_organizations", request, new URLSearchParams({
+    select: "id,logo_url,status",
+    id: `eq.${organizationId}`,
+    limit: "1"
+  }));
+  const organization = rows?.[0];
+  if (!organization || (isArchivedStatus(organization.status) && request.currentProfile?.role !== "admin")) {
+    return jsonResponse(response, 404, { error: "Stakeholder-Logo wurde nicht gefunden." });
+  }
+  const objectName = stakeholderLogoObjectName(organization.logo_url);
+  if (!objectName) return jsonResponse(response, 404, { error: "Stakeholder-Logo wurde nicht gefunden." });
+  const object = await readStorageObject(STAKEHOLDER_LOGO_BUCKET, objectName, {
+    maxBytes: 2 * 1024 * 1024,
+    allowedContentTypes: ["image/gif", "image/jpeg", "image/png", "image/svg+xml", "image/webp"]
+  });
+  if (!object) return jsonResponse(response, 404, { error: "Stakeholder-Logo wurde nicht gefunden." });
+  const metadata = stakeholderLogoMetadata(object);
+  if (!metadata) return jsonResponse(response, 415, { error: "Stakeholder-Logoformat ist nicht freigegeben." });
+  const responseBuffer = metadata.buffer;
+  response.writeHead(200, {
+    "content-type": metadata.contentType,
+    "content-length": responseBuffer.length,
+    "cache-control": "private, max-age=300",
+    ...securityResponseHeaders(),
+    ...corsHeaders(),
+    "content-security-policy": metadata.contentSecurityPolicy,
+    "cross-origin-resource-policy": "same-origin"
+  });
+  response.end(responseBuffer);
 }
 
 async function contactImageRow(request, contactId) {
@@ -6834,7 +7035,8 @@ function runtimeMetadata() {
     authSubjectHeader: AUTH_SUBJECT_HEADER,
     profileImageBucket: PROFILE_IMAGE_BUCKET || null,
     contactImageBucket: CONTACT_IMAGE_BUCKET || null,
-    contactNoteAttachmentBucket: CONTACT_NOTE_ATTACHMENT_BUCKET || null
+    contactNoteAttachmentBucket: CONTACT_NOTE_ATTACHMENT_BUCKET || null,
+    stakeholderLogoBucket: STAKEHOLDER_LOGO_BUCKET || null
   };
 }
 
@@ -6945,12 +7147,15 @@ async function getOpsChecks() {
   checks.push(opsCheck(
     "storage",
     "Object Storage",
-    PROFILE_IMAGE_BUCKET || CONTACT_IMAGE_BUCKET || CONTACT_NOTE_ATTACHMENT_BUCKET ? "ok" : "warn",
-    PROFILE_IMAGE_BUCKET || CONTACT_IMAGE_BUCKET || CONTACT_NOTE_ATTACHMENT_BUCKET ? "Mindestens ein Storage-Bucket ist konfiguriert." : "Storage-Buckets fehlen.",
+    [PROFILE_IMAGE_BUCKET, CONTACT_IMAGE_BUCKET, CONTACT_NOTE_ATTACHMENT_BUCKET, STAKEHOLDER_LOGO_BUCKET].every(Boolean) ? "ok" : "warn",
+    [PROFILE_IMAGE_BUCKET, CONTACT_IMAGE_BUCKET, CONTACT_NOTE_ATTACHMENT_BUCKET, STAKEHOLDER_LOGO_BUCKET].every(Boolean)
+      ? "Alle geschuetzten Storage-Buckets sind konfiguriert."
+      : "Mindestens ein geschuetzter Storage-Bucket fehlt.",
     {
       profileImageBucket: PROFILE_IMAGE_BUCKET || null,
       contactImageBucket: CONTACT_IMAGE_BUCKET || null,
-      contactNoteAttachmentBucket: CONTACT_NOTE_ATTACHMENT_BUCKET || null
+      contactNoteAttachmentBucket: CONTACT_NOTE_ATTACHMENT_BUCKET || null,
+      stakeholderLogoBucket: STAKEHOLDER_LOGO_BUCKET || null
     }
   ));
   checks.push(opsCheck("migration-jobs", "Migrationsjobs", "info", "Nicht fuer den App-Betrieb erforderlich; optional fuer Migrationen, Seeds oder Wartung."));
@@ -7189,7 +7394,7 @@ function logRequestCompletion(request, response, url, startedAt) {
     requestId: request.requestId,
     method: request.method,
     route: request.routePolicy?.id || "unmatched",
-    path: url.pathname,
+    path: normalizedRequestLogPath(url.pathname),
     status,
     durationMs: Math.max(0, Date.now() - startedAt),
     role: request.currentProfile?.role || "anonymous"
@@ -7214,6 +7419,10 @@ async function handle(request, response) {
     const contactImageReadMatch = /^\/api\/contact-images\/([^/]+)$/.exec(url.pathname);
     if (request.method === "GET" && contactImageReadMatch) {
       return readContactImage(request, response, decodeURIComponent(contactImageReadMatch[1]));
+    }
+    const stakeholderLogoReadMatch = /^\/api\/stakeholder-logos\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "GET" && stakeholderLogoReadMatch) {
+      return readStakeholderLogo(request, response, decodeURIComponent(stakeholderLogoReadMatch[1]));
     }
     await authorizeRequest(request, url);
     if (request.method === "GET" && ["/healthz", "/api/healthz"].includes(url.pathname)) {

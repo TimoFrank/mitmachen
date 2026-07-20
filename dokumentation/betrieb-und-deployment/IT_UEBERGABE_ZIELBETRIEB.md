@@ -74,7 +74,7 @@ Die konkrete Plattformauspraegung bleibt offen. Der Vertrag fordert jedoch:
 | Umgebung | Rolle | Daten | Identitaet | Build | Betriebszusage |
 | --- | --- | --- | --- | --- | --- |
 | GitHub Pages Demo | Produkt zeigen | fiktiv | keine/leichtgewichtig | `dist/pages/` | keine Zielbetriebszusage |
-| `pre-gematik` | technische Pre-Integration | synthetisch/anonymisiert | GCP IAP | `dist/target/` | keine Produktivzusage |
+| `pre-gematik` | technische Pre-Integration und freigegebener Echtdaten-Pilot | standardmaessig synthetisch; Echtdaten nur nach dokumentierten Gates | GCP IAP | `dist/target/` | keine Produktivzusage |
 | gematik Zielbetrieb | interner IT-Service | freigegebene Datenklassen | gematik Gateway/SSO | `dist/target/` | zu beschliessen |
 
 Die vollstaendige Matrix steht in der [Deployment-Uebersicht](DEPLOYMENT_UEBERSICHT.md).
@@ -209,6 +209,7 @@ Der Zielbetrieb gilt nicht bereits mit einem erfolgreichen Kubernetes-Rollout al
 - [Betriebshandbuch](BETRIEB.md)
 - [Betriebsverantwortung/RACI](BETRIEBSVERANTWORTUNG_RACI.md)
 - [Migration, Cutover und Rollback](MIGRATION_CUTOVER_ROLLBACK.md)
+- [Supabase nach Cloud SQL: konkreter Migrations- und Freigabeplan](SUPABASE_CLOUD_SQL_MIGRATION.md)
 - [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md)
 - [Abnahmeprotokoll-Template](ABNAHMEPROTOKOLL_TEMPLATE.md)
 - [Repository-Governance vor Pilot und Zielbetrieb](REPOSITORY_GOVERNANCE.md)

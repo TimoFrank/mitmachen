@@ -6,7 +6,7 @@ Dieses Template dokumentiert eine technische oder fachliche Abnahme reproduzierb
 
 | Feld | Wert |
 | --- | --- |
-| Umgebung | `pre-gematik` / Pilot / Zielbetrieb |
+| Umgebung | `pre-gematik` (synthetisch) / `pre-gematik` (freigegebener, befristeter Echtdaten-Pilot) / Zielbetrieb |
 | Termin | OFFEN |
 | Git-Revision | OFFEN |
 | API-Image | Repository und `sha256`-Digest: OFFEN |
@@ -36,6 +36,7 @@ Dieses Template dokumentiert eine technische oder fachliche Abnahme reproduzierb
 - [ ] Gateway/SSO entfernt nicht vertrauenswuerdige Identity-Header und setzt verifizierte Identitaet.
 - [ ] Nutzer ohne aktives Profil erhalten `403`.
 - [ ] API-Laufzeitrolle besitzt keine DDL-Rechte.
+- [ ] Fuenf getrennte, private und gehaertete GCS-Ziel-Buckets sind nachgewiesen: ein Frontend-Release-Bucket und vier API-Daten-Buckets fuer Profilbilder, Kontaktbilder, Notizanhaenge und Stakeholder-Logos. Nur die vier API-Daten-Buckets liegen im Datenmigrationsumfang.
 - [ ] Health-, Readiness- und Kernpfad-Smoke-Tests sind erfolgreich.
 - [ ] Monitoring, Alarmierung und Logzugriff wurden praktisch nachgewiesen.
 
@@ -51,12 +52,14 @@ OFFEN
 | --- | --- | --- | --- |
 | Quelle und Exportzeitpunkt | freigegebener Export | OFFEN | OFFEN |
 | Tabellen-/Objekt-Counts | Migrationsplan | OFFEN | OFFEN |
+| Bucket-Abgrenzung | 5 Ziel-Buckets insgesamt; davon genau 4 API-Daten-Buckets im Migrationsumfang | OFFEN | OFFEN |
 | Stichproben | fachlich festgelegte Auswahl | OFFEN | OFFEN |
 | Fehler-/Ausschlussliste | vollstaendig dokumentiert | OFFEN | OFFEN |
 | Schreibfreeze | Zeitraum und Verantwortliche | OFFEN | OFFEN |
 | Restore-Nachweis | gemaess beschlossenem RTO/RPO | OFFEN | OFFEN |
+| Echtdaten-Freigabe-Gates G-01 bis G-07 | G-04a vor Import; G-04b nach Import und vor Dienstoeffnung; vollstaendige Nachweisreferenzen | OFFEN | OFFEN |
 
-Fuer eine reine Pre-Integration ohne Echtdaten ist hier stattdessen die ausschliessliche Verwendung des versionierten synthetischen Seeds zu bestaetigen.
+Ohne ausdruecklich freigegebenen, befristeten Echtdaten-Pilot ist fuer `pre-gematik` stattdessen die ausschliessliche Verwendung des versionierten synthetischen Seeds zu bestaetigen. Eine Echtdaten-Pilotfreigabe gilt nur fuer den dokumentierten Zeitraum, Personenkreis und Datenstand und ersetzt keine Zielbetriebs- oder Produktionsfreigabe.
 
 ## 5. Rollback-Probe
 
