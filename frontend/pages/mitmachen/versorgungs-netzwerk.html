@@ -108,7 +108,7 @@
                   <legend>Beispiel: Organisation <span>– optional</span></legend>
                   <div class="field-grid">
                     <div class="field field--span"><label for="organization">Name der Organisation oder Einrichtung</label><input id="organization" name="organization" autocomplete="organization" maxlength="240" placeholder="z. B. Gemeinschaftspraxis Musterstadt" /></div>
-                    <div class="field"><label for="sector">Versorgungsbereich</label><select id="sector" name="sector"><option value="">Bitte auswählen</option><option value="Praxis">Praxis, MVZ oder Psychotherapie</option><option value="Apotheke">Apotheke</option><option value="Krankenhaus">Krankenhaus</option><option value="Pflege">Pflege</option><option value="Therapie">Therapie und Heilmittel</option><option value="Reha">Rehabilitation</option><option value="Rettungsdienst">Rettungsdienst</option><option value="Hebammen">Hebammenwesen</option><option value="Labor">Labor</option><option value="Hilfsmittel">Hilfsmittelversorgung</option><option value="ÖGD">Öffentlicher Gesundheitsdienst</option><option value="Sozialdienst">Sozialdienst und Beratung</option></select></div>
+                    <div class="field"><label for="sector">Versorgungsbereich</label><select id="sector" name="sector"><option value="">Bitte auswählen</option></select></div>
                     <div class="field"><label for="employee_count_band">Größe der Organisation</label><select id="employee_count_band" name="employee_count_band"><option value="">Bitte auswählen</option><option>1 Person</option><option>2 bis 5 Beschäftigte</option><option>6 bis 20 Beschäftigte</option><option>21 bis 50 Beschäftigte</option><option>51 bis 250 Beschäftigte</option><option>Mehr als 250 Beschäftigte</option></select></div>
                     <div class="field"><label for="postal_code">Postleitzahl</label><input id="postal_code" name="postal_code" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" maxlength="5" placeholder="z. B. 10117" /></div>
                     <div class="field"><label for="city">Ort</label><input id="city" name="city" autocomplete="address-level2" maxlength="160" placeholder="Ort" /></div>
@@ -164,6 +164,7 @@
       </section>
     </main>
     <footer class="site-footer"><div class="section-inner site-footer__inner"><p>Demoidee für den #Mitmachen-Kontext · keine Datenübermittlung</p><nav aria-label="Rechtliche Hinweise"><a href="https://www.gematik.de/mitmachen/versorgungs-netzwerk" target="_blank" rel="noopener noreferrer">Offizielles Versorgungs-Netzwerk</a><a href="https://www.gematik.de/impressum" target="_blank" rel="noopener noreferrer">Impressum</a><a href="https://www.gematik.de/datenschutz" target="_blank" rel="noopener noreferrer">Datenschutz</a><a href="https://www.gematik.de/barrierefreiheit" target="_blank" rel="noopener noreferrer">Barrierefreiheit</a></nav></div></footer>
+    <script src="../../data/sector-registry.js"></script>
     <script src="./versorgungs-netzwerk.js"></script>
   </body>
 </html>

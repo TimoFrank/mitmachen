@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 const syntaxFiles = [
   "api/security-policy.mjs",
   "api/request-log-privacy.mjs",
+  "api/care-sector-model.mjs",
   "api/server.mjs",
   "frontend/data/activity-model.js",
   "frontend/data/data-service.js",
@@ -35,6 +36,7 @@ const syntaxFiles = [
   "scripts/test_activity_pagination.mjs",
   "scripts/test_consent_schema.mjs",
   "scripts/test_contact_notes_schema.mjs",
+  "scripts/test_care_sector_model.mjs",
   "scripts/test_format_participation_schema.mjs",
   "scripts/test_demo_api.mjs",
   "scripts/test_hospitation_demo_data.mjs",
@@ -67,6 +69,7 @@ const auditCommands = [
   ["node", ["scripts/test_activity_pagination.mjs"]],
   ["node", ["scripts/test_consent_schema.mjs"]],
   ["node", ["scripts/test_contact_notes_schema.mjs"]],
+  ["node", ["scripts/test_care_sector_model.mjs"]],
   ["node", ["scripts/test_format_participation_schema.mjs"]],
   ["node", ["scripts/test_hospitation_demo_data.mjs"]],
   ["node", ["scripts/test_demo_api.mjs"]],

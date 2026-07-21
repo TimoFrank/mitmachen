@@ -1,6 +1,6 @@
 # Datenmodell Versorgungs-Kompass
 
-Stand: abgeleitet aus `supabase/schema.sql` und `frontend/data/data-service.js`. Historische Postgres-Migrationsentwuerfe liegen nur noch im Archiv.
+Stand: abgeleitet aus `supabase/schema.sql`, `frontend/data/sector-registry.js`, `frontend/data/data-service.js` und `api/care-sector-model.mjs`. Historische Postgres-Migrationsentwuerfe liegen nur noch im Archiv.
 
 Zielbild-Hinweis: Supabase bleibt in diesem Dokument als Ursprungsschema und Migrationsquelle sichtbar. Die neue gematik-Zielarchitektur fuehrt das relationale Modell in Shared PostgreSQL weiter.
 
@@ -62,6 +62,39 @@ erDiagram
   saved_views ||--o{ user_settings : "default_view_id"
   profiles ||--o{ login_aliases : "profile_id"
 ```
+
+## Fachmodell Versorgungssektoren
+
+Der Sektorkatalog ist ein kontrolliertes Fachmodell fuer `contacts.sector` (im Frontend `category`) und `organizations.sector`. Seine kanonische Quelle ist `frontend/data/sector-registry.js`; `api/care-sector-model.mjs` setzt denselben Vertrag serverseitig durch. Die Datenbankfelder bleiben aus Migrations- und Importkompatibilitaet Textfelder und bilden keine eigene relationale Entitaet.
+
+Die Auswahl eines Sektors ist nicht von vorhandenen Kontakten oder Organisationen abhaengig. Filter, Karte und Formulare muessen immer den vollstaendigen Katalog anbieten. Ein Sektor ohne Kontakt ist deshalb ein gueltiger sichtbarer Zustand und kein Grund, ihn aus der Anwendung auszublenden.
+
+| ID | Kanonischer Wert | Wichtige kompatible Aliase | Abdeckungsziel |
+| --- | --- | --- | --- |
+| `praxis` | Praxis | Arztpraxis, MVZ, Zahnmedizin, Psychotherapie | ja |
+| `krankenhaus` | Krankenhaus | Klinik, Fachklinik, Akutkrankenhaus | ja |
+| `apotheke` | Apotheke | Vor-Ort-Apotheke | ja |
+| `pflege` | Pflege | Pflegeeinrichtung, Pflegedienst | ja |
+| `krankenkasse` | Krankenkasse | Kasse, Kostentraeger, GKV, PKV | ja |
+| `labor` | Labor | Medizinisches Labor, Labordiagnostik | ja |
+| `physio-heilmittel` | Physio / Heilmittel | Therapie, Physio/Heilmittel, Physiotherapie, Ergo-, Logo- und Podologie, Heilmittelpraxis | ja |
+| `hebammen` | Hebammen | Hebamme, Geburtshilfe | ja |
+| `notfallversorgung` | Notfallversorgung | Rettungsdienst, Notaufnahme, Krankentransport, aerztlicher Bereitschaftsdienst | ja |
+| `reha` | Reha | Rehabilitation, Rehaklinik | ja |
+| `hilfsmittel` | Hilfsmittel | Hilfsmittelerbringer, Sanitaetshaus, Homecare | ja |
+| `sozialdienst` | Sozialdienst | Beratungsstelle, Sozialberatung | nein |
+| `oegd` | ÖGD | OeGD, Oeffentlicher Gesundheitsdienst, Gesundheitsamt | nein |
+
+`Abdeckungsziel = ja` bedeutet, dass der Sektor in der Lueckenanalyse als angestrebte Versorgungsperspektive zaehlt. Werte mit `nein` bleiben vollwertig auswaehlbar und sichtbar, werden aber nicht als verpflichtende Mindestabdeckung bewertet.
+
+Regeln fuer Lesen und Schreiben:
+
+- Die API kanonisiert bekannte Aliase, zum Beispiel `Therapie` zu `Physio / Heilmittel` und `Rettungsdienst` zu `Notfallversorgung`.
+- Ein leerer Sektor bleibt leer; er wird nicht stillschweigend als `Praxis` klassifiziert.
+- Neue unbekannte Werte werden mit HTTP `400` abgelehnt. Legacy-Freitext kann lesbar bleiben, bis er fachlich bereinigt wird, darf aber nicht erneut als neuer Sektor gespeichert werden.
+- `Digital Health` ist ausdruecklich kein Versorgungssektor. Es gehoert je nach Datensatz in Themen, Rolle/Berufsgruppe, Organisationstyp oder einen Digitalisierungskontext. Bestehende Vorkommen werden nicht als Sektor ausgeliefert und muessen bei der naechsten Datenpflege fachlich zugeordnet werden.
+- Kontakt und Organisation duerfen unterschiedliche Sektoren tragen. Beim Anlegen kann die Organisation den Kontakt vorbelegen; eine spaetere Aenderung wird nicht automatisch auf die jeweils andere Entitaet kaskadiert.
+- Gleichnamige Felder in Hospitationen, Stakeholder-Modellen oder Befragungen beschreiben ihren jeweiligen Kontext und sind nicht automatisch an diesen Versorgungskatalog gebunden.
 
 ## Tabelle `profiles`
 
@@ -126,7 +159,7 @@ Wichtigste Felder:
 | `name` | Kontaktname, Pflichtfeld. |
 | `organization_id` | Optionaler Verweis auf `organizations.id`. MVP-Verknuepfung Kontakt zu Organisation. |
 | `organization` | Organisation/Einrichtung als bestehender Freitext-Fallback. Bleibt erhalten. |
-| `sector` | Kategorie/Sektor, im UI als `category`. |
+| `sector` | Kanonischer Versorgungssektor gemaess Abschnitt „Fachmodell Versorgungssektoren“, im UI als `category`; leer ist zulaessig und hat keinen Praxis-Fallback. |
 | `specialty` | Fachrichtung. |
 | `role` | Funktion bzw. Rolle der Person in der Versorgung oder Organisation. |
 | `priority` | `Hoch`, `Mittel`, `Niedrig`; Default `Mittel`. |
@@ -215,7 +248,7 @@ Wichtigste Felder:
 | `id` | UUID, Primaerschluessel. |
 | `name` | Organisationsname, Pflichtfeld. |
 | `normalized_name` | Normalisierter Vergleichswert fuer Suche, Migration und spaetere Dublettenpruefung. |
-| `sector` | Sektor, z. B. Praxis, Krankenhaus, Apotheke, Pflege, Krankenkasse. |
+| `sector` | Kanonischer Versorgungssektor gemaess Abschnitt „Fachmodell Versorgungssektoren“; die Organisation bleibt auch ohne zugeordneten Kontakt sichtbar. |
 | `organization_type` | Optionaler Organisationstyp, z. B. Universitaetsklinikum oder Pflegeeinrichtung. |
 | `postal_code`, `city`, `federal_state` | Standortdaten. |
 | `latitude`, `longitude` | Optionale Koordinaten fuer spaetere Kartenintegration. |

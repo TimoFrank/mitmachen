@@ -75,7 +75,7 @@
   function apiOrganizationPayload(payload) {
     return payload?.organization || payload;
   }
-  function normalizeCareSector(value, fallback = "Praxis") {
+  function normalizeCareSector(value, fallback = "") {
     return window.VersorgungsCompassSectors?.normalizeSector ? window.VersorgungsCompassSectors.normalizeSector(value, fallback) : String(value || "").trim() || fallback;
   }
   async function apiGet(path, params = {}) {

@@ -3,9 +3,10 @@
   const MAP_MESSAGE_CHANNEL = String(MAP_PARAMS.get("channel") || "").trim();
   const ALLOWED_MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders"]);
   const sectorRegistry = window.VersorgungsCompassSectors || {
-    normalizeSector: (value, fallback = "Praxis") => String(value || "").trim() || fallback,
+    normalizeSector: (value, fallback = "") => String(value || "").trim() || fallback,
     colorFor: () => "#64748b",
-    labels: () => ["Praxis", "Krankenhaus", "Apotheke", "Pflege"],
+    labels: () => ["Praxis", "Krankenhaus", "Apotheke", "Pflege", "Krankenkasse", "Labor", "Physio / Heilmittel", "Hebammen", "Notfallversorgung", "Reha", "Hilfsmittel", "Sozialdienst", "ÖGD"],
+    isExcludedSector: () => false,
     fallbackColor: "#64748b"
   };
 
@@ -70,7 +71,7 @@
       id: contact.id || `${personName}-${lat}-${lon}`,
       name: personName,
       organization: contact.organization || "",
-      category: sectorRegistry.normalizeSector(contact.category || contact.sector || "Praxis"),
+      category: sectorRegistry.normalizeSector(contact.category || contact.sector || ""),
       city: contact.city || String(contact.location || "").replace(/^\d{5}\s*/, "") || "-",
       state: contact.state || "",
       location: contact.location || "",
@@ -544,9 +545,12 @@
 
   function availableCategories(){
     const present = new Set(mapSourceEntries().map((entry) => entry.category).filter(Boolean));
-    const ordered = sectorRegistry.labels().filter((label) => present.has(label));
-    const extras = uniqueSorted([...present].filter((label) => !ordered.includes(label)));
-    return [...ordered, ...extras];
+    if (MAP_MESSAGE_CHANNEL === "stakeholders") return uniqueSorted([...present]);
+    const canonical = sectorRegistry.labels();
+    const extras = uniqueSorted([...present]
+      .map((label) => sectorRegistry.normalizeSector(label, ""))
+      .filter((label) => label && !canonical.includes(label) && !sectorRegistry.isExcludedSector(label)));
+    return [...canonical, ...extras];
   }
 
   function availableOwners(){
