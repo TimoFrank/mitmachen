@@ -129,6 +129,10 @@ Konkrete Jenkins-Libraries, Credentials-IDs und Scanner duerfen an den Plattform
 | `CONTACT_IMAGE_BUCKET` | privater Storage fuer Kontaktbilder | offen |
 | `CONTACT_NOTE_ATTACHMENT_BUCKET` | privater Storage fuer Anhaenge | offen |
 
+Diese drei semantischen Werte verlangen nicht zwingend drei physische Buckets. Stellt die Zielplattform genau einen privaten Anwendungs-Bucket bereit, duerfen alle drei Werte auf denselben Bucket zeigen; die Anwendung trennt Profilbilder, Kontaktbilder und Anhaenge ueber disjunkte Objektpfade. Aufbewahrung, Verschluesselung, Malware-Pruefung, Quoten und Berechtigungen muessen dann fuer den gemeinsamen Bucket beziehungsweise ueber freigegebene Praefixregeln passen.
+
+Der Frontend-Artefaktpfad darf dadurch keinen pauschalen Lesezugriff auf die privaten Uploads erhalten. Bei nur einem fachlichen Daten-Bucket wird das Frontend deshalb ueber den vorgesehenen Plattform-Host, einen getrennten Artefaktbereich mit wirksamer Praefixberechtigung oder ein freigegebenes Frontend-Containerverfahren ausgeliefert.
+
 Geheimnisse, private Zertifikate und Tokens stehen weder in Git, Frontend-Artefakt, Buildmanifest noch Klartext-Helm-Values.
 
 Die aktuelle Jenkins-Referenz verwendet fuer den Zieldefault `API_AUTH_MODE=oidc` die Credential-IDs `versorgungs-oidc-issuer`, `versorgungs-oidc-audience` und `versorgungs-oidc-jwks-url`. Das sind Referenznamen, keine freigegebenen Plattformwerte. Die Software Factory darf die IDs an ihren Standard anpassen, muss aber Issuer, Audience und JWKS-URL mit derselben Semantik bereitstellen. Die Claims bleiben standardmaessig `email` und `sub`, bis IAM und Anwendung andere freigegebene Claims vereinbaren.
