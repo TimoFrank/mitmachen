@@ -31,6 +31,8 @@ Dieser Ordner buendelt die Unterlagen fuer Produktverstaendnis, technische Ueber
 - [Kurzlebige Administration der IAP-Identity-Bindung](betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md)
 - [Befristete Echtdaten-Pilotentscheidung fuer pre-gematik](betrieb-und-deployment/PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md)
 - [GCP-Pre-Integration mit GKE Autopilot](betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md) - temporaeres Test-Runbook, kein Zielbetriebsstandard
+- [Abschaltung des historischen GCP-Cloud-Run-Stacks](betrieb-und-deployment/CLOUD_RUN_ABSCHALTUNG.md) - ausgefuehrter, verifizierter Ablauf mit read-only Plan und Rollbackfenster
+- [Spaetere Loeschung des historischen GCP-Cloud-Run-Stacks](betrieb-und-deployment/CLOUD_RUN_LOESCHUNG.md) - gesperrter Folge-Change nach Aufbewahrungsfrist
 - [Stabiler Einstieg fuer ausfuehrbare Deployment-Artefakte](../deploy/README.md)
 
 ## Fachliche und technische Referenzen

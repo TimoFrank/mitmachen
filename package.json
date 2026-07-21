@@ -42,6 +42,7 @@
     "test:hospitation-export": "node scripts/test_hospitation_document_export.mjs",
     "test:target-config": "node scripts/test_target_frontend_config.mjs",
     "test:deployment-separation": "node scripts/test_deployment_separation.mjs",
+    "test:cloud-run-decommission": "node scripts/test_cloud_run_decommission.mjs",
     "deploy:preflight": "node scripts/preflight_target_deployment.mjs",
     "verify:publication": "node scripts/verify_publication_state.mjs",
     "security:api-gateway": "node scripts/audit_api_gateway.mjs",
