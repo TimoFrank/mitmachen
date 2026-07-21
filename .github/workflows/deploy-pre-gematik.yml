@@ -357,10 +357,10 @@ jobs:
               exit 1
             fi
           fi
-          if [[ "$API_BASE_URL" != "https://pre-gematik.versorgungs-kompass.timo-frank.de" ]] || \
-             [[ "$FRONTEND_BASE_URL" != "https://pre-gematik.versorgungs-kompass.timo-frank.de" ]] || \
-             [[ "${LEGACY_FRONTEND_HOST:-}" != "mitmachen.timo-frank.de" ]]; then
-            echo "pre-gematik must remain the canonical origin and mitmachen.timo-frank.de its redirect-only alias." >&2
+          if [[ "$API_BASE_URL" != "https://mitmachen.timo-frank.de" ]] || \
+             [[ "$FRONTEND_BASE_URL" != "https://mitmachen.timo-frank.de" ]] || \
+             [[ "${LEGACY_FRONTEND_HOST:-}" != "pre-gematik.versorgungs-kompass.timo-frank.de" ]]; then
+            echo "mitmachen.timo-frank.de must be the canonical origin and pre-gematik.versorgungs-kompass.timo-frank.de its redirect-only legacy host." >&2
             exit 1
           fi
 
@@ -722,9 +722,9 @@ jobs:
               local primary_certificate_name=""
               local alias_certificate_name=""
               case "${API_HOST}|${LEGACY_FRONTEND_HOST}" in
-                "pre-gematik.versorgungs-kompass.timo-frank.de|mitmachen.timo-frank.de")
-                  primary_certificate_name="${HELM_RELEASE}-api"
-                  alias_certificate_name="${HELM_RELEASE}-mitmachen"
+                "mitmachen.timo-frank.de|pre-gematik.versorgungs-kompass.timo-frank.de")
+                  primary_certificate_name="${HELM_RELEASE}-mitmachen"
+                  alias_certificate_name="${HELM_RELEASE}-api"
                   ;;
                 *)
                   echo "The canonical and legacy domains do not match the approved pre-gematik certificate pair." >&2
