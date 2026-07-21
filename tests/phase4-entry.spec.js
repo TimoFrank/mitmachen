@@ -131,6 +131,10 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(page.locator('script[src="./data/data-service.js"]')).toHaveCount(1);
   await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
   await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
+  if (await page.locator("#sidebar-profile-button").isHidden()) {
+    await page.locator("#sidebar-collapse-button").click();
+    await expect(page.locator(".app-shell")).toHaveClass(/is-mobile-sidebar-expanded/);
+  }
   await page.locator("#sidebar-profile-button").click();
   await expect(page.locator("#profile-page")).toBeVisible();
   await expect(page.locator("#profile-logout")).toHaveCount(0);

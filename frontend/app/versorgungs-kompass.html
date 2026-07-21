@@ -19,9 +19,15 @@
   </head>
   <body>
     <div class="app-shell is-initializing" aria-busy="true">
-      <aside class="app-sidebar" aria-label="Hauptnavigation">
-        <a class="sidebar-brand" href="#map" id="brand-home-link" aria-label="Zur Karte">
-          <img class="brand-mark" src="../../public/brand/versorgungs-kompass/mark-on-dark.svg" alt="" aria-hidden="true" />
+      <aside class="app-sidebar" id="app-sidebar" aria-label="Hauptnavigation">
+        <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" aria-controls="app-sidebar" aria-expanded="true" title="Menü einklappen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+          <span class="sidebar-collapse-label">Menü einklappen</span>
+        </button>
+        <a class="sidebar-brand" href="#map" id="brand-home-link" aria-label="Versorgungs-Kompass – zur Karte">
+          <img class="brand-mark" src="../../public/brand/mitmachen/mark-on-dark.svg" alt="" aria-hidden="true" />
           <div class="sidebar-brand-copy">
             <span class="sidebar-brand-kicker">#Mitmachen</span>
             <strong>Versorgungs-Kompass</strong>
@@ -249,12 +255,6 @@
             </div>
           </div>
         </div>
-        <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" title="Menü einklappen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="m15 18-6-6 6-6"></path>
-          </svg>
-          <span class="sidebar-collapse-label">Menü einklappen</span>
-        </button>
       </aside>
 
       <div class="app-main">

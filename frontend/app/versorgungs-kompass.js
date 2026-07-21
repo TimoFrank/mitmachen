@@ -1875,6 +1875,11 @@
       function expandSidebarGroup(group) {
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
+        if (isMobileLayout()) {
+          sidebarCollapsibleSections.forEach((item) => {
+            if (item !== section) setSidebarSectionExpanded(item, false);
+          });
+        }
         setSidebarSectionExpanded(section, true);
         return true;
       }
@@ -1882,7 +1887,13 @@
       function toggleSidebarGroupExpansion(group = "") {
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
-        setSidebarSectionExpanded(section, !section.classList.contains("is-expanded"));
+        const expanded = !section.classList.contains("is-expanded");
+        if (expanded && isMobileLayout()) {
+          sidebarCollapsibleSections.forEach((item) => {
+            if (item !== section) setSidebarSectionExpanded(item, false);
+          });
+        }
+        setSidebarSectionExpanded(section, expanded);
         return true;
       }
 
@@ -1900,6 +1911,7 @@
       function toggleSidebarGroup(group = "") {
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
+        if (isMobileLayout()) return toggleSidebarGroupExpansion(group);
         if (section.classList.contains("is-expanded")) {
           if (section.classList.contains("is-active-section")) {
             setSidebarSectionExpanded(section, false);
@@ -1915,6 +1927,12 @@
         sidebarCollapsibleSections.forEach((section) => {
           const active = Boolean(activeGroup) && section.dataset.sidebarGroup === activeGroup;
           section.classList.toggle("is-active-section", active);
+          if (active) setSidebarSectionExpanded(section, true);
+          else if (activeGroup && isMobileLayout()) setSidebarSectionExpanded(section, false);
+        });
+        window.requestAnimationFrame(() => {
+          const activeItem = document.querySelector(".sidebar-nav .primary-tab.is-active");
+          if (activeItem?.getClientRects().length) activeItem.scrollIntoView({ block: "nearest", inline: "nearest" });
         });
       }
 
@@ -9394,7 +9412,7 @@
           id: "sidebar-orientation",
           view: "map",
           target: ".app-sidebar",
-          mobileTarget: "[data-sidebar-section='care'] [data-view-tab='map']",
+          mobileTarget: "#sidebar-collapse-button",
           sidebarSection: "care",
           icon: "↗",
           accent: "#1769d2",
@@ -9402,7 +9420,7 @@
           title: "Orientierung in der Sidebar",
           body: "Die Sidebar bündelt Versorgung, Stakeholder, Hospitation und Formate. Hilfe, Team und Profil findest du dauerhaft im unteren Bereich.",
           details: [
-            { title: "Schnell wechseln", body: "Bereiche lassen sich unabhängig öffnen." },
+            { title: "Schnell wechseln", body: "Das Menü öffnet die Bereiche; aktiv bleibt der aktuelle." },
             { title: "Rollenbewusst", body: "Du siehst nur freigegebene Werkzeuge." }
           ]
         },
@@ -9719,6 +9737,7 @@
         });
         const { section, page } = productTourSidebarElements(step);
         if (!section) return;
+        if (isMobileLayout()) setMobileSidebarExpanded(false);
         document.body.classList.add("is-product-tour-sidebar-context");
         if (step.sidebarSection !== "account") expandSidebarGroup(step.sidebarSection);
         if (!isMobileLayout() && appShell?.classList.contains("is-sidebar-collapsed")) setSidebarCollapsed(false);
@@ -31124,6 +31143,13 @@
           const label = sidebarCollapseButton.querySelector(".sidebar-collapse-label");
           if (label) label.textContent = expanded ? "Menü einklappen" : "Menü ausklappen";
         }
+        if (expanded && isMobileLayout()) {
+          syncActiveSidebarSection(activeView);
+          window.requestAnimationFrame(() => {
+            const activeItem = document.querySelector(".sidebar-nav .primary-tab.is-active");
+            activeItem?.scrollIntoView({ block: "nearest" });
+          });
+        }
       }
 
       function closeMobileSidebar() {
@@ -31260,6 +31286,8 @@
             ? (activeHospitationTab === "appointments" ? tabView === "hospitations" : tabView === `hospitations:${activeHospitationTab}`)
             : tabView === activeNavigationView || (tab.dataset.viewGroup === "care" && isCareView(activeNavigationView));
           tab.classList.toggle("is-active", active);
+          if (active) tab.setAttribute("aria-current", "page");
+          else tab.removeAttribute("aria-current");
         });
         sidebarAnalyticsButton?.classList.toggle("is-active", isAnalyticsView(view));
         sidebarNotificationsButton?.classList.toggle("is-active", view === "notifications" || (view === "profile" && activeProfileTab === "notifications") || Boolean(notificationPopover && !notificationPopover.hidden));
@@ -31267,6 +31295,10 @@
         sidebarSettingsButton?.classList.toggle("is-active", view === "profile");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
         sidebarProfileButton?.classList.toggle("is-active", view === "profile");
+        if (view === "team") sidebarTeamButton?.setAttribute("aria-current", "page");
+        else sidebarTeamButton?.removeAttribute("aria-current");
+        if (view === "profile") sidebarProfileButton?.setAttribute("aria-current", "page");
+        else sidebarProfileButton?.removeAttribute("aria-current");
         syncActiveSidebarSection(activeNavigationView);
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
@@ -33614,7 +33646,10 @@
         updateView();
       });
       restoreSidebarState();
-      if (isMobileLayout()) setMobileSidebarExpanded(false);
+      if (isMobileLayout()) {
+        appShell?.classList.remove("is-sidebar-collapsed");
+        setMobileSidebarExpanded(false);
+      }
       sidebarSectionToggles.forEach((toggle) => {
         toggle.addEventListener("click", (event) => {
           const group = toggle.dataset.sidebarSectionToggle || "";
@@ -34711,6 +34746,11 @@
             closeNotificationPopover();
             return;
           }
+          if (isMobileLayout() && appShell?.classList.contains("is-mobile-sidebar-expanded")) {
+            closeMobileSidebar();
+            window.setTimeout(() => sidebarCollapseButton?.focus({ preventScroll: true }), 0);
+            return;
+          }
           closeMenus();
           if (importDrawer.classList.contains("is-open")) {
             closeImportWizard();
@@ -34728,6 +34768,9 @@
 
       document.addEventListener("click", (event) => {
         const clickTarget = event.target instanceof Element ? event.target : null;
+        if (isMobileLayout() && appShell?.classList.contains("is-mobile-sidebar-expanded") && !clickTarget?.closest(".app-sidebar")) {
+          closeMobileSidebar();
+        }
         if (!clickTarget?.closest("#notification-popover") && !clickTarget?.closest("#sidebar-notifications-button")) closeNotificationPopover();
         if (!clickTarget?.closest("#contact-content-search-results") && !clickTarget?.closest(".search-shell") && contactContentSearchResultsNode) {
           contactContentSearchResultsNode.hidden = true;
@@ -34748,11 +34791,18 @@
         syncBodyScrollLock();
         const nextViewportWidth = window.innerWidth;
         const nextMobileLayout = isMobileLayout();
-        const layoutChanged = nextMobileLayout !== lastViewportMobileLayout || Math.abs(nextViewportWidth - lastViewportWidth) > 1;
+        const viewportModeChanged = nextMobileLayout !== lastViewportMobileLayout;
+        const layoutChanged = viewportModeChanged || Math.abs(nextViewportWidth - lastViewportWidth) > 1;
         lastViewportWidth = nextViewportWidth;
         lastViewportMobileLayout = nextMobileLayout;
-        if (nextMobileLayout) setMobileSidebarExpanded(false);
-        else appShell?.classList.remove("is-mobile-sidebar-expanded");
+        if (viewportModeChanged && nextMobileLayout) {
+          appShell?.classList.remove("is-sidebar-collapsed");
+          setMobileSidebarExpanded(false);
+        }
+        else if (viewportModeChanged) {
+          appShell?.classList.remove("is-mobile-sidebar-expanded");
+          restoreSidebarState();
+        }
         if (layoutChanged) updateView();
         if (productTourState.open) {
           const steps = currentProductTourSteps();

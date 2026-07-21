@@ -39,6 +39,18 @@ async function expectTourSpotlightInsideViewport(page) {
   })).toBe(true);
 }
 
+async function openMobileSidebarIfNeeded(page) {
+  const isMobileLayout = await page.evaluate(() => matchMedia("(max-width: 760px)").matches);
+  if (!isMobileLayout) return;
+
+  const shell = page.locator(".app-shell");
+  const isExpanded = await shell.evaluate((element) => element.classList.contains("is-mobile-sidebar-expanded"));
+  if (!isExpanded) {
+    await page.locator("#sidebar-collapse-button").click();
+  }
+  await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
+}
+
 async function expectTourPanelClearOfSpotlight(page, minimumGap = 0, context = "aktueller Schritt") {
   await expect.poll(async () => {
     const [panelBox, spotlightBox] = await Promise.all([
@@ -1115,7 +1127,8 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
     await expect(mobileProcessButtons).toHaveCount(4);
     const processButtonDisplays = await mobileProcessButtons.evaluateAll((items) => items.map((item) => getComputedStyle(item).display));
     expect(processButtonDisplays.every((display) => display !== "none")).toBe(true);
-    await expect(page.locator(".app-sidebar")).toHaveCSS("width", "58px");
+    await expect(page.locator(".app-sidebar")).toHaveCSS("width", `${page.viewportSize()?.width}px`);
+    await expect(page.locator(".app-sidebar")).toHaveCSS("height", "60px");
     await expectNoHorizontalOverflow(page);
   }
 
@@ -1529,7 +1542,10 @@ test("Hospitation: alle Seiten bleiben auf Smartphone und Tablet ohne horizontal
       await expect(page.locator(view.selector)).toBeVisible();
       const overflow = await page.locator("html").evaluate((node) => Math.max(0, node.scrollWidth - node.clientWidth));
       expect(overflow, `${view.hash} bei ${width}px`).toBeLessThanOrEqual(1);
-      if (width <= 760) await expect(page.locator(".app-sidebar")).toHaveCSS("width", "58px");
+      if (width <= 760) {
+        await expect(page.locator(".app-sidebar")).toHaveCSS("width", `${width}px`);
+        await expect(page.locator(".app-sidebar")).toHaveCSS("height", "60px");
+      }
     }
   }
 });
@@ -1694,6 +1710,7 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(formatsSection).toHaveClass(/is-expanded/);
   await expect(page).toHaveURL(/#analytics$/);
 
+  const expandedCollapseBox = await collapseButton.boundingBox();
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
   await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
@@ -1703,6 +1720,11 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(stakeholderSection).toBeHidden();
   await expect(planningSection).toBeHidden();
   await expect(formatsSection).toBeHidden();
+  const collapsedCollapseBox = await collapseButton.boundingBox();
+  expect(expandedCollapseBox).not.toBeNull();
+  expect(collapsedCollapseBox).not.toBeNull();
+  expect(collapsedCollapseBox.height).toBe(expandedCollapseBox.height);
+  expect(Math.abs(collapsedCollapseBox.y - expandedCollapseBox.y)).toBeLessThanOrEqual(1);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
@@ -1720,8 +1742,8 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
   const inactiveTab = page.locator('[data-view-tab="map"]');
   const careToggle = page.locator('[data-sidebar-section-toggle="care"]');
 
-  await expect(careToggle).toHaveCSS("text-transform", "none");
-  await expect(careToggle).toHaveCSS("font-weight", "760");
+  await expect(careToggle).toHaveCSS("text-transform", "uppercase");
+  await expect(careToggle).toHaveCSS("font-weight", "820");
   await expect(careToggle).toHaveCSS("border-left-width", "2px");
   const moduleAccentColors = await page.locator("[data-sidebar-section] > .sidebar-section-toggle").evaluateAll((toggles) =>
     toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
@@ -1784,17 +1806,54 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
   await expect(collapseButton).toHaveCSS("position", "absolute");
   const collapsedControlTop = await collapseButton.evaluate((element) => element.getBoundingClientRect().top);
   expect(Math.abs(collapsedControlTop - metrics.collapseTop)).toBeLessThanOrEqual(1);
+
+  await collapseButton.click();
+  await page.locator('[data-sidebar-section-toggle="planning"]').click();
+  await page.locator('[data-view-tab="hospitations:dashboard"]').click();
+  await expect(page.locator('[data-view-tab="hospitations:dashboard"]')).toHaveAttribute("aria-current", "page");
+  await expect.poll(async () => page.evaluate(() => {
+    const nav = document.querySelector(".sidebar-nav")?.getBoundingClientRect();
+    const active = document.querySelector('.sidebar-nav [aria-current="page"]')?.getBoundingClientRect();
+    return Boolean(nav && active && active.top >= nav.top - 1 && active.bottom <= nav.bottom + 1);
+  })).toBe(true);
 });
 
 test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.includes("mobile"), "Die mobile Sidebar wird im Mobile-Projekt geprüft.");
+  await page.addInitScript(() => window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", "true"));
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   const shell = page.locator(".app-shell");
   const collapseButton = page.locator("#sidebar-collapse-button");
+  await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+  await expect(page.locator(".sidebar-nav")).toBeHidden();
+  await expect(page.locator(".sidebar-account-section")).toBeHidden();
+  await expect(page.locator(".sidebar-nav .primary-tab:visible")).toHaveCount(0);
+  await expect(page.locator(".sidebar-brand")).toBeVisible();
+  await expect(page.locator(".sidebar-brand-kicker")).toHaveText("#Mitmachen");
+  const closedMobileLayout = await page.evaluate(() => {
+    const sidebar = document.querySelector(".app-sidebar")?.getBoundingClientRect();
+    const main = document.querySelector(".app-main")?.getBoundingClientRect();
+    return sidebar && main
+      ? { sidebarHeight: sidebar.height, sidebarWidth: sidebar.width, mainLeft: main.left, mainWidth: main.width }
+      : null;
+  });
+  expect(closedMobileLayout).not.toBeNull();
+  expect(closedMobileLayout.sidebarHeight).toBe(60);
+  expect(closedMobileLayout.sidebarWidth).toBe(390);
+  expect(closedMobileLayout.mainLeft).toBe(0);
+  expect(closedMobileLayout.mainWidth).toBe(390);
+  const collapsedControlBox = await collapseButton.boundingBox();
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeVisible();
+  const expandedControlBox = await collapseButton.boundingBox();
+  expect(collapsedControlBox).not.toBeNull();
+  expect(expandedControlBox).not.toBeNull();
+  expect(collapsedControlBox.width).toBe(44);
+  expect(expandedControlBox.height).toBe(collapsedControlBox.height);
+  expect(expandedControlBox.width).toBe(collapsedControlBox.width);
+  expect(Math.abs(expandedControlBox.y - collapsedControlBox.y)).toBeLessThanOrEqual(1);
+  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeHidden();
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü einklappen");
   await expect(page.locator("#sidebar-user-badge")).toHaveCSS("width", "42px");
   await expect(page.locator("#sidebar-user-badge")).toHaveCSS("height", "42px");
@@ -1809,6 +1868,42 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveCount(0);
   await expect(page.locator("#sidebar-administration-section")).toHaveCount(0);
   await expect(page.locator("#sidebar-import-button")).toHaveCount(0);
+
+  const moduleAccentColors = await page.locator("[data-sidebar-section] > .sidebar-section-toggle").evaluateAll((toggles) =>
+    toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
+  );
+  expect(new Set(moduleAccentColors).size).toBe(4);
+  await expect(page.locator('[data-view-tab="contacts"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".sidebar-nav")).toHaveCSS("overflow-y", "visible");
+
+  const brandLayout = await page.locator(".sidebar-brand").evaluate((brand) => {
+    const mark = brand.querySelector(".brand-mark")?.getBoundingClientRect();
+    const copy = brand.querySelector(".sidebar-brand-copy")?.getBoundingClientRect();
+    return {
+      markRight: mark?.right || 0,
+      copyLeft: copy?.left || 0,
+      copyRight: copy?.right || 0,
+      brandRight: brand.getBoundingClientRect().right
+    };
+  });
+  expect(brandLayout.copyLeft).toBeGreaterThan(brandLayout.markRight);
+  expect(brandLayout.copyRight).toBeLessThanOrEqual(brandLayout.brandRight + 1);
+
+  await page.locator('[data-sidebar-section-toggle="planning"]').click();
+  await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-collapsed/);
+  await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-expanded/);
+  await expect(shell).toHaveAttribute("data-active-view", "contacts");
+
+  await attachScreenshot(page, testInfo, "sidebar-mobile-expanded");
+
+  await page.keyboard.press("Escape");
+  await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+  await expect(collapseButton).toHaveAttribute("aria-expanded", "false");
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+  await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
+  await expect(collapseButton).toHaveAttribute("aria-expanded", "false");
 });
 
 test("Suche: Versorgung filtert Karte und wird beim Modulwechsel geloescht", async ({ page }, testInfo) => {
@@ -1935,6 +2030,7 @@ test("Onboarding: abgeschlossener neuer Account landet direkt in Zielansicht", a
 
   await expect(page.locator('[data-view-panel="onboarding"]')).toBeHidden();
   await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
+  await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-profile-button").click();
   await expect(page.locator("#profile-onboarding-status")).toContainText("Du kannst sie über App-Tour in der Sidebar jederzeit erneut starten.");
   const profileOnboardingStatusHtml = await page.locator("#profile-onboarding-status").evaluate((element) => element.innerHTML);
@@ -2363,6 +2459,7 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
     backendFixture
   });
 
+  await openMobileSidebarIfNeeded(page);
   await expect(page.locator("#notification-count-total")).toBeVisible();
   await page.locator("#sidebar-notifications-button").click();
   await expect(page.locator("#notification-popover")).toBeVisible();
@@ -2411,6 +2508,7 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notifications-list .notification-empty-state__icon")).toBeVisible();
   await expect(page.locator("#notifications-mark-all-read")).toBeHidden();
 
+  await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-notifications-button").click();
   await expect(page.locator("#notification-popover")).toBeVisible();
   await expect(page.locator("#notification-popover-list .notification-popover__empty")).toContainText("Keine neuen Benachrichtigungen.");
@@ -2929,6 +3027,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
     ];`
   });
 
+  await openMobileSidebarIfNeeded(page);
   await page.locator('[data-view-tab="contacts"]').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten (2)");
@@ -2947,6 +3046,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 
   await attachScreenshot(page, testInfo, "kontakte-dubletten");
 
+  await openMobileSidebarIfNeeded(page);
   await page.locator('[data-view-tab="organizations"]').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "organizations");
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten (1)");
@@ -3462,6 +3562,7 @@ test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ pag
   if (isMobile) {
     await page.locator("#person-profile-body [data-person-profile-back]").click();
   }
+  await openMobileSidebarIfNeeded(page);
   await page.locator('[data-view-tab="organizations"]').click();
   await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
@@ -3482,6 +3583,7 @@ test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ pag
   await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
   await expect(page.locator("#organization-profile-page")).toHaveAttribute("aria-hidden", "true");
   if (isMobile) {
+    await openMobileSidebarIfNeeded(page);
     await page.locator('[data-view-tab="contacts"]').click();
   }
 
@@ -4338,6 +4440,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   }
 
   await expect(page.locator('[data-hospitation-tab="dashboard"]')).toHaveCount(0);
+  await openMobileSidebarIfNeeded(page);
   const hospitationDashboardTab = page.locator('[data-view-tab="hospitations:dashboard"]');
   if (!(await hospitationDashboardTab.isVisible())) {
     await page.locator('[data-sidebar-section-toggle="planning"]').click();
@@ -4726,6 +4829,7 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
 
 test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "viewer" });
+  await openMobileSidebarIfNeeded(page);
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#sidebar-import-button")).toHaveCount(0);
@@ -4740,6 +4844,7 @@ test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => 
 
 test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
+  await openMobileSidebarIfNeeded(page);
 
   await expect(page.locator("#contact-list")).toBeVisible();
   await expect(page.locator("#sidebar-administration-section")).toHaveCount(0);
@@ -4756,7 +4861,8 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
 });
 
 test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ page }, testInfo) => {
-  await page.setViewportSize(testInfo.project.name.includes("mobile")
+  const isMobile = testInfo.project.name.includes("mobile");
+  await page.setViewportSize(isMobile
     ? { width: 390, height: 460 }
     : { width: 1440, height: 460 });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
@@ -4766,20 +4872,26 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
   const accountSection = page.locator(".sidebar-account-section");
   await expect(sidebar).toBeVisible();
 
-  const scrollMetrics = await sidebarNav.evaluate((element) => {
-    element.scrollTop = 0;
-    const scrollHeight = element.scrollHeight;
-    const clientHeight = element.clientHeight;
-    element.scrollTop = scrollHeight;
-    return {
-      clientHeight,
-      overflowY: getComputedStyle(element).overflowY,
-      scrollHeight,
-      scrollTop: element.scrollTop
-    };
-  });
-  expect(scrollMetrics.overflowY).toMatch(/auto|scroll/);
-  if (!testInfo.project.name.includes("mobile")) {
+  if (isMobile) {
+    await expect(sidebarNav).toBeHidden();
+    await page.locator("#sidebar-collapse-button").click();
+    await expect(sidebarNav).toBeVisible();
+    await expect(sidebar).toHaveCSS("overflow-y", "auto");
+    await page.locator("#sidebar-profile-button").scrollIntoViewIfNeeded();
+  } else {
+    const scrollMetrics = await sidebarNav.evaluate((element) => {
+      element.scrollTop = 0;
+      const scrollHeight = element.scrollHeight;
+      const clientHeight = element.clientHeight;
+      element.scrollTop = scrollHeight;
+      return {
+        clientHeight,
+        overflowY: getComputedStyle(element).overflowY,
+        scrollHeight,
+        scrollTop: element.scrollTop
+      };
+    });
+    expect(scrollMetrics.overflowY).toMatch(/auto|scroll/);
     await expect(sidebar).toHaveCSS("overflow-y", "hidden");
     expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
     expect(scrollMetrics.scrollTop).toBeGreaterThan(0);
@@ -4796,9 +4908,14 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
   await page.locator("#sidebar-profile-button").click();
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
 
-  await sidebarNav.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-  });
+  if (isMobile) {
+    await page.locator("#sidebar-collapse-button").click();
+    await page.locator("#sidebar-team-button").scrollIntoViewIfNeeded();
+  } else {
+    await sidebarNav.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+  }
   await page.locator("#sidebar-team-button").click();
   await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
 
@@ -4876,6 +4993,7 @@ for (const role of ["admin", "editor", "viewer"]) {
 
     await expect(page.locator('[data-sidebar-section="planning"]')).toHaveAttribute("aria-label", "Hospitation");
     await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toContainText("Hospitation");
+    await openMobileSidebarIfNeeded(page);
     await expect(page.locator("#sidebar-tour-button")).toBeVisible();
     await expect(page.locator("#sidebar-tour-button")).toHaveAttribute("aria-label", "App-Tour starten");
     await page.locator("#sidebar-profile-button").click();
@@ -4904,6 +5022,7 @@ test("Produkttour: Sidebar-Einstieg startet mit #Mitmachen und bewahrt den Arbei
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#framework", { role: "editor" });
 
   await expect(page.locator('[data-view-panel="framework"]')).toBeVisible();
+  await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-tour-button").click();
 
   await expect(page.locator("#product-tour-title")).toHaveText("Willkommen bei #Mitmachen");
@@ -4956,6 +5075,7 @@ test("Produkttour: Sidebar-Einstieg startet mit #Mitmachen und bewahrt den Arbei
 test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page }) => {
   test.slow();
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
+  await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-profile-button").click();
   await page.locator("#profile-tour-start").click();
 
@@ -5071,6 +5191,7 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
 for (const role of ["editor", "viewer"]) {
   test(`Produkttour: ${role} durchläuft alle freigegebenen Schritte`, async ({ page }) => {
     await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role });
+    await openMobileSidebarIfNeeded(page);
     await page.locator("#sidebar-tour-button").click();
     const expectedIds = [
       "welcome",
@@ -5122,6 +5243,7 @@ test("Produkttour: alle Schritte bleiben bei 320 px, Tablet und Desktop kollisio
   ]) {
     await page.setViewportSize(viewport);
     await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#framework", { role: "admin" });
+    await openMobileSidebarIfNeeded(page);
     await page.locator("#sidebar-tour-button").click();
     for (const [index, stepId] of expectedIds.entries()) {
       await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", stepId);
@@ -5141,6 +5263,7 @@ test("Produkttour: alle Schritte bleiben bei 320 px, Tablet und Desktop kollisio
 
 test("Produkttour: fehlendes und verspätet geladenes Ziel werden robust behandelt", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "viewer" });
+  await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-tour-button").click();
   await page.evaluate(() => {
     const target = document.querySelector("#profile-tab-profile .profile-hero");
@@ -5583,6 +5706,7 @@ test("Stakeholder: Bereich ist im eigenen Sidebar-Abschnitt ohne obere Modus-Rei
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html");
 
+  await openMobileSidebarIfNeeded(page);
   await page.locator('[data-view-tab="analytics"]:visible').first().click();
 
   await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();
@@ -5725,7 +5849,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
     const settingsPanel = createdFormat.locator(".format-tab-panel");
     const panelBounds = await settingsPanel.boundingBox();
     expect(panelBounds).not.toBeNull();
-    expect(panelBounds?.x || 0).toBeGreaterThanOrEqual(58);
+    expect(panelBounds?.x || 0).toBeGreaterThanOrEqual(0);
     expect((panelBounds?.x || 0) + (panelBounds?.width || 0)).toBeLessThanOrEqual((page.viewportSize()?.width || 0) + 1);
   }
 

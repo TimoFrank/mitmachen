@@ -156,9 +156,11 @@ jobs:
             throw new Error("Die Pages-App referenziert ein Auth-Skript.");
           }
           const registrationHtml = fs.readFileSync(process.argv[3], "utf8");
-          const registrationPositions = ["../data/runtime-config.js", "../data/demo-data.js", "../data/demo-api.js", "./versorgungs-netzwerk.js"].map((value) => registrationHtml.indexOf(value));
-          if (!(registrationPositions.every((position) => position >= 0) && registrationPositions.every((position, index) => index === 0 || registrationPositions[index - 1] < position))) {
-            throw new Error("Die Netzwerkregistrierung ist nicht an die lokale Demo-API angebunden.");
+          if (!registrationHtml.includes('<script src="./versorgungs-netzwerk.js"></script>')) {
+            throw new Error("Die statische Netzwerkregistrierung lädt ihr freigegebenes Interaktionsskript nicht.");
+          }
+          if (/data\/(?:runtime-config|demo-data|demo-api)\.js/i.test(registrationHtml)) {
+            throw new Error("Die statische Netzwerkregistrierung bindet unerwartet Demo-Datenadapter ein.");
           }
           NODE
           if grep --extended-regexp --ignore-case --quiet 'supabase|service[_-]?role|stakeholder-data|expertenkreis-data|versorgungs-kompass-data' "$demo_data_path" "$demo_api_path" "$runtime_config_path" "$app_path" "$registration_path"; then
