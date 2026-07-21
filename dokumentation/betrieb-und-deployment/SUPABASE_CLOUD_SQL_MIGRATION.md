@@ -2,11 +2,11 @@
 
 Status: Persoenlicher Pilot-Cutover technisch abgeschlossen; Zielbetrieb weiterhin nicht institutionell freigegeben
 
-Stand: 20. Juli 2026
+Stand: 21. Juli 2026
 
 ## Ziel
 
-Die geschuetzte Anwendung unter `https://pre-gematik.versorgungs-kompass.timo-frank.de` soll den aktuellen fachlichen Supabase-Bestand uebernehmen. GitHub Pages bleibt davon getrennt und zeigt weiterhin ausschliesslich synthetische Demo-Daten.
+Die geschuetzte Anwendung unter `https://mitmachen.timo-frank.de` soll den aktuellen fachlichen Supabase-Bestand uebernehmen. Die bisherige Adresse `https://pre-gematik.versorgungs-kompass.timo-frank.de` bleibt als Weiterleitung erhalten. GitHub Pages bleibt davon getrennt und zeigt weiterhin ausschliesslich synthetische Demo-Daten.
 
 ```text
 oeffentlich                                  geschuetzt
