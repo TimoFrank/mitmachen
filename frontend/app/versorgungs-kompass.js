@@ -28,9 +28,10 @@
         "avatar--study"
       ];
       const sectorRegistry = window.VersorgungsCompassSectors || {
-        labels: () => ["Praxis", "Krankenhaus", "Apotheke", "Pflege", "Krankenkasse", "Rettungsdienst"],
-        normalizeSector: (value, fallback = "Praxis") => String(value || "").trim() || fallback,
+        labels: () => ["Praxis", "Krankenhaus", "Apotheke", "Pflege", "Krankenkasse", "Labor", "Physio / Heilmittel", "Hebammen", "Notfallversorgung", "Reha", "Hilfsmittel", "Sozialdienst", "ÖGD"],
+        normalizeSector: (value, fallback = "") => String(value || "").trim() || fallback,
         isKnownSector: (value) => Boolean(String(value || "").trim()),
+        isExcludedSector: () => false,
         colorFor: () => "#64748b",
         fallbackColor: "#64748b"
       };
@@ -44,9 +45,9 @@
         Pflege: "PF",
         Krankenkasse: "KK",
         Labor: "LA",
-        Therapie: "TH",
+        "Physio / Heilmittel": "PH",
         Hebammen: "HE",
-        Rettungsdienst: "RD",
+        Notfallversorgung: "NF",
         Reha: "RE",
         Sozialdienst: "SD",
         Hilfsmittel: "HM",
@@ -59,9 +60,9 @@
         Pflege: "role-badge role--netzwerk",
         Krankenkasse: "role-badge role--methodik",
         Labor: "role-badge role--institution",
-        Therapie: "role-badge role--netzwerk",
+        "Physio / Heilmittel": "role-badge role--netzwerk",
         Hebammen: "role-badge role--versorgung",
-        Rettungsdienst: "role-badge role--versorgung",
+        Notfallversorgung: "role-badge role--versorgung",
         Reha: "role-badge role--institution",
         Sozialdienst: "role-badge role--netzwerk",
         Hilfsmittel: "role-badge role--methodik",
@@ -161,11 +162,12 @@
         Apotheke: 24,
         Pflege: 28,
         Krankenkasse: 16,
-        Rettungsdienst: 12,
+        Notfallversorgung: 12,
         Labor: 18,
-        Therapie: 22,
+        "Physio / Heilmittel": 22,
         Hebammen: 10,
-        Reha: 14
+        Reha: 14,
+        Hilfsmittel: 18
       };
       const themeOptions = [
         "Notfallversorgung",
@@ -2034,6 +2036,14 @@
 
       function normalizeCategory(value) {
         return sectorRegistry.normalizeSector(value, "");
+      }
+
+      function careSectorFilterValues(values = []) {
+        const canonical = [...defaultCategories];
+        const extras = [...new Set(values.map(normalizeCategory).filter(Boolean))]
+          .filter((value) => !canonical.includes(value) && !sectorRegistry.isExcludedSector(value))
+          .sort((a, b) => a.localeCompare(b, "de"));
+        return [...canonical, ...extras];
       }
 
       function normalizeSpecialty(value) {
@@ -13181,7 +13191,10 @@
           : isExpertsView
             ? expertGroupOptions()
             : activeView === "organizations" ? organizations.map((organization) => organization.sector).filter(Boolean) : uniqueValues("category");
-        const categories = [...new Set(categorySource)].sort((a, b) => a.localeCompare(b, "de")).map((value) => ({
+        const categoryValues = !isPatientsView && !isExpertsView
+          ? careSectorFilterValues(categorySource)
+          : [...new Set(categorySource)].sort((a, b) => a.localeCompare(b, "de"));
+        const categories = categoryValues.map((value) => ({
           value,
           label: value
         }));
@@ -25754,11 +25767,10 @@
             .map((value) => ({ value, label: value }));
         }
         if (activeView === "organizations" && filterKey === "category") {
-          return [...new Set(organizations.map((organization) => organization.sector).filter(Boolean))]
-            .sort((a, b) => a.localeCompare(b, "de"))
+          return careSectorFilterValues(organizations.map((organization) => organization.sector))
             .map((value) => ({ value, label: value }));
         }
-        if (filterKey === "category") return uniqueValues("category").map((value) => ({ value, label: value }));
+        if (filterKey === "category") return careSectorFilterValues(uniqueValues("category")).map((value) => ({ value, label: value }));
         if (filterKey === "specialty") {
           const source = activeView === "experts"
             ? [...new Set(expertContacts.map((contact) => specialtyLabel(contact)).filter(Boolean))]
@@ -27494,11 +27506,13 @@
 
       function buildCategorySelectOptions(selectedCategory = "") {
         const selected = normalizeCategory(selectedCategory);
-        return defaultCategories
-          .map(
+        return [
+          `<option value="" ${selected ? "" : "selected"}>Nicht hinterlegt</option>`,
+          ...defaultCategories.map(
             (value) =>
               `<option value="${value}" ${selected === value ? "selected" : ""}>${value}</option>`
           )
+        ]
           .join("");
       }
 
@@ -29464,8 +29478,6 @@
       }
 
       function renderDashboard(items = filteredContacts()) {
-        const visibleContacts = items.length;
-
         const dashboardCategories = [
           ...defaultCategories,
           ...items.map((contact) => categoryLabel(contact)).filter((label) => label && label !== "Nicht dokumentiert")
@@ -29476,17 +29488,21 @@
             count: items.filter((contact) => categoryLabel(contact) === category).length,
             color: categoryChartColors[category] || sectorRegistry.colorFor(category)
           }))
-          .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "de"));
+          .sort((a, b) => {
+            const countOrder = b.count - a.count;
+            if (countOrder) return countOrder;
+            const leftIndex = defaultCategories.indexOf(a.label);
+            const rightIndex = defaultCategories.indexOf(b.label);
+            if (leftIndex >= 0 || rightIndex >= 0) return (leftIndex < 0 ? Number.MAX_SAFE_INTEGER : leftIndex) - (rightIndex < 0 ? Number.MAX_SAFE_INTEGER : rightIndex);
+            return a.label.localeCompare(b.label, "de");
+          });
 
-        if (!visibleContacts) {
-          categoryChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Sektoren auswertbar.</div>`;
-        } else {
+        {
           const total = categoryCounts.reduce((sum, item) => sum + item.count, 0);
-          const visibleCategories = categoryCounts.filter((item) => item.count > 0);
-          const maxCategoryCount = Math.max(...visibleCategories.map((item) => item.count), 1);
+          const maxCategoryCount = Math.max(...categoryCounts.map((item) => item.count), 1);
           categoryChart.innerHTML = `
             <div class="metric-bars">
-              ${visibleCategories
+              ${categoryCounts
                 .map(
                   (item) => `
                     <div class="metric-row">
@@ -31933,7 +31949,7 @@
           ? organization?.sector || defaultExpertGroup
           : isPatientEditor
             ? organization?.sector || organization?.indication || defaultPatientIndication()
-            : normalizeCategory(organization?.sector || defaultCategories[0]);
+            : normalizeCategory(organization?.sector || "");
         organizationEditorForm.elements.id.value = organization?.id || "";
         organizationEditorForm.elements.name.value = organization?.name || "";
         organizationEditorForm.elements.sector.innerHTML = buildContextCategorySelectOptions(selectedSector, organizationEditorScope);
@@ -32559,7 +32575,7 @@
           ? contact?.category || defaultExpertGroup
           : isPatientEditor
             ? contact?.category || contact?.indication || organizationDefaults?.sector || defaultPatientIndication()
-            : normalizeCategory(contact?.category || organizationDefaults?.sector || defaultCategories[0]);
+            : normalizeCategory(contact?.category || organizationDefaults?.sector || "");
 
         editorForm.elements.id.value = contact?.id || "";
         editorForm.elements.name.value = contact?.name || "";
@@ -33989,7 +34005,7 @@
             ? String(formData.get("sector") || "").trim()
             : organizationEditorScope === "patient"
               ? String(formData.get("sector") || "").trim() || defaultPatientIndication()
-              : normalizeCategory(formData.get("sector") || defaultCategories[0]),
+              : normalizeCategory(formData.get("sector") || ""),
           organizationType: String(formData.get("organizationType") || "").trim(),
           postalCode: String(formData.get("postalCode") || "").trim(),
           city: String(formData.get("city") || "").trim(),
@@ -34614,7 +34630,7 @@
           name: String(formData.get("name") || "").trim(),
           specialty: String(formData.get("specialty") || "").trim(),
           contactRole: String(formData.get("contactRole") || "").trim(),
-          category: normalizeCategory(formData.get("category") || defaultCategories[0]),
+          category: normalizeCategory(formData.get("category") || ""),
           organization: organizationName,
           organizationId,
           topic: existingContact?.topic || "",

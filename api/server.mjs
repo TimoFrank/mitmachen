@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { checkServerIdentity } from "node:tls";
 import { Pool } from "pg";
 import "../frontend/data/activity-model.js";
+import { careSectorForRead, careSectorForWrite } from "./care-sector-model.mjs";
 import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
 import {
   assertSensitiveQueryPermission,
@@ -1224,12 +1225,13 @@ function formatRoute(formatId = "") {
 
 function contactToDto(row, index = 0, ownerIds = null) {
   const topics = splitList(row.topics);
+  const sector = careSectorForRead(row.sector);
   return decorateContactOwners({
     id: row.id,
     organizationId: row.organization_id || "",
     name: row.name || "",
     organization: row.organization || "",
-    category: row.sector || "Praxis",
+    category: sector,
     specialty: row.specialty || "",
     contactRole: row.role || "",
     priority: normalizePriority(row.priority),
@@ -1273,7 +1275,7 @@ function contactToDto(row, index = 0, ownerIds = null) {
     updatedBy: row.updated_by || "",
     location: [row.postal_code, row.city].filter(Boolean).join(" "),
     topic: topics.length ? `Themen: ${topics.join(" · ")}` : "",
-    description: row.sector ? `Sektor: ${row.sector}` : "",
+    description: sector ? `Sektor: ${sector}` : "",
     _index: index
   }, ownerIds);
 }
@@ -1283,7 +1285,7 @@ function organizationToDto(row, contactCount = 0) {
     id: row.id,
     name: row.name || "",
     normalizedName: row.normalized_name || normalizeOrganizationName(row.name),
-    sector: row.sector || "",
+    sector: careSectorForRead(row.sector),
     organizationType: row.organization_type || "",
     postalCode: row.postal_code || "",
     city: row.city || "",
@@ -1634,7 +1636,7 @@ function changeContactSummary(row) {
     id: contact.id || row.contact_id || "",
     name: contact.name || "",
     organization: contact.organization || "",
-    sector: contact.sector || "",
+    sector: careSectorForRead(contact.sector),
     specialty: contact.specialty || "",
     city: contact.city || "",
     state: contact.federal_state || contact.state || "",
@@ -2210,7 +2212,7 @@ function organizationPatchToDb(patch = {}) {
     db.normalized_name = normalizeOrganizationName(patch.name);
   }
   if ("normalizedName" in patch || "normalized_name" in patch) db.normalized_name = normalizeOrganizationName(patch.normalizedName || patch.normalized_name);
-  if ("sector" in patch) db.sector = String(patch.sector || "").trim() || null;
+  if ("sector" in patch) db.sector = careSectorForWrite(patch.sector);
   if ("organizationType" in patch || "organization_type" in patch) db.organization_type = String(patch.organizationType || patch.organization_type || "").trim() || null;
   if ("postalCode" in patch || "postal_code" in patch) db.postal_code = patch.postalCode || patch.postal_code || null;
   if ("city" in patch) db.city = patch.city || null;
@@ -2302,7 +2304,7 @@ function contactPatchToDb(patch = {}) {
   if ("organizationId" in patch || "organization_id" in patch) db.organization_id = patch.organizationId || patch.organization_id || null;
   if ("name" in patch) db.name = String(patch.name || "").trim();
   if ("organization" in patch) db.organization = String(patch.organization || "").trim() || null;
-  if ("category" in patch || "sector" in patch) db.sector = String(patch.category || patch.sector || "").trim() || "Praxis";
+  if ("category" in patch || "sector" in patch) db.sector = careSectorForWrite(patch.category ?? patch.sector);
   if ("specialty" in patch) db.specialty = String(patch.specialty || "").trim() || null;
   if ("priority" in patch) db.priority = normalizePriority(patch.priority);
   if ("ownerIds" in patch || "owner_ids" in patch || "owners" in patch || "ownerId" in patch || "owner_id" in patch || "owner" in patch) {

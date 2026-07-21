@@ -97,6 +97,12 @@ Vor einer Aktivierung muessen API-Handler und Route-Policy gemeinsam implementie
 
 ## DTO-Richtung
 
+### Sektorvertrag fuer Kontakte und Organisationen
+
+`contact.category` und `organization.sector` verwenden den kanonischen Katalog aus `frontend/data/sector-registry.js`; die serverseitige Durchsetzung liegt in `api/care-sector-model.mjs`. Die vollstaendige Werteliste und Aliaszuordnung ist im [Datenmodell](./DATA_MODEL.md#fachmodell-versorgungssektoren) dokumentiert.
+
+Bei schreibenden Kontakt- und Organisationsendpunkten werden bekannte Aliase kanonisiert. Ein leerer Wert wird als `null` gespeichert. Unbekannte Werte sowie `Digital Health` werden mit HTTP `400` abgelehnt; es gibt keinen impliziten Fallback auf `Praxis`. Beim Lesen wird ein bestehender Wert `Digital Health` nicht als Sektor an den Browser ausgeliefert. Die UI erzeugt Sektoroptionen aus dem Katalog und nicht aus den aktuell vorhandenen Datensaetzen.
+
 Die API gibt Frontend-DTOs zurueck, keine Supabase-Rohzeilen. Beispiele:
 
 - Kontaktfelder wie `organizationId`, `postalCode`, `themes`, `owner`, `ownerId`, `mitmachenConsentStatus`, `mitmachenConsentEffectiveAt`, `mitmachenConsentSource`, `mitmachenConsentTextVersion`, `mitmachenConsentRecordedBy`, `mitmachenConsentNote`

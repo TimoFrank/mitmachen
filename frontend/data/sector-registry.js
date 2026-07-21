@@ -1,9 +1,9 @@
-(function () {
+(function (root) {
   const sectors = [
     {
       id: "praxis",
       label: "Praxis",
-      aliases: ["Versorgungspraxis", "Wissenschaftliches Netzwerk", "Berufliches Netzwerk", "Arztpraxis", "MVZ", "Facharztpraxis"],
+      aliases: ["Versorgungspraxis", "Wissenschaftliches Netzwerk", "Berufliches Netzwerk", "Arztpraxis", "MVZ", "Facharztpraxis", "Zahnarztpraxis", "Zahnmedizin", "Psychotherapiepraxis", "Psychotherapie"],
       color: "#155fe4",
       sortOrder: 10,
       coverageTarget: true
@@ -49,9 +49,9 @@
       coverageTarget: true
     },
     {
-      id: "therapie",
-      label: "Therapie",
-      aliases: ["Physiotherapie", "Physiotherapeuten", "Physio", "Ergotherapie", "Logopaedie", "Logopädie", "Podologie", "Heilmittel", "Heilmittelerbringer", "Heilmittelpraxis"],
+      id: "physio-heilmittel",
+      label: "Physio / Heilmittel",
+      aliases: ["Physio/Heilmittel", "Therapie", "Therapie und Heilmittel", "Physiotherapie", "Physiotherapeuten", "Physio", "Ergotherapie", "Logopaedie", "Logopädie", "Podologie", "Heilmittel", "Heilmittelerbringer", "Heilmittelpraxis"],
       color: "#0f766e",
       sortOrder: 70,
       coverageTarget: true
@@ -65,9 +65,9 @@
       coverageTarget: true
     },
     {
-      id: "rettungsdienst",
-      label: "Rettungsdienst",
-      aliases: ["Notfallversorgung", "Notfall", "Rettungswesen", "Krankentransport"],
+      id: "notfallversorgung",
+      label: "Notfallversorgung",
+      aliases: ["Rettungsdienst", "Notfall", "Rettungswesen", "Krankentransport", "Notaufnahme", "Ärztlicher Bereitschaftsdienst", "Aerztlicher Bereitschaftsdienst", "KV-Bereitschaftsdienst"],
       color: "#ea580c",
       sortOrder: 90,
       coverageTarget: true
@@ -81,19 +81,19 @@
       coverageTarget: true
     },
     {
+      id: "hilfsmittel",
+      label: "Hilfsmittel",
+      aliases: ["Hilfsmittelerbringer", "Sanitaetshaus", "Sanitätshaus", "Medizinprodukte", "Homecare", "Homecare und Hilfsmittel"],
+      color: "#475569",
+      sortOrder: 110,
+      coverageTarget: true
+    },
+    {
       id: "sozialdienst",
       label: "Sozialdienst",
       aliases: ["Beratungsstelle", "Sozialberatung"],
       color: "#64748b",
       sortOrder: 200,
-      coverageTarget: false
-    },
-    {
-      id: "hilfsmittel",
-      label: "Hilfsmittel",
-      aliases: ["Hilfsmittelerbringer", "Sanitaetshaus", "Sanitätshaus", "Medizinprodukte"],
-      color: "#64748b",
-      sortOrder: 210,
       coverageTarget: false
     },
     {
@@ -107,6 +107,7 @@
   ];
 
   const fallbackColor = "#64748b";
+  const excludedSectorKeys = new Set(["digitalhealth"]);
 
   function normalizeKey(value) {
     return String(value || "")
@@ -134,9 +135,14 @@
     return lookup.get(normalizeKey(value)) || null;
   }
 
-  function normalizeSector(value, fallback = "Praxis") {
+  function isExcludedSector(value) {
+    return excludedSectorKeys.has(normalizeKey(value));
+  }
+
+  function normalizeSector(value, fallback = "") {
     const raw = String(value || "").trim();
     if (!raw) return fallback;
+    if (isExcludedSector(raw)) return fallback;
     return find(raw)?.label || raw;
   }
 
@@ -161,16 +167,17 @@
     }));
   }
 
-  window.VERSORGUNGS_COMPASS_SECTORS = sortedSectors();
-  window.VersorgungsCompassSectors = {
+  root.VERSORGUNGS_COMPASS_SECTORS = sortedSectors();
+  root.VersorgungsCompassSectors = {
     sectors: sortedSectors(),
     fallbackColor,
     normalizeKey,
     find,
     normalizeSector,
     isKnownSector,
+    isExcludedSector,
     colorFor,
     labels,
     options
   };
-})();
+})(typeof window !== "undefined" ? window : globalThis);

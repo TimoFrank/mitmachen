@@ -10,6 +10,14 @@
         const minimalButton = document.getElementById("submit-minimal");
         const statusNode = document.getElementById("form-status");
         const confirmation = document.getElementById("confirmation");
+        const sectorSelect = document.getElementById("sector");
+        const sectorOptions = window.VersorgungsCompassSectors?.options?.() || [];
+        sectorOptions.forEach(function (sector) {
+          const option = document.createElement("option");
+          option.value = sector.value;
+          option.textContent = sector.label;
+          sectorSelect.appendChild(option);
+        });
         function setStatus(message, type) {
           statusNode.textContent = message || "";
           statusNode.className = "form-status" + (type ? " is-" + type : "");
