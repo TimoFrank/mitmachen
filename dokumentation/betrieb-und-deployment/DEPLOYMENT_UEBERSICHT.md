@@ -94,6 +94,8 @@ Der stabile Einstieg [deploy/README](../../deploy/README.md) enthaelt die jeweil
 
 Die frueheren Cloud-Run-, Cloud-SQL- und IAP-Prototypen wurden aus dem Produkt-Repository entfernt. Unter `archiv/` bleibt nur ein klar markierter, nicht ausfuehrbarer Architekturbeleg fuer den frueheren statischen Frontend-Container. Der IAP-Einsatz in `pre-gematik` ist ein aktueller Pre-Integrationsadapter, aber keine Architekturvorgabe fuer gematik.
 
+Der historische Cloud-Run-Stack wurde am 20. Juli 2026 gemaess [Cloud-Run-Abschalt-Runbook](CLOUD_RUN_ABSCHALTUNG.md) reversibel auf Scaling `0` gesetzt; seine alte Cloud-SQL-Instanz ist gestoppt und loeschgeschuetzt. Der Change hat keine GKE-, Terraform- oder Zielbetriebsressource veraendert. Die endgueltige Bereinigung bleibt ein [separater gesperrter Folge-Change](CLOUD_RUN_LOESCHUNG.md).
+
 ## Nachweise pro Zielrelease
 
 Ein Zielrelease soll mindestens festhalten:

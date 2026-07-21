@@ -33,6 +33,7 @@ test-results/
 *.sqlite-shm
 *.sqlite-wal
 backups/
+.gcp-decommission-evidence/
 *_backup_*.csv
 *_backup_*.json
 backup-versorgungs-kompass-*.sql
