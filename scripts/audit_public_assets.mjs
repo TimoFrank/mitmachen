@@ -144,7 +144,8 @@ for (const [pattern, reason] of [
   [/service[_-]?role/i, "Service-Role-Hinweis"],
   [/\bVK_DEMO_BACKEND\b/, "umschaltbaren Demo-Backendmodus"],
   [/expertenkreis-data|stakeholder-data|patienten-data|versorgungs-kompass-data/i, "statischer Real- oder Fallbackdatensatz"],
-  [/auth-guard|auth-login|set-password/i, "Login- oder Authentisierungsoberflaeche"]
+  [/auth-guard|auth-login|set-password/i, "Login- oder Authentisierungsoberflaeche"],
+  [/(?:local-hospitation|localHospitation|HOSPITATION_PRIVATE|document\.write\s*\()/i, "lokalen oder privaten Hospitations-Hook"]
 ]) {
   assert(!pattern.test(firstPartyText), `${artifactLabel} enthaelt ${reason}`);
 }

@@ -4,30 +4,41 @@ Dieser Ordner buendelt die Unterlagen fuer Produktverstaendnis, technische Ueber
 
 ## Einstieg fuer IT-Kollegen
 
-1. [Zielbetriebs-Einstieg](betrieb-und-deployment/ZIEL-README.md) fuer den kompakten Ueberblick lesen.
-2. [IT-Uebergabe Zielbetrieb](betrieb-und-deployment/IT_UEBERGABE_ZIELBETRIEB.md) fuer 60-Sekunden-Pitch, Architektur, Entscheidungen und Abnahmerahmen lesen.
-3. [Deployment-Uebersicht](betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md) fuer die Trennung von oeffentlicher Demo, Pre-Integration und Zielbetrieb lesen.
-4. [Zielkonzept gematik Kubernetes](betrieb-und-deployment/GEMATIK_K8S_ZIELKONZEPT.md) und [technisches Deployment](betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md) fuer die Zielplattform lesen.
-5. Zuerst die [kompakte OWASP-Top-10:2025-Uebersicht](entwicklung-und-qa/OWASP_TOP_10_2025_KOMPAKTUEBERSICHT.md) fuer den gemeinsamen Status lesen; danach im [vollstaendigen Mitigations- und Abnahmenachweis](entwicklung-und-qa/OWASP_TOP_10_2025_MITIGATION_NACHWEIS.md) nur nachgewiesene Haken bestaetigen.
-6. [Betriebsverantwortung/RACI](betrieb-und-deployment/BETRIEBSVERANTWORTUNG_RACI.md) sowie [Migration, Cutover und Rollback](betrieb-und-deployment/MIGRATION_CUTOVER_ROLLBACK.md) gemeinsam mit den zustaendigen IT-Teams bestaetigen.
+1. [gematik-interner PoC-Durchstich](betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md) fuer Ziel, Grenzen, benoetigte Ressourcen und Erfolgskriterien lesen.
+2. [Release-Candidate-Strategie](betrieb-und-deployment/RELEASE_CANDIDATE_STRATEGIE.md) fuer die parallele Arbeit auf `main`, Pages und einem unveraenderlichen PoC-RC lesen.
+3. [IT-Uebergabe fuer den gematik-PoC](betrieb-und-deployment/IT_UEBERGABE_ZIELBETRIEB.md) als kurzes Ressourcengespraech verwenden.
+4. [Deployment-Uebersicht](betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md) und [Deployment-Einstieg](../deploy/README.md) fuer Artefakt- und Plattformpfade lesen.
+5. Bei technischer Umsetzung das [Deployment gematik Kubernetes](betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md), den [API-Vertrag](architektur/API_CONTRACT.md) und die [Sicherheitsrichtlinie](../SECURITY.md) heranziehen.
 
-## Fuehrende Betriebsunterlagen
+## Fuehrende Unterlagen fuer den aktuellen PoC
 
-- [IT-Uebergabe Zielbetrieb](betrieb-und-deployment/IT_UEBERGABE_ZIELBETRIEB.md)
+- [gematik-interner PoC-Durchstich](betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md)
+- [Release-Candidate-Strategie](betrieb-und-deployment/RELEASE_CANDIDATE_STRATEGIE.md)
+- [IT-Uebergabe fuer den gematik-PoC](betrieb-und-deployment/IT_UEBERGABE_ZIELBETRIEB.md)
 - [Deployment-Uebersicht](betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md)
 - [Architekturentscheidung zur Deployment-Trennung](betrieb-und-deployment/ADR_001_DEPLOYMENT_TRENNUNG.md)
-- [Betriebshandbuch](betrieb-und-deployment/BETRIEB.md)
 - [Deployment-Checkliste](betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md)
-- [Abnahmeprotokoll-Template](betrieb-und-deployment/ABNAHMEPROTOKOLL_TEMPLATE.md)
-- [Repository-Governance vor Pilot und Zielbetrieb](betrieb-und-deployment/REPOSITORY_GOVERNANCE.md)
+- [Repository-Governance vor PoC und spaeterem Regelbetrieb](betrieb-und-deployment/REPOSITORY_GOVERNANCE.md)
 - [Datenschutz-Bereinigungsnachweis](betrieb-und-deployment/DATENSCHUTZ_BEREINIGUNGSNACHWEIS.md)
 - [CODEOWNERS - aktiver Uebergangs-Owner](../.github/CODEOWNERS)
 - [Dependabot-Konfiguration](../.github/dependabot.yml)
 - [OWASP Top 10:2025 – kompakte Risiko- und Mitigationsuebersicht](entwicklung-und-qa/OWASP_TOP_10_2025_KOMPAKTUEBERSICHT.md)
-- [OWASP Top 10:2025 – Mitigations- und Abnahmenachweis](entwicklung-und-qa/OWASP_TOP_10_2025_MITIGATION_NACHWEIS.md)
+
+## Spaeterer Pilot- oder Regelbetrieb – nicht PoC-gating
+
+Diese Unterlagen bleiben als Ausbau- und Produktionsreferenz erhalten. Offene
+Punkte darin verhindern den befristeten, synthetischen PoC nicht:
+
+- [Zielkonzept gematik Kubernetes](betrieb-und-deployment/GEMATIK_K8S_ZIELKONZEPT.md)
+- [Betriebshandbuch](betrieb-und-deployment/BETRIEB.md)
+- [Abnahmeprotokoll-Template](betrieb-und-deployment/ABNAHMEPROTOKOLL_TEMPLATE.md)
+- [OWASP Top 10:2025 – vollstaendiger Mitigations- und Abnahmenachweis](entwicklung-und-qa/OWASP_TOP_10_2025_MITIGATION_NACHWEIS.md)
 - [Betriebsverantwortung/RACI](betrieb-und-deployment/BETRIEBSVERANTWORTUNG_RACI.md)
 - [Migration, Cutover und Rollback](betrieb-und-deployment/MIGRATION_CUTOVER_ROLLBACK.md)
 - [Supabase nach Cloud SQL: Migrations- und Freigabeplan](betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md)
+
+## Weitere Betriebs- und Historienunterlagen
+
 - [Kurzlebige Administration der IAP-Identity-Bindung](betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md)
 - [Befristete Echtdaten-Pilotentscheidung fuer pre-gematik](betrieb-und-deployment/PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md)
 - [GCP-Pre-Integration mit GKE Autopilot](betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md) - temporaeres Test-Runbook, kein Zielbetriebsstandard
@@ -57,8 +68,10 @@ Dieser Ordner buendelt die Unterlagen fuer Produktverstaendnis, technische Ueber
 
 Die Begriffe sind verbindlich:
 
+- **Lokale Entwicklung:** bewegliche Arbeitsstaende und Feature-Branches; kein freigegebenes Deploymentartefakt.
 - **GitHub Pages:** ausschliesslich oeffentliche Demo mit synthetischen Daten; nie Staging oder Realanwendung.
 - **`pre-gematik`:** temporaere GCP-Pre-Integration, standardmaessig synthetisch; geschuetzte Echtdaten nur als zeitlich begrenzter Pilot nach den dokumentierten G-01-bis-G-07-Freigaben; nie Produktivbetrieb.
-- **Zielbetrieb:** erst nach technischer, fachlicher, sicherheitsbezogener und betrieblicher Freigabe durch die zustaendigen Stellen.
+- **gematik-interner PoC:** befristeter Non-Prod-Durchstich aus einem unveraenderlichen RC, ausschliesslich mit synthetischen Daten; keine Produktivfreigabe.
+- **Spaeterer Regelbetrieb:** erst nach gesonderter technischer, fachlicher, sicherheitsbezogener und betrieblicher Freigabe durch die zustaendigen Stellen.
 
-Frontend-Buildausgaben sind getrennt: `dist/pages/` gehoert zum Pages-Pfad, `dist/target/` zum Kubernetes-Zielpfad. Beide sind reproduzierbar und nicht versioniert; GitHub Actions veroeffentlicht das Pages-Artefakt direkt.
+Frontend-Buildausgaben sind getrennt: `dist/pages/` gehoert zum Pages-Pfad, `dist/target/` zum Kubernetes-Zielpfad. `target` bezeichnet ein technisches Buildprofil und keine bereits erreichte Produktionsreife. Beide Ausgaben sind reproduzierbar und nicht versioniert; GitHub Actions veroeffentlicht das Pages-Artefakt direkt.

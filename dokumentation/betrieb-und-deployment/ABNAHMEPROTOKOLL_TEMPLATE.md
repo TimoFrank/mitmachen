@@ -1,5 +1,13 @@
 # Abnahmeprotokoll Versorgungs-Kompass
 
+> [!NOTE]
+> **Einordnung:** Dieses umfangreiche Template ist fuer einen moeglichen
+> spaeteren Pilot- oder Regelbetrieb gedacht. Fuer den aktuellen
+> gematik-internen PoC gilt die Minimalabnahme aus dem
+> [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md) und der
+> [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md); offene Produktionsfelder in
+> diesem Template blockieren den PoC nicht.
+
 Dieses Template dokumentiert eine technische oder fachliche Abnahme reproduzierbar. Nicht entschiedene Werte bleiben als `OFFEN` markiert; sie duerfen nicht stillschweigend als Freigabe gelten.
 
 ## 1. Abnahmegegenstand

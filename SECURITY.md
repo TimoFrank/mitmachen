@@ -23,7 +23,7 @@ Sicherheitskorrekturen richten sich an den aktuellen Stand des Hauptzweigs und a
 
 ## OWASP Top 10:2025 – Bearbeitungsstand
 
-Alle zehn OWASP-Kategorien und 18 priorisierte Risikogruppen wurden defensiv geprüft. Die **Repository-Readiness ist grün**: bestätigte Code- und Konfigurationsbefunde sind technisch geschlossen, fail-closed deaktiviert oder sicher für den Rollout vorbereitet. Die **produktive Go-live-Freigabe bleibt gelb**, bis die getrennt ausgewiesenen Plattform- und Betriebsnachweise erbracht sind.
+Alle zehn OWASP-Kategorien und 18 priorisierte Risikogruppen wurden defensiv geprüft. Die Tabelle beschreibt den vorbereiteten Repository-Vertrag, aber keine pauschale Freigabe eines beweglichen Arbeitsstands. Ein konkreter PoC-RC ist nur dann technisch gruen, wenn die Security-Vertraege und vereinbarten Scans auf seinem exakten Commit erfolgreich sind. Eine produktive Go-live-Freigabe ist nicht Gegenstand des aktuellen PoC und wuerde spaeter eigene Plattform- und Betriebsnachweise erfordern.
 
 | Kategorie | Bereits adressiert | Status |
 | --- | --- | --- |

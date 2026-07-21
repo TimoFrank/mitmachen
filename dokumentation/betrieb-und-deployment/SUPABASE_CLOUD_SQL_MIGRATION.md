@@ -1,5 +1,12 @@
 # Supabase nach Cloud SQL: Migrations- und Freigabeplan
 
+> [!NOTE]
+> **Einordnung:** Diese Datenmigration gehoert nicht zum aktuellen
+> gematik-internen PoC. Der PoC startet mit ausschliesslich synthetischen,
+> verwerfbaren Testdaten. Dieses Dokument bleibt als Referenz fuer einen
+> gesondert freizugebenden spaeteren Pilot erhalten; siehe
+> [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md).
+
 Status: Persoenlicher Pilot-Cutover technisch abgeschlossen; Zielbetrieb weiterhin nicht institutionell freigegeben
 
 Stand: 21. Juli 2026
@@ -297,5 +304,5 @@ Supabase wird erst nach bestandener technischer Abnahme, bestaetigter Restore-Pr
 - [Geschuetzte lokale Operatorvariablen](../../config/pre-gematik/migration.env.example)
 - [Kurzlebige Administration der IAP-Identity-Bindung](PRE_GEMATIK_IDENTITY_ADMIN.md)
 - [Betriebsverantwortung/RACI](BETRIEBSVERANTWORTUNG_RACI.md)
-- [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md)
+- [PoC-Durchstich – ohne Datenmigration](POC_GEMATIK_DURCHSTICH.md)
 - [Befristete Echtdaten-Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md)

@@ -1,5 +1,12 @@
 # Migration, Cutover und Rollback
 
+> [!NOTE]
+> **Einordnung:** Dieses Runbook beschreibt einen moeglichen spaeteren Wechsel
+> mit freigegebenen Daten. Der aktuelle gematik-interne PoC nutzt ausschliesslich
+> synthetische, verwerfbare Testdaten und fuehrt keine Datenmigration und keinen
+> produktiven Cutover aus. Dieses Dokument ist daher kein PoC-Freigabetor; siehe
+> [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md).
+
 Status: ausfuehrbare Arbeitsvorlage; Zieltermine, Owner und Servicewerte offen
 
 Stand: 18. Juli 2026
@@ -305,4 +312,4 @@ Ein beschlossener Wert ist nur belastbar, wenn Generalprobe, Plattformleistung u
 
 ## Abschlusskriterien
 
-Die Migration ist abgeschlossen, wenn die Definition of Done in [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md) erfuellt, die Hypercare formell beendet und fuer den Legacy-Pfad ein dokumentierter Endzustand erreicht ist. Ein noch beschreibbarer, unbeaufsichtigter Supabase-Legacy-Pfad ist kein abgeschlossener Cutover.
+Eine spaetere Migration ist abgeschlossen, wenn die Definition of Done fuer den Regelbetrieb in der [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md) erfuellt, die Hypercare formell beendet und fuer den Legacy-Pfad ein dokumentierter Endzustand erreicht ist. Ein noch beschreibbarer, unbeaufsichtigter Supabase-Legacy-Pfad ist kein abgeschlossener Cutover.

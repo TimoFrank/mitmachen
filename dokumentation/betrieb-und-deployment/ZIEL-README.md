@@ -1,131 +1,129 @@
-# Zielbetrieb Versorgungs-Kompass
+# Naechster Zielschritt: gematik-interner PoC
 
-Status: Einstieg fuer IT-Uebergabe; Zielplattform und Betriebsfreigabe offen
+Status: kompakter Einstieg fuer einen befristeten Non-Prod-Durchstich
+Stand: 21. Juli 2026
 
-Stand: 18. Juli 2026
+Der historische Dateiname bleibt fuer stabile Querverweise erhalten; fuehrend
+ist der hier beschriebene kleine PoC, nicht ein Produktivbetrieb.
 
 ## In 60 Sekunden
 
-Der Versorgungs-Kompass verbindet Kontakte, Organisationen, Hospitationen und Beobachtungen zu gemeinsam nutzbarem Versorgungswissen. GitHub Pages zeigt ausschliesslich eine oeffentliche Demo mit synthetischen Daten. Die geschuetzte Realanwendung wird als eigenes Target-Frontend intern ausgeliefert. Der Browser spricht nur mit `/api`; eine Node.js API im Kubernetes-Namespace prueft ein signiertes OIDC-/Plattformtoken und Rollen serverseitig und greift auf Shared Postgres sowie privaten Object Storage zu. Releases werden reproduzierbar gebaut, gescannt, unveraenderlich promotet und koennen kontrolliert zurueckgerollt werden. Der Wechsel erfolgt erst nach geklaerten Verantwortlichkeiten, Migrationsgeneralprobe, Restore-Test und gemeinsamem Go/No-Go.
+Der Versorgungs-Kompass soll im naechsten Schritt **nicht produktiv uebernommen**
+werden. Ziel ist ein kleiner technischer Proof of Concept: Ein festgelegter
+Release Candidate wird ueber die gematik Software Factory in einem internen
+Kubernetes-Namespace bereitgestellt, per OIDC/SSO geschuetzt und mit einer
+kleinen PostgreSQL-Datenbank verbunden. Verwendet werden ausschliesslich
+synthetische, jederzeit verwerfbare Testdaten.
+
+Massgeblich sind:
+
+1. [gematik-interner PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md) fuer Scope,
+   Ressourcen und Erfolgskriterien,
+2. [Release-Candidate-Strategie](RELEASE_CANDIDATE_STRATEGIE.md) fuer einen
+   stabilen RC bei paralleler Weiterentwicklung und
+3. [IT-Uebergabe fuer den gematik-PoC](IT_UEBERGABE_ZIELBETRIEB.md) fuer das
+   Ressourcengespraech.
 
 ## Die wichtigste Trennung
 
 ```text
-Oeffentliche Demo
-frontend/app/ + frontend/map/ + public/
-frontend/data/demo-data.js + demo-api.js -> dist/pages/ -> GitHub Pages
-
-Pre-Integration/Zielbetrieb
-dieselbe App-Oberflaeche + API-Runtime -> dist/target/ -> internes Target-Hosting
-api/                                  -> Image-Digest -> Helm/Kubernetes
+lokale Entwicklung / main -----> GitHub-Pages-Demo aus dist/pages/
+             |
+             `---- festgelegter Commit + RC-Tag
+                            |
+                            +--> dist/target/
+                            `--> API-Image@sha256
+                                      |
+                                      v
+                              gematik-interner PoC
 ```
 
-- GitHub Pages erhaelt ausschliesslich `dist/pages/`; GKE, Jenkins und Target-Hosting ausschliesslich die Target-Artefakte.
-- Beide Frontends verwenden dieselbe Oberflaeche. Pages hat eine anonyme, lokale Demo-Runtime ohne Login oder externes Daten-API; das Target nutzt ausschliesslich geschuetzte API- und Authentisierungspfade.
-- GitHub Pages ist kein Staging.
-- `pre-gematik` ist keine Produktion.
-- Target-Frontend und API-Image bilden ein gemeinsames, revisionsfestes Releasepaar.
-- Umgebungen werden durch Pipelines, Konfiguration, Secrets und Freigaben getrennt, nicht durch langlebige Deployment-Branches.
+- GitHub Pages ist eine oeffentliche Produktdemo mit synthetischen Daten, kein
+  Staging der gematik-Infrastruktur.
+- Der PoC wird aus einem unveraenderlichen RC gebaut, nicht aus einem beweglichen
+  `main` oder einem lokalen Arbeitsordner.
+- `main`, Feature-Branches und Pages koennen nach der RC-Bildung weiterlaufen,
+  ohne den bereitgestellten PoC-Stand zu veraendern.
+- API-Image und Target-Frontend bilden ein gemeinsames, revisionsfestes
+  Releasepaar.
+- `target` ist der Name des technischen Buildprofils und keine Aussage ueber
+  Produktionsreife.
 
-## Umgebungen
+## Vier Umgebungsbegriffe
 
-| Umgebung | Rolle | Daten | Auth | Betriebsstatus |
-| --- | --- | --- | --- | --- |
-| GitHub Pages Demo | Produkt zeigen | fiktiv | Demo/keine | aktiv, keine Zielbetriebszusage |
-| `pre-gematik` | technische GCP-Pre-Integration | standardmaessig synthetisch/anonymisiert; geschuetzter Echtdaten-Pilot nur nach G-01 bis G-07 | GCP IAP | temporaer, keine Produktivzusage |
-| gematik Zielbetrieb | interner IT-Service | freigegebene Daten | gematik Gateway/SSO | Freigabe offen |
+| Umgebung | Zweck | Daten | Status |
+| --- | --- | --- | --- |
+| lokale Entwicklung | Features und Experimente | lokal/synthetisch | beweglicher Arbeitsstand |
+| GitHub-Pages-Demo | Produkt zeigen | ausschliesslich fiktiv | aktiv, keine Zielabnahme |
+| `pre-gematik` | temporaere GCP-Pre-Integration | standardmaessig synthetisch | keine Produktivzusage |
+| gematik-interner PoC | erster Infrastruktur-Durchstich | ausschliesslich synthetisch | naechster angefragter Schritt |
 
-GKE Autopilot, Cloud SQL und IAP gehoeren ausschliesslich zur technischen Stufe `pre-gematik`. Projekt, Domain und Break-glass-/OAuth-Testnutzer werden ueber geschuetzte Umgebungswerte gesetzt und nicht als Zielvorgaben im Repository verankert.
+Ein moeglicher spaeterer Regelbetrieb ist eine eigene Stufe mit gesonderter
+fachlicher, technischer, Security-, Datenschutz- und Betriebsfreigabe.
 
-## Zielarchitektur
+## Was fuer den PoC vorbereitet ist
 
-```text
-interne Nutzer
-    |
-Gateway / SSO / TLS -> signiertes OIDC-/Plattformtoken
-    |-- / ----> statisches dist/target/
-    `-- /api -> Node.js API im Kubernetes-Namespace
-                    |-- Shared Postgres
-                    `-- privater Object Storage
+- getrennte Buildausgaben `dist/pages/` und `dist/target/`,
+- Node.js API und API-Vertrag,
+- Helm-Referenzchart und Jenkins-Referenzpipeline,
+- OIDC-/Gateway-, Target- und Security-Vertragspruefungen,
+- wiederverwendbarer PostgreSQL-16-Vertrag, synthetische Testdaten und
+  [PoC-Bootstrap-Runbook](../../deploy/postgres/poc-gematik/README.md),
+- Health-, Readiness-, Session- und Smoke-Test-Pfade,
+- ein klarer RC-/Artefaktvertrag.
 
-Software Factory -> Tests/Scans -> unveraenderliche Artefakte
-                 -> Freigabe -> Promotion -> Betrieb/Monitoring
-```
+Vor dem ersten RC-Tag muss der API-Container nicht nur gebaut, sondern auch
+tatsaechlich gestartet und ueber `/api/healthz` geprueft werden. Der aktuelle
+Arbeitsstand dazu steht in [Current State](../entwicklung-und-qa/CURRENT_STATE.md).
 
-Im Target-Browser gibt es keine Supabase-Projekt-URL, keinen Supabase-Key, kein Supabase Auth, kein Supabase Browser SDK und keine direkten Tabellen-/Storage-Zugriffe. Die API prueft Signatur, Issuer, Audience und Claims des Tokens, mappt die Identitaet auf aktive Profile und setzt `viewer`, `editor` und `admin` serverseitig durch. Unsigned `trusted-header`/`sso` ist kein Zieldefault und benoetigt eine ausdrueckliche Plattform-/Security-Ausnahme.
+## Was die IT fuer den ersten Schritt bereitstellt
 
-## Bereits vorbereitet
+- befristeter Non-Prod-Namespace,
+- Registry- und Software-Factory-Anbindung,
+- interne HTTPS-URL mit `/` und `/api`,
+- OIDC-Werte und wenige Testidentitaeten,
+- kleine dedizierte PostgreSQL-16-Datenbank, deren `public`-Schema fuer den PoC
+  vollstaendig disponibel ist,
+- Secret-Injection und Standard-Logs,
+- technische Ansprechpartner und ein Review-/Enddatum.
 
-- getrennte Pages- und Target-Buildausgaben,
-- API-Container und fachlicher API-Vertrag,
-- Helm-Referenzchart mit Digest-Unterstuetzung und Values-Schema,
-- Jenkins-Referenzpipeline,
-- Target-Konfigurations- und Security-Audits,
-- GKE-Autopilot-Pre-Integration mit WIF, IAP, privaten Buckets und synthetischem PostgreSQL-Vertrag,
-- versionierte Pre-GKE-Frontend-Releases ueber `releasePrefix`/`contentRevision`,
-- Zielpipeline-Staging unter `releases/<git-sha-build>` mit `promotionRequired: true`, bis die IT den realen Hosting-Promotionsmechanismus festlegt,
-- Readiness-, Contract-, Runtime- und Smoke-Tests,
-- RACI-, Migrations-, Cutover-, Rollback- und Abnahmevorlagen,
-- `dependabot.yml` sowie eine aktive `.github/CODEOWNERS` mit bestaetigtem Uebergangs-Owner; institutionelle Teamhandles folgen vor dem Pilotbetrieb.
+Nicht benoetigt werden fuer diesen Durchstich Object Storage, Echtdatenmigration,
+Hochverfuegbarkeit, Autoscaling, 24/7-Service, individuelle SLO/RTO/RPO oder
+produktive TI-Fachdienste.
 
-Der stabile und einzige Einstieg fuer ausfuehrbare Artefakte steht in [deploy/README](../../deploy/README.md). Externe Jenkins-Jobs muessen ihren Script Path einmalig auf `deploy/jenkins/Jenkinsfile.gematik` umstellen; alte Deploymentpfade unter der Dokumentation werden nicht parallel weitergefuehrt.
+## PoC bereit zur Bereitstellung, wenn
 
-## Von der IT zu entscheiden
+- ein sauberer Commit als unveraenderlicher RC markiert ist,
+- API-Container und Target-Frontend aus diesem Commit reproduzierbar bauen,
+- der Container startet und der Healthcheck antwortet,
+- Tests, Security-Vertraege, Audits und Helm-Render fuer den vereinbarten
+  PoC-Pfad gruen sind,
+- Tag, Commit, API-Digest und Frontend-Hash dokumentiert sind und
+- Namespace, URL, OIDC, PostgreSQL, Secrets und Logs durch die IT benannt sind.
 
-1. Projekt/Namespace, Registry und Plattformpolicies.
-2. internes Hosting, Ziel-URL, DNS, TLS und same-origin Routing.
-3. Gateway-/SSO-Produkt, OIDC-Issuer, Audience, JWKS, Claims, Tokenweitergabe und Rotation.
-4. Shared Postgres, Runtime-/Migrationsrollen, Backup und Restore.
-5. Object Storage, Dateipruefung, Retention und Loeschung.
-6. Software Factory, Frontend-Promotion, Signierung/Attestierung und Vier-Augen-Freigabe.
-7. institutionelle Code Owner, Branchschutz und Changeverfahren.
-8. Datenklasse, Pilotumfang und Governance-Freigaben.
-9. Monitoring, Logs, Alerts, Service Desk und Eskalation.
-10. Servicezeit, SLO, RTO, RPO und Wartungsfenster.
-11. RACI, Cutover-Gremium und Abschaltung verbliebener Altzugriffe.
+## PoC erfolgreich abgeschlossen, wenn
 
-Das vollstaendige Register D-01 bis D-16 steht in [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md).
+- die interne URL ueber SSO erreichbar ist,
+- Health, Readiness und Session funktionieren,
+- ein synthetischer Datensatz gelesen und geaendert werden kann,
+- derselbe RC reproduzierbar erneut deployt werden kann und
+- Umgebung, Ergebnis und naechster Schritt gemeinsam dokumentiert sind.
 
-## Kein voreiliges Serviceversprechen
+Eine erfolgreiche PoC-Abnahme ist keine Produktivfreigabe.
 
-SLO, RTO, RPO, Supportzeit und Wartungsfenster bleiben offen, bis Fachbereich und IT sie beschlossen und durch Plattform-/Restore-Nachweise plausibilisiert haben. Ein erfolgreicher Pre-Integrationstest ist keine Hochverfuegbarkeits-, Datenschutz- oder Produktivzusage.
+## Spaetere Referenzen
 
-## Bereit fuer Migration, wenn
-
-- Zielplattform und Sicherheitsgrenzen bestaetigt sind,
-- alle kritischen RACI-Rollen benannt sind,
-- Datenklasse und Pilotumfang freigegeben sind,
-- Software Factory `dist/target/` und API-Digest reproduzierbar liefert,
-- Frontend-Promotion nicht mehr nur als `promotionRequired: true` vorgemerkt, sondern institutionell implementiert ist,
-- Gateway, DB, Storage, Monitoring und Service Desk integriert getestet sind,
-- Migrationsgeneralprobe und Restore-Probe erfolgreich sind,
-- SLO/RTO/RPO und Cutover-/Rollbackkriterien beschlossen sind.
-
-## Betriebsuebernahme abgeschlossen, wenn
-
-- Releasepaar, Migrationsversion und Freigaben nachgewiesen sind,
-- Authentisierung, Rollen, Kernpfade und negative Sicherheitstests erfolgreich sind,
-- Datenmigration/Reconciliation fachlich unterschrieben ist,
-- Monitoring, Alerts, Backup, Restore und Rollback praktisch funktionieren,
-- Service Desk, Eskalation, RACI und Hypercare aktiv sind,
-- alle frueheren oeffentlichen Realzugriffe abgeschaltet und nur die synthetische Pages-Demo aktiv ist.
-
-Das ausfuellbare [Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md) dokumentiert diesen Nachweis.
-
-Ergaenzende Governance-Artefakte sind [Repository-Governance](REPOSITORY_GOVERNANCE.md), die aktive [CODEOWNERS-Datei](../../.github/CODEOWNERS), die [Dependabot-Konfiguration](../../.github/dependabot.yml) und der [Deployment-Einstieg](../../deploy/README.md). Der eingetragene Uebergangs-Owner nimmt keine institutionelle Team- oder Zielbetriebsfreigabe vorweg.
-
-## Empfohlene Lesereihenfolge
-
-1. [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md) - Pitch, Entscheidungsregister, Definition of Ready/Done.
-2. [Deployment-Uebersicht](DEPLOYMENT_UEBERSICHT.md) - Umgebungs- und Buildtrennung.
-3. [ADR 001](ADR_001_DEPLOYMENT_TRENNUNG.md) - begruendete Repo-Entscheidung.
-4. [Zielkonzept gematik Kubernetes](GEMATIK_K8S_ZIELKONZEPT.md) - fachlich-technische Architektur.
-5. [Deployment gematik Kubernetes](DEPLOYMENT_GEMATIK_K8S.md) - Software-Factory-/Kubernetes-Vertrag.
-6. [Betriebsverantwortung/RACI](BETRIEBSVERANTWORTUNG_RACI.md) - institutionelle Ownership.
-7. [Migration, Cutover und Rollback](MIGRATION_CUTOVER_ROLLBACK.md) - sicherer Wechsel.
-8. [Betriebshandbuch](BETRIEB.md) und [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md) - Regelbetrieb und Releaseabnahme.
-9. [GCP-Autopilot-Runbook](DEPLOYMENT_GCP_AUTOPILOT.md) - nur fuer die temporaere Pre-Integration.
+[Zielkonzept](GEMATIK_K8S_ZIELKONZEPT.md),
+[Betriebshandbuch](BETRIEB.md),
+[RACI](BETRIEBSVERANTWORTUNG_RACI.md),
+[Migration/Cutover/Rollback](MIGRATION_CUTOVER_ROLLBACK.md) und das
+[Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md) dokumentieren einen moeglichen
+spaeteren Ausbau. Offene Punkte dort sind keine Freigabetore fuer den aktuellen
+PoC.
 
 ## Vorgeschlagener naechster Schritt
 
-Im ersten IT-Termin werden nicht alle technischen Details finalisiert. Stattdessen wird fuer jede offene Entscheidung ein institutioneller Owner und ein Zieldatum benannt. Danach folgen Plattform-Workshop, Migrationsgeneralprobe, Betriebsabnahme und ein bewusstes Go/No-Go.
+In einem kurzen Plattform-Onboarding werden nur Namespace, Build/Registry, URL,
+OIDC, PostgreSQL, Secrets/Logs, Ansprechpartner und Laufzeit geklaert. Danach
+liefert das Entwicklungsteam den ersten gruenen RC fuer den technischen
+Durchstich.

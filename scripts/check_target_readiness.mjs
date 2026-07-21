@@ -4,30 +4,32 @@ import { execFileSync } from "node:child_process";
 const requiredFiles = [
   "README.md",
   "dokumentation/README.md",
+  "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
+  "dokumentation/betrieb-und-deployment/RELEASE_CANDIDATE_STRATEGIE.md",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md",
-  "dokumentation/betrieb-und-deployment/BETRIEB.md",
   "dokumentation/betrieb-und-deployment/IT_UEBERGABE_ZIELBETRIEB.md",
-  "dokumentation/betrieb-und-deployment/BETRIEBSVERANTWORTUNG_RACI.md",
-  "dokumentation/betrieb-und-deployment/MIGRATION_CUTOVER_ROLLBACK.md",
   "dokumentation/betrieb-und-deployment/ADR_001_DEPLOYMENT_TRENNUNG.md",
-  "dokumentation/betrieb-und-deployment/ABNAHMEPROTOKOLL_TEMPLATE.md",
   "deploy/README.md",
   "dokumentation/architektur/API_CONTRACT.md",
   "dokumentation/architektur/DATA_MODEL.md",
   "deploy/jenkins/Jenkinsfile.gematik",
   "deploy/helm/versorgungs-kompass/Chart.yaml",
   "deploy/helm/versorgungs-kompass/values.yaml",
+  "deploy/helm/versorgungs-kompass/values-poc-gematik.yaml",
   "deploy/helm/versorgungs-kompass/values.schema.json",
   "deploy/helm/versorgungs-kompass/templates/deployment.yaml",
   "deploy/helm/versorgungs-kompass/templates/service.yaml",
   "deploy/helm/versorgungs-kompass/templates/ingress.yaml",
+  "deploy/postgres/poc-gematik/README.md",
+  "deploy/postgres/poc-gematik/bind-test-identity.sql",
   "api/Dockerfile",
   "api/server.mjs",
   "scripts/build_static_frontend.sh",
   "scripts/check_deployment_governance.mjs",
   "scripts/test_deployment_separation.mjs",
+  "scripts/prepare_local_hospitation.mjs",
   "scripts/prepare_target_frontend_config.mjs",
   "scripts/preflight_target_deployment.mjs",
   ".github/workflows/deploy-pages.yml",
@@ -37,8 +39,18 @@ const requiredFiles = [
 const requiredText = [
   {
     file: "README.md",
-    patterns: [/GitHub Pages/i, /Legacy|Demo/i, /Zielbetrieb/i],
-    reason: "README trennt synthetische Pages-Demo und geschuetzten Zielbetrieb."
+    patterns: [/GitHub Pages/i, /Demo/i, /PoC/i],
+    reason: "README trennt synthetische Pages-Demo und gematik-internen PoC."
+  },
+  {
+    file: "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
+    patterns: [/Non-Prod/i, /synthetisch/i, /OIDC|SSO/i, /PostgreSQL/i, /keine Produktivfreigabe/i],
+    reason: "PoC-Einstieg begrenzt den Durchstich und nennt die minimalen Plattformressourcen."
+  },
+  {
+    file: "dokumentation/betrieb-und-deployment/RELEASE_CANDIDATE_STRATEGIE.md",
+    patterns: [/RC-Tag/i, /main/i, /GitHub-Pages/i, /Image-Digest|Digest/i, /Containerstart/i],
+    reason: "RC-Strategie trennt stabile PoC-Artefakte von paralleler Weiterentwicklung."
   },
   {
     file: "dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md",
@@ -47,8 +59,13 @@ const requiredText = [
   },
   {
     file: "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
-    patterns: [/Jenkins/i, /Kubernetes/i, /Helm/i, /Shared Postgres/i],
-    reason: "gematik-Zieldokument beschreibt Software-Factory und Kubernetes-Pfad."
+    patterns: [/Jenkins/i, /Kubernetes/i, /Helm/i, /dedizierte.*Datenbank/i],
+    reason: "Technische Referenz beschreibt Software-Factory, Kubernetes und den disponiblen PoC-Datenbankpfad."
+  },
+  {
+    file: "deploy/postgres/poc-gematik/README.md",
+    patterns: [/public/i, /synthetisch/i, /bind-test-identity\.sql/i, /keine.*Migration/i],
+    reason: "PoC-Runbook macht Bootstrap, synthetischen Seed und Testidentitaeten ausfuehrbar."
   },
   {
     file: "dokumentation/architektur/API_CONTRACT.md",
@@ -61,6 +78,11 @@ const requiredText = [
     reason: "Der statische Frontend-Build erzwingt getrennte Pages- und Target-Artefakte."
   },
   {
+    file: "scripts/prepare_local_hospitation.mjs",
+    patterns: [/frontend\/local-hospitation/, /versorgungs-kompass\.local\.html/, /hospitation-local-runtime\.js/],
+    reason: "Die private lokale Variante wird in einen ignorierten, separaten Einstieg erzeugt."
+  },
+  {
     file: "scripts/prepare_target_frontend_config.mjs",
     patterns: [/dataMode/, /apiBaseUrl/, /requireApiGateway/],
     reason: "Ziel-Frontend-Konfiguration kann API-Modus erzwingen."
@@ -68,7 +90,22 @@ const requiredText = [
   {
     file: "scripts/preflight_target_deployment.mjs",
     patterns: [/ARTIFACT_REGISTRY/, /K8S_NAMESPACE/, /API_AUTH_MODE/],
-    reason: "Preflight kennt zentrale Zielbetriebsvariablen."
+    reason: "Preflight kennt zentrale PoC-/Target-Plattformvariablen."
+  },
+  {
+    file: "api/Dockerfile",
+    patterns: [/frontend\/data\/activity-model\.js/, /frontend\/data\/sector-registry\.js/, /USER node/],
+    reason: "API-Image enthaelt die Laufzeitabhaengigkeiten des Sektormodells und startet als Non-Root."
+  },
+  {
+    file: "deploy/jenkins/Jenkinsfile.gematik",
+    patterns: [/Smoke API image/, /api\/healthz/, /archiveArtifacts[^\n]*dist\/target/, /FRONTEND_BUCKET_URI/],
+    reason: "Jenkins prueft den Containerstart und kann das PoC-Frontend ohne GCS-Zwang archivieren."
+  },
+  {
+    file: ".github/workflows/target-readiness.yml",
+    patterns: [/Build and smoke-test API container/, /api\/healthz/, /values-poc-gematik\.yaml/],
+    reason: "Target-Readiness prueft Containerstart und minimales PoC-Overlay."
   },
   {
     file: ".github/workflows/deploy-pre-gematik.yml",
@@ -88,6 +125,7 @@ const syntaxFiles = [
   "scripts/preflight_target_deployment.mjs",
   "scripts/check_deployment_governance.mjs",
   "scripts/test_deployment_separation.mjs",
+  "scripts/prepare_local_hospitation.mjs",
   "scripts/check_target_readiness.mjs"
 ];
 
@@ -122,7 +160,7 @@ for (const check of requiredText) {
   const source = readText(check.file);
   const missing = check.patterns.filter((pattern) => !pattern.test(source));
   if (missing.length) {
-    fail(`${check.file}: erwartete Zielbetriebs-Hinweise fehlen (${missing.map(String).join(", ")}).`);
+    fail(`${check.file}: erwartete PoC-/Target-Hinweise fehlen (${missing.map(String).join(", ")}).`);
   } else {
     ok(check.reason);
   }
@@ -147,7 +185,7 @@ if (existsSync("dokumentation/betrieb-und-deployment/archiv/gcp-prototypen")) {
 if (existsSync("frontend/data/runtime-config.js")) {
   const currentConfig = readText("frontend/data/runtime-config.js");
   if (/dataMode:\s*"api"/.test(currentConfig) && /requireApiGateway:\s*true/.test(currentConfig)) {
-    ok("Die Realanwendungsquelle ist fail-closed auf den API-Gateway-Pfad eingestellt.");
+    ok("Die Target-Quelle ist fail-closed auf den API-Gateway-Pfad eingestellt.");
   } else {
     fail("frontend/data/runtime-config.js muss auf API-Modus mit Gateway-Zwang eingestellt sein.");
   }
@@ -158,7 +196,7 @@ for (const [file, forbidden] of [
   ["deploy/jenkins/Jenkinsfile.gematik", /sync_github_pages|docs\/data\/supabase-config|\brsync\b[^\n]*\bdocs\b/]
 ]) {
   if (existsSync(file) && forbidden.test(readText(file))) {
-    fail(`${file}: Zieldeployment ist noch an das GitHub-Pages-Artefakt docs/ gekoppelt.`);
+    fail(`${file}: Target-Deployment ist noch an das GitHub-Pages-Artefakt docs/ gekoppelt.`);
   } else if (existsSync(file)) {
     ok(`${file}: kein Zieldeployment aus docs/.`);
   }
@@ -175,4 +213,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("\nTarget Readiness Check OK: Zielbetriebs-Dokumente und Migrationsanker sind plausibel.");
+console.log("\nTarget Readiness Check OK: PoC-Dokumente, RC-Vertrag und technische Target-Anker sind plausibel.");

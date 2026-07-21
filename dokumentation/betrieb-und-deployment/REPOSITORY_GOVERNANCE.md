@@ -1,8 +1,8 @@
-# Repository-Governance vor Pilot und Zielbetrieb
+# Repository-Governance vor PoC und spaeterem Regelbetrieb
 
 Stand: 21. Juli 2026
 
-Ein Teil dieser Einstellungen liegt ausserhalb des Git-Repositories. Der technische Basisschutz ist aktiv; institutionelle Team- und Zielbetriebsfreigaben bleiben offen.
+Ein Teil dieser Einstellungen liegt ausserhalb des Git-Repositories. Der technische Basisschutz ist aktiv. Fuer den aktuellen gematik-internen PoC werden nur ein sauberer, unveraenderlicher RC und die vereinbarten Minimalgates benoetigt; institutionelle Team- und Produktivfreigaben gehoeren zu einem spaeteren Ausbau.
 
 Die aktuelle Ordnerbereinigung entfernt lokale Exporte und Kontaktarbeitsstaende aus dem Hauptstand. Die Bereinigung historischer Git-Objekte ist freigegeben und wird nach dem neuen Pages-Deployment gemaess [Runbook zur Datenschutzbereinigung der Git-Historie](GIT_HISTORY_DATENSCHUTZBEREINIGUNG.md) ausgefuehrt.
 
@@ -37,11 +37,18 @@ Der bestehende Weekly-Release-Prozess muss einen Pull Request erzeugen und darf 
 
 Die Pre-Integration verwendet standardmaessig nur synthetische oder belastbar anonymisierte Daten. Ein geschuetzter, zeitlich begrenzter Echtdaten-Pilot ist ausschliesslich nach G-01 bis G-07 im [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) zulaessig. Das persoenliche GCP-Projekt und persoenliche Break-glass-Konto aus der aktuellen Pre-Integration sind nicht fuer den Zielbetrieb freigegeben.
 
-## 4. Zielbetrieb
+## 4. gematik-PoC und Release Candidate
 
-- Produktion wird nicht als weiteres unkontrolliertes Environment des persoenlichen GitHub-Repositories angelegt.
-- Die gematik Software Factory baut oder uebernimmt eine eindeutig referenzierte Revision und dokumentiert Image-Digest, Frontend-Revision, Chart- und Schema-Version.
-- Produktiv-Credentials, Freigaben und Deploymenthistorie verbleiben in den von der gematik betriebenen Systemen.
+- `main` bleibt Integrationslinie und Pages-Quelle; der PoC wird niemals automatisch aus dem jeweils neuesten `main` deployed.
+- Ein kurzlebiger Stabilisierungsbranch ist zulaessig, aber keine Umgebung. Verbindlich ist ein annotierter, nie bewegter Tag wie `poc-v0.1.0-rc.1` auf einem sauberen Commit.
+- Ein Fix erzeugt `rc.2`. RC-Tags werden weder verschoben noch durch `git push --force` ersetzt.
+- Die gematik Software Factory baut die eindeutig referenzierte Revision und dokumentiert Image-Digest, Frontend-Revision, Chart- und synthetische Schema-/Seed-Version.
+- Wegen der zuvor bereinigten Git-Historie koennen alte lokale Tags existieren, die es auf `origin` nicht mehr gibt. Fuer den ersten RC ist ein frischer Clone mit `--no-tags` die sicherste Ausgangsbasis; niemals pauschal `git push --tags`, sondern nur den ausdruecklich freigegebenen RC-Tag pushen.
+- Ein ZIP des lokalen Arbeitsverzeichnisses, uncommittete Dateien, `dist/pages/` und lokale Exporte gehoeren nicht ins Uebergabepaket.
+- Ein moeglicher spaeterer Regelbetrieb wird nicht als unkontrolliertes Environment des persoenlichen GitHub-Repositories angelegt und benoetigt eine eigene Freigabe.
+
+Das vollstaendige Vorgehen steht in der
+[Release-Candidate-Strategie](RELEASE_CANDIDATE_STRATEGIE.md).
 
 ## 5. Actions- und Abhaengigkeitsrichtlinie
 

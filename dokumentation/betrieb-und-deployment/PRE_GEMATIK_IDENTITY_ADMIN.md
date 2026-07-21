@@ -20,7 +20,7 @@ namespaced; ein E-Mail-Fallback findet nicht statt.
 Der engste vorbereitete Weg ist:
 
 1. die statische, geheimnisfreie Datei
-   [`identity-admin-role.sql`](../../../deploy/postgres/pre-gematik/identity-admin-role.sql)
+   [`identity-admin-role.sql`](../../deploy/postgres/pre-gematik/identity-admin-role.sql)
    einmal kontrolliert als bestehender Objekt-Owner `postgres` importieren,
 2. dadurch die dauerhafte Rolle `vk_identity_admin` als `NOLOGIN` anlegen,
 3. einen zufälligen, kurzlebigen Cloud-SQL-`BUILT_IN`-Login **ausschließlich**

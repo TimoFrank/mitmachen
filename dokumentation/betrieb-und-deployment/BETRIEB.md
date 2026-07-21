@@ -1,5 +1,14 @@
 # Betriebshandbuch Versorgungs-Kompass
 
+> [!NOTE]
+> **Einordnung:** Dieses Handbuch beschreibt einen moeglichen spaeteren Pilot-
+> oder Regelbetrieb. Fuer den aktuellen, befristeten gematik-internen PoC ist es
+> eine Referenz, aber kein Freigabetor. Massgeblich sind
+> [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md) und
+> [RC-Strategie](RELEASE_CANDIDATE_STRATEGIE.md). Migration,
+> Hochverfuegbarkeit, SLO/RTO/RPO, Service Desk, Hypercare und vollstaendige
+> Betriebsuebernahme sind nicht Teil des PoC.
+
 Status: Zielbetriebsrahmen vorbereitet; institutionelle Owner und Servicewerte offen
 
 Stand: 18. Juli 2026
@@ -34,7 +43,7 @@ Zielkomponenten:
 | Observability | Logs, Metriken, Alerts, Dashboards und Auditnachweise |
 | Software Factory | bauen, pruefen, scannen, attestieren und kontrolliert promoten |
 
-Die konkrete Produktauswahl und Betriebsverantwortung werden in [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md) und [RACI](BETRIEBSVERANTWORTUNG_RACI.md) bestaetigt.
+Die konkrete Produktauswahl und Betriebsverantwortung werden fuer einen spaeteren Regelbetrieb im [Zielkonzept](GEMATIK_K8S_ZIELKONZEPT.md) und in der [RACI](BETRIEBSVERANTWORTUNG_RACI.md) bestaetigt.
 
 ## 3. Servicewerte und Betriebszeiten
 
@@ -344,4 +353,4 @@ GitHub Pages ist bereits auf die synthetische Demo begrenzt. Der geschuetzte Aus
 
 ## 14. Betriebsabnahme
 
-Der Betrieb ist bereit, wenn Definition of Ready/Done aus [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md), RACI, Servicewerte, Restore-Probe, Monitoring-/Alertnachweis, Incidentweg und der Endzustand aller Altzugriffe bestaetigt sind. Ein gruener `/healthz`-Endpunkt allein ist keine Betriebsuebernahme.
+Ein spaeterer Regelbetrieb ist bereit, wenn die entsprechenden Ready-/Done-Kriterien aus der [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md), RACI, Servicewerte, Restore-Probe, Monitoring-/Alertnachweis, Incidentweg und der Endzustand aller Altzugriffe bestaetigt sind. Diese Kriterien gelten nicht fuer den aktuellen PoC. Ein gruener `/healthz`-Endpunkt allein ist keine Betriebsuebernahme.

@@ -141,7 +141,8 @@ for (const [pattern, reason] of [
   [/https:\/\/[a-z0-9-]+\.supabase\.co/i, "eine direkte Supabase-Projekt-URL"],
   [/@supabase\/supabase-js|supabase-js@/i, "das Supabase Browser-SDK"],
   [/service[_-]?role/i, "einen Service-Role-Hinweis"],
-  [/storage\/v1\/object\/public\/(?:profile-images|stakeholder-logos|protected-source-assets)/i, "einen oeffentlichen Pfad zu geschuetzten Assets"]
+  [/storage\/v1\/object\/public\/(?:profile-images|stakeholder-logos|protected-source-assets)/i, "einen oeffentlichen Pfad zu geschuetzten Assets"],
+  [/(?:local-hospitation|localHospitation|HOSPITATION_PRIVATE|document\.write\s*\()/i, "einen lokalen oder privaten Hospitations-Hook"]
 ]) {
   assert(!pattern.test(targetText), `${artifactLabel} enthaelt ${reason}`);
 }

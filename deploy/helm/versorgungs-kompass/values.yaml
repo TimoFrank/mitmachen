@@ -54,6 +54,13 @@ database:
   name: "versorgungs_kompass"
   user: "vk_app"
   ssl: "verify-full"
+  # Leer lassen, wenn die Plattform-CA bereits im System-Truststore liegt.
+  # Andernfalls den Namen und Schluessel eines bestehenden Kubernetes-Secrets
+  # mit dem PostgreSQL-CA-Zertifikat angeben.
+  sslCaSecretName: ""
+  sslCaSecretKey: "ca.crt"
+  # Optionaler TLS-Servername, falls er vom Wert in host abweicht.
+  sslServerName: ""
   poolMax: "5"
 
 secrets:

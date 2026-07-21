@@ -1,0 +1,90 @@
+# Minimaler, befristeter Non-Prod-PoC mit ausschliesslich synthetischen Daten.
+# Alle *.example.invalid-Werte und die NetworkPolicy-CIDRs muessen durch die IT
+# ersetzt werden. Secrets werden extern injiziert. Der Releasejob muss
+# image.digest mit dem geprueften sha256-Digest des RC ueberschreiben.
+
+replicaCount: 1
+
+image:
+  repository: registry.example.invalid/versorgungs-kompass-api
+  tag: poc-v0.1.0-rc.1
+  digest: ""
+
+# Das institutionelle Gateway soll statisches Frontend und /api same-origin
+# routen. Das Chart erzeugt dafuer im neutralen PoC-Overlay bewusst noch keinen
+# plattformspezifischen Ingress; die IT kann ihn in ihrem Plattform-Overlay
+# aktivieren oder den ClusterIP-Service an das vorhandene Gateway anbinden.
+ingress:
+  enabled: false
+  className: ""
+  host: poc.example.invalid
+  tls:
+    enabled: true
+    secretName: versorgungs-kompass-poc-tls
+
+config:
+  allowedOrigin: "https://poc.example.invalid"
+  apiAuthMode: "oidc"
+  oidcIssuer: "https://identity.example.invalid"
+  oidcAudience: "versorgungs-kompass-poc"
+  oidcJwksUrl: "https://identity.example.invalid/.well-known/jwks.json"
+  attachmentUploadMode: "disabled"
+  imageUploadMode: "disabled"
+  logRequests: "1"
+
+database:
+  host: "postgres.poc.svc.cluster.local"
+  port: "5432"
+  name: "versorgungs_kompass"
+  user: "vk_app"
+  ssl: "verify-full"
+  # Leer bedeutet: CA aus dem System-Truststore verwenden. Falls die IT eine
+  # eigene PostgreSQL-CA bereitstellt, hier Secret-Name/-Key und bei Bedarf den
+  # vom Host abweichenden TLS-Servernamen im Plattform-Overlay eintragen.
+  sslCaSecretName: ""
+  sslCaSecretKey: "ca.crt"
+  sslServerName: ""
+  poolMax: "3"
+
+secrets:
+  databasePasswordSecretName: "versorgungs-kompass-poc-db"
+  databasePasswordSecretKey: "password"
+
+# Uploads sind deaktiviert; Object Storage wird im ersten PoC nicht benoetigt.
+storage:
+  profileImageBucket: ""
+  contactImageBucket: ""
+  contactNoteAttachmentBucket: ""
+  stakeholderLogoBucket: ""
+
+# Das statische Target-Frontend darf durch den Plattformstandard separat hinter
+# demselben Gateway bereitgestellt werden. Das GCS-Sync-Frontend bleibt aus.
+frontend:
+  enabled: false
+  bucketName: ""
+  releasePrefix: "releases"
+  contentRevision: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+podDisruptionBudget:
+  enabled: false
+
+rollout:
+  maxUnavailable: 1
+  maxSurge: 0
+
+networkPolicy:
+  enabled: true
+  ingress:
+    # Fail-closed TEST-NET-Platzhalter; vor Deployment auf Gateway-/Ingress-CIDRs setzen.
+    apiAllowedCidrs:
+      - 192.0.2.0/32
+    frontendAllowedCidrs:
+      - 192.0.2.0/32

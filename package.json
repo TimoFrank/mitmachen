@@ -8,6 +8,8 @@
     "start": "python3 -m http.server 4173",
     "start:api": "node api/server.mjs",
     "start:demo": "npm run start",
+    "prepare:local-hospitation": "node scripts/prepare_local_hospitation.mjs",
+    "start:local-hospitation": "npm run prepare:local-hospitation && npm start",
     "build:pages": "bash scripts/build_static_frontend.sh --profile pages --output dist/pages",
     "build:target": "bash scripts/build_static_frontend.sh --profile target --output dist/target --api-base-url \"$API_BASE_URL\" --auth-mode \"${TARGET_AUTH_MODE:-oidc}\"",
     "check:demo": "node --check frontend/data/demo-data.js && node --check frontend/data/demo-api.js && node scripts/test_hospitation_demo_data.mjs && node scripts/test_demo_api.mjs",
@@ -16,6 +18,7 @@
     "check:gcp-autopilot": "node scripts/check_gcp_autopilot_readiness.mjs",
     "check:pre-gematik-migration-gcp": "node scripts/check_pre_gematik_migration_gcp.mjs",
     "check:deployment-governance": "node scripts/check_deployment_governance.mjs",
+    "check:poc-rc": "npm run check:syntax && npm run security:contracts && npm run check:target-readiness && npm run check:deployment-governance && npm run test:api-runtime && npm run test:api-postgres-contracts && npm run test:pre-gematik-schema && npm run test:api-validation && npm run test:target-config && npm run test:deployment-separation && npm run test:sector-model && npm run test:hospitation-export",
     "check": "node scripts/check_project.mjs",
     "qa": "npm run check && npm run test:visual",
     "qa:small": "npm run check:syntax && git diff --check",
@@ -49,6 +52,7 @@
     "security:audit": "npm audit --audit-level=high && node scripts/test_security_contracts.mjs",
     "security:contracts": "node scripts/test_security_contracts.mjs",
     "test:visual": "playwright test",
+    "test:poc-smoke": "playwright test tests/visual-smoke.spec.js --project=chromium-desktop --grep 'Kontakte: Liste und Filtertoolbar rendern|Karte: Kartenansicht und Controls rendern'",
     "test:visual:update": "playwright test --update-snapshots"
   },
   "devDependencies": {

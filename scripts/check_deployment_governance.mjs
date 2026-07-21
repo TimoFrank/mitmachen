@@ -13,10 +13,12 @@ for (const retiredPrefix of [
   ".codex-pet-runs/",
   "docs/",
   "output/",
-  "outputs/",
-  "security/",
-  "config/pages-legacy/",
-  "dokumentation/betrieb-und-deployment/artefakte/"
+    "outputs/",
+    "security/",
+    "config/pages-legacy/",
+    "dokumentation/betrieb-und-deployment/artefakte/",
+    "frontend/local-hospitation/",
+    "tests/local-hospitation.spec.js"
 ]) {
   if (trackedFiles.some((file) => file.startsWith(retiredPrefix) && existsSync(path.join(root, file)))) {
     failures.push(`Veralteter oder lokaler Pfad ist noch versioniert: ${retiredPrefix}`);
@@ -148,7 +150,7 @@ const profileExpectations = [
     },
     route: null,
     dataMode: "api",
-    dataPolicy: "approved-classes-only",
+    dataPolicy: "synthetic-only",
     authModes: ["oidc"],
     forbiddenInputs: ["dist/pages", "frontend/demo", "frontend/data/demo-data.js"]
   }

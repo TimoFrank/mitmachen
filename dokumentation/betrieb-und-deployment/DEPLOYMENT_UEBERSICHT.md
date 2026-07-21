@@ -1,35 +1,35 @@
 # Deployment-Uebersicht
 
-Status: 19. Juli 2026
+Status: 21. Juli 2026
 
-Diese Uebersicht ist die fuehrende Abgrenzung der Auslieferungswege. Sie verhindert, dass GitHub Pages als Staging fuer Kubernetes verstanden oder ein Pages-Artefakt in den Zielbetrieb uebernommen wird.
+Diese Uebersicht ist die fuehrende Abgrenzung der Auslieferungswege. Sie verhindert, dass GitHub Pages als Staging fuer Kubernetes verstanden oder ein Pages-Artefakt in den gematik-PoC uebernommen wird.
+
+Der aktuell angefragte naechste Schritt ist ein befristeter, synthetischer
+[gematik-interner PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md), keine
+Produktivsetzung. Wie ein stabiler PoC-Stand bei paralleler Weiterentwicklung
+gebildet wird, steht in der
+[Release-Candidate-Strategie](RELEASE_CANDIDATE_STRATEGIE.md).
 
 ## Kurzentscheidung
 
 - Ein gemeinsames Repository bleibt zulaessig, solange Quellen, Buildausgaben, Konfiguration, Pipelines, Daten und Freigaben getrennt sind.
 - GitHub Pages ist ausschliesslich eine oeffentliche Demo mit synthetischen Daten. Es ist weder Realanwendung noch Staging.
 - `pre-gematik` ist eine temporaere technische Pre-Integration auf GCP. Sie ist keine Produktivumgebung und definiert keine gematik-Plattformwerte.
-- Der Zielbetrieb ist ein interner IT-Service hinter Gateway/SSO mit API im Kubernetes-Namespace und freigegebenen Plattformdiensten.
-- Umgebungen werden nicht durch langlebige `pages`-, `gke`- oder `production`-Branches modelliert. Ein Commit wird einmal geprueft; getrennte Artefakte werden ueber getrennte Freigabekanaele ausgeliefert.
+- Der naechste Zielschritt ist ein kleiner interner PoC hinter Gateway/SSO mit API im Non-Prod-Kubernetes-Namespace und ausschliesslich synthetischen Daten.
+- Ein moeglicher spaeterer Regelbetrieb ist eine eigene, derzeit nicht beantragte Freigabestufe.
+- Umgebungen werden nicht durch langlebige `pages`-, `gke`- oder `production`-Branches modelliert. Der PoC wird aus einem unveraenderlichen RC-Tag gebaut; `main` und Pages duerfen danach weiterlaufen.
 
 Die Entscheidung ist in [ADR 001](ADR_001_DEPLOYMENT_TRENNUNG.md) dokumentiert.
 
 ## Architektur- und Umgebungsmatrix
 
-| Dimension | GitHub Pages Demo | `pre-gematik` | gematik Zielbetrieb |
-| --- | --- | --- | --- |
-| Zweck | Produkt zeigen | Zielvertrag technisch erproben | interner IT-Service |
-| Betriebsstatus | aktiv | temporaer, nicht produktiv | Freigabe offen |
-| Frontend-Artefakt | `dist/pages/` | `dist/target/` | `dist/target/` |
-| Auslieferung | direktes Actions-Artefakt | privates Target-Artefakt | freigegebenes Target-Artefakt |
-| Daten | ausschliesslich fiktiv | standardmaessig synthetisch/anonymisiert; Echtdaten-Pilot nur nach den dokumentierten G-01-bis-G-07-Freigaben | nur freigegebene Datenklassen |
-| Browser-Datenzugriff | lokaler, speicherbasierter Demo-Adapter | ausschliesslich `/api` | ausschliesslich `/api` |
-| Identitaet | anonyme, sichtbare Demo-Identitaet; kein Login | signiertes GCP-IAP-JWT als Pre-Integrationsadapter | OIDC oder gleichwertig signierte/verifizierte Plattformidentitaet; Anbieter offen |
-| Backend | kein produktives Backend | Node.js API auf GKE + temporaeres Cloud SQL | Node.js API im Namespace + Shared Postgres |
-| Storage | synthetische Demo-Assets | private GCS-Buckets | freigegebener Object Storage, Auspraegung offen |
-| Pipeline | Pages-Pipeline | GitHub Actions/WIF | Software Factory/Jenkins, konkrete Anbindung offen |
-| Freigabe | Produkt-/Demo-Verantwortung | Pre-Integration-Reviewer | RACI und Change-Verfahren zu bestaetigen |
-| SLO/RTO/RPO | keine Zielbetriebszusage | keine Produktivzusage | vor Go-live zu beschliessen |
+| Umgebung | Zweck | Artefakt | Daten/Auth | Status |
+| --- | --- | --- | --- | --- |
+| lokale Entwicklung | Features und Experimente | lokaler Arbeitsstand | lokal/synthetisch | beweglich, kein Release |
+| GitHub Pages Demo | Produkt zeigen | `dist/pages/` aus `main` | fiktiv, ohne Ziel-SSO | aktiv, kein Staging |
+| `pre-gematik` | GCP-Pre-Integration | `dist/target/` + API-Image | standardmaessig synthetisch, GCP IAP | temporaer, keine Produktivzusage |
+| gematik-interner PoC | Infrastruktur-Durchstich | `dist/target/` + API-Image aus festem RC | ausschliesslich synthetisch, OIDC/SSO | naechster Schritt, befristet |
+| spaeterer Regelbetrieb | moegliche Produktivstufe | gesondert freigegebenes Releasepaar | freigegebene Daten und Betriebswerte | nicht Teil des aktuellen PoC |
 
 ## Verbindlicher Buildvertrag
 
@@ -37,8 +37,8 @@ Die Entscheidung ist in [ADR 001](ADR_001_DEPLOYMENT_TRENNUNG.md) dokumentiert.
 frontend/ + public/ + Buildskripte
   |-- Pages-Build  ------> dist/pages/  ------> GitHub Pages
   |
-  `-- Target-Build -----> dist/target/ -----> Pre-Integration oder Ziel-Hosting
-                              `--------------> Zielaudit und Deployment
+  `-- Target-Build -----> dist/target/ -----> Pre-Integration oder PoC-Hosting
+                              `--------------> Target-Audit und Deployment
 ```
 
 Regeln:
@@ -50,7 +50,7 @@ Regeln:
 5. Eine versionierte `docs/`-Publish-Kopie existiert nicht mehr. GitHub Actions veroeffentlicht `dist/pages/` direkt.
 6. Beide Builds laufen in sauberen Zielordnern. Ein Build darf die Ausgabe des anderen nicht als Eingabe verwenden.
 7. API-Image und Target-Frontend erhalten dieselbe Git-Revision beziehungsweise Release-ID und werden als zusammengehoeriges Release nachgewiesen.
-8. Zieldeployments verwenden ein unveraenderliches API-Image per Digest oder gleichwertiger, revisionsfester Referenz. Eine erneute Promotion baut den Quellstand nicht neu.
+8. PoC-Deployments verwenden ein unveraenderliches API-Image per Digest oder gleichwertiger, revisionsfester Referenz. Eine erneute Bereitstellung baut keinen neueren Quellstand.
 
 Repo-Kommandos fuer die getrennten Builds:
 
@@ -70,9 +70,10 @@ npm run build:target
 | --- | --- | --- |
 | Pages | eigener Workflow und Environment `github-pages` | ausschliesslich Pages-Artefakt/Pages-Veröffentlichung |
 | Pre-Integration | eigener Workflow und Environment `pre-gematik` mit Freigabe | ausschliesslich temporaere GCP-Ressourcen und `dist/target/` |
-| Zielbetrieb | Software Factory/Jenkins mit Change- und Zielbetriebsfreigabe | freigegebenes Hosting, Namespace und Zielplattformdienste |
+| gematik-PoC | Software Factory/Jenkins aus unveraenderlichem RC-Tag | befristetes Hosting, Non-Prod-Namespace und kleine Plattformdienste |
+| spaeterer Regelbetrieb | gesondertes Change- und Betriebsverfahren | erst nach eigener Freigabe |
 
-Direkte Bot-Commits nach `main` sind kein Zielverfahren fuer Zielbetriebsreleases. Release-Aenderungen sollen als nachvollziehbarer Pull Request oder unveraenderlicher Release-Kandidat geprueft werden. Pages- und Zieldeployment koennen denselben freigegebenen Commit verwenden, bleiben aber unabhaengige Deployments.
+Direkte Bot-Commits nach `main` sind kein Verfahren fuer PoC-Releases. Release-Aenderungen sollen als nachvollziehbarer Pull Request oder unveraenderlicher Release Candidate geprueft werden. Pages kann bereits einen neueren `main`-Stand zeigen, waehrend der PoC unveraendert auf seinem RC-Tag und Image-Digest bleibt.
 
 ## Aktive technische Pfade
 
@@ -84,9 +85,9 @@ Der Pages-Pfad baut `dist/pages/` und uebergibt genau dieses Verzeichnis als Git
 
 Das Runbook [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md) beschreibt `pre-gematik`. GKE Autopilot, Cloud SQL, IAP, private Buckets, persoenliche Projektwerte und der persoenliche Break-glass-Zugang sind ausschliesslich temporaere Pre-Integrationsentscheidungen. Aus ihnen folgt keine Vorgabe fuer den Zielbetrieb. Der [Supabase-Cloud-SQL-Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md) ist das zusaetzliche Pflichtverfahren, wenn diese geschuetzte Zwischenumgebung zeitlich begrenzt mit freigegebenen Echtdaten erprobt werden soll.
 
-### gematik Zielbetrieb
+### gematik-interner PoC und spaeterer Zielpfad
 
-Das [Zielkonzept](GEMATIK_K8S_ZIELKONZEPT.md) und das [technische Deployment](DEPLOYMENT_GEMATIK_K8S.md) beschreiben den Zielvertrag: internes Frontend, same-origin `/api`, Kubernetes-API, Shared Postgres, Object Storage, signierte OIDC-/Plattformidentitaet und kontrollierte Software Factory. Konkrete Namen, Regionen, URLs, OIDC-Werte, SLOs, RTO/RPO und Verantwortlichkeiten muessen durch die zustaendigen IT-Stellen bestaetigt werden.
+Fuer den PoC gelten internes Frontend, same-origin `/api`, Kubernetes-API, kleine PostgreSQL-Ressource, signierte OIDC-/Plattformidentitaet und kontrollierte Software Factory. Konkrete Namen, URL und OIDC-Werte werden mit der IT geklaert. Object Storage, Migration, Hochverfuegbarkeit, SLOs und RTO/RPO gehoeren erst zu einem moeglichen spaeteren Ausbau. Das [technische Deployment](DEPLOYMENT_GEMATIK_K8S.md) enthaelt die nutzbaren Build-, Helm-, OIDC- und Smoke-Test-Pfade; das [Zielkonzept](GEMATIK_K8S_ZIELKONZEPT.md) bleibt eine langfristige Referenz.
 
 Der stabile Einstieg [deploy/README](../../deploy/README.md) enthaelt die jeweils fuehrenden operativen Artefakte. Es werden keine parallelen Kopien gepflegt.
 
@@ -96,17 +97,17 @@ Die frueheren Cloud-Run-, Cloud-SQL- und IAP-Prototypen wurden aus dem Produkt-R
 
 Der historische Cloud-Run-Stack wurde am 20. Juli 2026 gemaess [Cloud-Run-Abschalt-Runbook](CLOUD_RUN_ABSCHALTUNG.md) reversibel auf Scaling `0` gesetzt; seine alte Cloud-SQL-Instanz ist gestoppt und loeschgeschuetzt. Der Change hat keine GKE-, Terraform- oder Zielbetriebsressource veraendert. Die endgueltige Bereinigung bleibt ein [separater gesperrter Folge-Change](CLOUD_RUN_LOESCHUNG.md).
 
-## Nachweise pro Zielrelease
+## Minimalnachweise pro PoC-RC
 
-Ein Zielrelease soll mindestens festhalten:
+Ein PoC-RC soll mindestens festhalten:
 
-- Git-Revision und Release-ID,
+- unveraenderlichen RC-Tag, Git-Revision und Release-ID,
 - Digest des API-Images,
 - Hash oder Manifest des `dist/target/`-Artefakts,
-- Ergebnisse von Build, Tests, SAST, Secret Scan, Dependency Scan und Image Scan,
-- Helm-Render beziehungsweise Plattform-Deploymentmanifest,
-- angewendete Datenbank-Migrationsversion,
-- Freigaben gemaess RACI,
-- Smoke-Test- und Rollbacknachweis.
+- Ergebnisse der vereinbarten Build-, Security- und Scan-Gates,
+- erfolgreichen Containerstart und `/api/healthz`,
+- Helm-Render mit kleinen PoC-Werten,
+- Version des synthetischen Schemas/Seeds,
+- SSO-, Session-, DB- und synthetischen CRUD-Smoke.
 
-Die vollstaendige Abnahme steht in der [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md). Der organisatorische Einstieg steht in [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md).
+Die kleine Abnahme steht am Anfang der [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md). Der organisatorische Einstieg ist der [gematik-interne PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md); die [IT-Uebergabe](IT_UEBERGABE_ZIELBETRIEB.md) dient als Gespraechs- und Ticketvorlage.

@@ -16,6 +16,7 @@ RUN npm ci --omit=dev --ignore-scripts \
 
 COPY api/ ./api/
 COPY frontend/data/activity-model.js ./frontend/data/activity-model.js
+COPY frontend/data/sector-registry.js ./frontend/data/sector-registry.js
 
 ENV NODE_ENV=production \
     PORT=8080

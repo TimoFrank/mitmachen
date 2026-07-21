@@ -20,6 +20,7 @@ dokumentation
 frontend/**
 !frontend/data/
 !frontend/data/activity-model.js
+!frontend/data/sector-registry.js
 public
 scripts
 supabase

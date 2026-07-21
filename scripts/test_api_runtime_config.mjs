@@ -160,8 +160,10 @@ assert.equal(apiPackage.dependencies.pg, "8.21.0", "Die API-Laufzeitabhaengigkei
 assert.match(dockerfile, /COPY api\/package\.json api\/package-lock\.json \.\//);
 assert.match(dockerfile, /npm ci --omit=dev --ignore-scripts/);
 assert.match(dockerfile, /COPY frontend\/data\/activity-model\.js \.\/frontend\/data\/activity-model\.js/);
+assert.match(dockerfile, /COPY frontend\/data\/sector-registry\.js \.\/frontend\/data\/sector-registry\.js/);
 assert.match(dockerfile, /ENV NODE_ENV=production[\s\\]+PORT=8080/);
 assert.match(dockerfile, /\nUSER node\n/);
 assert.match(dockerignore, /!frontend\/data\/activity-model\.js/);
+assert.match(dockerignore, /!frontend\/data\/sector-registry\.js/);
 
 console.log("API Runtime Config Test OK: Containerinhalt, Non-Root-Start und Postgres-TLS-Modi sind abgesichert.");

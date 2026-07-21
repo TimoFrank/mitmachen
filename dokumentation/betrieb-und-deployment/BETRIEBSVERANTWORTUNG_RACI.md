@@ -1,5 +1,12 @@
 # Betriebsverantwortung und RACI
 
+> [!NOTE]
+> **Einordnung:** Diese RACI ist eine Arbeitsvorlage fuer einen moeglichen
+> spaeteren Pilot- oder Regelbetrieb. Sie muss fuer den aktuellen, befristeten
+> gematik-internen PoC nicht vollstaendig besetzt sein. Fuer den PoC genuegen die
+> technischen Ansprechpartner aus dem
+> [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md).
+
 Status: Arbeitsvorschlag; Rollen, Teams und Personen durch die uebernehmende IT zu bestaetigen
 
 Stand: 18. Juli 2026
@@ -122,7 +129,8 @@ Prioritaeten und Reaktionszeiten werden nicht in diesem Dokument erfunden. Vor G
 
 ## Verwandte Dokumente
 
-- [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md)
+- [PoC-Durchstich – aktueller kleiner Schritt](POC_GEMATIK_DURCHSTICH.md)
+- [Zielkonzept – spaetere Regelbetriebsreferenz](GEMATIK_K8S_ZIELKONZEPT.md)
 - [Betriebshandbuch](BETRIEB.md)
 - [Migration, Cutover und Rollback](MIGRATION_CUTOVER_ROLLBACK.md)
 - [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md)

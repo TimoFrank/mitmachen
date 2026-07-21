@@ -1,16 +1,24 @@
 # Deployment gematik Kubernetes
 
-Status: fuehrende technische Zielbeschreibung; konkrete Software-Factory- und Plattformwerte offen
+> [!NOTE]
+> **Einordnung:** Fuer den aktuellen PoC sind die Abschnitte zu Build,
+> Target-Frontend, API-Container, Helm, OIDC und Smoke Tests anwendbar. Migration,
+> produktive Promotion, Backup/Restore, Servicewerte und Betriebsuebernahme
+> beschreiben einen spaeteren Ausbau und sind keine Freigabetore des
+> [PoC-Durchstichs](POC_GEMATIK_DURCHSTICH.md).
 
-Stand: 18. Juli 2026
+Status: technische Referenz fuer den PoC; langfristige Plattform- und Betriebswerte offen
+
+Stand: 21. Juli 2026
 
 ## Zweck und Abgrenzung
 
-Dieses Dokument beschreibt, wie die uebernehmende IT den Versorgungs-Kompass in eine institutionelle Software Factory und einen Kubernetes-Namespace integriert. Es ist kein Runbook fuer GitHub Pages und uebernimmt keine persoenlichen Werte aus der GCP-Pre-Integration.
+Dieses Dokument beschreibt, wie die IT den Versorgungs-Kompass fuer den ersten befristeten PoC in eine institutionelle Software Factory und einen Kubernetes-Namespace integriert. Es ist kein Runbook fuer GitHub Pages und uebernimmt keine persoenlichen Werte aus der GCP-Pre-Integration. Produktionsnahe Ausbauschritte sind als spaetere Referenz erhalten.
 
 - GitHub Pages: ausschliesslich synthetische oeffentliche Demo, nicht Realanwendung und nicht Staging.
 - `pre-gematik`: temporaerer GKE-Autopilot-/IAP-/Cloud-SQL-Test, nicht Produktion.
-- Zielbetrieb: internes Hosting, freigegebenes Gateway/SSO, Kubernetes-API, Shared Postgres und institutioneller Betrieb.
+- gematik-PoC: befristetes internes Hosting, Gateway/SSO, Kubernetes-API und kleine PostgreSQL-Ressource mit synthetischen Daten.
+- spaeterer Regelbetrieb: eigene Freigabestufe; nicht Gegenstand des aktuellen Deployments.
 
 Das fachlich-technische Zielbild steht in [Zielkonzept gematik Kubernetes](GEMATIK_K8S_ZIELKONZEPT.md). Ausfuehrbare Artefakte und ihre Uebergangsorte sind unter [deploy/README](../../deploy/README.md) erklaert.
 
@@ -21,12 +29,14 @@ Git Repo
 -> Software Factory / Jenkins
 -> Checks, Tests und Security Scans
 -> dist/target/ + Buildmanifest
--> API-Image + Digest + SBOM/Provenance
+-> API-Image + Digest + SBOM
 -> Artifact Registry
 -> Freigabe/Promotion
 -> internes Frontend-Hosting + Helm/Kubernetes
--> Gateway/SSO -> /api -> Shared Postgres/Object Storage
+-> Gateway/SSO -> /api -> kleine PostgreSQL-Ressource
 ```
+
+Fachlicher Object Storage wird erst in einem spaeteren Ausbau ergaenzt.
 
 `dist/pages/` und der gesamte GitHub-Pages-Lieferweg sind nicht Teil dieses Pfads.
 
@@ -41,18 +51,22 @@ Git Repo
 - Helm-Referenzchart,
 - Jenkins-Referenzpipeline,
 - API- und Datenmodellvertraege,
-- Migrationsanforderungen, Smoke Tests und Betriebsdokumentation.
+- disponiblen synthetischen PoC-Datenbank-Bootstrap, Smoke Tests und
+  technische Dokumentation.
 
-### Die Zielplattform liefert oder bestaetigt
+### Die Zielplattform liefert oder bestaetigt fuer den PoC
 
 - Git-/Software-Factory-Projekt und geschuetzte Releasepfade,
-- Artifact Registry und zulässige Image-/Attestierungsverfahren,
+- Artifact Registry und fuer den PoC zulaessiges Imageverfahren,
 - Kubernetes-Namespace, Quoten, Policies und Zugriffe,
 - internes Frontend-Hosting, DNS, TLS und Routing,
 - Gateway/SSO mit OIDC oder gleichwertig signierter/verifizierter Plattformidentitaet,
-- Shared Postgres, Object Storage und Secret Management,
-- Logging, Monitoring, Alerting, Backup, Restore und Service Desk,
-- Change-, Freigabe-, Incident- und Break-glass-Verfahren.
+- kleine PostgreSQL-Ressource und Secret Management,
+- Standard-Containerlogs und technische Ansprechpartner.
+
+Object Storage fuer Nutzdaten, zentrales Alerting, Backup-/Restore-Proben,
+Service Desk und vollstaendige Change-/Incident-Verfahren gehoeren erst zu einem
+moeglichen spaeteren Ausbau.
 
 ## Verbindlicher Build- und Releasevertrag
 
@@ -62,7 +76,8 @@ Git Repo
 4. Die Zielkonfiguration setzt `dataMode: "api"`, im Zieldefault `authMode: "oidc"`, die freigegebene API-Basis und `requireApiGateway: true`.
 5. Der Target-Audit bricht bei Supabase-URL, Supabase-Key, Supabase Browser SDK, direktem Supabase-Aufruf, Geheimnis oder produktivem Seed/Backup ab.
 6. Der API-Container wird einmal gebaut, gescannt und per Digest identifiziert.
-7. Target-Frontend, API-Digest, Helm-/Plattformmanifest und Migrationsversion erhalten eine gemeinsame Release-ID.
+7. Target-Frontend, API-Digest, Helm-/Plattformmanifest sowie Schema- und
+   Seed-Digests erhalten eine gemeinsame Release-ID.
 8. Promotion nutzt dieselben geprueften Artefakte. Ein Umgebungswechsel fuehrt keinen neuen Build aus.
 9. Zieldeployment und Pages-Deployment besitzen getrennte Pipelines, Environments und Freigaben.
 
@@ -83,7 +98,8 @@ Sie bleibt waehrend der Uebergangsphase dort, bis die Software Factory Zielpfade
 5. relevante Playwright-Smoke-Tests.
 6. Target-Build nach `dist/target/` und Target-Audit.
 7. API-Image bauen und lokal per Health Check starten.
-8. Image Scan, SBOM und Provenance/Attestierung.
+8. Image Scan und SBOM; optionale Plattform-Attestierung nur, wenn der
+   vorhandene Software-Factory-Standard sie ohne neuen PoC-Sonderprozess liefert.
 9. Push in Registry und Digest-Aufloesung.
 10. Helm-Lint/-Render beziehungsweise Plattformvalidierung.
 11. kontrollierte Freigabe.
@@ -98,14 +114,21 @@ API_BASE_URL="https://<freigegebener-interner-origin>" \
 TARGET_AUTH_MODE=oidc \
 npm run build:target
 
-node scripts/audit_public_assets.mjs --artifact-root dist/target
+node scripts/audit_target_assets.mjs --artifact-root dist/target
 node scripts/audit_api_gateway.mjs \
   --production-config dist/target/data/runtime-config.js
 ```
 
-Die Referenzpipeline staged das Target-Frontend absichtlich mit `promotionRequired: true`. Dieser Zustand markiert die Uebergabegrenze: Build, Versionierung und Releasepaket sind vorbereitet, die produktive Aktivierung muss aber durch den von der IT festgelegten Hosting-Promotionsmechanismus erfolgen. Die Pipeline darf einen gestagten Release nicht als produktiv veroeffentlicht melden.
+Die Referenzpipeline staged das Target-Frontend absichtlich mit `promotionRequired: true`. Dieser Zustand markiert die Uebergabegrenze: Build, Versionierung und Releasepaket sind vorbereitet, die PoC-Aktivierung muss aber durch den von der IT festgelegten Hosting-Mechanismus erfolgen. Die Pipeline darf einen gestagten Release nicht als bereitgestellt melden.
 
 Konkrete Jenkins-Libraries, Credentials-IDs und Scanner duerfen an den Plattformstandard angepasst werden. Die Sicherheits- und Nachweisziele bleiben erhalten.
+
+Der Jenkins-Agent muss durch den Plattformstandard bereits fuer die ausgewaehlte
+Registry authentisiert sein, etwa ueber Credential Helper, Robot Account oder
+Workload Identity. Die Referenzpipeline fuehrt bewusst keinen
+registryspezifischen Login aus und liest den unveraenderlichen Digest nach dem
+Push aus Dockers `RepoDigests` aus. Nur das optionale `gs://`-Frontend-Staging
+ist weiterhin ein ausdruecklich gekennzeichneter GCP-Adapter.
 
 ## Benoetigte Software-Factory-Werte
 
@@ -117,7 +140,9 @@ Konkrete Jenkins-Libraries, Credentials-IDs und Scanner duerfen an den Plattform
 | `API_BASE_URL` | same-origin oder freigegebene interne API-Basis | offen |
 | `FRONTEND_TARGET` | internes Hostingziel fuer `dist/target/` | offen |
 | `K8S_NAMESPACE` | Zielnamespace | offen |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` | Shared-Postgres-Verbindung ohne Passwort | offen |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` | dedizierte, disponible PoC-Datenbank ohne Passwort | offen |
+| `database.sslCaSecretName`, `database.sslCaSecretKey` | optionales Kubernetes-Secret mit PostgreSQL-CA | leer bei System-Truststore |
+| `database.sslServerName` | optionaler TLS-Servername, falls abweichend von `DB_HOST` | offen |
 | `DB_PASSWORD_SECRET_NAME` | Referenz auf zentral verwaltetes Secret | offen |
 | `API_AUTH_MODE` | serverseitiger Identitaetsadapter | Zieldefault `oidc` |
 | `OIDC_ISSUER` | exakt erwarteter Token-Issuer | offen |
@@ -125,17 +150,31 @@ Konkrete Jenkins-Libraries, Credentials-IDs und Scanner duerfen an den Plattform
 | `OIDC_JWKS_URL` | HTTPS-JWKS fuer Signaturpruefung und Keyrotation | offen |
 | `OIDC_EMAIL_CLAIM` | Claim fuer normalisierte E-Mail | offen; Default `email` |
 | `OIDC_SUBJECT_CLAIM` | Claim fuer stabilen Nutzer-Identifier | offen; Default `sub` |
-| `PROFILE_IMAGE_BUCKET` | privater Storage fuer Profilbilder | offen |
-| `CONTACT_IMAGE_BUCKET` | privater Storage fuer Kontaktbilder | offen |
-| `CONTACT_NOTE_ATTACHMENT_BUCKET` | privater Storage fuer Anhaenge | offen |
+| `PROFILE_IMAGE_BUCKET` | privater Storage fuer Profilbilder | im PoC leer; spaeter offen |
+| `CONTACT_IMAGE_BUCKET` | privater Storage fuer Kontaktbilder | im PoC leer; spaeter offen |
+| `CONTACT_NOTE_ATTACHMENT_BUCKET` | privater Storage fuer Anhaenge | im PoC leer; spaeter offen |
 
-Diese drei semantischen Werte verlangen nicht zwingend drei physische Buckets. Stellt die Zielplattform genau einen privaten Anwendungs-Bucket bereit, duerfen alle drei Werte auf denselben Bucket zeigen; die Anwendung trennt Profilbilder, Kontaktbilder und Anhaenge ueber disjunkte Objektpfade. Aufbewahrung, Verschluesselung, Malware-Pruefung, Quoten und Berechtigungen muessen dann fuer den gemeinsamen Bucket beziehungsweise ueber freigegebene Praefixregeln passen.
+Der erste PoC setzt diese drei Werte leer und laesst beide Uploadmodi deaktiviert.
+Die folgenden Storage-Regeln gelten erst, wenn ein spaeterer Pilot Uploads
+ausdruecklich aufnimmt: Die drei semantischen Werte verlangen dann nicht
+zwingend drei physische Buckets. Stellt die Zielplattform genau einen privaten
+Anwendungs-Bucket bereit, duerfen alle drei Werte auf denselben Bucket zeigen;
+die Anwendung trennt Profilbilder, Kontaktbilder und Anhaenge ueber disjunkte
+Objektpfade. Aufbewahrung, Verschluesselung, Malware-Pruefung, Quoten und
+Berechtigungen muessen dann fuer den gemeinsamen Bucket beziehungsweise ueber
+freigegebene Praefixregeln passen.
 
 Der Frontend-Artefaktpfad darf dadurch keinen pauschalen Lesezugriff auf die privaten Uploads erhalten. Bei nur einem fachlichen Daten-Bucket wird das Frontend deshalb ueber den vorgesehenen Plattform-Host, einen getrennten Artefaktbereich mit wirksamer Praefixberechtigung oder ein freigegebenes Frontend-Containerverfahren ausgeliefert.
 
 Geheimnisse, private Zertifikate und Tokens stehen weder in Git, Frontend-Artefakt, Buildmanifest noch Klartext-Helm-Values.
 
 Die aktuelle Jenkins-Referenz verwendet fuer den Zieldefault `API_AUTH_MODE=oidc` die Credential-IDs `versorgungs-oidc-issuer`, `versorgungs-oidc-audience` und `versorgungs-oidc-jwks-url`. Das sind Referenznamen, keine freigegebenen Plattformwerte. Die Software Factory darf die IDs an ihren Standard anpassen, muss aber Issuer, Audience und JWKS-URL mit derselben Semantik bereitstellen. Die Claims bleiben standardmaessig `email` und `sub`, bis IAM und Anwendung andere freigegebene Claims vereinbaren.
+
+`FRONTEND_BUCKET_URI` ist in der Jenkins-Referenz optional. Ohne Wert archiviert
+Jenkins `dist/target/` samt Manifest und Fingerprint als PoC-Buildartefakt. Nur
+wenn ausdruecklich eine `gs://`-URI gesetzt wird, nutzt die Referenz das
+versionierte GCS-Staging. Das neutrale gematik-PoC-Setup benoetigt keinen
+GCS-Bucket.
 
 ## Target-Frontend
 
@@ -148,7 +187,7 @@ apiBaseUrl: "https://<freigegebener-interner-origin>",
 requireApiGateway: true
 ```
 
-`authMode: "oidc"` ist der Target-Default. `authMode: "iap"` bleibt dem GCP-Pre-Integrationsoverlay vorbehalten. Ein unsignierter `trusted-header`-/`sso`-Modus ist nur als dokumentierte und durch Plattform sowie Informationssicherheit freigegebene Ausnahme zulaessig; der Produktionsdefault des Helm-Vertrags laesst ihn nicht zu.
+`authMode: "oidc"` ist der Target-Default. `authMode: "iap"` bleibt dem GCP-Pre-Integrationsoverlay vorbehalten. Ein unsignierter `trusted-header`-/`sso`-Modus ist nur als dokumentierte und durch Plattform sowie Informationssicherheit freigegebene Ausnahme zulaessig; der Target-Default des Helm-Vertrags laesst ihn nicht zu.
 
 Auslieferung:
 
@@ -158,7 +197,11 @@ Auslieferung:
 - vorherige freigegebene Revision fuer Rollback verfuegbar,
 - Hash/Manifest und gemeinsame Release-ID im Abnahmeprotokoll.
 
-In der Uebergangsphase wird das Frontend nur unter `releases/<git-sha-build>` gestaged; `promotionRequired: true` ist im Stagingmanifest verbindlich. Vor Produktivbetrieb ersetzt oder verarbeitet ein institutioneller Promotionsschritt diese Markierung nachvollziehbar; eine manuelle Bucket-Umschaltung ohne Freigabe- und Rollbacknachweis ist kein Zielverfahren.
+Die Jenkins-Referenz kann das Frontend unter `releases/<git-sha-build>` stagen;
+`promotionRequired: true` markiert dann die Uebergabegrenze. Fuer den ersten PoC
+darf die Software Factory `dist/target/` stattdessen als unveraenderliches
+Buildartefakt an das vorhandene statische Hosting uebergeben. Eine GCS-spezifische
+Stagingloesung ist keine PoC-Voraussetzung.
 
 ## API und Runtime-Konfiguration
 
@@ -166,7 +209,7 @@ Die API laeuft aus `api/Dockerfile`. Beispielhafte Semantik, keine freigegebenen
 
 ```text
 PORT=8080
-DB_HOST=<shared-postgres-host>
+DB_HOST=<poc-postgres-host>
 DB_PORT=5432
 DB_NAME=<database-name>
 DB_USER=<runtime-user>
@@ -193,18 +236,24 @@ Aktueller Uebergangspfad:
 deploy/helm/versorgungs-kompass
 ```
 
-Das Chart enthaelt unter anderem API-Deployment, Service, optionale Ingress-/GCP-Adapter, ConfigMap, Secret-Referenz, Probes, Ressourcen und Security Context. Es legt im Zielvertrag keine Shared-Postgres-Datenbank und keinen Ziel-Storage an.
+Das Chart enthaelt unter anderem API-Deployment, Service, optionale
+Ingress-/GCP-Adapter, ConfigMap, Secret-Referenzen, einen optionalen
+PostgreSQL-CA-Mount, Probes, Ressourcen und Security Context. Es legt selbst
+keine PostgreSQL-Datenbank und keinen Ziel-Storage an.
 
-Vor Uebernahme prueft die IT:
+Fuer den PoC bestaetigt die IT nur die unmittelbar benoetigten
+Plattformdefaults:
 
 - Plattformstandard fuer Ingress/Gateway und TLS,
-- OIDC-Issuer/Audience/JWKS/Claims und Sperre unsignierter Produktionsmodi,
-- Network Policies und Egressziele,
-- Pod Security, Service Accounts und Workload Identity,
-- Resource Requests/Limits, Replica-/Autoscalingstrategie und Disruption-Verhalten,
-- Secret-Sync-/Rotation und notwendige Rollouts,
-- Logs, Metriken, Traces, Alerts und Dashboards,
+- OIDC-Issuer/Audience/JWKS/Claims und Sperre unsignierter Modi,
+- vorhandene Network Policies, Pod Security und Service-Account-Vorgaben,
+- die kleinen Resource Requests/Limits aus dem PoC-Overlay; kein HPA/PDB,
+- Secret-Injection und Standard-Containerlogs,
 - Namespace-Quoten, Policies und Deploymentrechte.
+
+Eine eigene Autoscalingstrategie, Traces, Alerts, Dashboards,
+Secret-Rotationsprozesse und besondere Disruption-Regeln werden fuer diesen
+Durchstich nicht ausgearbeitet. Sie gehoeren bei Bedarf zum spaeteren Ausbau.
 
 Deployment wird per unveraenderlichem Image-Digest oder gleichwertiger revisionsfester Referenz ausgefuehrt. Ein veraenderlicher `latest`-Tag gilt nicht als Abnahmenachweis.
 
@@ -229,57 +278,78 @@ Zu testen:
 - jede Zielrolle und verbotene Schreibaktion,
 - Logout/Sessionablauf gemaess Plattformvertrag.
 
-Falls ausnahmsweise ein unsignierter Trusted-Header-Adapter gefordert wird, benoetigt er eine eigene Architektur-/Security-Freigabe, nachgewiesene Headerbereinigung, eine nicht umgehbare private Vertrauensgrenze und gleichwertige negative Tests. Er ist nicht der vorbereitete Produktionsdefault.
+Falls ausnahmsweise ein unsignierter Trusted-Header-Adapter gefordert wird,
+benoetigt er eine eigene Architektur-/Security-Entscheidung, nachgewiesene
+Headerbereinigung, eine nicht umgehbare private Vertrauensgrenze und
+gleichwertige negative Tests. Er ist nicht der vorbereitete PoC-Default.
 
-## Shared Postgres und Migration
+## PostgreSQL fuer den aktuellen PoC
 
-Shared Postgres wird durch die Plattform bereitgestellt. Das API-Deployment fuehrt keine implizite Produktionmigration beim Pod-Start aus.
+Die Plattform stellt eine **dedizierte kleine Datenbank** bereit, deren
+`public`-Schema fuer diesen PoC vollstaendig kontrolliert, verworfen und neu
+aufgebaut werden darf. Ein beliebiges separates Schema in einer gemeinsam
+genutzten Bestandsdatenbank reicht derzeit nicht aus, weil API und SQL-Vertrag
+fest `public.*` verwenden.
 
-Erforderlich sind:
+Der einmalige, manuelle Ablauf steht im
+[PoC-Datenbank-Bootstrap](../../deploy/postgres/poc-gematik/README.md):
 
-- freigegebene Schema- und Erweiterungsversionen,
-- separate Migrations- und Laufzeitrollen,
-- TLS/Netzfreigabe und Connection-Management,
-- Backup/PITR gemaess beschlossenem RPO,
-- praktisch getesteter Restore gemaess beschlossenem RTO,
-- versionierte Migrationen mit Review und Ausfuehrungsprotokoll,
-- Reconciliation fuer Counts, Constraints und fachliche Stichproben.
+1. Schema, `NOLOGIN`-Runtime-Rolle und explizite Grants anwenden,
+2. ausschliesslich `pre-gematik-synthetic-v1` einspielen,
+3. zwei bis fuenf OIDC-Subjects an die vorgesehenen synthetischen Profile binden,
+4. erst danach API-Readiness, Login sowie einen Lese- und Schreibpfad pruefen.
 
-Der vollstaendige Ablauf steht in [Migration, Cutover und Rollback](MIGRATION_CUTOVER_ROLLBACK.md). Alte Cloud-Run-/Cloud-SQL-Migrationsentwuerfe und das Pre-Integrationsschema sind keine fuehrende Produktionsmigration.
+Der Owner-/Bootstrap-Zugang ist kein Laufzeit-Secret der Anwendung. Die
+Runtime-Rolle besitzt kein DDL-Recht. Bei direkter PostgreSQL-Verbindung bleibt
+`verify-full` aktiv. Entweder liegt die Plattform-CA bereits im
+System-Truststore oder die IT setzt `database.sslCaSecretName`,
+`database.sslCaSecretKey` und bei Bedarf `database.sslServerName` im
+Plattform-Overlay.
 
-## Deployment-Ablauf
+Der API-Pod fuehrt keinen Bootstrap beim Start aus. Fuer diesen disponiblen,
+rein synthetischen Bestand sind Bestandsmigration, Backup-/Restore-Generalprobe,
+PITR und Reconciliation **keine PoC-Freigabetore**.
 
-### 1. Validieren
+## Deployment-Ablauf fuer den ersten PoC
 
-- eindeutige Revision auschecken,
-- Tests und Scans ausfuehren,
+### 1. Plattformgrundlage klaeren
+
+- Namespace, Registry, statisches Hosting, same-origin URL und OIDC festlegen,
+- dedizierte PoC-Datenbank, TLS-Vertrauen, Secrets und Logs bereitstellen,
+- End-, Review- oder Verlaengerungstermin festhalten.
+
+### 2. Release Candidate validieren
+
+- exakt einen annotierten `poc-v<semver>-rc.<n>`-Tag auschecken,
+- `npm run check:poc-rc`, Scans und den vereinbarten Desktop-Smoke ausfuehren,
 - `dist/target/` erzeugen und auditieren,
-- API-Image bauen, starten und scannen,
-- Helm/Plattformmanifest rendern,
-- Releasemanifest erzeugen.
+- API-Image bauen, als Non-Root-Container starten, scannen und per Digest fixieren,
+- Helm-Manifest mit dem PoC-Overlay rendern,
+- Releasemanifest mit Tag, SHA, Digests und Testergebnissen erzeugen.
 
-### 2. In Abnahme deployen
+### 3. Disponible Datenbank vorbereiten
 
-- exakt freigegebenes Releasepaar verwenden,
-- Gateway-, DB-, Storage- und Rollenvertrag testen,
-- technische und fachliche Smoke Tests ausfuehren,
-- Monitoring-/Alert-Nachweis erzeugen,
-- Rollback mit vorherigem Release praktisch testen.
+- Bootstrap-Runbook mit kontrollierter Owner-Verbindung anwenden,
+- synthetische Seed-Version und Testbindungen dokumentieren,
+- Owner-Zugang wieder aus dem Ausfuehrungskontext entfernen.
 
-### 3. Freigeben und promoten
+### 4. Bereitstellen und nachweisen
 
-- Definition of Ready bestaetigen,
-- erforderliche Freigaben gemaess RACI einholen,
-- denselben API-Digest und dasselbe Target-Artefakt promoten,
-- Datenmigration im freigegebenen Fenster ausfuehren,
-- Go/No-Go dokumentieren.
+- exakt das gepruefte Releasepaar deployen,
+- Gateway/SSO, `/api/healthz`, `/api/readyz` und `/api/session` pruefen,
+- einen synthetischen Lese- und Schreibpfad ausfuehren,
+- denselben RC erneut bereitstellen oder dessen Reproduzierbarkeit nachweisen,
+- Ergebnis, Abweichungen und Ende/Verlaengerung der Umgebung kurz festhalten.
 
-### 4. Nachweisen
+## Spaeterer Ausbau – nicht PoC-gating
 
-- [Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md) ausfuellen,
-- Release-ID, Revision, Digest, Artefakt-Hash und Migration festhalten,
-- Smoke Tests, Counts, Freigaben und Abweichungen verlinken,
-- Hypercare und Legacy-Endzustand nachverfolgen.
+Bestandsmigration, HA, Backup/PITR, Restore-Probe, ausgearbeitete
+SLO/RTO/RPO, vollstaendiges Monitoring/Alerting, RACI-Freigaben, produktive
+Promotion, Cutover, Rollback-Generalprobe und Hypercare werden erst fuer einen
+moeglichen spaeteren Pilot- oder Regelbetrieb bewertet. Die Referenzen dazu sind
+[Migration, Cutover und Rollback](MIGRATION_CUTOVER_ROLLBACK.md),
+[Betrieb](BETRIEB.md) und
+[Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md).
 
 ## Smoke Tests
 
@@ -287,8 +357,8 @@ Die tatsaechlichen URLs und Authentisierungsmittel folgen dem Plattformvertrag. 
 
 ```text
 GET /api/healthz
+GET /api/readyz
 GET /api/session
-GET /api/ops/checks     (nur gemaess freigegebenem Betriebszugriff)
 ```
 
 Browserpruefung:
@@ -296,25 +366,27 @@ Browserpruefung:
 - internes Frontend ist erreichbar,
 - SSO funktioniert ohne Supabase Auth,
 - keine Supabase-URL, kein Supabase SDK und kein direkter Supabase-Request,
-- Kontakte, Organisationen, Profile, Formate, Hospitationen, Stakeholder und Saved Views laden ueber `/api`,
-- Rollen und Schreibpfade funktionieren erwartungsgemaess,
+- ein vereinbarter synthetischer Kernbestand laedt ueber `/api`,
+- mindestens eine Lese- und eine Schreibrolle funktionieren erwartungsgemaess,
 - unbekannte/inaktive Nutzer und Viewer-Schreibversuche werden abgewiesen,
-- Karte, Auswertung, Datenqualitaet und Dateiabrufe sind plausibel.
+- keine Upload- oder Echtdatenpfade sind aktiviert.
 
-## Rollback
+## Abbruch und Wiederholung im PoC
 
-- Frontend: vorherige versionierte Target-Revision atomar aktivieren.
-- API: vorherigen schema-kompatiblen Digest beziehungsweise Helm-Release aktivieren.
-- Datenbank: keine automatische Down-Migration. Restore oder Forward Fix nur nach freigegebenem Datenverfahren.
-- Nach produktiven Zielschreibzugriffen: keine blosse Rueckschaltung auf Legacy; zuerst Datenstrategie und Reconciliation entscheiden.
+- Frontend und API: unveraendertes RC-Artefakt erneut bereitstellen oder die
+  befristete Umgebung entfernen.
+- Datenbank: bei inkonsistentem Bootstrap die disponible PoC-Datenbank verwerfen
+  und nach Runbook neu aufbauen; keine Echtdaten muessen gerettet werden.
+- Ein neuer Codefix erhaelt einen neuen RC-Tag; ein vorhandener Tag oder Digest
+  wird nicht verschoben.
 
-Fuehrend ist [Migration, Cutover und Rollback](MIGRATION_CUTOVER_ROLLBACK.md).
+Ein produktionsnahes Rollbackverfahren ist erst Teil eines spaeteren Ausbaus.
 
 ## Definition of Ready und Done
 
-Die uebergreifenden Kriterien stehen in [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md). Die [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md) operationalisiert sie fuer Releases.
+Die uebergreifenden PoC-Kriterien stehen im [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md) und in der [IT-Uebergabe](IT_UEBERGABE_ZIELBETRIEB.md). Die [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md) operationalisiert sie fuer Releases.
 
-## Offene Zielbetriebsentscheidungen
+## Spaetere Zielbetriebsentscheidungen – nicht PoC-gating
 
 - Software-Factory-Projekt, Registry, Namespace und Zielpfade,
 - internes Hosting, URL, DNS, TLS und Routing,

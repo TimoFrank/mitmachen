@@ -1,6 +1,6 @@
 # QA Workflow
 
-Stand: 2026-07-19.
+Stand: 2026-07-21.
 
 Dieses Dokument legt fest, wie Aenderungen am Versorgungs-Kompass geprueft werden, ohne fuer kleine Aufgaben unnoetig viel Kontext und Testlaufzeit zu verbrauchen.
 
@@ -9,9 +9,36 @@ Dieses Dokument legt fest, wie Aenderungen am Versorgungs-Kompass geprueft werde
 | Pruefobjekt | Zulässige Daten und Authentisierung | Verbotener Fallback |
 | --- | --- | --- |
 | `pages-demo` / `dist/pages` | ausschliesslich synthetische Demo-Daten, `anonymous-demo` | Fach-API, Supabase, Target-Konfiguration, echte Sitzungen oder echte Registrierungen |
-| `target` / `dist/target` | fachliche Daten ausschliesslich ueber `/api/...`; OIDC im Zielbetrieb, IAP nur im GKE-Pre-Integrationspfad | Demo-Daten, direkter Browser-Supabase-Zugriff, LocalStorage-Fachdaten oder LocalStorage-Ersatzsitzung |
+| `target` / `dist/target` | Daten ausschliesslich ueber `/api/...`; OIDC im gematik-PoC und einem spaeteren Zielpfad, IAP nur im GKE-Pre-Integrationspfad | Demo-Daten, direkter Browser-Supabase-Zugriff, LocalStorage-Fachdaten oder LocalStorage-Ersatzsitzung |
 
 Pages bleibt als oeffentliche Demo aktiv. Eine erfolgreiche Pages-Pruefung ist kein Nachweis fuer die Realanwendung; umgekehrt darf ein Target-Test nie das Pages-Artefakt mit echter Konfiguration nachruesten.
+
+## Blockierende Gates fuer einen gematik-PoC-RC
+
+Die [Release-Candidate-Strategie](../betrieb-und-deployment/RELEASE_CANDIDATE_STRATEGIE.md)
+ist fuer einen PoC-RC fuehrend. Der Check laeuft auf einem sauberen Checkout des
+exakten RC-Commits, nicht auf einem beweglichen lokalen Arbeitsstand.
+
+Mindestens blockierend sind:
+
+- der schlanke, PoC-spezifische Repo-Vertrag `npm run check:poc-rc`,
+- Dependency-, SAST- und Secret-Pruefungen der CI,
+- Target-Readiness, Target-Artefaktaudit, Security- und Deployment-Vertraege,
+- API-Image bauen, als Non-Root-Prozess starten und `/api/healthz` pruefen,
+- Helm linten und mit kleinen PoC-Werten rendern,
+- nach Deployment OIDC-/Session-, DB- und synthetischen CRUD-Smoke ausfuehren,
+- Tag, Commit, API-Digest und Frontend-Hash gemeinsam nachweisen.
+
+Target-Readiness, der vorhandene `validate_only`-Pfad von
+`deploy-pre-gematik.yml` und die Jenkins-Referenzpipeline bauen und starten das
+API-Image und pruefen `/api/healthz`. Der `validate_only`-Lauf kann als
+zusaetzlicher, manuell ausgeloester RC-Nachweis genutzt werden.
+
+Die komplette visuelle Matrix bleibt fuer Produktentwicklung und groessere
+Releases sinnvoll. Beim ersten Infrastruktur-PoC blockiert nur der vorher
+vereinbarte Desktop-Kernpfad aus `npm run test:poc-smoke`; nicht betroffene visuelle Abweichungen duerfen mit
+Owner und Folgeschritt dokumentiert werden. Auth, Datenisolation, Secrets,
+Containerstart und API-/Target-Grenzen sind nie abwaehlbar.
 
 ## QA-Stufen
 

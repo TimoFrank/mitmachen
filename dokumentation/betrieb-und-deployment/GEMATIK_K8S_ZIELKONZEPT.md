@@ -1,5 +1,12 @@
 # Zielkonzept gematik Kubernetes
 
+> [!NOTE]
+> **Einordnung:** Dieses Dokument beschreibt das langfristige technische
+> Zielbild. Der aktuelle naechste Schritt ist nur der befristete, synthetische
+> [gematik-interne PoC](POC_GEMATIK_DURCHSTICH.md). Object Storage,
+> Datenmigration, Hochverfuegbarkeit, Servicewerte und vollstaendige
+> Betriebsuebernahme sind keine PoC-Gates.
+
 Status: fachlich-technisches Zielbild; Plattformauspraegung und Betriebsfreigabe offen
 
 Stand: 18. Juli 2026
@@ -187,7 +194,7 @@ Das ausfuellbare [Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md) ist Teil des N
 
 ## Offene Plattformfragen
 
-Die Entscheidungen werden mit IDs D-01 bis D-16 in [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md) gefuehrt. Besonders kritisch sind:
+Diese Fragen werden erst vor einem moeglichen spaeteren Regelbetrieb verbindlich entschieden. Besonders relevant sind:
 
 - Ziel-URL, same-origin Routing und Gateway-/SSO-Header,
 - institutionelle Owner fuer Profile, Rollen und Break-glass,

@@ -28,6 +28,10 @@ data:
   DB_NAME: {{ .Values.database.name | quote }}
   DB_USER: {{ .Values.database.user | quote }}
   DB_SSL: {{ .Values.database.ssl | quote }}
+  {{- if .Values.database.sslCaSecretName }}
+  DB_SSL_CA_FILE: "/run/secrets/postgres/ca.crt"
+  {{- end }}
+  DB_SSL_SERVERNAME: {{ .Values.database.sslServerName | quote }}
   DB_POOL_MAX: {{ .Values.database.poolMax | quote }}
   PROFILE_IMAGE_BUCKET: {{ .Values.storage.profileImageBucket | quote }}
   CONTACT_IMAGE_BUCKET: {{ .Values.storage.contactImageBucket | quote }}

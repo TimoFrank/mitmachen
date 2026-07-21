@@ -1,17 +1,45 @@
 # Deployment-Checkliste
 
-Status: verbindliche Repo-Checkliste; Zielplattformwerte und Freigaberollen zu bestaetigen
+Status: kleine PoC-RC-Checkliste mit spaeterer Regelbetriebsreferenz
 
-Stand: 20. Juli 2026
+Stand: 21. Juli 2026
 
 ## Zuerst den Kanal bestimmen
 
 - [ ] **Pages Demo:** `dist/pages/`, ausschliesslich synthetisch und niemals als GKE-Staging oder Realanwendung bezeichnen.
 - [ ] **`pre-gematik`:** `dist/target/`, temporaere GCP-Pre-Integration; standardmaessig synthetisch/anonymisiert, geschuetzte Echtdaten nur in einem ausdruecklich freigegebenen, befristeten Pilot nach G-01 bis G-07 einschliesslich G-04a und G-04b im [Migrationsplan](SUPABASE_CLOUD_SQL_MIGRATION.md). Eine Pilotfreigabe ist keine Zielbetriebs- oder Produktionsfreigabe.
-- [ ] **Zielbetrieb:** `dist/target/` plus API-Image-Digest, Software Factory und bestaetigte Betriebsfreigabe.
+- [ ] **gematik-interner PoC:** `dist/target/` plus API-Image-Digest aus festem RC-Tag, Software Factory, befristeter Non-Prod-Namespace und ausschliesslich synthetische Daten.
+- [ ] **Spaeterer Regelbetrieb:** eigene Freigabestufe; nicht mit dem aktuellen PoC gleichsetzen.
 - [ ] Es gibt keine versionierte Pages-Publish-Kopie; `dist/pages/` wird als GitHub-Actions-Artefakt direkt veroeffentlicht.
 
-## Allgemein vor jedem Release
+## gematik-PoC-RC: blockierende Minimalcheckliste
+
+Fuehrend sind [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md) und
+[Release-Candidate-Strategie](RELEASE_CANDIDATE_STRATEGIE.md).
+
+- [ ] RC-Checkout ist sauber; Tag und voller Git-SHA sind festgelegt.
+- [ ] `npm ci`, Repository-Check, Security-Vertraege und vereinbarte Audits sind auf diesem SHA gruen.
+- [ ] `dist/target/` ist sauber gebaut und das Target-Audit ist gruen.
+- [ ] API-Image ist gebaut, als Non-Root-Container gestartet und `/api/healthz` ist gruen.
+- [ ] API-Digest, Frontend-Hash/Manifest und Helm-Render tragen dieselbe Release-ID.
+- [ ] Helm-Chart ist mit dem [kleinen PoC-Overlay](../../deploy/helm/versorgungs-kompass/values-poc-gematik.yaml) ohne Secrets gelintet und gerendert; Platzhalter sind durch institutionelle Werte ersetzt.
+- [ ] Dedizierte, disponible PostgreSQL-Datenbank ist nach dem
+  [PoC-Runbook](../../deploy/postgres/poc-gematik/README.md) mit synthetischem
+  Seed aufgebaut; Plattform-DB-Admin hat die clusterweite Runtime-Rolle geprueft.
+- [ ] Zwei bis fuenf OIDC-Testidentitaeten sind ausschliesslich an die
+  vorgesehenen synthetischen Profile gebunden; System-Truststore oder CA-Secret
+  und optionaler TLS-Servername sind geklaert.
+- [ ] Interne URL, OIDC/SSO, `/api/readyz` und `/api/session` funktionieren; unbekannte Identitaeten werden abgewiesen.
+- [ ] Lesen und Aendern eines synthetischen Testdatensatzes funktionieren.
+- [ ] Derselbe RC kann reproduzierbar erneut bereitgestellt werden.
+- [ ] Bekannte nicht sicherheitsrelevante Abweichungen besitzen Owner und Folgeschritt.
+- [ ] Review-, End- oder Verlaengerungsdatum der befristeten Umgebung ist dokumentiert.
+
+Uploads, Object Storage, Echtdatenmigration, Hochverfuegbarkeit, individuelle
+SLO/RTO/RPO, Service Desk, Hypercare und vollstaendige Betriebsuebernahme sind
+keine PoC-Gates.
+
+## Allgemein fuer groessere Pilot-/Regelbetriebsreleases – nicht PoC-gating
 
 - [ ] `git status --short` pruefen; keine fremden/unbeabsichtigten Dateien einbeziehen.
 - [ ] eindeutige Git-Revision und Release-ID festlegen.
@@ -91,9 +119,9 @@ Fuehrendes Runbook: [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md).
 - [ ] Frontendnetzwerk zeigt ausschliesslich den erwarteten Target-Vertrag.
 - [ ] Ergebnisse und offene Zielabweichungen sind dokumentiert.
 
-## Zielbetrieb: Definition of Ready
+## Spaeterer Regelbetrieb: Definition of Ready – nicht PoC-gating
 
-- [ ] D-01 bis D-16 aus [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md) sind entschieden oder als freigegebene Ausnahme dokumentiert.
+- [ ] Die langfristigen Plattform- und Betriebsentscheidungen aus [Zielkonzept](GEMATIK_K8S_ZIELKONZEPT.md), [RACI](BETRIEBSVERANTWORTUNG_RACI.md) und [Betriebshandbuch](BETRIEB.md) sind entschieden oder als freigegebene Ausnahme dokumentiert.
 - [ ] RACI besitzt benannte `A`- und `R`-Rollen.
 - [ ] Datenklasse, Pilotumfang, Retention und Loeschung sind freigegeben.
 - [ ] Ziel-URL, Gateway/SSO, Header, Namespace, DB, Storage und Secrets sind integriert getestet.
@@ -107,7 +135,7 @@ Fuehrendes Runbook: [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md).
 - [ ] Monitoring, Logs, Alerts, Service Desk und Incidentweg sind abnahmebereit.
 - [ ] Cutover-/Rollbackkriterien und Kommunikationsplan sind freigegeben.
 
-## Zielbetrieb: Releasepruefung
+## Spaeterer Regelbetrieb: Releasepruefung – nicht PoC-gating
 
 ### Build und Lieferkette
 
@@ -158,7 +186,7 @@ Fuehrendes Runbook: [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md).
 - [ ] Datenbankmigration ist rueckwaertskompatibel oder Restore/Forward-Fix ist freigegeben.
 - [ ] nach Zielschreibzugriffen erfolgt keine Rueckschaltung ohne Datenentscheidung.
 
-## Zielbetrieb: Definition of Done
+## Spaeterer Regelbetrieb: Definition of Done – nicht PoC-gating
 
 - [ ] ausgefuelltes [Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md) mit Revision, Digests, Manifesten und Freigaben.
 - [ ] technische, fachliche, Security- und Datenschutzabnahmen gemaess Einstufung liegen vor.
@@ -172,4 +200,7 @@ Fuehrendes Runbook: [Deployment GCP Autopilot](DEPLOYMENT_GCP_AUTOPILOT.md).
 
 ## Schnellurteil
 
-Ein erfolgreicher Build, ein gruener Pod oder HTTP `200` allein ist kein erfolgreiches Zieldeployment. Das Deployment ist erst freigegeben, wenn das unveraenderliche Releasepaar, Sicherheitsgrenze, Datenkonsistenz, Betriebsnachweise, Rollback und die erforderlichen Verantwortlichen gemeinsam bestaetigt sind.
+Fuer den PoC reicht kein gruener Build allein: Releasepaar, Containerstart,
+Zugriffsgrenze und synthetischer Kern-Smoke muessen gemeinsam stimmen. Die
+zusaetzlichen Nachweise zu Migration, Servicewerten, Restore und
+Betriebsuebernahme gelten erst fuer einen moeglichen spaeteren Regelbetrieb.

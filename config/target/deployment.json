@@ -1,7 +1,7 @@
 {
   "$schema": "../deployment-profile.schema.json",
   "id": "target",
-  "purpose": "Künftiger interner gematik-Zielbetrieb über die kontrollierte Software Factory",
+  "purpose": "Befristeter gematik-interner PoC und spaeterer Zielpfad ueber die kontrollierte Software Factory",
   "status": "planned",
   "buildProfile": "target",
   "sourceRoots": ["frontend", "public", "api"],
@@ -15,7 +15,7 @@
   },
   "route": null,
   "dataMode": "api",
-  "dataPolicy": "approved-classes-only",
+  "dataPolicy": "synthetic-only",
   "authModes": ["oidc"],
   "forbiddenInputs": ["dist/pages", "frontend/demo", "frontend/data/demo-data.js"]
 }
