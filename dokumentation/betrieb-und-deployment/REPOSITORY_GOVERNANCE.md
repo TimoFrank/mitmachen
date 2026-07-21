@@ -1,6 +1,6 @@
 # Repository-Governance vor Pilot und Zielbetrieb
 
-Stand: 19. Juli 2026
+Stand: 21. Juli 2026
 
 Ein Teil dieser Einstellungen liegt ausserhalb des Git-Repositories. Der technische Basisschutz ist aktiv; institutionelle Team- und Zielbetriebsfreigaben bleiben offen.
 
@@ -51,10 +51,18 @@ Die Pre-Integration verwendet standardmaessig nur synthetische oder belastbar an
 - Die zulaessigen Actions/Organisationen nach interner Supply-Chain-Richtlinie beschraenken.
 - Selbst gehostete Runner als nicht isolierte Infrastruktur behandeln und Secretzugriff entsprechend begrenzen.
 
-## 6. CODEOWNERS
+## 6. Roadmap- und Backlog-Pflege
+
+- Milestones buendeln Issues nach Lieferziel oder Release. Der Fortschritt ergibt sich aus den tatsaechlichen Issue-Zustaenden, nicht aus manuell duplizierten Checklisten.
+- GitHub Projects pflegt Reihenfolge, Phase, Prioritaet und teamuebergreifende Statusfelder in geeigneten Views.
+- Einzel-Issues bleiben die Quelle fuer Scope, Abhaengigkeiten, Akzeptanzkriterien und aktuelle Testnachweise.
+- Roadmap-Zusammenfassungen verlinken Milestone, Project-View, Issues, Pull Requests oder Tests auf dem aktuellen Standardbranch. Commit-SHAs aus umgeschriebener oder bereinigter Historie sind kein dauerhafter Statusnachweis.
+- Abgeschlossene Roadmap-Issues werden geschlossen und bleiben als historische Zusammenfassung unveraendert.
+
+## 7. CODEOWNERS
 
 `.github/CODEOWNERS` ist aktiv und nennt mit `@TimoFrank` ausschliesslich einen bestaetigten, realen Repository-Account. Damit ist heute eindeutig sichtbar, wer Aenderungen an Anwendung, Deployment, Datenvertrag und Sicherheitsgrenzen fachlich beziehungsweise technisch pruefen muss. Sobald institutionelle Produkt-, Plattform-, Daten- und Security-Teams in der Zielorganisation existieren, ersetzt die Repository-Administration diesen Uebergangs-Owner durch die bestaetigten Teamhandles. Eine verpflichtende Code-Owner-Freigabe wird erst aktiviert, wenn mindestens eine zweite unabhaengige Person reviewen kann.
 
-## 7. Nachweis
+## 8. Nachweis
 
 Die wirksamen Einstellungen werden vor Pilotstart im [Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md) referenziert. Abweichungen erhalten Owner, Frist und ausdrueckliche Risikofreigabe.

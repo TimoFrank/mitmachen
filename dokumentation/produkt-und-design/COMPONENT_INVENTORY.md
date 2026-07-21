@@ -1,6 +1,6 @@
 # Component Inventory
 
-Stand: 2026-05-16. Analysebasis sind die aktuellen UI-Quellen in `frontend/app/versorgungs-kompass.html`, `frontend/map/versorgungs-kompass-map.html` und `frontend/login/login.html`. Generierte `dist/`-Artefakte duerfen nicht als fuehrende Quelle fuer neue UI-Entscheidungen dienen.
+Stand: 2026-07-21. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihren externen CSS-/JS-Assets unter `frontend/app/`, `frontend/map/`, `frontend/login/` und `frontend/pages/mitmachen/`. Generierte `dist/`-Artefakte duerfen nicht als fuehrende Quelle fuer neue UI-Entscheidungen dienen.
 
 ## Buttons
 
@@ -111,6 +111,7 @@ Stand: 2026-05-16. Analysebasis sind die aktuellen UI-Quellen in `frontend/app/v
 
 ## Aktuelle Konsolidierungsanker
 
-- Tokens in `:root`: Farben, Radius, Shadow, Spacing und Typografie sind in `frontend/app/versorgungs-kompass.html` und `frontend/map/versorgungs-kompass-map.html` vorhanden.
-- Spaete Override-Schicht: Kommentar `Design system consolidation layer` in `frontend/app/versorgungs-kompass.html` und eine aehnliche Normalisierung am Ende der Karten-CSS.
-- Zielzustand: Diese Regeln muessen in echte Komponenten-/Tokenstrukturen ueberfuehrt werden, nicht weiter als Override-Schicht wachsen.
+- Asset-Grenze: Markup liegt in den HTML-Einstiegspunkten, Darstellung und Verhalten in den jeweils zugeordneten CSS-/JS-Dateien. Neue Inline-Stylesheets, Inline-Skripte und Inline-Event-Handler sind nicht zulaessig.
+- Tokens in `:root`: Farben, Radius, Shadow, Spacing und Typografie liegen in `frontend/app/versorgungs-kompass.css` und `frontend/map/versorgungs-kompass-map.css`.
+- Verbleibende Konsolidierungsschuld: Die ehemalige `Design system consolidation layer` liegt jetzt in `frontend/app/versorgungs-kompass.css`; die Karten-CSS besitzt weiterhin spaete Normalisierungen und `!important`-Regeln.
+- Zielzustand: Externe CSS-/JS-Assets schrittweise nach Tokens, Primitives, Komponenten und fachlichen Views modularisieren. Bestehende spaete Regeln dabei abbauen, nicht durch neue Override-Schichten ergaenzen.

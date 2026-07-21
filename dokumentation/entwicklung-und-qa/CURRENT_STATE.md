@@ -1,11 +1,12 @@
 # Current State
 
-Stand: 2026-07-19.
+Stand: 2026-07-21.
 
 ## Aktiver Arbeitsmodus
 
-- Fuehrende App-Dateien: `frontend/app/versorgungs-kompass.html`, `frontend/map/versorgungs-kompass-map.html`, `frontend/login/login.html`.
-- GitHub Pages wird per GitHub Actions aus `dist/pages/` veroeffentlicht; es gibt keinen versionierten Publish-Spiegel.
+- Fuehrende App-Quellen: `frontend/app/versorgungs-kompass.html` fuer das Markup sowie `frontend/app/versorgungs-kompass.css` und `frontend/app/versorgungs-kompass.js` fuer Darstellung und Verhalten. Karte, Login, Hospitation und oeffentliche #Mitmachen-Seiten folgen demselben Muster mit eigenen HTML-, CSS- und gegebenenfalls JS-Dateien.
+- Produktive HTML-Einstiegspunkte enthalten keine Inline-Stylesheets, Inline-Skripte oder Inline-Event-Handler. `scripts/test_security_contracts.mjs` sichert diese CSP-relevante Grenze ab.
+- GitHub Pages wird per GitHub Actions als reproduzierbares `dist/pages/`-Artefakt gebaut und veroeffentlicht. Das Artefakt nutzt die App-Quellen mit einem anonymen, rein synthetischen Demo-Datenadapter; es gibt keinen versionierten Publish-Spiegel.
 - Kleine UI-Wuensche starten im Effizienzmodus aus `QA_WORKFLOW.md`.
 - Bei sichtbaren UI-Aenderungen bleiben `../produkt-und-design/DESIGN_SYSTEM.md`, `../produkt-und-design/UX_PRINCIPLES.md`, `../produkt-und-design/COMPONENT_INVENTORY.md`, `../produkt-und-design/UI_TECH_DEBT.md` und `../produkt-und-design/VISUAL_QA_CHECKLIST.md` die relevanten Leitplanken.
 
@@ -26,7 +27,8 @@ Stand: 2026-07-19.
 
 - Der In-App-Browser kann je nach Sitzung LocalStorage-Schreibzugriffe blockieren. Fuer reproduzierbare lokale QA daher Playwright mit `gotoAuthenticated` bevorzugen.
 - `playwright.config.js` nutzt Port `4173` und darf bestehende lokale Server wiederverwenden. Bei merkwuerdigen Testergebnissen pruefen, ob ein alter Server noch denselben Port belegt.
-- `frontend/app/versorgungs-kompass.html` ist weiterhin gross und override-lastig. Bei kleinen Aenderungen gezielt suchen und patchen, nicht breit refactoren.
+- Die groessten UI-Dateien sind jetzt `frontend/app/versorgungs-kompass.css` und `frontend/app/versorgungs-kompass.js`. Bei kleinen Aenderungen im zustaendigen Selektor beziehungsweise Funktionsbereich arbeiten und keine neuen Inline-Bloecke in HTML einfuehren.
+- `frontend/app/versorgungs-kompass.css` enthaelt noch die fruehere Konsolidierungsschicht und spaete, ansichtsbezogene Regeln. Diese technische Schuld ist in `../produkt-und-design/UI_TECH_DEBT.md` beschrieben; sie macht die HTML-Datei selbst nicht mehr override-lastig.
 
 ## Git-Status-Regel
 

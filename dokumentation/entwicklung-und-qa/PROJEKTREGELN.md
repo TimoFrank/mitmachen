@@ -66,7 +66,8 @@ Diese Regeln gelten fuer assistierte und manuelle Arbeit im Versorgungs-Kompass.
 
 - Vor selektiven UI-Verbesserungen zuerst `dokumentation/produkt-und-design/UI_TECH_DEBT.md` lesen.
 - P0-Schulden haben Vorrang vor neuen kosmetischen Einzelkorrekturen.
-- Die bestehende CSS-Override-Schicht ist Uebergang, nicht Zielarchitektur.
+- Die produktiven HTML-Einstiegspunkte bleiben frei von Inline-Stylesheets, Inline-Skripten und Inline-Event-Handlern.
+- Die ehemalige CSS-Konsolidierungsschicht liegt in `frontend/app/versorgungs-kompass.css` und ist Uebergang, nicht Zielarchitektur. Neue UI-Regeln gehoeren in das zustaendige externe Stylesheet und sollen bestehende Varianten reduzieren.
 
 ## Review-Fragen fuer neue UI
 
