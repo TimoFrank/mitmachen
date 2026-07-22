@@ -227,6 +227,12 @@ requirePattern(pagesFile, pages, /forbidden_path[\s\S]*data\/supabase-config\.js
 const targetFile = ".github/workflows/deploy-pre-gematik.yml";
 const target = read(targetFile);
 requirePattern(targetFile, target, /environment:\s*[\s\S]*?name:\s*pre-gematik/, "Environment pre-gematik fehlt.");
+requirePattern(
+  targetFile,
+  target,
+  /Checkout requested revision[\s\S]*?actions\/checkout@[a-f0-9]{40}[\s\S]*?fetch-depth:\s*0[\s\S]*?Run repository checks/,
+  "Die Deploy-Validierung benoetigt die vollstaendige Git-Historie fuer den Release-Check."
+);
 requirePattern(targetFile, target, /dist\/target/, "Pre-Integration muss aus dist/target deployen.");
 requirePattern(targetFile, target, /image\.digest/, "Helm-Deployment muss den gebauten Image-Digest setzen.");
 requirePattern(targetFile, target, /releases\/\$\{?[^\n}]*(?:IMAGE_TAG|FRONTEND_RELEASE_ID)/, "Frontend muss in einen versionierten Release-Praefix geschrieben werden.");
