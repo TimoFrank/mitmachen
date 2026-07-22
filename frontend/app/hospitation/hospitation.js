@@ -70,3 +70,33 @@
         };
         revealWhenReady();
       });
+
+      async function addAdminImportLink() {
+        const config = window.VERSORGUNGS_COMPASS_CONFIG || {};
+        if (config.dataMode !== "api" || !["iap", "oidc"].includes(config.authMode)) return;
+        const apiBaseUrl = String(config.apiBaseUrl || "").replace(/\/+$/, "");
+        const profileUrl = new URL(`${apiBaseUrl}/api/profile`, window.location.origin);
+        if (profileUrl.origin !== window.location.origin) return;
+        try {
+          const response = await fetch(profileUrl.href, {
+            headers: { Accept: "application/json" },
+            credentials: config.apiCredentials || "same-origin"
+          });
+          if (!response.ok) return;
+          const profile = await response.json();
+          if (String(profile?.role || "").toLowerCase() !== "admin") return;
+          const actions = document.querySelector(".hospitation-app-actions");
+          if (!actions || actions.querySelector("[data-hospitation-admin-import-link]")) return;
+          const link = document.createElement("a");
+          link.className = "hospitation-admin-import-link";
+          link.href = "./import.html";
+          link.dataset.hospitationAdminImportLink = "";
+          link.textContent = "Datenübernahme";
+          link.title = "Lokalen Staging-Stand geprüft übernehmen";
+          actions.append(link);
+        } catch {
+          // Ohne verifizierbares Admin-Profil bleibt das Werkzeug fail-closed verborgen.
+        }
+      }
+
+      addAdminImportLink();

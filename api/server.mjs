@@ -7,6 +7,15 @@ import "../frontend/data/activity-model.js";
 import { careSectorForRead, careSectorForWrite } from "./care-sector-model.mjs";
 import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
 import {
+  HOSPITATION_IMPORT_CONFIRMATION,
+  HOSPITATION_IMPORT_SCHEMA_VERSION,
+  buildHospitationImportPlan,
+  importRunIdForManifest,
+  manifestFingerprint as fingerprintHospitationManifest,
+  normalizeHospitationImportManifest,
+  targetFingerprint as fingerprintHospitationTarget
+} from "./hospitation-import.mjs";
+import {
   assertSensitiveQueryPermission,
   policyForRequest,
   roleRank,
@@ -518,6 +527,8 @@ const AUTH_EMAIL_HEADER = String(process.env.AUTH_EMAIL_HEADER || "x-auth-reques
 const AUTH_SUBJECT_HEADER = String(process.env.AUTH_SUBJECT_HEADER || "x-auth-request-user").toLowerCase();
 const OUTBOUND_FETCH_TIMEOUT_MS = Math.max(1000, Number(process.env.OUTBOUND_FETCH_TIMEOUT_MS || 5000));
 const REQUEST_BODY_LIMIT_BYTES = Math.max(64 * 1024, Number(process.env.REQUEST_BODY_LIMIT_BYTES || 2 * 1024 * 1024));
+const HOSPITATION_IMPORT_MANIFEST_LIMIT_BYTES = 1024 * 1024;
+const HOSPITATION_IMPORT_OWNER_PROFILE_ID = String(process.env.HOSPITATION_IMPORT_OWNER_PROFILE_ID || "").trim();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_READS = Math.max(10, Number(process.env.RATE_LIMIT_READS_PER_MINUTE || 240));
 const RATE_LIMIT_WRITES = Math.max(5, Number(process.env.RATE_LIMIT_WRITES_PER_MINUTE || 60));
@@ -810,6 +821,8 @@ const HOSPITATION_OBSERVATION_INPUT_FIELDS = [
   "status", "archivedAt", "archived_at", "archivedBy", "archived_by",
   "archiveReason", "expectedUpdatedAt"
 ];
+const HOSPITATION_IMPORT_PREVIEW_FIELDS = ["manifest"];
+const HOSPITATION_IMPORT_APPLY_FIELDS = ["manifest", "manifestFingerprint", "targetFingerprint", "confirmation", "backupConfirmed"];
 const HOSPITATION_ROADMAP_ASSESSMENT_INPUT_FIELDS = [
   "id",
   "hospitationId",
@@ -3151,6 +3164,10 @@ const TABLE_FIELDS = new Map(Object.entries({
   organizations: ORGANIZATION_FIELDS,
   organization_primary_systems: ORGANIZATION_PRIMARY_SYSTEM_FIELDS,
   profiles: PROFILE_FIELDS,
+  import_runs: [
+    "id", "file_name", "status", "total_rows", "valid_rows", "imported_contacts",
+    "skipped_rows", "error_count", "warning_count", "report", "created_at", "created_by"
+  ],
   changes: CHANGE_FIELDS,
   activity_events: ACTIVITY_EVENT_FIELDS,
   contact_notes: CONTACT_NOTE_FIELDS,
@@ -6064,6 +6081,283 @@ async function listHospitations(request, url) {
   return { items };
 }
 
+function hospitationImportConflict(message, code = "hospitation_import_conflict") {
+  const error = new Error(message);
+  error.status = 409;
+  error.code = code;
+  return error;
+}
+
+function assertHospitationImportFingerprint(value, label) {
+  const normalized = String(value || "").trim();
+  if (!/^sha256:[a-f0-9]{64}$/u.test(normalized)) {
+    throw validationError(`${label} muss ein vollstaendiger SHA-256-Fingerprint sein.`);
+  }
+  return normalized;
+}
+
+function assertHospitationImportManifestSize(value) {
+  const encoded = JSON.stringify(value ?? null);
+  if (Buffer.byteLength(encoded, "utf8") > HOSPITATION_IMPORT_MANIFEST_LIMIT_BYTES) {
+    const error = new Error("Das Hospitations-Staging-Manifest darf maximal 1 MB groß sein.");
+    error.status = 413;
+    error.code = "hospitation_import_manifest_too_large";
+    throw error;
+  }
+}
+
+async function resolveHospitationImportOwner(request, transaction = null) {
+  const rows = await cloudSqlRest("profiles", request, new URLSearchParams({
+    select: PROFILE_FIELDS.join(","),
+    active: "eq.true",
+    order: "id.asc"
+  }), transaction ? { transaction } : {});
+  const candidates = HOSPITATION_IMPORT_OWNER_PROFILE_ID
+    ? (rows || []).filter((profile) => profile.id === HOSPITATION_IMPORT_OWNER_PROFILE_ID)
+    : (rows || []).filter((profile) => String(profile.display_name || "").trim().toLocaleLowerCase("de-DE") === "timo frank");
+  if (candidates.length !== 1) {
+    throw hospitationImportConflict(
+      HOSPITATION_IMPORT_OWNER_PROFILE_ID
+        ? "Das konfigurierte Timo-Owner-Profil ist nicht genau einem aktiven Produktionsprofil zugeordnet."
+        : "Das Owner-Alias timo-frank konnte nicht eindeutig einem aktiven Produktionsprofil zugeordnet werden. Bitte HOSPITATION_IMPORT_OWNER_PROFILE_ID konfigurieren.",
+      "owner_mapping_conflict"
+    );
+  }
+  return candidates[0];
+}
+
+async function loadHospitationImportTarget(request, transaction = null) {
+  const options = transaction ? { transaction } : {};
+  const organizations = await cloudSqlRest("organizations", request, new URLSearchParams({
+    select: ORGANIZATION_FIELDS.join(","), order: "id.asc"
+  }), options);
+  const contacts = await cloudSqlRest("contacts", request, new URLSearchParams({
+    select: CONTACT_FIELDS.join(","), order: "id.asc"
+  }), options);
+  const contactOwners = await cloudSqlRest("contact_owners", request, new URLSearchParams({
+    select: CONTACT_OWNER_FIELDS.join(","), order: "contact_id.asc,profile_id.asc"
+  }), options);
+  const hospitations = await cloudSqlRest("hospitations", request, new URLSearchParams({
+    select: HOSPITATION_FIELDS.join(","), order: "id.asc"
+  }), options);
+  const observations = await cloudSqlRest("hospitation_observations", request, new URLSearchParams({
+    select: HOSPITATION_OBSERVATION_FIELDS.join(","), order: "id.asc"
+  }), options);
+  return {
+    organizations: organizations || [],
+    contacts: contacts || [],
+    contact_owners: contactOwners || [],
+    hospitations: hospitations || [],
+    hospitation_observations: observations || []
+  };
+}
+
+function hospitationImportPreviewResponse(manifest, ownerProfile, target, plan) {
+  return {
+    schemaVersion: HOSPITATION_IMPORT_SCHEMA_VERSION,
+    snapshot: manifest.snapshot,
+    owner: { id: ownerProfile.id, displayName: ownerProfile.display_name || "Timo Frank" },
+    manifestFingerprint: fingerprintHospitationManifest(manifest),
+    targetFingerprint: fingerprintHospitationTarget(target, ownerProfile),
+    summary: plan.summary,
+    items: plan.publicItems,
+    conflicts: plan.conflicts,
+    canApply: plan.canApply
+  };
+}
+
+async function previewHospitationImport(request) {
+  const body = await readValidatedJsonBody(request, HOSPITATION_IMPORT_PREVIEW_FIELDS, "Hospitations-Importvorschau");
+  assertHospitationImportManifestSize(body.manifest);
+  const manifest = normalizeHospitationImportManifest(body.manifest);
+  const ownerProfile = await resolveHospitationImportOwner(request);
+  const target = await loadHospitationImportTarget(request);
+  const plan = buildHospitationImportPlan(manifest, target, ownerProfile);
+  return hospitationImportPreviewResponse(manifest, ownerProfile, target, plan);
+}
+
+function importRowsFor(plan, entityType) {
+  return (plan.items[entityType] || []).filter((item) => ["create", "update"].includes(item.action));
+}
+
+async function persistHospitationImportRow(request, transaction, table, item, actorId, now) {
+  const semanticChanges = item.changedFields.filter((field) => field !== "ownerIds");
+  if (item.action === "update" && !semanticChanges.length) return;
+  const body = item.action === "update"
+    ? Object.fromEntries(semanticChanges.map((field) => [field, item.record[field]]))
+    : { ...item.record };
+  delete body.id;
+  body.updated_by = actorId;
+  body.updated_at = now;
+  if (item.action === "create") {
+    body.id = item.targetId;
+    body.created_by = actorId;
+    body.created_at = table === "hospitation_observations" && item.source.createdAt
+      ? item.source.createdAt
+      : now;
+    await cloudSqlRest(table, request, new URLSearchParams({ select: "id" }), {
+      method: "POST",
+      headers: { prefer: "return=representation" },
+      body,
+      transaction
+    });
+    return;
+  }
+  const rows = await cloudSqlRest(table, request, new URLSearchParams({
+    id: `eq.${item.targetId}`,
+    select: "id"
+  }), {
+    method: "PATCH",
+    headers: { prefer: "return=representation" },
+    body,
+    transaction
+  });
+  if (!rows?.[0]) throw hospitationImportConflict(`${item.entityType} ${item.targetId} wurde waehrend des Imports veraendert.`, "target_changed_during_apply");
+}
+
+async function persistHospitationImportPlan(request, transaction, plan, actorId, now) {
+  const tableByType = {
+    organizations: "organizations",
+    contacts: "contacts",
+    hospitations: "hospitations",
+    observations: "hospitation_observations"
+  };
+  for (const entityType of ["organizations", "contacts", "hospitations", "observations"]) {
+    for (const item of importRowsFor(plan, entityType)) {
+      await persistHospitationImportRow(request, transaction, tableByType[entityType], item, actorId, now);
+    }
+  }
+  for (const item of plan.items.contacts.filter((entry) => entry.action !== "conflict" && entry.ensureOwnerRelation)) {
+    await cloudSqlRest("contact_owners", request, new URLSearchParams({ on_conflict: "contact_id,profile_id" }), {
+      method: "POST",
+      headers: { prefer: "resolution=ignore-duplicates,return=minimal" },
+      body: {
+        contact_id: item.targetId,
+        profile_id: plan.ownerProfile.id,
+        assigned_at: now,
+        assigned_by: actorId
+      },
+      transaction
+    });
+  }
+}
+
+async function applyHospitationImport(request) {
+  const body = await readValidatedJsonBody(request, HOSPITATION_IMPORT_APPLY_FIELDS, "Hospitations-Importfreigabe");
+  assertHospitationImportManifestSize(body.manifest);
+  if (body.confirmation !== HOSPITATION_IMPORT_CONFIRMATION) {
+    throw validationError(`confirmation muss exakt ${HOSPITATION_IMPORT_CONFIRMATION} lauten.`);
+  }
+  if (body.backupConfirmed !== true) {
+    throw validationError("backupConfirmed muss true sein; Backup beziehungsweise PITR-Punkt muss vor dem Import bestaetigt sein.");
+  }
+  const confirmedManifestFingerprint = assertHospitationImportFingerprint(body.manifestFingerprint, "manifestFingerprint");
+  const confirmedTargetFingerprint = assertHospitationImportFingerprint(body.targetFingerprint, "targetFingerprint");
+  const manifest = normalizeHospitationImportManifest(body.manifest);
+  const currentManifestFingerprint = fingerprintHospitationManifest(manifest);
+  if (currentManifestFingerprint !== confirmedManifestFingerprint) {
+    throw hospitationImportConflict("Das Manifest stimmt nicht mit der bestaetigten Vorschau ueberein.", "manifest_fingerprint_mismatch");
+  }
+  const actorId = userIdFromToken(request);
+  if (!actorId) throw Object.assign(new Error("User-ID konnte nicht aus der authentifizierten Session gelesen werden."), { status: 401 });
+
+  return withDomainTransaction(async (transaction) => {
+    await transaction.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", ["versorgungs-kompass:hospitation-staging-import:v1"]);
+    await transaction.query("lock table public.profiles, public.organizations, public.contacts, public.contact_owners, public.hospitations, public.hospitation_observations, public.import_runs in share row exclusive mode");
+    const ownerProfile = await resolveHospitationImportOwner(request, transaction);
+    const target = await loadHospitationImportTarget(request, transaction);
+    const currentTargetFingerprint = fingerprintHospitationTarget(target, ownerProfile);
+    if (currentTargetFingerprint !== confirmedTargetFingerprint) {
+      throw hospitationImportConflict("Der Produktionsbestand hat sich seit der Vorschau geaendert. Bitte eine neue Vorschau erstellen.", "stale_target_fingerprint");
+    }
+    const plan = buildHospitationImportPlan(manifest, target, ownerProfile);
+    if (plan.conflicts.length) {
+      throw hospitationImportConflict("Der Import enthaelt Konflikte. Bitte eine neue Vorschau erstellen und die Konflikte aufloesen.", "unresolved_import_conflicts");
+    }
+    const importRunId = importRunIdForManifest(manifest);
+    if (plan.summary.total.create + plan.summary.total.update === 0) {
+      return {
+        ok: true,
+        alreadyCurrent: true,
+        importRunId,
+        manifestFingerprint: currentManifestFingerprint,
+        targetFingerprint: currentTargetFingerprint,
+        appliedFingerprint: currentTargetFingerprint,
+        summary: plan.summary
+      };
+    }
+    const existingImportRuns = await cloudSqlRest("import_runs", request, new URLSearchParams({
+      id: `eq.${importRunId}`,
+      select: "id,status,report",
+      limit: "1"
+    }), { transaction });
+    if (existingImportRuns?.[0]) {
+      throw hospitationImportConflict(
+        "Dieses Staging-Manifest wurde bereits erfolgreich angewendet. Fuer eine erneute Uebernahme nach Zielaenderungen muss ein neuer lokaler Snapshot erzeugt und geprueft werden.",
+        "manifest_already_applied"
+      );
+    }
+
+    const now = new Date().toISOString();
+    await persistHospitationImportPlan(request, transaction, plan, actorId, now);
+    const report = {
+      schemaVersion: HOSPITATION_IMPORT_SCHEMA_VERSION,
+      snapshotId: manifest.snapshot.id,
+      manifestFingerprint: currentManifestFingerprint,
+      targetFingerprint: currentTargetFingerprint,
+      ownerProfileId: ownerProfile.id,
+      summary: plan.summary,
+      imageImport: "excluded"
+    };
+    await cloudSqlRest("import_runs", request, new URLSearchParams({
+      on_conflict: "id",
+      select: "id"
+    }), {
+      method: "POST",
+      headers: { prefer: "resolution=ignore-duplicates,return=representation" },
+      body: {
+        id: importRunId,
+        file_name: `${manifest.snapshot.id}.json`,
+        status: "completed",
+        total_rows: plan.summary.total.total,
+        valid_rows: plan.summary.total.total - plan.summary.total.conflict,
+        imported_contacts: plan.summary.contacts.create + plan.summary.contacts.update,
+        skipped_rows: plan.summary.total.unchanged,
+        error_count: 0,
+        warning_count: 0,
+        report,
+        created_at: now,
+        created_by: actorId
+      },
+      transaction
+    });
+    await recordActivityEventInternal(transaction, request, {
+      eventKey: "hospitation.updated",
+      entityType: "hospitation_import",
+      entityId: importRunId,
+      objectLabel: "Hospitations-Staging-Import",
+      originKey: "data_import",
+      originRef: manifest.snapshot.id,
+      details: {
+        manifestFingerprint: currentManifestFingerprint,
+        created: plan.summary.total.create,
+        updated: plan.summary.total.update,
+        unchanged: plan.summary.total.unchanged
+      }
+    });
+    const appliedTarget = await loadHospitationImportTarget(request, transaction);
+    return {
+      ok: true,
+      alreadyCurrent: false,
+      importRunId,
+      manifestFingerprint: currentManifestFingerprint,
+      targetFingerprint: currentTargetFingerprint,
+      appliedFingerprint: fingerprintHospitationTarget(appliedTarget, ownerProfile),
+      summary: plan.summary
+    };
+  });
+}
+
 async function getHospitation(request, id) {
   await loadProfiles(request);
   const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
@@ -6952,6 +7246,10 @@ async function recordActivityEventInternal(transaction, request, input = {}) {
     throw new Error("Interne Aktivitaetsereignisse erfordern entityType und entityId beziehungsweise ein vollstaendiges object.");
   }
   const dbRow = ActivityModel.toDatabaseRow(normalized);
+  // node-postgres serialisiert JavaScript-Arrays als PostgreSQL-Arrays. Die
+  // references-Spalte ist jedoch JSONB; ohne explizites JSON entstuende bei
+  // Objekt-Referenzen ein ungueltiges Array-Literal statt gueltigem JSON.
+  dbRow.references = JSON.stringify(dbRow.references || []);
   dbRow.actor_id = userId;
   dbRow.correlation_id = String(input.correlationId || input.correlation_id || "").trim() || null;
   const { sql, values } = insertSql("activity_events", dbRow, new URLSearchParams());
@@ -7459,6 +7757,12 @@ async function handle(request, response) {
     if (request.method === "GET" && url.pathname === "/api/export") {
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
       return jsonDownload(response, `versorgungs-kompass-cloud-sql-export-${stamp}.json`, await exportCloudSqlData());
+    }
+    if (request.method === "POST" && url.pathname === "/api/admin/hospitation-import/preview") {
+      return jsonResponse(response, 200, await previewHospitationImport(request));
+    }
+    if (request.method === "POST" && url.pathname === "/api/admin/hospitation-import/apply") {
+      return jsonResponse(response, 200, await applyHospitationImport(request));
     }
     if (request.method === "GET" && url.pathname === "/api/contacts") {
       return jsonResponse(response, 200, await listContacts(request, url));

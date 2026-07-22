@@ -39,7 +39,10 @@ for (const required of [
   "login.html",
   "versorgungs-kompass.html",
   "data/data-service.js",
-  "data/runtime-config.js"
+  "data/runtime-config.js",
+  "hospitation/import.html",
+  "hospitation/import.css",
+  "hospitation/import.js"
 ]) {
   assert(actualFiles.includes(required), `${artifactLabel}/${required} fehlt im geschuetzten Target-Artefakt`);
 }
@@ -141,10 +144,43 @@ for (const [pattern, reason] of [
   [/https:\/\/[a-z0-9-]+\.supabase\.co/i, "eine direkte Supabase-Projekt-URL"],
   [/@supabase\/supabase-js|supabase-js@/i, "das Supabase Browser-SDK"],
   [/service[_-]?role/i, "einen Service-Role-Hinweis"],
-  [/storage\/v1\/object\/public\/(?:profile-images|stakeholder-logos|protected-source-assets)/i, "einen oeffentlichen Pfad zu geschuetzten Assets"],
-  [/(?:local-hospitation|localHospitation|HOSPITATION_PRIVATE|document\.write\s*\()/i, "einen lokalen oder privaten Hospitations-Hook"]
+  [/storage\/v1\/object\/public\/(?:profile-images|stakeholder-logos|protected-source-assets)/i, "einen oeffentlichen Pfad zu geschuetzten Assets"]
 ]) {
   assert(!pattern.test(targetText), `${artifactLabel} enthaelt ${reason}`);
+}
+
+const targetTextWithoutImportOperator = actualFiles
+  .filter((file) => textExtensions.has(extname(file)))
+  .filter((file) => !file.startsWith("hospitation/import."))
+  .map((file) => readFileSync(join(artifactRoot, file), "utf8"))
+  .join("\n");
+assert(
+  !/(?:local-hospitation|localHospitation|HOSPITATION_PRIVATE|document\.write\s*\()/i.test(targetTextWithoutImportOperator),
+  `${artifactLabel} enthaelt ausserhalb des geschuetzten Import-Operators einen lokalen oder privaten Hospitations-Hook`
+);
+
+const importHtmlPath = join(artifactRoot, "hospitation", "import.html");
+const importAppPath = join(artifactRoot, "hospitation", "import.js");
+if (existsSync(importHtmlPath) && existsSync(importAppPath)) {
+  const importHtml = readFileSync(importHtmlPath, "utf8");
+  const importApp = readFileSync(importAppPath, "utf8");
+  assert(/\.\.\/auth-config\.js/.test(importHtml) && /\.\.\/auth-guard\.js/.test(importHtml), `${artifactLabel}/hospitation/import.html ist nicht an die Target-Authentisierung gebunden`);
+  assert(/\.\.\/data\/runtime-config\.js/.test(importHtml), `${artifactLabel}/hospitation/import.html laedt die geschuetzte Runtime nicht`);
+  assert(!/<script(?![^>]+src=)[^>]*>/i.test(importHtml), `${artifactLabel}/hospitation/import.html enthaelt ein Inline-Skript`);
+  assert(!/\son[a-z]+\s*=/i.test(importHtml), `${artifactLabel}/hospitation/import.html enthaelt einen Inline-Eventhandler`);
+  for (const contract of [
+    'const SCHEMA_VERSION = "hospitation-staging/v1"',
+    'const OWNER_REF = "timo-frank"',
+    'const CONFIRMATION = "HOSPITATIONEN IMPORTIEREN"',
+    '"/api/admin/hospitation-import/preview"',
+    '"/api/admin/hospitation-import/apply"',
+    'profile?.role || ""',
+    'url.origin !== window.location.origin'
+  ]) {
+    assert(importApp.includes(contract), `${artifactLabel}/hospitation/import.js verletzt den Operatorvertrag: ${contract}`);
+  }
+  assert(!/\b(?:localStorage|sessionStorage|indexedDB|document\.write|eval)\b/.test(importApp), `${artifactLabel}/hospitation/import.js speichert Fachdaten lokal oder verwendet unsichere DOM-Auswertung`);
+  assert(!/\.innerHTML\s*=|insertAdjacentHTML/.test(importApp), `${artifactLabel}/hospitation/import.js rendert Server- oder Dateiinhalte als HTML`);
 }
 
 const manifestPath = join(artifactRoot, "build-manifest.json");

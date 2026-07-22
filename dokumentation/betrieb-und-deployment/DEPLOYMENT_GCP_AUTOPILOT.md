@@ -166,7 +166,7 @@ Das zusätzliche GitHub Environment `pre-gematik` ist bereits angelegt. Aktuelle
 | Required Reviewer | `TimoFrank` |
 | Self-Review | erlaubt (`prevent_self_review=false`), weil derzeit nur ein Maintainer freigeben kann |
 | Ziel-URL | wird vom Deploy-Job aus `FRONTEND_BASE_URL` an das GitHub Deployment gemeldet |
-| Environment-Secrets | keine GCP-Keys, kein PostgreSQL-Passwort und keine OAuth-Credentials |
+| Environment-Secrets | keine GCP-Keys, kein PostgreSQL-Passwort und keine OAuth-Credentials; nur Policy-Pin und geschützte Owner-Profil-ID |
 | `github-pages` | unverändert und weiterhin parallel |
 
 Die Environment-Variablen werden erst nach `terraform apply` mit den realen Outputs eingetragen. Wenn später ein zweiter Reviewer zur Verfügung steht, sollte Self-Review deaktiviert werden.
@@ -201,7 +201,7 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 
 `WIF_PROVIDER` ist der volle Ressourcenname mit numerischer Projektnummer. `GAR_REPOSITORY` hat die Form `REGION-docker.pkg.dev/PROJECT/REPOSITORY`. Bucket-Werte enthalten nur den Namen, kein `gs://`. Der Workflow bricht ab, wenn `API_BASE_URL` und `FRONTEND_BASE_URL` nicht exakt denselben Origin bezeichnen.
 
-Zusätzlich liegt `IAP_PROJECT_BREAK_GLASS_SHA256` als geschütztes Environment-Secret vor. Es ist der SHA-256-Pin der kanonisch sortierten, projektweiten IAP-Break-glass-Nutzerliste und kein Zugangswert. Der Workflow liest die Projekt-IAM-Policy nur als Metadatum, verlangt genau eine unbedingte, ausschließlich aus `user:`-Mitgliedern bestehende Break-glass-Bindung und stoppt bei jeder Mitgliedschaftsänderung. Der Klartext der Nutzerliste wird weder in Git noch in der Actions-Zusammenfassung ausgegeben.
+Zusätzlich liegen zwei geschützte Environment-Secrets vor. `IAP_PROJECT_BREAK_GLASS_SHA256` ist der SHA-256-Pin der kanonisch sortierten, projektweiten IAP-Break-glass-Nutzerliste und kein Zugangswert. `HOSPITATION_IMPORT_OWNER_PROFILE_ID` enthält ausschließlich die stabile produktive Profil-ID von Timo Frank; sie wird nicht im Repository hinterlegt und durch den Workflow in die geschützte API-Konfiguration übernommen. Der Workflow liest die Projekt-IAM-Policy nur als Metadatum, verlangt genau eine unbedingte, ausschließlich aus `user:`-Mitgliedern bestehende Break-glass-Bindung und stoppt bei jeder Mitgliedschaftsänderung. Der Klartext der Nutzerliste wird weder in Git noch in der Actions-Zusammenfassung ausgegeben.
 
 ## Phase 5: Workflow ausführen
 

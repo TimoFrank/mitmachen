@@ -37,6 +37,8 @@ export const ROUTE_POLICIES = Object.freeze([
   route(["POST", "PATCH", "DELETE"], /^\/api\/formats\/[^/]+\/participants(?:\/(?!import$)[^/]+)?$/, "editor", "format.participant.write"),
 
   route(["POST"], /^\/api\/(?:stakeholder-import)$/, "admin", "bulk.import"),
+  route(["POST"], /^\/api\/admin\/hospitation-import\/preview$/, "admin", "hospitation.import.preview"),
+  route(["POST"], /^\/api\/admin\/hospitation-import\/apply$/, "admin", "hospitation.import.apply"),
   route(["POST"], /^\/api\/formats\/[^/]+\/participants\/import$/, "admin", "format.participant.import"),
   route(["DELETE"], /^\/api\/(?:organization-primary-systems|expert-entity-links|hospitation-slots|hospitations|formats)\/[^/]+$/, "admin", "domain.delete"),
 

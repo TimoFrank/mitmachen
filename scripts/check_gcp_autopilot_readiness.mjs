@@ -26,6 +26,7 @@ const requiredFiles = [
   "public/demo-profile-viewer.svg",
   "deploy/helm/versorgungs-kompass/values-gcp-autopilot.yaml",
   "deploy/helm/versorgungs-kompass/values.schema.json",
+  "deploy/helm/versorgungs-kompass/templates/configmap.yaml",
   "deploy/helm/versorgungs-kompass/templates/backendconfig.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-backendconfig.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-deployment.yaml",
@@ -69,6 +70,8 @@ const contentChecks = [
       /\^\(group\|user\):/,
       /group:name@example\.org or user:name@example\.org/,
       /IAP_PROJECT_BREAK_GLASS_SHA256/,
+      /HOSPITATION_IMPORT_OWNER_PROFILE_ID/,
+      /config\.hospitationImportOwnerProfileId="\$HOSPITATION_IMPORT_OWNER_PROFILE_ID"/,
       /Project-level IAP break-glass membership differs from the protected approved policy pin/,
       /DEPLOYER_SERVICE_ACCOUNT does not belong to GCP_PROJECT_ID/,
       /GAR_REPOSITORY does not belong to GCP_PROJECT_ID\/GCP_REGION/,
@@ -117,8 +120,18 @@ const contentChecks = [
   },
   {
     file: "api/server.mjs",
-    patterns: [/DB_SSL_MODE/, /\/api\/auth\/bootstrap/, /access-control-allow-credentials/, /not\.in\./, /withDomainTransaction/, /hospitation_observation_changes/],
+    patterns: [/DB_SSL_MODE/, /\/api\/auth\/bootstrap/, /access-control-allow-credentials/, /not\.in\./, /withDomainTransaction/, /hospitation_observation_changes/, /HOSPITATION_IMPORT_OWNER_PROFILE_ID/],
     reason: "API unterstuetzt den Cloud-SQL-TLS-Vertrag, IAP-Browser-Bootstrap und atomare Plain-Postgres-Fachvorgaenge."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/configmap.yaml",
+    patterns: [/HOSPITATION_IMPORT_OWNER_PROFILE_ID:\s*\{\{ \.Values\.config\.hospitationImportOwnerProfileId \| quote \}\}/],
+    reason: "Die stabile Hospitations-Owner-Profil-ID wird aus Helm in die API-Laufzeitkonfiguration verdrahtet."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/values.schema.json",
+    patterns: [/"hospitationImportOwnerProfileId"/, /\[A-Za-z0-9\]\[A-Za-z0-9\._:-\]/],
+    reason: "Das Helm-Schema begrenzt die Hospitations-Owner-Profil-ID auf das kanonische ID-Format."
   },
   {
     file: "deploy/postgres/pre-gematik/schema.sql",
@@ -272,7 +285,8 @@ const requiredEnvironment = [
   "K8S_NAMESPACE",
   "IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME",
   "IAP_RESOURCE_ACCESS_PRINCIPAL",
-  "IAP_PROJECT_BREAK_GLASS_SHA256"
+  "IAP_PROJECT_BREAK_GLASS_SHA256",
+  "HOSPITATION_IMPORT_OWNER_PROFILE_ID"
 ];
 
 const failures = [];
@@ -387,6 +401,15 @@ if (strictEnvironment) {
       }
     } catch {
       fail("API_BASE_URL oder FRONTEND_BASE_URL ist keine gueltige URL.");
+    }
+  }
+
+  const hospitationImportOwnerProfileId = process.env.HOSPITATION_IMPORT_OWNER_PROFILE_ID?.trim();
+  if (hospitationImportOwnerProfileId) {
+    if (/^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/.test(hospitationImportOwnerProfileId)) {
+      ok("HOSPITATION_IMPORT_OWNER_PROFILE_ID verwendet das kanonische stabile ID-Format.");
+    } else {
+      fail("HOSPITATION_IMPORT_OWNER_PROFILE_ID ist keine gueltige stabile Profil-ID.");
     }
   }
 }

@@ -230,6 +230,7 @@ jobs:
       IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME: ${{ vars.IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME }}
       IAP_RESOURCE_ACCESS_PRINCIPAL: ${{ vars.IAP_RESOURCE_ACCESS_PRINCIPAL }}
       IAP_PROJECT_BREAK_GLASS_SHA256: ${{ secrets.IAP_PROJECT_BREAK_GLASS_SHA256 }}
+      HOSPITATION_IMPORT_OWNER_PROFILE_ID: ${{ secrets.HOSPITATION_IMPORT_OWNER_PROFILE_ID }}
 
     steps:
       - name: Checkout validated revision
@@ -251,6 +252,7 @@ jobs:
             GKE_INGRESS_IP_NAME K8S_NAMESPACE
             IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME IAP_RESOURCE_ACCESS_PRINCIPAL
             IAP_PROJECT_BREAK_GLASS_SHA256
+            HOSPITATION_IMPORT_OWNER_PROFILE_ID
           )
           for name in "${required[@]}"; do
             if [[ -z "${!name:-}" ]]; then
@@ -306,6 +308,10 @@ jobs:
           fi
           if [[ ! "$IAP_PROJECT_BREAK_GLASS_SHA256" =~ ^sha256:[a-f0-9]{64}$ ]]; then
             echo "IAP_PROJECT_BREAK_GLASS_SHA256 must be the protected canonical project-IAP policy pin." >&2
+            exit 1
+          fi
+          if [[ ! "$HOSPITATION_IMPORT_OWNER_PROFILE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$ ]]; then
+            echo "HOSPITATION_IMPORT_OWNER_PROFILE_ID is not a valid stable profile ID." >&2
             exit 1
           fi
           if [[ ! "$CLOUD_SQL_INSTANCE_CONNECTION_NAME" =~ ^[^:]+:[^:]+:[^:]+$ ]]; then
@@ -757,6 +763,7 @@ jobs:
               --set-string config.allowedOrigin="$FRONTEND_BASE_URL" \
               --set-string config.apiAuthMode=iap \
               --set-string config.iapJwtAudience="$iap_audience" \
+              --set-string config.hospitationImportOwnerProfileId="$HOSPITATION_IMPORT_OWNER_PROFILE_ID" \
               --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
               --set-string gke.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
               --set-string database.host=127.0.0.1 \

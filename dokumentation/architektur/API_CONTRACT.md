@@ -86,6 +86,94 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `GET` | `/api/hospitation-observations` | Beobachtungsobjekte laden; optional `hospitationId` und `includeArchived=true` |
 | `PATCH` | `/api/hospitation-observations/:id` | Kanonische Beobachtung mit optionalem `expectedUpdatedAt` bearbeiten oder archivieren |
 | `PUT` | `/api/hospitations/:id/observations/sync` | Beobachtungen eines Quellformulars per stabiler ID upserten und entfernte Objekte archivieren |
+| `POST` | `/api/admin/hospitation-import/preview` | Schreibfreie Vorschau eines lokalen Hospitations-Staging-Manifests; nur `admin` |
+| `POST` | `/api/admin/hospitation-import/apply` | Exakt bestätigte und erneut geprüfte Vorschau transaktional übernehmen; nur `admin` |
+
+## Hospitations-Staging-Import
+
+Der Importvertrag ist ausschließlich für den kontrollierten Übergang vom lokalen Hospitations-Staging in das geschützte Produktivsystem vorgesehen. Beide Routen sind in der zentralen Route-Policy ausdrücklich auf `admin` begrenzt. Der Browser erhält weder Datenbankzugang noch frei wählbare Tabellen-, Owner- oder Bildfelder.
+
+### Manifest `hospitation-staging/v1`
+
+`POST /api/admin/hospitation-import/preview` erwartet `{ "manifest": { ... } }`. Das Manifest ist auf höchstens 1 MB begrenzt und hat exakt diese Top-Level-Felder:
+
+```json
+{
+  "schemaVersion": "hospitation-staging/v1",
+  "snapshot": {
+    "id": "snapshot-2026-07-22T120000Z",
+    "createdAt": "2026-07-22T12:00:00.000Z",
+    "source": "local-hospitation"
+  },
+  "ownerRef": "timo-frank",
+  "organizations": [],
+  "contacts": [],
+  "hospitations": [],
+  "observations": []
+}
+```
+
+Zulässige Fachfelder:
+
+- Organisation: `id`, `name`, `sector`, `organizationType`, `postalCode`, `city`, `state`, `website`, `phone`, `email`, `notes`, `source`, `status`
+- Kontakt: `id`, `name`, `organizationId`, `organization`, `sector`, `specialty`, `contactRole`, `priority`, `postalCode`, `city`, `state`, `email`, `phone`, `linkedin`, `topics`, `notes`, `source`, `status`
+- Hospitation: `id`, `contactId`, `contactName`, `organizationId`, `organizationName`, `status`, `startsAt`, `endsAt`, `location`, `city`, `state`, `sector`, `goal`, `topics`, `requestNote`, `documentationSummary`, `documentationOutcome`, `followUpNote`, `followUpDueAt`, `documentedAt`
+- Beobachtung: `id`, `hospitationId`, `sequence`, `title`, `situation`, `situationContext`, `description`, `observed`, `observedAt`, `immediateConsequence`, `processPhase`, `problemType`, `impact`, `observationType`, `evidenceType`, `relevanceScore`, `usageRecommendation`, `nextUse`, `involvedRoles`, `affectedRoles`, `affectedProducts`, `topics`, `themes`, `theme`, `sourceType`, `sourceReference`, `uncertainty`, `limitations`, `source`, `settingType`, `internalUseAllowed`, `externalUseAllowed`, `status`, `createdAt`, `updatedAt`
+
+Alle IDs müssen im Snapshot eindeutig und stabil sein. Kontakt-, Organisations- und Hospitationsreferenzen dürfen nur auf Einträge desselben Snapshots zeigen. Organisationen werden fachlich über normalisierten Namen und Ort, Kontakte über normalisierten Namen, gemappte Organisation und Ort sowie Hospitationen über Zeitpunkt und gemappte Kontakt-/Organisationsreferenzen abgeglichen. Eine Beobachtung wird ausschließlich über ihre globale stabile ID aktualisiert. Existiert dieselbe Kombination aus Hospitation, Reihenfolge und Titel unter einer anderen ID, meldet die Vorschau einen Konflikt und überschreibt nichts.
+
+Bild-, Avatar- und Logofelder sind verboten. Ebenso akzeptiert der Vertrag keine Profil-, Owner-, Auth-, Einstellungs- oder beliebigen `payload`-Felder. `ownerRef` ist kein Profil-Identifier aus dem Browser, sondern ausschließlich das Alias `timo-frank`. Die API löst es serverseitig auf genau ein aktives Profil auf. Der produktive Deployment-Workflow verlangt `HOSPITATION_IMPORT_OWNER_PROFILE_ID` als geschütztes Environment-Secret und setzt es auf die stabile Profil-ID von Timo Frank. Außerhalb dieses Deployments bleibt der fail-closed Fallback erhalten: Ohne Konfiguration ist nur ein eindeutig aktives Profil mit dem exakten Anzeigenamen `Timo Frank` zulässig.
+
+### Vorschau und Bestätigung
+
+Die Vorschau mutiert keine Daten. Ihre Antwort lautet:
+
+```json
+{
+  "schemaVersion": "hospitation-staging/v1",
+  "snapshot": { "id": "...", "createdAt": "...", "source": "local-hospitation" },
+  "owner": { "id": "production-profile-id", "displayName": "Timo Frank" },
+  "manifestFingerprint": "sha256:...",
+  "targetFingerprint": "sha256:...",
+  "summary": {
+    "organizations": { "total": 1, "create": 1, "update": 0, "unchanged": 0, "conflict": 0 },
+    "contacts": { "total": 1, "create": 1, "update": 0, "unchanged": 0, "conflict": 0 },
+    "hospitations": { "total": 1, "create": 1, "update": 0, "unchanged": 0, "conflict": 0 },
+    "observations": { "total": 1, "create": 1, "update": 0, "unchanged": 0, "conflict": 0 },
+    "total": { "total": 4, "create": 4, "update": 0, "unchanged": 0, "conflict": 0 }
+  },
+  "items": {
+    "organizations": [{ "entityType": "organization", "sourceId": "...", "targetId": "...", "action": "create", "changedFields": ["name", "normalized_name"] }],
+    "contacts": [], "hospitations": [], "observations": []
+  },
+  "conflicts": [{ "entityType": "observation", "sourceId": "...", "code": "...", "message": "..." }],
+  "canApply": true
+}
+```
+
+`action` ist `create`, `update`, `unchanged` oder `conflict`. Die Zuordnungsobjekte enthalten bewusst weder Anzeigenamen noch Referenztexte oder Beobachtungstitel. `canApply` ist nur wahr, wenn keine Konflikte und mindestens eine Änderung vorliegen.
+
+Preview und Apply akzeptieren jeweils ein Manifest mit höchstens 1 MB; größere Manifeste werden mit HTTP `413` abgewiesen. Der umgebende JSON-Request bleibt zusätzlich durch das allgemeine Request-Body-Limit begrenzt.
+
+Apply erwartet erneut das vollständige Manifest und beide unveränderten Fingerprints:
+
+```json
+{
+  "manifest": {},
+  "manifestFingerprint": "sha256:...",
+  "targetFingerprint": "sha256:...",
+  "confirmation": "HOSPITATIONEN IMPORTIEREN",
+  "backupConfirmed": true
+}
+```
+
+`backupConfirmed: true` bestätigt ausdrücklich, dass unmittelbar vor dem Apply ein wiederherstellbarer Backup- beziehungsweise PITR-Punkt geprüft wurde. Fehlt diese Bestätigung, antwortet die API mit HTTP `400` und schreibt nichts. Die API normalisiert das Manifest erneut, startet eine Fachtransaktion, bezieht einen transaktionalen Advisory Lock und sperrt die betroffenen Tabellen gegen konkurrierende Schreibvorgänge. Danach liest und fingerprintet sie den Zielbestand erneut. Abweichende Manifest- oder Ziel-Fingerprints, neue Konflikte und nicht eindeutige Owner-Zuordnungen enden mit HTTP `409`; es erfolgt kein Teilimport.
+
+Der Writer arbeitet ergänzend und source-sparse: Bei bestehenden Organisationen, Kontakten und Hospitationen werden nur im Manifest inhaltlich gesetzte und tatsächlich geänderte Felder geschrieben. Fehlende, leere oder als leere Liste gelieferte optionale Felder löschen keine Produktionsinhalte. Feldlöschungen sind über diesen Import bewusst nicht möglich. Bestehende Organisations- und Kontaktstatus werden nicht verändert. Bei Hospitationen bleiben Archivierung, Wiederherstellung, Rückstufungen und das Überschreiben terminaler Zustände einem separaten Vorgang vorbehalten; ausschließlich normale Vorwärtsbewegungen `Entwurf` → `Angefragt` → `Angeboten` → `Gebucht` → `Durchgeführt` → `Dokumentiert` werden übernommen. Kontakte erhalten das serverseitig gemappte Timo-Profil zusätzlich in `contact_owners`, vorhandene Primär- und weitere Owner bleiben erhalten. Beobachtungen im Manifest werden einzeln per stabiler ID angelegt oder aktualisiert; zusätzliche vorhandene `payload`-Felder werden beim Merge bewahrt. Der Exportstatus `active` reaktiviert keine in Produktion archivierte Beobachtung; eine Wiederherstellung benötigt einen separaten, ausdrücklich freigegebenen Vorgang. Nicht im Manifest enthaltene Produktionsbeobachtungen bleiben unverändert; insbesondere wird der archivierende Formular-Sync nicht verwendet.
+
+Ein erfolgreicher Lauf schreibt eine deterministische Zeile in `import_runs`, ein zentrales Aktivitätsereignis mit Ursprung `data_import` und über den Datenbank-Trigger die jeweiligen Beobachtungsänderungen. Der Bericht enthält nur Snapshot-ID, Fingerprints, Owner-ID und Summen, keine Beobachtungstexte. Nach erfolgreichem Apply liefert eine zweite Vorschau ausschließlich `unchanged` und `canApply: false`.
+
+Dasselbe bereits protokollierte Manifest darf nach späteren Änderungen am Zielbestand nicht erneut mutierend angewendet werden. Ein solcher Versuch endet mit HTTP `409`, damit kein erfolgreicher Lauf ohne eigene Auditzeile bleibt. Für einen fachlich gewollten erneuten Abgleich ist ein neuer lokaler Snapshot mit neuer Snapshot-ID zu exportieren und vollständig vorzuschauen.
 
 ## Registrierungs-Intake
 
