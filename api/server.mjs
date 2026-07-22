@@ -5,6 +5,15 @@ import { checkServerIdentity } from "node:tls";
 import { Pool } from "pg";
 import "../frontend/data/activity-model.js";
 import { careSectorForRead, careSectorForWrite } from "./care-sector-model.mjs";
+import {
+  CONTACT_DUPLICATE_LOCK_KEY,
+  HOSPITATION_DUPLICATE_LOCK_KEY,
+  canonicalDuplicatePersonName,
+  contactsAreDefiniteDuplicates,
+  contactsArePotentialDuplicates,
+  contactsAreSameCanonicalIdentity,
+  organizationsAreSameCanonicalIdentity
+} from "./duplicate-identity.mjs";
 import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
 import {
   HOSPITATION_IMPORT_CONFIRMATION,
@@ -2008,7 +2017,9 @@ function hospitationToDb(hospitation = {}, userId = "") {
     requester_profile_id: hospitation.requesterProfileId || hospitation.requester_profile_id || userId || null,
     owner_id: hospitation.ownerId || hospitation.owner_id || resolveOwnerId(hospitation.owner) || userId || null,
     status: normalizeHospitationStatus(hospitation.status),
-    requested_windows: Array.isArray(hospitation.requestedWindows || hospitation.requested_windows) ? hospitation.requestedWindows || hospitation.requested_windows : [],
+    // node-postgres treats JavaScript arrays as PostgreSQL arrays. This column
+    // is JSONB and therefore needs an explicit JSON representation.
+    requested_windows: JSON.stringify(Array.isArray(hospitation.requestedWindows || hospitation.requested_windows) ? hospitation.requestedWindows || hospitation.requested_windows : []),
     starts_at: hospitation.startsAt || hospitation.starts_at || null,
     ends_at: hospitation.endsAt || hospitation.ends_at || null,
     location: String(hospitation.location || "").trim() || null,
@@ -2039,7 +2050,9 @@ function hospitationPatchToDb(patch = {}) {
   if ("ownerId" in patch || "owner_id" in patch) db.owner_id = patch.ownerId || patch.owner_id || null;
   if (!("ownerId" in patch) && !("owner_id" in patch) && "owner" in patch) db.owner_id = resolveOwnerId(patch.owner);
   if ("status" in patch) db.status = normalizeHospitationStatus(patch.status);
-  if ("requestedWindows" in patch || "requested_windows" in patch) db.requested_windows = Array.isArray(patch.requestedWindows || patch.requested_windows) ? patch.requestedWindows || patch.requested_windows : [];
+  if ("requestedWindows" in patch || "requested_windows" in patch) {
+    db.requested_windows = JSON.stringify(Array.isArray(patch.requestedWindows || patch.requested_windows) ? patch.requestedWindows || patch.requested_windows : []);
+  }
   if ("startsAt" in patch || "starts_at" in patch) db.starts_at = patch.startsAt || patch.starts_at || null;
   if ("endsAt" in patch || "ends_at" in patch) db.ends_at = patch.endsAt || patch.ends_at || null;
   if ("location" in patch) db.location = String(patch.location || "").trim() || null;
@@ -3534,6 +3547,218 @@ function databaseQuery(transaction, sql, values = []) {
     return transaction.query(sql, values);
   }
   return getPool().query(sql, values);
+}
+
+const CONTACT_DUPLICATE_IDENTITY_FIELDS = new Set([
+  "name", "organization_id", "organization", "postal_code", "city",
+  "email", "phone", "linkedin"
+]);
+const HOSPITATION_DUPLICATE_IDENTITY_FIELDS = new Set([
+  "contact_id", "contact_name", "organization_id", "organization_name", "starts_at", "city"
+]);
+const PUBLIC_DUPLICATE_CONFLICT_CODES = new Set([
+  "CONTACT_DUPLICATE",
+  "CONTACT_POTENTIAL_DUPLICATE",
+  "HOSPITATION_DUPLICATE"
+]);
+
+function duplicateConflict(code, duplicateId, message) {
+  const error = new Error(message);
+  error.status = 409;
+  error.code = code;
+  error.duplicateId = duplicateId;
+  return error;
+}
+
+function duplicateIdVisibleToRequest(request, status) {
+  return !isArchivedStatus(status)
+    || roleRank(request?.currentProfile?.role) >= roleRank("admin");
+}
+
+function patchTouchesDuplicateIdentity(payload, fields) {
+  return Object.keys(payload || {}).some((field) => fields.has(field));
+}
+
+async function acquireDuplicateGuardLocks(transaction, ...lockKeys) {
+  for (const lockKey of [...new Set(lockKeys)].sort()) {
+    await databaseQuery(
+      transaction,
+      "select pg_advisory_xact_lock(hashtextextended($1, 0))",
+      [lockKey]
+    );
+  }
+}
+
+async function contactIdentityWithOrganization(transaction, contact = {}) {
+  const organizationId = String(contact.organization_id || contact.organizationId || "").trim();
+  if (!organizationId || contact.resolved_organization_name) return contact;
+  const result = await databaseQuery(
+    transaction,
+    `select name as resolved_organization_name,
+            city as resolved_organization_city,
+            postal_code as resolved_organization_postal_code
+       from organizations
+      where id = $1
+      limit 1`,
+    [organizationId]
+  );
+  return { ...contact, ...(result.rows[0] || {}) };
+}
+
+async function assertNoContactDuplicate(transaction, contact = {}, excludeId = "", request = null) {
+  const incoming = await contactIdentityWithOrganization(transaction, contact);
+  const result = await databaseQuery(
+    transaction,
+    `select c.id, c.name, c.organization_id, c.organization, c.postal_code, c.city,
+            c.email, c.phone, c.linkedin, c.status,
+            o.name as resolved_organization_name,
+            o.city as resolved_organization_city,
+            o.postal_code as resolved_organization_postal_code
+       from contacts c
+       left join organizations o on o.id = c.organization_id
+      where ($1::text = '' or c.id <> $1)
+      order by c.id asc`,
+    [String(excludeId || "")]
+  );
+  const duplicate = result.rows.find((candidate) => contactsAreDefiniteDuplicates(incoming, candidate));
+  if (duplicate) {
+    throw duplicateConflict(
+      "CONTACT_DUPLICATE",
+      duplicateIdVisibleToRequest(request, duplicate.status) ? duplicate.id : "",
+      "Ein Kontakt mit derselben fachlichen Identität ist bereits vorhanden."
+    );
+  }
+  const potentialDuplicate = result.rows.find((candidate) => contactsArePotentialDuplicates(incoming, candidate));
+  if (potentialDuplicate) {
+    throw duplicateConflict(
+      "CONTACT_POTENTIAL_DUPLICATE",
+      duplicateIdVisibleToRequest(request, potentialDuplicate.status) ? potentialDuplicate.id : "",
+      "Ein ähnlicher Kontakt derselben Organisation und Region muss vor dem Speichern geprüft werden."
+    );
+  }
+}
+
+async function contactIdentityForHospitation(transaction, hospitation = {}) {
+  const contactId = String(hospitation.contact_id || hospitation.contactId || "").trim();
+  let linkedContact = null;
+  if (contactId) {
+    const result = await databaseQuery(
+      transaction,
+      `select c.id, c.name, c.organization_id, c.organization, c.postal_code, c.city,
+              c.email, c.phone, c.linkedin,
+              o.name as resolved_organization_name,
+              o.city as resolved_organization_city,
+              o.postal_code as resolved_organization_postal_code
+         from contacts c
+         left join organizations o on o.id = c.organization_id
+        where c.id = $1
+        limit 1`,
+      [contactId]
+    );
+    linkedContact = result.rows[0] || null;
+  }
+  return contactIdentityWithOrganization(transaction, {
+    id: linkedContact?.id || contactId,
+    name: linkedContact?.name || hospitation.contact_name || hospitation.contactName || "",
+    organization_id: linkedContact?.organization_id || hospitation.organization_id || hospitation.organizationId || "",
+    organization: linkedContact?.resolved_organization_name
+      || linkedContact?.organization
+      || hospitation.organization_name
+      || hospitation.organizationName
+      || "",
+    resolved_organization_name: linkedContact?.resolved_organization_name || "",
+    postal_code: linkedContact?.postal_code || "",
+    resolved_organization_postal_code: linkedContact?.resolved_organization_postal_code || "",
+    city: linkedContact?.city || hospitation.city || "",
+    resolved_organization_city: linkedContact?.resolved_organization_city || "",
+    email: linkedContact?.email || "",
+    phone: linkedContact?.phone || "",
+    linkedin: linkedContact?.linkedin || ""
+  });
+}
+
+function contactIdentityFromHospitationCandidate(row = {}) {
+  return {
+    id: row.resolved_contact_id || row.contact_id || "",
+    name: row.resolved_contact_name || row.contact_name || "",
+    organization_id: row.resolved_contact_organization_id || row.hospitation_organization_id || "",
+    organization: row.resolved_contact_organization_name
+      || row.resolved_contact_organization
+      || row.resolved_hospitation_organization_name
+      || row.hospitation_organization_name
+      || "",
+    resolved_organization_name: row.resolved_contact_organization_name
+      || row.resolved_hospitation_organization_name
+      || "",
+    postal_code: row.resolved_contact_postal_code || "",
+    resolved_organization_postal_code: row.resolved_contact_organization_postal_code
+      || row.resolved_hospitation_organization_postal_code
+      || "",
+    city: row.resolved_contact_city || row.hospitation_city || "",
+    resolved_organization_city: row.resolved_contact_organization_city
+      || row.resolved_hospitation_organization_city
+      || "",
+    email: row.resolved_contact_email || "",
+    phone: row.resolved_contact_phone || "",
+    linkedin: row.resolved_contact_linkedin || ""
+  };
+}
+
+async function assertNoHospitationDuplicate(transaction, hospitation = {}, excludeId = "", request = null) {
+  if (!hospitation.starts_at) return;
+  const startsAt = new Date(hospitation.starts_at);
+  if (!Number.isFinite(startsAt.getTime())) return;
+  const incomingContact = await contactIdentityForHospitation(transaction, hospitation);
+  const incomingHasContact = Boolean(canonicalDuplicatePersonName(incomingContact.name) || incomingContact.id);
+  const result = await databaseQuery(
+    transaction,
+    `select h.id as duplicate_hospitation_id,
+            h.status as duplicate_hospitation_status,
+            h.contact_id, h.contact_name,
+            h.organization_id as hospitation_organization_id,
+            h.organization_name as hospitation_organization_name,
+            h.city as hospitation_city,
+            c.id as resolved_contact_id,
+            c.name as resolved_contact_name,
+            c.organization_id as resolved_contact_organization_id,
+            c.organization as resolved_contact_organization,
+            c.postal_code as resolved_contact_postal_code,
+            c.city as resolved_contact_city,
+            c.email as resolved_contact_email,
+            c.phone as resolved_contact_phone,
+            c.linkedin as resolved_contact_linkedin,
+            o.name as resolved_contact_organization_name,
+            o.city as resolved_contact_organization_city,
+            o.postal_code as resolved_contact_organization_postal_code,
+            ho.name as resolved_hospitation_organization_name,
+            ho.city as resolved_hospitation_organization_city,
+            ho.postal_code as resolved_hospitation_organization_postal_code
+       from hospitations h
+       left join contacts c on c.id = h.contact_id
+       left join organizations o on o.id = c.organization_id
+       left join organizations ho on ho.id = h.organization_id
+      where h.starts_at = $1::timestamptz
+        and ($2::text = '' or h.id <> $2)
+      order by h.id asc`,
+    [startsAt.toISOString(), String(excludeId || "")]
+  );
+  const duplicate = result.rows.find((candidate) => {
+    const candidateContact = contactIdentityFromHospitationCandidate(candidate);
+    const candidateHasContact = Boolean(canonicalDuplicatePersonName(candidateContact.name) || candidateContact.id);
+    if (incomingHasContact !== candidateHasContact) return false;
+    return incomingHasContact
+      ? contactsAreSameCanonicalIdentity(incomingContact, candidateContact)
+      : organizationsAreSameCanonicalIdentity(incomingContact, candidateContact);
+  });
+  if (duplicate) {
+    throw duplicateConflict(
+      "HOSPITATION_DUPLICATE",
+      duplicateIdVisibleToRequest(request, duplicate.duplicate_hospitation_status)
+        ? duplicate.duplicate_hospitation_id
+        : "",
+      "Für diese Kontakt- oder Organisationsidentität ist zum selben Zeitpunkt bereits ein Hospitationstermin vorhanden."
+    );
+  }
 }
 
 async function selectRows(table, searchParams, transaction = null) {
@@ -6262,6 +6487,11 @@ async function applyHospitationImport(request) {
   if (!actorId) throw Object.assign(new Error("User-ID konnte nicht aus der authentifizierten Session gelesen werden."), { status: 401 });
 
   return withDomainTransaction(async (transaction) => {
+    await acquireDuplicateGuardLocks(
+      transaction,
+      CONTACT_DUPLICATE_LOCK_KEY,
+      HOSPITATION_DUPLICATE_LOCK_KEY
+    );
     await transaction.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", ["versorgungs-kompass:hospitation-staging-import:v1"]);
     await transaction.query("lock table public.profiles, public.organizations, public.contacts, public.contact_owners, public.hospitations, public.hospitation_observations, public.import_runs in share row exclusive mode");
     const ownerProfile = await resolveHospitationImportOwner(request, transaction);
@@ -6387,6 +6617,8 @@ async function createHospitation(request) {
   payload.created_by = userId;
   payload.updated_by = userId;
   const row = await withDomainTransaction(async (transaction) => {
+    await acquireDuplicateGuardLocks(transaction, HOSPITATION_DUPLICATE_LOCK_KEY);
+    await assertNoHospitationDuplicate(transaction, payload, "", request);
     const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
       select: HOSPITATION_FIELDS.join(",")
     }), {
@@ -6432,7 +6664,18 @@ async function patchHospitation(request, id) {
   }
   payload.updated_by = userId;
   payload.updated_at = new Date().toISOString();
+  const duplicateIdentityChanged = patchTouchesDuplicateIdentity(payload, HOSPITATION_DUPLICATE_IDENTITY_FIELDS);
   const row = await withDomainTransaction(async (transaction) => {
+    if (duplicateIdentityChanged) {
+      await acquireDuplicateGuardLocks(transaction, HOSPITATION_DUPLICATE_LOCK_KEY);
+      const currentRows = await cloudSqlRest("hospitations", request, new URLSearchParams({
+        id: `eq.${id}`,
+        select: HOSPITATION_FIELDS.join(","),
+        limit: "1"
+      }), { transaction });
+      if (!currentRows?.[0]) throw Object.assign(new Error("Hospitation wurde nicht gefunden."), { status: 404 });
+      await assertNoHospitationDuplicate(transaction, { ...currentRows[0], ...payload }, id, request);
+    }
     const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
       id: `eq.${id}`,
       select: HOSPITATION_FIELDS.join(",")
@@ -6764,6 +7007,8 @@ async function createContact(request) {
   dbContact.updated_by = userId;
 
   const created = await withDomainTransaction(async (transaction) => {
+    await acquireDuplicateGuardLocks(transaction, CONTACT_DUPLICATE_LOCK_KEY);
+    await assertNoContactDuplicate(transaction, dbContact, "", request);
     const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
       select: CONTACT_FIELDS.join(",")
     }), {
@@ -7589,10 +7834,21 @@ async function patchContact(request, id) {
 
   dbPatch.updated_by = userId;
   dbPatch.updated_at = new Date().toISOString();
+  const duplicateIdentityChanged = patchTouchesDuplicateIdentity(dbPatch, CONTACT_DUPLICATE_IDENTITY_FIELDS);
   let changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
   if (hasOwnerPatch && supportsContactOwners) changedFields = changedFields.filter((field) => field !== "owner_id");
 
   const updated = await withDomainTransaction(async (transaction) => {
+    if (duplicateIdentityChanged) {
+      await acquireDuplicateGuardLocks(transaction, CONTACT_DUPLICATE_LOCK_KEY);
+      const currentRows = await cloudSqlRest("contacts", request, new URLSearchParams({
+        select: CONTACT_FIELDS.join(","),
+        id: `eq.${id}`,
+        limit: "1"
+      }), { transaction });
+      if (!currentRows?.[0]) throw Object.assign(new Error("Kontakt wurde nicht gefunden."), { status: 404 });
+      await assertNoContactDuplicate(transaction, { ...currentRows[0], ...dbPatch }, id, request);
+    }
     const updateParams = new URLSearchParams({ id: `eq.${id}`, select: CONTACT_FIELDS.join(",") });
     if (oldRow.updated_at) updateParams.set("updated_at", `eq.${new Date(oldRow.updated_at).toISOString()}`);
     const updatedRows = await cloudSqlRest("contacts", request, updateParams, {
@@ -8050,6 +8306,10 @@ async function handle(request, response) {
     const payload = {
       error: status >= 500 ? "API-Anfrage fehlgeschlagen." : error.message
     };
+    if (status === 409 && PUBLIC_DUPLICATE_CONFLICT_CODES.has(error.code)) {
+      payload.code = error.code;
+      if (error.duplicateId) payload.duplicateId = error.duplicateId;
+    }
     if (process.env.NODE_ENV !== "production" && error.details) payload.details = error.details;
     return jsonResponse(response, status, payload);
   }
