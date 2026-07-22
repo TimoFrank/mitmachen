@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { careSectorForWrite } from "./care-sector-model.mjs";
+import { careSectorForRead, careSectorForWrite } from "./care-sector-model.mjs";
 
 export const HOSPITATION_IMPORT_SCHEMA_VERSION = "hospitation-staging/v1";
 export const HOSPITATION_IMPORT_OWNER_REF = "timo-frank";
@@ -233,6 +233,108 @@ function normalizeName(value) {
   return String(value || "").trim().replace(/\s+/gu, " ").toLocaleLowerCase("de-DE");
 }
 
+function normalizeIdentityText(value) {
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase("de-DE")
+    .replace(/ä/gu, "ae")
+    .replace(/ö/gu, "oe")
+    .replace(/ü/gu, "ue")
+    .replace(/ß/gu, "ss")
+    .normalize("NFKD")
+    .replace(/\p{M}+/gu, "")
+    .replace(/&/gu, " und ")
+    .replace(/[^a-z0-9]+/gu, " ")
+    .trim()
+    .replace(/\s+/gu, " ");
+}
+
+const PERSON_HONORIFIC_TOKENS = new Set([
+  "dipl", "diplom", "doz", "doktor", "dr", "ing", "med", "pd", "priv",
+  "privatdozent", "prof", "professor"
+]);
+
+function canonicalPersonName(value) {
+  return normalizeIdentityText(value)
+    .split(" ")
+    .filter((token) => token && !PERSON_HONORIFIC_TOKENS.has(token))
+    .join(" ");
+}
+
+const ORGANIZATION_GENERIC_TOKENS = new Set([
+  "ag", "apotheke", "apotheken", "arztpraxis", "eg", "ev", "gemeinschaftspraxis",
+  "gbr", "gmbh", "hausarzt", "hausarztpraxis", "kg", "mbh", "mit", "mvz", "ohg",
+  "praxis", "ug", "und"
+]);
+
+function organizationIdentityTokens(value) {
+  return [...new Set(normalizeIdentityText(value)
+    .split(" ")
+    .filter((token) => token && !PERSON_HONORIFIC_TOKENS.has(token) && !ORGANIZATION_GENERIC_TOKENS.has(token)))]
+    .sort();
+}
+
+function canonicalOrganizationName(value) {
+  return organizationIdentityTokens(value).join(" ");
+}
+
+function sameKnownCity(left, right) {
+  const leftCity = normalizeIdentityText(left);
+  const rightCity = normalizeIdentityText(right);
+  return Boolean(leftCity && rightCity && leftCity === rightCity);
+}
+
+function organizationNamesLikelyVariant(left, right) {
+  const leftFull = normalizeIdentityText(left);
+  const rightFull = normalizeIdentityText(right);
+  if (!leftFull || !rightFull) return false;
+  if (leftFull === rightFull) return true;
+  const leftTokens = organizationIdentityTokens(left);
+  const rightTokens = organizationIdentityTokens(right);
+  if (!leftTokens.length || !rightTokens.length) return false;
+  if (canonicalOrganizationName(left) === canonicalOrganizationName(right)) return true;
+  const rightSet = new Set(rightTokens);
+  const shared = leftTokens.filter((token) => rightSet.has(token));
+  return shared.length === Math.min(leftTokens.length, rightTokens.length)
+    && shared.some((token) => token.length >= 5);
+}
+
+function assertNoPotentialOrganizationDuplicates(items) {
+  for (let leftIndex = 0; leftIndex < items.length; leftIndex += 1) {
+    const left = items[leftIndex];
+    for (let rightIndex = leftIndex + 1; rightIndex < items.length; rightIndex += 1) {
+      const right = items[rightIndex];
+      if (!sameKnownCity(left.city, right.city)) continue;
+      if (!organizationNamesLikelyVariant(left.name, right.name)) continue;
+      throw validationError(`organizations enthaelt moegliche Dubletten in derselben Stadt (${left.id}, ${right.id}).`);
+    }
+  }
+}
+
+function personSurname(value) {
+  const tokens = canonicalPersonName(value).split(" ").filter(Boolean);
+  return tokens.at(-1) || "";
+}
+
+function editDistanceAtMostOne(left, right) {
+  if (left === right) return true;
+  if (!left || !right || Math.abs(left.length - right.length) > 1) return false;
+  let longer = left;
+  let shorter = right;
+  if (shorter.length > longer.length) [longer, shorter] = [shorter, longer];
+  let differences = 0;
+  for (let longIndex = 0, shortIndex = 0; longIndex < longer.length; longIndex += 1) {
+    if (longer[longIndex] === shorter[shortIndex]) {
+      shortIndex += 1;
+      continue;
+    }
+    differences += 1;
+    if (differences > 1) return false;
+    if (longer.length === shorter.length) shortIndex += 1;
+  }
+  return true;
+}
+
 function assertUniqueNaturalKeys(items, entityType, keyFor) {
   const seen = new Map();
   for (const item of items) {
@@ -273,9 +375,24 @@ export function normalizeHospitationImportManifest(input) {
   normalized.hospitations = input.hospitations.map(normalizeHospitation).sort((a, b) => a.id.localeCompare(b.id));
   normalized.observations = input.observations.map(normalizeObservation).sort((a, b) => a.id.localeCompare(b.id));
   for (const entityType of ENTITY_TYPES) assertUniqueIds(normalized[entityType], entityType);
-  assertUniqueNaturalKeys(normalized.organizations, "organizations", (item) => `${normalizeName(item.name)}|${normalizeName(item.city)}`);
-  assertUniqueNaturalKeys(normalized.contacts, "contacts", (item) => `${normalizeName(item.name)}|${item.organizationId || normalizeName(item.organization)}|${normalizeName(item.city)}`);
-  assertUniqueNaturalKeys(normalized.hospitations, "hospitations", (item) => `${item.startsAt}|${item.contactId || normalizeName(item.contactName)}|${item.organizationId || normalizeName(item.organizationName)}`);
+  assertUniqueNaturalKeys(normalized.organizations, "organizations", (item) => `${normalizeIdentityText(item.name)}|${normalizeIdentityText(item.city)}`);
+  assertNoPotentialOrganizationDuplicates(normalized.organizations);
+  assertUniqueNaturalKeys(normalized.contacts, "contacts", (item) => {
+    const person = canonicalPersonName(item.name) || normalizeIdentityText(item.name);
+    const city = normalizeIdentityText(item.city);
+    return city
+      ? `${person}|${city}`
+      : `${person}|${item.organizationId || canonicalOrganizationName(item.organization)}`;
+  });
+  const manifestContactsById = new Map(normalized.contacts.map((item) => [item.id, item]));
+  const manifestOrganizationsById = new Map(normalized.organizations.map((item) => [item.id, item]));
+  assertUniqueNaturalKeys(normalized.hospitations, "hospitations", (item) => {
+    const contact = manifestContactsById.get(item.contactId);
+    const person = canonicalPersonName(item.contactName || contact?.name);
+    if (person) return `${item.startsAt}|person:${person}`;
+    const organization = manifestOrganizationsById.get(item.organizationId);
+    return `${item.startsAt}|organization:${canonicalOrganizationName(item.organizationName || organization?.name) || item.organizationId || "unknown"}`;
+  });
   assertUniqueNaturalKeys(normalized.observations, "observations", (item) => `${item.hospitationId}|${item.sequence || ""}|${normalizeName(item.title)}`);
 
   const organizationIds = new Set(normalized.organizations.map((item) => item.id));
@@ -463,17 +580,6 @@ function indexRows(rows, keyFor) {
   return map;
 }
 
-function indexRowsByKeys(rows, keysFor) {
-  const map = new Map();
-  for (const row of rows || []) {
-    for (const key of new Set(keysFor(row).filter(Boolean))) {
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(row);
-    }
-  }
-  return map;
-}
-
 function canonicalTargetTimestamp(value) {
   if (!value) return "";
   const parsed = new Date(value);
@@ -500,8 +606,18 @@ function plannedItem(entityType, source, targetRow, targetId, record, label, ref
   };
 }
 
-function candidateFor(source, byId, byNatural, naturalKey) {
-  const candidates = byNatural.get(naturalKey) || [];
+function uniqueRows(rows) {
+  const seen = new Set();
+  return rows.filter((row) => {
+    const idValue = String(row?.id || "");
+    if (!idValue || seen.has(idValue)) return false;
+    seen.add(idValue);
+    return true;
+  });
+}
+
+function candidateForRows(source, byId, candidateRows) {
+  const candidates = uniqueRows(candidateRows);
   if (byId.has(source.id)) {
     const row = byId.get(source.id);
     if (candidates.some((candidate) => candidate.id !== row.id)) {
@@ -541,6 +657,71 @@ function summarize(items) {
   return counts;
 }
 
+function organizationCandidatesFor(source, rows) {
+  const sourceName = normalizeIdentityText(source.name);
+  const sourceCity = normalizeIdentityText(source.city);
+  const sourceSector = normalizeIdentityText(careSectorForRead(source.sector));
+  return uniqueRows((rows || []).filter((row) => {
+    const targetName = normalizeIdentityText(row.normalized_name || row.name);
+    const targetCity = normalizeIdentityText(row.city);
+    const targetSector = normalizeIdentityText(careSectorForRead(row.sector));
+    if (sourceSector && targetSector && sourceSector !== targetSector) return false;
+    if (sourceCity && targetCity && sourceCity !== targetCity) return false;
+    if (sourceName && sourceName === targetName) return true;
+    return sameKnownCity(source.city, row.city) && organizationNamesLikelyVariant(source.name, row.name);
+  }));
+}
+
+function contactOrganizationMatches(source, organizationId, row) {
+  if (organizationId && row.organization_id) return organizationId === row.organization_id;
+  const sourceOrganization = source.organization;
+  const targetOrganization = row.organization;
+  return Boolean(sourceOrganization && targetOrganization && organizationNamesLikelyVariant(sourceOrganization, targetOrganization));
+}
+
+function contactExactCandidatesFor(source, organizationId, rows) {
+  const sourcePerson = canonicalPersonName(source.name);
+  const sourceCity = normalizeIdentityText(source.city);
+  if (!sourcePerson) return [];
+  return uniqueRows((rows || []).filter((row) => {
+    if (canonicalPersonName(row.name) !== sourcePerson) return false;
+    const targetCity = normalizeIdentityText(row.city);
+    if (sourceCity && targetCity) return sourceCity === targetCity;
+    return contactOrganizationMatches(source, organizationId, row)
+      || (!sourceCity && !targetCity && !organizationId && !source.organization && !row.organization_id && !row.organization);
+  }));
+}
+
+function contactPotentialDuplicateCandidatesFor(source, organizationId, rows) {
+  const sourcePerson = canonicalPersonName(source.name);
+  const sourceLastName = personSurname(source.name);
+  if (!sourcePerson || !sourceLastName) return [];
+  return uniqueRows((rows || []).filter((row) => {
+    const targetPerson = canonicalPersonName(row.name);
+    if (!targetPerson || targetPerson === sourcePerson) return false;
+    if (!sameKnownCity(source.city, row.city)) return false;
+    if (!contactOrganizationMatches(source, organizationId, row)) return false;
+    return editDistanceAtMostOne(sourceLastName, personSurname(row.name));
+  }));
+}
+
+function hospitationCandidatesFor(source, contactId, organizationId, sourceContact, rows, targetContactsById) {
+  const timestamp = canonicalTargetTimestamp(source.startsAt);
+  const sourcePerson = canonicalPersonName(source.contactName || sourceContact?.name);
+  const sourceOrganization = canonicalOrganizationName(source.organizationName);
+  return uniqueRows((rows || []).filter((row) => {
+    if (canonicalTargetTimestamp(row.starts_at) !== timestamp) return false;
+    if (contactId && row.contact_id === contactId) return true;
+    const targetContact = targetContactsById.get(String(row.contact_id || ""));
+    const targetPerson = canonicalPersonName(targetContact?.name || row.contact_name);
+    if (sourcePerson && targetPerson) return sourcePerson === targetPerson;
+    if (sourcePerson || targetPerson) return false;
+    if (organizationId && row.organization_id) return organizationId === row.organization_id;
+    const targetOrganization = canonicalOrganizationName(row.organization_name);
+    return Boolean(sourceOrganization && targetOrganization && sourceOrganization === targetOrganization);
+  }));
+}
+
 export function buildHospitationImportPlan(manifest, target, ownerProfile) {
   const rows = {
     organizations: target.organizations || [],
@@ -550,26 +731,17 @@ export function buildHospitationImportPlan(manifest, target, ownerProfile) {
   };
   const byId = Object.fromEntries(ENTITY_TYPES.map((type) => [type, new Map(rows[type].map((row) => [String(row.id), row]))]));
   const natural = {
-    organizations: indexRowsByKeys(rows.organizations, (row) => {
-      const name = normalizeName(row.normalized_name || row.name);
-      const city = normalizeName(row.city);
-      return [`${name}|${city}`, ...(city ? [`${name}|`] : [])];
-    }),
-    contacts: indexRowsByKeys(rows.contacts, (row) => {
-      const prefix = `${normalizeName(row.name)}|${row.organization_id || normalizeName(row.organization)}|`;
-      const city = normalizeName(row.city);
-      return [`${prefix}${city}`, ...(city ? [prefix] : [])];
-    }),
-    hospitations: indexRows(rows.hospitations, (row) => `${canonicalTargetTimestamp(row.starts_at)}|${row.contact_id || normalizeName(row.contact_name)}|${row.organization_id || normalizeName(row.organization_name)}`),
     observations: indexRows(rows.observations, (row) => `${row.hospitation_id}|${row.sequence || ""}|${normalizeName(row.title)}`)
   };
   const items = { organizations: [], contacts: [], hospitations: [], observations: [] };
   const mappings = { organizations: new Map(), contacts: new Map(), hospitations: new Map() };
   const claimedTargetIds = { organizations: new Map(), contacts: new Map(), hospitations: new Map() };
   const contactOwnerRelations = new Set((target.contact_owners || []).map((row) => `${row.contact_id}|${row.profile_id}`));
+  const manifestContactsById = new Map(manifest.contacts.map((row) => [String(row.id), row]));
+  const targetContactsById = new Map(rows.contacts.map((row) => [String(row.id), row]));
 
   for (const source of exactIdFirst(manifest.organizations, byId.organizations)) {
-    const result = candidateFor(source, byId.organizations, natural.organizations, `${normalizeName(source.name)}|${normalizeName(source.city)}`);
+    const result = candidateForRows(source, byId.organizations, organizationCandidatesFor(source, rows.organizations));
     if (result.conflict) {
       items.organizations.push(conflictItem("organization", source, result.code || "ambiguous_target", candidateConflictMessage(result, "Mehrere Produktionsorganisationen passen zu diesem Eintrag.", "Die fachliche Organisationsidentitaet ist bereits einer anderen Produktions-ID zugeordnet."), source.name));
       continue;
@@ -590,8 +762,22 @@ export function buildHospitationImportPlan(manifest, target, ownerProfile) {
       items.contacts.push(conflictItem("contact", source, "organization_conflict", "Die referenzierte Organisation ist nicht eindeutig importierbar.", source.name, source.organizationId));
       continue;
     }
-    const naturalKey = `${normalizeName(source.name)}|${organizationId || normalizeName(source.organization)}|${normalizeName(source.city)}`;
-    const result = candidateFor(source, byId.contacts, natural.contacts, naturalKey);
+    const exactCandidates = contactExactCandidatesFor(source, organizationId, rows.contacts);
+    const potentialDuplicateCandidates = contactPotentialDuplicateCandidatesFor(source, organizationId, rows.contacts);
+    if (!exactCandidates.length && potentialDuplicateCandidates.length) {
+      items.contacts.push(conflictItem(
+        "contact",
+        source,
+        "potential_duplicate_contact",
+        potentialDuplicateCandidates.length > 1
+          ? "Mehrere aehnliche Produktionskontakte derselben Organisation und Stadt muessen vor dem Import eindeutig zugeordnet werden."
+          : "Ein aehnlicher Produktionskontakt derselben Organisation und Stadt muss vor dem Import geprueft und eindeutig zugeordnet werden.",
+        source.name,
+        source.organizationId || source.organization || ""
+      ));
+      continue;
+    }
+    const result = candidateForRows(source, byId.contacts, exactCandidates);
     if (result.conflict) {
       items.contacts.push(conflictItem("contact", source, result.code || "ambiguous_target", candidateConflictMessage(result, "Mehrere Produktionskontakte passen zu diesem Eintrag.", "Die fachliche Kontaktidentitaet ist bereits einer anderen Produktions-ID zugeordnet."), source.name, source.organizationId || source.organization || ""));
       continue;
@@ -621,8 +807,18 @@ export function buildHospitationImportPlan(manifest, target, ownerProfile) {
       items.hospitations.push(conflictItem("hospitation", source, "reference_conflict", "Kontakt oder Organisation der Hospitation ist nicht eindeutig importierbar.", source.contactName || source.organizationName || source.id));
       continue;
     }
-    const naturalKey = `${source.startsAt}|${contactId || normalizeName(source.contactName)}|${organizationId || normalizeName(source.organizationName)}`;
-    const result = candidateFor(source, byId.hospitations, natural.hospitations, naturalKey);
+    const result = candidateForRows(
+      source,
+      byId.hospitations,
+      hospitationCandidatesFor(
+        source,
+        contactId,
+        organizationId,
+        manifestContactsById.get(String(source.contactId || "")),
+        rows.hospitations,
+        targetContactsById
+      )
+    );
     if (result.conflict) {
       items.hospitations.push(conflictItem("hospitation", source, result.code || "ambiguous_target", candidateConflictMessage(result, "Mehrere Produktionstermine passen zu diesem Eintrag.", "Die fachliche Terminidentitaet ist bereits einer anderen Produktions-ID zugeordnet."), source.contactName || source.organizationName || source.id));
       continue;

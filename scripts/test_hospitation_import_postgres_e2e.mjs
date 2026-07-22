@@ -185,6 +185,61 @@ function syntheticManifest(suffix, snapshotId, startsAt) {
   };
 }
 
+function duplicatePreventionManifest() {
+  const createdAt = "2026-07-22T08:00:00.000Z";
+  return {
+    schemaVersion: "hospitation-staging/v1",
+    snapshot: {
+      id: "synthetic-hospitation-import-e2e-duplicate-prevention-v1",
+      createdAt,
+      source: "local-hospitation"
+    },
+    ownerRef: "timo-frank",
+    organizations: [{
+      id: "synthetic-local-org-nordring",
+      name: "Nordring Apotheke (Apotheken mit Herz)",
+      sector: "Apotheke",
+      city: "Teststadt",
+      source: "synthetic-http-postgres-e2e",
+      status: "active"
+    }],
+    contacts: [{
+      id: "synthetic-local-contact-koehler",
+      name: "Dr. Christian Köhler",
+      organizationId: "synthetic-local-org-nordring",
+      organization: "Nordring Apotheke (Apotheken mit Herz)",
+      sector: "Apotheke",
+      city: "Teststadt",
+      source: "synthetic-http-postgres-e2e",
+      status: "active"
+    }],
+    hospitations: [{
+      id: "synthetic-local-hospitation-koehler",
+      contactId: "synthetic-local-contact-koehler",
+      contactName: "Dr. Christian Köhler",
+      organizationId: "synthetic-local-org-nordring",
+      organizationName: "Nordring Apotheke (Apotheken mit Herz)",
+      status: "Dokumentiert",
+      startsAt: "2026-08-06T08:00:00.000Z",
+      endsAt: "2026-08-06T09:00:00.000Z",
+      city: "Teststadt",
+      sector: "Apotheke"
+    }],
+    observations: [{
+      id: "synthetic-local-observation-koehler",
+      hospitationId: "synthetic-local-hospitation-koehler",
+      sequence: 1,
+      title: "Synthetische Dublettenpraevention",
+      description: "Prueft ausschliesslich die kanonische Zuordnung im Wegwerfcontainer.",
+      evidenceType: "directly_observed",
+      source: "synthetic-http-postgres-e2e",
+      status: "active",
+      createdAt,
+      updatedAt: createdAt
+    }]
+  };
+}
+
 async function postJson(baseUrl, pathname, body) {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "POST",
@@ -331,6 +386,51 @@ async function assertSuccessfulImport(pool, manifest, result) {
     [ids.observationId]
   );
   assert.deepEqual(observationChange.rows, [{ action: "create", changed_by: ownerProfileId }]);
+}
+
+async function seedDuplicatePreventionTarget(pool) {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    await client.query(
+      `insert into public.organizations
+         (id, name, normalized_name, sector, city, source, status, created_by, updated_by)
+       values
+         ('synthetic-production-org-nordring', 'Nordring Apotheke', 'nordring apotheke',
+          'Apotheke', 'Teststadt', 'synthetic-http-postgres-e2e', 'active', $1, $1)`,
+      [ownerProfileId]
+    );
+    await client.query(
+      `insert into public.contacts
+         (id, name, organization_id, organization, sector, city, source, status, owner_id, created_by, updated_by)
+       values
+         ('synthetic-production-contact-koehler', 'Christian Koehler', 'synthetic-production-org-nordring',
+          'Nordring Apotheke', 'Apotheke', 'Teststadt', 'synthetic-http-postgres-e2e', 'active', $1, $1, $1)`,
+      [ownerProfileId]
+    );
+    await client.query(
+      `insert into public.contact_owners (contact_id, profile_id, assigned_by)
+       values ('synthetic-production-contact-koehler', $1, $1)`,
+      [ownerProfileId]
+    );
+    await client.query(
+      `insert into public.hospitations
+         (id, contact_id, contact_name, organization_id, organization_name, status, starts_at, ends_at,
+          city, sector, owner_id, requester_profile_id, documented_by, created_by, updated_by)
+       values
+         ('synthetic-production-hospitation-koehler', 'synthetic-production-contact-koehler', 'Christian Koehler',
+          'synthetic-production-org-nordring', 'Nordring Apotheke', 'Dokumentiert',
+          '2026-08-06T08:00:00.000Z', '2026-08-06T09:00:00.000Z', 'Teststadt', 'Apotheke',
+          $1, $1, $1, $1, $1)`,
+      [ownerProfileId]
+    );
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function seedArchivedOwnerPreservationTarget(pool, manifest) {
@@ -627,6 +727,40 @@ try {
   assert.equal(secondPreview.payload.summary.total.unchanged, 4);
   assert.equal(secondPreview.payload.targetFingerprint, successfulApply.payload.appliedFingerprint);
   assert.deepEqual(await databaseState(pool), stateBeforeSecondPreview, "Die idempotente zweite Vorschau muss schreibfrei bleiben.");
+
+  const duplicateManifest = duplicatePreventionManifest();
+  await seedDuplicatePreventionTarget(pool);
+  const stateBeforeDuplicatePreview = await databaseState(pool);
+  const duplicatePreview = await preview(baseUrl, duplicateManifest);
+  assert.equal(duplicatePreview.status, 200, JSON.stringify(duplicatePreview.payload));
+  assert.equal(duplicatePreview.payload.summary.total.conflict, 0);
+  assert.equal(duplicatePreview.payload.summary.total.create, 1, "Nur die neue Beobachtung darf angelegt werden; Organisation, Kontakt und Termin muessen zugeordnet werden.");
+  assert.equal(duplicatePreview.payload.items.organizations[0].targetId, "synthetic-production-org-nordring");
+  assert.equal(duplicatePreview.payload.items.contacts[0].targetId, "synthetic-production-contact-koehler");
+  assert.equal(duplicatePreview.payload.items.hospitations[0].targetId, "synthetic-production-hospitation-koehler");
+  assert.deepEqual(await databaseState(pool), stateBeforeDuplicatePreview, "Auch die Dubletten-Vorschau muss strikt schreibfrei bleiben.");
+
+  const duplicateApply = await apply(baseUrl, duplicateManifest, duplicatePreview.payload);
+  assert.equal(duplicateApply.status, 200, JSON.stringify(duplicateApply.payload));
+  assert.equal(duplicateApply.payload.ok, true);
+  for (const [table, sourceId] of [
+    ["organizations", "synthetic-local-org-nordring"],
+    ["contacts", "synthetic-local-contact-koehler"],
+    ["hospitations", "synthetic-local-hospitation-koehler"]
+  ]) {
+    assert.equal(await countById(pool, table, sourceId), 0, `${table} darf keine lokale ID als Dublette anlegen.`);
+  }
+  const mappedObservation = await pool.query(
+    "select hospitation_id from public.hospitation_observations where id = 'synthetic-local-observation-koehler'"
+  );
+  assert.deepEqual(mappedObservation.rows, [{ hospitation_id: "synthetic-production-hospitation-koehler" }],
+    "Die Beobachtung muss dem kanonischen Produktionstermin zugeordnet werden.");
+  const duplicateSecondPreview = await preview(baseUrl, duplicateManifest);
+  assert.equal(duplicateSecondPreview.status, 200, JSON.stringify(duplicateSecondPreview.payload));
+  assert.equal(duplicateSecondPreview.payload.summary.total.create, 0);
+  assert.equal(duplicateSecondPreview.payload.summary.total.update, 0);
+  assert.equal(duplicateSecondPreview.payload.summary.total.conflict, 0);
+  assert.equal(duplicateSecondPreview.payload.summary.total.unchanged, 4);
 
   const preservationManifest = syntheticManifest(
     "preservation",

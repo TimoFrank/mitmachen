@@ -246,6 +246,10 @@
   }
   function hospitationObservationDbToUi(row = {}) {
     const payload = row.payload && "object" == typeof row.payload && !Array.isArray(row.payload) ? row.payload : {}, raw = {
+      // Die API liefert den persistierten Payload bereits als camelCase-DTO auf
+      // oberster Ebene. Daher zuerst alle DTO-Felder erhalten und anschließend
+      // nur die kanonischen Spalten-/Aliaswerte gezielt vereinheitlichen.
+      ...row,
       ...payload,
       id: row.id || payload.id || "",
       hospitationId: row.hospitation_id || row.hospitationId || payload.hospitationId || "",
@@ -253,23 +257,23 @@
       title: row.title || payload.title || "Beobachtung",
       situation: row.situation ?? payload.situation ?? "",
       description: row.description ?? payload.description ?? payload.observed ?? "",
-      processPhase: row.process_phase ?? payload.processPhase ?? "",
-      problemType: row.problem_type ?? payload.problemType ?? "",
+      processPhase: row.process_phase ?? row.processPhase ?? payload.processPhase ?? "",
+      problemType: row.problem_type ?? row.problemType ?? payload.problemType ?? "",
       impact: row.impact ?? payload.impact ?? "",
-      observationType: row.observation_type ?? payload.observationType ?? "",
-      evidenceType: row.evidence_type || payload.evidenceType || "interpreted",
-      relevanceScore: Number(row.relevance_score ?? payload.relevanceScore ?? 0) || null,
-      usageRecommendation: row.usage_recommendation ?? payload.usageRecommendation ?? payload.nextUse ?? "",
-      involvedRoles: Array.isArray(row.involved_roles) ? row.involved_roles : payload.involvedRoles || [],
-      affectedProducts: Array.isArray(row.affected_products) ? row.affected_products : payload.affectedProducts || [],
+      observationType: row.observation_type ?? row.observationType ?? payload.observationType ?? "",
+      evidenceType: row.evidence_type || row.evidenceType || payload.evidenceType || "interpreted",
+      relevanceScore: Number(row.relevance_score ?? row.relevanceScore ?? payload.relevanceScore ?? 0) || null,
+      usageRecommendation: row.usage_recommendation ?? row.usageRecommendation ?? row.nextUse ?? payload.usageRecommendation ?? payload.nextUse ?? "",
+      involvedRoles: Array.isArray(row.involved_roles) ? row.involved_roles : Array.isArray(row.involvedRoles) ? row.involvedRoles : payload.involvedRoles || [],
+      affectedProducts: Array.isArray(row.affected_products) ? row.affected_products : Array.isArray(row.affectedProducts) ? row.affectedProducts : payload.affectedProducts || [],
       topics: Array.isArray(row.topics) ? row.topics : payload.topics || [],
       status: row.status || payload.status || "active",
-      archivedAt: row.archived_at || "",
-      archivedBy: row.archived_by || "",
-      createdAt: row.created_at || payload.createdAt || "",
-      createdBy: row.created_by || payload.createdBy || "",
-      updatedAt: row.updated_at || payload.updatedAt || "",
-      updatedBy: row.updated_by || payload.updatedBy || ""
+      archivedAt: row.archived_at || row.archivedAt || "",
+      archivedBy: row.archived_by || row.archivedBy || "",
+      createdAt: row.created_at || row.createdAt || payload.createdAt || "",
+      createdBy: row.created_by || row.createdBy || payload.createdBy || "",
+      updatedAt: row.updated_at || row.updatedAt || payload.updatedAt || "",
+      updatedBy: row.updated_by || row.updatedBy || payload.updatedBy || ""
     }, model = hospitationModel();
     return model?.normalizeObservation ? {
       ...model.normalizeObservation(raw, {

@@ -1,7 +1,126 @@
 import { expect, test } from "@playwright/test";
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
+import { createProtectedBackendFixture } from "./helpers/protected-backend-fixture.js";
 
 const observationRoute = "/frontend/app/versorgungs-kompass.html#hospitations:observations";
+
+function codedObservationBackendFixture() {
+  const fixture = createProtectedBackendFixture({ role: "admin" });
+  const hospitationIds = fixture.hospitations.map((hospitation) => hospitation.id);
+  const problemTypes = [
+    "Medienbruch",
+    "fehlende Information",
+    "doppelte Dokumentation",
+    "Rückfrage",
+    "Wartezeit",
+    "Workaround",
+    "Systemverständnis",
+    "Rollenunklarheit",
+    "technisches Problem",
+    "positives Muster / Best Practice",
+    "offene Frage"
+  ];
+  const processPhases = [
+    "Anmeldung / Aufnahme",
+    "Identifikation",
+    "Behandlung / Beratung",
+    "Verordnung",
+    "Überweisung",
+    "Befund / Dokumentation",
+    "Kommunikation mit Patient:innen",
+    "Kommunikation mit anderen Einrichtungen",
+    "Nachbereitung",
+    "Sonstiges"
+  ];
+  const codePairs = problemTypes.flatMap((problemType) =>
+    processPhases.map((processPhase) => ({ problemType, processPhase }))
+  );
+  let sequence = 0;
+  const observation = (pair, hospitationId) => {
+    sequence += 1;
+    return {
+      id: `camel-observation-${String(sequence).padStart(3, "0")}`,
+      hospitationId,
+      sequence,
+      title: `Codierte API-Beobachtung ${sequence}`,
+      situation: "Synthetische Vertragssituation",
+      description: "Synthetische Beobachtung für den camelCase-API-Vertrag.",
+      observedAt: "09:15 Uhr",
+      currentWorkaround: "Synthetischer Zwischenweg",
+      nextStep: "Persistierter nächster Schritt am Einzelbeleg",
+      processPhase: pair.processPhase,
+      problemType: pair.problemType,
+      impact: "Zeitaufwand",
+      observationType: "Reibung / Problem",
+      evidenceType: "directly_observed",
+      relevanceScore: 4,
+      usageRecommendation: "weiter validieren",
+      involvedRoles: ["Synthetische Rolle"],
+      affectedProducts: [],
+      topics: ["Vertragstest"],
+      status: "active",
+      createdAt: "2026-07-20T08:00:00.000Z",
+      createdBy: "demo-profile-admin",
+      updatedAt: "2026-07-20T09:00:00.000Z",
+      updatedBy: "demo-profile-admin"
+    };
+  };
+
+  const coded = [];
+  codePairs.slice(0, 17).forEach((pair, index) => {
+    coded.push(observation(pair, hospitationIds[index % hospitationIds.length]));
+    coded.push(observation(pair, hospitationIds[(index + 1) % hospitationIds.length]));
+  });
+  codePairs.slice(17, 56).forEach((pair, index) => {
+    coded.push(observation(pair, hospitationIds[(index + 3) % hospitationIds.length]));
+  });
+  const legacy = Array.from({ length: 5 }, (_, index) => ({
+    id: `camel-legacy-observation-${index + 1}`,
+    hospitationId: hospitationIds[index % hospitationIds.length],
+    sequence: sequence + index + 1,
+    title: `Uncodierte Legacy-Beobachtung ${index + 1}`,
+    description: "Historische Beobachtung ohne Problemtyp und Prozessphase.",
+    evidenceType: "reported",
+    status: "active",
+    createdAt: "2026-07-20T08:00:00.000Z",
+    updatedAt: "2026-07-20T09:00:00.000Z"
+  }));
+  fixture.hospitationObservations = [...coded, ...legacy];
+  return fixture;
+}
+
+test("camelCase-API-Codierung erzeugt 17 echte Muster, aber keine erfundenen Folgestufen", async ({ page }) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations:patterns", {
+    role: "admin",
+    backendFixture: codedObservationBackendFixture()
+  });
+
+  const loadedObservations = await page.evaluate(() => window.dataService.loadHospitationObservations());
+  expect(loadedObservations).toHaveLength(78);
+  expect(loadedObservations.filter((row) => row.processPhase && row.problemType)).toHaveLength(73);
+  expect(loadedObservations[0]).toMatchObject({
+    processPhase: "Anmeldung / Aufnahme",
+    problemType: "Medienbruch",
+    observationType: "Reibung / Problem",
+    evidenceType: "directly_observed",
+    relevanceScore: 4,
+    usageRecommendation: "weiter validieren",
+    involvedRoles: ["Synthetische Rolle"],
+    observedAt: "09:15 Uhr",
+    currentWorkaround: "Synthetischer Zwischenweg",
+    nextStep: "Persistierter nächster Schritt am Einzelbeleg",
+    createdAt: "2026-07-20T08:00:00.000Z",
+    createdBy: "demo-profile-admin",
+    updatedAt: "2026-07-20T09:00:00.000Z",
+    updatedBy: "demo-profile-admin"
+  });
+
+  const panel = page.locator("#hospitation-patterns-panel");
+  await expect(panel.locator("[data-hospitation-pattern]")).toHaveCount(17);
+  await expect(panel.locator("[data-hospitation-framework-count]")).toHaveText(["78", "17", "0", "0"]);
+  await expect(panel).not.toContainText("Problemtyp offen");
+  await expect(panel).not.toContainText("Prozessphase offen");
+});
 
 test("Beobachtungen nutzen geschützte Backend-Daten und eine filterbare Vollbreitenliste", async ({ page }) => {
   await gotoAuthenticated(page, observationRoute, { role: "admin" });
