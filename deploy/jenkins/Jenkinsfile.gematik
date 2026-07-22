@@ -22,6 +22,26 @@ pipeline {
       defaultValue: '',
       description: 'Optional PostgreSQL TLS server name when it differs from DB_HOST.'
     )
+    string(
+      name: 'PROFILE_IMAGE_BUCKET',
+      defaultValue: '',
+      description: 'Optional private GCS bucket containing imported profile images.'
+    )
+    string(
+      name: 'CONTACT_IMAGE_BUCKET',
+      defaultValue: '',
+      description: 'Optional private GCS bucket containing imported contact images.'
+    )
+    string(
+      name: 'CONTACT_NOTE_ATTACHMENT_BUCKET',
+      defaultValue: '',
+      description: 'Optional private GCS bucket containing imported note attachments.'
+    )
+    string(
+      name: 'STAKEHOLDER_LOGO_BUCKET',
+      defaultValue: '',
+      description: 'Optional private GCS bucket containing imported stakeholder logos.'
+    )
   }
 
   environment {
@@ -51,11 +71,13 @@ pipeline {
     OIDC_JWKS_URL = credentials('versorgungs-oidc-jwks-url')
     OIDC_EMAIL_CLAIM = 'email'
     OIDC_SUBJECT_CLAIM = 'sub'
-    // Uploads sind im ersten PoC deaktiviert; leere Werte vermeiden unnoetige
-    // Storage-Credentials. Ein spaeterer Pilot kann sie bewusst ersetzen.
-    PROFILE_IMAGE_BUCKET = ''
-    CONTACT_IMAGE_BUCKET = ''
-    CONTACT_NOTE_ATTACHMENT_BUCKET = ''
+    DATA_POLICY = 'approved-classes-only'
+    // Neue Uploads bleiben aus. Optionale private Buckets machen bereits
+    // übernommene Bilder und Anhänge lesbar.
+    PROFILE_IMAGE_BUCKET = "${params.PROFILE_IMAGE_BUCKET}"
+    CONTACT_IMAGE_BUCKET = "${params.CONTACT_IMAGE_BUCKET}"
+    CONTACT_NOTE_ATTACHMENT_BUCKET = "${params.CONTACT_NOTE_ATTACHMENT_BUCKET}"
+    STAKEHOLDER_LOGO_BUCKET = "${params.STAKEHOLDER_LOGO_BUCKET}"
   }
 
   stages {
@@ -345,7 +367,8 @@ pipeline {
             --set secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
             --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
             --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
-            --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" >/tmp/versorgungs-kompass-rendered.yaml
+            --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" \
+            --set storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET" >/tmp/versorgungs-kompass-rendered.yaml
         '''
       }
     }
@@ -381,8 +404,8 @@ pipeline {
           }
           poc_values_digest="sha256:$(sha256_file "$HELM_POC_VALUES")"
           schema_digest="sha256:$(sha256_file deploy/postgres/pre-gematik/schema.sql)"
-          seed_digest="sha256:$(sha256_file deploy/postgres/pre-gematik/seed.synthetic.sql)"
-          identity_binding_digest="sha256:$(sha256_file deploy/postgres/poc-gematik/bind-test-identity.sql)"
+          migration_contract_digest="sha256:$(sha256_file scripts/lib/pre-gematik-database-migration.mjs)"
+          identity_binding_digest="sha256:$(sha256_file deploy/postgres/poc-gematik/bind-oidc-identity.sql)"
           jq --null-input \
             --arg schema_version "1" \
             --arg release_id "$FRONTEND_RELEASE_ID" \
@@ -396,8 +419,8 @@ pipeline {
             --arg chart_version "$chart_version" \
             --arg poc_values_digest "$poc_values_digest" \
             --arg schema_digest "$schema_digest" \
-            --arg seed_digest "$seed_digest" \
-            --arg seed_version "pre-gematik-synthetic-v1" \
+            --arg data_policy "$DATA_POLICY" \
+            --arg migration_contract_digest "$migration_contract_digest" \
             --arg identity_binding_digest "$identity_binding_digest" \
             --arg build_url "${BUILD_URL:-}" \
             '{
@@ -415,8 +438,8 @@ pipeline {
               pocValuesDigest: $poc_values_digest,
               database: {
                 schemaDigest: $schema_digest,
-                seedDigest: $seed_digest,
-                seedVersion: $seed_version,
+                dataPolicy: $data_policy,
+                migrationContractDigest: $migration_contract_digest,
                 identityBindingScriptDigest: $identity_binding_digest
               },
               evidence: {
@@ -491,7 +514,8 @@ pipeline {
             --set secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
             --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
             --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
-            --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET"
+            --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" \
+            --set storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET"
         '''
       }
     }

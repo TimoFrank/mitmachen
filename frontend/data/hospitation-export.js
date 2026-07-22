@@ -16,6 +16,15 @@
     white: "FFFFFF"
   });
 
+  const CODING_BADGE_PALETTES = Object.freeze({
+    problem: Object.freeze({ fill: "F2EEFF", border: "D8CDF8", text: "5B3EB2" }),
+    phase: Object.freeze({ fill: "EAF2FF", border: "CBDCFB", text: "215CB8" }),
+    impact: Object.freeze({ fill: "FFF5E5", border: "F0D5AA", text: "9A5B08" }),
+    usage: Object.freeze({ fill: "EAF9F5", border: "BFE3DC", text: "167060" }),
+    evidence: Object.freeze({ fill: "E8F7F4", border: "B9DED7", text: "0F766E" }),
+    relevance: Object.freeze({ fill: "F0F4FB", border: "D7E1F3", text: "38527F" })
+  });
+
   const DOCUMENT_LABEL = "Hospitations-Termine | synchronisierter Spiegel";
   const A4 = Object.freeze({ widthDxa: 11906, heightDxa: 16838, usableDxa: 10152 });
 
@@ -78,12 +87,22 @@
 
   function normalizeSnapshot(input = {}) {
     const generatedAt = text(input.generatedAt) || new Date().toISOString();
+    const requestedKind = text(input.documentKind);
+    const documentKind = requestedKind === "observations"
+      ? "observations"
+      : requestedKind === "appointment" ? "appointment" : "appointments";
     const appointments = Array.isArray(input.appointments) ? input.appointments : [];
     const hospitations = Array.isArray(input.hospitations)
       ? input.hospitations
       : appointments.filter((item) => item.kind !== "slot");
     return {
-      title: text(input.title) || "Hospitations-Termine & Beobachtungen",
+      documentKind,
+      documentLabel: text(input.documentLabel) || (documentKind === "observations"
+        ? "Hospitations-Beobachtungen | Übersicht"
+        : documentKind === "appointment" ? "Hospitations-Termin | Einzelansicht" : DOCUMENT_LABEL),
+      title: text(input.title) || (documentKind === "observations"
+        ? "Hospitations-Beobachtungen"
+        : documentKind === "appointment" ? "Hospitations-Termin" : "Hospitations-Termine & Beobachtungen"),
       subtitle: text(input.subtitle) || "Versorgungs-Kompass | #Mitmachen",
       modeLabel: text(input.modeLabel) || "Geschuetzter Datenstand",
       generatedAt,
@@ -206,6 +225,51 @@
     ].filter(([, value]) => Array.isArray(value) ? value.length : text(value));
   }
 
+  function observationOverviewFields(item = {}) {
+    const classification = [item.processPhase, item.problemType, item.impact].map(text).filter(Boolean).join(" | ");
+    return [
+      ["Situation / Kontext", nonEmpty(item.situation, item.situationContext)],
+      ["Beobachtung", nonEmpty(item.description, item.observed, item.observation)],
+      ["Unmittelbare Folge", item.immediateConsequence],
+      ["Einordnung", classification]
+    ].filter(([, value]) => text(value));
+  }
+
+  function appointmentObservationFields(item = {}) {
+    return [
+      ["Situation / Kontext", nonEmpty(item.situation, item.situationContext)],
+      ["Konkrete Beobachtung", nonEmpty(item.description, item.observed, item.observation)],
+      ["Auslöser", item.trigger],
+      ["Handlungsschritte", list(item.actions || item.actionSteps)],
+      ["Unmittelbare Folge", item.immediateConsequence],
+      ["Beteiligte Rollen", list(item.involvedRoles || item.affectedRoles)],
+      ["Aktueller Workaround", nonEmpty(item.workaround, item.currentWorkaround)],
+      ["Nächster Schritt", item.nextStep]
+    ].filter(([, value]) => Array.isArray(value) ? value.length : text(value));
+  }
+
+  function observationCodingItems(item = {}) {
+    const relevance = Number(item.relevanceScore || item.careRelevance) || 0;
+    return [
+      { label: "Problemtyp", value: text(item.problemType) || "Noch nicht codiert", tone: "problem" },
+      { label: "Prozessphase", value: text(item.processPhase) || "Prozessphase offen", tone: "phase" },
+      { label: "Auswirkung", value: text(item.impact) || "Auswirkung offen", tone: "impact" },
+      { label: "Nächste Nutzung", value: nonEmpty(item.usageRecommendation, item.nextUse) || "Noch nicht festgelegt", tone: "usage" },
+      { label: "Evidenzart", value: evidenceLabel(item.evidenceType) || "Evidenzart offen", tone: "evidence" },
+      { label: "Relevanz", value: relevance ? `${Math.max(1, Math.min(5, relevance))} / 5` : "Offen", tone: "relevance" }
+    ].map((entry) => ({ ...entry, palette: CODING_BADGE_PALETTES[entry.tone] }));
+  }
+
+  function observationChapterMetadata(item = {}) {
+    return [
+      ["Termin", appointmentDateLabel(item)],
+      ["Kontakt", item.contact],
+      ["Organisation", item.organization],
+      ["Sektor", item.sector],
+      ["Ort", joined([item.location, item.city])]
+    ];
+  }
+
   function quoteFields(item = {}) {
     return [
       ["Zitat", item.quote],
@@ -305,7 +369,7 @@
 
   function appointmentStatusLabel(item = {}) {
     const documentation = text(item.documentationStatus);
-    return [text(item.status) || (item.kind === "slot" ? "Terminangebot" : "Status offen"), documentation].filter(Boolean).join(" | ");
+    return unique([text(item.status) || (item.kind === "slot" ? "Terminangebot" : "Status offen"), documentation]).join(" | ");
   }
 
   function chapterMetadata(item = {}) {
@@ -341,9 +405,32 @@
     return Number.isNaN(date.getTime()) ? "aktuell" : date.toISOString().slice(0, 10);
   }
 
+  function filenameSlug(value) {
+    return text(value)
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/Ä/g, "Ae")
+      .replace(/Ö/g, "Oe")
+      .replace(/Ü/g, "Ue")
+      .replace(/ß/g, "ss")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 72) || "kontakt";
+  }
+
   function filenameFor(type, snapshot) {
     const extension = type === "pdf" ? "pdf" : "docx";
-    return `mitmachen-hospitations-termine-${safeFilenameDate(snapshot.generatedAt)}.${extension}`;
+    if (snapshot.documentKind === "appointment") {
+      const item = snapshot.hospitations[0] || snapshot.appointments[0] || {};
+      const date = localDateKey(item.startsAt) || safeFilenameDate(snapshot.generatedAt);
+      return `mitmachen-hospitations-termin-${date}-${filenameSlug(item.contact || contextLabel(item))}.${extension}`;
+    }
+    const subject = snapshot.documentKind === "observations" ? "beobachtungen" : "termine";
+    return `mitmachen-hospitations-${subject}-${safeFilenameDate(snapshot.generatedAt)}.${extension}`;
   }
 
   function wRun(value, options = {}) {
@@ -419,6 +506,87 @@
     return `<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="${total}"/><w:tblInd w:w="0" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="1" w:noVBand="1"/></w:tblPr><w:tblGrid>${widths.map((width) => `<w:gridCol w:w="${width}"/>`).join("")}</w:tblGrid>${rowXml}</w:tbl>`;
   }
 
+  function binaryBytes(value) {
+    if (value instanceof Uint8Array) return value;
+    if (value instanceof ArrayBuffer) return new Uint8Array(value);
+    if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    if (Array.isArray(value)) return Uint8Array.from(value);
+    return null;
+  }
+
+  function contactImageFor(snapshot = {}) {
+    const item = snapshot.hospitations?.[0] || snapshot.appointments?.[0] || {};
+    const image = item.contactImage && typeof item.contactImage === "object" ? item.contactImage : null;
+    const bytes = binaryBytes(image?.bytes);
+    if (!bytes?.length) return null;
+    return {
+      bytes,
+      width: Math.max(1, Number(image.width) || 480),
+      height: Math.max(1, Number(image.height) || 480),
+      mimeType: "image/jpeg",
+      alt: text(image.alt) || `Kontaktfoto von ${text(item.contact) || "Kontakt"}`
+    };
+  }
+
+  function initials(value) {
+    const parts = text(value).replace(/\b(dr|prof)\.?\b/gi, "").split(/\s+/).filter(Boolean);
+    return (parts.length > 1 ? `${parts[0][0]}${parts.at(-1)[0]}` : parts[0]?.slice(0, 2) || "HO").toUpperCase();
+  }
+
+  function wContactPhotoParagraph(relationshipId, alt = "Kontaktfoto") {
+    const extent = 1120000;
+    return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${extent}" cy="${extent}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="1" name="Kontaktfoto" descr="${escapeXml(alt)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="kontaktfoto.jpg" descr="${escapeXml(alt)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relationshipId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${extent}" cy="${extent}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+  }
+
+  function wContactHero(item = {}, imageRelationshipId = "") {
+    const leftWidth = 1540;
+    const rightWidth = A4.usableDxa - leftWidth;
+    const border = `<w:tcBorders><w:top w:val="single" w:sz="5" w:color="D7E1F3"/><w:left w:val="single" w:sz="5" w:color="D7E1F3"/><w:bottom w:val="single" w:sz="5" w:color="D7E1F3"/><w:right w:val="single" w:sz="5" w:color="D7E1F3"/></w:tcBorders>`;
+    const cellMargins = `<w:tcMar><w:top w:w="150" w:type="dxa"/><w:left w:w="150" w:type="dxa"/><w:bottom w:w="150" w:type="dxa"/><w:right w:w="150" w:type="dxa"/></w:tcMar>`;
+    const image = imageRelationshipId
+      ? wContactPhotoParagraph(imageRelationshipId, `Kontaktfoto von ${text(item.contact) || "Kontakt"}`)
+      : wParagraph(initials(item.contact || contextLabel(item)), { align: "center", run: { bold: true, color: COLORS.navy, size: 34, font: "Arial" }, spacing: { before: 230, after: 230, line: 360 } });
+    const contactCopy = [
+      wParagraph("KONTAKT", { run: { bold: true, color: COLORS.blue, size: 15, font: "Arial" }, spacing: { after: 35, line: 210 } }),
+      wParagraph(text(item.contact) || contextLabel(item), { run: { bold: true, color: COLORS.navy, size: 30, font: "Arial" }, spacing: { after: 45, line: 340 } }),
+      wParagraph(text(item.organization) || "Organisation nicht hinterlegt", { run: { bold: true, color: COLORS.teal, size: 20, font: "Arial" }, spacing: { after: 38, line: 250 } }),
+      wParagraph([appointmentDateLabel(item), item.sector].map(text).filter(Boolean).join("  |  "), { run: { color: COLORS.text, size: 18, font: "Arial" }, spacing: { after: 0, line: 240 } })
+    ].join("");
+    return `<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="${A4.usableDxa}"/><w:tblInd w:w="0" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${leftWidth}"/><w:gridCol w:w="${rightWidth}"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="${leftWidth}"/>${border}${cellMargins}<w:shd w:fill="${COLORS.paleBlue}"/><w:vAlign w:val="center"/></w:tcPr>${image}</w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="${rightWidth}"/>${border}${cellMargins}<w:shd w:fill="${COLORS.neutral}"/><w:vAlign w:val="center"/></w:tcPr>${contactCopy}</w:tc></w:tr></w:tbl>${wParagraph("", { spacing: { after: 70, line: 100 } })}`;
+  }
+
+  function wCodingBadgeCell(item = {}, width = 3220) {
+    const palette = item.palette || CODING_BADGE_PALETTES.relevance;
+    return `<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="${width}"/><w:tcBorders><w:top w:val="single" w:sz="7" w:color="${palette.border}"/><w:left w:val="single" w:sz="7" w:color="${palette.border}"/><w:bottom w:val="single" w:sz="7" w:color="${palette.border}"/><w:right w:val="single" w:sz="7" w:color="${palette.border}"/></w:tcBorders><w:tcMar><w:top w:w="95" w:type="dxa"/><w:left w:w="125" w:type="dxa"/><w:bottom w:w="95" w:type="dxa"/><w:right w:w="125" w:type="dxa"/></w:tcMar><w:shd w:val="clear" w:fill="${palette.fill}"/><w:vAlign w:val="center"/></w:tcPr>${wParagraph(item.label, { run: { bold: true, color: COLORS.muted, size: 14, font: "Arial" }, spacing: { after: 18, line: 190 } })}${wParagraph(item.value, { run: { bold: true, color: palette.text, size: 17, font: "Arial" }, spacing: { after: 0, line: 220 } })}</w:tc>`;
+  }
+
+  function wCodingBadges(observation = {}) {
+    const items = observationCodingItems(observation);
+    const width = 3220;
+    const rows = [];
+    for (let index = 0; index < items.length; index += 3) {
+      rows.push(`<w:tr><w:trPr><w:cantSplit/></w:trPr>${items.slice(index, index + 3).map((item) => wCodingBadgeCell(item, width)).join("")}</w:tr>`);
+    }
+    return [
+      wParagraph("Codierung", { style: "FieldLabel", keepNext: true, spacing: { before: 30, after: 35, line: 220 } }),
+      `<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="${width * 3}"/><w:tblInd w:w="0" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellSpacing w:w="70" w:type="dxa"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${width}"/><w:gridCol w:w="${width}"/><w:gridCol w:w="${width}"/></w:tblGrid>${rows.join("")}</w:tbl>`,
+      wParagraph("", { spacing: { after: 45, line: 100 } })
+    ].join("");
+  }
+
+  function wAppointmentObservationBlock(observation = {}, index = 0) {
+    const content = [
+      wParagraph(`Beobachtung ${index + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { style: "Heading3" }),
+      wCodingBadges(observation),
+      wFields(appointmentObservationFields(observation))
+    ].join("");
+    return `<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="${A4.usableDxa}"/><w:tblInd w:w="0" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${A4.usableDxa}"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="${A4.usableDxa}"/><w:tcMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tcMar></w:tcPr>${content}</w:tc></w:tr></w:tbl>${wParagraph("", { spacing: { after: 60, line: 100 } })}`;
+  }
+
+  function wPageBreak() {
+    return `<w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:br w:type="page"/></w:r></w:p>`;
+  }
+
   function wSectionRule() {
     return `<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="${A4.usableDxa}"/><w:tblInd w:w="0" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="1560"/><w:gridCol w:w="7800"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="1560"/><w:shd w:fill="${COLORS.orange}"/><w:tcMar><w:top w:w="70" w:type="dxa"/><w:bottom w:w="70" w:type="dxa"/></w:tcMar></w:tcPr><w:p/></w:tc><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="7800"/><w:shd w:fill="${COLORS.blue}"/><w:tcMar><w:top w:w="70" w:type="dxa"/><w:bottom w:w="70" w:type="dxa"/></w:tcMar></w:tcPr><w:p/></w:tc></w:tr></w:tbl>${wParagraph("", { spacing: { after: 80, line: 120 } })}`;
   }
@@ -461,7 +629,7 @@
 
   function wFooterXml(snapshot) {
     const runs = [
-      wRun(`${DOCUMENT_LABEL} | ${snapshot.generatedLabel}   ·   Seite `, { color: COLORS.muted, size: 14, font: "Arial" }),
+      wRun(`${snapshot.documentLabel || DOCUMENT_LABEL} | ${snapshot.generatedLabel}   ·   Seite `, { color: COLORS.muted, size: 14, font: "Arial" }),
       `<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:color w:val="${COLORS.navy}"/><w:sz w:val="14"/></w:rPr><w:fldChar w:fldCharType="begin"/><w:instrText xml:space="preserve"> PAGE </w:instrText><w:fldChar w:fldCharType="separate"/><w:t>1</w:t><w:fldChar w:fldCharType="end"/></w:r>`
     ];
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${wParagraph(runs, { align: "center", spacing: { after: 0, line: 220 } })}</w:ftr>`;
@@ -609,7 +777,154 @@
     return body.join("");
   }
 
-  function wDocumentXml(snapshot) {
+  function wObservationOverviewTable(snapshot) {
+    const widths = [650, 1650, 3650, 2750, 1452];
+    const rows = [[
+      { content: "Nr.", style: "TableHeader" },
+      { content: "Termin", style: "TableHeader" },
+      { content: "Kontakt / Organisation", style: "TableHeader" },
+      { content: "Sektor / Ort", style: "TableHeader" },
+      { content: "Beob.", style: "TableHeader" }
+    ]];
+    snapshot.hospitations.forEach((item, index) => {
+      const fill = index % 2 ? COLORS.neutral : COLORS.white;
+      rows.push([
+        { content: String(index + 1), shading: fill },
+        { content: appointmentDateLabel(item), shading: fill },
+        { content: contextLabel(item), shading: fill },
+        { content: [item.sector, item.location || item.city].map(text).filter(Boolean).join(" | ") || "Nicht hinterlegt", shading: fill },
+        { content: String(observationItems(item).length), shading: fill }
+      ]);
+    });
+    if (!snapshot.hospitations.length) {
+      rows.push([
+        { content: "-", shading: COLORS.neutral },
+        { content: "Keine Hospitationen mit Beobachtungen", shading: COLORS.neutral },
+        { content: "", shading: COLORS.neutral },
+        { content: "", shading: COLORS.neutral },
+        { content: "0", shading: COLORS.neutral }
+      ]);
+    }
+    return wTable(rows, widths, { header: true });
+  }
+
+  function wObservationMetadataTable(item) {
+    const entries = observationChapterMetadata(item);
+    const widths = [1500, 3576, 1500, 3576];
+    const rows = [];
+    for (let index = 0; index < entries.length; index += 2) {
+      const left = entries[index];
+      const right = entries[index + 1] || ["", ""];
+      rows.push([
+        { content: left[0], style: "TableLabel", shading: COLORS.paleTeal },
+        { content: text(left[1]) || "Nicht hinterlegt", shading: COLORS.white },
+        { content: right[0], style: "TableLabel", shading: right[0] ? COLORS.paleTeal : COLORS.white },
+        { content: text(right[1]), shading: COLORS.white }
+      ]);
+    }
+    return wTable(rows, widths);
+  }
+
+  function wObservationChapter(item, index) {
+    const observations = observationItems(item);
+    const body = [
+      wParagraph(`${String(index + 1).padStart(2, "0")} | Hospitation`, { style: "Heading1", pageBreakBefore: true }),
+      wParagraph(contextLabel(item), { style: "MirrorSubtitle" }),
+      wSectionRule(),
+      wObservationMetadataTable(item),
+      wParagraph(`Beobachtungen (${observations.length})`, { style: "Heading2" })
+    ];
+    if (!observations.length) {
+      body.push(wParagraph("Noch keine Beobachtungen dokumentiert.", { style: "Callout" }));
+    } else {
+      observations.forEach((observation, observationIndex) => {
+        body.push(
+          wParagraph(`Beobachtung ${observationIndex + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { style: "Heading3" }),
+          wFields(observationOverviewFields(observation))
+        );
+      });
+    }
+    return body.join("");
+  }
+
+  function wObservationDocumentXml(snapshot) {
+    const intro = `Diese Übersicht bündelt ${countLabel(snapshot.summary.observations, "qualitative Beobachtung", "qualitative Beobachtungen")} aus ${countLabel(snapshot.summary.hospitations, "Hospitation", "Hospitationen")}. Die Beobachtungen sind nach Hospitation geordnet.`;
+    const body = [
+      wParagraph("•  •  •   #Mitmachen", { run: { bold: true, color: COLORS.navy, size: 22, font: "Arial" }, spacing: { before: 80, after: 30, line: 240 } }),
+      wParagraph(snapshot.title, { style: "MirrorTitle" }),
+      wParagraph(snapshot.subtitle, { style: "MirrorSubtitle" }),
+      wSectionRule(),
+      wParagraph(intro, { style: "Callout" }),
+      wParagraph(`${countLabel(snapshot.summary.observations, "Beobachtung", "Beobachtungen")} | ${countLabel(snapshot.summary.hospitations, "Hospitation", "Hospitationen")}`, { run: { bold: true, color: COLORS.teal, size: 20, font: "Arial" }, spacing: { after: 120, line: 252 } }),
+      wParagraph("Hospitationen im Überblick", { style: "Heading2" }),
+      wObservationOverviewTable(snapshot),
+      ...snapshot.hospitations.map((item, index) => wObservationChapter(item, index)),
+      `<w:sectPr><w:headerReference w:type="default" r:id="rId3"/><w:footerReference w:type="default" r:id="rId4"/><w:pgSz w:w="${A4.widthDxa}" w:h="${A4.heightDxa}"/><w:pgMar w:top="893" w:right="878" w:bottom="835" w:left="878" w:header="317" w:footer="346" w:gutter="0"/><w:cols w:space="720"/><w:docGrid w:linePitch="360"/></w:sectPr>`
+    ].join("");
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}</w:body></w:document>`;
+  }
+
+  function appointmentMetadata(item = {}) {
+    return [
+      ["Termin", appointmentDateLabel(item)],
+      ["Status", appointmentStatusLabel(item)],
+      ["Organisation", item.organization],
+      ["Sektor", item.sector],
+      ["Ort", joined([item.location, item.city])],
+      ["Owner", joined(item.owners)]
+    ];
+  }
+
+  function wAppointmentMetadataTable(item = {}) {
+    const entries = appointmentMetadata(item);
+    const widths = [1500, 3576, 1500, 3576];
+    const rows = [];
+    for (let index = 0; index < entries.length; index += 2) {
+      const left = entries[index];
+      const right = entries[index + 1] || ["", ""];
+      rows.push([
+        { content: left[0], style: "TableLabel", shading: COLORS.paleTeal },
+        { content: text(left[1]) || "Nicht hinterlegt", shading: COLORS.white },
+        { content: right[0], style: "TableLabel", shading: COLORS.paleTeal },
+        { content: text(right[1]) || "Nicht hinterlegt", shading: COLORS.white }
+      ]);
+    }
+    return wTable(rows, widths);
+  }
+
+  function wAppointmentDocumentXml(snapshot, imageRelationshipId = "") {
+    const item = snapshot.hospitations[0] || snapshot.appointments[0] || {};
+    const observations = observationItems(item);
+    const summaryFields = [
+      ["Ziel der Hospitation", item.goal],
+      ["Kurzfassung", nonEmpty(item.summary, item.documentationSummary, documentationFor(item).experience)]
+    ].filter(([, value]) => text(value));
+    const observationBody = observations.length
+      ? observations.map((observation, index) => {
+        const startsNewPage = index === 1 || (index > 1 && (index - 1) % 3 === 0);
+        return `${startsNewPage ? wPageBreak() : ""}${wAppointmentObservationBlock(observation, index)}`;
+      }).join("")
+      : wParagraph("Noch keine Beobachtungen dokumentiert.", { style: "Callout" });
+    const body = [
+      wParagraph("•  •  •   #Mitmachen", { run: { bold: true, color: COLORS.navy, size: 22, font: "Arial" }, spacing: { before: 80, after: 30, line: 240 } }),
+      wParagraph(snapshot.title, { style: "MirrorTitle" }),
+      wParagraph(snapshot.subtitle, { style: "MirrorSubtitle" }),
+      wSectionRule(),
+      wContactHero(item, imageRelationshipId),
+      wParagraph(`${countLabel(observations.length, "Beobachtung", "Beobachtungen")} zu diesem Termin`, { style: "Callout" }),
+      wParagraph("Termin im Überblick", { style: "Heading2" }),
+      wAppointmentMetadataTable(item),
+      summaryFields.length ? `${wParagraph("Einordnung", { style: "Heading2" })}${wFields(summaryFields)}` : "",
+      wParagraph(`Beobachtungen (${observations.length})`, { style: "Heading2" }),
+      observationBody,
+      `<w:sectPr><w:headerReference w:type="default" r:id="rId3"/><w:footerReference w:type="default" r:id="rId4"/><w:pgSz w:w="${A4.widthDxa}" w:h="${A4.heightDxa}"/><w:pgMar w:top="893" w:right="878" w:bottom="835" w:left="878" w:header="317" w:footer="346" w:gutter="0"/><w:cols w:space="720"/><w:docGrid w:linePitch="360"/></w:sectPr>`
+    ].join("");
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body}</w:body></w:document>`;
+  }
+
+  function wDocumentXml(snapshot, imageRelationshipId = "") {
+    if (snapshot.documentKind === "observations") return wObservationDocumentXml(snapshot);
+    if (snapshot.documentKind === "appointment") return wAppointmentDocumentXml(snapshot, imageRelationshipId);
     const intro = `Dieser Export wurde am ${snapshot.generatedLabel} aus dem aktuell geladenen Datenstand (${snapshot.modeLabel}) erzeugt. Jeder erneute Download erstellt eine neue synchronisierte Momentaufnahme.`;
     const summary = summaryLabel(snapshot);
     const body = [
@@ -696,20 +1011,23 @@
 
   function createDocx(input = {}) {
     const snapshot = normalizeSnapshot(input);
+    const contactImage = snapshot.documentKind === "appointment" ? contactImageFor(snapshot) : null;
+    const imageRelationshipId = contactImage ? "rId6" : "";
     const coreDate = new Date(snapshot.generatedAt).toISOString();
     const entries = [
-      ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`],
+      ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${contactImage ? `<Default Extension="jpg" ContentType="image/jpeg"/>` : ""}<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`],
       ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`],
       ["docProps/core.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${escapeXml(snapshot.title)}</dc:title><dc:subject>Synchronisierter Spiegel der Hospitations-Termine und Beobachtungen</dc:subject><dc:creator>Versorgungs-Kompass</dc:creator><cp:keywords>Hospitation, Beobachtung, Versorgungs-Kompass, Mitmachen</cp:keywords><dcterms:created xsi:type="dcterms:W3CDTF">${coreDate}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${coreDate}</dcterms:modified></cp:coreProperties>`],
       ["docProps/app.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Versorgungs-Kompass</Application><AppVersion>1.0</AppVersion><Company>gematik | Stabsstelle Versorgung</Company></Properties>`],
-      ["word/document.xml", wDocumentXml(snapshot)],
+      ["word/document.xml", wDocumentXml(snapshot, imageRelationshipId)],
       ["word/styles.xml", wStylesXml()],
       ["word/numbering.xml", wNumberingXml()],
       ["word/settings.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:zoom w:percent="100"/><w:updateFields w:val="true"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`],
       ["word/header1.xml", wHeaderXml()],
       ["word/footer1.xml", wFooterXml(snapshot)],
-      ["word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>`]
+      ["word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>${contactImage ? `<Relationship Id="${imageRelationshipId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/kontaktfoto.jpg"/>` : ""}</Relationships>`]
     ];
+    if (contactImage) entries.push(["word/media/kontaktfoto.jpg", contactImage.bytes]);
     const bytes = zipStore(entries, snapshot.generatedAt);
     return {
       blob: new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
@@ -798,6 +1116,8 @@
       this.bottom = 48;
       this.pages = [];
       this.page = null;
+      const contactImage = snapshot.documentKind === "appointment" ? contactImageFor(snapshot) : null;
+      this.images = contactImage ? [{ name: "Im1", ...contactImage }] : [];
       this.y = 60;
       this.addPage();
     }
@@ -823,12 +1143,43 @@
       this.command(`${fill} ${stroke} ${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re ${operator}`.trim());
     }
 
+    drawRoundedRect(x, top, width, height, radius = 6, options = {}) {
+      const y = this.height - top - height;
+      const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+      const k = r * 0.55228475;
+      const fill = options.fill ? `${rgb(options.fill)} rg` : "";
+      const stroke = options.stroke ? `${rgb(options.stroke)} RG ${(options.lineWidth || 0.5).toFixed(2)} w` : "";
+      const operator = options.fill && options.stroke ? "B" : options.fill ? "f" : "S";
+      const x2 = x + width;
+      const y2 = y + height;
+      this.command([
+        fill,
+        stroke,
+        `${(x + r).toFixed(2)} ${y.toFixed(2)} m`,
+        `${(x2 - r).toFixed(2)} ${y.toFixed(2)} l`,
+        `${(x2 - r + k).toFixed(2)} ${y.toFixed(2)} ${x2.toFixed(2)} ${(y + r - k).toFixed(2)} ${x2.toFixed(2)} ${(y + r).toFixed(2)} c`,
+        `${x2.toFixed(2)} ${(y2 - r).toFixed(2)} l`,
+        `${x2.toFixed(2)} ${(y2 - r + k).toFixed(2)} ${(x2 - r + k).toFixed(2)} ${y2.toFixed(2)} ${(x2 - r).toFixed(2)} ${y2.toFixed(2)} c`,
+        `${(x + r).toFixed(2)} ${y2.toFixed(2)} l`,
+        `${(x + r - k).toFixed(2)} ${y2.toFixed(2)} ${x.toFixed(2)} ${(y2 - r + k).toFixed(2)} ${x.toFixed(2)} ${(y2 - r).toFixed(2)} c`,
+        `${x.toFixed(2)} ${(y + r).toFixed(2)} l`,
+        `${x.toFixed(2)} ${(y + r - k).toFixed(2)} ${(x + r - k).toFixed(2)} ${y.toFixed(2)} ${(x + r).toFixed(2)} ${y.toFixed(2)} c h ${operator}`
+      ].filter(Boolean).join(" "));
+    }
+
+    drawImage(name, x, top, width, height) {
+      if (!this.images.some((image) => image.name === name)) return;
+      this.page.images.add(name);
+      const y = this.height - top - height;
+      this.command(`q ${width.toFixed(2)} 0 0 ${height.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /${name} Do Q`);
+    }
+
     drawLine(x1, top1, x2, top2, color = COLORS.border, width = 0.5) {
       this.command(`${rgb(color)} RG ${width.toFixed(2)} w ${x1.toFixed(2)} ${(this.height - top1).toFixed(2)} m ${x2.toFixed(2)} ${(this.height - top2).toFixed(2)} l S`);
     }
 
     addPage() {
-      this.page = { commands: [] };
+      this.page = { commands: [], images: new Set() };
       this.pages.push(this.page);
       const pageNumber = this.pages.length;
       this.drawText("•", this.margin, 19, { bold: true, size: 9, color: "64B5FF" });
@@ -837,7 +1188,7 @@
       this.drawText("gematik | Stabsstelle Versorgung", 414, 19, { bold: true, size: 7.5, color: COLORS.navy });
       this.drawLine(this.margin, 35, this.width - this.margin, 35, COLORS.blue, 0.8);
       this.drawLine(this.margin, this.height - 31, this.width - this.margin, this.height - 31, COLORS.border, 0.45);
-      this.drawText(`${DOCUMENT_LABEL} | ${this.snapshot.generatedLabel}`, this.margin, this.height - 25, { size: 7, color: COLORS.muted });
+      this.drawText(`${this.snapshot.documentLabel || DOCUMENT_LABEL} | ${this.snapshot.generatedLabel}`, this.margin, this.height - 25, { size: 7, color: COLORS.muted });
       this.drawText(`Seite ${pageNumber}`, this.width - this.margin - 35, this.height - 25, { bold: true, size: 7, color: COLORS.navy });
       this.y = 53;
     }
@@ -887,6 +1238,80 @@
       this.drawRect(this.margin, this.y, 3, height, { fill: COLORS.orange });
       lines.forEach((line, index) => this.drawText(line, this.margin + 10, this.y + 7 + index * 12.5, { size, color: COLORS.text }));
       this.y += height + 7;
+    }
+
+    contactHero(item = {}) {
+      const cardWidth = this.width - this.margin * 2;
+      const imageSize = 70;
+      const copyX = this.margin + 92;
+      const copyWidth = cardWidth - 104;
+      const contactLines = wrapText(text(item.contact) || contextLabel(item), copyWidth, 13, true);
+      const organizationLines = wrapText(text(item.organization) || "Organisation nicht hinterlegt", copyWidth, 9.2, true);
+      const detailLines = wrapText([appointmentDateLabel(item), item.sector].map(text).filter(Boolean).join(" | "), copyWidth, 8.2, false);
+      const copyHeight = 18 + contactLines.length * 15 + organizationLines.length * 11 + detailLines.length * 9.5;
+      const height = Math.max(88, copyHeight + 14);
+      this.ensureSpace(height + 8);
+      this.drawRoundedRect(this.margin, this.y, cardWidth, height, 8, { fill: COLORS.neutral, stroke: "D7E1F3", lineWidth: 0.55 });
+      const imageTop = this.y + (height - imageSize) / 2;
+      if (this.images.length) {
+        this.drawImage(this.images[0].name, this.margin + 10, imageTop, imageSize, imageSize);
+        this.drawRoundedRect(this.margin + 10, imageTop, imageSize, imageSize, 7, { stroke: "CBDCFB", lineWidth: 0.8 });
+      } else {
+        this.drawRoundedRect(this.margin + 10, imageTop, imageSize, imageSize, 7, { fill: COLORS.paleBlue, stroke: "CBDCFB", lineWidth: 0.8 });
+        this.drawText(initials(item.contact || contextLabel(item)), this.margin + 27, imageTop + 23, { bold: true, size: 17, color: COLORS.navy });
+      }
+      let copyTop = this.y + 11;
+      this.drawText("KONTAKT", copyX, copyTop, { bold: true, size: 7, color: COLORS.blue });
+      copyTop += 12;
+      contactLines.forEach((line) => {
+        this.drawText(line, copyX, copyTop, { bold: true, size: 13, color: COLORS.navy });
+        copyTop += 15;
+      });
+      organizationLines.forEach((line) => {
+        this.drawText(line, copyX, copyTop, { bold: true, size: 9.2, color: COLORS.teal });
+        copyTop += 11;
+      });
+      copyTop += 2;
+      detailLines.forEach((line) => {
+        this.drawText(line, copyX, copyTop, { size: 8.2, color: COLORS.text });
+        copyTop += 9.5;
+      });
+      this.y += height + 8;
+    }
+
+    badgeHeight(items = []) {
+      if (!items.length) return 0;
+      const gap = 6;
+      const width = (this.width - this.margin * 2 - gap * 2) / 3;
+      let height = 9.8 + 3 + 1;
+      for (let index = 0; index < items.length; index += 3) {
+        const valueLines = items.slice(index, index + 3).map((item) => wrapText(item.value, width - 14, 7.6, true));
+        height += Math.max(36, Math.max(...valueLines.map((lines) => lines.length)) * 9 + 21) + 6;
+      }
+      return height;
+    }
+
+    badges(items = []) {
+      if (!items.length) return;
+      this.ensureSpace(this.badgeHeight(items));
+      this.paragraph("Codierung", { bold: true, color: COLORS.teal, size: 8.2, lineHeight: 9.8, after: 3 });
+      const gap = 6;
+      const width = (this.width - this.margin * 2 - gap * 2) / 3;
+      for (let index = 0; index < items.length; index += 3) {
+        const row = items.slice(index, index + 3);
+        const valueLines = row.map((item) => wrapText(item.value, width - 14, 7.6, true));
+        const height = Math.max(36, Math.max(...valueLines.map((lines) => lines.length)) * 9 + 21);
+        this.ensureSpace(height + 6);
+        row.forEach((item, itemIndex) => {
+          const x = this.margin + itemIndex * (width + gap);
+          const palette = item.palette || CODING_BADGE_PALETTES.relevance;
+          this.drawRoundedRect(x, this.y, width, height, 7, { fill: palette.fill, stroke: palette.border, lineWidth: 0.55 });
+          this.drawText(item.label, x + 7, this.y + 6, { bold: true, size: 6.6, color: COLORS.muted });
+          valueLines[itemIndex].forEach((line, lineIndex) => this.drawText(line, x + 7, this.y + 17 + lineIndex * 9, { bold: true, size: 7.6, color: palette.text }));
+        });
+        this.y += height + 6;
+      }
+      this.y += 1;
     }
 
     field(label, value) {
@@ -1042,21 +1467,106 @@
     }
   }
 
-  function assemblePdf(pages) {
+  function pdfObservationOverview(pdf, snapshot) {
+    const widths = [30, 82, 195, 145, 51];
+    const headers = ["Nr.", "Termin", "Kontakt / Organisation", "Sektor / Ort", "Beob."];
+    pdf.tableRow(headers, widths, { header: true });
+    const rows = snapshot.hospitations.length ? snapshot.hospitations : [{ empty: true }];
+    rows.forEach((item, index) => {
+      const cells = item.empty
+        ? ["-", "Keine Hospitationen mit Beobachtungen", "", "", "0"]
+        : [
+          String(index + 1),
+          appointmentDateLabel(item),
+          contextLabel(item),
+          [item.sector, item.location || item.city].map(text).filter(Boolean).join(" | ") || "Nicht hinterlegt",
+          String(observationItems(item).length)
+        ];
+      if (!pdf.tableRow(cells, widths, { fill: index % 2 ? COLORS.neutral : COLORS.white })) {
+        pdf.addPage();
+        pdf.sectionTitle("Hospitationen im Überblick (Fortsetzung)");
+        pdf.tableRow(headers, widths, { header: true });
+        pdf.tableRow(cells, widths, { fill: index % 2 ? COLORS.neutral : COLORS.white });
+      }
+    });
+  }
+
+  function pdfObservationChapter(pdf, item, index) {
+    pdf.addPage();
+    pdf.title(`${String(index + 1).padStart(2, "0")} | Hospitation`, { size: 22, lineHeight: 25 });
+    pdf.paragraph(contextLabel(item), { bold: true, color: COLORS.teal, size: 12.5, lineHeight: 15, after: 5 });
+    pdf.drawRect(pdf.margin, pdf.y, 82, 6, { fill: COLORS.orange });
+    pdf.drawRect(pdf.margin + 82, pdf.y, pdf.width - pdf.margin * 2 - 82, 6, { fill: COLORS.blue });
+    pdf.y += 15;
+    observationChapterMetadata(item).forEach(([label, value]) => pdf.field(label, text(value) || "Nicht hinterlegt"));
+    const observations = observationItems(item);
+    pdf.sectionTitle(`Beobachtungen (${observations.length})`);
+    if (!observations.length) pdf.callout("Noch keine Beobachtungen dokumentiert.");
+    observations.forEach((observation, observationIndex) => {
+      pdf.subheading(`Beobachtung ${observationIndex + 1} | ${text(observation.title) || "Ohne Kurztitel"}`);
+      observationOverviewFields(observation).forEach(([label, value]) => pdf.field(label, value));
+    });
+  }
+
+  function pdfAppointment(pdf, snapshot) {
+    const item = snapshot.hospitations[0] || snapshot.appointments[0] || {};
+    const observations = observationItems(item);
+    pdf.contactHero(item);
+    pdf.callout(`${countLabel(observations.length, "Beobachtung", "Beobachtungen")} zu diesem Termin. Die Codierung folgt direkt unter jedem dokumentierten Befund.`);
+    pdf.sectionTitle("Termin im Überblick");
+    appointmentMetadata(item).forEach(([label, value]) => pdf.field(label, text(value) || "Nicht hinterlegt"));
+    const summaryFields = [
+      ["Ziel der Hospitation", item.goal],
+      ["Kurzfassung", nonEmpty(item.summary, item.documentationSummary, documentationFor(item).experience)]
+    ].filter(([, value]) => text(value));
+    if (summaryFields.length) {
+      pdf.sectionTitle("Einordnung");
+      summaryFields.forEach(([label, value]) => pdf.field(label, value));
+    }
+    pdf.sectionTitle(`Beobachtungen (${observations.length})`);
+    if (!observations.length) {
+      pdf.callout("Noch keine Beobachtungen dokumentiert.");
+      return;
+    }
+    observations.forEach((observation, index) => {
+      const codingItems = observationCodingItems(observation);
+      pdf.ensureSpace(25 + pdf.badgeHeight(codingItems));
+      pdf.subheading(`Beobachtung ${index + 1} | ${text(observation.title) || "Ohne Kurztitel"}`);
+      pdf.badges(codingItems);
+      appointmentObservationFields(observation).forEach(([label, value]) => pdf.field(label, value));
+    });
+  }
+
+  function assemblePdf(pages, images = []) {
     const encoder = new TextEncoder();
     const objects = [];
     objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
     objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
     objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
     objects[5] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>";
+    const imageIds = new Map();
+    images.forEach((image, index) => {
+      const id = 6 + index;
+      const bytes = binaryBytes(image.bytes) || new Uint8Array();
+      imageIds.set(image.name, id);
+      objects[id] = {
+        dictionary: `<< /Type /XObject /Subtype /Image /Width ${Math.max(1, Number(image.width) || 1)} /Height ${Math.max(1, Number(image.height) || 1)} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>`,
+        stream: bytes
+      };
+    });
     const kids = [];
+    const pageObjectStart = 6 + images.length;
     pages.forEach((page, index) => {
-      const pageId = 6 + index * 2;
+      const pageId = pageObjectStart + index * 2;
       const contentId = pageId + 1;
       const stream = page.commands.join("\n");
       const streamLength = encoder.encode(stream).length;
+      const imageResources = [...(page.images || [])]
+        .map((name) => imageIds.has(name) ? `/${name} ${imageIds.get(name)} 0 R` : "")
+        .filter(Boolean)
+        .join(" ");
       kids.push(`${pageId} 0 R`);
-      objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents ${contentId} 0 R >>`;
+      objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >>${imageResources ? ` /XObject << ${imageResources} >>` : ""} >> /Contents ${contentId} 0 R >>`;
       objects[contentId] = `<< /Length ${streamLength} >>\nstream\n${stream}\nendstream`;
     });
     objects[2] = `<< /Type /Pages /Kids [${kids.join(" ")}] /Count ${pages.length} >>`;
@@ -1064,7 +1574,14 @@
     const offsets = [0];
     let offset = chunks[0].length;
     for (let id = 1; id < objects.length; id += 1) {
-      const chunk = encoder.encode(`${id} 0 obj\n${objects[id]}\nendobj\n`);
+      const object = objects[id];
+      const chunk = typeof object === "string"
+        ? encoder.encode(`${id} 0 obj\n${object}\nendobj\n`)
+        : concatBytes([
+          encoder.encode(`${id} 0 obj\n${object.dictionary}\nstream\n`),
+          object.stream,
+          encoder.encode("\nendstream\nendobj\n")
+        ]);
       offsets[id] = offset;
       chunks.push(chunk);
       offset += chunk.length;
@@ -1089,13 +1606,23 @@
     pdf.drawRect(pdf.margin, pdf.y, 82, 7, { fill: COLORS.orange });
     pdf.drawRect(pdf.margin + 82, pdf.y, pdf.width - pdf.margin * 2 - 82, 7, { fill: COLORS.blue });
     pdf.y += 17;
-    pdf.callout(`Dieser Export wurde am ${snapshot.generatedLabel} aus dem aktuell geladenen Datenstand (${snapshot.modeLabel}) erzeugt. Jeder erneute Download erstellt eine neue synchronisierte Momentaufnahme.`);
-    pdf.paragraph(summaryLabel(snapshot), { bold: true, color: COLORS.teal, size: 10.5, after: 8 });
-    pdf.sectionTitle(overviewTitle(snapshot));
-    pdf.paragraph(overviewDescription(snapshot), { size: 8.8, after: 7 });
-    pdfOverview(pdf, snapshot);
-    snapshot.hospitations.forEach((item, index) => pdfChapter(pdf, item, index));
-    const bytes = assemblePdf(pdf.pages);
+    if (snapshot.documentKind === "observations") {
+      pdf.callout(`Diese Übersicht bündelt ${countLabel(snapshot.summary.observations, "qualitative Beobachtung", "qualitative Beobachtungen")} aus ${countLabel(snapshot.summary.hospitations, "Hospitation", "Hospitationen")}. Die Beobachtungen sind nach Hospitation geordnet.`);
+      pdf.paragraph(`${countLabel(snapshot.summary.observations, "Beobachtung", "Beobachtungen")} | ${countLabel(snapshot.summary.hospitations, "Hospitation", "Hospitationen")}`, { bold: true, color: COLORS.teal, size: 10.5, after: 8 });
+      pdf.sectionTitle("Hospitationen im Überblick");
+      pdfObservationOverview(pdf, snapshot);
+      snapshot.hospitations.forEach((item, index) => pdfObservationChapter(pdf, item, index));
+    } else if (snapshot.documentKind === "appointment") {
+      pdfAppointment(pdf, snapshot);
+    } else {
+      pdf.callout(`Dieser Export wurde am ${snapshot.generatedLabel} aus dem aktuell geladenen Datenstand (${snapshot.modeLabel}) erzeugt. Jeder erneute Download erstellt eine neue synchronisierte Momentaufnahme.`);
+      pdf.paragraph(summaryLabel(snapshot), { bold: true, color: COLORS.teal, size: 10.5, after: 8 });
+      pdf.sectionTitle(overviewTitle(snapshot));
+      pdf.paragraph(overviewDescription(snapshot), { size: 8.8, after: 7 });
+      pdfOverview(pdf, snapshot);
+      snapshot.hospitations.forEach((item, index) => pdfChapter(pdf, item, index));
+    }
+    const bytes = assemblePdf(pdf.pages, pdf.images);
     return {
       blob: new Blob([bytes], { type: "application/pdf" }),
       filename: filenameFor("pdf", snapshot),
@@ -1106,6 +1633,10 @@
   window.VersorgungsCompassHospitationExport = {
     createDocx,
     createPdf,
+    createAppointmentDocx: (input = {}) => createDocx({ ...input, documentKind: "appointment" }),
+    createAppointmentPdf: (input = {}) => createPdf({ ...input, documentKind: "appointment" }),
+    createObservationDocx: (input = {}) => createDocx({ ...input, documentKind: "observations" }),
+    createObservationPdf: (input = {}) => createPdf({ ...input, documentKind: "observations" }),
     downloadBlob,
     normalizeSnapshot,
     filenameFor

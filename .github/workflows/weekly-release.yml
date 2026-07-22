@@ -1,27 +1,48 @@
 name: Weekly release
 
+run-name: >-
+  Weekly release${{ inputs.bump && format(' ({0})', inputs.bump) || '' }}
+
 on:
   schedule:
-    - cron: "0 14 * * 5"
+    - cron: "17 9 * * 5"
+      timezone: Europe/Berlin
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Versionssprung für einen neuen Release
+        required: true
+        default: minor
+        type: choice
+        options:
+          - minor
+          - patch
 
 permissions:
   contents: read
 
 concurrency:
-  group: weekly-release-${{ github.repository }}
+  group: product-release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
-  weekly-release:
-    name: Prepare reviewable weekly release
+  prepare-release:
+    name: Prepare and merge release
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       pull-requests: write
+    outputs:
+      should_release: ${{ steps.release.outputs.should_release }}
+      tag: ${{ steps.release.outputs.tag }}
+      title: ${{ steps.release.outputs.title }}
+      version: ${{ steps.release.outputs.version }}
+      notes_path: ${{ steps.release.outputs.notes_path }}
+      release_sha: ${{ steps.release-sha.outputs.release_sha }}
 
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: main
@@ -36,60 +57,223 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Prepare release notes and changelog
+      - name: Resolve latest published product release
+        id: published
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          latest_tag="$(gh release list \
+            --repo "$GITHUB_REPOSITORY" \
+            --limit 100 \
+            --json tagName,publishedAt,isDraft,isPrerelease \
+            | jq --raw-output '
+                [.[]
+                  | select(.isDraft == false and .isPrerelease == false)
+                  | select(.tagName | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))]
+                | sort_by(.publishedAt)
+                | last
+                | .tagName // ""
+              ')"
+          echo "tag=${latest_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release files
         id: release
+        env:
+          RELEASED_TAG: ${{ steps.published.outputs.tag }}
+          RELEASE_BUMP: ${{ inputs.bump || 'minor' }}
         run: node scripts/prepare_weekly_release.mjs
 
-      - name: Check project
+      - name: Run repository checks
+        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
         run: npm run check
 
+      - name: Install Chromium
+        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run release browser tests
+        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
+        run: npm run test:visual
+
       - name: Verify release change scope
+        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
         shell: bash
         run: |
           set -euo pipefail
-          git diff --exit-code -- . ':!README.md' ':!CHANGELOG.md' ':!frontend/app/versorgungs-kompass.js'
+          git diff --exit-code -- \
+            . \
+            ':!README.md' \
+            ':!CHANGELOG.md' \
+            ':!frontend/app/versorgungs-kompass.js' \
+            ':!release-notes/*.md'
+          test -s "${{ steps.release.outputs.notes_path }}"
           test -s dist/release/weekly-notes.md
 
-      - name: Preserve release notes as workflow artifact
+      - name: Preserve generated release notes
+        if: steps.release.outputs.should_release == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: weekly-release-${{ steps.release.outputs.tag }}
+          name: product-release-notes-${{ steps.release.outputs.tag }}
           path: dist/release/weekly-notes.md
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
-      - name: Open draft release pull request
+      - name: Create release pull request
+        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
         id: pull-request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
           token: ${{ github.token }}
           base: main
-          branch: automation/weekly-release-${{ steps.release.outputs.tag }}
+          branch: automation/product-release-${{ steps.release.outputs.tag }}
           delete-branch: true
-          draft: always-true
+          draft: false
           sign-commits: true
           commit-message: Release ${{ steps.release.outputs.tag }}
           title: ${{ steps.release.outputs.title }}
-          body-path: dist/release/weekly-notes.md
+          body-path: ${{ steps.release.outputs.notes_path }}
           add-paths: |
             README.md
             CHANGELOG.md
             frontend/app/versorgungs-kompass.js
+            release-notes/*.md
 
-      - name: Summarize release preparation
+      - name: Run required check on exact release candidate
+        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
         shell: bash
         env:
-          PULL_REQUEST_URL: ${{ steps.pull-request.outputs.pull-request-url }}
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ steps.pull-request.outputs.pull-request-head-sha }}
+          PR_BRANCH: ${{ steps.pull-request.outputs.pull-request-branch }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_HEAD"
+          test -n "$PR_BRANCH"
+
+          gh workflow run repo-check.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$PR_BRANCH"
+
+          run_id=""
+          for attempt in $(seq 1 60); do
+            run_id="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow repo-check.yml \
+              --branch "$PR_BRANCH" \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,headSha,createdAt \
+              | jq --raw-output --arg sha "$EXPECTED_HEAD" '
+                  [.[] | select(.headSha == $sha)]
+                  | sort_by(.createdAt)
+                  | last
+                  | .databaseId // empty
+                ')"
+            if [[ -n "$run_id" ]]; then
+              break
+            fi
+            sleep 10
+          done
+          test -n "$run_id"
+          gh run watch "$run_id" \
+            --repo "$GITHUB_REPOSITORY" \
+            --exit-status \
+            --interval 10
+
+      - name: Merge checked release pull request
+        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
+        id: merge
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_BASE: ${{ steps.release.outputs.planning_head }}
+          EXPECTED_HEAD: ${{ steps.pull-request.outputs.pull-request-head-sha }}
+          PR_NUMBER: ${{ steps.pull-request.outputs.pull-request-number }}
+        run: |
+          set -euo pipefail
+          test -n "$PR_NUMBER"
+          test -n "$EXPECTED_HEAD"
+
+          remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [[ "$remote_main" != "$EXPECTED_BASE" ]]; then
+            echo "main changed from ${EXPECTED_BASE} to ${remote_main}; regenerate the release." >&2
+            exit 1
+          fi
+
+          actual_head="$(gh pr view "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json headRefOid \
+            --jq .headRefOid)"
+          if [[ "$actual_head" != "$EXPECTED_HEAD" ]]; then
+            echo "Release pull request changed from ${EXPECTED_HEAD} to ${actual_head}." >&2
+            exit 1
+          fi
+
+          gh pr merge "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --squash \
+            --delete-branch \
+            --match-head-commit "$EXPECTED_HEAD"
+
+          merge_sha="$(gh pr view "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json mergeCommit \
+            --jq '.mergeCommit.oid // empty')"
+          test "$merge_sha" != ""
+          echo "merge_sha=${merge_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Select immutable release commit
+        if: steps.release.outputs.should_release == 'true'
+        id: release-sha
+        shell: bash
+        env:
+          MERGE_SHA: ${{ steps.merge.outputs.merge_sha }}
+          MODE: ${{ steps.release.outputs.mode }}
+          RESUME_SHA: ${{ steps.release.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$MODE" == "resume" ]]; then
+            release_sha="$RESUME_SHA"
+          else
+            release_sha="$MERGE_SHA"
+          fi
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch origin main --no-tags
+          git merge-base --is-ancestor "$release_sha" origin/main
+          echo "release_sha=${release_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize release preparation
+        if: always()
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release-sha.outputs.release_sha }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          SHOULD_RELEASE: ${{ steps.release.outputs.should_release }}
         run: |
           {
-            echo "## Weekly release prepared"
+            echo "## Automatic weekly release"
             echo
-            echo "- Candidate: \`${RELEASE_TAG}\`"
-            if [[ -n "$PULL_REQUEST_URL" ]]; then
-              echo "- Draft pull request: ${PULL_REQUEST_URL}"
+            if [[ "$SHOULD_RELEASE" == "true" ]]; then
+              echo "- Candidate: \`${RELEASE_TAG}\`"
+              echo "- Commit: \`${RELEASE_SHA}\`"
+              echo "- Human approval: not required"
             else
-              echo "- No pull request was created because the release files were unchanged."
+              echo "- No release: no changes since the latest product release"
             fi
-            echo "- No tag, GitHub Release, Pages artifact, or direct push to \`main\` was created."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-release:
+    name: Publish release
+    needs: prepare-release
+    if: needs.prepare-release.outputs.should_release == 'true'
+    permissions:
+      actions: write
+      contents: write
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      tag: ${{ needs.prepare-release.outputs.tag }}
+      title: ${{ needs.prepare-release.outputs.title }}
+      commit_sha: ${{ needs.prepare-release.outputs.release_sha }}
+      notes_path: ${{ needs.prepare-release.outputs.notes_path }}

@@ -150,7 +150,7 @@ const profileExpectations = [
     },
     route: null,
     dataMode: "api",
-    dataPolicy: "synthetic-only",
+    dataPolicy: "approved-classes-only",
     authModes: ["oidc"],
     forbiddenInputs: ["dist/pages", "frontend/demo", "frontend/data/demo-data.js"]
   }
@@ -238,6 +238,17 @@ const weeklyFile = ".github/workflows/weekly-release.yml";
 const weekly = read(weeklyFile);
 forbidPattern(weeklyFile, weekly, /git\s+push[^\n]*(?:HEAD:main|origin\s+main)|git\s+push\s+origin\s+HEAD:main/, "Weekly Release darf nicht direkt nach main schreiben.");
 requirePattern(weeklyFile, weekly, /pull-requests:\s*write/, "Der vorbereitende Weekly-Release-Prozess muss einen reviewbaren Pull Request erzeugen koennen.");
+requirePattern(weeklyFile, weekly, /workflow\s+run\s+repo-check\.yml/, "Weekly Release muss den erforderlichen Check auf dem Kandidatenbranch explizit starten.");
+requirePattern(weeklyFile, weekly, /--match-head-commit/, "Weekly Release muss den geprueften PR-Head beim Merge festschreiben.");
+
+const publishReleaseFile = ".github/workflows/publish-release.yml";
+const publishRelease = read(publishReleaseFile);
+requirePattern(publishReleaseFile, publishRelease, /\^v\[0-9\]\+/, "Produkt-Releases muessen auf vX.Y.Z begrenzt sein.");
+requirePattern(publishReleaseFile, publishRelease, /git\s+tag\s+--annotate/, "Produkt-Releases benoetigen einen annotierten Tag.");
+requirePattern(publishReleaseFile, publishRelease, /gh\s+release\s+create/, "GitHub Release muss durch den Publish-Workflow erstellt werden.");
+requirePattern(publishReleaseFile, publishRelease, /--verify-tag/, "GitHub Release muss einen vorhandenen Tag verifizieren.");
+requirePattern(publishReleaseFile, publishRelease, /verify_product_release\.mjs/, "Publish-Workflow muss Release-Dokumente und Commit pruefen.");
+forbidPattern(publishReleaseFile, publishRelease, /deploy-pre-gematik|poc-v/, "Oeffentliche Produkt-Releases duerfen keinen PoC- oder Target-Deploy ausloesen.");
 
 const jenkinsFile = "deploy/jenkins/Jenkinsfile.gematik";
 const jenkins = read(jenkinsFile);

@@ -1,164 +1,84 @@
-# gematik-interner PoC-Durchstich
+# Gematik-PoC: interner Nutzungspilot
 
-Status: Arbeitsgrundlage fuer eine befristete Non-Prod-Integration
-Stand: 21. Juli 2026
+Status: Vorbereitung der befristeten internen Testumgebung
+Stand: 22. Juli 2026
 
-## Ziel des naechsten Schritts
+## Zweck
 
-Der naechste Schritt weist ausschliesslich nach, dass ein fest definierter Release
-Candidate ueber die gematik Software Factory gebaut, in einer internen
-Kubernetes-Umgebung bereitgestellt, ueber gematik-SSO erreicht und mit einer
-kleinen PostgreSQL-Datenbank verbunden werden kann.
+Ein festgelegter Release Candidate des Versorgungs-Kompasses wird über die Software Factory in einem internen Kubernetes-Namespace bereitgestellt. Ein bestätigter Datenstand aus der geschützten Anwendung `mitmachen.timo-frank.de` wird separat übernommen, damit ein kleiner Kreis von Kolleginnen und Kollegen die Anwendung im bestehenden fachlichen Kontext erproben kann.
 
-Der PoC ist **keine Produktivfreigabe**, **keine Betriebsuebernahme** und **keine
-TI-Fachdienstintegration**. Er ist ein zeitlich begrenzter technischer Durchstich
-mit synthetischen, jederzeit verwerfbaren Daten.
-
-## Aktueller Ampelstatus
-
-| Teil | Status am 21. Juli 2026 | Konsequenz |
-| --- | --- | --- |
-| Plattform-Onboarding | **GRUEN** | Das Ressourcengespraech mit der IT kann jetzt beginnen. |
-| RC-Quellstand | **GRUEN** | Der PoC-Stand ist von der parallelen Hospitationsentwicklung isoliert; Repo-Gates, Target-Build, Containerstart und lokaler Kern-Smoke werden aus einem sauberen Checkout nachgewiesen. |
-| Veroeffentlichtes RC-Artefakt | **GELB** | Der Quellstand wird lokal als `poc-v0.1.0-rc.1` fixiert. Remote-Tag, Registry-Image mit Digest, Frontend-Uebergabemanifest und Plattform-Smokes folgen erst nach Bereitstellung der IT-Werte. |
-| Parallele Weiterentwicklung | **GRUEN** | Lokale/private Hospitationsdaten bleiben im ignorierten Einstieg; `main`, Feature-Branches und Pages koennen unabhaengig vom fixierten RC weiterlaufen. |
-| Deployment in gematik | **GRAU** | Noch nicht begonnen; Start erst aus einem sauberen, gruenen RC. |
-
-Damit ist die richtige Anfrage an die IT: **Plattformressourcen jetzt klaeren
-und den lokal fixierten Quell-RC als reproduzierbare Grundlage anbieten, aber
-noch kein bereits deployedtes Artefakt behaupten.** Image-Digest,
-Frontend-Manifest und die Smokes in der gematik-Umgebung entstehen gemeinsam
-mit Registry-, Namespace-, OIDC-, Routing- und Datenbankwerten.
-
-## Was nachgewiesen werden soll
+Der PoC bleibt ein zeitlich begrenzter technischer und fachlicher Durchstich. Die Daten sind kein Bestandteil des Repositories, des Container-Images oder der Build-Artefakte.
 
 ```text
-unveraenderlicher RC-Tag
-        |
-        v
-gematik Software Factory --> API-Image + Target-Frontend
-        |
-        v
-interne HTTPS-URL --> OIDC/SSO --> Kubernetes --> PostgreSQL
+RC-Tag -> Software Factory -> Frontend und API -> interner Kubernetes-Namespace
+
+geschützter Datenstand -> einmalige Übernahme -> PoC-Datenbank
+gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 ```
 
-Der Durchstich ist erfolgreich, wenn:
+## Aktueller Stand
 
-1. ein festgelegter RC reproduzierbar gebaut und mit den ueblichen Scans geprueft wird,
-2. API-Image und `dist/target/` nachweislich aus demselben Commit stammen,
-3. die Anwendung ueber eine interne HTTPS-URL erreichbar ist,
-4. SSO, `/api/healthz`, `/api/readyz` und `/api/session` funktionieren,
-5. ein synthetischer Testdatensatz gelesen und geaendert werden kann,
-6. derselbe RC ein zweites Mal reproduzierbar bereitgestellt werden kann und
-7. die befristete Umgebung anschliessend kontrolliert entfernt oder verlaengert wird.
-
-## Bewusst kleiner PoC-Umfang
-
-Enthalten sind:
-
-- ein Non-Prod-Namespace mit einer kleinen API-Workload,
-- statisches Target-Frontend und same-origin `/api`,
-- interne HTTPS-Route und OIDC-/SSO-Anbindung,
-- zwei bis fuenf Testidentitaeten mit wenigen Rollen,
-- PostgreSQL 16 mit synthetischen Testdaten,
-- Secret-Injection sowie Standard-Logs,
-- einfache technische Smoke Tests.
-
-Nicht enthalten sind:
-
-- Echtdaten oder eine Datenmigration aus bestehenden Systemen,
-- Uploads, Object Storage oder Dokumentenanhaenge,
-- produktive TI-, KIM-, ePA- oder weitere Fachdienst-Schnittstellen,
-- Hochverfuegbarkeit, Autoscaling, Multi-Region oder Lastnachweise,
-- individuelle SLO-, RTO- oder RPO-Zusagen,
-- 24/7-Betrieb, Service Desk, Hypercare oder vollstaendige Betriebsuebernahme,
-- eine Backup-/Restore-Generalprobe oder ein produktiver Cutover.
-
-TLS, verifizierte Anmeldung, eingeschraenkte Zugriffe, Secret-Verwaltung und die
-ueblichen Build- und Scan-Pruefungen bleiben auch fuer den PoC verbindlich. Die
-kleine Auspraegung senkt den Betriebsumfang, nicht die grundlegende
-Zugriffssicherheit.
-
-## Angefragte Plattformressourcen
-
-| Ressource | Minimaler PoC-Bedarf |
+| Bereich | Stand |
 | --- | --- |
-| Laufzeit | befristeter Non-Prod-Namespace fuer zunaechst vier bis sechs Wochen |
-| Container | ein API-Pod; Richtwert `100m` CPU/`256Mi` RAM Request und `500m`/`512Mi` Limit |
-| Frontend | internes statisches Hosting oder Bereitstellung hinter demselben Gateway |
-| Routing | interne HTTPS-URL mit `/` fuer das Frontend und `/api` fuer die API |
-| Identity | OIDC-Werte und zwei bis fuenf synthetische Testidentitaeten |
-| Datenbank | kleine dedizierte PostgreSQL-16-Datenbank, deren `public`-Schema fuer den PoC vollstaendig disponibel ist; etwa 1 bis 5 GB; einmalige DB-Admin-Unterstuetzung fuer die Runtime-Rolle |
-| Secrets | Injection fuer Datenbank- und OIDC-Konfiguration; keine Secrets im Repository |
-| Beobachtbarkeit | Standard-Containerlogs und Zugriff fuer die technische Fehlersuche |
-| Zusammenarbeit | je eine technische Ansprechperson fuer Plattform und Identity |
-| Laufzeitende | vereinbartes End-, Review- oder Verlaengerungsdatum |
+| Quellstand | `poc-v0.1.0-rc.2` bezeichnet den bereitgestellten RC-Stand |
+| Anwendung | Target-Frontend, API-Container und Helm-Chart sind vorbereitet |
+| Anmeldung | OIDC wird von der API geprüft; unbekannte Identitäten werden abgewiesen |
+| Daten | Schema und Datenklassen sind bekannt; der bisherige Importweg muss an die gematik-Datenbank und den gewählten Dateispeicher angebunden werden |
+| Plattform | Namespace, Registry, interne URL, OIDC-Werte, Datenbank und Zugriffsweg für die Übernahme sind noch festzulegen |
 
-Object Storage, mehrere Replikate, HPA/PDB und besondere Betriebsdienste werden
-fuer diesen ersten Durchstich nicht angefragt.
+## Benötigte Ressourcen
+
+| Bereich | Bedarf für den PoC |
+| --- | --- |
+| Laufzeit | befristeter interner Non-Prod-Namespace, zunächst für vier bis sechs Wochen |
+| Build und Registry | Software-Factory-Job sowie Ablage für das API-Image |
+| Frontend und Routing | internes HTTPS; `/` für das Frontend und `/api` für die API |
+| Anmeldung | OIDC-Werte und eine kleine, benannte Nutzergruppe |
+| Datenbank | dedizierte PostgreSQL-16-Datenbank mit verschlüsselter Verbindung |
+| Datenübernahme | kurzlebiger, geschützter Zugriff auf den aktuellen Datenstand und die Ziel-Datenbank |
+| Dateien | optional privater Objektspeicher für vorhandene Bilder und Anhänge; der aktuelle Code verwendet die Google-Cloud-Storage-API |
+| Konfiguration | zentrale Bereitstellung der Datenbank- und OIDC-Geheimnisse |
+| Abstimmung | je eine Ansprechperson für Plattform, Identity und fachlichen Datenumfang |
+| Zeitraum | gemeinsamer Termin zur Bewertung oder Beendigung des Piloten |
+
+Für den ersten Durchstich genügt eine API-Instanz. Neue Datei- und Bild-Uploads bleiben deaktiviert. Fehlt ein passender Objektspeicher, wird zunächst nur der strukturierte Datenbestand übernommen; Datei-Verweise werden dabei nicht als funktionierend ausgewiesen.
 
 ## Was das Entwicklungsteam liefert
 
-Die Uebergabe erfolgt als unveraenderlicher Release Candidate gemaess
-[Release-Candidate-Strategie](RELEASE_CANDIDATE_STRATEGIE.md). Das Paket nennt
-mindestens:
+- RC-Tag, Git-Commit, API-Image und Frontend-Manifest
+- Helm-Chart und PoC-Konfiguration ohne Passwörter oder Tokens
+- Datenbankschema und Liste der zu übernehmenden Datenklassen
+- Werkzeug und Anleitung für die einmalige Datenübernahme, sobald Datenbank- und Speicherweg feststehen
+- SQL-Skript für die eindeutige Zuordnung von OIDC-Identitäten zu Profilen
+- Ergebnisse der Build-, Sicherheits- und Smoke-Prüfungen
 
-- RC-Tag und exakten Git-Commit,
-- API-Image mit Digest,
-- Hash beziehungsweise Manifest des Target-Frontends,
-- Helm-Chart und [kleines PoC-Overlay](../../deploy/helm/versorgungs-kompass/values-poc-gematik.yaml) ohne Secrets,
-- [PoC-Datenbank-Bootstrap](../../deploy/postgres/poc-gematik/README.md) fuer
-  disponiblen synthetischen Seed und zwei bis fuenf OIDC-Testbindungen,
-- benoetigte OIDC-, Datenbank- und Routing-Variablen,
-- Ergebnisse der vereinbarten Build-, Sicherheits- und Smoke-Tests,
-- bekannte, fuer den PoC akzeptierte Einschraenkungen.
+## Daten und Zugriff
 
-Ein Arbeitsverzeichnis mit uncommitteten Dateien, ein ZIP des aktuellen
-Repo-Ordners oder ein beweglicher `main`-Stand sind kein Uebergabeartefakt.
+Die Übernahme verwendet einen einmaligen, bestätigten Snapshot des aktuellen geschützten Bestands. Importiert werden nur die vereinbarten Fachtabellen; persönliche IAP-Zuordnungen, Systemtabellen und Zugangsdaten werden nicht übernommen. OIDC-Subjects und Profilzuordnungen bleiben in einer geschützten Operator-Sitzung und außerhalb von Git und Jenkins-Artefakten.
 
-## Entscheidungen, die von der IT benoetigt werden
+Zugriff erhalten nur benannte Kolleginnen und Kollegen, die den übernommenen Inhalt einschließlich freier Notizen und Hospitationsbeobachtungen für ihre Arbeit sehen dürfen. Admin ist keine Standardrolle. Patienten- oder identifizierende Falldaten sind nicht Teil des PoC.
 
-Fuer den Start reichen acht konkrete Antworten:
+Während des Testzeitraums ist der gematik-PoC der gemeinsame bearbeitbare Bestand. `mitmachen.timo-frank.de` bleibt geschützte Ausgangs- und Rückfallquelle, wird aber nicht parallel für dieselben fachlichen Änderungen genutzt. Eine automatische oder wechselseitige Synchronisation ist nicht vorgesehen.
 
-1. In welchem befristeten Non-Prod-Namespace darf der PoC laufen?
-2. Wie werden Image und Frontend in Registry und Software Factory uebernommen?
-3. Welche interne HTTPS-URL und welches `/api`-Routing werden verwendet?
-4. Welche OIDC-Werte und Testidentitaeten stehen zur Verfuegung?
-5. Welche kleine dedizierte PostgreSQL-Datenbank mit kontrolliertem,
-   verwerfbarem `public`-Schema kann genutzt werden, und liegt ihre CA im
-   System-Truststore oder in einem Kubernetes-Secret?
-6. Wie werden Secrets injiziert und Standard-Logs eingesehen?
-7. Wer ist fuer Plattform- und Identity-Fragen technisch ansprechbar?
-8. Wann wird der PoC gemeinsam bewertet, verlaengert oder entfernt?
+## Release und parallele Weiterentwicklung
 
-RACI fuer einen spaeteren Regelbetrieb, Migrationsplanung, Servicewerte und
-Produktionsabnahme sind fuer diese acht Entscheidungen keine Voraussetzung.
+Der RC-Tag bleibt unverändert. Frontend und API werden aus demselben Commit gebaut und über Manifest beziehungsweise Image-Digest eindeutig zugeordnet. Änderungen auf `main`, in Feature-Branches, in lokalen Varianten oder auf GitHub Pages können parallel weiterlaufen. Diese Wege verwenden keine Echtdaten aus dem PoC. Benötigt der PoC eine Softwareänderung, entsteht ein neuer RC-Tag.
 
-## Empfohlener Text an die IT-Kollegen
+## Erfolgskriterien
 
-> Wir moechten keinen Produktivbetrieb und keine vollstaendige
-> Betriebsuebernahme beantragen, sondern einen befristeten gematik-internen
-> Proof of Concept. Ziel ist ein erster technischer Durchstich: Ein fixierter
-> Release Candidate soll ueber die Software Factory in einem Non-Prod-Namespace
-> gebaut und bereitgestellt werden, sich per internem OIDC/SSO anmelden und eine
-> kleine PostgreSQL-Datenbank mit ausschliesslich synthetischen Testdaten nutzen.
-> Wir benoetigen dafuer Namespace, Registry-/Pipeline-Anbindung, interne
-> HTTPS-Route, OIDC-Testwerte, kleine PostgreSQL-Ressource, Secret-Injection,
-> Standard-Logs sowie technische Ansprechpartner. Uploads, Echtdatenmigration,
-> Hochverfuegbarkeit, individuelle Servicewerte und TI-Fachdienste sind bewusst
-> nicht Teil dieses ersten Schritts. Das Entwicklungsteam liefert einen
-> unveraenderlichen RC mit Commit, Image-Digest, Frontend-Hash, Helm-Chart und
-> reproduzierbaren Smoke-Test-Nachweisen. Das Plattform-Onboarding kann jetzt
-> beginnen; der lokal fixierte Quell-RC ist die reproduzierbare Grundlage. Das
-> deploybare Image-/Frontend-Paar entsteht nach Bereitstellung der
-> Plattformwerte. Der aktuelle lokale Arbeitsbaum wird nicht als Artefakt
-> uebergeben.
+Der Durchstich ist abgeschlossen, wenn:
 
-## Einordnung der weiterfuehrenden Dokumente
+1. der RC in der Software Factory reproduzierbar gebaut wurde,
+2. die interne HTTPS-Adresse und die OIDC-Anmeldung funktionieren,
+3. der vereinbarte Datenstand ohne Demo-Daten übernommen und durch Mengen sowie eine nicht personenbezogene Prüfsumme bestätigt wurde,
+4. mindestens eine Lese- und eine Schreibrolle den vereinbarten Kernablauf nutzen kann,
+5. unbekannte Identitäten abgewiesen werden und
+6. derselbe RC erneut bereitgestellt werden kann, ohne den Datenimport automatisch zu wiederholen.
 
-Die [Deployment-Uebersicht](DEPLOYMENT_UEBERSICHT.md) und der
-[Deployment-Einstieg](../../deploy/README.md) erklaeren die technischen Pfade.
-Die umfangreicheren Unterlagen zu RACI, Migration, Cutover, Betrieb, Abnahme und
-Servicewerten bleiben als Referenz fuer einen moeglichen spaeteren Pilot- oder
-Regelbetrieb erhalten. Offene Punkte darin sind **keine Freigabetore dieses
-PoC-Durchstichs**.
+## Technische Unterlagen
+
+- [Deployment-Runbook für Kubernetes](DEPLOYMENT_GEMATIK_K8S.md)
+- [Datenbank und Datenübernahme](../../deploy/postgres/poc-gematik/README.md)
+- [Bestehender Datenvertrag und Herkunft](SUPABASE_CLOUD_SQL_MIGRATION.md)
+- [API-Vertrag](../architektur/API_CONTRACT.md)
+- [Sicherheitsrichtlinie](../../SECURITY.md)

@@ -1,5 +1,6 @@
-# Minimaler, befristeter Non-Prod-PoC mit ausschliesslich synthetischen Daten.
-# Alle *.example.invalid-Werte und die NetworkPolicy-CIDRs muessen durch die IT
+# Minimaler, befristeter Non-Prod-PoC mit einem getrennt übernommenen,
+# freigegebenen Datenstand. Alle *.example.invalid-Werte und die
+# NetworkPolicy-CIDRs müssen durch die IT
 # ersetzt werden. Secrets werden extern injiziert. Der Releasejob muss
 # image.digest mit dem geprueften sha256-Digest des RC ueberschreiben.
 
@@ -7,7 +8,7 @@ replicaCount: 1
 
 image:
   repository: registry.example.invalid/versorgungs-kompass-api
-  tag: poc-v0.1.0-rc.1
+  tag: poc-v0.1.0-rc.2
   digest: ""
 
 # Das institutionelle Gateway soll statisches Frontend und /api same-origin
@@ -50,7 +51,8 @@ secrets:
   databasePasswordSecretName: "versorgungs-kompass-poc-db"
   databasePasswordSecretKey: "password"
 
-# Uploads sind deaktiviert; Object Storage wird im ersten PoC nicht benoetigt.
+# Neue Uploads sind deaktiviert. Für bereits übernommene Bilder, Anhänge und
+# Logos können private GCS-Buckets im Plattform-Overlay gesetzt werden.
 storage:
   profileImageBucket: ""
   contactImageBucket: ""

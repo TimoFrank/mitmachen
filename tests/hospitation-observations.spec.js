@@ -20,9 +20,9 @@ test("Beobachtungen nutzen geschützte Backend-Daten und eine filterbare Vollbre
   await expect(workbench.locator("[data-observation-sort='processPhase']")).toHaveCount(0);
   await expect(workbench.locator("[data-observation-sort='problemType']")).toHaveCount(0);
   await expect(workbench.locator(".observation-result-meta")).toHaveCount(0);
-  const firstHospitationCell = workbench.locator("[data-observation-open]").first().locator(".observation-table-cell").nth(1);
-  await expect(firstHospitationCell).toContainText(/\d{2}\.\d{2}\.\d{4}/);
-  await expect(firstHospitationCell).not.toContainText("Rostock");
+  const firstDateCell = workbench.locator("[data-observation-open]").first().locator(".observation-table-cell").nth(2);
+  await expect(firstDateCell).toContainText(/\d{2}\.\d{2}\.\d{4}/);
+  await expect(firstDateCell).not.toContainText("Rostock");
 
   const searchAlignment = await workbench.evaluate((root) => {
     const header = root.querySelector(".observation-page-header")?.getBoundingClientRect();
@@ -75,11 +75,12 @@ test("Beobachtungen nutzen geschützte Backend-Daten und eine filterbare Vollbre
   await workbench.locator("[data-observation-open]").first().click();
   const drawer = page.locator("#observation-detail-drawer");
   await expect(drawer).toHaveClass(/is-open/);
-  await expect(drawer).toContainText("Owner werden aus der Ursprungshospitation übernommen");
+  await expect(drawer.locator(".observation-detail-card--source")).toContainText("Owner");
+  await expect(drawer.locator("[data-observation-open-source]")).toBeVisible();
   await drawer.locator("#observation-detail-close").click();
 
   await workbench.locator(".observation-analysis-panel > summary").click();
-  await expect(workbench).toContainText("Wiederholungshinweis, noch kein validiertes Muster");
+  await expect(workbench.locator("#observation-matrix-title")).toHaveText("Qualitativer Fallvergleich");
 
   await expect(workbench.locator("[data-observation-new]")).toBeEnabled();
 });

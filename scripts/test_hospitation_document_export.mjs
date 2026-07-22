@@ -168,16 +168,60 @@ const fixture = {
   ]
 };
 fixture.hospitations = fixture.appointments.filter((item) => item.kind === "hospitation");
+// Valides synthetisches 1x1-Baseline-JPEG ohne Abbildung einer realen Person.
+// Die Bytes bleiben absichtlich im Test, damit ein frischer RC-Checkout keine
+// private oder ignorierte lokale Bilddatei benoetigt.
+const fixturePhotoBytes = Uint8Array.from(Buffer.from(
+  "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCloCqE/9k=",
+  "base64"
+));
+fixture.hospitations[0].contactImage = {
+  bytes: fixturePhotoBytes,
+  width: 1,
+  height: 1,
+  mimeType: "image/jpeg",
+  alt: "Synthetische Kontaktbild-Fixture"
+};
 
 const exporter = globalThis.VersorgungsCompassHospitationExport;
 assert.ok(exporter, "Exporter wurde nicht registriert");
 
 const docx = exporter.createDocx(fixture);
 const pdf = exporter.createPdf(fixture);
+const observationDocx = exporter.createObservationDocx({
+  ...fixture,
+  title: "Hospitations-Beobachtungen",
+  appointments: fixture.hospitations,
+  hospitations: fixture.hospitations
+});
+const observationPdf = exporter.createObservationPdf({
+  ...fixture,
+  title: "Hospitations-Beobachtungen",
+  appointments: fixture.hospitations,
+  hospitations: fixture.hospitations
+});
+const appointmentSnapshot = {
+  ...fixture,
+  documentKind: "appointment",
+  documentLabel: "Hospitations-Termin | Einzelansicht",
+  title: "Hospitation | Dr. Ada Beispiel",
+  appointments: [fixture.hospitations[0]],
+  hospitations: [fixture.hospitations[0]]
+};
+const appointmentDocx = exporter.createAppointmentDocx(appointmentSnapshot);
+const appointmentPdf = exporter.createAppointmentPdf(appointmentSnapshot);
 const docxBytes = new Uint8Array(await docx.blob.arrayBuffer());
 const pdfBytes = new Uint8Array(await pdf.blob.arrayBuffer());
+const observationDocxBytes = new Uint8Array(await observationDocx.blob.arrayBuffer());
+const observationPdfBytes = new Uint8Array(await observationPdf.blob.arrayBuffer());
+const appointmentDocxBytes = new Uint8Array(await appointmentDocx.blob.arrayBuffer());
+const appointmentPdfBytes = new Uint8Array(await appointmentPdf.blob.arrayBuffer());
 const docxText = new TextDecoder().decode(docxBytes);
 const pdfText = new TextDecoder().decode(pdfBytes.slice(0, 64));
+const observationDocxText = new TextDecoder().decode(observationDocxBytes);
+const observationPdfText = new TextDecoder().decode(observationPdfBytes.slice(0, 64));
+const appointmentDocxText = new TextDecoder("latin1").decode(appointmentDocxBytes);
+const appointmentPdfText = new TextDecoder("latin1").decode(appointmentPdfBytes);
 
 assert.equal(docx.snapshot.summary.appointments, 2);
 assert.equal(docx.snapshot.summary.hospitations, 1);
@@ -192,6 +236,35 @@ assert.match(docxText, /Hospitations-Termine &amp; Beobachtungen/);
 assert.match(docxText, /Vorbefund fehlt bei der Aufnahme/);
 assert.match(docxText, /w:pgSz w:w="11906" w:h="16838"/);
 assert.match(pdfText, /^%PDF-1\.4/);
+assert.equal(observationDocx.snapshot.documentKind, "observations");
+assert.equal(observationDocx.snapshot.summary.hospitations, 1);
+assert.equal(observationDocx.snapshot.summary.observations, 2);
+assert.match(observationDocx.filename, /mitmachen-hospitations-beobachtungen-2026-07-16\.docx$/);
+assert.match(observationPdf.filename, /mitmachen-hospitations-beobachtungen-2026-07-16\.pdf$/);
+assert.ok(observationDocxBytes.length > 10_000, "Beobachtungs-DOCX ist unerwartet klein");
+assert.ok(observationPdfBytes.length > 5_000, "Beobachtungs-PDF ist unerwartet klein");
+assert.match(observationDocxText, /Hospitations-Beobachtungen/);
+assert.match(observationDocxText, /Vorbefund fehlt bei der Aufnahme/);
+assert.match(observationDocxText, /Die Aufnahme pausiert für zwölf Minuten/);
+assert.doesNotMatch(observationDocxText, /Datensatz-ID|Notiz A-01|Betroffene Produkte|Nutzungsfreigabe|Roadmap-Einschätzungen|checkliste\.pdf|Synthetischer Testdatenstand/);
+assert.match(observationPdfText, /^%PDF-1\.4/);
+assert.equal(appointmentDocx.snapshot.documentKind, "appointment");
+assert.equal(appointmentDocx.snapshot.summary.appointments, 1);
+assert.equal(appointmentDocx.snapshot.summary.observations, 2);
+assert.match(appointmentDocx.filename, /^mitmachen-hospitations-termin-2026-07-18-dr-ada-beispiel\.docx$/);
+assert.match(appointmentPdf.filename, /^mitmachen-hospitations-termin-2026-07-18-dr-ada-beispiel\.pdf$/);
+assert.ok(appointmentDocxBytes.length > fixturePhotoBytes.length, "Einzeltermin-DOCX enthält das Foto nicht plausibel");
+assert.ok(appointmentPdfBytes.length > fixturePhotoBytes.length, "Einzeltermin-PDF enthält das Foto nicht plausibel");
+assert.match(appointmentDocxText, /word\/media\/kontaktfoto\.jpg/);
+assert.match(appointmentDocxText, /relationships\/image/);
+assert.match(appointmentDocxText, /Codierung/);
+assert.match(appointmentDocxText, /F2EEFF/);
+assert.match(appointmentDocxText, /EAF2FF/);
+assert.match(appointmentDocxText, /Vorbefund fehlt bei der Aufnahme/);
+assert.doesNotMatch(appointmentDocxText, /Pflegezentrum Beispiel/);
+assert.match(appointmentPdfText, /^%PDF-1\.4/);
+assert.match(appointmentPdfText, /\/Subtype \/Image/);
+assert.match(appointmentPdfText, /\/Im1 Do/);
 
 const outputIndex = process.argv.indexOf("--output-dir");
 if (outputIndex >= 0 && process.argv[outputIndex + 1]) {
@@ -199,6 +272,10 @@ if (outputIndex >= 0 && process.argv[outputIndex + 1]) {
   await mkdir(outputDir, { recursive: true });
   await writeFile(resolve(outputDir, docx.filename), docxBytes);
   await writeFile(resolve(outputDir, pdf.filename), pdfBytes);
+  await writeFile(resolve(outputDir, observationDocx.filename), observationDocxBytes);
+  await writeFile(resolve(outputDir, observationPdf.filename), observationPdfBytes);
+  await writeFile(resolve(outputDir, appointmentDocx.filename), appointmentDocxBytes);
+  await writeFile(resolve(outputDir, appointmentPdf.filename), appointmentPdfBytes);
 }
 
-console.log(`Hospitations-Export geprüft: ${docxBytes.length} Bytes DOCX, ${pdfBytes.length} Bytes PDF.`);
+console.log(`Hospitations-Export geprüft: ${docxBytes.length} Bytes DOCX, ${pdfBytes.length} Bytes PDF; Beobachtungs-Übersicht: ${observationDocxBytes.length} Bytes DOCX, ${observationPdfBytes.length} Bytes PDF; Einzeltermin: ${appointmentDocxBytes.length} Bytes DOCX, ${appointmentPdfBytes.length} Bytes PDF.`);

@@ -5,11 +5,7 @@ const requiredFiles = [
   "README.md",
   "dokumentation/README.md",
   "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
-  "dokumentation/betrieb-und-deployment/RELEASE_CANDIDATE_STRATEGIE.md",
-  "dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
-  "dokumentation/betrieb-und-deployment/DEPLOYMENT_CHECKLIST.md",
-  "dokumentation/betrieb-und-deployment/IT_UEBERGABE_ZIELBETRIEB.md",
   "dokumentation/betrieb-und-deployment/ADR_001_DEPLOYMENT_TRENNUNG.md",
   "deploy/README.md",
   "dokumentation/architektur/API_CONTRACT.md",
@@ -23,7 +19,8 @@ const requiredFiles = [
   "deploy/helm/versorgungs-kompass/templates/service.yaml",
   "deploy/helm/versorgungs-kompass/templates/ingress.yaml",
   "deploy/postgres/poc-gematik/README.md",
-  "deploy/postgres/poc-gematik/bind-test-identity.sql",
+  "deploy/postgres/poc-gematik/bind-oidc-identity.sql",
+  "dokumentation/betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md",
   "api/Dockerfile",
   "api/server.mjs",
   "scripts/build_static_frontend.sh",
@@ -39,33 +36,28 @@ const requiredFiles = [
 const requiredText = [
   {
     file: "README.md",
-    patterns: [/GitHub Pages/i, /Demo/i, /PoC/i],
-    reason: "README trennt synthetische Pages-Demo und gematik-internen PoC."
+    patterns: [/GitHub Pages/i, /Demo/i, /Datenstand.*geschützten Anwendung/i, /PoC/i],
+    reason: "README trennt synthetische Pages-Demo, geschützten Datenstand und gematik-internen PoC."
   },
   {
     file: "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
-    patterns: [/Non-Prod/i, /synthetisch/i, /OIDC|SSO/i, /PostgreSQL/i, /keine Produktivfreigabe/i],
-    reason: "PoC-Einstieg begrenzt den Durchstich und nennt die minimalen Plattformressourcen."
-  },
-  {
-    file: "dokumentation/betrieb-und-deployment/RELEASE_CANDIDATE_STRATEGIE.md",
-    patterns: [/RC-Tag/i, /main/i, /GitHub-Pages/i, /Image-Digest|Digest/i, /Containerstart/i],
-    reason: "RC-Strategie trennt stabile PoC-Artefakte von paralleler Weiterentwicklung."
-  },
-  {
-    file: "dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md",
-    patterns: [/GitHub Pages/i, /dist\/pages/i, /dist\/target/i, /Kubernetes/i],
-    reason: "Deployment-Uebersicht ordnet aktuelle und archivierte Pfade ein."
+    patterns: [/Non-Prod/i, /Datenstand.*geschützten Anwendung/i, /OIDC|SSO/i, /PostgreSQL/i, /RC-Tag/i, /parallele Weiterentwicklung/i, /Synchronisation.*nicht/i],
+    reason: "PoC-Dokument nennt Zweck, Ressourcen, Release-Trennung und Erfolgskriterien."
   },
   {
     file: "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
     patterns: [/Jenkins/i, /Kubernetes/i, /Helm/i, /dedizierte.*Datenbank/i],
-    reason: "Technische Referenz beschreibt Software-Factory, Kubernetes und den disponiblen PoC-Datenbankpfad."
+    reason: "Technische Referenz beschreibt Software Factory, Kubernetes und den PoC-Datenbankpfad."
   },
   {
     file: "deploy/postgres/poc-gematik/README.md",
-    patterns: [/public/i, /synthetisch/i, /bind-test-identity\.sql/i, /keine.*Migration/i],
-    reason: "PoC-Runbook macht Bootstrap, synthetischen Seed und Testidentitaeten ausfuehrbar."
+    patterns: [/PostgreSQL-16/i, /geschützten Snapshot/i, /Allowlist/i, /bind-oidc-identity\.sql/i, /keine automatische Synchronisation/i],
+    reason: "PoC-Runbook trennt Schema, geschützte Datenübernahme und OIDC-Zuordnung."
+  },
+  {
+    file: "deploy/postgres/poc-gematik/bind-oidc-identity.sql",
+    patterns: [/issuer/i, /subject/i, /profile_id/i, /profile\.active is true/i, /on conflict \(issuer, subject\)/i],
+    reason: "OIDC-Binding akzeptiert nur ein vorhandenes aktives Profil und schützt bestehende Zuordnungen."
   },
   {
     file: "dokumentation/architektur/API_CONTRACT.md",
@@ -99,8 +91,8 @@ const requiredText = [
   },
   {
     file: "deploy/jenkins/Jenkinsfile.gematik",
-    patterns: [/Smoke API image/, /api\/healthz/, /archiveArtifacts[^\n]*dist\/target/, /FRONTEND_BUCKET_URI/],
-    reason: "Jenkins prueft den Containerstart und kann das PoC-Frontend ohne GCS-Zwang archivieren."
+    patterns: [/Smoke API image/, /api\/healthz/, /archiveArtifacts[^\n]*dist\/target/, /FRONTEND_BUCKET_URI/, /migrationContractDigest/, /approved-classes-only/],
+    reason: "Jenkins prüft den Containerstart, archiviert das PoC-Frontend und weist die Datenrichtlinie ohne Daten-Snapshot nach."
   },
   {
     file: ".github/workflows/target-readiness.yml",
@@ -131,6 +123,19 @@ const syntaxFiles = [
 
 const failures = [];
 const warnings = [];
+
+const forbiddenText = [
+  {
+    file: "deploy/jenkins/Jenkinsfile.gematik",
+    pattern: /seedDigest|seedVersion|bind-test-identity/iu,
+    reason: "Der RC-Nachweis darf keinen synthetischen Seed oder Demo-Identity-Vertrag als PoC-Datenstand ausweisen."
+  },
+  {
+    file: "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
+    pattern: /PoC[^\n]{0,120}ausschließlich synthetische|ausschließlich synthetische[^\n]{0,120}PoC/iu,
+    reason: "Der interne Nutzungspilot darf nicht mehr als Synthetic-only-PoC beschrieben werden."
+  }
+];
 
 function ok(message) {
   console.log(`OK  ${message}`);
@@ -164,6 +169,12 @@ for (const check of requiredText) {
   } else {
     ok(check.reason);
   }
+}
+
+for (const check of forbiddenText) {
+  if (!existsSync(check.file)) continue;
+  if (check.pattern.test(readText(check.file))) fail(`${check.file}: ${check.reason}`);
+  else ok(`${check.file}: ${check.reason}`);
 }
 
 for (const file of syntaxFiles) {

@@ -152,13 +152,6 @@
                 </svg>
                 <span>Hospitationen</span>
               </button>
-              <button class="primary-tab" type="button" data-view-tab="hospitations:observations" title="Beobachtungen">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
-                  <circle cx="12" cy="12" r="2.6"></circle>
-                </svg>
-                <span>Beobachtungen</span>
-              </button>
               <button class="primary-tab" type="button" data-view-tab="questionnaire" title="Fragebogen">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M9 3h6l2 2v16H7V5l2-2Z"></path>
@@ -168,6 +161,24 @@
                   <path d="m15 16 1.2 1.2L19 14.5"></path>
                 </svg>
                 <span>Fragebogen</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="hospitations:observations" title="Beobachtungen">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                  <circle cx="12" cy="12" r="2.6"></circle>
+                </svg>
+                <span>Beobachtungen</span>
+              </button>
+              <button class="primary-tab" type="button" data-view-tab="hospitations:patterns" title="Muster">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="6" cy="7" r="2.4"></circle>
+                  <circle cx="18" cy="7" r="2.4"></circle>
+                  <circle cx="12" cy="17" r="2.4"></circle>
+                  <path d="m8.2 8.2 2.6 6.2"></path>
+                  <path d="m15.8 8.2-2.6 6.2"></path>
+                  <path d="M8.4 7h7.2"></path>
+                </svg>
+                <span>Muster</span>
               </button>
               <button class="primary-tab" type="button" data-view-tab="hospitations:dashboard" title="Dashboard">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -258,11 +269,11 @@
       </aside>
 
       <div class="app-main">
-        <input class="visually-hidden" type="file" id="csv-file-input" accept=".csv,.xlsx,.xls,.doc,.docx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-        <input class="visually-hidden" type="file" id="stakeholder-file-input" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-        <input class="visually-hidden" type="file" id="format-participants-file-input" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
-        <input class="visually-hidden" type="file" id="profile-photo-input" accept="image/jpeg,image/png,image/webp" />
-        <input class="visually-hidden" type="file" id="onboarding-photo-input" accept="image/jpeg,image/png,image/webp" />
+        <input class="visually-hidden" type="file" id="csv-file-input" tabindex="-1" aria-hidden="true" hidden accept=".csv,.xlsx,.xls,.doc,.docx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+        <input class="visually-hidden" type="file" id="stakeholder-file-input" tabindex="-1" aria-hidden="true" hidden accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+        <input class="visually-hidden" type="file" id="format-participants-file-input" tabindex="-1" aria-hidden="true" hidden accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+        <input class="visually-hidden" type="file" id="profile-photo-input" tabindex="-1" aria-hidden="true" hidden accept="image/jpeg,image/png,image/webp" />
+        <input class="visually-hidden" type="file" id="onboarding-photo-input" tabindex="-1" aria-hidden="true" hidden accept="image/jpeg,image/png,image/webp" />
 
     <main class="wrap">
       <section class="crm-shell">
@@ -813,37 +824,37 @@
 
               <section class="dashboard-card framework-model-section" aria-labelledby="framework-model-title">
                 <div class="framework-model-heading">
-                  <h4 id="framework-model-title">Von Beobachtung zu Evidenz</h4>
-                  <p class="framework-model-note">Aus einzelnen Situationen entstehen wiederkehrende Muster, daraus prüfbare Hypothesen und schließlich Evidenz für Produkt- und Portfolioentscheidungen.</p>
+                  <h4 id="framework-model-title">Von Beobachtung zum nächsten Schritt</h4>
+                  <p class="framework-model-note">Aus einzelnen Situationen entstehen wiederkehrende Muster, daraus prüfbare Hypothesen und schließlich nachvollziehbare nächste Schritte für Produkt und Portfolio.</p>
                 </div>
-                <div class="framework-model-card" aria-label="Von Beobachtung zu Evidenz mit Beispielzahlen">
+                <div class="framework-model-card" aria-label="Von Beobachtung zum nächsten Schritt mit aktuellen Zahlen">
                   <div class="hospitation-dashboard-funnel framework-funnel framework-process-flow">
                     <div class="hospitation-dashboard-funnel-step" style="--funnel-color: var(--hospitation-dashboard-green)">
-                      <span class="hospitation-dashboard-funnel-badge">12</span>
+                      <span class="hospitation-dashboard-funnel-badge" data-framework-count="observations" aria-live="polite">0</span>
                       <div class="hospitation-dashboard-funnel-copy">
                         <strong>Beobachtungen</strong>
                         <button class="framework-process-button" type="button" data-framework-accordion-target="observations" aria-controls="framework-accordion-observations" aria-expanded="false" aria-label="Mehr zum Schritt Beobachtungen">Mehr zum Schritt</button>
                       </div>
                     </div>
                     <div class="hospitation-dashboard-funnel-step" style="--funnel-color: var(--hospitation-dashboard-blue)">
-                      <span class="hospitation-dashboard-funnel-badge">7</span>
+                      <span class="hospitation-dashboard-funnel-badge" data-framework-count="patterns" aria-live="polite">0</span>
                       <div class="hospitation-dashboard-funnel-copy">
                         <strong>Muster</strong>
                         <button class="framework-process-button" type="button" data-framework-accordion-target="patterns" aria-controls="framework-accordion-patterns" aria-expanded="false" aria-label="Mehr zum Schritt Muster">Mehr zum Schritt</button>
                       </div>
                     </div>
                     <div class="hospitation-dashboard-funnel-step" style="--funnel-color: var(--hospitation-dashboard-amber)">
-                      <span class="hospitation-dashboard-funnel-badge">4</span>
+                      <span class="hospitation-dashboard-funnel-badge" data-framework-count="hypotheses" aria-live="polite">0</span>
                       <div class="hospitation-dashboard-funnel-copy">
                         <strong>Hypothesen</strong>
                         <button class="framework-process-button" type="button" data-framework-accordion-target="hypothesis" aria-controls="framework-accordion-hypothesis" aria-expanded="false" aria-label="Mehr zum Schritt Hypothesen">Mehr zum Schritt</button>
                       </div>
                     </div>
                     <div class="hospitation-dashboard-funnel-step" style="--funnel-color: var(--hospitation-dashboard-red)">
-                      <span class="hospitation-dashboard-funnel-badge">2</span>
+                      <span class="hospitation-dashboard-funnel-badge" data-framework-count="nextSteps" aria-live="polite">0</span>
                       <div class="hospitation-dashboard-funnel-copy">
-                        <strong>Evidenz</strong>
-                        <button class="framework-process-button" type="button" data-framework-accordion-target="evidence" aria-controls="framework-accordion-evidence" aria-expanded="false" aria-label="Mehr zum Schritt Evidenz">Mehr zum Schritt</button>
+                        <strong>Nächster Schritt</strong>
+                        <button class="framework-process-button" type="button" data-framework-accordion-target="evidence" aria-controls="framework-accordion-evidence" aria-expanded="false" aria-label="Mehr zum nächsten Schritt">Mehr zum Schritt</button>
                       </div>
                     </div>
                   </div>
@@ -1006,13 +1017,13 @@
                   <summary>
                     <span class="framework-accordion-number">04</span>
                     <span class="framework-accordion-summary">
-                      <span class="framework-accordion-title">Evidenz</span>
+                      <span class="framework-accordion-title">Nächster Schritt</span>
                     </span>
                   </summary>
                   <div class="framework-accordion-body">
                     <div class="framework-step-layout">
-                      <div class="framework-step-guide" aria-label="Evidenzbildung im Framework">
-                        <p class="framework-step-guide__lead">Evidenz entsteht, wenn Beobachtungen, Muster und geprüfte Hypothese zusammen tragfähig genug sind, um eine Entscheidung zu begründen.</p>
+                      <div class="framework-step-guide" aria-label="Ableitung des nächsten Schritts im Framework">
+                        <p class="framework-step-guide__lead">Ein nächster Schritt wird belastbar, wenn Beobachtungen, Muster und geprüfte Hypothesen zusammen tragfähig genug sind, um das weitere Vorgehen zu begründen.</p>
                         <div class="framework-step-thread">
                           <div class="framework-step-row">
                             <span class="framework-step-label">Qualitative Logik</span>
@@ -1024,7 +1035,7 @@
                           </div>
                           <div class="framework-step-row">
                             <span class="framework-step-label">Qualität</span>
-                            <p>Gute Evidenz macht Quellenstatus, Gegenbeispiele, Unsicherheit und Grenzen sichtbar. Sie sagt nicht nur, was beobachtet wurde, sondern auch, wie stark die Entscheidung darauf beruhen darf.</p>
+                            <p>Ein nachvollziehbarer nächster Schritt macht Quellenstatus, Gegenbeispiele, Unsicherheit und Grenzen sichtbar. Er zeigt nicht nur, was beobachtet wurde, sondern auch, wie stark das weitere Vorgehen darauf beruhen darf.</p>
                           </div>
                         </div>
                       </div>
@@ -1152,6 +1163,9 @@
               </section>
               <section class="hospitation-tab-panel" id="hospitation-observations-panel" data-hospitation-tab-panel="observations" role="tabpanel" hidden>
                 <div class="hospitation-observations-workbench" id="hospitation-observations-workbench"></div>
+              </section>
+              <section class="hospitation-tab-panel" id="hospitation-patterns-panel" data-hospitation-tab-panel="patterns" role="tabpanel" hidden>
+                <div class="hospitation-patterns-workbench" id="hospitation-patterns-workbench"></div>
               </section>
             </div>
           </section>

@@ -23,7 +23,7 @@ Sicherheitskorrekturen richten sich an den aktuellen Stand des Hauptzweigs und a
 
 ## OWASP Top 10:2025 – Bearbeitungsstand
 
-Alle zehn OWASP-Kategorien und 18 priorisierte Risikogruppen wurden defensiv geprüft. Die Tabelle beschreibt den vorbereiteten Repository-Vertrag, aber keine pauschale Freigabe eines beweglichen Arbeitsstands. Ein konkreter PoC-RC ist nur dann technisch gruen, wenn die Security-Vertraege und vereinbarten Scans auf seinem exakten Commit erfolgreich sind. Eine produktive Go-live-Freigabe ist nicht Gegenstand des aktuellen PoC und wuerde spaeter eigene Plattform- und Betriebsnachweise erfordern.
+Alle zehn OWASP-Kategorien und 18 priorisierte Risikogruppen wurden defensiv geprüft. Die Tabelle beschreibt den vorbereiteten Repository-Vertrag, aber keine pauschale Freigabe eines beweglichen Arbeitsstands. Ein konkreter PoC-RC ist nur dann technisch grün, wenn die Security-Verträge und vereinbarten Scans auf seinem exakten Commit erfolgreich sind. Weitere Betriebsstufen werden getrennt bewertet.
 
 | Kategorie | Bereits adressiert | Status |
 | --- | --- | --- |
@@ -44,7 +44,7 @@ Alle zehn OWASP-Kategorien und 18 priorisierte Risikogruppen wurden defensiv gep
 ## Wichtige Grundlagen
 
 - [API- und Sicherheitsgrenzen](dokumentation/architektur/API_CONTRACT.md)
-- [Betrieb und Berechtigungen](dokumentation/betrieb-und-deployment/BETRIEB.md)
+- [Deployment des Gematik-PoC](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md)
 - [Regeln für Daten und externe Inhalte](dokumentation/rechtliches/DATA_NOTICE.md)
 
 Administrative Schlüssel, Passwörter, produktive Daten und Backups gehören nicht in dieses Repository.

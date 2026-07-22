@@ -6,7 +6,7 @@ Es ist ausdrücklich **kein freigegebenes gematik-Zielschema**, keine Festlegung
 
 ## Enge Wiederverwendungsgrenze
 
-Die einzige aktuelle Ausnahme ist der gematik-interne, nicht produktive Durchstich gemäß [`../poc-gematik/README.md`](../poc-gematik/README.md). Dafür dürfen `schema.sql`, `runtime-role.sql`, `grants.sql` und `seed.synthetic.sql` unverändert wiederverwendet werden, jedoch ausschließlich in einer dedizierten kleinen Datenbank, deren `public`-Schema vollständig disponibel und kontrolliert ist, und ausschließlich mit synthetischen Daten. Diese Ausnahme ist weder eine Freigabe für eine bestehende Datenbank noch eine Schema-, Migrations- oder Betriebsentscheidung für einen späteren Produktivbetrieb.
+Für den befristeten internen Durchstich gemäß [`../poc-gematik/README.md`](../poc-gematik/README.md) werden `schema.sql`, `runtime-role.sql` und `grants.sql` wiederverwendet. Der synthetische Seed bleibt ein Testartefakt der Pre-Integration und wird nicht in die gematik-PoC-Datenbank eingespielt. Der bestätigte Datenstand wird dort über einen getrennten, geschützten Import übernommen.
 
 ## Dateien
 
@@ -30,7 +30,7 @@ Das Schema wurde aus dem aktiven Vertrag in `api/server.mjs`, dem Datenmodell un
 - Berechtigungen für Cloud SQL, Datenbankrollen und Secrets werden außerhalb dieses Schemas über GCP IAM, Secret Manager und bewusst angelegte PostgreSQL-Rollen geregelt.
 - Öffentliche `network_registrations`, Rate Limits und `login_aliases` sind nicht enthalten, weil die aktuelle Node-API sie nicht bedient. Ein öffentlicher Intake benötigt einen eigenen freigegebenen Sicherheits- und Datenschutzpfad.
 - Das Schema enthält keine echten Seeds. Für Tests sind ausschließlich synthetische oder anonymisierte Daten zulässig.
-- Der synthetische Fachdaten-Seed ist ausschließlich für `pre-gematik` und die oben eng abgegrenzte, disponibel neu aufbaubare PoC-Datenbank bestimmt. Er ist kein Migrationsweg für den Supabase-Bestand und darf nicht in einem späteren produktionsnahen oder produktiven gematik-Zielbetrieb angewendet werden.
+- Der synthetische Fachdaten-Seed ist ausschließlich ein Testartefakt für `pre-gematik`. Er ist kein Migrationsweg für einen bestehenden Datenbestand oder den gematik-PoC.
 - Der API-Export ist kein Datenbankbackup. Für die Pre-Integration bleiben Cloud-SQL-Backup und ein getesteter Restore erforderlich.
 
 ## ID-Vertrag

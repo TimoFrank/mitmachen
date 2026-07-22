@@ -1,5 +1,8 @@
 name: Deploy GitHub Pages
 
+run-name: >-
+  Deploy GitHub Pages${{ inputs.revision && format(' ({0})', inputs.revision) || '' }}
+
 on:
   push:
     branches:
@@ -27,6 +30,11 @@ on:
       - scripts/check_deployment_governance.mjs
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
+    inputs:
+      revision:
+        description: Optional exact commit to build and deploy
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -40,12 +48,20 @@ jobs:
     name: Build isolated Pages artifact
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      revision: ${{ steps.revision.outputs.sha }}
     permissions:
       contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+
+      - name: Record deployed revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -100,11 +116,12 @@ jobs:
       - name: Verify public Demo profile
         shell: bash
         env:
+          DEPLOYED_REVISION: ${{ needs.build.outputs.revision }}
           PUBLIC_PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           set -euo pipefail
           page_root="${PUBLIC_PAGE_URL%/}"
-          cache_buster="revision=${GITHUB_SHA}"
+          cache_buster="revision=${DEPLOYED_REVISION}"
           curl_retry_args=(
             --silent
             --show-error

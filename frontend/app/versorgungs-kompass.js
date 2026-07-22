@@ -777,6 +777,7 @@
       const hospitationTabItems = [
         { id: "appointments", label: "Termine" },
         { id: "observations", label: "Beobachtungen" },
+        { id: "patterns", label: "Muster" },
         { id: "dashboard", label: "Dashboard" }
       ];
       function normalizeHospitationTab(tab = "") {
@@ -790,7 +791,7 @@
       }
       function parseHospitationRoute(hashValue = "") {
         const hash = String(hashValue || "").replace(/^#/, "");
-        const match = /^hospitations(?:(?::|\/)(appointments|documentation|observations|dashboard))?$/.exec(hash);
+        const match = /^hospitations(?:(?::|\/)(appointments|documentation|observations|patterns|dashboard))?$/.exec(hash);
         return match ? { tab: normalizeHospitationTab(match[1] || "appointments") } : null;
       }
       const settingsTabItems = [
@@ -930,6 +931,7 @@
       const hospitationList = document.getElementById("hospitation-list");
       const hospitationDashboard = document.getElementById("hospitation-dashboard");
       const hospitationObservationsWorkbench = document.getElementById("hospitation-observations-workbench");
+      const hospitationPatternsWorkbench = document.getElementById("hospitation-patterns-workbench");
       const observationDetailDrawer = document.getElementById("observation-detail-drawer");
       const observationDetailOverlay = document.getElementById("observation-detail-overlay");
       const observationDetailClose = document.getElementById("observation-detail-close");
@@ -1204,7 +1206,6 @@
       const accountQualityButton = document.getElementById("account-quality-button");
       const permissionBanner = document.getElementById("permission-banner");
       const permissionBannerText = document.getElementById("permission-banner-text");
-      const brandHomeLink = document.getElementById("brand-home-link");
       const accountLogoutButton = document.getElementById("account-logout-button");
       const moreActionsButton = document.getElementById("more-actions-button");
       const moreActionsMenu = document.getElementById("more-actions-menu");
@@ -1398,18 +1399,20 @@
       let formatDataState = "loading";
       let activeHospitationTab = "appointments";
       let activeHospitationObservationId = "";
+      let activeHospitationPatternKey = "";
       let hospitationObservationEditMode = false;
       let hospitationObservationCreateMode = false;
       let hospitationObservationSearchOpen = false;
       let hospitationObservationSortKey = "date";
       let hospitationObservationSortDirection = "desc";
       const hospitationObservationTableColumns = [
+        { key: "number", label: "ID", required: true, defaultVisible: true, minWidth: 48 },
         { key: "title", label: "Beobachtung", required: true, defaultVisible: true, minWidth: 215 },
-        { key: "evidenceType", label: "Evidenz", defaultVisible: false, minWidth: 110 },
+        { key: "evidenceType", label: "Evidenzart", defaultVisible: false, minWidth: 110 },
         { key: "date", label: "Hospitation", defaultVisible: true, minWidth: 96 },
-        { key: "contact", label: "Kontaktname", defaultVisible: true, minWidth: 160 },
+        { key: "contact", label: "Kontakt", defaultVisible: true, minWidth: 178 },
         { key: "organization", label: "Organisation", defaultVisible: false, minWidth: 150 },
-        { key: "sector", label: "Sektor", defaultVisible: true, minWidth: 100 },
+        { key: "sector", label: "Sektor", defaultVisible: true, minWidth: 76 },
         { key: "processPhase", label: "Prozessphase", defaultVisible: false, minWidth: 135 },
         { key: "problemType", label: "Problemtyp", defaultVisible: false, minWidth: 135 },
         { key: "owner", label: "Owner", defaultVisible: true, minWidth: 96 }
@@ -5151,7 +5154,7 @@
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
         patients: { title: "Patienten", subtitle: "Personen und Organisationen nach Indikation." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
-        framework: { title: "Framework", subtitle: "Überblick über Beobachtungen, Muster, Hypothesen und Evidenz." },
+        framework: { title: "Framework", subtitle: "Überblick über Beobachtungen, Muster, Hypothesen und nächste Schritte." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         hospitations: { title: "Hospitationen", subtitle: "Termine planen und Versorgungskontakte dokumentieren." },
         questionnaire: { title: "Fragebogen", subtitle: "Beobachtungen aus Hospitationen codieren." },
@@ -5168,6 +5171,20 @@
       };
 
       const appVersionHistory = [
+        {
+          version: "0.20.0",
+          date: "17. Juli 2026",
+          title: "Gemeinsam sicher vernetzt",
+          icon: "start",
+          summary: "Der Einstieg in #Mitmachen wird sicherer, klarer und persönlicher. Registrierung, Einwilligungen und Produkttour bringen Menschen schneller zu den passenden Kontakten und Funktionen.",
+          items: [
+            "Verbesserungen für Hospitationen: Der Bereich Hospitationen wurde weiterentwickelt und unterstützt die tägliche Arbeit jetzt noch besser.",
+            "Formate und Datenaustausch übersichtlicher aufgebaut: Inhalte und Bedienelemente sind klarer angeordnet und schneller erfassbar.",
+            "Owner als Dropdownfilter darstellen: Die Auswahl macht Zuständigkeiten leichter nachvollziehbar.",
+            "Verbesserungen für Erkenntnisse und Framework: Wichtige Informationen und Funktionen sind schneller erreichbar.",
+            "Verbesserungen für Karte: Die Kartenansicht unterstützt die Orientierung im Versorgungsnetzwerk zuverlässiger."
+          ]
+        },
         {
           version: "0.19.0",
           date: "16. Juli 2026",
@@ -9548,11 +9565,11 @@
           icon: "⇢",
           accent: "#d06a2f",
           motivation: "Aus Beobachtungen werden nächste Schritte",
-          title: "Von Beobachtung zu Evidenz",
-          body: "Das Framework folgt dem Weg Beobachtung → Einordnung → Muster und Evidenz → Format oder Entscheidung. So werden nächste Schritte nachvollziehbar begründet.",
+          title: "Von Beobachtung zum nächsten Schritt",
+          body: "Das Framework folgt dem Weg Beobachtung → Muster → Hypothese → Nächster Schritt. So wird das weitere Vorgehen nachvollziehbar begründet.",
           details: [
             { title: "Beobachten", body: "Situation und Interpretation trennen." },
-            { title: "Verdichten", body: "Erfahrungen zu Evidenz verbinden." }
+            { title: "Verdichten", body: "Erfahrungen zu nachvollziehbaren nächsten Schritten verbinden." }
           ]
         },
         {
@@ -10273,6 +10290,7 @@
             if (!target) retryProductTourTarget(step);
             stabilizeProductTourLayout(step);
             productTourPanel?.focus?.({ preventScroll: true });
+            if (productTourPanel) productTourPanel.scrollTop = 0;
           });
         });
       }
@@ -13560,8 +13578,8 @@
         }
         if (activeView === "hospitations") {
           const activeHospitationItems = hospitations.filter((hospitation) => hospitation.status !== "Archiviert");
-          const documented = activeHospitationItems.filter((hospitation) => hospitation.status === "Dokumentiert" || meaningfulOrEmpty(hospitation.documentationSummary)).length;
-          const openDocumentation = activeHospitationItems.filter((hospitation) => hospitationIsReadyForDocumentation(hospitation.status) && !meaningfulOrEmpty(hospitation.documentationSummary)).length;
+          const documented = activeHospitationItems.filter((hospitation) => hospitationScheduleStatus(hospitation, { entryKind: "hospitation" }) === "Dokumentiert").length;
+          const openDocumentation = activeHospitationItems.filter((hospitation) => hospitationIsReadyForDocumentation(hospitation.status) && hospitationDocumentationState(hospitation).label !== "Dokumentiert").length;
           renderSummaryCards(
             summaryGrid,
             [
@@ -14037,6 +14055,29 @@
         return label || (entryKind === "slot" ? "Frei" : "Angefragt");
       }
 
+      function hospitationObservationCount(item = {}) {
+        const hospitationId = String(item.id || item.hospitationId || item.hospitation_id || "").trim();
+        if (!hospitationId) return 0;
+        if (Array.isArray(hospitationObservations) && hospitationObservations.length) {
+          return hospitationObservations.filter((observation) =>
+            String(observation.hospitationId || observation.hospitation_id || "") === hospitationId &&
+            normalizeClassPart(observation.status || "active") !== "archived"
+          ).length;
+        }
+        return hospitationDocumentationArray(hospitationDocumentationPayload(item).observations)
+          .filter(hospitationObservationIsMeaningful)
+          .length;
+      }
+
+      function hospitationScheduleStatus(item = {}, options = {}) {
+        const entryKind = options.entryKind || hospitationRecordKind(item);
+        const currentStatus = hospitationDisplayStatus(item.status || "", { entryKind });
+        const normalized = normalizeClassPart(currentStatus);
+        const retainsStatus = ["archiviert", "abgesagt", "abgelehnt"].includes(normalized);
+        if (entryKind === "hospitation" && !retainsStatus && hospitationObservationCount(item) > 0) return "Dokumentiert";
+        return currentStatus;
+      }
+
       function hospitationEditorStatusValue(status = "") {
         const normalized = normalizeClassPart(status || "");
         if (normalized === "angeboten" || normalized === "gebucht" || normalized === "terminiert") return "Gebucht";
@@ -14345,7 +14386,7 @@
       }
 
       function hospitationMatchesColumnFilters(item = {}, { includeStatus = true, includeDocumentation = true, entryKind = "hospitation" } = {}) {
-        const status = hospitationDisplayStatus(item.status || "", { entryKind });
+        const status = hospitationScheduleStatus(item, { entryKind });
         const dateValue = hospitationDateFilterValue(item);
         const sector = hospitationSectorLabel(item);
         const ownerIds = hospitationOwnerIds(item);
@@ -14386,7 +14427,7 @@
             .map((value) => ({ value, label: hospitationDateFilterLabel(value) }));
         }
         if (filterKey === "status") {
-          return [...new Set(records.map((item) => hospitationDisplayStatus(item.status, { entryKind: hospitationRecordKind(item) })).filter(Boolean))]
+          return [...new Set(records.map((item) => hospitationScheduleStatus(item, { entryKind: hospitationRecordKind(item) })).filter(Boolean))]
             .sort((a, b) => hospitationStatusSortIndex(a) - hospitationStatusSortIndex(b) || a.localeCompare(b, "de"))
             .map((value) => ({ value, label: value }));
         }
@@ -14520,7 +14561,7 @@
                 organization?.name,
                 hospitationFreeTextContactName(hospitation),
                 hospitationFreeTextOrganizationName(hospitation),
-                hospitationDisplayStatus(hospitation.status),
+                hospitationScheduleStatus(hospitation, { entryKind: "hospitation" }),
                 hospitationSectorLabel(hospitation),
                 hospitationOwnerIds(hospitation).map(hospitationOwnerLabel).join(" "),
                 hospitationDateOnlyLabel(hospitation),
@@ -14579,6 +14620,8 @@
         return hospitations.find((item) => item.id === id) || null;
       }
 
+      const hospitationAppointmentExportImageCache = new Map();
+
       function hospitationExportDateValue(item = {}) {
         const date = new Date(item.startsAt || item.starts_at || "");
         return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
@@ -14601,6 +14644,7 @@
 
       function hospitationExportItem(item = {}, kind = "hospitation", sources = {}) {
         const isSlot = kind === "slot";
+        const contactRecord = isSlot ? null : hospitationContact(item);
         const documentation = isSlot ? {} : hospitationDocumentationPayload(item);
         const roadmapAssessments = isSlot ? [] : (sources.roadmapAssessments || [])
           .filter((assessment) => assessment.hospitationId === item.id)
@@ -14624,6 +14668,8 @@
           endsAt: item.endsAt || item.ends_at || "",
           context: hospitationContextLabel(item),
           contact: hospitationDocumentationContactLabel(item),
+          contactImageUrl: contactRecord?.image || "",
+          contactImageSourceLabel: contactRecord?.imageSourceLabel || "",
           organization: hospitationOrganizationLabel(item),
           sector: hospitationSectorLabel(item),
           location: item.location || "",
@@ -14702,6 +14748,222 @@
           window.alert("Das Dokument konnte nicht erstellt werden. Bitte versuche den Download erneut.");
         } finally {
           updateHospitationExportButtons();
+        }
+      }
+
+      function loadHospitationExportImage(url = "") {
+        return new Promise((resolve, reject) => {
+          const image = new Image();
+          image.decoding = "async";
+          image.onload = () => resolve(image);
+          image.onerror = () => reject(new Error("Kontaktfoto konnte nicht geladen werden."));
+          image.src = url;
+          if (image.complete && image.naturalWidth) resolve(image);
+        });
+      }
+
+      function hospitationExportCanvasJpeg(canvas) {
+        return new Promise((resolve, reject) => {
+          try {
+            canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Kontaktfoto konnte nicht konvertiert werden.")), "image/jpeg", 0.9);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }
+
+      async function hospitationExportRawJpeg(url = "", width = 0, height = 0) {
+        if (!/\.(?:jpe?g)(?:[?#]|$)/i.test(url) && !/^data:image\/jpeg;base64,/i.test(url)) return null;
+        try {
+          const response = await fetch(url);
+          if (!response.ok && response.status !== 0) return null;
+          const blob = await response.blob();
+          if (!blob.size) return null;
+          return {
+            bytes: new Uint8Array(await blob.arrayBuffer()),
+            width: Math.max(1, width || 480),
+            height: Math.max(1, height || 480),
+            mimeType: "image/jpeg"
+          };
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      async function hospitationAppointmentContactImage(item = {}) {
+        const contact = hospitationContact(item);
+        const url = safeImageUrl(decodeAttributeValue(contact?.image || ""));
+        if (!url) return null;
+        if (hospitationAppointmentExportImageCache.has(url)) return hospitationAppointmentExportImageCache.get(url);
+        const pending = (async () => {
+          let image = null;
+          try {
+            image = await loadHospitationExportImage(url);
+            const size = Math.min(image.naturalWidth, image.naturalHeight);
+            const sourceX = Math.max(0, (image.naturalWidth - size) / 2);
+            const sourceY = Math.max(0, (image.naturalHeight - size) * 0.3);
+            const canvas = document.createElement("canvas");
+            canvas.width = 480;
+            canvas.height = 480;
+            const context = canvas.getContext("2d", { alpha: false });
+            if (!context) throw new Error("Bildkonvertierung ist nicht verfügbar.");
+            context.fillStyle = "#eef4ff";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, sourceX, sourceY, size, size, 0, 0, canvas.width, canvas.height);
+            const blob = await hospitationExportCanvasJpeg(canvas);
+            return {
+              bytes: new Uint8Array(await blob.arrayBuffer()),
+              width: canvas.width,
+              height: canvas.height,
+              mimeType: "image/jpeg",
+              alt: `Kontaktfoto von ${hospitationDocumentationContactLabel(item)}`
+            };
+          } catch (error) {
+            const fallback = await hospitationExportRawJpeg(url, image?.naturalWidth, image?.naturalHeight);
+            if (fallback) return { ...fallback, alt: `Kontaktfoto von ${hospitationDocumentationContactLabel(item)}` };
+            console.warn("Kontaktfoto konnte nicht in den Hospitations-Export eingebettet werden.", error);
+            return null;
+          }
+        })();
+        hospitationAppointmentExportImageCache.set(url, pending);
+        return pending;
+      }
+
+      function hospitationAppointmentExportSnapshot(hospitationId = "", contactImage = null) {
+        const item = hospitations.find((entry) => entry.id === hospitationId);
+        if (!item) return null;
+        const exported = hospitationExportItem(item, "hospitation", {});
+        const observations = hospitationObservationSourceRows()
+          .filter((observation) => observation.hospitationId === hospitationId)
+          .map((observation) => {
+            const exportedObservation = { ...observation };
+            delete exportedObservation.hospitation;
+            delete exportedObservation._history;
+            return exportedObservation;
+          })
+          .sort((left, right) => (Number(left.sequence) || 0) - (Number(right.sequence) || 0)
+            || String(left.title || "").localeCompare(String(right.title || ""), "de"));
+        const appointment = {
+          ...exported,
+          contactImage,
+          documentation: {
+            ...exported.documentation,
+            observations
+          }
+        };
+        return {
+          documentKind: "appointment",
+          documentLabel: "Hospitations-Termin | Einzelansicht",
+          title: `Hospitation | ${exported.contact || exported.context || "Termin"}`,
+          subtitle: "Versorgungs-Kompass | #Mitmachen",
+          modeLabel: "Terminakte",
+          generatedAt: new Date().toISOString(),
+          sourceUpdatedAt: exported.updatedAt || "",
+          appointments: [appointment],
+          hospitations: [appointment]
+        };
+      }
+
+      async function exportHospitationAppointmentDocument(hospitationId = "", format = "docx", triggerButton = null) {
+        const exporter = window.VersorgungsCompassHospitationExport;
+        const item = hospitations.find((entry) => entry.id === hospitationId);
+        if (!exporter || hospitationLoadErrorMessage || !item) {
+          window.alert("Die Termin-Datei ist aktuell nicht verfügbar. Bitte lade den Hospitations-Termin erneut.");
+          return;
+        }
+        const group = triggerButton?.closest("[data-hospitation-appointment-export-group]");
+        const buttons = [...(group?.querySelectorAll("[data-hospitation-action='export-appointment']") || [triggerButton].filter(Boolean))];
+        buttons.forEach((button) => {
+          button.disabled = true;
+          button.setAttribute("aria-busy", button === triggerButton ? "true" : "false");
+        });
+        await new Promise((resolve) => window.requestAnimationFrame(resolve));
+        try {
+          const contactImage = await hospitationAppointmentContactImage(item);
+          const snapshot = hospitationAppointmentExportSnapshot(hospitationId, contactImage);
+          const creator = format === "pdf"
+            ? exporter.createAppointmentPdf || exporter.createPdf
+            : exporter.createAppointmentDocx || exporter.createDocx;
+          const result = creator(snapshot);
+          exporter.downloadBlob(result.blob, result.filename);
+          setStorageStatus(`Termin-Datei für ${hospitationDocumentationContactLabel(item)} (${format === "pdf" ? "PDF" : "Word"}) erstellt`);
+        } catch (error) {
+          console.error("Termin-Datei konnte nicht erstellt werden.", error);
+          window.alert("Die Termin-Datei konnte nicht erstellt werden. Bitte versuche den Download erneut.");
+        } finally {
+          buttons.forEach((button) => {
+            button.disabled = false;
+            button.setAttribute("aria-busy", "false");
+          });
+        }
+      }
+
+      function hospitationObservationExportSnapshot() {
+        const generatedAt = new Date().toISOString();
+        const observationsByHospitation = new Map();
+        hospitationObservationSourceRows().forEach((row) => {
+          if (!row.hospitationId) return;
+          if (!observationsByHospitation.has(row.hospitationId)) observationsByHospitation.set(row.hospitationId, []);
+          const observation = { ...row };
+          delete observation.hospitation;
+          delete observation._history;
+          observationsByHospitation.get(row.hospitationId).push(observation);
+        });
+        const exportedHospitations = hospitations
+          .filter((item) => observationsByHospitation.has(item.id))
+          .map((item) => {
+            const exported = hospitationExportItem(item, "hospitation", {});
+            const observations = observationsByHospitation.get(item.id)
+              .sort((left, right) => (left.sequence || 0) - (right.sequence || 0) || String(left.title || "").localeCompare(String(right.title || ""), "de"));
+            return {
+              ...exported,
+              documentation: { observations }
+            };
+          })
+          .sort((left, right) => hospitationExportDateValue(left) - hospitationExportDateValue(right) || left.context.localeCompare(right.context, "de"));
+        return {
+          documentKind: "observations",
+          documentLabel: "Hospitations-Beobachtungen | Übersicht",
+          title: "Hospitations-Beobachtungen",
+          subtitle: "Versorgungs-Kompass | #Mitmachen",
+          modeLabel: "Qualitative Übersicht",
+          generatedAt,
+          appointments: exportedHospitations,
+          hospitations: exportedHospitations
+        };
+      }
+
+      function updateHospitationObservationExportButtons({ busy = false } = {}) {
+        const exporter = window.VersorgungsCompassHospitationExport;
+        const unavailable = !exporter || Boolean(hospitationLoadErrorMessage) || !hospitationObservationSourceRows().length;
+        hospitationObservationsWorkbench?.querySelectorAll("[data-observation-export]").forEach((button) => {
+          button.disabled = busy || unavailable;
+          button.setAttribute("aria-busy", busy ? "true" : "false");
+          if (unavailable) button.title = "Export ist verfügbar, sobald Beobachtungen geladen wurden";
+          else button.title = "Erstellt eine Übersicht aller Beobachtungen";
+        });
+      }
+
+      async function exportHospitationObservations(format = "docx") {
+        const exporter = window.VersorgungsCompassHospitationExport;
+        if (!exporter || hospitationLoadErrorMessage || !hospitationObservationSourceRows().length) {
+          window.alert("Der Beobachtungs-Export ist aktuell nicht verfügbar. Bitte lade die Beobachtungen erneut.");
+          return;
+        }
+        updateHospitationObservationExportButtons({ busy: true });
+        await new Promise((resolve) => window.requestAnimationFrame(resolve));
+        try {
+          const snapshot = hospitationObservationExportSnapshot();
+          const result = format === "pdf"
+            ? exporter.createObservationPdf(snapshot)
+            : exporter.createObservationDocx(snapshot);
+          exporter.downloadBlob(result.blob, result.filename);
+          setStorageStatus(`Beobachtungs-Übersicht (${format === "pdf" ? "PDF" : "Word"}) erstellt`);
+        } catch (error) {
+          console.error("Beobachtungs-Export konnte nicht erstellt werden.", error);
+          window.alert("Die Beobachtungs-Übersicht konnte nicht erstellt werden. Bitte versuche den Download erneut.");
+        } finally {
+          updateHospitationObservationExportButtons();
         }
       }
 
@@ -15176,7 +15438,7 @@
       }
 
       function hospitationDocumentationState(item = {}) {
-        if (meaningfulOrEmpty(item.documentationSummary)) return { tone: "done", label: "Dokumentiert" };
+        if (meaningfulOrEmpty(item.documentationSummary) || hospitationObservationCount(item) > 0) return { tone: "done", label: "Dokumentiert" };
         if (hospitationDocumentationHasStructuredContent(hospitationDocumentationPayload(item))) return { tone: "draft", label: "Entwurf" };
         return { tone: "open", label: "Offen" };
       }
@@ -15652,18 +15914,15 @@
 
       function renderHospitationObservationMaterials(item = {}, context = {}) {
         const quotes = hospitationObservationLinkedItems(item, context.quotes, item.linkedQuoteIds, normalizeHospitationQuote);
-        const mediaArtifacts = hospitationObservationLinkedItems(item, context.mediaArtifacts, item.linkedMediaIds, normalizeHospitationMedia);
-        const parts = [];
-        if (quotes.length) parts.push(`${quotes.length} ${quotes.length === 1 ? "Zitat" : "Zitate"}`);
-        if (mediaArtifacts.length) parts.push(`${mediaArtifacts.length} ${mediaArtifacts.length === 1 ? "Bild/Datei" : "Bilder/Dateien"}`);
+        if (!quotes.length) return "";
         return `
           <div class="hospitation-observation-materials">
             <div class="hospitation-observation-materials__head">
-              <strong>Zitate und Bilder</strong>
-              <span class="detail-secondary">${escapeHtml(parts.join(" · ") || "Noch keine Zuordnung")}</span>
+              <strong>Zitate</strong>
+              <span class="detail-secondary">${escapeHtml(`${quotes.length} ${quotes.length === 1 ? "Zitat" : "Zitate"}`)}</span>
             </div>
             <div class="hospitation-observation-materials__meta">
-              ${escapeHtml(parts.length ? "Zugeordnete Einträge werden in den Karten unterhalb gepflegt." : "Zitate und Bilder können unterhalb angelegt und dieser Beobachtung zugeordnet werden.")}
+              Zugeordnete Einträge werden unter „Optionale Stimmen“ gepflegt.
             </div>
           </div>
         `;
@@ -15711,6 +15970,7 @@
           <input type="hidden" data-repeatable-field="evidenceType" value="${escapeHtml(item.evidenceType)}" />
           <input type="hidden" data-repeatable-field="linkedQuoteIds" value="${escapeHtml(normalizeThemes(item.linkedQuoteIds).join(", "))}" />
           <input type="hidden" data-repeatable-field="linkedMediaIds" value="${escapeHtml(normalizeThemes(item.linkedMediaIds).join(", "))}" />
+          <input type="hidden" data-repeatable-field="affectedProducts" value="${escapeHtml(hospitationObservationProductLabels(item.affectedProducts).join(", "))}" />
           <div class="hospitation-observation-compact">
             <section class="hospitation-observation-compact__section">
               <p class="hospitation-observation-compact__label">Beobachtung</p>
@@ -15728,10 +15988,6 @@
                 ${hospitationRepeatableSelectField("observation", item, "observationType", "Beobachtungsart", hospitationOptionalCodebookOptions(hospitationObservationTypeOptions), item.observationType)}
                 ${hospitationRepeatableSelectField("observation", item, "relevanceScore", "Relevanz 1-5", [{ value: "", label: "Auswählen" }, ...QUESTIONNAIRE_CODEBOOK.relevance], String(item.relevanceScore || ""))}
               </div>
-            </section>
-            <section class="hospitation-observation-compact__section">
-              <p class="hospitation-observation-compact__label">Produktbezug</p>
-              ${renderHospitationObservationProductEditor(item)}
             </section>
             ${renderHospitationObservationMaterials(item, context)}
             ${renderHospitationObservationAdvancedFields(item)}
@@ -15982,7 +16238,6 @@
       function hospitationDocumentationMissingByTab(hospitation = {}, payload = {}, topics = []) {
         const observations = hospitationDocumentationArray(payload.observations).filter(hospitationObservationIsMeaningful);
         const quotes = hospitationDocumentationArray(payload.quotes).filter(hospitationQuoteIsMeaningful);
-        const mediaArtifacts = hospitationDocumentationArray(payload.mediaArtifacts).filter(hospitationMediaIsMeaningful);
         const mainTopics = normalizeThemes(topics).filter((tag) => !hospitationIsAdministrativeTag(tag));
         const missingByTab = {
           overview: [],
@@ -15997,7 +16252,7 @@
         if (!mainTopics.length) missingByTab.themes.push("1 Hauptthema ergänzen");
         const observationGap = Math.max(0, 3 - observations.length);
         if (observationGap) missingByTab.observations.push(`${observationGap} Beobachtung${observationGap === 1 ? "" : "en"} ergänzen`);
-        if (!quotes.length && !mediaArtifacts.length) missingByTab.observations.push("1 Zitat oder Bild ergänzen");
+        if (!quotes.length) missingByTab.observations.push("1 Zitat ergänzen");
         if (!meaningfulOrEmpty(payload.insight)) missingByTab.hospitation.push("1 Einordnung / Erkenntnis ergänzen");
         const hasNextUse = meaningfulOrEmpty(payload.nextUse) ||
           observations.some((observation) => meaningfulOrEmpty(observation.nextUse) || meaningfulOrEmpty(observation.nextStep));
@@ -16873,11 +17128,17 @@
         `;
       }
 
+      function hospitationObservationCountBadgeMarkup(item = {}, options = {}) {
+        const count = options.entryKind === "slot" ? 0 : hospitationObservationCount(item);
+        const label = `${count} ${count === 1 ? "Beobachtung" : "Beobachtungen"}`;
+        return `<span class="hospitation-observation-count-badge ${count ? "" : "hospitation-observation-count-badge--empty"}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${count}</span>`;
+      }
+
       function renderHospitationScheduleRow(entry = {}) {
         const item = entry.item || {};
         const key = hospitationEntryKey(entry);
         const selected = selectedHospitationEntryKeys.has(key);
-        const status = item.status || (entry.kind === "slot" ? "Frei" : "Angefragt");
+        const status = hospitationScheduleStatus(item, { entryKind: entry.kind });
         const sector = hospitationSectorLabel(item);
         const organization = hospitationOrganizationLabel(item);
         const organizationMeta = hospitationOrganizationMeta(item);
@@ -16896,11 +17157,15 @@
               <div class="hospitation-row__person">
                 ${hospitationAvatarMarkup(item)}
                 <span class="hospitation-row__copy">
-                  <span class="hospitation-row__mobile-date">${escapeHtml(hospitationDateCompactLabel(item))}</span>
+                  <span class="hospitation-row__mobile-topline">
+                    <span class="hospitation-row__mobile-date">${escapeHtml(hospitationDateCompactLabel(item))}</span>
+                    <span class="hospitation-row__mobile-status">${hospitationStatusBadgeMarkup(status, { entryKind: entry.kind })}</span>
+                  </span>
                   ${hospitationRowNameMarkup(hospitationEntryTitle(entry), item)}
                   <span class="hospitation-row__mobile-organization">${escapeHtml(organization)}</span>
                   <span class="hospitation-row__mobile-footer">
                     ${sectorBadgeMarkup(sector)}
+                    <span class="hospitation-row__mobile-observations">${hospitationObservationCountBadgeMarkup(item, { entryKind: entry.kind })}</span>
                     <span class="hospitation-row__mobile-owner">${hospitationOwnerAvatarStackMarkup(item)}</span>
                   </span>
                 </span>
@@ -16909,6 +17174,9 @@
               <div class="hospitation-row__cell hospitation-row__organization">
                 <span class="hospitation-row__primary">${escapeHtml(organization)}</span>
                 ${organizationMeta ? `<span class="hospitation-row__secondary">${escapeHtml(organizationMeta)}</span>` : ""}
+              </div>
+              <div class="hospitation-row__cell hospitation-row__observations">
+                ${hospitationObservationCountBadgeMarkup(item, { entryKind: entry.kind })}
               </div>
               <div class="hospitation-row__badges hospitation-row__sector">
                 ${sectorBadgeMarkup(sector)}
@@ -16959,6 +17227,7 @@
               ${hospitationColumnHeaderMarkup("status", "Status")}
               <span>Kontakt</span>
               <span>Organisation</span>
+              <span>Beobachtungen</span>
               ${hospitationColumnHeaderMarkup("sector", "Sektor")}
               ${hospitationColumnHeaderMarkup("owner", "Owner")}
               ${hospitationColumnHeaderMarkup("documentation", "Dokumentation")}
@@ -17850,6 +18119,258 @@
           .slice(0, hospitationDashboardPipelineQuota(hypotheses.length, 0.5))
           .map((entry) => hospitationDashboardPipelineEntry(entry, "evidence"));
         return { patterns, hypotheses, evidence };
+      }
+
+      function hospitationFrameworkSourceData() {
+        const activeHospitations = hospitations.filter((item) => !isHospitationArchived(item));
+        const activeHospitationIds = new Set(activeHospitations.map((item) => item.id).filter(Boolean));
+        const documentedObservations = hospitationObservationSourceRows().filter((row) =>
+          activeHospitationIds.has(row.hospitationId) &&
+          meaningfulOrEmpty(row.observed || row.title || row.situationContext)
+        );
+        const dataSet = {
+          visible: activeHospitations,
+          roadmapAssessments: hospitationRoadmapAssessments,
+          unmetNeeds: hospitationUnmetNeeds
+        };
+        const pipeline = hospitationDashboardEvidencePipeline(activeHospitations, dataSet);
+        return { activeHospitations, documentedObservations, dataSet, pipeline };
+      }
+
+      function hospitationFrameworkMetrics() {
+        const { documentedObservations, pipeline } = hospitationFrameworkSourceData();
+        return {
+          observations: documentedObservations.length,
+          patterns: pipeline.patterns.length,
+          hypotheses: pipeline.hypotheses.length,
+          nextSteps: pipeline.evidence.length
+        };
+      }
+
+      function syncHospitationFrameworkMetrics() {
+        const frameworkView = document.getElementById("view-framework");
+        if (!frameworkView) return;
+        const metrics = hospitationFrameworkMetrics();
+        const accessibleLabels = {
+          observations: "dokumentierte Beobachtungen",
+          patterns: "abgeleitete Muster",
+          hypotheses: "abgeleitete Hypothesen",
+          nextSteps: "vorbereitete nächste Schritte"
+        };
+        frameworkView.querySelectorAll("[data-framework-count]").forEach((badge) => {
+          const key = badge.dataset.frameworkCount || "";
+          const value = Number(metrics[key]) || 0;
+          badge.textContent = String(value);
+          badge.setAttribute("aria-label", `${value} ${accessibleLabels[key] || "Einträge"}`);
+        });
+      }
+
+      function hospitationPatternCountLabel(value = 0, singular = "Eintrag", plural = "Einträge") {
+        const count = Number(value) || 0;
+        return `${count} ${count === 1 ? singular : plural}`;
+      }
+
+      function renderHospitationFrameworkReminder(metrics = {}, focus = "patterns") {
+        const steps = [
+          { key: "observations", label: "Beobachtungen", color: "var(--hospitation-dashboard-green)" },
+          { key: "patterns", label: "Muster", color: "var(--hospitation-dashboard-blue)" },
+          { key: "hypotheses", label: "Hypothesen", color: "var(--hospitation-dashboard-amber)" },
+          { key: "nextSteps", label: "Nächster Schritt", color: "var(--hospitation-dashboard-red)" }
+        ];
+        const titleId = `hospitation-framework-reminder-title-${normalizeClassPart(focus)}`;
+        return `
+          <section class="dashboard-card hospitation-pattern-framework-reminder" data-hospitation-framework-reminder data-hospitation-framework-focus="${escapeHtml(focus)}" aria-labelledby="${escapeHtml(titleId)}">
+            <div class="hospitation-pattern-framework-reminder__intro">
+              <strong id="${escapeHtml(titleId)}" role="heading" aria-level="3">Framework</strong>
+              <span>Von Beobachtung zum nächsten Schritt</span>
+            </div>
+            <div class="hospitation-pattern-framework-reminder__flow" role="list" aria-label="Vier Schritte des Hospitations-Frameworks">
+              ${steps.map((step) => {
+                const value = Number(metrics[step.key]) || 0;
+                const current = step.key === focus;
+                return `
+                  <div class="hospitation-pattern-framework-reminder__step ${current ? "is-current" : ""}" data-hospitation-framework-step="${escapeHtml(step.key)}" role="listitem" ${current ? 'aria-current="step"' : ""} aria-label="${escapeHtml(`${value} ${step.label}`)}" style="--framework-step-color:${escapeHtml(step.color)}">
+                    <span class="hospitation-pattern-framework-reminder__badge" data-hospitation-framework-count="${escapeHtml(step.key)}" aria-hidden="true">${escapeHtml(String(value))}</span>
+                    <span class="hospitation-pattern-framework-reminder__copy">
+                      <strong>${escapeHtml(step.label)}</strong>
+                    </span>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </section>
+        `;
+      }
+
+      function hospitationPatternObservationKey(row = {}) {
+        const problemType = meaningfulOrEmpty(hospitationNormalizeCodebookValue("problemType", row.problemType, "")) || "Problemtyp offen";
+        const processPhase = meaningfulOrEmpty(hospitationNormalizeCodebookValue("processPhase", row.processPhase, "")) || "Prozessphase offen";
+        return `${problemType}::${processPhase}`;
+      }
+
+      function hospitationPatternObservations(entry = {}, rows = []) {
+        const ids = new Set(entry.hospitationIds instanceof Set
+          ? [...entry.hospitationIds]
+          : Array.isArray(entry.hospitationIds)
+            ? entry.hospitationIds
+            : []);
+        const patternKey = hospitationPatternObservationKey(entry);
+        return rows
+          .filter((row) =>
+            !row.synthetic &&
+            (!ids.size || ids.has(row.hospitationId)) &&
+            hospitationPatternObservationKey(row) === patternKey
+          )
+          .sort((left, right) =>
+            (Number(right._chronologicalNumber) || 0) - (Number(left._chronologicalNumber) || 0)
+          );
+      }
+
+      function renderHospitationPatternCodeBadges(entry = {}) {
+        const badges = [
+          { value: meaningfulOrEmpty(entry.problemType), tone: "problem" },
+          { value: meaningfulOrEmpty(entry.processPhase), tone: "phase" }
+        ].filter((badge) => badge.value);
+        if (!badges.length) return "";
+        return `
+          <span class="hospitation-dashboard-derived-code-badges" aria-label="Codes und Kategorien">
+            ${badges.map((badge) => `<span class="hospitation-dashboard-derived-code-badge hospitation-dashboard-derived-code-badge--${escapeHtml(badge.tone)}">${escapeHtml(badge.value)}</span>`).join("")}
+          </span>
+        `;
+      }
+
+      function renderHospitationPatternObservationRow(row = {}) {
+        const parent = row.hospitation || {};
+        const number = Number(row._chronologicalNumber) || 0;
+        const title = meaningfulOrEmpty(row.title) || meaningfulOrEmpty(row.problemType) || "Beobachtung";
+        const finding = meaningfulOrEmpty(row.description || row.observed || row.situation || row.situationContext) || "Noch ohne Beschreibung";
+        const contactLabel = hospitationDocumentationContactLabel(parent) || "Kontakt nicht hinterlegt";
+        const organizationLabel = hospitationOrganizationLabel(parent) || "Organisation nicht hinterlegt";
+        const dateLabel = hospitationDateOnlyLabel(parent) || "Termin offen";
+        return `
+          <button class="hospitation-pattern-observation-row" type="button" data-hospitation-pattern-observation="${escapeHtml(row.id || "")}" data-hospitation-pattern-observation-open="${escapeHtml(row.id || "")}" aria-label="${escapeHtml(`Beobachtung ${number || "ohne ID"}: ${title} von ${contactLabel} öffnen`)}">
+            <span class="hospitation-pattern-observation-row__number" aria-hidden="true">${escapeHtml(number || "–")}</span>
+            <span class="hospitation-pattern-observation-row__contact">
+              <span class="hospitation-pattern-observation-row__avatar">${hospitationAvatarMarkup(parent)}</span>
+              <span class="hospitation-pattern-observation-row__identity"><strong>${escapeHtml(contactLabel)}</strong><small>${escapeHtml(organizationLabel)} · ${escapeHtml(dateLabel)}</small></span>
+            </span>
+            <span class="hospitation-pattern-observation-row__finding">
+              <strong data-hospitation-pattern-observation-title>${escapeHtml(title)}</strong>
+              <small>${escapeHtml(hospitationDashboardShortText(finding, 150))}</small>
+            </span>
+            <span class="hospitation-pattern-observation-row__context">${sectorBadgeMarkup(hospitationSectorLabel(parent))}<span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span></span>
+            <svg class="hospitation-pattern-observation-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+          </button>
+        `;
+      }
+
+      function renderHospitationPatternEvidenceMap(entry = {}, index = 0, observations = []) {
+        const rankLabel = `M${String(index + 1).padStart(2, "0")}`;
+        const title = meaningfulOrEmpty(entry.title) || [entry.problemType, entry.processPhase].filter(Boolean).join(" · ") || "Abgeleitetes Muster";
+        const evidenceId = `hospitation-pattern-evidence-${normalizeClassPart(entry.key || rankLabel)}`;
+        return `
+          <section class="hospitation-pattern-evidence-map" id="${escapeHtml(evidenceId)}" data-hospitation-pattern-observations aria-label="Evidenzkarte für ${escapeHtml(title)}">
+            <div class="hospitation-pattern-evidence-list-head">
+              <h4>Zugehörige Beobachtungen</h4>
+            </div>
+            <div class="hospitation-pattern-observation-list">
+              ${observations.length ? observations.map(renderHospitationPatternObservationRow).join("") : `<div class="hospitation-dashboard-empty">Für dieses Muster wurden keine passenden Beobachtungen gefunden.</div>`}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderHospitationPatternCard(entry = {}, index = 0, sourceRows = [], selectedKey = "") {
+        const observations = hospitationPatternObservations(entry, sourceRows);
+        const hospitationCount = new Set(observations.map((row) => row.hospitationId).filter(Boolean)).size || hospitationDashboardClusterCount(entry);
+        const observationCount = observations.length || Number(entry.observationCount) || 0;
+        const title = meaningfulOrEmpty(entry.title) || [entry.problemType, entry.processPhase].filter(Boolean).join(" · ") || "Abgeleitetes Muster";
+        const summary = meaningfulOrEmpty(hospitationDashboardDerivedSummary(entry, "signal"));
+        const rankLabel = `M${String(index + 1).padStart(2, "0")}`;
+        const titleId = `hospitation-pattern-title-${normalizeClassPart(entry.key || rankLabel)}`;
+        const evidenceId = `hospitation-pattern-evidence-${normalizeClassPart(entry.key || rankLabel)}`;
+        const selected = (entry.key || "") === selectedKey;
+        return `
+          <article class="hospitation-pattern-card ${selected ? "is-selected" : ""}" data-hospitation-pattern role="listitem" aria-labelledby="${escapeHtml(titleId)}">
+            <div class="hospitation-pattern-card__row">
+              <button class="hospitation-pattern-card__select" type="button" data-hospitation-pattern-select="${escapeHtml(entry.key || "")}" aria-pressed="${selected ? "true" : "false"}" aria-expanded="${selected ? "true" : "false"}" aria-controls="${escapeHtml(evidenceId)}">
+                <span class="hospitation-pattern-card__rank">${escapeHtml(rankLabel)}</span>
+                <span class="hospitation-pattern-card__main">
+                  <span class="hospitation-pattern-card__title" id="${escapeHtml(titleId)}" role="heading" aria-level="3">${escapeHtml(title)}</span>
+                  <span class="hospitation-pattern-card__summary">${escapeHtml(summary)}</span>
+                </span>
+                <span class="hospitation-pattern-card__coding">${renderHospitationPatternCodeBadges(entry)}</span>
+                <span class="hospitation-pattern-card__metrics">
+                  <span class="hospitation-pattern-card__metric" aria-label="${escapeHtml(hospitationPatternCountLabel(observationCount, "Beobachtung", "Beobachtungen"))}"><strong>${escapeHtml(String(observationCount))}</strong><small>Beobachtungen</small></span>
+                  <span class="hospitation-pattern-card__metric" aria-label="${escapeHtml(hospitationPatternCountLabel(hospitationCount, "Hospitation", "Hospitationen"))}"><strong>${escapeHtml(String(hospitationCount))}</strong><small>Hospitationen</small></span>
+                </span>
+                <svg class="hospitation-pattern-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+              </button>
+            </div>
+            ${selected ? renderHospitationPatternEvidenceMap(entry, index, observations) : ""}
+          </article>
+        `;
+      }
+
+      function renderHospitationPatternsWorkbench() {
+        if (!hospitationPatternsWorkbench) return;
+        const source = hospitationFrameworkSourceData();
+        const patterns = source.pipeline.patterns;
+        if (!patterns.some((entry) => entry.key === activeHospitationPatternKey)) activeHospitationPatternKey = "";
+        const frameworkMetrics = {
+          observations: source.documentedObservations.length,
+          patterns: patterns.length,
+          hypotheses: source.pipeline.hypotheses.length,
+          nextSteps: source.pipeline.evidence.length
+        };
+        hospitationPatternsWorkbench.innerHTML = `
+          <section class="hospitation-patterns-page" aria-labelledby="hospitation-patterns-title">
+            <header class="dashboard-card hospitation-dashboard-preview-card observation-page-header hospitation-patterns-header" aria-label="Muster">
+              <div class="observation-page-header__top">
+                <div class="hospitation-dashboard-preview-copy observation-page-header__copy">
+                  <strong id="hospitation-patterns-title" role="heading" aria-level="2">Muster</strong>
+                  <p>Muster auswählen und die zugrunde liegenden Beobachtungen direkt prüfen.</p>
+                </div>
+              </div>
+            </header>
+            ${renderHospitationFrameworkReminder(frameworkMetrics, "patterns")}
+            ${patterns.length
+              ? `<div class="hospitation-pattern-table-scroll" data-hospitation-pattern-table>
+                  <div class="hospitation-pattern-table">
+                    <div class="hospitation-pattern-table-head" data-hospitation-pattern-table-head aria-label="Spalten der Mustertabelle">
+                      <span>ID</span>
+                      <span>Muster</span>
+                      <span>Codierung</span>
+                      <span>Beobachtungen</span>
+                      <span>Hospitationen</span>
+                      <span aria-hidden="true"></span>
+                    </div>
+                    <div class="hospitation-patterns-grid" role="list">${patterns.map((entry, index) => renderHospitationPatternCard(entry, index, source.documentedObservations, activeHospitationPatternKey)).join("")}</div>
+                  </div>
+                </div>`
+              : `<div class="dashboard-card hospitation-patterns-empty"><strong>Noch keine Muster ableitbar</strong><p>Ein Muster wird sichtbar, sobald eine vergleichbare Codierung in mindestens zwei Hospitationen vorkommt.</p></div>`}
+          </section>
+        `;
+      }
+
+      function bindHospitationPatternsActions(root = document) {
+        root.querySelectorAll("[data-hospitation-pattern-select]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const clickedKey = button.dataset.hospitationPatternSelect || "";
+            activeHospitationPatternKey = activeHospitationPatternKey === clickedKey ? "" : clickedKey;
+            renderHospitationPatternsWorkbench();
+            bindHospitationPatternsActions(hospitationPatternsWorkbench);
+            window.requestAnimationFrame(() => {
+              const selectedButton = [...hospitationPatternsWorkbench.querySelectorAll("[data-hospitation-pattern-select]")]
+                .find((candidate) => candidate.dataset.hospitationPatternSelect === clickedKey);
+              selectedButton?.focus({ preventScroll: true });
+              if (activeHospitationPatternKey) selectedButton?.closest("[data-hospitation-pattern]")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            });
+          });
+        });
+        root.querySelectorAll("[data-hospitation-pattern-observation-open]").forEach((button) => {
+          button.addEventListener("click", () => openHospitationObservationDrawerById(button.dataset.hospitationPatternObservationOpen || ""));
+        });
       }
 
       function hospitationDashboardDerivedSignals(items = [], dataSet = {}, limit = 4) {
@@ -20414,6 +20935,14 @@
             const action = button.dataset.hospitationAction;
             const hospitationId = button.dataset.hospitationId || "";
             const slotId = button.dataset.slotId || "";
+            if (action === "export-appointment") {
+              await exportHospitationAppointmentDocument(
+                hospitationId,
+                button.dataset.hospitationExportFormat === "pdf" ? "pdf" : "docx",
+                button
+              );
+              return;
+            }
             if (action === "open-contact" && button.dataset.contactId) {
               openPersonProfile("contact", button.dataset.contactId, { returnTo: "hospitations" });
               return;
@@ -20627,12 +21156,33 @@
         const source = hospitationObservations.length
           ? hospitationObservations
           : hospitationDashboardAllObservations(parentRows).filter((item) => !item.synthetic);
-        return source
+        const rows = source
           .filter((item) => item.status !== "archived")
           .map((observation) => {
             const hospitation = observation.hospitation || parentRows.find((item) => item.id === observation.hospitationId) || {};
             return { ...observation, hospitationId: observation.hospitationId || hospitation.id, hospitation };
           });
+        const chronologyTimestamp = (row = {}) => {
+          const parent = row.hospitation || {};
+          const candidates = [parent.startsAt, parent.date, parent.documentedAt, row.createdAt];
+          for (const candidate of candidates) {
+            const timestamp = new Date(candidate || 0).getTime();
+            if (Number.isFinite(timestamp) && timestamp > 0) return timestamp;
+          }
+          return 0;
+        };
+        const chronologicalIds = new Map(
+          [...rows]
+            .sort((left, right) => {
+              const dateComparison = chronologyTimestamp(left) - chronologyTimestamp(right);
+              if (dateComparison) return dateComparison;
+              const sequenceComparison = (Number(left.sequence) || 0) - (Number(right.sequence) || 0);
+              if (sequenceComparison) return sequenceComparison;
+              return String(left.id || "").localeCompare(String(right.id || ""), "de", { numeric: true, sensitivity: "base" });
+            })
+            .map((row, index) => [row.id, index + 1])
+        );
+        return rows.map((row) => ({ ...row, _chronologicalNumber: chronologicalIds.get(row.id) || 0 }));
       }
 
       function mergeCanonicalObservationsIntoHospitations() {
@@ -20698,12 +21248,13 @@
       function hospitationObservationTableStyle() {
         const columns = visibleHospitationObservationColumnDefinitions();
         const templates = {
+          number: "48px",
           title: "minmax(215px, 1.35fr)",
           evidenceType: "minmax(110px, 0.62fr)",
           date: "minmax(96px, 0.5fr)",
-          contact: "minmax(160px, 0.85fr)",
+          contact: "minmax(178px, 0.88fr)",
           organization: "minmax(150px, 0.8fr)",
-          sector: "minmax(100px, 0.54fr)",
+          sector: "minmax(76px, 0.42fr)",
           processPhase: "minmax(135px, 0.7fr)",
           problemType: "minmax(135px, 0.7fr)",
           owner: "minmax(96px, 0.42fr)"
@@ -20747,6 +21298,7 @@
           .sort((left, right) => {
             const sortValue = (row) => {
               const parent = row.hospitation || {};
+              if (hospitationObservationSortKey === "number") return Number(row._chronologicalNumber) || 0;
               if (hospitationObservationSortKey === "title") return row.title || row.problemType || "";
               if (hospitationObservationSortKey === "evidenceType") return observationEvidenceLabel(row.evidenceType);
               if (hospitationObservationSortKey === "date") return new Date(parent.startsAt || parent.documentedAt || 0).getTime();
@@ -20764,7 +21316,12 @@
               ? leftValue - rightValue
               : String(leftValue || "").localeCompare(String(rightValue || ""), "de", { numeric: true, sensitivity: "base" });
             const directed = hospitationObservationSortDirection === "asc" ? comparison : -comparison;
-            return directed || String(left.title || "").localeCompare(String(right.title || ""), "de");
+            if (directed) return directed;
+            if (hospitationObservationSortKey === "date") {
+              const chronologicalComparison = (Number(left._chronologicalNumber) || 0) - (Number(right._chronologicalNumber) || 0);
+              if (chronologicalComparison) return hospitationObservationSortDirection === "asc" ? chronologicalComparison : -chronologicalComparison;
+            }
+            return String(left.title || "").localeCompare(String(right.title || ""), "de");
           });
       }
 
@@ -20780,7 +21337,7 @@
         return ({
           owner: "Owner",
           sector: "Sektor",
-          contact: "Kontaktname",
+          contact: "Kontakt",
           organization: "Organisation",
           date: "Hospitation",
           processPhase: "Prozessphase",
@@ -20846,7 +21403,7 @@
           ? `${label} ${direction === "asc" ? "aufsteigend" : "absteigend"} sortiert`
           : `${label} sortieren`;
         return `
-          <div class="column-head column-head--${escapeHtml(normalizeClassPart(key))}">
+          <div class="column-head column-head--${escapeHtml(normalizeClassPart(key))} ${key === "number" ? "observation-table-number-head" : ""}">
             <button class="column-sort-button ${active ? "is-active" : ""}" type="button" data-observation-sort="${escapeHtml(key)}" aria-label="${escapeHtml(sortLabel)}" aria-sort="${direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "none"}">
               <span class="column-head__label">${escapeHtml(label)}</span>
               ${columnSortIndicatorMarkup(direction)}
@@ -20869,8 +21426,8 @@
       }
 
       function renderHospitationObservationMatrix(rows = []) {
-        const phases = hospitationObservationFilterOptions(rows, (row) => row.processPhase).slice(0, 8);
-        const problems = hospitationObservationFilterOptions(rows, (row) => row.problemType).slice(0, 10);
+        const phases = hospitationObservationFilterOptions(rows, (row) => row.processPhase);
+        const problems = hospitationObservationFilterOptions(rows, (row) => row.problemType);
         if (!phases.length || !problems.length) return `<div class="hospitation-dashboard-empty">Für die Fallvergleichsmatrix fehlen noch Prozess- oder Problemcodes.</div>`;
         const cells = new Map();
         let maximum = 1;
@@ -20885,7 +21442,7 @@
         });
         return `
           <div class="observation-matrix-wrap">
-            <table class="observation-matrix">
+            <table class="observation-matrix" aria-label="Fallvergleich aller codierten Beobachtungen der aktuellen Auswahl">
               <thead><tr><th scope="col">Problemtyp</th>${phases.map((phase) => `<th scope="col">${escapeHtml(phase)}</th>`).join("")}</tr></thead>
               <tbody>
                 ${problems.map((problem) => `
@@ -20895,7 +21452,7 @@
                       const cell = cells.get(`${problem}::${phase}`);
                       const count = cell?.hospitations.size || 0;
                       const observations = cell?.observations || 0;
-                      return `<td><button type="button" data-observation-matrix-problem="${escapeHtml(problem)}" data-observation-matrix-phase="${escapeHtml(phase)}" style="--matrix-intensity:${Math.round((count / maximum) * 60)}" title="${count} Hospitationen · ${observations} Beobachtungen">${count || "–"}</button></td>`;
+                      return `<td><button type="button" data-observation-matrix-problem="${escapeHtml(problem)}" data-observation-matrix-phase="${escapeHtml(phase)}" style="--matrix-intensity:${Math.round((count / maximum) * 60)}" title="${count} Hospitationen · ${observations} Beobachtungen" aria-label="${escapeHtml(problem)}, ${escapeHtml(phase)}: ${count} Hospitationen, ${observations} Beobachtungen">${count || "–"}</button></td>`;
                     }).join("")}
                   </tr>
                 `).join("")}
@@ -20934,8 +21491,12 @@
         `;
       }
 
-      function renderHospitationObservationCell(row = {}, key = "") {
+      function renderHospitationObservationCell(row = {}, key = "", rowIndex = 0) {
         const parent = row.hospitation || {};
+        if (key === "number") {
+          const number = Number(row._chronologicalNumber) || rowIndex + 1;
+          return `<span class="observation-table-cell observation-table-cell--number" aria-label="Beobachtung ${number}"><span class="observation-row-number">${number}</span></span>`;
+        }
         if (key === "title") {
           const title = meaningfulOrEmpty(row.title) || meaningfulOrEmpty(row.problemType) || "Beobachtung";
           const summary = meaningfulOrEmpty(row.description || row.observed || row.situation) || "Noch ohne Beschreibung";
@@ -20948,12 +21509,12 @@
           return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(hospitationDateOnlyLabel(parent) || "Datum offen")}</span></span>`;
         }
         if (key === "contact") {
-          return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(hospitationDocumentationContactLabel(parent) || "Nicht hinterlegt")}</span></span>`;
+          return `<span class="observation-table-cell observation-table-contact-cell">${hospitationAvatarMarkup(parent)}<span class="observation-table-cell__primary">${escapeHtml(hospitationDocumentationContactLabel(parent) || "Nicht hinterlegt")}</span></span>`;
         }
         if (key === "organization") {
           return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(hospitationOrganizationLabel(parent) || "Nicht hinterlegt")}</span></span>`;
         }
-        if (key === "sector") return `<span class="observation-table-cell">${sectorBadgeMarkup(hospitationSectorLabel(parent))}</span>`;
+        if (key === "sector") return `<span class="observation-table-cell observation-table-cell--sector">${sectorBadgeMarkup(hospitationSectorLabel(parent))}</span>`;
         if (key === "processPhase") return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(row.processPhase || "Noch nicht codiert")}</span></span>`;
         if (key === "problemType") return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(row.problemType || "Noch nicht codiert")}</span></span>`;
         if (key === "owner") return `<span class="observation-table-cell">${hospitationOwnerAvatarStackMarkup(parent)}</span>`;
@@ -20967,13 +21528,13 @@
           <div class="observation-table-scroll">
             <div class="observation-table" role="list" style="${escapeHtml(hospitationObservationTableStyle())}">
               <div class="observation-table-head">
-                ${columns.map((column) => renderObservationColumnHeader(source, column.key, column.label, column.key === "title" ? "" : column.key)).join("")}
+                ${columns.map((column) => renderObservationColumnHeader(source, column.key, column.label, ["number", "title"].includes(column.key) ? "" : column.key)).join("")}
               </div>
-              ${rows.map((row) => {
+              ${rows.map((row, rowIndex) => {
                 const title = meaningfulOrEmpty(row.title) || meaningfulOrEmpty(row.problemType) || "Beobachtung";
                 return `
                   <button class="observation-table-row ${row.id === activeHospitationObservationId ? "is-active" : ""}" type="button" role="listitem" data-observation-open="${escapeHtml(row.id)}" aria-label="${escapeHtml(title)} öffnen">
-                    ${columns.map((column) => renderHospitationObservationCell(row, column.key)).join("")}
+                    ${columns.map((column) => renderHospitationObservationCell(row, column.key, rowIndex)).join("")}
                   </button>
                 `;
               }).join("")}
@@ -20994,9 +21555,12 @@
           .filter((item) => item.status !== "Archiviert")
           .sort((left, right) => new Date(right.startsAt || right.updatedAt || 0).getTime() - new Date(left.startsAt || left.updatedAt || 0).getTime())
           .map((item) => {
+            const organizationLabel = hospitationOrganizationLabel(item);
             const label = [
               hospitationDateOnlyLabel(item) || "Datum offen",
-              hospitationOrganizationLabel(item) || hospitationDocumentationContactLabel(item) || "Hospitation"
+              organizationLabel && organizationLabel !== "Nicht hinterlegt"
+                ? organizationLabel
+                : hospitationDocumentationContactLabel(item) || "Hospitation"
             ].join(" · ");
             return `<option value="${escapeHtml(item.id)}" ${item.id === selectedId ? "selected" : ""}>${escapeHtml(label)}</option>`;
           }).join("");
@@ -21036,26 +21600,134 @@
         if (hospitationObservationEditMode) return renderHospitationObservationForm(row);
         const history = Array.isArray(row._history) ? row._history : [];
         const canModify = canEditContacts();
+        const contact = hospitationContact(parent);
+        const contactLabel = hospitationDocumentationContactLabel(parent);
+        const contactAvatar = contact
+          ? contactAvatarMarkup(contact, "lg")
+          : `<span class="avatar avatar-fallback avatar-lg" aria-hidden="true">${escapeHtml(initialsFromLabel(contactLabel))}</span>`;
+        const observationNumber = Number(row._chronologicalNumber) || 0;
+        const organizationLabel = hospitationOrganizationLabel(parent) || "Keine Organisation";
+        const locationLabel = parent.location || parent.city || "Ort offen";
+        const relevanceScore = Math.max(0, Math.min(5, Number(row.relevanceScore) || 0));
+        const codingItems = [
+          { label: "Problemtyp", value: row.problemType || "Noch nicht codiert", tone: "problem" },
+          { label: "Prozessphase", value: row.processPhase || "Prozessphase offen", tone: "phase" },
+          { label: "Auswirkung", value: row.impact || "Auswirkung offen", tone: "impact" },
+          { label: "Nächste Nutzung", value: row.usageRecommendation || row.nextUse || "Noch nicht festgelegt", tone: "usage" }
+        ];
+        const historyActionLabels = { create: "Erstellt", update: "Geändert", archive: "Archiviert", restore: "Wiederhergestellt" };
         return `
           <div class="observation-detail-content" aria-label="Beobachtungsdetail">
-            <div class="observation-detail-context">
-              <span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span>
-              ${canModify ? `<button class="action-button action-button--compact" type="button" data-observation-edit>Bearbeiten</button>` : ""}
-            </div>
-            <section class="observation-detail-section"><h4>Beobachtet</h4><p>${escapeHtml(row.situation || row.situationContext || "Keine Situation dokumentiert.")}</p><p>${escapeHtml(row.description || row.observed || "Keine Beschreibung dokumentiert.")}</p></section>
-            <section class="observation-detail-section"><h4>Einordnung</h4><p><strong>${escapeHtml(row.problemType || "Noch nicht codiert")}</strong> · ${escapeHtml(row.processPhase || "Prozessphase offen")}</p><p>${escapeHtml(row.impact || "Auswirkung offen")} · Relevanz ${escapeHtml(row.relevanceScore || "–")}/5</p><p class="observation-detail-muted">${escapeHtml(row.usageRecommendation || row.nextUse || "Keine nächste Nutzung festgelegt")}</p></section>
-            <section class="observation-detail-section"><h4>Herkunft und Owner</h4><p>${escapeHtml(hospitationOrganizationLabel(parent) || "Keine Organisation")} · ${escapeHtml(hospitationDocumentationContactLabel(parent) || "Kein Kontakt")}</p><p>${escapeHtml(hospitationDateOnlyLabel(parent))} · ${escapeHtml(parent.location || parent.city || "Ort offen")}</p><div>${hospitationOwnersMarkup(parent)}</div><p class="observation-detail-muted">Owner werden aus der Ursprungshospitation übernommen.</p><button class="action-button action-button--compact" type="button" data-observation-open-source="${escapeHtml(parent.id || "")}">In Hospitation öffnen</button></section>
-            <section class="observation-detail-section"><h4>Verlauf</h4>${history.length ? history.slice(0, 6).map((entry) => `<p><strong>${escapeHtml(({ create: "Erstellt", update: "Geändert", archive: "Archiviert", restore: "Wiederhergestellt" })[entry.action] || entry.action)}</strong><br><span class="observation-detail-muted">${escapeHtml(formatDateTimeLabel(entry.changed_at || entry.changedAt))} · ${escapeHtml(ownerDisplayLabel(entry.changed_by || entry.changedBy) || "System")}</span></p>`).join("") : `<p class="observation-detail-muted">${escapeHtml(row.updatedAt ? `Zuletzt geändert ${formatDateTimeLabel(row.updatedAt)}` : "Noch kein Verlauf verfügbar.")}</p>`}</section>
-            ${canModify ? `<div class="observation-detail-actions"><button class="action-button action-button--danger-soft" type="button" data-observation-archive="${escapeHtml(row.id)}">Archivieren</button></div>` : ""}
+            <section class="observation-detail-hero" aria-label="Kontakt und Beobachtungskennung">
+              <div class="observation-detail-hero__identity">
+                <div class="observation-detail-hero__avatar">${contactAvatar}</div>
+                <div class="observation-detail-hero__copy">
+                  <div class="observation-detail-hero__eyebrow">
+                    <span>Kontakt</span>
+                    <code class="observation-detail-id">ID ${escapeHtml(observationNumber || "Nicht vergeben")}</code>
+                  </div>
+                  <div class="observation-detail-hero__name">
+                    <strong>${escapeHtml(contactLabel || "Kein Kontakt")}</strong>
+                    ${sectorBadgeMarkup(hospitationSectorLabel(parent))}
+                  </div>
+                  <p>${escapeHtml(organizationLabel)} · ${escapeHtml(hospitationDateOnlyLabel(parent) || "Termin offen")}</p>
+                </div>
+              </div>
+              <div class="observation-detail-hero__actions">
+                <span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span>
+                ${canModify ? `<button class="action-button action-button--compact" type="button" data-observation-edit>Bearbeiten</button>` : ""}
+              </div>
+            </section>
+
+            <section class="observation-detail-card observation-detail-card--finding" aria-labelledby="observation-detail-finding-title">
+              <div class="observation-detail-card__head">
+                <span class="observation-detail-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5h16v13H4z"></path><path d="M8 9h8M8 13h8"></path></svg></span>
+                <div><h4 id="observation-detail-finding-title">Beobachtung</h4><p>Dokumentierter Kontext und konkreter Befund</p></div>
+              </div>
+              <div class="observation-detail-copy-grid">
+                <article class="observation-detail-copy-block">
+                  <span>Situation</span>
+                  <p>${escapeHtml(row.situation || row.situationContext || "Keine Situation dokumentiert.")}</p>
+                </article>
+                <article class="observation-detail-copy-block observation-detail-copy-block--primary">
+                  <span>Konkrete Beobachtung</span>
+                  <p>${escapeHtml(row.description || row.observed || "Keine Beschreibung dokumentiert.")}</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="observation-detail-card observation-detail-card--coding" aria-labelledby="observation-detail-coding-title">
+              <div class="observation-detail-card__head">
+                <span class="observation-detail-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 7 4-3 4 3-4 3-4-3Z"></path><path d="m12 7 4-3 4 3-4 3-4-3Z"></path><path d="m4 15 4-3 4 3-4 3-4-3Z"></path><path d="m12 15 4-3 4 3-4 3-4-3Z"></path></svg></span>
+                <div><h4 id="observation-detail-coding-title">Codierung</h4><p>Analytische Einordnung des Befunds</p></div>
+              </div>
+              <dl class="observation-detail-coding-grid">
+                ${codingItems.map((item) => `
+                  <div class="observation-detail-coding-item ${/offen|nicht codiert|nicht festgelegt/i.test(item.value) ? "is-empty" : ""}">
+                    <dt>${escapeHtml(item.label)}</dt>
+                    <dd><span class="observation-coding-badge observation-coding-badge--${escapeHtml(item.tone)}">${escapeHtml(item.value)}</span></dd>
+                  </div>
+                `).join("")}
+                <div class="observation-detail-coding-item">
+                  <dt>Evidenzart</dt>
+                  <dd><span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span></dd>
+                </div>
+                <div class="observation-detail-coding-item ${relevanceScore ? "" : "is-empty"}">
+                  <dt>Relevanz</dt>
+                  <dd><span class="observation-coding-badge observation-coding-badge--relevance observation-detail-relevance" aria-label="Relevanz ${relevanceScore || "noch offen"} von 5"><span class="observation-detail-relevance__dots" aria-hidden="true">${[1, 2, 3, 4, 5].map((level) => `<i class="${level <= relevanceScore ? "is-active" : ""}"></i>`).join("")}</span><strong>${relevanceScore ? `${relevanceScore}/5` : "Offen"}</strong></span></dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="observation-detail-card observation-detail-card--source" aria-labelledby="observation-detail-source-title">
+              <div class="observation-detail-card__head">
+                <span class="observation-detail-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-4"></path><path d="M9 9h1M9 13h1M9 17h1"></path></svg></span>
+                <div><h4 id="observation-detail-source-title">Herkunft</h4><p>Bezug zur dokumentierten Hospitation</p></div>
+              </div>
+              <dl class="observation-detail-source-grid">
+                <div><dt>Hospitation</dt><dd>${escapeHtml(hospitationDateOnlyLabel(parent) || "Termin offen")} · ${escapeHtml(locationLabel)}</dd></div>
+                <div><dt>Organisation</dt><dd>${escapeHtml(organizationLabel)}</dd></div>
+                <div><dt>Owner</dt><dd>${hospitationOwnersMarkup(parent)}</dd></div>
+              </dl>
+              <button class="action-button action-button--compact observation-detail-source-action" type="button" data-observation-open-source="${escapeHtml(parent.id || "")}">In Hospitation öffnen</button>
+            </section>
+
+            <details class="observation-detail-history">
+              <summary><span>Verlauf</span><small>${history.length ? `${history.length} Einträge` : "Letzte Änderung"}</small></summary>
+              <div class="observation-detail-history__body">
+                ${history.length ? `<ol>${history.slice(0, 6).map((entry) => `<li><strong>${escapeHtml(historyActionLabels[entry.action] || entry.action)}</strong><span>${escapeHtml(formatDateTimeLabel(entry.changed_at || entry.changedAt))} · ${escapeHtml(ownerDisplayLabel(entry.changed_by || entry.changedBy) || "System")}</span></li>`).join("")}</ol>` : `<p>${escapeHtml(row.updatedAt ? `Zuletzt geändert ${formatDateTimeLabel(row.updatedAt)}` : "Noch kein Verlauf verfügbar.")}</p>`}
+              </div>
+            </details>
+            ${canModify ? `<div class="observation-detail-footer-actions"><button class="action-button action-button--danger-soft" type="button" data-observation-archive="${escapeHtml(row.id)}">Beobachtung archivieren</button></div>` : ""}
           </div>
         `;
       }
 
       function closeHospitationObservationDrawer() {
         observationDetailDrawer?.classList.remove("is-open");
+        observationDetailDrawer?.classList.remove("is-observation-read", "is-observation-edit", "is-observation-create");
         observationDetailDrawer?.setAttribute("aria-hidden", "true");
         hospitationObservationCreateMode = false;
         hospitationObservationEditMode = false;
+      }
+
+      async function openHospitationObservationDrawerById(id = "") {
+        const row = hospitationObservationSourceRows().find((item) => item.id === id);
+        if (!row) return false;
+        activeHospitationObservationId = id;
+        hospitationObservationCreateMode = false;
+        hospitationObservationEditMode = false;
+        const observation = hospitationObservations.find((item) => item.id === id);
+        if (observation && window.dataService.loadHospitationObservationHistory) {
+          try {
+            observation._history = await window.dataService.loadHospitationObservationHistory(observation.id);
+          } catch (_error) {
+            observation._history = [];
+          }
+        }
+        if (activeHospitationTab === "observations") renderHospitationObservationsWorkbench();
+        renderHospitationObservationDrawer();
+        return true;
       }
 
       function renderHospitationObservationDrawer() {
@@ -21068,8 +21740,13 @@
             : (row?.title || "Beobachtung");
         observationDetailSubtitle.textContent = hospitationObservationCreateMode
           ? "Qualitativen Befund mit einer Ursprungshospitation verknüpfen."
-          : `${observationEvidenceLabel(row?.evidenceType)} · ${hospitationOrganizationLabel(row?.hospitation || {}) || "Hospitationsbezug"}`;
+          : hospitationObservationEditMode
+            ? `ID ${row?._chronologicalNumber || "Nicht vergeben"} · Inhalte und Codierung anpassen`
+            : `ID ${row?._chronologicalNumber || "Nicht vergeben"} · ${observationEvidenceLabel(row?.evidenceType)}`;
         observationDetailBody.innerHTML = renderHospitationObservationDetail(row);
+        observationDetailDrawer.classList.toggle("is-observation-read", Boolean(row && !hospitationObservationCreateMode && !hospitationObservationEditMode));
+        observationDetailDrawer.classList.toggle("is-observation-edit", Boolean(row && hospitationObservationEditMode));
+        observationDetailDrawer.classList.toggle("is-observation-create", hospitationObservationCreateMode);
         observationDetailDrawer.classList.add("is-open");
         observationDetailDrawer.setAttribute("aria-hidden", "false");
         bindHospitationObservationDrawerActions();
@@ -21079,10 +21756,14 @@
         if (!hospitationObservationsWorkbench) return;
         const source = hospitationObservationSourceRows();
         const rows = filteredHospitationObservationRows();
+        const frameworkMetrics = hospitationFrameworkMetrics();
         if (activeHospitationObservationId && !source.some((row) => row.id === activeHospitationObservationId)) activeHospitationObservationId = "";
         const hospitationCount = new Set(rows.map((row) => row.hospitationId).filter(Boolean)).size;
-        const directlyObserved = rows.filter((row) => row.evidenceType === "directly_observed").length;
         const uncoded = rows.filter((row) => !row.processPhase || !row.problemType).length;
+        const activeHospitationCount = hospitations.filter((item) => !isHospitationArchived(item)).length;
+        const observedHospitationCount = new Set(source.map((row) => row.hospitationId).filter(Boolean)).size;
+        const matrixObservationCount = rows.length - uncoded;
+        const hospitationsWithoutObservations = Math.max(0, activeHospitationCount - observedHospitationCount);
         const canCreate = canEditContacts();
         const searchVisible = hospitationObservationSearchOpen || Boolean(hospitationObservationFilters.query);
         hospitationObservationsWorkbench.innerHTML = `
@@ -21103,27 +21784,43 @@
               </div>
             </div>
           </div>
+          ${renderHospitationFrameworkReminder(frameworkMetrics, "observations")}
           <div class="hospitation-appointments-action-row observation-action-row">
             <div class="observation-action-row__left">
               <button class="action-button action-button--primary" type="button" data-observation-new ${canCreate ? "" : "disabled"} title="${escapeHtml(canEditContacts() ? "Neue Beobachtung anlegen" : viewerCreateDisabledMessage("das Anlegen von Beobachtungen"))}"><span class="action-button__icon">+</span>Neue Beobachtung</button>
             </div>
             <div class="hospitation-appointments-action-row__center"></div>
-            <div class="observation-action-row__right">${renderHospitationObservationColumnMenu()}</div>
+            <div class="observation-action-row__right">
+              <div class="hospitation-export-actions" role="group" aria-label="Beobachtungen exportieren">
+                <button class="action-button action-button--compact hospitation-export-button" type="button" data-observation-export="docx" title="Erstellt eine Übersicht aller Beobachtungen">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path><path d="M9.2 14.2l.9 3.1 1.1-3.1 1.1 3.1.9-3.1"></path></svg>
+                  Word
+                </button>
+                <button class="action-button action-button--compact hospitation-export-button" type="button" data-observation-export="pdf" title="Erstellt eine Übersicht aller Beobachtungen">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path><path d="M9.2 16.9v-3h1.4a1 1 0 0 1 0 2H9.2m4 1v-3h1.1c1.6 0 1.6 3 0 3h-1.1m4.1 0v-3h2"></path></svg>
+                  PDF
+                </button>
+              </div>
+              ${renderHospitationObservationColumnMenu()}
+            </div>
           </div>
           ${renderObservationFilterStrip()}
-          <div class="observation-summary-strip" aria-label="Kennzahlen zur aktuellen Auswahl">
-            <div class="observation-summary-item"><strong>${rows.length}</strong><span>Beobachtungen</span></div>
-            <div class="observation-summary-item"><strong>${hospitationCount}</strong><span>Hospitationen</span></div>
-            <div class="observation-summary-item"><strong>${rows.length ? Math.round((directlyObserved / rows.length) * 100) : 0}%</strong><span>direkt beobachtet</span></div>
-            <div class="observation-summary-item"><strong>${uncoded}</strong><span>Codierungen offen</span></div>
-          </div>
           <section aria-label="Beobachtungsliste">${renderHospitationObservationList(rows, source)}</section>
           <details class="observation-analysis-panel">
-            <summary><span><strong>Fallvergleichsmatrix</strong>Problemtypen und Prozessphasen über Hospitationen hinweg</span><span>n = ${hospitationCount} Fälle</span></summary>
-            <div class="observation-analysis-panel__body"><div class="observation-workbench-section-head"><div><h3 id="observation-matrix-title">Qualitativer Fallvergleich</h3><p>Zellen zeigen unterschiedliche Hospitationen. Häufigkeit ist ein Wiederholungshinweis, noch kein validiertes Muster.</p></div></div>${renderHospitationObservationMatrix(rows)}</div>
+            <summary><span><strong>Fallvergleichsmatrix</strong>Problemtypen und Prozessphasen über Hospitationen hinweg</span><span>${rows.length}/${source.length} Beobachtungen · ${hospitationCount}/${activeHospitationCount} Termine</span></summary>
+            <div class="observation-analysis-panel__body">
+              <div class="observation-workbench-section-head"><div><h3 id="observation-matrix-title">Qualitativer Fallvergleich</h3><p>Zellwert = Anzahl unterschiedlicher Hospitationen. Alle vorhandenen Problemtypen und Prozessphasen werden dargestellt.</p></div></div>
+              <div class="observation-matrix-coverage" aria-label="Datenabdeckung der Fallvergleichsmatrix">
+                <div><strong>${matrixObservationCount}/${rows.length}</strong><span>ausgewählte Beobachtungen codiert</span></div>
+                <div><strong>${observedHospitationCount}/${activeHospitationCount}</strong><span>Hospitationen mit Beobachtungen</span></div>
+                <div class="observation-matrix-coverage__note"><strong>${hospitationsWithoutObservations}</strong><span>Termine ohne Beobachtung erscheinen nicht als Matrixzelle</span></div>
+              </div>
+              ${renderHospitationObservationMatrix(rows)}
+            </div>
           </details>
         `;
         bindHospitationObservationWorkbenchActions();
+        updateHospitationObservationExportButtons();
       }
 
       function bindHospitationObservationWorkbenchActions() {
@@ -21155,6 +21852,9 @@
           hospitationObservationEditMode = false;
           renderHospitationObservationDrawer();
         });
+        root.querySelectorAll("[data-observation-export]").forEach((button) => button.addEventListener("click", () => {
+          exportHospitationObservations(button.dataset.observationExport === "pdf" ? "pdf" : "docx");
+        }));
         const observationColumnsButton = root.querySelector("[data-observation-columns-button]");
         const observationColumnsMenu = root.querySelector("[data-observation-columns-menu]");
         observationColumnsButton?.addEventListener("click", (event) => {
@@ -21223,15 +21923,7 @@
           renderHospitationObservationsWorkbench();
         }));
         root.querySelectorAll("[data-observation-open]").forEach((button) => button.addEventListener("click", async () => {
-          activeHospitationObservationId = button.dataset.observationOpen || "";
-          hospitationObservationCreateMode = false;
-          hospitationObservationEditMode = false;
-          const observation = hospitationObservations.find((item) => item.id === activeHospitationObservationId);
-          if (observation && window.dataService.loadHospitationObservationHistory) {
-            try { observation._history = await window.dataService.loadHospitationObservationHistory(observation.id); } catch (_error) { observation._history = []; }
-          }
-          renderHospitationObservationsWorkbench();
-          renderHospitationObservationDrawer();
+          await openHospitationObservationDrawerById(button.dataset.observationOpen || "");
         }));
       }
 
@@ -21335,9 +22027,11 @@
       }
 
       function updateHospitationTabCounts() {
+        const patternCount = hospitationFrameworkSourceData().pipeline.patterns.length;
         const counts = {
           appointments: hospitationScheduleEntries({ archived: false }).length,
           observations: hospitationObservationSourceRows().length,
+          patterns: patternCount,
           dashboard: filteredHospitations().length
         };
         hospitationTabButtons.forEach((button) => {
@@ -21386,7 +22080,7 @@
 
       function updateHospitationDashboardChrome(activeTab = activeHospitationTab) {
         const dashboardActive = activeView === "hospitations" && activeTab === "dashboard";
-        const commandRowHidden = activeView === "hospitations" && ["dashboard", "observations"].includes(activeTab);
+        const commandRowHidden = activeView === "hospitations" && ["dashboard", "observations", "patterns"].includes(activeTab);
         if (hospitationModeActions && activeView === "hospitations") hospitationModeActions.hidden = true;
         if (hospitationCommandRow) hospitationCommandRow.hidden = commandRowHidden;
         if (newHospitationRequestButton && activeView === "hospitations") {
@@ -21413,9 +22107,11 @@
         updateHospitationExportButtons();
         const items = activeTab === "appointments"
           ? hospitationScheduleEntries({ archived: hospitationArchiveView }).map((entry) => entry.item)
+          : activeTab === "patterns"
+            ? hospitationFrameworkSourceData().pipeline.patterns
           : filteredHospitations();
         updateHospitationTabCounts();
-        if (resultsCount) resultsCount.textContent = hitCountLabel(items);
+        if (resultsCount) resultsCount.textContent = activeTab === "patterns" ? `${items.length} Muster` : hitCountLabel(items);
         if (hospitationLoadErrorMessage && hospitationList) {
           hospitationList.innerHTML = `<div class="history-error">${escapeHtml(hospitationLoadErrorMessage)}</div>`;
           return;
@@ -21429,6 +22125,10 @@
           bindHospitationDashboardActions(hospitationDashboard);
         }
         if (activeTab === "observations") renderHospitationObservationsWorkbench();
+        if (activeTab === "patterns") {
+          renderHospitationPatternsWorkbench();
+          bindHospitationPatternsActions(hospitationPatternsWorkbench);
+        }
       }
 
       function renderHospitationDocumentationContext(hospitation = {}) {
@@ -21528,6 +22228,9 @@
       }
 
       function renderHospitationDocumentationOverviewPanel(hospitation = {}) {
+        const observationCount = hospitationObservationCount(hospitation);
+        const contactLabel = hospitationDocumentationContactLabel(hospitation) || "diesen Kontakt";
+        const observationLabel = `${observationCount} ${observationCount === 1 ? "Beobachtung" : "Beobachtungen"}`;
         return `
           <div class="hospitation-documentation-overview">
             <div class="detail-line-list hospitation-documentation-overview-list">
@@ -21537,6 +22240,24 @@
               ${detailLine("Ort", hospitationLocationLabel(hospitation) || "Nicht hinterlegt")}
               ${detailLine("Bundesland", hospitationStateLabel(hospitation))}
             </div>
+            <section class="hospitation-appointment-export-card" aria-labelledby="hospitation-appointment-export-title-${escapeHtml(normalizeClassPart(hospitation.id || "termin"))}">
+              <div class="hospitation-appointment-export-card__copy">
+                <span class="hospitation-appointment-export-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 3.5h7L18 8v12.5H6.5z"></path><path d="M13.5 3.5V8H18"></path><path d="M9 12.5h6M9 16h6"></path></svg>
+                </span>
+                <span><strong id="hospitation-appointment-export-title-${escapeHtml(normalizeClassPart(hospitation.id || "termin"))}">Termin-Dateien</strong><small>Kontaktfoto, Termindaten und ${escapeHtml(observationLabel)} mit farbiger Codierung</small></span>
+              </div>
+              <div class="hospitation-appointment-export-actions" data-hospitation-appointment-export-group role="group" aria-label="Dateien für ${escapeHtml(contactLabel)} herunterladen">
+                <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-action="export-appointment" data-hospitation-export-format="docx" data-hospitation-id="${escapeHtml(hospitation.id || "")}" title="Word-Datei für diesen Hospitations-Termin herunterladen">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path><path d="M9.2 14.2l.9 3.1 1.1-3.1 1.1 3.1.9-3.1"></path></svg>
+                  Word
+                </button>
+                <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-action="export-appointment" data-hospitation-export-format="pdf" data-hospitation-id="${escapeHtml(hospitation.id || "")}" title="PDF-Datei für diesen Hospitations-Termin herunterladen">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path><path d="M9.2 16.9v-3h1.4a1 1 0 0 1 0 2H9.2m4 1v-3h1.1c1.6 0 1.6 3 0 3h-1.1m4.1 0v-3h2"></path></svg>
+                  PDF
+                </button>
+              </div>
+            </section>
           </div>
         `;
       }
@@ -21815,10 +22536,9 @@
                     <h4 class="detail-section-title">Optionale Stimmen</h4>
                     ${renderHospitationQuoteInputs(documentation)}
                   </section>
-                  <section class="detail-info-card">
-                    <h4 class="detail-section-title">Optionale Artefakte</h4>
+                  <div hidden aria-hidden="true" data-preserved-documentation-artifacts>
                     ${renderHospitationMediaInputs(documentation)}
-                  </section>
+                  </div>
                 </div>
               </section>
               <section ${panelAttrs("hospitation")}>
@@ -32511,6 +33231,9 @@
           }
           rerenderDetail();
         });
+        if (productTourState.open && currentProductTourSteps()[productTourState.index]?.id === "contact-profile") {
+          scheduleProductTourLayout();
+        }
       }
 
       function closeDetail() {
@@ -32898,6 +33621,7 @@
           syncQuestionnaireCompassSelectors();
           syncQuestionnaireReflectionAuthor();
         }
+        if (isFrameworkView) syncHospitationFrameworkMetrics();
         const items = isFormatsView
           ? filteredFormats()
           : isFrameworkView
@@ -32958,7 +33682,7 @@
         searchInput.placeholder = searchPlaceholder;
         searchShell?.setAttribute("aria-label", searchPlaceholder);
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
-        const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations"].includes(activeHospitationTab);
+        const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
         const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
@@ -33584,6 +34308,7 @@
           closeMobileSidebar();
           if (hospitationRoute) {
             activeHospitationTab = hospitationRoute.tab;
+            if (activeHospitationTab !== "observations") closeHospitationObservationDrawer();
             setActiveView("hospitations");
             updateRouteHash(hospitationRouteForTab(activeHospitationTab));
             updateView();
@@ -33683,14 +34408,6 @@
           return;
         }
         setSidebarCollapsed(!appShell?.classList.contains("is-sidebar-collapsed"));
-      });
-      brandHomeLink?.addEventListener("click", (event) => {
-        event.preventDefault();
-        closeMenus();
-        closeMobileSidebar();
-        setActiveView("map");
-        updateRouteHash("map");
-        updateView();
       });
       sidebarTeamButton?.addEventListener("click", () => {
         closeMenus();
@@ -34911,6 +35628,7 @@
           updateRouteHash("onboarding");
           return;
         }
+        if (nextView === "hospitations" && activeHospitationTab !== "observations") closeHospitationObservationDrawer();
         setActiveView(nextView);
         updateView();
       });

@@ -28,7 +28,7 @@ Legende: `[x]` nachgewiesen · `[~]` Repository-Mitigation vorhanden, Rollout od
 | **A07 Authentication Failures** | Browserpasswörter, Alias-Login, Supabase-/LocalStorage-Fallback, unsigned Header, Profilaktivierung und Sessiongrenzen | Passwort-/Hash-/Alias-Fallback entfernt; Target API-only ohne Browser-Supabase oder LocalStorage-Ersatzsitzung; signed-token-only und exakt ein aktives `(issuer, subject)`-Binding | Prüfung `[x]` · Repo `[x]` · Live `[ ]` | Gateway-Stripping, externe Session/Logout/Revocation und Deprovisionierung gemeinsam abnehmen |
 | **A08 Software or Data Integrity Failures** | Client-Actor/Audit, Teilmutationen, mutable Releases, Third-Party-Assets und Migrationen | Serverseitiger Actor, append-only Audit im selben Commit, immutable Image/Frontend, Vendor-Hashes, Locks, SBOM/Provenance | Prüfung `[x]` · Repo `[x]` · Live `[ ]` | Signatur/Attestation erzwingen und produktive Supabase-Migration verifizieren |
 | **A09 Security Logging & Alerting Failures** | Korrelation, AuthN/AuthZ-Denials, Rate-/Fehler-/Readiness-Ereignisse sowie PII-/Token-Leakage | Request-IDs und strukturierte Ereignisse ohne Token, Body oder PII; generische Fehler; Fatal-/Readiness-Signale | Prüfung `[x]` · Repo `[x]` · Live `[ ]` | Zentralen Sink, Retention, Zugriffsschutz, Dashboards und Alerts konfigurieren und auslösen |
-| **A10 Mishandling of Exceptional Conditions** | Exceptions, übergroße Requests, Timeouts, Überlast, Teilfehler, Pod-Abbruch und Restore | Generische Fehler, Budgets/Limits, `429`, DB-/HTTP-Timeouts, Rollback, Readiness, Graceful Shutdown, zwei Replikate und PDB | Prüfung `[x]` · Repo `[x]` · Live `[ ]` | Verteiltes Gatewaylimit, Last/Chaos, Rollout/Pod-Abbruch, Backup/Restore und SLOs testen |
+| **A10 Mishandling of Exceptional Conditions** | Exceptions, übergroße Requests, Timeouts, Überlast, Teilfehler, Pod-Abbruch und Wiederherstellung | Generische Fehler, Budgets/Limits, `429`, DB-/HTTP-Timeouts, Rollback, Readiness, Graceful Shutdown, zwei Replikate und PDB | Prüfung `[x]` · Repo `[x]` · Live `[ ]` | Verteiltes Gatewaylimit, Last/Chaos, Rollout/Pod-Abbruch und Wiederherstellung testen |
 
 **Kurzinterpretation:** Die leeren Live-Haken sind keine verschwiegenen Codebefunde. Sie markieren Nachweise, die erst in einer realen Plattformumgebung belastbar erbracht werden können.
 
@@ -72,7 +72,7 @@ Nicht durch Autopilot mitigiert werden insbesondere Authentisierung/RBAC, XSS/In
 
 ## Noch gemeinsam extern abzuhaken
 
-- [ ] **Zwei-App-Scope:** Pages weiterhin nur mit synthetischen Demo-Daten und ohne Target-Konfiguration, echte Sitzung, Supabase oder Registrierungsannahme verifizieren; Target ausschliesslich API-only ausliefern.
+- [ ] **Zwei-App-Scope:** Pages weiterhin nur mit synthetischen Demo-Daten und ohne Target-Konfiguration, echte Sitzung, Supabase oder Registrierungsannahme verifizieren; Target ausschließlich API-only ausliefern.
 - [ ] **Registrierungsroute:** Die Konzeptdemo ohne Intake-Aufruf belassen; einen realen Prozess und `POST /api/network-registrations` erst gemeinsam nach Route-Policy, OIDC/IAP, Idempotenz, Limits, Datenschutz und Backendausfalltests aktivieren.
 - [ ] **Supabase-Übergang:** Migration, Auth-Schalter, Nutzer/Sessions, RLS, Grants, Data-API-Exposition, Storage und Advisors zuerst in Staging, dann produktiv prüfen. RLS und API-/Rollen-Grants sind getrennte Kontrollschichten.
 - [ ] **Identity/Gateway:** fremde Identity- und Authorization-Header vor Auth entfernen; nur verifizierten Kontext neu etablieren; direkten API-Zugriff sperren; TLS auf jedem Hop.
