@@ -46,6 +46,10 @@
           "type": "string",
           "enum": ["iap", "oidc"]
         },
+        "hospitationImportOwnerProfileId": {
+          "type": "string",
+          "pattern": "^(|[A-Za-z0-9][A-Za-z0-9._:-]{0,159})$"
+        },
         "oidcIssuer": {
           "type": "string"
         },

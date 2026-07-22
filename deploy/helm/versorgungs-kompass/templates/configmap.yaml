@@ -9,6 +9,7 @@ data:
   ALLOWED_ORIGIN: {{ .Values.config.allowedOrigin | quote }}
   API_AUTH_MODE: {{ .Values.config.apiAuthMode | quote }}
   IAP_JWT_AUDIENCE: {{ .Values.config.iapJwtAudience | quote }}
+  HOSPITATION_IMPORT_OWNER_PROFILE_ID: {{ .Values.config.hospitationImportOwnerProfileId | quote }}
   {{- if eq .Values.config.apiAuthMode "oidc" }}
   OIDC_ISSUER: {{ .Values.config.oidcIssuer | quote }}
   OIDC_AUDIENCE: {{ .Values.config.oidcAudience | quote }}

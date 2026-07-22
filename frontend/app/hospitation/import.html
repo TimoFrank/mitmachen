@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hospitationsdaten übernehmen | Versorgungs-Kompass</title>
+    <meta name="theme-color" content="#155fe4" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../public/brand/versorgungs-kompass/icons/app-icon-32.png" />
+    <script src="../../data/runtime-config.js"></script>
+    <script src="../../login/auth-config.js"></script>
+    <script src="../../login/auth-guard.js"></script>
+    <link rel="stylesheet" href="./import.css" />
+  </head>
+  <body>
+    <div class="import-access-state" id="import-access-state" role="status" aria-live="polite">
+      <span class="import-spinner" aria-hidden="true"></span>
+      <strong>Zugriff wird geprüft</strong>
+      <span>Die Datenübernahme steht ausschließlich Administrator:innen zur Verfügung.</span>
+    </div>
+
+    <div class="import-workspace" id="import-workspace" hidden>
+      <header class="import-topbar">
+        <a class="import-brand" href="./index.html" aria-label="Zur Hospitations-Dokumentation">
+          <img src="../../../public/brand/versorgungs-kompass/mark.svg" alt="" aria-hidden="true" />
+          <span>
+            <strong>#Mitmachen</strong>
+            <small>Hospitation</small>
+          </span>
+        </a>
+        <div class="import-topbar-actions">
+          <span class="import-admin-pill">Admin-Werkzeug</span>
+          <span class="import-user" id="import-user"></span>
+          <a class="import-back-link" href="./index.html">Zur Dokumentation</a>
+        </div>
+      </header>
+
+      <main class="import-main">
+        <nav class="import-breadcrumb" aria-label="Brotkrümelnavigation">
+          <a href="./index.html">Hospitation</a>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">Datenübernahme</span>
+        </nav>
+
+        <section class="import-intro" aria-labelledby="import-title">
+          <div>
+            <span class="import-eyebrow">Lokales Staging → Produktivsystem</span>
+            <h1 id="import-title">Hospitationsstand sicher übernehmen</h1>
+            <p>Eine Vorschau gleicht den lokalen Stand mit dem aktuellen Produktivsystem ab. Erst danach kann der geprüfte Plan verbindlich ausgeführt werden.</p>
+          </div>
+          <aside class="import-safety-note" aria-label="Sicherheitshinweis">
+            <strong>Vorschau zuerst</strong>
+            <span>Die Datei wird beim Auswählen nicht gespeichert. Fachinhalte erscheinen nicht in dieser Übersicht.</span>
+          </aside>
+        </section>
+
+        <ol class="import-progress" aria-label="Ablauf der Datenübernahme">
+          <li class="is-active" data-progress-step="file">
+            <span>1</span>
+            <div><strong>Datei wählen</strong><small>Staging-Stand laden</small></div>
+          </li>
+          <li data-progress-step="preview">
+            <span>2</span>
+            <div><strong>Vorschau prüfen</strong><small>Änderungen abgleichen</small></div>
+          </li>
+          <li data-progress-step="apply">
+            <span>3</span>
+            <div><strong>Übernahme freigeben</strong><small>Bewusst bestätigen</small></div>
+          </li>
+        </ol>
+
+        <div class="import-alert" id="import-alert" role="alert" hidden></div>
+
+        <section class="import-card import-file-card" aria-labelledby="import-file-title">
+          <div class="import-card-heading">
+            <div>
+              <span class="import-step-label">Schritt 1</span>
+              <h2 id="import-file-title">Staging-Datei auswählen</h2>
+              <p>Erwartet wird ein unverändertes JSON-Manifest im Format <code>hospitation-staging/v1</code>.</p>
+            </div>
+            <span class="import-file-state" id="import-file-state">Noch keine Datei</span>
+          </div>
+
+          <label class="import-dropzone" id="import-dropzone" for="import-file">
+            <span class="import-dropzone-icon" aria-hidden="true">JSON</span>
+            <span class="import-dropzone-copy">
+              <strong>Datei hier ablegen oder auswählen</strong>
+              <small>Nur JSON · maximal 1 MB · wird nicht im Browser gespeichert</small>
+            </span>
+            <span class="import-select-button">Datei auswählen</span>
+            <input id="import-file" type="file" accept="application/json,.json" />
+          </label>
+
+          <div class="import-file-overview" id="import-file-overview" hidden>
+            <div class="import-file-identity">
+              <span class="import-file-icon" aria-hidden="true">{ }</span>
+              <div>
+                <strong id="import-file-name"></strong>
+                <span id="import-file-meta"></span>
+              </div>
+              <button class="import-text-button" id="import-remove-file" type="button">Entfernen</button>
+            </div>
+            <dl class="import-count-grid" id="import-local-counts"></dl>
+          </div>
+
+          <div class="import-card-actions">
+            <p><strong>Kein Schreibzugriff:</strong> Die Vorschau verändert noch keine Daten.</p>
+            <button class="import-button import-button--primary" id="import-preview-button" type="button" disabled>
+              Vorschau erstellen
+            </button>
+          </div>
+        </section>
+
+        <section class="import-card" id="import-preview-section" aria-labelledby="import-preview-title" hidden>
+          <div class="import-card-heading">
+            <div>
+              <span class="import-step-label">Schritt 2</span>
+              <h2 id="import-preview-title">Geplante Änderungen</h2>
+              <p>Die Übersicht enthält ausschließlich Mengen und technische Referenzen – keine Beobachtungstexte.</p>
+              <p class="import-owner-mapping" id="import-owner-mapping" hidden></p>
+            </div>
+            <span class="import-preview-state" id="import-preview-state"></span>
+          </div>
+
+          <div class="import-summary-grid" id="import-summary-grid"></div>
+
+          <div class="import-plan-block">
+            <div class="import-section-heading">
+              <div>
+                <h3>Änderungsplan nach Bereich</h3>
+                <p>Neue, aktualisierte und bereits identische Datensätze.</p>
+              </div>
+            </div>
+            <div class="import-table-wrap">
+              <table class="import-plan-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Bereich</th>
+                    <th scope="col">Neu</th>
+                    <th scope="col">Aktualisieren</th>
+                    <th scope="col">Unverändert</th>
+                    <th scope="col">Blockiert</th>
+                    <th scope="col">Gesamt</th>
+                  </tr>
+                </thead>
+                <tbody id="import-plan-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="import-item-review" aria-labelledby="import-item-review-title">
+            <div class="import-section-heading">
+              <div>
+                <h3 id="import-item-review-title">Technische Zuordnungen prüfen</h3>
+                <p>Quell- und Ziel-IDs sowie geänderte Felder – ohne Namen und Beobachtungstexte.</p>
+              </div>
+            </div>
+            <div class="import-item-groups" id="import-item-groups"></div>
+          </div>
+
+          <div class="import-conflicts" id="import-conflicts" hidden>
+            <div class="import-conflicts-heading">
+              <span aria-hidden="true">!</span>
+              <div>
+                <h3>Konflikte müssen zuerst geklärt werden</h3>
+                <p>Aus Datenschutzgründen werden nur Bereich, Konfliktart und Anzahl angezeigt.</p>
+              </div>
+            </div>
+            <ul id="import-conflict-list"></ul>
+          </div>
+
+          <div class="import-fingerprint-grid" aria-label="Prüfsummen der Vorschau">
+            <div>
+              <span>Staging-Datei</span>
+              <code id="import-manifest-fingerprint"></code>
+            </div>
+            <div>
+              <span>Produktivstand</span>
+              <code id="import-target-fingerprint"></code>
+            </div>
+          </div>
+
+          <div class="import-approval" id="import-approval">
+            <div class="import-approval-copy">
+              <span class="import-step-label">Schritt 3</span>
+              <h3>Übernahme ausdrücklich freigeben</h3>
+              <p>Beim Absenden prüft der Server beide Prüfsummen erneut. Eine veraltete Vorschau wird automatisch abgelehnt.</p>
+            </div>
+            <label class="import-checkbox-row">
+              <input id="import-approval-checkbox" type="checkbox" />
+              <span>Ich habe den Änderungsplan, die technischen Zuordnungen und mögliche Konflikte geprüft.</span>
+            </label>
+            <label class="import-checkbox-row">
+              <input id="import-backup-checkbox" type="checkbox" />
+              <span>Eine aktuelle Cloud-SQL-Sicherung beziehungsweise nutzbare Point-in-Time-Recovery ist bestätigt.</span>
+            </label>
+            <label class="import-confirmation-field" for="import-confirmation">
+              <span>Zur Bestätigung <strong>HOSPITATIONEN IMPORTIEREN</strong> eingeben</span>
+              <input id="import-confirmation" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <button class="import-button import-button--danger" id="import-apply-button" type="button" disabled>
+              Geprüften Stand übernehmen
+            </button>
+          </div>
+        </section>
+
+        <section class="import-card import-result" id="import-result" aria-labelledby="import-result-title" hidden>
+          <div class="import-result-mark" aria-hidden="true">✓</div>
+          <div>
+            <span class="import-step-label">Übernahme abgeschlossen</span>
+            <h2 id="import-result-title">Der geprüfte Stand wurde übernommen</h2>
+            <p id="import-result-copy"></p>
+            <dl class="import-result-details" id="import-result-details"></dl>
+            <div class="import-result-actions">
+              <button class="import-button import-button--secondary" id="import-second-preview" type="button">Erneut gegen Produktivstand prüfen</button>
+              <a class="import-button import-button--primary" href="./index.html">Hospitationen öffnen</a>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./import.js"></script>
+  </body>
+</html>

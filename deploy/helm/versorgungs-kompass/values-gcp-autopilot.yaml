@@ -36,6 +36,7 @@ config:
   allowedOrigin: https://pre-gematik.example.invalid
   apiAuthMode: iap
   iapJwtAudience: REPLACE_AFTER_FIRST_INGRESS_RECONCILIATION
+  hospitationImportOwnerProfileId: ""
   logRequests: "0"
 
 database:

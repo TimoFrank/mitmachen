@@ -39,6 +39,7 @@ config:
   allowedOrigin: "https://versorgungs-kompass.example.internal"
   apiAuthMode: "oidc"
   iapJwtAudience: ""
+  hospitationImportOwnerProfileId: ""
   oidcIssuer: "https://identity.example.invalid"
   oidcAudience: "REPLACE_WITH_OIDC_AUDIENCE"
   oidcJwksUrl: "https://identity.example.invalid/.well-known/jwks.json"
