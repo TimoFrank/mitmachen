@@ -49,6 +49,22 @@ set local lock_timeout = '10s';
 set local statement_timeout = '180s';
 
 \if :apply_cleanup
+  -- Dieselben globalen Dubletten- und Import-Locks wie die API werden in
+  -- identischer Reihenfolge genommen. Damit koennen regulaere Schreibvorgaenge
+  -- oder ein paralleler Staging-Import waehrend des Cleanups keinen
+  -- Tabellen-Lock-Zyklus erzeugen.
+  select pg_advisory_xact_lock(
+    hashtextextended('versorgungs-kompass:duplicate-guard:contacts:v1', 0)
+  );
+
+  select pg_advisory_xact_lock(
+    hashtextextended('versorgungs-kompass:duplicate-guard:hospitations:v1', 0)
+  );
+
+  select pg_advisory_xact_lock(
+    hashtextextended('versorgungs-kompass:hospitation-staging-import:v1', 0)
+  );
+
   select pg_advisory_xact_lock(
     hashtextextended('versorgungs-kompass:hospitation-import-cleanup:20260722', 0)
   );
@@ -899,13 +915,20 @@ from _cleanup_baseline baseline;
   where hospitation.id = 'hospitation-2026-07-16-koehler'
     and hospitation.contact_id = 'local-contact-dr-christian-koehler-12';
 
-  -- Kein Termin darf jetzt noch eine zu loeschende Kontakt- oder
-  -- Organisations-ID referenzieren.
+  -- Ausser den acht unmittelbar danach zu loeschenden Termin-Dubletten darf
+  -- jetzt kein Termin mehr auf eine zu loeschende Kontakt-ID zeigen. Die
+  -- Dubletten selbst muessen bis zum DELETE bestehen bleiben, damit ihre
+  -- Identitaet und Abhaengigkeiten bis zuletzt geprueft werden koennen.
   do $cleanup_before_delete$
   begin
     if exists (
       select 1 from public.hospitations hospitation
       join _cleanup_contact_map mapping on mapping.duplicate_id = hospitation.contact_id
+      where not exists (
+        select 1
+        from _cleanup_hospitation_map hospitation_mapping
+        where hospitation_mapping.duplicate_id = hospitation.id
+      )
     ) then
       raise exception 'Cleanup: mindestens ein Termin verweist noch auf eine Kontakt-Dublette.';
     end if;
