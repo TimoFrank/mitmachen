@@ -5,13 +5,10 @@
 <p align="center">
   <a href="https://timofrank.github.io/mitmachen/demo/"><strong>Öffentliche Demo ansehen</strong></a>
   · <a href="dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md">Gematik-PoC</a>
-  · <a href="dokumentation/produkt-und-design/MARKENARCHITEKTUR.md">Markenkit</a>
-  · <a href="CHANGELOG.md">Änderungshistorie</a>
 </p>
 
 <p align="center">
   <a href="README.md"><strong>Überblick</strong></a>
-  · <a href="dokumentation/betrieb-und-deployment/DEMO.md">Demo</a>
   · <a href="dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md">Deployment</a>
   · <a href="SECURITY.md">Security</a>
   · <a href="dokumentation/README.md">Dokumentation</a>
@@ -28,8 +25,6 @@
 
 **Versorgungs-Kompass** verbindet Kontakte, Organisationen, Hospitationen und Formate in einem gemeinsamen Arbeitsraum. So werden regionale Perspektiven sichtbar, Erfahrungen nachvollziehbar und Erkenntnisse für die gemeinsame Arbeit nutzbar.
 
-Die Markenarchitektur ist mehrstufig: **gematik** ist der institutionelle Absender, **#Mitmachen** das Beteiligungsdach und **Versorgungs-Kompass** die Produktmarke. Verbindliche Texte, Logoquellen, Modulfarben und Demo-Begriffe stehen im [Markenkit](dokumentation/produkt-und-design/MARKENARCHITEKTUR.md).
-
 ## Funktionsumfang
 
 - **Versorgung sehen:** Karte und Filter zeigen regionale Schwerpunkte, Lücken und Kontakte.
@@ -43,12 +38,11 @@ Die Markenarchitektur ist mehrstufig: **gematik** ist der institutionelle Absend
 
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
-| [Öffentliche Demo](https://timofrank.github.io/mitmachen/demo/) | Demo | Produkteinblick mit fiktiven Beispieldaten |
-| [#Mitmachen Modulstart](frontend/pages/mitmachen/index.html) | Anwendungsstart | Einstieg in die vier Module |
-| [Demo zum Versorgungs-Netzwerk](frontend/pages/mitmachen/versorgungs-netzwerk.html) | Demo | Eigenständige Interaktionsidee ohne Datenübermittlung |
-| Gematik-interner Versorgungs-Kompass | PoC in Vorbereitung | Befristeter technischer Durchstich mit SSO, API, Kubernetes und einer kleinen PostgreSQL-Datenbank |
+| [Öffentliche GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/demo/) | Demo | Produkteinblick mit fiktiven Beispieldaten |
+| [GKE-Demo](https://mitmachen.timo-frank.de/) | Interner PoC | Bereits über GKE bereitgestellter Arbeitsstand |
+| Zielbetrieb | In Vorbereitung | Nächster PoC-Schritt in der gematik-Infrastruktur |
 
-GitHub Pages veröffentlicht die Demo. Der interne PoC wird separat aus einem festgelegten Release Candidate gebaut und übernimmt einen freigegebenen Datenstand aus der geschützten Anwendung. Echtdaten sind weder Teil des Repositories noch der Release-Artefakte. Beide Veröffentlichungswege können unabhängig voneinander weiterentwickelt werden. Der aktuelle PoC-Umfang und die benötigten Ressourcen stehen im [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
+GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Demo läuft getrennt unter mitmachen.timo-frank.de. Für den Zielbetrieb wird ein festgelegter Release Candidate gebaut und ein freigegebener Datenstand aus der geschützten Anwendung übernommen. Die Veröffentlichungswege können unabhängig voneinander weiterentwickelt werden. Der aktuelle PoC-Umfang und die benötigten Ressourcen stehen im [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
 
 ## Repository
 
