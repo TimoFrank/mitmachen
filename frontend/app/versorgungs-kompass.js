@@ -17810,8 +17810,8 @@
         };
       }
 
-      function hospitationDashboardReadinessPatterns(items = [], dataSet = {}, limit = 6) {
-        return hospitationDashboardApplyPipelineLimit(hospitationDashboardEvidencePipeline(items, dataSet).evidence, limit);
+      function hospitationDashboardNextSteps(items = [], dataSet = {}, limit = 6) {
+        return hospitationDashboardApplyPipelineLimit(hospitationDashboardFrameworkPipeline(items, dataSet).nextSteps, limit);
       }
 
       function hospitationDashboardMostFrequent(entries = []) {
@@ -17860,10 +17860,11 @@
         hospitationDashboardAllObservations(items)
           .filter((observation) => !observation.synthetic)
           .forEach((observation) => {
+            const problemType = meaningfulOrEmpty(hospitationNormalizeCodebookValue("problemType", observation.problemType, ""));
+            const processPhase = meaningfulOrEmpty(hospitationNormalizeCodebookValue("processPhase", observation.processPhase, ""));
+            if (!problemType || !processPhase) return;
             const item = observation.hospitation || items.find((candidate) => candidate.id === observation.hospitationId) || {};
             const payload = hospitationDocumentationPayload(item);
-            const problemType = meaningfulOrEmpty(observation.problemType) || "Problemtyp offen";
-            const processPhase = meaningfulOrEmpty(observation.processPhase) || "Prozessphase offen";
             const key = `${problemType}::${processPhase}`;
             const current = grouped.get(key) || {
               key,
@@ -17943,11 +17944,6 @@
         return rows.slice(0, Math.max(0, Number.isFinite(limit) ? limit : rows.length));
       }
 
-      function hospitationDashboardPipelineQuota(total = 0, ratio = 0.5) {
-        if (!total) return 0;
-        return Math.max(1, Math.min(total, Math.floor(total * ratio)));
-      }
-
       function hospitationDashboardPipelineRank(entry = {}) {
         const count = hospitationDashboardClusterCount(entry);
         const sectorWeight = Math.min(Array.isArray(entry.sectors) ? entry.sectors.length : 0, 2);
@@ -17984,42 +17980,42 @@
             pattern: "fehlende Informationen bremsen den Ablauf",
             intervention: "Vorinformationen früher sichtbar sind",
             outcome: "sinken Rückfragen",
-            evidence: "bessere Vorinformationen"
+            nextStep: "bessere Vorinformationen"
           },
           handover: {
             issue: "digitale Brüche",
             pattern: "Übergaben laufen noch über Umwege",
             intervention: "Übergaben digital nachvollziehbar sind",
             outcome: "sinkt Nacharbeit",
-            evidence: "nachvollziehbare Übergaben"
+            nextStep: "nachvollziehbare Übergaben"
           },
           roles: {
             issue: "unklare Zuständigkeiten",
             pattern: "unklare Zuständigkeiten verzögern Entscheidungen",
             intervention: "Zuständigkeiten im Prozess klarer sind",
             outcome: "werden Rückfragen schneller gelöst",
-            evidence: "klare Zuständigkeiten"
+            nextStep: "klare Zuständigkeiten"
           },
           waiting: {
             issue: "Wartezeiten",
             pattern: "fehlender Status erzeugt Wartezeit",
             intervention: "Status und nächster Schritt sichtbar sind",
             outcome: "sinkt Wartezeit",
-            evidence: "Status-Transparenz"
+            nextStep: "Status-Transparenz"
           },
           documentation: {
             issue: "Dokumentationsaufwand",
             pattern: "Doppeldokumentation bindet Zeit",
             intervention: "Dokumentation nur einmal erfasst wird",
             outcome: "sinkt Aufwand",
-            evidence: "einmalige Dokumentation"
+            nextStep: "einmalige Dokumentation"
           },
           general: {
             issue: meaningfulOrEmpty(entry.problemType) || "Reibung",
             pattern: `${meaningfulOrEmpty(entry.problemType) || "Reibung"} bremst ${fallbackPhase}`,
             intervention: `${fallbackPhase} klarer unterstützt wird`,
             outcome: "sinkt Reibung im Ablauf",
-            evidence: fallbackPhase
+            nextStep: fallbackPhase
           }
         };
         if (theme === "missing-info" && normalizedPhase.includes("nachbereitung")) {
@@ -18028,7 +18024,7 @@
             pattern: "Nachbereitung braucht vollständige Informationen",
             intervention: "Nachbereitung und offene Infos zusammen sichtbar sind",
             outcome: "sinken Rückfragen",
-            evidence: "vollständige Nachbereitung"
+            nextStep: "vollständige Nachbereitung"
           };
         }
         if (theme === "missing-info" && normalizedPhase.includes("befund")) {
@@ -18037,7 +18033,7 @@
             pattern: "Befunde fehlen als Arbeitskontext",
             intervention: "Befunde und Medikation zusammen sichtbar sind",
             outcome: "sinkt Suchaufwand",
-            evidence: "Befundkontext"
+            nextStep: "Befundkontext"
           };
         }
         if (theme === "missing-info" && normalizedPhase.includes("ueberweisung")) {
@@ -18046,7 +18042,7 @@
             pattern: "Vorbefunde fehlen im Überweisungskontext",
             intervention: "Vorbefunde vor dem Termin sichtbar sind",
             outcome: "sinken Rückfragen",
-            evidence: "Vorbefunde vor dem Termin"
+            nextStep: "Vorbefunde vor dem Termin"
           };
         }
         return phrases[theme] || phrases.general;
@@ -18055,7 +18051,7 @@
       function hospitationDashboardPipelineTitle(entry = {}, stage = "pattern") {
         const phrase = hospitationDashboardPipelinePhrase(entry);
         if (stage === "hypothesis") return `Wenn ${phrase.intervention}, ${phrase.outcome}`;
-        if (stage === "evidence") return phrase.evidence;
+        if (stage === "nextStep") return phrase.nextStep;
         return meaningfulOrEmpty(entry.title) || phrase.pattern;
       }
 
@@ -18077,7 +18073,7 @@
       }
 
       function hospitationDashboardPipelineEntry(entry = {}, stage = "pattern") {
-        const stageStatus = stage === "hypothesis" ? "Hypothese" : stage === "evidence" ? "Evidenz" : "Muster";
+        const stageStatus = stage === "hypothesis" ? "Hypothese" : stage === "nextStep" ? "Nächster Schritt" : "Muster";
         return {
           ...entry,
           stage,
@@ -18088,37 +18084,18 @@
         };
       }
 
-      function hospitationDashboardEvidencePipeline(items = [], dataSet = {}) {
+      function hospitationDashboardFrameworkPipeline(items = [], dataSet = {}) {
         const clusters = hospitationDashboardObservationClusters(items, dataSet)
           .sort(hospitationDashboardPipelineSort);
         const patterns = clusters
           .filter((entry) => hospitationDashboardClusterCount(entry) >= 2)
           .map((entry) => hospitationDashboardPipelineEntry(entry, "pattern"));
-        const hypothesisCandidates = patterns
-          .filter((entry) => {
-            const count = hospitationDashboardClusterCount(entry);
-            const contextBreadth = (Array.isArray(entry.sectors) ? entry.sectors.length : 0) + (Array.isArray(entry.settings) ? entry.settings.length : 0);
-            const hasProductOrAction = (Array.isArray(entry.products) && entry.products.length > 0) || entry.hasRoadmapSignal || (meaningfulOrEmpty(entry.recommendedUse) && entry.recommendedUse !== "weiter validieren");
-            return count >= 3 && (entry.hasRoadmapSignal || (count >= 4 && (contextBreadth >= 2 || hasProductOrAction)));
-          })
-          .sort(hospitationDashboardPipelineSort);
-        const hypotheses = hypothesisCandidates
-          .slice(0, hospitationDashboardPipelineQuota(patterns.length, 0.55))
-          .map((entry) => hospitationDashboardPipelineEntry(entry, "hypothesis"));
-        const evidenceCandidates = hypotheses
-          .filter((entry) => {
-            const count = hospitationDashboardClusterCount(entry);
-            const contextBreadth = (Array.isArray(entry.sectors) ? entry.sectors.length : 0) + (Array.isArray(entry.settings) ? entry.settings.length : 0);
-            return count >= 4 && (entry.hasRoadmapSignal || contextBreadth >= 3 || (Array.isArray(entry.products) && entry.products.length > 0 && count >= 5));
-          })
-          .sort(hospitationDashboardPipelineSort);
-        const evidenceSource = evidenceCandidates.length
-          ? evidenceCandidates
-          : hypotheses.filter((entry) => hospitationDashboardClusterCount(entry) >= 3 && (entry.hasRoadmapSignal || (Array.isArray(entry.sectors) && entry.sectors.length >= 2)));
-        const evidence = evidenceSource
-          .slice(0, hospitationDashboardPipelineQuota(hypotheses.length, 0.5))
-          .map((entry) => hospitationDashboardPipelineEntry(entry, "evidence"));
-        return { patterns, hypotheses, evidence };
+        // Hypothesen und nächste Schritte sind eigenständige Wissensartefakte. Bis
+        // dafür persistente Entitäten existieren, dürfen Häufigkeitsheuristiken sie
+        // weder vortäuschen noch in den Framework-Zählern als dokumentiert ausgeben.
+        const hypotheses = [];
+        const nextSteps = [];
+        return { patterns, hypotheses, nextSteps };
       }
 
       function hospitationFrameworkSourceData() {
@@ -18133,7 +18110,7 @@
           roadmapAssessments: hospitationRoadmapAssessments,
           unmetNeeds: hospitationUnmetNeeds
         };
-        const pipeline = hospitationDashboardEvidencePipeline(activeHospitations, dataSet);
+        const pipeline = hospitationDashboardFrameworkPipeline(activeHospitations, dataSet);
         return { activeHospitations, documentedObservations, dataSet, pipeline };
       }
 
@@ -18143,7 +18120,7 @@
           observations: documentedObservations.length,
           patterns: pipeline.patterns.length,
           hypotheses: pipeline.hypotheses.length,
-          nextSteps: pipeline.evidence.length
+          nextSteps: pipeline.nextSteps.length
         };
       }
 
@@ -18203,8 +18180,9 @@
       }
 
       function hospitationPatternObservationKey(row = {}) {
-        const problemType = meaningfulOrEmpty(hospitationNormalizeCodebookValue("problemType", row.problemType, "")) || "Problemtyp offen";
-        const processPhase = meaningfulOrEmpty(hospitationNormalizeCodebookValue("processPhase", row.processPhase, "")) || "Prozessphase offen";
+        const problemType = meaningfulOrEmpty(hospitationNormalizeCodebookValue("problemType", row.problemType, ""));
+        const processPhase = meaningfulOrEmpty(hospitationNormalizeCodebookValue("processPhase", row.processPhase, ""));
+        if (!problemType || !processPhase) return "";
         return `${problemType}::${processPhase}`;
       }
 
@@ -18215,10 +18193,12 @@
             ? entry.hospitationIds
             : []);
         const patternKey = hospitationPatternObservationKey(entry);
+        if (!patternKey) return [];
         return rows
           .filter((row) =>
             !row.synthetic &&
             (!ids.size || ids.has(row.hospitationId)) &&
+            Boolean(hospitationPatternObservationKey(row)) &&
             hospitationPatternObservationKey(row) === patternKey
           )
           .sort((left, right) =>
@@ -18321,7 +18301,7 @@
           observations: source.documentedObservations.length,
           patterns: patterns.length,
           hypotheses: source.pipeline.hypotheses.length,
-          nextSteps: source.pipeline.evidence.length
+          nextSteps: source.pipeline.nextSteps.length
         };
         hospitationPatternsWorkbench.innerHTML = `
           <section class="hospitation-patterns-page" aria-labelledby="hospitation-patterns-title">
@@ -18374,11 +18354,11 @@
       }
 
       function hospitationDashboardDerivedSignals(items = [], dataSet = {}, limit = 4) {
-        return hospitationDashboardApplyPipelineLimit(hospitationDashboardEvidencePipeline(items, dataSet).patterns, limit);
+        return hospitationDashboardApplyPipelineLimit(hospitationDashboardFrameworkPipeline(items, dataSet).patterns, limit);
       }
 
       function hospitationDashboardDerivedPatterns(items = [], dataSet = {}, limit = 4) {
-        return hospitationDashboardApplyPipelineLimit(hospitationDashboardEvidencePipeline(items, dataSet).hypotheses, limit);
+        return hospitationDashboardApplyPipelineLimit(hospitationDashboardFrameworkPipeline(items, dataSet).hypotheses, limit);
       }
 
       function hospitationDashboardScoreStats(items = []) {
@@ -19610,7 +19590,7 @@
       }
 
       function renderHospitationDashboardReadiness(active = [], dataSet = {}, limit = 4) {
-        const patterns = hospitationDashboardReadinessPatterns(active, dataSet).slice(0, limit);
+        const patterns = hospitationDashboardNextSteps(active, dataSet).slice(0, limit);
         return `
           <div class="hospitation-dashboard-status-ladder" aria-label="Epic-Readiness-Status">
             <span>Beobachtung</span>
@@ -20018,7 +19998,7 @@
           .filter((observation) => meaningfulOrEmpty(observation.observed || observation.title));
         const signalCount = hospitationDashboardDerivedSignals(active, dataSet, Number.MAX_SAFE_INTEGER).length;
         const patternCount = hospitationDashboardDerivedPatterns(active, dataSet, Number.MAX_SAFE_INTEGER).length;
-        const evidenceCount = hospitationDashboardReadinessPatterns(active, dataSet, Number.MAX_SAFE_INTEGER).length;
+        const evidenceCount = hospitationDashboardNextSteps(active, dataSet, Number.MAX_SAFE_INTEGER).length;
         const steps = [
           {
             label: "Beobachtungen",
@@ -20220,7 +20200,7 @@
       }
 
       function renderHospitationDashboardReadinessPanel(active = [], dataSet = {}) {
-        const allPatterns = hospitationDashboardReadinessPatterns(active, dataSet, Number.MAX_SAFE_INTEGER);
+        const allPatterns = hospitationDashboardNextSteps(active, dataSet, Number.MAX_SAFE_INTEGER);
         const patterns = allPatterns.slice(0, 4);
         const total = allPatterns.length;
         return `

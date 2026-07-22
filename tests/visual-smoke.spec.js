@@ -938,9 +938,9 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   await expect(frameworkProcessSteps.nth(0).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Beobachtungen");
   await expect(frameworkProcessSteps.nth(1).locator(".hospitation-dashboard-funnel-badge")).toHaveText("8");
   await expect(frameworkProcessSteps.nth(1).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Muster");
-  await expect(frameworkProcessSteps.nth(2).locator(".hospitation-dashboard-funnel-badge")).toHaveText("3");
+  await expect(frameworkProcessSteps.nth(2).locator(".hospitation-dashboard-funnel-badge")).toHaveText("0");
   await expect(frameworkProcessSteps.nth(2).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Hypothesen");
-  await expect(frameworkProcessSteps.nth(3).locator(".hospitation-dashboard-funnel-badge")).toHaveText("1");
+  await expect(frameworkProcessSteps.nth(3).locator(".hospitation-dashboard-funnel-badge")).toHaveText("0");
   await expect(frameworkProcessSteps.nth(3).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Nächster Schritt");
   await expect(modelSection.locator(".hospitation-dashboard-funnel-copy > span")).toHaveCount(0);
   const frameworkProcessButtons = modelSection.locator(".framework-process-button");
@@ -1151,7 +1151,7 @@ test("Hospitation: Beobachtungsseite zeigt das Framework mit Beobachtungsfokus",
     "Hypothesen",
     "Nächster Schritt"
   ]);
-  await expect(reminder.locator("[data-hospitation-framework-count]")).toHaveText(["39", "8", "3", "1"]);
+  await expect(reminder.locator("[data-hospitation-framework-count]")).toHaveText(["39", "8", "0", "0"]);
   const currentStep = reminder.locator('[aria-current="step"]');
   await expect(currentStep).toHaveCount(1);
   await expect(currentStep).toHaveAttribute("data-hospitation-framework-step", "observations");
@@ -1232,7 +1232,7 @@ test("Hospitation: Musterseite zeigt alle abgeleiteten Muster", async ({ page },
     "Hypothesen",
     "Nächster Schritt"
   ]);
-  await expect(patternFramework.locator("[data-hospitation-framework-count]")).toHaveText(["39", "8", "3", "1"]);
+  await expect(patternFramework.locator("[data-hospitation-framework-count]")).toHaveText(["39", "8", "0", "0"]);
   const currentFrameworkStep = patternFramework.locator('[aria-current="step"]');
   await expect(currentFrameworkStep).toHaveCount(1);
   await expect(currentFrameworkStep).toHaveAttribute("data-hospitation-framework-step", "patterns");

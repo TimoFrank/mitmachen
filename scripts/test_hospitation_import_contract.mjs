@@ -182,6 +182,212 @@ const bookedTarget = {
 const statusProgressionPlan = buildHospitationImportPlan(normalized, bookedTarget, owner);
 assert.ok(statusProgressionPlan.items.hospitations[0].changedFields.includes("status"), "Ein normaler Terminstatus darf bis Dokumentiert fortschreiten.");
 
+const identityVariantManifest = normalizeHospitationImportManifest(manifest({
+  organizations: [{
+    id: "local-org-nordring",
+    name: "Nordring Apotheke (Apotheken mit Herz)",
+    city: "Wiesbaden",
+    sector: "Apotheke",
+    status: "active"
+  }],
+  contacts: [{
+    ...manifest().contacts[0],
+    id: "local-contact-koehler-variant",
+    name: "Dr. Christian Köhler",
+    organizationId: "local-org-nordring",
+    organization: "Nordring Apotheke (Apotheken mit Herz)"
+  }],
+  hospitations: [{
+    ...manifest().hospitations[0],
+    id: "local-hospitation-koehler-variant",
+    contactId: "local-contact-koehler-variant",
+    organizationId: "local-org-nordring",
+    organizationName: "Nordring Apotheke (Apotheken mit Herz)"
+  }],
+  observations: []
+}));
+const identityVariantTarget = {
+  ...emptyTarget,
+  organizations: [{
+    id: "production-org-nordring",
+    name: "Nordring Apotheke",
+    normalized_name: "nordring apotheke",
+    city: "Wiesbaden",
+    sector: "Apotheke",
+    status: "active"
+  }],
+  contacts: [{
+    id: "production-contact-koehler",
+    name: "Christian Koehler",
+    organization_id: "production-org-nordring",
+    organization: "Nordring Apotheke",
+    city: "Wiesbaden",
+    sector: "Apotheke",
+    status: "active",
+    owner_id: owner.id
+  }],
+  contact_owners: [{ contact_id: "production-contact-koehler", profile_id: owner.id }],
+  hospitations: [{
+    id: "production-hospitation-koehler",
+    contact_id: "production-contact-koehler",
+    contact_name: "Christian Koehler",
+    organization_id: "production-org-nordring",
+    organization_name: "Nordring Apotheke",
+    starts_at: "2026-07-16T06:15:00.000Z",
+    status: "Dokumentiert",
+    owner_id: owner.id
+  }]
+};
+const identityVariantPlan = buildHospitationImportPlan(identityVariantManifest, identityVariantTarget, owner);
+assert.equal(identityVariantPlan.summary.total.create, 0, "Titel, Umlautschreibweise, Organisationsvariante und abweichende Import-IDs duerfen keine Dubletten erzeugen.");
+assert.equal(identityVariantPlan.summary.total.conflict, 0);
+assert.equal(identityVariantPlan.items.organizations[0].targetId, "production-org-nordring");
+assert.equal(identityVariantPlan.items.contacts[0].targetId, "production-contact-koehler");
+assert.equal(identityVariantPlan.items.hospitations[0].targetId, "production-hospitation-koehler");
+
+for (const [sourceName, targetName] of [
+  ["Hausarzt Dr. Martin Deile", "Hausarztpraxis Dr. Martin Deile"],
+  ["Praxis Dr. Jonas Fröhlich, Annika Walk & Sina Danko", "Praxis Dr. Froehlich"]
+]) {
+  const organizationVariantManifest = normalizeHospitationImportManifest(manifest({
+    organizations: [{ id: "local-org-variant", name: sourceName, city: "Wiesbaden", sector: "Praxis", status: "active" }],
+    contacts: [],
+    hospitations: [],
+    observations: []
+  }));
+  const organizationVariantTarget = {
+    ...emptyTarget,
+    organizations: [{ id: "production-org-variant", name: targetName, normalized_name: targetName.toLocaleLowerCase("de-DE"), city: "Wiesbaden", sector: "Praxis", status: "active" }]
+  };
+  assert.equal(buildHospitationImportPlan(organizationVariantManifest, organizationVariantTarget, owner).items.organizations[0].targetId, "production-org-variant");
+}
+
+const crossSectorOrganizationManifest = normalizeHospitationImportManifest(manifest({
+  organizations: [{ id: "local-org-nordring-klinik", name: "Nordring Klinikum", city: "Wiesbaden", sector: "Krankenhaus", status: "active" }],
+  contacts: [],
+  hospitations: [],
+  observations: []
+}));
+const crossSectorOrganizationTarget = {
+  ...emptyTarget,
+  organizations: [{
+    id: "production-org-nordring-apotheke",
+    name: "Nordring Apotheke",
+    normalized_name: "nordring apotheke",
+    city: "Wiesbaden",
+    sector: "Apotheke",
+    status: "active"
+  }]
+};
+const crossSectorOrganizationPlan = buildHospitationImportPlan(crossSectorOrganizationManifest, crossSectorOrganizationTarget, owner);
+assert.equal(crossSectorOrganizationPlan.items.organizations[0].action, "create");
+assert.equal(crossSectorOrganizationPlan.items.organizations[0].targetId, "local-org-nordring-klinik",
+  "Eine gleiche Namenswurzel darf bei inkompatiblen Sektoren nicht automatisch auf die andere Organisation gemappt werden.");
+
+const ambiguousOrganizationManifest = normalizeHospitationImportManifest(manifest({
+  organizations: [{ id: "local-org-nordring", name: "Nordring Apotheke", city: "Wiesbaden", sector: "Apotheke", status: "active" }],
+  contacts: [],
+  hospitations: [],
+  observations: []
+}));
+const ambiguousOrganizationTarget = {
+  ...emptyTarget,
+  organizations: [
+    { id: "production-org-nordring-markt", name: "Nordring Apotheke am Markt", normalized_name: "nordring apotheke am markt", city: "Wiesbaden" },
+    { id: "production-org-nordring-herz", name: "Nordring Apotheke mit Herz", normalized_name: "nordring apotheke mit herz", city: "Wiesbaden" }
+  ]
+};
+const ambiguousOrganizationPlan = buildHospitationImportPlan(ambiguousOrganizationManifest, ambiguousOrganizationTarget, owner);
+assert.equal(ambiguousOrganizationPlan.items.organizations[0].action, "conflict");
+assert.equal(ambiguousOrganizationPlan.conflicts[0].code, "ambiguous_target");
+
+const ambiguousContactTarget = {
+  ...identityVariantTarget,
+  contacts: [
+    identityVariantTarget.contacts[0],
+    { ...identityVariantTarget.contacts[0], id: "production-contact-koehler-zwei", organization_id: "other-organization" }
+  ]
+};
+const ambiguousContactPlan = buildHospitationImportPlan(identityVariantManifest, ambiguousContactTarget, owner);
+assert.equal(ambiguousContactPlan.items.contacts[0].action, "conflict");
+assert.equal(ambiguousContactPlan.conflicts.find((item) => item.entityType === "contact")?.code, "ambiguous_target");
+
+const potentialContactManifest = normalizeHospitationImportManifest(manifest({
+  contacts: [{ ...manifest().contacts[0], name: "Dr. Malinckrodt" }],
+  hospitations: [],
+  observations: []
+}));
+const potentialContactTarget = {
+  ...emptyTarget,
+  organizations: [{ id: "local-org-medici", name: "MEDICI WIESBADEN", normalized_name: "medici wiesbaden", city: "Wiesbaden" }],
+  contacts: [{
+    id: "production-contact-mallinckrodt",
+    name: "Christian von Mallinckrodt",
+    organization_id: "local-org-medici",
+    organization: "MEDICI WIESBADEN",
+    city: "Wiesbaden"
+  }]
+};
+const potentialContactPlan = buildHospitationImportPlan(potentialContactManifest, potentialContactTarget, owner);
+assert.equal(potentialContactPlan.items.contacts[0].action, "conflict", "Eine wahrscheinliche Namensvariante darf nie still als neuer Kontakt angelegt werden.");
+assert.equal(potentialContactPlan.conflicts.find((item) => item.entityType === "contact")?.code, "potential_duplicate_contact");
+
+const differingGivenNameManifest = normalizeHospitationImportManifest(manifest({
+  contacts: [{ ...manifest().contacts[0], name: "Dr. Cornelia Weichard" }],
+  hospitations: [],
+  observations: []
+}));
+const differingGivenNameTarget = {
+  ...potentialContactTarget,
+  contacts: [{ ...potentialContactTarget.contacts[0], id: "production-contact-weichard", name: "Caroline Weichard" }]
+};
+const differingGivenNamePlan = buildHospitationImportPlan(differingGivenNameManifest, differingGivenNameTarget, owner);
+assert.equal(differingGivenNamePlan.items.contacts[0].action, "conflict", "Ein gleicher Nachname in Organisation und Stadt bei abweichendem Vornamen muss geprueft werden.");
+assert.equal(differingGivenNamePlan.conflicts.find((item) => item.entityType === "contact")?.code, "potential_duplicate_contact");
+
+const contactNameOnlyManifest = normalizeHospitationImportManifest(manifest({
+  organizations: [],
+  contacts: [],
+  hospitations: [{
+    id: "local-hospitation-name-only",
+    contactName: "Dr. Christian Köhler",
+    startsAt: "2026-07-16T06:15:00.000Z",
+    status: "Dokumentiert"
+  }],
+  observations: []
+}));
+const contactNameOnlyPlan = buildHospitationImportPlan(contactNameOnlyManifest, identityVariantTarget, owner);
+assert.equal(contactNameOnlyPlan.summary.hospitations.create, 0);
+assert.equal(contactNameOnlyPlan.items.hospitations[0].targetId, "production-hospitation-koehler",
+  "Ein Termin muss auch ohne identische Kontakt-ID ueber Uhrzeit und kanonische Kontaktidentitaet gefunden werden.");
+
+assert.throws(
+  () => normalizeHospitationImportManifest(manifest({
+    contacts: [
+      manifest().contacts[0],
+      { ...manifest().contacts[0], id: "local-contact-koehler-zwei", name: "Christian Koehler" }
+    ],
+    hospitations: [],
+    observations: []
+  })),
+  /fachliche Identitaet/u,
+  "Titel und Umlauttransliteration muessen Dubletten bereits innerhalb des Manifests blockieren."
+);
+
+assert.throws(
+  () => normalizeHospitationImportManifest(manifest({
+    organizations: [
+      { id: "local-org-nordring-a", name: "Nordring Apotheke", city: "Wiesbaden" },
+      { id: "local-org-nordring-b", name: "Nordring Apotheke mit Herz", city: "Wiesbaden" }
+    ],
+    contacts: [],
+    hospitations: [],
+    observations: []
+  })),
+  /moegliche Dubletten/u,
+  "Auch Organisationsvarianten im selben Manifest muessen fail-closed behandelt werden."
+);
+
 const sameNameOtherCity = {
   ...emptyTarget,
   organizations: [{ id: "existing-medici-berlin", name: "MEDICI WIESBADEN", normalized_name: "medici wiesbaden", city: "Berlin" }]
