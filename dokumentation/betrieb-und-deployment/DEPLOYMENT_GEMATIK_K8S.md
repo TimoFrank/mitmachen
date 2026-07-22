@@ -1,329 +1,151 @@
-# Deployment gematik Kubernetes
+# Deployment des Gematik-PoC auf Kubernetes
 
-Status: fuehrende technische Zielbeschreibung; konkrete Software-Factory- und Plattformwerte offen
+Status: technisches Runbook
+Stand: 22. Juli 2026
 
-Stand: 18. Juli 2026
+## Ziel
 
-## Zweck und Abgrenzung
-
-Dieses Dokument beschreibt, wie die uebernehmende IT den Versorgungs-Kompass in eine institutionelle Software Factory und einen Kubernetes-Namespace integriert. Es ist kein Runbook fuer GitHub Pages und uebernimmt keine persoenlichen Werte aus der GCP-Pre-Integration.
-
-- GitHub Pages: ausschliesslich synthetische oeffentliche Demo, nicht Realanwendung und nicht Staging.
-- `pre-gematik`: temporaerer GKE-Autopilot-/IAP-/Cloud-SQL-Test, nicht Produktion.
-- Zielbetrieb: internes Hosting, freigegebenes Gateway/SSO, Kubernetes-API, Shared Postgres und institutioneller Betrieb.
-
-Das fachlich-technische Zielbild steht in [Zielkonzept gematik Kubernetes](GEMATIK_K8S_ZIELKONZEPT.md). Ausfuehrbare Artefakte und ihre Uebergangsorte sind unter [deploy/README](../../deploy/README.md) erklaert.
-
-## Ziel-Deployment
+Dieses Runbook beschreibt den Build und die Bereitstellung eines festgelegten Release Candidates. Software, Daten und Identitäten bleiben getrennte Schritte:
 
 ```text
-Git Repo
--> Software Factory / Jenkins
--> Checks, Tests und Security Scans
--> dist/target/ + Buildmanifest
--> API-Image + Digest + SBOM/Provenance
--> Artifact Registry
--> Freigabe/Promotion
--> internes Frontend-Hosting + Helm/Kubernetes
--> Gateway/SSO -> /api -> Shared Postgres/Object Storage
+RC-Tag -> Software Factory -> dist/target + API-Image -> Kubernetes
+                                      |
+                                      +-> Release-Nachweis
+
+geschützter Snapshot -> einmaliger Import -> PostgreSQL
+gematik OIDC-Subjects -> geschützte Zuordnung -> Profile
 ```
 
-`dist/pages/` und der gesamte GitHub-Pages-Lieferweg sind nicht Teil dieses Pfads.
+GitHub Pages verwendet weiterhin `dist/pages/` und ausschließlich Demo-Daten.
 
-## Uebergabegrenze
+## Führende Artefakte
 
-### Das Repository liefert
+| Zweck | Pfad |
+| --- | --- |
+| Jenkins-Pipeline | [`deploy/jenkins/Jenkinsfile.gematik`](../../deploy/jenkins/Jenkinsfile.gematik) |
+| Helm-Chart | [`deploy/helm/versorgungs-kompass/`](../../deploy/helm/versorgungs-kompass/) |
+| PoC-Konfiguration | [`values-poc-gematik.yaml`](../../deploy/helm/versorgungs-kompass/values-poc-gematik.yaml) |
+| Datenbank und Import | [`deploy/postgres/poc-gematik/`](../../deploy/postgres/poc-gematik/) |
+| Target-Buildprofil | [`config/target/`](../../config/target/) |
 
-- Frontend- und API-Quellen,
-- getrennten Target-Build nach `dist/target/`,
-- Target-Konfigurations- und Security-Audits,
-- API-Container aus `api/Dockerfile`,
-- Helm-Referenzchart,
-- Jenkins-Referenzpipeline,
-- API- und Datenmodellvertraege,
-- Migrationsanforderungen, Smoke Tests und Betriebsdokumentation.
+## Plattformwerte
 
-### Die Zielplattform liefert oder bestaetigt
+Vor dem ersten Lauf werden folgende Werte in Software Factory oder Plattformkonfiguration hinterlegt:
 
-- Git-/Software-Factory-Projekt und geschuetzte Releasepfade,
-- Artifact Registry und zulässige Image-/Attestierungsverfahren,
-- Kubernetes-Namespace, Quoten, Policies und Zugriffe,
-- internes Frontend-Hosting, DNS, TLS und Routing,
-- Gateway/SSO mit OIDC oder gleichwertig signierter/verifizierter Plattformidentitaet,
-- Shared Postgres, Object Storage und Secret Management,
-- Logging, Monitoring, Alerting, Backup, Restore und Service Desk,
-- Change-, Freigabe-, Incident- und Break-glass-Verfahren.
+| Wert | Bedeutung |
+| --- | --- |
+| `ARTIFACT_REGISTRY`, `API_IMAGE_REPOSITORY` | Ablage des API-Images |
+| `FRONTEND_BASE_URL`, `API_BASE_URL` | dieselbe interne HTTPS-Adresse; API-Pfad ist `/api` |
+| `FRONTEND_TARGET` | internes Ziel für `dist/target/` |
+| `K8S_NAMESPACE` | Namespace des PoC |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` | Verbindung zur PoC-Datenbank |
+| `DB_PASSWORD_SECRET_NAME` | Referenz auf das verwaltete Datenbankpasswort |
+| `OIDC_ISSUER`, `OIDC_AUDIENCE`, `OIDC_JWKS_URL` | Werte zur Prüfung der Anmeldung |
+| `OIDC_EMAIL_CLAIM`, `OIDC_SUBJECT_CLAIM` | standardmäßig `email` und `sub` |
+| `PROFILE_IMAGE_BUCKET`, `CONTACT_IMAGE_BUCKET` | optional private Buckets für vorhandene Bilder |
+| `CONTACT_NOTE_ATTACHMENT_BUCKET`, `STAKEHOLDER_LOGO_BUCKET` | optional private Buckets für vorhandene Anhänge und Logos |
 
-## Verbindlicher Build- und Releasevertrag
+Passwörter, Tokens, private Zertifikate, Daten-Snapshots und OIDC-Subjects werden nicht in Git, Frontend-Dateien, Buildmanifesten oder Helm-Werten abgelegt.
 
-1. `npm ci` installiert exakt den Lockfile-Stand.
-2. Repository-, Syntax-, API-, Zielkonfigurations- und relevante Browser-Tests laufen vor dem Artefaktbuild.
-3. Der Target-Build schreibt in einen leeren Ordner `dist/target/`.
-4. Die Zielkonfiguration setzt `dataMode: "api"`, im Zieldefault `authMode: "oidc"`, die freigegebene API-Basis und `requireApiGateway: true`.
-5. Der Target-Audit bricht bei Supabase-URL, Supabase-Key, Supabase Browser SDK, direktem Supabase-Aufruf, Geheimnis oder produktivem Seed/Backup ab.
-6. Der API-Container wird einmal gebaut, gescannt und per Digest identifiziert.
-7. Target-Frontend, API-Digest, Helm-/Plattformmanifest und Migrationsversion erhalten eine gemeinsame Release-ID.
-8. Promotion nutzt dieselben geprueften Artefakte. Ein Umgebungswechsel fuehrt keinen neuen Build aus.
-9. Zieldeployment und Pages-Deployment besitzen getrennte Pipelines, Environments und Freigaben.
+## 1. Release Candidate festlegen
 
-## Referenzpipeline
-
-Die aktuelle Referenz liegt unter:
-
-```text
-deploy/jenkins/Jenkinsfile.gematik
-```
-
-Sie bleibt waehrend der Uebergangsphase dort, bis die Software Factory Zielpfade und Code Owner bestaetigt. Fachlich muessen folgende Stufen erhalten bleiben:
-
-1. Checkout einer eindeutigen Revision.
-2. `npm ci`.
-3. Repository- und Contract-Checks.
-4. Dependency Audit, SAST und Secret Scan.
-5. relevante Playwright-Smoke-Tests.
-6. Target-Build nach `dist/target/` und Target-Audit.
-7. API-Image bauen und lokal per Health Check starten.
-8. Image Scan, SBOM und Provenance/Attestierung.
-9. Push in Registry und Digest-Aufloesung.
-10. Helm-Lint/-Render beziehungsweise Plattformvalidierung.
-11. kontrollierte Freigabe.
-12. Target-Frontend und API-Digest deployen/promoten.
-13. Rollout, Gatewaygrenze, Session und fachliche Kernpfade pruefen.
-14. Release- und Abnahmenachweis ablegen.
-
-Referenz fuer den Target-Build:
+Ein Release Candidate erhält einen annotierten Tag nach dem Muster `poc-v<Version>-rc.<Nummer>`. Der Tag wird nicht verschoben. Jede Korrektur erhält einen neuen Tag.
 
 ```bash
-API_BASE_URL="https://<freigegebener-interner-origin>" \
+git status --short
+git checkout poc-v0.1.0-rc.2
+git rev-parse HEAD
+npm ci
+npm run check:poc-rc
+```
+
+Der Build startet nur aus einem sauberen Checkout.
+
+## 2. Frontend und API bauen
+
+```bash
+API_BASE_URL="https://<interner-origin>" \
 TARGET_AUTH_MODE=oidc \
 npm run build:target
 
-node scripts/audit_public_assets.mjs --artifact-root dist/target
-node scripts/audit_api_gateway.mjs \
-  --production-config dist/target/data/runtime-config.js
+node scripts/audit_target_assets.mjs --artifact-root dist/target
+
+docker build \
+  -f api/Dockerfile \
+  -t "<registry>/<repository>:poc-v0.1.0-rc.2" \
+  .
 ```
 
-Die Referenzpipeline staged das Target-Frontend absichtlich mit `promotionRequired: true`. Dieser Zustand markiert die Uebergabegrenze: Build, Versionierung und Releasepaket sind vorbereitet, die produktive Aktivierung muss aber durch den von der IT festgelegten Hosting-Promotionsmechanismus erfolgen. Die Pipeline darf einen gestagten Release nicht als produktiv veroeffentlicht melden.
+Nach dem Push werden Frontend-Manifest, Image-Digest, Tag und Commit zusammen festgehalten. Der Datenstand ist bewusst kein Buildartefakt.
 
-Konkrete Jenkins-Libraries, Credentials-IDs und Scanner duerfen an den Plattformstandard angepasst werden. Die Sicherheits- und Nachweisziele bleiben erhalten.
+## 3. Datenbank und Datenstand vorbereiten
 
-## Benoetigte Software-Factory-Werte
+Der PoC verwendet eine dedizierte PostgreSQL-16-Datenbank. Die API verbindet sich ausschließlich mit ihrer eingeschränkten Laufzeitrolle und führt beim Start weder Schemaänderungen noch einen Datenimport aus.
 
-| Semantischer Wert | Zweck | Zielwert |
-| --- | --- | --- |
-| `ARTIFACT_REGISTRY` | Registry-Pfad fuer API-Image | offen |
-| `API_IMAGE_REPOSITORY` | Repository ohne veraenderlichen Tag | offen |
-| `FRONTEND_BASE_URL` | interner Origin des Frontends | offen |
-| `API_BASE_URL` | same-origin oder freigegebene interne API-Basis | offen |
-| `FRONTEND_TARGET` | internes Hostingziel fuer `dist/target/` | offen |
-| `K8S_NAMESPACE` | Zielnamespace | offen |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` | Shared-Postgres-Verbindung ohne Passwort | offen |
-| `DB_PASSWORD_SECRET_NAME` | Referenz auf zentral verwaltetes Secret | offen |
-| `API_AUTH_MODE` | serverseitiger Identitaetsadapter | Zieldefault `oidc` |
-| `OIDC_ISSUER` | exakt erwarteter Token-Issuer | offen |
-| `OIDC_AUDIENCE` | erwartete Audience des Versorgungs-Kompass | offen |
-| `OIDC_JWKS_URL` | HTTPS-JWKS fuer Signaturpruefung und Keyrotation | offen |
-| `OIDC_EMAIL_CLAIM` | Claim fuer normalisierte E-Mail | offen; Default `email` |
-| `OIDC_SUBJECT_CLAIM` | Claim fuer stabilen Nutzer-Identifier | offen; Default `sub` |
-| `PROFILE_IMAGE_BUCKET` | privater Storage fuer Profilbilder | offen |
-| `CONTACT_IMAGE_BUCKET` | privater Storage fuer Kontaktbilder | offen |
-| `CONTACT_NOTE_ATTACHMENT_BUCKET` | privater Storage fuer Anhaenge | offen |
+Das [PoC-Datenbank-Runbook](../../deploy/postgres/poc-gematik/README.md) beschreibt die Reihenfolge:
 
-Diese drei semantischen Werte verlangen nicht zwingend drei physische Buckets. Stellt die Zielplattform genau einen privaten Anwendungs-Bucket bereit, duerfen alle drei Werte auf denselben Bucket zeigen; die Anwendung trennt Profilbilder, Kontaktbilder und Anhaenge ueber disjunkte Objektpfade. Aufbewahrung, Verschluesselung, Malware-Pruefung, Quoten und Berechtigungen muessen dann fuer den gemeinsamen Bucket beziehungsweise ueber freigegebene Praefixregeln passen.
+1. Schema und Laufzeitrolle anlegen,
+2. freigegebenen Snapshot des aktuellen geschützten Bestands einmalig importieren,
+3. Mengen und Prüfsumme ohne Ausgabe personenbezogener Werte abgleichen,
+4. gematik-OIDC-Subjects den vorgesehenen Profilen zuordnen und
+5. kurzlebige Adminzugänge wieder entfernen.
 
-Der Frontend-Artefaktpfad darf dadurch keinen pauschalen Lesezugriff auf die privaten Uploads erhalten. Bei nur einem fachlichen Daten-Bucket wird das Frontend deshalb ueber den vorgesehenen Plattform-Host, einen getrennten Artefaktbereich mit wirksamer Praefixberechtigung oder ein freigegebenes Frontend-Containerverfahren ausgeliefert.
+Der vorhandene Supabase-zu-GCP-Lauf dokumentiert Datenklassen und Prüfungen, ist aber kein direkt ausführbarer Import in eine beliebige gematik-Plattform. Der aktuelle schreibführende Bestand liegt in Cloud SQL. Der Zieladapter wird deshalb erst nach Kenntnis des Datenbankzugangs und des Objektspeichers festgelegt.
 
-Geheimnisse, private Zertifikate und Tokens stehen weder in Git, Frontend-Artefakt, Buildmanifest noch Klartext-Helm-Values.
+## 4. Helm-Konfiguration prüfen
 
-Die aktuelle Jenkins-Referenz verwendet fuer den Zieldefault `API_AUTH_MODE=oidc` die Credential-IDs `versorgungs-oidc-issuer`, `versorgungs-oidc-audience` und `versorgungs-oidc-jwks-url`. Das sind Referenznamen, keine freigegebenen Plattformwerte. Die Software Factory darf die IDs an ihren Standard anpassen, muss aber Issuer, Audience und JWKS-URL mit derselben Semantik bereitstellen. Die Claims bleiben standardmaessig `email` und `sub`, bis IAM und Anwendung andere freigegebene Claims vereinbaren.
+```bash
+helm lint deploy/helm/versorgungs-kompass
 
-## Target-Frontend
-
-Verbindliche Eigenschaften:
-
-```js
-dataMode: "api",
-authMode: "oidc",
-apiBaseUrl: "https://<freigegebener-interner-origin>",
-requireApiGateway: true
+helm template versorgungs-kompass \
+  deploy/helm/versorgungs-kompass \
+  -f deploy/helm/versorgungs-kompass/values-poc-gematik.yaml \
+  --namespace "<namespace>" \
+  --set image.repository="<registry>/<repository>" \
+  --set image.digest="sha256:<digest>"
 ```
 
-`authMode: "oidc"` ist der Target-Default. `authMode: "iap"` bleibt dem GCP-Pre-Integrationsoverlay vorbehalten. Ein unsignierter `trusted-header`-/`sso`-Modus ist nur als dokumentierte und durch Plattform sowie Informationssicherheit freigegebene Ausnahme zulaessig; der Produktionsdefault des Helm-Vertrags laesst ihn nicht zu.
+Der Plattformadapter ergänzt interne Route, TLS, OIDC-Werte und Secret-Referenzen. Das Chart legt keine Datenbank an und startet keinen Import.
 
-Auslieferung:
+## 5. Bereitstellen
 
-- Target-Build nur aus fuehrenden Quellen, nie aus `dist/pages/`.
-- vorzugsweise versionierte Releasepraefixe beziehungsweise atomarer Aktivwechsel,
-- Cache-Regeln so, dass HTML/Config kontrolliert aktualisiert werden und gehashte Assets lange cachebar bleiben,
-- vorherige freigegebene Revision fuer Rollback verfuegbar,
-- Hash/Manifest und gemeinsame Release-ID im Abnahmeprotokoll.
+1. Target-Frontend mit dem protokollierten Manifest bereitstellen.
+2. API-Image ausschließlich über den protokollierten Digest referenzieren.
+3. Helm-Release im vereinbarten Namespace anwenden.
+4. Rollout und Containerlogs prüfen.
+5. Interne Route für `/` und `/api` aktivieren.
 
-In der Uebergangsphase wird das Frontend nur unter `releases/<git-sha-build>` gestaged; `promotionRequired: true` ist im Stagingmanifest verbindlich. Vor Produktivbetrieb ersetzt oder verarbeitet ein institutioneller Promotionsschritt diese Markierung nachvollziehbar; eine manuelle Bucket-Umschaltung ohne Freigabe- und Rollbacknachweis ist kein Zielverfahren.
+Die Referenzpipeline liegt unter [`deploy/jenkins/Jenkinsfile.gematik`](../../deploy/jenkins/Jenkinsfile.gematik). Namen von Jenkins-Libraries, Credentials und Scannern können an den Plattformstandard angepasst werden.
 
-## API und Runtime-Konfiguration
+## 6. Smoke-Prüfung
 
-Die API laeuft aus `api/Dockerfile`. Beispielhafte Semantik, keine freigegebenen Produktivwerte:
-
-```text
-PORT=8080
-DB_HOST=<shared-postgres-host>
-DB_PORT=5432
-DB_NAME=<database-name>
-DB_USER=<runtime-user>
-DB_PASSWORD=<aus Secret Store/Kubernetes Secret>
-API_AUTH_MODE=oidc
-OIDC_ISSUER=https://<freigegebener-issuer>
-OIDC_AUDIENCE=<freigegebene-audience>
-OIDC_JWKS_URL=https://<freigegebener-jwks-endpunkt>
-OIDC_EMAIL_CLAIM=email
-OIDC_SUBJECT_CLAIM=sub
-ALLOWED_ORIGIN=https://<frontend-origin>
-PROFILE_IMAGE_BUCKET=<private-storage>
-CONTACT_IMAGE_BUCKET=<private-storage>
-CONTACT_NOTE_ATTACHMENT_BUCKET=<private-storage>
-```
-
-Die API-Laufzeitrolle benoetigt DML nur fuer die fachlich erforderlichen Objekte. Sie darf weder Schemaobjekte anlegen/aendern noch Rollen, Extensions oder Backups verwalten.
-
-## Helm-Referenzchart
-
-Aktueller Uebergangspfad:
-
-```text
-deploy/helm/versorgungs-kompass
-```
-
-Das Chart enthaelt unter anderem API-Deployment, Service, optionale Ingress-/GCP-Adapter, ConfigMap, Secret-Referenz, Probes, Ressourcen und Security Context. Es legt im Zielvertrag keine Shared-Postgres-Datenbank und keinen Ziel-Storage an.
-
-Vor Uebernahme prueft die IT:
-
-- Plattformstandard fuer Ingress/Gateway und TLS,
-- OIDC-Issuer/Audience/JWKS/Claims und Sperre unsignierter Produktionsmodi,
-- Network Policies und Egressziele,
-- Pod Security, Service Accounts und Workload Identity,
-- Resource Requests/Limits, Replica-/Autoscalingstrategie und Disruption-Verhalten,
-- Secret-Sync-/Rotation und notwendige Rollouts,
-- Logs, Metriken, Traces, Alerts und Dashboards,
-- Namespace-Quoten, Policies und Deploymentrechte.
-
-Deployment wird per unveraenderlichem Image-Digest oder gleichwertiger revisionsfester Referenz ausgefuehrt. Ein veraenderlicher `latest`-Tag gilt nicht als Abnahmenachweis.
-
-## Gateway-/SSO-Vertrag
-
-Die vorgelagerte Schicht und die API muessen zusammen:
-
-- TLS und interne Zugriffskontrolle durchsetzen,
-- ein signiertes OIDC-/Plattformtoken mit festgelegtem Issuer und Audience bereitstellen,
-- Signatur ueber den freigegebenen JWKS-Endpunkt sowie Issuer, Audience und Claims in der API pruefen,
-- unauthentifizierte Requests vor der Anwendung abweisen,
-- API und Frontend nach dem freigegebenen Routingvertrag bereitstellen.
-
-Die API mappt die Identitaet auf `profiles`; unbekannte oder inaktive Profile erhalten `403`. Browserseitige Rollendarstellung ist keine Autorisierung.
-
-Zu testen:
-
-- oeffentlicher beziehungsweise unauthentifizierter Request,
-- fehlende/ungueltige Signatur, falscher Issuer, falsche Audience und unbekannter Key,
-- gueltige SSO-Identitaet ohne Profil,
-- inaktives Profil,
-- jede Zielrolle und verbotene Schreibaktion,
-- Logout/Sessionablauf gemaess Plattformvertrag.
-
-Falls ausnahmsweise ein unsignierter Trusted-Header-Adapter gefordert wird, benoetigt er eine eigene Architektur-/Security-Freigabe, nachgewiesene Headerbereinigung, eine nicht umgehbare private Vertrauensgrenze und gleichwertige negative Tests. Er ist nicht der vorbereitete Produktionsdefault.
-
-## Shared Postgres und Migration
-
-Shared Postgres wird durch die Plattform bereitgestellt. Das API-Deployment fuehrt keine implizite Produktionmigration beim Pod-Start aus.
-
-Erforderlich sind:
-
-- freigegebene Schema- und Erweiterungsversionen,
-- separate Migrations- und Laufzeitrollen,
-- TLS/Netzfreigabe und Connection-Management,
-- Backup/PITR gemaess beschlossenem RPO,
-- praktisch getesteter Restore gemaess beschlossenem RTO,
-- versionierte Migrationen mit Review und Ausfuehrungsprotokoll,
-- Reconciliation fuer Counts, Constraints und fachliche Stichproben.
-
-Der vollstaendige Ablauf steht in [Migration, Cutover und Rollback](MIGRATION_CUTOVER_ROLLBACK.md). Alte Cloud-Run-/Cloud-SQL-Migrationsentwuerfe und das Pre-Integrationsschema sind keine fuehrende Produktionsmigration.
-
-## Deployment-Ablauf
-
-### 1. Validieren
-
-- eindeutige Revision auschecken,
-- Tests und Scans ausfuehren,
-- `dist/target/` erzeugen und auditieren,
-- API-Image bauen, starten und scannen,
-- Helm/Plattformmanifest rendern,
-- Releasemanifest erzeugen.
-
-### 2. In Abnahme deployen
-
-- exakt freigegebenes Releasepaar verwenden,
-- Gateway-, DB-, Storage- und Rollenvertrag testen,
-- technische und fachliche Smoke Tests ausfuehren,
-- Monitoring-/Alert-Nachweis erzeugen,
-- Rollback mit vorherigem Release praktisch testen.
-
-### 3. Freigeben und promoten
-
-- Definition of Ready bestaetigen,
-- erforderliche Freigaben gemaess RACI einholen,
-- denselben API-Digest und dasselbe Target-Artefakt promoten,
-- Datenmigration im freigegebenen Fenster ausfuehren,
-- Go/No-Go dokumentieren.
-
-### 4. Nachweisen
-
-- [Abnahmeprotokoll](ABNAHMEPROTOKOLL_TEMPLATE.md) ausfuellen,
-- Release-ID, Revision, Digest, Artefakt-Hash und Migration festhalten,
-- Smoke Tests, Counts, Freigaben und Abweichungen verlinken,
-- Hypercare und Legacy-Endzustand nachverfolgen.
-
-## Smoke Tests
-
-Die tatsaechlichen URLs und Authentisierungsmittel folgen dem Plattformvertrag. Mindestens:
+Mindestens geprüft werden:
 
 ```text
 GET /api/healthz
+GET /api/readyz
 GET /api/session
-GET /api/ops/checks     (nur gemaess freigegebenem Betriebszugriff)
 ```
 
-Browserpruefung:
+Zusätzlich:
 
-- internes Frontend ist erreichbar,
-- SSO funktioniert ohne Supabase Auth,
-- keine Supabase-URL, kein Supabase SDK und kein direkter Supabase-Request,
-- Kontakte, Organisationen, Profile, Formate, Hospitationen, Stakeholder und Saved Views laden ueber `/api`,
-- Rollen und Schreibpfade funktionieren erwartungsgemaess,
-- unbekannte/inaktive Nutzer und Viewer-Schreibversuche werden abgewiesen,
-- Karte, Auswertung, Datenqualitaet und Dateiabrufe sind plausibel.
+- internes Frontend und OIDC-Anmeldung funktionieren,
+- Frontend und API verwenden denselben HTTPS-Origin,
+- die Anwendung lädt Daten ausschließlich über `/api`,
+- eine benannte Lese- und eine Schreibrolle können den vereinbarten Kernablauf nutzen,
+- unbekannte oder inaktive Identitäten werden abgewiesen und
+- Logs und Nachweise enthalten keine Datensätze, Subjects oder Tokens.
 
-## Rollback
+## Release-Nachweis
 
-- Frontend: vorherige versionierte Target-Revision atomar aktivieren.
-- API: vorherigen schema-kompatiblen Digest beziehungsweise Helm-Release aktivieren.
-- Datenbank: keine automatische Down-Migration. Restore oder Forward Fix nur nach freigegebenem Datenverfahren.
-- Nach produktiven Zielschreibzugriffen: keine blosse Rueckschaltung auf Legacy; zuerst Datenstrategie und Reconciliation entscheiden.
+Für jeden RC werden kompakt festgehalten:
 
-Fuehrend ist [Migration, Cutover und Rollback](MIGRATION_CUTOVER_ROLLBACK.md).
+- RC-Tag und Commit,
+- Frontend-Manifest,
+- API-Image und Digest,
+- verwendete PoC-Konfiguration,
+- Schema-Digest und Datenrichtlinie,
+- Ergebnis der automatisierten Prüfungen und
+- Datum und Ergebnis des Smoke-Tests.
 
-## Definition of Ready und Done
-
-Die uebergreifenden Kriterien stehen in [IT-Uebergabe Zielbetrieb](IT_UEBERGABE_ZIELBETRIEB.md). Die [Deployment-Checkliste](DEPLOYMENT_CHECKLIST.md) operationalisiert sie fuer Releases.
-
-## Offene Zielbetriebsentscheidungen
-
-- Software-Factory-Projekt, Registry, Namespace und Zielpfade,
-- internes Hosting, URL, DNS, TLS und Routing,
-- Gateway-/SSO-Produkt, Header und Account-Lifecycle,
-- Shared-Postgres-, Storage- und Secret-Management-Vertrag,
-- Image-Signierung, Attestierung, SBOM-Ablage und Promotion,
-- Logs, Monitoring, Alerts, Service Desk und Incident-Prozess,
-- Datenklasse, Pilotumfang, Retention und Loeschung,
-- SLO, RTO, RPO und Wartungsfenster,
-- institutionelle Code Owner, Branchschutz und Freigaberegeln.
-
-Diese Punkte werden im Entscheidungsregister der [IT-Uebergabe](IT_UEBERGABE_ZIELBETRIEB.md) gefuehrt und nicht aus `pre-gematik` abgeleitet.
+Der geschützte Importnachweis nennt separat nur Snapshot-Zeitpunkt, freigegebene Datenklassen, Mengen, Prüfsumme und Ergebnis. `main`, lokale Varianten und GitHub Pages können nach dem Tag weiterentwickelt werden; Änderungen am PoC erfolgen über einen neuen RC.

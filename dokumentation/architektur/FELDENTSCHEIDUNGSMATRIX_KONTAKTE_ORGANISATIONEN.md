@@ -2,7 +2,7 @@
 
 Stand: 11. Juli 2026
 
-Diese Matrix begrenzt die erste Umsetzung bewusst auf wenige P0-Felder. Das #Mitmachen-Einwilligungsmodell bleibt in Stufe 1 absichtlich kontaktbezogen und einfach; feinere Zwecke, Kanaele und Ereignishistorie folgen spaeter.
+Diese Matrix begrenzt die erste Umsetzung bewusst auf wenige P0-Felder. Das #Mitmachen-Einwilligungsmodell bleibt in Stufe 1 absichtlich kontaktbezogen und einfach; feinere Zwecke, Kanäle und Ereignishistorie folgen später.
 
 ## Entscheidungsmatrix
 

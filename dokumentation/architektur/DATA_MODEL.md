@@ -1,10 +1,10 @@
 # Datenmodell Versorgungs-Kompass
 
-Stand: abgeleitet aus `supabase/schema.sql`, `frontend/data/sector-registry.js`, `frontend/data/data-service.js` und `api/care-sector-model.mjs`. Historische Postgres-Migrationsentwuerfe liegen nur noch im Archiv.
+Stand: abgeleitet aus `supabase/schema.sql`, `frontend/data/sector-registry.js`, `frontend/data/data-service.js` und `api/care-sector-model.mjs`. Historische Postgres-Migrationsentwürfe liegen nur noch im Archiv.
 
-Zielbild-Hinweis: Supabase bleibt in diesem Dokument als Ursprungsschema und Migrationsquelle sichtbar. Die neue gematik-Zielarchitektur fuehrt das relationale Modell in Shared PostgreSQL weiter.
+Zielbild-Hinweis: Supabase bleibt in diesem Dokument als Ursprungsschema und Migrationsquelle sichtbar. Die neue gematik-Zielarchitektur führt das relationale Modell in Shared PostgreSQL weiter.
 
-## Ueberblick
+## Überblick
 
 Der produktive Ziel-Datenbestand liegt in Shared PostgreSQL. Das bisherige Supabase-Schema `public` bleibt die wichtigste Migrationsquelle. Die App nutzt fachlich diese Tabellen:
 
@@ -27,7 +27,7 @@ Der produktive Ziel-Datenbestand liegt in Shared PostgreSQL. Das bisherige Supab
 - `stakeholder_organizations`
 - `stakeholder_people`
 
-Nicht im aktuellen Schema vorhanden sind eigene Tabellen fuer `imports`, `topics`, `contact_topics`, Befragungsantworten oder Einladungen. Fachliche Aktivitaeten liegen in `activity_events`; Importlaeufe bleiben ueber ihre Herkunft am Ereignis erkennbar. Themen liegen direkt als Array im Kontakt.
+Nicht im aktuellen Schema vorhanden sind eigene Tabellen für `imports`, `topics`, `contact_topics`, Befragungsantworten oder Einladungen. Fachliche Aktivitäten liegen in `activity_events`; Importläufe bleiben über ihre Herkunft am Ereignis erkennbar. Themen liegen direkt als Array im Kontakt.
 
 ## Beziehungen
 
@@ -65,9 +65,9 @@ erDiagram
 
 ## Fachmodell Versorgungssektoren
 
-Der Sektorkatalog ist ein kontrolliertes Fachmodell fuer `contacts.sector` (im Frontend `category`) und `organizations.sector`. Seine kanonische Quelle ist `frontend/data/sector-registry.js`; `api/care-sector-model.mjs` setzt denselben Vertrag serverseitig durch. Die Datenbankfelder bleiben aus Migrations- und Importkompatibilitaet Textfelder und bilden keine eigene relationale Entitaet.
+Der Sektorkatalog ist ein kontrolliertes Fachmodell für `contacts.sector` (im Frontend `category`) und `organizations.sector`. Seine kanonische Quelle ist `frontend/data/sector-registry.js`; `api/care-sector-model.mjs` setzt denselben Vertrag serverseitig durch. Die Datenbankfelder bleiben aus Migrations- und Importkompatibilität Textfelder und bilden keine eigene relationale Entität.
 
-Die Auswahl eines Sektors ist nicht von vorhandenen Kontakten oder Organisationen abhaengig. Filter, Karte und Formulare muessen immer den vollstaendigen Katalog anbieten. Ein Sektor ohne Kontakt ist deshalb ein gueltiger sichtbarer Zustand und kein Grund, ihn aus der Anwendung auszublenden.
+Die Auswahl eines Sektors ist nicht von vorhandenen Kontakten oder Organisationen abhängig. Filter, Karte und Formulare müssen immer den vollständigen Katalog anbieten. Ein Sektor ohne Kontakt ist deshalb ein gültiger sichtbarer Zustand und kein Grund, ihn aus der Anwendung auszublenden.
 
 | ID | Kanonischer Wert | Wichtige kompatible Aliase | Abdeckungsziel |
 | --- | --- | --- | --- |
@@ -75,46 +75,46 @@ Die Auswahl eines Sektors ist nicht von vorhandenen Kontakten oder Organisatione
 | `krankenhaus` | Krankenhaus | Klinik, Fachklinik, Akutkrankenhaus | ja |
 | `apotheke` | Apotheke | Vor-Ort-Apotheke | ja |
 | `pflege` | Pflege | Pflegeeinrichtung, Pflegedienst | ja |
-| `krankenkasse` | Krankenkasse | Kasse, Kostentraeger, GKV, PKV | ja |
+| `krankenkasse` | Krankenkasse | Kasse, Kostenträger, GKV, PKV | ja |
 | `labor` | Labor | Medizinisches Labor, Labordiagnostik | ja |
 | `physio-heilmittel` | Physio / Heilmittel | Therapie, Physio/Heilmittel, Physiotherapie, Ergo-, Logo- und Podologie, Heilmittelpraxis | ja |
 | `hebammen` | Hebammen | Hebamme, Geburtshilfe | ja |
-| `notfallversorgung` | Notfallversorgung | Rettungsdienst, Notaufnahme, Krankentransport, aerztlicher Bereitschaftsdienst | ja |
+| `notfallversorgung` | Notfallversorgung | Rettungsdienst, Notaufnahme, Krankentransport, ärztlicher Bereitschaftsdienst | ja |
 | `reha` | Reha | Rehabilitation, Rehaklinik | ja |
-| `hilfsmittel` | Hilfsmittel | Hilfsmittelerbringer, Sanitaetshaus, Homecare | ja |
+| `hilfsmittel` | Hilfsmittel | Hilfsmittelerbringer, Sanitätshaus, Homecare | ja |
 | `sozialdienst` | Sozialdienst | Beratungsstelle, Sozialberatung | nein |
-| `oegd` | ÖGD | OeGD, Oeffentlicher Gesundheitsdienst, Gesundheitsamt | nein |
+| `oegd` | ÖGD | ÖGD, Öffentlicher Gesundheitsdienst, Gesundheitsamt | nein |
 
-`Abdeckungsziel = ja` bedeutet, dass der Sektor in der Lueckenanalyse als angestrebte Versorgungsperspektive zaehlt. Werte mit `nein` bleiben vollwertig auswaehlbar und sichtbar, werden aber nicht als verpflichtende Mindestabdeckung bewertet.
+`Abdeckungsziel = ja` bedeutet, dass der Sektor in der Lückenanalyse als angestrebte Versorgungsperspektive zählt. Werte mit `nein` bleiben vollwertig auswählbar und sichtbar, werden aber nicht als verpflichtende Mindestabdeckung bewertet.
 
-Regeln fuer Lesen und Schreiben:
+Regeln für Lesen und Schreiben:
 
 - Die API kanonisiert bekannte Aliase, zum Beispiel `Therapie` zu `Physio / Heilmittel` und `Rettungsdienst` zu `Notfallversorgung`.
 - Ein leerer Sektor bleibt leer; er wird nicht stillschweigend als `Praxis` klassifiziert.
 - Neue unbekannte Werte werden mit HTTP `400` abgelehnt. Legacy-Freitext kann lesbar bleiben, bis er fachlich bereinigt wird, darf aber nicht erneut als neuer Sektor gespeichert werden.
-- `Digital Health` ist ausdruecklich kein Versorgungssektor. Es gehoert je nach Datensatz in Themen, Rolle/Berufsgruppe, Organisationstyp oder einen Digitalisierungskontext. Bestehende Vorkommen werden nicht als Sektor ausgeliefert und muessen bei der naechsten Datenpflege fachlich zugeordnet werden.
-- Kontakt und Organisation duerfen unterschiedliche Sektoren tragen. Beim Anlegen kann die Organisation den Kontakt vorbelegen; eine spaetere Aenderung wird nicht automatisch auf die jeweils andere Entitaet kaskadiert.
+- `Digital Health` ist ausdrücklich kein Versorgungssektor. Es gehört je nach Datensatz in Themen, Rolle/Berufsgruppe, Organisationstyp oder einen Digitalisierungskontext. Bestehende Vorkommen werden nicht als Sektor ausgeliefert und müssen bei der nächsten Datenpflege fachlich zugeordnet werden.
+- Kontakt und Organisation dürfen unterschiedliche Sektoren tragen. Beim Anlegen kann die Organisation den Kontakt vorbelegen; eine spätere Änderung wird nicht automatisch auf die jeweils andere Entität kaskadiert.
 - Gleichnamige Felder in Hospitationen, Stakeholder-Modellen oder Befragungen beschreiben ihren jeweiligen Kontext und sind nicht automatisch an diesen Versorgungskatalog gebunden.
 
 ## Tabelle `profiles`
 
 Zweck:
 
-- Nutzerprofile fuer angemeldete Supabase-Auth-Nutzer.
-- Rollensteuerung fuer Admin, Editor und Viewer.
+- Nutzerprofile für angemeldete Supabase-Auth-Nutzer.
+- Rollensteuerung für Admin, Editor und Viewer.
 - Owner-Auswahl in Kontakten.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | UUID, entspricht `auth.users.id`, Primaerschluessel. |
+| `id` | UUID, entspricht `auth.users.id`, Primärschlüssel. |
 | `email` | Login-/Kontaktadresse. |
 | `display_name` | Anzeigename in App und Owner-Auswahl. |
 | `initials` | Kurzlabel/Avatar. |
 | `role` | `admin`, `editor` oder `viewer`. |
-| `avatar_url` | Geschuetzte Bildreferenz; die API liefert bei Bedarf eine kurzlebige, autorisierte Anzeige-URL. |
-| `team` | Optionaler Team-/Bereichshinweis fuer das Nutzerprofil. |
+| `avatar_url` | Geschützte Bildreferenz; die API liefert bei Bedarf eine kurzlebige, autorisierte Anzeige-URL. |
+| `team` | Optionaler Team-/Bereichshinweis für das Nutzerprofil. |
 | `bio` | Optionale Kurzbeschreibung im Nutzerprofil. |
 | `active` | Nur aktive Profile werden in der App geladen. |
 | `created_at`, `updated_at` | Zeitstempel. |
@@ -124,7 +124,7 @@ UI-Nutzung:
 - Login-/Profilanzeige.
 - Rollenhinweise.
 - Owner-Auswahl in Kontaktformularen.
-- Anzeige im Aenderungsverlauf.
+- Anzeige im Änderungsverlauf.
 - Profilfoto in Sidebar, Nutzerbereich und Owner-Badges.
 
 Kritische Felder:
@@ -138,48 +138,48 @@ Automatisch gesetzt:
 - Neues Profil wird durch Trigger `handle_new_user()` nach erstem Auth-Login angelegt.
 - `created_at` und `updated_at` haben Defaults.
 
-Duerfen Nutzer bearbeiten:
+Dürfen Nutzer bearbeiten:
 
-- Nutzer duerfen das eigene Profil fuer `display_name`, `initials`, `avatar_url`, `team` und `bio` aktualisieren.
+- Nutzer dürfen das eigene Profil für `display_name`, `initials`, `avatar_url`, `team` und `bio` aktualisieren.
 - `email`, `role` und `active` sind nicht durch die Profil-UI editierbar.
-- Admins pflegen Rollen weiterhin ausserhalb der Profilseite in Supabase.
+- Admins pflegen Rollen weiterhin außerhalb der Profilseite in Supabase.
 
 ## Tabelle `contacts`
 
 Zweck:
 
-- Zentrale Tabelle fuer Versorgungskontakte.
-- Grundlage fuer Liste, Detailprofil, Suche, Filter, Karte, Auswertung, Datenqualitaet und Archiv.
+- Zentrale Tabelle für Versorgungskontakte.
+- Grundlage für Liste, Detailprofil, Suche, Filter, Karte, Auswertung, Datenqualität und Archiv.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | Text-ID, Primaerschluessel, bleibt ueber Imports stabil. |
+| `id` | Text-ID, Primärschlüssel, bleibt über Imports stabil. |
 | `name` | Kontaktname, Pflichtfeld. |
-| `organization_id` | Optionaler Verweis auf `organizations.id`. MVP-Verknuepfung Kontakt zu Organisation. |
+| `organization_id` | Optionaler Verweis auf `organizations.id`. MVP-Verknüpfung Kontakt zu Organisation. |
 | `organization` | Organisation/Einrichtung als bestehender Freitext-Fallback. Bleibt erhalten. |
-| `sector` | Kanonischer Versorgungssektor gemaess Abschnitt „Fachmodell Versorgungssektoren“, im UI als `category`; leer ist zulaessig und hat keinen Praxis-Fallback. |
+| `sector` | Kanonischer Versorgungssektor gemäß Abschnitt „Fachmodell Versorgungssektoren“, im UI als `category`; leer ist zulässig und hat keinen Praxis-Fallback. |
 | `specialty` | Fachrichtung. |
 | `role` | Funktion bzw. Rolle der Person in der Versorgung oder Organisation. |
 | `priority` | `Hoch`, `Mittel`, `Niedrig`; Default `Mittel`. |
 | `owner_id` | Verweis auf `profiles.id`. |
 | `postal_code`, `city`, `federal_state` | Standortdaten. |
-| `latitude`, `longitude` | Koordinaten fuer Kartenansicht. |
+| `latitude`, `longitude` | Koordinaten für Kartenansicht. |
 | `email`, `phone`, `linkedin` | Kontaktdaten. |
-| `mitmachen_consent_status` | Status fuer den einheitlichen Zweck "#Mitmachen – Kontaktaufnahme fuer Beteiligungsformate": `granted`, `not_requested`, `declined`, `withdrawn` oder `clarification_needed`. |
-| `mitmachen_consent_effective_at` | Zeitpunkt der Erklaerung, Ablehnung oder des Widerrufs. |
+| `mitmachen_consent_status` | Status für den einheitlichen Zweck "#Mitmachen – Kontaktaufnahme für Beteiligungsformate": `granted`, `not_requested`, `declined`, `withdrawn` oder `clarification_needed`. |
+| `mitmachen_consent_effective_at` | Zeitpunkt der Erklärung, Ablehnung oder des Widerrufs. |
 | `mitmachen_consent_source` | Dokumentationsquelle: `online_form`, `email`, `written`, `verbal_confirmed` oder `manual_transfer`. |
 | `mitmachen_consent_text_version` | Version des zugrunde liegenden Einwilligungstextes. |
 | `mitmachen_consent_recorded_by` | Profil, das den Status nachvollziehbar erfasst hat. |
-| `mitmachen_consent_note` | Nachweis- oder Klaerungsvermerk; bei ausdruecklich muendlicher Einwilligung Pflicht. |
+| `mitmachen_consent_note` | Nachweis- oder Klärungsvermerk; bei ausdrücklich mündlicher Einwilligung Pflicht. |
 | `topics` | Themen als Textarray. |
 | `notes` | Notizen. |
 | `source` | Quellen/Importhinweise als Text. |
 | `image_url` | Bildpfad oder URL. |
 | `image_source_url` | Optional dokumentierte URL der Bildquelle. |
 | `image_source_label` | Menschlich lesbare Bildquellenbezeichnung. |
-| `image_rights_note` | Kurzer Hinweis zur geprueften Quelle/Nutzung; keine Rechtsbewertung. |
+| `image_rights_note` | Kurzer Hinweis zur geprüften Quelle/Nutzung; keine Rechtsbewertung. |
 | `image_updated_at` | Zeitpunkt der letzten Bild-/Bildquellenpflege. |
 | `image_updated_by` | Profil, das Bild-/Bildquellenfelder zuletzt gepflegt hat. |
 | `status` | `active` oder `archived`. |
@@ -190,18 +190,18 @@ UI-Nutzung:
 
 - Kontaktliste, Suche und Filter.
 - Detailprofil und Bearbeitungsformular.
-- Eigener Reiter `Einwilligung` fuer den #Mitmachen-Status; E-Health-Community-Mitgliedschaft oder Teilnahmehistorie erzeugen keine automatische Freigabe.
-- Rolle in Schnellerfassung, Import, Profil und Datenqualitaet.
+- Eigener Reiter `Einwilligung` für den #Mitmachen-Status; E-Health-Community-Mitgliedschaft oder Teilnahmehistorie erzeugen keine automatische Freigabe.
+- Rolle in Schnellerfassung, Import, Profil und Datenqualität.
 - Kontaktbild und Abschnitt `Bild & Quelle`; ohne Bild zeigt die UI Initialen.
 - Klickbare Organisation im Kontaktprofil, sofern `organization_id` oder passender Freitext vorhanden ist.
-- Kartenansicht ueber Koordinaten.
-- Auswertung und Datenqualitaets-Ansicht.
-- Archivansicht fuer Admins.
+- Kartenansicht über Koordinaten.
+- Auswertung und Datenqualitäts-Ansicht.
+- Archivansicht für Admins.
 - CSV-Export der sichtbaren/geladenen Kontakte.
 
 Kritische Felder:
 
-- `id`: darf nicht versehentlich veraendert werden.
+- `id`: darf nicht versehentlich verändert werden.
 - `name`: Pflichtfeld und zentrale Suche.
 - `status`: steuert Archiv/aktive Sichtbarkeit.
 - `owner_id`: fachliche Verantwortung und Filter.
@@ -210,7 +210,7 @@ Kritische Felder:
 - `priority`, `sector`, `specialty`, `federal_state`: Filter und Auswertung.
 - `role`: fachliche Einordnung des Kontakts; kein Berechtigungs- oder Einwilligungsstatus.
 - `mitmachen_consent_status` und seine Nachweisfelder: steuern, ob eine allgemeine #Mitmachen-Kontaktaufnahme dokumentiert freigegeben ist.
-- `image_url` und Bildquellenfelder: rein manuelle Dokumentation, keine automatische Bilduebernahme.
+- `image_url` und Bildquellenfelder: rein manuelle Dokumentation, keine automatische Bildübernahme.
 
 Automatisch gesetzt:
 
@@ -218,10 +218,10 @@ Automatisch gesetzt:
 - `updated_at` per Trigger `contacts_touch_updated_at`.
 - `created_by` und `updated_by` werden vom Data-Service beim Erstellen gesetzt.
 - `updated_by` wird beim Speichern gesetzt.
-- Neue Kontakte starten mit `not_requested`. Die Einfuehrungsmigration setzt den unbewerteten Altbestand einmalig auf `clarification_needed`.
-- Optionale #Mitmachen-Einwilligungen aus dem Versorgungs-Netzwerk werden bei Uebernahme strukturiert am Kontakt gespeichert.
+- Neue Kontakte starten mit `not_requested`. Die Einführungsmigration setzt den unbewerteten Altbestand einmalig auf `clarification_needed`.
+- Optionale #Mitmachen-Einwilligungen aus dem Versorgungs-Netzwerk werden bei Übernahme strukturiert am Kontakt gespeichert.
 
-Duerfen Nutzer bearbeiten:
+Dürfen Nutzer bearbeiten:
 
 - Editor/Admin: aktive Kontakte.
 - Admin: Archivieren und Wiederherstellen.
@@ -229,29 +229,29 @@ Duerfen Nutzer bearbeiten:
 
 Fachliche Abgrenzung:
 
-- Grundlage fuer den gemeinsamen Zweck ist die gematik-Datenschutzerklaerung unter <https://www.gematik.de/datenschutz>.
+- Grundlage für den gemeinsamen Zweck ist die gematik-Datenschutzerklärung unter <https://www.gematik.de/datenschutz>.
 - Die gesonderte Registrierung der E-Health Community unter <https://e-health-community.gematik.de/> wird nicht automatisch als allgemeine #Mitmachen-Einwilligung gewertet.
-- Eine laufende bilaterale KOL-Zusammenarbeit ist keine pauschale Verteilerfreigabe. Ohne ausdruecklich dokumentierte Bestaetigung bleibt der Kontakt `clarification_needed`.
+- Eine laufende bilaterale KOL-Zusammenarbeit ist keine pauschale Verteilerfreigabe. Ohne ausdrücklich dokumentierte Bestätigung bleibt der Kontakt `clarification_needed`.
 
 ## Tabelle `organizations`
 
 Zweck:
 
-- Eigene CRM-Entitaet fuer Einrichtungen, Institutionen und Unternehmen hinter Versorgungskontakten.
-- Grundlage fuer den Hauptbereich "Organisationen", Organisationsliste und Organisationsprofil.
-- Sichtbar machen, dass mehrere Personen einer Organisation zugeordnet sein koennen.
+- Eigene CRM-Entität für Einrichtungen, Institutionen und Unternehmen hinter Versorgungskontakten.
+- Grundlage für den Hauptbereich "Organisationen", Organisationsliste und Organisationsprofil.
+- Sichtbar machen, dass mehrere Personen einer Organisation zugeordnet sein können.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | UUID, Primaerschluessel. |
+| `id` | UUID, Primärschlüssel. |
 | `name` | Organisationsname, Pflichtfeld. |
-| `normalized_name` | Normalisierter Vergleichswert fuer Suche, Migration und spaetere Dublettenpruefung. |
-| `sector` | Kanonischer Versorgungssektor gemaess Abschnitt „Fachmodell Versorgungssektoren“; die Organisation bleibt auch ohne zugeordneten Kontakt sichtbar. |
-| `organization_type` | Optionaler Organisationstyp, z. B. Universitaetsklinikum oder Pflegeeinrichtung. |
+| `normalized_name` | Normalisierter Vergleichswert für Suche, Migration und spätere Dublettenprüfung. |
+| `sector` | Kanonischer Versorgungssektor gemäß Abschnitt „Fachmodell Versorgungssektoren“; die Organisation bleibt auch ohne zugeordneten Kontakt sichtbar. |
+| `organization_type` | Optionaler Organisationstyp, z. B. Universitätsklinikum oder Pflegeeinrichtung. |
 | `postal_code`, `city`, `federal_state` | Standortdaten. |
-| `latitude`, `longitude` | Optionale Koordinaten fuer spaetere Kartenintegration. |
+| `latitude`, `longitude` | Optionale Koordinaten für spätere Kartenintegration. |
 | `website`, `phone`, `email` | Kontaktwege der Organisation. |
 | `notes` | Organisationsnotiz. |
 | `source` | Quelle des Organisationsdatensatzes. |
@@ -265,20 +265,20 @@ UI-Nutzung:
 - Organisationsliste mit Suche, Sektor-/Bundeslandfilter, Standort, Kontaktanzahl und Aktualisierung.
 - Organisationsprofil mit Stammdaten, Themen aus zugeordneten Kontakten, Notizen und Abschnitt "Zugeordnete Kontakte".
 - Pflege und Anzeige mehrerer Primärsysteme pro Organisation; verknüpfte Kontakte zeigen diese Information abgeleitet an.
-- Vom Organisationsprofil aus koennen Kontakte geoeffnet, zugeordnet oder neu fuer diese Organisation angelegt werden.
+- Vom Organisationsprofil aus können Kontakte geöffnet, zugeordnet oder neu für diese Organisation angelegt werden.
 
 Migrationslogik:
 
-- Migration `supabase/migrations/20260516_create_organizations.sql` legt `organizations` an und ergaenzt `contacts.organization_id`.
+- Migration `supabase/migrations/20260516_create_organizations.sql` legt `organizations` an und ergänzt `contacts.organization_id`.
 - Bestehende eindeutige `contacts.organization`-Freitextwerte werden getrimmt, mit zusammengefassten Leerzeichen normalisiert und als erste Organisationen angelegt.
-- Unsichere Dubletten wie "UKB" und "Universitaetsklinikum Bonn" werden nicht automatisch zusammengefuehrt.
+- Unsichere Dubletten wie "UKB" und "Universitätsklinikum Bonn" werden nicht automatisch zusammengeführt.
 - Danach werden Kontakte per normalisiertem Freitext auf die neue Organisation verlinkt.
 
-Duerfen Nutzer bearbeiten:
+Dürfen Nutzer bearbeiten:
 
 - Viewer: lesen.
 - Editor/Admin: Organisationen anlegen und bearbeiten, Kontakte zuordnen.
-- Admin: spaeter archivieren/zusammenfuehren; vollstaendige Dublettenpflege ist nicht Teil von Sprint 4.
+- Admin: später archivieren/zusammenführen; vollständige Dublettenpflege ist nicht Teil von Sprint 4.
 
 ## Tabelle `organization_primary_systems`
 
@@ -318,81 +318,81 @@ Rechte:
 
 Zweck:
 
-- Vorbereitendes Datenmodell fuer einen möglichen später freigegebenen #Mitmachen-Intake; die aktuelle Repo-Konzeptdemo schreibt keine Daten.
-- Trennung ungeklaerter Eingänge vom aktiven Kontakt- und Organisationsbestand.
-- Strukturierte Erfassung von Profilstand, beruflichem Kontext, Organisation, Primaersystem, TI-Anwendungen und getrennten Einwilligungsnachweisen.
+- Vorbereitendes Datenmodell für einen möglichen später freigegebenen #Mitmachen-Intake; die aktuelle Repo-Konzeptdemo schreibt keine Daten.
+- Trennung ungeklärter Eingänge vom aktiven Kontakt- und Organisationsbestand.
+- Strukturierte Erfassung von Profilstand, beruflichem Kontext, Organisation, Primärsystem, TI-Anwendungen und getrennten Einwilligungsnachweisen.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `submission_id` | Eindeutige Browser-Einreichung fuer idempotente Retries ohne Doppelzeile. |
+| `submission_id` | Eindeutige Browser-Einreichung für idempotente Retries ohne Doppelzeile. |
 | `status` | Arbeitsstatus von `neu` bis `uebernommen`, `verknuepft`, `abgelehnt` oder `widerrufen`. |
-| `onboarding_stage` | Stand der gestuften Registrierung: Kurzregistrierung, begonnenes/vollstaendiges Profil oder Verifizierung. |
+| `onboarding_stage` | Stand der gestuften Registrierung: Kurzregistrierung, begonnenes/vollständiges Profil oder Verifizierung. |
 | `first_name`, `last_name`, `email` | Minimale Identifikation der registrierenden Person. |
 | `professional_group`, `role`, `employment_status`, `years_in_profession_band`, `age_group` | Forschungs- und Zielgruppenprofil der Person. |
 | `organization`, `sector`, `postal_code`, `city`, `federal_state`, `employee_count_band` | Organisations- und Standortkontext. |
-| `primary_system_*`, `ti_applications` | Digitale Arbeitsumgebung; bei Uebernahme wird ein Primaersystem strukturiert an der Organisation ergaenzt. |
-| `participation_formats`, `interest_topics` | Auswahlmerkmale fuer passende Beteiligungsformate. |
-| `consent_processing_*`, `consent_contact_*`, `privacy_notice_version` | Getrennte, versionierte Nachweise fuer Registrierung und optionale allgemeine #Mitmachen-Kontaktaufnahme. |
-| `email_confirmation_status`, `email_confirmed_at` | Besitznachweis der E-Mail-Adresse; bis zur Bestaetigung darf keine Einwilligung als aktiv uebernommen werden. |
-| `retention_review_at` | Zeitpunkt, zu dem die weitere Aufbewahrung fachlich geprueft werden muss. |
-| `contact_id`, `organization_id`, `processed_at`, `processed_by` | Nachvollziehbare Zuordnung nach der Admin-Pruefung. |
+| `primary_system_*`, `ti_applications` | Digitale Arbeitsumgebung; bei Übernahme wird ein Primärsystem strukturiert an der Organisation ergänzt. |
+| `participation_formats`, `interest_topics` | Auswahlmerkmale für passende Beteiligungsformate. |
+| `consent_processing_*`, `consent_contact_*`, `privacy_notice_version` | Getrennte, versionierte Nachweise für Registrierung und optionale allgemeine #Mitmachen-Kontaktaufnahme. |
+| `email_confirmation_status`, `email_confirmed_at` | Besitznachweis der E-Mail-Adresse; bis zur Bestätigung darf keine Einwilligung als aktiv übernommen werden. |
+| `retention_review_at` | Zeitpunkt, zu dem die weitere Aufbewahrung fachlich geprüft werden muss. |
+| `contact_id`, `organization_id`, `processed_at`, `processed_by` | Nachvollziehbare Zuordnung nach der Admin-Prüfung. |
 
 Sicherheitsmodell:
 
 - Ein später freigegebener öffentlicher Prozess dürfte ausschließlich über einen geschützten serverseitigen Intake schreiben. Die aktuelle Landingpage ist technisch inert; die vorhandene Edge Function ist kein aktiver Vertrag der Konzeptdemo.
-- `anon` hat auf der Intake-Tabelle weder Lese- noch Schreibrechte. Nur die Edge Function schreibt mit Service-Identitaet.
-- Ausschliesslich Admins duerfen Intake-Zeilen lesen oder loeschen. Schreibrechte sind auf Workflow-, Zuordnungs- und Prueffelder begrenzt; Identitaet, Profilantworten und Einwilligungsnachweise sind unveraenderlich.
-- `network_registration_rate_limits` speichert nur per HMAC und geheimem Pepper pseudonymisierte technische Fingerprints fuer ein kurzes Missbrauchsfenster und ist fuer Browserrollen vollstaendig gesperrt. Ein atomarer SQL-Zaehler verhindert parallele Lost Updates.
-- Kontakte und Organisationen werden nicht direkt aus dem oeffentlichen Formular heraus angelegt.
+- `anon` hat auf der Intake-Tabelle weder Lese- noch Schreibrechte. Nur die Edge Function schreibt mit Service-Identität.
+- Ausschließlich Admins dürfen Intake-Zeilen lesen oder löschen. Schreibrechte sind auf Workflow-, Zuordnungs- und Prüffelder begrenzt; Identität, Profilantworten und Einwilligungsnachweise sind unveränderlich.
+- `network_registration_rate_limits` speichert nur per HMAC und geheimem Pepper pseudonymisierte technische Fingerprints für ein kurzes Missbrauchsfenster und ist für Browserrollen vollständig gesperrt. Ein atomarer SQL-Zähler verhindert parallele Lost Updates.
+- Kontakte und Organisationen werden nicht direkt aus dem öffentlichen Formular heraus angelegt.
 
 Bewusste Grenze:
 
-- Der Status fuer Double-Opt-in beziehungsweise einen belastbaren manuellen E-Mail-Nachweis ist umgesetzt. Automatischer E-Mail-Versand, Bestaetigungslink, Teilnehmerkonto, Incentives und Befragungsantworten sind noch keine Funktionen dieses Schemas.
-- Der Reiter `Registrierungskonzept` zeigt diese Schritte ausschließlich als mögliches Zukunftsszenario. Eine Aktivierung erfordert einen realen gematik-Prozess sowie abgestimmte Datenschutzinformationen, Loeschfristen, Auftragsverarbeitung und gegebenenfalls eine DSFA-Pruefung.
+- Der Status für Double-Opt-in beziehungsweise einen belastbaren manuellen E-Mail-Nachweis ist umgesetzt. Automatischer E-Mail-Versand, Bestätigungslink, Teilnehmerkonto, Incentives und Befragungsantworten sind noch keine Funktionen dieses Schemas.
+- Der Reiter `Registrierungskonzept` zeigt diese Schritte ausschließlich als mögliches Zukunftsszenario. Eine Aktivierung erfordert einen realen gematik-Prozess sowie abgestimmte Datenschutzinformationen, Löschfristen, Auftragsverarbeitung und gegebenenfalls eine DSFA-Prüfung.
 
 ## Tabellen `stakeholder_types`, `stakeholder_organizations`, `stakeholder_people`
 
 Zweck:
 
-- Eigenstaendige Stakeholder-Bereiche wie KVen, Krankenkassen, Patientenverbaende, Krankenhausgesellschaften und aerztliche Berufsverbaende.
-- `stakeholder_types` definiert den Bereich, `stakeholder_organizations` enthaelt die Organisationen, `stakeholder_people` enthaelt Personen und Rollen in diesen Bereichen.
+- Eigenständige Stakeholder-Bereiche wie KVen, Krankenkassen, Patientenverbände, Krankenhausgesellschaften und ärztliche Berufsverbände.
+- `stakeholder_types` definiert den Bereich, `stakeholder_organizations` enthält die Organisationen, `stakeholder_people` enthält Personen und Rollen in diesen Bereichen.
 - Mitgliederzahlen sind Datenpflegefelder an `stakeholder_organizations`, nicht automatisch berechnete UI-Werte.
 
 Mitgliederzahlen:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `member_count` | Numerischer Wert fuer Mitglieder, Versicherte oder eine fachlich dokumentierte Ersatzgroesse. |
-| `member_count_source_url` | Quelle fuer den Wert. |
+| `member_count` | Numerischer Wert für Mitglieder, Versicherte oder eine fachlich dokumentierte Ersatzgröße. |
+| `member_count_source_url` | Quelle für den Wert. |
 | `member_count_source_label` | Kurz lesbare Quellenangabe. |
 | `member_count_updated_at` | Stand oder Erhebungsdatum des Werts. |
-| `member_count_scope` | Einordnung, was genau gezaehlt wurde. |
+| `member_count_scope` | Einordnung, was genau gezählt wurde. |
 
 Pflegeweg:
 
 - Stakeholderdaten werden nicht mehr im Repository oder im GitHub-Pages-Artefakt ausgeliefert.
-- Die geschuetzte Anwendung liest sie ausschliesslich ueber die authentifizierte API aus `stakeholder_organizations`; historische Quellstaende liegen zugriffsgeschuetzt in `private.protected_source_snapshots`.
-- `logo_url` ist im geschuetzten Ziel entweder leer oder eine validierte logische Referenz `private://stakeholder-logos/<objektpfad>`. Externe HTTP(S)-URLs sind dort nicht zulaessig; die API liefert Altwerte fail-closed nicht an den Browser aus.
-- Ein Logo wird ausschliesslich ueber `GET /api/stakeholder-logos/:id` aus dem privaten Bucket ausgeliefert. Objektpfad, Groesse, MIME-Typ und Dateiinhalt werden serverseitig geprueft; der Browser erhaelt weder Bucket-Zugang noch eine dauerhafte GCS-URL.
-- Sichtbare Korrekturen werden als geschuetzte Datenpflege oder kontrollierter Backfill vorgenommen.
-- Eine automatische Aktualisierung oeffentlicher Mitgliederzahlen ist ein separater Datenjob mit Quellenpruefung, Konfliktlogik und Live-Backfill. Sie ist kein Teil normaler UI-Fixes.
+- Die geschützte Anwendung liest sie ausschließlich über die authentifizierte API aus `stakeholder_organizations`; historische Quellstände liegen zugriffsgeschützt in `private.protected_source_snapshots`.
+- `logo_url` ist im geschützten Ziel entweder leer oder eine validierte logische Referenz `private://stakeholder-logos/<objektpfad>`. Externe HTTP(S)-URLs sind dort nicht zulässig; die API liefert Altwerte fail-closed nicht an den Browser aus.
+- Ein Logo wird ausschließlich über `GET /api/stakeholder-logos/:id` aus dem privaten Bucket ausgeliefert. Objektpfad, Größe, MIME-Typ und Dateiinhalt werden serverseitig geprüft; der Browser erhält weder Bucket-Zugang noch eine dauerhafte GCS-URL.
+- Sichtbare Korrekturen werden als geschützte Datenpflege oder kontrollierter Backfill vorgenommen.
+- Eine automatische Aktualisierung öffentlicher Mitgliederzahlen ist ein separater Datenjob mit Quellenprüfung, Konfliktlogik und Live-Backfill. Sie ist kein Teil normaler UI-Fixes.
 
 ## Tabelle `formats`
 
 Zweck:
 
-- Planungsobjekte fuer Roundtables, Fachgespraeche, Workshops und Veranstaltungen.
-- Ersetzt externe Excel-Einladungslisten durch CRM-verknuepfte Formate.
+- Planungsobjekte für Roundtables, Fachgespräche, Workshops und Veranstaltungen.
+- Ersetzt externe Excel-Einladungslisten durch CRM-verknüpfte Formate.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | UUID, Primaerschluessel. |
+| `id` | UUID, Primärschlüssel. |
 | `title` | Titel des Formats, Pflichtfeld. |
-| `format_type` | Typ, z. B. Roundtable, Fachgespraech, Workshop oder Veranstaltung. |
+| `format_type` | Typ, z. B. Roundtable, Fachgespräch, Workshop oder Veranstaltung. |
 | `starts_at`, `ends_at` | Optionaler Zeitraum. |
 | `location` | Ort, Raum oder Online-Hinweis. |
 | `goal` | Thema oder Ziel der Runde. |
@@ -405,15 +405,15 @@ Wichtigste Felder:
 
 Zweck:
 
-- Verknuepft bestehende Kontakte mit einem Format.
+- Verknüpft bestehende Kontakte mit einem Format.
 - Speichert nur Einladungs- und Planungsinformationen; Kontakt- und Organisationsdaten bleiben in `contacts` bzw. `organizations`.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | UUID, Primaerschluessel. |
-| `format_id` | Verweis auf `formats.id`, wird beim Loeschen des Formats entfernt. |
+| `id` | UUID, Primärschlüssel. |
+| `format_id` | Verweis auf `formats.id`, wird beim Löschen des Formats entfernt. |
 | `contact_id` | Verweis auf `contacts.id`. |
 | `invitation_status` | `Kandidat`, `Eingeladen`, `Zugesagt`, `Abgesagt`, `Keine Rückmeldung` oder `Teilgenommen`. |
 | `participant_role` | Rolle im Format, z. B. Sprecherin, Teilnehmer, Moderation. |
@@ -423,26 +423,26 @@ Wichtigste Felder:
 Kritische Regeln:
 
 - `format_id` und `contact_id` sind eindeutig kombiniert; ein Kontakt kann pro Format nur einmal auftauchen.
-- Viewer lesen Formate und Teilnehmer, Editor/Admin pflegen sie, nur Admins loeschen Formate.
+- Viewer lesen Formate und Teilnehmer, Editor/Admin pflegen sie, nur Admins löschen Formate.
 
 ## Tabelle `hospitation_slots`
 
 Zweck:
 
-- Interne Terminangebote fuer Hospitationen.
-- Grundlage fuer direkte Buchungen durch Editor/Admin.
+- Interne Terminangebote für Hospitationen.
+- Grundlage für direkte Buchungen durch Editor/Admin.
 - Optionaler Bezug zu Kontakt oder Organisation, falls ein Slot bereits fachlich vorgeplant ist.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | UUID, Primaerschluessel. |
+| `id` | UUID, Primärschlüssel. |
 | `contact_id` | Optionaler Verweis auf `contacts.id`. |
 | `organization_id` | Optionaler Verweis auf `organizations.id`. |
 | `starts_at`, `ends_at` | Zeitraum des angebotenen Termins; `starts_at` ist Pflicht. |
 | `location` | Ort, Einrichtung, Raum oder Online-Hinweis. |
-| `capacity` | Interne Kapazitaet, mindestens 1. |
+| `capacity` | Interne Kapazität, mindestens 1. |
 | `owner_id` | Verantwortliches Profil. |
 | `status` | `Frei`, `Reserviert`, `Gebucht`, `Abgesagt` oder `Archiviert`. |
 | `notes` | Interne Terminnotiz. |
@@ -452,7 +452,7 @@ Wichtigste Felder:
 
 Zweck:
 
-- Eigenes CRM-Modell fuer Hospitationsanfragen, Buchungen, Durchfuehrung und Dokumentation.
+- Eigenes CRM-Modell für Hospitationsanfragen, Buchungen, Durchführung und Dokumentation.
 - Erfasst Versorgungskontakte und Organisationen, ohne Hospitationen als `formats`-Spezialfall zu behandeln.
 - Sichtbar im Arbeitsbereich `Hospitationen` und in Kontakt-/Organisationsprofilen.
 
@@ -460,7 +460,7 @@ Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | UUID, Primaerschluessel. |
+| `id` | UUID, Primärschlüssel. |
 | `slot_id` | Optionaler Verweis auf `hospitation_slots.id`. |
 | `contact_id` | Optionaler Verweis auf `contacts.id`. |
 | `organization_id` | Optionaler Verweis auf `organizations.id`. |
@@ -473,7 +473,7 @@ Wichtigste Felder:
 | `goal` | Ziel oder Anlass der Hospitation. |
 | `topics` | Themenliste als Textarray. |
 | `request_note` | Interne Anfrage- oder Planungsnotiz. |
-| `documentation_summary` | Pflicht-Minimum fuer die Ergebnisnotiz nach Durchfuehrung. |
+| `documentation_summary` | Pflicht-Minimum für die Ergebnisnotiz nach Durchführung. |
 | `documentation_outcome` | Auswertung, Ergebnis oder fachliche Einordnung. |
 | `follow_up_note`, `follow_up_owner_id`, `follow_up_due_at` | Nachverfolgung offener Aufgaben. |
 | `documented_at`, `documented_by` | Dokumentationszeitpunkt und dokumentierendes Profil. |
@@ -511,7 +511,7 @@ Codebook-Werte:
 Kritische Regeln:
 
 - Viewer lesen aktive Hospitationen und Slots.
-- Editor/Admin koennen Hospitationen anfragen, buchen, durchfuehren und dokumentieren.
+- Editor/Admin können Hospitationen anfragen, buchen, durchführen und dokumentieren.
 - Archivierte Hospitationen und Slots bleiben Admins vorbehalten.
 
 ## Tabelle `hospitation_observations`
@@ -550,9 +550,9 @@ Persistenzregeln:
 
 Zweck:
 
-- Aenderungsverlauf je Kontakt.
+- Änderungsverlauf je Kontakt.
 - Nachvollziehbarkeit von Erstellen, Bearbeiten, Archivieren und Importen.
-- Technischer Audit- und Recovery-Verlauf; keine fachliche Aktivitaeten-Timeline.
+- Technischer Audit- und Recovery-Verlauf; keine fachliche Aktivitäten-Timeline.
 
 Wichtigste Felder:
 
@@ -561,18 +561,18 @@ Wichtigste Felder:
 | `id` | Fortlaufende ID. |
 | `contact_id` | Verweis auf `contacts.id`. |
 | `action` | `create`, `update`, `archive` oder `import`. |
-| `field_name` | Geaendertes Feld, falls feldbezogen. |
+| `field_name` | Geändertes Feld, falls feldbezogen. |
 | `old_value` | Alter Wert als Text. |
 | `new_value` | Neuer Wert als Text. |
-| `changed_at` | Zeitpunkt der Aenderung. |
+| `changed_at` | Zeitpunkt der Änderung. |
 | `changed_by` | Verweis auf `profiles.id`. |
 | `activity_event_id` | Optionaler Verweis auf das kanonische fachliche Ereignis desselben Kontakts. |
-| `canonicalized_at` | Zeitpunkt, zu dem die Legacy-Zeile mit dem kanonischen Ereignis verknuepft wurde. |
+| `canonicalized_at` | Zeitpunkt, zu dem die Legacy-Zeile mit dem kanonischen Ereignis verknüpft wurde. |
 
 UI-Nutzung:
 
-- Aenderungsverlauf im Kontakt-Detailprofil.
-- Importereignisse werden als Historieneintraege sichtbar.
+- Änderungsverlauf im Kontakt-Detailprofil.
+- Importereignisse werden als Historieneinträge sichtbar.
 - Recovery einzelner falscher Bearbeitungen.
 
 Kritische Felder:
@@ -584,90 +584,90 @@ Automatisch gesetzt:
 
 - `id` als Identity.
 - `changed_at` per Default.
-- App/Skripte schreiben Logeintraege nach Create, Update, Archive und Import.
+- App/Skripte schreiben Logeinträge nach Create, Update, Archive und Import.
 
-Duerfen Nutzer bearbeiten:
+Dürfen Nutzer bearbeiten:
 
-- Die App fuegt Eintraege fuer Editor/Admin hinzu.
-- Eintraege sollten nicht manuell geaendert oder geloescht werden.
+- Die App fügt Einträge für Editor/Admin hinzu.
+- Einträge sollten nicht manuell geändert oder gelöscht werden.
 
 Abgrenzung zu `activity_events`:
 
-- `changes` bleibt die feldnahe Quelle fuer Audit und Recovery eines Kontakts.
-- Ein fachlicher Vorgang kann mehrere `changes`-Zeilen erzeugen, erscheint aber als ein verstaendliches Ereignis in `activity_events`.
-- Neue Aktivitaeten duerfen deshalb nicht allein aus einem einzelnen geaenderten Feld abgeleitet werden; der jeweilige Schreibvorgang erzeugt zusaetzlich einen stabilen fachlichen Ereignisschluessel.
-- `activity_event_id` und `canonicalized_at` sind entweder gemeinsam gesetzt oder gemeinsam leer. Die zusammengesetzte Fremdschluesselbeziehung erzwingt, dass `changes.contact_id` und `activity_events.contact_id` uebereinstimmen.
+- `changes` bleibt die feldnahe Quelle für Audit und Recovery eines Kontakts.
+- Ein fachlicher Vorgang kann mehrere `changes`-Zeilen erzeugen, erscheint aber als ein verständliches Ereignis in `activity_events`.
+- Neue Aktivitäten dürfen deshalb nicht allein aus einem einzelnen geänderten Feld abgeleitet werden; der jeweilige Schreibvorgang erzeugt zusätzlich einen stabilen fachlichen Ereignisschlüssel.
+- `activity_event_id` und `canonicalized_at` sind entweder gemeinsam gesetzt oder gemeinsam leer. Die zusammengesetzte Fremdschlüsselbeziehung erzwingt, dass `changes.contact_id` und `activity_events.contact_id` übereinstimmen.
 
 ## Tabelle `activity_events`
 
 Zweck:
 
-- Append-only-Ereignisstrom fuer die globale Aktivitaeten-Seite und den Aktivitaeten-Reiter eines Kontakts.
+- Append-only-Ereignisstrom für die globale Aktivitäten-Seite und den Aktivitäten-Reiter eines Kontakts.
 - Fachlich konkrete Ereignisse wie `contact.created`, `hospitation.created` oder `format.invitation.created` statt eines allgemeinen Typs "Update".
 - Getrennte Speicherung von fachlicher Kategorie und technischer Herkunft, damit beispielsweise eine importierte Kontaktanlage fachlich `master_data` und technisch `data_import` bleibt.
-- Kontrollierte Uebernahme historischer Ereignisse mit idempotenter Legacy-Referenz und eindeutig gekennzeichnetem Fallback `unknown`.
+- Kontrollierte Übernahme historischer Ereignisse mit idempotenter Legacy-Referenz und eindeutig gekennzeichnetem Fallback `unknown`.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | Fortlaufende `bigint`-Identity und Primaerschluessel. |
-| `event_key` | Stabiler, punktgetrennter Ereignisschluessel, zum Beispiel `contact.created`. Nicht eindeutig, weil derselbe Typ beliebig oft auftreten darf. |
+| `id` | Fortlaufende `bigint`-Identity und Primärschlüssel. |
+| `event_key` | Stabiler, punktgetrennter Ereignisschlüssel, zum Beispiel `contact.created`. Nicht eindeutig, weil derselbe Typ beliebig oft auftreten darf. |
 | `category` | Fachbereich: `master_data`, `ownership`, `consent`, `hospitation`, `format`, `note_document` oder `unknown`. |
 | `action` | Maschinenlesbare Aktion innerhalb des Ereignisses, zum Beispiel `created`, `updated` oder `archived`. |
-| `entity_type`, `entity_id` | Primaer betroffenes Objekt. IDs bleiben als Text gespeichert, weil die Fachobjekte unterschiedliche Schluesseltypen verwenden. |
-| `contact_id` | Optionaler direkter Kontaktbezug fuer den Kontaktverlauf. Bei `entity_type = contact` ist er verpflichtend und muss `entity_id` entsprechen. Jeder Kontaktverweis in `references` muss exakt dieselbe ID tragen. |
-| `actor_id` | Optionaler Akteur aus `profiles`; wird beim Loeschen des Profils auf `null` gesetzt. Der interne Server-Writer setzt ihn aus der authentifizierten Session. |
-| `occurred_at` | Fachlicher Ereigniszeitpunkt; kann bei einer Legacy-Uebernahme vor `created_at` liegen. |
+| `entity_type`, `entity_id` | Primär betroffenes Objekt. IDs bleiben als Text gespeichert, weil die Fachobjekte unterschiedliche Schlüsseltypen verwenden. |
+| `contact_id` | Optionaler direkter Kontaktbezug für den Kontaktverlauf. Bei `entity_type = contact` ist er verpflichtend und muss `entity_id` entsprechen. Jeder Kontaktverweis in `references` muss exakt dieselbe ID tragen. |
+| `actor_id` | Optionaler Akteur aus `profiles`; wird beim Löschen des Profils auf `null` gesetzt. Der interne Server-Writer setzt ihn aus der authentifizierten Session. |
+| `occurred_at` | Fachlicher Ereigniszeitpunkt; kann bei einer Legacy-Übernahme vor `created_at` liegen. |
 | `origin_type` | Technische Herkunft: `manual`, `data_import`, `public_registration`, `system` oder `legacy`. |
 | `origin_ref` | Optionale Referenz auf Importlauf, Registrierung, Systemprozess oder andere Herkunft. |
-| `correlation_id` | Optionale Klammer fuer mehrere Ereignisse desselben fachlichen Vorgangs. |
+| `correlation_id` | Optionale Klammer für mehrere Ereignisse desselben fachlichen Vorgangs. |
 | `references` | JSON-Array mit weiteren betroffenen Objekten, beispielsweise Format und Hospitation. |
-| `changes` | JSON-Objekt mit optionalen, fuer die Aktivitaetsanzeige relevanten Vorher-/Nachher-Werten. |
-| `metadata` | JSON-Objekt fuer zusaetzlichen nicht normierten Kontext; keine vertraulichen Inhalte ohne fachliche Freigabe. |
+| `changes` | JSON-Objekt mit optionalen, für die Aktivitätsanzeige relevanten Vorher-/Nachher-Werten. |
+| `metadata` | JSON-Objekt für zusätzlichen nicht normierten Kontext; keine vertraulichen Inhalte ohne fachliche Freigabe. |
 | `legacy_source`, `legacy_id` | Gepaarte Referenz auf einen historischen Quelldatensatz. Beide Werte sind gemeinsam gesetzt oder gemeinsam `null`; das Paar ist eindeutig. |
 | `created_at` | Zeitpunkt, zu dem das Ereignis im Kompass gespeichert wurde. |
 
-JSON-Vertraege:
+JSON-Verträge:
 
 - `references` ist immer ein Array aus kompakten Objektverweisen, zum Beispiel `[{"type":"format","id":"...","label":"Roundtable Primärversorgung"}]`.
 - `changes` ist immer ein Objekt. Empfohlene Form: `{"owner_id":{"before":"...","after":"..."}}`.
-- `metadata` ist immer ein Objekt. Produzenten duerfen hier nur ergaenzenden Kontext speichern, der nicht bereits als kanonisches Feld vorhanden ist.
+- `metadata` ist immer ein Objekt. Produzenten dürfen hier nur ergänzenden Kontext speichern, der nicht bereits als kanonisches Feld vorhanden ist.
 
 Indizes und Idempotenz:
 
 - Globale Timeline: `occurred_at desc`.
 - Kategorieansicht: `category, occurred_at desc`.
-- Partielle Kontakt- und Akteurindizes fuer vorhandene Referenzen.
+- Partielle Kontakt- und Akteurindizes für vorhandene Referenzen.
 - Zusammengesetzter Objektindex auf `entity_type`, `entity_id` und `occurred_at`.
-- Partieller Unique-Index auf `legacy_source`, `legacy_id` verhindert eine doppelte Uebernahme derselben historischen Zeile.
+- Partieller Unique-Index auf `legacy_source`, `legacy_id` verhindert eine doppelte Übernahme derselben historischen Zeile.
 
 RLS und Schreibmodell:
 
-- Admins duerfen alle Ereignisse lesen. Viewer und Editoren sehen nur Ereignisse ohne Kontaktbezug oder Ereignisse aktiver Kontakte; Aktivitaeten archivierter Kontakte bleiben verborgen.
-- Authentifizierte Browser-Clients besitzen ausschliesslich `SELECT`: keine Sequenzrechte, keine Insert-Policy und keine Rechte fuer Update oder Delete.
-- Ausschliesslich der privilegierte serverseitige Writer besitzt `INSERT` und Sequenzrechte. Auch fuer ihn bleiben Update und Delete gesperrt, damit das Ledger append-only ist; der Schluessel darf nie im Frontend verwendet werden.
-- Fachliche Mutationen schreiben Domainaenderung, Audit-Zeilen, kanonisches Ereignis und die Verknuepfung der Audit-Zeilen in einer Transaktion. `actor_id`, Objekt- und Kontaktbezug stammen aus dem validierten Servervorgang, nicht aus frei formulierbaren Browserdaten.
+- Admins dürfen alle Ereignisse lesen. Viewer und Editoren sehen nur Ereignisse ohne Kontaktbezug oder Ereignisse aktiver Kontakte; Aktivitäten archivierter Kontakte bleiben verborgen.
+- Authentifizierte Browser-Clients besitzen ausschließlich `SELECT`: keine Sequenzrechte, keine Insert-Policy und keine Rechte für Update oder Delete.
+- Ausschließlich der privilegierte serverseitige Writer besitzt `INSERT` und Sequenzrechte. Auch für ihn bleiben Update und Delete gesperrt, damit das Ledger append-only ist; der Schlüssel darf nie im Frontend verwendet werden.
+- Fachliche Mutationen schreiben Domainänderung, Audit-Zeilen, kanonisches Ereignis und die Verknüpfung der Audit-Zeilen in einer Transaktion. `actor_id`, Objekt- und Kontaktbezug stammen aus dem validierten Servervorgang, nicht aus frei formulierbaren Browserdaten.
 
 Trennung von `activity_events.changes` und `public.changes`:
 
-- `activity_events.changes` ist optionaler Darstellungskontext innerhalb genau eines fachlichen Ereignisses. Es muss nicht jede technische Feldmutation enthalten und ist keine vollstaendige Versionierung.
-- `public.changes` bleibt die feinere Audit-/Recovery-Historie des Kontakts und kann mehrere Zeilen fuer denselben Vorgang enthalten.
-- Die globale Aktivitaeten-Seite liest waehrend der Migration beide Quellen. Verknuepfte `changes`-Zeilen werden anhand der monotonen Event-ID ausgeblendet, sobald das zugehoerige kanonische Ereignis zum Snapshot gehoert. Dadurch bleibt ein bereits laufender Cursor stabil, ohne von synchronen Uhren abzuhaengen.
-- Wiederherstellungsfunktionen duerfen weiterhin `public.changes` verwenden.
+- `activity_events.changes` ist optionaler Darstellungskontext innerhalb genau eines fachlichen Ereignisses. Es muss nicht jede technische Feldmutation enthalten und ist keine vollständige Versionierung.
+- `public.changes` bleibt die feinere Audit-/Recovery-Historie des Kontakts und kann mehrere Zeilen für denselben Vorgang enthalten.
+- Die globale Aktivitäten-Seite liest während der Migration beide Quellen. Verknüpfte `changes`-Zeilen werden anhand der monotonen Event-ID ausgeblendet, sobald das zugehörige kanonische Ereignis zum Snapshot gehört. Dadurch bleibt ein bereits laufender Cursor stabil, ohne von synchronen Uhren abzuhängen.
+- Wiederherstellungsfunktionen dürfen weiterhin `public.changes` verwenden.
 
 ## Tabelle `saved_views`
 
 Zweck:
 
-- Gespeicherte Ansichten/Sichten fuer Kontakte, Organisationen, Karte und Auswertung.
+- Gespeicherte Ansichten/Sichten für Kontakte, Organisationen, Karte und Auswertung.
 - Private Sichten und Team-Sichten.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | UUID, Primaerschluessel. |
+| `id` | UUID, Primärschlüssel. |
 | `owner_id` | Besitzerprofil. |
 | `name`, `description` | Name und Beschreibung. |
 | `scope` | `private` oder `team`. |
@@ -675,19 +675,19 @@ Wichtigste Felder:
 | `filters` | Filter als JSON. |
 | `search_query` | Suchtext. |
 | `sort_key`, `sort_direction` | Sortierung. |
-| `page_size` | Tabellenlaenge. |
+| `page_size` | Tabellenlänge. |
 | `is_default` | Standardsicht. |
 | `created_at`, `updated_at` | Zeitstempel. |
 
 UI-Nutzung:
 
-- Gespeicherte Ansichten werden ausserhalb des Filterpanels gefuehrt, z. B. im kompakten Ansichts-Dropdown `Ansicht: Alle Kontakte` oder im Einstellungsbereich.
-- Eine gespeicherte Ansicht kann Suche, Filter, Sortierung, Seitengroesse und spaeter sichtbare Spalten enthalten.
+- Gespeicherte Ansichten werden außerhalb des Filterpanels geführt, z. B. im kompakten Ansichts-Dropdown `Ansicht: Alle Kontakte` oder im Einstellungsbereich.
+- Eine gespeicherte Ansicht kann Suche, Filter, Sortierung, Seitengröße und später sichtbare Spalten enthalten.
 - Das Filterpanel setzt nur aktuelle Filter; es verwaltet keine gespeicherten Ansichten.
 
 Kritische Felder:
 
-- `scope`: Team-Sichten sind fuer alle sichtbar.
+- `scope`: Team-Sichten sind für alle sichtbar.
 - `filters`: bestimmt die fachliche Sicht.
 - `owner_id`: steuert private Sichtbarkeit.
 
@@ -696,28 +696,28 @@ Automatisch gesetzt:
 - `id`, `created_at`, `updated_at`.
 - `updated_at` per Trigger.
 
-Duerfen Nutzer bearbeiten:
+Dürfen Nutzer bearbeiten:
 
-- Nutzer koennen eigene Sichten verwalten.
-- Admins koennen Team-Sichten verwalten.
+- Nutzer können eigene Sichten verwalten.
+- Admins können Team-Sichten verwalten.
 
 ## Tabelle `user_settings`
 
 Zweck:
 
-- Persoenliche Einstellungen pro Nutzer.
+- Persönliche Einstellungen pro Nutzer.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `user_id` | Verweis auf `profiles.id`, Primaerschluessel. |
+| `user_id` | Verweis auf `profiles.id`, Primärschlüssel. |
 | `default_view_id` | Optionale Standardsicht. |
 | `default_view_type` | `contacts`, `organizations`, `formats`, `hospitations`, `map` oder `analytics`. |
 | `table_density` | `compact`, `comfortable`, `spacious`. |
 | `theme` | `system`, `light`, `contrast`. |
-| `font_scale` | Schriftgroesse zwischen 0.9 und 1.2. |
-| `page_size` | Standard-Tabellenlaenge. |
+| `font_scale` | Schriftgröße zwischen 0.9 und 1.2. |
+| `page_size` | Standard-Tabellenlänge. |
 | `preferences` | Weitere Einstellungen als JSON. |
 | `created_at`, `updated_at` | Zeitstempel. |
 
@@ -730,12 +730,12 @@ UI-Nutzung:
 Kritische Felder:
 
 - `user_id`: Nutzer darf nur eigene Einstellungen lesen/schreiben.
-- `default_view_id`: kann auf geloeschte/veraenderte Sichten zeigen, wird bei geloeschter Sicht auf `null` gesetzt.
+- `default_view_id`: kann auf gelöschte/veränderte Sichten zeigen, wird bei gelöschter Sicht auf `null` gesetzt.
 
 Hinweis:
 
 - `default_view_type` erlaubt `contacts`, `organizations`, `formats`, `hospitations`, `map` und `analytics`.
-- `table_density = compact` reduziert die Tabellenhoehe.
+- `table_density = compact` reduziert die Tabellenhöhe.
 - Benachrichtigungen sind nur als boolean `notificationsEnabled` vorbereitet; es gibt noch kein Notification-Center, keinen E-Mail-Versand und keine Push-Logik.
 
 Automatisch gesetzt:
@@ -743,7 +743,7 @@ Automatisch gesetzt:
 - `created_at`, `updated_at`.
 - `updated_at` per Trigger.
 
-Duerfen Nutzer bearbeiten:
+Dürfen Nutzer bearbeiten:
 
 - Jeder angemeldete Nutzer nur die eigenen Einstellungen.
 
@@ -751,40 +751,40 @@ Duerfen Nutzer bearbeiten:
 
 Zweck:
 
-- Server-seitige Zuordnung kurzer Login-Kuerzel zu Supabase-Auth-E-Mail-Adressen.
+- Server-seitige Zuordnung kurzer Login-Kürzel zu Supabase-Auth-E-Mail-Adressen.
 - Komfort-Login im Versorgungs-Kompass, ohne die E-Mail-Zuordnung in Frontend-Dateien auszuliefern.
 
 Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `alias` | Login-Kuerzel, klein geschrieben, eindeutig, z. B. `timo`. |
-| `email` | Zugehoerige Supabase-Auth-E-Mail-Adresse. |
+| `alias` | Login-Kürzel, klein geschrieben, eindeutig, z. B. `timo`. |
+| `email` | Zugehörige Supabase-Auth-E-Mail-Adresse. |
 | `profile_id` | Optionaler Bezug zum Profil in `public.profiles`. |
-| `active` | Steuert, ob das Kuerzel fuer Login-Aufloesung verwendet wird. |
+| `active` | Steuert, ob das Kürzel für Login-Auflösung verwendet wird. |
 | `created_at`, `updated_at` | Zeitstempel. |
 
 UI-Nutzung:
 
-- Das Login-Formular akzeptiert Kuerzel oder E-Mail.
-- Die Supabase Edge Function `login-with-alias` loest Kuerzel serverseitig auf und meldet danach mit E-Mail und Passwort bei Supabase Auth an.
+- Das Login-Formular akzeptiert Kürzel oder E-Mail.
+- Die Supabase Edge Function `login-with-alias` löst Kürzel serverseitig auf und meldet danach mit E-Mail und Passwort bei Supabase Auth an.
 
 Kritische Felder:
 
 - `alias`, weil es der sichtbare Login-Identifier ist.
 - `email`, weil es auf den echten Supabase Auth User zeigen muss.
-- `active`, weil damit Kuerzel deaktiviert werden koennen, ohne den Auth User oder das Profil zu loeschen.
+- `active`, weil damit Kürzel deaktiviert werden können, ohne den Auth User oder das Profil zu löschen.
 
-Duerfen Nutzer bearbeiten:
+Dürfen Nutzer bearbeiten:
 
 - Normale Nutzer lesen oder bearbeiten `login_aliases` nicht direkt.
-- Pflege erfolgt administrativ ueber SQL/Supabase Dashboard oder Service-Role-Kontext.
+- Pflege erfolgt administrativ über SQL/Supabase Dashboard oder Service-Role-Kontext.
 
 ## Views und Funktionen
 
 | Objekt | Zweck |
 | --- | --- |
-| `public.current_profile_role()` | Liefert Rolle des aktuell angemeldeten aktiven Profils fuer RLS-Policies. |
+| `public.current_profile_role()` | Liefert Rolle des aktuell angemeldeten aktiven Profils für RLS-Policies. |
 | `public.touch_updated_at()` | Aktualisiert `updated_at` bei Updates. |
 | `public.handle_new_user()` | Legt nach Supabase-Auth-Registrierung ein Profil an. |
 
@@ -792,48 +792,48 @@ Duerfen Nutzer bearbeiten:
 
 Zweck:
 
-- Ablage von Profilbildern fuer angemeldete Nutzer.
+- Ablage von Profilbildern für angemeldete Nutzer.
 - Dateipfad: `<auth.uid()>/avatar.<jpg|png|webp>`.
 - Erlaubte Typen: `image/jpeg`, `image/png`, `image/webp`.
-- Groessenlimit: 5 MB.
+- Größenlimit: 5 MB.
 
 RLS/Policy-Hinweise:
 
-- Authentifizierte Nutzer duerfen nur im eigenen Ordner hochladen, ersetzen und loeschen.
+- Authentifizierte Nutzer dürfen nur im eigenen Ordner hochladen, ersetzen und löschen.
 - Der Bucket ist privat. Es gibt keine anonyme Lesepolicy.
-- Lesen und Anzeigen erfolgen ausschliesslich autorisiert ueber die geschuetzte API beziehungsweise kurzlebige signierte URLs; dauerhafte oeffentliche Profilbild-URLs werden nicht gespeichert.
+- Lesen und Anzeigen erfolgen ausschließlich autorisiert über die geschützte API beziehungsweise kurzlebige signierte URLs; dauerhafte öffentliche Profilbild-URLs werden nicht gespeichert.
 
 ## Storage `stakeholder-logos`
 
 - Der Zielbucket ist privat, verwendet Uniform Bucket-Level Access, Public Access Prevention und Versionierung.
-- Der kanonische Datenbankwert ist `private://stakeholder-logos/<objektpfad>`; externe Logo-URLs sind im geschuetzten Zielvertrag ausgeschlossen.
-- Nur der API-Workload besitzt Objekt-Leserechte. Frontend, GitHub-Pages-Demo und Deployment-Identitaet erhalten keinen Zugriff auf Logo-Inhalte.
-- Die API akzeptiert ausschliesslich den freigegebenen Bildvertrag und liefert SVG mit restriktiver Content Security Policy aus. Unsichere, strukturell ungueltige oder uebergrosse Quelldateien werden vor einer Migration quarantänisiert und nicht still uebernommen.
+- Der kanonische Datenbankwert ist `private://stakeholder-logos/<objektpfad>`; externe Logo-URLs sind im geschützten Zielvertrag ausgeschlossen.
+- Nur der API-Workload besitzt Objekt-Leserechte. Frontend, GitHub-Pages-Demo und Deployment-Identität erhalten keinen Zugriff auf Logo-Inhalte.
+- Die API akzeptiert ausschließlich den freigegebenen Bildvertrag und liefert SVG mit restriktiver Content Security Policy aus. Unsichere, strukturell ungültige oder übergroße Quelldateien werden vor einer Migration quarantänisiert und nicht still übernommen.
 
 ## RLS- und Rechtehinweise
 
-- RLS ist fuer alle genannten Tabellen aktiv.
-- `authenticated` hat technische Grants, konkrete Aktionen werden durch Policies eingeschraenkt.
-- Viewer duerfen nicht schreiben.
-- Editor/Admin duerfen aktive Kontakte erstellen und bearbeiten.
-- Admins duerfen archivieren/wiederherstellen und Profile verwalten.
-- Service-Role darf fuer lokale Admin-Skripte alles, darf aber nie ins Frontend.
+- RLS ist für alle genannten Tabellen aktiv.
+- `authenticated` hat technische Grants, konkrete Aktionen werden durch Policies eingeschränkt.
+- Viewer dürfen nicht schreiben.
+- Editor/Admin dürfen aktive Kontakte erstellen und bearbeiten.
+- Admins dürfen archivieren/wiederherstellen und Profile verwalten.
+- Service-Role darf für lokale Admin-Skripte alles, darf aber nie ins Frontend.
 
 ## Kontaktanlage Sprint E
 
 Die Kontaktanlage verwendet weiterhin `contacts`; es gibt keine neue Datenquelle und kein neues Bulk-Datenmodell.
 
-- Einzelkontakt und Online-Tabelle schreiben ueber `window.dataService.createContact()` nach Supabase.
+- Einzelkontakt und Online-Tabelle schreiben über `window.dataService.createContact()` nach Supabase.
 - Pflichtfeld in der UI ist `name`.
-- Defaults: `priority = Mittel`, `status = active`, `owner_id` wird gesetzt, wenn ein Profil ausgewaehlt ist; sonst bleibt Owner leer.
-- Online-Tabelle validiert je Zeile: fehlender Name, ungueltige E-Mail, grob ungueltige Telefonnummer und unbekannter Sektor sind Fehler.
-- Online-Tabelle warnt bei fehlender Organisation, fehlendem Ort/Bundesland, fehlendem Owner, fehlender Fachrichtung, moeglicher Dublette und fehlendem Kontaktweg.
-- Dublettenpruefung ist nur eine UI-Warnung gegen den aktuell geladenen Kontaktbestand; sie ersetzt keine eindeutigen Datenbank-Constraints.
+- Defaults: `priority = Mittel`, `status = active`, `owner_id` wird gesetzt, wenn ein Profil ausgewählt ist; sonst bleibt Owner leer.
+- Online-Tabelle validiert je Zeile: fehlender Name, ungültige E-Mail, grob ungültige Telefonnummer und unbekannter Sektor sind Fehler.
+- Online-Tabelle warnt bei fehlender Organisation, fehlendem Ort/Bundesland, fehlendem Owner, fehlender Fachrichtung, möglicher Dublette und fehlendem Kontaktweg.
+- Dublettenprüfung ist nur eine UI-Warnung gegen den aktuell geladenen Kontaktbestand; sie ersetzt keine eindeutigen Datenbank-Constraints.
 - Dateiimport bleibt CSV/Excel plus Mapping; Online-Tabelle ist manuelle tabellarische Anlage ohne Datei-Upload und ohne Importprofil.
 
-## Hinweise fuer spaetere Features
+## Hinweise für spätere Features
 
-- Organisationen sind seit Sprint 4 eigene Datensaetze. Eine spaetere Ausbaustufe kann Mehrfachzuordnungen ueber `contact_organizations` und Dubletten-Zusammenfuehrung ergaenzen.
-- Neue fachliche Aktivitaeten werden in `activity_events` geschrieben; `changes` bleibt Audit/Recovery und darf nicht zur primaeren Aktivitaeten-Timeline werden.
-- Importhistorie koennte spaeter eine eigene Tabelle bekommen; aktuell helfen `changes.action = 'import'`, Importberichte und Batch-Hinweise.
-- Themen sind aktuell `contacts.topics`; bei wachsender Taxonomie koennen `topics` und `contact_topics` sinnvoll werden.
+- Organisationen sind seit Sprint 4 eigene Datensätze. Eine spätere Ausbaustufe kann Mehrfachzuordnungen über `contact_organizations` und Dubletten-Zusammenführung ergänzen.
+- Neue fachliche Aktivitäten werden in `activity_events` geschrieben; `changes` bleibt Audit/Recovery und darf nicht zur primären Aktivitäten-Timeline werden.
+- Importhistorie könnte später eine eigene Tabelle bekommen; aktuell helfen `changes.action = 'import'`, Importberichte und Batch-Hinweise.
+- Themen sind aktuell `contacts.topics`; bei wachsender Taxonomie können `topics` und `contact_topics` sinnvoll werden.

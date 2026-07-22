@@ -4,22 +4,21 @@
 
 <p align="center">
   <a href="https://timofrank.github.io/mitmachen/demo/"><strong>Öffentliche Demo ansehen</strong></a>
-  · <a href="dokumentation/betrieb-und-deployment/ZIEL-README.md">Zielbetrieb verstehen</a>
+  · <a href="dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md">Gematik-PoC</a>
   · <a href="dokumentation/produkt-und-design/MARKENARCHITEKTUR.md">Markenkit</a>
   · <a href="CHANGELOG.md">Änderungshistorie</a>
 </p>
 
 <p align="center">
-  <a href="README.md"><strong>Ueberblick</strong></a>
+  <a href="README.md"><strong>Überblick</strong></a>
   · <a href="dokumentation/betrieb-und-deployment/DEMO.md">Demo</a>
-  · <a href="dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md">Deployment</a>
-  · <a href="dokumentation/betrieb-und-deployment/BETRIEB.md">Betrieb</a>
+  · <a href="dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md">Deployment</a>
   · <a href="SECURITY.md">Security</a>
   · <a href="dokumentation/README.md">Dokumentation</a>
 </p>
 
 > [!IMPORTANT]
-> **Demos klar getrennt:** Die öffentliche Produktdemo arbeitet mit fiktiven Beispieldaten. Die Registrierungsseite im Repo ist eine eigenständige Demoidee und weder Kopie noch Bestandteil des offiziellen gematik-Angebots; Eingaben werden nicht übermittelt oder gespeichert. Verbindliche Informationen stehen bei [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) auf gematik.de.
+> Die öffentliche Demo arbeitet ausschließlich mit fiktiven Beispieldaten. Verbindliche Informationen zu [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) stehen auf gematik.de.
 
 <p align="center">
   <img src="dokumentation/assets/readme/versorgungs-kompass-module-collage-v2.png" alt="Die vier Module Versorgung, Stakeholder, Hospitation und Formate im Versorgungs-Kompass" width="100%" />
@@ -29,86 +28,63 @@
 
 **Versorgungs-Kompass** verbindet Kontakte, Organisationen, Hospitationen und Formate in einem gemeinsamen Arbeitsraum. So werden regionale Perspektiven sichtbar, Erfahrungen nachvollziehbar und Erkenntnisse für die gemeinsame Arbeit nutzbar.
 
-Die Markenarchitektur ist bewusst mehrstufig: **gematik** ist der institutionelle Absender, **#Mitmachen** das Beteiligungsdach und **Versorgungs-Kompass** die Produktmarke. Verbindliche Texte, Logoquellen, Modulfarben, Demo-Begriffe und Regeln für einen späteren Namenswechsel stehen im [Markenkit](dokumentation/produkt-und-design/MARKENARCHITEKTUR.md).
+Die Markenarchitektur ist mehrstufig: **gematik** ist der institutionelle Absender, **#Mitmachen** das Beteiligungsdach und **Versorgungs-Kompass** die Produktmarke. Verbindliche Texte, Logoquellen, Modulfarben und Demo-Begriffe stehen im [Markenkit](dokumentation/produkt-und-design/MARKENARCHITEKTUR.md).
 
-## Was der Versorgungs-Kompass moeglich macht
+## Funktionsumfang
 
-- **Versorgung sehen:** Karte und Filter zeigen regionale Schwerpunkte, Luecken und nahe Kontakte.
+- **Versorgung sehen:** Karte und Filter zeigen regionale Schwerpunkte, Lücken und Kontakte.
 - **Beziehungen verstehen:** Kontakte, Organisationen und Stakeholder bleiben mit ihrem fachlichen Kontext verbunden.
-- **Gemeinsam arbeiten:** Profile, Teams, Zustaendigkeiten und Aktivitaeten machen Beitraege nachvollziehbar.
-- **Hospitationen begleiten:** Termine, Kalender und Fragebogen fuehren von der Vorbereitung bis zur Dokumentation.
-- **Wissen aufbauen:** Das Framework verdichtet Beobachtungen zu Mustern, Hypothesen und Evidenz.
-- **Naechste Schritte gestalten:** Dashboards, Roundtables und Fachgespraeche bringen Erkenntnisse in die gemeinsame Arbeit.
+- **Gemeinsam arbeiten:** Profile, Teams, Zuständigkeiten und Aktivitäten machen Beiträge nachvollziehbar.
+- **Hospitationen begleiten:** Termine, Kalender und Fragebogen führen von der Vorbereitung bis zur Dokumentation.
+- **Wissen aufbauen:** Beobachtungen werden zu Mustern, Hypothesen und Evidenz verdichtet.
+- **Nächste Schritte gestalten:** Dashboards, Roundtables und Fachgespräche unterstützen die gemeinsame Arbeit.
 
-## Zugaenge und Betriebsstatus
+## Zugänge und aktueller Stand
 
-| Zugang | Status | Wofuer geeignet |
+| Zugang | Status | Inhalt |
 | --- | --- | --- |
-| [Öffentliche Demo](https://timofrank.github.io/mitmachen/demo/) | Demo | Schneller Produkteinblick mit fiktiven Beispieldaten. |
-| [#Mitmachen Modulstart](frontend/pages/mitmachen/index.html) | Anwendungsstart | Führt in die vier Module des geschützten Versorgungs-Kompasses. |
-| [Demo zum Versorgungs-Netzwerk](frontend/pages/mitmachen/versorgungs-netzwerk.html) | Demo | Eigenständige Interaktionsidee; keine Datenübermittlung und nicht das offizielle gematik-Formular. |
-| Geschützter Versorgungs-Kompass | Zielbetrieb in Vorbereitung | Arbeitsbereich mit Gateway/SSO, API im Kubernetes-Namespace, Shared Postgres und kontrolliertem Betrieb. |
+| [Öffentliche Demo](https://timofrank.github.io/mitmachen/demo/) | Demo | Produkteinblick mit fiktiven Beispieldaten |
+| [#Mitmachen Modulstart](frontend/pages/mitmachen/index.html) | Anwendungsstart | Einstieg in die vier Module |
+| [Demo zum Versorgungs-Netzwerk](frontend/pages/mitmachen/versorgungs-netzwerk.html) | Demo | Eigenständige Interaktionsidee ohne Datenübermittlung |
+| Gematik-interner Versorgungs-Kompass | PoC in Vorbereitung | Befristeter technischer Durchstich mit SSO, API, Kubernetes und einer kleinen PostgreSQL-Datenbank |
 
-GitHub Pages liefert nur die öffentliche Demo mit fiktiven Beispieldaten. Der geschützte Arbeitsbereich wird separat gebaut und greift ausschließlich über `/api` auf geschützte Daten zu. Pages ist keine Vorstufe des GKE-Deployments. Die GCP-Autopilot-Umgebung `pre-gematik` ist eine temporäre technische Pre-Integration und keine Produktivumgebung.
+GitHub Pages veröffentlicht die Demo. Der interne PoC wird separat aus einem festgelegten Release Candidate gebaut und übernimmt einen freigegebenen Datenstand aus der geschützten Anwendung. Echtdaten sind weder Teil des Repositories noch der Release-Artefakte. Beide Veröffentlichungswege können unabhängig voneinander weiterentwickelt werden. Der aktuelle PoC-Umfang und die benötigten Ressourcen stehen im [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
 
-Weitere Bilder und Hinweise stehen auf der Seite [Demo und Screenshots](dokumentation/betrieb-und-deployment/DEMO.md).
-
-## Aktueller Stand
-
-- Stand: 20. Juli 2026
-- Öffentlicher Kanal: [GitHub-Pages-Demo mit fiktiven Beispieldaten](https://timofrank.github.io/mitmachen/demo/)
-- Geschuetzter Kanal: Realanwendung ueber Gateway, Anmeldung, API und private Datenspeicher
-- Release-Historie: [CHANGELOG](CHANGELOG.md)
-
-## Repository auf einen Blick
+## Repository
 
 ```text
-.github/                  GitHub Actions, Dependabot und aktive CODEOWNERS-Regeln
-api/                      serverseitige Logik fuer Pre-Integration und Zielbetrieb
+.github/                  GitHub Actions, Dependabot und CODEOWNERS
+api/                      serverseitige Logik für Pre-Integration und PoC
 config/
-  pages-demo/             Vertrag fuer die oeffentliche Demo
-  pre-gematik/            Vertrag und Variablennamen fuer die GKE-Pre-Integration
-  target/                 Vertrag fuer den kuenftigen gematik-Zielbetrieb
+  pages-demo/             Konfiguration der öffentlichen Demo
+  pre-gematik/            Konfiguration der GCP-Pre-Integration
+  target/                 Buildprofil für den Gematik-PoC
   security/               Semgrep- und Gitleaks-Konfiguration
 deploy/
   helm/                   Kubernetes-Ressourcen
-  terraform/              temporaere GCP-Pre-Integrationsinfrastruktur
-  jenkins/                Referenzpipeline fuer die Software Factory
-  postgres/               Datenbankvertrag der Pre-Integration
-dist/                     generierte, nicht versionierte Build- und Pruefergebnisse
-dokumentation/            Produkt-, Architektur-, Betriebs- und QA-Unterlagen
-frontend/                 gemeinsame fuehrende Browser-Quellen
+  jenkins/                Referenzpipeline für die Software Factory
+  postgres/               Datenbank-Runbooks
+  terraform/              GCP-Pre-Integrationsinfrastruktur
+dokumentation/            Produkt-, Architektur-, Deployment- und QA-Unterlagen
+frontend/                 führende Browser-Quellen
 public/                   gemeinsame statische Quellassets
 scripts/                  Build-, Test- und Betriebswerkzeuge
-supabase/                 geschuetztes Schema, Migrationen und Betriebsnachweise
-tests/                    Browser- und Integrationspruefungen
+supabase/                 Schema, Migrationen und Betriebsnachweise
+tests/                    Browser- und Integrationsprüfungen
 ```
 
-`dist/` ist auf GitHub durch seine README sichtbar; alle erzeugten Inhalte darin bleiben ignoriert. Die fruehere versionierte `docs/`-Publish-Kopie ist entfallen, weil GitHub Actions das Pages-Artefakt direkt und reproduzierbar aus `frontend/` und `public/` baut. Lokale Codex-Pet-, Export-, Test- und Office-Dateien sind ebenfalls kein Teil des Produkt-Repositories.
+## Build- und Release-Trennung
 
-### Warum einige Namen mit einem Punkt beginnen
+```text
+Pages:   frontend/ + public/ -> dist/pages/  -> GitHub Pages
+PoC:     frontend/ + public/ -> dist/target/ -> internes Hosting
+API:     api/                -> Image-Digest -> Kubernetes
+```
 
-| Eintrag | Warum er im Root bleibt |
-| --- | --- |
-| `.github/` | GitHub erwartet Workflows und Dependabot hier; auch die aktive CODEOWNERS-Datei liegt an diesem festen Ort. |
-| `.gitignore` | verhindert repo-weit, dass lokale Builds, Secrets und Testausgaben committed werden. |
-| `.gitattributes` | legt fuer Git die Behandlung von Binaerdateien und Vendor-Code fest. |
-| `.dockerignore` | begrenzt den Inhalt von `docker build .` auf die fuer das API-Image benoetigten Dateien. |
-| `.semgrepignore` | wird von Semgrep an diesem festen Projektort automatisch gelesen. |
+Ein PoC-Release wird durch einen unveränderlichen RC-Tag festgelegt. Weitere Änderungen auf `main`, in lokalen Arbeitsständen oder für GitHub Pages verändern diesen Stand nicht. Ein Fehler wird in einem neuen RC behoben; bestehende Tags und Image-Digests bleiben unverändert.
 
-Diese Dateien sind technische Steuerdateien, keine zusaetzlichen Anwendungen oder Umgebungen.
+Öffentliche Produkt-Releases werden freitags automatisiert über [GitHub Releases](https://github.com/TimoFrank/mitmachen/releases) bereitgestellt, sofern seit dem letzten Stand Änderungen vorliegen. Ablauf, Versionsregeln, Artefakte und Benachrichtigung beschreibt der [Produkt-Release-Prozess](dokumentation/betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md).
 
-## Technik und Uebergabe
+Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).
 
-Die fuehrenden Frontend-Quellen liegen in `frontend/`. Builds erzeugen getrennte, nicht gegenseitig wiederverwendete Ausgaben:
-
-- `dist/pages/` fuer GitHub Pages,
-- `dist/target/` fuer Pre-Integration und Zielbetrieb.
-
-GitHub Actions veroeffentlicht `dist/pages/` direkt. Das Kubernetes-Deployment baut ausschliesslich `dist/target/` und das API-Image; Zielartefakte verwenden `/api`, enthalten keine direkten Supabase-Zugriffe und werden unabhaengig vom Pages-Release freigegeben. Die verbindlichen Profile stehen unter [`config/`](config/README.md), die ausfuehrbaren Zielartefakte unter [`deploy/`](deploy/README.md).
-
-Der Einstieg fuer IT-Kollegen steht in [IT-Uebergabe Zielbetrieb](dokumentation/betrieb-und-deployment/IT_UEBERGABE_ZIELBETRIEB.md). Vertiefend folgen [Deployment-Uebersicht](dokumentation/betrieb-und-deployment/DEPLOYMENT_UEBERSICHT.md), [Betrieb](dokumentation/betrieb-und-deployment/BETRIEB.md), [Security](SECURITY.md), [technische Dokumentation](dokumentation/README.md) und [Hinweise zum Mitwirken](CONTRIBUTING.md).
-
-Historische lokale Kontakt- und Arbeitsdateien sind aus dem Hauptstand entfernt. `main` besitzt eine neue, datenschutzbereinigte Historie; alte normale Branches, Tags, Releases, Actions-Laeufe, Artefakte, Caches und Deployment-Datensaetze wurden entfernt und Pages wurde sauber neu veroeffentlicht. Fuer nicht selbst loeschbare GitHub-interne Pull-Request-Refs und alte Pages-Build-Datensaetze bleibt eine Betreiberanfrage erforderlich. Der genaue, bewusst vorsichtige Status steht im [Datenschutz-Bereinigungsnachweis](dokumentation/betrieb-und-deployment/DATENSCHUTZ_BEREINIGUNGSNACHWEIS.md) und im [Datenschutz-Runbook](dokumentation/betrieb-und-deployment/GIT_HISTORY_DATENSCHUTZBEREINIGUNG.md).
-
-Der Quellcode und die technische Dokumentation stehen unter der [Apache License 2.0](LICENSE). Die Demo nutzt fiktive Daten. Fuer echte Daten und externe Inhalte gelten eigene Regeln; mehr dazu steht im [Data Notice](dokumentation/rechtliches/DATA_NOTICE.md).
+Der Quellcode und die technische Dokumentation stehen unter der [Apache License 2.0](LICENSE). Für Daten und externe Inhalte gelten die Hinweise im [Data Notice](dokumentation/rechtliches/DATA_NOTICE.md).

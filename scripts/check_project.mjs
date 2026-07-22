@@ -19,6 +19,7 @@ const syntaxFiles = [
   "scripts/check_gcp_autopilot_readiness.mjs",
   "scripts/check_pre_gematik_migration_gcp.mjs",
   "scripts/check_deployment_governance.mjs",
+  "scripts/check_markdown_language.mjs",
   "scripts/check_project.mjs",
   "scripts/check_target_readiness.mjs",
   "scripts/extract_inline_frontend_assets.mjs",
@@ -55,8 +56,10 @@ const syntaxFiles = [
   "scripts/test_pre_gematik_migration_gcp.mjs",
   "scripts/test_supabase_cloud_sql_migration.mjs",
   "scripts/test_supabase_storage_migration.mjs",
+  "scripts/test_weekly_release.mjs",
   "scripts/test_migration_operator_contract.mjs",
   "scripts/test_security_contracts.mjs",
+  "scripts/verify_product_release.mjs",
   "scripts/verify_publication_state.mjs"
 ];
 
@@ -87,11 +90,13 @@ const auditCommands = [
   ["node", ["scripts/test_pre_gematik_migration_gcp.mjs"]],
   ["node", ["scripts/test_supabase_cloud_sql_migration.mjs"]],
   ["node", ["scripts/test_supabase_storage_migration.mjs"]],
+  ["node", ["scripts/test_weekly_release.mjs"]],
   ["node", ["scripts/test_migration_operator_contract.mjs"]],
   ["node", ["scripts/test_security_contracts.mjs"]],
   ["node", ["scripts/prepare_weekly_release.mjs", "--dry-run"]],
   ["node", ["scripts/check_gcp_autopilot_readiness.mjs"]],
   ["node", ["scripts/check_deployment_governance.mjs"]],
+  ["node", ["scripts/check_markdown_language.mjs"]],
   ["git", ["diff", "--check"]]
 ];
 

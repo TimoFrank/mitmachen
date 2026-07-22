@@ -6,11 +6,11 @@ const requiredFiles = [
   "deploy/jenkins/Jenkinsfile.gematik",
   "deploy/helm/versorgungs-kompass/Chart.yaml",
   "deploy/helm/versorgungs-kompass/values.yaml",
+  "deploy/helm/versorgungs-kompass/values-poc-gematik.yaml",
+  "deploy/postgres/poc-gematik/README.md",
+  "deploy/postgres/poc-gematik/bind-oidc-identity.sql",
+  "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
-  "dokumentation/betrieb-und-deployment/IT_UEBERGABE_ZIELBETRIEB.md",
-  "dokumentation/betrieb-und-deployment/BETRIEBSVERANTWORTUNG_RACI.md",
-  "dokumentation/betrieb-und-deployment/MIGRATION_CUTOVER_ROLLBACK.md",
-  "dokumentation/betrieb-und-deployment/ABNAHMEPROTOKOLL_TEMPLATE.md",
   "deploy/README.md",
   "dokumentation/architektur/API_CONTRACT.md",
   "api/server.mjs",
@@ -26,12 +26,12 @@ const requiredEnv = [
   "API_IMAGE",
   "API_BASE_URL",
   "FRONTEND_BASE_URL",
-  "FRONTEND_BUCKET_URI",
   "K8S_NAMESPACE",
   "DB_NAME",
   "DB_USER",
   "DB_PASSWORD_SECRET_NAME",
-  "API_AUTH_MODE"
+  "API_AUTH_MODE",
+  "DATA_POLICY"
 ];
 
 function ok(message) {
@@ -134,6 +134,12 @@ const authMode = process.env.API_AUTH_MODE || "";
 if (authMode && !["iap", "oidc"].includes(authMode)) {
   failures.push("API_AUTH_MODE muss fuer ein Zieldeployment signiert ueber iap oder oidc verifiziert werden.");
   fail("API_AUTH_MODE ist ungueltig.");
+}
+
+const dataPolicy = process.env.DATA_POLICY || "";
+if (dataPolicy && dataPolicy !== "approved-classes-only") {
+  failures.push("DATA_POLICY muss für den internen Nutzungspiloten approved-classes-only sein.");
+  fail("DATA_POLICY ist ungültig.");
 }
 
 if (authMode === "oidc") {

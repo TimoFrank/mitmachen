@@ -74,13 +74,13 @@ pg_dump "$DATABASE_URL" --format=custom --file /geschuetzter/pfad/versorgungs-ko
 4. Anzahl und stabile IDs der 110 historischen Kontakte sowie Expertenkreis-,
    Stakeholder- und Asset-Klassen mit dem geschützten Nachweis vergleichen.
 5. Rollenmatrix, API-Lese-/Schreibpfade und private Assets prüfen.
-6. Laufzeit, Abweichungen, RTO-/RPO-Ergebnis und Freigabe dokumentieren.
+6. Laufzeit, Datenstand, Abweichungen und Ergebnis dokumentieren.
 7. Teststand anschließend gemäß Schutz- und Löschkonzept entfernen.
 
 ## Migration in den Zielbetrieb
 
 Der Cutover folgt dem
-[Migrations-, Restore- und Rollback-Runbook](../dokumentation/betrieb-und-deployment/MIGRATION_CUTOVER_ROLLBACK.md):
+[Datenvertrag für den internen PoC](../dokumentation/betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md):
 
 - freigegebenes Mapping von Supabase-Profilen auf stabile SSO-Subjects,
 - vollständiger Export über einen geschützten Kanal,

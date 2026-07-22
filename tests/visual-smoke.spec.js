@@ -68,7 +68,8 @@ async function expectTourPanelClearOfSpotlight(page, minimumGap = 0, context = "
 
 async function expectTourTargetDescribed(page, stepId) {
   const mainTarget = page.locator('[data-product-tour-active="true"]');
-  if (await mainTarget.count()) {
+  if (stepId !== "map") {
+    await expect(mainTarget, `Aktives Tour-Ziel für ${stepId} fehlt.`).toHaveCount(1);
     await expect(mainTarget).toHaveAttribute("aria-describedby", /product-tour-copy/);
     await expect.poll(() => mainTarget.evaluate((target) => String(target.getAttribute("aria-describedby") || "")
       .split(/\s+/)
@@ -76,16 +77,12 @@ async function expectTourTargetDescribed(page, stepId) {
       .every((id) => Boolean(target.ownerDocument.getElementById(id))))).toBe(true);
     return;
   }
-  if (stepId === "map") {
-    const frameTarget = page.frameLocator("#map-view-frame").locator('[data-product-tour-active="true"]');
-    await expect(frameTarget).toHaveAttribute("aria-describedby", /product-tour-target-description/);
-    await expect.poll(() => frameTarget.evaluate((target) => String(target.getAttribute("aria-describedby") || "")
-      .split(/\s+/)
-      .filter(Boolean)
-      .every((id) => Boolean(target.ownerDocument.getElementById(id))))).toBe(true);
-    return;
-  }
-  throw new Error(`Kein beschriebenes Tour-Ziel für ${stepId} gefunden.`);
+  const frameTarget = page.frameLocator("#map-view-frame").locator('[data-product-tour-active="true"]');
+  await expect(frameTarget).toHaveAttribute("aria-describedby", /product-tour-target-description/);
+  await expect.poll(() => frameTarget.evaluate((target) => String(target.getAttribute("aria-describedby") || "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((id) => Boolean(target.ownerDocument.getElementById(id))))).toBe(true);
 }
 
 function onboardingDataServiceScript({ createdAt = "2026-06-09T08:30:00.000Z", completed = false } = {}) {
@@ -751,7 +748,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toHaveAttribute("aria-expanded", "false");
   const planningTabOrder = await page.locator('[data-sidebar-section="planning"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
-  expect(planningTabOrder).toEqual(["Framework", "Hospitationen", "Beobachtungen", "Fragebogen", "Dashboard"]);
+  expect(planningTabOrder).toEqual(["Framework", "Hospitationen", "Fragebogen", "Beobachtungen", "Muster", "Dashboard"]);
   const formatsTabOrder = await page.locator('[data-sidebar-section="formats"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(formatsTabOrder).toEqual(["Formate"]);
   await expect(page.locator('[data-sidebar-section="formats"]')).toHaveClass(/is-collapsed/);
@@ -769,6 +766,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-view-tab="hospitations"]')).toContainText("Hospitationen");
   await expect(page.locator('[data-view-tab="hospitations:observations"]')).toContainText("Beobachtungen");
   await expect(page.locator('[data-view-tab="questionnaire"]')).toContainText("Fragebogen");
+  await expect(page.locator('[data-view-tab="hospitations:patterns"]')).toContainText("Muster");
   await expect(page.locator('[data-view-tab="hospitations:dashboard"]')).toContainText("Dashboard");
   await expect(page.locator('[data-view-tab="formats"]')).toContainText("Formate");
   await expect(page.locator('[data-view-tab="stakeholders"]')).toContainText("Stakeholder");
@@ -909,7 +907,7 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   await expect(frameworkView).toBeVisible();
   await expect(frameworkView).toContainText("Hospitations-Framework");
   await expect(frameworkView).toContainText("Hospitationen als Wissensformat");
-  await expect(frameworkView).toContainText("Von Beobachtung zu Evidenz");
+  await expect(frameworkView).toContainText("Von Beobachtung zum nächsten Schritt");
   await expect(frameworkView.locator(".framework-header")).toHaveClass(/hospitation-dashboard-preview-card/);
   await expect(frameworkView.locator(".framework-header strong")).toHaveText("Hospitationen als Wissensformat");
   await expect(frameworkView.locator(".framework-summary-card")).toHaveCount(0);
@@ -927,26 +925,27 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   await expect(frameworkView.locator('[data-framework-accordion="observations"] .framework-accordion-title')).toHaveText("Beobachtungen");
   await expect(frameworkView.locator('[data-framework-accordion="patterns"] .framework-accordion-title')).toHaveText("Muster");
   await expect(frameworkView.locator('[data-framework-accordion="hypothesis"] .framework-accordion-title')).toHaveText("Hypothesen");
-  await expect(frameworkView.locator('[data-framework-accordion="evidence"] .framework-accordion-title')).toHaveText("Evidenz");
+  await expect(frameworkView.locator('[data-framework-accordion="evidence"] .framework-accordion-title')).toHaveText("Nächster Schritt");
   await expect(frameworkView.locator(".framework-accordion-copy")).toHaveCount(0);
   const modelSection = frameworkView.locator(".framework-model-section");
   await expect(modelSection).toBeVisible();
   await expect(modelSection.locator(".framework-model-heading > span")).toHaveCount(0);
-  await expect(modelSection.locator("#framework-model-title")).toHaveText("Von Beobachtung zu Evidenz");
+  await expect(modelSection.locator("#framework-model-title")).toHaveText("Von Beobachtung zum nächsten Schritt");
   await expect(modelSection.locator(".framework-process-flow")).toBeVisible();
   const frameworkProcessSteps = modelSection.locator(".hospitation-dashboard-funnel-step");
   await expect(frameworkProcessSteps).toHaveCount(4);
-  await expect(frameworkProcessSteps.nth(0).locator(".hospitation-dashboard-funnel-badge")).toHaveText("12");
+  await expect(frameworkProcessSteps.nth(0).locator(".hospitation-dashboard-funnel-badge")).toHaveText("39");
   await expect(frameworkProcessSteps.nth(0).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Beobachtungen");
-  await expect(frameworkProcessSteps.nth(1).locator(".hospitation-dashboard-funnel-badge")).toHaveText("7");
+  await expect(frameworkProcessSteps.nth(1).locator(".hospitation-dashboard-funnel-badge")).toHaveText("8");
   await expect(frameworkProcessSteps.nth(1).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Muster");
-  await expect(frameworkProcessSteps.nth(2).locator(".hospitation-dashboard-funnel-badge")).toHaveText("4");
+  await expect(frameworkProcessSteps.nth(2).locator(".hospitation-dashboard-funnel-badge")).toHaveText("3");
   await expect(frameworkProcessSteps.nth(2).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Hypothesen");
-  await expect(frameworkProcessSteps.nth(3).locator(".hospitation-dashboard-funnel-badge")).toHaveText("2");
-  await expect(frameworkProcessSteps.nth(3).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Evidenz");
+  await expect(frameworkProcessSteps.nth(3).locator(".hospitation-dashboard-funnel-badge")).toHaveText("1");
+  await expect(frameworkProcessSteps.nth(3).locator(".hospitation-dashboard-funnel-copy > strong")).toHaveText("Nächster Schritt");
   await expect(modelSection.locator(".hospitation-dashboard-funnel-copy > span")).toHaveCount(0);
   const frameworkProcessButtons = modelSection.locator(".framework-process-button");
   await expect(frameworkProcessButtons).toHaveCount(4);
+  await expect(frameworkProcessButtons.nth(3)).toHaveAccessibleName("Mehr zum nächsten Schritt");
   await expect(frameworkProcessButtons).toHaveText([
     "Mehr zum Schritt",
     "Mehr zum Schritt",
@@ -1027,7 +1026,7 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
     },
     {
       id: "evidence",
-      title: "Evidenz",
+      title: "Nächster Schritt",
       text: "tragfähig genug",
       example: "Roadmap- oder Portfolioentscheidung",
       source: "https://www.sciencedirect.com/science/article/pii/S2772628222000218",
@@ -1133,6 +1132,213 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   }
 
   await attachScreenshot(page, testInfo, "planung-framework");
+});
+
+test("Hospitation: Beobachtungsseite zeigt das Framework mit Beobachtungsfokus", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations:observations");
+
+  const panel = page.locator("#hospitation-observations-panel");
+  const reminder = panel.locator("[data-hospitation-framework-reminder]");
+  const steps = reminder.locator("[data-hospitation-framework-step]");
+  await expect(panel).toBeVisible();
+  await expect(reminder).toBeVisible();
+  await expect(reminder.getByRole("heading", { name: "Framework", exact: true })).toBeVisible();
+  await expect(reminder.locator(".hospitation-pattern-framework-reminder__intro > span")).toHaveText("Von Beobachtung zum nächsten Schritt");
+  await expect(steps).toHaveCount(4);
+  await expect(steps.locator(".hospitation-pattern-framework-reminder__copy > strong")).toHaveText([
+    "Beobachtungen",
+    "Muster",
+    "Hypothesen",
+    "Nächster Schritt"
+  ]);
+  await expect(reminder.locator("[data-hospitation-framework-count]")).toHaveText(["39", "8", "3", "1"]);
+  const currentStep = reminder.locator('[aria-current="step"]');
+  await expect(currentStep).toHaveCount(1);
+  await expect(currentStep).toHaveAttribute("data-hospitation-framework-step", "observations");
+  await expect(currentStep).toHaveClass(/is-current/);
+  await expect(panel.locator(".observation-summary-strip")).toHaveCount(0);
+  const observationActionRow = panel.locator(".observation-action-row");
+  const observationActionLayout = await observationActionRow.evaluate((row) => {
+    const controls = [...row.querySelectorAll("[data-observation-new], [data-observation-export], [data-observation-columns-button]")]
+      .map((control) => {
+        const rect = control.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom, centerY: rect.top + rect.height / 2 };
+      });
+    return { controls, overflow: row.scrollWidth - row.clientWidth };
+  });
+  expect(observationActionLayout.controls).toHaveLength(4);
+  expect(observationActionLayout.overflow).toBeLessThanOrEqual(1);
+  if (testInfo.project.name.includes("mobile")) {
+    expect(Math.max(...observationActionLayout.controls.slice(1).map((control) => control.centerY))
+      - Math.min(...observationActionLayout.controls.slice(1).map((control) => control.centerY))).toBeLessThanOrEqual(2);
+    expect(observationActionLayout.controls[0].bottom).toBeLessThanOrEqual(observationActionLayout.controls[1].top + 1);
+  } else {
+    expect(Math.max(...observationActionLayout.controls.map((control) => control.centerY))
+      - Math.min(...observationActionLayout.controls.map((control) => control.centerY))).toBeLessThanOrEqual(2);
+  }
+
+  const visualHierarchy = await reminder.evaluate((element) => {
+    const intro = element.querySelector(".hospitation-pattern-framework-reminder__intro")?.getBoundingClientRect();
+    const flow = element.querySelector(".hospitation-pattern-framework-reminder__flow")?.getBoundingClientRect();
+    const heading = element.querySelector(".hospitation-pattern-framework-reminder__intro > strong");
+    const subtitle = element.querySelector(".hospitation-pattern-framework-reminder__intro > span");
+    return {
+      gap: (flow?.top || 0) - (intro?.bottom || 0),
+      headingWeight: Number.parseInt(heading ? getComputedStyle(heading).fontWeight : "0", 10),
+      subtitleWeight: Number.parseInt(subtitle ? getComputedStyle(subtitle).fontWeight : "0", 10),
+      overflow: element.scrollWidth - element.clientWidth
+    };
+  });
+  expect(visualHierarchy.gap).toBeGreaterThanOrEqual(8);
+  expect(visualHierarchy.headingWeight).toBeGreaterThan(visualHierarchy.subtitleWeight);
+  expect(visualHierarchy.overflow).toBeLessThanOrEqual(1);
+
+  const pointEmphasis = await steps.evaluateAll((items) => items.map((step) => {
+    const badge = step.querySelector(".hospitation-pattern-framework-reminder__badge");
+    const style = badge ? getComputedStyle(badge) : null;
+    return {
+      current: step.getAttribute("aria-current") === "step",
+      width: style ? Number.parseFloat(style.width) : 0,
+      outlineWidth: style ? Number.parseFloat(style.outlineWidth) : 0
+    };
+  }));
+  const activePoint = pointEmphasis.find((point) => point.current);
+  const inactivePoints = pointEmphasis.filter((point) => !point.current);
+  expect(activePoint?.width || 0).toBeGreaterThan(Math.max(...inactivePoints.map((point) => point.width)));
+  expect(activePoint?.outlineWidth || 0).toBeGreaterThan(0);
+  await expectNoHorizontalOverflow(page);
+  await attachScreenshot(page, testInfo, "hospitation-beobachtungen-framework");
+});
+
+test("Hospitation: Musterseite zeigt alle abgeleiteten Muster", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations:patterns");
+
+  await expect(page).toHaveURL(/#hospitations:patterns$/);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
+  await expect(page.locator('[data-view-tab="hospitations:patterns"]')).toHaveClass(/is-active/);
+  const panel = page.locator("#hospitation-patterns-panel");
+  const cards = panel.locator("[data-hospitation-pattern]");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Muster", exact: true })).toBeVisible();
+  const patternFramework = panel.locator("[data-hospitation-framework-reminder]");
+  const patternFrameworkSteps = patternFramework.locator("[data-hospitation-framework-step]");
+  await expect(patternFramework).toBeVisible();
+  await expect(patternFramework.getByRole("heading", { name: "Framework", exact: true })).toBeVisible();
+  await expect(patternFramework.locator(".hospitation-pattern-framework-reminder__intro > span")).toHaveText("Von Beobachtung zum nächsten Schritt");
+  await expect(patternFrameworkSteps).toHaveCount(4);
+  await expect(patternFrameworkSteps.locator(".hospitation-pattern-framework-reminder__copy > strong")).toHaveText([
+    "Beobachtungen",
+    "Muster",
+    "Hypothesen",
+    "Nächster Schritt"
+  ]);
+  await expect(patternFramework.locator("[data-hospitation-framework-count]")).toHaveText(["39", "8", "3", "1"]);
+  const currentFrameworkStep = patternFramework.locator('[aria-current="step"]');
+  await expect(currentFrameworkStep).toHaveCount(1);
+  await expect(currentFrameworkStep).toHaveAttribute("data-hospitation-framework-step", "patterns");
+  await expect(currentFrameworkStep).toHaveClass(/is-current/);
+  await expect(patternFramework).not.toContainText("Aktuelle Seite");
+  const frameworkHierarchy = await patternFramework.evaluate((reminder) => {
+    const intro = reminder.querySelector(".hospitation-pattern-framework-reminder__intro")?.getBoundingClientRect();
+    const flow = reminder.querySelector(".hospitation-pattern-framework-reminder__flow")?.getBoundingClientRect();
+    const heading = reminder.querySelector(".hospitation-pattern-framework-reminder__intro > strong");
+    const subtitle = reminder.querySelector(".hospitation-pattern-framework-reminder__intro > span");
+    return {
+      gap: (flow?.top || 0) - (intro?.bottom || 0),
+      headingWeight: Number.parseInt(heading ? getComputedStyle(heading).fontWeight : "0", 10),
+      subtitleWeight: Number.parseInt(subtitle ? getComputedStyle(subtitle).fontWeight : "0", 10)
+    };
+  });
+  expect(frameworkHierarchy.gap).toBeGreaterThanOrEqual(8);
+  expect(frameworkHierarchy.headingWeight).toBeGreaterThan(frameworkHierarchy.subtitleWeight);
+  const frameworkPointEmphasis = await patternFrameworkSteps.evaluateAll((steps) => steps.map((step) => {
+    const badge = step.querySelector(".hospitation-pattern-framework-reminder__badge");
+    const style = badge ? getComputedStyle(badge) : null;
+    return {
+      current: step.getAttribute("aria-current") === "step",
+      width: style ? Number.parseFloat(style.width) : 0,
+      outlineWidth: style ? Number.parseFloat(style.outlineWidth) : 0,
+      shadow: style?.boxShadow || "none"
+    };
+  }));
+  const activeFrameworkPoint = frameworkPointEmphasis.find((point) => point.current);
+  const inactiveFrameworkPoints = frameworkPointEmphasis.filter((point) => !point.current);
+  expect(activeFrameworkPoint?.width || 0).toBeGreaterThan(Math.max(...inactiveFrameworkPoints.map((point) => point.width)));
+  expect(activeFrameworkPoint?.outlineWidth || 0).toBeGreaterThan(0);
+  expect(activeFrameworkPoint?.shadow).not.toBe("none");
+  await expect(panel.locator(".observation-summary-strip")).toHaveCount(0);
+  await expect(cards).toHaveCount(8);
+  await expect(cards).not.toHaveCount(4);
+  const patternTable = panel.locator("[data-hospitation-pattern-table]");
+  const patternTableHead = patternTable.locator("[data-hospitation-pattern-table-head]");
+  await expect(patternTable).toBeVisible();
+  await expect(patternTableHead.locator("span:not([aria-hidden])")).toHaveText(["ID", "Muster", "Codierung", "Beobachtungen", "Hospitationen"]);
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(patternTableHead).toBeHidden();
+  } else {
+    await expect(patternTableHead).toBeVisible();
+    const patternColumnTemplates = await Promise.all([
+      patternTableHead.evaluate((node) => getComputedStyle(node).gridTemplateColumns),
+      cards.first().locator("[data-hospitation-pattern-select]").evaluate((node) => getComputedStyle(node).gridTemplateColumns)
+    ]);
+    expect(patternColumnTemplates[0]).toBe(patternColumnTemplates[1]);
+  }
+  const grid = panel.locator(".hospitation-patterns-grid");
+  await expect(grid).toBeVisible();
+  await expect.poll(() => grid.evaluate((node) => getComputedStyle(node).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length)).toBe(1);
+  await expect.poll(async () => {
+    const cardRects = await cards.evaluateAll((items) => items.map((item) => {
+      const rect = item.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width };
+    }));
+    const sameColumn = cardRects.every((rect) => Math.abs(rect.left - cardRects[0].left) <= 1 && Math.abs(rect.width - cardRects[0].width) <= 1);
+    const ascendingRows = cardRects.slice(1).every((rect, index) => rect.top > cardRects[index].top);
+    return sameColumn && ascendingRows;
+  }).toBe(true);
+  const examplePattern = cards.filter({ hasText: "positives Muster / Best Practice in Befund / Dokumentation" });
+  await expect(examplePattern.locator('.hospitation-pattern-card__metric[aria-label="4 Hospitationen"]')).toBeVisible();
+  const exampleCoding = examplePattern.locator(".hospitation-pattern-card__coding");
+  await expect(exampleCoding.locator(".hospitation-dashboard-derived-code-badge")).toHaveCount(2);
+  await expect(exampleCoding.locator(".hospitation-dashboard-derived-code-badge--problem")).toHaveText("positives Muster / Best Practice");
+  await expect(exampleCoding.locator(".hospitation-dashboard-derived-code-badge--phase")).toHaveText("Befund / Dokumentation");
+  await expect(panel.locator("[data-hospitation-pattern].is-selected")).toHaveCount(0);
+  await expect(panel.locator("[data-hospitation-pattern-observations]")).toHaveCount(0);
+  await expect(panel.locator("[data-hospitation-pattern-open]")).toHaveCount(0);
+  await expect(panel.locator(".hospitation-patterns-section-count")).toHaveCount(0);
+  await examplePattern.locator("[data-hospitation-pattern-select]").click();
+  await expect(examplePattern.locator("[data-hospitation-pattern-select]")).toHaveAttribute("aria-pressed", "true");
+  await expect(examplePattern).toHaveClass(/is-selected/);
+  await expect(panel.locator("[data-hospitation-pattern].is-selected")).toHaveCount(1);
+  const filteredPanel = panel.locator("[data-hospitation-pattern-observations]");
+  const filteredRows = filteredPanel.locator("[data-hospitation-pattern-observation]");
+  await expect(filteredPanel).toBeVisible();
+  await expect(filteredRows).toHaveCount(4);
+  await expect(examplePattern.getByText("positives Muster / Best Practice in Befund / Dokumentation", { exact: true })).toHaveCount(1);
+  await expect(filteredPanel.locator(".hospitation-pattern-evidence-summary")).toHaveCount(0);
+  await expect(filteredPanel.locator(".hospitation-pattern-evidence-note")).toHaveCount(0);
+  await expect(filteredPanel.locator(".hospitation-pattern-card__sources")).toHaveCount(0);
+  await expect(filteredPanel.locator(".hospitation-dashboard-derived-code-badge")).toHaveCount(0);
+  await expect(filteredRows.locator(".observation-coding-badge")).toHaveCount(0);
+  await expect.poll(async () => (await filteredRows.locator("[data-hospitation-pattern-observation-title]").allTextContents())
+    .sort((left, right) => left.localeCompare(right, "de"))).toEqual([
+    "Abweichung wird im Übergabeblatt sichtbar gemacht",
+    "Arztbrief erreicht die Praxis ohne Postweg",
+    "Drei Unterlagen verwenden unterschiedliche Bezeichnungen",
+    "Korrigierte Liste trifft über KIM ein"
+  ].sort((left, right) => left.localeCompare(right, "de")));
+  await expect(filteredPanel).not.toContainText("Signaturdialog blockiert den nächsten Vorgang");
+  await expect(filteredRows.locator(".avatar")).toHaveCount(4);
+  await expect(filteredPanel).toContainText("Demo-Team Hausarztversorgung 01");
+  await expect(filteredPanel).toContainText("Demo-Praxis Stadtpark 01");
+  await expect(filteredPanel).toContainText("Ambulante Versorgung");
+  await expectNoHorizontalOverflow(page);
+  await expect.poll(() => panel.locator("[data-hospitation-pattern], [data-hospitation-pattern-observation]")
+    .evaluateAll((items) => items.filter((item) => item.scrollWidth > item.clientWidth + 1).length)).toBe(0);
+  await examplePattern.locator("[data-hospitation-pattern-select]").click();
+  await expect(examplePattern.locator("[data-hospitation-pattern-select]")).toHaveAttribute("aria-expanded", "false");
+  await expect(panel.locator("[data-hospitation-pattern].is-selected")).toHaveCount(0);
+  await expect(panel.locator("[data-hospitation-pattern-observations]")).toHaveCount(0);
+  await attachScreenshot(page, testInfo, "hospitation-muster");
 });
 
 test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
@@ -1456,8 +1662,8 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   const questionnaireDrawerObservation = questionnaireDrawer.locator('[data-repeatable-card][data-repeatable-type="observation"]').first();
   await expect(questionnaireDrawerObservation).toContainText("Beobachtung");
   await expect(questionnaireDrawerObservation).toContainText("Codierung");
-  await expect(questionnaireDrawerObservation).toContainText("Produktbezug");
-  await expect(questionnaireDrawerObservation).toContainText("Zitate und Bilder");
+  await expect(questionnaireDrawerObservation).not.toContainText("Produktbezug");
+  await expect(questionnaireDrawerObservation).not.toContainText("Zitate und Bilder");
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="observed"]')).toContainText("MFA ruft wegen fehlender KIM-Adresse zurück");
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="processPhase"]')).toHaveValue("Befund / Dokumentation");
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="problemType"]')).toHaveValue("Rückfrage");
@@ -1465,8 +1671,7 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="observationType"]')).toHaveValue("Reibung / Problem");
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="relevanceScore"]')).toHaveValue("5");
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="affectedProducts"]')).toHaveValue("ePA für alle");
-  await expect(questionnaireDrawerObservation.locator("[data-repeatable-product-selected]")).toContainText("ePA für alle");
-  await expect(questionnaireDrawerObservation.locator('[data-repeatable-product-toggle="ePA für alle"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(questionnaireDrawerObservation.locator("[data-repeatable-product-editor]")).toHaveCount(0);
   await expect(questionnaireDrawerObservation).not.toContainText("Situation / Kontext");
   await expect(questionnaireDrawerObservation).not.toContainText("Auslöser");
   await expect(questionnaireDrawerObservation).not.toContainText("Handlungsschritte");
@@ -1529,6 +1734,7 @@ test("Hospitation: alle Seiten bleiben auf Smartphone und Tablet ohne horizontal
     { hash: "framework", selector: "#view-framework" },
     { hash: "hospitations", selector: "#view-hospitations" },
     { hash: "questionnaire", selector: "#view-questionnaire" },
+    { hash: "hospitations:patterns", selector: "#hospitation-patterns-panel" },
     { hash: "hospitations:dashboard", selector: "#hospitation-dashboard" },
     { hash: "formats", selector: "#view-formats" }
   ];
@@ -1540,6 +1746,7 @@ test("Hospitation: alle Seiten bleiben auf Smartphone und Tablet ohne horizontal
     for (const width of [320, 390, 430, 768, 980]) {
       await page.setViewportSize({ width, height: width <= 430 ? 844 : 1024 });
       await expect(page.locator(view.selector)).toBeVisible();
+      if (width >= 768) await page.waitForTimeout(350);
       const overflow = await page.locator("html").evaluate((node) => Math.max(0, node.scrollWidth - node.clientWidth));
       expect(overflow, `${view.hash} bei ${width}px`).toBeLessThanOrEqual(1);
       if (width <= 760) {
@@ -1558,7 +1765,7 @@ test("Hospitationen: Zwischenbreiten nutzen eine kompakte Kartenliste ohne Tabel
   const header = table.locator(".hospitation-table-head");
   const row = table.locator(".hospitation-row").first();
 
-  for (const width of [768, 900, 1100, 1199]) {
+  for (const width of [768, 900, 1100, 1279]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(row).toBeVisible();
     await expect(header).toBeHidden();
@@ -1576,12 +1783,12 @@ test("Hospitationen: Zwischenbreiten nutzen eine kompakte Kartenliste ohne Tabel
     expect(overflow, `Hospitationsliste bei ${width}px`).toBeLessThanOrEqual(1);
   }
 
-  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.setViewportSize({ width: 1280, height: 900 });
   await expect(header).toBeVisible();
   await expect(row.locator("[data-hospitation-row-select]")).toBeVisible();
   await expect(row.locator(".hospitation-row__mobile-date")).toBeHidden();
   const desktopOverflow = await page.locator("html").evaluate((node) => Math.max(0, node.scrollWidth - node.clientWidth));
-  expect(desktopOverflow, "Hospitationsliste bei 1200px").toBeLessThanOrEqual(1);
+  expect(desktopOverflow, "Hospitationsliste bei 1280px").toBeLessThanOrEqual(1);
 });
 
 test("Hospitationen: alte Dokumentationsroute zeigt Termine", async ({ page }) => {
@@ -1612,8 +1819,9 @@ test("Hospitationen: geschützte synthetische Backend-Fixture ist observation-fi
   const first = observations.first();
   await expect(first).toContainText("Beobachtung");
   await expect(first).toContainText("Codierung");
-  await expect(first).toContainText("Produktbezug");
-  await expect(first).toContainText("Zitate und Bilder");
+  await expect(first).not.toContainText("Produktbezug");
+  await expect(first).not.toContainText("Zitate und Bilder");
+  await expect(first.locator('[data-repeatable-field="affectedProducts"]')).toHaveValue("");
   await expect(first.locator(".hospitation-observation-advanced")).toHaveCount(1);
   await expect(first.locator(".hospitation-observation-advanced > summary")).toContainText("Erweiterte Details");
   await expect(first.locator('[data-repeatable-field="title"]')).toHaveValue("Drei Medikationsstände liegen gleichzeitig vor");
@@ -2467,7 +2675,7 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notification-popover-meta")).toHaveCount(0);
   await expect(page.locator("#notification-popover-list .notification-popover__loading")).toHaveCount(0);
   await expect(page.locator("#notification-popover")).not.toContainText("Benachrichtigungen werden geladen");
-  await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(4);
+  await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(5);
   const popoverLayout = await page.evaluate(() => {
     const popover = document.querySelector("#notification-popover")?.getBoundingClientRect();
     const accountRow = document.querySelector(".sidebar-account-row")?.getBoundingClientRect();
@@ -3345,21 +3553,27 @@ test("Kontaktprofil: Hospitation und Dokumentation öffnen direkt; Gesamtliste �
   await page.locator('#contact-list [data-id="hospitation-profile-contact"]').click();
   const root = page.locator("#detail-drawer");
   const documented = root.locator('[data-hospitation-profile-history-id="history-documented"]');
+  await expect(root).toHaveClass(/is-open/);
+  await expect(documented).toBeVisible();
   await documented.getByRole("button", { name: "Hospitation öffnen" }).click();
   const editor = page.locator("#hospitation-editor-drawer");
   await expect(editor).toHaveClass(/is-open/);
   await expect(editor).toHaveAttribute("data-hospitation-editor-mode", "documentation");
   await expect(editor.locator('[data-hospitation-editor-panel="overview"]')).toBeVisible();
   await editor.locator("#hospitation-editor-close").click();
+  await expect(editor).toHaveAttribute("aria-hidden", "true");
 
   await documented.getByRole("button", { name: "Dokumentation" }).click();
   await expect(editor).toHaveClass(/is-open/);
   await expect(editor.locator('[data-hospitation-editor-panel="hospitation"]')).toBeVisible();
   await editor.locator("#hospitation-editor-close").click();
+  await expect(editor).toHaveAttribute("aria-hidden", "true");
 
   await root.locator('[data-hospitation-profile-action="list"]').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
   const contextFilter = page.locator("#hospitation-list [data-hospitation-context-filter]");
+  await expect(page.locator("#hospitation-list")).toBeVisible();
+  await expect(contextFilter).toBeVisible();
   await expect(contextFilter).toContainText("Gefiltert nach Kontakt: Anna Verlauf");
   await expect(page.locator("#hospitation-list")).toContainText("Anna Verlauf");
   await expect(page.locator("#hospitation-list")).not.toContainText("Berta Andere");
@@ -3686,7 +3900,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(freetextContactRow.locator(".hospitation-row__cell").nth(0)).not.toContainText("2026");
   const scheduleTable = page.locator("#hospitation-list .hospitation-table").first();
   const scheduleHeaderCells = scheduleTable.locator(".hospitation-table-head > *");
-  await expect(scheduleHeaderCells).toHaveCount(8);
+  await expect(scheduleHeaderCells).toHaveCount(9);
   await expect(scheduleHeaderCells.nth(0).locator("[data-hospitation-select-all]")).toHaveCount(1);
   await expect(scheduleHeaderCells.nth(1)).toContainText("Termin");
   await expect(scheduleHeaderCells.nth(1).locator("[data-hospitation-date-sort]")).toHaveCount(1);
@@ -3694,9 +3908,10 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(scheduleHeaderCells.nth(2)).toContainText("Status");
   await expect(scheduleHeaderCells.nth(3)).toContainText("Kontakt");
   await expect(scheduleHeaderCells.nth(4)).toContainText("Organisation");
-  await expect(scheduleHeaderCells.nth(5)).toContainText("Sektor");
-  await expect(scheduleHeaderCells.nth(6)).toContainText("Owner");
-  await expect(scheduleHeaderCells.nth(7)).toContainText("Dokumentation");
+  await expect(scheduleHeaderCells.nth(5)).toContainText("Beobachtungen");
+  await expect(scheduleHeaderCells.nth(6)).toContainText("Sektor");
+  await expect(scheduleHeaderCells.nth(7)).toContainText("Owner");
+  await expect(scheduleHeaderCells.nth(8)).toContainText("Dokumentation");
   await expect(scheduleTable.locator(".hospitation-row__toggle")).toHaveCount(0);
   await expect(page.locator(".hospitation-schedule-toolbar")).toHaveCount(0);
   if (!testInfo.project.name.includes("mobile")) {
@@ -3952,16 +4167,17 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(page.locator("#new-hospitation-request-button")).toBeVisible();
   await expect(page.locator('[data-hospitation-schedule-view="calendar"]')).toBeEnabled();
   const documentationTable = page.locator("#hospitation-list .hospitation-table").first();
-  await expect(documentationTable.locator(".hospitation-table-head > *")).toHaveCount(8);
+  await expect(documentationTable.locator(".hospitation-table-head > *")).toHaveCount(9);
   await expect(documentationTable.locator(".hospitation-table-head > *").nth(1)).toContainText("Termin");
   await expect(documentationTable.locator(".hospitation-table-head > *").nth(1).locator("[data-hospitation-date-sort]")).toHaveCount(1);
   await expect(documentationTable.locator(".hospitation-table-head > *").nth(1).locator("[data-hospitation-header-filter-button]")).toHaveCount(1);
   await expect(documentationTable.locator(".hospitation-table-head > *").nth(2)).toContainText("Status");
   await expect(documentationTable.locator(".hospitation-table-head > *").nth(3)).toContainText("Kontakt");
   await expect(documentationTable.locator(".hospitation-table-head > *").nth(4)).toContainText("Organisation");
-  await expect(documentationTable.locator(".hospitation-table-head > *").nth(5)).toContainText("Sektor");
-  await expect(documentationTable.locator(".hospitation-table-head > *").nth(6)).toContainText("Owner");
-  await expect(documentationTable.locator(".hospitation-table-head > *").nth(7)).toContainText("Dokumentation");
+  await expect(documentationTable.locator(".hospitation-table-head > *").nth(5)).toContainText("Beobachtungen");
+  await expect(documentationTable.locator(".hospitation-table-head > *").nth(6)).toContainText("Sektor");
+  await expect(documentationTable.locator(".hospitation-table-head > *").nth(7)).toContainText("Owner");
+  await expect(documentationTable.locator(".hospitation-table-head > *").nth(8)).toContainText("Dokumentation");
   await expect(documentationTable.locator(".hospitation-table-head").locator('[data-hospitation-filter-key="documentation"]')).toHaveCount(1);
   await expect(page.locator("#hospitation-list .hospitation-row", { hasText: "Freitext Kontakt Visualtest" })).toBeVisible();
   const documentationRow = page.locator("#hospitation-list .hospitation-row", { hasText: "Demo-Team Hausarztversorgung 01" }).first();
@@ -3994,12 +4210,11 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   } else {
     await expect(doneStatusBadge).toBeVisible();
   }
-  await expect(doneStatusBadge).toContainText("Durchgeführt");
-  await expect(documentationRow.locator(".hospitation-row__head > *").nth(2)).toContainText("Durchgeführt");
+  await expect(doneStatusBadge).toContainText("Dokumentiert");
+  await expect(documentationRow.locator(".hospitation-row__head > *").nth(2)).toContainText("Dokumentiert");
   await expect(page.locator("#view-hospitations")).not.toContainText("Gebucht");
   await expect(page.locator("#view-hospitations")).not.toContainText("Angeboten");
   await expect(page.locator("#view-hospitations")).not.toContainText("Abgelehnt");
-  const doneStatusColor = await doneStatusBadge.evaluate((badge) => window.getComputedStyle(badge).color);
   const documentationStateIcon = documentationRow.locator(".hospitation-documentation-state").first();
   if (testInfo.project.name.includes("mobile")) {
     await expect(documentationStateIcon).toBeHidden();
@@ -4295,8 +4510,9 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(observationWarning).toBeVisible();
   await expect(observationWarning.locator("[data-documentation-tab-warning-popup]")).toContainText(/Beobachtung|Zitat|Bild/);
   await expect(observationDetails).not.toContainText("Betroffene Produkte");
-  await expect(observationDetails).toContainText("Produktbezug");
-  await expect(observationDetails).toContainText("Zitate und Bilder");
+  await expect(observationDetails).not.toContainText("Produktbezug");
+  await expect(observationDetails).not.toContainText("Zitate und Bilder");
+  await expect(observationDetails).toContainText("Optionale Stimmen");
   await expect(observationDetails).not.toContainText("Evidenzart");
   await expect(observationDetails).not.toContainText("betroffene Rollen");
   await expect(observationDetails).not.toContainText("Warum ist das relevant");
@@ -4317,9 +4533,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await observationCards.nth(0).locator('[data-repeatable-field="sourceReference"]').fill("Anonymisierte Hospitationsnotiz");
   await observationCards.nth(0).locator('[data-repeatable-field="processPhase"]').selectOption({ label: "Anmeldung / Aufnahme" });
   await observationCards.nth(0).locator('[data-repeatable-field="problemType"]').selectOption({ label: "fehlende Information" });
-  await observationCards.nth(0).locator('[data-repeatable-product-toggle="ePA für alle"]').click();
-  await expect(observationCards.nth(0).locator("[data-repeatable-product-selected]")).toContainText("ePA für alle");
-  await expect(observationCards.nth(0).locator('[data-repeatable-field="affectedProducts"]')).toHaveValue("ePA für alle");
+  await expect(observationCards.nth(0).locator('[data-repeatable-field="affectedProducts"]')).toHaveCount(1);
   await observationCards.nth(0).locator('[data-repeatable-field="evidenceType"]').evaluate((input) => {
     input.value = "directly_observed";
     input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4347,8 +4561,8 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="evidenceType"]')).toHaveValue("directly_observed");
   await expect(observationDetails.locator('[data-repeatable-summary-title]').first()).toContainText("Aufnahme ohne Überblick");
   const quoteDetails = observationDetails.locator(".detail-info-card").filter({ hasText: "Optionale Stimmen" });
-  const artifactDetails = observationDetails.locator(".detail-info-card").filter({ hasText: "Optionale Artefakte" });
   await expect(observationDetails).toBeVisible();
+  await expect(observationDetails.locator("[data-preserved-documentation-artifacts]")).toBeHidden();
   await quoteDetails.getByRole("button", { name: "Zitat hinzufügen" }).click();
   const quoteCard = quoteDetails.locator('[data-repeatable-card][data-repeatable-type="quote"]').first();
   await quoteCard.locator('[data-repeatable-field="quote"]').fill("Wir sehen oft nicht, wer als Nächstes dran ist.");
@@ -4356,12 +4570,6 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await quoteCard.locator('[data-repeatable-field="observationId"]').selectOption({ index: 1 });
   await quoteCard.locator('[data-repeatable-field="internalUseAllowed"]').selectOption("true");
   await expect(quoteCard.locator('[data-observation-link-select]')).toContainText("Aufnahme ohne Überblick");
-  await artifactDetails.getByRole("button", { name: "Artefakt hinzufügen" }).click();
-  const artifactCard = artifactDetails.locator('[data-repeatable-card][data-repeatable-type="artifact"]').first();
-  await artifactCard.locator('[data-repeatable-field="title"]').fill("Whiteboard Prozessskizze");
-  await artifactCard.locator('[data-repeatable-field="description"]').fill("Skizze der Übergabe zwischen Praxis und Pflege.");
-  await artifactCard.locator('[data-repeatable-field="type"]').selectOption({ label: "Whiteboard" });
-  await artifactCard.locator('[data-repeatable-field="observationId"]').selectOption({ index: 1 });
   await documentationDrawer.getByRole("tab", { name: "Teilen" }).click();
   const impulseDetails = documentationDrawer.locator('[data-hospitation-editor-panel="impulses"]');
   await expect(impulseDetails).toBeVisible();
@@ -4415,11 +4623,10 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(documentationRow).toContainText("Dokumentiert");
   const documentedStatusBadge = documentationRow.locator(".hospitation-status-badge").first();
   await expect(documentedStatusBadge).toContainText("Dokumentiert");
-  const documentedStatusColor = await documentedStatusBadge.evaluate((badge) => window.getComputedStyle(badge).color);
   if (testInfo.project.name.includes("mobile")) {
     await expect(documentedStatusBadge).toBeHidden();
   } else {
-    expect(documentedStatusColor).not.toBe(doneStatusColor);
+    await expect(documentedStatusBadge).toBeVisible();
   }
   await expect(documentationRow).not.toContainText("Dokumentationsnotiz aus dem Visualtest");
   await expect(documentationRow).not.toContainText("Ø");
@@ -4973,7 +5180,12 @@ test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page },
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="changelog"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#profile-tab-changelog")).toBeVisible();
-  await expect(page.locator("#about-version-list .about-version").first()).toBeVisible();
+  const latestRelease = page.locator("#about-version-list .about-version").first();
+  await expect(latestRelease).toBeVisible();
+  await expect(latestRelease.locator(".about-version__badge")).toHaveText("0.20");
+  await expect(latestRelease.locator("summary")).toContainText("Gemeinsam sicher vernetzt");
+  await latestRelease.locator("summary").click();
+  await expect(latestRelease.locator(".about-version__body")).toContainText("Was sich für Anwender geändert hat");
 
   await attachScreenshot(page, testInfo, "profil-changelog");
 });
@@ -5089,7 +5301,7 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
     "Spalten sortieren und direkt filtern",
     "Kontaktprofil: Beziehungen und Verlauf verstehen",
     "Organisationen bündeln Kontakte und Strukturen",
-    "Von Beobachtung zu Evidenz",
+    "Von Beobachtung zum nächsten Schritt",
     "Hospitationen gemeinsam vorbereiten und begleiten",
     "Der Fragebogen strukturiert das Erlebte",
     "Formate bringen die richtigen Menschen zusammen",
@@ -5152,8 +5364,8 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
         expect(spotlightBox.height).toBeLessThanOrEqual(mapBox.height + 10);
       }
     }
-    if (title === "Von Beobachtung zu Evidenz") await expect(page.locator('[data-view-panel="framework"]')).toBeVisible();
-    if (title === "Von Beobachtung zu Evidenz") await expect(page.locator("#product-tour-copy")).toContainText("Beobachtung → Einordnung → Muster und Evidenz → Format oder Entscheidung");
+    if (title === "Von Beobachtung zum nächsten Schritt") await expect(page.locator('[data-view-panel="framework"]')).toBeVisible();
+    if (title === "Von Beobachtung zum nächsten Schritt") await expect(page.locator("#product-tour-copy")).toContainText("Beobachtung → Muster → Hypothese → Nächster Schritt");
     if (title === "Hospitationen gemeinsam vorbereiten und begleiten") await expect(page.locator("#hospitation-list .hospitation-row").first()).toHaveClass(/product-tour-highlight/);
     if (title === "Spalten sortieren und direkt filtern") {
       if (await page.evaluate(() => matchMedia("(max-width: 760px)").matches)) {

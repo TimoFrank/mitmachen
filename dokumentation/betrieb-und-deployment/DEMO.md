@@ -10,7 +10,7 @@ Die Demo verwendet dieselbe vollständige App-Oberfläche wie die geschützte An
 
 ## Screenshots
 
-Aktuelle Screenshots werden bei der visuellen Abnahme aus dem gebauten Pages-Artefakt erzeugt. Dadurch koennen keine veralteten Realanwendungs- oder Personendarstellungen als statische Repository-Bilder weiterleben. Alle Demo-Namen beginnen mit `Demo`, alle Demo-Adressen verwenden reservierte Beispieldomains.
+Aktuelle Screenshots werden bei der visuellen Abnahme aus dem gebauten Pages-Artefakt erzeugt. Dadurch können keine veralteten Realanwendungs- oder Personendarstellungen als statische Repository-Bilder weiterleben. Alle Demo-Namen beginnen mit `Demo`, alle Demo-Adressen verwenden reservierte Beispieldomains.
 
 ## Lokal starten
 
@@ -23,8 +23,8 @@ npm start
 Danach öffnen:
 
 - Demo: `http://localhost:4173/dist/pages/`
-- Realanwendungsquelle: `http://localhost:4173/frontend/app/versorgungs-kompass.html` (benoetigt eine geschuetzte API-Konfiguration)
+- Realanwendungsquelle: `http://localhost:4173/frontend/app/versorgungs-kompass.html` (benötigt eine geschützte API-Konfiguration)
 
 ## Technischer Hinweis
 
-Der Pages-Workflow baut die gemeinsame Oberfläche aus `frontend/app/`, `frontend/map/` und den öffentlichen Assets. Ausschließlich im Pages-Artefakt werden `frontend/data/demo-data.js` und `frontend/data/demo-api.js` vorgeschaltet. Einstieg ist `dist/pages/versorgungs-kompass.html`; `dist/pages/` und die Online-Route `/demo/` leiten dorthin weiter. Es gibt keinen Login, kein Supabase und keinen Zugriff auf ein externes Fach-API. Frühere Cloud-Run-Demos sind nur noch historische Referenzen. Der aktuelle Stand steht in der [Deployment-Übersicht](DEPLOYMENT_UEBERSICHT.md).
+Der Pages-Workflow baut die gemeinsame Oberfläche aus `frontend/app/`, `frontend/map/` und den öffentlichen Assets. Ausschließlich im Pages-Artefakt werden `frontend/data/demo-data.js` und `frontend/data/demo-api.js` vorgeschaltet. Einstieg ist `dist/pages/versorgungs-kompass.html`; `dist/pages/` und die Online-Route `/demo/` leiten dorthin weiter. Es gibt keinen Login, kein Supabase und keinen Zugriff auf ein externes Fach-API. Frühere Cloud-Run-Demos sind nur noch historische Referenzen. Die Build-Trennung steht im [Deployment-Runbook](DEPLOYMENT_GEMATIK_K8S.md).

@@ -1,0 +1,327 @@
+name: Publish product release
+
+run-name: Publish ${{ inputs.tag }}
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Product tag in vX.Y.Z format
+        required: true
+        type: string
+      title:
+        description: Public release title
+        required: true
+        type: string
+      commit_sha:
+        description: Exact main commit to release
+        required: true
+        type: string
+      notes_path:
+        description: Committed Markdown release notes
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Product tag in vX.Y.Z format
+        required: true
+        type: string
+      title:
+        description: Public release title
+        required: true
+        type: string
+      commit_sha:
+        description: Exact main commit to release
+        required: true
+        type: string
+      notes_path:
+        description: Committed Markdown release notes
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-product-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify, deploy and publish
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+
+    steps:
+      - name: Validate immutable inputs
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ inputs.commit_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Checkout exact release commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify release commit and documents
+        env:
+          RELEASE_SHA: ${{ inputs.commit_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_NOTES: ${{ inputs.notes_path }}
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          node scripts/verify_product_release.mjs \
+            --tag "$RELEASE_TAG" \
+            --commit-sha "$RELEASE_SHA" \
+            --notes-path "$RELEASE_NOTES"
+
+      - name: Detect an already published release
+        id: existing
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ inputs.commit_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json isDraft \
+              --jq .isDraft)"
+            if [[ "$is_draft" == "false" ]]; then
+              git fetch origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+              tag_sha="$(git rev-list -n 1 "$RELEASE_TAG")"
+              if [[ "$tag_sha" != "$RELEASE_SHA" ]]; then
+                echo "Published ${RELEASE_TAG} points to ${tag_sha}, not ${RELEASE_SHA}." >&2
+                exit 1
+              fi
+              for asset in \
+                "versorgungs-kompass-${RELEASE_TAG}-pages.zip" \
+                build-manifest.json \
+                SHA256SUMS; do
+                gh release view "$RELEASE_TAG" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --json assets \
+                  --jq '.assets[].name' \
+                  | grep --fixed-strings --line-regexp --quiet "$asset"
+              done
+              release_url="$(gh release view "$RELEASE_TAG" \
+                --repo "$GITHUB_REPOSITORY" \
+                --json url \
+                --jq .url)"
+              echo "published=true" >> "$GITHUB_OUTPUT"
+              echo "url=${release_url}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "published=false" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        if: steps.existing.outputs.published != 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.existing.outputs.published != 'true'
+        run: npm ci
+
+      - name: Run release checks
+        if: steps.existing.outputs.published != 'true'
+        run: |
+          npm run check
+          npm audit --audit-level=high
+          npm audit signatures
+
+      - name: Install Chromium
+        if: steps.existing.outputs.published != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run release browser tests
+        if: steps.existing.outputs.published != 'true'
+        run: npm run test:visual
+
+      - name: Build and audit public release artifact
+        if: steps.existing.outputs.published != 'true'
+        env:
+          RELEASE_SHA: ${{ inputs.commit_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:pages
+          node scripts/audit_public_assets.mjs --artifact-root dist/pages
+          node scripts/verify_product_release.mjs \
+            --tag "$RELEASE_TAG" \
+            --commit-sha "$RELEASE_SHA" \
+            --notes-path "${{ inputs.notes_path }}" \
+            --artifact-root dist/pages
+
+      - name: Package release assets
+        if: steps.existing.outputs.published != 'true'
+        id: assets
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset_name="versorgungs-kompass-${RELEASE_TAG}-pages.zip"
+          mkdir -p dist/release
+          cp dist/pages/build-manifest.json dist/release/build-manifest.json
+          (
+            cd dist/pages
+            zip -X -q -r "../release/${asset_name}" .
+          )
+          (
+            cd dist/release
+            sha256sum "$asset_name" build-manifest.json > SHA256SUMS
+          )
+          echo "archive=dist/release/${asset_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy exact release commit to GitHub Pages
+        if: steps.existing.outputs.published != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ inputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          expected_title="Deploy GitHub Pages (${RELEASE_SHA})"
+          gh workflow run deploy-pages.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f revision="$RELEASE_SHA"
+
+          run_id=""
+          for attempt in $(seq 1 60); do
+            run_id="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow deploy-pages.yml \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,displayTitle,createdAt \
+              | jq --raw-output --arg title "$expected_title" '
+                  [.[] | select(.displayTitle == $title)]
+                  | sort_by(.createdAt)
+                  | last
+                  | .databaseId // empty
+                ')"
+            if [[ -n "$run_id" ]]; then
+              break
+            fi
+            sleep 10
+          done
+          test -n "$run_id"
+          gh run watch "$run_id" \
+            --repo "$GITHUB_REPOSITORY" \
+            --exit-status \
+            --interval 10
+
+      - name: Create or verify annotated product tag
+        if: steps.existing.outputs.published != 'true'
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ inputs.commit_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TITLE: ${{ inputs.title }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+            tag_sha="$(git rev-list -n 1 "$RELEASE_TAG")"
+            if [[ "$tag_sha" != "$RELEASE_SHA" ]]; then
+              echo "${RELEASE_TAG} points to ${tag_sha}, not ${RELEASE_SHA}." >&2
+              exit 1
+            fi
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag --annotate "$RELEASE_TAG" \
+              --message "$RELEASE_TITLE" \
+              "$RELEASE_SHA"
+            git push origin "refs/tags/${RELEASE_TAG}"
+          fi
+
+      - name: Publish GitHub Release
+        if: steps.existing.outputs.published != 'true'
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ARCHIVE: ${{ steps.assets.outputs.archive }}
+          RELEASE_NOTES: ${{ inputs.notes_path }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TITLE: ${{ inputs.title }}
+        run: |
+          set -euo pipefail
+          assets=(
+            "$RELEASE_ARCHIVE"
+            dist/release/build-manifest.json
+            dist/release/SHA256SUMS
+          )
+
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json isDraft \
+              --jq .isDraft)"
+            if [[ "$is_draft" != "true" ]]; then
+              echo "Release ${RELEASE_TAG} already exists and is not a draft." >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" "${assets[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --draft=false \
+              --latest \
+              --title "$RELEASE_TITLE" \
+              --notes-file "$RELEASE_NOTES" \
+              --verify-tag
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --fail-on-no-commits \
+              --latest \
+              --title "$RELEASE_TITLE" \
+              --notes-file "$RELEASE_NOTES"
+          fi
+
+          release_url="$(gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,publishedAt,url \
+            --jq 'select(.isDraft == false and .publishedAt != null) | .url')"
+          test -n "$release_url"
+          echo "url=${release_url}" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize published release
+        if: always()
+        env:
+          EXISTING_URL: ${{ steps.existing.outputs.url }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_URL: ${{ steps.release.outputs.url }}
+        shell: bash
+        run: |
+          release_url="${RELEASE_URL:-$EXISTING_URL}"
+          {
+            echo "## Product release"
+            echo
+            echo "- Tag: \`${RELEASE_TAG}\`"
+            echo "- Release: ${release_url:-not published}"
+            echo "- Notification: GitHub release notification emitted after publication"
+          } >> "$GITHUB_STEP_SUMMARY"

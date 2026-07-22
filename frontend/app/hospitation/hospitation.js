@@ -2,21 +2,27 @@
       const switcherLinks = [...document.querySelectorAll("[data-hospitation-switcher-link]")];
 
       function setActiveSwitcher(target) {
+        let activeLink = null;
         switcherLinks.forEach((link) => {
           const active = link.dataset.hospitationSwitcherLink === target;
           link.classList.toggle("is-active", active);
           if (active) {
+            activeLink = link;
             link.setAttribute("aria-current", "page");
           } else {
             link.removeAttribute("aria-current");
           }
         });
+        if (activeLink && window.matchMedia("(max-width: 760px)").matches) {
+          window.requestAnimationFrame(() => activeLink.scrollIntoView({ block: "nearest", inline: "center" }));
+        }
       }
 
       function switcherTargetFromHash(hash = "") {
         if (hash === "#framework") return "framework";
         if (hash === "#questionnaire") return "questionnaire";
         if (hash === "#hospitations:observations") return "observations";
+        if (hash === "#hospitations:patterns") return "patterns";
         if (hash === "#hospitations:dashboard") return "dashboard";
         return "appointments";
       }
@@ -33,7 +39,7 @@
         const appShell = frameDocument.querySelector(".app-shell");
         const isStandalone = appShell?.dataset.standaloneModule === "hospitation-documentation";
         const frameworkPanel = frameDocument.querySelector('[data-view-panel="framework"]:not([hidden])');
-        const activeHospitationPanel = frameDocument.querySelector('[data-hospitation-tab-panel="appointments"]:not([hidden]), [data-hospitation-tab-panel="observations"]:not([hidden]), [data-hospitation-tab-panel="dashboard"]:not([hidden])');
+        const activeHospitationPanel = frameDocument.querySelector('[data-hospitation-tab-panel="appointments"]:not([hidden]), [data-hospitation-tab-panel="observations"]:not([hidden]), [data-hospitation-tab-panel="patterns"]:not([hidden]), [data-hospitation-tab-panel="dashboard"]:not([hidden])');
         const questionnairePanel = frameDocument.querySelector('[data-view-panel="questionnaire"]:not([hidden])');
         setActiveSwitcher(switcherTargetFromHash(frameWindow.location.hash));
         return isStandalone && (appShell?.dataset.activeView === "framework" || appShell?.dataset.activeView === "hospitations" || appShell?.dataset.activeView === "questionnaire" || Boolean(frameworkPanel) || Boolean(activeHospitationPanel) || Boolean(questionnairePanel));

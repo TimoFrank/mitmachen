@@ -4,22 +4,22 @@ Stand: 01.07.2026
 
 ## Zielbild
 
-Das Hospitations-Modul soll Versorgungskontakte nicht nur als Freitext dokumentieren, sondern als wiederholbare, auswertbare Evidenzquelle fuer die Bewertung der gematik-Roadmap nutzen. Die Bewertung soll zeigen, welche Produkte, Features oder Luecken aus Sicht verschiedener Nutzergruppen versorgungsrelevant, dringend, umsetzbar oder risikobehaftet sind.
+Das Hospitations-Modul soll Versorgungskontakte nicht nur als Freitext dokumentieren, sondern als wiederholbare, auswertbare Evidenzquelle für die Bewertung der gematik-Roadmap nutzen. Die Bewertung soll zeigen, welche Produkte, Features oder Lücken aus Sicht verschiedener Nutzergruppen versorgungsrelevant, dringend, umsetzbar oder risikobehaftet sind.
 
-Das Ziel ist nicht, gesetzliche Fristen oder Gesellschafterbeschluesse durch Einzelmeinungen zu ersetzen. Das Ziel ist eine belastbare Argumentationsgrundlage fuer Roadmap-Diskussionen: Wo bestaetigt die Versorgungspraxis die bestehende Priorisierung? Wo entsteht ein Spannungsfeld zwischen gesetzlicher Planung, technischer Roadmap und tatsaechlichem Versorgungsbedarf? Wo werden Anforderungen sichtbar, die noch nicht sauber in ein Roadmap-Produkt passen?
+Das Ziel ist nicht, gesetzliche Fristen oder Gesellschafterbeschlüsse durch Einzelmeinungen zu ersetzen. Das Ziel ist eine belastbare Argumentationsgrundlage für Roadmap-Diskussionen: Wo bestätigt die Versorgungspraxis die bestehende Priorisierung? Wo entsteht ein Spannungsfeld zwischen gesetzlicher Planung, technischer Roadmap und tatsächlichem Versorgungsbedarf? Wo werden Anforderungen sichtbar, die noch nicht sauber in ein Roadmap-Produkt passen?
 
 ## Ausgangslage
 
-Die gematik beschreibt die OneRoadmap als zentrale, verbindliche Planungsgrundlage fuer Entwicklung und Einfuehrung von Produkten und Loesungen der Telematikinfrastruktur. Sie wird quartalsweise fortgeschrieben und zeigt Funktionsumfaenge, Release-Zeitpunkte und Produktentwicklungsphasen.
+Die gematik beschreibt die OneRoadmap als zentrale, verbindliche Planungsgrundlage für Entwicklung und Einführung von Produkten und Lösungen der Telematikinfrastruktur. Sie wird quartalsweise fortgeschrieben und zeigt Funktionsumfänge, Release-Zeitpunkte und Produktentwicklungsphasen.
 
-Fuer Q2/2026 liegt die Roadmap mit Datenstand 27.05.2026 vor. Die Uebersicht enthaelt unter anderem:
+Für Q2/2026 liegt die Roadmap mit Datenstand 27.05.2026 vor. Die Übersicht enthält unter anderem:
 
 - Anwendungen der TI: ePA, E-Rezept, MyHealth@EU, TI-Messenger, KIM, VSDM, Digitale Patientenrechnung.
-- Basisinfrastruktur: Identitaetsmanagement, Verzeichnisdienst, TI-Zugang, Smartcards/PoPP, Zero Trust Infrastructure.
-- Technische Standards und Daten: ISiK, HDDT, ZTS, Identitaetenherausgabe.
-- Neue Nutzergruppen: Kostentraeger- und Leistungserbringergruppen mit gesetzlichen Anschlusspflichten.
+- Basisinfrastruktur: Identitätsmanagement, Verzeichnisdienst, TI-Zugang, Smartcards/PoPP, Zero Trust Infrastructure.
+- Technische Standards und Daten: ISiK, HDDT, ZTS, Identitätenherausgabe.
+- Neue Nutzergruppen: Kostenträger- und Leistungserbringergruppen mit gesetzlichen Anschlusspflichten.
 
-Die Filterversion der Roadmap enthaelt eine auswertbare Matrix mit Produkt/Initiative, aktueller Phase, Bezug zu Primaersystemen, Versicherten-Frontends, Monatsmeilensteinen, Ampelstatus, Nutzergruppen und Detailtexten. Diese Struktur eignet sich als Grundlage fuer einen Roadmap-Katalog im CRM.
+Die Filterversion der Roadmap enthält eine auswertbare Matrix mit Produkt/Initiative, aktueller Phase, Bezug zu Primärsystemen, Versicherten-Frontends, Monatsmeilensteinen, Ampelstatus, Nutzergruppen und Detailtexten. Diese Struktur eignet sich als Grundlage für einen Roadmap-Katalog im CRM.
 
 Quellen:
 
@@ -29,18 +29,18 @@ Quellen:
 
 ## Governance und Fristen
 
-Die Roadmap ist politisch und rechtlich vorgepraegt. Eine Bewertung aus der Versorgung kann deshalb nicht einfach eine Sortierung nach Beliebtheit sein.
+Die Roadmap ist politisch und rechtlich vorgeprägt. Eine Bewertung aus der Versorgung kann deshalb nicht einfach eine Sortierung nach Beliebtheit sein.
 
 Wichtige rechtliche Bezugspunkte:
 
-- § 310 SGB V regelt die Gesellschaft fuer Telematik und die Geschaeftsanteile. Der Bund, vertreten durch das BMG, haelt 51 Prozent. Der GKV-Spitzenverband haelt 24,5 Prozent. Die weiteren Spitzenorganisationen halten 24,5 Prozent.
-- § 311 SGB V beschreibt Aufgaben der Gesellschaft fuer Telematik, insbesondere Vorgaben, Betrieb, Zulassung, Sicherheit und Weiterentwicklung der TI.
-- § 312 SGB V enthaelt Auftraege an die gematik, unter anderem zu elektronischen Verordnungen, TI-Messenger, eMP und weiteren Umsetzungsschritten.
-- § 291b SGB V enthaelt Vorgaben zum Online-Verfahren zur Nutzung der elektronischen Gesundheitskarte als Versicherungsnachweis.
-- § 342 SGB V enthaelt Vorgaben zur ePA, unter anderem zur Bereitstellung und zu weiteren technischen Anforderungen.
-- § 360 SGB V enthaelt Vorgaben zur elektronischen Uebermittlung und Verarbeitung vertragsaerztlicher Verordnungen, darunter Arzneimittel, Betraeubungsmittel, haeusliche Krankenpflege, Soziotherapie, Heilmittel und Hilfsmittel.
+- § 310 SGB V regelt die Gesellschaft für Telematik und die Geschäftsanteile. Der Bund, vertreten durch das BMG, hält 51 Prozent. Der GKV-Spitzenverband hält 24,5 Prozent. Die weiteren Spitzenorganisationen halten 24,5 Prozent.
+- § 311 SGB V beschreibt Aufgaben der Gesellschaft für Telematik, insbesondere Vorgaben, Betrieb, Zulassung, Sicherheit und Weiterentwicklung der TI.
+- § 312 SGB V enthält Aufträge an die gematik, unter anderem zu elektronischen Verordnungen, TI-Messenger, eMP und weiteren Umsetzungsschritten.
+- § 291b SGB V enthält Vorgaben zum Online-Verfahren zur Nutzung der elektronischen Gesundheitskarte als Versicherungsnachweis.
+- § 342 SGB V enthält Vorgaben zur ePA, unter anderem zur Bereitstellung und zu weiteren technischen Anforderungen.
+- § 360 SGB V enthält Vorgaben zur elektronischen Übermittlung und Verarbeitung vertragsärztlicher Verordnungen, darunter Arzneimittel, Betäubungsmittel, häusliche Krankenpflege, Soziotherapie, Heilmittel und Hilfsmittel.
 
-Zusaetzlich wirken europaeische Vorgaben, insbesondere der European Health Data Space. Die EHDS-Umsetzung setzt Fristen fuer grenzueberschreitende Datenkategorien, unter anderem Patient Summary und ePrescription/eDispensation ab 2029 sowie Laboratory Results, Discharge Reports und Imaging ab 2031.
+Zusätzlich wirken europäische Vorgaben, insbesondere der European Health Data Space. Die EHDS-Umsetzung setzt Fristen für grenzüberschreitende Datenkategorien, unter anderem Patient Summary und ePrescription/eDispensation ab 2029 sowie Laboratory Results, Discharge Reports und Imaging ab 2031.
 
 Quellen:
 
@@ -56,28 +56,28 @@ Quellen:
 
 Die zentrale Auswertungsfrage lautet:
 
-> Welche Roadmap-Produkte, Features oder neuen Anforderungen werden von welchen Nutzergruppen als versorgungsrelevant, dringend, umsetzbar und begruendbar prioritaer bewertet?
+> Welche Roadmap-Produkte, Features oder neuen Anforderungen werden von welchen Nutzergruppen als versorgungsrelevant, dringend, umsetzbar und begründbar prioritär bewertet?
 
 Daraus ergeben sich vier Unterfragen:
 
 1. Welche Roadmap-Items haben aus Sicht einer konkreten Rolle hohen Versorgungseffekt?
-2. Welche Roadmap-Items wirken im Alltag zwar relevant, sind aber in ihrer Einfuehrung riskant oder aktuell schlecht umsetzbar?
+2. Welche Roadmap-Items wirken im Alltag zwar relevant, sind aber in ihrer Einführung riskant oder aktuell schlecht umsetzbar?
 3. Welche gesetzlich oder technisch priorisierten Items werden in der Versorgung als weniger dringlich erlebt?
 4. Welche wiederkehrenden Anforderungen fehlen in der Roadmap oder sind nur indirekt in Backlog-Themen sichtbar?
 
 ## Nutzerperspektiven
 
-Die Roadmap muss rollenbezogen bewertet werden. Ein einheitlicher Score fuer alle Nutzergruppen waere methodisch schwach, weil Nutzen, Aufwand und Risiko je Rolle unterschiedlich verteilt sind.
+Die Roadmap muss rollenbezogen bewertet werden. Ein einheitlicher Score für alle Nutzergruppen wäre methodisch schwach, weil Nutzen, Aufwand und Risiko je Rolle unterschiedlich verteilt sind.
 
 Relevante Perspektiven:
 
-- Vertragsaerztinnen und Vertragsaerzte: Praxisworkflow, Dokumentationsaufwand, Primaersystemintegration, Haftungs- und Verordnungssicherheit, Medikationssicherheit, Uebergaben.
-- Apotheken: Rezeptannahme, Abgabeprozess, BTM-Dokumentation, Korrekturen, Kommunikation mit Praxen und Kostentraegern.
-- Pflegefachkraefte und Pflegedienste: mobile Versorgung, HKP-/AKI-Verordnungen, Kommunikationswege, Nachweise, Schnittstellen zu Aerzten und Kassen.
-- Versicherte und Patientinnen/Patienten: Verstaendlichkeit, Zugang, Kontrolle, Nutzbarkeit der ePA-App, Rezept- und Rechnungsprozesse, Vertrauen.
-- Krankenhaeuser: Entlassmanagement, Laborbefunde, ISiK, ePA-Befuellung, Ueberleitungen.
-- Kostentraeger: Pruef- und Genehmigungsprozesse, Datenqualitaet, digitale Rechnungs- und Verordnungsprozesse.
-- Hersteller/Primaersysteme: technische Machbarkeit, Spezifikationsreife, Testbarkeit, Migrationsaufwand.
+- Vertragsärztinnen und Vertragsärzte: Praxisworkflow, Dokumentationsaufwand, Primärsystemintegration, Haftungs- und Verordnungssicherheit, Medikationssicherheit, Übergaben.
+- Apotheken: Rezeptannahme, Abgabeprozess, BTM-Dokumentation, Korrekturen, Kommunikation mit Praxen und Kostenträgern.
+- Pflegefachkräfte und Pflegedienste: mobile Versorgung, HKP-/AKI-Verordnungen, Kommunikationswege, Nachweise, Schnittstellen zu Ärzten und Kassen.
+- Versicherte und Patientinnen/Patienten: Verständlichkeit, Zugang, Kontrolle, Nutzbarkeit der ePA-App, Rezept- und Rechnungsprozesse, Vertrauen.
+- Krankenhäuser: Entlassmanagement, Laborbefunde, ISiK, ePA-Befüllung, Überleitungen.
+- Kostenträger: Prüf- und Genehmigungsprozesse, Datenqualität, digitale Rechnungs- und Verordnungsprozesse.
+- Hersteller/Primärsysteme: technische Machbarkeit, Spezifikationsreife, Testbarkeit, Migrationsaufwand.
 
 ## Theoretischer Rahmen
 
@@ -85,23 +85,23 @@ Die Bewertung sollte als Mixed-Methods-Design mit Multi-Criteria Decision Analys
 
 ### Technology Acceptance Model und UTAUT
 
-TAM und UTAUT helfen, Akzeptanz und Nutzungsabsicht zu erfassen. Fuer das Hospitations-Modul sind vor allem folgende Konstrukte relevant:
+TAM und UTAUT helfen, Akzeptanz und Nutzungsabsicht zu erfassen. Für das Hospitations-Modul sind vor allem folgende Konstrukte relevant:
 
 - wahrgenommener Nutzen
 - wahrgenommene Einfachheit
 - erwartete Leistungsverbesserung
 - erwarteter Aufwand
 - soziale und organisatorische Einbettung
-- unterstuetzende Rahmenbedingungen
+- unterstützende Rahmenbedingungen
 
 Quellen:
 
 - Davis, F. D. (1989): Perceived Usefulness, Perceived Ease of Use, and User Acceptance of Information Technology. https://www.jstor.org/stable/249008
-- UTAUT-Uebersicht: https://open.ncl.ac.uk/theories/2/unified-theory-of-acceptance-and-use-of-technology/
+- UTAUT-Übersicht: https://open.ncl.ac.uk/theories/2/unified-theory-of-acceptance-and-use-of-technology/
 
 ### NASSS Framework
 
-NASSS ist fuer Gesundheits- und Versorgungstechnologien besonders passend, weil es nicht nur Akzeptanz, sondern auch Nicht-Adoption, Abbruch, Skalierung, Verbreitung und Nachhaltigkeit betrachtet. Fuer Roadmap-Diskussionen ist das wichtig, weil ein Produkt fachlich sinnvoll sein kann, aber an Komplexitaet, organisatorischer Einbettung oder Systemabhengigkeiten scheitert.
+NASSS ist für Gesundheits- und Versorgungstechnologien besonders passend, weil es nicht nur Akzeptanz, sondern auch Nicht-Adoption, Abbruch, Skalierung, Verbreitung und Nachhaltigkeit betrachtet. Für Roadmap-Diskussionen ist das wichtig, weil ein Produkt fachlich sinnvoll sein kann, aber an Komplexität, organisatorischer Einbettung oder Systemabhengigkeiten scheitert.
 
 Quelle:
 
@@ -117,41 +117,41 @@ Quelle:
 
 ## Bewertungsdimensionen
 
-Die Bewertung sollte nicht nur "Wie wichtig ist das?" fragen. Wichtigkeit alleine erzeugt wenig Priorisierungsqualitaet.
+Die Bewertung sollte nicht nur "Wie wichtig ist das?" fragen. Wichtigkeit alleine erzeugt wenig Priorisierungsqualität.
 
 Empfohlene Dimensionen:
 
 1. Versorgungsnutzen
-   - Beitrag zu Patientensicherheit, Behandlungsqualitaet, Therapieentscheidung, Medikationssicherheit oder Versorgungskontinuitaet.
+   - Beitrag zu Patientensicherheit, Behandlungsqualität, Therapieentscheidung, Medikationssicherheit oder Versorgungskontinuität.
 
 2. Prozessentlastung
-   - Reduktion von Medienbruechen, Papier, Doppelarbeit, Nachtelefonieren, manueller Datenerfassung oder unklaren Uebergaben.
+   - Reduktion von Medienbrüchen, Papier, Doppelarbeit, Nachtelefonieren, manueller Datenerfassung oder unklaren Übergaben.
 
 3. Dringlichkeit
-   - Risiko oder Nachteil, wenn das Item spaeter kommt oder in der Roadmap weniger Aufmerksamkeit erhaelt.
+   - Risiko oder Nachteil, wenn das Item später kommt oder in der Roadmap weniger Aufmerksamkeit erhält.
 
 4. Umsetzbarkeit
-   - Einschaetzung, ob Einfuehrung, Schulung, Primaersysteme, Infrastruktur und Support unter realen Bedingungen realistisch sind.
+   - Einschätzung, ob Einführung, Schulung, Primärsysteme, Infrastruktur und Support unter realen Bedingungen realistisch sind.
 
 5. Akzeptanz und Nutzungswahrscheinlichkeit
-   - Wahrscheinlichkeit, dass die Nutzergruppe das Produkt freiwillig oder im Pflichtkontext tatsaechlich sinnvoll nutzt.
+   - Wahrscheinlichkeit, dass die Nutzergruppe das Produkt freiwillig oder im Pflichtkontext tatsächlich sinnvoll nutzt.
 
 6. Vertrauen und Sicherheitswahrnehmung
    - Datenschutz, Datensicherheit, Nachvollziehbarkeit, Verantwortlichkeit und Fehlerrisiko.
 
-7. Abhaengigkeiten und Reifegrad
-   - Roadmap-Phase, gesetzliche Frist, EHDS-Frist, Primaersystem-Abhaengigkeit, Spezifikationsreife.
+7. Abhängigkeiten und Reifegrad
+   - Roadmap-Phase, gesetzliche Frist, EHDS-Frist, Primärsystem-Abhängigkeit, Spezifikationsreife.
 
-8. Evidenzqualitaet
-   - Wie sicher ist die Einschaetzung? Ein Einzelinterview ist anders zu gewichten als ein wiederkehrendes Muster ueber mehrere Sektoren.
+8. Evidenzqualität
+   - Wie sicher ist die Einschätzung? Ein Einzelinterview ist anders zu gewichten als ein wiederkehrendes Muster über mehrere Sektoren.
 
 ## Erhebungsformat
 
-Die beste Loesung ist ein gestuftes Design:
+Die beste Lösung ist ein gestuftes Design:
 
 ### 1. Hospitation als Kontextquelle
 
-Waerend oder direkt nach einer Hospitation wird der konkrete Versorgungskontext dokumentiert:
+Während oder direkt nach einer Hospitation wird der konkrete Versorgungskontext dokumentiert:
 
 - Rolle der befragten Person
 - Sektor und Einrichtungstyp
@@ -161,23 +161,23 @@ Waerend oder direkt nach einer Hospitation wird der konkrete Versorgungskontext 
 - konkrete Reibungspunkte
 - Zitate oder Beobachtungsnotizen
 
-Diese Informationen sind qualitativ und erklaeren spaeter, warum ein Score hoch oder niedrig ist.
+Diese Informationen sind qualitativ und erklären später, warum ein Score hoch oder niedrig ist.
 
 ### 2. Strukturierte Kurzbewertung
 
-Direkt nach dem Gespraech werden die passenden Roadmap-Items bewertet. Nicht alle Items sollen immer abgefragt werden. Die Auswahl muss kontextsensitiv sein:
+Direkt nach dem Gespräch werden die passenden Roadmap-Items bewertet. Nicht alle Items sollen immer abgefragt werden. Die Auswahl muss kontextsensitiv sein:
 
 - Bei Praxis/Arzt: ePA, eRp, VSDM, KIM, TI-M, PoPP, eID-LE, ISiK je nach Anlass.
 - Bei Apotheke: eRp, BTM, T-Rezepte, PoPP, KIM.
-- Bei Pflege: HKP/AKI, TI-M, PoPP, eID-LE, KIM, mobile TI-Zugaenge.
+- Bei Pflege: HKP/AKI, TI-M, PoPP, eID-LE, KIM, mobile TI-Zugänge.
 - Bei Patient: ePA, Medikationsplan, Push-Notifications, ZETA, GesundheitsID, DiPag.
 
 ### 3. Relative Priorisierung
 
 Wenn mindestens drei Items relevant sind, sollte eine Best-Worst-Frage gestellt werden:
 
-- "Welches dieser Themen haette fuer Ihre Versorgung den groessten Nutzen?"
-- "Welches dieser Themen waere im Vergleich am wenigsten dringlich?"
+- "Welches dieser Themen hätte für Ihre Versorgung den größten Nutzen?"
+- "Welches dieser Themen wäre im Vergleich am wenigsten dringlich?"
 
 Alternativ kann eine einfache Top-3-Priorisierung genutzt werden, wenn das Interview kurz bleiben muss.
 
@@ -186,11 +186,11 @@ Alternativ kann eine einfache Top-3-Priorisierung genutzt werden, wenn das Inter
 Nicht passende Anforderungen werden separat erfasst:
 
 - Titel der Anforderung
-- Problem, das geloest werden soll
+- Problem, das gelöst werden soll
 - betroffene Rolle
 - bestehender Workaround
 - potenziell passendes Roadmap-Produkt
-- Bewertung, ob es Erweiterung, Backlog-Thema, gesetzlicher Klaerungsbedarf oder lokales Implementierungsproblem ist
+- Bewertung, ob es Erweiterung, Backlog-Thema, gesetzlicher Klärungsbedarf oder lokales Implementierungsproblem ist
 
 ### 5. Validierung
 
@@ -211,26 +211,26 @@ N/A. kann ich nicht beurteilen
 
 Beispielitems:
 
-- "Diese Funktion wuerde in meinem Versorgungsalltag einen relevanten Beitrag zur Patientensicherheit leisten."
-- "Diese Funktion wuerde Medienbrueche oder doppelte Dokumentation reduzieren."
-- "Wenn diese Funktion spaeter kommt, entsteht in unserem Prozess ein spuerbarer Versorgungs- oder Koordinationsnachteil."
-- "Die Einfuehrung ist mit den heute verfuegbaren Systemen und Ablaeufen realistisch umsetzbar."
-- "Ich wuerde diese Funktion im Alltag regelmaessig nutzen oder aktiv einfordern."
-- "Die Verantwortlichkeiten und Datenschutzfolgen dieser Funktion waeren fuer mich nachvollziehbar."
+- "Diese Funktion würde in meinem Versorgungsalltag einen relevanten Beitrag zur Patientensicherheit leisten."
+- "Diese Funktion würde Medienbrüche oder doppelte Dokumentation reduzieren."
+- "Wenn diese Funktion später kommt, entsteht in unserem Prozess ein spürbarer Versorgungs- oder Koordinationsnachteil."
+- "Die Einführung ist mit den heute verfügbaren Systemen und Abläufen realistisch umsetzbar."
+- "Ich würde diese Funktion im Alltag regelmäßig nutzen oder aktiv einfordern."
+- "Die Verantwortlichkeiten und Datenschutzfolgen dieser Funktion wären für mich nachvollziehbar."
 
-Nicht geeignet waeren sehr allgemeine Fragen wie "Wie wichtig ist ePA?" oder "Sollte die gematik das priorisieren?". Solche Fragen vermischen Nutzen, Frust, politische Haltung und technische Umsetzung.
+Nicht geeignet wären sehr allgemeine Fragen wie "Wie wichtig ist ePA?" oder "Sollte die gematik das priorisieren?". Solche Fragen vermischen Nutzen, Frust, politische Haltung und technische Umsetzung.
 
 ## Scorelogik
 
 Ein pragmatischer Auswertungsscore kann so aufgebaut werden:
 
 - Versorgungswert = Durchschnitt aus Versorgungsnutzen, Prozessentlastung und Patientensicherheit.
-- Dringlichkeit = direkte Dringlichkeitsskala plus Risiko bei Verzoegerung.
-- Umsetzungsrisiko = invertierte Umsetzbarkeit plus Einfuehrungsaufwand.
+- Dringlichkeit = direkte Dringlichkeitsskala plus Risiko bei Verzögerung.
+- Umsetzungsrisiko = invertierte Umsetzbarkeit plus Einführungsaufwand.
 - Akzeptanz = Nutzungswahrscheinlichkeit plus Vertrauen.
-- Prioritaetsindikator = hoher Versorgungswert + hohe Dringlichkeit + akzeptables Umsetzungsrisiko.
+- Prioritätsindikator = hoher Versorgungswert + hohe Dringlichkeit + akzeptables Umsetzungsrisiko.
 
-Wichtig: Der Score ist kein Automatismus. Er ist ein Sortier- und Diskussionssignal. Fuer Roadmap-Argumente sollten immer qualitative Belege und Fristkontext danebenstehen.
+Wichtig: Der Score ist kein Automatismus. Er ist ein Sortier- und Diskussionssignal. Für Roadmap-Argumente sollten immer qualitative Belege und Fristkontext danebenstehen.
 
 ## Umgang mit gesetzlichen Fristen
 
@@ -240,21 +240,21 @@ Bei jedem Roadmap-Item sollte sichtbar sein:
 - SGB-V-Frist
 - EHDS-Frist
 - Gesellschafter-/Roadmap-Plandatum
-- technische Abhaengigkeit oder Drittanbieterabhaengigkeit
+- technische Abhängigkeit oder Drittanbieterabhängigkeit
 
-Damit lassen sich vier Faelle unterscheiden:
+Damit lassen sich vier Fälle unterscheiden:
 
 1. Hohe Versorgungsrelevanz und harte Frist
-   - starkes Argument fuer Absicherung, Erprobung, Kommunikation und Umsetzungsunterstuetzung.
+   - starkes Argument für Absicherung, Erprobung, Kommunikation und Umsetzungsunterstützung.
 
 2. Hohe Versorgungsrelevanz ohne harte Frist
-   - starkes Argument fuer Re-Priorisierung oder Aufnahme in Discovery.
+   - starkes Argument für Re-Priorisierung oder Aufnahme in Discovery.
 
 3. Niedrige Versorgungsrelevanz, aber harte Frist
-   - Argument fuer bessere Nutzenkommunikation, Pilotierung oder Entlastungsmassnahmen, nicht zwingend fuer Streichung.
+   - Argument für bessere Nutzenkommunikation, Pilotierung oder Entlastungsmassnahmen, nicht zwingend für Streichung.
 
 4. Hohe Relevanz, aber geringe Umsetzbarkeit
-   - Argument fuer Vorarbeiten, Abhaengigkeiten, Primaersystemintegration und stufenweise Einfuehrung.
+   - Argument für Vorarbeiten, Abhängigkeiten, Primärsystemintegration und stufenweise Einführung.
 
 ## Umgang mit neuen Anforderungen
 
@@ -262,28 +262,28 @@ Neue Anforderungen sollen nicht in bestehende Roadmap-Items hineingezwungen werd
 
 Beispiele:
 
-- Digitaler Impfpass: in der Q2/2026-Filterversion als ePA-Backlog-Thema "Impfpass (FHIR)" sichtbar. Die Bewertung sollte klaeren, ob das aus Versorgungssicht ein Randthema, ein dringender ePA-Inhalt oder eine eigene Kommunikations- und Erinnerungsfunktion ist.
-- Elektronische Verordnung von Hilfsmitteln: in § 360 SGB V als Verpflichtungskontext angelegt und in Roadmap/Backlog-Texten erkennbar. Die Bewertung sollte unterscheiden, ob es um das reine Verordnen, Kostentraegerprozesse, Sanitaetshausanbindung, Lieferstatus oder Patiententransparenz geht.
+- Digitaler Impfpass: in der Q2/2026-Filterversion als ePA-Backlog-Thema "Impfpass (FHIR)" sichtbar. Die Bewertung sollte klären, ob das aus Versorgungssicht ein Randthema, ein dringender ePA-Inhalt oder eine eigene Kommunikations- und Erinnerungsfunktion ist.
+- Elektronische Verordnung von Hilfsmitteln: in § 360 SGB V als Verpflichtungskontext angelegt und in Roadmap/Backlog-Texten erkennbar. Die Bewertung sollte unterscheiden, ob es um das reine Verordnen, Kostenträgerprozesse, Sanitätshausanbindung, Lieferstatus oder Patiententransparenz geht.
 
 Klassifikation neuer Anforderungen:
 
 - Erweiterung eines bestehenden Roadmap-Items
 - eigenes Roadmap-/Backlog-Thema
-- gesetzlicher Klaerungsbedarf
+- gesetzlicher Klärungsbedarf
 - organisatorischer Implementierungsbedarf
-- lokales Software-/Primaersystemproblem
+- lokales Software-/Primärsystemproblem
 - Kommunikations- oder Schulungsbedarf
 
-## Wissenschaftliche Guetekriterien
+## Wissenschaftliche Gütekriterien
 
-Eine adaequate Bewertung sollte folgende Kriterien erfuellen:
+Eine adäquate Bewertung sollte folgende Kriterien erfüllen:
 
 - Transparente Stichprobe: Rolle, Sektor, Region, Einrichtungstyp, Erfahrung und Kontext werden dokumentiert.
 - Kontextbindung: Bewertung wird an einen konkreten beobachteten Prozess gekoppelt.
 - Standardisierte Skalen: gleiche Items, gleiche Antwortanker, N/A-Option.
-- Qualitative Begruendung: Scores werden mit Beobachtungen und Zitaten erklaert.
+- Qualitative Begründung: Scores werden mit Beobachtungen und Zitaten erklärt.
 - Triangulation: Hospitation, Interview, Gruppendiskussion und ggf. Online-Umfrage werden kombiniert.
-- Rollengetrennte Auswertung: keine ungewichtete Gesamtrangliste ueber ungleiche Nutzergruppen.
+- Rollengetrennte Auswertung: keine ungewichtete Gesamtrangliste über ungleiche Nutzergruppen.
 - Versionierung: Roadmap-Version und Datenstand werden gespeichert.
 - Evidenzgewichtung: Einzelbefund, wiederkehrendes Muster und validierter Befund werden getrennt.
 - Datenschutz: keine sensiblen Patientendaten, keine identifizierenden Fallinformationen.
@@ -296,20 +296,20 @@ Empfohlen werden eigene Tabellen:
 
 1. `roadmap_items`
    - Katalog der bewertbaren Roadmap-Produkte und Features.
-   - Enthaelt Produktgruppe, Produkt, Feature, Roadmap-Version, Phase, Zeitraum, Fristtyp, Rechtsgrundlage, Zielgruppen und Quelle.
+   - Enthält Produktgruppe, Produkt, Feature, Roadmap-Version, Phase, Zeitraum, Fristtyp, Rechtsgrundlage, Zielgruppen und Quelle.
 
 2. `hospitation_roadmap_assessments`
    - Bewertung eines Roadmap-Items im Kontext einer Hospitation.
-   - Enthaelt Skalenwerte, Prioritaetsrang, Best-Worst-Markierung, Freitextbegruendung und Rollen-/Sektorkontext.
+   - Enthält Skalenwerte, Prioritätsrang, Best-Worst-Markierung, Freitextbegründung und Rollen-/Sektorkontext.
 
 3. `hospitation_unmet_needs`
-   - Neue Anforderungen oder Luecken, die nicht sauber in ein Roadmap-Item passen.
-   - Enthaelt Bedarf, Problem, Workaround, erwarteten Nutzen, Dringlichkeit, potenziellen Roadmap-Bezug und Klassifikation.
+   - Neue Anforderungen oder Lücken, die nicht sauber in ein Roadmap-Item passen.
+   - Enthält Bedarf, Problem, Workaround, erwarteten Nutzen, Dringlichkeit, potenziellen Roadmap-Bezug und Klassifikation.
 
-Optional spaeter:
+Optional später:
 
 4. `roadmap_pairwise_choices`
-   - Fuer echte Best-Worst- oder Paarvergleichsdesigns mit Sets und Auswahlentscheidungen.
+   - Für echte Best-Worst- oder Paarvergleichsdesigns mit Sets und Auswahlentscheidungen.
 
 ### UI im Dokumentationsformular
 
@@ -321,7 +321,7 @@ Das Dokumentationsformular sollte drei Abschnitte enthalten:
 2. Roadmap-Bewertung
    - Auswahl eines oder mehrerer Roadmap-Items.
    - Kompakte 5er-Skalen je Item.
-   - Feld fuer Begründung.
+   - Feld für Begründung.
    - Option "wichtigstes Item" und "am wenigsten dringlich".
 
 3. Neue Anforderungen
@@ -332,10 +332,10 @@ Das Dokumentationsformular sollte drei Abschnitte enthalten:
 Das Dashboard sollte nicht nur Anzahl der Hospitationen zeigen, sondern:
 
 - Top Roadmap-Items nach Versorgungswert.
-- Items mit hoher Dringlichkeit und spaeter Roadmap-Phase.
+- Items mit hoher Dringlichkeit und später Roadmap-Phase.
 - Items mit hoher Relevanz, aber geringer Umsetzbarkeit.
-- Neue Anforderungen nach Haeufigkeit und Sektor.
-- Rollenvergleich: Arzt, Apotheke, Pflege, Versicherte, Kostentraeger.
+- Neue Anforderungen nach Häufigkeit und Sektor.
+- Rollenvergleich: Arzt, Apotheke, Pflege, Versicherte, Kostenträger.
 - Evidenzstatus: Einzelhinweis, wiederkehrendes Muster, validiert.
 
 ### Auswertungslogik
@@ -348,13 +348,13 @@ Minimal brauchbare Auswertungen:
 - Best-Worst-Saldo: Anzahl "wichtigstes Item" minus Anzahl "am wenigsten dringlich".
 - Liste neuer Anforderungen mit betroffenen Sektoren und Wiederholungen.
 
-## Roadmap fuer die Umsetzung
+## Roadmap für die Umsetzung
 
 ### Stufe 1: Struktur erfassen
 
-- Tabellen fuer Roadmap-Items, Bewertungen und neue Anforderungen anlegen.
-- Ausgewaehlte Q2/2026-Roadmap-Items als initialen Katalog seed-en.
-- Dokumentationsformular um Roadmap-Bewertung und neue Anforderungen ergaenzen.
+- Tabellen für Roadmap-Items, Bewertungen und neue Anforderungen anlegen.
+- Ausgewählte Q2/2026-Roadmap-Items als initialen Katalog seed-en.
+- Dokumentationsformular um Roadmap-Bewertung und neue Anforderungen ergänzen.
 
 ### Stufe 2: Auswertung sichtbar machen
 
@@ -365,18 +365,18 @@ Minimal brauchbare Auswertungen:
 ### Stufe 3: Wissenschaftliche Verfeinerung
 
 - Best-Worst-Sets systematisch generieren.
-- Export fuer Auswertung in R, Python oder Tabellenkalkulation.
+- Export für Auswertung in R, Python oder Tabellenkalkulation.
 - Pretest mit 5-10 Hospitationen.
-- Itemformulierungen nach Pretest schaerfen.
+- Itemformulierungen nach Pretest schärfen.
 
 ### Stufe 4: Roadmap-Argumentation
 
 - Quartalsbericht je Roadmap-Version.
 - Evidenzmatrix: Roadmap-Item x Nutzergruppe x Versorgungswert x Dringlichkeit x Umsetzbarkeit.
-- Kurzsteckbriefe fuer Re-Priorisierungsvorschlaege.
+- Kurzsteckbriefe für Re-Priorisierungsvorschläge.
 
 ## Grenzen
 
-Die Bewertung ist kein Ersatz fuer gesetzliche Planung, technische Spezifikation oder formale Gesellschafterentscheidungen. Sie ist auch keine repraesentative Befragung, solange die Stichprobe aus Hospitationen entsteht. Ihre Staerke liegt in der Verbindung aus realem Versorgungskontext, strukturierter Bewertung und wiederholbarer Dokumentation.
+Die Bewertung ist kein Ersatz für gesetzliche Planung, technische Spezifikation oder formale Gesellschafterentscheidungen. Sie ist auch keine repräsentative Befragung, solange die Stichprobe aus Hospitationen entsteht. Ihre Stärke liegt in der Verbindung aus realem Versorgungskontext, strukturierter Bewertung und wiederholbarer Dokumentation.
 
-Gerade deshalb ist das Hospitations-Modul ein guter Ort fuer diese Logik: Es verbindet konkreten Kontakt, Rolle, Organisation, Datum, Beobachtung und Bewertung. Aus Freitext wird damit keine scheinbare Objektivitaet, sondern eine nachvollziehbare Evidenzspur.
+Gerade deshalb ist das Hospitations-Modul ein guter Ort für diese Logik: Es verbindet konkreten Kontakt, Rolle, Organisation, Datum, Beobachtung und Bewertung. Aus Freitext wird damit keine scheinbare Objektivität, sondern eine nachvollziehbare Evidenzspur.

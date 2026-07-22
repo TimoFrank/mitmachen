@@ -95,6 +95,15 @@
         "ssl": {
           "type": "string",
           "enum": ["verify-full", "disable"]
+        },
+        "sslCaSecretName": {
+          "type": "string"
+        },
+        "sslCaSecretKey": {
+          "type": "string"
+        },
+        "sslServerName": {
+          "type": "string"
         }
       }
     },

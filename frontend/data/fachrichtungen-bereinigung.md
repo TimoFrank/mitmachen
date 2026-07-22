@@ -70,7 +70,7 @@ Dieses Dokument enthält nur noch den allgemeinen, nicht personenbezogenen Zielk
 | Allgemeinmedizin \| Psychotherapie \| Psychiatrie \| Labor | Mehrfachwert mit fachfremdem Anteil |
 | Allgemeinmedizin, HIV-Schwerpunkt | Mehrfach-/Schwerpunktwert |
 | Allgemeinmedizin, Urologie | Mehrfachwert |
-| Personenname | Personenwerte gehoeren nicht in das Fachrichtungsfeld |
+| Personenname | Personenwerte gehören nicht in das Fachrichtungsfeld |
 | GF | Rollenwert |
 | HIV \| Unfallchirurgie | Mehrfachwert |
 | Onkologie, Gastroenterologie | Mehrfachwert |

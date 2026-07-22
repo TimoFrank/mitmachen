@@ -29,6 +29,10 @@ test-results/
 ~$*
 
 # Local data and backups
+# The complete local hospitation workspace can contain private records and
+# contact images. Keep it outside every commit and RC, not just its data file.
+/frontend/local-hospitation/
+/tests/local-hospitation.spec.js
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal

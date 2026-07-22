@@ -52,6 +52,12 @@ spec:
                   name: {{ .Values.secrets.databasePasswordSecretName | quote }}
                   key: {{ .Values.secrets.databasePasswordSecretKey | quote }}
                   optional: false
+          {{- if .Values.database.sslCaSecretName }}
+          volumeMounts:
+            - name: postgres-ca
+              mountPath: /run/secrets/postgres
+              readOnly: true
+          {{- end }}
           readinessProbe:
             httpGet:
               path: /api/readyz
@@ -93,6 +99,15 @@ spec:
           securityContext:
             {{- toYaml .Values.gke.cloudSqlProxy.securityContext | nindent 12 }}
         {{- end }}
+      {{- if .Values.database.sslCaSecretName }}
+      volumes:
+        - name: postgres-ca
+          secret:
+            secretName: {{ .Values.database.sslCaSecretName | quote }}
+            items:
+              - key: {{ .Values.database.sslCaSecretKey | quote }}
+                path: ca.crt
+      {{- end }}
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: topology.kubernetes.io/zone

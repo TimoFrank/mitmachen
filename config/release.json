@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "baselineVersion": "0.20.0",
+  "baselineRef": "fac533f154355a00e8bc1bb78112ec476ae68fef",
+  "defaultBump": "minor"
+}

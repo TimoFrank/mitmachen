@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/**"
+      - ".dockerignore"
       - "api/**"
       - "config/**"
       - "deploy/**"
@@ -20,6 +21,7 @@ on:
       - main
     paths:
       - ".github/workflows/**"
+      - ".dockerignore"
       - "api/**"
       - "config/**"
       - "deploy/**"
@@ -38,7 +40,7 @@ permissions:
 
 jobs:
   target-readiness:
-    name: Zielbetriebs-Check
+    name: PoC-/Target-Readiness
     runs-on: ubuntu-latest
 
     steps:
@@ -56,41 +58,60 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Enforce security contracts
-        run: npm run security:contracts
+      - name: Check PoC RC contracts
+        run: npm run check:poc-rc
 
-      - name: Check migration target readiness
-        run: npm run check:target-readiness
+      - name: Build and smoke-test API container
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_name="versorgungs-kompass-api:target-readiness"
+          container_name="vk-api-target-readiness-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            docker rm --force "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
 
-      - name: Check GCP Autopilot pre-integration readiness
-        run: npm run check:gcp-autopilot
+          docker build --file api/Dockerfile --tag "$image_name" .
+          docker run --detach \
+            --name "$container_name" \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            --publish 127.0.0.1:18081:8080 \
+            --env API_AUTH_MODE=iap \
+            --env ALLOWED_ORIGIN=https://poc.example.invalid \
+            --env IAP_JWT_AUDIENCE=/projects/123456789/global/backendServices/123456789 \
+            "$image_name"
 
-      - name: Check deployment artifact separation
-        run: node scripts/test_deployment_separation.mjs
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:18081/api/healthz >/dev/null; then
+              exit 0
+            fi
+            if ! docker inspect --format '{{.State.Running}}' "$container_name" | grep --quiet true; then
+              docker logs "$container_name"
+              exit 1
+            fi
+            sleep 2
+          done
 
-      - name: Check deployment governance
-        run: node scripts/check_deployment_governance.mjs
+          docker logs "$container_name"
+          echo "The API container did not become healthy." >&2
+          exit 1
 
       - name: Setup Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: v3.19.0
 
-      - name: Render and validate hardened Helm chart
+      - name: Render and validate minimal PoC Helm chart
         run: |
           chart='deploy/helm/versorgungs-kompass'
-          helm lint "$chart" --values "$chart/values-gcp-autopilot.yaml"
-          helm template security-readiness "$chart" \
-            --values "$chart/values-gcp-autopilot.yaml" \
-            --set image.repository=europe-west3-docker.pkg.dev/example/versorgungs-kompass/api \
-            --set-string image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-            --set ingress.host=api.example.invalid \
-            --set config.allowedOrigin=https://app.example.invalid \
-            --set config.oidcIssuer=https://identity.example.invalid \
-            --set config.oidcAudience=versorgungs-kompass \
-            --set config.oidcJwksUrl=https://identity.example.invalid/.well-known/jwks.json \
-            --set database.host=127.0.0.1 \
-            --set secrets.databasePasswordSecretName=versorgungs-kompass-db \
-            --set gke.cloudSqlProxy.instanceConnectionName=example:europe-west3:versorgungs-kompass \
-            --set frontend.bucketName=example-frontend \
-            --set frontend.contentRevision=git-security-readiness >/tmp/versorgungs-kompass.yaml
+          helm lint "$chart" \
+            --values "$chart/values-poc-gematik.yaml" \
+            --set-string image.digest=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          helm template poc-readiness "$chart" \
+            --namespace versorgungs-kompass-poc \
+            --values "$chart/values-poc-gematik.yaml" \
+            --set-string image.digest=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+            >/tmp/versorgungs-kompass-poc.yaml
+          test -s /tmp/versorgungs-kompass-poc.yaml
