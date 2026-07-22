@@ -358,16 +358,27 @@ for (const asset of browserAssetManifest.assets) {
 
 const valuesSource = read("deploy/helm/versorgungs-kompass/values.yaml");
 const configMapSource = read("deploy/helm/versorgungs-kompass/templates/configmap.yaml");
+const frontendNginxSource = read("deploy/helm/versorgungs-kompass/files/frontend-default.conf");
 const helmSource = [
   valuesSource,
   configMapSource,
   read("deploy/helm/versorgungs-kompass/templates/deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/frontend-deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/frontend-nginx-configmap.yaml"),
-  read("deploy/helm/versorgungs-kompass/files/frontend-default.conf"),
+  frontendNginxSource,
   read("deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/poddisruptionbudget.yaml")
 ].join("\n");
+assert.match(
+  frontendNginxSource,
+  /map \$uri \$vk_frame_ancestors[\s\S]*~\^\/versorgungs-kompass\\\.html\$ "'self'";/,
+  "Der Hospitations-Wrapper muss die Vollanwendung ausschließlich gleich-originär einbetten dürfen."
+);
+assert.match(
+  frontendNginxSource,
+  /map \$uri \$vk_frame_options[\s\S]*~\^\/versorgungs-kompass\\\.html\$ "SAMEORIGIN";/,
+  "X-Frame-Options muss die Vollanwendung für den gleich-originären Hospitations-Wrapper freigeben."
+);
 assert.doesNotMatch(
   helmSource,
   /AUTH_(?:EMAIL|SUBJECT)_HEADER|auth(?:Email|Subject)Header/,
