@@ -24,6 +24,8 @@ const requiredFiles = [
   "api/Dockerfile",
   "api/server.mjs",
   "scripts/build_static_frontend.sh",
+  "scripts/generate_frontend_sbom.mjs",
+  "scripts/generate_security_evidence.mjs",
   "scripts/check_deployment_governance.mjs",
   "scripts/test_deployment_separation.mjs",
   "scripts/prepare_local_hospitation.mjs",
@@ -91,8 +93,8 @@ const requiredText = [
   },
   {
     file: "deploy/jenkins/Jenkinsfile.gematik",
-    patterns: [/Smoke API image/, /api\/healthz/, /archiveArtifacts[^\n]*dist\/target/, /FRONTEND_BUCKET_URI/, /migrationContractDigest/, /approved-classes-only/],
-    reason: "Jenkins prüft den Containerstart, archiviert das PoC-Frontend und weist die Datenrichtlinie ohne Daten-Snapshot nach."
+    patterns: [/Smoke API image/, /api\/healthz/, /archiveArtifacts[^\n]*dist\/target/, /FRONTEND_BUCKET_URI/, /migrationContractDigest/, /approved-classes-only/, /frontend-sbom\.cdx\.json/, /security-evidence\.json/, /REQUIRE_EXTERNAL_SECURITY_EVIDENCE/],
+    reason: "Jenkins prüft den Containerstart, archiviert Frontend und Security-Nachweise und weist die Datenrichtlinie ohne Daten-Snapshot nach."
   },
   {
     file: ".github/workflows/target-readiness.yml",

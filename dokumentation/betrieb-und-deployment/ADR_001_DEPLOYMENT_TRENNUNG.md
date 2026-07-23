@@ -9,7 +9,7 @@
 
 Der Versorgungs-Kompass besitzt eine öffentliche Pages-Demo und einen geschützten Kubernetes-Pfad. Historisch wurde `docs/` sowohl als Pages-Publish-Kopie als auch zeitweise als Ausgangspunkt für ein Zielartefakt behandelt. Dadurch konnten Demo-, Realanwendungs- und Zielkonfiguration sowie Freigaben miteinander vermischt werden.
 
-GitHub Pages und der Kubernetes-Pfad haben unterschiedliche Sicherheitsgrenzen, Datenklassen, Identitätsmodelle und Lebenszyklen. `pre-gematik` erprobt den Target-Vertrag auf GCP, ist aber weder Staging im Sinne eines produktionsgleichen IT-Environments noch die spätere Produktivplattform. Der nächste gematik-Schritt ist ein befristeter interner Nutzungspilot mit einem getrennt übernommenen, freigegebenen Datenstand.
+GitHub Pages und der Kubernetes-Pfad haben unterschiedliche Sicherheitsgrenzen, Datenklassen, Identitätsmodelle und Lebenszyklen. `pre-gematik` erprobt den Target-Vertrag auf GCP, ist aber weder Staging im Sinne eines produktionsgleichen IT-Environments noch die spätere Produktivplattform. Der nächste gematik-Schritt ist ein interner Nutzungspilot mit einem getrennt übernommenen, freigegebenen Datenstand.
 
 ## Entscheidung
 

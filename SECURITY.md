@@ -19,27 +19,31 @@ Bitte übermittle keine echten personenbezogenen Daten, Zugangsdaten oder produk
 
 ## Unterstützte Versionen
 
-Sicherheitskorrekturen richten sich an den aktuellen Stand des Hauptzweigs und an den neuesten veröffentlichten Release. Ältere Versionen werden nicht gesondert gepflegt.
+Während des PoC wird nur der eingesetzte Release Candidate betreut. Eine Korrektur erhält einen neuen RC-Tag; ältere RCs werden nicht parallel gepflegt.
 
-## OWASP Top 10:2025 – Bearbeitungsstand
+Vor dem Start werden eine verantwortliche Person für die Anwendung und ein Kontaktweg für neue Security-Meldungen benannt. Die Anwendungsverantwortung bewertet neue Befunde, aktualisiert Abhängigkeiten oder Code und stellt bei Bedarf einen neuen RC bereit. Die gematik-IT stellt die Ergebnisse ihrer zentralen Scanner bereit und pflegt die Plattformkomponenten. Ein relevanter hoher oder kritischer Befund wird gemeinsam bewertet; bis zur Korrektur kann der PoC pausiert werden.
 
-Alle zehn OWASP-Kategorien und 18 priorisierte Risikogruppen wurden defensiv geprüft. Die Tabelle beschreibt den vorbereiteten Repository-Vertrag, aber keine pauschale Freigabe eines beweglichen Arbeitsstands. Ein konkreter PoC-RC ist nur dann technisch grün, wenn die Security-Verträge und vereinbarten Scans auf seinem exakten Commit erfolgreich sind. Weitere Betriebsstufen werden getrennt bewertet.
+## Automatische Prüfungen
 
-| Kategorie | Bereits adressiert | Status |
+Die Pipeline prüft jeden RC auf demselben Git-Commit. Ein fehlgeschlagener Pflichtcheck stoppt den Build.
+
+| Prüfung | Zweck | Nachweis |
 | --- | --- | --- |
-| **A01 Broken Access Control** | Fail-closed API-RBAC, Ownership/Archiv, aktive Identity-Bindings, RLS und NetworkPolicies | Repo `[x]` · Live-Abnahme `[ ]` |
-| **A02 Security Misconfiguration** | Signup/Uploads aus, exakter Origin, CSP/Headers, gehärtete Container-/Helm-Defaults | Repo `[x]` · Live-Abnahme `[ ]` |
-| **A03 Software Supply Chain Failures** | Exakte Locks/Vendor-Hashes, Pins, Audit, SAST, Secret-/Image-Scan, SBOM/Provenance | Repo `[x]` · Org-Abnahme `[ ]` |
-| **A04 Cryptographic Failures** | Vollständige JWT-Prüfung, HTTPS-JWKS, DB `verify-full`/mTLS, TLS und Digests | Repo `[x]` · Live-Abnahme `[ ]` |
-| **A05 Injection** | Parametrisierte SQL-Werte, Allowlisten, sichere Ausgabe/URLs, Nachrichtenschema und Limits | Repo `[x]` · Staging-Abnahme `[ ]` |
-| **A06 Insecure Design** | Explizite Trust Boundaries, Least Privilege, atomare Mutationen/Audit, sichere Defaults und Restoreplan | Repo `[x]` · Plattform-Abnahme `[ ]` |
-| **A07 Authentication Failures** | Kein Browserpasswort/Alias-Fallback, signed-token-only, aktives `(issuer, subject)`-Binding | Repo `[x]` · Identity/Gateway `[ ]` |
-| **A08 Software or Data Integrity Failures** | Serverseitiger Audit-Actor, append-only Audit, immutable Releases, Hashes und Provenance | Repo `[x]` · Enforcement `[ ]` |
-| **A09 Security Logging & Alerting Failures** | Strukturierte korrelierbare Security Events ohne Token, Body oder PII | Repo `[x]` · Sink/Alerts `[ ]` |
-| **A10 Mishandling of Exceptional Conditions** | Limits/Timeouts, generische Fehler, `429`, Rollback, Readiness, Shutdown, Replikate/PDB | Repo `[x]` · Last/Restore `[ ]` |
+| Projekt- und Browsertests | Syntax, Verträge, Datenzugriff und Kernabläufe | Jenkins-Log und Playwright-Bericht |
+| `npm audit` und Registry-Signaturen | bekannte Schwachstellen und Herkunft der npm-Pakete | JSON-Berichte |
+| Semgrep | projektspezifische Fehler- und Sicherheitsmuster im Quellcode | JSON und SARIF |
+| Gitleaks | mögliche Zugangsdaten im Git-Verlauf und aktuellen Quellstand | zwei bereinigte JSON-Berichte |
+| Trivy Image | bekannte Schwachstellen in Alpine-Basispaketen und Node.js-Abhängigkeiten des API-Containers | JSON und SARIF |
+| Trivy Konfiguration | unsichere Einstellungen in Dockerfile und gerendertem Helm-Manifest | JSON und SARIF |
+| CycloneDX-SBOM | Komponenten des API-Images und vier direkt nachweisbare Vendor-Pakete des Frontends | zwei SBOM-Dateien |
 
-- [Kompakte OWASP-Risiko- und Mitigationsübersicht](dokumentation/entwicklung-und-qa/OWASP_TOP_10_2025_KOMPAKTUEBERSICHT.md) – foliengeeignete 10-Kategorien-Sicht, alle 18 Risiken und offene Live-Haken
-- [Vollständiger Mitigations- und Abnahmenachweis](dokumentation/entwicklung-und-qa/OWASP_TOP_10_2025_MITIGATION_NACHWEIS.md) – Prioritäten, Schweregrade, Datei-/Zeilenbezug, Evidenz, Tests und Abnahmekriterien
+Die lokalen Gates blockieren hohe oder kritische npm- und Trivy-Befunde, ausgewählte Semgrep-Befunde, Analysefehler und nicht freigegebene Gitleaks-Funde. Die Pipeline erzeugt daraus `security-evidence.json`. Dieser maschinenlesbare Nachweis verbindet RC-Tag, Commit, Frontend-Digest und Prüfergebnisse. Für das API-Image prüft er zusätzlich die Kette vom veröffentlichten Registry-Digest über das lokal gebaute Image bis zu der von Trivy und der SBOM erfassten Image-Konfiguration.
+
+SonarQube, Snyk, Dependency-Track und Cosign gehören zur zentralen Software Factory. Solange diese Dienste nicht angebunden sind, stehen sie im Nachweis ausdrücklich auf `not-run`. Nach der Anbindung verknüpft der Repo-Nachweis Commit, SBOMs und Image mit den zentralen Analyse-IDs und kennzeichnet sie als `reported-passed`. Maßgeblich bleibt das geschützte Gate der Software Factory; der Repo-Nachweis erklärt sich nicht selbst zum Release-Zertifikat. Die Richtlinie steht hier, die Ergebnisse eines einzelnen Laufs bleiben als Jenkins-Artefakte beim jeweiligen RC.
+
+## Risikobetrachtung
+
+Die Repository-Prüfungen decken die für den PoC priorisierten OWASP-Risiken ab. Eine erfolgreiche Pipeline ersetzt nicht die Prüfung von Identity, Gateway, Netzwerk und Logging in der Zielumgebung. Die technische Zuordnung steht im [Mitigationsnachweis](dokumentation/entwicklung-und-qa/OWASP_TOP_10_2025_MITIGATION_NACHWEIS.md).
 
 ## Wichtige Grundlagen
 

@@ -417,11 +417,12 @@ for (const contract of [
 assert.doesNotMatch(valuesSource, /tag:\s*latest\b/i, "Produktionsimages duerfen nicht per latest referenziert werden.");
 
 const deployWorkflowSource = read(".github/workflows/deploy-pre-gematik.yml");
+const jenkinsSource = read("deploy/jenkins/Jenkinsfile.gematik");
 const ciSource = [
   read(".github/workflows/repo-check.yml"),
   deployWorkflowSource,
   read(".github/workflows/target-readiness.yml"),
-  read("deploy/jenkins/Jenkinsfile.gematik")
+  jenkinsSource
 ].join("\n");
 for (const imageReference of [
   /semgrep\/semgrep:1\.164\.0@sha256:[a-f0-9]{64}/,
@@ -436,6 +437,43 @@ assert.match(ciSource, /fetch-depth:\s*0/, "Der Secret-Scan benoetigt die vollst
 assert.match(ciSource, /dir \. --config \/repo\/config\/security\/gitleaks\.toml/, "CI muss neben der Historie auch den aktuellen Quellbaum auf Secrets pruefen.");
 assert.match(ciSource, /SEMGREP_ENABLE_VERSION_CHECK=0/, "Der netzisolierte Semgrep-Lauf darf nicht auf einen Versionsdienst warten.");
 assert.match(ciSource, /semgrep scan[^\n]*--timeout=60[^\n]*--max-target-bytes=5000000/, "Semgrep muss auch die grosse zentrale Anwendungsdatei ohne Regel-Timeout pruefen.");
+for (const contract of [
+  /--strict/,
+  /--timeout=60/,
+  /--max-target-bytes=5000000/,
+  /--json-output=\/evidence\/semgrep\.json/,
+  /--sarif-output=\/evidence\/semgrep\.sarif/
+]) {
+  assert.match(jenkinsSource, contract, `Jenkins-Semgrep-Vertrag fehlt: ${contract}`);
+}
+assert.doesNotMatch(jenkinsSource, /--ignore-unfixed/, "Jenkins darf ungefixte HIGH-/CRITICAL-Imagebefunde nicht pauschal ausblenden.");
+for (const artifact of [
+  "api-image-binding.json",
+  "gitleaks-history.json",
+  "gitleaks-tree.json",
+  "trivy-image.json",
+  "trivy-image.sarif",
+  "trivy-config.json",
+  "trivy-config.sarif",
+  "api-sbom.cdx.json",
+  "frontend-sbom.cdx.json",
+  "security-evidence.json"
+]) {
+  assert.ok(jenkinsSource.includes(artifact), `Jenkins-Security-Nachweis fehlt: ${artifact}`);
+}
+assert.match(jenkinsSource, /stage\('Trivy configuration scan'\)/, "Jenkins muss Dockerfile und gerendertes Helm-Artefakt mit Trivy pruefen.");
+assert.match(jenkinsSource, /REQUIRE_EXTERNAL_SECURITY_EVIDENCE/, "Jenkins braucht ein explizites Gate für zentrale Software-Factory-Nachweise.");
+assert.match(jenkinsSource, /rm -rf -- "\$SECURITY_EVIDENCE_DIR" "\$API_IMAGE_SCAN_DIR"/, "Jenkins muss alte Security-Nachweise vor jedem Lauf entfernen.");
+assert.match(jenkinsSource, /build-id\.txt/, "Jenkins darf nur Security-Nachweise des aktuellen Builds archivieren.");
+assert.match(jenkinsSource, /--api-image-local-digest "\$API_IMAGE_ID"/, "Jenkins muss den Registry-Digest an das lokal gebaute Image binden.");
+assert.match(jenkinsSource, /--api-image-config-digest "\$API_IMAGE_CONFIG_DIGEST"/, "Jenkins muss Trivy und API-SBOM an den Config-Digest des gescannten Images binden.");
+assert.match(jenkinsSource, /api-image-archive-binding\.json/, "Jenkins muss die lokale OCI-Descriptor-Kette des API-Images pruefen.");
+assert.match(jenkinsSource, /registryResolvedLocalDigest/, "Jenkins muss den Registry-Digest mit dem gescannten lokalen Image verbinden.");
+assert.match(
+  jenkinsSource,
+  /post\s*\{[\s\S]*always\s*\{[\s\S]*archiveArtifacts\([\s\S]*dist\/security-evidence\/\*\*/,
+  "Jenkins muss Security-Berichte auch nach einem fehlgeschlagenen Gate archivieren."
+);
 assert.match(ciSource, /npm run deploy:preflight/, "Jenkins muss den fail-closed Ziel-Preflight vor dem Artefaktbau ausfuehren.");
 assert.match(
   deployWorkflowSource,

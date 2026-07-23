@@ -1,6 +1,6 @@
 # Datenbank und Datenübernahme für den Gematik-PoC
 
-Dieses Runbook beschreibt den einmaligen Aufbau der PostgreSQL-16-Datenbank für den befristeten internen Nutzungspiloten. Software-Release, Daten-Snapshot und OIDC-Zuordnungen bleiben getrennt.
+Dieses Runbook beschreibt den einmaligen Aufbau der PostgreSQL-16-Datenbank für den internen Nutzungspiloten. Software-Release, Daten-Snapshot und OIDC-Zuordnungen bleiben getrennt.
 
 Der aktuelle fachliche Bestand von `mitmachen.timo-frank.de` liegt in der geschützten GCP-Pre-Integration. Ein alter Supabase-Export ist deshalb nicht automatisch der aktuelle Stand. Vor dem Import wird die tatsächlich schreibführende Cloud-SQL-Datenbank als Quelle bestätigt.
 

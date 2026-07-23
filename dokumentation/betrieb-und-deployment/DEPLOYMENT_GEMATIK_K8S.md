@@ -1,22 +1,57 @@
 # Deployment des Gematik-PoC auf Kubernetes
 
 Status: technisches Runbook
-Stand: 22. Juli 2026
+Stand: 23. Juli 2026
 
 ## Ziel
 
-Dieses Runbook beschreibt den Build und die Bereitstellung eines festgelegten Release Candidates. Software, Daten und Identitäten bleiben getrennte Schritte:
+Dieses Runbook beschreibt den Build und die Bereitstellung eines festgelegten Release Candidates. Software, Daten und Identitäten bleiben getrennte Schritte.
 
-```text
-RC-Tag -> Software Factory -> dist/target + API-Image -> Kubernetes
-                                      |
-                                      +-> Release-Nachweis
+```mermaid
+flowchart TB
+  RC["GitLab<br/>RC-Tag und Git-Commit"]
 
-geschützter Snapshot -> einmaliger Import -> PostgreSQL
-gematik OIDC-Subjects -> geschützte Zuordnung -> Profile
+  subgraph SF["Jenkins / Software Factory"]
+    direction TB
+    TEST["Projektprüfungen<br/>Syntax und Verträge<br/>API- und Browsertests"]
+    BUILD["Build<br/>Frontend-Artefakt<br/>API-Image und Helm-Manifest"]
+    LOCAL["Security-Prüfungen im Repo<br/>npm Audit und Signaturen<br/>Semgrep und Gitleaks<br/>Trivy Image und Konfiguration"]
+    CENTRAL["Zentrale Gates nach Anbindung<br/>SonarQube und Snyk<br/>Dependency-Track, VEX und Cosign"]
+    EVIDENCE["Release-Nachweis<br/>zwei CycloneDX-SBOMs<br/>Security-Berichte und Manifest"]
+    TEST --> BUILD --> LOCAL --> CENTRAL --> EVIDENCE
+  end
+
+  STORE["Artefaktablage der Software Factory<br/>Nexus oder Frontend-Ablage<br/>Container-Registry"]
+  POC["gematik Kubernetes<br/>interner PoC"]
+  PLATFORM["Plattformwerte<br/>HTTPS, OIDC und Secrets"]
+  DATA["Freigegebener Datenstand<br/>einmaliger Import in PostgreSQL"]
+
+  RC --> TEST
+  EVIDENCE --> STORE --> POC
+  PLATFORM --> POC
+  DATA --> POC
 ```
 
 GitHub Pages verwendet weiterhin `dist/pages/` und ausschließlich Demo-Daten.
+
+Die Repo-Prüfungen sind bereits ausführbar. Die zentralen Gates benötigen die Dienste und Regeln der gematik-Software-Factory. Fehlt ihre Anbindung, werden SonarQube, Snyk, Dependency-Track und Cosign im Release-Nachweis als `not-run` ausgewiesen und nicht als bestanden dargestellt.
+
+Das zusammenfassende JSON verknüpft die zentralen Analyse-IDs mit Commit, SBOMs und Image. Die geschützte Software-Factory-Pipeline bleibt das maßgebliche Gate und prüft eine Cosign-Signatur selbst kryptografisch.
+
+Nexus ist eine zentrale Ablage und ein kontrollierter Zwischenspeicher für Build-Abhängigkeiten und Artefakte. Es führt die Anwendung nicht aus. Die gematik-IT legt fest, ob das Frontend-Artefakt und die Berichte in Nexus oder einer anderen Software-Factory-Ablage liegen; das API-Image gehört in die Container-Registry.
+
+Die [Software Factory 2.0](https://code.gematik.de/tech/2026/03/09/software-factory-2-0.html) beschreibt dafür folgende zentrale Bausteine:
+
+| Baustein | Aufgabe im PoC |
+| --- | --- |
+| SonarQube | zentrale Codequalität und dort festgelegte Security-Regeln |
+| Snyk | zusätzliche Prüfung von Quellcode und Abhängigkeiten |
+| Dependency-Track | laufende Auswertung der beiden SBOMs gegen neue Schwachstellen |
+| VEX | begründete Bewertung eines konkreten SBOM-Befunds, falls erforderlich |
+| Cosign | Signatur und Bestätigung des veröffentlichten Container-Images |
+| Nexus | kontrollierte Quelle und Ablage für Abhängigkeiten und Build-Artefakte |
+
+Eine VEX-Datei wird nicht pauschal erzeugt. Sie ist nur sinnvoll, wenn ein konkreter Befund fachlich und technisch bewertet wurde.
 
 ## Führende Artefakte
 
@@ -27,6 +62,7 @@ GitHub Pages verwendet weiterhin `dist/pages/` und ausschließlich Demo-Daten.
 | PoC-Konfiguration | [`values-poc-gematik.yaml`](../../deploy/helm/versorgungs-kompass/values-poc-gematik.yaml) |
 | Datenbank und Import | [`deploy/postgres/poc-gematik/`](../../deploy/postgres/poc-gematik/) |
 | Target-Buildprofil | [`config/target/`](../../config/target/) |
+| Security-Regeln und Nachweisformat | [`config/security/`](../../config/security/) |
 
 ## Plattformwerte
 
@@ -61,7 +97,22 @@ npm run check:poc-rc
 
 Der Build startet nur aus einem sauberen Checkout.
 
-## 2. Frontend und API bauen
+## 2. Prüfungen vor der Software Factory
+
+Folgende Prüfungen können vorab auf einem Entwicklungsrechner oder in GitHub Actions laufen:
+
+```bash
+npm ci
+npm run check:poc-rc
+npm run security:audit
+npm audit signatures
+```
+
+Die containerisierten Semgrep-, Gitleaks- und Trivy-Aufrufe stehen vollständig in der Jenkins-Pipeline und verwenden festgelegte Scanner-Versionen. Sie können mit Docker unverändert vorab ausgeführt werden. Dabei gelten dieselben Sperren wie später: ausgewählte Code- oder Secret-Funde, Analysefehler sowie hohe oder kritische npm-, Image- oder Konfigurationsbefunde stoppen den Lauf.
+
+SonarQube, Snyk und Dependency-Track werden nicht durch handgeschriebene grüne Einträge ersetzt. Nach der Anbindung liefert jedes zentrale Tool eine prüfbare Analyse-ID. Cosign signiert beziehungsweise bestätigt das veröffentlichte Image erst in der Software Factory.
+
+## 3. Frontend und API bauen
 
 ```bash
 API_BASE_URL="https://<interner-origin>" \
@@ -78,7 +129,7 @@ docker build \
 
 Nach dem Push werden Frontend-Manifest, Image-Digest, Tag und Commit zusammen festgehalten. Der Datenstand ist bewusst kein Buildartefakt.
 
-## 3. Datenbank und Datenstand vorbereiten
+## 4. Datenbank und Datenstand vorbereiten
 
 Der PoC verwendet eine dedizierte PostgreSQL-16-Datenbank. Die API verbindet sich ausschließlich mit ihrer eingeschränkten Laufzeitrolle und führt beim Start weder Schemaänderungen noch einen Datenimport aus.
 
@@ -92,7 +143,7 @@ Das [PoC-Datenbank-Runbook](../../deploy/postgres/poc-gematik/README.md) beschre
 
 Der vorhandene Supabase-zu-GCP-Lauf dokumentiert Datenklassen und Prüfungen, ist aber kein direkt ausführbarer Import in eine beliebige gematik-Plattform. Der aktuelle schreibführende Bestand liegt in Cloud SQL. Der Zieladapter wird deshalb erst nach Kenntnis des Datenbankzugangs und des Objektspeichers festgelegt.
 
-## 4. Helm-Konfiguration prüfen
+## 5. Helm-Konfiguration prüfen
 
 ```bash
 helm lint deploy/helm/versorgungs-kompass
@@ -107,7 +158,7 @@ helm template versorgungs-kompass \
 
 Der Plattformadapter ergänzt interne Route, TLS, OIDC-Werte und Secret-Referenzen. Das Chart legt keine Datenbank an und startet keinen Import.
 
-## 5. Bereitstellen
+## 6. Bereitstellen
 
 1. Target-Frontend mit dem protokollierten Manifest bereitstellen.
 2. API-Image ausschließlich über den protokollierten Digest referenzieren.
@@ -117,7 +168,7 @@ Der Plattformadapter ergänzt interne Route, TLS, OIDC-Werte und Secret-Referenz
 
 Die Referenzpipeline liegt unter [`deploy/jenkins/Jenkinsfile.gematik`](../../deploy/jenkins/Jenkinsfile.gematik). Namen von Jenkins-Libraries, Credentials und Scannern können an den Plattformstandard angepasst werden.
 
-## 6. Smoke-Prüfung
+## 7. Smoke-Prüfung
 
 Mindestens geprüft werden:
 
@@ -141,11 +192,15 @@ Zusätzlich:
 Für jeden RC werden kompakt festgehalten:
 
 - RC-Tag und Commit,
-- Frontend-Manifest,
-- API-Image und Digest,
+- Frontend-Manifest und Frontend-Digest,
+- API-Image und unveränderlicher Digest,
+- Bindungsnachweis zwischen Registry-Digest, lokalem Image, Trivy-Bericht und API-SBOM,
 - verwendete PoC-Konfiguration,
 - Schema-Digest und Datenrichtlinie,
-- Ergebnis der automatisierten Prüfungen und
+- SBOM für API-Image und Frontend,
+- `security-evidence.json` mit Status und Hash der Einzelberichte,
+- JSON- beziehungsweise SARIF-Berichte von npm, Semgrep, Gitleaks und Trivy,
+- Status und Analyse-ID der angebundenen zentralen Gates sowie
 - Datum und Ergebnis des Smoke-Tests.
 
 Der geschützte Importnachweis nennt separat nur Snapshot-Zeitpunkt, freigegebene Datenklassen, Mengen, Prüfsumme und Ergebnis. `main`, lokale Varianten und GitHub Pages können nach dem Tag weiterentwickelt werden; Änderungen am PoC erfolgen über einen neuen RC.

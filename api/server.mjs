@@ -3104,11 +3104,11 @@ function assertEntityVisible(request, row, notFoundMessage) {
 }
 
 async function visibleParentIds(request, table, ids = []) {
-  const unique = [...new Set(ids.map((id) => String(id || "").trim()).filter(Boolean))];
-  if (roleRank(request.currentProfile?.role) >= roleRank("admin")) return new Set(unique);
+  const uniqueIds = [...new Set(ids.map((id) => String(id || "").trim()).filter(Boolean))];
+  if (roleRank(request.currentProfile?.role) >= roleRank("admin")) return new Set(uniqueIds);
   const visible = new Set();
-  for (let offset = 0; offset < unique.length; offset += 500) {
-    const chunk = unique.slice(offset, offset + 500);
+  for (let offset = 0; offset < uniqueIds.length; offset += 500) {
+    const chunk = uniqueIds.slice(offset, offset + 500);
     const rows = await cloudSqlRest(table, request, new URLSearchParams({
       select: "id,status",
       id: `in.(${chunk.join(",")})`

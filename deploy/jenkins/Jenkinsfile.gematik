@@ -42,6 +42,11 @@ pipeline {
       defaultValue: '',
       description: 'Optional private GCS bucket containing imported stakeholder logos.'
     )
+    booleanParam(
+      name: 'REQUIRE_EXTERNAL_SECURITY_EVIDENCE',
+      defaultValue: false,
+      description: 'Require passed SonarQube, Snyk, Dependency-Track and Cosign evidence files supplied by the Software Factory.'
+    )
   }
 
   environment {
@@ -53,6 +58,9 @@ pipeline {
     FRONTEND_BASE_URL = credentials('versorgungs-frontend-base-url')
     FRONTEND_BUCKET_URI = "${params.FRONTEND_BUCKET_URI}"
     FRONTEND_ARTIFACT_DIR = 'dist/target'
+    SECURITY_EVIDENCE_DIR = 'dist/security-evidence'
+    API_IMAGE_SCAN_DIR = 'dist/api-image-scan'
+    REQUIRE_EXTERNAL_SECURITY_EVIDENCE = "${params.REQUIRE_EXTERNAL_SECURITY_EVIDENCE}"
     K8S_NAMESPACE = credentials('versorgungs-k8s-namespace')
     HELM_RELEASE = 'versorgungs-kompass'
     HELM_CHART = 'deploy/helm/versorgungs-kompass'
@@ -81,6 +89,16 @@ pipeline {
   }
 
   stages {
+    stage('Prepare evidence workspace') {
+      steps {
+        sh '''
+          rm -rf -- "$SECURITY_EVIDENCE_DIR" "$API_IMAGE_SCAN_DIR"
+          mkdir -p "$SECURITY_EVIDENCE_DIR" "$API_IMAGE_SCAN_DIR"
+          printf '%s\n' "$BUILD_TAG" >"$SECURITY_EVIDENCE_DIR/build-id.txt"
+        '''
+      }
+    }
+
     stage('Verify immutable PoC RC') {
       steps {
         script {
@@ -136,8 +154,9 @@ pipeline {
     stage('Dependency audit') {
       steps {
         sh '''
-          npm run security:audit
-          npm audit signatures
+          set -eu
+          npm audit --audit-level=high --json >"$SECURITY_EVIDENCE_DIR/npm-audit.json"
+          npm audit signatures --json >"$SECURITY_EVIDENCE_DIR/npm-signatures.json"
         '''
       }
     }
@@ -155,8 +174,30 @@ pipeline {
             -e SEMGREP_SEND_METRICS=off \
             -e SEMGREP_ENABLE_VERSION_CHECK=0 \
             -v "$PWD:/src:ro" \
+            -v "$PWD/$SECURITY_EVIDENCE_DIR:/evidence" \
             semgrep/semgrep:1.164.0@sha256:207983631beecdbe7fa29196c7f4a7a5f29033933cdb76c687ce4a672e07618d \
-            semgrep scan --error --metrics=off --config /src/config/security/semgrep.yml /src
+            semgrep scan \
+              --error \
+              --strict \
+              --verbose \
+              --metrics=off \
+              --timeout=60 \
+              --timeout-threshold=1 \
+              --max-target-bytes=5000000 \
+              --json-output=/evidence/semgrep.json \
+              --sarif-output=/evidence/semgrep.sarif \
+              --config /src/config/security/semgrep.yml \
+              /src
+          jq --exit-status '
+            (.errors | length == 0) and
+            (.paths.scanned | index("/src/frontend/app/versorgungs-kompass.js") != null) and
+            ([.paths.skipped[]?
+              | select(
+                  .reason == "exceeded_size_limit" or
+                  .reason == "analysis_failed_parser_or_internal_error" or
+                  .reason == "too_many_matches"
+                )] | length == 0)
+          ' "$SECURITY_EVIDENCE_DIR/semgrep.json" >/dev/null
         '''
       }
     }
@@ -172,8 +213,10 @@ pipeline {
             -e HOME=/tmp \
             --tmpfs /tmp:rw,noexec,nosuid,size=64m \
             -v "$PWD:/repo:ro" \
+            -v "$PWD/$SECURITY_EVIDENCE_DIR:/evidence" \
             ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
-            detect --source /repo --config /repo/config/security/gitleaks.toml --gitleaks-ignore-path /repo/config/security/gitleaksignore --redact --verbose
+            detect --source /repo --config /repo/config/security/gitleaks.toml --gitleaks-ignore-path /repo/config/security/gitleaksignore --redact --verbose \
+              --report-format json --report-path /evidence/gitleaks-history.json
           docker run --rm \
             --network=none \
             --cap-drop=ALL \
@@ -183,8 +226,10 @@ pipeline {
             -e HOME=/tmp \
             --tmpfs /tmp:rw,noexec,nosuid,size=64m \
             -v "$PWD:/repo:ro" \
+            -v "$PWD/$SECURITY_EVIDENCE_DIR:/evidence" \
             ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
-            dir . --config /repo/config/security/gitleaks.toml --gitleaks-ignore-path /repo/config/security/gitleaksignore --redact --verbose
+            dir . --config /repo/config/security/gitleaks.toml --gitleaks-ignore-path /repo/config/security/gitleaksignore --redact --verbose \
+              --report-format json --report-path /evidence/gitleaks-tree.json
         '''
       }
     }
@@ -192,7 +237,10 @@ pipeline {
     stage('Visual smoke') {
       steps {
         sh 'npx playwright install --with-deps chromium'
-        sh 'npm run test:poc-smoke'
+        sh '''
+          PLAYWRIGHT_JSON_OUTPUT_NAME="$WORKSPACE/$SECURITY_EVIDENCE_DIR/playwright-smoke.json" \
+            npm run test:poc-smoke -- --reporter=line,json
+        '''
       }
     }
 
@@ -226,13 +274,156 @@ pipeline {
           node scripts/audit_target_assets.mjs --artifact-root "$FRONTEND_ARTIFACT_DIR"
           npm run security:api-gateway -- \
             --production-config "$FRONTEND_ARTIFACT_DIR/data/runtime-config.js"
+          node scripts/generate_frontend_sbom.mjs \
+            --artifact-root "$FRONTEND_ARTIFACT_DIR" \
+            --output "$SECURITY_EVIDENCE_DIR/frontend-sbom.cdx.json"
         '''
       }
     }
 
     stage('Build API image') {
       steps {
-        sh 'docker build -f api/Dockerfile -t "$API_IMAGE" .'
+        sh '''
+          docker build -f api/Dockerfile -t "$API_IMAGE" .
+          docker image save --output "$API_IMAGE_SCAN_DIR/api-image.tar" "$API_IMAGE"
+        '''
+        script {
+          def imageId = sh(
+            script: 'docker image inspect "$API_IMAGE" --format={{.Id}}',
+            returnStdout: true
+          ).trim()
+          if (!(imageId ==~ /sha256:[0-9a-f]{64}/)) {
+            error('The local API image did not expose a valid content-addressed image ID.')
+          }
+          env.API_IMAGE_ID = imageId
+          def imageConfigDigest = sh(
+            script: '''
+              tar -xOf "$API_IMAGE_SCAN_DIR/api-image.tar" manifest.json \
+                | jq --exit-status --raw-output '
+                    if length != 1 then error("expected exactly one image") else .[0].Config end
+                    | capture("^(?:blobs/sha256/)?(?<digest>[0-9a-f]{64})(?:[.]json)?$").digest
+                    | "sha256:" + .
+                  '
+            ''',
+            returnStdout: true
+          ).trim()
+          if (!(imageConfigDigest ==~ /sha256:[0-9a-f]{64}/)) {
+            error('The API image archive did not expose a valid config digest.')
+          }
+          env.API_IMAGE_CONFIG_DIGEST = imageConfigDigest
+          sh '''
+            set -eu
+            archive="$API_IMAGE_SCAN_DIR/api-image.tar"
+            hash_file() {
+              node -e '
+                const fs = require("node:fs");
+                const crypto = require("node:crypto");
+                process.stdout.write(crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"));
+              ' "$1"
+            }
+
+            manifest_config_path="$(
+              tar -xOf "$archive" manifest.json \
+                | jq --exit-status --raw-output '
+                    if length != 1 then error("expected exactly one image") else .[0].Config end
+                  '
+            )"
+            config_file="$API_IMAGE_SCAN_DIR/image-config.json"
+            tar -xOf "$archive" "$manifest_config_path" >"$config_file"
+            test "sha256:$(hash_file "$config_file")" = "$API_IMAGE_CONFIG_DIGEST" || {
+              echo "The exported image config does not match its recorded digest." >&2
+              exit 1
+            }
+
+            archive_format=direct-config
+            platform_manifest_digest=
+            if [ "$API_IMAGE_ID" != "$API_IMAGE_CONFIG_DIGEST" ]; then
+              local_descriptor_file="$API_IMAGE_SCAN_DIR/local-descriptor.json"
+              tar -xOf "$archive" "blobs/sha256/${API_IMAGE_ID#sha256:}" \
+                >"$local_descriptor_file"
+              test "sha256:$(hash_file "$local_descriptor_file")" = "$API_IMAGE_ID" || {
+                echo "The local image descriptor does not match its recorded digest." >&2
+                exit 1
+              }
+              descriptor_media_type="$(
+                jq --exit-status --raw-output '.mediaType | select(type == "string")' \
+                  "$local_descriptor_file"
+              )"
+              case "$descriptor_media_type" in
+                application/vnd.oci.image.index.v1+json)
+                  archive_format=oci-index
+                  image_os="$(docker image inspect "$API_IMAGE" --format '{{.Os}}')"
+                  image_architecture="$(docker image inspect "$API_IMAGE" --format '{{.Architecture}}')"
+                  platform_manifest_digest="$(
+                    jq --exit-status --raw-output \
+                      --arg os "$image_os" \
+                      --arg architecture "$image_architecture" '
+                        [
+                          .manifests[]
+                          | select(
+                              .mediaType == "application/vnd.oci.image.manifest.v1+json"
+                              and .platform.os == $os
+                              and .platform.architecture == $architecture
+                              and (.annotations["vnd.docker.reference.type"] // "") != "attestation-manifest"
+                            )
+                          | .digest
+                        ]
+                        | if length == 1 then .[0] else error("expected exactly one platform manifest") end
+                      ' "$local_descriptor_file"
+                  )"
+                  ;;
+                application/vnd.oci.image.manifest.v1+json)
+                  archive_format=oci-manifest
+                  platform_manifest_digest="$API_IMAGE_ID"
+                  ;;
+                *)
+                  echo "The local image digest is neither a config nor a supported OCI descriptor." >&2
+                  exit 1
+                  ;;
+              esac
+
+              platform_manifest_file="$API_IMAGE_SCAN_DIR/platform-manifest.json"
+              if [ "$platform_manifest_digest" = "$API_IMAGE_ID" ]; then
+                cp "$local_descriptor_file" "$platform_manifest_file"
+              else
+                tar -xOf "$archive" "blobs/sha256/${platform_manifest_digest#sha256:}" \
+                  >"$platform_manifest_file"
+              fi
+              test "sha256:$(hash_file "$platform_manifest_file")" = "$platform_manifest_digest" || {
+                echo "The platform manifest does not match its recorded digest." >&2
+                exit 1
+              }
+              test "$(
+                jq --exit-status --raw-output '.config.digest' "$platform_manifest_file"
+              )" = "$API_IMAGE_CONFIG_DIGEST" || {
+                echo "The local OCI descriptor chain does not lead to the scanned image config." >&2
+                exit 1
+              }
+            fi
+
+            jq --null-input \
+              --arg schema_version "versorgungs-kompass-api-image-binding/v1" \
+              --arg local_image_digest "$API_IMAGE_ID" \
+              --arg image_config_digest "$API_IMAGE_CONFIG_DIGEST" \
+              --arg archive_format "$archive_format" \
+              --arg platform_manifest_digest "$platform_manifest_digest" '
+                {
+                  schemaVersion: $schema_version,
+                  localImageDigest: $local_image_digest,
+                  imageConfigDigest: $image_config_digest,
+                  archiveFormat: $archive_format,
+                  descriptorChain:
+                    if $archive_format == "direct-config" then
+                      [$local_image_digest]
+                    elif $archive_format == "oci-manifest" then
+                      [$local_image_digest, $image_config_digest]
+                    else
+                      [$local_image_digest, $platform_manifest_digest, $image_config_digest]
+                    end
+                }
+              ' >"$API_IMAGE_SCAN_DIR/api-image-archive-binding.json"
+          '''
+        }
       }
     }
 
@@ -281,10 +472,9 @@ pipeline {
       steps {
         sh '''
           set -eu
-          scan_dir="$(mktemp -d)"
-          trap 'rm -rf -- "$scan_dir"' EXIT
+          scan_dir="$WORKSPACE/$API_IMAGE_SCAN_DIR"
           mkdir -p "$scan_dir/trivy-cache"
-          docker image save --output "$scan_dir/api-image.tar" "$API_IMAGE"
+          test -s "$scan_dir/api-image.tar"
           trivy_image='aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e'
           trivy_run() {
             docker run --rm \
@@ -295,14 +485,45 @@ pipeline {
               --tmpfs /tmp:rw,nosuid,size=2g \
               -v "$scan_dir:/scan:ro" \
               -v "$scan_dir/trivy-cache:/cache" \
-              -v "$PWD:/out" \
+              -v "$PWD/$SECURITY_EVIDENCE_DIR:/out" \
               "$trivy_image" \
               image --skip-version-check --cache-dir /cache --input /scan/api-image.tar "$@"
           }
-          trivy_run --scanners vuln --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed
-          trivy_run --scanners vuln --format cyclonedx --output /out/api-sbom.cdx.json
+          trivy_convert() {
+            docker run --rm \
+              --network=none \
+              --cap-drop=ALL \
+              --security-opt=no-new-privileges \
+              --user "$(id -u):$(id -g)" \
+              -e HOME=/tmp \
+              --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+              -v "$PWD/$SECURITY_EVIDENCE_DIR:/reports" \
+              "$trivy_image" \
+              convert "$@"
+          }
+          trivy_run \
+            --scanners vuln \
+            --format json \
+            --output /out/trivy-image.json
+          trivy_convert \
+            --scanners vuln \
+            --format sarif \
+            --output /reports/trivy-image.sarif \
+            /reports/trivy-image.json
+          trivy_convert \
+            --scanners vuln \
+            --format cyclonedx \
+            --output /reports/api-sbom.cdx.json \
+            /reports/trivy-image.json
+          if [ -f "$scan_dir/trivy-cache/db/metadata.json" ]; then
+            cp "$scan_dir/trivy-cache/db/metadata.json" "$SECURITY_EVIDENCE_DIR/trivy-db-metadata.json"
+          fi
+          trivy_convert \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            /reports/trivy-image.json
         '''
-        archiveArtifacts artifacts: 'api-sbom.cdx.json', fingerprint: true
       }
     }
 
@@ -329,6 +550,26 @@ pipeline {
             error('The pushed image did not expose a valid immutable repository digest.')
           }
           env.API_IMAGE_DIGEST = imageDigest
+          def pushedImageId = sh(
+            script: 'docker image inspect "$API_IMAGE_REPOSITORY@$API_IMAGE_DIGEST" --format={{.Id}}',
+            returnStdout: true
+          ).trim()
+          if (pushedImageId != env.API_IMAGE_ID) {
+            error('The pushed repository digest does not resolve to the scanned local API image.')
+          }
+          env.API_IMAGE_RESOLVED_LOCAL_DIGEST = pushedImageId
+          sh '''
+            set -eu
+            jq \
+              --arg registry_image "$API_IMAGE_REPOSITORY@$API_IMAGE_DIGEST" \
+              --arg registry_resolved_local_digest "$API_IMAGE_RESOLVED_LOCAL_DIGEST" '
+                . + {
+                  registryImage: $registry_image,
+                  registryResolvedLocalDigest: $registry_resolved_local_digest
+                }
+              ' "$API_IMAGE_SCAN_DIR/api-image-archive-binding.json" \
+              >"$SECURITY_EVIDENCE_DIR/api-image-binding.json"
+          '''
         }
       }
     }
@@ -368,7 +609,88 @@ pipeline {
             --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
             --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
             --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" \
-            --set storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET" >/tmp/versorgungs-kompass-rendered.yaml
+            --set storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET" \
+            >"$SECURITY_EVIDENCE_DIR/versorgungs-kompass-rendered.yaml"
+        '''
+      }
+    }
+
+    stage('Trivy configuration scan') {
+      steps {
+        sh '''
+          set -eu
+          scan_dir="$(mktemp -d)"
+          trap 'rm -rf -- "$scan_dir"' EXIT
+          mkdir -p "$scan_dir/input" "$scan_dir/trivy-cache"
+          cp api/Dockerfile "$scan_dir/input/Dockerfile"
+          cp "$SECURITY_EVIDENCE_DIR/versorgungs-kompass-rendered.yaml" \
+            "$scan_dir/input/target-helm-rendered.yaml"
+          trivy_image='aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e'
+          trivy_config() {
+            docker run --rm \
+              --cap-drop=ALL \
+              --security-opt=no-new-privileges \
+              --user "$(id -u):$(id -g)" \
+              -e HOME=/tmp \
+              --tmpfs /tmp:rw,nosuid,size=1g \
+              -v "$scan_dir/input:/scan:ro" \
+              -v "$scan_dir/trivy-cache:/cache" \
+              -v "$PWD/$SECURITY_EVIDENCE_DIR:/out" \
+              "$trivy_image" \
+              config --skip-version-check --cache-dir /cache "$@" /scan
+          }
+          trivy_convert() {
+            docker run --rm \
+              --network=none \
+              --cap-drop=ALL \
+              --security-opt=no-new-privileges \
+              --user "$(id -u):$(id -g)" \
+              -e HOME=/tmp \
+              --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+              -v "$PWD/$SECURITY_EVIDENCE_DIR:/reports" \
+              "$trivy_image" \
+              convert "$@"
+          }
+          trivy_config \
+            --format json \
+            --output /out/trivy-config.json
+          trivy_convert \
+            --scanners misconfig \
+            --format sarif \
+            --output /reports/trivy-config.sarif \
+            /reports/trivy-config.json
+          if [ -f "$scan_dir/trivy-cache/policy/metadata.json" ]; then
+            cp "$scan_dir/trivy-cache/policy/metadata.json" "$SECURITY_EVIDENCE_DIR/trivy-checks-metadata.json"
+          fi
+          trivy_convert \
+            --scanners misconfig \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            /reports/trivy-config.json
+        '''
+      }
+    }
+
+    stage('Assemble security evidence') {
+      steps {
+        sh '''
+          set -eu
+          set -- \
+            --report-dir "$SECURITY_EVIDENCE_DIR" \
+            --output "$SECURITY_EVIDENCE_DIR/security-evidence.json" \
+            --rc-tag "$RC_TAG" \
+            --source-revision "$(git rev-parse --verify HEAD)" \
+            --api-image "$API_IMAGE_REPOSITORY@$API_IMAGE_DIGEST" \
+            --api-image-local-digest "$API_IMAGE_ID" \
+            --api-image-config-digest "$API_IMAGE_CONFIG_DIGEST" \
+            --frontend-manifest "$FRONTEND_ARTIFACT_DIR/build-manifest.json"
+          if [ -n "${BUILD_URL:-}" ]; then
+            set -- "$@" --build-url "$BUILD_URL"
+          fi
+          if [ "$REQUIRE_EXTERNAL_SECURITY_EVIDENCE" = "true" ]; then
+            set -- "$@" --require-external-gates
+          fi
+          node scripts/generate_security_evidence.mjs "$@"
         '''
       }
     }
@@ -406,6 +728,9 @@ pipeline {
           schema_digest="sha256:$(sha256_file deploy/postgres/pre-gematik/schema.sql)"
           migration_contract_digest="sha256:$(sha256_file scripts/lib/pre-gematik-database-migration.mjs)"
           identity_binding_digest="sha256:$(sha256_file deploy/postgres/poc-gematik/bind-oidc-identity.sql)"
+          security_evidence_digest="sha256:$(sha256_file "$SECURITY_EVIDENCE_DIR/security-evidence.json")"
+          api_sbom_digest="sha256:$(sha256_file "$SECURITY_EVIDENCE_DIR/api-sbom.cdx.json")"
+          frontend_sbom_digest="sha256:$(sha256_file "$SECURITY_EVIDENCE_DIR/frontend-sbom.cdx.json")"
           jq --null-input \
             --arg schema_version "1" \
             --arg release_id "$FRONTEND_RELEASE_ID" \
@@ -422,6 +747,9 @@ pipeline {
             --arg data_policy "$DATA_POLICY" \
             --arg migration_contract_digest "$migration_contract_digest" \
             --arg identity_binding_digest "$identity_binding_digest" \
+            --arg security_evidence_digest "$security_evidence_digest" \
+            --arg api_sbom_digest "$api_sbom_digest" \
+            --arg frontend_sbom_digest "$frontend_sbom_digest" \
             --arg build_url "${BUILD_URL:-}" \
             '{
               schemaVersion: ($schema_version | tonumber),
@@ -444,7 +772,20 @@ pipeline {
               },
               evidence: {
                 buildUrl: $build_url,
-                sbomArtifact: "api-sbom.cdx.json"
+                securityEvidenceArtifact: "dist/security-evidence/security-evidence.json",
+                securityEvidenceDigest: $security_evidence_digest,
+                sboms: [
+                  {
+                    subject: "api-image",
+                    artifact: "dist/security-evidence/api-sbom.cdx.json",
+                    digest: $api_sbom_digest
+                  },
+                  {
+                    subject: "frontend",
+                    artifact: "dist/security-evidence/frontend-sbom.cdx.json",
+                    digest: $frontend_sbom_digest
+                  }
+                ]
               },
               promotionRequired: true
             }' > "$manifest_path"
@@ -556,6 +897,23 @@ pipeline {
               ;;
           esac
         '''
+      }
+    }
+  }
+
+  post {
+    always {
+      script {
+        def marker = "${env.SECURITY_EVIDENCE_DIR}/build-id.txt"
+        if (fileExists(marker) && readFile(marker).trim() == env.BUILD_TAG) {
+          archiveArtifacts(
+            artifacts: 'dist/security-evidence/**',
+            allowEmptyArchive: true,
+            fingerprint: true
+          )
+        } else {
+          echo 'No evidence workspace was prepared for this build; nothing is archived.'
+        }
       }
     }
   }

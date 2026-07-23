@@ -1,11 +1,11 @@
 # Gematik-PoC: interner Nutzungspilot
 
-Status: Vorbereitung der befristeten internen Testumgebung
-Stand: 22. Juli 2026
+Status: Vorbereitung des internen Nutzungspiloten
+Stand: 23. Juli 2026
 
 ## Zweck
 
-Ein festgelegter Release Candidate des Versorgungs-Kompasses wird über die Software Factory in einem internen Kubernetes-Namespace bereitgestellt. Ein bestätigter Datenstand aus der geschützten Anwendung `mitmachen.timo-frank.de` wird separat übernommen, damit ein kleiner Kreis von Kolleginnen und Kollegen die Anwendung im bestehenden fachlichen Kontext erproben kann.
+Ein festgelegter Release Candidate des Versorgungs-Kompasses wird über die Software Factory in einem internen Kubernetes-Namespace bereitgestellt. Ein bestätigter Datenstand aus der geschützten Anwendung `mitmachen.timo-frank.de` wird separat übernommen, damit ein kleiner Kreis aus gematik und Fachteam die Anwendung im bestehenden fachlichen Kontext erproben kann.
 
 Der PoC bleibt ein zeitlich begrenzter technischer und fachlicher Durchstich. Die Daten sind kein Bestandteil des Repositories, des Container-Images oder der Build-Artefakte.
 
@@ -30,7 +30,7 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 | Bereich | Bedarf für den PoC |
 | --- | --- |
-| Laufzeit | befristeter interner Non-Prod-Namespace, zunächst für vier bis sechs Wochen |
+| Laufzeit | interner Non-Prod-Namespace, zunächst für vier bis sechs Wochen |
 | Build und Registry | Software-Factory-Job sowie Ablage für das API-Image |
 | Frontend und Routing | internes HTTPS; `/` für das Frontend und `/api` für die API |
 | Anmeldung | OIDC-Werte und eine kleine, benannte Nutzergruppe |
@@ -45,18 +45,29 @@ Für den ersten Durchstich genügt eine API-Instanz. Neue Datei- und Bild-Upload
 
 ## Was das Entwicklungsteam liefert
 
-- RC-Tag, Git-Commit, API-Image und Frontend-Manifest
-- Helm-Chart und PoC-Konfiguration ohne Passwörter oder Tokens
-- Datenbankschema und Liste der zu übernehmenden Datenklassen
-- Werkzeug und Anleitung für die einmalige Datenübernahme, sobald Datenbank- und Speicherweg feststehen
-- SQL-Skript für die eindeutige Zuordnung von OIDC-Identitäten zu Profilen
-- Ergebnisse der Build-, Sicherheits- und Smoke-Prüfungen
+- eine fest benannte Version mit Git-Commit, API-Image und fertigem Frontend-Artefakt,
+- die Kubernetes-Konfiguration ohne Passwörter oder Tokens,
+- Datenbankschema und Beschreibung des einmaligen Datenimports,
+- ein Skript zur Zuordnung der gematik-Anmeldung zu einem Profil,
+- Komponentenlisten für API und Frontend sowie
+- die Ergebnisse der automatischen Build-, Security- und Smoke-Prüfungen.
+
+## Verantwortung während des PoC
+
+| Aufgabe | Verantwortung |
+| --- | --- |
+| Anwendung und verwendete Bibliotheken | Das Entwicklungsteam bewertet neue Befunde, erstellt Korrekturen und liefert einen neuen RC. |
+| Namespace, OIDC, Datenbank und zentrale Scanner | Die gematik-IT stellt die vereinbarten Plattformressourcen und die Ergebnisse der Software Factory bereit. |
+| Nutzerkreis und freigegebener Datenumfang | Die fachlich verantwortliche Person bestätigt Personen und Datenklassen. |
+| Fortführung nach der Auswertung | Entwicklung, IT und Fachteam entscheiden gemeinsam über den nächsten Schritt. |
+
+Vor dem Start werden für Anwendung und Plattform je eine Kontaktperson benannt. Neue Schwachstellen werden anhand der tatsächlichen PoC-Nutzung bewertet. Bei einem relevanten hohen oder kritischen Befund kann die Nutzung pausieren, bis ein aktualisierter RC bereitsteht. Damit bleibt die Wartung ein klar abgegrenzter Teil des Piloten.
 
 ## Daten und Zugriff
 
 Die Übernahme verwendet einen einmaligen, bestätigten Snapshot des aktuellen geschützten Bestands. Importiert werden nur die vereinbarten Fachtabellen; persönliche IAP-Zuordnungen, Systemtabellen und Zugangsdaten werden nicht übernommen. OIDC-Subjects und Profilzuordnungen bleiben in einer geschützten Operator-Sitzung und außerhalb von Git und Jenkins-Artefakten.
 
-Zugriff erhalten nur benannte Kolleginnen und Kollegen, die den übernommenen Inhalt einschließlich freier Notizen und Hospitationsbeobachtungen für ihre Arbeit sehen dürfen. Admin ist keine Standardrolle. Patienten- oder identifizierende Falldaten sind nicht Teil des PoC.
+Zugriff erhalten nur benannte Personen aus gematik und Fachteam, die den übernommenen Inhalt einschließlich freier Notizen und Hospitationsbeobachtungen für ihre Arbeit sehen dürfen. Admin ist keine Standardrolle. Patienten- oder identifizierende Falldaten sind nicht Teil des PoC.
 
 Während des Testzeitraums ist der gematik-PoC der gemeinsame bearbeitbare Bestand. `mitmachen.timo-frank.de` bleibt geschützte Ausgangs- und Rückfallquelle, wird aber nicht parallel für dieselben fachlichen Änderungen genutzt. Eine automatische oder wechselseitige Synchronisation ist nicht vorgesehen.
 

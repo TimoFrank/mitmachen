@@ -1,6 +1,6 @@
 # Konfiguration der Auslieferungswege
 
-Dieser Ordner beschreibt zwei klar getrennte Artefaktpfade: die öffentliche Demo und den geschützten Target-Pfad. Der Target-Pfad hat die technischen Stufen `pre-gematik` und `target`, ist fachlich aber dieselbe Anwendung. **`target` ist ein Buildprofil, keine Aussage über Produktionsreife.** Seine nächste Nutzung ist ein befristeter gematik-interner Nutzungspilot mit einem freigegebenen Datenstand. Die Dateien `deployment.json` sind maschinenlesbare Verträge: Der Repository-Check prüft Buildprofil, Ausgabe, Freigabetor, Datenmodus und Deployment-Einstieg.
+Dieser Ordner beschreibt zwei klar getrennte Artefaktpfade: die öffentliche Demo und den geschützten Target-Pfad. Der Target-Pfad hat die technischen Stufen `pre-gematik` und `target`, ist fachlich aber dieselbe Anwendung. **`target` ist ein Buildprofil, keine Aussage über Produktionsreife.** Seine nächste Nutzung ist ein gematik-interner Nutzungspilot mit einem freigegebenen Datenstand. Die Dateien `deployment.json` sind maschinenlesbare Verträge: Der Repository-Check prüft Buildprofil, Ausgabe, Freigabetor, Datenmodus und Deployment-Einstieg.
 
 Technisch gibt es derzeit genau zwei GitHub-Environments: `github-pages` für die öffentliche Demo und `pre-gematik` für die manuell freigegebene GKE-Pre-Integration. Der gematik-PoC soll über die Software Factory aus einem unveränderlichen RC bereitgestellt werden und benötigt deshalb kein zusätzliches Environment im persönlichen GitHub-Repository.
 

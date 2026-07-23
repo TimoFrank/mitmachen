@@ -40,6 +40,6 @@ Die Verzeichnisse enthalten zusätzliche Architektur-, Migrations-, Betriebs- un
 - **Lokale Entwicklung:** bewegliche Arbeitsstände und lokale Varianten
 - **GitHub Pages:** öffentliche Demo mit fiktiven Daten aus `dist/pages/`
 - **`pre-gematik`:** getrennte GCP-Pre-Integration
-- **Gematik-PoC:** befristeter interner Durchstich aus einem unveränderlichen RC und `dist/target/`
+- **Gematik-PoC:** interner Durchstich aus einem unveränderlichen RC und `dist/target/`
 
 Die Buildprofile sind voneinander getrennt. Ein Pages-Artefakt wird nicht für den PoC verwendet.
