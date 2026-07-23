@@ -51,6 +51,15 @@ async function openMobileSidebarIfNeeded(page) {
   await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
 }
 
+async function expandSidebarSectionIfNeeded(page, section) {
+  await openMobileSidebarIfNeeded(page);
+  const toggle = page.locator(`[data-sidebar-section-toggle="${section}"]`);
+  if (await toggle.getAttribute("aria-expanded") !== "true") {
+    await toggle.click();
+  }
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
 async function expectTourPanelClearOfSpotlight(page, minimumGap = 0, context = "aktueller Schritt") {
   await expect.poll(async () => {
     const [panelBox, spotlightBox] = await Promise.all([
@@ -1839,8 +1848,45 @@ test("Hospitationen: geschützte synthetische Backend-Fixture ist observation-fi
   await expect(drawer).not.toContainText("Roadmap-Bewertung");
 });
 
-test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("mobile"), "Der Abschnittsdirektklick wird im Desktop-Sidebar-Layout geprüft.");
+test("Startseite: Einstieg, Sidebar und Modulziele sind auf Desktop und Mobile erreichbar", async ({ page }) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
+
+  const shell = page.locator(".app-shell");
+  await expect(shell).toHaveAttribute("data-active-view", "home");
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expect(page.locator('[data-view-tab="home"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".home-module-card")).toHaveCount(4);
+  await expect(page.locator(".home-module-card h3")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
+  await expect(page.locator(".sidebar-nav > *").first()).toHaveClass(/sidebar-home-entry/);
+  await expect(page.locator(".home-module-link")).toHaveCount(10);
+  expect(await page.locator(".home-module-link").evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
+    "#map",
+    "#contacts",
+    "#organizations",
+    "#patients",
+    "#stakeholders",
+    "#experts",
+    "#framework",
+    "#hospitations",
+    "#questionnaire",
+    "#formats"
+  ]);
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
+  await expect(page.locator("#brand-home-link")).toHaveAttribute("href", "#home");
+
+  await page.locator('.home-module-link[href="#contacts"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "contacts");
+  await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-expanded/);
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
+
+  await page.locator("#brand-home-link").click();
+  await expect(shell).toHaveAttribute("data-active-view", "home");
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
+});
+
+test("Sidebar: Desktop nutzt dieselbe Ein-Modul-Accordionlogik wie Mobile", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Die mobile Accordion-Navigation wird separat geprüft.");
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   const shell = page.locator(".app-shell");
@@ -1848,6 +1894,10 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   const stakeholderSection = page.locator('[data-sidebar-section="stakeholders"]');
   const planningSection = page.locator('[data-sidebar-section="planning"]');
   const formatsSection = page.locator('[data-sidebar-section="formats"]');
+  const careToggle = page.locator('[data-sidebar-section-toggle="care"]');
+  const planningToggle = page.locator('[data-sidebar-section-toggle="planning"]');
+  const careContent = page.locator("#sidebar-section-care-content");
+  const planningContent = page.locator("#sidebar-section-planning-content");
   const collapseButton = page.locator("#sidebar-collapse-button");
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
   await expect(careSection).toHaveClass(/is-expanded/);
@@ -1856,44 +1906,46 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveCount(0);
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü einklappen");
+  await expect(careToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(careContent).toBeVisible();
 
-  await page.locator('[data-sidebar-section-toggle="planning"] svg').click();
+  await planningToggle.focus();
+  await planningToggle.press("Enter");
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
-  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).toHaveClass(/is-collapsed/);
   await expect(stakeholderSection).toHaveClass(/is-collapsed/);
   await expect(planningSection).toHaveClass(/is-expanded/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
+  await expect(careToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(careContent).toBeHidden();
+  await expect(planningToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(planningContent).toBeVisible();
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
 
-  await page.locator('[data-sidebar-section-toggle="planning"] svg').click();
+  await planningToggle.press("Space");
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
   await expect(planningSection).toHaveClass(/is-collapsed/);
+  await expect(planningToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(planningContent).toBeHidden();
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
 
-  await page.locator('[data-sidebar-section-toggle="planning"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "framework");
+  await planningToggle.click();
+  await expect(shell).toHaveAttribute("data-active-view", "contacts");
   await expect(planningSection).toHaveClass(/is-expanded/);
-  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).toHaveClass(/is-collapsed/);
   await expect(stakeholderSection).toHaveClass(/is-collapsed/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
+  await page.locator('[data-view-tab="framework"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "framework");
   await expect(page).toHaveURL(/#framework$/);
 
-  await page.locator('[data-sidebar-section-toggle="care"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "map");
-  await expect(careSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
-
-  await page.locator('[data-sidebar-section-toggle="care"] svg').click();
-  await expect(shell).toHaveAttribute("data-active-view", "map");
-  await expect(careSection).toHaveClass(/is-collapsed/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
-
   await page.locator('[data-sidebar-section-toggle="stakeholders"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "patients");
+  await expect(shell).toHaveAttribute("data-active-view", "framework");
   await expect(stakeholderSection).toHaveClass(/is-expanded/);
-  await expect(stakeholderSection).toHaveClass(/is-active-section/);
   await expect(careSection).toHaveClass(/is-collapsed/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
-  await expect(page).toHaveURL(/#patients$/);
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
 
   await page.locator('[data-sidebar-section="stakeholders"] [data-view-tab="stakeholders"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "stakeholders");
@@ -1901,21 +1953,25 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(page).toHaveURL(/#stakeholders$/);
 
   await page.locator('[data-sidebar-section-toggle="formats"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "formats");
+  await expect(shell).toHaveAttribute("data-active-view", "stakeholders");
   await expect(formatsSection).toHaveClass(/is-expanded/);
+  await expect(stakeholderSection).toHaveClass(/is-collapsed/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
+  await page.locator('[data-view-tab="formats"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "formats");
   await expect(formatsSection).toHaveClass(/is-active-section/);
-  await expect(stakeholderSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
   await expect(page).toHaveURL(/#formats$/);
 
-  await page.locator('[data-sidebar-section-toggle="care"] svg').click();
+  await page.locator('[data-sidebar-section-toggle="care"]').click();
+  await expect(formatsSection).toHaveClass(/is-collapsed/);
   await page.locator("#sidebar-analytics-button").click();
   await expect(shell).toHaveAttribute("data-active-view", "analytics");
   await expect(careSection).toHaveClass(/is-expanded/);
   await expect(careSection).toHaveClass(/is-active-section/);
-  await expect(stakeholderSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
-  await expect(formatsSection).toHaveClass(/is-expanded/);
+  await expect(stakeholderSection).toHaveClass(/is-collapsed/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
+  await expect(formatsSection).toHaveClass(/is-collapsed/);
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
   await expect(page).toHaveURL(/#analytics$/);
 
   const expandedCollapseBox = await collapseButton.boundingBox();
@@ -1925,6 +1981,7 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü ausklappen");
   await expect(page.locator(".sidebar-nav > .sidebar-section:visible")).toHaveCount(1);
   await expect(careSection).toBeVisible();
+  await expect(page.locator(".sidebar-home-entry")).toBeVisible();
   await expect(stakeholderSection).toBeHidden();
   await expect(planningSection).toBeHidden();
   await expect(formatsSection).toBeHidden();
@@ -1952,7 +2009,7 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
 
   await expect(careToggle).toHaveCSS("text-transform", "uppercase");
   await expect(careToggle).toHaveCSS("font-weight", "820");
-  await expect(careToggle).toHaveCSS("border-left-width", "2px");
+  await expect(careToggle).toHaveCSS("border-left-width", "3px");
   const moduleAccentColors = await page.locator("[data-sidebar-section] > .sidebar-section-toggle").evaluateAll((toggles) =>
     toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
   );
@@ -3235,7 +3292,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
     ];`
   });
 
-  await openMobileSidebarIfNeeded(page);
+  await expandSidebarSectionIfNeeded(page, "care");
   await page.locator('[data-view-tab="contacts"]').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten (2)");
@@ -3254,7 +3311,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 
   await attachScreenshot(page, testInfo, "kontakte-dubletten");
 
-  await openMobileSidebarIfNeeded(page);
+  await expandSidebarSectionIfNeeded(page, "care");
   await page.locator('[data-view-tab="organizations"]').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "organizations");
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten (1)");
@@ -5072,7 +5129,7 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
   await page.setViewportSize(isMobile
     ? { width: 390, height: 460 }
     : { width: 1440, height: 460 });
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   const sidebar = page.locator(".app-sidebar");
   const sidebarNav = page.locator(".sidebar-nav");
@@ -5918,7 +5975,7 @@ test("Stakeholder: Bereich ist im eigenen Sidebar-Abschnitt ohne obere Modus-Rei
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html");
 
-  await openMobileSidebarIfNeeded(page);
+  await expandSidebarSectionIfNeeded(page, "care");
   await page.locator('[data-view-tab="analytics"]:visible').first().click();
 
   await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();

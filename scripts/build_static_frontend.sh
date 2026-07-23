@@ -302,8 +302,8 @@ function redirectDocument(target) {
 `;
 }
 
-fs.writeFileSync(path.join(root, "index.html"), redirectDocument("./versorgungs-kompass.html#map"));
-fs.writeFileSync(path.join(root, "demo", "index.html"), redirectDocument("../versorgungs-kompass.html#map"));
+fs.writeFileSync(path.join(root, "index.html"), redirectDocument("./versorgungs-kompass.html#home"));
+fs.writeFileSync(path.join(root, "demo", "index.html"), redirectDocument("../versorgungs-kompass.html#home"));
 NODE
 
   node - "$STAGE_DIR/data/demo-data.js" <<'NODE'

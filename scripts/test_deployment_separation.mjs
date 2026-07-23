@@ -75,8 +75,8 @@ try {
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "runtime-config.js")), true, "Pages muss eine explizite Demo-Runtime enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "leaflet", "leaflet.js")), true, "Pages muss die Kartenbibliothek enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
-  assert.match(fs.readFileSync(path.join(pagesDir, "index.html"), "utf8"), /url=\.\/versorgungs-kompass\.html#map/);
-  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#map/);
+  assert.match(fs.readFileSync(path.join(pagesDir, "index.html"), "utf8"), /url=\.\/versorgungs-kompass\.html#home/);
+  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#home/);
   assert.match(
     fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8"),
     /href="\.\/public\/brand\/versorgungs-kompass\/icons\/app-icon-32\.png"/
