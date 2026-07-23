@@ -671,21 +671,43 @@
     style.textContent = `
       #vk-public-demo-notice {
         position: relative; z-index: 20;
-        width: auto; box-sizing: border-box; margin: 12px 18px 0;
-        display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
-        padding: 11px 12px; border: 1px solid rgba(255,255,255,.22); border-radius: 14px;
-        color: #fff; background: rgba(16, 55, 79, .96); box-shadow: 0 12px 34px rgba(8, 38, 55, .28);
-        font: 500 13px/1.35 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        width: auto; box-sizing: border-box; margin: 8px 14px 0;
+        display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 7px; align-items: center;
+        padding: 7px 9px; border: 1px solid rgba(255,255,255,.18); border-radius: 10px;
+        color: #fff; background: rgba(16, 55, 79, .92); box-shadow: 0 6px 18px rgba(8, 38, 55, .16);
+        font: 500 12px/1.3 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         backdrop-filter: blur(12px);
       }
-      #vk-public-demo-notice .vk-demo-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: #123b50; background: #9ce6d8; font-weight: 800; }
-      #vk-public-demo-notice strong { display: block; margin-bottom: 1px; color: #fff; font-size: 13px; }
+      #vk-public-demo-notice[hidden], #vk-public-demo-trigger[hidden] { display: none; }
+      #vk-public-demo-notice .vk-demo-mark { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: #123b50; background: #9ce6d8; font-size: 11px; font-weight: 800; }
+      #vk-public-demo-notice .vk-demo-copy { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
+      #vk-public-demo-notice strong { color: #fff; font-size: 12px; }
       #vk-public-demo-notice span { color: #d9edf3; }
-      #vk-public-demo-notice button { min-height: 34px; padding: 0 10px; border: 1px solid rgba(255,255,255,.3); border-radius: 9px; color: #fff; background: rgba(255,255,255,.1); font: inherit; font-weight: 700; cursor: pointer; }
-      #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible { background: rgba(255,255,255,.2); outline: 2px solid #9ce6d8; outline-offset: 2px; }
+      #vk-public-demo-notice button {
+        min-height: 30px; padding: 0 9px; border: 1px solid rgba(255,255,255,.24); border-radius: 8px;
+        color: #fff; background: rgba(255,255,255,.08); font: inherit; font-weight: 700; cursor: pointer;
+      }
+      #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible {
+        background: rgba(255,255,255,.18); outline: 2px solid #9ce6d8; outline-offset: 2px;
+      }
+      #vk-public-demo-trigger {
+        position: fixed; z-index: 70;
+        top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
+        width: 38px; height: 38px; display: inline-grid; place-items: center;
+        padding: 5px; border: 1px solid rgba(255,255,255,.28); border-radius: 12px;
+        color: #fff; background: rgba(16, 55, 79, .92); box-shadow: 0 6px 18px rgba(8, 38, 55, .2);
+        font: 700 11px/1 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        backdrop-filter: blur(12px); cursor: pointer;
+      }
+      #vk-public-demo-trigger:hover, #vk-public-demo-trigger:focus-visible {
+        background: rgba(16, 55, 79, .99); outline: 2px solid #9ce6d8; outline-offset: 2px;
+      }
+      #vk-public-demo-trigger .vk-demo-trigger-mark {
+        display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px;
+        color: #123b50; background: #9ce6d8; font-size: 11px; font-weight: 800;
+      }
       @media (max-width: 620px) {
-        #vk-public-demo-notice { width: auto; margin: 10px 10px 0; grid-template-columns: auto 1fr; }
-        #vk-public-demo-notice button { grid-column: 1 / -1; width: 100%; }
+        #vk-public-demo-notice { margin: 7px 8px 0; }
       }
     `;
     document.head.appendChild(style);
@@ -695,11 +717,34 @@
     notice.setAttribute("aria-label", "Hinweis zur öffentlichen Demo");
     notice.innerHTML = `
       <div class="vk-demo-mark" aria-hidden="true">D</div>
-      <div><strong>Öffentliche Demo · synthetische Daten</strong><span>Bitte keine echten Angaben eingeben. Änderungen verschwinden beim Neuladen.</span></div>
-      <button type="button">Demo zurücksetzen</button>
+      <div class="vk-demo-copy"><strong>Öffentliche Demo</strong><span>Bitte keine echten Angaben eingeben.</span></div>
+      <button type="button" data-demo-notice-close>Schließen</button>
     `;
-    notice.querySelector("button").addEventListener("click", () => window.location.reload());
+    const closeButton = notice.querySelector("[data-demo-notice-close]");
+    const trigger = document.createElement("button");
+    trigger.id = "vk-public-demo-trigger";
+    trigger.type = "button";
+    trigger.hidden = true;
+    trigger.setAttribute("aria-label", "Demo-Hinweis anzeigen");
+    trigger.setAttribute("aria-controls", notice.id);
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.innerHTML = `
+      <span class="vk-demo-trigger-mark" aria-hidden="true">D</span>
+    `;
+    closeButton.addEventListener("click", () => {
+      notice.hidden = true;
+      trigger.hidden = false;
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.focus({ preventScroll: true });
+    });
+    trigger.addEventListener("click", () => {
+      notice.hidden = false;
+      trigger.hidden = true;
+      trigger.setAttribute("aria-expanded", "true");
+      closeButton.focus({ preventScroll: true });
+    });
     (document.querySelector(".app-main") || document.body).prepend(notice);
+    document.body.appendChild(trigger);
   }
 
   window.VERSORGUNGS_COMPASS_DEMO_RUNTIME = Object.freeze({

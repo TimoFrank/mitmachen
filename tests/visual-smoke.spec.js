@@ -1848,41 +1848,67 @@ test("Hospitationen: geschützte synthetische Backend-Fixture ist observation-fi
   await expect(drawer).not.toContainText("Roadmap-Bewertung");
 });
 
-test("Startseite: Einstieg, Sidebar und Modulziele sind auf Desktop und Mobile erreichbar", async ({ page }) => {
+test("Startseite: minimalistischer Einstieg und Sidebar-Zustand funktionieren auf Desktop und Mobile", async ({ page }, testInfo) => {
+  await page.addInitScript(() => window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", "false"));
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
 
   const shell = page.locator(".app-shell");
+  const isMobile = testInfo.project.name.includes("mobile");
   await expect(shell).toHaveAttribute("data-active-view", "home");
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="home"]')).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".home-module-card")).toHaveCount(4);
-  await expect(page.locator(".home-module-card h3")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
+  await expect(page.getByRole("heading", { level: 1, name: "Willkommen." })).toBeVisible();
+  await expect(page.locator(".home-welcome__brand")).toContainText("#Mitmachen");
+  await expect(page.locator(".home-welcome__brand img")).toBeVisible();
+  await expect(page.locator(".home-destination-link")).toHaveCount(4);
+  await expect(page.locator(".home-destination-link strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
   await expect(page.locator(".sidebar-nav > *").first()).toHaveClass(/sidebar-home-entry/);
-  await expect(page.locator(".home-module-link")).toHaveCount(10);
-  expect(await page.locator(".home-module-link").evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
+  expect(await page.locator(".home-destination-link").evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
     "#map",
-    "#contacts",
-    "#organizations",
-    "#patients",
     "#stakeholders",
-    "#experts",
     "#framework",
-    "#hospitations",
-    "#questionnaire",
     "#formats"
   ]);
+  await expect(page.locator(".home-welcome p, .home-module-link, .home-module-card")).toHaveCount(0);
+  await expect(page.locator(".workspace-header")).toBeHidden();
   await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
   await expect(page.locator("#brand-home-link")).toHaveAttribute("href", "#home");
+  const firstModuleLink = page.locator('.home-destination-link[href="#map"]');
+  await page.keyboard.press("Tab");
+  await firstModuleLink.focus();
+  await expect(firstModuleLink).toBeFocused();
+  await expect(firstModuleLink).toHaveCSS("outline-style", "solid");
+  await expect(firstModuleLink).toHaveCSS("outline-width", "3px");
+  await expect(firstModuleLink).toHaveCSS("outline-color", "rgb(21, 95, 228)");
 
-  await page.locator('.home-module-link[href="#contacts"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "contacts");
+  if (isMobile) {
+    await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+    await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+  } else {
+    await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+    await expect(page.locator("#sidebar-collapse-button")).toHaveAttribute("aria-expanded", "false");
+    await expect.poll(() => page.evaluate(() => window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed"))).toBe("false");
+    await page.locator("#sidebar-collapse-button").click();
+    await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+  }
+
+  await page.locator('.home-destination-link[href="#map"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "map");
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-expanded/);
   await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
 
-  await page.locator("#brand-home-link").click();
+  if (isMobile) {
+    await page.locator("#sidebar-collapse-button").click();
+    await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
+    await page.locator('[data-view-tab="home"]').click();
+    await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+  } else {
+    await page.locator("#brand-home-link").click();
+  }
   await expect(shell).toHaveAttribute("data-active-view", "home");
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
+  if (!isMobile) await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
 });
 
 test("Sidebar: Desktop nutzt dieselbe Ein-Modul-Accordionlogik wie Mobile", async ({ page }, testInfo) => {
@@ -2285,6 +2311,30 @@ test("Onboarding: neuer geschützter Account richtet Profil ein und startet Tour
   expect(settings.preferences.onboarding.tourSkippedAt).toBeTruthy();
 
   await attachScreenshot(page, testInfo, "onboarding");
+});
+
+test("Onboarding: erster Start auf Home bleibt transient eingeklappt", async ({ page }, testInfo) => {
+  await page.addInitScript(() => window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", "false"));
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", {
+    role: "viewer",
+    backendFixtureScript: onboardingBackendFixtureScript()
+  });
+
+  const shell = page.locator(".app-shell");
+  await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
+  await page.locator("#onboarding-team").selectOption("Stabsstelle Versorgung");
+  await page.locator("#onboarding-profile-submit").click();
+  await expect(page.locator("#onboarding-tour-panel")).toBeVisible();
+  await page.locator("#onboarding-tour-skip").click();
+  await expect(shell).toHaveAttribute("data-active-view", "home");
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed"))).toBe("false");
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+    await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+  } else {
+    await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+  }
 });
 
 test("Onboarding: abgeschlossener neuer Account landet direkt in Zielansicht", async ({ page }) => {

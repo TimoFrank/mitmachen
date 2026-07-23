@@ -9315,6 +9315,9 @@
       function finishOnboarding(targetView = pendingPostOnboardingView || "home") {
         onboardingActive = false;
         const nextView = normalizePostOnboardingView(targetView);
+        if (nextView === "home" && transientInitialHomeSidebarCollapse && !isMobileLayout()) {
+          setSidebarCollapsed(true, { persist: false });
+        }
         setActiveView(nextView);
         updateRouteHash(nextView);
         updateView();
@@ -31796,7 +31799,7 @@
         updateRouteHash(profileRouteForTab());
       }
 
-      function setSidebarCollapsed(collapsed) {
+      function setSidebarCollapsed(collapsed, { persist = true } = {}) {
         appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
         if (sidebarCollapseButton) {
           sidebarCollapseButton.setAttribute("aria-expanded", String(!collapsed));
@@ -31805,6 +31808,7 @@
           const label = sidebarCollapseButton.querySelector(".sidebar-collapse-label");
           if (label) label.textContent = collapsed ? "Menü ausklappen" : "Menü einklappen";
         }
+        if (!persist) return;
         try {
           window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", collapsed ? "true" : "false");
         } catch (error) {
@@ -31814,9 +31818,9 @@
 
       function restoreSidebarState() {
         try {
-          setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true");
+          setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true", { persist: false });
         } catch (error) {
-          setSidebarCollapsed(false);
+          setSidebarCollapsed(false, { persist: false });
         }
       }
 
@@ -34339,7 +34343,13 @@
         await loadStakeholderData({ includeArchived: canAdministerData() });
         updateView();
       });
-      restoreSidebarState();
+      const initialSidebarRouteView = routeViewFromHash() || "home";
+      const transientInitialHomeSidebarCollapse = !isMobileLayout() && initialSidebarRouteView === "home";
+      if (transientInitialHomeSidebarCollapse) {
+        setSidebarCollapsed(true, { persist: false });
+      } else {
+        restoreSidebarState();
+      }
       if (isMobileLayout()) {
         appShell?.classList.remove("is-sidebar-collapsed");
         setMobileSidebarExpanded(false);
@@ -35850,6 +35860,7 @@
         isInitialDataLoading = false;
         initialDataLoadingSlow = false;
         if (shouldRequireInitialOnboarding()) {
+          if (transientInitialHomeSidebarCollapse) restoreSidebarState();
           await openOnboarding(initialTargetView || activeView || "home");
           finishInitialLoading();
           return;
