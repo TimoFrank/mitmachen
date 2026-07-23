@@ -6,6 +6,14 @@
         --sidebar-bg: #062f75;
         --sidebar-bg-strong: #05235f;
         --sidebar-active: #155fe4;
+        --module-care-rgb: 85, 158, 232;
+        --module-stakeholders-rgb: 67, 179, 145;
+        --module-planning-rgb: 224, 164, 77;
+        --module-formats-rgb: 169, 128, 218;
+        --module-care-strong: #0b5cad;
+        --module-stakeholders-strong: #0f766e;
+        --module-planning-strong: #a84c16;
+        --module-formats-strong: #7a3e91;
         --background: #f5f7fb;
         --surface: #ffffff;
         --surface-muted: #f8faff;
@@ -2242,6 +2250,17 @@
       .sidebar-account-section {
         display: grid;
         gap: 5px;
+      }
+
+      .sidebar-home-entry {
+        display: grid;
+        margin-bottom: 2px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .sidebar-home-tab {
+        opacity: 0.9;
       }
 
       .sidebar-section + .sidebar-section,
@@ -4547,6 +4566,198 @@
 
       .view-panel.is-active {
         display: block;
+      }
+
+      .home-overview {
+        display: grid;
+        gap: var(--section-gap);
+        width: 100%;
+        max-width: 1180px;
+      }
+
+      .home-overview__intro {
+        display: grid;
+        gap: 6px;
+        padding: 2px 0 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .home-overview__intro p,
+      .home-module-heading h3,
+      .home-module-heading p,
+      .home-module-card h3,
+      .home-module-card p {
+        margin: 0;
+      }
+
+      .home-overview__intro p {
+        max-width: 760px;
+        color: var(--text-secondary);
+        font-size: var(--font-size-md);
+        line-height: var(--line-height-normal);
+      }
+
+      .home-overview__intro p + p {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+      }
+
+      .home-module-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .home-module-heading h3 {
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+        line-height: var(--line-height-tight);
+      }
+
+      .home-module-heading p {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .home-module-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--section-gap);
+      }
+
+      .home-module-card {
+        --home-module-rgb: var(--module-care-rgb);
+        --home-module-strong: var(--module-care-strong);
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-top: 3px solid rgb(var(--home-module-rgb));
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .home-module-card[data-home-module="stakeholders"] {
+        --home-module-rgb: var(--module-stakeholders-rgb);
+        --home-module-strong: var(--module-stakeholders-strong);
+      }
+
+      .home-module-card[data-home-module="planning"] {
+        --home-module-rgb: var(--module-planning-rgb);
+        --home-module-strong: var(--module-planning-strong);
+      }
+
+      .home-module-card[data-home-module="formats"] {
+        --home-module-rgb: var(--module-formats-rgb);
+        --home-module-strong: var(--module-formats-strong);
+      }
+
+      .home-module-card__head {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: var(--card-padding);
+      }
+
+      .home-module-card__icon {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: var(--radius-md);
+        background: rgba(var(--home-module-rgb), 0.14);
+        color: var(--home-module-strong);
+      }
+
+      .home-module-card__icon svg {
+        width: 21px;
+        height: 21px;
+      }
+
+      .home-module-card h3 {
+        color: var(--text-primary);
+        font-size: 1rem;
+        line-height: var(--line-height-tight);
+      }
+
+      .home-module-card p {
+        margin-top: 5px;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .home-module-links {
+        display: grid;
+        align-content: start;
+        padding: 0 var(--card-padding) var(--card-padding);
+      }
+
+      .home-module-link {
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 10px;
+        border-top: 1px solid var(--border);
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .home-module-link:first-child {
+        border-top-color: rgba(var(--home-module-rgb), 0.32);
+      }
+
+      .home-module-link > span:last-child {
+        color: var(--home-module-strong);
+        font-size: 1rem;
+        transition: transform 140ms ease;
+      }
+
+      .home-module-link:hover,
+      .home-module-link:focus-visible {
+        background: rgba(var(--home-module-rgb), 0.08);
+        color: var(--text-primary);
+        outline: none;
+      }
+
+      .home-module-link:focus-visible {
+        box-shadow: inset 0 0 0 2px var(--primary);
+      }
+
+      .home-module-link:hover > span:last-child,
+      .home-module-link:focus-visible > span:last-child {
+        transform: translateX(2px);
+      }
+
+      @media (max-width: 900px) {
+        .home-module-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .home-module-heading {
+          display: grid;
+          align-items: start;
+          gap: 4px;
+        }
+
+        .home-module-card__head {
+          padding: 14px;
+        }
+
+        .home-module-links {
+          padding: 0 14px 14px;
+        }
       }
 
       .app-initial-skeleton {
@@ -34289,9 +34500,11 @@
         }
 
         .sidebar-nav {
-          gap: 8px;
+          gap: 10px;
           margin-top: 8px;
+          padding-top: 12px;
           padding-bottom: 8px;
+          border-top: 1px solid rgba(255, 255, 255, 0.14);
         }
 
         .sidebar-section {
@@ -34304,55 +34517,58 @@
         }
 
         .sidebar-section[data-sidebar-section="care"] {
-          --sidebar-module-rgb: 85, 158, 232;
+          --sidebar-module-rgb: var(--module-care-rgb);
         }
 
         .sidebar-section[data-sidebar-section="stakeholders"] {
-          --sidebar-module-rgb: 67, 179, 145;
+          --sidebar-module-rgb: var(--module-stakeholders-rgb);
         }
 
         .sidebar-section[data-sidebar-section="planning"] {
-          --sidebar-module-rgb: 224, 164, 77;
+          --sidebar-module-rgb: var(--module-planning-rgb);
         }
 
         .sidebar-section[data-sidebar-section="formats"] {
-          --sidebar-module-rgb: 169, 128, 218;
+          --sidebar-module-rgb: var(--module-formats-rgb);
         }
 
         .sidebar-section-toggle {
-          min-height: 32px;
-          padding: 0 8px 0 9px;
-          border-left: 2px solid rgba(var(--sidebar-module-rgb), 0.95);
-          background: linear-gradient(90deg, rgba(var(--sidebar-module-rgb), 0.18), rgba(var(--sidebar-module-rgb), 0.025) 72%);
-          color: rgba(255, 255, 255, 0.84);
-          font-size: 0.76rem;
-          font-weight: 760;
-          letter-spacing: 0.025em;
-          text-transform: none;
+          min-height: 40px;
+          padding: 0 10px 0 11px;
+          border-left: 3px solid rgb(var(--sidebar-module-rgb));
+          border-radius: 9px;
+          background: rgba(var(--sidebar-module-rgb), 0.2);
+          color: rgba(255, 255, 255, 0.94);
+          font-size: 0.82rem;
+          font-weight: 820;
+          letter-spacing: 0.035em;
+          text-transform: uppercase;
         }
 
         .sidebar-section-toggle:hover,
         .sidebar-section-toggle:focus-visible {
           border-left-color: rgb(var(--sidebar-module-rgb));
-          background: linear-gradient(90deg, rgba(var(--sidebar-module-rgb), 0.24), rgba(var(--sidebar-module-rgb), 0.04) 74%);
-          color: rgba(255, 255, 255, 0.94);
+          background: rgba(var(--sidebar-module-rgb), 0.28);
+          color: #ffffff;
         }
 
         .sidebar-section.is-active-section .sidebar-section-toggle {
           border-left-color: rgb(var(--sidebar-module-rgb));
-          background: linear-gradient(90deg, rgba(var(--sidebar-module-rgb), 0.3), rgba(var(--sidebar-module-rgb), 0.055) 76%);
+          background: rgba(var(--sidebar-module-rgb), 0.32);
           color: #ffffff;
-          box-shadow: inset 0 0 0 1px rgba(var(--sidebar-module-rgb), 0.14);
         }
 
         .sidebar-section-toggle svg {
-          width: 13px;
-          height: 13px;
-          opacity: 0.62;
+          width: 15px;
+          height: 15px;
+          opacity: 0.82;
         }
 
         .sidebar-section-content {
           gap: 2px;
+          margin: 2px 0 3px 11px;
+          padding-left: 7px;
+          border-left: 1px solid rgba(var(--sidebar-module-rgb), 0.46);
         }
 
         .sidebar-nav .primary-tab {
@@ -34369,8 +34585,13 @@
 
         .sidebar-nav .primary-tab.is-active,
         .sidebar-section.is-active-section .primary-tab.is-active {
-          background: var(--sidebar-active);
+          background: rgba(255, 255, 255, 0.11);
           opacity: 1;
+          box-shadow: inset 3px 0 0 rgb(var(--sidebar-module-rgb));
+        }
+
+        .sidebar-home-entry .primary-tab.is-active {
+          background: var(--sidebar-active);
           box-shadow: none;
         }
 
@@ -34581,7 +34802,7 @@
         }
 
         .sidebar-section-toggle {
-          min-height: 32px;
+          min-height: 38px;
         }
 
         .sidebar-nav .primary-tab {
@@ -36496,6 +36717,18 @@
 
       .sidebar-section[data-sidebar-section="formats"] {
         --sidebar-module-rgb: 169, 128, 218;
+      }
+
+      .sidebar-section .primary-tab.is-active {
+        background: rgba(255, 255, 255, 0.11);
+        opacity: 1;
+        box-shadow: inset 3px 0 0 rgb(var(--sidebar-module-rgb));
+      }
+
+      .sidebar-home-entry .primary-tab.is-active {
+        background: var(--sidebar-active);
+        opacity: 1;
+        box-shadow: none;
       }
 
       .app-sidebar :is(button, a):focus-visible {

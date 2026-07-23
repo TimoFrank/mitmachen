@@ -119,9 +119,12 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
     if (!new Set(["127.0.0.1", "localhost"]).has(hostname)) publicDemoExternalRequests.push(outgoingRequest.url());
   });
   await page.goto("/dist/pages/index.html");
-  await expect(page).toHaveURL(/\/dist\/pages\/versorgungs-kompass\.html#map$/);
+  await expect(page).toHaveURL(/\/dist\/pages\/versorgungs-kompass\.html#home$/);
   await expect(page).toHaveTitle("Versorgungs-Kompass");
   await expect(page.locator(".app-sidebar")).toBeVisible();
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expect(page.locator('[data-view-tab="home"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".home-module-card")).toHaveCount(4);
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="stakeholders"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
@@ -130,6 +133,8 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(page.locator('script[src="./data/demo-api.js"]')).toHaveCount(1);
   await expect(page.locator('script[src="./data/data-service.js"]')).toHaveCount(1);
   await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
+  await page.locator('.home-module-link[href="#map"]').click();
+  await expect(page).toHaveURL(/#map$/);
   await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
   if (await page.locator("#sidebar-profile-button").isHidden()) {
     await page.locator("#sidebar-collapse-button").click();

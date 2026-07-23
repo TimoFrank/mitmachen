@@ -1317,7 +1317,7 @@
 
       const careViewModes = ["contacts", "organizations", "map", "stakeholders"];
 
-      let activeView = "map";
+      let activeView = "home";
       let activeSettingsTab = "imports";
       let activeProfileTab = "profile";
       let activeExpertMode = "contacts";
@@ -1538,7 +1538,7 @@
       let userSettings = null;
       let onboardingActive = false;
       let onboardingStep = "profile";
-      let pendingPostOnboardingView = "contacts";
+      let pendingPostOnboardingView = "home";
       let productTourState = { open: false, index: 0, source: "manual", target: null, steps: [], returnContext: null };
       const productTourTargetAria = new WeakMap();
       let activeCareQueueKey = "";
@@ -1880,11 +1880,9 @@
       function expandSidebarGroup(group) {
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
-        if (isMobileLayout()) {
-          sidebarCollapsibleSections.forEach((item) => {
-            if (item !== section) setSidebarSectionExpanded(item, false);
-          });
-        }
+        sidebarCollapsibleSections.forEach((item) => {
+          if (item !== section) setSidebarSectionExpanded(item, false);
+        });
         setSidebarSectionExpanded(section, true);
         return true;
       }
@@ -1893,7 +1891,7 @@
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
         const expanded = !section.classList.contains("is-expanded");
-        if (expanded && isMobileLayout()) {
+        if (expanded) {
           sidebarCollapsibleSections.forEach((item) => {
             if (item !== section) setSidebarSectionExpanded(item, false);
           });
@@ -1902,29 +1900,8 @@
         return true;
       }
 
-      function openFirstSidebarViewInGroup(group = "") {
-        const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-        if (!section || !isSidebarNavActionVisible(section)) return false;
-        expandSidebarGroup(group);
-        const firstTab = [...section.querySelectorAll(".primary-tab[data-view-tab]")]
-          .find(isSidebarNavActionVisible);
-        if (!firstTab) return false;
-        firstTab.click();
-        return true;
-      }
-
       function toggleSidebarGroup(group = "") {
-        const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-        if (!section || !isSidebarNavActionVisible(section)) return false;
-        if (isMobileLayout()) return toggleSidebarGroupExpansion(group);
-        if (section.classList.contains("is-expanded")) {
-          if (section.classList.contains("is-active-section")) {
-            setSidebarSectionExpanded(section, false);
-            return true;
-          }
-          return openFirstSidebarViewInGroup(group);
-        }
-        return openFirstSidebarViewInGroup(group);
+        return toggleSidebarGroupExpansion(group);
       }
 
       function syncActiveSidebarSection(view = activeView) {
@@ -1933,7 +1910,7 @@
           const active = Boolean(activeGroup) && section.dataset.sidebarGroup === activeGroup;
           section.classList.toggle("is-active-section", active);
           if (active) setSidebarSectionExpanded(section, true);
-          else if (activeGroup && isMobileLayout()) setSidebarSectionExpanded(section, false);
+          else setSidebarSectionExpanded(section, false);
         });
         window.requestAnimationFrame(() => {
           const activeItem = document.querySelector(".sidebar-nav .primary-tab.is-active");
@@ -5147,6 +5124,7 @@
       let showingArchive = false;
       let greetingLabel = "Willkommen im Versorgungs-Kompass";
       const viewLabels = {
+        home: { title: "Startseite", subtitle: "Dein Einstieg in Versorgung, Stakeholder, Hospitation und Formate." },
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Fachlicher Verlauf von Stammdaten, Zuständigkeiten, Einwilligungen, Hospitationen, Formaten und Dokumenten." },
@@ -9051,19 +9029,6 @@
         applyRoleUi();
       }
 
-      function profileSettingsPayload() {
-        const preferences = userSettings?.preferences || {};
-        return {
-          defaultViewType: userSettings?.defaultViewType || "map",
-          tableDensity: userSettings?.tableDensity || "comfortable",
-          preferences: {
-            ...preferences,
-            defaultContactTab: preferences.defaultContactTab || "overview",
-            notificationsEnabled: false
-          }
-        };
-      }
-
       function setProfileStatus(message = "", isError = false) {
         if (!profileStatus) return;
         profileStatus.textContent = message;
@@ -9098,7 +9063,6 @@
         const profile = currentProfile || {};
         const displayName = profile.display_name || profile.email || "Angemeldet";
         const role = currentRole();
-        const settings = profileSettingsPayload();
         updateAvatarElement(profileAvatarPreview, profile);
         updateAvatarElement(profilePhotoPreview, profile);
         if (profileDisplayTitle) profileDisplayTitle.textContent = displayName;
@@ -9315,11 +9279,11 @@
         return userSettings?.preferences?.onboarding || preferences.onboarding;
       }
 
-      function normalizePostOnboardingView(view = "contacts") {
-        const candidate = String(view || "").replace(/^#/, "") || "contacts";
-        if (candidate === "onboarding") return "contacts";
-        if (!viewLabels[candidate]) return "contacts";
-        if (!canAccessView(candidate)) return "contacts";
+      function normalizePostOnboardingView(view = "home") {
+        const candidate = String(view || "").replace(/^#/, "") || "home";
+        if (candidate === "onboarding") return "home";
+        if (!viewLabels[candidate]) return "home";
+        if (!canAccessView(candidate)) return "home";
         return candidate;
       }
 
@@ -9347,7 +9311,7 @@
         renderViewChrome();
       }
 
-      async function openOnboarding(targetView = "contacts") {
+      async function openOnboarding(targetView = "home") {
         pendingPostOnboardingView = normalizePostOnboardingView(targetView);
         onboardingActive = true;
         closeMenus();
@@ -9362,7 +9326,7 @@
         updateView();
       }
 
-      function finishOnboarding(targetView = pendingPostOnboardingView || "contacts") {
+      function finishOnboarding(targetView = pendingPostOnboardingView || "home") {
         onboardingActive = false;
         const nextView = normalizePostOnboardingView(targetView);
         setActiveView(nextView);
@@ -9735,9 +9699,10 @@
 
       function restoreProductTourSidebarState(state = null) {
         if (!state) return;
+        const expandedGroup = state.sections?.find(({ expanded }) => expanded)?.group || "";
         state.sections?.forEach(({ group, expanded }) => {
           const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-          if (section) setSidebarSectionExpanded(section, Boolean(expanded));
+          if (section) setSidebarSectionExpanded(section, Boolean(expanded) && group === expandedGroup);
         });
         setSidebarCollapsed(Boolean(state.collapsed));
         setMobileSidebarExpanded(Boolean(state.mobileExpanded));
@@ -13450,6 +13415,11 @@
             )
             .join("");
         };
+
+        if (activeView === "home") {
+          if (summaryGrid) summaryGrid.innerHTML = "";
+          return;
+        }
 
         if (isNotificationsWorkspaceActive()) {
           if (summaryGrid) summaryGrid.innerHTML = "";
@@ -31887,7 +31857,7 @@
       }
 
       function updateRouteHash(view) {
-        const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "contacts";
+        const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "home";
         const nextHash = routeView === "personProfile" || String(routeView).startsWith("person/")
           ? `#${routeView === "personProfile" ? personProfileRoute() : routeView}`
           : routeView === "organizationProfile" || String(routeView).startsWith("organization/")
@@ -31944,7 +31914,7 @@
             view = "contacts";
           }
         }
-        if (!viewLabels[view]) view = "contacts";
+        if (!viewLabels[view]) view = "home";
         const requestedView = view;
         view = safeViewForRole(view);
         if (requestedView !== view) updateRouteHash(view);
@@ -33578,6 +33548,7 @@
         expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
         organizationLogoMapCache = null;
         syncOwnerOptionsFromContacts();
+        const isHomeView = activeView === "home";
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
         const isActivitiesView = activeView === "activities";
@@ -33616,7 +33587,9 @@
           syncQuestionnaireReflectionAuthor();
         }
         if (isFrameworkView) syncHospitationFrameworkMetrics();
-        const items = isFormatsView
+        const items = isHomeView
+          ? []
+          : isFormatsView
           ? filteredFormats()
           : isFrameworkView
             ? []
@@ -33640,7 +33613,7 @@
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
-        resultsCount.hidden = isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
+        resultsCount.hidden = isHomeView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
         archiveViewButton.textContent = archiveViewButtonLabel();
         const searchPlaceholder = isAnyDuplicateMode
           ? "Dubletten suchen..."
@@ -33678,7 +33651,7 @@
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
         const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
-        const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
+        const searchHidden = isHomeView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -33700,7 +33673,7 @@
           hospitationHeaderSearchToggle.setAttribute("aria-expanded", isHospitationHeaderSearchVisible ? "true" : "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHospitationsView || isFrameworkView || isQuestionnaireView;
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView;
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -33739,11 +33712,11 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isPatientsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isExpertsView || isPatientsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
-        if (isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
+        if (isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -33793,7 +33766,7 @@
           renderOrganizationProfilePage();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
+        if (!isHomeView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -34386,13 +34359,8 @@
         setMobileSidebarExpanded(false);
       }
       sidebarSectionToggles.forEach((toggle) => {
-        toggle.addEventListener("click", (event) => {
+        toggle.addEventListener("click", () => {
           const group = toggle.dataset.sidebarSectionToggle || "";
-          const target = event.target;
-          if (target instanceof Element && target.closest("svg")) {
-            if (!toggleSidebarGroupExpansion(group)) expandSidebarGroup(group);
-            return;
-          }
           if (!toggleSidebarGroup(group)) expandSidebarGroup(group);
         });
       });
@@ -35617,7 +35585,7 @@
       }
 
       window.addEventListener("hashchange", () => {
-        const nextView = routeViewFromHash() || "contacts";
+        const nextView = routeViewFromHash() || "home";
         if (onboardingActive && nextView !== "onboarding") {
           updateRouteHash("onboarding");
           return;
@@ -35873,12 +35841,9 @@
 
       async function initializeData() {
         const initialRouteView = routeViewFromHash();
-        let initialTargetView = initialRouteView || "map";
+        let initialTargetView = initialRouteView || "home";
         try {
           await loadCriticalInitialData();
-          if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "patients", "stakeholders", "framework", "formats", "hospitations", "questionnaire", "map", "analytics"].includes(userSettings?.defaultViewType)) {
-            initialTargetView = userSettings.defaultViewType;
-          }
           scheduleDeferredInitialData();
         } catch (error) {
           console.error("Geschützte Anwendungsdaten konnten nicht über die API geladen werden.", error);
@@ -35899,7 +35864,7 @@
         isInitialDataLoading = false;
         initialDataLoadingSlow = false;
         if (shouldRequireInitialOnboarding()) {
-          await openOnboarding(initialTargetView || activeView || "contacts");
+          await openOnboarding(initialTargetView || activeView || "home");
           finishInitialLoading();
           return;
         }
