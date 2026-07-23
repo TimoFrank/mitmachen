@@ -124,7 +124,17 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="home"]')).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".home-module-card")).toHaveCount(4);
+  await expect(page.getByRole("heading", { level: 1, name: "Willkommen." })).toBeVisible();
+  await expect(page.locator(".home-destination-link")).toHaveCount(4);
+  await expect(page.locator(".home-destination-link strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
+  const welcomeTextBox = await page.getByRole("heading", { level: 1, name: "Willkommen." }).evaluate((heading) => {
+    const range = document.createRange();
+    range.selectNodeContents(heading);
+    const rect = range.getBoundingClientRect();
+    return { left: rect.left, right: rect.right, viewportWidth: window.innerWidth };
+  });
+  expect(welcomeTextBox.left).toBeGreaterThanOrEqual(0);
+  expect(welcomeTextBox.right).toBeLessThanOrEqual(welcomeTextBox.viewportWidth + 1);
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="stakeholders"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
@@ -133,7 +143,34 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(page.locator('script[src="./data/demo-api.js"]')).toHaveCount(1);
   await expect(page.locator('script[src="./data/data-service.js"]')).toHaveCount(1);
   await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
-  await page.locator('.home-module-link[href="#map"]').click();
+  const demoNotice = page.locator("#vk-public-demo-notice");
+  const demoNoticeClose = page.locator("[data-demo-notice-close]");
+  const demoTrigger = page.locator("#vk-public-demo-trigger");
+  await expect(demoNotice).toBeVisible();
+  await expect(demoNotice).toContainText("Öffentliche Demo");
+  await expect(demoNotice).toContainText("Bitte keine echten Angaben eingeben.");
+  await expect(demoNotice).not.toContainText("synthetische Daten");
+  await expect(demoNotice).not.toContainText("Änderungen verschwinden");
+  await expect(demoNoticeClose).toHaveText("Schließen");
+  const demoContactCount = await page.evaluate(async () => {
+    await window.fetch("/api/contacts", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Temporärer UI-Testkontakt", status: "active" })
+    });
+    return window.VersorgungsCompassDemoApi.snapshot().contacts.length;
+  });
+  await demoNoticeClose.click();
+  await expect(demoNotice).toBeHidden();
+  await expect(demoTrigger).toBeVisible();
+  await expect(demoTrigger).toBeFocused();
+  await expect.poll(() => page.evaluate(() => window.VersorgungsCompassDemoApi.snapshot().contacts.length)).toBe(demoContactCount);
+  await demoTrigger.click();
+  await expect(demoNotice).toBeVisible();
+  await expect(demoTrigger).toBeHidden();
+  await expect(demoNoticeClose).toBeFocused();
+  await expectNoHorizontalOverflow(page);
+  await page.locator('.home-destination-link[href="#map"]').click();
   await expect(page).toHaveURL(/#map$/);
   await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
   if (await page.locator("#sidebar-profile-button").isHidden()) {
