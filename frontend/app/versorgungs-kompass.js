@@ -5172,6 +5172,20 @@
 
       const appVersionHistory = [
         {
+          version: "0.21.0",
+          date: "24. Juli 2026",
+          title: "Versorgung erleben, Wissen teilen",
+          icon: "start",
+          summary: "Hospitationen lassen sich noch leichter planen, dokumentieren und auswerten. So werden Erfahrungen aus dem Versorgungsalltag zu Wissen, das das ganze Netzwerk weiterbringt.",
+          items: [
+            "PoC-Security-Nachweise für Software Factory ergänzen: Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Verbesserungen für Hospitationen: Der Bereich Hospitationen wurde weiterentwickelt. Die Änderung erleichtert die tägliche Arbeit mit dem Versorgungs-Kompass. Wichtige Informationen und Funktionen sind dadurch schneller erreichbar.",
+            "Deploy-Validierung mit vollständiger Git-Historie (#93): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "README-Zugänge vereinfachen (#91): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Pages-Prüfung mit vollständiger Release-Historie ausführen (#90): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
+          ]
+        },
+        {
           version: "0.20.0",
           date: "17. Juli 2026",
           title: "Gemeinsam sicher vernetzt",

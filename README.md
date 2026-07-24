@@ -82,3 +82,10 @@ Ein PoC-Release wird durch einen unveränderlichen RC-Tag festgelegt. Weitere Ä
 Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).
 
 Der Quellcode und die technische Dokumentation stehen unter der [Apache License 2.0](LICENSE). Für Daten und externe Inhalte gelten die Hinweise im [Data Notice](dokumentation/rechtliches/DATA_NOTICE.md).
+
+## Aktueller Release
+
+- Version: [v0.21.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.21.0)
+- Stand: 24. Juli 2026
+- Kurznotiz: Versorgung erleben, Wissen teilen
+- Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/demo/)

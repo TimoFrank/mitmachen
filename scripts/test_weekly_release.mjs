@@ -112,6 +112,9 @@ Test.
   assert(releaseNotes.startsWith("# Mehr Überblick. Mehr Verbindung."), "Bereits verwendete Release-Titel müssen vermieden werden.");
   assert(read("README.md").includes("/releases/tag/v0.21.0"), "README-Link auf das Release fehlt.");
 
+  const preparedDryRun = runGenerator(["--dry-run"]);
+  assert(preparedDryRun.stdout.includes("Fortsetzen für v0.21.0"), "Ein vorbereiteter Arbeitsbaum muss im Dry-Run pruefbar bleiben.");
+
   git(["add", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "release-notes/v0.21.0.md"]);
   git(["commit", "-m", "Release v0.21.0"]);
   const releaseCommit = git(["rev-parse", "HEAD"]);

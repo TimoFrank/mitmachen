@@ -580,7 +580,7 @@ function releasePlan() {
     const notesPath = notesPathFor(version);
     const notes = readText(notesPath);
     const targetSha = git(["log", "-1", "--format=%H", "--", notesPath]);
-    if (!targetSha) throw new Error(`Der Quell-Commit für ${notesPath} konnte nicht bestimmt werden.`);
+    if (!targetSha && !dryRun) throw new Error(`Der Quell-Commit für ${notesPath} konnte nicht bestimmt werden.`);
     const existingTag = gitTags().includes(tag);
     if (existingTag && git(["rev-list", "-n", "1", tag]) !== targetSha) {
       throw new Error(`${tag} zeigt nicht auf den vorbereiteten Release-Commit ${targetSha}.`);
@@ -597,7 +597,7 @@ function releasePlan() {
       notesPath,
       notes,
       baseRef,
-      targetSha,
+      targetSha: targetSha || planningHead,
       planningHead,
       currentVersion: currentVersionText
     };
