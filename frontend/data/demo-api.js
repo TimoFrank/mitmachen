@@ -761,9 +761,15 @@
     `;
     let noticeCollapsed = false;
     const appShell = document.querySelector(".app-shell");
+    const mobileViewport = window.matchMedia("(max-width: 760px)");
     const syncNoticeVisibility = () => {
       const activeView = appShell?.dataset.activeView || "";
-      const eligible = DEMO_NOTICE_DATA_VIEWS.has(activeView);
+      const mobileNavigationOpen =
+        mobileViewport.matches &&
+        appShell?.classList.contains("is-mobile-sidebar-expanded");
+      const eligible =
+        DEMO_NOTICE_DATA_VIEWS.has(activeView) &&
+        !mobileNavigationOpen;
       notice.hidden = !eligible || noticeCollapsed;
       trigger.hidden = !eligible || !noticeCollapsed;
       trigger.setAttribute("aria-expanded", eligible && !noticeCollapsed ? "true" : "false");
@@ -783,9 +789,10 @@
     if (appShell) {
       new MutationObserver(syncNoticeVisibility).observe(appShell, {
         attributes: true,
-        attributeFilter: ["data-active-view"]
+        attributeFilter: ["data-active-view", "class"]
       });
     }
+    mobileViewport.addEventListener?.("change", syncNoticeVisibility);
     syncNoticeVisibility();
   }
 
