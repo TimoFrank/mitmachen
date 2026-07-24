@@ -121,7 +121,7 @@
 
   // Minimal basemap WITHOUT labels; the CRM overlays carry the important information.
   const MAP_MIN_ZOOM = 6;
-  const MOBILE_MAP_MIN_ZOOM = 5;
+  const MOBILE_MAP_MIN_ZOOM = 5.5;
   const MAP_MAX_ZOOM = 11;
   const STATE_MAP_MAX_ZOOM = 12;
   const MAP_WHEEL_PX_PER_ZOOM = 140;
@@ -131,9 +131,10 @@
   }
   const map = L.map('map', {
     zoomControl: true,
-    zoomSnap: 1,
-    zoomDelta: 1,
-    wheelPxPerZoomLevel: MAP_WHEEL_PX_PER_ZOOM
+    zoomSnap: 0.5,
+    zoomDelta: 0.5,
+    wheelPxPerZoomLevel: MAP_WHEEL_PX_PER_ZOOM,
+    maxBoundsViscosity: 1
   });
 
   if (!IS_PUBLIC_DEMO) {
@@ -188,13 +189,16 @@
     interactive: false
   }).addTo(map);
 
+  const BASE_STATE_SURFACE_STYLE = {
+    color: 'rgba(1,14,82,0.22)',
+    weight: 0.85,
+    fillColor: '#155fe4',
+    fillOpacity: 0.16,
+    opacity: 1
+  };
+
   const stateSurfaceLayer = L.geoJSON(STATE_POLYGONS, {
-    style: () => ({
-      color: 'rgba(23,39,95,0.16)',
-      weight: 0.8,
-      fillColor: 'rgba(238,244,255,0.18)',
-      fillOpacity: 1
-    }),
+    style: () => ({ ...BASE_STATE_SURFACE_STYLE }),
     interactive: false
   }).addTo(map);
 
@@ -203,7 +207,7 @@
   const initialGermanyPadding = window.matchMedia('(max-width: 760px)').matches ? 0.5 : 0.2;
   map.fitBounds(deBounds.pad(initialGermanyPadding));
   map.setZoom(Math.min(map.getZoom(), MAP_MAX_ZOOM));
-  map.setMaxBounds(deBounds.pad(0.6));
+  map.setMaxBounds(deBounds.pad(0.35));
   map.setMinZoom(currentMapMinZoom());
   map.setMaxZoom(MAP_MAX_ZOOM);
 
@@ -218,7 +222,10 @@
   const stateHeatCountLayer = L.layerGroup();
   let stateInteractionLayer = null;
   let heatMapActive = false;
+  let gematikMarkerModeActive = true;
   let selectedState = "";
+  let stateCountsByKey = {};
+  let stateCountMax = 0;
 
   function fitMapToState(name){
     const feature = stateFeature(name);
@@ -229,13 +236,53 @@
 
   function stateInteractionStyle(name, hover = false){
     const active = selectedState === name;
+    if (gematikMarkerModeActive && !heatMapActive) {
+      const total = stateCountsByKey[stateNameKey(name)] || 0;
+      return {
+        color: active ? '#010e52' : (hover ? '#010e52' : 'rgba(1,14,82,0.20)'),
+        weight: active ? 2.6 : (hover ? 2 : 1.1),
+        lineCap: 'round',
+        lineJoin: 'round',
+        fillColor: heatColor(total, stateCountMax),
+        fillOpacity: 1,
+        interactive: true
+      };
+    }
     return {
-      color: active ? 'rgba(18,96,144,1)' : (hover ? 'rgba(18,96,144,0.92)' : 'rgba(20,84,122,0.18)'),
-      weight: active ? 3.2 : (hover ? 3 : 1),
-      fillColor: active ? 'rgba(53,132,194,0.42)' : (hover ? 'rgba(53,132,194,0.38)' : 'rgba(32,104,148,0.16)'),
-      fillOpacity: active ? 0.44 : (hover ? 0.38 : 0.03),
+      color: active ? '#010e52' : (hover ? '#155fe4' : 'rgba(1,14,82,0.14)'),
+      weight: active ? 2.6 : (hover ? 2 : 0.8),
+      fillColor: active ? '#010e52' : '#155fe4',
+      fillOpacity: active ? 0.34 : (hover ? 0.18 : 0.02),
       interactive: true
     };
+  }
+
+  function setStateLabelHover(name, highlighted){
+    stateLabelLayer.eachLayer((labelMarker) => {
+      const label = labelMarker.getElement()?.querySelector('.state-label');
+      if (!label) return;
+      const matchesState = label.dataset.state === String(name || "");
+      label.classList.toggle('is-state-hovered', Boolean(highlighted && matchesState));
+    });
+  }
+
+  function stateHoverTooltipHtml(name, total){
+    const itemLabel = total === 1
+      ? mapLabel("itemSingular", "Kontakt")
+      : mapLabel("itemPlural", "Kontakte");
+    return `<span class="state-hover-tooltip__name">${escapeHtml(name)}</span><span class="state-hover-tooltip__count">${total} ${escapeHtml(itemLabel)}</span>`;
+  }
+
+  function highlightContactState(name, highlighted){
+    if (!stateInteractionLayer || !name || heatMapActive) return;
+    setStateLabelHover(name, highlighted);
+    stateInteractionLayer.eachLayer((layer) => {
+      if (layer.feature?.properties?.name !== name) return;
+      layer.setStyle(stateInteractionStyle(name, highlighted));
+      if (highlighted && !L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        layer.bringToFront();
+      }
+    });
   }
 
   function refreshStateInteractionLayer(){
@@ -249,14 +296,24 @@
       style: (feature) => stateInteractionStyle(feature.properties.name),
       onEachFeature: (feature, layer) => {
         const name = feature.properties.name;
+        const total = stateCountsByKey[stateNameKey(name)] || 0;
+        layer.bindTooltip(stateHoverTooltipHtml(name, total), {
+          className: "state-heat-tooltip state-hover-tooltip",
+          direction: "top",
+          offset: [0, -12],
+          sticky: true,
+          opacity: 1
+        });
         layer.on('mouseover', () => {
           if (heatMapActive) return;
           layer.setStyle(stateInteractionStyle(name, true));
+          setStateLabelHover(name, true);
         });
         layer.on('mouseout', () => {
           if (!stateInteractionLayer) return;
           stateInteractionLayer.resetStyle(layer);
           layer.setStyle(stateInteractionStyle(name));
+          setStateLabelHover(name, false);
         });
         layer.on('click', () => {
           const nextState = selectedState === name ? "" : name;
@@ -279,14 +336,23 @@
   let stateMapStateLabel = null;
 
   function heatColor(value, max){
-    if (max <= 0) return "#f5dfdc";
+    if (max <= 0 || value <= 0) return "#f2f3f7";
     const ratio = Math.max(0, Math.min(1, value / max));
-    if (ratio >= 0.85) return "#9f2622";
-    if (ratio >= 0.65) return "#bc4b42";
-    if (ratio >= 0.45) return "#cf746a";
-    if (ratio >= 0.25) return "#dfa299";
-    if (ratio > 0) return "#ecc9c3";
-    return "#f5dfdc";
+    const easedRatio = Math.pow(ratio, 0.72);
+    const start = [231, 237, 248];
+    const end = [1, 14, 82];
+    const channel = (index) => Math.round(start[index] + ((end[index] - start[index]) * easedRatio));
+    return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
+  }
+
+  function updateStateCounts(entries = currentEntries){
+    stateCountsByKey = entries.reduce((acc, entry) => {
+      const key = stateNameKey(entry.state);
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    stateCountMax = Object.values(stateCountsByKey).reduce((acc, total) => Math.max(acc, total), 0);
   }
 
   function stateNameKey(value){
@@ -323,8 +389,7 @@
   function stateLabelHtml(name, total = null, heat = false){
     const count = total && total > 0 ? `<span class="state-heat-count">${total}</span>` : "";
     const heatClass = heat ? " state-label-heat" : "";
-    const stateAttribute = heat ? ` data-state="${escapeHtml(name)}"` : "";
-    return `<div class="label-anchor"><div class="state-label${heatClass}"${stateAttribute}>${name}${count}</div></div>`;
+    return `<div class="state-label-frame"><div class="state-label${heatClass}" data-state="${escapeHtml(name)}"><span class="state-label-text">${escapeHtml(name)}</span>${count}</div></div>`;
   }
 
   function buildStateHeatLayer(entries = currentEntries){
@@ -332,47 +397,31 @@
       stateHeatLayer.remove();
     }
     stateHeatCountLayer.clearLayers();
-
-    const countsByState = entries.reduce((acc, entry) => {
-      const key = stateNameKey(entry.state);
-      if (!key) return acc;
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {});
-
-    const max = Object.values(countsByState).reduce((acc, total) => Math.max(acc, total), 0);
-    STATE_LABELS.forEach((state) => {
-      L.marker([state.lat, state.lon], {
-        icon: L.divIcon({
-          className: '',
-          html: stateLabelHtml(state.name, null, true),
-          iconSize: null
-        }),
-        interactive: false,
-        keyboard: false,
-        zIndexOffset: 250
-      }).addTo(stateHeatCountLayer);
-    });
+    updateStateCounts(entries);
 
     stateHeatLayer = L.geoJSON(STATE_POLYGONS, {
+      smoothFactor: 0.35,
       style: (feature) => {
-        const total = countsByState[stateNameKey(feature.properties.name)] || 0;
-        const fill = heatColor(total, max);
+        const total = stateCountsByKey[stateNameKey(feature.properties.name)] || 0;
+        const fill = heatColor(total, stateCountMax);
         return {
-          color: 'rgba(0,0,0,0.10)',
-          weight: 1,
+          color: 'rgba(1,14,82,0.20)',
+          weight: 1.1,
+          lineCap: 'round',
+          lineJoin: 'round',
           fillColor: fill,
-          fillOpacity: total > 0 ? 0.58 : 0.12,
+          fillOpacity: 1,
           interactive: true
         };
       },
       onEachFeature: (feature, layer) => {
-        const total = countsByState[stateNameKey(feature.properties.name)] || 0;
-        layer.bindTooltip(`${total} ${total === 1 ? mapLabel("itemSingular", "Kontakt") : mapLabel("itemPlural", "Kontakte")}`, {
-          className: "state-heat-tooltip",
+        const name = feature.properties.name;
+        const total = stateCountsByKey[stateNameKey(name)] || 0;
+        layer.bindTooltip(stateHoverTooltipHtml(name, total), {
+          className: "state-heat-tooltip state-hover-tooltip",
           direction: "top",
           offset: [0, -12],
-          sticky: false,
+          sticky: true,
           opacity: 1
         });
         layer.on('click', () => {
@@ -381,11 +430,12 @@
         });
         layer.on('mouseover', () => {
           layer.setStyle({
-            weight: 3.4,
-            color: 'rgba(30,41,59,0.72)',
-            fillColor: heatColor(total, max),
-            fillOpacity: total > 0 ? 0.58 : 0.12
+            weight: 2,
+            color: '#010e52',
+            fillColor: heatColor(total, stateCountMax),
+            fillOpacity: 1
           });
+          layer.bringToFront();
           layer.openTooltip();
         });
         layer.on('mouseout', () => {
@@ -397,7 +447,6 @@
 
     if (heatMapActive) {
       stateHeatLayer.addTo(map);
-      stateHeatCountLayer.addTo(map);
     }
   }
 
@@ -406,8 +455,11 @@
     const klass = isState ? "state-label" : ("city-label " + cls);
     return L.divIcon({
       className: '',
-      html: `<div class="label-anchor"><div class="${klass}">${text}</div></div>`,
-      iconSize: null
+      html: isState
+        ? `<div class="state-label-frame"><div class="${klass}" data-state="${escapeHtml(text)}"><span class="state-label-text">${escapeHtml(text)}</span></div></div>`
+        : `<div class="label-anchor"><div class="${klass}">${escapeHtml(text)}</div></div>`,
+      iconSize: isState ? [160, 42] : null,
+      iconAnchor: isState ? [80, 21] : undefined
     });
   }
 
@@ -471,12 +523,8 @@
       return;
     }
 
-    // State labels: only in the overview; city labels take over at closer levels.
-    if (z >= 6 && z < 7) {
-      if (!map.hasLayer(stateLabelLayer)) map.addLayer(stateLabelLayer);
-    } else {
-      if (map.hasLayer(stateLabelLayer)) map.removeLayer(stateLabelLayer);
-    }
+    // Bundesland names are revealed contextually by the polygon hover tooltip.
+    if (map.hasLayer(stateLabelLayer)) map.removeLayer(stateLabelLayer);
 
     if (z >= 7) {
       if (!map.hasLayer(majorLabelLayer)) map.addLayer(majorLabelLayer);
@@ -744,6 +792,7 @@
   const elMapPagination = document.getElementById('map-pagination');
   const elCount = document.getElementById('count');
   const elPanelTitle = document.querySelector('.panel-title');
+  const elMarkerToggle = document.getElementById('marker-toggle');
   const elHeatMapToggle = document.getElementById('heatmap-toggle');
   const elPointsToggle = document.getElementById('points-toggle');
   const elClusterToggle = document.getElementById('cluster-toggle');
@@ -1099,16 +1148,48 @@
     return badges.join("");
   }
 
+  function mapTooltipDetailIcon(kind) {
+    if (kind === "organization") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16"></path><path d="M6 21V4h9v17"></path><path d="M15 9h3v12"></path><path d="M9 8h3M9 12h3M9 16h3"></path></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>`;
+  }
+
+  function mapTooltipDetailHtml(kind, value) {
+    if (!hasValue(value)) return "";
+    return `
+      <div class="map-point-tooltip__detail map-point-tooltip__detail--${kind}">
+        <span class="map-point-tooltip__detail-icon" aria-hidden="true">${mapTooltipDetailIcon(kind)}</span>
+        <span class="map-point-tooltip__detail-text">${escapeHtml(value)}</span>
+      </div>
+    `;
+  }
+
   function mapTooltipHtml(entry) {
-    const roleLine = [entry.contact_role, entry.person_title].filter(hasValue).join(" · ");
     const organizationLine = entry.organization || mapLabel("descriptionFallback", "Kontakt");
     const locationLine = entryListLocation(entry);
+    const imageUrl = safeImageUrl(entry.image);
+    const avatarFallback = escapeHtml(initials(entry.name));
+    const avatar = imageUrl
+      ? `<span class="map-point-tooltip__avatar"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async"></span>`
+      : `<span class="map-point-tooltip__avatar">${avatarFallback}</span>`;
+    const sectorColor = sectorRegistry.colorFor(entry.category || "");
+    const sectorBadge = entry.category
+      ? `<span class="map-point-tooltip__sector" style="--sector-color:${escapeHtml(sectorColor)};--sector-bg:${escapeHtml(sectorTint(sectorColor))}"><span class="map-point-tooltip__sector-icon" aria-hidden="true">${sectorIconSvg(entry.category)}</span><span>${escapeHtml(entry.category)}</span></span>`
+      : "";
     return `
       <div class="map-point-tooltip__content">
-        <div class="map-point-tooltip__name">${escapeHtml(entry.name)}</div>
-        <div class="map-point-tooltip__meta">${escapeHtml(roleLine || organizationLine)}</div>
-        ${roleLine && organizationLine ? `<div class="map-point-tooltip__meta">${escapeHtml(organizationLine)}</div>` : ""}
-        <div class="map-point-tooltip__location">${escapeHtml(locationLine || entry.state || "Ort nicht dokumentiert")}</div>
+        <div class="map-point-tooltip__header">
+          ${avatar}
+          <div class="map-point-tooltip__identity">
+            <div class="map-point-tooltip__name">${escapeHtml(entry.name)}</div>
+            <div class="map-point-tooltip__badges">${sectorBadge}</div>
+          </div>
+        </div>
+        <div class="map-point-tooltip__details">
+          ${mapTooltipDetailHtml("organization", organizationLine)}
+          ${mapTooltipDetailHtml("location", locationLine || entry.state || "Ort nicht dokumentiert")}
+        </div>
       </div>
     `;
   }
@@ -1122,6 +1203,8 @@
       opacity: 1,
       sticky: true
     });
+    marker.on('mouseover', () => highlightContactState(entry.state, true));
+    marker.on('mouseout', () => highlightContactState(entry.state, false));
     return marker;
   }
 
@@ -1469,7 +1552,7 @@
     });
   }
 
-  function markerFor(d){
+  function sectorPointFor(d){
     const color = sectorRegistry.colorFor(d.category);
     const size = isMobileLayout() ? 10 : 12;
     const icon = L.divIcon({
@@ -1477,9 +1560,167 @@
       html: `<div class="cat-marker${activeMapContactId === d.id ? " cat-marker-active" : ""}" style="background:${color};"></div>`,
       iconSize: [size,size],
       iconAnchor: [size / 2,size / 2],
-      popupAnchor: [0,-8]
+      popupAnchor: [0,-8],
+      tooltipAnchor: [0,-6]
     });
-    return L.marker([d.lat, d.lon], { icon });
+    return L.marker([d.lat, d.lon], { icon, riseOnHover: true, riseOffset: 1000000 });
+  }
+
+  const GEMATIK_LOCATION_MARKER_PATH = "M256 0C153.755 0 70.573 83.182 70.573 185.426c0 126.888 165.939 313.167 173.004 321.035 6.636 7.391 18.222 7.378 24.846 0 7.065-7.868 173.004-194.147 173.004-321.035C441.425 83.182 358.244 0 256 0zm0 278.719c-51.442 0-93.292-41.851-93.292-93.293S204.559 92.134 256 92.134s93.291 41.851 93.291 93.293-41.85 93.292-93.291 93.292z";
+
+  function gematikMarkerSize(compact = false){
+    const width = window.innerWidth;
+    const viewportSize = width < 576
+      ? [20, 26]
+      : (width < 992 ? [24, 31] : (width < 1440 ? [30, 39] : [34, 44]));
+    if (!compact) return viewportSize;
+    return [
+      Math.max(18, Math.round(viewportSize[0] * 0.76)),
+      Math.max(23, Math.round(viewportSize[1] * 0.76))
+    ];
+  }
+
+  function gematikMarkerMarkup(active = false, className = "gematik-marker"){
+    const activeClass = className === "gematik-marker" && active ? " gematik-marker-active" : "";
+    return `<span class="${className}${activeClass}" aria-hidden="true"><svg class="gematik-marker__svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#00ff65" d="${GEMATIK_LOCATION_MARKER_PATH}"/></svg></span>`;
+  }
+
+  function gematikMarkerFor(d, options = {}){
+    const compact = options.compact === true;
+    const [width, height] = gematikMarkerSize(compact);
+    const icon = L.divIcon({
+      className: '',
+      html: gematikMarkerMarkup(activeMapContactId === d.id),
+      iconSize: [width, height],
+      iconAnchor: [width / 2, height],
+      popupAnchor: [0, -height],
+      tooltipAnchor: [0, -height + 2]
+    });
+    return L.marker(options.latLng || [d.lat, d.lon], {
+      icon,
+      zIndexOffset: options.zIndexOffset || 0,
+      riseOnHover: true,
+      riseOffset: 1000000
+    });
+  }
+
+  function markerFor(d, options = {}){
+    return gematikMarkerModeActive ? gematikMarkerFor(d, options) : sectorPointFor(d);
+  }
+
+  function resolveMarkerCollisions(layout){
+    const resolved = layout.map((item) => {
+      const [width, height] = gematikMarkerSize(item.compact);
+      return {
+        ...item,
+        width,
+        height,
+        point: map.latLngToLayerPoint(item.latLng)
+      };
+    });
+    const padding = 3;
+
+    for (let pass = 0; pass < 18; pass += 1) {
+      let moved = false;
+      for (let i = 0; i < resolved.length; i += 1) {
+        for (let j = i + 1; j < resolved.length; j += 1) {
+          const a = resolved[i];
+          const b = resolved[j];
+          const centerAx = a.point.x;
+          const centerAy = a.point.y - (a.height / 2);
+          const centerBx = b.point.x;
+          const centerBy = b.point.y - (b.height / 2);
+          const deltaX = centerBx - centerAx;
+          const deltaY = centerBy - centerAy;
+          const overlapX = ((a.width + b.width) / 2) + padding - Math.abs(deltaX);
+          const overlapY = ((a.height + b.height) / 2) + padding - Math.abs(deltaY);
+          if (overlapX <= 0 || overlapY <= 0) continue;
+
+          moved = true;
+          if (overlapX < overlapY) {
+            const direction = deltaX === 0 ? ((i + j) % 2 === 0 ? 1 : -1) : Math.sign(deltaX);
+            const shift = (overlapX / 2) + 0.25;
+            a.point.x -= direction * shift;
+            b.point.x += direction * shift;
+          } else {
+            const direction = deltaY === 0 ? ((i + j) % 2 === 0 ? 1 : -1) : Math.sign(deltaY);
+            const shift = (overlapY / 2) + 0.25;
+            a.point.y -= direction * shift;
+            b.point.y += direction * shift;
+          }
+        }
+      }
+      if (!moved) break;
+    }
+
+    return resolved.map(({ entry, compact, point }) => ({
+      entry,
+      compact,
+      latLng: map.layerPointToLatLng(point)
+    }));
+  }
+
+  function declutteredMarkerEntries(entries){
+    if (!gematikMarkerModeActive || heatMapActive || clusterModeActive || entries.length < 2) {
+      return entries.map((entry) => ({ entry, latLng: [entry.lat, entry.lon], compact: false }));
+    }
+
+    const [markerWidth, markerHeight] = gematikMarkerSize();
+    const collisionDistance = Math.max(24, Math.max(markerWidth, markerHeight) * 1.12);
+    const projected = entries.map((entry) => ({
+      entry,
+      point: map.latLngToLayerPoint([entry.lat, entry.lon])
+    }));
+    const groups = [];
+
+    projected.forEach((candidate) => {
+      let nearestGroup = null;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+      groups.forEach((group) => {
+        const center = L.point(
+          group.reduce((sum, item) => sum + item.point.x, 0) / group.length,
+          group.reduce((sum, item) => sum + item.point.y, 0) / group.length
+        );
+        const distance = candidate.point.distanceTo(center);
+        if (distance <= collisionDistance && distance < nearestDistance) {
+          nearestGroup = group;
+          nearestDistance = distance;
+        }
+      });
+      if (nearestGroup) nearestGroup.push(candidate);
+      else groups.push([candidate]);
+    });
+
+    const layout = groups.flatMap((group) => {
+      if (group.length === 1) {
+        const item = group[0];
+        return [{ entry: item.entry, latLng: [item.entry.lat, item.entry.lon], compact: false }];
+      }
+
+      const ordered = [...group].sort((a, b) => String(a.entry.id).localeCompare(String(b.entry.id), 'de'));
+      const center = L.point(
+        group.reduce((sum, item) => sum + item.point.x, 0) / group.length,
+        group.reduce((sum, item) => sum + item.point.y, 0) / group.length
+      );
+      const [compactWidth, compactHeight] = gematikMarkerSize(true);
+      const separation = Math.max(compactWidth, compactHeight) + 5;
+      const radius = Math.max(22, separation / (2 * Math.sin(Math.PI / ordered.length)));
+      const startAngle = -Math.PI / 2;
+
+      return ordered.map((item, index) => {
+        const angle = startAngle + ((Math.PI * 2 * index) / ordered.length);
+        const displayPoint = L.point(
+          center.x + (Math.cos(angle) * radius),
+          center.y + (Math.sin(angle) * radius)
+        );
+        return {
+          entry: item.entry,
+          latLng: map.layerPointToLatLng(displayPoint),
+          compact: true
+        };
+      });
+    });
+    return resolveMarkerCollisions(layout);
   }
 
   function clusterIcon(count, active = false){
@@ -1515,6 +1756,7 @@
         const element = marker.getElement();
         if (!element) return;
         element.querySelector('.cat-marker')?.classList.toggle('cat-marker-active', active);
+        element.querySelector('.gematik-marker')?.classList.toggle('gematik-marker-active', active);
         element.querySelector('.map-cluster-marker')?.classList.toggle('map-cluster-active', active || ids.includes(activeMapContactId));
       });
   }
@@ -1743,7 +1985,10 @@
   }
 
   function updateMapModeControls(){
-    const pointsActive = !heatMapActive && !clusterModeActive;
+    const markerActive = gematikMarkerModeActive && !heatMapActive && !clusterModeActive;
+    const pointsActive = !gematikMarkerModeActive && !heatMapActive && !clusterModeActive;
+    elMarkerToggle?.classList.toggle('map-toggle-active-marker', markerActive);
+    elMarkerToggle?.setAttribute('aria-pressed', markerActive ? 'true' : 'false');
     elPointsToggle?.classList.toggle('map-toggle-active-filter', pointsActive);
     elPointsToggle?.setAttribute('aria-pressed', pointsActive ? 'true' : 'false');
     elHeatMapToggle?.classList.toggle('map-toggle-active-heat', heatMapActive);
@@ -1924,6 +2169,28 @@
 
   function renderLegend(entries = filteredEntries()){
     if (!elMapLegendList) return;
+    if (heatMapActive) {
+      elMapLegendList.innerHTML = `
+        <div class="map-distribution-legend" aria-label="Weniger bis mehr Kontakte">
+          <span>weniger</span>
+          <span class="map-distribution-legend__scale" aria-hidden="true"></span>
+          <span>mehr</span>
+        </div>
+      `;
+      return;
+    }
+    if (gematikMarkerModeActive) {
+      const itemLabel = entries.length === 1
+        ? mapLabel("itemSingular", "Kontakt")
+        : mapLabel("itemPlural", "Kontakte");
+      elMapLegendList.innerHTML = `
+        <div class="map-legend-item map-legend-item--contact">
+          <span class="map-legend-pin">${gematikMarkerMarkup(false, "map-legend-marker")}</span>
+          <span><strong>${entries.length}</strong> ${escapeHtml(itemLabel)}</span>
+        </div>
+      `;
+      return;
+    }
     const counts = new Map();
     entries.forEach((entry) => {
       const label = entry.category || "Weitere";
@@ -2094,10 +2361,20 @@
     buildStateHeatLayer(filtered);
     refreshStateInteractionLayer();
 
-    markerBuckets(filtered).forEach((bucket) => {
+    if (gematikMarkerModeActive && !heatMapActive) {
+      declutteredMarkerEntries(filtered).forEach(({ entry, latLng, compact }) => {
+        const marker = gematikMarkerFor(entry, { latLng, compact });
+        bindMapPointTooltip(marker, entry);
+        marker.on('click', () => {
+          focusMapContact(entry);
+        });
+        markerIndex.push({ marker, ids: [entry.id], data: entry });
+        markerLayer.addLayer(marker);
+      });
+    } else markerBuckets(filtered).forEach((bucket) => {
       if (bucket.length === 1) {
         const d = bucket[0];
-        const m = markerFor(d);
+        const m = sectorPointFor(d);
         bindMapPointTooltip(m, d);
         m.on('click', () => {
           focusMapContact(d);
@@ -2123,11 +2400,12 @@
     });
 
     if (heatMapActive) {
+      stateSurfaceLayer.setStyle({ opacity: 0, fillOpacity: 0 });
       if (map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
       if (stateInteractionLayer && map.hasLayer(stateInteractionLayer)) map.removeLayer(stateInteractionLayer);
       if (stateHeatLayer && !map.hasLayer(stateHeatLayer)) stateHeatLayer.addTo(map);
-      if (!map.hasLayer(stateHeatCountLayer)) stateHeatCountLayer.addTo(map);
     } else {
+      stateSurfaceLayer.setStyle(BASE_STATE_SURFACE_STYLE);
       if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
       if (stateInteractionLayer && !map.hasLayer(stateInteractionLayer)) stateInteractionLayer.addTo(map);
       if (stateHeatLayer && map.hasLayer(stateHeatLayer)) map.removeLayer(stateHeatLayer);
@@ -2216,19 +2494,29 @@
     }
   });
 
+  elMarkerToggle?.addEventListener('click', () => {
+    gematikMarkerModeActive = true;
+    heatMapActive = false;
+    clusterModeActive = false;
+    render();
+  });
+
   elPointsToggle?.addEventListener('click', () => {
+    gematikMarkerModeActive = false;
     heatMapActive = false;
     clusterModeActive = false;
     render();
   });
 
   elHeatMapToggle?.addEventListener('click', () => {
+    gematikMarkerModeActive = false;
     heatMapActive = true;
     clusterModeActive = false;
     render();
   });
 
   elClusterToggle?.addEventListener('click', () => {
+    gematikMarkerModeActive = false;
     clusterModeActive = true;
     heatMapActive = false;
     render();

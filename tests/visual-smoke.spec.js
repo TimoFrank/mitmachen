@@ -51,6 +51,15 @@ async function openMobileSidebarIfNeeded(page) {
   await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
 }
 
+async function expandSidebarSectionIfNeeded(page, section) {
+  await openMobileSidebarIfNeeded(page);
+  const toggle = page.locator(`[data-sidebar-section-toggle="${section}"]`);
+  if (await toggle.getAttribute("aria-expanded") !== "true") {
+    await toggle.click();
+  }
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
 async function expectTourPanelClearOfSpotlight(page, minimumGap = 0, context = "aktueller Schritt") {
   await expect.poll(async () => {
     const [panelBox, spotlightBox] = await Promise.all([
@@ -1839,8 +1848,134 @@ test("Hospitationen: geschützte synthetische Backend-Fixture ist observation-fi
   await expect(drawer).not.toContainText("Roadmap-Bewertung");
 });
 
-test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("mobile"), "Der Abschnittsdirektklick wird im Desktop-Sidebar-Layout geprüft.");
+test("Startseite: minimalistischer Einstieg und Sidebar-Zustand funktionieren auf Desktop und Mobile", async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", "false");
+    window.sessionStorage.removeItem("versorgungs-kompass:home-reveal");
+  });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
+
+  const shell = page.locator(".app-shell");
+  const isMobile = testInfo.project.name.includes("mobile");
+  const homeScroller = page.locator("[data-home-scroller]");
+  const homeDestinations = page.locator("#home-destinations");
+  const heading = page.getByRole("heading", { level: 1, name: "Willkommen im Versorgungs-Kompass" });
+  const brand = page.locator(".home-hero__brand");
+  const scrollCue = page.getByRole("button", { name: "Bereiche ansehen" });
+  const destinationLinks = page.locator(".home-destination-link");
+
+  await expect(shell).toHaveAttribute("data-active-view", "home");
+  await expect(homeScroller).toHaveAttribute("tabindex", "0");
+  await expect(homeScroller).toHaveAttribute("aria-label", "Startseiteninhalt");
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expect(page.locator('[data-view-tab="home"]')).toHaveAttribute("aria-current", "page");
+  await expect(heading).toBeVisible();
+  await expect(heading).toHaveAttribute("data-home-reveal-lines", '["Willkommen im","Versorgungs-Kompass"]');
+  await expect(brand).toBeVisible();
+  await expect(brand).toHaveAttribute("alt", "#Mitmachen");
+  await expect(brand).toHaveAttribute("src", /lockup-horizontal\.svg$/);
+  await expect(page.locator(".home-hero__lead")).toHaveText("Wähle den Bereich, in dem du arbeiten möchtest.");
+  await expect(scrollCue).toBeVisible();
+  await expect(scrollCue).toHaveAttribute("aria-controls", "home-destinations");
+  await expect(destinationLinks).toHaveCount(4);
+  await expect(destinationLinks.locator("strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
+  await expect(destinationLinks.locator(".home-destination-link__top > span:first-child")).toHaveText(["01", "02", "03", "04"]);
+  await expect(destinationLinks.locator(".home-destination-link__copy")).toHaveText([
+    "Regionen, Kontakte und Organisationen im Blick.",
+    "Perspektiven und Netzwerke gezielt verbinden.",
+    "Beobachtungen in belastbares Wissen überführen.",
+    "Austausch planen und Wirkung gemeinsam gestalten."
+  ]);
+  await expect(page.locator(".sidebar-nav > *").first()).toHaveClass(/sidebar-home-entry/);
+  expect(await destinationLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
+    "#map",
+    "#stakeholders",
+    "#framework",
+    "#formats"
+  ]);
+  await expect(page.locator(".workspace-header")).toBeHidden();
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
+  await expect(page.locator("#brand-home-link")).toHaveAttribute("href", "#home");
+
+  await expect(heading).toHaveClass(/is-prepared/);
+  await expect(heading).toHaveAttribute("data-character-count", "31");
+  await expect(heading.locator(".home-reveal-heading__char")).toHaveCount(31);
+  await expect(heading).toHaveClass(/is-complete/);
+  await expect(heading).not.toHaveClass(/is-playing/);
+  await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("versorgungs-kompass:home-reveal"))).toBe("1");
+  const headingGeometry = await heading.evaluate((element) => {
+    const words = [...element.querySelectorAll(".home-reveal-heading__word")].map((word) => {
+      const rect = word.getBoundingClientRect();
+      return { text: word.textContent, top: rect.top, bottom: rect.bottom };
+    });
+    const leadTop = document.querySelector(".home-hero__lead")?.getBoundingClientRect().top || 0;
+    return { words, leadTop };
+  });
+  const titleSegments = headingGeometry.words.filter((word) => ["Versorgungs-", "Kompass"].includes(word.text));
+  expect(titleSegments).toHaveLength(2);
+  expect(Math.abs(titleSegments[0].top - titleSegments[1].top)).toBeLessThanOrEqual(1);
+  expect(Math.max(...headingGeometry.words.map((word) => word.bottom))).toBeLessThan(headingGeometry.leadTop);
+
+  await expect.poll(() => homeScroller.evaluate((scroller) => scroller.scrollTop)).toBe(0);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await scrollCue.click();
+  await expect(homeDestinations).toBeFocused();
+  await expect.poll(() => homeScroller.evaluate((scroller) => scroller.scrollTop)).toBeGreaterThan(100);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect.poll(() => homeDestinations.evaluate((destinations) => {
+    const scroller = destinations.closest("[data-home-scroller]");
+    if (!scroller) return false;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const destinationsRect = destinations.getBoundingClientRect();
+    return destinationsRect.top >= scrollerRect.top - 1
+      && destinationsRect.top <= scrollerRect.top + 32
+      && destinationsRect.bottom <= scrollerRect.bottom + 1;
+  })).toBe(true);
+
+  const firstModuleLink = destinationLinks.filter({ has: page.locator('strong:text-is("Versorgung")') });
+  await page.keyboard.press("Tab");
+  await firstModuleLink.focus();
+  await expect(firstModuleLink).toBeFocused();
+  await expect(firstModuleLink).toHaveCSS("outline-style", "solid");
+  await expect(firstModuleLink).toHaveCSS("outline-width", "3px");
+  await expect(firstModuleLink).toHaveCSS("outline-color", "rgb(21, 95, 228)");
+
+  if (isMobile) {
+    await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+    await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+  } else {
+    await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+    await expect(page.locator("#sidebar-collapse-button")).toHaveAttribute("aria-expanded", "false");
+    await expect.poll(() => page.evaluate(() => window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed"))).toBe("false");
+    await page.locator("#sidebar-collapse-button").click();
+    await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+  }
+
+  await page.locator('.home-destination-link[href="#map"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "map");
+  await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-expanded/);
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
+
+  if (isMobile) {
+    await page.locator("#sidebar-collapse-button").click();
+    await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
+    await page.locator('[data-view-tab="home"]').click();
+    await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+  } else {
+    await page.locator("#brand-home-link").click();
+  }
+  await expect(shell).toHaveAttribute("data-active-view", "home");
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect.poll(() => homeScroller.evaluate((scroller) => scroller.scrollTop)).toBe(0);
+  await expect(heading).toHaveClass(/is-complete/);
+  if (!isMobile) await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+});
+
+test("Sidebar: Desktop nutzt dieselbe Ein-Modul-Accordionlogik wie Mobile", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Die mobile Accordion-Navigation wird separat geprüft.");
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   const shell = page.locator(".app-shell");
@@ -1848,6 +1983,10 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   const stakeholderSection = page.locator('[data-sidebar-section="stakeholders"]');
   const planningSection = page.locator('[data-sidebar-section="planning"]');
   const formatsSection = page.locator('[data-sidebar-section="formats"]');
+  const careToggle = page.locator('[data-sidebar-section-toggle="care"]');
+  const planningToggle = page.locator('[data-sidebar-section-toggle="planning"]');
+  const careContent = page.locator("#sidebar-section-care-content");
+  const planningContent = page.locator("#sidebar-section-planning-content");
   const collapseButton = page.locator("#sidebar-collapse-button");
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
   await expect(careSection).toHaveClass(/is-expanded/);
@@ -1856,44 +1995,51 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveCount(0);
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü einklappen");
+  await expect(careToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(careContent).toBeVisible();
+  await expect(page.locator(".sidebar-module-icon")).toHaveCount(4);
+  await expect(planningToggle.locator(".sidebar-module-icon")).toHaveAttribute("aria-hidden", "true");
+  await expect(planningToggle.locator(".sidebar-module-icon svg rect")).toHaveCount(1);
+  await expect(planningToggle.locator(".sidebar-module-icon svg circle")).toHaveCount(1);
+  await expect(planningToggle.locator(".sidebar-section-title")).toHaveText("Hospitation");
 
-  await page.locator('[data-sidebar-section-toggle="planning"] svg').click();
+  await planningToggle.focus();
+  await planningToggle.press("Enter");
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
-  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).toHaveClass(/is-collapsed/);
   await expect(stakeholderSection).toHaveClass(/is-collapsed/);
   await expect(planningSection).toHaveClass(/is-expanded/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
+  await expect(careToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(careContent).toBeHidden();
+  await expect(planningToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(planningContent).toBeVisible();
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
 
-  await page.locator('[data-sidebar-section-toggle="planning"] svg').click();
+  await planningToggle.press("Space");
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
   await expect(planningSection).toHaveClass(/is-collapsed/);
+  await expect(planningToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(planningContent).toBeHidden();
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
 
-  await page.locator('[data-sidebar-section-toggle="planning"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "framework");
+  await planningToggle.click();
+  await expect(shell).toHaveAttribute("data-active-view", "contacts");
   await expect(planningSection).toHaveClass(/is-expanded/);
-  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).toHaveClass(/is-collapsed/);
   await expect(stakeholderSection).toHaveClass(/is-collapsed/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
+  await page.locator('[data-view-tab="framework"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "framework");
   await expect(page).toHaveURL(/#framework$/);
 
-  await page.locator('[data-sidebar-section-toggle="care"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "map");
-  await expect(careSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
-
-  await page.locator('[data-sidebar-section-toggle="care"] svg').click();
-  await expect(shell).toHaveAttribute("data-active-view", "map");
-  await expect(careSection).toHaveClass(/is-collapsed/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
-
   await page.locator('[data-sidebar-section-toggle="stakeholders"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "patients");
+  await expect(shell).toHaveAttribute("data-active-view", "framework");
   await expect(stakeholderSection).toHaveClass(/is-expanded/);
-  await expect(stakeholderSection).toHaveClass(/is-active-section/);
   await expect(careSection).toHaveClass(/is-collapsed/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
-  await expect(page).toHaveURL(/#patients$/);
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
 
   await page.locator('[data-sidebar-section="stakeholders"] [data-view-tab="stakeholders"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "stakeholders");
@@ -1901,21 +2047,25 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(page).toHaveURL(/#stakeholders$/);
 
   await page.locator('[data-sidebar-section-toggle="formats"]').click();
-  await expect(shell).toHaveAttribute("data-active-view", "formats");
+  await expect(shell).toHaveAttribute("data-active-view", "stakeholders");
   await expect(formatsSection).toHaveClass(/is-expanded/);
+  await expect(stakeholderSection).toHaveClass(/is-collapsed/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
+  await page.locator('[data-view-tab="formats"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "formats");
   await expect(formatsSection).toHaveClass(/is-active-section/);
-  await expect(stakeholderSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
   await expect(page).toHaveURL(/#formats$/);
 
-  await page.locator('[data-sidebar-section-toggle="care"] svg').click();
+  await page.locator('[data-sidebar-section-toggle="care"]').click();
+  await expect(formatsSection).toHaveClass(/is-collapsed/);
   await page.locator("#sidebar-analytics-button").click();
   await expect(shell).toHaveAttribute("data-active-view", "analytics");
   await expect(careSection).toHaveClass(/is-expanded/);
   await expect(careSection).toHaveClass(/is-active-section/);
-  await expect(stakeholderSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
-  await expect(formatsSection).toHaveClass(/is-expanded/);
+  await expect(stakeholderSection).toHaveClass(/is-collapsed/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
+  await expect(formatsSection).toHaveClass(/is-collapsed/);
+  await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(1);
   await expect(page).toHaveURL(/#analytics$/);
 
   const expandedCollapseBox = await collapseButton.boundingBox();
@@ -1925,14 +2075,27 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü ausklappen");
   await expect(page.locator(".sidebar-nav > .sidebar-section:visible")).toHaveCount(1);
   await expect(careSection).toBeVisible();
+  await expect(page.locator(".sidebar-home-entry")).toBeVisible();
   await expect(stakeholderSection).toBeHidden();
   await expect(planningSection).toBeHidden();
   await expect(formatsSection).toBeHidden();
+  for (const selector of ["#sidebar-tour-button", "#sidebar-team-button", "#sidebar-notifications-button", "#sidebar-profile-button"]) {
+    await expect(page.locator(selector)).toHaveCSS("width", "40px");
+    await expect(page.locator(selector)).toHaveCSS("height", "40px");
+  }
+  const collapsedAccountOrder = await page.evaluate(() => ({
+    notificationTop: document.querySelector("#sidebar-notifications-button")?.getBoundingClientRect().top || 0,
+    profileTop: document.querySelector("#sidebar-profile-button")?.getBoundingClientRect().top || 0
+  }));
+  expect(collapsedAccountOrder.notificationTop).toBeLessThan(collapsedAccountOrder.profileTop);
   const collapsedCollapseBox = await collapseButton.boundingBox();
   expect(expandedCollapseBox).not.toBeNull();
   expect(collapsedCollapseBox).not.toBeNull();
-  expect(collapsedCollapseBox.height).toBe(expandedCollapseBox.height);
-  expect(Math.abs(collapsedCollapseBox.y - expandedCollapseBox.y)).toBeLessThanOrEqual(1);
+  expect(collapsedCollapseBox.height).toBeGreaterThanOrEqual(expandedCollapseBox.height);
+  expect(collapsedCollapseBox.y).toBeGreaterThan(expandedCollapseBox.y + 20);
+  const collapsedBrandBox = await page.locator(".sidebar-brand").boundingBox();
+  expect(collapsedBrandBox).not.toBeNull();
+  expect(collapsedCollapseBox.y).toBeGreaterThanOrEqual(collapsedBrandBox.y + collapsedBrandBox.height - 1);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
@@ -1950,9 +2113,9 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
   const inactiveTab = page.locator('[data-view-tab="map"]');
   const careToggle = page.locator('[data-sidebar-section-toggle="care"]');
 
-  await expect(careToggle).toHaveCSS("text-transform", "uppercase");
-  await expect(careToggle).toHaveCSS("font-weight", "820");
-  await expect(careToggle).toHaveCSS("border-left-width", "2px");
+  await expect(careToggle).toHaveCSS("text-transform", "none");
+  await expect(careToggle).toHaveCSS("font-weight", "600");
+  await expect(careToggle).toHaveCSS("border-left-width", "3px");
   const moduleAccentColors = await page.locator("[data-sidebar-section] > .sidebar-section-toggle").evaluateAll((toggles) =>
     toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
   );
@@ -2011,9 +2174,11 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
 
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  await expect(collapseButton).toHaveCSS("position", "absolute");
+  await expect(collapseButton).toHaveCSS("position", "static");
   const collapsedControlTop = await collapseButton.evaluate((element) => element.getBoundingClientRect().top);
-  expect(Math.abs(collapsedControlTop - metrics.collapseTop)).toBeLessThanOrEqual(1);
+  const collapsedBrandBottom = await page.locator(".sidebar-brand").evaluate((element) => element.getBoundingClientRect().bottom);
+  expect(collapsedControlTop).toBeGreaterThanOrEqual(collapsedBrandBottom - 1);
+  expect(collapsedControlTop).toBeGreaterThan(metrics.collapseTop + 20);
 
   await collapseButton.click();
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
@@ -2081,8 +2246,11 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
     toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
   );
   expect(new Set(moduleAccentColors).size).toBe(4);
+  await expect(page.locator(".sidebar-module-icon:visible")).toHaveCount(4);
+  await expect(page.locator(".sidebar-module-icon").first()).toHaveCSS("width", "32px");
+  await expect(page.locator('[data-sidebar-section-toggle="planning"] .sidebar-module-icon svg')).toHaveCSS("transform", "none");
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".sidebar-nav")).toHaveCSS("overflow-y", "visible");
+  await expect(page.locator(".sidebar-nav")).toHaveCSS("overflow-y", "auto");
 
   const brandLayout = await page.locator(".sidebar-brand").evaluate((brand) => {
     const mark = brand.querySelector(".brand-mark")?.getBoundingClientRect();
@@ -2228,6 +2396,30 @@ test("Onboarding: neuer geschützter Account richtet Profil ein und startet Tour
   expect(settings.preferences.onboarding.tourSkippedAt).toBeTruthy();
 
   await attachScreenshot(page, testInfo, "onboarding");
+});
+
+test("Onboarding: erster Start auf Home bleibt transient eingeklappt", async ({ page }, testInfo) => {
+  await page.addInitScript(() => window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", "false"));
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", {
+    role: "viewer",
+    backendFixtureScript: onboardingBackendFixtureScript()
+  });
+
+  const shell = page.locator(".app-shell");
+  await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
+  await page.locator("#onboarding-team").selectOption("Stabsstelle Versorgung");
+  await page.locator("#onboarding-profile-submit").click();
+  await expect(page.locator("#onboarding-tour-panel")).toBeVisible();
+  await page.locator("#onboarding-tour-skip").click();
+  await expect(shell).toHaveAttribute("data-active-view", "home");
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed"))).toBe("false");
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+    await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+  } else {
+    await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+  }
 });
 
 test("Onboarding: abgeschlossener neuer Account landet direkt in Zielansicht", async ({ page }) => {
@@ -3235,7 +3427,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
     ];`
   });
 
-  await openMobileSidebarIfNeeded(page);
+  await expandSidebarSectionIfNeeded(page, "care");
   await page.locator('[data-view-tab="contacts"]').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
   await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten (2)");
@@ -3254,7 +3446,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 
   await attachScreenshot(page, testInfo, "kontakte-dubletten");
 
-  await openMobileSidebarIfNeeded(page);
+  await expandSidebarSectionIfNeeded(page, "care");
   await page.locator('[data-view-tab="organizations"]').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "organizations");
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten (1)");
@@ -5072,7 +5264,7 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
   await page.setViewportSize(isMobile
     ? { width: 390, height: 460 }
     : { width: 1440, height: 460 });
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   const sidebar = page.locator(".app-sidebar");
   const sidebarNav = page.locator(".sidebar-nav");
@@ -5083,8 +5275,19 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
     await expect(sidebarNav).toBeHidden();
     await page.locator("#sidebar-collapse-button").click();
     await expect(sidebarNav).toBeVisible();
-    await expect(sidebar).toHaveCSS("overflow-y", "auto");
-    await page.locator("#sidebar-profile-button").scrollIntoViewIfNeeded();
+    await expect(sidebar).toHaveCSS("overflow-y", "hidden");
+    await expect(sidebarNav).toHaveCSS("overflow-y", "auto");
+    const mobileScrollMetrics = await sidebarNav.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      return {
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+        scrollTop: element.scrollTop
+      };
+    });
+    expect(mobileScrollMetrics.scrollHeight).toBeGreaterThan(mobileScrollMetrics.clientHeight);
+    expect(mobileScrollMetrics.scrollTop).toBeGreaterThan(0);
+    await expect(accountSection).toBeInViewport();
   } else {
     const scrollMetrics = await sidebarNav.evaluate((element) => {
       element.scrollTop = 0;
@@ -5918,7 +6121,7 @@ test("Stakeholder: Bereich ist im eigenen Sidebar-Abschnitt ohne obere Modus-Rei
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html");
 
-  await openMobileSidebarIfNeeded(page);
+  await expandSidebarSectionIfNeeded(page, "care");
   await page.locator('[data-view-tab="analytics"]:visible').first().click();
 
   await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();

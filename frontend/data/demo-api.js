@@ -14,6 +14,24 @@
 
   const NOW = "2026-07-19T12:00:00.000Z";
   const DEMO_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const DEMO_NOTICE_DATA_VIEWS = new Set([
+    "map",
+    "contacts",
+    "organizations",
+    "activities",
+    "analytics",
+    "quality",
+    "experts",
+    "patients",
+    "stakeholders",
+    "framework",
+    "hospitations",
+    "questionnaire",
+    "formats",
+    "team",
+    "personProfile",
+    "organizationProfile"
+  ]);
   const baseline = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
   const originalFetch = window.fetch.bind(window);
   let idCounter = 0;
@@ -670,22 +688,48 @@
     const style = document.createElement("style");
     style.textContent = `
       #vk-public-demo-notice {
-        position: relative; z-index: 20;
-        width: auto; box-sizing: border-box; margin: 12px 18px 0;
-        display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
-        padding: 11px 12px; border: 1px solid rgba(255,255,255,.22); border-radius: 14px;
-        color: #fff; background: rgba(16, 55, 79, .96); box-shadow: 0 12px 34px rgba(8, 38, 55, .28);
-        font: 500 13px/1.35 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        position: fixed; z-index: 70;
+        top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(16px + env(safe-area-inset-right, 0px));
+        min-height: 38px; box-sizing: border-box;
+        display: flex; gap: 10px; align-items: center;
+        padding: 4px 5px 4px 11px; border: 1px solid #d8e1ef; border-radius: 11px;
+        color: #64748b; background: rgba(255,255,255,.96); box-shadow: 0 7px 18px rgba(16,35,110,.08);
+        font: 620 11px/1.25 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         backdrop-filter: blur(12px);
       }
-      #vk-public-demo-notice .vk-demo-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: #123b50; background: #9ce6d8; font-weight: 800; }
-      #vk-public-demo-notice strong { display: block; margin-bottom: 1px; color: #fff; font-size: 13px; }
-      #vk-public-demo-notice span { color: #d9edf3; }
-      #vk-public-demo-notice button { min-height: 34px; padding: 0 10px; border: 1px solid rgba(255,255,255,.3); border-radius: 9px; color: #fff; background: rgba(255,255,255,.1); font: inherit; font-weight: 700; cursor: pointer; }
-      #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible { background: rgba(255,255,255,.2); outline: 2px solid #9ce6d8; outline-offset: 2px; }
+      #vk-public-demo-notice[hidden], #vk-public-demo-trigger[hidden] { display: none; }
+      #vk-public-demo-notice .vk-demo-copy { min-width: 0; display: flex; gap: 4px; align-items: center; }
+      #vk-public-demo-notice strong { color: #475569; font-size: 11px; font-weight: 760; }
+      #vk-public-demo-notice button {
+        min-width: 38px; min-height: 30px; padding: 0 9px; border: 0; border-radius: 8px;
+        color: #17275f; background: #eef3fb; font: inherit; font-weight: 760; cursor: pointer;
+      }
+      #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible {
+        background: #e2eafb; outline: 3px solid #155fe4; outline-offset: 2px;
+      }
+      #vk-public-demo-trigger {
+        position: fixed; z-index: 70;
+        top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px));
+        width: 38px; height: 38px; display: inline-grid; place-items: center;
+        padding: 0; border: 1px solid #c9d8ef; border-radius: 11px;
+        color: #1555a5; background: #eaf2ff; box-shadow: 0 7px 18px rgba(16,35,110,.08);
+        backdrop-filter: blur(12px); cursor: pointer;
+      }
+      #vk-public-demo-trigger:hover, #vk-public-demo-trigger:focus-visible {
+        background: #dceaff; outline: 3px solid #155fe4; outline-offset: 2px;
+      }
+      #vk-public-demo-trigger .vk-demo-trigger-mark {
+        display: grid; place-items: center; width: 100%; height: 100%;
+        color: inherit; background: transparent;
+      }
+      #vk-public-demo-trigger svg {
+        width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
       @media (max-width: 620px) {
-        #vk-public-demo-notice { width: auto; margin: 10px 10px 0; grid-template-columns: auto 1fr; }
-        #vk-public-demo-notice button { grid-column: 1 / -1; width: 100%; }
+        #vk-public-demo-notice {
+          top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
+        }
       }
     `;
     document.head.appendChild(style);
@@ -693,13 +737,63 @@
     notice.id = "vk-public-demo-notice";
     notice.setAttribute("role", "note");
     notice.setAttribute("aria-label", "Hinweis zur öffentlichen Demo");
+    notice.hidden = true;
     notice.innerHTML = `
-      <div class="vk-demo-mark" aria-hidden="true">D</div>
-      <div><strong>Öffentliche Demo · synthetische Daten</strong><span>Bitte keine echten Angaben eingeben. Änderungen verschwinden beim Neuladen.</span></div>
-      <button type="button">Demo zurücksetzen</button>
+      <div class="vk-demo-copy"><strong>Hinweis:</strong> <span>Öffentliche Demo</span></div>
+      <button type="button" data-demo-notice-close>OK</button>
     `;
-    notice.querySelector("button").addEventListener("click", () => window.location.reload());
+    const closeButton = notice.querySelector("[data-demo-notice-close]");
+    const trigger = document.createElement("button");
+    trigger.id = "vk-public-demo-trigger";
+    trigger.type = "button";
+    trigger.hidden = true;
+    trigger.setAttribute("aria-label", "Hinweis zur öffentlichen Demo anzeigen");
+    trigger.setAttribute("aria-controls", notice.id);
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.innerHTML = `
+      <span class="vk-demo-trigger-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 11v5"></path>
+          <path d="M12 8h.01"></path>
+        </svg>
+      </span>
+    `;
+    let noticeCollapsed = false;
+    const appShell = document.querySelector(".app-shell");
+    const mobileViewport = window.matchMedia("(max-width: 760px)");
+    const syncNoticeVisibility = () => {
+      const activeView = appShell?.dataset.activeView || "";
+      const mobileNavigationOpen =
+        mobileViewport.matches &&
+        appShell?.classList.contains("is-mobile-sidebar-expanded");
+      const eligible =
+        DEMO_NOTICE_DATA_VIEWS.has(activeView) &&
+        !mobileNavigationOpen;
+      notice.hidden = !eligible || noticeCollapsed;
+      trigger.hidden = !eligible || !noticeCollapsed;
+      trigger.setAttribute("aria-expanded", eligible && !noticeCollapsed ? "true" : "false");
+    };
+    closeButton.addEventListener("click", () => {
+      noticeCollapsed = true;
+      syncNoticeVisibility();
+      if (!trigger.hidden) trigger.focus({ preventScroll: true });
+    });
+    trigger.addEventListener("click", () => {
+      noticeCollapsed = false;
+      syncNoticeVisibility();
+      if (!notice.hidden) closeButton.focus({ preventScroll: true });
+    });
     (document.querySelector(".app-main") || document.body).prepend(notice);
+    document.body.appendChild(trigger);
+    if (appShell) {
+      new MutationObserver(syncNoticeVisibility).observe(appShell, {
+        attributes: true,
+        attributeFilter: ["data-active-view", "class"]
+      });
+    }
+    mobileViewport.addEventListener?.("change", syncNoticeVisibility);
+    syncNoticeVisibility();
   }
 
   window.VERSORGUNGS_COMPASS_DEMO_RUNTIME = Object.freeze({
