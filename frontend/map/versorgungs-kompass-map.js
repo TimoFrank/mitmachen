@@ -224,6 +224,8 @@
   let heatMapActive = false;
   let gematikMarkerModeActive = true;
   let selectedState = "";
+  let stateCountsByKey = {};
+  let stateCountMax = 0;
 
   function fitMapToState(name){
     const feature = stateFeature(name);
@@ -234,6 +236,18 @@
 
   function stateInteractionStyle(name, hover = false){
     const active = selectedState === name;
+    if (gematikMarkerModeActive && !heatMapActive) {
+      const total = stateCountsByKey[stateNameKey(name)] || 0;
+      return {
+        color: active ? '#010e52' : (hover ? '#010e52' : 'rgba(1,14,82,0.20)'),
+        weight: active ? 2.6 : (hover ? 2 : 1.1),
+        lineCap: 'round',
+        lineJoin: 'round',
+        fillColor: heatColor(total, stateCountMax),
+        fillOpacity: 1,
+        interactive: true
+      };
+    }
     return {
       color: active ? '#010e52' : (hover ? '#155fe4' : 'rgba(1,14,82,0.14)'),
       weight: active ? 2.6 : (hover ? 2 : 0.8),
@@ -250,6 +264,13 @@
       const matchesState = label.dataset.state === String(name || "");
       label.classList.toggle('is-state-hovered', Boolean(highlighted && matchesState));
     });
+  }
+
+  function stateHoverTooltipHtml(name, total){
+    const itemLabel = total === 1
+      ? mapLabel("itemSingular", "Kontakt")
+      : mapLabel("itemPlural", "Kontakte");
+    return `<span class="state-hover-tooltip__name">${escapeHtml(name)}</span><span class="state-hover-tooltip__count">${total} ${escapeHtml(itemLabel)}</span>`;
   }
 
   function highlightContactState(name, highlighted){
@@ -275,6 +296,14 @@
       style: (feature) => stateInteractionStyle(feature.properties.name),
       onEachFeature: (feature, layer) => {
         const name = feature.properties.name;
+        const total = stateCountsByKey[stateNameKey(name)] || 0;
+        layer.bindTooltip(stateHoverTooltipHtml(name, total), {
+          className: "state-heat-tooltip state-hover-tooltip",
+          direction: "top",
+          offset: [0, -12],
+          sticky: true,
+          opacity: 1
+        });
         layer.on('mouseover', () => {
           if (heatMapActive) return;
           layer.setStyle(stateInteractionStyle(name, true));
@@ -314,6 +343,16 @@
     const end = [1, 14, 82];
     const channel = (index) => Math.round(start[index] + ((end[index] - start[index]) * easedRatio));
     return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
+  }
+
+  function updateStateCounts(entries = currentEntries){
+    stateCountsByKey = entries.reduce((acc, entry) => {
+      const key = stateNameKey(entry.state);
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    stateCountMax = Object.values(stateCountsByKey).reduce((acc, total) => Math.max(acc, total), 0);
   }
 
   function stateNameKey(value){
@@ -358,35 +397,13 @@
       stateHeatLayer.remove();
     }
     stateHeatCountLayer.clearLayers();
-
-    const countsByState = entries.reduce((acc, entry) => {
-      const key = stateNameKey(entry.state);
-      if (!key) return acc;
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {});
-
-    const max = Object.values(countsByState).reduce((acc, total) => Math.max(acc, total), 0);
-    STATE_LABELS.forEach((state) => {
-      const total = countsByState[stateNameKey(state.name)] || 0;
-      L.marker([state.lat, state.lon], {
-        icon: L.divIcon({
-          className: '',
-          html: stateLabelHtml(state.name, total, true),
-          iconSize: [160, 42],
-          iconAnchor: [80, 21]
-        }),
-        interactive: false,
-        keyboard: false,
-        zIndexOffset: 250
-      }).addTo(stateHeatCountLayer);
-    });
+    updateStateCounts(entries);
 
     stateHeatLayer = L.geoJSON(STATE_POLYGONS, {
       smoothFactor: 0.35,
       style: (feature) => {
-        const total = countsByState[stateNameKey(feature.properties.name)] || 0;
-        const fill = heatColor(total, max);
+        const total = stateCountsByKey[stateNameKey(feature.properties.name)] || 0;
+        const fill = heatColor(total, stateCountMax);
         return {
           color: 'rgba(1,14,82,0.20)',
           weight: 1.1,
@@ -398,12 +415,13 @@
         };
       },
       onEachFeature: (feature, layer) => {
-        const total = countsByState[stateNameKey(feature.properties.name)] || 0;
-        layer.bindTooltip(`${total} ${total === 1 ? mapLabel("itemSingular", "Kontakt") : mapLabel("itemPlural", "Kontakte")}`, {
-          className: "state-heat-tooltip",
+        const name = feature.properties.name;
+        const total = stateCountsByKey[stateNameKey(name)] || 0;
+        layer.bindTooltip(stateHoverTooltipHtml(name, total), {
+          className: "state-heat-tooltip state-hover-tooltip",
           direction: "top",
           offset: [0, -12],
-          sticky: false,
+          sticky: true,
           opacity: 1
         });
         layer.on('click', () => {
@@ -414,7 +432,7 @@
           layer.setStyle({
             weight: 2,
             color: '#010e52',
-            fillColor: heatColor(total, max),
+            fillColor: heatColor(total, stateCountMax),
             fillOpacity: 1
           });
           layer.bringToFront();
@@ -429,7 +447,6 @@
 
     if (heatMapActive) {
       stateHeatLayer.addTo(map);
-      stateHeatCountLayer.addTo(map);
     }
   }
 
@@ -506,12 +523,8 @@
       return;
     }
 
-    // State labels: only in the overview; city labels take over at closer levels.
-    if (z >= 6 && z < 7) {
-      if (!map.hasLayer(stateLabelLayer)) map.addLayer(stateLabelLayer);
-    } else {
-      if (map.hasLayer(stateLabelLayer)) map.removeLayer(stateLabelLayer);
-    }
+    // Bundesland names are revealed contextually by the polygon hover tooltip.
+    if (map.hasLayer(stateLabelLayer)) map.removeLayer(stateLabelLayer);
 
     if (z >= 7) {
       if (!map.hasLayer(majorLabelLayer)) map.addLayer(majorLabelLayer);
@@ -2391,7 +2404,6 @@
       if (map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
       if (stateInteractionLayer && map.hasLayer(stateInteractionLayer)) map.removeLayer(stateInteractionLayer);
       if (stateHeatLayer && !map.hasLayer(stateHeatLayer)) stateHeatLayer.addTo(map);
-      if (!map.hasLayer(stateHeatCountLayer)) stateHeatCountLayer.addTo(map);
     } else {
       stateSurfaceLayer.setStyle(BASE_STATE_SURFACE_STYLE);
       if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
