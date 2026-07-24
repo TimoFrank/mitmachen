@@ -5155,7 +5155,8 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
 
   await expect(page.locator('[data-view-panel="map"]')).toBeVisible();
   await expect(mapFrame.locator("#map")).toBeVisible();
-  await expect(mapFrame.locator(".cat-marker").first()).toBeVisible({ timeout: 20_000 });
+  const visibleMapMarker = mapFrame.locator(".gematik-marker, .cat-marker").first();
+  await expect(visibleMapMarker).toBeVisible({ timeout: 20_000 });
   await expect(mapFrame.locator(".map-box > .map-controls")).toHaveCount(0);
   await expect(mapFrame.locator(".panel .body .map-controls--legacy")).toBeHidden();
   if (testInfo.project.name.includes("mobile")) {
@@ -5218,12 +5219,55 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
     await expect(mapFrame.locator("#filters")).toBeVisible();
     await expect(mapFrame.locator("#filters .map-filter-dropdown")).toHaveCount(3);
     await expect(mapFrame.locator("#filters .map-filter-trigger").first()).toBeVisible();
-    await mapFrame.locator(".cat-marker").first().hover();
+    await visibleMapMarker.hover();
     await expect(mapFrame.locator(".map-point-tooltip")).toBeVisible();
   }
   await expect(mapFrame.locator(".panel")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "karte");
+});
+
+test("Karte: Kontakt öffnet zunächst als fokussierte Vorschau", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Der farbige Fokus-Drawer ist eine Desktop-Darstellung.");
+  await page.setViewportSize({ width: 1440, height: 760 });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map");
+  const mapFrame = page.frameLocator("#map-view-frame");
+  const mapMarker = mapFrame.locator(".gematik-marker, .cat-marker").first();
+
+  await expect(mapMarker).toBeVisible({ timeout: 20_000 });
+  await mapMarker.click();
+
+  const drawer = page.locator("#detail-drawer");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
+  await expect(page).toHaveURL(/#map$/);
+  await expect(drawer).toHaveClass(/is-open/);
+  await expect(drawer).toHaveAttribute("aria-hidden", "false");
+  await expect(drawer.locator("#detail-open-profile")).toBeVisible();
+  await expect(page.locator("#person-profile-page")).not.toHaveClass(/is-active/);
+  await expect(page.locator("body")).toHaveClass(/detail-open/);
+
+  const focusStyles = await drawer.locator(".detail-panel").evaluate((panel) => {
+    const panelStyle = getComputedStyle(panel);
+    const dimmerStyle = getComputedStyle(document.querySelector(".wrap"), "::after");
+    return {
+      borderImageSource: panelStyle.borderImageSource,
+      borderLeftWidth: Number.parseFloat(panelStyle.borderLeftWidth),
+      dimmerBackground: dimmerStyle.backgroundColor
+    };
+  });
+  expect(focusStyles.borderLeftWidth).toBeGreaterThanOrEqual(6);
+  expect(focusStyles.borderImageSource).toContain("linear-gradient");
+  expect(focusStyles.dimmerBackground).not.toBe("rgba(0, 0, 0, 0)");
+
+  await attachScreenshot(page, testInfo, "karte-kontaktfokus");
+
+  await drawer.locator("#detail-open-profile").click();
+  await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
+  await expect(page).toHaveURL(/#person\/contact\/[^/?#]+$/);
+  await expect(page.locator('[data-view-tab="map"]')).toHaveClass(/is-active/);
+  await page.locator("#person-profile-body [data-person-profile-back]").click();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
+  await expect(page).toHaveURL(/#map$/);
 });
 
 test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => {
