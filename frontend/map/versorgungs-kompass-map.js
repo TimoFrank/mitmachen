@@ -189,13 +189,16 @@
     interactive: false
   }).addTo(map);
 
+  const BASE_STATE_SURFACE_STYLE = {
+    color: 'rgba(1,14,82,0.22)',
+    weight: 0.85,
+    fillColor: '#155fe4',
+    fillOpacity: 0.16,
+    opacity: 1
+  };
+
   const stateSurfaceLayer = L.geoJSON(STATE_POLYGONS, {
-    style: () => ({
-      color: 'rgba(23,39,95,0.16)',
-      weight: 0.8,
-      fillColor: 'rgba(238,244,255,0.18)',
-      fillOpacity: 1
-    }),
+    style: () => ({ ...BASE_STATE_SURFACE_STYLE }),
     interactive: false
   }).addTo(map);
 
@@ -234,7 +237,7 @@
     return {
       color: active ? '#010e52' : (hover ? '#155fe4' : 'rgba(1,14,82,0.14)'),
       weight: active ? 2.6 : (hover ? 2 : 0.8),
-      fillColor: active ? '#010e52' : (hover ? '#155fe4' : '#c0c3d4'),
+      fillColor: active ? '#010e52' : '#155fe4',
       fillOpacity: active ? 0.34 : (hover ? 0.18 : 0.02),
       interactive: true
     };
@@ -2390,13 +2393,7 @@
       if (stateHeatLayer && !map.hasLayer(stateHeatLayer)) stateHeatLayer.addTo(map);
       if (!map.hasLayer(stateHeatCountLayer)) stateHeatCountLayer.addTo(map);
     } else {
-      stateSurfaceLayer.setStyle({
-        color: 'rgba(23,39,95,0.16)',
-        weight: 0.8,
-        fillColor: 'rgba(238,244,255,0.18)',
-        fillOpacity: 1,
-        opacity: 1
-      });
+      stateSurfaceLayer.setStyle(BASE_STATE_SURFACE_STYLE);
       if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
       if (stateInteractionLayer && !map.hasLayer(stateInteractionLayer)) stateInteractionLayer.addTo(map);
       if (stateHeatLayer && map.hasLayer(stateHeatLayer)) map.removeLayer(stateHeatLayer);
