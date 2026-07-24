@@ -482,8 +482,8 @@ assert.match(
 );
 assert.match(
   deployWorkflowSource,
-  /Require DNS and active certificates before canonical cutover[\s\S]*kubectl[\s\S]*get ingress[\s\S]*kubernetes\.io\/ingress\.global-static-ip-name[\s\S]*status\.loadBalancer\.ingress[\s\S]*dig \+short A/,
-  "Der Domain-Cutover muss DNS gegen die vom vorbereiteten, statisch adressierten Ingress gemeldete IPv4-Adresse pruefen."
+  /Require DNS and active certificates before canonical cutover[\s\S]*kubectl[\s\S]*get ingress[\s\S]*kubernetes\.io\/ingress\.global-static-ip-name[\s\S]*status\.loadBalancer\.ingress[\s\S]*length == 1[\s\S]*hostname[\s\S]*dig \+short A/,
+  "Der Domain-Cutover muss DNS gegen die einzige, direkt adressierte IPv4 des vorbereiteten statischen Ingress pruefen."
 );
 assert.doesNotMatch(
   deployWorkflowSource,

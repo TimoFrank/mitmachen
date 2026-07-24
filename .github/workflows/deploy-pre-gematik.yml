@@ -492,22 +492,18 @@ jobs:
                 "versorgungs-kompass-api",
                 "versorgungs-kompass-domain",
                 "versorgungs-kompass-mitmachen"
-              ] | sort))
+              ] | sort)) and
+              ((.status.loadBalancer.ingress // []) | length == 1) and
+              ((.status.loadBalancer.ingress[0].hostname // "") == "") and
+              ((.status.loadBalancer.ingress[0].ip // "")
+                | test("^([0-9]{1,3}\\.){3}[0-9]{1,3}$"))
             ' <<< "$ingress_state" >/dev/null; then
             echo "The preparation release must expose all approved hosts and certificates before cutover and use the approved static IP." >&2
             exit 1
           fi
 
-          mapfile -t ingress_ipv4_addresses < <(
-            jq --raw-output '.status.loadBalancer.ingress[]?.ip // empty' <<< "$ingress_state" \
-              | awk '/^([0-9]{1,3}\.){3}[0-9]{1,3}$/{print}' \
-              | sort --unique
-          )
-          if [[ "${#ingress_ipv4_addresses[@]}" != "1" ]]; then
-            echo "The prepared GKE Ingress must expose exactly one IPv4 address before cutover." >&2
-            exit 1
-          fi
-          expected_ip="${ingress_ipv4_addresses[0]}"
+          expected_ip="$(jq --raw-output \
+            '.status.loadBalancer.ingress[0].ip' <<< "$ingress_state")"
 
           for host in versorgungs-kompass.de www.versorgungs-kompass.de; do
             mapfile -t ipv4_records < <(
