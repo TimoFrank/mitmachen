@@ -37198,3 +37198,188 @@
           box-shadow: 0 0 0 5px rgba(21, 95, 228, 0.74);
         }
       }
+
+      /* Sidebar refinement: quieter modules, a separate rail toggle, and a docked mobile account area. */
+      .sidebar-section-toggle {
+        gap: 9px;
+        padding-left: 7px;
+      }
+
+      .sidebar-section-title {
+        min-width: 0;
+        flex: 1 1 auto;
+        text-align: left;
+      }
+
+      .sidebar-module-icon {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        flex: 0 0 32px;
+        place-items: center;
+        border: 1px solid rgba(var(--sidebar-module-rgb), 0.38);
+        border-radius: 9px;
+        background: rgba(var(--sidebar-module-rgb), 0.16);
+        color: rgba(255, 255, 255, 0.96);
+      }
+
+      .sidebar-module-icon svg {
+        width: 18px !important;
+        height: 18px !important;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+
+      .sidebar-section.is-active-section .sidebar-module-icon {
+        border-color: rgba(var(--sidebar-module-rgb), 0.72);
+        background: rgba(var(--sidebar-module-rgb), 0.3);
+      }
+
+      .sidebar-section-chevron {
+        margin-left: auto;
+      }
+
+      @media (min-width: 761px) {
+        .sidebar-section-toggle {
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          text-transform: none;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-brand {
+          order: 0;
+          min-height: 50px;
+          align-items: center;
+          justify-content: center;
+          padding: 0 0 10px;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-collapse {
+          position: static;
+          order: 1;
+          align-self: center;
+          width: 40px;
+          min-width: 40px;
+          height: 34px;
+          min-height: 34px;
+          margin: 0 auto 8px;
+          border-color: rgba(255, 255, 255, 0.15);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.07);
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-collapse:hover,
+        .app-shell.is-sidebar-collapsed .sidebar-collapse:focus-visible {
+          background: rgba(255, 255, 255, 0.13);
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-nav {
+          order: 2;
+          margin-top: 0;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-account-section {
+          order: 3;
+          width: 100%;
+          justify-items: center;
+          gap: 5px;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-account-section > .sidebar-link,
+        .app-shell.is-sidebar-collapsed .sidebar-account-row,
+        .app-shell.is-sidebar-collapsed .sidebar-account-section .sidebar-footer,
+        .app-shell.is-sidebar-collapsed .sidebar-notification-button {
+          width: 40px;
+          min-width: 40px;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-account-section > .sidebar-link,
+        .app-shell.is-sidebar-collapsed .sidebar-account-section .sidebar-footer,
+        .app-shell.is-sidebar-collapsed .sidebar-notification-button {
+          height: 40px;
+          min-height: 40px;
+          margin: 0;
+          padding: 0;
+          border-radius: 10px;
+          place-items: center;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-account-section > .sidebar-link {
+          display: grid;
+          grid-template-columns: 40px;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-team-link .sidebar-team-icon {
+          width: 18px;
+          height: 18px;
+          border: 0;
+          background: transparent;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-account-row {
+          display: grid;
+          grid-template-columns: 40px;
+          justify-items: center;
+          gap: 5px;
+          margin: 0;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-account-section .sidebar-footer {
+          grid-template-columns: 40px;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-notification-button {
+          order: -1;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-account-section :is(.sidebar-link, .sidebar-notification-button) svg,
+        .app-shell.is-sidebar-collapsed .sidebar-team-link .sidebar-team-icon svg {
+          width: 18px;
+          height: 18px;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-footer__badge {
+          width: 30px;
+          height: 30px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .app-shell.is-mobile-sidebar-expanded .app-sidebar {
+          overflow: hidden;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-nav.primary-nav {
+          flex: 1 1 auto;
+          min-height: 0;
+          padding-right: 2px;
+          overflow-x: hidden;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-section-toggle {
+          min-height: 44px;
+          padding-left: 7px;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          text-transform: none;
+        }
+
+        .app-shell.is-mobile-sidebar-expanded .sidebar-account-section {
+          position: relative;
+          z-index: 2;
+          flex: 0 0 auto;
+          margin-top: auto;
+          padding: 12px 4px calc(4px + env(safe-area-inset-bottom));
+          background: linear-gradient(180deg, rgba(7, 39, 94, 0.96), #07275e 22%);
+          box-shadow: 0 -10px 22px rgba(4, 24, 63, 0.2);
+        }
+      }
