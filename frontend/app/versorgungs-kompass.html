@@ -26,7 +26,7 @@
           </svg>
           <span class="sidebar-collapse-label">Menü einklappen</span>
         </button>
-        <a class="sidebar-brand" href="#map" id="brand-home-link" aria-label="Versorgungs-Kompass – zur Karte">
+        <a class="sidebar-brand" href="#home" id="brand-home-link" aria-label="Versorgungs-Kompass – zur Startseite">
           <img class="brand-mark" src="../../public/brand/mitmachen/mark-on-dark.svg" alt="" aria-hidden="true" />
           <div class="sidebar-brand-copy">
             <span class="sidebar-brand-kicker">#Mitmachen</span>
@@ -34,10 +34,26 @@
           </div>
         </a>
         <nav class="primary-nav sidebar-nav" aria-label="Hauptbereiche">
-          <div class="sidebar-section is-expanded" aria-label="Versorgung" data-sidebar-section="care" data-sidebar-group="care" data-sidebar-collapsible>
-            <button class="sidebar-section-toggle" type="button" id="sidebar-section-care-toggle" data-sidebar-section-toggle="care" aria-expanded="true" aria-controls="sidebar-section-care-content">
-              <span>Versorgung</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <div class="sidebar-home-entry">
+            <button class="primary-tab sidebar-home-tab" type="button" data-view-tab="home" title="Startseite">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m3 10 9-7 9 7"></path>
+                <path d="M5 9v11h14V9"></path>
+                <path d="M9 20v-6h6v6"></path>
+              </svg>
+              <span>Startseite</span>
+            </button>
+          </div>
+          <div class="sidebar-section is-collapsed" aria-label="Versorgung" data-sidebar-section="care" data-sidebar-group="care" data-sidebar-collapsible>
+            <button class="sidebar-section-toggle" type="button" id="sidebar-section-care-toggle" data-sidebar-section-toggle="care" aria-expanded="false" aria-controls="sidebar-section-care-content">
+              <span class="sidebar-module-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"></path>
+                  <path d="M9 3v15M15 6v15"></path>
+                </svg>
+              </span>
+              <span class="sidebar-section-title">Versorgung</span>
+              <svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
             </button>
@@ -86,8 +102,16 @@
           </div>
           <div class="sidebar-section is-collapsed" aria-label="Stakeholder" data-sidebar-section="stakeholders" data-sidebar-group="stakeholders" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-stakeholders-toggle" data-sidebar-section-toggle="stakeholders" aria-expanded="false" aria-controls="sidebar-section-stakeholders-content">
-              <span>Stakeholder</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <span class="sidebar-module-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="6" cy="7" r="2.5"></circle>
+                  <circle cx="18" cy="7" r="2.5"></circle>
+                  <circle cx="12" cy="17" r="2.5"></circle>
+                  <path d="m8.2 8.2 2.5 6.2m5.1-6.2-2.5 6.2M8.5 7h7"></path>
+                </svg>
+              </span>
+              <span class="sidebar-section-title">Stakeholder</span>
+              <svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
             </button>
@@ -126,8 +150,16 @@
           </div>
           <div class="sidebar-section is-collapsed" aria-label="Hospitation" data-sidebar-section="planning" data-sidebar-group="planning" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-planning-toggle" data-sidebar-section-toggle="planning" aria-expanded="false" aria-controls="sidebar-section-planning-content">
-              <span>Hospitation</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <span class="sidebar-module-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="3" y="4.5" width="18" height="16.5" rx="2.5"></rect>
+                  <path d="M8 2.5v4M16 2.5v4M3 9.5h18"></path>
+                  <path d="M7.5 15.2s1.6-2.5 4.5-2.5 4.5 2.5 4.5 2.5-1.6 2.5-4.5 2.5-4.5-2.5-4.5-2.5Z"></path>
+                  <circle cx="12" cy="15.2" r="1.15"></circle>
+                </svg>
+              </span>
+              <span class="sidebar-section-title">Hospitation</span>
+              <svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
             </button>
@@ -194,8 +226,16 @@
           </div>
           <div class="sidebar-section is-collapsed" aria-label="Formate" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-formats-toggle" data-sidebar-section-toggle="formats" aria-expanded="false" aria-controls="sidebar-section-formats-content">
-              <span>Formate</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <span class="sidebar-module-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="4" y="4" width="6" height="6" rx="1"></rect>
+                  <rect x="14" y="4" width="6" height="6" rx="1"></rect>
+                  <rect x="4" y="14" width="6" height="6" rx="1"></rect>
+                  <rect x="14" y="14" width="6" height="6" rx="1"></rect>
+                </svg>
+              </span>
+              <span class="sidebar-section-title">Formate</span>
+              <svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
             </button>
@@ -483,6 +523,71 @@
         </div>
 
         <div class="view-shell">
+          <section class="view-panel home-page" id="view-home" data-view-panel="home" aria-labelledby="home-welcome-title">
+            <div class="home-scroller" data-home-scroller tabindex="0" aria-label="Startseiteninhalt">
+              <header class="home-hero">
+                <img class="home-hero__brand" src="../../public/brand/mitmachen/lockup-horizontal.svg" alt="#Mitmachen" />
+                <h1
+                  class="home-reveal-heading"
+                  id="home-welcome-title"
+                  aria-label="Willkommen im Versorgungs-Kompass"
+                  data-home-reveal-lines='["Willkommen im","Versorgungs-Kompass"]'
+                >
+                  <span class="home-reveal-heading__measure" aria-hidden="true">Willkommen im<br />Versorgungs-<wbr />Kompass</span>
+                  <span class="home-reveal-heading__visual" aria-hidden="true"></span>
+                </h1>
+                <p class="home-hero__lead">Wähle den Bereich, in dem du arbeiten möchtest.</p>
+                <button class="home-scroll-cue" type="button" data-home-scroll-cue aria-controls="home-destinations">
+                  Bereiche ansehen
+                  <span aria-hidden="true">↓</span>
+                </button>
+              </header>
+              <nav class="home-destinations-section" id="home-destinations" aria-label="Bereiche" tabindex="-1">
+                <ul class="home-destinations">
+                  <li class="home-destination-card">
+                    <a class="home-destination-link" data-home-module="care" href="#map">
+                      <span class="home-destination-link__top">
+                        <span>01</span>
+                        <span aria-hidden="true">→</span>
+                      </span>
+                      <strong>Versorgung</strong>
+                      <span class="home-destination-link__copy">Regionen, Kontakte und Organisationen im Blick.</span>
+                    </a>
+                  </li>
+                  <li class="home-destination-card">
+                    <a class="home-destination-link" data-home-module="stakeholders" href="#stakeholders">
+                      <span class="home-destination-link__top">
+                        <span>02</span>
+                        <span aria-hidden="true">→</span>
+                      </span>
+                      <strong>Stakeholder</strong>
+                      <span class="home-destination-link__copy">Perspektiven und Netzwerke gezielt verbinden.</span>
+                    </a>
+                  </li>
+                  <li class="home-destination-card">
+                    <a class="home-destination-link" data-home-module="planning" href="#framework">
+                      <span class="home-destination-link__top">
+                        <span>03</span>
+                        <span aria-hidden="true">→</span>
+                      </span>
+                      <strong>Hospitation</strong>
+                      <span class="home-destination-link__copy">Beobachtungen in belastbares Wissen überführen.</span>
+                    </a>
+                  </li>
+                  <li class="home-destination-card">
+                    <a class="home-destination-link" data-home-module="formats" href="#formats">
+                      <span class="home-destination-link__top">
+                        <span>04</span>
+                        <span aria-hidden="true">→</span>
+                      </span>
+                      <strong>Formate</strong>
+                      <span class="home-destination-link__copy">Austausch planen und Wirkung gemeinsam gestalten.</span>
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </section>
           <section class="view-panel" id="view-contacts" data-view-panel="contacts">
             <div class="view-card">
               <div class="table-command-row">
@@ -814,10 +919,10 @@
 
           <section class="view-panel" id="view-framework" data-view-panel="framework">
             <div class="framework-workspace">
+              <div class="framework-overview">
               <section class="dashboard-card hospitation-dashboard-preview-card framework-header" aria-labelledby="framework-title">
                 <div class="hospitation-dashboard-preview-copy">
-                  <span>Hospitations-Framework</span>
-                  <strong id="framework-title">Hospitationen als Wissensformat</strong>
+                  <strong id="framework-title">Hospitationsframework</strong>
                   <p>Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten.</p>
                 </div>
               </section>
@@ -860,6 +965,7 @@
                   </div>
                 </div>
               </section>
+              </div>
 
               <div class="framework-model-divider" aria-hidden="true">
                 <div class="framework-model-divider__nodes">
@@ -1105,6 +1211,7 @@
                 <div class="hospitation-appointments-header__top">
                   <div class="hospitation-dashboard-preview-copy">
                     <strong>Hospitations-Termine</strong>
+                    <p>Termine planen, vorbereiten und anschließend dokumentieren.</p>
                   </div>
                   <div class="hospitation-appointments-header__tools">
                     <div class="hospitation-header-search-slot" id="hospitation-header-search-slot" hidden></div>
@@ -1175,6 +1282,7 @@
               <div class="dashboard-card hospitation-dashboard-preview-card questionnaire-toolbar" aria-label="Fragebogenaktionen">
                 <div class="hospitation-dashboard-preview-copy questionnaire-toolbar__copy">
                   <strong data-questionnaire-copy>Hospitations-Fragebogen</strong>
+                  <p>Beobachtungen Schritt für Schritt festhalten und einordnen.</p>
                 </div>
                 <div class="hospitation-dashboard-preview-actions questionnaire-toolbar__actions">
                   <a class="action-button questionnaire-download-link" href="../../public/hospitation/mitmachen-hospitations-framework.docx" download="Mitmachen-Hospitations-Framework.docx">
@@ -1868,6 +1976,12 @@
       </section>
 
     </main>
+        <footer class="versorgungs-app-footer">
+          <span>Eine Anwendung im Rahmen von #Mitmachen – einem Angebot der gematik</span>
+          <a href="https://www.gematik.de/mitmachen" target="_blank" rel="noopener noreferrer">
+            gematik.de/mitmachen <span aria-hidden="true">↗</span>
+          </a>
+        </footer>
       </div>
     </div>
 

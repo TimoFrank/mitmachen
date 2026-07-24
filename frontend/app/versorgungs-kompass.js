@@ -1079,6 +1079,10 @@
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
       const sidebarCollapsibleSections = [...document.querySelectorAll("[data-sidebar-collapsible]")];
       const sidebarSectionToggles = [...document.querySelectorAll("[data-sidebar-section-toggle]")];
+      const homeScroller = document.querySelector("[data-home-scroller]");
+      const homeScrollCue = document.querySelector("[data-home-scroll-cue]");
+      const homeDestinations = document.getElementById("home-destinations");
+      const homeRevealHeading = document.querySelector("[data-home-reveal-lines]");
       const topbarViewTitle = document.getElementById("topbar-view-title");
       const topbarViewMeta = document.getElementById("topbar-view-meta");
       const questionnaireForm = document.getElementById("hospitation-questionnaire-form");
@@ -1317,7 +1321,9 @@
 
       const careViewModes = ["contacts", "organizations", "map", "stakeholders"];
 
-      let activeView = "map";
+      let activeView = "home";
+      let homeRevealPrepared = false;
+      let homeRevealStarted = false;
       let activeSettingsTab = "imports";
       let activeProfileTab = "profile";
       let activeExpertMode = "contacts";
@@ -1524,6 +1530,7 @@
       let detailImageEditorOpen = false;
       let editorImagePreviewUrl = "";
       let detailActiveTab = "overview";
+      let detailProfileReturnTo = "";
       let organizationDetailActiveTab = "overview";
       let lastViewportWidth = window.innerWidth;
       let lastViewportMobileLayout = isMobileLayout();
@@ -1538,7 +1545,7 @@
       let userSettings = null;
       let onboardingActive = false;
       let onboardingStep = "profile";
-      let pendingPostOnboardingView = "contacts";
+      let pendingPostOnboardingView = "home";
       let productTourState = { open: false, index: 0, source: "manual", target: null, steps: [], returnContext: null };
       const productTourTargetAria = new WeakMap();
       let activeCareQueueKey = "";
@@ -1880,11 +1887,9 @@
       function expandSidebarGroup(group) {
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
-        if (isMobileLayout()) {
-          sidebarCollapsibleSections.forEach((item) => {
-            if (item !== section) setSidebarSectionExpanded(item, false);
-          });
-        }
+        sidebarCollapsibleSections.forEach((item) => {
+          if (item !== section) setSidebarSectionExpanded(item, false);
+        });
         setSidebarSectionExpanded(section, true);
         return true;
       }
@@ -1893,7 +1898,7 @@
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
         const expanded = !section.classList.contains("is-expanded");
-        if (expanded && isMobileLayout()) {
+        if (expanded) {
           sidebarCollapsibleSections.forEach((item) => {
             if (item !== section) setSidebarSectionExpanded(item, false);
           });
@@ -1902,29 +1907,8 @@
         return true;
       }
 
-      function openFirstSidebarViewInGroup(group = "") {
-        const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-        if (!section || !isSidebarNavActionVisible(section)) return false;
-        expandSidebarGroup(group);
-        const firstTab = [...section.querySelectorAll(".primary-tab[data-view-tab]")]
-          .find(isSidebarNavActionVisible);
-        if (!firstTab) return false;
-        firstTab.click();
-        return true;
-      }
-
       function toggleSidebarGroup(group = "") {
-        const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-        if (!section || !isSidebarNavActionVisible(section)) return false;
-        if (isMobileLayout()) return toggleSidebarGroupExpansion(group);
-        if (section.classList.contains("is-expanded")) {
-          if (section.classList.contains("is-active-section")) {
-            setSidebarSectionExpanded(section, false);
-            return true;
-          }
-          return openFirstSidebarViewInGroup(group);
-        }
-        return openFirstSidebarViewInGroup(group);
+        return toggleSidebarGroupExpansion(group);
       }
 
       function syncActiveSidebarSection(view = activeView) {
@@ -1933,7 +1917,7 @@
           const active = Boolean(activeGroup) && section.dataset.sidebarGroup === activeGroup;
           section.classList.toggle("is-active-section", active);
           if (active) setSidebarSectionExpanded(section, true);
-          else if (activeGroup && isMobileLayout()) setSidebarSectionExpanded(section, false);
+          else setSidebarSectionExpanded(section, false);
         });
         window.requestAnimationFrame(() => {
           const activeItem = document.querySelector(".sidebar-nav .primary-tab.is-active");
@@ -5147,6 +5131,7 @@
       let showingArchive = false;
       let greetingLabel = "Willkommen im Versorgungs-Kompass";
       const viewLabels = {
+        home: { title: "Startseite", subtitle: "Dein Einstieg in Versorgung, Stakeholder, Hospitation und Formate." },
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Fachlicher Verlauf von Stammdaten, Zuständigkeiten, Einwilligungen, Hospitationen, Formaten und Dokumenten." },
@@ -9051,19 +9036,6 @@
         applyRoleUi();
       }
 
-      function profileSettingsPayload() {
-        const preferences = userSettings?.preferences || {};
-        return {
-          defaultViewType: userSettings?.defaultViewType || "map",
-          tableDensity: userSettings?.tableDensity || "comfortable",
-          preferences: {
-            ...preferences,
-            defaultContactTab: preferences.defaultContactTab || "overview",
-            notificationsEnabled: false
-          }
-        };
-      }
-
       function setProfileStatus(message = "", isError = false) {
         if (!profileStatus) return;
         profileStatus.textContent = message;
@@ -9098,7 +9070,6 @@
         const profile = currentProfile || {};
         const displayName = profile.display_name || profile.email || "Angemeldet";
         const role = currentRole();
-        const settings = profileSettingsPayload();
         updateAvatarElement(profileAvatarPreview, profile);
         updateAvatarElement(profilePhotoPreview, profile);
         if (profileDisplayTitle) profileDisplayTitle.textContent = displayName;
@@ -9315,11 +9286,11 @@
         return userSettings?.preferences?.onboarding || preferences.onboarding;
       }
 
-      function normalizePostOnboardingView(view = "contacts") {
-        const candidate = String(view || "").replace(/^#/, "") || "contacts";
-        if (candidate === "onboarding") return "contacts";
-        if (!viewLabels[candidate]) return "contacts";
-        if (!canAccessView(candidate)) return "contacts";
+      function normalizePostOnboardingView(view = "home") {
+        const candidate = String(view || "").replace(/^#/, "") || "home";
+        if (candidate === "onboarding") return "home";
+        if (!viewLabels[candidate]) return "home";
+        if (!canAccessView(candidate)) return "home";
         return candidate;
       }
 
@@ -9347,7 +9318,7 @@
         renderViewChrome();
       }
 
-      async function openOnboarding(targetView = "contacts") {
+      async function openOnboarding(targetView = "home") {
         pendingPostOnboardingView = normalizePostOnboardingView(targetView);
         onboardingActive = true;
         closeMenus();
@@ -9362,9 +9333,12 @@
         updateView();
       }
 
-      function finishOnboarding(targetView = pendingPostOnboardingView || "contacts") {
+      function finishOnboarding(targetView = pendingPostOnboardingView || "home") {
         onboardingActive = false;
         const nextView = normalizePostOnboardingView(targetView);
+        if (nextView === "home" && transientInitialHomeSidebarCollapse && !isMobileLayout()) {
+          setSidebarCollapsed(true, { persist: false });
+        }
         setActiveView(nextView);
         updateRouteHash(nextView);
         updateView();
@@ -9735,9 +9709,10 @@
 
       function restoreProductTourSidebarState(state = null) {
         if (!state) return;
+        const expandedGroup = state.sections?.find(({ expanded }) => expanded)?.group || "";
         state.sections?.forEach(({ group, expanded }) => {
           const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-          if (section) setSidebarSectionExpanded(section, Boolean(expanded));
+          if (section) setSidebarSectionExpanded(section, Boolean(expanded) && group === expandedGroup);
         });
         setSidebarCollapsed(Boolean(state.collapsed));
         setMobileSidebarExpanded(Boolean(state.mobileExpanded));
@@ -13450,6 +13425,11 @@
             )
             .join("");
         };
+
+        if (activeView === "home") {
+          if (summaryGrid) summaryGrid.innerHTML = "";
+          return;
+        }
 
         if (isNotificationsWorkspaceActive()) {
           if (summaryGrid) summaryGrid.innerHTML = "";
@@ -17494,12 +17474,34 @@
       function renderHospitationAppointments() {
         const entries = hospitationScheduleEntries({ archived: hospitationArchiveView });
         const archivedCount = hospitationScheduleEntries({ archived: true }).length;
+        const hasActiveAppointments = activeHospitationRecords().length > 0;
         pruneHospitationSelection(entries);
         updateHospitationBulkToolbar();
+        const scheduleContent = !hospitationArchiveView && !hasActiveAppointments
+          ? `
+            <section class="hospitation-first-appointment" aria-labelledby="hospitation-first-appointment-title">
+              <span class="hospitation-first-appointment__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="4" y="5.5" width="16" height="14" rx="3"></rect>
+                  <path d="M8 3.5v4M16 3.5v4M4 10h16M12 13v4M10 15h4"></path>
+                </svg>
+              </span>
+              <span class="hospitation-first-appointment__eyebrow">Ihre erste Hospitation</span>
+              <h2 id="hospitation-first-appointment-title">Noch kein Termin angelegt</h2>
+              <p>Planen Sie den ersten Hospitations-Termin und schaffen Sie die Grundlage für Beobachtungen und Auswertung.</p>
+              <button class="action-button action-button--primary hospitation-first-appointment__button" type="button" data-hospitation-action="create-first">
+                <span class="action-button__icon" aria-hidden="true">+</span>
+                Ersten Termin anlegen
+              </button>
+            </section>
+          `
+          : hospitationScheduleView === "calendar"
+            ? renderHospitationCalendar(entries)
+            : renderHospitationScheduleList(entries);
         return `
           <div class="hospitation-schedule">
             ${renderHospitationContextFilter()}
-            ${hospitationScheduleView === "calendar" ? renderHospitationCalendar(entries) : renderHospitationScheduleList(entries)}
+            ${scheduleContent}
             ${renderHospitationArchiveActions(archivedCount)}
           </div>
         `;
@@ -18645,7 +18647,7 @@
         return `
           <article class="dashboard-card hospitation-dashboard-preview-card">
             <div class="hospitation-dashboard-preview-copy">
-              <strong>Versorgungswissen-Cockpit</strong>
+              <strong>Dashboard</strong>
               <p>Das Dashboard konzentriert sich auf die aktuell relevanten Hospitationsdaten. Musterbildung bleibt weiterhin Teil des Hospitations-Frameworks.</p>
             </div>
             <div class="hospitation-dashboard-preview-actions">
@@ -20929,6 +20931,10 @@
             const action = button.dataset.hospitationAction;
             const hospitationId = button.dataset.hospitationId || "";
             const slotId = button.dataset.slotId || "";
+            if (action === "create-first") {
+              openHospitationEditor("request");
+              return;
+            }
             if (action === "export-appointment") {
               await exportHospitationAppointmentDocument(
                 hospitationId,
@@ -31501,8 +31507,9 @@
       function openPersonEntry(kind, id, items = [], options = {}) {
         const normalizedKind = normalizePersonProfileKind(kind);
         if (!normalizedKind || !id) return;
+        const returnTo = options.returnTo || personProfileParentView(normalizedKind);
         if (isMobileLayout() || options.forceProfile) {
-          openPersonProfile(normalizedKind, id, { returnTo: options.returnTo || personProfileParentView(normalizedKind) });
+          openPersonProfile(normalizedKind, id, { returnTo });
           return;
         }
         if (normalizedKind === "stakeholder") {
@@ -31513,7 +31520,11 @@
           openDetail(id, items, { scope: "expert" });
           return;
         }
-        openDetail(id, items, { scope: normalizedKind === "expert" ? "expert" : "care", mode: "preview" });
+        openDetail(id, items, {
+          scope: normalizedKind === "expert" ? "expert" : "care",
+          mode: "preview",
+          returnTo
+        });
       }
 
       function organizationKindLabel(kind = activeOrganizationProfile.kind) {
@@ -31840,7 +31851,98 @@
         updateRouteHash(profileRouteForTab());
       }
 
-      function setSidebarCollapsed(collapsed) {
+      function prepareHomeRevealHeading() {
+        if (!homeRevealHeading || homeRevealPrepared) return;
+        const visual = homeRevealHeading.querySelector(".home-reveal-heading__visual");
+        if (!visual) return;
+        let lines = [];
+        try {
+          lines = JSON.parse(homeRevealHeading.dataset.homeRevealLines || "[]");
+        } catch (error) {
+          console.warn("Die Startseiten-Überschrift konnte nicht vorbereitet werden.", error);
+        }
+        if (!Array.isArray(lines) || !lines.some((lineText) => String(lineText || "").length > 0)) {
+          console.warn("Die Startseiten-Überschrift enthält keine animierbaren Zeilen.");
+          return;
+        }
+        let characterIndex = 0;
+        lines.forEach((lineText) => {
+          const line = document.createElement("span");
+          line.className = "home-reveal-heading__line";
+          String(lineText || "").split(" ").forEach((wordText, wordIndex) => {
+            if (wordIndex > 0) line.append(document.createTextNode(" "));
+            const wordSegments = String(wordText).split("-");
+            wordSegments.forEach((segmentText, segmentIndex) => {
+              const word = document.createElement("span");
+              word.className = "home-reveal-heading__word";
+              const renderedSegment = segmentIndex < wordSegments.length - 1 ? `${segmentText}-` : segmentText;
+              Array.from(renderedSegment).forEach((character) => {
+                const span = document.createElement("span");
+                span.className = "home-reveal-heading__char";
+                span.textContent = character;
+                span.style.animationDelay = `${220 + characterIndex * 30}ms`;
+                word.append(span);
+                characterIndex += 1;
+              });
+              line.append(word);
+              if (segmentIndex < wordSegments.length - 1) line.append(document.createElement("wbr"));
+            });
+          });
+          visual.append(line);
+        });
+        homeRevealHeading.dataset.characterCount = String(characterIndex);
+        homeRevealHeading.classList.add("is-prepared");
+        homeRevealPrepared = true;
+      }
+
+      function playHomeRevealHeading() {
+        if (!homeRevealHeading || homeRevealStarted) return;
+        prepareHomeRevealHeading();
+        if (!homeRevealPrepared) return;
+        homeRevealStarted = true;
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        let alreadyPlayed = false;
+        try {
+          alreadyPlayed = window.sessionStorage.getItem("versorgungs-kompass:home-reveal") === "1";
+        } catch {}
+        if (reducedMotion || alreadyPlayed) {
+          homeRevealHeading.classList.add("is-static");
+          return;
+        }
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            homeRevealHeading.classList.add("is-playing");
+          });
+        });
+        const characterCount = Number(homeRevealHeading.dataset.characterCount || "0");
+        const totalDuration = 220 + characterCount * 30 + 240;
+        window.setTimeout(() => {
+          homeRevealHeading.classList.remove("is-playing");
+          homeRevealHeading.classList.add("is-complete");
+          try {
+            window.sessionStorage.setItem("versorgungs-kompass:home-reveal", "1");
+          } catch {}
+          document.dispatchEvent(new CustomEvent("versorgungs-compass:home-reveal-complete"));
+        }, totalDuration);
+      }
+
+      function scrollHomeToDestinations() {
+        if (!homeScroller || !homeDestinations) return;
+        const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+        homeScroller.scrollTo({ top: homeDestinations.offsetTop, behavior });
+        homeDestinations.focus({ preventScroll: true });
+      }
+
+      function resetHomeScrollPosition() {
+        if (!homeScroller) return;
+        const inlineScrollBehavior = homeScroller.style.scrollBehavior;
+        homeScroller.style.scrollBehavior = "auto";
+        homeScroller.scrollTop = 0;
+        if (inlineScrollBehavior) homeScroller.style.scrollBehavior = inlineScrollBehavior;
+        else homeScroller.style.removeProperty("scroll-behavior");
+      }
+
+      function setSidebarCollapsed(collapsed, { persist = true } = {}) {
         appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
         if (sidebarCollapseButton) {
           sidebarCollapseButton.setAttribute("aria-expanded", String(!collapsed));
@@ -31849,6 +31951,7 @@
           const label = sidebarCollapseButton.querySelector(".sidebar-collapse-label");
           if (label) label.textContent = collapsed ? "Menü ausklappen" : "Menü einklappen";
         }
+        if (!persist) return;
         try {
           window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", collapsed ? "true" : "false");
         } catch (error) {
@@ -31858,9 +31961,9 @@
 
       function restoreSidebarState() {
         try {
-          setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true");
+          setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true", { persist: false });
         } catch (error) {
-          setSidebarCollapsed(false);
+          setSidebarCollapsed(false, { persist: false });
         }
       }
 
@@ -31887,7 +31990,7 @@
       }
 
       function updateRouteHash(view) {
-        const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "contacts";
+        const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "home";
         const nextHash = routeView === "personProfile" || String(routeView).startsWith("person/")
           ? `#${routeView === "personProfile" ? personProfileRoute() : routeView}`
           : routeView === "organizationProfile" || String(routeView).startsWith("organization/")
@@ -31944,7 +32047,7 @@
             view = "contacts";
           }
         }
-        if (!viewLabels[view]) view = "contacts";
+        if (!viewLabels[view]) view = "home";
         const requestedView = view;
         view = safeViewForRole(view);
         if (requestedView !== view) updateRouteHash(view);
@@ -32035,6 +32138,12 @@
           panel.setAttribute("aria-hidden", panel.dataset.viewPanel === view ? "false" : "true");
         });
         if (appShell) appShell.dataset.activeView = view;
+        if (view === "home" && (viewChanged || appShell?.classList.contains("is-initializing"))) {
+          resetHomeScrollPosition();
+        }
+        if (view === "home" && !appShell?.classList.contains("is-initializing")) {
+          playHomeRevealHeading();
+        }
         renderViewChrome();
         renderAnalyticsModeTabs();
         if (view === "profile") {
@@ -32706,8 +32815,16 @@
         const detailMode = options.mode === "page" ? "page" : options.mode === "preview" ? "preview" : "drawer";
         const isProfilePage = detailMode === "page";
         const isPreview = detailMode === "preview";
+        const profileReturnTo = options.returnTo
+          || (isProfilePage ? activePersonProfile.returnTo : detailProfileReturnTo)
+          || (expertScope ? "experts" : "contacts");
+        if (!isProfilePage) detailProfileReturnTo = profileReturnTo;
         const targetPanel = isProfilePage ? personProfileDetailPanel() : detailPanel;
-        const rerenderDetail = () => openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care", mode: detailMode });
+        const rerenderDetail = () => openDetail(contact.id, currentItems, {
+          scope: expertScope ? "expert" : "care",
+          mode: detailMode,
+          returnTo: profileReturnTo
+        });
         const sourceContacts = expertScope ? expertContacts : contacts;
         const fallbackItems = expertScope ? filteredExpertContacts() : filteredContacts();
         const currentItems = items.length ? items : fallbackItems;
@@ -33000,7 +33117,7 @@
         if (!expertScope) bindHospitationProfileActions(targetPanel, { kind: "contact", id: contact.id });
         if (!expertScope) bindFormatProfileActions(targetPanel, contact, rerenderDetail);
         targetPanel.querySelector("#detail-open-profile")?.addEventListener("click", () => {
-          openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: expertScope ? "experts" : "contacts" });
+          openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: profileReturnTo });
         });
         targetPanel.querySelectorAll("[data-detail-edit-section]").forEach((button) => {
           button.addEventListener("click", () => {
@@ -33236,6 +33353,7 @@
         detailOwnerPickerOpen = false;
         detailImageEditorOpen = false;
         detailActiveTab = "overview";
+        detailProfileReturnTo = "";
         organizationDetailActiveTab = "overview";
         contactEditingNoteId = null;
         stakeholderEditingNoteKey = "";
@@ -33578,6 +33696,7 @@
         expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
         organizationLogoMapCache = null;
         syncOwnerOptionsFromContacts();
+        const isHomeView = activeView === "home";
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
         const isActivitiesView = activeView === "activities";
@@ -33616,7 +33735,9 @@
           syncQuestionnaireReflectionAuthor();
         }
         if (isFrameworkView) syncHospitationFrameworkMetrics();
-        const items = isFormatsView
+        const items = isHomeView
+          ? []
+          : isFormatsView
           ? filteredFormats()
           : isFrameworkView
             ? []
@@ -33640,7 +33761,7 @@
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
-        resultsCount.hidden = isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
+        resultsCount.hidden = isHomeView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
         archiveViewButton.textContent = archiveViewButtonLabel();
         const searchPlaceholder = isAnyDuplicateMode
           ? "Dubletten suchen..."
@@ -33678,7 +33799,7 @@
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
         const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
-        const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
+        const searchHidden = isHomeView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -33700,7 +33821,7 @@
           hospitationHeaderSearchToggle.setAttribute("aria-expanded", isHospitationHeaderSearchVisible ? "true" : "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHospitationsView || isFrameworkView || isQuestionnaireView;
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView;
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -33739,11 +33860,11 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isPatientsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isExpertsView || isPatientsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
-        if (isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
+        if (isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -33793,7 +33914,7 @@
           renderOrganizationProfilePage();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
+        if (!isHomeView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -34380,19 +34501,21 @@
         await loadStakeholderData({ includeArchived: canAdministerData() });
         updateView();
       });
-      restoreSidebarState();
+      const initialSidebarRouteView = routeViewFromHash() || "home";
+      const transientInitialHomeSidebarCollapse = !isMobileLayout() && initialSidebarRouteView === "home";
+      if (transientInitialHomeSidebarCollapse) {
+        setSidebarCollapsed(true, { persist: false });
+      } else {
+        restoreSidebarState();
+      }
       if (isMobileLayout()) {
         appShell?.classList.remove("is-sidebar-collapsed");
         setMobileSidebarExpanded(false);
       }
+      homeScrollCue?.addEventListener("click", scrollHomeToDestinations);
       sidebarSectionToggles.forEach((toggle) => {
-        toggle.addEventListener("click", (event) => {
+        toggle.addEventListener("click", () => {
           const group = toggle.dataset.sidebarSectionToggle || "";
-          const target = event.target;
-          if (target instanceof Element && target.closest("svg")) {
-            if (!toggleSidebarGroupExpansion(group)) expandSidebarGroup(group);
-            return;
-          }
           if (!toggleSidebarGroup(group)) expandSidebarGroup(group);
         });
       });
@@ -35029,7 +35152,7 @@
             openPersonProfile("stakeholder", messageId, { returnTo: "stakeholders" });
             return;
         }
-        openPersonProfile("contact", messageId, { returnTo: "map" });
+        openPersonEntry("contact", messageId, mapContacts(), { returnTo: "map" });
       });
 
       csvFileInput.addEventListener("change", async (event) => {
@@ -35617,7 +35740,7 @@
       }
 
       window.addEventListener("hashchange", () => {
-        const nextView = routeViewFromHash() || "contacts";
+        const nextView = routeViewFromHash() || "home";
         if (onboardingActive && nextView !== "onboarding") {
           updateRouteHash("onboarding");
           return;
@@ -35873,12 +35996,9 @@
 
       async function initializeData() {
         const initialRouteView = routeViewFromHash();
-        let initialTargetView = initialRouteView || "map";
+        let initialTargetView = initialRouteView || "home";
         try {
           await loadCriticalInitialData();
-          if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "patients", "stakeholders", "framework", "formats", "hospitations", "questionnaire", "map", "analytics"].includes(userSettings?.defaultViewType)) {
-            initialTargetView = userSettings.defaultViewType;
-          }
           scheduleDeferredInitialData();
         } catch (error) {
           console.error("Geschützte Anwendungsdaten konnten nicht über die API geladen werden.", error);
@@ -35899,7 +36019,8 @@
         isInitialDataLoading = false;
         initialDataLoadingSlow = false;
         if (shouldRequireInitialOnboarding()) {
-          await openOnboarding(initialTargetView || activeView || "contacts");
+          if (transientInitialHomeSidebarCollapse) restoreSidebarState();
+          await openOnboarding(initialTargetView || activeView || "home");
           finishInitialLoading();
           return;
         }
@@ -35910,9 +36031,11 @@
       }
 
       function finishInitialLoading() {
+        if (activeView === "home") resetHomeScrollPosition();
         appShell?.classList.remove("is-initializing");
         appShell?.removeAttribute("aria-busy");
         initialLoadingSkeleton?.setAttribute("aria-hidden", "true");
+        if (activeView === "home") playHomeRevealHeading();
       }
 
       renderAccountProfile(null);
