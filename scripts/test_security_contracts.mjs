@@ -485,6 +485,10 @@ assert.match(
   /Require DNS and active certificates before canonical cutover[\s\S]*kubectl[\s\S]*get ingress[\s\S]*kubernetes\.io\/ingress\.global-static-ip-name[\s\S]*status\.loadBalancer\.ingress[\s\S]*length == 1[\s\S]*hostname[\s\S]*dig \+short A/,
   "Der Domain-Cutover muss DNS gegen die einzige, direkt adressierte IPv4 des vorbereiteten statischen Ingress pruefen."
 );
+assert.ok(
+  deployWorkflowSource.includes("awk '/^([0-9]{1,3}[.]){3}[0-9]{1,3}$/{print}'"),
+  "Der DNS-Filter muss IPv4-Punkte ohne mehrdeutiges Shell-/Awk-Escaping erkennen."
+);
 assert.doesNotMatch(
   deployWorkflowSource,
   /gcloud compute addresses describe/,
