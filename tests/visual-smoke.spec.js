@@ -1997,6 +1997,11 @@ test("Sidebar: Desktop nutzt dieselbe Ein-Modul-Accordionlogik wie Mobile", asyn
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü einklappen");
   await expect(careToggle).toHaveAttribute("aria-expanded", "true");
   await expect(careContent).toBeVisible();
+  await expect(page.locator(".sidebar-module-icon")).toHaveCount(4);
+  await expect(planningToggle.locator(".sidebar-module-icon")).toHaveAttribute("aria-hidden", "true");
+  await expect(planningToggle.locator(".sidebar-module-icon svg rect")).toHaveCount(1);
+  await expect(planningToggle.locator(".sidebar-module-icon svg circle")).toHaveCount(1);
+  await expect(planningToggle.locator(".sidebar-section-title")).toHaveText("Hospitation");
 
   await planningToggle.focus();
   await planningToggle.press("Enter");
@@ -2074,11 +2079,23 @@ test("Sidebar: Desktop nutzt dieselbe Ein-Modul-Accordionlogik wie Mobile", asyn
   await expect(stakeholderSection).toBeHidden();
   await expect(planningSection).toBeHidden();
   await expect(formatsSection).toBeHidden();
+  for (const selector of ["#sidebar-tour-button", "#sidebar-team-button", "#sidebar-notifications-button", "#sidebar-profile-button"]) {
+    await expect(page.locator(selector)).toHaveCSS("width", "40px");
+    await expect(page.locator(selector)).toHaveCSS("height", "40px");
+  }
+  const collapsedAccountOrder = await page.evaluate(() => ({
+    notificationTop: document.querySelector("#sidebar-notifications-button")?.getBoundingClientRect().top || 0,
+    profileTop: document.querySelector("#sidebar-profile-button")?.getBoundingClientRect().top || 0
+  }));
+  expect(collapsedAccountOrder.notificationTop).toBeLessThan(collapsedAccountOrder.profileTop);
   const collapsedCollapseBox = await collapseButton.boundingBox();
   expect(expandedCollapseBox).not.toBeNull();
   expect(collapsedCollapseBox).not.toBeNull();
-  expect(collapsedCollapseBox.height).toBe(expandedCollapseBox.height);
-  expect(Math.abs(collapsedCollapseBox.y - expandedCollapseBox.y)).toBeLessThanOrEqual(1);
+  expect(collapsedCollapseBox.height).toBeGreaterThanOrEqual(expandedCollapseBox.height);
+  expect(collapsedCollapseBox.y).toBeGreaterThan(expandedCollapseBox.y + 20);
+  const collapsedBrandBox = await page.locator(".sidebar-brand").boundingBox();
+  expect(collapsedBrandBox).not.toBeNull();
+  expect(collapsedCollapseBox.y).toBeGreaterThanOrEqual(collapsedBrandBox.y + collapsedBrandBox.height - 1);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
@@ -2096,8 +2113,8 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
   const inactiveTab = page.locator('[data-view-tab="map"]');
   const careToggle = page.locator('[data-sidebar-section-toggle="care"]');
 
-  await expect(careToggle).toHaveCSS("text-transform", "uppercase");
-  await expect(careToggle).toHaveCSS("font-weight", "820");
+  await expect(careToggle).toHaveCSS("text-transform", "none");
+  await expect(careToggle).toHaveCSS("font-weight", "600");
   await expect(careToggle).toHaveCSS("border-left-width", "3px");
   const moduleAccentColors = await page.locator("[data-sidebar-section] > .sidebar-section-toggle").evaluateAll((toggles) =>
     toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
@@ -2157,9 +2174,11 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
 
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  await expect(collapseButton).toHaveCSS("position", "absolute");
+  await expect(collapseButton).toHaveCSS("position", "static");
   const collapsedControlTop = await collapseButton.evaluate((element) => element.getBoundingClientRect().top);
-  expect(Math.abs(collapsedControlTop - metrics.collapseTop)).toBeLessThanOrEqual(1);
+  const collapsedBrandBottom = await page.locator(".sidebar-brand").evaluate((element) => element.getBoundingClientRect().bottom);
+  expect(collapsedControlTop).toBeGreaterThanOrEqual(collapsedBrandBottom - 1);
+  expect(collapsedControlTop).toBeGreaterThan(metrics.collapseTop + 20);
 
   await collapseButton.click();
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
@@ -2227,8 +2246,11 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
     toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
   );
   expect(new Set(moduleAccentColors).size).toBe(4);
+  await expect(page.locator(".sidebar-module-icon:visible")).toHaveCount(4);
+  await expect(page.locator(".sidebar-module-icon").first()).toHaveCSS("width", "32px");
+  await expect(page.locator('[data-sidebar-section-toggle="planning"] .sidebar-module-icon svg')).toHaveCSS("transform", "none");
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".sidebar-nav")).toHaveCSS("overflow-y", "visible");
+  await expect(page.locator(".sidebar-nav")).toHaveCSS("overflow-y", "auto");
 
   const brandLayout = await page.locator(".sidebar-brand").evaluate((brand) => {
     const mark = brand.querySelector(".brand-mark")?.getBoundingClientRect();
@@ -5253,8 +5275,19 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
     await expect(sidebarNav).toBeHidden();
     await page.locator("#sidebar-collapse-button").click();
     await expect(sidebarNav).toBeVisible();
-    await expect(sidebar).toHaveCSS("overflow-y", "auto");
-    await page.locator("#sidebar-profile-button").scrollIntoViewIfNeeded();
+    await expect(sidebar).toHaveCSS("overflow-y", "hidden");
+    await expect(sidebarNav).toHaveCSS("overflow-y", "auto");
+    const mobileScrollMetrics = await sidebarNav.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      return {
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+        scrollTop: element.scrollTop
+      };
+    });
+    expect(mobileScrollMetrics.scrollHeight).toBeGreaterThan(mobileScrollMetrics.clientHeight);
+    expect(mobileScrollMetrics.scrollTop).toBeGreaterThan(0);
+    await expect(accountSection).toBeInViewport();
   } else {
     const scrollMetrics = await sidebarNav.evaluate((element) => {
       element.scrollTop = 0;

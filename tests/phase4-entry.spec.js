@@ -167,13 +167,17 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   const demoNotice = page.locator("#vk-public-demo-notice");
   const demoNoticeClose = page.locator("[data-demo-notice-close]");
   const demoTrigger = page.locator("#vk-public-demo-trigger");
+  await expect(demoNotice).toBeHidden();
+  await expect(demoTrigger).toBeHidden();
+  await page.locator('.home-destination-link[href="#map"]').click();
+  await expect(page).toHaveURL(/#map$/);
   await expect(demoNotice).toBeVisible();
   await expect(demoNotice).toContainText("Öffentliche Demo");
-  await expect(demoNotice.locator(".vk-demo-copy")).toHaveText("Öffentliche Demo");
+  await expect(demoNotice.locator(".vk-demo-copy")).toHaveText("Hinweis: Öffentliche Demo");
   await expect(page.getByText("Bitte keine echten Angaben eingeben.", { exact: true })).toHaveCount(0);
   await expect(demoNotice).not.toContainText("synthetische Daten");
   await expect(demoNotice).not.toContainText("Änderungen verschwinden");
-  await expect(demoNoticeClose).toHaveText("Schließen");
+  await expect(demoNoticeClose).toHaveText("OK");
   const demoContactCount = await page.evaluate(async () => {
     await window.fetch("/api/contacts", {
       method: "POST",
@@ -187,13 +191,23 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(demoTrigger).toBeVisible();
   await expect(demoTrigger).toBeFocused();
   await expect.poll(() => page.evaluate(() => window.VersorgungsCompassDemoApi.snapshot().contacts.length)).toBe(demoContactCount);
+  await page.evaluate(() => {
+    window.location.hash = "#home";
+  });
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "home");
+  await expect(demoNotice).toBeHidden();
+  await expect(demoTrigger).toBeHidden();
+  await page.locator('.home-destination-link[href="#map"]').click();
+  await expect(page).toHaveURL(/#map$/);
+  await expect(demoNotice).toBeHidden();
+  await expect(demoTrigger).toBeVisible();
+  await expect(demoTrigger).toHaveAttribute("aria-label", "Hinweis zur öffentlichen Demo anzeigen");
+  await expect(demoTrigger.locator("svg")).toBeVisible();
   await demoTrigger.click();
   await expect(demoNotice).toBeVisible();
   await expect(demoTrigger).toBeHidden();
   await expect(demoNoticeClose).toBeFocused();
   await expectNoHorizontalOverflow(page);
-  await page.locator('.home-destination-link[href="#map"]').click();
-  await expect(page).toHaveURL(/#map$/);
   await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
   if (await page.locator("#sidebar-profile-button").isHidden()) {
     await page.locator("#sidebar-collapse-button").click();
@@ -201,6 +215,8 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   }
   await page.locator("#sidebar-profile-button").click();
   await expect(page.locator("#profile-page")).toBeVisible();
+  await expect(demoNotice).toBeHidden();
+  await expect(demoTrigger).toBeHidden();
   await expect(page.locator("#profile-logout")).toHaveCount(0);
   await expect(page.getByText(/IAP-Anmeldung|Angemeldete Sitzung/)).toHaveCount(0);
   expect(publicDemoExternalRequests).toEqual([]);

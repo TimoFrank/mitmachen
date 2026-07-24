@@ -14,6 +14,24 @@
 
   const NOW = "2026-07-19T12:00:00.000Z";
   const DEMO_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const DEMO_NOTICE_DATA_VIEWS = new Set([
+    "map",
+    "contacts",
+    "organizations",
+    "activities",
+    "analytics",
+    "quality",
+    "experts",
+    "patients",
+    "stakeholders",
+    "framework",
+    "hospitations",
+    "questionnaire",
+    "formats",
+    "team",
+    "personProfile",
+    "organizationProfile"
+  ]);
   const baseline = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
   const originalFetch = window.fetch.bind(window);
   let idCounter = 0;
@@ -672,38 +690,41 @@
       #vk-public-demo-notice {
         position: fixed; z-index: 70;
         top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(16px + env(safe-area-inset-right, 0px));
-        min-height: 44px; box-sizing: border-box;
-        display: flex; gap: 12px; align-items: center;
-        padding: 5px 6px 5px 14px; border: 1px solid #c9d8ef; border-radius: 13px;
-        color: #64748b; background: rgba(255,255,255,.96); box-shadow: 0 9px 22px rgba(16,35,110,.1);
-        font: 780 12px/1.3 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-height: 38px; box-sizing: border-box;
+        display: flex; gap: 10px; align-items: center;
+        padding: 4px 5px 4px 11px; border: 1px solid #d8e1ef; border-radius: 11px;
+        color: #64748b; background: rgba(255,255,255,.96); box-shadow: 0 7px 18px rgba(16,35,110,.08);
+        font: 620 11px/1.25 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         backdrop-filter: blur(12px);
       }
       #vk-public-demo-notice[hidden], #vk-public-demo-trigger[hidden] { display: none; }
-      #vk-public-demo-notice .vk-demo-copy { min-width: 0; display: flex; align-items: center; }
-      #vk-public-demo-notice strong { color: #64748b; font-size: 12px; }
+      #vk-public-demo-notice .vk-demo-copy { min-width: 0; display: flex; gap: 4px; align-items: center; }
+      #vk-public-demo-notice strong { color: #475569; font-size: 11px; font-weight: 760; }
       #vk-public-demo-notice button {
-        min-height: 34px; padding: 0 11px; border: 0; border-radius: 9px;
-        color: #17275f; background: #eef3fb; font: inherit; font-weight: 780; cursor: pointer;
+        min-width: 38px; min-height: 30px; padding: 0 9px; border: 0; border-radius: 8px;
+        color: #17275f; background: #eef3fb; font: inherit; font-weight: 760; cursor: pointer;
       }
       #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible {
         background: #e2eafb; outline: 3px solid #155fe4; outline-offset: 2px;
       }
       #vk-public-demo-trigger {
         position: fixed; z-index: 70;
-        top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
-        width: 44px; height: 44px; display: inline-grid; place-items: center;
-        padding: 0; border: 1px solid #b9d9d0; border-radius: 12px;
-        color: #0f655e; background: #d4f6ed; box-shadow: 0 9px 22px rgba(16,35,110,.1);
-        font: 900 12px/1 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px));
+        width: 38px; height: 38px; display: inline-grid; place-items: center;
+        padding: 0; border: 1px solid #c9d8ef; border-radius: 11px;
+        color: #1555a5; background: #eaf2ff; box-shadow: 0 7px 18px rgba(16,35,110,.08);
         backdrop-filter: blur(12px); cursor: pointer;
       }
       #vk-public-demo-trigger:hover, #vk-public-demo-trigger:focus-visible {
-        background: #c5eee4; outline: 3px solid #155fe4; outline-offset: 2px;
+        background: #dceaff; outline: 3px solid #155fe4; outline-offset: 2px;
       }
       #vk-public-demo-trigger .vk-demo-trigger-mark {
         display: grid; place-items: center; width: 100%; height: 100%;
-        color: inherit; background: transparent; font-size: 12px; font-weight: 900;
+        color: inherit; background: transparent;
+      }
+      #vk-public-demo-trigger svg {
+        width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2;
+        stroke-linecap: round; stroke-linejoin: round;
       }
       @media (max-width: 620px) {
         #vk-public-demo-notice {
@@ -716,35 +737,56 @@
     notice.id = "vk-public-demo-notice";
     notice.setAttribute("role", "note");
     notice.setAttribute("aria-label", "Hinweis zur öffentlichen Demo");
+    notice.hidden = true;
     notice.innerHTML = `
-      <div class="vk-demo-copy"><strong>Öffentliche Demo</strong></div>
-      <button type="button" data-demo-notice-close>Schließen</button>
+      <div class="vk-demo-copy"><strong>Hinweis:</strong> <span>Öffentliche Demo</span></div>
+      <button type="button" data-demo-notice-close>OK</button>
     `;
     const closeButton = notice.querySelector("[data-demo-notice-close]");
     const trigger = document.createElement("button");
     trigger.id = "vk-public-demo-trigger";
     trigger.type = "button";
     trigger.hidden = true;
-    trigger.setAttribute("aria-label", "Demo-Hinweis anzeigen");
+    trigger.setAttribute("aria-label", "Hinweis zur öffentlichen Demo anzeigen");
     trigger.setAttribute("aria-controls", notice.id);
     trigger.setAttribute("aria-expanded", "false");
     trigger.innerHTML = `
-      <span class="vk-demo-trigger-mark" aria-hidden="true">D</span>
+      <span class="vk-demo-trigger-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 11v5"></path>
+          <path d="M12 8h.01"></path>
+        </svg>
+      </span>
     `;
+    let noticeCollapsed = false;
+    const appShell = document.querySelector(".app-shell");
+    const syncNoticeVisibility = () => {
+      const activeView = appShell?.dataset.activeView || "";
+      const eligible = DEMO_NOTICE_DATA_VIEWS.has(activeView);
+      notice.hidden = !eligible || noticeCollapsed;
+      trigger.hidden = !eligible || !noticeCollapsed;
+      trigger.setAttribute("aria-expanded", eligible && !noticeCollapsed ? "true" : "false");
+    };
     closeButton.addEventListener("click", () => {
-      notice.hidden = true;
-      trigger.hidden = false;
-      trigger.setAttribute("aria-expanded", "false");
-      trigger.focus({ preventScroll: true });
+      noticeCollapsed = true;
+      syncNoticeVisibility();
+      if (!trigger.hidden) trigger.focus({ preventScroll: true });
     });
     trigger.addEventListener("click", () => {
-      notice.hidden = false;
-      trigger.hidden = true;
-      trigger.setAttribute("aria-expanded", "true");
-      closeButton.focus({ preventScroll: true });
+      noticeCollapsed = false;
+      syncNoticeVisibility();
+      if (!notice.hidden) closeButton.focus({ preventScroll: true });
     });
     (document.querySelector(".app-main") || document.body).prepend(notice);
     document.body.appendChild(trigger);
+    if (appShell) {
+      new MutationObserver(syncNoticeVisibility).observe(appShell, {
+        attributes: true,
+        attributeFilter: ["data-active-view"]
+      });
+    }
+    syncNoticeVisibility();
   }
 
   window.VERSORGUNGS_COMPASS_DEMO_RUNTIME = Object.freeze({
