@@ -56,6 +56,14 @@
     return [...new Set(labels)];
   }
 
+  function normalizeContactChannelAccess(value) {
+    return value === "owner" || value === "restricted" ? value : "";
+  }
+
+  function contactChannelsRestricted(contact) {
+    return normalizeContactChannelAccess(contact?.contactChannelAccess) === "restricted";
+  }
+
   function toMapEntry(contact) {
     const lat = Number.parseFloat(contact.lat ?? contact.latitude ?? "");
     const lon = Number.parseFloat(contact.lon ?? contact.longitude ?? "");
@@ -66,6 +74,8 @@
     const ownerLabels = contactOwnerLabels(contact);
     const ownerObjects = Array.isArray(contact.owners) ? contact.owners : [];
     const firstOwner = ownerObjects[0] || {};
+    const contactChannelAccess = normalizeContactChannelAccess(contact.contactChannelAccess);
+    const channelsRestricted = contactChannelAccess === "restricted";
 
     return {
       id: contact.id || `${personName}-${lat}-${lon}`,
@@ -86,8 +96,9 @@
       person_name: personName,
       person_title: contact.specialty || contact.title || "",
       contact_role: contact.contactRole || contact.contact_role || contact.role || "",
-      email: contact.email || "",
-      phone: contact.phone || "",
+      email: channelsRestricted ? "" : contact.email || "",
+      phone: channelsRestricted ? "" : contact.phone || "",
+      contactChannelAccess,
       linkedin: contact.linkedin || "",
       priority: contact.priority || "",
       owner: ownerLabels.join(", "),
@@ -897,6 +908,8 @@
     const sources = Array.isArray(value.sources)
       ? value.sources.slice(0, 20).map((item) => boundedMapText(item, 2_000)).filter(Boolean)
       : boundedMapText(value.sources, 4_000);
+    const contactChannelAccess = normalizeContactChannelAccess(value.contactChannelAccess);
+    const channelsRestricted = contactChannelAccess === "restricted";
     return {
       id,
       name: text("name", 300),
@@ -907,8 +920,9 @@
       organization: text("organization", 300),
       topic: text("topic", 1_000),
       priority: text("priority", 80),
-      email: text("email", 320),
-      phone: text("phone", 120),
+      email: channelsRestricted ? "" : text("email", 320),
+      phone: channelsRestricted ? "" : text("phone", 120),
+      contactChannelAccess,
       linkedin: safeNavigationUrl(value.linkedin),
       location: text("location", 300),
       city: text("city", 160),
@@ -1263,8 +1277,10 @@
 
   function missingEntryFields(entry){
     const missing = [];
-    if (!hasValue(entry.email)) missing.push("E-Mail");
-    if (!hasValue(entry.phone)) missing.push("Telefon");
+    if (!contactChannelsRestricted(entry)) {
+      if (!hasValue(entry.email)) missing.push("E-Mail");
+      if (!hasValue(entry.phone)) missing.push("Telefon");
+    }
     if (!hasValue(entry.linkedin)) missing.push("LinkedIn");
     if (!hasValue(entry.person_title)) missing.push("Fachrichtung");
     if (!ownerValuesForEntry(entry).length) missing.push("Owner");
@@ -1284,8 +1300,9 @@
 
   function detailLineHtml(label, value, options = {}){
     const empty = options.empty || !hasValue(String(value || "").replace(/<[^>]+>/g, ""));
+    const restricted = options.restricted === true;
     return `
-      <div class="detail-line ${empty ? "detail-line--empty" : ""}">
+      <div class="detail-line${empty ? " detail-line--empty" : ""}${restricted ? " detail-line--restricted" : ""}">
         <span class="detail-line__label">${escapeHtml(label)}</span>
         <span class="detail-line__value">${value || escapeHtml(options.emptyLabel || "Nicht hinterlegt")}</span>
       </div>
@@ -1297,7 +1314,10 @@
     return detailLineHtml(label, text, { ...options, empty: !hasValue(value) });
   }
 
-  function detailContactLine(label, value, href = ""){
+  function detailContactLine(label, value, href = "", options = {}){
+    if (options.restricted === true) {
+      return detailLineHtml(label, escapeHtml("Nur für Owner sichtbar"), { restricted: true });
+    }
     const present = hasValue(value);
     const safeHref = safeNavigationUrl(href);
     const content = present && safeHref
@@ -1448,8 +1468,8 @@
           <section ${mapDetailPanelAttrs("contact", activeTab)} id="map-detail-contactways">
             <h4 class="detail-section-title">Kontakt</h4>
             <div class="detail-line-list">
-              ${detailContactLine("E-Mail", entry.email, entry.email ? `mailto:${entry.email}` : "")}
-              ${detailContactLine("Telefon", entry.phone, entry.phone ? `tel:${entry.phone}` : "")}
+              ${detailContactLine("E-Mail", entry.email, entry.email ? `mailto:${entry.email}` : "", { restricted: contactChannelsRestricted(entry) })}
+              ${detailContactLine("Telefon", entry.phone, entry.phone ? `tel:${entry.phone}` : "", { restricted: contactChannelsRestricted(entry) })}
               ${detailContactLine("LinkedIn", entry.linkedin ? "Profil öffnen" : "", entry.linkedin)}
               ${detailContactLine("Website", entry.url, entry.url)}
             </div>

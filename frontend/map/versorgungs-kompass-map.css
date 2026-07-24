@@ -2033,6 +2033,15 @@
       font-weight: 650;
     }
 
+    .map-detail-panel .detail-line--restricted {
+      background: #f6f8fc;
+    }
+
+    .map-detail-panel .detail-line--restricted .detail-line__value {
+      color: #66708f;
+      font-weight: 650;
+    }
+
     .map-detail-panel .detail-line__value a {
       color: var(--primary);
       text-decoration: none;

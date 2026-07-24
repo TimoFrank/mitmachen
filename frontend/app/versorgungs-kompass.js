@@ -1,7 +1,25 @@
       const XLSX_SCRIPT_SRC = "../vendor/xlsx/xlsx.bundle.js";
       const IS_PUBLIC_DEMO_PROFILE = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo"
         && window.VERSORGUNGS_COMPASS_CONFIG?.authMode === "anonymous-demo";
+      const OWNER_ONLY_CONTACT_CHANNELS = IS_PUBLIC_DEMO_PROFILE
+        && window.VERSORGUNGS_COMPASS_CONFIG?.capabilities?.ownerOnlyContactChannels === true;
       let xlsxLoadPromise = null;
+
+      function contactChannelsRestricted(contact = {}) {
+        return OWNER_ONLY_CONTACT_CHANNELS && contact.contactChannelAccess === "restricted";
+      }
+
+      function accessibleContactEmail(contact = {}) {
+        return contactChannelsRestricted(contact) ? "" : String(contact.email || "").trim();
+      }
+
+      function accessibleContactPhone(contact = {}) {
+        return contactChannelsRestricted(contact) ? "" : String(contact.phone || "").trim();
+      }
+
+      function contactChannelRestrictedMarkup() {
+        return `<span class="contact-channel-restricted"><span aria-hidden="true">🔒</span> Nur für Owner sichtbar</span>`;
+      }
 
       function ensureXlsxLoaded() {
         if (window.XLSX) return Promise.resolve(window.XLSX);
@@ -2314,7 +2332,7 @@
         const email = String(registration.email || "").trim().toLowerCase();
         const organizationName = normalizeOrganizationName(registration.organization || "");
         const postalCode = registrationPostalCode(registration);
-        const contactMatch = contacts.some((contact) => email && String(contact.email || "").trim().toLowerCase() === email);
+        const contactMatch = contacts.some((contact) => email && accessibleContactEmail(contact).toLowerCase() === email);
         const organizationMatch = organizations.some((organization) => {
           if (!organizationName || normalizeOrganizationName(organization.name) !== organizationName) return false;
           const organizationPostalCode = String(organization.postalCode || organization.postal_code || "").trim();
@@ -2507,7 +2525,7 @@
         const linkContactOptions = [...contacts]
           .sort((left, right) => String(left.displayName || left.name || "").localeCompare(String(right.displayName || right.name || ""), "de"))
           .map((contact) => {
-            const label = [contact.displayName || contact.name, contact.organization, contact.email].filter(Boolean).join(" · ");
+            const label = [contact.displayName || contact.name, contact.organization, accessibleContactEmail(contact)].filter(Boolean).join(" · ");
             return `<option value="${escapeHtml(contact.id)}">${escapeHtml(label)}</option>`;
           }).join("");
         if (activeRegistrationId !== registration.id) registrationDetailTab = "contact";
@@ -2711,7 +2729,7 @@
           return;
         }
         const duplicate = contacts.find((contact) => {
-          const sameEmail = registration.email && String(contact.email || "").toLowerCase() === registration.email.toLowerCase();
+          const sameEmail = registration.email && accessibleContactEmail(contact).toLowerCase() === registration.email.toLowerCase();
           const sameName = registrationDisplayName(registration)
             && String(contact.displayName || contact.name || "").trim().toLowerCase() === registrationDisplayName(registration).trim().toLowerCase();
           const sameOrganization = registration.organization
@@ -4580,6 +4598,9 @@
           nextStep: entry.nextStep || "",
           email: entry.email || "",
           phone: entry.phone || "",
+          ...(["owner", "restricted"].includes(entry.contactChannelAccess)
+            ? { contactChannelAccess: entry.contactChannelAccess }
+            : {}),
           linkedin: entry.linkedin || "",
           mitmachenConsentStatus: normalizeMitmachenConsentStatus(entry.mitmachenConsentStatus || entry.mitmachen_consent_status || "clarification_needed"),
           mitmachenConsentEffectiveAt: entry.mitmachenConsentEffectiveAt || entry.mitmachen_consent_effective_at || "",
@@ -8356,6 +8377,7 @@
               initials: profile.initials || "",
               team: profile.team || "",
               avatarUrl: profileAvatarUrl(profile),
+              status: String(profile.status || "active").toLowerCase(),
               updatedAt: profile.updated_at || profile.updatedAt || ""
             };
           })
@@ -8363,6 +8385,7 @@
           .sort((a, b) => a.label.localeCompare(b.label, "de"));
         teamDirectoryState = "ready";
         syncOwnerOptionsFromProfiles();
+        renderDemoProfileSwitcher();
       }
 
       function ensureOwnerProfile(profile = null) {
@@ -8377,6 +8400,7 @@
           initials: profile.initials || "",
           team: profile.team || "",
           avatarUrl: profileAvatarUrl(profile),
+          status: String(profile.status || "active").toLowerCase(),
           updatedAt: profile.updated_at || profile.updatedAt || ""
         };
         ownerProfiles = [
@@ -8384,6 +8408,39 @@
           ...ownerProfiles.filter((item) => item.id !== normalizedProfile.id)
         ].sort((a, b) => a.label.localeCompare(b.label, "de"));
         syncOwnerOptionsFromProfiles();
+      }
+
+      function renderDemoProfileSwitcher() {
+        const accountSection = document.querySelector('[data-sidebar-section="account"]');
+        let switcher = accountSection?.querySelector("[data-demo-profile-switcher]");
+        if (!OWNER_ONLY_CONTACT_CHANNELS || !accountSection) {
+          switcher?.remove();
+          return;
+        }
+        if (!switcher) {
+          switcher = document.createElement("div");
+          switcher.className = "demo-profile-switcher";
+          switcher.dataset.demoProfileSwitcher = "true";
+          const sectionLabel = accountSection.querySelector(".sidebar-section-label");
+          sectionLabel?.insertAdjacentElement("afterend", switcher);
+        }
+        const profiles = ownerProfiles.filter((profile) => !["archived", "inactive", "disabled"].includes(profile.status));
+        const requestedProfileId = new URL(window.location.href).searchParams.get("demoProfile") || "";
+        const selectedProfileId = currentProfile?.id || requestedProfileId;
+        switcher.innerHTML = `
+          <label for="demo-profile-select">Demo-Profil</label>
+          <select id="demo-profile-select" aria-describedby="demo-profile-help">
+            ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(profile.label)} · ${escapeHtml(roleLabel(profile.role))}</option>`).join("")}
+          </select>
+          <small id="demo-profile-help">Synthetische Demo · Ansicht wechseln</small>
+        `;
+        switcher.querySelector("select")?.addEventListener("change", (event) => {
+          const profileId = String(event.currentTarget.value || "").trim();
+          if (!profiles.some((profile) => profile.id === profileId)) return;
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set("demoProfile", profileId);
+          window.location.replace(nextUrl.toString());
+        });
       }
 
       function isLegacyOwner(value) {
@@ -9030,6 +9087,7 @@
         }
         if (accountPermissionNote) accountPermissionNote.textContent = permissionText(role);
         greetingLabel = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
+        renderDemoProfileSwitcher();
         renderViewChrome();
         renderProfileOwnerSummary();
         renderTeamView();
@@ -14551,7 +14609,7 @@
               const organization = hospitationOrganization(hospitation);
               return [
                 hospitationContextLabel(hospitation),
-                contact?.email,
+                accessibleContactEmail(contact),
                 organization?.name,
                 hospitationFreeTextContactName(hospitation),
                 hospitationFreeTextOrganizationName(hospitation),
@@ -25472,8 +25530,8 @@
           contact.organization || "",
           normalizeCategory(contact.category || ""),
           contact.specialty || "",
-          contact.email || "",
-          contact.phone || "",
+          accessibleContactEmail(contact),
+          accessibleContactPhone(contact),
           participant.invitationStatus || "Eingeladen",
           participant.participantRole || "",
           participant.notes || "",
@@ -25687,7 +25745,7 @@
         if (!importedRows.length) throw new Error("Die Excel-Datei enthält keine ausgefüllten Kontaktzeilen.");
 
         const byId = new Map(contacts.filter((contact) => contact.status !== "archived").map((contact) => [String(contact.id), contact]));
-        const byEmail = uniqueFormatContactLookup((contact) => normalizeImportKey(contact.email));
+        const byEmail = uniqueFormatContactLookup((contact) => normalizeImportKey(accessibleContactEmail(contact)));
         const byNameOrganization = uniqueFormatContactLookup((contact) => `${normalizeImportKey(contact.name)}|${normalizeImportKey(contact.organization)}`);
         const invitationStatusByKey = new Map(
           ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"]
@@ -26349,8 +26407,7 @@
           contact.organization,
           contact.category,
           contact.location || contact.city,
-          contact.email,
-          contact.phone,
+          ...(contactChannelsRestricted(contact) ? [] : [accessibleContactEmail(contact), accessibleContactPhone(contact)]),
           contactOwnerValues(contact).length ? "owner" : ""
         ].filter((value) => !hasMeaningfulValue(value)).length;
         if (missing === 0) return { label: "Vollständig", tone: "good" };
@@ -26360,8 +26417,12 @@
 
       function contactMissingFields(contact) {
         return [
-          { value: "email", label: "E-Mail", present: hasMeaningfulValue(contact.email) },
-          { value: "phone", label: "Telefon", present: hasMeaningfulValue(contact.phone) },
+          ...(contactChannelsRestricted(contact)
+            ? []
+            : [
+                { value: "email", label: "E-Mail", present: hasMeaningfulValue(accessibleContactEmail(contact)) },
+                { value: "phone", label: "Telefon", present: hasMeaningfulValue(accessibleContactPhone(contact)) }
+              ]),
           { value: "owner", label: "Owner", present: contactOwnerValues(contact).length > 0 },
           { value: "organization", label: "Organisation", present: hasMeaningfulValue(contact.organization) },
           { value: "specialty", label: "Fachrichtung", present: hasMeaningfulValue(contact.specialty) }
@@ -29707,8 +29768,8 @@
 
       function detailMissingFields(contact) {
         const fields = [];
-        if (!hasMeaningfulValue(contact.email)) fields.push("E-Mail");
-        if (!hasMeaningfulValue(contact.phone)) fields.push("Telefon");
+        if (!contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactEmail(contact))) fields.push("E-Mail");
+        if (!contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactPhone(contact))) fields.push("Telefon");
         if (!hasMeaningfulValue(contact.linkedin)) fields.push("LinkedIn");
         if (!hasMeaningfulValue(contact.specialty)) fields.push("Fachrichtung");
         if (!hasMeaningfulValue(contact.lastExchange)) fields.push("Letzter Austausch");
@@ -29760,8 +29821,8 @@
         `;
       }
 
-      function sectionTitleMarkup(title, section, editingDetail) {
-        const editable = canEditContacts() && !editingDetail;
+      function sectionTitleMarkup(title, section, editingDetail, options = {}) {
+        const editable = canEditContacts() && !editingDetail && !options.locked;
         const editLabels = {
           overview: "Stammdaten bearbeiten",
           contactways: "Kontaktwege bearbeiten"
@@ -29914,8 +29975,9 @@
         const websiteValue = meaningfulOrEmpty(contact.url) || (sourceText && isValidOptionalUrl(sourceText) ? sourceText : "");
         return `
           <div class="detail-edit-grid">
-            ${detailEditField("E-Mail", "email", contact.email, { inputType: "email", placeholder: "name@organisation.example.invalid" })}
-            ${detailEditField("Telefon", "phone", contact.phone, { inputType: "tel", placeholder: "+49 ..." })}
+            ${contactChannelsRestricted(contact)
+              ? `${detailLineHtml("E-Mail", contactChannelRestrictedMarkup())}${detailLineHtml("Telefon", contactChannelRestrictedMarkup())}`
+              : `${detailEditField("E-Mail", "email", accessibleContactEmail(contact), { inputType: "email", placeholder: "name@organisation.example.invalid" })}${detailEditField("Telefon", "phone", accessibleContactPhone(contact), { inputType: "tel", placeholder: "+49 ..." })}`}
             ${detailEditField("LinkedIn", "linkedin", contact.linkedin, { inputType: "url", placeholder: "https://..." })}
             ${detailEditField("Website", "url", websiteValue, { inputType: "url", placeholder: "https://..." })}
           </div>
@@ -30545,9 +30607,9 @@
         const activeItems = contacts.filter((contact) => contact.status !== "archived");
         const duplicateItems = duplicateSuspects(activeItems);
         const checks = [
-          { key: "missing-phone", label: "Telefon", hint: "fehlt", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !hasMeaningfulValue(contact.phone)) },
+          { key: "missing-phone", label: "Telefon", hint: "fehlt", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactPhone(contact))) },
           { key: "missing-specialty", label: "Fachrichtung", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.specialty)) },
-          { key: "missing-email", label: "E-Mail", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.email)) },
+          { key: "missing-email", label: "E-Mail", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactEmail(contact))) },
           { key: "unclear-name", label: "Kontaktnamen", hint: "prüfen", iconClass: "", contacts: items.filter(isUnclearName) },
           { key: "unclear-organization", label: "Organisationen", hint: "prüfen", iconClass: "quality-icon--amber", contacts: items.filter(isUnclearOrganization) },
           { key: "missing-owner", label: "Owner", hint: "fehlt", iconClass: "quality-icon--amber", contacts: items.filter(isMissingOwner) },
@@ -30684,7 +30746,7 @@
         };
 
         items.forEach((contact) => {
-          const email = normalizedQualityKey(contact.email);
+          const email = normalizedQualityKey(accessibleContactEmail(contact));
           const name = normalizedQualityKey(contact.name || contact.displayName);
           const organization = normalizedQualityKey(contact.organization);
           const city = normalizedQualityKey(contact.city);
@@ -30809,7 +30871,8 @@
             label: "E-Mail",
             iconKey: "missing-email",
             required: false,
-            isComplete: (contact) => hasMeaningfulValue(contact.email)
+            appliesTo: (contact) => !contactChannelsRestricted(contact),
+            isComplete: (contact) => hasMeaningfulValue(accessibleContactEmail(contact))
           },
           {
             key: "phone",
@@ -30818,7 +30881,8 @@
             label: "Telefon",
             iconKey: "missing-phone",
             required: false,
-            isComplete: (contact) => hasMeaningfulValue(contact.phone)
+            appliesTo: (contact) => !contactChannelsRestricted(contact),
+            isComplete: (contact) => hasMeaningfulValue(accessibleContactPhone(contact))
           }
         ];
       }
@@ -30829,11 +30893,12 @@
         const duplicateItems = duplicateSuspects(activeItems);
         const staleCriticalItems = activeItems.filter((contact) => isContactStale(contact, 12));
         const staleOpenItems = activeItems.filter((contact) => isContactStale(contact, 6) && !isContactStale(contact, 12));
-        const total = Math.max(activeItems.length, 1);
         const fieldItems = careQualityFieldRules().flatMap((rule) => {
-          const completeContacts = activeItems.filter(rule.isComplete);
-          const missingContacts = activeItems.filter((contact) => !rule.isComplete(contact));
-          const completion = Math.round((completeContacts.length / total) * 100);
+          const applicableItems = rule.appliesTo ? activeItems.filter(rule.appliesTo) : activeItems;
+          const completeContacts = applicableItems.filter(rule.isComplete);
+          const missingContacts = applicableItems.filter((contact) => !rule.isComplete(contact));
+          const ruleTotal = Math.max(applicableItems.length, 1);
+          const completion = Math.round((completeContacts.length / ruleTotal) * 100);
           const entries = [];
           if (missingContacts.length) {
             entries.push({
@@ -30972,8 +31037,8 @@
         const ruleKey = item.ruleKey || item.key.replace(/^missing-/, "");
         const field =
           ruleKey === "owner" ? `<select class="care-queue-field" data-care-inline-field="owner" data-care-inline-contact="${id}">${buildOwnerSelectOptions(contact.ownerId || contact.owner || "")}</select>`
-          : ruleKey === "email" ? `<input class="care-queue-field" data-care-inline-field="email" data-care-inline-contact="${id}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail ergänzen" />`
-          : ruleKey === "phone" ? `<input class="care-queue-field" data-care-inline-field="phone" data-care-inline-contact="${id}" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon ergänzen" />`
+          : ruleKey === "email" ? contactChannelsRestricted(contact) ? contactChannelRestrictedMarkup() : `<input class="care-queue-field" data-care-inline-field="email" data-care-inline-contact="${id}" type="email" value="${escapeHtml(accessibleContactEmail(contact))}" placeholder="E-Mail ergänzen" />`
+          : ruleKey === "phone" ? contactChannelsRestricted(contact) ? contactChannelRestrictedMarkup() : `<input class="care-queue-field" data-care-inline-field="phone" data-care-inline-contact="${id}" type="tel" value="${escapeHtml(accessibleContactPhone(contact))}" placeholder="Telefon ergänzen" />`
           : ruleKey === "specialty" ? `<select class="care-queue-field" data-care-inline-field="specialty" data-care-inline-contact="${id}">${buildSpecialtySelectOptions(contact.specialty || "")}</select>`
           : ruleKey === "location" ? `
               <span class="care-queue-field-grid">
@@ -31045,7 +31110,9 @@
                         <td>${escapeHtml(contact.displayName || contact.name)}</td>
                         <td>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</td>
                         <td>${escapeHtml(contactOwnerDisplayNames(contact).join(", ") || "Kein Owner")}</td>
-                        <td><input data-care-email="${escapeHtml(contact.id)}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen" /></td>
+                        <td>${contactChannelsRestricted(contact)
+                          ? contactChannelRestrictedMarkup()
+                          : `<input data-care-email="${escapeHtml(contact.id)}" type="email" value="${escapeHtml(accessibleContactEmail(contact))}" placeholder="E-Mail eintragen" />`}</td>
                         <td>${escapeHtml(specialtyLabel(contact) || "-")}</td>
                         <td><button class="detail-link detail-link--compact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">Öffnen</button></td>
                       </tr>
@@ -32206,8 +32273,9 @@
                 organization: contact.organization || linkedOrganization?.name || "",
                 topic: contact.topic,
                 priority: contact.priority,
-                email: contact.email,
-                phone: contact.phone,
+                email: accessibleContactEmail(contact),
+                phone: accessibleContactPhone(contact),
+                contactChannelAccess: contact.contactChannelAccess || "",
                 linkedin: contact.linkedin,
                 location: contact.location || [linkedOrganization?.postalCode, linkedOrganization?.city].filter(Boolean).join(" "),
                 city: contact.city || linkedOrganization?.city || "",
@@ -33002,14 +33070,15 @@
               </section>
 
               <section ${panelAttrs("contact")} id="detail-contactways">
-                ${sectionTitleMarkup("Kontakt", "contactways", editingDetail)}
+                ${sectionTitleMarkup("Kontakt", "contactways", editingDetail, { locked: !expertScope && contactChannelsRestricted(contact) })}
                 <div class="detail-line-list">
                   ${
                     editingContactways
                       ? renderContactwaysEditGrid(contact)
                       : `
-                        ${detailContactLine("E-Mail", meaningfulOrEmpty(contact.email), `mailto:${meaningfulOrEmpty(contact.email)}`)}
-                        ${detailContactLine("Telefon", meaningfulOrEmpty(contact.phone), `tel:${meaningfulOrEmpty(contact.phone)}`)}
+                        ${!expertScope && contactChannelsRestricted(contact)
+                          ? `${detailLineHtml("E-Mail", contactChannelRestrictedMarkup())}${detailLineHtml("Telefon", contactChannelRestrictedMarkup())}`
+                          : `${detailContactLine("E-Mail", accessibleContactEmail(contact), accessibleContactEmail(contact) ? `mailto:${accessibleContactEmail(contact)}` : "")}${detailContactLine("Telefon", accessibleContactPhone(contact), accessibleContactPhone(contact) ? `tel:${accessibleContactPhone(contact)}` : "")}`}
                         ${detailContactLine("LinkedIn", linkedinUrl ? "Profil öffnen" : "", linkedinUrl)}
                         ${detailContactLine("Website", websiteText, websiteHref)}
                       `
@@ -33370,6 +33439,31 @@
         syncBodyScrollLock();
       }
 
+      function configureEditorContactChannelAccess(contact = null) {
+        const restricted = editorScope === "care" && Boolean(contact) && contactChannelsRestricted(contact);
+        const contactwaysStep = editorForm.querySelector('[data-editor-step="contactways"]');
+        const contactwaysGrid = contactwaysStep?.querySelector(".editor-grid");
+        let notice = contactwaysGrid?.querySelector("[data-contact-channel-restriction]");
+        ["email", "phone"].forEach((fieldName) => {
+          const input = editorForm.elements[fieldName];
+          const field = input?.closest(".editor-field");
+          if (input) {
+            input.disabled = restricted;
+            if (restricted) input.value = "";
+          }
+          if (field) field.hidden = restricted;
+        });
+        if (restricted && contactwaysGrid && !notice) {
+          notice = document.createElement("div");
+          notice.className = "editor-field editor-field--full contact-channel-editor-restriction";
+          notice.dataset.contactChannelRestriction = "true";
+          notice.innerHTML = `${contactChannelRestrictedMarkup()}<small>E-Mail und Telefon können nur von den Ownern dieses Kontakts gelesen und bearbeitet werden.</small>`;
+          contactwaysGrid.prepend(notice);
+        } else if (!restricted) {
+          notice?.remove();
+        }
+      }
+
       function openEditor(contact = null, options = {}) {
         if (!canEditContacts()) {
           showPermissionDenied(viewerCreateDisabledMessage(contact ? "das Bearbeiten von Kontakten" : "das Anlegen neuer Kontakte"));
@@ -33422,9 +33516,10 @@
         editorForm.elements.priority.value = contact?.priority || "Mittel";
         editorForm.elements.organization.value = selectedOrganizationName;
         updateOrganizationSuggestions(selectedOrganizationName);
-        editorForm.elements.email.value = contact?.email || "";
-        editorForm.elements.phone.value = contact?.phone || "";
+        editorForm.elements.email.value = accessibleContactEmail(contact);
+        editorForm.elements.phone.value = accessibleContactPhone(contact);
         editorForm.elements.linkedin.value = contact?.linkedin || "";
+        configureEditorContactChannelAccess(contact);
         const selectedOwnerIds = contact ? contactOwnerIds(contact) : normalizeOwnerIds(currentProfile?.id || "");
         ensureOwnerProfile(currentProfile);
         renderEditorOwnerPicker(selectedOwnerIds);
@@ -33576,8 +33671,8 @@
             contact.topic,
             normalizeThemes(contact.themes).join(" | "),
             contact.priority,
-            contact.email,
-            contact.phone,
+            accessibleContactEmail(contact),
+            accessibleContactPhone(contact),
             contact.linkedin,
             contact.location,
             contact.city,
@@ -35512,17 +35607,23 @@
         }
 
         const sanitized = sanitizeContact(entry, contacts.length);
+        const contactForWrite = { ...sanitized };
+        delete contactForWrite.contactChannelAccess;
+        if (existingContact && contactChannelsRestricted(existingContact)) {
+          delete contactForWrite.email;
+          delete contactForWrite.phone;
+        }
 
         let savedContact;
         try {
           if (editorMode === "edit" && editingId) {
-            savedContact = await window.dataService.updateContact(editingId, sanitized);
+            savedContact = await window.dataService.updateContact(editingId, contactForWrite);
             contacts = contacts.map((contact, index) =>
               contact.id === editingId ? sanitizeContact({ ...contact, ...savedContact, id: editingId }, index) : contact
             );
             contactHistoryCache.delete(editingId);
           } else {
-            savedContact = await window.dataService.createContact(sanitized);
+            savedContact = await window.dataService.createContact(contactForWrite);
             contacts = [sanitizeContact(savedContact, contacts.length), ...contacts];
             contactHistoryCache.delete(savedContact.id);
           }
