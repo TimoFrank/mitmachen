@@ -560,6 +560,23 @@
     .state-heat-tooltip::before {
       display: none;
     }
+    .state-hover-tooltip {
+      padding: 6px 8px;
+    }
+    .state-hover-tooltip__name,
+    .state-hover-tooltip__count {
+      display: block;
+      white-space: nowrap;
+    }
+    .state-hover-tooltip__name {
+      font-weight: 800;
+    }
+    .state-hover-tooltip__count {
+      margin-top: 1px;
+      color: rgba(1,14,82,0.66);
+      font-size: 10px;
+      font-weight: 650;
+    }
     .map-point-tooltip {
       border: 1px solid var(--gematik-navy);
       border-radius: 10px;
