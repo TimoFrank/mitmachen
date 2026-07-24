@@ -104,14 +104,19 @@ jobs:
             -f "$GCP_VALUES_PATH" \
             --set-string image.repository=europe-west3-docker.pkg.dev/example-project/versorgungs-kompass/versorgungs-kompass-api \
             --set-string image.tag="$IMAGE_TAG" \
-            --set-string ingress.host=pre-gematik.example.invalid \
-            --set-string "ingress.aliasHosts[0]=legacy-pre-gematik.example.invalid" \
+            --set-string ingress.host=versorgungs-kompass.de \
+            --set-string "ingress.aliasHosts[0]=www.versorgungs-kompass.de" \
+            --set-string "ingress.aliasHosts[1]=mitmachen.timo-frank.de" \
+            --set-string "ingress.aliasHosts[2]=pre-gematik.versorgungs-kompass.timo-frank.de" \
             --set-string "ingress.annotations.kubernetes\\.io/ingress\\.global-static-ip-name=example-static-ip" \
-            --set-string gke.managedCertificate.name=versorgungs-kompass-api \
-            --set-string "gke.managedCertificate.domains[0]=pre-gematik.example.invalid" \
+            --set-string gke.managedCertificate.name=versorgungs-kompass-domain \
+            --set-string "gke.managedCertificate.domains[0]=versorgungs-kompass.de" \
+            --set-string "gke.managedCertificate.domains[1]=www.versorgungs-kompass.de" \
             --set-string "gke.managedCertificate.additionalCertificates[0].name=versorgungs-kompass-mitmachen" \
-            --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=legacy-pre-gematik.example.invalid" \
-            --set-string config.allowedOrigin=https://pre-gematik.example.invalid \
+            --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=mitmachen.timo-frank.de" \
+            --set-string "gke.managedCertificate.additionalCertificates[1].name=versorgungs-kompass-api" \
+            --set-string "gke.managedCertificate.additionalCertificates[1].domains[0]=pre-gematik.versorgungs-kompass.timo-frank.de" \
+            --set-string config.allowedOrigin=https://versorgungs-kompass.de \
             --set-string config.apiAuthMode=iap \
             --set-string config.iapJwtAudience=/projects/123456789/global/backendServices/123456789 \
             --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName=example-iap-oauth \
@@ -120,8 +125,12 @@ jobs:
             --set-string database.ssl=disable \
             --set-string frontend.bucketName=example-frontend \
             --set-string frontend.contentRevision="$IMAGE_TAG" \
-            --set-string "frontend.hostRedirects[0].host=legacy-pre-gematik.example.invalid" \
-            --set-string "frontend.hostRedirects[0].targetOrigin=https://pre-gematik.example.invalid" \
+            --set-string "frontend.hostRedirects[0].host=www.versorgungs-kompass.de" \
+            --set-string "frontend.hostRedirects[0].targetOrigin=https://versorgungs-kompass.de" \
+            --set-string "frontend.hostRedirects[1].host=mitmachen.timo-frank.de" \
+            --set-string "frontend.hostRedirects[1].targetOrigin=https://versorgungs-kompass.de" \
+            --set-string "frontend.hostRedirects[2].host=pre-gematik.versorgungs-kompass.timo-frank.de" \
+            --set-string "frontend.hostRedirects[2].targetOrigin=https://versorgungs-kompass.de" \
             --set-string gke.cloudSqlProxy.instanceConnectionName=example-project:europe-west3:example-postgres \
             --set-string gke.secretSync.projectId=example-project \
             --set-string gke.secretSync.secretName=versorgungs-kompass-postgres \
@@ -216,7 +225,6 @@ jobs:
       GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY }}
       API_BASE_URL: ${{ vars.API_BASE_URL }}
       FRONTEND_BASE_URL: ${{ vars.FRONTEND_BASE_URL }}
-      LEGACY_FRONTEND_HOST: ${{ vars.LEGACY_FRONTEND_HOST }}
       FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET }}
       DB_NAME: ${{ vars.DB_NAME }}
       DB_USER: ${{ vars.DB_USER }}
@@ -355,25 +363,22 @@ jobs:
             echo "API_BASE_URL and FRONTEND_BASE_URL must use the same origin in pre-gematik." >&2
             exit 1
           fi
-          if [[ -n "${LEGACY_FRONTEND_HOST:-}" ]]; then
-            if [[ ! "$LEGACY_FRONTEND_HOST" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]]; then
-              echo "LEGACY_FRONTEND_HOST must be a lowercase DNS host without scheme, port, path, query, or fragment." >&2
+          case "$API_BASE_URL" in
+            "https://mitmachen.timo-frank.de")
+              domain_mode="prepare"
+              ;;
+            "https://versorgungs-kompass.de")
+              domain_mode="canonical"
+              ;;
+            *)
+              echo "The approved canonical origin must be either mitmachen.timo-frank.de during certificate preparation or versorgungs-kompass.de after cutover." >&2
               exit 1
-            fi
-            if [[ "$LEGACY_FRONTEND_HOST" == "${api_host,,}" ]]; then
-              echo "LEGACY_FRONTEND_HOST must differ from the canonical API/Frontend host." >&2
-              exit 1
-            fi
-          fi
-          if [[ "$API_BASE_URL" != "https://mitmachen.timo-frank.de" ]] || \
-             [[ "$FRONTEND_BASE_URL" != "https://mitmachen.timo-frank.de" ]] || \
-             [[ "${LEGACY_FRONTEND_HOST:-}" != "pre-gematik.versorgungs-kompass.timo-frank.de" ]]; then
-            echo "mitmachen.timo-frank.de must be the canonical origin and pre-gematik.versorgungs-kompass.timo-frank.de its redirect-only legacy host." >&2
-            exit 1
-          fi
+              ;;
+          esac
 
           image_repository="${GAR_REPOSITORY}/${IMAGE_NAME}"
           echo "api_host=$api_host" >> "$GITHUB_OUTPUT"
+          echo "domain_mode=$domain_mode" >> "$GITHUB_OUTPUT"
           echo "registry_host=$registry_host" >> "$GITHUB_OUTPUT"
           echo "image_repository=$image_repository" >> "$GITHUB_OUTPUT"
 
@@ -464,6 +469,90 @@ jobs:
             --dns-endpoint
           kubectl version --client
           kubectl auth can-i get deployments --namespace "$K8S_NAMESPACE"
+
+      - name: Require DNS and active certificates before canonical cutover
+        if: ${{ steps.config.outputs.domain_mode == 'canonical' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_ip="$(gcloud compute addresses describe "$GKE_INGRESS_IP_NAME" \
+            --project "$GCP_PROJECT_ID" \
+            --global \
+            --format='value(address)')"
+          if [[ ! "$expected_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "The reserved GKE Ingress address is not a valid IPv4 address." >&2
+            exit 1
+          fi
+
+          for host in versorgungs-kompass.de www.versorgungs-kompass.de; do
+            mapfile -t ipv4_records < <(
+              dig +short A "$host" \
+                | awk '/^([0-9]{1,3}\\.){3}[0-9]{1,3}$/{print}' \
+                | sort --unique
+            )
+            if [[ "${#ipv4_records[@]}" != "1" ]] || [[ "${ipv4_records[0]}" != "$expected_ip" ]]; then
+              echo "$host must resolve exclusively to the reserved GKE Ingress IPv4 address before cutover." >&2
+              exit 1
+            fi
+            if dig +short AAAA "$host" | grep --extended-regexp --quiet '^[0-9A-Fa-f:]+$'; then
+              echo "$host must not publish an IPv6 address before cutover." >&2
+              exit 1
+            fi
+          done
+
+          certificate_state="$(kubectl --namespace "$K8S_NAMESPACE" get managedcertificate \
+            "${HELM_RELEASE}-domain" \
+            "${HELM_RELEASE}-mitmachen" \
+            "${HELM_RELEASE}-api" \
+            --output=json)"
+          if ! jq --exit-status '
+            def active_certificate($name; $domains):
+              any(.items[];
+                .metadata.name == $name and
+                ((.spec.domains | sort) == ($domains | sort)) and
+                .status.certificateStatus == "Active" and
+                ([.status.domainStatus[]? | .status == "Active"] | all)
+              );
+            active_certificate("versorgungs-kompass-domain"; ["versorgungs-kompass.de", "www.versorgungs-kompass.de"]) and
+            active_certificate("versorgungs-kompass-mitmachen"; ["mitmachen.timo-frank.de"]) and
+            active_certificate("versorgungs-kompass-api"; ["pre-gematik.versorgungs-kompass.timo-frank.de"])
+          ' <<< "$certificate_state" >/dev/null; then
+            echo "All approved ManagedCertificates must be spec-identical and Active before canonical cutover." >&2
+            exit 1
+          fi
+
+          ingress_state="$(kubectl --namespace "$K8S_NAMESPACE" get ingress \
+            "${HELM_RELEASE}-api" \
+            --output=json)"
+          if ! jq --exit-status '
+            ([.spec.rules[].host] | sort) == ([
+              "mitmachen.timo-frank.de",
+              "pre-gematik.versorgungs-kompass.timo-frank.de",
+              "versorgungs-kompass.de",
+              "www.versorgungs-kompass.de"
+            ] | sort) and
+            ((.metadata.annotations["networking.gke.io/managed-certificates"] | split(",") | sort) == ([
+              "versorgungs-kompass-api",
+              "versorgungs-kompass-domain",
+              "versorgungs-kompass-mitmachen"
+            ] | sort))
+          ' <<< "$ingress_state" >/dev/null; then
+            echo "The preparation release must expose all approved hosts and certificates before cutover." >&2
+            exit 1
+          fi
+
+          for target in https://versorgungs-kompass.de/ https://www.versorgungs-kompass.de/; do
+            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              --max-time 30 \
+              "$target")"
+            case "$status" in
+              302|401|403) ;;
+              *)
+                echo "Expected an unauthenticated IAP response for prepared host $target, received HTTP $status." >&2
+                exit 1
+                ;;
+            esac
+          done
 
       - name: Materialize and validate custom IAP OAuth credentials
         shell: bash
@@ -713,6 +802,7 @@ jobs:
         shell: bash
         env:
           API_HOST: ${{ steps.config.outputs.api_host }}
+          DOMAIN_MODE: ${{ steps.config.outputs.domain_mode }}
           IMAGE_REPOSITORY: ${{ steps.config.outputs.image_repository }}
           IMAGE_TAG: ${{ needs.validate.outputs.image_tag }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
@@ -725,29 +815,47 @@ jobs:
 
           deploy_release() {
             local iap_audience="$1"
-            local -a domain_migration_args=()
-            if [[ -n "${LEGACY_FRONTEND_HOST:-}" ]]; then
-              local primary_certificate_name=""
-              local alias_certificate_name=""
-              case "${API_HOST}|${LEGACY_FRONTEND_HOST}" in
-                "mitmachen.timo-frank.de|pre-gematik.versorgungs-kompass.timo-frank.de")
-                  primary_certificate_name="${HELM_RELEASE}-mitmachen"
-                  alias_certificate_name="${HELM_RELEASE}-api"
-                  ;;
-                *)
-                  echo "The canonical and legacy domains do not match the approved pre-gematik certificate pair." >&2
-                  return 1
-                  ;;
-              esac
-              domain_migration_args=(
-                --set-string "ingress.aliasHosts[0]=${LEGACY_FRONTEND_HOST}"
-                --set-string "frontend.hostRedirects[0].host=${LEGACY_FRONTEND_HOST}"
-                --set-string "frontend.hostRedirects[0].targetOrigin=${FRONTEND_BASE_URL}"
-                --set-string "gke.managedCertificate.name=${primary_certificate_name}"
-                --set-string "gke.managedCertificate.additionalCertificates[0].name=${alias_certificate_name}"
-                --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=${LEGACY_FRONTEND_HOST}"
-              )
-            fi
+            local -a domain_migration_args=(
+              --set-string "gke.managedCertificate.name=${HELM_RELEASE}-domain"
+              --set-string "gke.managedCertificate.domains[0]=versorgungs-kompass.de"
+              --set-string "gke.managedCertificate.domains[1]=www.versorgungs-kompass.de"
+              --set-string "gke.managedCertificate.additionalCertificates[0].name=${HELM_RELEASE}-mitmachen"
+              --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=mitmachen.timo-frank.de"
+              --set-string "gke.managedCertificate.additionalCertificates[1].name=${HELM_RELEASE}-api"
+              --set-string "gke.managedCertificate.additionalCertificates[1].domains[0]=pre-gematik.versorgungs-kompass.timo-frank.de"
+            )
+            case "$API_HOST" in
+              "mitmachen.timo-frank.de")
+                domain_migration_args+=(
+                  --set-string "ingress.aliasHosts[0]=pre-gematik.versorgungs-kompass.timo-frank.de"
+                  --set-string "ingress.aliasHosts[1]=versorgungs-kompass.de"
+                  --set-string "ingress.aliasHosts[2]=www.versorgungs-kompass.de"
+                  --set-string "frontend.hostRedirects[0].host=pre-gematik.versorgungs-kompass.timo-frank.de"
+                  --set-string "frontend.hostRedirects[0].targetOrigin=${FRONTEND_BASE_URL}"
+                  --set-string "frontend.hostRedirects[1].host=versorgungs-kompass.de"
+                  --set-string "frontend.hostRedirects[1].targetOrigin=${FRONTEND_BASE_URL}"
+                  --set-string "frontend.hostRedirects[2].host=www.versorgungs-kompass.de"
+                  --set-string "frontend.hostRedirects[2].targetOrigin=${FRONTEND_BASE_URL}"
+                )
+                ;;
+              "versorgungs-kompass.de")
+                domain_migration_args+=(
+                  --set-string "ingress.aliasHosts[0]=www.versorgungs-kompass.de"
+                  --set-string "ingress.aliasHosts[1]=mitmachen.timo-frank.de"
+                  --set-string "ingress.aliasHosts[2]=pre-gematik.versorgungs-kompass.timo-frank.de"
+                  --set-string "frontend.hostRedirects[0].host=www.versorgungs-kompass.de"
+                  --set-string "frontend.hostRedirects[0].targetOrigin=${FRONTEND_BASE_URL}"
+                  --set-string "frontend.hostRedirects[1].host=mitmachen.timo-frank.de"
+                  --set-string "frontend.hostRedirects[1].targetOrigin=${FRONTEND_BASE_URL}"
+                  --set-string "frontend.hostRedirects[2].host=pre-gematik.versorgungs-kompass.timo-frank.de"
+                  --set-string "frontend.hostRedirects[2].targetOrigin=${FRONTEND_BASE_URL}"
+                )
+                ;;
+              *)
+                echo "API_HOST does not match an approved pre-gematik domain mode." >&2
+                return 1
+                ;;
+            esac
             helm upgrade --install "$HELM_RELEASE" "$CHART_PATH" \
               --namespace "$K8S_NAMESPACE" \
               --create-namespace \
@@ -761,7 +869,6 @@ jobs:
               --set-string image.digest="$IMAGE_DIGEST" \
               --set-string ingress.host="$API_HOST" \
               --set-string "ingress.annotations.kubernetes\\.io/ingress\\.global-static-ip-name=${GKE_INGRESS_IP_NAME}" \
-              --set-string "gke.managedCertificate.domains[0]=${API_HOST}" \
               --set-string config.allowedOrigin="$FRONTEND_BASE_URL" \
               --set-string config.apiAuthMode=iap \
               --set-string config.iapJwtAudience="$iap_audience" \
@@ -1190,6 +1297,46 @@ jobs:
           grep --fixed-strings --quiet 'authMode: "iap"' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
           grep --fixed-strings --quiet 'requireApiGateway: true' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
 
+          case "$API_BASE_URL" in
+            "https://mitmachen.timo-frank.de")
+              redirect_hosts=(
+                pre-gematik.versorgungs-kompass.timo-frank.de
+                versorgungs-kompass.de
+                www.versorgungs-kompass.de
+              )
+              ;;
+            "https://versorgungs-kompass.de")
+              redirect_hosts=(
+                www.versorgungs-kompass.de
+                mitmachen.timo-frank.de
+                pre-gematik.versorgungs-kompass.timo-frank.de
+              )
+              ;;
+            *)
+              echo "The deployed origin is not an approved domain mode." >&2
+              exit 1
+              ;;
+          esac
+          probe_path="/domain-cutover-probe?source=deployment"
+          for redirect_host in "${redirect_hosts[@]}"; do
+            redirect_headers="$(curl --silent --show-error --head \
+              --header "Host: ${redirect_host}" \
+              "http://127.0.0.1:18082${probe_path}")"
+            redirect_status="$(awk 'NR == 1 { print $2 }' <<< "$redirect_headers")"
+            redirect_location="$(awk '
+              tolower($1) == "location:" {
+                sub(/^[^:]+:[[:space:]]*/, "")
+                sub(/\r$/, "")
+                print
+              }
+            ' <<< "$redirect_headers")"
+            if [[ "$redirect_status" != "308" ]] || \
+               [[ "$redirect_location" != "${FRONTEND_BASE_URL}${probe_path}" ]]; then
+              echo "Redirect contract failed for ${redirect_host}: HTTP ${redirect_status}, Location ${redirect_location}." >&2
+              exit 1
+            fi
+          done
+
           spoof_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --header 'x-goog-authenticated-user-email: accounts.google.com:spoof@example.invalid' \
             --header 'x-goog-authenticated-user-id: accounts.google.com:spoof' \
@@ -1204,7 +1351,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for target in "${FRONTEND_BASE_URL}/" "${API_BASE_URL}/api/healthz"; do
+          targets=(
+            "https://versorgungs-kompass.de/"
+            "https://www.versorgungs-kompass.de/"
+            "https://mitmachen.timo-frank.de/"
+            "https://pre-gematik.versorgungs-kompass.timo-frank.de/"
+            "${API_BASE_URL}/api/healthz"
+          )
+          for target in "${targets[@]}"; do
             status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
               --max-time 30 \
               "$target")"
@@ -1231,9 +1385,16 @@ jobs:
             echo "- Digest: \`${IMAGE_DIGEST}\`"
             echo "- Namespace: \`${K8S_NAMESPACE}\`"
             echo "- Canonical origin: \`${FRONTEND_BASE_URL}\`"
-            if [[ -n "${LEGACY_FRONTEND_HOST:-}" ]]; then
-              echo "- Legacy origin: \`https://${LEGACY_FRONTEND_HOST}\` (certificate retained; redirects to canonical origin)"
-            fi
+            echo "- Domain mode: \`${DOMAIN_MODE}\`"
+            for host in \
+              versorgungs-kompass.de \
+              www.versorgungs-kompass.de \
+              mitmachen.timo-frank.de \
+              pre-gematik.versorgungs-kompass.timo-frank.de; do
+              if [[ "https://${host}" != "$FRONTEND_BASE_URL" ]]; then
+                echo "- Redirect origin: \`https://${host}\` -> \`${FRONTEND_BASE_URL}\`"
+              fi
+            done
             echo "- API backend service: \`${API_BACKEND_SERVICE}\`"
             echo "- Frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"
             echo "- GCP resource identities, private bucket policy and IAP bindings: verified (values redacted)"
