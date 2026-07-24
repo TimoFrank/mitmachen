@@ -87,6 +87,7 @@ const contentChecks = [
       /Cloud Storage returned an invalid release-marker inventory/,
       /domain_mode="prepare"/,
       /domain_mode="canonical"/,
+      /DOMAIN_MODE: \$\{\{ steps\.config\.outputs\.domain_mode \}\}/,
       /The approved canonical origin must be either mitmachen\.timo-frank\.de during certificate preparation or versorgungs-kompass\.de after cutover/,
       /gke\.managedCertificate\.name=\$\{HELM_RELEASE\}-domain/,
       /gke\.managedCertificate\.domains\[1\]=www\.versorgungs-kompass\.de/,
