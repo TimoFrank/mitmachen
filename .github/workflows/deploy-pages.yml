@@ -160,6 +160,7 @@ jobs:
           grep --extended-regexp --quiet 'authMode:[[:space:]]*"anonymous-demo"' "$runtime_config_path"
           grep --extended-regexp --quiet 'apiBaseUrl:[[:space:]]*""' "$runtime_config_path"
           grep --extended-regexp --quiet 'requireApiGateway:[[:space:]]*false' "$runtime_config_path"
+          grep --extended-regexp --quiet 'ownerOnlyContactChannels:[[:space:]]*true' "$runtime_config_path"
           for app_label in Versorgung Auswertung Aktivitäten Stakeholder Expertenkreis Hospitationen Beobachtungen Fragebogen Dashboard Formate Teams; do
             grep --fixed-strings --quiet "$app_label" "$app_path"
           done

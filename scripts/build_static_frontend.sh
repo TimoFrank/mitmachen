@@ -204,6 +204,7 @@ window.VERSORGUNGS_COMPASS_CONFIG = {
   capabilities: {
     contactRole: true,
     contactConsent: true,
+    ownerOnlyContactChannels: true,
     organizationPrimarySystems: true,
     registrationIntake: true,
     contactImageSources: true,

@@ -157,6 +157,7 @@ if (existsSync(runtimeConfigPath)) {
   assert(/authMode:\s*["']anonymous-demo["']/.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js erzwingt keine anonyme Demo-Identitaet`);
   assert(/apiBaseUrl:\s*["']["']/.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js enthaelt einen externen API-Origin`);
   assert(/requireApiGateway:\s*false/.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js fordert unerwartet ein API-Gateway`);
+  assert(/ownerOnlyContactChannels:\s*true/.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js aktiviert den Owner-Schutz fuer Kontaktkanaele nicht`);
   assert(!/apiBaseUrl:\s*["']https?:/i.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js konfiguriert einen externen API-Zugriff`);
 }
 
