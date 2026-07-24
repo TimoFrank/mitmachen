@@ -124,17 +124,38 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="home"]')).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("heading", { level: 1, name: "Willkommen." })).toBeVisible();
+  const welcomeHeading = page.getByRole("heading", { level: 1, name: "Willkommen im Versorgungs-Kompass" });
+  const homeScroller = page.locator("[data-home-scroller]");
+  const homeScrollCue = page.getByRole("button", { name: "Bereiche ansehen" });
+  await expect(homeScroller).toHaveAttribute("tabindex", "0");
+  await expect(homeScroller).toHaveAttribute("aria-label", "Startseiteninhalt");
+  await expect(welcomeHeading).toBeVisible();
+  await expect(page.locator(".home-hero__lead")).toHaveText("Wähle den Bereich, in dem du arbeiten möchtest.");
+  await expect(homeScrollCue).toBeVisible();
+  await expect(homeScrollCue).toHaveAttribute("aria-controls", "home-destinations");
+  await expect(page.locator(".home-destination-card")).toHaveCount(4);
   await expect(page.locator(".home-destination-link")).toHaveCount(4);
   await expect(page.locator(".home-destination-link strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
-  const welcomeTextBox = await page.getByRole("heading", { level: 1, name: "Willkommen." }).evaluate((heading) => {
-    const range = document.createRange();
-    range.selectNodeContents(heading);
-    const rect = range.getBoundingClientRect();
+  const welcomeTextBox = await welcomeHeading.evaluate((heading) => {
+    const rect = heading.getBoundingClientRect();
     return { left: rect.left, right: rect.right, viewportWidth: window.innerWidth };
   });
   expect(welcomeTextBox.left).toBeGreaterThanOrEqual(0);
   expect(welcomeTextBox.right).toBeLessThanOrEqual(welcomeTextBox.viewportWidth + 1);
+  const initialHomeScroll = await homeScroller.evaluate((element) => ({
+    scrollTop: element.scrollTop,
+    scrollHeight: element.scrollHeight,
+    clientHeight: element.clientHeight,
+    windowScrollY: window.scrollY
+  }));
+  expect(initialHomeScroll.scrollTop).toBe(0);
+  expect(initialHomeScroll.scrollHeight).toBeGreaterThan(initialHomeScroll.clientHeight);
+  expect(initialHomeScroll.windowScrollY).toBe(0);
+  await homeScrollCue.click();
+  await expect(page.locator("#home-destinations")).toBeFocused();
+  await expect.poll(() => homeScroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(page.locator("#home-destinations")).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="stakeholders"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
@@ -148,7 +169,8 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   const demoTrigger = page.locator("#vk-public-demo-trigger");
   await expect(demoNotice).toBeVisible();
   await expect(demoNotice).toContainText("Öffentliche Demo");
-  await expect(demoNotice).toContainText("Bitte keine echten Angaben eingeben.");
+  await expect(demoNotice.locator(".vk-demo-copy")).toHaveText("Öffentliche Demo");
+  await expect(page.getByText("Bitte keine echten Angaben eingeben.", { exact: true })).toHaveCount(0);
   await expect(demoNotice).not.toContainText("synthetische Daten");
   await expect(demoNotice).not.toContainText("Änderungen verschwinden");
   await expect(demoNoticeClose).toHaveText("Schließen");

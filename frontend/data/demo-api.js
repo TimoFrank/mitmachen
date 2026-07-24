@@ -670,44 +670,45 @@
     const style = document.createElement("style");
     style.textContent = `
       #vk-public-demo-notice {
-        position: relative; z-index: 20;
-        width: auto; box-sizing: border-box; margin: 8px 14px 0;
-        display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 7px; align-items: center;
-        padding: 7px 9px; border: 1px solid rgba(255,255,255,.18); border-radius: 10px;
-        color: #fff; background: rgba(16, 55, 79, .92); box-shadow: 0 6px 18px rgba(8, 38, 55, .16);
-        font: 500 12px/1.3 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        position: fixed; z-index: 70;
+        top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(16px + env(safe-area-inset-right, 0px));
+        min-height: 44px; box-sizing: border-box;
+        display: flex; gap: 12px; align-items: center;
+        padding: 5px 6px 5px 14px; border: 1px solid #c9d8ef; border-radius: 13px;
+        color: #64748b; background: rgba(255,255,255,.96); box-shadow: 0 9px 22px rgba(16,35,110,.1);
+        font: 780 12px/1.3 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         backdrop-filter: blur(12px);
       }
       #vk-public-demo-notice[hidden], #vk-public-demo-trigger[hidden] { display: none; }
-      #vk-public-demo-notice .vk-demo-mark { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: #123b50; background: #9ce6d8; font-size: 11px; font-weight: 800; }
-      #vk-public-demo-notice .vk-demo-copy { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
-      #vk-public-demo-notice strong { color: #fff; font-size: 12px; }
-      #vk-public-demo-notice span { color: #d9edf3; }
+      #vk-public-demo-notice .vk-demo-copy { min-width: 0; display: flex; align-items: center; }
+      #vk-public-demo-notice strong { color: #64748b; font-size: 12px; }
       #vk-public-demo-notice button {
-        min-height: 30px; padding: 0 9px; border: 1px solid rgba(255,255,255,.24); border-radius: 8px;
-        color: #fff; background: rgba(255,255,255,.08); font: inherit; font-weight: 700; cursor: pointer;
+        min-height: 34px; padding: 0 11px; border: 0; border-radius: 9px;
+        color: #17275f; background: #eef3fb; font: inherit; font-weight: 780; cursor: pointer;
       }
       #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible {
-        background: rgba(255,255,255,.18); outline: 2px solid #9ce6d8; outline-offset: 2px;
+        background: #e2eafb; outline: 3px solid #155fe4; outline-offset: 2px;
       }
       #vk-public-demo-trigger {
         position: fixed; z-index: 70;
         top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
-        width: 38px; height: 38px; display: inline-grid; place-items: center;
-        padding: 5px; border: 1px solid rgba(255,255,255,.28); border-radius: 12px;
-        color: #fff; background: rgba(16, 55, 79, .92); box-shadow: 0 6px 18px rgba(8, 38, 55, .2);
-        font: 700 11px/1 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        width: 44px; height: 44px; display: inline-grid; place-items: center;
+        padding: 0; border: 1px solid #b9d9d0; border-radius: 12px;
+        color: #0f655e; background: #d4f6ed; box-shadow: 0 9px 22px rgba(16,35,110,.1);
+        font: 900 12px/1 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         backdrop-filter: blur(12px); cursor: pointer;
       }
       #vk-public-demo-trigger:hover, #vk-public-demo-trigger:focus-visible {
-        background: rgba(16, 55, 79, .99); outline: 2px solid #9ce6d8; outline-offset: 2px;
+        background: #c5eee4; outline: 3px solid #155fe4; outline-offset: 2px;
       }
       #vk-public-demo-trigger .vk-demo-trigger-mark {
-        display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px;
-        color: #123b50; background: #9ce6d8; font-size: 11px; font-weight: 800;
+        display: grid; place-items: center; width: 100%; height: 100%;
+        color: inherit; background: transparent; font-size: 12px; font-weight: 900;
       }
       @media (max-width: 620px) {
-        #vk-public-demo-notice { margin: 7px 8px 0; }
+        #vk-public-demo-notice {
+          top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
+        }
       }
     `;
     document.head.appendChild(style);
@@ -716,8 +717,7 @@
     notice.setAttribute("role", "note");
     notice.setAttribute("aria-label", "Hinweis zur öffentlichen Demo");
     notice.innerHTML = `
-      <div class="vk-demo-mark" aria-hidden="true">D</div>
-      <div class="vk-demo-copy"><strong>Öffentliche Demo</strong><span>Bitte keine echten Angaben eingeben.</span></div>
+      <div class="vk-demo-copy"><strong>Öffentliche Demo</strong></div>
       <button type="button" data-demo-notice-close>Schließen</button>
     `;
     const closeButton = notice.querySelector("[data-demo-notice-close]");

@@ -494,84 +494,64 @@
 
         <div class="view-shell">
           <section class="view-panel home-page" id="view-home" data-view-panel="home" aria-labelledby="home-welcome-title">
-            <div class="home-welcome">
-              <header class="home-welcome__copy">
-                <div class="home-welcome__brand" aria-label="#Mitmachen">
-                  <img src="../../public/brand/versorgungs-kompass/mark.svg" alt="" aria-hidden="true" />
-                  <span>#Mitmachen</span>
-                </div>
-                <h1 id="home-welcome-title">Willkommen.</h1>
+            <div class="home-scroller" data-home-scroller tabindex="0" aria-label="Startseiteninhalt">
+              <header class="home-hero">
+                <img class="home-hero__brand" src="../../public/brand/mitmachen/lockup-horizontal.svg" alt="#Mitmachen" />
+                <h1
+                  class="home-reveal-heading"
+                  id="home-welcome-title"
+                  aria-label="Willkommen im Versorgungs-Kompass"
+                  data-home-reveal-lines='["Willkommen im","Versorgungs-Kompass"]'
+                >
+                  <span class="home-reveal-heading__measure" aria-hidden="true">Willkommen im<br />Versorgungs-<wbr />Kompass</span>
+                  <span class="home-reveal-heading__visual" aria-hidden="true"></span>
+                </h1>
+                <p class="home-hero__lead">Wähle den Bereich, in dem du arbeiten möchtest.</p>
+                <button class="home-scroll-cue" type="button" data-home-scroll-cue aria-controls="home-destinations">
+                  Bereiche ansehen
+                  <span aria-hidden="true">↓</span>
+                </button>
               </header>
-              <nav aria-label="Module des Versorgungs-Kompass">
+              <nav class="home-destinations-section" id="home-destinations" aria-label="Bereiche" tabindex="-1">
                 <ul class="home-destinations">
-                  <li>
+                  <li class="home-destination-card">
                     <a class="home-destination-link" data-home-module="care" href="#map">
                       <span class="home-destination-link__top">
-                        <span class="home-destination-link__icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
-                            <path d="M9 3v15"></path>
-                            <path d="M15 6v15"></path>
-                          </svg>
-                        </span>
-                        <span class="home-destination-link__arrow" aria-hidden="true">↗</span>
+                        <span>01</span>
+                        <span aria-hidden="true">→</span>
                       </span>
                       <strong>Versorgung</strong>
+                      <span class="home-destination-link__copy">Regionen, Kontakte und Organisationen im Blick.</span>
                     </a>
                   </li>
-                  <li>
+                  <li class="home-destination-card">
                     <a class="home-destination-link" data-home-module="stakeholders" href="#stakeholders">
                       <span class="home-destination-link__top">
-                        <span class="home-destination-link__icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="7" cy="7" r="3"></circle>
-                            <circle cx="17" cy="7" r="3"></circle>
-                            <circle cx="12" cy="17" r="3"></circle>
-                            <path d="M9.4 9.1 11 14"></path>
-                            <path d="m14.6 9.1-1.6 4.9"></path>
-                            <path d="M9.4 17h5.2"></path>
-                          </svg>
-                        </span>
-                        <span class="home-destination-link__arrow" aria-hidden="true">↗</span>
+                        <span>02</span>
+                        <span aria-hidden="true">→</span>
                       </span>
                       <strong>Stakeholder</strong>
+                      <span class="home-destination-link__copy">Perspektiven und Netzwerke gezielt verbinden.</span>
                     </a>
                   </li>
-                  <li>
+                  <li class="home-destination-card">
                     <a class="home-destination-link" data-home-module="planning" href="#framework">
                       <span class="home-destination-link__top">
-                        <span class="home-destination-link__icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M8 2v4"></path>
-                            <path d="M16 2v4"></path>
-                            <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                            <path d="M3 10h18"></path>
-                            <path d="M12 14v5"></path>
-                            <path d="M9.5 16.5h5"></path>
-                          </svg>
-                        </span>
-                        <span class="home-destination-link__arrow" aria-hidden="true">↗</span>
+                        <span>03</span>
+                        <span aria-hidden="true">→</span>
                       </span>
                       <strong>Hospitation</strong>
+                      <span class="home-destination-link__copy">Beobachtungen in belastbares Wissen überführen.</span>
                     </a>
                   </li>
-                  <li>
+                  <li class="home-destination-card">
                     <a class="home-destination-link" data-home-module="formats" href="#formats">
                       <span class="home-destination-link__top">
-                        <span class="home-destination-link__icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M8 2v4"></path>
-                            <path d="M16 2v4"></path>
-                            <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                            <path d="M3 10h18"></path>
-                            <path d="M8 15h.01"></path>
-                            <path d="M12 15h.01"></path>
-                            <path d="M16 15h.01"></path>
-                          </svg>
-                        </span>
-                        <span class="home-destination-link__arrow" aria-hidden="true">↗</span>
+                        <span>04</span>
+                        <span aria-hidden="true">→</span>
                       </span>
                       <strong>Formate</strong>
+                      <span class="home-destination-link__copy">Austausch planen und Wirkung gemeinsam gestalten.</span>
                     </a>
                   </li>
                 </ul>
