@@ -1376,6 +1376,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ needs.validate.outputs.image_tag }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          DOMAIN_MODE: ${{ steps.config.outputs.domain_mode }}
         run: |
           {
             echo "## pre-gematik deployment"
