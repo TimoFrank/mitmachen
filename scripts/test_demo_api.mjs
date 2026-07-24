@@ -22,7 +22,8 @@ assert.match(demoApiSource, /persistence:\s*["']memory-only["']/, "Die Demo-Runt
 assert.match(demoApiSource, /resetOnReload:\s*true/, "Die Demo-Runtime muss den Reset beim Neuladen ausweisen.");
 assert.match(demoApiSource, /const\s+baseline\s*=\s*window\.VERSORGUNGS_COMPASS_DEMO_DATA/, "Die Demo-API muss ausschließlich den synthetischen Datensatz als Baseline verwenden.");
 assert.match(demoApiSource, /const\s+state\s*=\s*clone\(baseline\)|const\s+state\s*=\s*clone\s*\(\s*baseline\s*\)/, "Die Demo-API muss ihre Baseline tief kopieren.");
-assert.match(demoApiSource, /<strong>Öffentliche Demo<\/strong><span>Bitte keine echten Angaben eingeben\.<\/span>/, "Der Demo-Hinweis muss die knappe Datenschutzwarnung anzeigen.");
+assert.match(demoApiSource, /<strong>Öffentliche Demo<\/strong>/, "Der Demo-Hinweis muss die öffentliche Demo knapp benennen.");
+assert.doesNotMatch(demoApiSource, /Bitte keine echten Angaben eingeben/, "Der subtile Demo-Hinweis darf keinen zusätzlichen Warnsatz anzeigen.");
 assert.match(demoApiSource, /data-demo-notice-close>Schließen<\/button>/, "Der Demo-Hinweis muss sich ohne Daten-Reset schließen lassen.");
 assert.match(demoApiSource, /id\s*=\s*["']vk-public-demo-trigger["']/, "Die geschlossene Demo-Leiste muss über einen schwebenden Trigger wieder erreichbar sein.");
 assert.doesNotMatch(demoApiSource, /Demo zurücksetzen|Änderungen verschwinden beim Neuladen|window\.location\.reload\s*\(/, "Das Schließen des Demo-Hinweises darf weder Reset-Text noch Reload-Logik enthalten.");

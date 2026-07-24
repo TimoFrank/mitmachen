@@ -1849,31 +1849,91 @@ test("Hospitationen: geschützte synthetische Backend-Fixture ist observation-fi
 });
 
 test("Startseite: minimalistischer Einstieg und Sidebar-Zustand funktionieren auf Desktop und Mobile", async ({ page }, testInfo) => {
-  await page.addInitScript(() => window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", "false"));
+  await page.addInitScript(() => {
+    window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", "false");
+    window.sessionStorage.removeItem("versorgungs-kompass:home-reveal");
+  });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
 
   const shell = page.locator(".app-shell");
   const isMobile = testInfo.project.name.includes("mobile");
+  const homeScroller = page.locator("[data-home-scroller]");
+  const homeDestinations = page.locator("#home-destinations");
+  const heading = page.getByRole("heading", { level: 1, name: "Willkommen im Versorgungs-Kompass" });
+  const brand = page.locator(".home-hero__brand");
+  const scrollCue = page.getByRole("button", { name: "Bereiche ansehen" });
+  const destinationLinks = page.locator(".home-destination-link");
+
   await expect(shell).toHaveAttribute("data-active-view", "home");
+  await expect(homeScroller).toHaveAttribute("tabindex", "0");
+  await expect(homeScroller).toHaveAttribute("aria-label", "Startseiteninhalt");
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="home"]')).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("heading", { level: 1, name: "Willkommen." })).toBeVisible();
-  await expect(page.locator(".home-welcome__brand")).toContainText("#Mitmachen");
-  await expect(page.locator(".home-welcome__brand img")).toBeVisible();
-  await expect(page.locator(".home-destination-link")).toHaveCount(4);
-  await expect(page.locator(".home-destination-link strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
+  await expect(heading).toBeVisible();
+  await expect(heading).toHaveAttribute("data-home-reveal-lines", '["Willkommen im","Versorgungs-Kompass"]');
+  await expect(brand).toBeVisible();
+  await expect(brand).toHaveAttribute("alt", "#Mitmachen");
+  await expect(brand).toHaveAttribute("src", /lockup-horizontal\.svg$/);
+  await expect(page.locator(".home-hero__lead")).toHaveText("Wähle den Bereich, in dem du arbeiten möchtest.");
+  await expect(scrollCue).toBeVisible();
+  await expect(scrollCue).toHaveAttribute("aria-controls", "home-destinations");
+  await expect(destinationLinks).toHaveCount(4);
+  await expect(destinationLinks.locator("strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
+  await expect(destinationLinks.locator(".home-destination-link__top > span:first-child")).toHaveText(["01", "02", "03", "04"]);
+  await expect(destinationLinks.locator(".home-destination-link__copy")).toHaveText([
+    "Regionen, Kontakte und Organisationen im Blick.",
+    "Perspektiven und Netzwerke gezielt verbinden.",
+    "Beobachtungen in belastbares Wissen überführen.",
+    "Austausch planen und Wirkung gemeinsam gestalten."
+  ]);
   await expect(page.locator(".sidebar-nav > *").first()).toHaveClass(/sidebar-home-entry/);
-  expect(await page.locator(".home-destination-link").evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
+  expect(await destinationLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
     "#map",
     "#stakeholders",
     "#framework",
     "#formats"
   ]);
-  await expect(page.locator(".home-welcome p, .home-module-link, .home-module-card")).toHaveCount(0);
   await expect(page.locator(".workspace-header")).toBeHidden();
   await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
   await expect(page.locator("#brand-home-link")).toHaveAttribute("href", "#home");
-  const firstModuleLink = page.locator('.home-destination-link[href="#map"]');
+
+  await expect(heading).toHaveClass(/is-prepared/);
+  await expect(heading).toHaveAttribute("data-character-count", "31");
+  await expect(heading.locator(".home-reveal-heading__char")).toHaveCount(31);
+  await expect(heading).toHaveClass(/is-complete/);
+  await expect(heading).not.toHaveClass(/is-playing/);
+  await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("versorgungs-kompass:home-reveal"))).toBe("1");
+  const headingGeometry = await heading.evaluate((element) => {
+    const words = [...element.querySelectorAll(".home-reveal-heading__word")].map((word) => {
+      const rect = word.getBoundingClientRect();
+      return { text: word.textContent, top: rect.top, bottom: rect.bottom };
+    });
+    const leadTop = document.querySelector(".home-hero__lead")?.getBoundingClientRect().top || 0;
+    return { words, leadTop };
+  });
+  const titleSegments = headingGeometry.words.filter((word) => ["Versorgungs-", "Kompass"].includes(word.text));
+  expect(titleSegments).toHaveLength(2);
+  expect(Math.abs(titleSegments[0].top - titleSegments[1].top)).toBeLessThanOrEqual(1);
+  expect(Math.max(...headingGeometry.words.map((word) => word.bottom))).toBeLessThan(headingGeometry.leadTop);
+
+  await expect.poll(() => homeScroller.evaluate((scroller) => scroller.scrollTop)).toBe(0);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await scrollCue.click();
+  await expect(homeDestinations).toBeFocused();
+  await expect.poll(() => homeScroller.evaluate((scroller) => scroller.scrollTop)).toBeGreaterThan(100);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect.poll(() => homeDestinations.evaluate((destinations) => {
+    const scroller = destinations.closest("[data-home-scroller]");
+    if (!scroller) return false;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const destinationsRect = destinations.getBoundingClientRect();
+    return destinationsRect.top >= scrollerRect.top - 1
+      && destinationsRect.top <= scrollerRect.top + 32
+      && destinationsRect.bottom <= scrollerRect.bottom + 1;
+  })).toBe(true);
+
+  const firstModuleLink = destinationLinks.filter({ has: page.locator('strong:text-is("Versorgung")') });
   await page.keyboard.press("Tab");
   await firstModuleLink.focus();
   await expect(firstModuleLink).toBeFocused();
@@ -1908,6 +1968,9 @@ test("Startseite: minimalistischer Einstieg und Sidebar-Zustand funktionieren au
   await expect(shell).toHaveAttribute("data-active-view", "home");
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expect(page.locator(".sidebar-section.is-expanded")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect.poll(() => homeScroller.evaluate((scroller) => scroller.scrollTop)).toBe(0);
+  await expect(heading).toHaveClass(/is-complete/);
   if (!isMobile) await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
 });
 
