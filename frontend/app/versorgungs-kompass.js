@@ -1530,6 +1530,7 @@
       let detailImageEditorOpen = false;
       let editorImagePreviewUrl = "";
       let detailActiveTab = "overview";
+      let detailProfileReturnTo = "";
       let organizationDetailActiveTab = "overview";
       let lastViewportWidth = window.innerWidth;
       let lastViewportMobileLayout = isMobileLayout();
@@ -31466,8 +31467,9 @@
       function openPersonEntry(kind, id, items = [], options = {}) {
         const normalizedKind = normalizePersonProfileKind(kind);
         if (!normalizedKind || !id) return;
+        const returnTo = options.returnTo || personProfileParentView(normalizedKind);
         if (isMobileLayout() || options.forceProfile) {
-          openPersonProfile(normalizedKind, id, { returnTo: options.returnTo || personProfileParentView(normalizedKind) });
+          openPersonProfile(normalizedKind, id, { returnTo });
           return;
         }
         if (normalizedKind === "stakeholder") {
@@ -31478,7 +31480,11 @@
           openDetail(id, items, { scope: "expert" });
           return;
         }
-        openDetail(id, items, { scope: normalizedKind === "expert" ? "expert" : "care", mode: "preview" });
+        openDetail(id, items, {
+          scope: normalizedKind === "expert" ? "expert" : "care",
+          mode: "preview",
+          returnTo
+        });
       }
 
       function organizationKindLabel(kind = activeOrganizationProfile.kind) {
@@ -32769,8 +32775,16 @@
         const detailMode = options.mode === "page" ? "page" : options.mode === "preview" ? "preview" : "drawer";
         const isProfilePage = detailMode === "page";
         const isPreview = detailMode === "preview";
+        const profileReturnTo = options.returnTo
+          || (isProfilePage ? activePersonProfile.returnTo : detailProfileReturnTo)
+          || (expertScope ? "experts" : "contacts");
+        if (!isProfilePage) detailProfileReturnTo = profileReturnTo;
         const targetPanel = isProfilePage ? personProfileDetailPanel() : detailPanel;
-        const rerenderDetail = () => openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care", mode: detailMode });
+        const rerenderDetail = () => openDetail(contact.id, currentItems, {
+          scope: expertScope ? "expert" : "care",
+          mode: detailMode,
+          returnTo: profileReturnTo
+        });
         const sourceContacts = expertScope ? expertContacts : contacts;
         const fallbackItems = expertScope ? filteredExpertContacts() : filteredContacts();
         const currentItems = items.length ? items : fallbackItems;
@@ -33063,7 +33077,7 @@
         if (!expertScope) bindHospitationProfileActions(targetPanel, { kind: "contact", id: contact.id });
         if (!expertScope) bindFormatProfileActions(targetPanel, contact, rerenderDetail);
         targetPanel.querySelector("#detail-open-profile")?.addEventListener("click", () => {
-          openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: expertScope ? "experts" : "contacts" });
+          openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: profileReturnTo });
         });
         targetPanel.querySelectorAll("[data-detail-edit-section]").forEach((button) => {
           button.addEventListener("click", () => {
@@ -33299,6 +33313,7 @@
         detailOwnerPickerOpen = false;
         detailImageEditorOpen = false;
         detailActiveTab = "overview";
+        detailProfileReturnTo = "";
         organizationDetailActiveTab = "overview";
         contactEditingNoteId = null;
         stakeholderEditingNoteKey = "";
@@ -35097,7 +35112,7 @@
             openPersonProfile("stakeholder", messageId, { returnTo: "stakeholders" });
             return;
         }
-        openPersonProfile("contact", messageId, { returnTo: "map" });
+        openPersonEntry("contact", messageId, mapContacts(), { returnTo: "map" });
       });
 
       csvFileInput.addEventListener("change", async (event) => {
