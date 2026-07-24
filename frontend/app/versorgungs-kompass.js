@@ -17474,12 +17474,34 @@
       function renderHospitationAppointments() {
         const entries = hospitationScheduleEntries({ archived: hospitationArchiveView });
         const archivedCount = hospitationScheduleEntries({ archived: true }).length;
+        const hasActiveAppointments = activeHospitationRecords().length > 0;
         pruneHospitationSelection(entries);
         updateHospitationBulkToolbar();
+        const scheduleContent = !hospitationArchiveView && !hasActiveAppointments
+          ? `
+            <section class="hospitation-first-appointment" aria-labelledby="hospitation-first-appointment-title">
+              <span class="hospitation-first-appointment__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="4" y="5.5" width="16" height="14" rx="3"></rect>
+                  <path d="M8 3.5v4M16 3.5v4M4 10h16M12 13v4M10 15h4"></path>
+                </svg>
+              </span>
+              <span class="hospitation-first-appointment__eyebrow">Ihre erste Hospitation</span>
+              <h2 id="hospitation-first-appointment-title">Noch kein Termin angelegt</h2>
+              <p>Planen Sie den ersten Hospitations-Termin und schaffen Sie die Grundlage für Beobachtungen und Auswertung.</p>
+              <button class="action-button action-button--primary hospitation-first-appointment__button" type="button" data-hospitation-action="create-first">
+                <span class="action-button__icon" aria-hidden="true">+</span>
+                Ersten Termin anlegen
+              </button>
+            </section>
+          `
+          : hospitationScheduleView === "calendar"
+            ? renderHospitationCalendar(entries)
+            : renderHospitationScheduleList(entries);
         return `
           <div class="hospitation-schedule">
             ${renderHospitationContextFilter()}
-            ${hospitationScheduleView === "calendar" ? renderHospitationCalendar(entries) : renderHospitationScheduleList(entries)}
+            ${scheduleContent}
             ${renderHospitationArchiveActions(archivedCount)}
           </div>
         `;
@@ -18625,7 +18647,7 @@
         return `
           <article class="dashboard-card hospitation-dashboard-preview-card">
             <div class="hospitation-dashboard-preview-copy">
-              <strong>Versorgungswissen-Cockpit</strong>
+              <strong>Dashboard</strong>
               <p>Das Dashboard konzentriert sich auf die aktuell relevanten Hospitationsdaten. Musterbildung bleibt weiterhin Teil des Hospitations-Frameworks.</p>
             </div>
             <div class="hospitation-dashboard-preview-actions">
@@ -20909,6 +20931,10 @@
             const action = button.dataset.hospitationAction;
             const hospitationId = button.dataset.hospitationId || "";
             const slotId = button.dataset.slotId || "";
+            if (action === "create-first") {
+              openHospitationEditor("request");
+              return;
+            }
             if (action === "export-appointment") {
               await exportHospitationAppointmentDocument(
                 hospitationId,

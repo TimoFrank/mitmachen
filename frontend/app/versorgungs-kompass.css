@@ -2138,6 +2138,54 @@
 
       .app-main {
         min-width: 0;
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+
+      .versorgungs-app-footer {
+        min-height: 48px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 5px 12px;
+        padding: 11px 22px 13px;
+        border-top: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.94);
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-weight: 760;
+        line-height: 1.35;
+        text-align: center;
+      }
+
+      .versorgungs-app-footer a {
+        color: var(--primary);
+        font-weight: 900;
+        text-decoration: none;
+      }
+
+      .versorgungs-app-footer a:hover,
+      .versorgungs-app-footer a:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .versorgungs-app-footer a:focus-visible {
+        border-radius: 4px;
+        outline: 3px solid rgba(21, 95, 228, 0.2);
+        outline-offset: 3px;
+      }
+
+      @media (max-width: 760px) {
+        .versorgungs-app-footer {
+          min-height: 0;
+          flex-direction: column;
+          gap: 3px;
+          padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+          font-size: 0.7rem;
+        }
       }
 
       .sidebar-brand {
@@ -4584,6 +4632,14 @@
       .app-shell[data-active-view="home"] .view-shell {
         height: 100%;
         min-height: 0;
+      }
+
+      .app-shell[data-active-view="home"] .app-main {
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+
+      .app-shell[data-active-view="home"] .wrap {
+        height: auto;
       }
 
       .app-shell[data-active-view="home"] .app-main,
@@ -23596,6 +23652,77 @@
         min-width: 0;
       }
 
+      .hospitation-first-appointment {
+        min-height: clamp(340px, 52vh, 560px);
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 10px;
+        border: 1px solid #d6e2f4;
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 50% 16%, rgba(47, 111, 236, 0.11), transparent 34%),
+          linear-gradient(180deg, #fbfdff 0%, #f5f8fd 100%);
+        padding: clamp(30px, 5vw, 64px);
+        text-align: center;
+      }
+
+      .hospitation-first-appointment__icon {
+        width: 72px;
+        height: 72px;
+        display: inline-grid;
+        place-items: center;
+        margin-bottom: 5px;
+        border: 1px solid #bfd3fa;
+        border-radius: 24px;
+        background: #ffffff;
+        color: var(--primary);
+        box-shadow: 0 16px 34px rgba(47, 111, 236, 0.14);
+      }
+
+      .hospitation-first-appointment__icon svg {
+        width: 34px;
+        height: 34px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+      }
+
+      .hospitation-first-appointment__eyebrow {
+        color: var(--primary);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hospitation-first-appointment h2 {
+        margin: 0;
+        color: var(--text);
+        font-size: clamp(1.5rem, 3vw, 2.15rem);
+        font-weight: 920;
+        letter-spacing: -0.035em;
+      }
+
+      .hospitation-first-appointment p {
+        max-width: 590px;
+        margin: 0 0 14px;
+        color: var(--text-muted);
+        font-size: 0.94rem;
+        font-weight: 650;
+        line-height: 1.55;
+      }
+
+      .hospitation-first-appointment__button {
+        min-height: 52px;
+        padding-inline: 24px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        box-shadow: 0 14px 28px rgba(47, 111, 236, 0.22);
+      }
+
       .hospitation-schedule-toolbar {
         display: flex;
         align-items: center;
@@ -27921,6 +28048,18 @@
         min-width: 0;
       }
 
+      .framework-overview {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 16px;
+        min-width: 0;
+        min-height: 100dvh;
+      }
+
+      .framework-overview .framework-model-section {
+        align-content: center;
+      }
+
       .framework-header {
         align-items: center;
         min-width: 0;
@@ -28017,6 +28156,7 @@
         overflow: hidden;
         border-color: var(--hospitation-dashboard-line);
         box-shadow: none;
+        scroll-margin-top: 12px;
       }
 
       .framework-section-card {
