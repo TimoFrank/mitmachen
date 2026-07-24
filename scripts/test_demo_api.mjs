@@ -29,7 +29,8 @@ assert.match(demoApiSource, /id\s*=\s*["']vk-public-demo-trigger["']/, "Die gesc
 assert.match(demoApiSource, /<svg viewBox=["']0 0 24 24["']>[\s\S]*?<circle[\s\S]*?<path/, "Der geschlossene Demo-Hinweis muss ein echtes Info-Symbol statt eines Buchstabens verwenden.");
 assert.match(demoApiSource, /const\s+DEMO_NOTICE_DATA_VIEWS\s*=\s*new Set/, "Der Demo-Hinweis muss auf ausdrücklich freigegebene Datenansichten begrenzt sein.");
 assert.match(demoApiSource, /DEMO_NOTICE_DATA_VIEWS\.has\(activeView\)/, "Die Sichtbarkeit des Demo-Hinweises muss der aktiven Datenansicht folgen.");
-assert.match(demoApiSource, /attributeFilter:\s*\[\s*["']data-active-view["']\s*\]/, "Der Demo-Hinweis muss auf Ansichtswechsel reagieren.");
+assert.match(demoApiSource, /mobileViewport\.matches[\s\S]*?is-mobile-sidebar-expanded/, "Die Demo-Kennzeichnung darf die geöffnete mobile Navigation nicht überdecken.");
+assert.match(demoApiSource, /attributeFilter:\s*\[\s*["']data-active-view["']\s*,\s*["']class["']\s*\]/, "Der Demo-Hinweis muss auf Ansichts- und Navigationswechsel reagieren.");
 assert.doesNotMatch(demoApiSource, /Demo zurücksetzen|Änderungen verschwinden beim Neuladen|window\.location\.reload\s*\(/, "Das Schließen des Demo-Hinweises darf weder Reset-Text noch Reload-Logik enthalten.");
 assert.match(dataServiceSource, /VersorgungsCompassDemoApi[\s\S]*?active\s*===\s*true/, "Der gemeinsame Data-Service muss im Demo-Profil einen aktiven lokalen Adapter verlangen.");
 assert.match(registrationSource, /function\s+completeDemo\s*\(/, "Die Konzeptdemo muss ihren rein lokalen Abschluss explizit benennen.");

@@ -207,6 +207,16 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(demoNotice).toBeVisible();
   await expect(demoTrigger).toBeHidden();
   await expect(demoNoticeClose).toBeFocused();
+  const appShell = page.locator(".app-shell");
+  const sidebarToggle = page.locator("#sidebar-collapse-button");
+  await sidebarToggle.click();
+  await expect(appShell).toHaveClass(/is-mobile-sidebar-expanded/);
+  await expect(demoNotice).toBeHidden();
+  await expect(demoTrigger).toBeHidden();
+  await sidebarToggle.click();
+  await expect(appShell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+  await expect(demoNotice).toBeVisible();
+  await expect(demoTrigger).toBeHidden();
   await expectNoHorizontalOverflow(page);
   await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
   if (await page.locator("#sidebar-profile-button").isHidden()) {
