@@ -481,6 +481,16 @@ assert.match(
   "Der produktive API-Container-Smoke-Test muss alle fail-closed Identity- und Origin-Pflichtwerte setzen."
 );
 assert.match(
+  deployWorkflowSource,
+  /Require DNS and active certificates before canonical cutover[\s\S]*kubectl[\s\S]*get ingress[\s\S]*kubernetes\.io\/ingress\.global-static-ip-name[\s\S]*status\.loadBalancer\.ingress[\s\S]*length == 1[\s\S]*hostname[\s\S]*dig \+short A/,
+  "Der Domain-Cutover muss DNS gegen die einzige, direkt adressierte IPv4 des vorbereiteten statischen Ingress pruefen."
+);
+assert.doesNotMatch(
+  deployWorkflowSource,
+  /gcloud compute addresses describe/,
+  "Das Domain-Gate darf keine nicht freigegebene Compute-Address-Leseberechtigung voraussetzen."
+);
+assert.match(
   ciSource,
   /Scan immutable API image for deploy-blocking vulnerabilities[\s\S]*--severity HIGH,CRITICAL/,
   "Der GitHub-GKE-Pfad muss HIGH/CRITICAL-Imagebefunde vor dem Deployment blockieren."
