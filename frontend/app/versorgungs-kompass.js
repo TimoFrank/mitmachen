@@ -210,13 +210,19 @@
         "Innere Medizin",
         "Kinder- und Jugendmedizin",
         "Kinderchirurgie",
+        "Laboratoriumsmedizin",
         "Neurologie",
+        "Nephrologie",
         "Onkologie",
         "Orthopädie und Unfallchirurgie",
+        "Öffentliches Gesundheitswesen",
+        "Palliativmedizin",
         "Pneumologie",
         "Psychiatrie und Psychotherapie",
         "Psychologische Psychotherapie",
         "Radiologie",
+        "Rheumatologie",
+        "Zahnmedizin",
         "Urologie"
       ];
       const specialtyValueMapping = {
@@ -8486,11 +8492,11 @@
         const requestedProfileId = new URL(window.location.href).searchParams.get("demoProfile") || "";
         const selectedProfileId = currentProfile?.id || requestedProfileId;
         switcher.innerHTML = `
-          <label for="demo-profile-select">Demo-Profil</label>
+          <label for="demo-profile-select">Profilansicht</label>
           <select id="demo-profile-select" aria-describedby="demo-profile-help">
             ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(profile.label)} · ${escapeHtml(roleLabel(profile.role))}</option>`).join("")}
           </select>
-          <small id="demo-profile-help">Synthetische Demo · Ansicht wechseln</small>
+          <small id="demo-profile-help">Synthetische Daten · Ansicht wechseln</small>
         `;
         switcher.querySelector("select")?.addEventListener("change", (event) => {
           const profileId = String(event.currentTarget.value || "").trim();

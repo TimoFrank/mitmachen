@@ -224,6 +224,17 @@ if (existsSync(miniMapHtmlPath) && existsSync(miniMapAppPath)) {
 const demoDataPath = join(artifactRoot, "data", "demo-data.js");
 if (existsSync(demoDataPath)) {
   const demoData = readFileSync(demoDataPath, "utf8");
+  const approvedResearchHosts = new Set([
+    "www.bundesaerztekammer.de",
+    "www.bundesgesundheitsministerium.de",
+    "www.destatis.de",
+    "www.divi.de",
+    "www.g-ba.de",
+    "www.gematik.de",
+    "www.gkv-spitzenverband.de",
+    "www.kbv.de",
+    "www.rki.de",
+  ]);
   assert(/synthetisch|fiktiv/i.test(demoData), `${artifactLabel}/data/demo-data.js ist nicht deutlich als synthetisch gekennzeichnet`);
   assert(/demo-(?:profile|contact|org|hospitation|format)/i.test(demoData), `${artifactLabel}/data/demo-data.js verwendet keine nachvollziehbaren Demo-IDs`);
   assert(!/hospitation-avatars|profile-images|storage\/v1/i.test(demoData), `${artifactLabel}/data/demo-data.js referenziert nicht freigegebene Personenbilder`);
@@ -233,7 +244,10 @@ if (existsSync(demoDataPath)) {
   }
   for (const match of demoData.matchAll(/https?:\/\/([a-z0-9.-]+)/gi)) {
     const host = match[1].toLowerCase();
-    assert(/(?:^|\.)example\.(?:test|invalid)$/.test(host), `${artifactLabel}/data/demo-data.js enthaelt nicht freigegebene externe Domain: ${host}`);
+    assert(
+      /(?:^|\.)example\.(?:test|invalid)$/.test(host) || approvedResearchHosts.has(host),
+      `${artifactLabel}/data/demo-data.js enthaelt nicht freigegebene externe Domain: ${host}`,
+    );
   }
 }
 

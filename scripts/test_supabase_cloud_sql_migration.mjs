@@ -1181,7 +1181,7 @@ try {
   await withClient(targetUrl, async (target) => {
     await target.query(`
       update contacts
-         set name = 'Demo-Kontakt 01',
+         set name = 'Dr. Leonie Albrecht',
              updated_at = '2026-05-01T09:00:00.000Z'
        where id = 'demo-contact-01'
     `);

@@ -15,17 +15,17 @@ const defaultOutputUrl = new URL(
 export const SEED_NAMESPACE = "pre-gematik-synthetic-v1";
 export const EXPECTED_SYNTHETIC_SEED_COUNTS = Object.freeze({
   profiles: 5,
-  organizations: 32,
-  organization_primary_systems: 32,
-  contacts: 64,
-  contact_owners: 74,
+  organizations: 55,
+  organization_primary_systems: 55,
+  contacts: 130,
+  contact_owners: 140,
   formats: 8,
   format_participants: 75,
-  hospitations: 18,
-  hospitation_observations: 39,
-  observation_create_audits: 39,
+  hospitations: 28,
+  hospitation_observations: 69,
+  observation_create_audits: 69,
   import_runs: 1,
-  active_map_contacts: 64
+  active_map_contacts: 130
 });
 
 const PROFILE_IDS = Object.freeze([
@@ -36,11 +36,11 @@ const PROFILE_IDS = Object.freeze([
   "demo-profile-formate"
 ]);
 const PROFILE_REPLACEMENTS = Object.freeze([
-  { id: PROFILE_IDS[0], email: "admin@versorgungs-kompass.example.invalid", display_name: "Demo Administration", initials: "DA", role: "admin" },
-  { id: PROFILE_IDS[1], email: "redaktion@versorgungs-kompass.example.invalid", display_name: "Demo Redaktion", initials: "DR", role: "editor" },
-  { id: PROFILE_IDS[2], email: "lesekonto@versorgungs-kompass.example.invalid", display_name: "Demo Lesekonto", initials: "DL", role: "viewer" },
-  { id: PROFILE_IDS[3], email: "hospitation@versorgungs-kompass.example.invalid", display_name: "Demo Hospitation", initials: "DH", role: "editor" },
-  { id: PROFILE_IDS[4], email: "formate@versorgungs-kompass.example.invalid", display_name: "Demo Formate", initials: "DF", role: "editor" }
+  { id: PROFILE_IDS[0], email: "admin@versorgungs-kompass.example.invalid", display_name: "Mara Stein", initials: "MS", role: "admin" },
+  { id: PROFILE_IDS[1], email: "redaktion@versorgungs-kompass.example.invalid", display_name: "Tobias Nguyen", initials: "TN", role: "editor" },
+  { id: PROFILE_IDS[2], email: "lesekonto@versorgungs-kompass.example.invalid", display_name: "Nora Demir", initials: "ND", role: "viewer" },
+  { id: PROFILE_IDS[3], email: "hospitation@versorgungs-kompass.example.invalid", display_name: "Leonie Berger", initials: "LB", role: "editor" },
+  { id: PROFILE_IDS[4], email: "formate@versorgungs-kompass.example.invalid", display_name: "Murat Seidel", initials: "MU", role: "editor" }
 ]);
 
 class SqlRaw {
@@ -145,7 +145,7 @@ function transformDemoData(data) {
     ...PROFILE_REPLACEMENTS[index],
     active: true,
     avatar_url: null,
-    team: "Synthetische Qualitätssicherung",
+    team: source.team || "Datenqualität",
     bio: `Rein synthetisches Profil für ${SEED_NAMESPACE}.`,
     created_at: source.created_at,
     updated_at: source.updated_at
@@ -190,9 +190,9 @@ function transformDemoData(data) {
   );
 
   const organizationById = new Map(data.organizations.map((organization) => [organization.id, organization]));
-  const contacts = data.contacts.map((source, index) => ({
+  const contacts = data.contacts.map((source) => ({
     id: source.id,
-    name: `Demo-Kontakt ${String(index + 1).padStart(2, "0")}`,
+    name: source.name,
     organization_id: source.organizationId || null,
     organization: source.organization,
     sector: source.category,
@@ -208,7 +208,12 @@ function transformDemoData(data) {
     email: `${source.id}@example.invalid`,
     phone: null,
     linkedin: null,
-    mitmachen_consent_status: "not_requested",
+    mitmachen_consent_status: source.mitmachenConsentStatus || "not_requested",
+    mitmachen_consent_effective_at: source.mitmachenConsentEffectiveAt || null,
+    mitmachen_consent_source: source.mitmachenConsentSource || null,
+    mitmachen_consent_text_version: source.mitmachenConsentTextVersion || null,
+    mitmachen_consent_recorded_by: mappedProfileId(source.mitmachenConsentRecordedBy, profileIdMap),
+    mitmachen_consent_note: source.mitmachenConsentNote || null,
     topics: textArray(source.themes),
     notes: seedMarkerText([source.note, source.nextStep ? `Nächster synthetischer Schritt: ${source.nextStep}` : ""].filter(Boolean).join("\n")),
     source: SEED_NAMESPACE,
@@ -285,7 +290,7 @@ function transformDemoData(data) {
       : {
           kind: "hospitation-documentation-v2",
           version: 2,
-          sourceType: "synthetic_demo_scenario",
+          sourceType: "synthetic_source_scenario",
           limitations: "Rein synthetischer Workflow-Fall ohne dokumentierte Feldbeobachtung.",
           observations: [],
           quotes: [],
@@ -315,7 +320,7 @@ function transformDemoData(data) {
         process_phase: observation.processPhase,
         problem_type: observation.problemType,
         impact: observation.impact,
-        observation_type: null,
+        observation_type: observation.observationType || null,
         evidence_type: "interpreted",
         relevance_score: null,
         usage_recommendation: null,

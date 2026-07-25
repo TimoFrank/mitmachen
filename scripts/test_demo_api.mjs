@@ -164,7 +164,7 @@ assert.equal(
 const legacyDemoRuntime = createRuntime({ ownerOnlyContactChannels: false });
 const legacyContactResponse = await legacyDemoRuntime.window.fetch("/api/contacts/demo-contact-02");
 const legacyContact = await legacyContactResponse.json();
-assert.equal(legacyContact.email, "demo-contact-02@example.invalid", "Ohne Pages-Capability muss der bisherige Demo-Vertrag unverändert bleiben.");
+assert.equal(legacyContact.email, "kontakt-002@versorgung.example.invalid", "Ohne Pages-Capability muss der bisherige Demo-Vertrag unverändert bleiben.");
 assert.equal(legacyContact.contactChannelAccess, undefined, "Ohne Pages-Capability darf kein neuer Access-State erzwungen werden.");
 
 const seededSensitiveHistoryRuntime = createRuntime({
@@ -226,12 +226,12 @@ assert.ok(runtime.documentListeners.has("DOMContentLoaded"), "Der sichtbare Demo
 
 const initialSnapshot = api.snapshot();
 const immutableBaselineCount = window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.length;
-assert.equal(initialSnapshot.contacts.length, 64);
-assert.equal(initialSnapshot.organizations.length, 32);
+assert.equal(initialSnapshot.contacts.length, 130);
+assert.equal(initialSnapshot.organizations.length, 55);
 assert.equal(initialSnapshot.currentProfileId, "demo-profile-admin");
-assert.equal(initialSnapshot.organizationPrimarySystems.length, 32);
+assert.equal(initialSnapshot.organizationPrimarySystems.length, 55);
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-01")?.contactChannelAccess, "owner");
-assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-01")?.email, "demo-contact-01@example.invalid");
+assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-01")?.email, "kontakt-001@versorgung.example.invalid");
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-02")?.contactChannelAccess, "restricted");
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-02")?.email, "");
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-02")?.phone, "");
@@ -239,7 +239,7 @@ assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-con
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-17")?.email, "", "Ownerlose Kontakte müssen für alle Demo-Profile eingeschränkt bleiben.");
 assert.equal(
   window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.find((contact) => contact.id === "demo-contact-02")?.email,
-  "demo-contact-02@example.invalid",
+  "kontakt-002@versorgung.example.invalid",
   "Die Projektion darf die synthetische Baseline nicht verändern."
 );
 
@@ -247,7 +247,7 @@ const contactsResponse = await window.fetch("/api/contacts?includeArchived=true"
 assert.equal(contactsResponse.status, 200);
 assert.equal(contactsResponse.headers.get("X-Versorgungs-Kompass-Demo"), "memory-only");
 const contactsPayload = await contactsResponse.json();
-assert.equal(contactsPayload.items.length, 64);
+assert.equal(contactsPayload.items.length, 130);
 assert.equal(contactsPayload.items.find((contact) => contact.id === "demo-contact-02")?.contactChannelAccess, "restricted");
 assert.equal(contactsPayload.items.find((contact) => contact.id === "demo-contact-02")?.email, "");
 assert.equal(runtime.originalFetchCalls.length, 0, "Lokale Demo-API-Aufrufe dürfen das Netzwerk nicht erreichen.");
@@ -262,9 +262,9 @@ assert.equal(restrictedDetail.phone, "");
 const editorSharedContact = await (await editorRuntime.window.fetch("/api/contacts/demo-contact-01")).json();
 const editorOwnedContact = await (await editorRuntime.window.fetch("/api/contacts/demo-contact-02")).json();
 assert.equal(editorSharedContact.contactChannelAccess, "owner", "Jeder Co-Owner muss Zugriff auf Kontaktkanäle erhalten.");
-assert.equal(editorSharedContact.email, "demo-contact-01@example.invalid");
+assert.equal(editorSharedContact.email, "kontakt-001@versorgung.example.invalid");
 assert.equal(editorOwnedContact.contactChannelAccess, "owner");
-assert.equal(editorOwnedContact.phone, "+49 000 120002");
+assert.equal(editorOwnedContact.phone, "+49 171 39200 56");
 
 const snakeCaseOwnersCreate = await editorRuntime.window.fetch("/api/contacts", {
   method: "POST",
@@ -299,7 +299,7 @@ assert.equal((await scalarOwnerFallbackCreate.json()).contactChannelAccess, "own
 const viewerRuntime = createRuntime({ demoProfile: "demo-profile-viewer" });
 const viewerOwnedContact = await (await viewerRuntime.window.fetch("/api/contacts/demo-contact-03")).json();
 assert.equal(viewerOwnedContact.contactChannelAccess, "owner", "Die Leseberechtigung folgt der Owner-ID und nicht der Profilrolle.");
-assert.equal(viewerOwnedContact.email, "demo-contact-03@example.invalid");
+assert.equal(viewerOwnedContact.email, "kontakt-003@versorgung.example.invalid");
 
 contactsPayload.items[0].name = "Manipulierter Rückgabewert";
 assert.notEqual(api.snapshot().contacts[0].name, "Manipulierter Rückgabewert", "API-Antworten müssen vom internen Zustand entkoppelt sein.");
@@ -325,7 +325,7 @@ const restrictedCreateResponse = await window.fetch("/api/contacts", {
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
     contact: {
-      name: "Ownerloser Demo-Kontakt",
+      name: "Ownerloser Kontakt",
       ownerIds: [],
       email: "",
       phone: "",
@@ -343,9 +343,9 @@ const createResponse = await window.fetch("/api/contacts", {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
-    name: "Demo Runtime Kontakt",
+    name: "Lokal erstellter Kontakt",
     organizationId: "demo-org-nordstadt",
-    organization: "Demo-MVZ Nordstadt",
+    organization: "MVZ Spreewinkel",
     category: "Praxis",
     ownerId: "demo-profile-admin",
     ownerIds: ["demo-profile-admin"],
@@ -360,7 +360,7 @@ assert.match(createdContact.id, /^demo-contact-local-\d+$/, "Lokal angelegte Ent
 assert.equal(createdContact.image, "", "Externe Kontaktbilder dürfen in der öffentlichen Demo nicht nachgeladen werden.");
 assert.equal(createdContact.contactChannelAccess, "owner");
 assert.equal(createdContact.email, "runtime-kontakt@example.invalid");
-assert.equal(api.snapshot().contacts.length, 66);
+assert.equal(api.snapshot().contacts.length, immutableBaselineCount + 2);
 assert.equal(window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.length, immutableBaselineCount, "Mutationen dürfen die veröffentlichte Baseline nicht verändern.");
 
 const activityCountBeforeForbiddenPatch = api.snapshot().activityEvents.length;
@@ -412,10 +412,10 @@ const revealedUnchangedContact = await revealUnchangedContactResponse.json();
 assert.equal(revealedUnchangedContact.contactChannelAccess, "owner");
 assert.equal(
   revealedUnchangedContact.email,
-  "demo-contact-02@example.invalid",
+  "kontakt-002@versorgung.example.invalid",
   "Ein abgelehnter Non-Owner-PATCH darf den intern erhaltenen Wert nicht verändern."
 );
-assert.equal(revealedUnchangedContact.phone, "+49 000 120002");
+assert.equal(revealedUnchangedContact.phone, "+49 171 39200 56");
 
 const updateResponse = await window.fetch(`/api/contacts/${encodeURIComponent(createdContact.id)}`, {
   method: "PATCH",
@@ -510,7 +510,7 @@ const noteResponse = await window.fetch("/api/contact-notes", {
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
     contactId: createdContact.id,
-    title: "Demo Runtime Notiz",
+    title: "Lokale Gesprächsnotiz",
     body: "Rein synthetische Notiz im Arbeitsspeicher."
   })
 });
@@ -542,10 +542,10 @@ const registrationResponse = await window.fetch("/api/network-registrations", {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
-    firstName: "Demo Runtime",
+    firstName: "Lokale",
     lastName: "Registrierung",
     email: "runtime-registrierung@example.invalid",
-    organization: "Demo Runtime Organisation",
+    organization: "Lokal erstellte Organisation",
     sector: "Praxis"
   })
 });
