@@ -1968,8 +1968,21 @@ jobs:
           # with custom OAuth credentials to its default OAuth client. Disable
           # IAP directly so Compute retains the existing custom OAuth fields.
           deploy_release "$iap_audience" "$final_auto_enrollment_enabled" false
+          public_backend_config_name="$(resolve_public_backend_config_name)"
           rendered_public_iap="$(kubectl --namespace "$K8S_NAMESPACE" get \
-            backendconfig.cloud.google.com "$(resolve_public_backend_config_name)" \
+            backendconfig.cloud.google.com "$public_backend_config_name" \
+            --output jsonpath='{.spec.iap}' 2>/dev/null || true)"
+          # BackendConfig is a CRD, so Helm's merge patch may retain a field
+          # omitted from the desired manifest. Remove only the validated public
+          # IAP field explicitly while the Compute backend is still fail-closed.
+          if [[ -n "$rendered_public_iap" ]]; then
+            kubectl --namespace "$K8S_NAMESPACE" patch \
+              backendconfig.cloud.google.com "$public_backend_config_name" \
+              --type json \
+              --patch='[{"op":"remove","path":"/spec/iap"}]' >/dev/null
+          fi
+          rendered_public_iap="$(kubectl --namespace "$K8S_NAMESPACE" get \
+            backendconfig.cloud.google.com "$public_backend_config_name" \
             --output jsonpath='{.spec.iap}' 2>/dev/null || true)"
           if [[ -n "$rendered_public_iap" ]]; then
             echo "The final public BackendConfig must leave IAP unmanaged before the custom-OAuth backend is opened." >&2
