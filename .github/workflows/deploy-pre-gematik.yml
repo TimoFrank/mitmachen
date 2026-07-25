@@ -2755,6 +2755,7 @@ jobs:
           # containment response and must return only a hardened, content-free
           # 404. If Google changes the behavior to IAP, require its marker.
           matrix_aliases=(
+            "/;"
             "/;probe"
             "/;probe=1"
             "/anmelden;"
@@ -2784,7 +2785,9 @@ jobs:
                   exit 1
                 fi
                 grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$matrix_headers"
-                grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$matrix_headers"
+                grep --ignore-case --fixed-strings --quiet \
+                  "content-security-policy: default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; frame-src 'none'; font-src 'none'; media-src 'none'; manifest-src 'none'; worker-src 'none'" \
+                  "$matrix_headers"
                 grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$matrix_headers"
                 ;;
               302|401|403)

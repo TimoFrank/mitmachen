@@ -674,11 +674,21 @@ assert.doesNotMatch(
   /"\/anmelden;probe"/,
   "Der vom Load Balancer zum Minimal-Backend geroutete Semikolon-Pfad darf nicht zwingend einen IAP-Header erwarten."
 );
-assert.match(
-  matrixAliasesBlock,
-  /"\/;probe"[\s\S]*"\/anmelden;probe"/,
-  "Root und Anmeldung muessen mit Semikolon-Parametern als Matrix-Aliase geprueft werden."
-);
+for (const matrixAlias of [
+  "/;",
+  "/;probe",
+  "/;probe=1",
+  "/anmelden;",
+  "/anmelden;probe",
+  "/anmelden;probe=1",
+  "/anmelden;probe/weiter",
+  "/anmelden;%2Fprobe"
+]) {
+  assert.ok(
+    matrixAliasesBlock.includes(`"${matrixAlias}"`),
+    `Der Matrix-Alias fehlt im externen Boundary-Smoke: ${matrixAlias}`
+  );
+}
 assert.match(
   normalizedBoundaryBlock,
   /404\)[\s\S]*data-public-entry=/,
@@ -692,7 +702,7 @@ assert.match(
 assert.match(
   matrixBoundaryBlock,
   /404\)[\s\S]*data-public-entry=[\s\S]*set-cookie:[\s\S]*location:[\s\S]*x-goog-iap-generated-response:/,
-  "Ein Matrix-404 muss inhaltslos, zustandslos und ohne Redirect oder IAP-Mischzustand bleiben."
+  "Ein Matrix-404 muss ohne Public-Entry-Inhalt, zustandslos und ohne Redirect oder IAP-Mischzustand bleiben."
 );
 for (const hardenedHeader of [
   "cache-control: no-store",
@@ -704,6 +714,12 @@ for (const hardenedHeader of [
     `Der Matrix-404 prueft den Haertungsheader nicht: ${hardenedHeader}`
   );
 }
+assert.ok(
+  matrixBoundaryBlock.includes(
+    "content-security-policy: default-src 'none'; base-uri 'none'; object-src 'none'"
+  ),
+  "Der Matrix-404 muss durch den exakten restriktiven CSP-Vertrag eindeutig dem Minimal-Backend zugeordnet werden."
+);
 assert.match(
   matrixBoundaryBlock,
   /302\|401\|403\)[\s\S]*x-goog-iap-generated-response/,
