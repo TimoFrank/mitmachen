@@ -1,0 +1,91 @@
+{{- if and .Values.frontend.enabled .Values.frontend.publicEntry.enabled -}}
+{{- $publicImageRepository := required "frontend.publicEntry.image.repository is required when frontend.publicEntry.enabled is true" .Values.frontend.publicEntry.image.repository -}}
+{{- $publicImageTag := required "frontend.publicEntry.image.tag is required when frontend.publicEntry.enabled is true" .Values.frontend.publicEntry.image.tag -}}
+{{- $publicImageDigest := required "frontend.publicEntry.image.digest is required when frontend.publicEntry.enabled is true" .Values.frontend.publicEntry.image.digest -}}
+{{- $podAnnotations := deepCopy (.Values.frontend.publicEntry.podAnnotations | default dict) -}}
+{{- $_ := set $podAnnotations "checksum/frontend-public-image" (printf "%s:%s@%s" $publicImageRepository $publicImageTag $publicImageDigest) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "versorgungs-kompass.frontendPublicFullname" . }}
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.publicEntry.replicaCount }}
+  minReadySeconds: 5
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.rollout.maxUnavailable }}
+      maxSurge: {{ .Values.rollout.maxSurge }}
+  selector:
+    matchLabels:
+      {{- include "versorgungs-kompass.frontendPublicSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "versorgungs-kompass.frontendPublicSelectorLabels" . | nindent 8 }}
+      {{- with $podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      serviceAccountName: {{ include "versorgungs-kompass.frontendPublicServiceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.frontend.publicEntry.serviceAccount.automountServiceAccountToken }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.frontend.podSecurityContext | nindent 8 }}
+      containers:
+        - name: nginx
+          image: "{{ $publicImageRepository }}@{{ $publicImageDigest }}"
+          imagePullPolicy: {{ .Values.frontend.publicEntry.image.pullPolicy }}
+          ports:
+            - name: public-http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /_healthz
+              port: public-http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /_healthz
+              port: public-http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.frontend.nginx.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.frontend.nginx.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: frontend-public-runtime
+              mountPath: /tmp
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "versorgungs-kompass.frontendPublicSelectorLabels" . | nindent 14 }}
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "versorgungs-kompass.frontendPublicSelectorLabels" . | nindent 14 }}
+      volumes:
+        - name: frontend-public-runtime
+          emptyDir:
+            sizeLimit: 64Mi
+{{- end }}

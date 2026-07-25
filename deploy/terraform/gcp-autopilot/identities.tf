@@ -63,6 +63,7 @@ resource "google_project_iam_custom_role" "iap_audience_reader" {
   permissions = [
     "compute.backendServices.get",
     "compute.backendServices.list",
+    "compute.urlMaps.get",
     "resourcemanager.projects.get",
     "resourcemanager.projects.getIamPolicy",
   ]

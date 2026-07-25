@@ -41,8 +41,9 @@ GitHub Environment pre-gematik
   -> GitHub OIDC / Workload Identity Federation
   -> Artifact Registry
   -> GKE Autopilot / Helm / gemeinsamer GKE Ingress / IAP
-       /api -> Node.js API
-       /    -> internes Frontend aus privatem GCS-Bucket
+       / und /anmelden (Exact) -> minimales öffentliches Einstiegs-Frontend
+       /api (Prefix)           -> IAP-geschützte Node.js API
+       / (Prefix/Catch-all)    -> IAP-geschütztes vollständiges Frontend
   -> private Cloud-SQL-Instanz
   -> private Daten-Buckets
 
@@ -53,7 +54,7 @@ GitHub Actions
 
 `dist/pages/` gehört ausschließlich zum GitHub-Pages-Pfad und wird von dieser Pre-Integration weder gelesen noch verändert. Eine versionierte `docs/`-Publish-Kopie existiert nicht mehr.
 
-Weder ein Service-Account-JSON-Key noch Datenbankpasswort oder OAuth-Credentials liegen in GitHub. GKE Secret Sync liest das Passwort mit der API-Workload-Identity direkt aus Secret Manager und erzeugt das vom Deployment referenzierte Kubernetes Secret. Der Deploy-Workflow liest den getrennten OAuth-Bootstrap ausschließlich aus Secret Manager und materialisiert ihn ohne Inhaltsausgabe. Eine getrennte Frontend-Workload-Identity darf ausschließlich das statische Zielartefakt aus dem privaten Frontend-Bucket lesen.
+Weder ein Service-Account-JSON-Key noch Datenbankpasswort oder OAuth-Credentials liegen in GitHub. GKE Secret Sync liest das Passwort mit der API-Workload-Identity direkt aus Secret Manager und erzeugt das vom Deployment referenzierte Kubernetes Secret. Der Deploy-Workflow liest den getrennten OAuth-Bootstrap ausschließlich aus Secret Manager und materialisiert ihn ohne Inhaltsausgabe. Eine getrennte Frontend-Workload-Identity darf ausschließlich das statische Zielartefakt aus dem privaten Frontend-Bucket lesen. Der öffentliche Einstieg nutzt dagegen eine eigene Kubernetes Service Account ohne Cloud-IAM-Bindung und eine NetworkPolicy ohne Egress.
 
 Die API verbindet sich im Pod mit `127.0.0.1:5432` zum Cloud SQL Auth Proxy. Deshalb ist der lokale PostgreSQL-TLS-Modus `disable`; der Proxy authentifiziert sich per Workload Identity und baut die verschlüsselte private Verbindung zur Cloud-SQL-Instanz auf. Eine direkte unverschlüsselte Netzwerkverbindung der API zur Datenbank ist nicht vorgesehen.
 
@@ -82,8 +83,8 @@ Alle Repository-Pfade in diesem Dokument beginnen im Repository-Root.
 6. Der Frontend-Sync darf nur auf einen exklusiv für dieses Artefakt bestimmten Bucket zeigen, weil nicht mehr vorhandene Zieldateien gelöscht werden.
 7. Das erste Helm-Reconcile verwendet absichtlich eine ungültige, aber nicht leere IAP-Audience. Die API bleibt damit während des Load-Balancer-Bootstraps fail-closed.
 8. Der Workflow liest danach den von GKE erzeugten Backend Service, bestimmt dessen numerische ID und setzt die erwartete Audience im Format `/projects/PROJECT_NUMBER/global/backendServices/BACKEND_SERVICE_ID`.
-9. Kann die echte Audience nicht bestimmt oder IAP nicht als aktiv bestätigt werden, endet das Deployment fehlerhaft. Es wird kein erfolgreicher Zustand ohne signierte IAP-JWT-Prüfung gemeldet.
-10. Ein benannter direkter Nutzer kann ausschließlich in dieser befristeten Pre-Integration projektweiter Break-glass-Zugang sein. Die Identität wird nicht im Repository dokumentiert. Die reguläre Testgruppe wird erst nach eindeutiger Zuordnung ausschließlich an die beiden vom gemeinsamen Ingress erzeugten API- und Frontend-Backend-Services gebunden. Dieser Zugang darf nicht in den Zielbetrieb übernommen werden.
+9. Kann die echte Audience nicht bestimmt oder IAP nicht auf API und vollständigem Frontend als aktiv bestätigt werden, endet das Deployment fehlerhaft. Es wird kein erfolgreicher geschützter Anwendungszustand ohne signierte IAP-JWT-Prüfung gemeldet.
+10. Ein benannter direkter Nutzer kann ausschließlich in dieser befristeten Pre-Integration projektweiter Break-glass-Zugang sein. Die Identität wird nicht im Repository dokumentiert. Die reguläre Testgruppe wird erst nach eindeutiger Zuordnung ausschließlich an die beiden vom gemeinsamen Ingress erzeugten geschützten API- und Frontend-Backend-Services gebunden. Das dritte Public-Entry-Backend besitzt keine IAP-Resource-Policy und enthält physisch nur die beiden statischen Dokumente. Dieser Zugang darf nicht in den Zielbetrieb übernommen werden.
 
 Google beschreibt Workload Identity Federation für Deployment-Pipelines unter <https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines>. Das Format und die Pflicht zur Prüfung der signierten IAP-Header sind unter <https://cloud.google.com/iap/docs/signed-headers-howto> dokumentiert.
 
@@ -99,7 +100,7 @@ Vor Terraform müssen vorhanden sein:
 - Festlegung, welche Google-Nutzer oder -Gruppen über IAP zugreifen dürfen,
 - für die Zwischenumgebung eine bewusste Freigabe des mitgelieferten Pre-Integration-Schemas; die historische Datenentscheidung steht in der [persönlichen Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md). Das gematik-Schema bleibt davon getrennt.
 
-Das Frontend wird nicht direkt aus einem öffentlichen Bucket ausgeliefert. Ein Init-Container liest das Zielartefakt per Workload Identity aus dem privaten `FRONTEND_BUCKET` in ein gemeinsames Volume; ein unprivilegierter nginx-Container stellt es intern bereit. Der gemeinsame GKE Ingress routet `/api` zur API und `/` zum Frontend. IAP schützt beide Pfade am selben Origin.
+Das vollständige Frontend wird nicht direkt aus einem öffentlichen Bucket ausgeliefert. Ein Init-Container liest das Zielartefakt per Workload Identity aus dem privaten `FRONTEND_BUCKET` in ein Volume; ein unprivilegierter nginx-Container stellt es ausschließlich hinter IAP bereit. Der öffentliche Einstieg läuft in einem getrennten, digest-gepinnten Container-Image, das beim Build nachweislich nur `public-index.html`, `public-login.html` und seine geprüfte nginx-Konfiguration enthält. Dieser Pod besitzt weder GCS-Zugriff noch ausgehenden Netzwerkzugriff. nginx akzeptiert ausschließlich die rohen URIs `/` und `/anmelden`; direkte Dateien, codierte oder normalisierte Alias-Pfade enden mit 404. Der gemeinsame GKE Ingress routet nur diese zwei Pfade am kanonischen Host öffentlich. `/api` und der `/`-Catch-all bleiben auf zwei getrennten IAP-Backend-Services.
 
 Das persönlich verantwortete Pre-Integrationsprojekt ist nur für diese Zwischenumgebung akzeptabel. Alle neuen Ressourcen tragen `pre-gematik` beziehungsweise `vk-pre-gematik` im Namen. Das bestehende Artifact Registry Repository, eine frühere Demo-Cloud-SQL-Instanz, Demo-Secrets und Default Service Accounts werden nicht wiederverwendet. Die dortige persönliche Datenentscheidung ist nicht auf den gematik-PoC übertragbar.
 
@@ -116,6 +117,8 @@ terraform apply pre-gematik.tfplan
 ```
 
 Vor `apply` die Zielwerte in `terraform.tfvars.example` prüfen und als lokale `terraform.tfvars` übernehmen. Insbesondere muss die private Google Group bereits existieren und für IAM sichtbar sein. Sie steht nicht in `IAP_ACCESS_MEMBERS`, sondern wird später vom Workflow an die beiden konkreten Backend Services gebunden. `terraform.tfvars`, Plan-Dateien, State, der reale State-Bucket-Name und lokale Credentials bleiben außerhalb von Git. Das eingecheckte `backend.tf` enthält nur das stabile State-Präfix.
+
+Vor dem Public-Entry-Cutover muss dieser Terraform-Stand erneut angewendet sein: Er ergänzt beim bereits ausgerollten Deployer die rein lesende Berechtigung `compute.urlMaps.get`. Der Anwendungs-Workflow prüft diese Berechtigung anhand der bestehenden GKE URL Map, bevor Phase A den Ingress verändert, und bricht andernfalls ohne Routing-Änderung ab. Ein bloßer App-Workflow-Lauf ersetzt dieses Infrastruktur-Update nicht.
 
 Relevante Outputs:
 
@@ -230,13 +233,13 @@ Das individuelle Onboarding wird in dieser Reihenfolge ausgeführt:
 2. Persönliches Google-Konto und aktivierten zweiten Faktor bestätigen.
 3. Die primäre Konto-Adresse in Google Auth Platform als OAuth-Testnutzer eintragen.
 4. Dieselbe Adresse zur privaten Gruppe einladen; erst nach Annahme und sichtbarer aktiver Mitgliedschaft fortfahren.
-5. Die geschützte Enrollment-Seite öffnen. Sie sendet nach einem ungebundenen Sitzungscheck automatisch einen leeren `POST /api/auth/auto-enrollment`. Nur die von IAP signiert bestätigte, exakt normalisierte Adresse darf einen noch gültigen, nicht widerrufenen und nicht verbrauchten Allowlist-Eintrag treffen.
+5. Die öffentliche Startseite öffnen, bewusst `/anmelden` wählen und dort `Testzugang aktivieren` aufrufen. Erst dieser Klick wechselt über IAP auf die geschützte Enrollment-Seite. Sie sendet nach einem ungebundenen Sitzungscheck automatisch einen leeren `POST /api/auth/auto-enrollment`. Nur die von IAP signiert bestätigte, exakt normalisierte Adresse darf einen noch gültigen, nicht widerrufenen und nicht verbrauchten Allowlist-Eintrag treffen.
 6. Die Datenbank verbraucht den Eintrag einmalig und legt interne Audit-UUID, Testprofil sowie die dauerhafte Bindung an das stabile IAP-Subject in einer Transaktion an. Die Adresse autorisiert ausschließlich diesen Bootstrap und wird niemals in ein Subject umgerechnet oder für spätere Anmeldungen verwendet.
 7. Viewer- beziehungsweise Editor-Grenzen positiv und negativ testen und erst danach den Eintrag im Roster auf aktiv setzen.
 
 Ohne eindeutigen Allowlist-Treffer wird nichts aktiviert. Die Seite bietet dann weiterhin den manuellen Fallback an: `POST /api/auth/enrollment` erzeugt eine 24 Stunden gültige, opake Vorgangsnummer, die der Pilot-Owner über den bestehenden v2-Preview/Apply-Prozess freigibt. Erwartete Nichttreffer, abgelaufene oder widerrufene Einträge liefern dieselbe generische Antwort; E-Mail-Adresse, Subject, Profilvorgabe und Allowlist-Inhalt erscheinen weder in Browserantworten noch in Anwendungslogs. Eine Gruppenmitgliedschaft allein erzeugt zu keinem Zeitpunkt eine App-Bindung.
 
-IAP verlangt auf API und Frontend `ENROLLED_SECOND_FACTORS` mit `maxAge: 28800s` und `policyType: MINIMUM`. Der Workflow liest zunächst beide ressourcenspezifischen IAM-Policies vollständig. Zulässig sind nur zwei leere Policies oder bereits exakt das Soll: Policy-Version 3, genau eine Gruppenbindung und die Bedingung `request.time < timestamp("2026-08-17T16:00:00Z")`. Erst nach erfolgreicher Prüfung beider Backends setzt und verifiziert er Reauthentication und anschließend die Policies. Eine vorhandene direkte Nutzerbindung wird nicht automatisch ersetzt.
+IAP verlangt auf API und geschütztem Frontend `ENROLLED_SECOND_FACTORS` mit `maxAge: 28800s` und `policyType: MINIMUM`. Der Workflow liest zunächst beide ressourcenspezifischen IAM-Policies vollständig. Zulässig sind nur zwei leere Policies oder bereits exakt das Soll: Policy-Version 3, genau eine Gruppenbindung und die Bedingung `request.time < timestamp("2026-08-17T16:00:00Z")`. Erst nach erfolgreicher Prüfung beider Backends setzt und verifiziert er Reauthentication und anschließend die Policies. Eine vorhandene direkte Nutzerbindung wird nicht automatisch ersetzt. Das separate Public-Entry-Backend wird nie in diese IAM- oder Reauthentication-Schleifen aufgenommen.
 
 Der kontrollierte Wechsel von der bisherigen direkten Ressourcenbindung zur Gruppe erfolgt deshalb in einem Wartungsfenster:
 
@@ -265,18 +268,18 @@ In GitHub unter `Actions -> Deploy pre-gematik (GKE Autopilot) -> Run workflow` 
 
 - `validate_only`: aktiviert; dies ist aus Sicherheitsgründen der Default,
 - `image_tag`: leer,
-- `require_external_smoke`: deaktiviert.
+- `require_external_smoke`: aktiviert; bei realen Deployments wird der externe Boundary-Test unabhängig vom Kompatibilitätswert immer ausgeführt.
 
 Die Validierung führt Repository-Checks, Helm-Lint und -Render, Ziel-Frontend-Erzeugung sowie echten Containerstart mit Health Check aus. Sie fordert weder Environment-Freigabe noch GCP-Credentials an.
 
 ### Domain-Cutover zu versorgungs-kompass.de
 
-Der Wechsel erfolgt in zwei vollständigen Deployments, damit `mitmachen.timo-frank.de` während der Zertifikatsbereitstellung erreichbar bleibt:
+Der Domainwechsel ist für diese Umgebung abgeschlossen. Vor jedem weiteren echten Public-Entry-Cutover müssen DNS und alle vier verwendeten Zertifikatsnamen bereits erreichbar sein; der Workflow öffnet den Einstieg nicht ohne erfolgreichen externen Boundary-Test.
 
-1. `API_BASE_URL` und `FRONTEND_BASE_URL` zunächst auf `https://mitmachen.timo-frank.de` belassen und den Workflow mit `validate_only=false`, `require_external_smoke=false` ausführen. Dieses Vorbereitungsdeployment ergänzt Apex und `www` als Redirect-Hosts und hängt das neue Zertifikat zusätzlich an den Ingress.
+1. `API_BASE_URL` und `FRONTEND_BASE_URL` auf `https://versorgungs-kompass.de` belassen.
 2. Bei ALL-INKL den Apex-A-Record auf `GKE_INGRESS_IP_ADDRESS` und `www` als CNAME auf `versorgungs-kompass.de.` setzen. MX- und TXT-Records bleiben unverändert.
-3. Warten, bis `kubectl -n pre-gematik get managedcertificate versorgungs-kompass-domain` den Status `Active` für beide Domains meldet. Bis dahin bleibt die alte Domain kanonisch.
-4. `API_BASE_URL` und `FRONTEND_BASE_URL` gemeinsam auf `https://versorgungs-kompass.de` ändern und den Workflow erneut mit `validate_only=false`, `require_external_smoke=true` ausführen.
+3. Vor dem Deployment bestätigen, dass `kubectl -n pre-gematik get managedcertificate versorgungs-kompass-domain` den Status `Active` für beide Domains meldet.
+4. Den Workflow mit `validate_only=false` und Environment-Freigabe ausführen; der externe Smoke ist verpflichtend.
 5. Apex muss anschließend die IAP-Grenze erreichen. `www`, `mitmachen.timo-frank.de` und `pre-gematik.versorgungs-kompass.timo-frank.de` müssen Pfad und Query per HTTP 308 auf den neuen Origin übernehmen. Die alten Zertifikate bleiben für diese Redirects aktiv.
 
 ### Erstes Deployment
@@ -290,14 +293,16 @@ Danach denselben Workflow mit `validate_only` deaktiviert ausführen. Der Deploy
 5. baut und pusht ein unveränderlich getaggtes API-Image inklusive Provenance und SBOM,
 6. erzeugt `dist/target/` mit `dataMode: "api"`, `authMode: "iap"` und `requireApiGateway: true`,
 7. synchronisiert den exklusiven privaten Frontend-Bucket unter ein versioniertes `releasePrefix`; `contentRevision` bindet den Frontend-Rollout an genau diesen unveränderlichen Inhalt,
-8. deployt das GCP-Helm-Overlay, übergibt den Frontend-Bucket und wartet auf GKE Secret Sync,
-9. ermittelt die reale IAP-Audience, reconciled Helm ein zweites Mal und startet die API kontrolliert neu, damit der per `envFrom` geladene Wert aktiv wird,
-10. identifiziert die unterschiedlichen API- und Frontend-Backend-Services anhand ihrer NEGs, liest und validiert beide Resource-Policies vollständig, setzt und verifiziert auf beiden `ENROLLED_SECOND_FACTORS / 28800s / MINIMUM` und bindet erst danach die zeitlich begrenzte reguläre Testgruppe ressourcenspezifisch an genau diese zwei Services,
-11. bestätigt per echtem `SELECT 1` im API-Container Cloud SQL Auth Proxy, Workload Identity, DB-Nutzer und Secret sowie Existenz und Leserecht für alle 30 fachlichen Tabellen des Pre-Integration-Vertrags; die API-Readiness prüft zusätzlich die vier zugriffssteuernden Tabellen `identity_bindings`, `identity_enrollment_requests`, `test_access_objects` und `test_access_allowlist`. Ist Auto-Enrollment aktiviert, prüft sie außerdem Owner, gehärtete Konfiguration und Runtime-`EXECUTE` der Funktion `pre_gematik_consume_test_access_allowlist`,
-12. bestätigt Rollout, IAP-Aktivierung sowie API- und Frontend-Health,
-13. prüft, dass gefälschte, unsignierte IAP-Identity-Header mit HTTP 401 abgewiesen werden.
+8. baut zusätzlich ein unveränderliches, separat gescanntes Public-Entry-Image mit exakt zwei HTML-Dokumenten, prüft vor jeder Routing-Änderung den Lesezugriff des Deployers auf die bestehende GKE URL Map und erzwingt auch bei Folge-Releases vor jedem Ingress-Reconcile zunächst IAP auf dem Public-Backend. Das kann `/` und `/anmelden` während des Deployments kurz an die Google-Anmeldung umleiten; ein unterbrechungsfreier Wechsel würde ein separates Canary-Backend erfordern und ist nicht Teil dieses temporären Piloten,
+9. identifiziert anhand aller zonalen NEGs exakt drei unterschiedliche Backend-Services und beweist pollend in der realen GCE URL Map, dass nur Exact `/` und Exact `/anmelden` am kanonischen Host auf das Public-Backend zeigen; alle gemeldeten Endpoints müssen gesund sein,
+10. ermittelt die reale API-IAP-Audience, reconciled Helm und startet die API kontrolliert neu, damit der per `envFrom` geladene Wert aktiv wird,
+11. prüft Image-Digest, Zwei-Dateien-Inhalt, rohe URI-Deny-Matrix und leere Public-Resource-Policy vor der Öffnung; erst die letzte Helm-Mutation deaktiviert IAP für genau das Public-Backend. Bei jedem späteren Fehler stellt ein zweistufiger Restore IAP wieder her,
+12. liest und validiert die zwei geschützten Resource-Policies vollständig, setzt und verifiziert dort `ENROLLED_SECOND_FACTORS / 28800s / MINIMUM` und bindet erst danach die zeitlich begrenzte reguläre Testgruppe an genau diese zwei Services,
+13. bestätigt per echtem `SELECT 1` im API-Container Cloud SQL Auth Proxy, Workload Identity, DB-Nutzer und Secret sowie Existenz und Leserecht für alle 30 fachlichen Tabellen des Pre-Integration-Vertrags; die API-Readiness prüft zusätzlich die vier zugriffssteuernden Tabellen `identity_bindings`, `identity_enrollment_requests`, `test_access_objects` und `test_access_allowlist`. Ist Auto-Enrollment aktiviert, prüft sie außerdem Owner, gehärtete Konfiguration und Runtime-`EXECUTE` der Funktion `pre_gematik_consume_test_access_allowlist`,
+14. bestätigt Rollout und Health aller drei Workloads, die Zwei-Dateien-Grenze des Public-Deployments sowie die vollständige App-Konfiguration,
+15. prüft, dass gefälschte, unsignierte IAP-Identity-Header mit HTTP 401 abgewiesen werden.
 
-`require_external_smoke` beim allerersten Lauf deaktiviert lassen, weil DNS und Google Managed Certificate noch konvergieren können. Sobald Zertifikat und DNS aktiv sind, erneut mit aktiviertem externem Boundary-Test für `/` und `/api/healthz` ausführen. Ohne Benutzer- oder Service-Account-IAP-Token ist dies kein Anwendungs-Healthcheck: Eine nicht angemeldete Anfrage muss durch IAP mit 302, 401 oder 403 abgefangen werden; ein öffentliches HTTP 200 gilt als Fehler. Den eigentlichen Healthcheck führt der Workflow clusterintern aus.
+Jeder echte Lauf führt den externen Boundary-Test aus. Erwartet werden öffentliche HTTP-200-Antworten ausschließlich für `/` und `/anmelden`. `/start`, `/enrollment.html`, `/login.html`, `/api/*`, Runtime-Assets und Near-Misses wie `/anmelden/` müssen entweder an der IAP-Grenze stoppen oder vom minimalen Backend mit 404 abgewiesen werden; sie dürfen nie den öffentlichen Inhalt liefern. Der Google Load Balancer normalisiert Dot-Segmente bereits vor Backend und IAP: Für `/foo/../anmelden`, `/anmelden/../anmelden` und `/./anmelden` akzeptiert der Test deshalb ausschließlich HTTP 302 mit `Location` exakt auf `/anmelden` desselben kanonischen Origins und ohne Public-Body. Der Test prüft zusätzlich IAP-Header, Public-Security-Header, HEAD/POST und die nicht reflektierte Query. Erst nach erfolgreichem externem Test wird ein Cutover als abgeschlossen markiert; andernfalls aktiviert der Workflow IAP auf dem Public-Backend erneut.
 
 ### Wiederverwendbarer Aufruf
 
@@ -322,15 +327,17 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 ### Infrastruktur
 
 - [ ] Terraform-Plan wurde geprüft und in das richtige GCP-Projekt angewendet.
+- [ ] Die ausgerollte Deployer-Rolle enthält `compute.urlMaps.get`; der Public-Entry-Cutover wurde nicht vor diesem Terraform-Update gestartet.
 - [ ] Falls `BILLING_ACCOUNT_ID` gesetzt ist, existiert das projektbezogene Warnbudget; allen Beteiligten ist bekannt, dass es kein Ausgabenlimit ist.
 - [ ] GKE nutzt Autopilot, private Nodes und ausschließlich den extern erreichbaren DNS-Control-Plane-Endpunkt.
 - [ ] Artifact Registry, Cloud SQL, Secret Manager und alle vier Buckets liegen in der vorgesehenen Region.
 - [ ] Der gemeinsame Frontend-/API-DNS-Name zeigt auf `GKE_INGRESS_IP_ADDRESS`.
 - [ ] Google Managed Certificate meldet `Active`.
-- [ ] Der GKE Ingress routet `/` zum Frontend und `/api` zur API; beide Backends sind durch IAP geschützt.
+- [ ] Der GKE Ingress routet am kanonischen Host nur Exact `/` und Exact `/anmelden` zum Public-Entry-Backend; `/api` und der `/`-Catch-all zeigen auf die zwei IAP-geschützten Backends.
+- [ ] Das Public-Entry-Backend besitzt `iap.enabled: false`, eine leere Resource-Policy und physisch nur `public-index.html` sowie `public-login.html`.
 - [ ] Beide Resource-Policies stehen auf Version 3 und enthalten ausschließlich `group:versorgungs-kompass-pre-gematik-access@googlegroups.com` mit Ablaufbedingung `2026-08-17T16:00:00Z`.
-- [ ] API- und Frontend-Backend erzwingen jeweils `ENROLLED_SECOND_FACTORS / 28800s / MINIMUM`.
-- [ ] Projektweiter IAP-Zugriff enthält unverändert nur den gepinnten Break-glass-Nutzer; die Testgruppe ist ausschließlich auf API- und Frontend-Backend-Service gebunden.
+- [ ] API- und geschütztes Frontend-Backend erzwingen jeweils `ENROLLED_SECOND_FACTORS / 28800s / MINIMUM`.
+- [ ] Projektweiter IAP-Zugriff enthält unverändert nur den gepinnten Break-glass-Nutzer; die Testgruppe ist ausschließlich auf API- und geschützten Frontend-Backend-Service gebunden.
 
 ### Identität und Secrets
 
@@ -344,6 +351,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] Für Passwortrotation ist der anschließende API-Rollout dokumentiert und getestet.
 - [ ] Der API-Workload-Principal darf nur das benötigte Secret, Cloud SQL und die drei Daten-Buckets verwenden.
 - [ ] Der getrennte Frontend-Workload-Principal darf nur das statische Artefakt aus dem Frontend-Bucket lesen.
+- [ ] Die Public-Entry-KSA besitzt keine Cloud-IAM-Bindung; der Public-Pod hat `egress: []` und verwendet ausschließlich das digest-gepinnte Zwei-Dokumente-Image.
 - [ ] Der GitHub-Deployer darf Registry, Frontend-Bucket, Cluster-Deployment und nur lesend Backend-Service/Projektmetadaten verwenden.
 
 ### Anwendung
@@ -357,7 +365,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] `IAP_JWT_AUDIENCE` entspricht dem tatsächlichen GKE Backend Service.
 - [ ] Interner `/api/healthz`-Smoke Test ist grün.
 - [ ] Unsigned-Header-Test liefert 401.
-- [ ] Externer unauthentifizierter Smoke Test liefert keinen öffentlichen 200-Status.
+- [ ] Externer Smoke liefert 200 nur für `/` und `/anmelden`; geschützte Pfade liefern eine IAP-generierte 302/401/403-Antwort, Near-Misses eine sichere 404/IAP-Antwort oder bei den drei dokumentierten Dot-Segmenten ausschließlich den engen kanonischen 302.
 - [ ] IAP-Login einer freigegebenen Testperson funktioniert.
 - [ ] Ein aktives `profiles`-Mapping liefert die erwartete Rolle; unbekannte Personen erhalten 403.
 - [ ] Viewer können den freigegebenen Bestand lesen und keine Fachobjekte verändern.

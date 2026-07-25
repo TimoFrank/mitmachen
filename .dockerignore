@@ -25,3 +25,22 @@ public
 scripts
 supabase
 tests
+
+# The dedicated public-entry image receives only the two audited, generated
+# documents from the otherwise ignored target build.
+!dist/
+dist/*
+!dist/target/
+dist/target/*
+!dist/target/public-index.html
+!dist/target/public-login.html
+
+!deploy/
+deploy/*
+!deploy/helm/
+deploy/helm/*
+!deploy/helm/versorgungs-kompass/
+deploy/helm/versorgungs-kompass/*
+!deploy/helm/versorgungs-kompass/files/
+deploy/helm/versorgungs-kompass/files/*
+!deploy/helm/versorgungs-kompass/files/frontend-public.conf

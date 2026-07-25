@@ -147,6 +147,35 @@ frontend:
     iap:
       enabled: true
       oauthClientCredentialsSecretName: ""
+  publicEntry:
+    enabled: false
+    replicaCount: 2
+    podAnnotations: {}
+    image:
+      repository: "artifact-registry.example/versorgungs-kompass-public-entry"
+      tag: "REPLACE_WITH_IMMUTABLE_IMAGE_TAG"
+      digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      pullPolicy: IfNotPresent
+    serviceAccount:
+      create: true
+      name: "versorgungs-kompass-frontend-public"
+      automountServiceAccountToken: false
+    service:
+      port: 80
+      annotations: {}
+    backendConfig:
+      name: ""
+      timeoutSec: 30
+      healthCheck:
+        requestPath: /_healthz
+        port: 8080
+        checkIntervalSec: 15
+        timeoutSec: 5
+        healthyThreshold: 1
+        unhealthyThreshold: 3
+      iap:
+        enabled: false
+        oauthClientCredentialsSecretName: ""
 
 gke:
   cloudSqlProxy:

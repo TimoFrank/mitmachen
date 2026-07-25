@@ -13,6 +13,9 @@ const requiredFiles = [
   "scripts/generate_pre_gematik_synthetic_seed.mjs",
   "scripts/build_static_frontend.sh",
   "scripts/test_deployment_separation.mjs",
+  "frontend/public-entry/index.html",
+  "frontend/public-entry/anmelden.html",
+  "frontend/public-entry/public-entry.css",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md",
   "deploy/postgres/pre-gematik/README.md",
   "deploy/postgres/pre-gematik/schema.sql",
@@ -30,8 +33,14 @@ const requiredFiles = [
   "deploy/helm/versorgungs-kompass/templates/backendconfig.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-backendconfig.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-deployment.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-public-backendconfig.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-public-serviceaccount.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-public-service.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-serviceaccount.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-service.yaml",
+  "deploy/helm/versorgungs-kompass/files/frontend-public.conf",
+  "deploy/frontend-public/Dockerfile",
   "deploy/helm/versorgungs-kompass/templates/managedcertificate.yaml",
   "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
   "deploy/helm/versorgungs-kompass/templates/secretsync.yaml",
@@ -107,7 +116,17 @@ const contentChecks = [
       /--resource-type=backend-services/,
       /api_backend_service/,
       /frontend_backend_service/,
-      /if \[\[ -z "\$backends_json" \]\]; then[\s\S]*backends_json='\{\}'/,
+      /public_frontend_backend_service/,
+      /gcloud compute url-maps describe/,
+      /public_entry_iap_enabled/,
+      /force_public_iap_enabled "\$existing_public_backend"/,
+      /deploy_release "\$iap_audience" "\$final_auto_enrollment_enabled" false/,
+      /data-public-entry="home"/,
+      /data-public-entry="access"/,
+      /Protected path \$\{protected_path\} did not return an IAP-generated boundary response/,
+      /wait_for_boundary/,
+      /backend-services get-health/,
+      /Restore fail-closed public boundary after failed cutover/,
       /kubectl[\s\S]*exec[\s\S]*--stdin[\s\S]*node --input-type=module <<'NODE'/,
       /--read-only/,
       /requiredTables/,
@@ -184,13 +203,38 @@ const contentChecks = [
   },
   {
     file: "deploy/helm/versorgungs-kompass/values-gcp-autopilot.yaml",
-    patterns: [/apiAuthMode:\s*iap/, /cloudSqlProxy:/, /secretSync:/, /frontend:/, /contentRevision:/, /managedCertificate:/, /automountServiceAccountToken:\s*false/, /readOnlyRootFilesystem:\s*true/, /cloud-sql-proxy:[^\s]+@sha256:[a-f0-9]{64}/, /google-cloud-cli:[^\s]+@sha256:[a-f0-9]{64}/],
-    reason: "GCP-Overlay aktiviert IAP, Cloud-SQL-Proxy, SecretSync, Managed Certificate und gehaertete API-/Frontend-Pods."
+    patterns: [/apiAuthMode:\s*iap/, /cloudSqlProxy:/, /secretSync:/, /frontend:/, /contentRevision:/, /publicEntry:[\s\S]*enabled:\s*true[\s\S]*image:[\s\S]*digest:\s*sha256:[a-f0-9]{64}[\s\S]*iap:[\s\S]*enabled:\s*true/, /managedCertificate:/, /automountServiceAccountToken:\s*false/, /readOnlyRootFilesystem:\s*true/, /cloud-sql-proxy:[^\s]+@sha256:[a-f0-9]{64}/, /google-cloud-cli:[^\s]+@sha256:[a-f0-9]{64}/],
+    reason: "GCP-Overlay aktiviert IAP für App/API und den fail-closed Public-Bootstrap sowie Cloud-SQL-Proxy, SecretSync, Managed Certificate und gehaertete Pods."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/frontend-deployment.yaml",
     patterns: [/frontendServiceAccountName/, /automountServiceAccountToken/, /releasePrefix/, /contentRevision/, /checksum\/frontend-nginx-config/],
     reason: "Frontend nutzt eine eigene Workload-Identity ohne Kubernetes-API-Token, laedt eine unveraenderliche Release-Revision und rollt bei geaenderter Nginx-Domainkonfiguration neu aus."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml",
+    patterns: [/publicImageDigest/, /frontendPublicSelectorLabels/, /frontendPublicServiceAccountName/, /automountServiceAccountToken/, /image:\s*"\{\{ \$publicImageRepository \}\}@\{\{ \$publicImageDigest \}\}"/, /_healthz/],
+    reason: "Das dedizierte Public-Deployment nutzt ausschließlich ein digest-gepinntes Zwei-Dokumente-Image und eine eigene KSA ohne Kubernetes-API-Token."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/frontend-public-backendconfig.yaml",
+    patterns: [/frontendPublicBackendConfigName/, /iap:[\s\S]*enabled:\s*\{\{ \.Values\.frontend\.publicEntry\.backendConfig\.iap\.enabled \}\}/],
+    reason: "Das Public-Backend besitzt eine eigene, explizit steuerbare IAP-Grenze fuer den fail-closed Cutover."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/ingress.yaml",
+    patterns: [/path:\s*\/[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/, /path:\s*\/anmelden[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/, /eq \$host \$\.Values\.ingress\.host/],
+    reason: "Nur die beiden exakten Pfade am kanonischen Host zeigen auf das Public-Backend."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/files/frontend-public.conf",
+    patterns: [/map \$request_uri \$public_entry_document/, /merge_slashes off/, /if \(\$public_entry_document = ""\)/, /default-src 'none'/, /script-src 'none'/, /Cache-Control "no-store"/],
+    reason: "Der Public-nginx erlaubt nur die beiden rohen Request-URIs und lehnt normalisierte oder codierte Aliase mit strikten Browser-Headern ab."
+  },
+  {
+    file: "deploy/frontend-public/Dockerfile",
+    patterns: [/nginx-unprivileged:[^\s]+@sha256:[a-f0-9]{64}/, /COPY --chown=101:101 dist\/target\/public-index\.html/, /COPY --chown=101:101 dist\/target\/public-login\.html/, /frontend-public\.conf/, /USER 101:101/, /nginx -t/],
+    reason: "Das Public-Image enthaelt nur die zwei auditierten Dokumente und die getestete nginx-Konfiguration auf einem gepinnten Non-Root-Basisimage."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/deployment.yaml",
@@ -225,8 +269,8 @@ const contentChecks = [
   },
   {
     file: "deploy/terraform/gcp-autopilot/identities.tf",
-    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/],
-    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-Metadaten- und granulare IAP-Policy-Rechte sind explizit."
+    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /compute\.urlMaps\.get/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/],
+    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-, URL-Map- und granulare IAP-Policy-Rechte sind explizit."
   },
   {
     file: "deploy/terraform/gcp-autopilot/storage.tf",
@@ -246,6 +290,16 @@ const contentChecks = [
 ];
 
 const forbiddenChecks = [
+  {
+    files: ["deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml"],
+    patterns: [/\binitContainers\b/, /\bgcloud\b/, /\bgs:\/\//, /frontend-public-content/],
+    reason: "Der oeffentliche Pod darf weder GCS-Zugang noch einen Runtime-Sync besitzen."
+  },
+  {
+    files: ["deploy/helm/versorgungs-kompass/templates/frontend-public-serviceaccount.yaml"],
+    patterns: [/\bannotations:/],
+    reason: "Die oeffentliche KSA darf keine frei konfigurierbare Cloud-Identity-Annotation besitzen."
+  },
   {
     files: [".github/workflows/deploy-pre-gematik.yml"],
     patterns: [/backends_json:-\{\}/, /-- node --input-type=module --eval '/],
