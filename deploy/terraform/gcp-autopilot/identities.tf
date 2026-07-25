@@ -78,10 +78,11 @@ resource "google_project_iam_member" "deployer_iap_audience_reader" {
 resource "google_project_iam_custom_role" "public_backend_cutover" {
   role_id     = "preGematikPublicBackendCutover"
   title       = "Pre-gematik public backend cutover"
-  description = "Disable IAP only during the audited public-entry cutover while retaining the backend's custom OAuth client."
+  description = "Reuse the attached health check and disable IAP only during the audited public-entry cutover while retaining the custom OAuth client."
   stage       = "GA"
   permissions = [
     "compute.backendServices.update",
+    "compute.healthChecks.useReadOnly",
   ]
 }
 

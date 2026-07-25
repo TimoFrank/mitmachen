@@ -118,7 +118,7 @@ terraform apply pre-gematik.tfplan
 
 Vor `apply` die Zielwerte in `terraform.tfvars.example` prüfen und als lokale `terraform.tfvars` übernehmen. Insbesondere muss die private Google Group bereits existieren und für IAM sichtbar sein. Sie steht nicht in `IAP_ACCESS_MEMBERS`, sondern wird später vom Workflow an die beiden konkreten Backend Services gebunden. `terraform.tfvars`, Plan-Dateien, State, der reale State-Bucket-Name und lokale Credentials bleiben außerhalb von Git. Das eingecheckte `backend.tf` enthält nur das stabile State-Präfix.
 
-Vor dem Public-Entry-Cutover muss dieser Terraform-Stand erneut angewendet sein: Er ergänzt beim bereits ausgerollten Deployer die rein lesende Berechtigung `compute.urlMaps.get` und die separate, auf den Cutover begrenzte Rolle mit `compute.backendServices.update`. Der Anwendungs-Workflow prüft die URL-Map-Berechtigung anhand der bestehenden GKE URL Map, bevor Phase A den Ingress verändert. Die Update-Berechtigung wird ausschließlich dafür verwendet, IAP am bereits eindeutig aufgelösten Public-Backend zu deaktivieren; `gcloud --iap=disabled` erhält dabei den vorhandenen Custom-OAuth-Client. Ein bloßer App-Workflow-Lauf ersetzt dieses Infrastruktur-Update nicht.
+Vor dem Public-Entry-Cutover muss dieser Terraform-Stand erneut angewendet sein: Er ergänzt beim bereits ausgerollten Deployer die rein lesende Berechtigung `compute.urlMaps.get` und die separate, auf den Cutover begrenzte Rolle mit `compute.backendServices.update` sowie `compute.healthChecks.useReadOnly`. Der Anwendungs-Workflow prüft die URL-Map-Berechtigung anhand der bestehenden GKE URL Map, bevor Phase A den Ingress verändert. Die Update-Berechtigung wird ausschließlich dafür verwendet, IAP am bereits eindeutig aufgelösten Public-Backend zu deaktivieren; `compute.healthChecks.useReadOnly` erlaubt dabei nur, den bereits gebundenen Health Check unverändert weiterzuverwenden. `gcloud --iap=disabled` erhält den vorhandenen Custom-OAuth-Client. Ein bloßer App-Workflow-Lauf ersetzt dieses Infrastruktur-Update nicht.
 
 Relevante Outputs:
 
@@ -327,7 +327,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 ### Infrastruktur
 
 - [ ] Terraform-Plan wurde geprüft und in das richtige GCP-Projekt angewendet.
-- [ ] Die ausgerollten Deployer-Rollen enthalten `compute.urlMaps.get` und die separate Cutover-Berechtigung `compute.backendServices.update`; der Public-Entry-Cutover wurde nicht vor diesem Terraform-Update gestartet.
+- [ ] Die ausgerollten Deployer-Rollen enthalten `compute.urlMaps.get` sowie die separaten Cutover-Berechtigungen `compute.backendServices.update` und `compute.healthChecks.useReadOnly`; der Public-Entry-Cutover wurde nicht vor diesem Terraform-Update gestartet.
 - [ ] Falls `BILLING_ACCOUNT_ID` gesetzt ist, existiert das projektbezogene Warnbudget; allen Beteiligten ist bekannt, dass es kein Ausgabenlimit ist.
 - [ ] GKE nutzt Autopilot, private Nodes und ausschließlich den extern erreichbaren DNS-Control-Plane-Endpunkt.
 - [ ] Artifact Registry, Cloud SQL, Secret Manager und alle vier Buckets liegen in der vorgesehenen Region.
