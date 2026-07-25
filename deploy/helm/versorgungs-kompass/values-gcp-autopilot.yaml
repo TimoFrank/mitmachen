@@ -92,6 +92,22 @@ frontend:
     iap:
       enabled: true
       oauthClientCredentialsSecretName: versorgungs-kompass-iap-oauth
+  publicEntry:
+    enabled: true
+    image:
+      repository: europe-west3-docker.pkg.dev/example-pre-gematik-project/versorgungs-kompass-pre-gematik/versorgungs-kompass-public-entry
+      tag: REPLACE_WITH_IMMUTABLE_IMAGE_TAG
+      digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      pullPolicy: IfNotPresent
+    serviceAccount:
+      create: true
+      name: versorgungs-kompass-frontend-public
+      automountServiceAccountToken: false
+    backendConfig:
+      name: versorgungs-kompass-frontend-public
+      iap:
+        enabled: true
+        oauthClientCredentialsSecretName: versorgungs-kompass-iap-oauth
 
 gke:
   cloudSqlProxy:

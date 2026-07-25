@@ -8,6 +8,9 @@
 {{- if and (not .Values.frontend.enabled) (gt (len $hostRedirects) 0) -}}
 {{- fail "frontend.enabled must be true when frontend.hostRedirects is configured" -}}
 {{- end -}}
+{{- if and .Values.frontend.publicEntry.enabled (not .Values.frontend.enabled) -}}
+{{- fail "frontend.enabled must be true when frontend.publicEntry.enabled is true" -}}
+{{- end -}}
 {{- $redirectHosts := dict -}}
 {{- range $hostRedirects -}}
 {{- if eq .host $.Values.ingress.host -}}
@@ -63,6 +66,22 @@ spec:
     - host: {{ $host | quote }}
       http:
         paths:
+          {{- if and $.Values.frontend.publicEntry.enabled (eq $host $.Values.ingress.host) }}
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          - path: /anmelden
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          {{- end }}
           {{- if and $.Values.frontend.enabled (hasKey $redirectHosts $host) }}
           - path: /
             pathType: Prefix

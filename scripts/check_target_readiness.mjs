@@ -18,12 +18,19 @@ const requiredFiles = [
   "deploy/helm/versorgungs-kompass/templates/deployment.yaml",
   "deploy/helm/versorgungs-kompass/templates/service.yaml",
   "deploy/helm/versorgungs-kompass/templates/ingress.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-public-service.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-public-backendconfig.yaml",
+  "deploy/helm/versorgungs-kompass/files/frontend-public.conf",
   "deploy/postgres/poc-gematik/README.md",
   "deploy/postgres/poc-gematik/bind-oidc-identity.sql",
   "dokumentation/betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md",
   "api/Dockerfile",
   "api/server.mjs",
   "scripts/build_static_frontend.sh",
+  "frontend/public-entry/index.html",
+  "frontend/public-entry/anmelden.html",
+  "frontend/public-entry/public-entry.css",
   "scripts/generate_frontend_sbom.mjs",
   "scripts/generate_security_evidence.mjs",
   "scripts/check_deployment_governance.mjs",
@@ -68,8 +75,8 @@ const requiredText = [
   },
   {
     file: "scripts/build_static_frontend.sh",
-    patterns: [/--profile/, /--output/, /pages/, /target/],
-    reason: "Der statische Frontend-Build erzwingt getrennte Pages- und Target-Artefakte."
+    patterns: [/--profile/, /--output/, /pages/, /target/, /public-index\.html/, /public-login\.html/],
+    reason: "Der statische Frontend-Build erzwingt getrennte Pages-/Target-Artefakte und bettet die zwei minimalen Public-Dokumente ein."
   },
   {
     file: "scripts/prepare_local_hospitation.mjs",
@@ -103,8 +110,8 @@ const requiredText = [
   },
   {
     file: ".github/workflows/deploy-pre-gematik.yml",
-    patterns: [/dist\/target/, /environment:[\s\S]*name:\s*pre-gematik/],
-    reason: "Die Pre-Integration deployt ein eigenes Target-Artefakt aus einem geschuetzten Environment."
+    patterns: [/dist\/target/, /environment:[\s\S]*name:\s*pre-gematik/, /public_frontend_backend_service/, /gcloud compute url-maps describe/, /data-public-entry="home"/],
+    reason: "Die Pre-Integration deployt ein eigenes Target-Artefakt und prueft die getrennte Public-/IAP-Grenze aus einem geschuetzten Environment."
   },
   {
     file: ".github/workflows/deploy-pages.yml",
