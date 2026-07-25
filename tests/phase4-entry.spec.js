@@ -5,7 +5,7 @@ function teamDirectoryBackendFixtureScript() {
   return `
     (() => {
       const now = "2026-07-16T12:00:00.000Z";
-      const teams = ["Stabsstelle Versorgung", "Kommunikation", "Strategie und Standards", "Produktentwicklung", ""];
+      const teams = ["Stabsstelle Versorgung", "Kommunikation", "Produktentwicklung", ""];
       const roles = ["admin", "editor", "viewer"];
       const profiles = Array.from({ length: 36 }, (_, index) => {
         const number = String(index + 1).padStart(2, "0");
@@ -196,7 +196,7 @@ test("Phase 4: die Pages-Registrierung bleibt technisch inert", async ({ page })
   expect(adapterRequests).toEqual([]);
 });
 
-test("Phase 4: Teams starten kompakt und eingeklappt, zeigen Mitglieder und laden Kontakte erst bei Bedarf", async ({ page }) => {
+test("Phase 4: Teams zeigen eine Kartenübersicht mit gemeinsamem Detailbereich und laden Kontakte erst bei Bedarf", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#team", {
     role: "admin",
     backendFixtureScript: teamDirectoryBackendFixtureScript()
@@ -205,49 +205,79 @@ test("Phase 4: Teams starten kompakt und eingeklappt, zeigen Mitglieder und lade
   await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
   await expect(page.locator("#workspace-view-title")).not.toBeVisible();
   await expect(page.locator("#workspace-view-subtitle")).not.toBeVisible();
-  await expect(page.locator("#team-overview-title")).toBeVisible();
+  await expect(page.locator("#team-overview-title")).toHaveText("Teams");
+  await expect(page.getByText("Gemeinsamer Arbeitsraum", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Zusammenarbeit im Überblick", { exact: true })).toHaveCount(0);
   await expect(page.locator("#team-user-count")).toHaveText("36");
-  await expect(page.locator("#team-group-count")).toHaveText("4");
+  await expect(page.locator("#team-group-count")).toHaveText("3");
   await expect(page.locator("#team-directory-title, #team-directory-result, .team-toolbar")).toHaveCount(0);
   const workspaceWidth = await page.locator(".team-workspace").evaluate((element) => Math.round(element.getBoundingClientRect().width));
-  expect(workspaceWidth).toBeLessThanOrEqual(760);
-  await expect(page.locator("#team-account-list > .team-column")).toHaveCount(5);
-  await expect(page.locator("#team-account-list > .team-column[open]")).toHaveCount(0);
+  expect(workspaceWidth).toBeGreaterThan(760);
+  expect(workspaceWidth).toBeLessThanOrEqual(1120);
 
-  const firstGroup = page.locator("#team-account-list > .team-column").first();
-  await expect(firstGroup).not.toHaveAttribute("open", "");
-  await expect(firstGroup.locator(".team-column-title strong")).toHaveText("Stabsstelle Versorgung");
-  await expect(firstGroup.locator(".team-icon svg")).toBeVisible();
-  const memberPreview = firstGroup.locator(".team-column-members");
-  await expect(memberPreview).toBeVisible();
-  const previewAvatarCount = await memberPreview.locator(".team-column-member-avatar").count();
-  const memberBadgeCount = Number(await firstGroup.locator(".team-column-count strong").textContent());
-  expect(previewAvatarCount).toBe(memberBadgeCount);
-  await expect(firstGroup.locator(".team-column-accounts")).not.toBeVisible();
-  const groupWidth = await firstGroup.evaluate((element) => Math.round(element.getBoundingClientRect().width));
-  const directoryWidth = await page.locator("#team-account-list").evaluate((element) => Math.round(element.getBoundingClientRect().width));
-  expect(Math.abs(directoryWidth - groupWidth)).toBeLessThanOrEqual(2);
-  await firstGroup.locator(":scope > summary").click();
-  await expect(firstGroup).toHaveAttribute("open", "");
-  await expect(memberPreview).not.toBeVisible();
-  await expect(firstGroup.locator(".team-column-accounts")).toBeVisible();
-  await expect(firstGroup.getByText("Profil ansehen")).toHaveCount(0);
-  await expect(firstGroup.locator(".team-account-responsibilities")).toHaveCount(0);
+  const teamCards = page.locator("#team-account-list .team-card");
+  await expect(teamCards).toHaveCount(4);
+  await expect(page.locator("#team-account-list .team-column")).toHaveCount(0);
+  await expect(teamCards.filter({ hasText: "Strategie und Standards" })).toHaveCount(0);
+  await expect(teamCards.filter({ hasText: "Ohne Team" })).toHaveCount(1);
+  await expect(page.locator("#team-account-list .team-card[aria-pressed='true']")).toHaveCount(1);
+
+  const teamGridColumns = await page.locator(".team-card-grid").evaluate((element) =>
+    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
+  );
+  expect(teamGridColumns).toBe(2);
+
+  const firstTeam = teamCards.first();
+  await expect(firstTeam).toHaveAttribute("aria-pressed", "true");
+  await expect(firstTeam.locator(".team-card__title")).toHaveText("Stabsstelle Versorgung");
+  await expect(firstTeam.locator(".team-icon svg")).toBeVisible();
+  await expect(firstTeam.locator(".team-card__count")).toHaveText("9 Nutzer");
+  await expect(firstTeam.locator(".team-card-avatar:not(.team-card-avatar--overflow)")).toHaveCount(4);
+  await expect(firstTeam.locator(".team-card-avatar--overflow")).toHaveText("+5");
+  await expect(page.locator('[data-view-panel="team"]')).not.toContainText("Mitglied");
+
+  const teamDetail = page.locator("#team-selected-detail");
+  await expect(teamDetail).toHaveCount(1);
+  await expect(teamDetail.locator(".team-selected-detail__header h3")).toHaveText("Stabsstelle Versorgung");
+  await expect(teamDetail.locator(".team-account-card")).toHaveCount(9);
+  const accountGridColumns = await teamDetail.locator(".team-account-grid").evaluate((element) =>
+    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
+  );
+  expect(accountGridColumns).toBe(2);
+  await expect(teamDetail.getByText("Profil ansehen")).toHaveCount(0);
+  await expect(teamDetail.locator(".team-account-responsibilities")).toHaveCount(0);
+
+  await teamCards.nth(1).click();
+  await expect(page.locator("#team-account-list .team-card[aria-pressed='true']")).toContainText("Kommunikation");
+  await expect(page.locator("#team-selected-detail .team-selected-detail__header h3")).toHaveText("Kommunikation");
+  await expect(page.locator("#team-account-list .team-card[aria-pressed='true']")).toBeFocused();
+  await page.locator("#team-account-list .team-card").first().click();
+  await expect(page.locator("#team-selected-detail .team-selected-detail__header h3")).toHaveText("Stabsstelle Versorgung");
 
   await expect(page.locator("#team-account-list .profile-owner-contact")).toHaveCount(0);
   const responsibilityDetails = page.locator("#team-account-list [data-team-owner-profile]").filter({ hasText: "1 Kontakt öffnen" }).first();
-  const responsibilityTeam = responsibilityDetails.locator("xpath=ancestor::details[@data-team-group]");
-  if ((await responsibilityTeam.getAttribute("open")) === null) await responsibilityTeam.locator(":scope > summary").click();
+  const responsibilityCard = responsibilityDetails.locator("xpath=ancestor::article[contains(@class, 'team-account-card')]");
+  const responsibilityCardBox = await responsibilityCard.boundingBox();
+  const responsibilityDetailsBox = await responsibilityDetails.boundingBox();
+  expect(responsibilityCardBox).not.toBeNull();
+  expect(responsibilityDetailsBox).not.toBeNull();
+  expect(responsibilityDetailsBox.width).toBeGreaterThan(responsibilityCardBox.width - 40);
   await responsibilityDetails.locator("summary").click();
   await expect(responsibilityDetails.locator(".profile-owner-contact")).toHaveCount(1);
   await expect(responsibilityDetails).not.toContainText("Kontakte werden erst beim Öffnen geladen.");
 
   await page.setViewportSize({ width: 360, height: 780 });
   await expectNoHorizontalOverflow(page);
+  const mobileTeamGridColumns = await page.locator(".team-card-grid").evaluate((element) =>
+    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
+  );
+  const mobileAccountGridColumns = await page.locator(".team-account-grid").evaluate((element) =>
+    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
+  );
+  expect(mobileTeamGridColumns).toBe(1);
+  expect(mobileAccountGridColumns).toBe(1);
 
   const navigableResponsibility = page.locator("#team-account-list [data-team-owner-profile]").filter({ hasText: "1 Kontakt öffnen" }).first();
-  const navigableTeam = navigableResponsibility.locator("xpath=ancestor::details[@data-team-group]");
-  if ((await navigableTeam.getAttribute("open")) === null) await navigableTeam.locator(":scope > summary").click();
   if ((await navigableResponsibility.getAttribute("open")) === null) await navigableResponsibility.locator("summary").click();
   await navigableResponsibility.locator("[data-team-owner-contact]").click();
   await expect(page.locator('[data-view-panel="personProfile"]')).toBeVisible();
@@ -260,13 +290,12 @@ for (const role of ["viewer", "editor", "admin"]) {
       role,
       backendFixtureScript: teamDirectoryBackendFixtureScript()
     });
-    const firstTeam = page.locator("#team-account-list > .team-column").first();
-    await expect(page.locator("#team-account-list > .team-column[open]")).toHaveCount(0);
-    await expect(firstTeam.locator(".team-column-members")).toBeVisible();
-    await firstTeam.locator(":scope > summary").click();
-    await expect(firstTeam.locator(".team-account-row").first()).toBeVisible();
+    const firstTeam = page.locator("#team-account-list .team-card").first();
+    await expect(page.locator("#team-account-list .team-card[aria-pressed='true']")).toHaveCount(1);
+    await expect(firstTeam).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#team-selected-detail .team-account-card").first()).toBeVisible();
     await expect(page.locator("#team-account-list").getByRole("button", { name: /bearbeiten|löschen|Rolle ändern/i })).toHaveCount(0);
     await expect(page.locator("#team-account-list").getByText("Profil ansehen")).toHaveCount(0);
-    await expect(firstTeam.getByText(/Kontakte? öffnen/).first()).toBeVisible();
+    await expect(page.locator("#team-selected-detail").getByText(/Kontakte? öffnen/).first()).toBeVisible();
   });
 }
