@@ -121,7 +121,7 @@
 
   // Minimal basemap WITHOUT labels; the CRM overlays carry the important information.
   const MAP_MIN_ZOOM = 6;
-  const MOBILE_MAP_MIN_ZOOM = 5.5;
+  const MOBILE_MAP_MIN_ZOOM = 4.5;
   const MAP_MAX_ZOOM = 11;
   const STATE_MAP_MAX_ZOOM = 12;
   const MAP_WHEEL_PX_PER_ZOOM = 140;

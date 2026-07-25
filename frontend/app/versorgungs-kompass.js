@@ -35097,7 +35097,7 @@
             openPersonProfile("stakeholder", messageId, { returnTo: "stakeholders" });
             return;
         }
-        openPersonProfile("contact", messageId, { returnTo: "map" });
+        openDetail(messageId, mapContacts(), { scope: "care", mode: "preview", returnTo: "map" });
       });
 
       csvFileInput.addEventListener("change", async (event) => {
