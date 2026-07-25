@@ -2684,7 +2684,9 @@ jobs:
             "/anmelden/"
             "/Anmelden"
             "/anmelden/weiter"
-            "/anmelden;probe"
+            "/anmelden;;probe"
+            "/anmelden,probe"
+            "/anmelden%3Bprobe"
           )
           protected_index=0
           for protected_path in "${protected_paths[@]}"; do
@@ -2742,6 +2744,60 @@ jobs:
                 ;;
               *)
                 echo "Normalized alias ${normalized_alias} bypassed the exact public boundary with HTTP ${status}." >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          # The External Application Load Balancer treats a single semicolon
+          # as a matrix-parameter delimiter for path-rule selection while
+          # forwarding the raw URI. The minimal public nginx therefore owns the
+          # containment response and must return only a hardened, content-free
+          # 404. If Google changes the behavior to IAP, require its marker.
+          matrix_aliases=(
+            "/;"
+            "/;probe"
+            "/;probe=1"
+            "/anmelden;"
+            "/anmelden;probe"
+            "/anmelden;probe=1"
+            "/anmelden;probe/weiter"
+            "/anmelden;%2Fprobe"
+          )
+          matrix_index=0
+          for matrix_alias in "${matrix_aliases[@]}"; do
+            matrix_index=$((matrix_index + 1))
+            matrix_headers="${RUNNER_TEMP}/matrix-boundary-${matrix_index}.headers"
+            matrix_body="${RUNNER_TEMP}/matrix-boundary-${matrix_index}.body"
+            status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$matrix_headers" \
+              --output "$matrix_body" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${matrix_alias}")"
+            case "$status" in
+              404)
+                if grep --fixed-strings --quiet 'data-public-entry=' "$matrix_body" || \
+                   grep --ignore-case --quiet '^set-cookie:' "$matrix_headers" || \
+                   grep --ignore-case --quiet '^location:' "$matrix_headers" || \
+                   grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$matrix_headers"; then
+                  echo "Matrix alias ${matrix_alias} returned a stateful, redirected, IAP-mixed, or public-entry 404." >&2
+                  exit 1
+                fi
+                grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$matrix_headers"
+                grep --ignore-case --fixed-strings --quiet \
+                  "content-security-policy: default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; frame-src 'none'; font-src 'none'; media-src 'none'; manifest-src 'none'; worker-src 'none'" \
+                  "$matrix_headers"
+                grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$matrix_headers"
+                ;;
+              302|401|403)
+                if ! grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$matrix_headers"; then
+                  echo "Matrix alias ${matrix_alias} returned ${status} without an IAP boundary marker." >&2
+                  exit 1
+                fi
+                ;;
+              *)
+                echo "Matrix alias ${matrix_alias} bypassed the containment boundary with HTTP ${status}." >&2
                 exit 1
                 ;;
             esac
