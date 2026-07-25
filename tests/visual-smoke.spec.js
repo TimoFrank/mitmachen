@@ -5072,7 +5072,8 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
     await mapFrame.locator("#mobile-state-filter").click();
     await stateMenu.getByRole("option", { name: "Alle", exact: true }).click();
     await expect(mapFrame.locator("#mobile-state-filter")).toHaveAccessibleName("Alle");
-    await expect(mapFrame.locator("#points-toggle")).toHaveAttribute("aria-pressed", "true");
+    await expect(mapFrame.locator("#marker-toggle")).toHaveAttribute("aria-pressed", "true");
+    await expect(mapFrame.locator("#points-toggle")).toHaveAttribute("aria-pressed", "false");
     const [mapBox, modeBox, zoomBox] = await Promise.all([
       mapFrame.locator("#map").boundingBox(),
       mapFrame.locator(".map-mode-controls").boundingBox(),
