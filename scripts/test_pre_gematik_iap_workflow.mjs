@@ -648,6 +648,67 @@ for (const protectedPath of [
     `Der externe Boundary-Smoke prueft den geschuetzten Pfad nicht: ${protectedPath}`
   );
 }
+
+const protectedPathsBlock = externalBoundaryScript.match(
+  /protected_paths=\([\s\S]*?\n\s*\)/
+)?.[0];
+const normalizedAliasesBlock = externalBoundaryScript.match(
+  /normalized_aliases=\([\s\S]*?\n\s*\)/
+)?.[0];
+const normalizedBoundaryBlock = externalBoundaryScript.match(
+  /normalized_aliases=\([\s\S]*?\n\s*done/
+)?.[0];
+const matrixAliasesBlock = externalBoundaryScript.match(
+  /matrix_aliases=\([\s\S]*?\n\s*\)/
+)?.[0];
+const matrixBoundaryBlock = externalBoundaryScript.match(
+  /matrix_aliases=\([\s\S]*?\n\s*done/
+)?.[0];
+assert.ok(protectedPathsBlock, "Die Protected-Path-Matrix fehlt.");
+assert.ok(normalizedAliasesBlock, "Die sichere Near-Miss-Matrix fehlt.");
+assert.ok(normalizedBoundaryBlock, "Der sichere Near-Miss-Vertrag fehlt.");
+assert.ok(matrixAliasesBlock, "Die Matrix-Parameter-Matrix fehlt.");
+assert.ok(matrixBoundaryBlock, "Der Matrix-Parameter-Vertrag fehlt.");
+assert.doesNotMatch(
+  protectedPathsBlock,
+  /"\/anmelden;probe"/,
+  "Der vom Load Balancer zum Minimal-Backend geroutete Semikolon-Pfad darf nicht zwingend einen IAP-Header erwarten."
+);
+assert.match(
+  matrixAliasesBlock,
+  /"\/;probe"[\s\S]*"\/anmelden;probe"/,
+  "Root und Anmeldung muessen mit Semikolon-Parametern als Matrix-Aliase geprueft werden."
+);
+assert.match(
+  normalizedBoundaryBlock,
+  /404\)[\s\S]*data-public-entry=/,
+  "Ein Near-Miss-404 darf keinen Public-Entry-Inhalt ausliefern."
+);
+assert.match(
+  normalizedBoundaryBlock,
+  /302\|401\|403\)[\s\S]*x-goog-iap-generated-response/,
+  "Authentifizierungsantworten fuer Near-Misses muessen von IAP erzeugt sein."
+);
+assert.match(
+  matrixBoundaryBlock,
+  /404\)[\s\S]*data-public-entry=[\s\S]*set-cookie:[\s\S]*location:[\s\S]*x-goog-iap-generated-response:/,
+  "Ein Matrix-404 muss inhaltslos, zustandslos und ohne Redirect oder IAP-Mischzustand bleiben."
+);
+for (const hardenedHeader of [
+  "cache-control: no-store",
+  "content-security-policy:",
+  "x-content-type-options: nosniff"
+]) {
+  assert.ok(
+    matrixBoundaryBlock.toLowerCase().includes(hardenedHeader),
+    `Der Matrix-404 prueft den Haertungsheader nicht: ${hardenedHeader}`
+  );
+}
+assert.match(
+  matrixBoundaryBlock,
+  /302\|401\|403\)[\s\S]*x-goog-iap-generated-response/,
+  "Authentifizierungsantworten fuer Matrix-Aliase muessen von IAP erzeugt sein."
+);
 assert.match(externalBoundaryScript, /x-goog-iap-generated-response/i);
 assert.match(
   externalBoundaryScript,
