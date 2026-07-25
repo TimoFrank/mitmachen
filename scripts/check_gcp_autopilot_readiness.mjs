@@ -120,6 +120,7 @@ const contentChecks = [
       /gcloud compute url-maps describe/,
       /public_entry_iap_enabled/,
       /force_public_iap_enabled "\$existing_public_backend"/,
+      /--iap=disabled/,
       /deploy_release "\$iap_audience" "\$final_auto_enrollment_enabled" false/,
       /data-public-entry="home"/,
       /data-public-entry="access"/,
@@ -218,8 +219,8 @@ const contentChecks = [
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/frontend-public-backendconfig.yaml",
-    patterns: [/frontendPublicBackendConfigName/, /iap:[\s\S]*enabled:\s*\{\{ \.Values\.frontend\.publicEntry\.backendConfig\.iap\.enabled \}\}/],
-    reason: "Das Public-Backend besitzt eine eigene, explizit steuerbare IAP-Grenze fuer den fail-closed Cutover."
+    patterns: [/frontendPublicBackendConfigName/, /if \.Values\.frontend\.publicEntry\.backendConfig\.iap\.enabled[\s\S]*iap:[\s\S]*enabled:\s*true[\s\S]*oauthclientCredentials:/],
+    reason: "Das Public-Backend aktiviert Custom-OAuth-IAP fail-closed und laesst IAP beim kontrollierten direkten Compute-Cutover bewusst unverwaltet."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/ingress.yaml",
@@ -269,8 +270,8 @@ const contentChecks = [
   },
   {
     file: "deploy/terraform/gcp-autopilot/identities.tf",
-    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /compute\.urlMaps\.get/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/],
-    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-, URL-Map- und granulare IAP-Policy-Rechte sind explizit."
+    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /compute\.urlMaps\.get/, /preGematikPublicBackendCutover[\s\S]*compute\.backendServices\.update/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/],
+    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-, URL-Map-, Public-Cutover- und granulare IAP-Policy-Rechte sind explizit."
   },
   {
     file: "deploy/terraform/gcp-autopilot/storage.tf",

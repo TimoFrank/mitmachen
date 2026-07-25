@@ -1964,8 +1964,22 @@ jobs:
 
           # Phase B is the final Helm mutation: open only the already proven
           # two-route public backend while preserving the verified enrollment
-          # state. The external smoke test runs immediately afterwards.
+          # state. BackendConfig must omit IAP here: GKE cannot switch a backend
+          # with custom OAuth credentials to its default OAuth client. Disable
+          # IAP directly so Compute retains the existing custom OAuth fields.
           deploy_release "$iap_audience" "$final_auto_enrollment_enabled" false
+          rendered_public_iap="$(kubectl --namespace "$K8S_NAMESPACE" get \
+            backendconfig.cloud.google.com "$(resolve_public_backend_config_name)" \
+            --output jsonpath='{.spec.iap}' 2>/dev/null || true)"
+          if [[ -n "$rendered_public_iap" ]]; then
+            echo "The final public BackendConfig must leave IAP unmanaged before the custom-OAuth backend is opened." >&2
+            exit 1
+          fi
+          gcloud compute backend-services update "$public_frontend_backend_service" \
+            --project "$GCP_PROJECT_ID" \
+            --global \
+            --iap=disabled \
+            --quiet >/dev/null
           if ! wait_for_boundary false; then
             echo "The final boundary must keep API/frontend IAP enabled, keep all backends healthy, and disable IAP only on public entry." >&2
             exit 1
@@ -2553,6 +2567,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          edge_probe_headers="${RUNNER_TEMP}/public-entry-edge-probe.headers"
+          edge_probe_body="${RUNNER_TEMP}/public-entry-edge-probe.html"
+          edge_ready=0
+          for attempt in {1..60}; do
+            edge_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$edge_probe_headers" \
+              --output "$edge_probe_body" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}/" || true)"
+            if [[ "$edge_status" == "200" ]] && \
+               grep --fixed-strings --quiet 'data-public-entry="home"' "$edge_probe_body" && \
+               ! grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$edge_probe_headers"; then
+              edge_ready=1
+              break
+            fi
+            sleep 10
+          done
+          if [[ "$edge_ready" != "1" ]]; then
+            echo "The public entry did not propagate to the external load-balancer edge within ten minutes." >&2
+            exit 1
+          fi
+
           public_index=0
           for public_path in / /anmelden; do
             public_index=$((public_index + 1))

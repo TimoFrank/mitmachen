@@ -118,7 +118,7 @@ terraform apply pre-gematik.tfplan
 
 Vor `apply` die Zielwerte in `terraform.tfvars.example` prüfen und als lokale `terraform.tfvars` übernehmen. Insbesondere muss die private Google Group bereits existieren und für IAM sichtbar sein. Sie steht nicht in `IAP_ACCESS_MEMBERS`, sondern wird später vom Workflow an die beiden konkreten Backend Services gebunden. `terraform.tfvars`, Plan-Dateien, State, der reale State-Bucket-Name und lokale Credentials bleiben außerhalb von Git. Das eingecheckte `backend.tf` enthält nur das stabile State-Präfix.
 
-Vor dem Public-Entry-Cutover muss dieser Terraform-Stand erneut angewendet sein: Er ergänzt beim bereits ausgerollten Deployer die rein lesende Berechtigung `compute.urlMaps.get`. Der Anwendungs-Workflow prüft diese Berechtigung anhand der bestehenden GKE URL Map, bevor Phase A den Ingress verändert, und bricht andernfalls ohne Routing-Änderung ab. Ein bloßer App-Workflow-Lauf ersetzt dieses Infrastruktur-Update nicht.
+Vor dem Public-Entry-Cutover muss dieser Terraform-Stand erneut angewendet sein: Er ergänzt beim bereits ausgerollten Deployer die rein lesende Berechtigung `compute.urlMaps.get` und die separate, auf den Cutover begrenzte Rolle mit `compute.backendServices.update`. Der Anwendungs-Workflow prüft die URL-Map-Berechtigung anhand der bestehenden GKE URL Map, bevor Phase A den Ingress verändert. Die Update-Berechtigung wird ausschließlich dafür verwendet, IAP am bereits eindeutig aufgelösten Public-Backend zu deaktivieren; `gcloud --iap=disabled` erhält dabei den vorhandenen Custom-OAuth-Client. Ein bloßer App-Workflow-Lauf ersetzt dieses Infrastruktur-Update nicht.
 
 Relevante Outputs:
 
@@ -302,7 +302,7 @@ Danach denselben Workflow mit `validate_only` deaktiviert ausführen. Der Deploy
 14. bestätigt Rollout und Health aller drei Workloads, die Zwei-Dateien-Grenze des Public-Deployments sowie die vollständige App-Konfiguration,
 15. prüft, dass gefälschte, unsignierte IAP-Identity-Header mit HTTP 401 abgewiesen werden.
 
-Jeder echte Lauf führt den externen Boundary-Test aus. Erwartet werden öffentliche HTTP-200-Antworten ausschließlich für `/` und `/anmelden`. `/start`, `/enrollment.html`, `/login.html`, `/api/*`, Runtime-Assets und Near-Misses wie `/anmelden/` müssen entweder an der IAP-Grenze stoppen oder vom minimalen Backend mit 404 abgewiesen werden; sie dürfen nie den öffentlichen Inhalt liefern. Der Google Load Balancer normalisiert Dot-Segmente bereits vor Backend und IAP: Für `/foo/../anmelden`, `/anmelden/../anmelden` und `/./anmelden` akzeptiert der Test deshalb ausschließlich HTTP 302 mit `Location` exakt auf `/anmelden` desselben kanonischen Origins und ohne Public-Body. Der Test prüft zusätzlich IAP-Header, Public-Security-Header, HEAD/POST und die nicht reflektierte Query. Erst nach erfolgreichem externem Test wird ein Cutover als abgeschlossen markiert; andernfalls aktiviert der Workflow IAP auf dem Public-Backend erneut.
+Jeder echte Lauf führt den externen Boundary-Test aus. Nach dem Compute-Cutover wartet er begrenzt auf die Edge-Propagation und erwartet anschließend öffentliche HTTP-200-Antworten ausschließlich für `/` und `/anmelden`. `/start`, `/enrollment.html`, `/login.html`, `/api/*`, Runtime-Assets und Near-Misses wie `/anmelden/` müssen entweder an der IAP-Grenze stoppen oder vom minimalen Backend mit 404 abgewiesen werden; sie dürfen nie den öffentlichen Inhalt liefern. Der Google Load Balancer normalisiert Dot-Segmente bereits vor Backend und IAP: Für `/foo/../anmelden`, `/anmelden/../anmelden` und `/./anmelden` akzeptiert der Test deshalb ausschließlich HTTP 302 mit `Location` exakt auf `/anmelden` desselben kanonischen Origins und ohne Public-Body. Der Test prüft zusätzlich IAP-Header, Public-Security-Header, HEAD/POST und die nicht reflektierte Query. Erst nach erfolgreichem externem Test wird ein Cutover als abgeschlossen markiert; andernfalls aktiviert der Workflow IAP auf dem Public-Backend erneut.
 
 ### Wiederverwendbarer Aufruf
 
@@ -327,7 +327,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 ### Infrastruktur
 
 - [ ] Terraform-Plan wurde geprüft und in das richtige GCP-Projekt angewendet.
-- [ ] Die ausgerollte Deployer-Rolle enthält `compute.urlMaps.get`; der Public-Entry-Cutover wurde nicht vor diesem Terraform-Update gestartet.
+- [ ] Die ausgerollten Deployer-Rollen enthalten `compute.urlMaps.get` und die separate Cutover-Berechtigung `compute.backendServices.update`; der Public-Entry-Cutover wurde nicht vor diesem Terraform-Update gestartet.
 - [ ] Falls `BILLING_ACCOUNT_ID` gesetzt ist, existiert das projektbezogene Warnbudget; allen Beteiligten ist bekannt, dass es kein Ausgabenlimit ist.
 - [ ] GKE nutzt Autopilot, private Nodes und ausschließlich den extern erreichbaren DNS-Control-Plane-Endpunkt.
 - [ ] Artifact Registry, Cloud SQL, Secret Manager und alle vier Buckets liegen in der vorgesehenen Region.

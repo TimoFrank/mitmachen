@@ -15,10 +15,10 @@ spec:
     timeoutSec: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.timeoutSec }}
     healthyThreshold: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.healthyThreshold }}
     unhealthyThreshold: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.unhealthyThreshold }}
+  {{- if .Values.frontend.publicEntry.backendConfig.iap.enabled }}
   iap:
-    enabled: {{ .Values.frontend.publicEntry.backendConfig.iap.enabled }}
-    {{- if .Values.frontend.publicEntry.backendConfig.iap.enabled }}
+    enabled: true
     oauthclientCredentials:
       secretName: {{ required "frontend.publicEntry.backendConfig.iap.oauthClientCredentialsSecretName is required when public-entry IAP is enabled" .Values.frontend.publicEntry.backendConfig.iap.oauthClientCredentialsSecretName | quote }}
-    {{- end }}
+  {{- end }}
 {{- end }}

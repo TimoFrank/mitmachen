@@ -75,6 +75,22 @@ resource "google_project_iam_member" "deployer_iap_audience_reader" {
   member  = "serviceAccount:${google_service_account.deployer.email}"
 }
 
+resource "google_project_iam_custom_role" "public_backend_cutover" {
+  role_id     = "preGematikPublicBackendCutover"
+  title       = "Pre-gematik public backend cutover"
+  description = "Disable IAP only during the audited public-entry cutover while retaining the backend's custom OAuth client."
+  stage       = "GA"
+  permissions = [
+    "compute.backendServices.update",
+  ]
+}
+
+resource "google_project_iam_member" "deployer_public_backend_cutover" {
+  project = var.GCP_PROJECT_ID
+  role    = google_project_iam_custom_role.public_backend_cutover.name
+  member  = "serviceAccount:${google_service_account.deployer.email}"
+}
+
 resource "google_project_iam_custom_role" "deployment_resource_verifier" {
   role_id     = "preGematikDeploymentVerifier"
   title       = "Pre-gematik deployment resource verifier"
