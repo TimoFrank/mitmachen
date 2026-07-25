@@ -2,7 +2,8 @@ FROM nginxinc/nginx-unprivileged:1.31.2-alpine3.23@sha256:6320020c7da8714feab524
 
 USER root
 
-RUN rm -rf /usr/share/nginx/html/* /etc/nginx/conf.d/* \
+RUN apk del --no-network curl libcurl \
+    && rm -rf /usr/share/nginx/html/* /etc/nginx/conf.d/* \
     && chown -R 101:101 /usr/share/nginx/html /etc/nginx/conf.d
 
 COPY --chown=101:101 dist/target/public-index.html /usr/share/nginx/html/public-index.html

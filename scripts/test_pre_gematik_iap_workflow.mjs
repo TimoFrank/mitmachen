@@ -582,6 +582,11 @@ assert.match(
 assert.match(publicDockerfile, /COPY --chown=101:101 dist\/target\/public-index\.html/);
 assert.match(publicDockerfile, /COPY --chown=101:101 dist\/target\/public-login\.html/);
 assert.match(publicDockerfile, /COPY --chown=101:101 .*frontend-public\.conf/);
+assert.match(
+  publicDockerfile,
+  /apk del --no-network curl libcurl/,
+  "Das statische Public-Image darf die nicht benoetigten curl-/libcurl-Laufzeitpakete nicht behalten."
+);
 assert.match(publicDockerfile, /USER 101:101/);
 assert.match(publicNginxConfig, /map \$request_uri \$public_entry_document/);
 assert.match(publicNginxConfig, /merge_slashes off/);
