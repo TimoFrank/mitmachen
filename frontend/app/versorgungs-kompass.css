@@ -2249,12 +2249,12 @@
 
       @media (max-width: 760px) {
         .versorgungs-app-footer {
-          min-height: 0;
-          flex-direction: row;
-          gap: 2px 8px;
-          padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
-          font-size: 0.68rem;
-          line-height: 1.25;
+          min-height: 64px;
+          flex-direction: column;
+          gap: 4px;
+          padding: 8px 12px calc(14px + env(safe-area-inset-bottom));
+          font-size: 0.72rem;
+          line-height: 1.35;
         }
       }
 

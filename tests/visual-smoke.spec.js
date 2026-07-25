@@ -974,18 +974,22 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   await expect(mitmachenFooterLink).toHaveAttribute("rel", /noopener/);
   await expect(appFooter).toHaveCSS("justify-content", "center");
   if (testInfo.project.name.includes("mobile")) {
-    await expect(appFooter).toHaveCSS("flex-direction", "row");
+    await expect(appFooter).toHaveCSS("flex-direction", "column");
     const footerMetrics = await appFooter.evaluate((footer) => {
       const style = getComputedStyle(footer);
+      const footerBox = footer.getBoundingClientRect();
+      const lastItemBox = footer.lastElementChild?.getBoundingClientRect();
       return {
-        height: footer.getBoundingClientRect().height,
+        height: footerBox.height,
         paddingTop: Number.parseFloat(style.paddingTop),
-        paddingBottom: Number.parseFloat(style.paddingBottom)
+        paddingBottom: Number.parseFloat(style.paddingBottom),
+        contentBottomGap: lastItemBox ? footerBox.bottom - lastItemBox.bottom : 0
       };
     });
-    expect(footerMetrics.height).toBeLessThanOrEqual(42);
-    expect(footerMetrics.paddingTop).toBeLessThanOrEqual(5);
-    expect(footerMetrics.paddingBottom).toBeLessThanOrEqual(5);
+    expect(footerMetrics.height).toBeGreaterThanOrEqual(64);
+    expect(footerMetrics.paddingTop).toBeGreaterThanOrEqual(8);
+    expect(footerMetrics.paddingBottom).toBeGreaterThanOrEqual(14);
+    expect(footerMetrics.contentBottomGap).toBeGreaterThanOrEqual(14);
   }
   await attachScreenshot(page, testInfo, "planung-framework-erster-blick", { fullPage: false });
   await expect(frameworkView.locator(".framework-step-explainer, .framework-step-card, .framework-source-link")).toHaveCount(0);
