@@ -29,7 +29,15 @@ async function openContactChannels(page, { profileId, contactId, contactName }) 
 
 async function revealDemoProfileSwitcher(page) {
   const switcher = page.locator("[data-demo-profile-switcher]");
-  if (!(await switcher.isVisible())) {
+  const trigger = page.getByRole("button", { name: /Demo-Profil wechseln/ });
+  const desktopLayout = await page.evaluate(() => window.matchMedia("(min-width: 761px)").matches);
+  if (desktopLayout && !(await trigger.isVisible())) {
+    await page.locator("#sidebar-collapse-button").click();
+  }
+  if (desktopLayout) {
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+  } else if (!(await switcher.isVisible())) {
     await page.locator("#sidebar-collapse-button").click();
   }
   await expect(switcher).toBeVisible();
@@ -139,6 +147,49 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
     await expect.poll(() => page.evaluate(
       () => window.VersorgungsCompassDemoApi.snapshot().currentProfileId
     )).toBe(PROFILE_VIEWER);
+  });
+
+  test("Desktop-Avatar öffnet den Profilwechsel und Profiltext behält seine Navigation", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-desktop", "Die Desktop-Avatarinteraktion wird im Desktop-Projekt geprüft.");
+
+    await page.goto(pagesUrl(PROFILE_ADMIN, "#contacts"));
+    const shell = page.locator(".app-shell");
+    if (await shell.evaluate((element) => element.classList.contains("is-sidebar-collapsed"))) {
+      await page.locator("#sidebar-collapse-button").click();
+    }
+
+    const trigger = page.getByRole("button", { name: /Demo-Profil wechseln/ });
+    const switcher = page.locator("#demo-profile-switcher");
+    const indicator = trigger.locator(".sidebar-profile-switcher-indicator");
+    await expect(trigger).toBeVisible();
+    await expect(trigger).toHaveAttribute("aria-controls", "demo-profile-switcher");
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(indicator).toBeVisible();
+    await expect(indicator.locator("svg")).toBeVisible();
+    await expect(switcher).toBeHidden();
+
+    const avatarBox = await page.locator("#sidebar-user-badge").boundingBox();
+    const triggerBox = await trigger.boundingBox();
+    expect(avatarBox).not.toBeNull();
+    expect(triggerBox).not.toBeNull();
+    expect(Math.abs((avatarBox.x + avatarBox.width / 2) - (triggerBox.x + triggerBox.width / 2))).toBeLessThanOrEqual(1);
+    expect(Math.abs((avatarBox.y + avatarBox.height / 2) - (triggerBox.y + triggerBox.height / 2))).toBeLessThanOrEqual(1);
+    expect(triggerBox.x).toBeLessThanOrEqual(avatarBox.x);
+    expect(triggerBox.y).toBeLessThanOrEqual(avatarBox.y);
+    expect(triggerBox.x + triggerBox.width).toBeGreaterThanOrEqual(avatarBox.x + avatarBox.width);
+    expect(triggerBox.y + triggerBox.height).toBeGreaterThanOrEqual(avatarBox.y + avatarBox.height);
+    await page.mouse.click(avatarBox.x + avatarBox.width / 2, avatarBox.y + avatarBox.height / 2);
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(switcher).toBeVisible();
+    await expect(switcher.getByRole("combobox", { name: "Demo-Profil" })).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(switcher).toBeHidden();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger).toBeFocused();
+
+    await page.locator("#sidebar-profile-button").click();
+    await expect(page).toHaveURL(/#profile$/);
   });
 
   test("Kartenflow öffnet den Non-Owner-Kontakt mit eingeschränkten Kanälen", async ({ page }, testInfo) => {

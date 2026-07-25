@@ -1917,8 +1917,108 @@
         line-height: 1.3;
       }
 
+      .sidebar-profile-switcher-button {
+        display: none;
+      }
+
       .app-shell.is-sidebar-collapsed .demo-profile-switcher {
         display: none;
+      }
+
+      @media (min-width: 761px) {
+        .sidebar-account-section,
+        .sidebar-account-row {
+          position: relative;
+        }
+
+        .demo-profile-switcher {
+          position: absolute;
+          left: 6px;
+          right: 6px;
+          bottom: 50px;
+          z-index: 125;
+          display: none;
+          margin: 0;
+          padding: 12px;
+          border-color: #d7e0ef;
+          background: #ffffff;
+          color: #173172;
+          box-shadow: 0 18px 44px rgba(7, 25, 67, 0.3);
+        }
+
+        .demo-profile-switcher.is-avatar-open {
+          display: grid;
+        }
+
+        .demo-profile-switcher label {
+          color: #173172;
+        }
+
+        .demo-profile-switcher small {
+          color: #65708f;
+        }
+
+        .sidebar-profile-switcher-button {
+          position: absolute;
+          top: 50%;
+          left: 24px;
+          z-index: 3;
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          padding: 0;
+          border: 1px solid transparent;
+          border-radius: 999px;
+          background: transparent;
+          color: #173172;
+          cursor: pointer;
+          transform: translate(-50%, -50%);
+        }
+
+        .sidebar-profile-switcher-button:hover,
+        .sidebar-profile-switcher-button:focus-visible {
+          border-color: rgba(255, 255, 255, 0.58);
+          background: rgba(255, 255, 255, 0.12);
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
+        }
+
+        .sidebar-profile-switcher-indicator {
+          position: absolute;
+          top: -3px;
+          right: -3px;
+          width: 16px;
+          height: 16px;
+          display: grid;
+          place-items: center;
+          margin: 0;
+          border: 2px solid #173172;
+          border-radius: 999px;
+          background: #ffffff;
+          color: #173172;
+          box-shadow: 0 3px 8px rgba(7, 25, 67, 0.3);
+          transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+        }
+
+        .sidebar-profile-switcher-indicator svg {
+          width: 9px;
+          height: 9px;
+          stroke: currentColor;
+          stroke-width: 2.2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .sidebar-profile-switcher-button[aria-expanded="true"] .sidebar-profile-switcher-indicator {
+          background: #2f68ef;
+          color: #ffffff;
+          transform: rotate(180deg);
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-profile-switcher-button {
+          display: none;
+        }
       }
 
       @media (max-width: 1180px) {

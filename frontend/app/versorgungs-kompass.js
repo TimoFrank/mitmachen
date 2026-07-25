@@ -8410,25 +8410,83 @@
         syncOwnerOptionsFromProfiles();
       }
 
+      function closeDemoProfileSwitcher({ restoreFocus = false } = {}) {
+        const switcher = document.querySelector("[data-demo-profile-switcher]");
+        const trigger = document.querySelector("[data-demo-profile-switcher-trigger]");
+        const wasOpen = Boolean(switcher?.classList.contains("is-avatar-open"));
+        switcher?.classList.remove("is-avatar-open");
+        trigger?.setAttribute("aria-expanded", "false");
+        if (restoreFocus && wasOpen) {
+          window.requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
+        }
+        return wasOpen;
+      }
+
       function renderDemoProfileSwitcher() {
         const accountSection = document.querySelector('[data-sidebar-section="account"]');
+        const accountRow = accountSection?.querySelector(".sidebar-account-row");
         let switcher = accountSection?.querySelector("[data-demo-profile-switcher]");
-        if (!OWNER_ONLY_CONTACT_CHANNELS || !accountSection) {
+        let trigger = accountRow?.querySelector("[data-demo-profile-switcher-trigger]");
+        if (!OWNER_ONLY_CONTACT_CHANNELS || !accountSection || !accountRow) {
           switcher?.remove();
+          trigger?.remove();
           return;
         }
         if (!switcher) {
           switcher = document.createElement("div");
           switcher.className = "demo-profile-switcher";
           switcher.dataset.demoProfileSwitcher = "true";
+          switcher.id = "demo-profile-switcher";
+          switcher.setAttribute("role", "group");
+          switcher.setAttribute("aria-labelledby", "demo-profile-switcher-label");
           const sectionLabel = accountSection.querySelector(".sidebar-section-label");
-          sectionLabel?.insertAdjacentElement("afterend", switcher);
+          if (sectionLabel) sectionLabel.insertAdjacentElement("afterend", switcher);
+          else accountRow.insertAdjacentElement("beforebegin", switcher);
+          switcher.addEventListener("click", (event) => event.stopPropagation());
+        }
+        if (!trigger) {
+          trigger = document.createElement("button");
+          trigger.type = "button";
+          trigger.className = "sidebar-profile-switcher-button";
+          trigger.dataset.demoProfileSwitcherTrigger = "true";
+          trigger.id = "sidebar-profile-switcher-button";
+          trigger.setAttribute("aria-controls", switcher.id);
+          trigger.setAttribute("aria-expanded", "false");
+          trigger.innerHTML = `
+            <span class="visually-hidden">Demo-Profil wechseln</span>
+            <span class="sidebar-profile-switcher-indicator" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none">
+                <path d="m4 6 4 4 4-4"></path>
+              </svg>
+            </span>
+          `;
+          const profileButton = accountRow.querySelector("#sidebar-profile-button");
+          profileButton?.insertAdjacentElement("beforebegin", trigger);
+          trigger.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const shouldOpen = !switcher.classList.contains("is-avatar-open");
+            closeMenus();
+            if (!shouldOpen) return;
+            switcher.classList.add("is-avatar-open");
+            trigger.setAttribute("aria-expanded", "true");
+            window.requestAnimationFrame(() => switcher.querySelector("select")?.focus({ preventScroll: true }));
+          });
         }
         const profiles = ownerProfiles.filter((profile) => !["archived", "inactive", "disabled"].includes(profile.status));
         const requestedProfileId = new URL(window.location.href).searchParams.get("demoProfile") || "";
         const selectedProfileId = currentProfile?.id || requestedProfileId;
+        const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId);
+        trigger.hidden = profiles.length < 2;
+        trigger.setAttribute(
+          "aria-label",
+          selectedProfile?.label
+            ? `Demo-Profil wechseln, aktuell ${selectedProfile.label}`
+            : "Demo-Profil wechseln"
+        );
+        trigger.setAttribute("title", "Demo-Profil wechseln");
+        if (trigger.hidden) closeDemoProfileSwitcher();
         switcher.innerHTML = `
-          <label for="demo-profile-select">Demo-Profil</label>
+          <label id="demo-profile-switcher-label" for="demo-profile-select">Demo-Profil</label>
           <select id="demo-profile-select" aria-describedby="demo-profile-help">
             ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(profile.label)} · ${escapeHtml(roleLabel(profile.role))}</option>`).join("")}
           </select>
@@ -10879,6 +10937,7 @@
       }
 
       function closeMenus() {
+        closeDemoProfileSwitcher();
         if (moreActionsMenu) moreActionsMenu.hidden = true;
         moreActionsButton?.setAttribute("aria-expanded", "false");
         if (accountMenu) accountMenu.hidden = true;
@@ -32010,6 +32069,7 @@
       }
 
       function setSidebarCollapsed(collapsed, { persist = true } = {}) {
+        if (collapsed) closeDemoProfileSwitcher();
         appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
         if (sidebarCollapseButton) {
           sidebarCollapseButton.setAttribute("aria-expanded", String(!collapsed));
@@ -35682,6 +35742,7 @@
             closeProductTour({ skipped: true });
             return;
           }
+          if (closeDemoProfileSwitcher({ restoreFocus: true })) return;
           const hasOpenCustomSelect = [...document.querySelectorAll("[data-custom-select] select")].some((select) =>
             select.closest("[data-custom-select]")?.classList.contains("is-open")
           );
