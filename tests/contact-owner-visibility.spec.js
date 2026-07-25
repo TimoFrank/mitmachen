@@ -131,6 +131,10 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
 
     await page.goto(pagesUrl(PROFILE_ADMIN, "#contacts"));
     let select = await revealDemoProfileSwitcher(page);
+    const switcher = page.locator("#demo-profile-switcher");
+    await expect(switcher.getByRole("heading", { level: 3, name: "Ansicht wechseln" })).toBeVisible();
+    await expect(switcher).not.toContainText("Synthetische Demo");
+    await expect(switcher.locator(".demo-profile-select-shell")).toBeVisible();
     await expect(select).toHaveValue(PROFILE_ADMIN);
 
     await Promise.all([

@@ -8438,7 +8438,7 @@
           switcher.dataset.demoProfileSwitcher = "true";
           switcher.id = "demo-profile-switcher";
           switcher.setAttribute("role", "group");
-          switcher.setAttribute("aria-labelledby", "demo-profile-switcher-label");
+          switcher.setAttribute("aria-labelledby", "demo-profile-switcher-title");
           const sectionLabel = accountSection.querySelector(".sidebar-section-label");
           if (sectionLabel) sectionLabel.insertAdjacentElement("afterend", switcher);
           else accountRow.insertAdjacentElement("beforebegin", switcher);
@@ -8486,11 +8486,13 @@
         trigger.setAttribute("title", "Demo-Profil wechseln");
         if (trigger.hidden) closeDemoProfileSwitcher();
         switcher.innerHTML = `
-          <label id="demo-profile-switcher-label" for="demo-profile-select">Demo-Profil</label>
-          <select id="demo-profile-select" aria-describedby="demo-profile-help">
-            ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(profile.label)} · ${escapeHtml(roleLabel(profile.role))}</option>`).join("")}
-          </select>
-          <small id="demo-profile-help">Synthetische Demo · Ansicht wechseln</small>
+          <h3 class="demo-profile-switcher-title" id="demo-profile-switcher-title">Ansicht wechseln</h3>
+          <div class="demo-profile-select-shell">
+            <label class="visually-hidden" for="demo-profile-select">Demo-Profil</label>
+            <select id="demo-profile-select">
+              ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(profile.label)}</option>`).join("")}
+            </select>
+          </div>
         `;
         switcher.querySelector("select")?.addEventListener("change", (event) => {
           const profileId = String(event.currentTarget.value || "").trim();
