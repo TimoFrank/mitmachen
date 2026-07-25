@@ -571,6 +571,11 @@ assert.match(
   "Die finale Phase muss IAP aus BackendConfig entfernen und den Custom-OAuth-Backend direkt oeffnen."
 );
 assert.match(
+  iapScript,
+  /patch\s+\\\s+backendconfig\.cloud\.google\.com "\$public_backend_config_name"[\s\S]*--type json[\s\S]*"op":"remove","path":"\/spec\/iap"/,
+  "Die finale Phase muss ein von Helm beibehaltenes Public-IAP-Feld explizit und nur am validierten BackendConfig entfernen."
+);
+assert.match(
   publicServiceTemplate,
   /cloud\.google\.com\/backend-config" \(printf "\{\\"ports\\": \{\\"http\\": \\"%s\\"\}\}"/,
   "Die Service-Annotation und beide Restore-Resolver muessen denselben ports.http-Vertrag verwenden."
