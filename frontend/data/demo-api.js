@@ -399,7 +399,7 @@
       actorId: profile.id || "",
       actor: {
         id: profile.id || "",
-        displayName: profile.display_name || profile.displayName || "Demo Administration",
+        displayName: profile.display_name || profile.displayName || "Systemadministration",
         email: profile.email || "",
         role: profile.role || "admin",
         team: profile.team || ""

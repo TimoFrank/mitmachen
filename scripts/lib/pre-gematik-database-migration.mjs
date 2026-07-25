@@ -77,6 +77,20 @@ export const SYNTHETIC_SEED_CONTENT_MANIFESTS = Object.freeze([
     seedArtifactSha256: "sha256:1377380553b952ea8c274f85b5a3cc6ad0fbebf5ed838a805db4648cf2ed9b86",
     avatarPatch: true,
     fingerprint: "sha256:32f5c96c1bc39be7db0171ea11a74396969b009c2b6f46b31ba2956028115d59"
+  }),
+  Object.freeze({
+    id: "pre-gematik-synthetic-v1@6489e52/base",
+    seedRevision: "6489e52",
+    seedArtifactSha256: "sha256:901e2936f66428e3fa6503a9b04ef18c158c97e73b75010792bf9c4976f93410",
+    avatarPatch: false,
+    fingerprint: "sha256:2ed23c9d2cb1fd364340b3a887399ca7a7d6333cbb809b78688fe468d621024b"
+  }),
+  Object.freeze({
+    id: "pre-gematik-synthetic-v1@6489e52/avatar-patch-v1",
+    seedRevision: "6489e52",
+    seedArtifactSha256: "sha256:901e2936f66428e3fa6503a9b04ef18c158c97e73b75010792bf9c4976f93410",
+    avatarPatch: true,
+    fingerprint: "sha256:a782e125879121520670d4bf771348c847aaff0a03ce705bbaa3f3da65af5b2f"
   })
 ]);
 

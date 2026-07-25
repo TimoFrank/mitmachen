@@ -15,12 +15,12 @@ assert.ok(model, "Das Hospitationsmodell wurde nicht initialisiert.");
 
 const expectedCounts = {
   profiles: 5,
-  organizations: 32,
-  contacts: 64,
+  organizations: 55,
+  contacts: 130,
   formats: 8,
   hospitationSlots: 6,
-  hospitations: 18,
-  hospitationObservations: 39,
+  hospitations: 28,
+  hospitationObservations: 69,
   roadmapItems: 6,
   hospitationRoadmapAssessments: 12,
   hospitationUnmetNeeds: 8,
@@ -146,11 +146,26 @@ for (const { path, value } of everyEntityId) {
   }
 }
 
+const approvedResearchHosts = new Set([
+  "www.bundesaerztekammer.de",
+  "www.bundesgesundheitsministerium.de",
+  "www.destatis.de",
+  "www.divi.de",
+  "www.g-ba.de",
+  "www.gematik.de",
+  "www.gkv-spitzenverband.de",
+  "www.kbv.de",
+  "www.rki.de"
+]);
 for (const url of externalUrls) {
   const hostname = new URL(url).hostname.toLowerCase();
   assert.ok(
-    hostname === "example.invalid" || hostname.endsWith(".example.invalid") || hostname === "example.test" || hostname.endsWith(".example.test"),
-    `Nicht reservierte externe URL im öffentlichen Demo-Datensatz: ${url}`
+    hostname === "example.invalid"
+      || hostname.endsWith(".example.invalid")
+      || hostname === "example.test"
+      || hostname.endsWith(".example.test")
+      || approvedResearchHosts.has(hostname),
+    `Nicht reservierte oder fachlich freigegebene externe URL im öffentlichen Datensatz: ${url}`
   );
 }
 
@@ -166,8 +181,10 @@ for (const email of serializedData.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/
   assert.match(email, /@(?:[a-z0-9-]+\.)*example\.(?:invalid|test)$/i, `Nicht reservierte Demo-E-Mail: ${email}`);
 }
 
+const visibleDemoLabel = /(?:^|[\s-])demo(?:$|[\s-])/i;
 for (const profile of data.profiles) {
-  assert.match(profile.display_name, /^Demo /, `${profile.id}: Profilname muss sichtbar synthetisch sein.`);
+  assert.doesNotMatch(profile.display_name, visibleDemoLabel, `${profile.id}: Profilname darf keine Demo-Kennzeichnung tragen.`);
+  assert.doesNotMatch(profile.team, visibleDemoLabel, `${profile.id}: Teamname darf keine Demo-Kennzeichnung tragen.`);
   assert.match(profile.email, /@versorgungs-kompass\.example\.invalid$/, `${profile.id}: Profiladresse muss reserviert sein.`);
   assert.match(profile.avatar_url, /\/public\/demo-profile-(?:admin|editor|viewer)\.svg$/, `${profile.id}: Profilbild muss ein lokales generisches Demo-Asset sein.`);
 }
@@ -182,13 +199,18 @@ for (const collectionName of [
 ]) {
   for (const row of data[collectionName]) {
     const label = row.name || row.display_name || row.label || "";
-    assert.match(label, /^Demo(?:\b|-)/, `${collectionName}/${row.id}: Name muss sichtbar mit Demo gekennzeichnet sein.`);
+    assert.doesNotMatch(label, visibleDemoLabel, `${collectionName}/${row.id}: sichtbarer Name darf keine Demo-Kennzeichnung tragen.`);
   }
 }
 for (const registration of data.registrations) {
   assert.equal(registration.privacyCheckStatus || registration.privacy_check_status, "synthetic_demo", `${registration.id}: Registrierung ist nicht als synthetisch markiert.`);
-  assert.match(registration.firstName || registration.first_name || "", /^Demo\b/, `${registration.id}: Registrierungsname ist nicht sichtbar synthetisch.`);
+  assert.doesNotMatch(registration.firstName || registration.first_name || "", visibleDemoLabel, `${registration.id}: Vorname darf keine Demo-Kennzeichnung tragen.`);
+  assert.doesNotMatch(registration.lastName || registration.last_name || "", visibleDemoLabel, `${registration.id}: Nachname darf keine Demo-Kennzeichnung tragen.`);
+  assert.doesNotMatch(registration.organization || "", visibleDemoLabel, `${registration.id}: Organisationsname darf keine Demo-Kennzeichnung tragen.`);
+  assert.ok(registration.consentProcessingAcceptedAt, `${registration.id}: verpflichtende Datenschutz-Einwilligung fehlt.`);
 }
+assert.ok(data.registrations.some((registration) => registration.consentContactAcceptedAt), "Registrierungen mit optionaler Kontakt-Einwilligung fehlen.");
+assert.ok(data.registrations.some((registration) => !registration.consentContactAcceptedAt), "Registrierungen ohne optionale Kontakt-Einwilligung fehlen.");
 for (const event of data.activityEvents) {
   assert.equal(event.metadata?.synthetic, true, `${event.id}: Aktivitätsmetadaten müssen synthetic=true setzen.`);
 }
@@ -222,7 +244,15 @@ for (const organization of data.organizations) {
     assert.ok(system.systemType && system.vendorName && system.productName, `${system.id}: Primärsystem ist fachlich unvollständig.`);
   }
 }
+assert.equal(organizationById.get("demo-org-pleisse-zahn")?.primarySystems?.[0]?.systemType, "ZPVS", "Zahn-MVZ benötigt ein Zahn-PVS.");
+assert.equal(organizationById.get("demo-org-radiologie-elbufer")?.primarySystems?.[0]?.systemType, "SONSTIGES", "Radiologie benötigt ein als RIS/PACS bezeichnetes Fachsystem.");
+assert.match(organizationById.get("demo-org-radiologie-elbufer")?.primarySystems?.[0]?.productName || "", /RIS\/PACS/, "Radiologisches Fachsystem muss RIS/PACS sichtbar benennen.");
+assert.equal(organizationById.get("demo-org-saar-asv")?.primarySystems?.[0]?.systemType, "SONSTIGES", "ASV-Team benötigt eine Koordinationsplattform statt eines gemeinsamen PVS.");
+assert.match(organizationById.get("demo-org-saar-asv")?.primarySystems?.[0]?.productName || "", /Koordinationsplattform/, "ASV-Fachsystem muss den Koordinationszweck sichtbar benennen.");
+assert.ok(data.organizations.filter((organization) => organization.sector === "Hebammen").every((organization) => organization.primarySystems?.[0]?.systemType === "HVS"), "Hebammenorganisationen benötigen HVS statt PVS.");
 
+const consentStatuses = new Set(["granted", "not_requested", "declined", "withdrawn", "clarification_needed"]);
+const consentSources = new Set(["online_form", "email", "written", "verbal_confirmed", "manual_transfer"]);
 for (const contact of data.contacts) {
   assert.ok(organizationIds.has(contact.organizationId), `${contact.id}: unbekannte Organisation ${contact.organizationId}.`);
   const organization = organizationById.get(contact.organizationId);
@@ -238,6 +268,33 @@ for (const contact of data.contacts) {
   for (const ownerId of contact.ownerIds || []) assert.ok(profileIds.has(ownerId), `${contact.id}: unbekannter Owner ${ownerId}.`);
   if (contact.ownerId) assert.ok((contact.ownerIds || []).includes(contact.ownerId), `${contact.id}: Haupt-Owner fehlt in ownerIds.`);
   assert.ok(Array.isArray(contact.themes) && contact.themes.length >= 2, `${contact.id}: realitätsnahe Versorgungsthemen fehlen.`);
+  assert.ok(consentStatuses.has(contact.mitmachenConsentStatus), `${contact.id}: ungültiger Einwilligungsstatus.`);
+  if (contact.mitmachenConsentStatus === "granted") {
+    assert.ok(new Date(contact.mitmachenConsentEffectiveAt).getTime() <= new Date("2026-07-25T23:59:59.999Z").getTime(), `${contact.id}: Einwilligungszeitpunkt fehlt oder liegt in der Zukunft.`);
+    assert.ok(consentSources.has(contact.mitmachenConsentSource), `${contact.id}: Einwilligungsquelle fehlt.`);
+    assert.ok(profileIds.has(contact.mitmachenConsentRecordedBy), `${contact.id}: erfassende Person der Einwilligung fehlt.`);
+    assert.ok(contact.mitmachenConsentTextVersion, `${contact.id}: Einwilligungstextversion fehlt.`);
+    if (["verbal_confirmed", "manual_transfer"].includes(contact.mitmachenConsentSource)) {
+      assert.ok(contact.mitmachenConsentNote, `${contact.id}: manueller oder mündlicher Nachweis benötigt einen Vermerk.`);
+    }
+  }
+  if (["declined", "withdrawn"].includes(contact.mitmachenConsentStatus)) {
+    assert.ok(contact.mitmachenConsentEffectiveAt, `${contact.id}: Entscheidungszeitpunkt fehlt.`);
+  }
+}
+const consentStatusCounts = data.contacts.reduce((counts, contact) => {
+  counts[contact.mitmachenConsentStatus] = (counts[contact.mitmachenConsentStatus] || 0) + 1;
+  return counts;
+}, {});
+for (const status of consentStatuses) assert.ok(consentStatusCounts[status] > 0, `Einwilligungsstatus ${status} fehlt im Datensatz.`);
+assert.equal(consentStatusCounts.granted, 9, "Die neun Einwilligungsaktivitäten müssen neun erteilten Kontakt-Snapshots entsprechen.");
+const consentEvents = data.activityEvents.filter((event) => event.eventKey === "contact.consent.granted");
+assert.equal(consentEvents.length, 9, "Es werden neun Einwilligungsaktivitäten erwartet.");
+for (const event of consentEvents) {
+  const contact = data.contacts.find((entry) => entry.id === event.contactId);
+  assert.equal(contact?.mitmachenConsentStatus, "granted", `${event.id}: Aktivität widerspricht dem Kontakt-Snapshot.`);
+  assert.equal(event.occurredAt, contact.mitmachenConsentEffectiveAt, `${event.id}: Aktivitäts- und Einwilligungszeitpunkt müssen übereinstimmen.`);
+  assert.equal(event.changes?.[0]?.fieldName, "mitmachen_consent_status", `${event.id}: falsches Änderungsfeld.`);
 }
 assert.deepEqual(
   sorted(data.contacts.flatMap((contact) => contact.ownerIds || [])),
@@ -246,27 +303,66 @@ assert.deepEqual(
 );
 assert.ok(data.contacts.some((contact) => (contact.ownerIds || []).length > 1), "Mindestens ein Kontakt benötigt mehrere Owner.");
 assert.ok(data.contacts.some((contact) => !(contact.ownerIds || []).length), "Ein unzugeordneter Kontakt wird für die Pflege-Queue benötigt.");
+const contactCountsByOrganization = new Map(data.organizations.map((organization) => [organization.id, 0]));
+data.contacts.forEach((contact) => contactCountsByOrganization.set(contact.organizationId, (contactCountsByOrganization.get(contact.organizationId) || 0) + 1));
+const organizationContactCounts = [...contactCountsByOrganization.values()];
+assert.ok(organizationContactCounts.every((count) => count >= 1), "Jede Versorgungsorganisation benötigt mindestens eine fachlich passende Ansprechperson.");
+assert.ok(organizationContactCounts.some((count) => count >= 4), "Größere Organisationen benötigen mehrere Ansprechpersonen.");
+assert.ok(new Set(organizationContactCounts).size >= 4, "Kontaktzahlen je Organisation dürfen nicht schematisch gleich verteilt sein.");
+
+const contactRolesForOrganization = (organizationId) => data.contacts
+  .filter((contact) => contact.organizationId === organizationId)
+  .map((contact) => contact.contactRole);
+const specialtiesForOrganization = (organizationId) => data.contacts
+  .filter((contact) => contact.organizationId === organizationId)
+  .map((contact) => contact.specialty)
+  .filter(Boolean);
+assert.ok(contactRolesForOrganization("demo-org-pleisse-zahn").some((role) => /Zahn/i.test(role)), "Zahn-MVZ benötigt zahnmedizinische Rollen.");
+assert.ok(contactRolesForOrganization("demo-org-havel-psych").some((role) => /Psychotherapeut/i.test(role)), "Psychotherapiepraxis benötigt psychotherapeutische Rollen.");
+assert.ok(contactRolesForOrganization("demo-org-elbe-sapv").some((role) => /Palliativ|SAPV/i.test(role)), "SAPV-Team benötigt palliativmedizinische Rollen.");
+assert.ok(contactRolesForOrganization("demo-org-harzpraxis").some((role) => /Nephrolog|Dialyse/i.test(role)), "Dialysezentrum benötigt nephrologische Rollen.");
+assert.ok(contactRolesForOrganization("demo-org-radiologie-elbufer").some((role) => /Radiolog|MTR|Befund/i.test(role)), "Radiologiezentrum benötigt radiologische Rollen.");
+assert.ok(contactRolesForOrganization("demo-org-elbe-sapv").some((role) => /Koordination/i.test(role)), "SAPV-Team benötigt eine operative Koordination.");
+assert.ok(contactRolesForOrganization("demo-org-harzpraxis").some((role) => /Dialysefachpflege/i.test(role)), "Dialysezentrum benötigt Dialysefachpflege.");
+assert.ok(contactRolesForOrganization("demo-org-saar-asv").some((role) => /ASV-Koordination/i.test(role)), "ASV-Team benötigt eine operative Koordination.");
+assert.ok(contactRolesForOrganization("demo-org-allgaeu-pflege").some((role) => /Pflegefachperson/i.test(role)), "Kurzzeitpflege benötigt eine Pflegefachperson.");
+assert.ok(contactRolesForOrganization("demo-org-nordseepflege").some((role) => /Pflegefachperson/i.test(role)), "Tagespflege benötigt eine Pflegefachperson.");
+assert.ok(specialtiesForOrganization("demo-org-havel-psych").includes("Psychologische Psychotherapie"), "Psychotherapiepraxis benötigt eine passende Fachrichtung.");
+assert.ok(specialtiesForOrganization("demo-org-elbe-sapv").includes("Palliativmedizin"), "SAPV-Team benötigt Palliativmedizin als Fachrichtung.");
+assert.ok(specialtiesForOrganization("demo-org-harzpraxis").includes("Nephrologie"), "Dialysezentrum benötigt Nephrologie als Fachrichtung.");
+assert.ok(specialtiesForOrganization("demo-org-saar-asv").includes("Rheumatologie"), "ASV-Team benötigt Rheumatologie als Fachrichtung.");
+assert.ok(specialtiesForOrganization("demo-org-pleisse-zahn").includes("Zahnmedizin"), "Zahn-MVZ benötigt Zahnmedizin als Fachrichtung.");
 
 const normalizedHospitations = data.hospitations.map((item) => model.normalizeHospitationRecord(item));
 const normalizedObservations = normalizedHospitations.flatMap((item) => item.observations);
-assert.equal(normalizedObservations.length, 39, "Die 18 Hospitationen müssen 39 strukturierte Beobachtungen enthalten.");
+assert.equal(normalizedObservations.length, 69, "Die 28 Hospitationen müssen 69 strukturierte Beobachtungen enthalten.");
 assert.deepEqual(
   sorted(normalizedObservations.map((item) => item.id)),
   sorted(data.hospitationObservations.map((item) => item.id)),
-  "Top-Level-Beobachtungen und Hospitationsdokumentationen müssen dieselben 39 Beobachtungen enthalten."
+  "Top-Level-Beobachtungen und Hospitationsdokumentationen müssen dieselben 69 Beobachtungen enthalten."
 );
+const documentedObservationCounts = normalizedHospitations
+  .filter((item) => item.status === "Dokumentiert")
+  .map((item) => item.observations.length);
+assert.deepEqual([...new Set(documentedObservationCounts)].sort((a, b) => a - b), [2, 3, 4], "Dokumentierte Hospitationen benötigen realistisch variierende Beobachtungszahlen.");
 
 for (const hospitation of data.hospitations) {
   assert.ok(contactIds.has(hospitation.contactId), `${hospitation.id}: unbekannter Kontakt ${hospitation.contactId}.`);
   assert.ok(organizationIds.has(hospitation.organizationId), `${hospitation.id}: unbekannte Organisation ${hospitation.organizationId}.`);
   assert.ok(profileIds.has(hospitation.ownerId), `${hospitation.id}: unbekannter Owner ${hospitation.ownerId}.`);
   assert.ok(new Date(hospitation.startsAt).getTime() < new Date(hospitation.endsAt).getTime(), `${hospitation.id}: Endzeit muss nach der Startzeit liegen.`);
+  if (hospitation.status === "Dokumentiert" || hospitation.status === "Durchgeführt") {
+    assert.ok(new Date(hospitation.endsAt).getTime() <= new Date("2026-07-25T23:59:59.999Z").getTime(), `${hospitation.id}: abgeschlossene Hospitation liegt in der Zukunft.`);
+  }
   assert.ok(Array.isArray(hospitation.topics) && hospitation.topics.length >= 2, `${hospitation.id}: Themenabdeckung ist zu dünn.`);
   assert.match(hospitation.requestNote, /synthetisch|fiktiv/i, `${hospitation.id}: sichtbare synthetische Kennzeichnung fehlt.`);
 }
 assert.ok(sorted(data.hospitations.map((item) => item.status)).length >= 6, "Hospitationen müssen mindestens sechs Bearbeitungsstände abdecken.");
-assert.ok(sorted(data.hospitations.map((item) => item.sector)).length >= 7, "Hospitationen müssen mindestens sieben Sektoren abdecken.");
+assert.equal(sorted(data.hospitations.map((item) => item.sector)).length, 13, "Hospitationen müssen alle 13 Sektoren abdecken.");
 assert.ok(sorted(data.hospitations.map((item) => item.state)).length >= 12, "Hospitationen müssen mindestens zwölf Bundesländer abdecken.");
+const ePrescriptionWorkflow = data.hospitations.find((item) => item.id === "demo-hospitation-workflow-04");
+assert.equal(ePrescriptionWorkflow?.organizationId, "demo-org-rheinapotheke", "E-Rezept-Workflow muss fachlich einer Apotheke zugeordnet sein.");
+assert.equal(ePrescriptionWorkflow?.sector, "Apotheke", "E-Rezept-Workflow benötigt den Sektor Apotheke.");
 
 const observationTexts = new Set();
 for (const observation of normalizedObservations) {
@@ -278,9 +374,10 @@ for (const observation of normalizedObservations) {
   assert.ok(observation.actions.length >= 2, `${observation.id}: Handlungsschritte fehlen.`);
   assert.ok(observation.toolsAndDocuments.length >= 1, `${observation.id}: Systeme oder Dokumente fehlen.`);
   assert.ok(observation.involvedRoles.length >= 1, `${observation.id}: Rollen fehlen.`);
+  assert.ok(observation.observationType, `${observation.id}: Beobachtungsart fehlt.`);
   assert.equal(observation.evidenceType, "synthetic_source_based", `${observation.id}: Quellenart muss transparent sein.`);
-  assert.equal(observation.sourceType, "synthetic_demo_scenario", `${observation.id}: Szenario ist nicht als synthetisch markiert.`);
-  assert.match(observation.sourceReference, /^Synthetischer Demo-Quellenhinweis \d{2} · https:\/\/demo-source-\d{2}\.example\.invalid\//, `${observation.id}: reservierter Quellenbezug fehlt.`);
+  assert.equal(observation.sourceType, "synthetic_source_scenario", `${observation.id}: Szenario ist nicht als synthetisch markiert.`);
+  assert.match(observation.sourceReference, /^Fachlicher Quellenbezug \d{2} · https:\/\/www\./, `${observation.id}: offizieller Prozessquellenbezug fehlt.`);
   assert.ok(observation.uncertainty, `${observation.id}: Unsicherheitsangabe fehlt.`);
   assert.equal(observation.relevanceScore, null, `${observation.id}: synthetische Rohbeobachtung darf keinen Relevanzscore vortäuschen.`);
   assert.equal(observation.usageRecommendation, "", `${observation.id}: synthetische Rohbeobachtung darf keine Nutzungsempfehlung vortäuschen.`);
@@ -289,6 +386,8 @@ for (const observation of normalizedObservations) {
 }
 assert.ok(normalizedObservations.some((item) => item.problemType === "positives Muster / Best Practice"), "Funktionierende Abläufe fehlen.");
 assert.ok(normalizedObservations.some((item) => item.problemType !== "positives Muster / Best Practice"), "Konkrete Reibungspunkte fehlen.");
+assert.ok(normalizedObservations.some((item) => item.observationType === "Gegenbeispiel"), "Behelfslösungen müssen als Beobachtungsart Gegenbeispiel sichtbar bleiben.");
+assert.ok(normalizedObservations.every((item) => !["Rückfrage", "Workaround"].includes(item.problemType)), "Problemtypen müssen Ursachen statt Reaktionen beschreiben.");
 
 for (const observation of data.hospitationObservations) {
   assert.ok(hospitationIds.has(observation.hospitationId), `${observation.id}: unbekannte Hospitation ${observation.hospitationId}.`);
@@ -445,13 +544,13 @@ assert.ok(profileIds.has(data.userSettings.userId), "Das Demo-Nutzerprofil in us
 assert.equal(data.userSettings.preferences?.demo?.resetOnReload, true, "Demo-Einstellungen müssen den Reset beim Neuladen ausweisen.");
 
 const aggregates = model.getDashboardAggregates(data.hospitations);
-assert.equal(aggregates.total, 18);
-assert.equal(aggregates.observationsTotal, 39);
+assert.equal(aggregates.total, 28);
+assert.equal(aggregates.observationsTotal, 69);
 assert.equal(aggregates.quotesTotal, 0, "Synthetische Zitate dürfen nicht als Feldbelege erscheinen.");
 assert.equal(aggregates.mediaArtifactsTotal, 0, "Synthetische Medien dürfen nicht als Feldbelege erscheinen.");
 assert.equal(aggregates.impulsesTotal, 0, "Impulse gehören nicht in die Rohdokumentation.");
 
 console.log(
-  "Demo-Datenvertrag OK: 64 Kontakte, 32 Organisationen in 16 Ländern/13 Sektoren, " +
-  "18 Hospitationen mit 39 Beobachtungen sowie vollständige Formate-, Stakeholder-, Experten- und Aktivitätsbeziehungen geprüft."
+  "Pages-Datenvertrag OK: 130 Kontakte, 55 Organisationen in 16 Ländern/13 Sektoren, " +
+  "28 Hospitationen mit 69 Beobachtungen sowie vollständige Formate-, Stakeholder-, Experten- und Aktivitätsbeziehungen geprüft."
 );

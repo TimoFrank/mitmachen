@@ -149,7 +149,7 @@ assert.deepEqual(GENERATED_COLUMNS, {
   contact_note_attachments: ["search_vector"]
 });
 assert.equal(SYNTHETIC_SEED_CONTENT_FINGERPRINT_ALGORITHM, "complete-replaceable-content-v2");
-assert.equal(SYNTHETIC_SEED_CONTENT_MANIFESTS.length, 6);
+assert.equal(SYNTHETIC_SEED_CONTENT_MANIFESTS.length, 8);
 assert.equal(
   new Set(SYNTHETIC_SEED_CONTENT_MANIFESTS.map((manifest) => manifest.id)).size,
   SYNTHETIC_SEED_CONTENT_MANIFESTS.length,
@@ -1181,7 +1181,7 @@ try {
   await withClient(targetUrl, async (target) => {
     await target.query(`
       update contacts
-         set name = 'Demo-Kontakt 01',
+         set name = 'Dr. Leonie Albrecht',
              updated_at = '2026-05-01T09:00:00.000Z'
        where id = 'demo-contact-01'
     `);
@@ -1194,7 +1194,7 @@ try {
   );
   assert.equal(
     restoredSeedDryRun.targetClassificationEvidence.syntheticSeedContentManifestId,
-    "pre-gematik-synthetic-v1@c3013bb/base"
+    "pre-gematik-synthetic-v1@6489e52/base"
   );
   assert.equal(
     restoredSeedDryRun.targetClassificationEvidence.syntheticSeedContentFingerprintAlgorithm,
@@ -1652,7 +1652,7 @@ try {
       SYNTHETIC_SEED_CONTENT_MANIFESTS.find(
         (manifest) => manifest.fingerprint === avatarPatchedFingerprint
       )?.id,
-      "pre-gematik-synthetic-v1@c3013bb/avatar-patch-v1",
+      "pre-gematik-synthetic-v1@6489e52/avatar-patch-v1",
       "Der versionierte synthetische Avatar-Patch braucht einen exakten Seed-Manifest-Fingerprint."
     );
     await target.query(`
