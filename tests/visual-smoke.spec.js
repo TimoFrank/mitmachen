@@ -966,12 +966,27 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   expect(frameworkFirstView.firstAccordionTop).toBeGreaterThanOrEqual(frameworkFirstView.viewportHeight);
   const appFooter = page.locator(".versorgungs-app-footer");
   await expect(appFooter).toBeVisible();
-  await expect(appFooter).toContainText("Eine Anwendung im Rahmen von #Mitmachen");
+  await expect(appFooter).toContainText("#Mitmachen – ein Angebot der gematik");
+  await expect(appFooter).not.toContainText("Anwendung im Rahmen von");
   const mitmachenFooterLink = appFooter.getByRole("link", { name: /gematik\.de\/mitmachen/ });
   await expect(mitmachenFooterLink).toHaveAttribute("href", "https://www.gematik.de/mitmachen");
   await expect(mitmachenFooterLink).toHaveAttribute("target", "_blank");
   await expect(mitmachenFooterLink).toHaveAttribute("rel", /noopener/);
   await expect(appFooter).toHaveCSS("justify-content", "center");
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(appFooter).toHaveCSS("flex-direction", "row");
+    const footerMetrics = await appFooter.evaluate((footer) => {
+      const style = getComputedStyle(footer);
+      return {
+        height: footer.getBoundingClientRect().height,
+        paddingTop: Number.parseFloat(style.paddingTop),
+        paddingBottom: Number.parseFloat(style.paddingBottom)
+      };
+    });
+    expect(footerMetrics.height).toBeLessThanOrEqual(42);
+    expect(footerMetrics.paddingTop).toBeLessThanOrEqual(5);
+    expect(footerMetrics.paddingBottom).toBeLessThanOrEqual(5);
+  }
   await attachScreenshot(page, testInfo, "planung-framework-erster-blick", { fullPage: false });
   await expect(frameworkView.locator(".framework-step-explainer, .framework-step-card, .framework-source-link")).toHaveCount(0);
   await expect(modelSection).not.toContainText("Epic-Kandidaten");
@@ -2060,7 +2075,10 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
   await expect(page.locator(".sidebar-account-section")).toBeHidden();
   await expect(page.locator(".sidebar-nav .primary-tab:visible")).toHaveCount(0);
   await expect(page.locator(".sidebar-brand")).toBeVisible();
-  await expect(page.locator(".sidebar-brand-kicker")).toHaveText("#Mitmachen");
+  await expect(page.locator(".sidebar-brand-word")).toHaveText("Mitmachen");
+  await expect(page.locator(".sidebar-brand .brand-mark")).toHaveCount(1);
+  await expect(page.locator(".sidebar-brand-copy, .sidebar-brand-kicker, .sidebar-brand strong")).toHaveCount(0);
+  await expect(page.locator(".sidebar-brand")).toHaveAttribute("aria-label", "#Mitmachen – zur Startseite");
   const closedMobileLayout = await page.evaluate(() => {
     const sidebar = document.querySelector(".app-sidebar")?.getBoundingClientRect();
     const main = document.querySelector(".app-main")?.getBoundingClientRect();
@@ -2108,16 +2126,16 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
 
   const brandLayout = await page.locator(".sidebar-brand").evaluate((brand) => {
     const mark = brand.querySelector(".brand-mark")?.getBoundingClientRect();
-    const copy = brand.querySelector(".sidebar-brand-copy")?.getBoundingClientRect();
+    const word = brand.querySelector(".sidebar-brand-word")?.getBoundingClientRect();
     return {
       markRight: mark?.right || 0,
-      copyLeft: copy?.left || 0,
-      copyRight: copy?.right || 0,
+      wordLeft: word?.left || 0,
+      wordRight: word?.right || 0,
       brandRight: brand.getBoundingClientRect().right
     };
   });
-  expect(brandLayout.copyLeft).toBeGreaterThan(brandLayout.markRight);
-  expect(brandLayout.copyRight).toBeLessThanOrEqual(brandLayout.brandRight + 1);
+  expect(brandLayout.wordLeft).toBeGreaterThan(brandLayout.markRight);
+  expect(brandLayout.wordRight).toBeLessThanOrEqual(brandLayout.brandRight + 1);
 
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-collapsed/);
