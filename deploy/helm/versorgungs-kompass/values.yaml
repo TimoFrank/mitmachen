@@ -38,6 +38,7 @@ ingress:
 config:
   allowedOrigin: "https://versorgungs-kompass.example.internal"
   apiAuthMode: "oidc"
+  autoEnrollmentEnabled: false
   iapJwtAudience: ""
   hospitationImportOwnerProfileId: ""
   oidcIssuer: "https://identity.example.invalid"

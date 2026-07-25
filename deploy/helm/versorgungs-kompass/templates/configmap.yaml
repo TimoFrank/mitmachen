@@ -8,6 +8,7 @@ data:
   PORT: {{ .Values.containerPort | quote }}
   ALLOWED_ORIGIN: {{ .Values.config.allowedOrigin | quote }}
   API_AUTH_MODE: {{ .Values.config.apiAuthMode | quote }}
+  API_AUTH_AUTO_ENROLLMENT_ENABLED: {{ ternary "1" "0" .Values.config.autoEnrollmentEnabled | quote }}
   IAP_JWT_AUDIENCE: {{ .Values.config.iapJwtAudience | quote }}
   HOSPITATION_IMPORT_OWNER_PROFILE_ID: {{ .Values.config.hospitationImportOwnerProfileId | quote }}
   {{- if eq .Values.config.apiAuthMode "oidc" }}

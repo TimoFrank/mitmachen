@@ -25,12 +25,22 @@ import {
   targetFingerprint as fingerprintHospitationTarget
 } from "./hospitation-import.mjs";
 import {
+  accessScopeForProfile,
+  accessScopeRefForProfile,
+  assertAccessScopePermission,
+  assertIapJwtClaims,
   assertSensitiveQueryPermission,
   policyForRequest,
   roleRank,
+  sessionCapabilities,
   validateAllowedOriginConfiguration,
   validateIdentityConfiguration
 } from "./security-policy.mjs";
+import {
+  canonicalIapSubject,
+  submitIapAutoEnrollment,
+  submitIapEnrollment
+} from "./test-access-enrollment.mjs";
 
 const ActivityModel = globalThis.ActivityModel;
 
@@ -523,6 +533,7 @@ if (!["disabled", "validated-original"].includes(IMAGE_UPLOAD_MODE) || (process.
 }
 const IDENTITY_CONFIGURATION = validateIdentityConfiguration(process.env);
 const API_AUTH_MODE = IDENTITY_CONFIGURATION.mode;
+const API_AUTH_AUTO_ENROLLMENT_ENABLED = IDENTITY_CONFIGURATION.autoEnrollmentEnabled;
 const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1";
 const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
 const API_DEV_PROFILE_ID = process.env.API_DEV_PROFILE_ID || process.env.GCP_DEMO_PROFILE_ID || "";
@@ -1245,6 +1256,11 @@ function formatRoute(formatId = "") {
   return formatId ? `#formats?format=${encodeURIComponent(formatId)}` : "#formats";
 }
 
+function testMarkerForRow(row = {}) {
+  const scopeRef = String(row._test_scope_ref || "").trim();
+  return scopeRef ? { scopeRef } : null;
+}
+
 function contactToDto(row, index = 0, ownerIds = null) {
   const topics = splitList(row.topics);
   const sector = careSectorForRead(row.sector);
@@ -1295,6 +1311,7 @@ function contactToDto(row, index = 0, ownerIds = null) {
     updatedAt: row.updated_at || "",
     createdBy: row.created_by || "",
     updatedBy: row.updated_by || "",
+    testMarker: testMarkerForRow(row),
     location: [row.postal_code, row.city].filter(Boolean).join(" "),
     topic: topics.length ? `Themen: ${topics.join(" · ")}` : "",
     description: sector ? `Sektor: ${sector}` : "",
@@ -1326,7 +1343,8 @@ function organizationToDto(row, contactCount = 0) {
     createdAt: row.created_at || "",
     updatedAt: row.updated_at || "",
     createdBy: row.created_by || "",
-    updatedBy: row.updated_by || ""
+    updatedBy: row.updated_by || "",
+    testMarker: testMarkerForRow(row)
   };
 }
 
@@ -1788,10 +1806,22 @@ function profileAvatarUrl(profileId) {
 
 function profileRowToClient(row = {}) {
   if (!row) return row;
-  const avatar = String(row.avatar_url || "");
+  const { access_scope: _accessScope, scope_ref: _scopeRef, ...profile } = row;
+  const avatar = String(profile.avatar_url || "");
   return {
-    ...row,
-    avatar_url: avatar.startsWith("gs://") ? profileAvatarUrl(row.id) : avatar
+    ...profile,
+    avatar_url: avatar.startsWith("gs://") ? profileAvatarUrl(profile.id) : avatar
+  };
+}
+
+function currentProfileToClient(row = {}) {
+  const accessScope = accessScopeForProfile(row);
+  const scopeRef = accessScopeRefForProfile(row);
+  return {
+    ...profileRowToClient(row),
+    accessScope,
+    scopeRef: accessScope === "test_only" ? scopeRef : "",
+    capabilities: sessionCapabilities(row)
   };
 }
 
@@ -2678,14 +2708,6 @@ function cleanIdentityHeader(value = "") {
   return raw.includes(":") ? raw.split(":").slice(1).join(":") : raw;
 }
 
-function canonicalIapSubject(value = "") {
-  const subject = String(value || "").trim();
-  const googleAccountPrefix = "accounts.google.com:";
-  if (!subject.startsWith(googleAccountPrefix)) return subject;
-  const googleAccountId = subject.slice(googleAccountPrefix.length);
-  return /^[0-9]{1,64}$/u.test(googleAccountId) ? googleAccountId : subject;
-}
-
 function requestHeader(request, name) {
   return request.headers[String(name || "").toLowerCase()] || "";
 }
@@ -2888,18 +2910,7 @@ async function verifyIapJwt(request) {
     error.status = 401;
     throw error;
   }
-  const now = Math.floor(Date.now() / 1000);
-  const skew = 30;
-  if (payload.iss !== "https://cloud.google.com/iap" || payload.aud !== IAP_JWT_AUDIENCE) {
-    const error = new Error("IAP-JWT-Issuer oder Audience passt nicht.");
-    error.status = 401;
-    throw error;
-  }
-  if (Number(payload.exp || 0) < now - skew || Number(payload.iat || 0) > now + skew) {
-    const error = new Error("IAP-JWT-Zeitfenster ist ungueltig.");
-    error.status = 401;
-    throw error;
-  }
+  assertIapJwtClaims(payload, IAP_JWT_AUDIENCE);
   if (!payload.email || !payload.sub) {
     const error = new Error("IAP-JWT enthaelt keine Nutzeridentitaet.");
     error.status = 401;
@@ -2982,7 +2993,9 @@ function devProfileFromRequest(request) {
         display_name: "Validation Test",
         initials: "VT",
         role: "admin",
-        active: true
+        active: true,
+        access_scope: "standard",
+        scope_ref: null
       };
     }
   }
@@ -2994,7 +3007,9 @@ function devProfileFromRequest(request) {
     display_name: "Lokales Admin-Profil",
     initials: "LA",
     role: "admin",
-    active: true
+    active: true,
+    access_scope: "standard",
+    scope_ref: null
   };
 }
 
@@ -3033,7 +3048,7 @@ async function resolveRequestProfile(request) {
   let rows;
   try {
     rows = (await getPool().query(
-      `select p.*
+      `select p.*, binding.access_scope, binding.scope_ref
          from public.identity_bindings binding
          join public.profiles p on p.id = binding.profile_id
         where binding.issuer = $1
@@ -3074,6 +3089,14 @@ async function authorizeRequest(request, url) {
   }
   request.routePolicy = policy;
   if (policy.role === "public") return;
+  if (policy.role === "iap-unbound") {
+    if (API_AUTH_MODE !== "iap") {
+      const error = new Error("Identity-Registrierung ist nur hinter IAP verfuegbar.");
+      error.status = 403;
+      throw error;
+    }
+    return;
+  }
   const profile = await resolveRequestProfile(request);
   request.currentProfile = profile;
   if (roleRank(profile.role) < roleRank(policy.role)) {
@@ -3081,6 +3104,7 @@ async function authorizeRequest(request, url) {
     error.status = 403;
     throw error;
   }
+  assertAccessScopePermission(profile, policy);
   assertSensitiveQueryPermission(profile, url.searchParams);
 }
 
@@ -3122,6 +3146,142 @@ async function filterRowsByVisibleParent(request, rows = [], parentTable, parent
   if (roleRank(request.currentProfile?.role) >= roleRank("admin")) return rows;
   const visible = await visibleParentIds(request, parentTable, rows.map((row) => row[parentField]));
   return rows.filter((row) => visible.has(row[parentField]));
+}
+
+const TEST_ACCESS_ENTITY_TYPES = new Set(["contacts", "organizations"]);
+const TEST_ONLY_CONTACT_STORAGE_FIELDS = new Set([
+  "image",
+  "image_url",
+  "imageSourceUrl",
+  "image_source_url",
+  "imageSourceLabel",
+  "image_source_label",
+  "imageRightsNote",
+  "image_rights_note",
+  "imageUpdatedAt",
+  "image_updated_at",
+  "imageUpdatedBy",
+  "image_updated_by",
+  "imageStoragePath",
+  "image_storage_path",
+  "imageKind",
+  "image_kind",
+  "imageMimeType",
+  "image_mime_type",
+  "imageFileSize",
+  "image_file_size",
+  "imageWidth",
+  "image_width",
+  "imageHeight",
+  "image_height"
+]);
+
+function testOnlyScopeRef(request) {
+  if (accessScopeForProfile(request.currentProfile) !== "test_only") return "";
+  const scopeRef = accessScopeRefForProfile(request.currentProfile);
+  if (!scopeRef) {
+    const error = new Error("Testzugang besitzt keine gueltige Kohorte.");
+    error.status = 403;
+    throw error;
+  }
+  return scopeRef;
+}
+
+function assertTestAccessEntityType(entityType) {
+  if (!TEST_ACCESS_ENTITY_TYPES.has(entityType)) {
+    const error = new Error("Unbekannter Testobjekt-Typ.");
+    error.status = 500;
+    throw error;
+  }
+}
+
+async function testAccessMarkerMap(entityType, ids = [], transaction = null) {
+  assertTestAccessEntityType(entityType);
+  const entityIds = uniqueIds(ids);
+  if (!entityIds.length) return new Map();
+  const result = await databaseQuery(
+    transaction,
+    `select entity_id, scope_ref
+       from public.test_access_objects
+      where entity_type = $1
+        and entity_id = any($2::text[])`,
+    [entityType, entityIds]
+  );
+  return new Map(result.rows.map((row) => [row.entity_id, row.scope_ref]));
+}
+
+async function decorateRowsWithTestMarkers(entityType, rows = [], transaction = null) {
+  const markers = await testAccessMarkerMap(entityType, rows.map((row) => row.id), transaction);
+  return rows.map((row) => ({ ...row, _test_scope_ref: markers.get(row.id) || "" }));
+}
+
+async function registerTestAccessObject(transaction, request, entityType, entityId) {
+  const scopeRef = testOnlyScopeRef(request);
+  if (!scopeRef) return;
+  assertTestAccessEntityType(entityType);
+  const userId = userIdFromToken(request);
+  const result = await databaseQuery(
+    transaction,
+    `insert into public.test_access_objects
+      (scope_ref, entity_type, entity_id, created_by)
+     values ($1, $2, $3, $4)
+     returning scope_ref`,
+    [scopeRef, entityType, entityId, userId]
+  );
+  if (result.rows?.[0]?.scope_ref !== scopeRef) {
+    const error = new Error("Testobjekt-Markierung konnte nicht sicher gespeichert werden.");
+    error.status = 503;
+    throw error;
+  }
+}
+
+async function assertTestObjectScope(transaction, request, entityType, entityId) {
+  const scopeRef = testOnlyScopeRef(request);
+  if (!scopeRef) return;
+  assertTestAccessEntityType(entityType);
+  const result = await databaseQuery(
+    transaction,
+    `select scope_ref
+       from public.test_access_objects
+      where entity_type = $1
+        and entity_id = $2
+      for share`,
+    [entityType, entityId]
+  );
+  if (result.rows?.length !== 1 || result.rows[0].scope_ref !== scopeRef) {
+    const error = new Error("Dieses Objekt gehoert nicht zur freigegebenen Testkohorte.");
+    error.status = 403;
+    throw error;
+  }
+}
+
+async function assertTestContactParentScope(transaction, request, organizationId) {
+  if (!organizationId || !testOnlyScopeRef(request)) return;
+  await assertTestObjectScope(transaction, request, "organizations", organizationId);
+}
+
+function assertTestOnlyContactInput(request, contact = {}, options = {}) {
+  if (!testOnlyScopeRef(request)) return;
+  if (Object.keys(contact).some((field) => TEST_ONLY_CONTACT_STORAGE_FIELDS.has(field))) {
+    const error = new Error("Bild- und Storage-Felder sind fuer Testzugaenge nicht freigegeben.");
+    error.status = 403;
+    throw error;
+  }
+  if (String(options.action || "").trim() === "import" || options.batchId || options.batch_id) {
+    const error = new Error("Import-Optionen sind fuer Testzugaenge nicht freigegeben.");
+    error.status = 403;
+    throw error;
+  }
+}
+
+function assertTestOnlyContactOwners(request, ownerIds = []) {
+  if (!testOnlyScopeRef(request)) return;
+  const userId = userIdFromToken(request);
+  if (ownerIds.some((ownerId) => ownerId !== userId)) {
+    const error = new Error("Testkontakte duerfen nur dem eigenen Testprofil zugeordnet werden.");
+    error.status = 403;
+    throw error;
+  }
 }
 
 function assertPlainObject(value, label = "Request Body") {
@@ -4352,7 +4512,7 @@ async function listProfiles(request) {
 
 async function getCurrentProfile(request) {
   if (!request.currentProfile) request.currentProfile = await resolveRequestProfile(request);
-  return profileRowToClient(request.currentProfile);
+  return currentProfileToClient(request.currentProfile);
 }
 
 async function getSession(request) {
@@ -4363,6 +4523,9 @@ async function getSession(request) {
     identitySource: trustedHeaderEmail(request) || trustedHeaderSubject(request) || iapEmail(request) || iapSubject(request) || (API_AUTH_ALLOW_DEV_PROFILE ? "lokales Dev-Profil" : ""),
     enforcement: "server-side",
     enforcementLabel: "Rollen werden in der API serverseitig geprueft.",
+    accessScope: profile.accessScope,
+    scopeRef: profile.scopeRef,
+    capabilities: profile.capabilities,
     profile,
     roleMatrix: ROLE_MATRIX
   };
@@ -4398,7 +4561,11 @@ async function patchCurrentProfile(request) {
   }
   profileCache.expiresAt = 0;
   await loadProfiles(request);
-  return profileRowToClient(rows[0]);
+  return currentProfileToClient({
+    ...rows[0],
+    access_scope: request.currentProfile.access_scope,
+    scope_ref: request.currentProfile.scope_ref
+  });
 }
 
 function pngProfileAvatarMetadata(buffer) {
@@ -5275,7 +5442,8 @@ async function listContacts(request, url) {
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
   if (url.searchParams.get("status")) params.set("status", `eq.${url.searchParams.get("status")}`);
   const rows = await cloudSqlRest("contacts", request, params);
-  return { items: await decorateRowsWithStoredOwners(request, rows || []) };
+  const markedRows = await decorateRowsWithTestMarkers("contacts", rows || []);
+  return { items: await decorateRowsWithStoredOwners(request, markedRows) };
 }
 
 async function organizationContactCounts(request, ids = []) {
@@ -5327,13 +5495,14 @@ async function listOrganizations(request, url) {
   });
   if (url.searchParams.get("includeArchived") !== "true") params.set("status", "neq.archived");
   const rows = await cloudSqlRest("organizations", request, params);
-  const ids = (rows || []).map((row) => row.id);
+  const markedRows = await decorateRowsWithTestMarkers("organizations", rows || []);
+  const ids = markedRows.map((row) => row.id);
   const [counts, primarySystems] = await Promise.all([
     organizationContactCounts(request, ids),
     primarySystemsByOrganization(request, ids)
   ]);
   return {
-    items: (rows || []).map((row) => ({
+    items: markedRows.map((row) => ({
       ...organizationToDto(row, counts.get(row.id) || 0),
       primarySystems: primarySystems.get(row.id) || []
     }))
@@ -5597,12 +5766,13 @@ async function getOrganization(request, id) {
     limit: "1"
   }));
   assertEntityVisible(request, rows?.[0], "Organisation wurde nicht gefunden.");
+  const markedRows = await decorateRowsWithTestMarkers("organizations", rows || []);
   const [counts, primarySystems] = await Promise.all([
     organizationContactCounts(request, [id]),
     primarySystemsByOrganization(request, [id])
   ]);
   return {
-    ...organizationToDto(rows[0], counts.get(id) || 0),
+    ...organizationToDto(markedRows[0], counts.get(id) || 0),
     primarySystems: primarySystems.get(id) || []
   };
 }
@@ -5667,21 +5837,26 @@ async function createOrganization(request) {
   const dbOrganization = organizationCreateToDb(organization);
   dbOrganization.created_by = userId;
   dbOrganization.updated_by = userId;
-  const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
-    select: ORGANIZATION_FIELDS.join(",")
-  }), {
-    method: "POST",
-    headers: { prefer: "return=representation" },
-    body: dbOrganization
+  const created = await withDomainTransaction(async (transaction) => {
+    const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
+      select: ORGANIZATION_FIELDS.join(",")
+    }), {
+      method: "POST",
+      headers: { prefer: "return=representation" },
+      body: dbOrganization,
+      transaction
+    });
+    const row = rows?.[0];
+    if (!row) {
+      const error = new Error("Organisation wurde nicht angelegt.");
+      error.status = 500;
+      throw error;
+    }
+    await registerTestAccessObject(transaction, request, "organizations", row.id);
+    return { ...row, _test_scope_ref: testOnlyScopeRef(request) };
   });
-  const created = rows?.[0];
-  if (!created) {
-    const error = new Error("Organisation wurde nicht angelegt.");
-    error.status = 500;
-    throw error;
-  }
   const dto = organizationToDto(created, 0);
-  await notifyOrganizationChanged(request, dto, userId, "create");
+  if (!testOnlyScopeRef(request)) await notifyOrganizationChanged(request, dto, userId, "create");
   return dto;
 }
 
@@ -5701,23 +5876,28 @@ async function patchOrganization(request, id) {
   }
   dbPatch.updated_by = userId;
   dbPatch.updated_at = new Date().toISOString();
-  const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
-    id: `eq.${id}`,
-    select: ORGANIZATION_FIELDS.join(",")
-  }), {
-    method: "PATCH",
-    headers: { prefer: "return=representation" },
-    body: dbPatch
+  const updated = await withDomainTransaction(async (transaction) => {
+    await assertTestObjectScope(transaction, request, "organizations", id);
+    const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
+      id: `eq.${id}`,
+      select: ORGANIZATION_FIELDS.join(",")
+    }), {
+      method: "PATCH",
+      headers: { prefer: "return=representation" },
+      body: dbPatch,
+      transaction
+    });
+    const row = rows?.[0];
+    if (!row) {
+      const error = new Error("Organisation wurde nicht aktualisiert.");
+      error.status = 404;
+      throw error;
+    }
+    return { ...row, _test_scope_ref: testOnlyScopeRef(request) };
   });
-  const updated = rows?.[0];
-  if (!updated) {
-    const error = new Error("Organisation wurde nicht aktualisiert.");
-    error.status = 404;
-    throw error;
-  }
   const counts = await organizationContactCounts(request, [id]);
   const dto = organizationToDto(updated, counts.get(id) || 0);
-  await notifyOrganizationChanged(request, dto, userId, "update");
+  if (!testOnlyScopeRef(request)) await notifyOrganizationChanged(request, dto, userId, "update");
   return dto;
 }
 
@@ -6996,7 +7176,9 @@ async function createContact(request) {
   assertAllowedFields(contact, CONTACT_INPUT_FIELDS, "Kontakt");
   const options = payload.options && typeof payload.options === "object" ? payload.options : {};
   assertAllowedFields(options, CONTACT_CREATE_OPTIONS_FIELDS, "Kontaktanlage-Optionen");
+  assertTestOnlyContactInput(request, contact, options);
   const ownerIds = ownerIdsFromContact(contact);
+  assertTestOnlyContactOwners(request, ownerIds);
   const dbContact = contactCreateToDb(contact);
   const hasConsentInput = Object.keys(contact).some((field) => field.startsWith("mitmachenConsent") || field.startsWith("mitmachen_consent_"));
   if (hasConsentInput && dbContact.mitmachen_consent_status !== "not_requested") {
@@ -7007,6 +7189,7 @@ async function createContact(request) {
   dbContact.updated_by = userId;
 
   const created = await withDomainTransaction(async (transaction) => {
+    await assertTestContactParentScope(transaction, request, dbContact.organization_id);
     await acquireDuplicateGuardLocks(transaction, CONTACT_DUPLICATE_LOCK_KEY);
     await assertNoContactDuplicate(transaction, dbContact, "", request);
     const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
@@ -7023,6 +7206,7 @@ async function createContact(request) {
       error.status = 500;
       throw error;
     }
+    await registerTestAccessObject(transaction, request, "contacts", row.id);
     await cloudSqlRest("changes", request, new URLSearchParams(), {
       method: "POST",
       headers: { prefer: "return=minimal" },
@@ -7045,10 +7229,10 @@ async function createContact(request) {
       originKey: options.action === "import" ? "data_import" : "manual",
       originRef: options.batchId || ""
     });
-    return row;
+    return { ...row, _test_scope_ref: testOnlyScopeRef(request) };
   });
   const dto = contactToDto(created, 0, supportsContactOwners ? ownerIds : normalizeOwnerIds(created.owner_id));
-  await notifyContactCreated(request, dto, userId, options);
+  if (!testOnlyScopeRef(request)) await notifyContactCreated(request, dto, userId, options);
   return dto;
 }
 
@@ -7061,7 +7245,8 @@ async function getContact(request, id) {
   });
   const rows = await cloudSqlRest("contacts", request, params);
   assertEntityVisible(request, rows?.[0], "Kontakt wurde nicht gefunden.");
-  return (await decorateRowsWithStoredOwners(request, rows || []))[0];
+  const markedRows = await decorateRowsWithTestMarkers("contacts", rows || []);
+  return (await decorateRowsWithStoredOwners(request, markedRows))[0];
 }
 
 async function getContactHistory(request, id, url) {
@@ -7798,10 +7983,12 @@ async function patchContact(request, id) {
   }
 
   const patch = await readValidatedJsonBody(request, CONTACT_INPUT_FIELDS, "Kontakt-Update");
+  assertTestOnlyContactInput(request, patch);
   const hasOwnerPatch = ["ownerIds", "owner_ids", "owners", "ownerId", "owner_id", "owner"].some((field) =>
     Object.prototype.hasOwnProperty.call(patch, field)
   );
   const nextOwnerIds = hasOwnerPatch ? ownerIdsFromContact(patch) : [];
+  assertTestOnlyContactOwners(request, nextOwnerIds);
   const dbPatch = contactPatchToDb(patch);
   const hasConsentPatch = Object.keys(patch).some((field) => field.startsWith("mitmachenConsent") || field.startsWith("mitmachen_consent_"));
   if (hasConsentPatch) dbPatch.mitmachen_consent_recorded_by = userId;
@@ -7839,6 +8026,11 @@ async function patchContact(request, id) {
   if (hasOwnerPatch && supportsContactOwners) changedFields = changedFields.filter((field) => field !== "owner_id");
 
   const updated = await withDomainTransaction(async (transaction) => {
+    await assertTestObjectScope(transaction, request, "contacts", id);
+    const effectiveOrganizationId = Object.prototype.hasOwnProperty.call(dbPatch, "organization_id")
+      ? dbPatch.organization_id
+      : oldRow.organization_id;
+    await assertTestContactParentScope(transaction, request, effectiveOrganizationId);
     if (duplicateIdentityChanged) {
       await acquireDuplicateGuardLocks(transaction, CONTACT_DUPLICATE_LOCK_KEY);
       const currentRows = await cloudSqlRest("contacts", request, new URLSearchParams({
@@ -7893,19 +8085,21 @@ async function patchContact(request, id) {
         details: { changedFields, ownerChanged: hasOwnerPatch }
       });
     }
-    return row;
+    return { ...row, _test_scope_ref: testOnlyScopeRef(request) };
   });
   if (oldRow.image_storage_path && Object.prototype.hasOwnProperty.call(dbPatch, "image_storage_path") && !dbPatch.image_storage_path) {
     await deleteStorageObject(CONTACT_IMAGE_BUCKET, oldRow.image_storage_path);
   }
   const dto = contactToDto(updated, 0, hasOwnerPatch ? nextOwnerIds : oldOwnerIds);
-  await notifyContactUpdated(request, dto, userId, {
-    action: dbPatch.status === "archived" ? "archive" : "update",
-    changedFields,
-    hasOwnerPatch,
-    oldOwnerIds,
-    nextOwnerIds
-  });
+  if (!testOnlyScopeRef(request)) {
+    await notifyContactUpdated(request, dto, userId, {
+      action: dbPatch.status === "archived" ? "archive" : "update",
+      changedFields,
+      hasOwnerPatch,
+      oldOwnerIds,
+      nextOwnerIds
+    });
+  }
   return dto;
 }
 
@@ -7995,11 +8189,57 @@ async function handle(request, response) {
     }
     if (request.method === "GET" && ["/readyz", "/api/readyz"].includes(url.pathname)) {
       await getPool().query("select 1");
-      await getPool().query("select 1 from public.identity_bindings limit 0");
+      await getPool().query("select access_scope, scope_ref from public.identity_bindings limit 0");
+      await getPool().query("select request_id from public.identity_enrollment_requests limit 0");
+      await getPool().query("select entity_type, entity_id, scope_ref from public.test_access_objects limit 0");
+      if (API_AUTH_AUTO_ENROLLMENT_ENABLED) {
+        const autoEnrollmentReady = await getPool().query(
+          `select routine.prosecdef
+                  and owner.rolname = 'vk_allowlist_executor'
+                  and routine.proconfig is not distinct from array['search_path=pg_catalog, public']
+                  and has_function_privilege(current_user, routine.oid, 'EXECUTE')
+                  and not has_function_privilege('public', routine.oid, 'EXECUTE') as ready
+             from pg_catalog.pg_proc routine
+             join pg_catalog.pg_roles owner on owner.oid = routine.proowner
+            where routine.oid = to_regprocedure(
+              'public.pre_gematik_consume_test_access_allowlist(uuid,text,text,text,timestamptz,timestamptz)'
+            )`
+        );
+        if (autoEnrollmentReady.rows?.[0]?.ready !== true) {
+          const error = new Error("Auto-Enrollment-Datenbankfunktion fehlt oder ist nicht sicher freigegeben.");
+          error.status = 503;
+          throw error;
+        }
+      }
       return jsonResponse(response, 200, { ok: true });
     }
     if (request.method === "GET" && url.pathname === "/api/auth/bootstrap") {
       return redirectResponse(response, validatedIapBootstrapReturnUrl(url));
+    }
+    if (request.method === "POST" && url.pathname === "/api/auth/auto-enrollment") {
+      if (!API_AUTH_AUTO_ENROLLMENT_ENABLED) {
+        const error = new Error("Not found");
+        error.status = 404;
+        throw error;
+      }
+      if ([...url.searchParams].length) {
+        throw validationError("Die automatische Registrierung darf keine Query-Parameter enthalten.");
+      }
+      const enrollment = await submitIapAutoEnrollment(request, {
+        verifyIapJwt,
+        pool: getPool()
+      });
+      return jsonResponse(response, 201, enrollment);
+    }
+    if (request.method === "POST" && url.pathname === "/api/auth/enrollment") {
+      if ([...url.searchParams].length) {
+        throw validationError("Die Registrierungsanfrage darf keine Query-Parameter enthalten.");
+      }
+      const enrollment = await submitIapEnrollment(request, {
+        verifyIapJwt,
+        pool: getPool()
+      });
+      return jsonResponse(response, 202, enrollment);
     }
     if (request.method === "GET" && url.pathname === "/api/session") {
       return jsonResponse(response, 200, await getSession(request));

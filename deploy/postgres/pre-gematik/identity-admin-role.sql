@@ -156,9 +156,21 @@ grant select on table public.profiles to vk_identity_admin;
 grant select, insert, update on table public.identity_bindings to vk_identity_admin;
 grant execute on function public.pre_gematik_touch_updated_at() to vk_identity_admin;
 
+-- A v1 document has no access_scope or enrollment references. As soon as the
+-- v2 schema exists, keep the legacy role read-only so it cannot activate or
+-- alter a test binding outside the v2 full-state operator.
+do $pre_gematik_identity_admin_v2_guard$
+begin
+  if to_regclass('public.identity_enrollment_requests') is not null then
+    execute 'revoke insert, update on table public.identity_bindings from vk_identity_admin';
+  end if;
+end
+$pre_gematik_identity_admin_v2_guard$;
+
 do $pre_gematik_identity_admin_verify$
 declare
   identity_admin_oid oid;
+  v2_access_contract_active boolean;
   unsafe_other_table_privileges integer;
   unsafe_sequence_privileges integer;
   unsafe_other_function_privileges integer;
@@ -167,6 +179,9 @@ begin
     into identity_admin_oid
     from pg_catalog.pg_roles
    where rolname = 'vk_identity_admin';
+
+  v2_access_contract_active :=
+    to_regclass('public.identity_enrollment_requests') is not null;
 
   if exists (
     select 1
@@ -198,8 +213,22 @@ begin
      or has_any_column_privilege('vk_identity_admin', 'public.profiles', 'UPDATE')
      or has_any_column_privilege('vk_identity_admin', 'public.profiles', 'REFERENCES')
      or not has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'SELECT')
-     or not has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'INSERT')
-     or not has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'UPDATE')
+     or (
+       v2_access_contract_active
+       and (
+         has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'INSERT')
+         or has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'UPDATE')
+         or has_any_column_privilege('vk_identity_admin', 'public.identity_bindings', 'INSERT')
+         or has_any_column_privilege('vk_identity_admin', 'public.identity_bindings', 'UPDATE')
+       )
+     )
+     or (
+       not v2_access_contract_active
+       and (
+         not has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'INSERT')
+         or not has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'UPDATE')
+       )
+     )
      or has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'DELETE')
      or has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'TRUNCATE')
      or has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'REFERENCES')

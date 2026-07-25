@@ -13,7 +13,9 @@ Für den befristeten internen Durchstich gemäß [`../poc-gematik/README.md`](..
 - `schema.sql`: idempotenter PostgreSQL-16-Bootstrap für eine frische Pre-Integrationsdatenbank.
 - `runtime-role.sql`: idempotente Anlage der festen `NOLOGIN`-Rolle `vk_app_runtime`; entzieht `PUBLIC` zusätzlich das Erstellen von Objekten im Schema `public`.
 - `grants.sql`: idempotente Least-Privilege-Laufzeitrechte für eine bereits angelegte `NOLOGIN`-Rolle; benötigt eine verpflichtende `psql`-Variable.
-- `identity-admin-role.sql`: geheimnisfreier, fail-closed Bootstrap der separaten `NOLOGIN`-Rolle `vk_identity_admin`; sie darf ausschließlich Profile lesen und IAP-Identity-Bindungen lesen/anlegen/aktivieren. Der Rollen-Bootstrap läuft nur als bestehender Objekt-Owner und verweigert unerwartete Mitglieder, Elternrollen, Objektbesitz oder unsichere Attribute. Dauerhaft erlaubt ist ausschließlich dessen von PostgreSQL 16 angelegte Creator-Administration mit `ADMIN OPTION`, `INHERIT FALSE` und `SET FALSE`.
+- `identity-admin-role.sql`: geheimnisfreier, fail-closed Bootstrap der separaten `NOLOGIN`-Rolle `vk_identity_admin`; vor v2 darf sie ausschließlich Profile lesen und IAP-Identity-Bindungen lesen/anlegen/aktivieren. Sobald das Enrollment-v2-Schema existiert, bleibt sie bewusst read-only und verweist operativ auf den v2-Zugriffsoperator. Der Rollen-Bootstrap läuft nur als bestehender Objekt-Owner und verweigert unerwartete Mitglieder, Elternrollen, Objektbesitz oder unsichere Attribute. Dauerhaft erlaubt ist ausschließlich dessen von PostgreSQL 16 angelegte Creator-Administration mit `ADMIN OPTION`, `INHERIT FALSE` und `SET FALSE`.
+- `access-enrollment-admin-role.sql`: separater v2-Bootstrap für die `NOLOGIN`-Rolle `vk_access_enrollment_admin`. Sie besitzt nur spaltenweise Profil-/Binding-Schreibrechte und darf geschützte Enrollment-Requests ausschließlich auf `applied` setzen; Fachdaten, Löschungen, Subject-Remaps, DDL und Rollenverwaltung bleiben ausgeschlossen.
+- `access-allowlist-admin-role.sql`: überträgt die gehärtete Auto-Enrollment-Funktion an den dedizierten `NOLOGIN`-Owner `vk_allowlist_executor`, verengt dessen Tabellenrechte auf eine atomare Consumption und richtet die getrennte create-only/revoke-Operatorrolle `vk_access_allowlist_admin` ein. Erst nach erfolgreicher Prüfung erhält `vk_app_runtime` das Funktions-`EXECUTE`.
 - `seed.example.sql`: optionaler, ausschließlich synthetischer Admin-Seed. Er enthält die reservierte Beispieldomain `example.invalid` und keine echten Personen- oder Kontaktdaten.
 - `seed.synthetic.sql`: generierter, versionierter Fachdaten-Seed für die GCP-Pre-Integration. Er enthält ausschließlich synthetische Profile, Organisationen, Kontakte, Formate, Hospitationen und Beobachtungen.
 - `seed.synthetic-profile-avatars.sql`: enger, idempotenter Nachzug für drei lokale SVG-Avatare der reservierten Demo-Profile. Er verändert keine IAP-Nutzerprofile.
@@ -48,7 +50,7 @@ psql "$PRE_GEMATIK_SCHEMA_DATABASE_URL" -v ON_ERROR_STOP=1 -f runtime-role.sql
 psql "$PRE_GEMATIK_SCHEMA_DATABASE_URL" -v ON_ERROR_STOP=1 -v runtime_role=vk_app_runtime -f grants.sql
 ```
 
-`runtime-role.sql` kann gefahrlos erneut angewendet werden. Es stellt `vk_app_runtime` als Rolle ohne Login her und entzieht der impliziten PostgreSQL-Rolle `PUBLIC` das Recht `CREATE` auf dem Schema `public`. `grants.sql` quotiert `runtime_role` als PostgreSQL-Identifier, prüft Existenz und `NOLOGIN` und vergibt nur `USAGE` auf das Schema, DML auf die explizit aufgeführten Tabellen, `USAGE/SELECT` auf die drei Identity-Sequenzen sowie `EXECUTE` auf die vier benötigten Funktionen. Es vergibt insbesondere kein `CREATE`, `ALTER`, `DROP` oder Rollenverwaltungsrecht. Nach jeder späteren Schema-Migration muss die Rechtezuordnung bewusst erneut geprüft und bei neuen Objekten erweitert werden.
+`runtime-role.sql` kann gefahrlos erneut angewendet werden. Es stellt `vk_app_runtime` als Rolle ohne Login her und entzieht der impliziten PostgreSQL-Rolle `PUBLIC` das Recht `CREATE` auf dem Schema `public`. `grants.sql` quotiert `runtime_role` als PostgreSQL-Identifier, prüft Existenz und `NOLOGIN` und vergibt nur `USAGE` auf das Schema, DML auf die explizit aufgeführten Tabellen, `USAGE/SELECT` auf die drei Identity-Sequenzen sowie `EXECUTE` auf die vier allgemeinen Laufzeitfunktionen. Es entzieht der Runtime ausdrücklich sämtliche Rechte auf `test_access_allowlist`; das einzige Auto-Enrollment-`EXECUTE` wird anschließend durch den verifizierten Funktions-Owner in `access-allowlist-admin-role.sql` vergeben. Es vergibt insbesondere kein `CREATE`, `ALTER`, `DROP` oder Rollenverwaltungsrecht. Nach jeder späteren Schema-Migration muss die Rechtezuordnung bewusst erneut geprüft und bei neuen Objekten erweitert werden.
 
 Die Befehle oben sind ausschließlich für eine frische Datenbank bestimmt. Für eine bereits bestehende Instanz gilt stattdessen das Verfahren in [`migrations/README.md`](migrations/README.md): Vorimport-Backup und Restore-Pfad bestätigen, ausstehenden Migrationspfad prüfen, Migrationen in aufsteigender Reihenfolge anwenden, Laufzeitrechte erneut abgleichen und anschließend Vertrags- sowie Anwendungstests ausführen. Das erneute Anwenden von `schema.sql` ersetzt diesen Ablauf nicht.
 
@@ -89,6 +91,170 @@ exklusive Mitgliedschaft und sämtliche effektiven Grants erneut, wechseln mit
 Der Rollen-Bootstrap ohne bekanntes `postgres`-Passwort, die geschützte
 Credential-Erzeugung, Operatorausführung, Abnahme und der Login-Cleanup stehen
 im verbindlichen [Identity-Admin-Runbook](../../../dokumentation/betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md).
+
+### Geschütztes Testnutzer-Enrollment v2
+
+Testnutzer werden nicht mit dem allgemeinen Identity-Operator angelegt. Nach
+Migration `202607240001_add_test_access_enrollment.sql` wird
+`access-enrollment-admin-role.sql` als gemeinsamer Objekt-Owner angewendet.
+Danach erzeugt
+`scripts/prepare_pre_gematik_test_access_operator.mjs` create-only und mit
+Dateimodus `0600` die Zugangsdaten für einen kurzlebigen Login, dessen einzige
+Mitgliedschaft `vk_access_enrollment_admin` ist.
+
+Das geschützte JSON-Vollzustandsdokument liegt außerhalb des Git-Worktrees und
+verwendet Version 2:
+
+```json
+{
+  "version": 2,
+  "bindings": [
+    {
+      "issuer": "https://cloud.google.com/iap",
+      "subject": "BESTEHENDES-SUBJECT",
+      "profile_id": "BESTEHENDES-PROFIL",
+      "active": true,
+      "access_scope": "standard",
+      "scope_ref": null
+    }
+  ],
+  "enrollments": [
+    {
+      "request_id": "00000000-0000-4000-8000-000000000001",
+      "expected_email": "person@example.invalid",
+      "profile": {
+        "id": "test-profile-0001",
+        "email": "person@example.invalid",
+        "display_name": "Test Person",
+        "initials": "TP",
+        "role": "viewer",
+        "active": true,
+        "team": "Externer Test",
+        "bio": null
+      },
+      "binding": {
+        "active": true,
+        "access_scope": "test_only",
+        "scope_ref": "pre-gematik-external-test-2026-08"
+      }
+    }
+  ]
+}
+```
+
+`bindings` enthält ausnahmslos jede bereits bestehende direkte
+`standard`-Bindung, die nicht über eine der weiterhin aufgeführten
+Enrollment-Referenzen verwaltet wird. Der Operator darf in diesem Abschnitt
+nur `active` abgleichen; neue Direktbindungen sowie Änderungen an Profil,
+`access_scope` oder `scope_ref` werden abgewiesen. Subject und Issuer neuer
+Tester stammen ausschließlich aus dem verifizierten Datenbank-Request. Der
+Operator akzeptiert für Tester nur `viewer` und `editor`, verweigert unbekannte
+Bestandsbindungen, Profilübernahmen, Remaps, Deletes, abgelaufene Requests und
+Adminprofile und schreibt Profil, Binding und Requeststatus in derselben
+serialisierbaren Transaktion.
+
+Preview und Apply:
+
+```bash
+node scripts/provision_pre_gematik_test_access.mjs \
+  --input /absolut/geschuetzt/test-access-v2.json
+
+node scripts/provision_pre_gematik_test_access.mjs \
+  --input /absolut/geschuetzt/test-access-v2.json \
+  --apply \
+  --confirm-environment pre-gematik \
+  --confirm-database versorgungs_kompass \
+  --confirm-operation APPLY_PRE_GEMATIK_TEST_ACCESS_V2 \
+  --confirm-fingerprint sha256:PREVIEW-FINGERPRINT \
+  --confirm-binding-count 2 \
+  --confirm-enrollment-count 1 \
+  --confirm-active-binding-count 2 \
+  --allow-active-bindings
+```
+
+Preview und Apply geben ausschließlich Mengen und SHA-256-Fingerprints aus.
+Nach dem kontrollierten Apply wird der Cloud-SQL-Login unverzüglich gelöscht;
+ein unsicheres oder unbekanntes COMMIT-Ergebnis darf nicht automatisch
+wiederholt werden.
+
+### Allowlist-basiertes Auto-Enrollment
+
+Migration `202607250001_add_test_access_allowlist.sql` ergänzt eine geschützte
+Allowlist für exakte, ASCII-normalisierte E-Mail-Adressen. Wildcards,
+Domainfreigaben und Adminrollen sind nicht zulässig. Jede Zeile besitzt eine
+interne UUID, eine zufällige UUIDv4 als PII-freie Profil-ID, eine Rolle
+`viewer` oder `editor`, genau einen `test_only`-Scope, ein Ablaufdatum sowie
+unveränderliche Consumption- beziehungsweise Revoke-Felder.
+
+Direkter Runtime-Zugriff auf diese Tabelle ist vollständig entzogen.
+`SECURITY DEFINER` ist hier erforderlich, weil ein `SECURITY INVOKER` entweder
+keine Zeile lesen könnte oder der gemeinsamen Runtime-Rolle einen
+enumerierbaren Gesamtzugriff auf den geschützten Roster geben müsste. Die
+Funktion ist deshalb ohne dynamisches SQL, mit festem
+`search_path=pg_catalog, public`, ohne `PUBLIC`-Execute und mit einem eigenen
+`NOLOGIN`-Owner umgesetzt. Dieser Owner besitzt nur die Spaltenrechte für:
+
+- exakten `=`-Match und einmalige Consumption einer Allowlist-Zeile,
+- Anlage des freigegebenen Viewer-/Editor-Profils,
+- Anlage der aktiven `test_only`-Subject-Bindung,
+- Anlage oder atomare Übernahme einer gültigen Pending-Vorgangsnummer.
+
+Kein Match, Ablauf, Revoke, Replay, vorhandene Bindung, Profilkollision oder
+terminaler Vorgang liefert null Zeilen und verändert nichts. Ein Erfolg liefert
+genau eine Zeile mit der bestehenden beziehungsweise neu übergebenen
+Vorgangsnummer und markiert Profil, Bindung, Vorgang und Allowlist innerhalb
+derselben Transaktion. Manueller Flow, Auto-Consumption und beide Operatoren
+nehmen zuerst denselben globalen Identity-Lock und erst danach gegebenenfalls
+den Subject-Lock.
+
+Der geschützte Vollzustand für den Operator liegt mit Modus `0600` außerhalb
+des Git-Worktrees. Ein Eintrag hat diese Form:
+
+```json
+{
+  "allowlist_id": "11111111-1111-4111-8111-111111111111",
+  "email_normalized": "person@example.invalid",
+  "profile": {
+    "id": "22222222-2222-4222-8222-222222222222",
+    "display_name": "Test Person",
+    "initials": "TP",
+    "role": "viewer",
+    "active": true,
+    "team": "Externer Test",
+    "bio": null
+  },
+  "access_scope": "test_only",
+  "scope_ref": "pre-gematik-external-test-2026-08",
+  "expires_at": "2026-08-17T16:00:00.000Z",
+  "desired_state": "active",
+  "revoke_reason": null
+}
+```
+
+Das Dokument enthält `version: 1` und alle bestehenden Einträge. Bestehende
+Payloads und Ablaufzeiten sind unveränderlich; Auslassung, Remap, Delete,
+Reopen oder eine synthetische Consumption werden fail-closed abgewiesen.
+Erlaubt sind ausschließlich eine neue, noch nicht abgelaufene aktive Zeile und
+der begründete Widerruf einer noch nicht konsumierten Zeile.
+
+```bash
+node scripts/provision_pre_gematik_test_access_allowlist.mjs \
+  --input /absolut/geschuetzt/test-access-allowlist.json
+```
+
+Apply benötigt zusätzlich den Preview-Fingerprint, Umgebung, Datenbank,
+`APPLY_PRE_GEMATIK_TEST_ACCESS_ALLOWLIST` und die exakt bestätigten Entry-,
+Insert- und Revoke-Zahlen. Ausgabe und Fehler bleiben PII-frei. Nach Apply wird
+der kurzlebige Login mit seiner einzigen Rolle `vk_access_allowlist_admin`
+gelöscht.
+
+Abgelaufene und widerrufene, nicht konsumierte Zeilen werden nach Abschluss
+der Prüf-/Nachweisfrist administrativ gelöscht; der Operator selbst besitzt
+bewusst kein Delete. Konsumierte Zeilen bleiben bis zum Ende des Pilot-Audits
+als minimale Referenz erhalten. Das Offboarding eines bereits automatisch
+angelegten Nutzers erfolgt unverändert über den v2-Zugriffsoperator
+(`active=false` für Profil und Bindung), nicht durch Wiederöffnung oder
+Änderung der konsumierten Allowlist-Zeile.
 
 Das optionale Beispielprofil darf nur in einer Testdatenbank verwendet werden:
 

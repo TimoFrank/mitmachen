@@ -12,6 +12,7 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 ## Produkt und Architektur
 
 - [Markenarchitektur](produkt-und-design/MARKENARCHITEKTUR.md)
+- [gemVST-Markenpaket](produkt-und-design/GEMVST_MARKENPAKET.md): Entscheidungsvorlage für #Mitmachen, Produktname, Module und Seitentaxonomie
 - [Demo und Screenshots](betrieb-und-deployment/DEMO.md)
 - [API-Vertrag](architektur/API_CONTRACT.md)
 - [Datenmodell](architektur/DATA_MODEL.md)

@@ -37,6 +37,25 @@ grant usage on schema public to :"runtime_role";
 
 grant select on table public.identity_bindings to :"runtime_role";
 
+revoke all privileges on table public.test_access_allowlist from :"runtime_role";
+
+revoke all privileges on table
+  public.identity_enrollment_requests,
+  public.test_access_objects
+from :"runtime_role";
+
+grant select (request_id, issuer, subject, verified_email, status, expires_at)
+  on public.identity_enrollment_requests to :"runtime_role";
+grant insert (issuer, subject, verified_email, expires_at)
+  on public.identity_enrollment_requests to :"runtime_role";
+grant update (last_seen_at)
+  on public.identity_enrollment_requests to :"runtime_role";
+
+grant select (scope_ref, entity_type, entity_id)
+  on public.test_access_objects to :"runtime_role";
+grant insert (scope_ref, entity_type, entity_id, created_by)
+  on public.test_access_objects to :"runtime_role";
+
 grant select, insert, update, delete on table
   public.profiles,
   public.organizations,

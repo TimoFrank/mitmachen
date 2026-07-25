@@ -36,8 +36,14 @@ const actualFiles = walk(artifactRoot)
 
 for (const required of [
   "build-manifest.json",
+  "index.html",
   "login.html",
+  "enrollment.html",
+  "enrollment.css",
+  "enrollment.js",
+  "mitmachen/index.html",
   "versorgungs-kompass.html",
+  "versorgungs-kompass-routes.js",
   "data/data-service.js",
   "data/runtime-config.js",
   "hospitation/import.html",
@@ -74,8 +80,10 @@ if (existsSync(configPath)) {
   const config = readFileSync(configPath, "utf8");
   assert(/dataMode:\s*"api"/.test(config), `${artifactLabel}/data/runtime-config.js erzwingt nicht den API-Modus`);
   assert(/requireApiGateway:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js erzwingt nicht das API-Gateway`);
+  assert(/cleanUrls:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js aktiviert die kanonischen Anwendungspfade nicht`);
   assert(/apiCredentials:\s*"include"/.test(config), `${artifactLabel}/data/runtime-config.js sendet keine geschuetzte Sitzung`);
   assert(/authMode:\s*"(?:iap|oidc)"/.test(config), `${artifactLabel}/data/runtime-config.js verwendet keinen erlaubten signierten Auth-Modus`);
+  assert(!/ownerOnlyContactChannels:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js darf den Pages-spezifischen Owner-Schutz nicht aktivieren`);
   assert(!/supabaseUrl|supabaseAnonKey|registrationEndpoint/.test(config), `${artifactLabel}/data/runtime-config.js enthaelt direkte Supabase-Browserkonfiguration`);
 }
 
@@ -114,6 +122,50 @@ if (existsSync(targetHtmlPath)) {
   assert(/data-target-session/.test(html) && /id=["']profile-logout["']/.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt die Target-Sitzungssteuerung nicht`);
 }
 
+for (const entryRelativePath of ["index.html", "mitmachen/index.html"]) {
+  const entryPath = join(artifactRoot, entryRelativePath);
+  if (!existsSync(entryPath)) continue;
+  const entryHtml = readFileSync(entryPath, "utf8");
+  assert(
+    (entryHtml.match(/data-target-enrollment/g) || []).length === 1,
+    `${artifactLabel}/${entryRelativePath} muss genau einen eindeutig markierten Testzugang-Einstieg enthalten`
+  );
+  assert(
+    (entryHtml.match(/href=["']\/enrollment\.html["']/g) || []).length === 1,
+    `${artifactLabel}/${entryRelativePath} muss genau einmal same-origin auf /enrollment.html verweisen`
+  );
+  assert(
+    !/\.\.\/\.\.\/login\/enrollment\.html/.test(entryHtml),
+    `${artifactLabel}/${entryRelativePath} enthaelt noch den Quellpfad der Aktivierungsseite`
+  );
+}
+
+const enrollmentHtmlPath = join(artifactRoot, "enrollment.html");
+const enrollmentAppPath = join(artifactRoot, "enrollment.js");
+if (existsSync(enrollmentHtmlPath) && existsSync(enrollmentAppPath)) {
+  const enrollmentHtml = readFileSync(enrollmentHtmlPath, "utf8");
+  const enrollmentApp = readFileSync(enrollmentAppPath, "utf8");
+  assert(/\.\/auth-config\.js/.test(enrollmentHtml) && /\.\/auth-guard\.js/.test(enrollmentHtml), `${artifactLabel}/enrollment.html ist nicht an die Target-Authentisierung gebunden`);
+  assert(/\.\/data\/runtime-config\.js/.test(enrollmentHtml), `${artifactLabel}/enrollment.html laedt die geschuetzte Runtime nicht`);
+  assert(!/<script(?![^>]+src=)[^>]*>/i.test(enrollmentHtml), `${artifactLabel}/enrollment.html enthaelt ein Inline-Skript`);
+  assert(!/\son[a-z]+\s*=/i.test(enrollmentHtml), `${artifactLabel}/enrollment.html enthaelt einen Inline-Eventhandler`);
+  for (const contract of [
+    '"/api/session"',
+    '"/api/auth/auto-enrollment"',
+    '"/api/auth/enrollment"',
+    'method: "POST"',
+    'credentials: "include"',
+    "requestId",
+    'payload.status === "active"'
+  ]) {
+    assert(enrollmentApp.includes(contract), `${artifactLabel}/enrollment.js verletzt den Enrollment-Vertrag: ${contract}`);
+  }
+  assert(!/\b(?:localStorage|sessionStorage|indexedDB|document\.write|eval)\b/.test(enrollmentApp), `${artifactLabel}/enrollment.js speichert Identitaetsdaten lokal oder verwendet unsichere DOM-Auswertung`);
+  assert(!/\.innerHTML\s*=|insertAdjacentHTML/.test(enrollmentApp), `${artifactLabel}/enrollment.js rendert Serverantworten als HTML`);
+  assert(!/\b(?:email|subject|sub)\b/i.test(enrollmentApp), `${artifactLabel}/enrollment.js darf keine IAP-Identitaetsattribute verarbeiten`);
+  assert(/auto-enrollment-result/.test(enrollmentHtml) && /enrollment-fallback-copy/.test(enrollmentHtml), `${artifactLabel}/enrollment.html trennt automatische Aktivierung und manuellen Fallback nicht sichtbar`);
+}
+
 const targetAppPath = join(artifactRoot, "versorgungs-kompass.js");
 if (existsSync(targetAppPath)) {
   const app = readFileSync(targetAppPath, "utf8");
@@ -126,6 +178,8 @@ if (existsSync(targetAppPath)) {
   ]) {
     assert(!pattern.test(app), `${artifactLabel}/versorgungs-kompass.js enthaelt ${reason}`);
   }
+  assert(/testMarker/.test(app) && /test-data-badge/.test(app), `${artifactLabel}/versorgungs-kompass.js kennzeichnet isolierte Testdaten nicht sichtbar`);
+  assert(/accessScope/.test(app) && /canExport/.test(app), `${artifactLabel}/versorgungs-kompass.js wertet den serverseitigen Testzugriffsvertrag nicht aus`);
 }
 
 const targetTeaserPath = join(artifactRoot, "versorgungs-kompass-map-teaser.js");

@@ -273,6 +273,17 @@ const frontendDeployment = read(frontendDeploymentFile);
 requirePattern(frontendDeploymentFile, frontendDeployment, /releasePrefix/, "Frontend-Pods muessen eine versionierte Release-Quelle verwenden.");
 requirePattern(frontendDeploymentFile, frontendDeployment, /contentRevision/, "Frontend-Pods muessen eine konkrete Content-Revision verwenden.");
 
+try {
+  execFileSync(process.execPath, ["scripts/test_pre_gematik_iap_workflow.mjs"], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: "pipe"
+  });
+} catch (error) {
+  const detail = String(error?.stderr || error?.message || error).trim();
+  failures.push(`Pre-gematik-IAP-Workflowvertrag ist ungueltig${detail ? `: ${detail}` : "."}`);
+}
+
 if (failures.length) {
   console.error("Deployment Governance Check FAILED:");
   failures.forEach((failure) => console.error(`- ${failure}`));

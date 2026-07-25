@@ -141,7 +141,7 @@ Der Workflow hält während und nach dem Cutover drei getrennte Google Managed C
 1. Die in `CLOUD_DNS_MANAGED_ZONE` angegebene Zone wird als Data Source gelesen; Terraform hält den A-Record für den bisherigen Legacy-Host aus `PUBLIC_HOSTNAME` auf der reservierten globalen Ingress-IP.
 2. Falls eine Subzone verwendet wird, delegiert der zuständige DNS-Betrieb sie einmalig an die von Cloud DNS ausgewiesenen Nameserver. Andere Zonen und Records bleiben unberührt.
 3. Delegation und A-Record prüfen, bevor ein aktives Google Managed Certificate erwartet wird.
-4. Wenn die Pre-Integration externe Google-Konten benötigt, bleibt die OAuth-Audience bewusst `External / Test`. Support-, Kontakt- und Testnutzer werden nur im geschützten Plattformkontext gepflegt. Eine IAP-Gruppenmitgliedschaft allein kann in diesem Status unzureichend sein; weitere Personen müssen gemäß OAuth-Testnutzerverfahren freigegeben werden. Diese Konfiguration ist ein Testprovisorium und keine Vorlage für Ziel-SSO oder Ziel-Support.
+4. Die OAuth-Audience bleibt bewusst `External / Testing`. Der am 24. Juli 2026 geprüfte Stand ist `1 / 100` eingetragene Testnutzer. Eine IAP-Gruppenmitgliedschaft allein reicht für diesen Pilotvertrag nicht: Jede weitere Person wird vor der Gruppeneinladung einzeln in Google Auth Platform als Testnutzer aufgenommen, im geschützten Voll-Soll-Roster genehmigt und mit exakt ihrer primären Google-Konto-Adresse in der befristeten Auto-Enrollment-Allowlist vorgemerkt. Google dokumentiert für den Publishing-Status `Testing` höchstens 100 Testnutzer; diese Konfiguration ist ein Testprovisorium und keine Vorlage für Ziel-SSO oder Ziel-Support: <https://support.google.com/cloud/answer/15549945>.
 5. Einen dedizierten Web-OAuth-Client anlegen und anschließend die Redirect URI `https://iap.googleapis.com/v1/oauth/clientIds/CLIENT_ID:handleRedirect` eintragen. Client-ID und Client-Secret weder in Git, Terraform-State noch GitHub speichern.
 6. Client-ID und Client-Secret liegen als JSON-Objekt mit den beiden nicht leeren String-Feldern `client_id` und `client_secret` in der aktiven Version des bereits angelegten Secret-Manager-Secrets `vk-pre-gematik-iap-oauth-bootstrap`. Der GitHub-Deployer erhält `roles/secretmanager.secretAccessor` nur auf diesem Secret. Der Workflow liest die Version ohne Log-Ausgabe, erstellt oder aktualisiert daraus das Kubernetes Secret `versorgungs-kompass-iap-oauth` mit exakt diesen beiden Keys und löscht seine restriktiv berechtigten Temporärdateien anschließend. Credential-Werte liegen weder in GitHub-Variablen noch in Terraform-State.
 7. Einen starken, nur für diese Umgebung genutzten PostgreSQL-Wert erzeugen.
@@ -199,13 +199,63 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `GKE_INGRESS_IP_NAME` | Terraform-Output `GKE_INGRESS_IP_NAME` |
 | `K8S_NAMESPACE` | Terraform-Output `K8S_NAMESPACE` |
 | `IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME` | fester Kubernetes-Secret-Name `versorgungs-kompass-iap-oauth`; keine Credential-Werte |
-| `IAP_RESOURCE_ACCESS_PRINCIPAL` | Terraform-Output `IAP_RESOURCE_ACCESS_PRINCIPAL`; im Zielbetrieb eine Gruppe, im befristeten Einpersonen-Pilot ausnahmsweise der direkt prüfbare Pilot-Owner; nur an die zwei erzeugten Backend Services gebunden |
+| `IAP_RESOURCE_ACCESS_PRINCIPAL` | für den Testnutzer-Pilot exakt `group:versorgungs-kompass-pre-gematik-access@googlegroups.com`; nur an die zwei erzeugten Backend Services gebunden |
+| `IAP_RESOURCE_ACCESS_EXPIRES_AT` | für den Gruppenbetrieb verpflichtend exakt `2026-08-17T16:00:00Z`; für einen kontrollierten direkten `user:`-Rollback leer |
 | `API_BASE_URL` | gemeinsamer HTTPS-Origin; `https://mitmachen.timo-frank.de` nur zur Zertifikatsvorbereitung, danach `https://versorgungs-kompass.de` |
 | `FRONTEND_BASE_URL` | exakt derselbe gemeinsame HTTPS-Origin wie `API_BASE_URL` |
 
 `WIF_PROVIDER` ist der volle Ressourcenname mit numerischer Projektnummer. `GAR_REPOSITORY` hat die Form `REGION-docker.pkg.dev/PROJECT/REPOSITORY`. Bucket-Werte enthalten nur den Namen, kein `gs://`. Der Workflow bricht ab, wenn `API_BASE_URL` und `FRONTEND_BASE_URL` nicht exakt denselben Origin bezeichnen oder der Origin außerhalb der beiden freigegebenen Cutover-Zustände liegt.
 
-Zusätzlich liegen zwei geschützte Environment-Secrets vor. `IAP_PROJECT_BREAK_GLASS_SHA256` ist der SHA-256-Pin der kanonisch sortierten, projektweiten IAP-Break-glass-Nutzerliste und kein Zugangswert. `HOSPITATION_IMPORT_OWNER_PROFILE_ID` enthält ausschließlich die stabile produktive Profil-ID von Timo Frank; sie wird nicht im Repository hinterlegt und durch den Workflow in die geschützte API-Konfiguration übernommen. Der Workflow liest die Projekt-IAM-Policy nur als Metadatum, verlangt genau eine unbedingte, ausschließlich aus `user:`-Mitgliedern bestehende Break-glass-Bindung und stoppt bei jeder Mitgliedschaftsänderung. Der Klartext der Nutzerliste wird weder in Git noch in der Actions-Zusammenfassung ausgegeben.
+Zusätzlich liegen zwei geschützte Environment-Secrets vor. `IAP_PROJECT_BREAK_GLASS_SHA256` ist der SHA-256-Pin der kanonisch sortierten, projektweiten IAP-Break-glass-Nutzerliste und kein Zugangswert. `HOSPITATION_IMPORT_OWNER_PROFILE_ID` enthält ausschließlich die stabile produktive Profil-ID von Timo Frank; sie wird nicht im Repository hinterlegt und durch den Workflow in die geschützte API-Konfiguration übernommen. Der Workflow liest die Projekt-IAM-Policy nur als Metadatum, verlangt genau eine unbedingte, ausschließlich aus `user:`-Mitgliedern bestehende Break-glass-Bindung und stoppt bei jeder Mitgliedschaftsänderung. Der Gruppen-Cutover verändert diese projektweite Bindung nicht. Der Klartext der Nutzerliste wird weder in Git noch in der Actions-Zusammenfassung ausgegeben.
+
+### Testnutzerzugang über die private Gruppe
+
+Regulärer Testzugang läuft über die bestehende private Gruppe `versorgungs-kompass-pre-gematik-access@googlegroups.com`. Die Gruppe selbst ist kein Berechtigungs-Roster: Maßgeblich bleibt das personenbezogene, genehmigte Voll-Soll-Dokument im geschützten Plattformkontext. Dessen noch nicht verbrauchte Einladungen werden über einen kurzlebigen Least-Privilege-Operator in die geschützte Auto-Enrollment-Allowlist der Datenbank übernommen. Weder Namen noch E-Mail-Adressen, IAP-Subjects oder Profil-IDs werden in Git abgelegt.
+
+`test_only` isoliert schreibende Änderungen, nicht den lesenden Pilotumfang. Jeder Allowlist-Eintrag ist deshalb ausdrücklich eine personenbezogene Freigabe zum Lesen des aktuellen geschützten Pilotbestands und darf nicht wie ein unverbindlicher Demo-Zugang behandelt werden. Wer nur synthetische Daten sehen darf, wird nicht für diese Umgebung vorgemerkt.
+
+Vor der ersten Einladung wird die Gruppe in Google Groups wie folgt gehärtet:
+
+- Beitritt ausschließlich für eingeladene Nutzer; direktes Hinzufügen ist deaktiviert.
+- Gruppe, Unterhaltungen und Mitgliederliste sind nur für Mitglieder beziehungsweise bei der Mitgliederliste nur für Owner sichtbar.
+- Nur der Pilot-Owner verwaltet Mitglieder und Einstellungen; Tester sind ausschließlich `Member`, niemals `Manager` oder `Owner`.
+- Keine Untergruppen, kein externer Posting-Kanal und kein für den Zugriff benötigtes Nachrichtenarchiv.
+- Die aktive Mitgliedschaft wird vor jeder App-Bindung und bei jedem Offboarding gegen das geschützte Roster geprüft.
+
+Google beschreibt die Einstellung `Only invited users` und die getrennten Sichtbarkeitsrechte unter <https://support.google.com/groups/answer/2464926>. Für `@googlegroups.com` können Personen ohne Google-Konto nur eingeladen, aber nicht als nutzbare IAP-Identität direkt hinzugefügt werden. Ein Tester ohne Gmail legt deshalb ein persönliches Google-Konto mit seiner bestehenden E-Mail-Adresse an; gemeinsam genutzte Konten und geteilte Passwörter sind unzulässig. Hinweise dazu stehen unter <https://support.google.com/accounts/answer/176347>.
+
+Das individuelle Onboarding wird in dieser Reihenfolge ausgeführt:
+
+1. Zweck, Viewer- oder `test_only`-Editor-Rolle, Pilotkohorte und Ende im geschützten Roster genehmigen und die exakte primäre Konto-Adresse mit Profilvorgabe und Ablauf über den geschützten Allowlist-Operator vormerken.
+2. Persönliches Google-Konto und aktivierten zweiten Faktor bestätigen.
+3. Die primäre Konto-Adresse in Google Auth Platform als OAuth-Testnutzer eintragen.
+4. Dieselbe Adresse zur privaten Gruppe einladen; erst nach Annahme und sichtbarer aktiver Mitgliedschaft fortfahren.
+5. Die geschützte Enrollment-Seite öffnen. Sie sendet nach einem ungebundenen Sitzungscheck automatisch einen leeren `POST /api/auth/auto-enrollment`. Nur die von IAP signiert bestätigte, exakt normalisierte Adresse darf einen noch gültigen, nicht widerrufenen und nicht verbrauchten Allowlist-Eintrag treffen.
+6. Die Datenbank verbraucht den Eintrag einmalig und legt interne Audit-UUID, Testprofil sowie die dauerhafte Bindung an das stabile IAP-Subject in einer Transaktion an. Die Adresse autorisiert ausschließlich diesen Bootstrap und wird niemals in ein Subject umgerechnet oder für spätere Anmeldungen verwendet.
+7. Viewer- beziehungsweise Editor-Grenzen positiv und negativ testen und erst danach den Eintrag im Roster auf aktiv setzen.
+
+Ohne eindeutigen Allowlist-Treffer wird nichts aktiviert. Die Seite bietet dann weiterhin den manuellen Fallback an: `POST /api/auth/enrollment` erzeugt eine 24 Stunden gültige, opake Vorgangsnummer, die der Pilot-Owner über den bestehenden v2-Preview/Apply-Prozess freigibt. Erwartete Nichttreffer, abgelaufene oder widerrufene Einträge liefern dieselbe generische Antwort; E-Mail-Adresse, Subject, Profilvorgabe und Allowlist-Inhalt erscheinen weder in Browserantworten noch in Anwendungslogs. Eine Gruppenmitgliedschaft allein erzeugt zu keinem Zeitpunkt eine App-Bindung.
+
+IAP verlangt auf API und Frontend `ENROLLED_SECOND_FACTORS` mit `maxAge: 28800s` und `policyType: MINIMUM`. Der Workflow liest zunächst beide ressourcenspezifischen IAM-Policies vollständig. Zulässig sind nur zwei leere Policies oder bereits exakt das Soll: Policy-Version 3, genau eine Gruppenbindung und die Bedingung `request.time < timestamp("2026-08-17T16:00:00Z")`. Erst nach erfolgreicher Prüfung beider Backends setzt und verifiziert er Reauthentication und anschließend die Policies. Eine vorhandene direkte Nutzerbindung wird nicht automatisch ersetzt.
+
+Der kontrollierte Wechsel von der bisherigen direkten Ressourcenbindung zur Gruppe erfolgt deshalb in einem Wartungsfenster:
+
+1. Projektweite Break-glass-Policy und ihren geschützten Pin prüfen; sie werden nicht geändert.
+2. Backendnamen frisch über die API- und Frontend-NEGs ermitteln und beide aktuellen Resource-Policies mit ETag geschützt sichern.
+3. Deployment-Freeze setzen und beide Resource-Policies kontrolliert leeren. Ist nur eine leer oder enthält eine Policy einen unbekannten Eintrag, keinen Workflow starten.
+4. GitHub-Variablen auf die exakte Gruppe und `2026-08-17T16:00:00Z` setzen.
+5. Workflow ausführen. Nach dessen Vorprüfung werden API und danach Frontend gebunden; anschließend werden beide Policies und beide Reauthentication-Einstellungen erneut gelesen.
+6. Zuerst einen Viewer vollständig abnehmen, danach höchstens einen `test_only`-Editor; weitere Personen folgen einzeln.
+
+Gruppenänderungen sind nicht sofort konsistent. Vor einem positiven Zugriffstest wird deshalb auf die sichtbare aktive Mitgliedschaft und IAM-Propagation gewartet; die App-Bindung bleibt bis dahin deaktiviert.
+
+### Offboarding, Rollback und spätere Cloud-Identity-Option
+
+Bei individuellem Offboarding wird zuerst ein noch nicht verbrauchter Allowlist-Eintrag widerrufen beziehungsweise eine bereits erzeugte App-Bindung deaktiviert. Danach wird die Person aus der Gruppe und aus der OAuth-Testnutzerliste entfernt. Der negative Zugriffstest wird geschützt dokumentiert. Das `expires_at` eines Allowlist-Eintrags beendet nur die Möglichkeit des erstmaligen Bindings; einen bereits aktivierten Zugang beendet es nicht. Diese Sperre übernehmen die deaktivierte App-Bindung und die zeitlich bedingte IAP-Gruppenpolicy. Am 17. August 2026 um 18:00 Uhr CEST sperrt die IAM-Bedingung zusätzlich technisch; danach werden alle offenen Allowlist-Einträge widerrufen, alle Testerbindungen deaktiviert und Gruppen- sowie OAuth-Mitgliedschaften bereinigt.
+
+Bei einem Zugriffs- oder Policyvorfall werden die Resource-Policies in der Reihenfolge Frontend, dann API auf den zuvor gesicherten direkten `user:`-Sollzustand zurückgeführt; `IAP_RESOURCE_ACCESS_EXPIRES_AT` bleibt dabei leer. Der projektweite Break-glass-Pin darf sich nicht ändern. Ein teilweise ausgeführter Gruppen-Cutover wird nicht durch Hinzufügen weiterer Mitglieder repariert, sondern geschlossen und aus dem gesicherten Soll neu aufgebaut.
+
+Option 2 bleibt eine spätere, getrennte Entscheidung: Nach Einrichtung einer verifizierten Domain und Cloud Identity Free werden individuelle verwaltete Konten und eine administrierbare Cloud-Identity-Gruppe angelegt. Cloud Identity Free stellt standardmäßig 50 Lizenzen bereit: <https://cloud.google.com/identity/pricing>. Der Wechsel ersetzt nur den konfigurierten ressourcenspezifischen `group:`-Principal in einem erneuten kontrollierten Leeren-und-Setzen-Cutover. Enrollment, stabile Subject-Bindung, Rollen, `test_only`-Scope und Projekt-Break-glass bleiben unverändert. Die heutige `@googlegroups.com`-Gruppe wird nicht als verwaltete Cloud-Identity-Gruppe umgedeutet.
 
 ## Phase 5: Workflow ausführen
 
@@ -242,8 +292,8 @@ Danach denselben Workflow mit `validate_only` deaktiviert ausführen. Der Deploy
 7. synchronisiert den exklusiven privaten Frontend-Bucket unter ein versioniertes `releasePrefix`; `contentRevision` bindet den Frontend-Rollout an genau diesen unveränderlichen Inhalt,
 8. deployt das GCP-Helm-Overlay, übergibt den Frontend-Bucket und wartet auf GKE Secret Sync,
 9. ermittelt die reale IAP-Audience, reconciled Helm ein zweites Mal und startet die API kontrolliert neu, damit der per `envFrom` geladene Wert aktiv wird,
-10. identifiziert die unterschiedlichen API- und Frontend-Backend-Services anhand ihrer NEGs, bestätigt IAP auf beiden und bindet die reguläre Testgruppe ressourcenspezifisch an genau diese zwei Services,
-11. bestätigt per echtem `SELECT 1` im API-Container Cloud SQL Auth Proxy, Workload Identity, DB-Nutzer und Secret sowie Existenz und Leserecht für alle 30 Tabellen des Pre-Integration-Vertrags,
+10. identifiziert die unterschiedlichen API- und Frontend-Backend-Services anhand ihrer NEGs, liest und validiert beide Resource-Policies vollständig, setzt und verifiziert auf beiden `ENROLLED_SECOND_FACTORS / 28800s / MINIMUM` und bindet erst danach die zeitlich begrenzte reguläre Testgruppe ressourcenspezifisch an genau diese zwei Services,
+11. bestätigt per echtem `SELECT 1` im API-Container Cloud SQL Auth Proxy, Workload Identity, DB-Nutzer und Secret sowie Existenz und Leserecht für alle 30 fachlichen Tabellen des Pre-Integration-Vertrags; die API-Readiness prüft zusätzlich die vier zugriffssteuernden Tabellen `identity_bindings`, `identity_enrollment_requests`, `test_access_objects` und `test_access_allowlist`. Ist Auto-Enrollment aktiviert, prüft sie außerdem Owner, gehärtete Konfiguration und Runtime-`EXECUTE` der Funktion `pre_gematik_consume_test_access_allowlist`,
 12. bestätigt Rollout, IAP-Aktivierung sowie API- und Frontend-Health,
 13. prüft, dass gefälschte, unsignierte IAP-Identity-Header mit HTTP 401 abgewiesen werden.
 
@@ -278,14 +328,17 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] Der gemeinsame Frontend-/API-DNS-Name zeigt auf `GKE_INGRESS_IP_ADDRESS`.
 - [ ] Google Managed Certificate meldet `Active`.
 - [ ] Der GKE Ingress routet `/` zum Frontend und `/api` zur API; beide Backends sind durch IAP geschützt.
-- [ ] IAP-Zugriff ist nur den benannten Testpersonen oder -gruppen gewährt.
-- [ ] Projektweiter IAP-Zugriff enthält nur den Break-glass-Nutzer; die Testgruppe ist separat auf API- und Frontend-Backend-Service gebunden.
+- [ ] Beide Resource-Policies stehen auf Version 3 und enthalten ausschließlich `group:versorgungs-kompass-pre-gematik-access@googlegroups.com` mit Ablaufbedingung `2026-08-17T16:00:00Z`.
+- [ ] API- und Frontend-Backend erzwingen jeweils `ENROLLED_SECOND_FACTORS / 28800s / MINIMUM`.
+- [ ] Projektweiter IAP-Zugriff enthält unverändert nur den gepinnten Break-glass-Nutzer; die Testgruppe ist ausschließlich auf API- und Frontend-Backend-Service gebunden.
 
 ### Identität und Secrets
 
 - [ ] Im Repository und in GitHub existiert kein Service-Account-JSON-Key.
 - [ ] Der WIF-Provider ist auf Repository und Environment eingeschränkt.
 - [ ] `pre-gematik` verlangt Freigabe und beschränkt Deployment-Branches.
+- [ ] OAuth steht weiterhin auf `External / Testing`; jeder aktive Tester ist einzeln in OAuth, privater Gruppe und geschütztem Voll-Soll-Roster enthalten.
+- [ ] Die private Gruppe ist nur per Einladung zugänglich; Tester besitzen ausschließlich die Rolle `Member`.
 - [ ] Secret Manager enthält mindestens eine aktive Passwortversion.
 - [ ] `vk-pre-gematik-iap-oauth-bootstrap` enthält gültiges JSON mit nicht leeren `client_id`- und `client_secret`-Strings; der Deployer darf nur dieses Bootstrap-Secret lesen.
 - [ ] Für Passwortrotation ist der anschließende API-Rollout dokumentiert und getestet.
@@ -307,7 +360,8 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] Externer unauthentifizierter Smoke Test liefert keinen öffentlichen 200-Status.
 - [ ] IAP-Login einer freigegebenen Testperson funktioniert.
 - [ ] Ein aktives `profiles`-Mapping liefert die erwartete Rolle; unbekannte Personen erhalten 403.
-- [ ] Lesen, Anlegen, Ändern und Zurücksetzen eines synthetischen Kontakts funktionieren.
+- [ ] Viewer können den freigegebenen Bestand lesen und keine Fachobjekte verändern.
+- [ ] `test_only`-Editor können ausschließlich markierte Objekte ihrer Pilotkohorte anlegen, ändern und zurücksetzen; Bestand und fremde Kohorten bleiben unveränderbar.
 - [ ] Profilbild, Kontaktbild und Notizanhang funktionieren in den jeweils privaten Buckets.
 - [ ] Keine echten Kontakt-, Telefon-, E-Mail- oder Gesundheitsdaten wurden verwendet.
 
@@ -334,6 +388,7 @@ Keine Secret-Inhalte mit `kubectl get secret -o yaml`, `gcloud secrets versions 
 - API: vorherigen unveränderlichen GAR-Tag erneut deployen oder kontrolliert `helm rollback` verwenden.
 - Frontend: eine vorherige Objektgeneration des versionierten Buckets wiederherstellen; API und `dist/target/` immer als zusammengehöriges Release behandeln.
 - Datenbank: vor Migrationen und größeren Tests einen Cloud-SQL-Backup-/PITR-Punkt prüfen.
+- IAP-Zugriff: bei einem Vorfall zuerst Frontend, dann API auf den gesicherten direkten Ressourcen-Principal zurückführen; Gruppenablaufvariable für `user:` leer lassen und den unveränderten Projekt-Break-glass-Pin erneut prüfen.
 - Nach Abschluss benötigte Testergebnisse exportieren, Testzugriffe entziehen, Deletion Protection bewusst und separat aufheben und die temporären Ressourcen über Terraform abbauen.
 
 Ein Rollback ersetzt weder Schema-Kompatibilitätsprüfung noch Datenwiederherstellung. Bei fehlgeschlagenem Audience-Bootstrap bleibt die API absichtlich fail-closed; zuerst Ingress/IAP korrigieren und den Workflow erneut ausführen.

@@ -163,6 +163,7 @@ build_pages() {
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.js" "$STAGE_DIR/versorgungs-kompass.js"
+  cp "$FRONTEND_DIR/app/versorgungs-kompass-routes.js" "$STAGE_DIR/versorgungs-kompass-routes.js"
   cp "$FRONTEND_DIR/app/hospitation/index.html" "$STAGE_DIR/hospitation/index.html"
   cp "$FRONTEND_DIR/app/hospitation/hospitation.css" "$STAGE_DIR/hospitation/hospitation.css"
   cp "$FRONTEND_DIR/app/hospitation/hospitation.js" "$STAGE_DIR/hospitation/hospitation.js"
@@ -201,9 +202,11 @@ window.VERSORGUNGS_COMPASS_CONFIG = {
   apiBaseUrl: "",
   apiCredentials: "same-origin",
   requireApiGateway: false,
+  cleanUrls: false,
   capabilities: {
     contactRole: true,
     contactConsent: true,
+    ownerOnlyContactChannels: true,
     organizationPrimarySystems: true,
     registrationIntake: true,
     contactImageSources: true,
@@ -242,6 +245,7 @@ EOF
   done
 
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./login/login\.html#./login.html#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.js"
+  perl -0pi -e 's#\.\./\.\./public/#./public/#g' "$STAGE_DIR/versorgungs-kompass.js"
   perl -0pi -e 's#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
   perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/brand/#../public/brand/#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./public/#../public/#g; s#\.\./public/#../public/#g; s#\.\./\.\./data/#../data/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
@@ -270,6 +274,20 @@ for (const htmlPath of walk(root)) {
   );
   fs.writeFileSync(htmlPath, html);
 }
+
+const publicEntryPath = path.join(root, "mitmachen", "index.html");
+let publicEntryHtml = fs.readFileSync(publicEntryPath, "utf8");
+const targetEnrollmentBlocks = publicEntryHtml.match(
+  /\n?\s*<div\b[^>]*data-target-enrollment[^>]*>[\s\S]*?<\/div>/gi
+) || [];
+if (targetEnrollmentBlocks.length !== 1) {
+  throw new Error("Pages-Build erwartet genau einen eindeutig markierten Target-Testzugang.");
+}
+publicEntryHtml = publicEntryHtml.replace(targetEnrollmentBlocks[0], "");
+if (/data-target-enrollment|login\/enrollment\.html/i.test(publicEntryHtml)) {
+  throw new Error("Pages-Build darf keinen Einstieg zur geschuetzten Testzugang-Aktivierung enthalten.");
+}
+fs.writeFileSync(publicEntryPath, publicEntryHtml);
 
 const appPath = path.join(root, "versorgungs-kompass.html");
 let appHtml = fs.readFileSync(appPath, "utf8");
@@ -344,12 +362,16 @@ build_target() {
   cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/index.html"
   cp "$FRONTEND_DIR/login/login.html" "$STAGE_DIR/login.html"
   cp "$FRONTEND_DIR/login/login.css" "$STAGE_DIR/login.css"
+  cp "$FRONTEND_DIR/login/enrollment.html" "$STAGE_DIR/enrollment.html"
+  cp "$FRONTEND_DIR/login/enrollment.css" "$STAGE_DIR/enrollment.css"
+  cp "$FRONTEND_DIR/login/enrollment.js" "$STAGE_DIR/enrollment.js"
   cp "$FRONTEND_DIR/login/auth-config.js" "$STAGE_DIR/auth-config.js"
   cp "$FRONTEND_DIR/login/auth-guard.js" "$STAGE_DIR/auth-guard.js"
   cp "$FRONTEND_DIR/login/auth-login.js" "$STAGE_DIR/auth-login.js"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.js" "$STAGE_DIR/versorgungs-kompass.js"
+  cp "$FRONTEND_DIR/app/versorgungs-kompass-routes.js" "$STAGE_DIR/versorgungs-kompass-routes.js"
   cp "$FRONTEND_DIR/app/hospitation/index.html" "$STAGE_DIR/hospitation/index.html"
   cp "$FRONTEND_DIR/app/hospitation/hospitation.css" "$STAGE_DIR/hospitation/hospitation.css"
   cp "$FRONTEND_DIR/app/hospitation/hospitation.js" "$STAGE_DIR/hospitation/hospitation.js"
@@ -404,16 +426,38 @@ build_target() {
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
 
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./login/login\.html#./login.html#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.js"
+  perl -0pi -e 's#\.\./\.\./public/#./public/#g' "$STAGE_DIR/versorgungs-kompass.js"
   perl -0pi -e 's#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
   perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/brand/#../public/brand/#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html" "$STAGE_DIR/hospitation/import.html"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./public/#../public/#g; s#\.\./public/#../public/#g; s#\.\./\.\./data/#../data/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
-  perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$STAGE_DIR/login.html"
+  perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./app/versorgungs-kompass-routes\.js#./versorgungs-kompass-routes.js#g; s#\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$STAGE_DIR/login.html" "$STAGE_DIR/enrollment.html"
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./\.\./public/#./public/#g; s#\.\./public/#./public/#g; s#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map.html"
   perl -0pi -e 's#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
-  perl -0pi -e 's#loginPath: "\.\./login/login\.html"#loginPath: "./login.html"#; s#defaultPath: "\.\./app/versorgungs-kompass\.html"#defaultPath: "./versorgungs-kompass.html"#' "$STAGE_DIR/auth-config.js"
-  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
+  perl -0pi -e 's#loginPath: "\.\./login/login\.html"#loginPath: "/login.html"#; s#defaultPath: "\.\./app/versorgungs-kompass\.html"#defaultPath: "/start"#' "$STAGE_DIR/auth-config.js"
+  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "/start"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "/start"#; s#"scope": "\.\./"#"scope": "/"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./app/hospitation/index\.html#../hospitation/index.html#g; s#\.\./\.\./map/versorgungs-kompass-map-teaser\.html#../versorgungs-kompass-map-teaser.html#g; s#\./versorgungs-netzwerk\.html#./versorgungs-netzwerk.html#g' "$STAGE_DIR/mitmachen/index.html"
   perl -0pi -e 's#\./mitmachen\.css#./mitmachen/mitmachen.css#g; s#\.\./\.\./\.\./public/#./public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g' "$STAGE_DIR/index.html"
+  perl -0pi -e 's~(?:\.\./|\./)versorgungs-kompass\.html#map~/versorgung/karte~g; s~(?:\.\./|\./)versorgungs-kompass\.html#stakeholders~/stakeholder~g; s~(?:\.\./|\./)versorgungs-kompass\.html#planning~/hospitationen/framework~g; s~(?:\.\./|\./)versorgungs-kompass\.html#formats~/formate~g; s~(?:\.\./|\./)versorgungs-kompass\.html~/start~g' "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html"
+  perl -0pi -e 's#href="\.\./\.\./login/enrollment\.html"#href="/enrollment.html"#g' "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html"
+  perl -0pi -e 's~(href|src)="\./~$1="/~g' "$STAGE_DIR/versorgungs-kompass.html"
+  perl -0pi -e 's|href="\./versorgungs-kompass\.html"|href="/start"|g; s|href="\.\./pages/mitmachen/index\.html"|href="/"|g' "$STAGE_DIR/enrollment.html"
+
+  node - "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html" <<'NODE'
+const fs = require("node:fs");
+
+for (const entryPath of process.argv.slice(2)) {
+  const html = fs.readFileSync(entryPath, "utf8");
+  const markerCount = (html.match(/data-target-enrollment/g) || []).length;
+  const targetCount = (html.match(/href="\/enrollment\.html"/g) || []).length;
+  if (
+    markerCount !== 1
+    || targetCount !== 1
+    || /\.\.\/\.\.\/login\/enrollment\.html/.test(html)
+  ) {
+    throw new Error(`Target-Einstieg ist nicht eindeutig auf /enrollment.html gebunden: ${entryPath}`);
+  }
+}
+NODE
 
   node "$ROOT_DIR/scripts/prepare_target_frontend_config.mjs" \
     "$STAGE_DIR/data/runtime-config.js" \

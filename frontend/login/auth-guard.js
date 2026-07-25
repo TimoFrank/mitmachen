@@ -11,11 +11,7 @@
   }
 
   function currentPathFromLogin() {
-    const parts = window.location.pathname.split("/").filter(Boolean);
-    const fileName = parts.pop() || config.defaultFile || "versorgungs-kompass.html";
-    const folderName = parts.pop();
-    const relativePath = folderName ? `../${folderName}/${fileName}` : `../${fileName}`;
-    return relativePath + window.location.search + window.location.hash;
+    return window.location.pathname + window.location.search + window.location.hash;
   }
 
   function usesExternalIdentityProvider() {

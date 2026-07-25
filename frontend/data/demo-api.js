@@ -12,8 +12,28 @@
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   if (CONFIG.dataMode !== "demo" || CONFIG.authMode !== "anonymous-demo") return;
 
+  const OWNER_ONLY_CONTACT_CHANNELS = CONFIG.capabilities?.ownerOnlyContactChannels === true;
   const NOW = "2026-07-19T12:00:00.000Z";
   const DEMO_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const SENSITIVE_CONTACT_FIELDS = new Set(["email", "phone"]);
+  const DEMO_NOTICE_DATA_VIEWS = new Set([
+    "map",
+    "contacts",
+    "organizations",
+    "activities",
+    "analytics",
+    "quality",
+    "experts",
+    "patients",
+    "stakeholders",
+    "framework",
+    "hospitations",
+    "questionnaire",
+    "formats",
+    "team",
+    "personProfile",
+    "organizationProfile"
+  ]);
   const baseline = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
   const originalFetch = window.fetch.bind(window);
   let idCounter = 0;
@@ -25,8 +45,18 @@
   function createState() {
     const state = clone(baseline);
     state.profiles ||= [];
-    state.currentProfileId = state.profiles.find((profile) => profile.role === (CONFIG.demoRole || "admin"))?.id
-      || state.profiles[0]?.id
+    const activeProfiles = state.profiles.filter((profile) =>
+      profile.active !== false && !["inactive", "archived", "Archiviert"].includes(profile.status)
+    );
+    let requestedProfileId = "";
+    try {
+      requestedProfileId = new URL(window.location.href).searchParams.get("demoProfile") || "";
+    } catch (_error) {
+      requestedProfileId = "";
+    }
+    state.currentProfileId = activeProfiles.find((profile) => profile.id === requestedProfileId)?.id
+      || activeProfiles.find((profile) => profile.role === (CONFIG.demoRole || "admin"))?.id
+      || activeProfiles[0]?.id
       || "demo-profile-admin";
     state.contacts ||= [];
     state.organizations ||= [];
@@ -56,6 +86,97 @@
   }
 
   let state = createState();
+
+  function contactOwnerIds(contact = {}) {
+    const ownerArrays = [contact.ownerIds, contact.owner_ids].filter(Array.isArray);
+    if (ownerArrays.length) {
+      const normalizedOwnerIds = [...new Set(ownerArrays.flat().map((ownerId) => String(ownerId || "").trim()).filter(Boolean))];
+      if (normalizedOwnerIds.length) return normalizedOwnerIds;
+    }
+    const ownerId = String(contact.ownerId || contact.owner_id || "").trim();
+    return ownerId ? [ownerId] : [];
+  }
+
+  function currentProfileOwnsContact(contact = {}) {
+    return Boolean(state.currentProfileId) && contactOwnerIds(contact).includes(state.currentProfileId);
+  }
+
+  function projectContactForCurrentProfile(contact) {
+    if (!contact || !OWNER_ONLY_CONTACT_CHANNELS) return contact;
+    const hasAccess = currentProfileOwnsContact(contact);
+    return {
+      ...contact,
+      email: hasAccess ? (contact.email || "") : "",
+      phone: hasAccess ? (contact.phone || "") : "",
+      contactChannelAccess: hasAccess ? "owner" : "restricted"
+    };
+  }
+
+  function activityContactId(activity = {}) {
+    const directContactId = activity.contactId || activity.contact_id || activity.contact?.id || "";
+    if (directContactId) return String(directContactId);
+    return String(activity.objectType || activity.object_type || "").toLowerCase() === "contact"
+      ? String(activity.objectId || activity.object_id || "")
+      : "";
+  }
+
+  function isSensitiveContactField(fieldName) {
+    const normalizedFieldName = String(fieldName || "").trim().toLowerCase();
+    if (SENSITIVE_CONTACT_FIELDS.has(normalizedFieldName)) return true;
+    const compactFieldName = normalizedFieldName.replace(/[^a-z0-9]/g, "");
+    return [...SENSITIVE_CONTACT_FIELDS].some((field) => compactFieldName.endsWith(field));
+  }
+
+  function redactSensitiveActivityChanges(changes) {
+    if (Array.isArray(changes)) {
+      return changes.filter((change) => !isSensitiveContactField(change?.fieldName || change?.field_name));
+    }
+    if (changes && typeof changes === "object") {
+      return Object.fromEntries(Object.entries(changes).filter(([fieldName]) => !isSensitiveContactField(fieldName)));
+    }
+    return changes;
+  }
+
+  function projectActivityForCurrentProfile(activity) {
+    if (!activity || !OWNER_ONLY_CONTACT_CHANNELS) return activity;
+    const contactId = activityContactId(activity);
+    if (!contactId) return activity;
+    const contact = state.contacts.find((item) => item.id === contactId);
+    if (contact && currentProfileOwnsContact(contact)) return activity;
+    return {
+      ...activity,
+      changes: redactSensitiveActivityChanges(activity.changes)
+    };
+  }
+
+  function projectChangeRowsForCurrentProfile(rows = []) {
+    if (!OWNER_ONLY_CONTACT_CHANNELS) return rows;
+    return rows.filter((change) => {
+      if (!isSensitiveContactField(change.fieldName || change.field_name)) return true;
+      const contactId = String(change.contactId || change.contact_id || "");
+      const contact = state.contacts.find((item) => item.id === contactId);
+      return Boolean(contact && currentProfileOwnsContact(contact));
+    });
+  }
+
+  function projectStateForCurrentProfile() {
+    const projected = clone(state);
+    if (!OWNER_ONLY_CONTACT_CHANNELS) return projected;
+    projected.contacts = state.contacts.map(projectContactForCurrentProfile);
+    projected.activityEvents = state.activityEvents.map(projectActivityForCurrentProfile);
+    if (Array.isArray(state.changes)) projected.changes = projectChangeRowsForCurrentProfile(state.changes);
+    return clone(projected);
+  }
+
+  function bodyHasSensitiveContactFields(body = {}) {
+    return [...SENSITIVE_CONTACT_FIELDS].some((field) => Object.hasOwn(body, field));
+  }
+
+  function bodySetsSensitiveContactFields(body = {}) {
+    return [...SENSITIVE_CONTACT_FIELDS].some((field) =>
+      Object.hasOwn(body, field) && String(body[field] || "").trim() !== ""
+    );
+  }
 
   function nextId(prefix) {
     idCounter += 1;
@@ -175,7 +296,7 @@
     const query = (url.searchParams.get("q") || "").toLocaleLowerCase("de");
     const from = url.searchParams.get("from") || "";
     const to = url.searchParams.get("to") || "";
-    return state.activityEvents.filter((item) => {
+    return state.activityEvents.map(projectActivityForCurrentProfile).filter((item) => {
       const occurredAt = item.occurredAt || item.occurred_at || "";
       if (eventKey && item.eventKey !== eventKey) return false;
       if (category && item.categoryKey !== category) return false;
@@ -442,14 +563,16 @@
             imageUpdatedAt: new Date().toISOString(),
             imageUpdatedBy: state.currentProfileId
           };
-      return json(state.contacts[index]);
+      return json(projectContactForCurrentProfile(state.contacts[index]));
     }
 
     const entityReadMatch = path.match(/^\/api\/(contacts|organizations|formats|hospitations)\/([^/]+)$/);
     if (method === "GET" && entityReadMatch) {
       const property = propertyForResource(entityReadMatch[1]);
       const row = state[property]?.find((item) => item.id === decodeURIComponent(entityReadMatch[2]));
-      return row ? json(row) : error("Synthetischer Datensatz wurde nicht gefunden.", 404);
+      return row
+        ? json(property === "contacts" ? projectContactForCurrentProfile(row) : row)
+        : error("Synthetischer Datensatz wurde nicht gefunden.", 404);
     }
 
     if (method === "GET") {
@@ -466,6 +589,7 @@
         if (hospitationId) rows = rows.filter((row) => (row.hospitationId || row.hospitation_id) === hospitationId);
         if (contactId) rows = rows.filter((row) => (row.contactId || row.contact_id) === contactId);
         if (organizationIds.length) rows = rows.filter((row) => organizationIds.includes(row.organizationId || row.organization_id));
+        if (path === "/api/contacts") rows = rows.map(projectContactForCurrentProfile);
         return json({ items: rows });
       }
     }
@@ -565,12 +689,20 @@
     if (method === "POST" && createResource) {
       const [property, prefix, payload] = createResource;
       const safePayload = sanitizeDemoMediaFields(property, payload);
+      if (
+        property === "contacts"
+        && OWNER_ONLY_CONTACT_CHANNELS
+        && bodySetsSensitiveContactFields(safePayload)
+        && !contactOwnerIds(safePayload).includes(state.currentProfileId)
+      ) {
+        return error("E-Mail und Telefon dürfen in der Demo nur von Contact Ownern gesetzt werden.", 403);
+      }
       const created = { ...safePayload, id: safePayload.id || nextId(prefix), createdAt: safePayload.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
       state[property].unshift(created);
       if (property === "organizationPrimarySystems") updateOrganizationPrimarySystems();
       const eventRoot = property === "hospitations" ? "hospitation" : property === "formats" ? "format" : property === "contacts" ? "contact" : "record";
       addDemoActivity({ eventKey: `${eventRoot}.created`, categoryKey: eventRoot === "record" ? "master_data" : eventRoot, actionKey: "create", objectType: eventRoot, objectId: created.id, contactId: created.contactId || (property === "contacts" ? created.id : ""), title: "Synthetischen Demo-Datensatz angelegt" });
-      return json(created, 201);
+      return json(property === "contacts" ? projectContactForCurrentProfile(created) : created, 201);
     }
 
     const updateMatch = path.match(/^\/api\/(contacts|organizations|organization-primary-systems|expert-contacts|expert-organizations|expert-entity-links|hospitation-slots|hospitations|hospitation-observations|formats|saved-views)\/([^/]+)$/);
@@ -595,6 +727,14 @@
       }
       const before = target[index];
       const safeBody = sanitizeDemoMediaFields(property, body);
+      if (
+        property === "contacts"
+        && OWNER_ONLY_CONTACT_CHANNELS
+        && bodyHasSensitiveContactFields(safeBody)
+        && !currentProfileOwnsContact(before)
+      ) {
+        return error("E-Mail und Telefon dürfen in der Demo nur von Contact Ownern geändert werden.", 403);
+      }
       target[index] = { ...target[index], ...safeBody, updatedAt: new Date().toISOString() };
       if (property === "organizationPrimarySystems") updateOrganizationPrimarySystems();
       if (property === "contacts") {
@@ -609,7 +749,7 @@
           changes: Object.keys(safeBody).map((fieldName) => ({ fieldName, oldValue: before[fieldName] ?? "", newValue: safeBody[fieldName] ?? "" }))
         });
       }
-      return json(target[index]);
+      return json(property === "contacts" ? projectContactForCurrentProfile(target[index]) : target[index]);
     }
 
     const syncMatch = path.match(/^\/api\/hospitations\/([^/]+)\/(observations\/sync|roadmap-assessments|unmet-needs)$/);
@@ -670,22 +810,48 @@
     const style = document.createElement("style");
     style.textContent = `
       #vk-public-demo-notice {
-        position: relative; z-index: 20;
-        width: auto; box-sizing: border-box; margin: 12px 18px 0;
-        display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
-        padding: 11px 12px; border: 1px solid rgba(255,255,255,.22); border-radius: 14px;
-        color: #fff; background: rgba(16, 55, 79, .96); box-shadow: 0 12px 34px rgba(8, 38, 55, .28);
-        font: 500 13px/1.35 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        position: fixed; z-index: 70;
+        top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(16px + env(safe-area-inset-right, 0px));
+        min-height: 38px; box-sizing: border-box;
+        display: flex; gap: 10px; align-items: center;
+        padding: 4px 5px 4px 11px; border: 1px solid #d8e1ef; border-radius: 11px;
+        color: #64748b; background: rgba(255,255,255,.96); box-shadow: 0 7px 18px rgba(16,35,110,.08);
+        font: 620 11px/1.25 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         backdrop-filter: blur(12px);
       }
-      #vk-public-demo-notice .vk-demo-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: #123b50; background: #9ce6d8; font-weight: 800; }
-      #vk-public-demo-notice strong { display: block; margin-bottom: 1px; color: #fff; font-size: 13px; }
-      #vk-public-demo-notice span { color: #d9edf3; }
-      #vk-public-demo-notice button { min-height: 34px; padding: 0 10px; border: 1px solid rgba(255,255,255,.3); border-radius: 9px; color: #fff; background: rgba(255,255,255,.1); font: inherit; font-weight: 700; cursor: pointer; }
-      #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible { background: rgba(255,255,255,.2); outline: 2px solid #9ce6d8; outline-offset: 2px; }
+      #vk-public-demo-notice[hidden], #vk-public-demo-trigger[hidden] { display: none; }
+      #vk-public-demo-notice .vk-demo-copy { min-width: 0; display: flex; gap: 4px; align-items: center; }
+      #vk-public-demo-notice strong { color: #475569; font-size: 11px; font-weight: 760; }
+      #vk-public-demo-notice button {
+        min-width: 38px; min-height: 30px; padding: 0 9px; border: 0; border-radius: 8px;
+        color: #17275f; background: #eef3fb; font: inherit; font-weight: 760; cursor: pointer;
+      }
+      #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible {
+        background: #e2eafb; outline: 3px solid #155fe4; outline-offset: 2px;
+      }
+      #vk-public-demo-trigger {
+        position: fixed; z-index: 70;
+        top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px));
+        width: 38px; height: 38px; display: inline-grid; place-items: center;
+        padding: 0; border: 1px solid #c9d8ef; border-radius: 11px;
+        color: #1555a5; background: #eaf2ff; box-shadow: 0 7px 18px rgba(16,35,110,.08);
+        backdrop-filter: blur(12px); cursor: pointer;
+      }
+      #vk-public-demo-trigger:hover, #vk-public-demo-trigger:focus-visible {
+        background: #dceaff; outline: 3px solid #155fe4; outline-offset: 2px;
+      }
+      #vk-public-demo-trigger .vk-demo-trigger-mark {
+        display: grid; place-items: center; width: 100%; height: 100%;
+        color: inherit; background: transparent;
+      }
+      #vk-public-demo-trigger svg {
+        width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
       @media (max-width: 620px) {
-        #vk-public-demo-notice { width: auto; margin: 10px 10px 0; grid-template-columns: auto 1fr; }
-        #vk-public-demo-notice button { grid-column: 1 / -1; width: 100%; }
+        #vk-public-demo-notice {
+          top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
+        }
       }
     `;
     document.head.appendChild(style);
@@ -693,13 +859,63 @@
     notice.id = "vk-public-demo-notice";
     notice.setAttribute("role", "note");
     notice.setAttribute("aria-label", "Hinweis zur öffentlichen Demo");
+    notice.hidden = true;
     notice.innerHTML = `
-      <div class="vk-demo-mark" aria-hidden="true">D</div>
-      <div><strong>Öffentliche Demo · synthetische Daten</strong><span>Bitte keine echten Angaben eingeben. Änderungen verschwinden beim Neuladen.</span></div>
-      <button type="button">Demo zurücksetzen</button>
+      <div class="vk-demo-copy"><strong>Hinweis:</strong> <span>Öffentliche Demo</span></div>
+      <button type="button" data-demo-notice-close>OK</button>
     `;
-    notice.querySelector("button").addEventListener("click", () => window.location.reload());
+    const closeButton = notice.querySelector("[data-demo-notice-close]");
+    const trigger = document.createElement("button");
+    trigger.id = "vk-public-demo-trigger";
+    trigger.type = "button";
+    trigger.hidden = true;
+    trigger.setAttribute("aria-label", "Hinweis zur öffentlichen Demo anzeigen");
+    trigger.setAttribute("aria-controls", notice.id);
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.innerHTML = `
+      <span class="vk-demo-trigger-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 11v5"></path>
+          <path d="M12 8h.01"></path>
+        </svg>
+      </span>
+    `;
+    let noticeCollapsed = false;
+    const appShell = document.querySelector(".app-shell");
+    const mobileViewport = window.matchMedia("(max-width: 760px)");
+    const syncNoticeVisibility = () => {
+      const activeView = appShell?.dataset.activeView || "";
+      const mobileNavigationOpen =
+        mobileViewport.matches &&
+        appShell?.classList.contains("is-mobile-sidebar-expanded");
+      const eligible =
+        DEMO_NOTICE_DATA_VIEWS.has(activeView) &&
+        !mobileNavigationOpen;
+      notice.hidden = !eligible || noticeCollapsed;
+      trigger.hidden = !eligible || !noticeCollapsed;
+      trigger.setAttribute("aria-expanded", eligible && !noticeCollapsed ? "true" : "false");
+    };
+    closeButton.addEventListener("click", () => {
+      noticeCollapsed = true;
+      syncNoticeVisibility();
+      if (!trigger.hidden) trigger.focus({ preventScroll: true });
+    });
+    trigger.addEventListener("click", () => {
+      noticeCollapsed = false;
+      syncNoticeVisibility();
+      if (!notice.hidden) closeButton.focus({ preventScroll: true });
+    });
     (document.querySelector(".app-main") || document.body).prepend(notice);
+    document.body.appendChild(trigger);
+    if (appShell) {
+      new MutationObserver(syncNoticeVisibility).observe(appShell, {
+        attributes: true,
+        attributeFilter: ["data-active-view", "class"]
+      });
+    }
+    mobileViewport.addEventListener?.("change", syncNoticeVisibility);
+    syncNoticeVisibility();
   }
 
   window.VERSORGUNGS_COMPASS_DEMO_RUNTIME = Object.freeze({
@@ -713,10 +929,10 @@
     reset() {
       state = createState();
       window.dispatchEvent(new CustomEvent("versorgungs-compass:demo-reset"));
-      return clone(state);
+      return projectStateForCurrentProfile();
     },
     snapshot() {
-      return clone(state);
+      return projectStateForCurrentProfile();
     }
   });
 

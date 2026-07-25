@@ -32,7 +32,9 @@ const syntheticProfileAvatarsSql = readFileSync(syntheticProfileAvatarsUrl, "utf
 const expectedMigrationFiles = Object.freeze([
   "202607200001_create_identity_bindings.sql",
   "202607200002_preserve_explicit_updated_at.sql",
-  "202607200003_restrict_stakeholder_logo_urls.sql"
+  "202607200003_restrict_stakeholder_logo_urls.sql",
+  "202607240001_add_test_access_enrollment.sql",
+  "202607250001_add_test_access_allowlist.sql"
 ]);
 const migrationFiles = readdirSync(migrationsUrl)
   .filter((fileName) => /^\d+_[a-z0-9_]+\.sql$/u.test(fileName))
@@ -55,9 +57,9 @@ function replaceSchemaFragmentExactlyOnce(source, pattern, replacement, descript
 }
 
 // Reconstruct the exact capabilities that existed immediately before the
-// three versioned migrations. Keeping this derived from today's full schema
+// five versioned migrations. Keeping this derived from today's full schema
 // makes the upgrade smoke exercise all current tables while deliberately
-// removing only the three capabilities supplied by those migrations.
+// removing only the five capabilities supplied by those migrations.
 let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   schemaSql,
   /  if new\.updated_at is not distinct from old\.updated_at then\n    new\.updated_at := now\(\);\n  end if;/u,
@@ -66,9 +68,9 @@ let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
-  /\ncreate table if not exists public\.identity_bindings \([\s\S]*?\ncreate index if not exists identity_bindings_active_profile_idx\n  on public\.identity_bindings \(profile_id, active\);\n/u,
+  /\ncreate table if not exists public\.identity_bindings \([\s\S]*?\ncreate index if not exists test_access_objects_scope_idx\n  on public\.test_access_objects \(scope_ref, entity_type, created_at\);\n/u,
   "\n",
-  "Identity-Tabelle vor Migration 001"
+  "Identity- und Testzugangstabellen vor Migrationen 001 und 004"
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
@@ -78,11 +80,27 @@ legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
+  /\ndrop trigger if exists test_access_objects_pre_gematik_touch_updated_at on public\.test_access_objects;\ncreate trigger test_access_objects_pre_gematik_touch_updated_at before update on public\.test_access_objects\nfor each row execute function public\.pre_gematik_touch_updated_at\(\);\n/u,
+  "\n",
+  "Testobjekt-Trigger vor Migration 004"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ndrop trigger if exists test_access_allowlist_pre_gematik_touch_updated_at on public\.test_access_allowlist;\ncreate trigger test_access_allowlist_pre_gematik_touch_updated_at before update on public\.test_access_allowlist\nfor each row execute function public\.pre_gematik_touch_updated_at\(\);\n/u,
+  "\n",
+  "Allowlist-Trigger vor Migration 005"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
   /,\n  constraint stakeholder_organizations_logo_url_private_check check \([\s\S]*?\n  \)(?=\n\);\n\ncreate index if not exists stakeholder_organizations_type_idx)/u,
   "",
   "Logo-Constraint vor Migration 003"
 );
 assert.doesNotMatch(legacyUpgradeSchemaSql, /public\.identity_bindings|identity_bindings_/u);
+assert.doesNotMatch(
+  legacyUpgradeSchemaSql,
+  /identity_enrollment_requests|test_access_objects|test_access_allowlist|pre_gematik_consume_test_access_allowlist/u
+);
 assert.doesNotMatch(legacyUpgradeSchemaSql, /stakeholder_organizations_logo_url_private_check/u);
 assert.match(
   legacyUpgradeSchemaSql,
@@ -181,7 +199,21 @@ const apiTableFields = JSON.parse(JSON.stringify(tableFieldContext.apiTableField
 
 const supplementalContract = {
   identity_bindings: [
-    "issuer", "subject", "profile_id", "active", "created_at", "updated_at"
+    "issuer", "subject", "profile_id", "active", "access_scope", "scope_ref",
+    "created_at", "updated_at"
+  ],
+  identity_enrollment_requests: [
+    "request_id", "issuer", "subject", "verified_email", "status", "requested_at",
+    "last_seen_at", "expires_at", "applied_profile_id"
+  ],
+  test_access_allowlist: [
+    "allowlist_id", "email_normalized", "profile_id", "display_name", "initials",
+    "role", "team", "bio", "scope_ref", "expires_at", "consumed_at",
+    "consumed_issuer", "consumed_subject", "consumed_request_id", "revoked_at",
+    "revoke_reason", "created_at", "updated_at"
+  ],
+  test_access_objects: [
+    "scope_ref", "entity_type", "entity_id", "created_by", "created_at", "updated_at"
   ],
   import_runs: [
     "id", "file_name", "status", "total_rows", "valid_rows", "imported_contacts",
@@ -669,6 +701,80 @@ async function assertRuntimeRoleContract(adminPool, appPool, runtimeRole, appUse
       has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as identity_binding_insert,
       has_table_privilege(current_user, 'public.identity_bindings', 'UPDATE') as identity_binding_update,
       has_table_privilege(current_user, 'public.identity_bindings', 'DELETE') as identity_binding_delete,
+      has_table_privilege(current_user, 'public.identity_enrollment_requests', 'SELECT') as enrollment_select,
+      has_table_privilege(current_user, 'public.identity_enrollment_requests', 'INSERT') as enrollment_insert,
+      has_table_privilege(current_user, 'public.identity_enrollment_requests', 'UPDATE') as enrollment_update,
+      has_table_privilege(current_user, 'public.identity_enrollment_requests', 'DELETE') as enrollment_delete,
+      has_column_privilege(
+        current_user,
+        'public.identity_enrollment_requests',
+        'request_id',
+        'SELECT'
+      ) as enrollment_request_id_select,
+      has_column_privilege(
+        current_user,
+        'public.identity_enrollment_requests',
+        'verified_email',
+        'SELECT'
+      ) as enrollment_verified_email_select,
+      has_column_privilege(
+        current_user,
+        'public.identity_enrollment_requests',
+        'applied_profile_id',
+        'SELECT'
+      ) as enrollment_applied_profile_select,
+      has_column_privilege(
+        current_user,
+        'public.identity_enrollment_requests',
+        'issuer',
+        'INSERT'
+      ) as enrollment_issuer_insert,
+      has_column_privilege(
+        current_user,
+        'public.identity_enrollment_requests',
+        'request_id',
+        'INSERT'
+      ) as enrollment_request_id_insert,
+      has_column_privilege(
+        current_user,
+        'public.identity_enrollment_requests',
+        'last_seen_at',
+        'UPDATE'
+      ) as enrollment_last_seen_update,
+      has_column_privilege(
+        current_user,
+        'public.identity_enrollment_requests',
+        'status',
+        'UPDATE'
+      ) as enrollment_status_update,
+      has_table_privilege(current_user, 'public.test_access_objects', 'SELECT') as test_object_select,
+      has_table_privilege(current_user, 'public.test_access_objects', 'INSERT') as test_object_insert,
+      has_table_privilege(current_user, 'public.test_access_objects', 'UPDATE') as test_object_update,
+      has_table_privilege(current_user, 'public.test_access_objects', 'DELETE') as test_object_delete,
+      has_column_privilege(
+        current_user,
+        'public.test_access_objects',
+        'entity_id',
+        'SELECT'
+      ) as test_object_entity_select,
+      has_column_privilege(
+        current_user,
+        'public.test_access_objects',
+        'created_by',
+        'SELECT'
+      ) as test_object_created_by_select,
+      has_column_privilege(
+        current_user,
+        'public.test_access_objects',
+        'scope_ref',
+        'INSERT'
+      ) as test_object_scope_insert,
+      has_column_privilege(
+        current_user,
+        'public.test_access_objects',
+        'updated_at',
+        'INSERT'
+      ) as test_object_updated_at_insert,
       has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'USAGE') as sequence_usage,
       has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'SELECT') as sequence_select,
       has_function_privilege(current_user, 'public.pre_gematik_touch_updated_at()', 'EXECUTE') as function_execute
@@ -687,6 +793,25 @@ async function assertRuntimeRoleContract(adminPool, appPool, runtimeRole, appUse
     identity_binding_insert: false,
     identity_binding_update: false,
     identity_binding_delete: false,
+    enrollment_select: false,
+    enrollment_insert: false,
+    enrollment_update: false,
+    enrollment_delete: false,
+    enrollment_request_id_select: true,
+    enrollment_verified_email_select: true,
+    enrollment_applied_profile_select: false,
+    enrollment_issuer_insert: true,
+    enrollment_request_id_insert: false,
+    enrollment_last_seen_update: true,
+    enrollment_status_update: false,
+    test_object_select: false,
+    test_object_insert: false,
+    test_object_update: false,
+    test_object_delete: false,
+    test_object_entity_select: true,
+    test_object_created_by_select: false,
+    test_object_scope_insert: true,
+    test_object_updated_at_insert: false,
     sequence_usage: true,
     sequence_select: true,
     function_execute: true
@@ -800,14 +925,20 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
       `);
       assert.deepEqual(inherited.rows, [{
         unassumed_session: true,
-        binding_insert: true,
+        binding_insert: false,
         binding_delete: false,
         contacts_select: false
-      }], "Die einzige geerbte Rolle muss bereits exakt dieselben Minimalrechte begrenzen.");
-      await client.query(`
-        insert into public.identity_bindings (issuer, subject, profile_id, active)
-        values ('https://identity-admin.contract.example.invalid', $1, 'pre-gematik-admin', false)
-      `, [`identity-admin-inherited-contract-${process.pid}`]);
+      }], "Der v1-Login muss nach Aktivierung des v2-Vertrags read-only bleiben.");
+      await client.query("savepoint inherited_insert_denied");
+      await assert.rejects(
+        client.query(`
+          insert into public.identity_bindings (issuer, subject, profile_id, active)
+          values ('https://identity-admin.contract.example.invalid', $1, 'pre-gematik-admin', false)
+        `, [`identity-admin-inherited-contract-${process.pid}`]),
+        (error) => error?.code === "42501",
+        "Der v1-Login darf nach Aktivierung des v2-Vertrags keine Bindung anlegen."
+      );
+      await client.query("rollback to savepoint inherited_insert_denied");
       await assert.rejects(
         client.query(`
           delete from public.identity_bindings
@@ -870,30 +1001,39 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
         profile_column_update: false,
         profile_column_references: false,
         binding_select: true,
-        binding_insert: true,
-        binding_update: true,
+        binding_insert: false,
+        binding_update: false,
         binding_delete: false,
         binding_column_references: false,
         contacts_select: false,
         sequence_usage: false,
         touch_function_execute: true,
         unsafe_other_function_privilege_count: 0
-      }, "Die Identity-Admin-Rolle muss exakt auf Profile-Lesen und Binding-Upsert begrenzt sein.");
+      }, "Die v1-Identity-Admin-Rolle muss nach Aktivierung des v2-Vertrags read-only sein.");
 
-      const inserted = await client.query(`
-        insert into public.identity_bindings (issuer, subject, profile_id, active)
-        values ('https://identity-admin.contract.example.invalid', $1, 'pre-gematik-admin', false)
-        returning active
-      `, [`identity-admin-contract-${process.pid}`]);
-      assert.deepEqual(inserted.rows, [{ active: false }]);
-      const updated = await client.query(`
-        update public.identity_bindings
-           set active = true
-         where issuer = 'https://identity-admin.contract.example.invalid'
-           and subject = $1
-        returning active
-      `, [`identity-admin-contract-${process.pid}`]);
-      assert.deepEqual(updated.rows, [{ active: true }]);
+      await client.query("savepoint v2_insert_denied");
+      await assert.rejects(
+        client.query(`
+          insert into public.identity_bindings (issuer, subject, profile_id, active)
+          values ('https://identity-admin.contract.example.invalid', $1, 'pre-gematik-admin', false)
+        `, [`identity-admin-contract-${process.pid}`]),
+        (error) => error?.code === "42501",
+        "Die v1-Identity-Admin-Rolle darf im v2-Vertrag keine Bindung anlegen."
+      );
+      await client.query("rollback to savepoint v2_insert_denied");
+      await client.query("savepoint v2_update_denied");
+      await assert.rejects(
+        client.query(`
+          update public.identity_bindings
+             set active = true
+           where issuer = 'https://identity-admin.contract.example.invalid'
+             and subject = $1
+        `, [`identity-admin-contract-${process.pid}`]),
+        (error) => error?.code === "42501",
+        "Die v1-Identity-Admin-Rolle darf im v2-Vertrag keine Bindung aktualisieren."
+      );
+      await client.query("rollback to savepoint v2_update_denied");
+      await client.query("savepoint v2_delete_denied");
       await assert.rejects(
         client.query(`
           delete from public.identity_bindings
@@ -903,6 +1043,7 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
         (error) => error?.code === "42501",
         "Die Identity-Admin-Rolle darf Bindungen nicht loeschen."
       );
+      await client.query("rollback to savepoint v2_delete_denied");
       await client.query("rollback");
     } finally {
       await client.query("rollback").catch(() => {});
@@ -987,6 +1128,10 @@ async function migrationUpgradeSemanticSnapshot(pool) {
     select
       to_regclass('public.identity_bindings')::text as identity_table,
       to_regclass('public.identity_bindings_active_profile_idx')::text as identity_active_index,
+      to_regclass('public.test_access_allowlist')::text as allowlist_table,
+      to_regprocedure(
+        'public.pre_gematik_consume_test_access_allowlist(uuid,text,text,text,timestamptz,timestamptz)'
+      )::text as allowlist_function,
       (
         select array_agg(pg_get_constraintdef(constraint_state.oid, true) order by constraint_state.contype, constraint_state.conname)
           from pg_catalog.pg_constraint constraint_state
@@ -1005,6 +1150,12 @@ async function migrationUpgradeSemanticSnapshot(pool) {
          where trigger_state.tgrelid = 'public.identity_bindings'::regclass
            and not trigger_state.tgisinternal
       ) as identity_triggers,
+      (
+        select array_agg(pg_get_triggerdef(trigger_state.oid, true) order by trigger_state.tgname)
+          from pg_catalog.pg_trigger trigger_state
+         where trigger_state.tgrelid = 'public.test_access_allowlist'::regclass
+           and not trigger_state.tgisinternal
+      ) as allowlist_triggers,
       pg_get_functiondef('public.pre_gematik_touch_updated_at()'::regprocedure) as touch_function,
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'SELECT') as runtime_select,
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'INSERT') as runtime_insert,
@@ -1107,14 +1258,21 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
       { column_name: "profile_id", is_nullable: "NO" },
       { column_name: "active", is_nullable: "NO" },
       { column_name: "created_at", is_nullable: "NO" },
-      { column_name: "updated_at", is_nullable: "NO" }
-    ], "Migration 001 muss die vollstaendige, nicht-nullbare Identity-Tabelle anlegen.");
+      { column_name: "updated_at", is_nullable: "NO" },
+      { column_name: "access_scope", is_nullable: "NO" },
+      { column_name: "scope_ref", is_nullable: "YES" }
+    ], "Migrationen 001 und 004 muessen die vollstaendige Identity-Tabelle samt Testscope anlegen.");
 
     const firstSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
     assert.equal(firstSemantics.identity_table, "identity_bindings");
     assert.equal(firstSemantics.identity_active_index, "identity_bindings_active_profile_idx");
-    assert.equal(firstSemantics.identity_constraints.length, 6,
-      "Identity-Bindings brauchen PK, Unique, FK und drei Check-Constraints.");
+    assert.equal(firstSemantics.allowlist_table, "test_access_allowlist");
+    assert.equal(
+      firstSemantics.allowlist_function,
+      "pre_gematik_consume_test_access_allowlist(uuid,text,text,text,timestamp with time zone,timestamp with time zone)"
+    );
+    assert.equal(firstSemantics.identity_constraints.length, 8,
+      "Identity-Bindings brauchen PK, Unique, FK und fuenf Check-Constraints.");
     const identityConstraintContract = firstSemantics.identity_constraints.join("\n");
     assert.match(identityConstraintContract, /PRIMARY KEY \(issuer, subject\)/iu);
     assert.match(identityConstraintContract, /UNIQUE \(issuer, profile_id\)/iu);
@@ -1122,10 +1280,14 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
       identityConstraintContract,
       /FOREIGN KEY \(profile_id\) REFERENCES profiles\(id\) ON DELETE CASCADE/iu
     );
+    assert.match(identityConstraintContract, /access_scope = ANY/iu);
+    assert.match(identityConstraintContract, /access_scope = 'standard'/iu);
     assert.equal(firstSemantics.logo_constraints.length, 1,
       "Migration 003 muss genau einen validierten privaten Logo-Constraint anlegen.");
     assert.equal(firstSemantics.identity_triggers.length, 1,
       "Migration 001 muss genau einen updated_at-Trigger auf Identity-Bindings anlegen.");
+    assert.equal(firstSemantics.allowlist_triggers.length, 1,
+      "Migration 005 muss genau einen updated_at-Trigger auf der Auto-Enrollment-Allowlist anlegen.");
     assert.match(firstSemantics.touch_function, /if new\.updated_at is not distinct from old\.updated_at then/iu,
       "Migration 002 muss explizite updated_at-Werte bewahren.");
     assert.deepEqual({
@@ -1247,9 +1409,9 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     const dataAfterSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
     const secondSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
     assert.deepEqual(dataAfterSecondPass, dataBeforeSecondPass,
-      "Der zweite Lauf aller drei Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
+      "Der zweite Lauf aller fünf Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
     assert.deepEqual(secondSemantics, firstSemantics,
-      "Der zweite Lauf aller drei Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
+      "Der zweite Lauf aller fünf Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
 
     const secondExplicitTimestamp = new Date("2003-04-05T06:07:08.901Z");
     const secondExplicit = await upgradePool.query(`
@@ -1716,7 +1878,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Vollschema und drei Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-Grenze, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und fünf Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {

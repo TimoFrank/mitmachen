@@ -905,11 +905,12 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   await expect(page.locator('[data-view-tab="framework"]')).toHaveClass(/is-active/);
   const frameworkView = page.locator("#view-framework");
   await expect(frameworkView).toBeVisible();
-  await expect(frameworkView).toContainText("Hospitations-Framework");
-  await expect(frameworkView).toContainText("Hospitationen als Wissensformat");
+  await expect(frameworkView).toContainText("Hospitationsframework");
   await expect(frameworkView).toContainText("Von Beobachtung zum nächsten Schritt");
   await expect(frameworkView.locator(".framework-header")).toHaveClass(/hospitation-dashboard-preview-card/);
-  await expect(frameworkView.locator(".framework-header strong")).toHaveText("Hospitationen als Wissensformat");
+  await expect(frameworkView.locator(".framework-header strong")).toHaveText("Hospitationsframework");
+  await expect(frameworkView.locator(".framework-header .hospitation-dashboard-preview-copy > span")).toHaveCount(0);
+  await expect(frameworkView.locator(".framework-overview")).toBeVisible();
   await expect(frameworkView.locator(".framework-summary-card")).toHaveCount(0);
   await expect(frameworkView.locator(".framework-section-card")).toHaveCount(4);
   await expect(frameworkView.locator(".framework-accordion")).toHaveCount(4);
@@ -952,6 +953,26 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
     "Mehr zum Schritt",
     "Mehr zum Schritt"
   ]);
+  const frameworkFirstView = await frameworkView.evaluate((view) => {
+    const overview = view.querySelector(".framework-overview")?.getBoundingClientRect();
+    const firstAccordion = view.querySelector(".framework-accordion")?.getBoundingClientRect();
+    return {
+      overviewHeight: overview?.height || 0,
+      firstAccordionTop: firstAccordion?.top || 0,
+      viewportHeight: window.innerHeight
+    };
+  });
+  expect(frameworkFirstView.overviewHeight).toBeGreaterThanOrEqual(frameworkFirstView.viewportHeight - 1);
+  expect(frameworkFirstView.firstAccordionTop).toBeGreaterThanOrEqual(frameworkFirstView.viewportHeight);
+  const appFooter = page.locator(".versorgungs-app-footer");
+  await expect(appFooter).toBeVisible();
+  await expect(appFooter).toContainText("Eine Anwendung im Rahmen von #Mitmachen");
+  const mitmachenFooterLink = appFooter.getByRole("link", { name: /gematik\.de\/mitmachen/ });
+  await expect(mitmachenFooterLink).toHaveAttribute("href", "https://www.gematik.de/mitmachen");
+  await expect(mitmachenFooterLink).toHaveAttribute("target", "_blank");
+  await expect(mitmachenFooterLink).toHaveAttribute("rel", /noopener/);
+  await expect(appFooter).toHaveCSS("justify-content", "center");
+  await attachScreenshot(page, testInfo, "planung-framework-erster-blick", { fullPage: false });
   await expect(frameworkView.locator(".framework-step-explainer, .framework-step-card, .framework-source-link")).toHaveCount(0);
   await expect(modelSection).not.toContainText("Epic-Kandidaten");
   await expect(modelSection).not.toContainText("Kontext");
@@ -1351,6 +1372,7 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   const questionnaireHeader = page.locator("#view-questionnaire .questionnaire-toolbar");
   await expect(questionnaireHeader).toHaveClass(/hospitation-dashboard-preview-card/);
   await expect(questionnaireHeader.locator(".hospitation-dashboard-preview-copy strong")).toHaveText("Hospitations-Fragebogen");
+  await expect(questionnaireHeader.locator(".hospitation-dashboard-preview-copy p")).toHaveText("Beobachtungen Schritt für Schritt festhalten und einordnen.");
   const questionnaireOrganization = page.locator("#questionnaire-organization");
   const questionnaireContact = page.locator("#questionnaire-contact");
   const questionnaireSector = page.locator("#questionnaire-setting");
@@ -3863,6 +3885,31 @@ test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }, 
   await expect(profile.getByRole("button", { name: "Owner bearbeiten" })).toHaveCount(0);
 });
 
+test("Hospitationen: leerer Terminbereich führt zum ersten Termin", async ({ page }, testInfo) => {
+  const backendFixture = createProtectedBackendFixture({ role: "admin" });
+  backendFixture.hospitationSlots = [];
+  backendFixture.hospitations = [];
+  backendFixture.hospitationObservations = [];
+  backendFixture.hospitationRoadmapAssessments = [];
+  backendFixture.hospitationUnmetNeeds = [];
+
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations", {
+    backendFixture
+  });
+
+  const emptyState = page.locator(".hospitation-first-appointment");
+  await expect(emptyState).toBeVisible();
+  await expect(emptyState).toContainText("Noch kein Termin angelegt");
+  await expect(emptyState).toContainText("Ihre erste Hospitation");
+  const firstAppointmentButton = emptyState.getByRole("button", { name: "Ersten Termin anlegen" });
+  await expect(firstAppointmentButton).toBeVisible();
+  await attachScreenshot(page, testInfo, "hospitationen-leerzustand", { fullPage: false });
+
+  await firstAppointmentButton.click();
+  await expect(page.locator("#hospitation-editor-drawer")).toHaveClass(/is-open/);
+  await expect(page.locator("#hospitation-editor-title")).toHaveText("Neuen Termin anlegen");
+});
+
 test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInfo) => {
   test.setTimeout(90000);
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations");
@@ -4096,6 +4143,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(hospitationCommandRow).toBeVisible();
   await expect(hospitationCommandRow).toHaveClass(/hospitation-dashboard-preview-card/);
   await expect(hospitationCommandRow.locator(".hospitation-dashboard-preview-copy strong")).toHaveText("Hospitations-Termine");
+  await expect(hospitationCommandRow.locator(".hospitation-dashboard-preview-copy p")).toHaveText("Termine planen, vorbereiten und anschließend dokumentieren.");
   await expect(hospitationCommandRow.locator(".hospitation-appointments-header__mode")).toHaveCount(0);
   await expect(hospitationCommandRow.locator("#new-hospitation-request-button")).toHaveCount(0);
   const hospitationActionRow = page.locator("#hospitation-appointments-panel > .hospitation-appointments-action-row");
@@ -4676,7 +4724,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
     await attachScreenshot(page, testInfo, "planung-dashboard-mobile");
     return;
   }
-  await expect(dashboard).toContainText("Versorgungswissen-Cockpit");
+  await expect(dashboard.locator(".hospitation-dashboard-preview-copy strong")).toHaveText("Dashboard");
   await expect(dashboard).toContainText("Das Dashboard konzentriert sich auf die aktuell relevanten Hospitationsdaten.");
   await expect(dashboard).toContainText("Musterbildung bleibt weiterhin Teil des Hospitations-Frameworks.");
   await expect(dashboard.getByRole("button", { name: /^(Echte Daten|Demo)$/ })).toHaveCount(0);
@@ -4963,7 +5011,8 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
 
   await expect(page.locator('[data-view-panel="map"]')).toBeVisible();
   await expect(mapFrame.locator("#map")).toBeVisible();
-  await expect(mapFrame.locator(".cat-marker").first()).toBeVisible({ timeout: 20_000 });
+  const visibleMapMarker = mapFrame.locator(".gematik-marker, .cat-marker").first();
+  await expect(visibleMapMarker).toBeVisible({ timeout: 20_000 });
   await expect(mapFrame.locator(".map-box > .map-controls")).toHaveCount(0);
   await expect(mapFrame.locator(".panel .body .map-controls--legacy")).toBeHidden();
   if (testInfo.project.name.includes("mobile")) {
@@ -5026,12 +5075,55 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
     await expect(mapFrame.locator("#filters")).toBeVisible();
     await expect(mapFrame.locator("#filters .map-filter-dropdown")).toHaveCount(3);
     await expect(mapFrame.locator("#filters .map-filter-trigger").first()).toBeVisible();
-    await mapFrame.locator(".cat-marker").first().hover();
+    await visibleMapMarker.hover();
     await expect(mapFrame.locator(".map-point-tooltip")).toBeVisible();
   }
   await expect(mapFrame.locator(".panel")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "karte");
+});
+
+test("Karte: Kontakt öffnet zunächst als fokussierte Vorschau", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Der farbige Fokus-Drawer ist eine Desktop-Darstellung.");
+  await page.setViewportSize({ width: 1440, height: 760 });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map");
+  const mapFrame = page.frameLocator("#map-view-frame");
+  const mapMarker = mapFrame.locator(".gematik-marker, .cat-marker").first();
+
+  await expect(mapMarker).toBeVisible({ timeout: 20_000 });
+  await mapMarker.click();
+
+  const drawer = page.locator("#detail-drawer");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
+  await expect(page).toHaveURL(/#map$/);
+  await expect(drawer).toHaveClass(/is-open/);
+  await expect(drawer).toHaveAttribute("aria-hidden", "false");
+  await expect(drawer.locator("#detail-open-profile")).toBeVisible();
+  await expect(page.locator("#person-profile-page")).not.toHaveClass(/is-active/);
+  await expect(page.locator("body")).toHaveClass(/detail-open/);
+
+  const focusStyles = await drawer.locator(".detail-panel").evaluate((panel) => {
+    const panelStyle = getComputedStyle(panel);
+    const dimmerStyle = getComputedStyle(document.querySelector(".wrap"), "::after");
+    return {
+      borderImageSource: panelStyle.borderImageSource,
+      borderLeftWidth: Number.parseFloat(panelStyle.borderLeftWidth),
+      dimmerBackground: dimmerStyle.backgroundColor
+    };
+  });
+  expect(focusStyles.borderLeftWidth).toBeGreaterThanOrEqual(6);
+  expect(focusStyles.borderImageSource).toContain("linear-gradient");
+  expect(focusStyles.dimmerBackground).not.toBe("rgba(0, 0, 0, 0)");
+
+  await attachScreenshot(page, testInfo, "karte-kontaktfokus");
+
+  await drawer.locator("#detail-open-profile").click();
+  await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
+  await expect(page).toHaveURL(/#person\/contact\/[^/?#]+$/);
+  await expect(page.locator('[data-view-tab="map"]')).toHaveClass(/is-active/);
+  await page.locator("#person-profile-body [data-person-profile-back]").click();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
+  await expect(page).toHaveURL(/#map$/);
 });
 
 test("Rollen: Viewer sieht Admin-Bereiche nicht", async ({ page }, testInfo) => {

@@ -1,33 +1,52 @@
 const ROLE_RANK = Object.freeze({ viewer: 1, editor: 2, admin: 3 });
+const ACCESS_SCOPES = new Set(["standard", "test_only"]);
+const IAP_ISSUER = "https://cloud.google.com/iap";
+const IAP_CLOCK_SKEW_SECONDS = 30;
+const IAP_MAX_TOKEN_LIFETIME_SECONDS = 10 * 60;
 
-function route(methods, pattern, role, id) {
-  return Object.freeze({ methods: new Set(methods), pattern, role, id });
+export const WRITE_CLASSES = Object.freeze({
+  READ: "read",
+  ENROLLMENT: "enrollment",
+  SELF_SERVICE: "self-service",
+  TEST_OBJECT_CREATE: "test-object-create",
+  TEST_OBJECT_UPDATE: "test-object-update",
+  RESTRICTED: "restricted"
+});
+
+function route(methods, pattern, role, id, writeClass = WRITE_CLASSES.RESTRICTED) {
+  return Object.freeze({ methods: new Set(methods), pattern, role, id, writeClass });
 }
 
 // Jede produktive API-Route muss hier explizit eingetragen sein. Neue Routen sind
 // dadurch bis zu einer bewussten Berechtigungsentscheidung automatisch gesperrt.
 export const ROUTE_POLICIES = Object.freeze([
-  route(["GET"], /^\/(?:api\/)?(?:healthz|readyz)$/, "public", "health"),
-  route(["GET"], /^\/api\/auth\/bootstrap$/, "public", "auth.bootstrap"),
-  route(["GET"], /^\/api\/session$/, "viewer", "session.read"),
+  route(["GET"], /^\/(?:api\/)?(?:healthz|readyz)$/, "public", "health", WRITE_CLASSES.READ),
+  route(["GET"], /^\/api\/auth\/bootstrap$/, "public", "auth.bootstrap", WRITE_CLASSES.READ),
+  route(["POST"], /^\/api\/auth\/auto-enrollment$/, "iap-unbound", "auth.auto-enrollment", WRITE_CLASSES.ENROLLMENT),
+  route(["POST"], /^\/api\/auth\/enrollment$/, "iap-unbound", "auth.enrollment", WRITE_CLASSES.ENROLLMENT),
+  route(["GET"], /^\/api\/session$/, "viewer", "session.read", WRITE_CLASSES.READ),
   route(["GET"], /^\/api\/ops\/(?:summary|checks)$/, "admin", "operations.read"),
   route(["GET"], /^\/api\/export$/, "admin", "data.export"),
 
-  route(["GET"], /^\/api\/(?:contacts|contact-content-search|contact-notes|contact-note-attachments|organizations|organization-primary-systems|expert-groups|expert-contacts|expert-organizations|expert-entity-links|stakeholder-types|stakeholder-organizations|stakeholder-people|profiles|saved-views|user-settings|hospitation-slots|hospitations|hospitation-observations|roadmap-items|hospitation-roadmap-assessments|hospitation-unmet-needs|formats|activities|notifications|notifications\/summary)$/, "viewer", "collection.read"),
-  route(["GET"], /^\/api\/(?:contacts|organizations|formats|hospitations)\/[^/]+$/, "viewer", "entity.read"),
-  route(["GET"], /^\/api\/contacts\/[^/]+\/history$/, "viewer", "contact.history.read"),
-  route(["GET"], /^\/api\/(?:profile-avatar|contact-images|stakeholder-logos)\/[^/]+$/, "viewer", "image.read"),
-  route(["GET"], /^\/api\/contact-note-attachments\/[^/]+\/content$/, "viewer", "attachment.read"),
-  route(["GET"], /^\/api\/profile$/, "viewer", "profile.self.read"),
+  route(["GET"], /^\/api\/(?:contacts|contact-content-search|contact-notes|contact-note-attachments|organizations|organization-primary-systems|expert-groups|expert-contacts|expert-organizations|expert-entity-links|stakeholder-types|stakeholder-organizations|stakeholder-people|profiles|saved-views|user-settings|hospitation-slots|hospitations|hospitation-observations|roadmap-items|hospitation-roadmap-assessments|hospitation-unmet-needs|formats|activities|notifications|notifications\/summary)$/, "viewer", "collection.read", WRITE_CLASSES.READ),
+  route(["GET"], /^\/api\/(?:contacts|organizations|formats|hospitations)\/[^/]+$/, "viewer", "entity.read", WRITE_CLASSES.READ),
+  route(["GET"], /^\/api\/contacts\/[^/]+\/history$/, "viewer", "contact.history.read", WRITE_CLASSES.READ),
+  route(["GET"], /^\/api\/(?:profile-avatar|contact-images|stakeholder-logos)\/[^/]+$/, "viewer", "image.read", WRITE_CLASSES.READ),
+  route(["GET"], /^\/api\/contact-note-attachments\/[^/]+\/content$/, "viewer", "attachment.read", WRITE_CLASSES.READ),
+  route(["GET"], /^\/api\/profile$/, "viewer", "profile.self.read", WRITE_CLASSES.READ),
 
-  route(["PATCH"], /^\/api\/profile$/, "viewer", "profile.self.update"),
-  route(["POST", "DELETE"], /^\/api\/profile\/avatar$/, "viewer", "profile.self.avatar"),
-  route(["GET", "POST"], /^\/api\/saved-views$/, "viewer", "saved-view.self.collection"),
-  route(["PATCH", "DELETE"], /^\/api\/saved-views\/[^/]+$/, "viewer", "saved-view.self.write"),
-  route(["GET", "PUT"], /^\/api\/user-settings$/, "viewer", "settings.self"),
-  route(["GET"], /^\/api\/notifications(?:\/summary)?$/, "viewer", "notification.self.read"),
-  route(["PATCH"], /^\/api\/notifications\/(?:read|[^/]+\/read)$/, "viewer", "notification.self.acknowledge"),
+  route(["PATCH"], /^\/api\/profile$/, "viewer", "profile.self.update", WRITE_CLASSES.SELF_SERVICE),
+  route(["POST", "DELETE"], /^\/api\/profile\/avatar$/, "viewer", "profile.self.avatar", WRITE_CLASSES.RESTRICTED),
+  route(["GET"], /^\/api\/saved-views$/, "viewer", "saved-view.self.read", WRITE_CLASSES.READ),
+  route(["POST"], /^\/api\/saved-views$/, "viewer", "saved-view.self.create", WRITE_CLASSES.SELF_SERVICE),
+  route(["PATCH", "DELETE"], /^\/api\/saved-views\/[^/]+$/, "viewer", "saved-view.self.write", WRITE_CLASSES.SELF_SERVICE),
+  route(["GET"], /^\/api\/user-settings$/, "viewer", "settings.self.read", WRITE_CLASSES.READ),
+  route(["PUT"], /^\/api\/user-settings$/, "viewer", "settings.self.write", WRITE_CLASSES.SELF_SERVICE),
+  route(["GET"], /^\/api\/notifications(?:\/summary)?$/, "viewer", "notification.self.read", WRITE_CLASSES.READ),
+  route(["PATCH"], /^\/api\/notifications\/(?:read|[^/]+\/read)$/, "viewer", "notification.self.acknowledge", WRITE_CLASSES.SELF_SERVICE),
 
+  route(["POST"], /^\/api\/(?:contacts|organizations)$/, "editor", "test-object.create", WRITE_CLASSES.TEST_OBJECT_CREATE),
+  route(["PATCH"], /^\/api\/(?:contacts|organizations)\/[^/]+$/, "editor", "test-object.update", WRITE_CLASSES.TEST_OBJECT_UPDATE),
   route(["POST", "PATCH"], /^\/api\/(?:contacts|organizations|organization-primary-systems|expert-contacts|expert-organizations|expert-entity-links|hospitation-slots|hospitations|hospitation-observations|formats)(?:\/[^/]+)?$/, "editor", "domain.write"),
   route(["POST"], /^\/api\/(?:contact-notes|contact-note-attachments)$/, "editor", "contact-note.write"),
   route(["PATCH", "DELETE"], /^\/api\/contact-notes\/[^/]+$/, "editor", "contact-note.owned.write"),
@@ -49,12 +68,90 @@ export const ROUTE_POLICIES = Object.freeze([
 
 export function policyForRequest(method, pathname) {
   const normalizedMethod = String(method || "").toUpperCase();
-  if (normalizedMethod === "OPTIONS") return Object.freeze({ role: "public", id: "cors.preflight" });
+  if (normalizedMethod === "OPTIONS") {
+    return Object.freeze({ role: "public", id: "cors.preflight", writeClass: WRITE_CLASSES.READ });
+  }
   return ROUTE_POLICIES.find((item) => item.methods.has(normalizedMethod) && item.pattern.test(pathname)) || null;
 }
 
 export function roleRank(role = "") {
   return ROLE_RANK[String(role || "").toLowerCase()] || 0;
+}
+
+export function accessScopeForProfile(profile = {}) {
+  const scope = String(profile.access_scope || profile.accessScope || "standard").trim().toLowerCase();
+  return ACCESS_SCOPES.has(scope) ? scope : "";
+}
+
+export function accessScopeRefForProfile(profile = {}) {
+  return String(profile.scope_ref || profile.scopeRef || "").trim();
+}
+
+export function assertAccessScopePermission(profile, policy) {
+  const accessScope = accessScopeForProfile(profile);
+  const scopeRef = accessScopeRefForProfile(profile);
+  if (accessScope === "standard" && !scopeRef) return;
+  const allowed = new Set([
+    WRITE_CLASSES.READ,
+    WRITE_CLASSES.SELF_SERVICE,
+    WRITE_CLASSES.TEST_OBJECT_CREATE,
+    WRITE_CLASSES.TEST_OBJECT_UPDATE
+  ]);
+  if (accessScope !== "test_only" || !scopeRef || !allowed.has(policy?.writeClass)) {
+    const error = new Error("Diese Aktion ist fuer den begrenzten Testzugang nicht freigegeben.");
+    error.status = 403;
+    throw error;
+  }
+}
+
+export function sessionCapabilities(profile = {}) {
+  const accessScope = accessScopeForProfile(profile);
+  const scopeRef = accessScopeRefForProfile(profile);
+  const rank = roleRank(profile.role);
+  const standard = accessScope === "standard" && !scopeRef;
+  const testOnly = accessScope === "test_only" && Boolean(scopeRef);
+  return Object.freeze({
+    canRead: rank >= roleRank("viewer") && (standard || testOnly),
+    canSelfService: rank >= roleRank("viewer") && (standard || testOnly),
+    canWriteDomain: standard && rank >= roleRank("editor"),
+    canCreateTestObjects: testOnly && rank >= roleRank("editor"),
+    canEditTestObjects: testOnly && rank >= roleRank("editor"),
+    canDelete: standard && rank >= roleRank("admin"),
+    canExport: standard && rank >= roleRank("admin"),
+    canOperate: standard && rank >= roleRank("admin")
+  });
+}
+
+export function assertIapJwtClaims(payload, expectedAudience, options = {}) {
+  const now = Number.isFinite(options.nowSeconds)
+    ? Number(options.nowSeconds)
+    : Math.floor(Date.now() / 1000);
+  const exp = payload?.exp;
+  const iat = payload?.iat;
+  const nbf = payload?.nbf;
+  const numericDatesValid = typeof exp === "number"
+    && Number.isFinite(exp)
+    && typeof iat === "number"
+    && Number.isFinite(iat)
+    && (nbf == null || (typeof nbf === "number" && Number.isFinite(nbf)));
+  const lifetime = numericDatesValid ? exp - iat : Number.NaN;
+  const timeWindowValid = numericDatesValid
+    && exp > iat
+    && exp > now - IAP_CLOCK_SKEW_SECONDS
+    && iat <= now + IAP_CLOCK_SKEW_SECONDS
+    && (nbf == null || nbf <= now + IAP_CLOCK_SKEW_SECONDS)
+    && (nbf == null || nbf <= exp)
+    && lifetime <= IAP_MAX_TOKEN_LIFETIME_SECONDS + IAP_CLOCK_SKEW_SECONDS;
+  if (
+    payload?.iss !== IAP_ISSUER
+    || payload?.aud !== expectedAudience
+    || !timeWindowValid
+  ) {
+    const error = new Error("IAP-JWT-Claims oder Zeitfenster sind ungueltig.");
+    error.status = 401;
+    throw error;
+  }
+  return Object.freeze({ exp, iat, nbf: nbf ?? null });
 }
 
 export function validateIdentityConfiguration(env = process.env) {
@@ -75,6 +172,13 @@ export function validateIdentityConfiguration(env = process.env) {
   if (mode === "iap" && !String(env.IAP_JWT_AUDIENCE || "").trim()) {
     throw new Error("IAP_JWT_AUDIENCE ist fuer API_AUTH_MODE=iap zwingend erforderlich.");
   }
+  const autoEnrollmentFlag = String(env.API_AUTH_AUTO_ENROLLMENT_ENABLED || "0").trim();
+  if (!["0", "1"].includes(autoEnrollmentFlag)) {
+    throw new Error("API_AUTH_AUTO_ENROLLMENT_ENABLED muss explizit 0 oder 1 sein.");
+  }
+  if (autoEnrollmentFlag === "1" && mode !== "iap") {
+    throw new Error("Allowlist-Auto-Enrollment ist ausschliesslich fuer API_AUTH_MODE=iap zulaessig.");
+  }
   if (mode === "oidc") {
     const issuer = String(env.OIDC_ISSUER || "").trim();
     const audience = String(env.OIDC_AUDIENCE || "").trim();
@@ -90,7 +194,12 @@ export function validateIdentityConfiguration(env = process.env) {
       }
     }
   }
-  return Object.freeze({ mode, production, devBypass });
+  return Object.freeze({
+    mode,
+    production,
+    devBypass,
+    autoEnrollmentEnabled: autoEnrollmentFlag === "1"
+  });
 }
 
 export function validateAllowedOriginConfiguration(env = process.env) {

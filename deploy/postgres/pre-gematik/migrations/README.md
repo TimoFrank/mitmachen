@@ -11,3 +11,10 @@ Vor jeder Anwendung gelten mindestens:
 5. nach Apply `grants.sql`, Schema-Vertrag und API-Readiness prüfen.
 
 Migrationen dürfen keine Echtdaten, IAP-Subjects, Passwörter oder umgebungsspezifischen Secrets enthalten.
+
+Nach `202607250001_add_test_access_allowlist.sql` ist zusätzlich
+`../access-allowlist-admin-role.sql` als gemeinsamer Objekt-Owner anzuwenden.
+Die Migration entzieht der Runtime vorsorglich jedes Funktions-Execute; erst
+der Rollen-Bootstrap überträgt die Funktion an den eng berechtigten
+`vk_allowlist_executor`, prüft Owner, ACL und `SECURITY DEFINER`-Härtung und
+vergibt anschließend ausschließlich `vk_app_runtime` das Execute-Recht.

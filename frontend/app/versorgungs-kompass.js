@@ -1,7 +1,27 @@
-      const XLSX_SCRIPT_SRC = "../vendor/xlsx/xlsx.bundle.js";
+      const APP_ROUTES = window.VKAppRoutes || null;
+      const CLEAN_URLS_ENABLED = Boolean(APP_ROUTES?.cleanUrlsEnabled?.());
+      const XLSX_SCRIPT_SRC = APP_ROUTES?.assetUrl?.("../vendor/xlsx/xlsx.bundle.js") || "../vendor/xlsx/xlsx.bundle.js";
       const IS_PUBLIC_DEMO_PROFILE = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo"
         && window.VERSORGUNGS_COMPASS_CONFIG?.authMode === "anonymous-demo";
+      const OWNER_ONLY_CONTACT_CHANNELS = IS_PUBLIC_DEMO_PROFILE
+        && window.VERSORGUNGS_COMPASS_CONFIG?.capabilities?.ownerOnlyContactChannels === true;
       let xlsxLoadPromise = null;
+
+      function contactChannelsRestricted(contact = {}) {
+        return OWNER_ONLY_CONTACT_CHANNELS && contact.contactChannelAccess === "restricted";
+      }
+
+      function accessibleContactEmail(contact = {}) {
+        return contactChannelsRestricted(contact) ? "" : String(contact.email || "").trim();
+      }
+
+      function accessibleContactPhone(contact = {}) {
+        return contactChannelsRestricted(contact) ? "" : String(contact.phone || "").trim();
+      }
+
+      function contactChannelRestrictedMarkup() {
+        return `<span class="contact-channel-restricted"><span aria-hidden="true">🔒</span> Nur für Owner sichtbar</span>`;
+      }
 
       function ensureXlsxLoaded() {
         if (window.XLSX) return Promise.resolve(window.XLSX);
@@ -83,7 +103,7 @@
       let ownerOptions = [];
       let ownerProfiles = [];
       let teamDirectoryState = "loading";
-      let selectedTeamName = "";
+      const expandedTeamNames = new Set();
       const germanStates = [
         "Baden-Württemberg",
         "Bayern",
@@ -1076,9 +1096,14 @@
       const viewShell = document.querySelector(".view-shell");
       const sidebarCollapseButton = document.getElementById("sidebar-collapse-button");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
+      const routeLinks = [...document.querySelectorAll("[data-route-link]")];
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
       const sidebarCollapsibleSections = [...document.querySelectorAll("[data-sidebar-collapsible]")];
       const sidebarSectionToggles = [...document.querySelectorAll("[data-sidebar-section-toggle]")];
+      const homeScroller = document.querySelector("[data-home-scroller]");
+      const homeScrollCue = document.querySelector("[data-home-scroll-cue]");
+      const homeDestinations = document.getElementById("home-destinations");
+      const homeRevealHeading = document.querySelector("[data-home-reveal-lines]");
       const topbarViewTitle = document.getElementById("topbar-view-title");
       const topbarViewMeta = document.getElementById("topbar-view-meta");
       const questionnaireForm = document.getElementById("hospitation-questionnaire-form");
@@ -1317,7 +1342,9 @@
 
       const careViewModes = ["contacts", "organizations", "map", "stakeholders"];
 
-      let activeView = "map";
+      let activeView = "home";
+      let homeRevealPrepared = false;
+      let homeRevealStarted = false;
       let activeSettingsTab = "imports";
       let activeProfileTab = "profile";
       let activeExpertMode = "contacts";
@@ -1524,6 +1551,7 @@
       let detailImageEditorOpen = false;
       let editorImagePreviewUrl = "";
       let detailActiveTab = "overview";
+      let detailProfileReturnTo = "";
       let organizationDetailActiveTab = "overview";
       let lastViewportWidth = window.innerWidth;
       let lastViewportMobileLayout = isMobileLayout();
@@ -1538,7 +1566,7 @@
       let userSettings = null;
       let onboardingActive = false;
       let onboardingStep = "profile";
-      let pendingPostOnboardingView = "contacts";
+      let pendingPostOnboardingView = "home";
       let productTourState = { open: false, index: 0, source: "manual", target: null, steps: [], returnContext: null };
       const productTourTargetAria = new WeakMap();
       let activeCareQueueKey = "";
@@ -1712,8 +1740,41 @@
         return String(currentProfile?.role || "viewer").toLowerCase();
       }
 
+      function currentCapabilities() {
+        return currentProfile?.capabilities && typeof currentProfile.capabilities === "object"
+          ? currentProfile.capabilities
+          : {};
+      }
+
+      function isTestAccess() {
+        return currentProfile?.accessScope === "test_only";
+      }
+
       function canEditContacts() {
-        return currentRole() === "admin" || currentRole() === "editor";
+        const roleAllowsWrite = currentRole() === "admin" || currentRole() === "editor";
+        const capabilities = currentCapabilities();
+        return roleAllowsWrite && !isTestAccess() && capabilities.canWriteDomain !== false;
+      }
+
+      function canCreateCareObject() {
+        if (canEditContacts()) return true;
+        const capabilities = currentCapabilities();
+        return isTestAccess()
+          && currentRole() === "editor"
+          && Boolean(currentProfile?.scopeRef)
+          && capabilities.canCreateTestObjects === true;
+      }
+
+      function canEditCareObject(entity = {}) {
+        if (canEditContacts()) return true;
+        const capabilities = currentCapabilities();
+        const profileScope = String(currentProfile?.scopeRef || "").trim();
+        const entityScope = String(entity?.testMarker?.scopeRef || "").trim();
+        return isTestAccess()
+          && currentRole() === "editor"
+          && capabilities.canEditTestObjects === true
+          && Boolean(profileScope)
+          && entityScope === profileScope;
       }
 
       function viewerCreateDisabledMessage(kind = "diese Funktion") {
@@ -1721,7 +1782,11 @@
       }
 
       function canAdministerData() {
-        return currentRole() === "admin";
+        return currentRole() === "admin" && currentCapabilities().canOperate !== false;
+      }
+
+      function canExportData() {
+        return currentCapabilities().canExport !== false;
       }
 
       function isCareView(view = activeView) {
@@ -1753,24 +1818,38 @@
         return "";
       }
 
-      function personProfileParentView(kind = activePersonProfile.kind) {
-        if (kind === activePersonProfile.kind && activePersonProfile.returnTo) return activePersonProfile.returnTo;
+      function decodeRouteComponent(value = "") {
+        try {
+          return decodeURIComponent(String(value || "")).trim();
+        } catch {
+          return "";
+        }
+      }
+
+      function defaultPersonProfileParentView(kind = activePersonProfile.kind) {
         if (kind === "expert") return "experts";
         if (kind === "stakeholder") return "stakeholders";
         return "contacts";
+      }
+
+      function personProfileParentView(kind = activePersonProfile.kind) {
+        if (kind === activePersonProfile.kind && activePersonProfile.returnTo) return activePersonProfile.returnTo;
+        return defaultPersonProfileParentView(kind);
       }
 
       function personProfileRoute(kind = activePersonProfile.kind, id = activePersonProfile.id, options = {}) {
         const normalizedKind = normalizePersonProfileKind(kind);
         if (!normalizedKind || !id) return "contacts";
         const sameProfile = normalizedKind === activePersonProfile.kind && id === activePersonProfile.id;
+        const returnTo = String((options.returnTo ?? (sameProfile ? activePersonProfile.returnTo : "")) || "").trim();
+        const routeKind = normalizedKind === "stakeholder" && returnTo === "patients" ? "patient" : normalizedKind;
         const tab = String((options.tab ?? (sameProfile ? activePersonProfile.tab : "")) || "").trim();
         const noteId = String((options.noteId ?? (sameProfile ? activePersonProfile.noteId : "")) || "").trim();
         const params = new URLSearchParams();
         if (tab) params.set("tab", tab);
         if (noteId) params.set("note", noteId);
         const query = params.toString();
-        return `person/${normalizedKind}/${encodeURIComponent(id)}${query ? `?${query}` : ""}`;
+        return `person/${routeKind}/${encodeURIComponent(id)}${query ? `?${query}` : ""}`;
       }
 
       function parsePersonProfileRoute(hashValue = "") {
@@ -1778,12 +1857,13 @@
         const [path, query = ""] = hash.split("?", 2);
         const match = /^person\/([^/]+)\/([^/]+)$/.exec(path);
         if (!match) return null;
-        const kind = normalizePersonProfileKind(match[1]);
-        const id = decodeURIComponent(match[2] || "").trim();
+        const patientContext = match[1] === "patient";
+        const kind = normalizePersonProfileKind(patientContext ? "stakeholder" : match[1]);
+        const id = decodeRouteComponent(match[2]);
         const params = new URLSearchParams(query);
         const tab = String(params.get("tab") || "").trim();
         const noteId = String(params.get("note") || "").trim();
-        return kind && id ? { kind, id, tab, noteId } : null;
+        return kind && id ? { kind, id, tab, noteId, returnTo: patientContext ? "patients" : "" } : null;
       }
 
       function isPersonProfileActive(kind = "", id = "") {
@@ -1816,7 +1896,7 @@
         const match = /^organization\/([^/]+)\/(.+)$/.exec(hash);
         if (!match) return null;
         const kind = normalizeOrganizationProfileKind(match[1]);
-        const id = decodeURIComponent(match[2] || "").trim();
+        const id = decodeRouteComponent(match[2]);
         return kind && id ? { kind, id } : null;
       }
 
@@ -1825,6 +1905,9 @@
       }
 
       function permissionText(role = currentRole()) {
+        if (isTestAccess()) {
+          return "Testbereich: Lesen und Selbstverwaltung sind möglich. Änderungen bleiben auf ausdrücklich markierte Testdaten begrenzt; Export, Import, Löschen und Administration sind gesperrt.";
+        }
         if (role === "admin") return "Admin: Kontakte und Organisationen anlegen und bearbeiten, Archiv und Import nutzen, Datenqualität prüfen.";
         if (role === "editor") return "Editor: Kontakte und Organisationen anlegen und bearbeiten. Archiv, Import und Rollenverwaltung bleiben Admins vorbehalten.";
         return "Viewer: Lesen, Suchen, Filtern, Karte und Auswertung nutzen. Änderungen sind deaktiviert.";
@@ -1880,11 +1963,9 @@
       function expandSidebarGroup(group) {
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
-        if (isMobileLayout()) {
-          sidebarCollapsibleSections.forEach((item) => {
-            if (item !== section) setSidebarSectionExpanded(item, false);
-          });
-        }
+        sidebarCollapsibleSections.forEach((item) => {
+          if (item !== section) setSidebarSectionExpanded(item, false);
+        });
         setSidebarSectionExpanded(section, true);
         return true;
       }
@@ -1893,7 +1974,7 @@
         const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
         if (!section || !isSidebarNavActionVisible(section)) return false;
         const expanded = !section.classList.contains("is-expanded");
-        if (expanded && isMobileLayout()) {
+        if (expanded) {
           sidebarCollapsibleSections.forEach((item) => {
             if (item !== section) setSidebarSectionExpanded(item, false);
           });
@@ -1902,29 +1983,8 @@
         return true;
       }
 
-      function openFirstSidebarViewInGroup(group = "") {
-        const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-        if (!section || !isSidebarNavActionVisible(section)) return false;
-        expandSidebarGroup(group);
-        const firstTab = [...section.querySelectorAll(".primary-tab[data-view-tab]")]
-          .find(isSidebarNavActionVisible);
-        if (!firstTab) return false;
-        firstTab.click();
-        return true;
-      }
-
       function toggleSidebarGroup(group = "") {
-        const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-        if (!section || !isSidebarNavActionVisible(section)) return false;
-        if (isMobileLayout()) return toggleSidebarGroupExpansion(group);
-        if (section.classList.contains("is-expanded")) {
-          if (section.classList.contains("is-active-section")) {
-            setSidebarSectionExpanded(section, false);
-            return true;
-          }
-          return openFirstSidebarViewInGroup(group);
-        }
-        return openFirstSidebarViewInGroup(group);
+        return toggleSidebarGroupExpansion(group);
       }
 
       function syncActiveSidebarSection(view = activeView) {
@@ -1933,7 +1993,7 @@
           const active = Boolean(activeGroup) && section.dataset.sidebarGroup === activeGroup;
           section.classList.toggle("is-active-section", active);
           if (active) setSidebarSectionExpanded(section, true);
-          else if (activeGroup && isMobileLayout()) setSidebarSectionExpanded(section, false);
+          else setSidebarSectionExpanded(section, false);
         });
         window.requestAnimationFrame(() => {
           const activeItem = document.querySelector(".sidebar-nav .primary-tab.is-active");
@@ -1944,24 +2004,25 @@
       function applyRoleUi() {
         const role = currentRole();
         document.body.dataset.userRole = role;
-        setRoleElementVisible(newContactButton, true);
-        setRoleElementVisible(newOrganizationButton, true);
+        document.body.dataset.accessScope = isTestAccess() ? "test_only" : "standard";
+        setRoleElementVisible(newContactButton, !isTestAccess() || canCreateCareObject());
+        setRoleElementVisible(newOrganizationButton, !isTestAccess() || canCreateCareObject());
         setRoleElementVisible(openImportButton, canAdministerData());
         setRoleElementVisible(importsStartFileButton, canAdministerData());
         setRoleElementVisible(importsStartStakeholderButton, canAdministerData());
         setRoleElementVisible(importsOpenTableButton, canEditContacts());
         setRoleElementVisible(registrationsRefresh, canAdministerData());
         setRoleElementVisible(importCsvButton, canAdministerData());
-        setRoleElementVisible(exportCsvButton, canAdministerData());
+        setRoleElementVisible(exportCsvButton, canAdministerData() && canExportData());
         setRoleElementVisible(archiveViewButton, canAdministerData());
         setRoleElementVisible(contactMatchingWorklistButton, canAdministerData());
         setRoleElementVisible(organizationMatchingWorklistButton, canAdministerData());
-        setRoleElementVisible(newExpertContactButton, canEditContacts());
-        setRoleElementVisible(newExpertOrganizationButton, canEditContacts());
-        setRoleElementVisible(newPatientContactButton, canEditContacts());
-        setRoleElementVisible(newPatientOrganizationButton, canEditContacts());
+        setRoleElementVisible(newExpertContactButton, canEditContacts() && !isTestAccess());
+        setRoleElementVisible(newExpertOrganizationButton, canEditContacts() && !isTestAccess());
+        setRoleElementVisible(newPatientContactButton, canEditContacts() && !isTestAccess());
+        setRoleElementVisible(newPatientOrganizationButton, canEditContacts() && !isTestAccess());
         setRoleElementVisible(expertDuplicatesButton, canAdministerData());
-        setRoleElementVisible(newFormatButton, canEditContacts());
+        setRoleElementVisible(newFormatButton, canEditContacts() && !isTestAccess());
         setRoleElementVisible(profileImportsTabButton, canAdministerData());
         if (!canAdministerData() && activeProfileTab === "imports") setProfileTab("profile");
         setRoleElementVisible(sidebarAnalyticsButton, canAdministerData());
@@ -1997,7 +2058,7 @@
             window.location.replace(window.VKAuth.buildLogoutUrl?.() || window.VKAuth.buildLoginUrl());
             return;
           }
-          window.location.replace("../login/login.html");
+          window.location.replace(APP_ROUTES?.assetUrl?.("../login/login.html") || "../login/login.html");
         }
       }
 
@@ -2330,7 +2391,7 @@
         const email = String(registration.email || "").trim().toLowerCase();
         const organizationName = normalizeOrganizationName(registration.organization || "");
         const postalCode = registrationPostalCode(registration);
-        const contactMatch = contacts.some((contact) => email && String(contact.email || "").trim().toLowerCase() === email);
+        const contactMatch = contacts.some((contact) => email && accessibleContactEmail(contact).toLowerCase() === email);
         const organizationMatch = organizations.some((organization) => {
           if (!organizationName || normalizeOrganizationName(organization.name) !== organizationName) return false;
           const organizationPostalCode = String(organization.postalCode || organization.postal_code || "").trim();
@@ -2523,7 +2584,7 @@
         const linkContactOptions = [...contacts]
           .sort((left, right) => String(left.displayName || left.name || "").localeCompare(String(right.displayName || right.name || ""), "de"))
           .map((contact) => {
-            const label = [contact.displayName || contact.name, contact.organization, contact.email].filter(Boolean).join(" · ");
+            const label = [contact.displayName || contact.name, contact.organization, accessibleContactEmail(contact)].filter(Boolean).join(" · ");
             return `<option value="${escapeHtml(contact.id)}">${escapeHtml(label)}</option>`;
           }).join("");
         if (activeRegistrationId !== registration.id) registrationDetailTab = "contact";
@@ -2727,7 +2788,7 @@
           return;
         }
         const duplicate = contacts.find((contact) => {
-          const sameEmail = registration.email && String(contact.email || "").toLowerCase() === registration.email.toLowerCase();
+          const sameEmail = registration.email && accessibleContactEmail(contact).toLowerCase() === registration.email.toLowerCase();
           const sameName = registrationDisplayName(registration)
             && String(contact.displayName || contact.name || "").trim().toLowerCase() === registrationDisplayName(registration).trim().toLowerCase();
           const sameOrganization = registration.organization
@@ -3060,7 +3121,7 @@
       }
 
       function activeOrganizationEditorSteps() {
-        return organizationEditorScope === "care"
+        return organizationEditorScope === "care" && !isTestAccess()
           ? organizationEditorSteps
           : organizationEditorSteps.filter((step) => step.id !== "primary-systems");
       }
@@ -4596,6 +4657,9 @@
           nextStep: entry.nextStep || "",
           email: entry.email || "",
           phone: entry.phone || "",
+          ...(["owner", "restricted"].includes(entry.contactChannelAccess)
+            ? { contactChannelAccess: entry.contactChannelAccess }
+            : {}),
           linkedin: entry.linkedin || "",
           mitmachenConsentStatus: normalizeMitmachenConsentStatus(entry.mitmachenConsentStatus || entry.mitmachen_consent_status || "clarification_needed"),
           mitmachenConsentEffectiveAt: entry.mitmachenConsentEffectiveAt || entry.mitmachen_consent_effective_at || "",
@@ -4631,6 +4695,9 @@
           ownerId: ownerIds[0] || entry.ownerId || entry.owner_id || "",
           ownerIds,
           owners,
+          testMarker: entry.testMarker?.scopeRef
+            ? { scopeRef: String(entry.testMarker.scopeRef).trim() }
+            : null,
           status: entry.status || "active",
           createdAt: entry.createdAt || "",
           updatedAt: entry.updatedAt || ""
@@ -5147,6 +5214,7 @@
       let showingArchive = false;
       let greetingLabel = "Willkommen im Versorgungs-Kompass";
       const viewLabels = {
+        home: { title: "Startseite", subtitle: "Dein Einstieg in Versorgung, Stakeholder, Hospitation und Formate." },
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Fachlicher Verlauf von Stammdaten, Zuständigkeiten, Einwilligungen, Hospitationen, Formaten und Dokumenten." },
@@ -5171,20 +5239,6 @@
       };
 
       const appVersionHistory = [
-        {
-          version: "0.21.0",
-          date: "24. Juli 2026",
-          title: "Versorgung erleben, Wissen teilen",
-          icon: "start",
-          summary: "Hospitationen lassen sich noch leichter planen, dokumentieren und auswerten. So werden Erfahrungen aus dem Versorgungsalltag zu Wissen, das das ganze Netzwerk weiterbringt.",
-          items: [
-            "PoC-Security-Nachweise für Software Factory ergänzen: Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
-            "Verbesserungen für Hospitationen: Der Bereich Hospitationen wurde weiterentwickelt. Die Änderung erleichtert die tägliche Arbeit mit dem Versorgungs-Kompass. Wichtige Informationen und Funktionen sind dadurch schneller erreichbar.",
-            "Deploy-Validierung mit vollständiger Git-Historie (#93): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
-            "README-Zugänge vereinfachen (#91): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
-            "Pages-Prüfung mit vollständiger Release-Historie ausführen (#90): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
-          ]
-        },
         {
           version: "0.20.0",
           date: "17. Juli 2026",
@@ -6098,7 +6152,7 @@
       }
 
       function publicAssetBasePath() {
-        return /\/app\/[^/]*$/i.test(window.location.pathname || "") ? "../../public/" : "./public/";
+        return APP_ROUTES?.assetUrl?.("../../public/") || (/\/app\/[^/]*$/i.test(window.location.pathname || "") ? "../../public/" : "./public/");
       }
 
       function resolvePublicAssetUrl(value = "") {
@@ -6700,6 +6754,13 @@
         return meaningfulOrEmpty(organization.source) || "-";
       }
 
+      function testMarkerMarkup(entity = {}, { compact = false } = {}) {
+        const scopeRef = String(entity?.testMarker?.scopeRef || "").trim();
+        if (!scopeRef) return "";
+        const title = `Isolierte Testdaten · Bereich ${scopeRef}`;
+        return `<span class="test-data-badge ${compact ? "test-data-badge--compact" : ""}" title="${escapeHtml(title)}">Test</span>`;
+      }
+
       function organizationTableCellMarkup(organization, key) {
         const contactCount = organizationContacts(organization).length;
         if (key === "organization") {
@@ -6707,7 +6768,10 @@
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm")}
               <div class="contact-meta">
-                <button class="organization-name-button" type="button" data-open-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
+                <span class="entity-name-with-marker">
+                  <button class="organization-name-button" type="button" data-open-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
+                  ${testMarkerMarkup(organization)}
+                </span>
                 ${organization.organizationType || organization.website ? `<div class="contact-subline">${escapeHtml(organization.organizationType || organization.website)}</div>` : ""}
               </div>
             </div>
@@ -8371,6 +8435,7 @@
               initials: profile.initials || "",
               team: profile.team || "",
               avatarUrl: profileAvatarUrl(profile),
+              status: String(profile.status || "active").toLowerCase(),
               updatedAt: profile.updated_at || profile.updatedAt || ""
             };
           })
@@ -8378,6 +8443,7 @@
           .sort((a, b) => a.label.localeCompare(b.label, "de"));
         teamDirectoryState = "ready";
         syncOwnerOptionsFromProfiles();
+        renderDemoProfileSwitcher();
       }
 
       function ensureOwnerProfile(profile = null) {
@@ -8392,6 +8458,7 @@
           initials: profile.initials || "",
           team: profile.team || "",
           avatarUrl: profileAvatarUrl(profile),
+          status: String(profile.status || "active").toLowerCase(),
           updatedAt: profile.updated_at || profile.updatedAt || ""
         };
         ownerProfiles = [
@@ -8399,6 +8466,39 @@
           ...ownerProfiles.filter((item) => item.id !== normalizedProfile.id)
         ].sort((a, b) => a.label.localeCompare(b.label, "de"));
         syncOwnerOptionsFromProfiles();
+      }
+
+      function renderDemoProfileSwitcher() {
+        const accountSection = document.querySelector('[data-sidebar-section="account"]');
+        let switcher = accountSection?.querySelector("[data-demo-profile-switcher]");
+        if (!OWNER_ONLY_CONTACT_CHANNELS || !accountSection) {
+          switcher?.remove();
+          return;
+        }
+        if (!switcher) {
+          switcher = document.createElement("div");
+          switcher.className = "demo-profile-switcher";
+          switcher.dataset.demoProfileSwitcher = "true";
+          const sectionLabel = accountSection.querySelector(".sidebar-section-label");
+          sectionLabel?.insertAdjacentElement("afterend", switcher);
+        }
+        const profiles = ownerProfiles.filter((profile) => !["archived", "inactive", "disabled"].includes(profile.status));
+        const requestedProfileId = new URL(window.location.href).searchParams.get("demoProfile") || "";
+        const selectedProfileId = currentProfile?.id || requestedProfileId;
+        switcher.innerHTML = `
+          <label for="demo-profile-select">Demo-Profil</label>
+          <select id="demo-profile-select" aria-describedby="demo-profile-help">
+            ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(profile.label)} · ${escapeHtml(roleLabel(profile.role))}</option>`).join("")}
+          </select>
+          <small id="demo-profile-help">Synthetische Demo · Ansicht wechseln</small>
+        `;
+        switcher.querySelector("select")?.addEventListener("change", (event) => {
+          const profileId = String(event.currentTarget.value || "").trim();
+          if (!profiles.some((profile) => profile.id === profileId)) return;
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set("demoProfile", profileId);
+          window.location.replace(nextUrl.toString());
+        });
       }
 
       function isLegacyOwner(value) {
@@ -8550,9 +8650,7 @@
       function appAssetImageUrl(url = "") {
         const value = String(url || "").trim();
         if (!value || /^(data:|blob:|https?:|\/)/i.test(value)) return value;
-        if (value.startsWith("../../public/") && !window.location.pathname.includes("/frontend/app/")) {
-          return value.replace("../../", "");
-        }
+        if (isPublicAssetPath(value)) return resolvePublicAssetUrl(value);
         return value;
       }
 
@@ -8759,7 +8857,7 @@
         groups.forEach((group) => {
           group.accounts.sort((a, b) => a.label.localeCompare(b.label, "de"));
         });
-        return groups.filter((group) => group.accounts.length > 0);
+        return groups;
       }
 
       function availableTeamOptions(selectedTeam = "") {
@@ -8793,9 +8891,7 @@
       }
 
       function teamIconMarkup(team = "") {
-        const icon =
-          teamDefinitions.find((entry) => entry.name === team)?.icon ||
-          (team === TEAM_UNASSIGNED_LABEL ? "unassigned" : "team");
+        const icon = teamDefinitions.find((entry) => entry.name === team)?.icon || "unassigned";
         if (icon === "kommunikation") {
           return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H6l-3 3v-7a8 8 0 1 1 18-4Z"></path><path d="M8 11h8"></path><path d="M8 15h5"></path></svg>`;
         }
@@ -8805,15 +8901,12 @@
         if (icon === "stabsstelle") {
           return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.4 2.8 8.4 7 10 4.2-1.6 7-5.6 7-10V6l-7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>`;
         }
-        if (icon === "team") {
-          return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path></svg>`;
-        }
         return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>`;
       }
 
       function teamGroupDomId(team = "", index = 0) {
         const slug = normalizeTeamLookup(team).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "team";
-        return `team-card-${slug}-${index}`;
+        return `team-column-${slug}-${index}`;
       }
 
       function teamContactIndex(profiles = teamProfiles()) {
@@ -8876,76 +8969,6 @@
         details.dataset.teamOwnerLoaded = "true";
       }
 
-      function teamAvatarPreviewMarkup(accounts = []) {
-        const visibleAccounts = accounts.slice(0, 4);
-        const memberNames = accounts.map((profile) => teamProfileDisplayLabel(profile));
-        const memberAvatars = visibleAccounts
-          .map((profile) => {
-            const profileName = teamProfileDisplayLabel(profile);
-            return `<span class="team-card-avatar" title="${escapeHtml(profileName)}" aria-hidden="true">${avatarMarkup(profile, "team-card-avatar-image")}</span>`;
-          })
-          .join("");
-        const overflowCount = Math.max(0, accounts.length - visibleAccounts.length);
-        const overflowAvatar = overflowCount
-          ? `<span class="team-card-avatar team-card-avatar--overflow" aria-hidden="true">+${overflowCount}</span>`
-          : "";
-        const accessibleLabel =
-          accounts.length === 1
-            ? `Nutzer: ${memberNames[0]}`
-            : `Nutzer: ${memberNames.join(", ")}`;
-        return `<span class="team-card-avatars" role="img" aria-label="${escapeHtml(accessibleLabel)}">${memberAvatars}${overflowAvatar}</span>`;
-      }
-
-      function teamAccountCardMarkup(profile, contactIndex) {
-        const ownerCount = contactIndex.get(profile.id)?.length || 0;
-        const role = String(profile.role || "viewer").toLowerCase();
-        const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
-        const profileName = teamProfileDisplayLabel(profile);
-        return `
-          <article class="team-account-card">
-            <header class="team-account-card__header">
-              <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
-              <div class="team-account-copy">
-                <strong>${escapeHtml(profileName)}</strong>
-              </div>
-              <span class="team-account-role">
-                <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
-              </span>
-            </header>
-            <details class="profile-owner-details team-contact-details" data-team-owner-profile="${escapeHtml(profile.id)}">
-              <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt öffnen" : "Kontakte öffnen"}</span></summary>
-              <div class="profile-owner-list" data-team-owner-list>
-                <div class="profile-owner-empty">Kontakte werden erst beim Öffnen geladen.</div>
-              </div>
-            </details>
-          </article>
-        `;
-      }
-
-      function teamCardMarkup(group, groupIndex, isSelected) {
-        const groupId = teamGroupDomId(group.name, groupIndex);
-        const countLabel = `${group.accounts.length} Nutzer`;
-        return `
-          <button
-            class="team-card team-card--${escapeHtml(group.icon)}${isSelected ? " is-selected" : ""}"
-            type="button"
-            data-team-select="${escapeHtml(group.name)}"
-            aria-pressed="${isSelected ? "true" : "false"}"
-            aria-controls="team-selected-detail"
-          >
-            <span class="team-card__top">
-              <span class="team-icon" aria-hidden="true">${teamIconMarkup(group.name)}</span>
-              ${isSelected ? `<span class="team-card__selected">Ausgewählt</span>` : ""}
-            </span>
-            <strong class="team-card__title" id="${groupId}">${escapeHtml(group.name)}</strong>
-            <span class="team-card__footer">
-              ${teamAvatarPreviewMarkup(group.accounts)}
-              <span class="team-card__count">${escapeHtml(countLabel)}</span>
-            </span>
-          </button>
-        `;
-      }
-
       function renderTeamView() {
         if (!teamAccountList) return;
         const profiles = teamProfiles();
@@ -8973,55 +8996,89 @@
         teamAccountList.setAttribute("aria-busy", "false");
 
         if (!profiles.length) {
-          selectedTeamName = "";
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Noch keine Nutzer vorhanden</strong><span>Sobald Profile eingerichtet sind, erscheinen sie hier nach Teams gruppiert.</span></div>`;
           return;
         }
 
         const groups = groupedTeamProfiles(profiles);
-        if (!groups.some((group) => group.name === selectedTeamName)) selectedTeamName = groups[0]?.name || "";
-        const selectedGroup = groups.find((group) => group.name === selectedTeamName) || groups[0];
-        if (!selectedGroup) {
-          teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Noch keine Teams vorhanden</strong><span>Ordne Nutzer einem Team zu, damit die Übersicht gefüllt wird.</span></div>`;
-          return;
-        }
-
-        const teamCards = groups
-          .map((group, groupIndex) => teamCardMarkup(group, groupIndex, group.name === selectedGroup.name))
+        teamAccountList.innerHTML = groups
+          .map((group, groupIndex) => {
+            const team = group.name;
+            const accounts = group.accounts;
+            const groupId = teamGroupDomId(team, groupIndex);
+            const teamDefinition = teamDefinitions.find((entry) => entry.name === team);
+            const teamSubtitle = group.isUnassigned
+              ? "Noch ohne Teamzuordnung"
+              : teamDefinition?.description || "Team im gemeinsamen Arbeitsraum";
+            const isOpen = accounts.length > 0 && expandedTeamNames.has(team);
+            const memberNames = accounts.map((profile) => teamProfileDisplayLabel(profile));
+            const memberAvatars = accounts
+              .map((profile) => {
+                const profileName = teamProfileDisplayLabel(profile);
+                return `<span class="team-column-member-avatar" title="${escapeHtml(profileName)}" aria-hidden="true">${avatarMarkup(profile, "team-column-member-image")}</span>`;
+              })
+              .join("");
+            return `
+              <details class="team-column team-column--${escapeHtml(group.icon)}" data-team-group="${escapeHtml(team)}" ${isOpen ? "open" : ""}>
+                <summary class="team-column-head" aria-labelledby="${groupId}">
+                  <span class="team-icon" aria-hidden="true">${teamIconMarkup(team)}</span>
+                  <span class="team-column-title">
+                    <strong id="${groupId}">${escapeHtml(team)}</strong>
+                    <span>${escapeHtml(teamSubtitle)}</span>
+                  </span>
+                  <span class="team-column-preview">
+                    ${accounts.length ? `<span class="team-column-members" role="img" aria-label="${escapeHtml(accounts.length === 1 ? `Teammitglied: ${memberNames[0]}` : `Teammitglieder: ${memberNames.join(", ")}`)}">${memberAvatars}</span>` : ""}
+                    <span class="team-column-count" aria-label="${accounts.length} ${accounts.length === 1 ? "Mitglied" : "Mitglieder"}">
+                      <strong>${accounts.length}</strong>
+                      <span>${accounts.length === 1 ? "Mitglied" : "Mitglieder"}</span>
+                    </span>
+                  </span>
+                  <span class="team-column-toggle" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="team-column-accounts">
+                  ${accounts.length
+                    ? accounts
+                        .map((profile) => {
+                          const ownerCount = contactIndex.get(profile.id)?.length || 0;
+                          const role = String(profile.role || "viewer").toLowerCase();
+                          const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
+                          const profileName = teamProfileDisplayLabel(profile);
+                          return `
+                            <article class="team-account-row">
+                              <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
+                              <div class="team-account-copy">
+                                <strong>${escapeHtml(profileName)}</strong>
+                                <span class="team-account-team">${escapeHtml(team)}</span>
+                              </div>
+                              <div class="team-account-meta">
+                                <span class="team-account-role">
+                                  <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
+                                </span>
+                              </div>
+                              <div class="team-account-actions">
+                                <details class="profile-owner-details team-contact-details" data-team-owner-profile="${escapeHtml(profile.id)}">
+                                  <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt öffnen" : "Kontakte öffnen"}</span></summary>
+                                  <div class="profile-owner-list" data-team-owner-list>
+                                    <div class="profile-owner-empty">Kontakte werden erst beim Öffnen geladen.</div>
+                                  </div>
+                                </details>
+                              </div>
+                            </article>
+                          `;
+                        })
+                        .join("")
+                    : `<div class="team-column-empty">${group.isUnassigned ? "Alle geladenen Nutzer sind einem Team zugeordnet." : "Noch keine Nutzer zugeordnet."}</div>`}
+                </div>
+              </details>
+            `;
+          })
           .join("");
-        const detailId = `${teamGroupDomId(selectedGroup.name, groups.indexOf(selectedGroup))}-detail-title`;
-        const accountCards = selectedGroup.accounts.map((profile) => teamAccountCardMarkup(profile, contactIndex)).join("");
 
-        teamAccountList.innerHTML = `
-          <div class="team-card-grid" aria-label="Teams auswählen">
-            ${teamCards}
-          </div>
-          <section
-            class="team-selected-detail"
-            id="team-selected-detail"
-            data-team-detail="${escapeHtml(selectedGroup.name)}"
-            aria-labelledby="${detailId}"
-          >
-            <header class="team-selected-detail__header">
-              <h3 id="${detailId}">${escapeHtml(selectedGroup.name)}</h3>
-              <span>${selectedGroup.accounts.length} Nutzer</span>
-            </header>
-            <div class="team-account-grid">
-              ${accountCards}
-            </div>
-          </section>
-        `;
-
-        teamAccountList.querySelectorAll("[data-team-select]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const nextTeam = button.dataset.teamSelect || "";
-            if (!nextTeam || nextTeam === selectedTeamName) return;
-            selectedTeamName = nextTeam;
-            renderTeamView();
-            const selectedButton = [...teamAccountList.querySelectorAll("[data-team-select]")].find(
-              (candidate) => candidate.dataset.teamSelect === selectedTeamName
-            );
-            selectedButton?.focus({ preventScroll: true });
+        teamAccountList.querySelectorAll("[data-team-group]").forEach((details) => {
+          details.addEventListener("toggle", () => {
+            const team = details.dataset.teamGroup || "";
+            if (details.open) expandedTeamNames.add(team);
+            else expandedTeamNames.delete(team);
           });
         });
         teamAccountList.querySelectorAll("[data-team-owner-profile]").forEach((details) => {
@@ -9076,33 +9133,22 @@
         updateAvatarElement(badge, profile);
         updateAvatarElement(sidebarUserBadge, profile);
         if (sidebarUserName) sidebarUserName.textContent = displayName;
-        if (sidebarUserRole) sidebarUserRole.textContent = roleLabel(role);
+        const accessRole = `${roleLabel(role)}${isTestAccess() ? " · Testbereich" : ""}`;
+        if (sidebarUserRole) sidebarUserRole.textContent = accessRole;
         updateAvatarElement(accountAvatar, profile);
         if (name) name.textContent = displayName;
         if (accountEmail) accountEmail.textContent = profile?.email || "Geschütztes Profil";
         if (accountRole) {
-          accountRole.textContent = roleLabel(role);
+          accountRole.textContent = accessRole;
           accountRole.className = `account-role-pill account-role-pill--${role}`;
         }
         if (accountPermissionNote) accountPermissionNote.textContent = permissionText(role);
         greetingLabel = `Willkommen, ${String(displayName || "Team").split(" ")[0]}`;
+        renderDemoProfileSwitcher();
         renderViewChrome();
         renderProfileOwnerSummary();
         renderTeamView();
         applyRoleUi();
-      }
-
-      function profileSettingsPayload() {
-        const preferences = userSettings?.preferences || {};
-        return {
-          defaultViewType: userSettings?.defaultViewType || "map",
-          tableDensity: userSettings?.tableDensity || "comfortable",
-          preferences: {
-            ...preferences,
-            defaultContactTab: preferences.defaultContactTab || "overview",
-            notificationsEnabled: false
-          }
-        };
       }
 
       function setProfileStatus(message = "", isError = false) {
@@ -9139,7 +9185,6 @@
         const profile = currentProfile || {};
         const displayName = profile.display_name || profile.email || "Angemeldet";
         const role = currentRole();
-        const settings = profileSettingsPayload();
         updateAvatarElement(profileAvatarPreview, profile);
         updateAvatarElement(profilePhotoPreview, profile);
         if (profileDisplayTitle) profileDisplayTitle.textContent = displayName;
@@ -9147,7 +9192,7 @@
         if (profileEmailLabel) profileEmailLabel.textContent = profile.email || "Geschütztes Profil";
         [profileRolePill, profileRoleDisplay].forEach((element) => {
           if (!element) return;
-          element.textContent = roleLabel(role);
+          element.textContent = `${roleLabel(role)}${isTestAccess() ? " · Testbereich" : ""}`;
           element.className = `account-role-pill account-role-pill--${role}`;
         });
         if (profileRoleDescription) profileRoleDescription.textContent = permissionText(role);
@@ -9356,11 +9401,11 @@
         return userSettings?.preferences?.onboarding || preferences.onboarding;
       }
 
-      function normalizePostOnboardingView(view = "contacts") {
-        const candidate = String(view || "").replace(/^#/, "") || "contacts";
-        if (candidate === "onboarding") return "contacts";
-        if (!viewLabels[candidate]) return "contacts";
-        if (!canAccessView(candidate)) return "contacts";
+      function normalizePostOnboardingView(view = "home") {
+        const candidate = String(view || "").replace(/^#/, "") || "home";
+        if (candidate === "onboarding") return "home";
+        if (!viewLabels[candidate]) return "home";
+        if (!canAccessView(candidate)) return "home";
         return candidate;
       }
 
@@ -9388,7 +9433,7 @@
         renderViewChrome();
       }
 
-      async function openOnboarding(targetView = "contacts") {
+      async function openOnboarding(targetView = "home") {
         pendingPostOnboardingView = normalizePostOnboardingView(targetView);
         onboardingActive = true;
         closeMenus();
@@ -9403,9 +9448,12 @@
         updateView();
       }
 
-      function finishOnboarding(targetView = pendingPostOnboardingView || "contacts") {
+      function finishOnboarding(targetView = pendingPostOnboardingView || "home") {
         onboardingActive = false;
         const nextView = normalizePostOnboardingView(targetView);
+        if (nextView === "home" && transientInitialHomeSidebarCollapse && !isMobileLayout()) {
+          setSidebarCollapsed(true, { persist: false });
+        }
         setActiveView(nextView);
         updateRouteHash(nextView);
         updateView();
@@ -9509,7 +9557,7 @@
         {
           id: "team",
           view: "team",
-          target: "#team-account-list .team-card.is-selected",
+          target: "#team-account-list .team-column-head",
           fallbackTarget: "#team-account-list",
           sidebarSection: "account",
           sidebarTarget: "#sidebar-team-button",
@@ -9776,9 +9824,10 @@
 
       function restoreProductTourSidebarState(state = null) {
         if (!state) return;
+        const expandedGroup = state.sections?.find(({ expanded }) => expanded)?.group || "";
         state.sections?.forEach(({ group, expanded }) => {
           const section = sidebarCollapsibleSections.find((item) => item.dataset.sidebarGroup === group);
-          if (section) setSidebarSectionExpanded(section, Boolean(expanded));
+          if (section) setSidebarSectionExpanded(section, Boolean(expanded) && group === expandedGroup);
         });
         setSidebarCollapsed(Boolean(state.collapsed));
         setMobileSidebarExpanded(Boolean(state.mobileExpanded));
@@ -10823,14 +10872,15 @@
       }
 
       async function updateContactField(id, field, value, options = {}) {
-        if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern geändert werden.");
-          return false;
-        }
         const expertScope = options.scope === "expert";
         const currentList = expertScope ? expertContacts : contacts;
         const currentContact = currentList.find((contact) => contact.id === id);
         if (!currentContact) return false;
+        const allowed = expertScope ? canEditContacts() : canEditCareObject(currentContact);
+        if (!allowed) {
+          showPermissionDenied("Dieser Kontakt gehört nicht zu deinem freigegebenen Bearbeitungsbereich.");
+          return false;
+        }
 
         const normalizedValue = typeof value === "string" ? value.trim() : value;
         const nextOwnerIds = field === "owner" ? normalizeOwnerIds(normalizedValue) : [];
@@ -13492,6 +13542,11 @@
             .join("");
         };
 
+        if (activeView === "home") {
+          if (summaryGrid) summaryGrid.innerHTML = "";
+          return;
+        }
+
         if (isNotificationsWorkspaceActive()) {
           if (summaryGrid) summaryGrid.innerHTML = "";
           return;
@@ -14612,7 +14667,7 @@
               const organization = hospitationOrganization(hospitation);
               return [
                 hospitationContextLabel(hospitation),
-                contact?.email,
+                accessibleContactEmail(contact),
                 organization?.name,
                 hospitationFreeTextContactName(hospitation),
                 hospitationFreeTextOrganizationName(hospitation),
@@ -14776,8 +14831,9 @@
       }
 
       function updateHospitationExportButtons({ busy = false } = {}) {
-        const unavailable = !window.VersorgungsCompassHospitationExport || Boolean(hospitationLoadErrorMessage);
+        const unavailable = !canExportData() || !window.VersorgungsCompassHospitationExport || Boolean(hospitationLoadErrorMessage);
         hospitationExportButtons.forEach((button) => {
+          button.hidden = !canExportData();
           button.disabled = busy || unavailable;
           button.setAttribute("aria-busy", busy ? "true" : "false");
           if (unavailable) button.title = "Export ist erst verfügbar, wenn die Hospitations-Termine geladen wurden";
@@ -14786,6 +14842,10 @@
       }
 
       async function exportHospitationDocument(format = "docx") {
+        if (!canExportData()) {
+          showPermissionDenied("Im Testbereich ist der Export deaktiviert.");
+          return;
+        }
         const exporter = window.VersorgungsCompassHospitationExport;
         if (!exporter || hospitationLoadErrorMessage) {
           window.alert("Der Hospitations-Export ist aktuell nicht verfügbar. Bitte lade die Termine erneut.");
@@ -17535,12 +17595,34 @@
       function renderHospitationAppointments() {
         const entries = hospitationScheduleEntries({ archived: hospitationArchiveView });
         const archivedCount = hospitationScheduleEntries({ archived: true }).length;
+        const hasActiveAppointments = activeHospitationRecords().length > 0;
         pruneHospitationSelection(entries);
         updateHospitationBulkToolbar();
+        const scheduleContent = !hospitationArchiveView && !hasActiveAppointments
+          ? `
+            <section class="hospitation-first-appointment" aria-labelledby="hospitation-first-appointment-title">
+              <span class="hospitation-first-appointment__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="4" y="5.5" width="16" height="14" rx="3"></rect>
+                  <path d="M8 3.5v4M16 3.5v4M4 10h16M12 13v4M10 15h4"></path>
+                </svg>
+              </span>
+              <span class="hospitation-first-appointment__eyebrow">Ihre erste Hospitation</span>
+              <h2 id="hospitation-first-appointment-title">Noch kein Termin angelegt</h2>
+              <p>Planen Sie den ersten Hospitations-Termin und schaffen Sie die Grundlage für Beobachtungen und Auswertung.</p>
+              <button class="action-button action-button--primary hospitation-first-appointment__button" type="button" data-hospitation-action="create-first">
+                <span class="action-button__icon" aria-hidden="true">+</span>
+                Ersten Termin anlegen
+              </button>
+            </section>
+          `
+          : hospitationScheduleView === "calendar"
+            ? renderHospitationCalendar(entries)
+            : renderHospitationScheduleList(entries);
         return `
           <div class="hospitation-schedule">
             ${renderHospitationContextFilter()}
-            ${hospitationScheduleView === "calendar" ? renderHospitationCalendar(entries) : renderHospitationScheduleList(entries)}
+            ${scheduleContent}
             ${renderHospitationArchiveActions(archivedCount)}
           </div>
         `;
@@ -18686,7 +18768,7 @@
         return `
           <article class="dashboard-card hospitation-dashboard-preview-card">
             <div class="hospitation-dashboard-preview-copy">
-              <strong>Versorgungswissen-Cockpit</strong>
+              <strong>Dashboard</strong>
               <p>Das Dashboard konzentriert sich auf die aktuell relevanten Hospitationsdaten. Musterbildung bleibt weiterhin Teil des Hospitations-Frameworks.</p>
             </div>
             <div class="hospitation-dashboard-preview-actions">
@@ -20970,6 +21052,10 @@
             const action = button.dataset.hospitationAction;
             const hospitationId = button.dataset.hospitationId || "";
             const slotId = button.dataset.slotId || "";
+            if (action === "create-first") {
+              openHospitationEditor("request");
+              return;
+            }
             if (action === "export-appointment") {
               await exportHospitationAppointmentDocument(
                 hospitationId,
@@ -25507,8 +25593,8 @@
           contact.organization || "",
           normalizeCategory(contact.category || ""),
           contact.specialty || "",
-          contact.email || "",
-          contact.phone || "",
+          accessibleContactEmail(contact),
+          accessibleContactPhone(contact),
           participant.invitationStatus || "Eingeladen",
           participant.participantRole || "",
           participant.notes || "",
@@ -25722,7 +25808,7 @@
         if (!importedRows.length) throw new Error("Die Excel-Datei enthält keine ausgefüllten Kontaktzeilen.");
 
         const byId = new Map(contacts.filter((contact) => contact.status !== "archived").map((contact) => [String(contact.id), contact]));
-        const byEmail = uniqueFormatContactLookup((contact) => normalizeImportKey(contact.email));
+        const byEmail = uniqueFormatContactLookup((contact) => normalizeImportKey(accessibleContactEmail(contact)));
         const byNameOrganization = uniqueFormatContactLookup((contact) => `${normalizeImportKey(contact.name)}|${normalizeImportKey(contact.organization)}`);
         const invitationStatusByKey = new Map(
           ["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"]
@@ -26094,8 +26180,12 @@
           }
           openParticipantPlanner(format.id);
         });
-        document.getElementById("export-format-participants")?.addEventListener("click", () => downloadFormatParticipants(format));
-        document.getElementById("download-format-template")?.addEventListener("click", () => downloadFormatParticipants(format, { empty: true }));
+        document.getElementById("export-format-participants")?.addEventListener("click", () => {
+          if (canExportData()) downloadFormatParticipants(format);
+        });
+        document.getElementById("download-format-template")?.addEventListener("click", () => {
+          if (canExportData()) downloadFormatParticipants(format, { empty: true });
+        });
         document.getElementById("import-format-participants")?.addEventListener("click", () => {
           if (!canEditContacts()) {
             showPermissionDenied(viewerCreateDisabledMessage("den Excel-Import"));
@@ -26384,8 +26474,7 @@
           contact.organization,
           contact.category,
           contact.location || contact.city,
-          contact.email,
-          contact.phone,
+          ...(contactChannelsRestricted(contact) ? [] : [accessibleContactEmail(contact), accessibleContactPhone(contact)]),
           contactOwnerValues(contact).length ? "owner" : ""
         ].filter((value) => !hasMeaningfulValue(value)).length;
         if (missing === 0) return { label: "Vollständig", tone: "good" };
@@ -26395,8 +26484,12 @@
 
       function contactMissingFields(contact) {
         return [
-          { value: "email", label: "E-Mail", present: hasMeaningfulValue(contact.email) },
-          { value: "phone", label: "Telefon", present: hasMeaningfulValue(contact.phone) },
+          ...(contactChannelsRestricted(contact)
+            ? []
+            : [
+                { value: "email", label: "E-Mail", present: hasMeaningfulValue(accessibleContactEmail(contact)) },
+                { value: "phone", label: "Telefon", present: hasMeaningfulValue(accessibleContactPhone(contact)) }
+              ]),
           { value: "owner", label: "Owner", present: contactOwnerValues(contact).length > 0 },
           { value: "organization", label: "Organisation", present: hasMeaningfulValue(contact.organization) },
           { value: "specialty", label: "Fachrichtung", present: hasMeaningfulValue(contact.specialty) }
@@ -26422,6 +26515,7 @@
               <div class="contact-meta">
                 <div class="contact-name__line">
                   <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${escapeHtml(contact.name) || "&mdash;"}</button>
+                  ${testMarkerMarkup(contact)}
                 </div>
               </div>
             </div>
@@ -26937,7 +27031,7 @@
                 <div class="mobile-contact-top">
                   ${contactAvatarMarkup(contact, "sm")}
                   <div class="mobile-contact-copy">
-                    <h3 class="mobile-contact-name">${escapeHtml(contact.name) || "&mdash;"}</h3>
+                    <h3 class="mobile-contact-name">${escapeHtml(contact.name) || "&mdash;"} ${testMarkerMarkup(contact, { compact: true })}</h3>
                     <div class="mobile-contact-organization">${escapeHtml(contact.organization || "Nicht dokumentiert")}</div>
                     <div class="mobile-contact-consent">${consentAvailabilityBadgeMarkup(contact, { compact: true })}</div>
                   </div>
@@ -27258,7 +27352,10 @@
 
       function ownerMultiPickerMarkup(selectedOwnerIds = [], { compact = false, searchable = false } = {}) {
         const selected = new Set(normalizeOwnerIds(selectedOwnerIds));
-        const options = ownerProfiles.map((profile) => `
+        const availableOwnerProfiles = isTestAccess()
+          ? ownerProfiles.filter((profile) => profile.id === currentProfile?.id)
+          : ownerProfiles;
+        const options = availableOwnerProfiles.map((profile) => `
           <label class="owner-multi-option" data-owner-option data-owner-search-label="${escapeHtml(profile.label.toLowerCase())}">
             <input type="checkbox" value="${escapeHtml(profile.id)}" ${selected.has(profile.id) ? "checked" : ""}>
             <span class="owner-badge__avatar" aria-hidden="true">${ownerBadgeAvatarMarkup(profile, profile.label)}</span>
@@ -27316,9 +27413,12 @@
       function renderEditorOwnerPicker(ownerIds = []) {
         const picker = document.getElementById("field-owner-picker");
         if (!picker) return;
-        picker.innerHTML = ownerMultiPickerMarkup(ownerIds, { searchable: true });
+        const effectiveOwnerIds = isTestAccess()
+          ? normalizeOwnerIds(currentProfile?.id || "")
+          : ownerIds;
+        picker.innerHTML = ownerMultiPickerMarkup(effectiveOwnerIds, { searchable: true });
         bindOwnerMultiPickerSearch(picker);
-        setOwnerInputValue(editorForm.elements.owner, ownerIds);
+        setOwnerInputValue(editorForm.elements.owner, effectiveOwnerIds);
         picker.querySelectorAll('input[type="checkbox"]').forEach((input) => {
           input.addEventListener("change", () => {
             setOwnerInputValue(editorForm.elements.owner, selectedOwnerIdsFromPicker(picker));
@@ -27375,7 +27475,10 @@
       }
 
       function organizationOptions() {
-        return [...new Map(organizations.filter((organization) => organization.name).map((organization) => [organization.name, organization])).values()]
+        const availableOrganizations = isTestAccess()
+          ? organizations.filter((organization) => canEditCareObject(organization))
+          : organizations;
+        return [...new Map(availableOrganizations.filter((organization) => organization.name).map((organization) => [organization.name, organization])).values()]
           .sort((a, b) => a.name.localeCompare(b.name, "de"));
       }
 
@@ -28332,11 +28435,13 @@
       }
 
       async function updateContactThemes(id, themes, options = {}) {
-        if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Themen können nur von Editor- oder Admin-Nutzern geändert werden.");
+        const expertScope = options.scope === "expert";
+        const currentContact = (expertScope ? expertContacts : contacts).find((contact) => contact.id === id);
+        const allowed = expertScope ? canEditContacts() : canEditCareObject(currentContact);
+        if (!currentContact || !allowed) {
+          showPermissionDenied("Dieser Kontakt gehört nicht zu deinem freigegebenen Bearbeitungsbereich.");
           return;
         }
-        const expertScope = options.scope === "expert";
         const normalizedThemes = normalizeThemes(themes);
         try {
           if (expertScope) {
@@ -28365,11 +28470,12 @@
       }
 
       async function saveDetailInline(contact) {
-        if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern geändert werden.");
+        const expertScope = activeExpertId === contact.id || isPersonProfileActive("expert", contact.id);
+        const allowed = expertScope ? canEditContacts() : canEditCareObject(contact);
+        if (!allowed) {
+          showPermissionDenied("Dieser Kontakt gehört nicht zu deinem freigegebenen Bearbeitungsbereich.");
           return;
         }
-        const expertScope = activeExpertId === contact.id || isPersonProfileActive("expert", contact.id);
         const root = activeDetailRoot(contact.id);
         const fields = [...root.querySelectorAll("[data-detail-field]")];
         const patch = {};
@@ -29268,8 +29374,8 @@
       }
 
       async function saveMitmachenConsentInline(contact, form) {
-        if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Einwilligungen können nur von Editor- oder Admin-Nutzern geändert werden.");
+        if (!canEditCareObject(contact)) {
+          showPermissionDenied("Dieser Kontakt gehört nicht zu deinem freigegebenen Bearbeitungsbereich.");
           return;
         }
         const statusNode = form.querySelector("[data-consent-status]");
@@ -29723,7 +29829,9 @@
           `;
         }
 
-        const src = `../map/versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
+        const miniMapPath = APP_ROUTES?.assetUrl?.("../map/versorgungs-kompass-contact-mini-map.html")
+          || "../map/versorgungs-kompass-contact-mini-map.html";
+        const src = `${miniMapPath}?lat=${encodeURIComponent(contact.lat)}&lon=${encodeURIComponent(contact.lon)}`;
 
         return `
           <div class="detail-mini-map">
@@ -29742,8 +29850,8 @@
 
       function detailMissingFields(contact) {
         const fields = [];
-        if (!hasMeaningfulValue(contact.email)) fields.push("E-Mail");
-        if (!hasMeaningfulValue(contact.phone)) fields.push("Telefon");
+        if (!contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactEmail(contact))) fields.push("E-Mail");
+        if (!contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactPhone(contact))) fields.push("Telefon");
         if (!hasMeaningfulValue(contact.linkedin)) fields.push("LinkedIn");
         if (!hasMeaningfulValue(contact.specialty)) fields.push("Fachrichtung");
         if (!hasMeaningfulValue(contact.lastExchange)) fields.push("Letzter Austausch");
@@ -29795,8 +29903,8 @@
         `;
       }
 
-      function sectionTitleMarkup(title, section, editingDetail) {
-        const editable = canEditContacts() && !editingDetail;
+      function sectionTitleMarkup(title, section, editingDetail, options = {}) {
+        const editable = (options.editable ?? canEditContacts()) && !editingDetail && !options.locked;
         const editLabels = {
           overview: "Stammdaten bearbeiten",
           contactways: "Kontaktwege bearbeiten"
@@ -29913,7 +30021,9 @@
       }
 
       function detailOwnerEditField(contact) {
-        const ownerIds = contactOwnerIds(contact);
+        const ownerIds = isTestAccess()
+          ? normalizeOwnerIds(currentProfile?.id || "")
+          : contactOwnerIds(contact);
         return `
           <div class="detail-line detail-edit-row detail-edit-owner">
             <label class="detail-line__label" for="detail-field-owner">Owner</label>
@@ -29949,8 +30059,9 @@
         const websiteValue = meaningfulOrEmpty(contact.url) || (sourceText && isValidOptionalUrl(sourceText) ? sourceText : "");
         return `
           <div class="detail-edit-grid">
-            ${detailEditField("E-Mail", "email", contact.email, { inputType: "email", placeholder: "name@organisation.example.invalid" })}
-            ${detailEditField("Telefon", "phone", contact.phone, { inputType: "tel", placeholder: "+49 ..." })}
+            ${contactChannelsRestricted(contact)
+              ? `${detailLineHtml("E-Mail", contactChannelRestrictedMarkup())}${detailLineHtml("Telefon", contactChannelRestrictedMarkup())}`
+              : `${detailEditField("E-Mail", "email", accessibleContactEmail(contact), { inputType: "email", placeholder: "name@organisation.example.invalid" })}${detailEditField("Telefon", "phone", accessibleContactPhone(contact), { inputType: "tel", placeholder: "+49 ..." })}`}
             ${detailEditField("LinkedIn", "linkedin", contact.linkedin, { inputType: "url", placeholder: "https://..." })}
             ${detailEditField("Website", "url", websiteValue, { inputType: "url", placeholder: "https://..." })}
           </div>
@@ -30580,9 +30691,9 @@
         const activeItems = contacts.filter((contact) => contact.status !== "archived");
         const duplicateItems = duplicateSuspects(activeItems);
         const checks = [
-          { key: "missing-phone", label: "Telefon", hint: "fehlt", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !hasMeaningfulValue(contact.phone)) },
+          { key: "missing-phone", label: "Telefon", hint: "fehlt", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactPhone(contact))) },
           { key: "missing-specialty", label: "Fachrichtung", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.specialty)) },
-          { key: "missing-email", label: "E-Mail", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.email)) },
+          { key: "missing-email", label: "E-Mail", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactEmail(contact))) },
           { key: "unclear-name", label: "Kontaktnamen", hint: "prüfen", iconClass: "", contacts: items.filter(isUnclearName) },
           { key: "unclear-organization", label: "Organisationen", hint: "prüfen", iconClass: "quality-icon--amber", contacts: items.filter(isUnclearOrganization) },
           { key: "missing-owner", label: "Owner", hint: "fehlt", iconClass: "quality-icon--amber", contacts: items.filter(isMissingOwner) },
@@ -30719,7 +30830,7 @@
         };
 
         items.forEach((contact) => {
-          const email = normalizedQualityKey(contact.email);
+          const email = normalizedQualityKey(accessibleContactEmail(contact));
           const name = normalizedQualityKey(contact.name || contact.displayName);
           const organization = normalizedQualityKey(contact.organization);
           const city = normalizedQualityKey(contact.city);
@@ -30844,7 +30955,8 @@
             label: "E-Mail",
             iconKey: "missing-email",
             required: false,
-            isComplete: (contact) => hasMeaningfulValue(contact.email)
+            appliesTo: (contact) => !contactChannelsRestricted(contact),
+            isComplete: (contact) => hasMeaningfulValue(accessibleContactEmail(contact))
           },
           {
             key: "phone",
@@ -30853,7 +30965,8 @@
             label: "Telefon",
             iconKey: "missing-phone",
             required: false,
-            isComplete: (contact) => hasMeaningfulValue(contact.phone)
+            appliesTo: (contact) => !contactChannelsRestricted(contact),
+            isComplete: (contact) => hasMeaningfulValue(accessibleContactPhone(contact))
           }
         ];
       }
@@ -30864,11 +30977,12 @@
         const duplicateItems = duplicateSuspects(activeItems);
         const staleCriticalItems = activeItems.filter((contact) => isContactStale(contact, 12));
         const staleOpenItems = activeItems.filter((contact) => isContactStale(contact, 6) && !isContactStale(contact, 12));
-        const total = Math.max(activeItems.length, 1);
         const fieldItems = careQualityFieldRules().flatMap((rule) => {
-          const completeContacts = activeItems.filter(rule.isComplete);
-          const missingContacts = activeItems.filter((contact) => !rule.isComplete(contact));
-          const completion = Math.round((completeContacts.length / total) * 100);
+          const applicableItems = rule.appliesTo ? activeItems.filter(rule.appliesTo) : activeItems;
+          const completeContacts = applicableItems.filter(rule.isComplete);
+          const missingContacts = applicableItems.filter((contact) => !rule.isComplete(contact));
+          const ruleTotal = Math.max(applicableItems.length, 1);
+          const completion = Math.round((completeContacts.length / ruleTotal) * 100);
           const entries = [];
           if (missingContacts.length) {
             entries.push({
@@ -31007,8 +31121,8 @@
         const ruleKey = item.ruleKey || item.key.replace(/^missing-/, "");
         const field =
           ruleKey === "owner" ? `<select class="care-queue-field" data-care-inline-field="owner" data-care-inline-contact="${id}">${buildOwnerSelectOptions(contact.ownerId || contact.owner || "")}</select>`
-          : ruleKey === "email" ? `<input class="care-queue-field" data-care-inline-field="email" data-care-inline-contact="${id}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail ergänzen" />`
-          : ruleKey === "phone" ? `<input class="care-queue-field" data-care-inline-field="phone" data-care-inline-contact="${id}" type="tel" value="${escapeHtml(meaningfulOrEmpty(contact.phone))}" placeholder="Telefon ergänzen" />`
+          : ruleKey === "email" ? contactChannelsRestricted(contact) ? contactChannelRestrictedMarkup() : `<input class="care-queue-field" data-care-inline-field="email" data-care-inline-contact="${id}" type="email" value="${escapeHtml(accessibleContactEmail(contact))}" placeholder="E-Mail ergänzen" />`
+          : ruleKey === "phone" ? contactChannelsRestricted(contact) ? contactChannelRestrictedMarkup() : `<input class="care-queue-field" data-care-inline-field="phone" data-care-inline-contact="${id}" type="tel" value="${escapeHtml(accessibleContactPhone(contact))}" placeholder="Telefon ergänzen" />`
           : ruleKey === "specialty" ? `<select class="care-queue-field" data-care-inline-field="specialty" data-care-inline-contact="${id}">${buildSpecialtySelectOptions(contact.specialty || "")}</select>`
           : ruleKey === "location" ? `
               <span class="care-queue-field-grid">
@@ -31080,7 +31194,9 @@
                         <td>${escapeHtml(contact.displayName || contact.name)}</td>
                         <td>${escapeHtml(meaningfulOrEmpty(contact.organization) || "Organisation offen")}</td>
                         <td>${escapeHtml(contactOwnerDisplayNames(contact).join(", ") || "Kein Owner")}</td>
-                        <td><input data-care-email="${escapeHtml(contact.id)}" type="email" value="${escapeHtml(meaningfulOrEmpty(contact.email))}" placeholder="E-Mail eintragen" /></td>
+                        <td>${contactChannelsRestricted(contact)
+                          ? contactChannelRestrictedMarkup()
+                          : `<input data-care-email="${escapeHtml(contact.id)}" type="email" value="${escapeHtml(accessibleContactEmail(contact))}" placeholder="E-Mail eintragen" />`}</td>
                         <td>${escapeHtml(specialtyLabel(contact) || "-")}</td>
                         <td><button class="detail-link detail-link--compact" type="button" data-care-contact="${escapeHtml(contact.id)}" data-care-archived="${contact.status === "archived" ? "true" : "false"}">Öffnen</button></td>
                       </tr>
@@ -31318,6 +31434,12 @@
         panel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
             detailActiveTab = normalizeDetailTab(button.dataset.detailTab || "overview", stakeholderProfileTabs);
+            activePersonProfile.tab = detailActiveTab;
+            if (detailActiveTab !== "notes") {
+              activePersonProfile.noteId = "";
+              activeContactNoteTargetId = "";
+            }
+            updateRouteHash(personProfileRoute(activePersonProfile.kind, activePersonProfile.id));
             panel.querySelectorAll(".detail-tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
             panel.querySelectorAll("[data-detail-tab]").forEach((tab) => {
               tab.setAttribute("aria-selected", String(tab === button));
@@ -31542,8 +31664,9 @@
       function openPersonEntry(kind, id, items = [], options = {}) {
         const normalizedKind = normalizePersonProfileKind(kind);
         if (!normalizedKind || !id) return;
+        const returnTo = options.returnTo || personProfileParentView(normalizedKind);
         if (isMobileLayout() || options.forceProfile) {
-          openPersonProfile(normalizedKind, id, { returnTo: options.returnTo || personProfileParentView(normalizedKind) });
+          openPersonProfile(normalizedKind, id, { returnTo });
           return;
         }
         if (normalizedKind === "stakeholder") {
@@ -31554,7 +31677,11 @@
           openDetail(id, items, { scope: "expert" });
           return;
         }
-        openDetail(id, items, { scope: normalizedKind === "expert" ? "expert" : "care", mode: "preview" });
+        openDetail(id, items, {
+          scope: normalizedKind === "expert" ? "expert" : "care",
+          mode: "preview",
+          returnTo
+        });
       }
 
       function organizationKindLabel(kind = activeOrganizationProfile.kind) {
@@ -31881,7 +32008,98 @@
         updateRouteHash(profileRouteForTab());
       }
 
-      function setSidebarCollapsed(collapsed) {
+      function prepareHomeRevealHeading() {
+        if (!homeRevealHeading || homeRevealPrepared) return;
+        const visual = homeRevealHeading.querySelector(".home-reveal-heading__visual");
+        if (!visual) return;
+        let lines = [];
+        try {
+          lines = JSON.parse(homeRevealHeading.dataset.homeRevealLines || "[]");
+        } catch (error) {
+          console.warn("Die Startseiten-Überschrift konnte nicht vorbereitet werden.", error);
+        }
+        if (!Array.isArray(lines) || !lines.some((lineText) => String(lineText || "").length > 0)) {
+          console.warn("Die Startseiten-Überschrift enthält keine animierbaren Zeilen.");
+          return;
+        }
+        let characterIndex = 0;
+        lines.forEach((lineText) => {
+          const line = document.createElement("span");
+          line.className = "home-reveal-heading__line";
+          String(lineText || "").split(" ").forEach((wordText, wordIndex) => {
+            if (wordIndex > 0) line.append(document.createTextNode(" "));
+            const wordSegments = String(wordText).split("-");
+            wordSegments.forEach((segmentText, segmentIndex) => {
+              const word = document.createElement("span");
+              word.className = "home-reveal-heading__word";
+              const renderedSegment = segmentIndex < wordSegments.length - 1 ? `${segmentText}-` : segmentText;
+              Array.from(renderedSegment).forEach((character) => {
+                const span = document.createElement("span");
+                span.className = "home-reveal-heading__char";
+                span.textContent = character;
+                span.style.animationDelay = `${220 + characterIndex * 30}ms`;
+                word.append(span);
+                characterIndex += 1;
+              });
+              line.append(word);
+              if (segmentIndex < wordSegments.length - 1) line.append(document.createElement("wbr"));
+            });
+          });
+          visual.append(line);
+        });
+        homeRevealHeading.dataset.characterCount = String(characterIndex);
+        homeRevealHeading.classList.add("is-prepared");
+        homeRevealPrepared = true;
+      }
+
+      function playHomeRevealHeading() {
+        if (!homeRevealHeading || homeRevealStarted) return;
+        prepareHomeRevealHeading();
+        if (!homeRevealPrepared) return;
+        homeRevealStarted = true;
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        let alreadyPlayed = false;
+        try {
+          alreadyPlayed = window.sessionStorage.getItem("versorgungs-kompass:home-reveal") === "1";
+        } catch {}
+        if (reducedMotion || alreadyPlayed) {
+          homeRevealHeading.classList.add("is-static");
+          return;
+        }
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            homeRevealHeading.classList.add("is-playing");
+          });
+        });
+        const characterCount = Number(homeRevealHeading.dataset.characterCount || "0");
+        const totalDuration = 220 + characterCount * 30 + 240;
+        window.setTimeout(() => {
+          homeRevealHeading.classList.remove("is-playing");
+          homeRevealHeading.classList.add("is-complete");
+          try {
+            window.sessionStorage.setItem("versorgungs-kompass:home-reveal", "1");
+          } catch {}
+          document.dispatchEvent(new CustomEvent("versorgungs-compass:home-reveal-complete"));
+        }, totalDuration);
+      }
+
+      function scrollHomeToDestinations() {
+        if (!homeScroller || !homeDestinations) return;
+        const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+        homeScroller.scrollTo({ top: homeDestinations.offsetTop, behavior });
+        homeDestinations.focus({ preventScroll: true });
+      }
+
+      function resetHomeScrollPosition() {
+        if (!homeScroller) return;
+        const inlineScrollBehavior = homeScroller.style.scrollBehavior;
+        homeScroller.style.scrollBehavior = "auto";
+        homeScroller.scrollTop = 0;
+        if (inlineScrollBehavior) homeScroller.style.scrollBehavior = inlineScrollBehavior;
+        else homeScroller.style.removeProperty("scroll-behavior");
+      }
+
+      function setSidebarCollapsed(collapsed, { persist = true } = {}) {
         appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
         if (sidebarCollapseButton) {
           sidebarCollapseButton.setAttribute("aria-expanded", String(!collapsed));
@@ -31890,6 +32108,7 @@
           const label = sidebarCollapseButton.querySelector(".sidebar-collapse-label");
           if (label) label.textContent = collapsed ? "Menü ausklappen" : "Menü einklappen";
         }
+        if (!persist) return;
         try {
           window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", collapsed ? "true" : "false");
         } catch (error) {
@@ -31899,9 +32118,9 @@
 
       function restoreSidebarState() {
         try {
-          setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true");
+          setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true", { persist: false });
         } catch (error) {
-          setSidebarCollapsed(false);
+          setSidebarCollapsed(false, { persist: false });
         }
       }
 
@@ -31927,17 +32146,33 @@
         if (isMobileLayout()) setMobileSidebarExpanded(false);
       }
 
-      function updateRouteHash(view) {
-        const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "contacts";
-        const nextHash = routeView === "personProfile" || String(routeView).startsWith("person/")
-          ? `#${routeView === "personProfile" ? personProfileRoute() : routeView}`
-          : routeView === "organizationProfile" || String(routeView).startsWith("organization/")
-            ? `#${routeView === "organizationProfile" ? organizationProfileRoute() : routeView}`
-            : routeView === "hospitations" || String(routeView).startsWith("hospitations:")
-              ? `#${hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab)}`
-              : `#${safeViewForRole(routeView)}`;
+      function routeTokenForView(view) {
+        const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "home";
+        if (routeView === "personProfile") return personProfileRoute();
+        if (String(routeView).startsWith("person/")) return routeView;
+        if (routeView === "organizationProfile") return organizationProfileRoute();
+        if (String(routeView).startsWith("organization/")) return routeView;
+        if (routeView === "hospitations" || String(routeView).startsWith("hospitations:")) {
+          return hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab);
+        }
+        if (routeView === "profile") return profileRouteForTab();
+        return safeViewForRole(routeView);
+      }
+
+      function updateRouteHash(view, { replace = false } = {}) {
+        const routeToken = routeTokenForView(view);
+        if (CLEAN_URLS_ENABLED && APP_ROUTES?.urlForRouteToken) {
+          const nextUrl = APP_ROUTES.urlForRouteToken(routeToken, { search: window.location.search });
+          const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          if (currentUrl !== nextUrl) {
+            window.history[replace ? "replaceState" : "pushState"]({ route: routeToken }, "", nextUrl);
+          }
+          return;
+        }
+
+        const nextHash = `#${routeToken}`;
         if (window.location.hash !== nextHash) {
-          window.history.pushState(null, "", nextHash);
+          window.history[replace ? "replaceState" : "pushState"](null, "", nextHash);
         }
       }
 
@@ -31985,10 +32220,10 @@
             view = "contacts";
           }
         }
-        if (!viewLabels[view]) view = "contacts";
+        if (!viewLabels[view]) view = "home";
         const requestedView = view;
         view = safeViewForRole(view);
-        if (requestedView !== view) updateRouteHash(view);
+        if (requestedView !== view) updateRouteHash(view, { replace: true });
         const previousView = activeView;
         const viewChanged = activeView !== view;
         if (viewChanged) currentPage = 1;
@@ -32076,6 +32311,12 @@
           panel.setAttribute("aria-hidden", panel.dataset.viewPanel === view ? "false" : "true");
         });
         if (appShell) appShell.dataset.activeView = view;
+        if (view === "home" && (viewChanged || appShell?.classList.contains("is-initializing"))) {
+          resetHomeScrollPosition();
+        }
+        if (view === "home" && !appShell?.classList.contains("is-initializing")) {
+          playHomeRevealHeading();
+        }
         renderViewChrome();
         renderAnalyticsModeTabs();
         if (view === "profile") {
@@ -32138,8 +32379,9 @@
                 organization: contact.organization || linkedOrganization?.name || "",
                 topic: contact.topic,
                 priority: contact.priority,
-                email: contact.email,
-                phone: contact.phone,
+                email: accessibleContactEmail(contact),
+                phone: accessibleContactPhone(contact),
+                contactChannelAccess: contact.contactChannelAccess || "",
                 linkedin: contact.linkedin,
                 location: contact.location || [linkedOrganization?.postalCode, linkedOrganization?.city].filter(Boolean).join(" "),
                 city: contact.city || linkedOrganization?.city || "",
@@ -32487,7 +32729,7 @@
         const activeTab = normalizeDetailTab(organizationDetailActiveTab || "overview", ["overview", "contacts", "themes", "notes", "activity"]);
         organizationDetailActiveTab = activeTab;
         const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
-        const editable = canEditContacts();
+        const editable = canEditCareObject(organization);
         activeOrganizationId = organization.id;
         activeId = null;
         if (!isProfilePage) renderOrganizationsTable(currentItems);
@@ -32631,10 +32873,18 @@
       }
 
       async function linkExistingContactToOrganization(organization) {
+        if (!canEditCareObject(organization)) {
+          showPermissionDenied("Diese Organisation gehört nicht zu deinem freigegebenen Testbereich.");
+          return;
+        }
         const query = window.prompt("Kontakt suchen und zuordnen. Bitte einen Teil des Namens eingeben:");
         if (!query) return;
         const normalizedQuery = query.trim().toLowerCase();
-        const matches = contacts.filter((contact) => contact.status !== "archived" && String(contact.displayName || contact.name).toLowerCase().includes(normalizedQuery));
+        const matches = contacts.filter((contact) =>
+          contact.status !== "archived"
+          && canEditCareObject(contact)
+          && String(contact.displayName || contact.name).toLowerCase().includes(normalizedQuery)
+        );
         const contact = matches[0];
         if (!contact) {
           window.alert("Kein passender Kontakt gefunden.");
@@ -32658,11 +32908,15 @@
       }
 
       async function assignOrganizationToContact(contact) {
+        if (!canEditCareObject(contact)) {
+          showPermissionDenied("Dieser Kontakt gehört nicht zu deinem freigegebenen Testbereich.");
+          return;
+        }
         const query = window.prompt("Organisation suchen oder neu als Freitext zuordnen:", contact.organization || "");
         if (query === null) return;
         const name = query.trim();
         if (!name) return;
-        const existing = organizations.find((organization) => normalizeOrganizationName(organization.name) === normalizeOrganizationName(name));
+        const existing = organizationOptions().find((organization) => normalizeOrganizationName(organization.name) === normalizeOrganizationName(name));
         try {
           const updated = await window.dataService.updateContact(contact.id, {
             organizationId: existing && !existing.id.startsWith("derived-org-") ? existing.id : "",
@@ -32680,12 +32934,17 @@
       }
 
       function openOrganizationEditor(organization = null, options = {}) {
-        if (!canEditContacts()) {
+        const isExpertEditor = options.scope === "expert";
+        const isPatientEditor = options.scope === "patient";
+        const allowed = isExpertEditor || isPatientEditor
+          ? canEditContacts()
+          : organization
+            ? canEditCareObject(organization)
+            : canCreateCareObject();
+        if (!allowed) {
           showPermissionDenied(viewerCreateDisabledMessage(organization ? "das Bearbeiten von Organisationen" : "das Anlegen neuer Organisationen"));
           return;
         }
-        const isExpertEditor = options.scope === "expert";
-        const isPatientEditor = options.scope === "patient";
         setOrganizationEditorScope(isExpertEditor ? "expert" : isPatientEditor ? "patient" : "care");
         editingOrganizationId = organization?.id || null;
         organizationEditorCurrentStep = "quick";
@@ -32718,7 +32977,7 @@
         organizationEditorForm.elements.email.value = organization?.email || "";
         organizationEditorForm.elements.source.value = organization?.source || "";
         organizationEditorForm.elements.notes.value = organization?.notes || "";
-        organizationEditorPrimarySystems = organizationEditorScope === "care" && Array.isArray(organization?.primarySystems)
+        organizationEditorPrimarySystems = organizationEditorScope === "care" && !isTestAccess() && Array.isArray(organization?.primarySystems)
           ? organization.primarySystems.map((system) => ({ ...system }))
           : [];
         renderOrganizationPrimarySystemsEditor();
@@ -32747,8 +33006,16 @@
         const detailMode = options.mode === "page" ? "page" : options.mode === "preview" ? "preview" : "drawer";
         const isProfilePage = detailMode === "page";
         const isPreview = detailMode === "preview";
+        const profileReturnTo = options.returnTo
+          || (isProfilePage ? activePersonProfile.returnTo : detailProfileReturnTo)
+          || (expertScope ? "experts" : "contacts");
+        if (!isProfilePage) detailProfileReturnTo = profileReturnTo;
         const targetPanel = isProfilePage ? personProfileDetailPanel() : detailPanel;
-        const rerenderDetail = () => openDetail(contact.id, currentItems, { scope: expertScope ? "expert" : "care", mode: detailMode });
+        const rerenderDetail = () => openDetail(contact.id, currentItems, {
+          scope: expertScope ? "expert" : "care",
+          mode: detailMode,
+          returnTo: profileReturnTo
+        });
         const sourceContacts = expertScope ? expertContacts : contacts;
         const fallbackItems = expertScope ? filteredExpertContacts() : filteredContacts();
         const currentItems = items.length ? items : fallbackItems;
@@ -32787,8 +33054,8 @@
         const historyCount = contactHistoryCache.get(contact.id)?.length || 0;
         const consentStatus = normalizeMitmachenConsentStatus(contact.mitmachenConsentStatus);
         const linkedCareContacts = expertScope ? linkedContactsForExpertContact(contact) : [];
-        const editingDetail = detailEditMode && canEditContacts();
-        const editableDetail = canEditContacts();
+        const editableDetail = expertScope ? canEditContacts() : canEditCareObject(contact);
+        const editingDetail = detailEditMode && editableDetail;
         const admin = !expertScope && canAdministerData();
         const portraitMarkup = contactAvatarMarkup(contact, "lg");
         const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
@@ -32851,7 +33118,7 @@
                 <div class="detail-profile-main">
                   <div class="contact-profile-image">
                     ${portraitMarkup}
-                    ${editableDetail && !expertScope ? `<button class="action-button contact-profile-image__edit" type="button" id="detail-image-edit" aria-label="Kontaktbild ändern" title="Kontaktbild ändern">✎</button>` : ""}
+                    ${canEditContacts() && !expertScope ? `<button class="action-button contact-profile-image__edit" type="button" id="detail-image-edit" aria-label="Kontaktbild ändern" title="Kontaktbild ändern">✎</button>` : ""}
                   </div>
                   <div class="detail-profile-copy">
                     ${
@@ -32868,7 +33135,7 @@
                 <div class="detail-profile-meta profile-owner-meta detail-contact-owner-meta">${detailHeaderOwnerControl(contact)}</div>
               </section>
 
-              ${detailImageEditorOpen && editableDetail && !expertScope ? `<form id="detail-image-form">${contactImageEditorMarkup(contact)}</form>` : ""}
+              ${detailImageEditorOpen && canEditContacts() && !expertScope ? `<form id="detail-image-form">${contactImageEditorMarkup(contact)}</form>` : ""}
 
               <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
                 ${detailTabButton("overview", "Überblick", activeTab, { ariaTab: true, locked: editingDetail })}
@@ -32881,7 +33148,7 @@
               </div>
 
               <section ${panelAttrs("overview")} id="detail-overview">
-                ${sectionTitleMarkup("Stammdaten", "overview", editingDetail)}
+                ${sectionTitleMarkup("Stammdaten", "overview", editingDetail, { editable: editableDetail })}
                 <div class="detail-line-list">
                   ${
                     editingOverview
@@ -32926,14 +33193,15 @@
               </section>
 
               <section ${panelAttrs("contact")} id="detail-contactways">
-                ${sectionTitleMarkup("Kontakt", "contactways", editingDetail)}
+                ${sectionTitleMarkup("Kontakt", "contactways", editingDetail, { editable: editableDetail, locked: !expertScope && contactChannelsRestricted(contact) })}
                 <div class="detail-line-list">
                   ${
                     editingContactways
                       ? renderContactwaysEditGrid(contact)
                       : `
-                        ${detailContactLine("E-Mail", meaningfulOrEmpty(contact.email), `mailto:${meaningfulOrEmpty(contact.email)}`)}
-                        ${detailContactLine("Telefon", meaningfulOrEmpty(contact.phone), `tel:${meaningfulOrEmpty(contact.phone)}`)}
+                        ${!expertScope && contactChannelsRestricted(contact)
+                          ? `${detailLineHtml("E-Mail", contactChannelRestrictedMarkup())}${detailLineHtml("Telefon", contactChannelRestrictedMarkup())}`
+                          : `${detailContactLine("E-Mail", accessibleContactEmail(contact), accessibleContactEmail(contact) ? `mailto:${accessibleContactEmail(contact)}` : "")}${detailContactLine("Telefon", accessibleContactPhone(contact), accessibleContactPhone(contact) ? `tel:${accessibleContactPhone(contact)}` : "")}`}
                         ${detailContactLine("LinkedIn", linkedinUrl ? "Profil öffnen" : "", linkedinUrl)}
                         ${detailContactLine("Website", websiteText, websiteHref)}
                       `
@@ -33041,7 +33309,7 @@
         if (!expertScope) bindHospitationProfileActions(targetPanel, { kind: "contact", id: contact.id });
         if (!expertScope) bindFormatProfileActions(targetPanel, contact, rerenderDetail);
         targetPanel.querySelector("#detail-open-profile")?.addEventListener("click", () => {
-          openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: expertScope ? "experts" : "contacts" });
+          openPersonProfile(expertScope ? "expert" : "contact", contact.id, { returnTo: profileReturnTo });
         });
         targetPanel.querySelectorAll("[data-detail-edit-section]").forEach((button) => {
           button.addEventListener("click", () => {
@@ -33277,6 +33545,7 @@
         detailOwnerPickerOpen = false;
         detailImageEditorOpen = false;
         detailActiveTab = "overview";
+        detailProfileReturnTo = "";
         organizationDetailActiveTab = "overview";
         contactEditingNoteId = null;
         stakeholderEditingNoteKey = "";
@@ -33293,15 +33562,46 @@
         syncBodyScrollLock();
       }
 
+      function configureEditorContactChannelAccess(contact = null) {
+        const restricted = editorScope === "care" && Boolean(contact) && contactChannelsRestricted(contact);
+        const contactwaysStep = editorForm.querySelector('[data-editor-step="contactways"]');
+        const contactwaysGrid = contactwaysStep?.querySelector(".editor-grid");
+        let notice = contactwaysGrid?.querySelector("[data-contact-channel-restriction]");
+        ["email", "phone"].forEach((fieldName) => {
+          const input = editorForm.elements[fieldName];
+          const field = input?.closest(".editor-field");
+          if (input) {
+            input.disabled = restricted;
+            if (restricted) input.value = "";
+          }
+          if (field) field.hidden = restricted;
+        });
+        if (restricted && contactwaysGrid && !notice) {
+          notice = document.createElement("div");
+          notice.className = "editor-field editor-field--full contact-channel-editor-restriction";
+          notice.dataset.contactChannelRestriction = "true";
+          notice.innerHTML = `${contactChannelRestrictedMarkup()}<small>E-Mail und Telefon können nur von den Ownern dieses Kontakts gelesen und bearbeitet werden.</small>`;
+          contactwaysGrid.prepend(notice);
+        } else if (!restricted) {
+          notice?.remove();
+        }
+      }
+
       function openEditor(contact = null, options = {}) {
-        if (!canEditContacts()) {
+        const requestedScope = options.scope === "expert" ? "expert" : options.scope === "patient" ? "patient" : "care";
+        const organizationDefaults = options.organization || null;
+        const allowed = requestedScope === "care"
+          ? contact
+            ? canEditCareObject(contact)
+            : canCreateCareObject() && (!organizationDefaults || canEditCareObject(organizationDefaults))
+          : canEditContacts();
+        if (!allowed) {
           showPermissionDenied(viewerCreateDisabledMessage(contact ? "das Bearbeiten von Kontakten" : "das Anlegen neuer Kontakte"));
           return;
         }
         const isExpertEditor = options.scope === "expert";
         const isPatientEditor = options.scope === "patient";
         setEditorScope(isExpertEditor ? "expert" : isPatientEditor ? "patient" : "care");
-        const organizationDefaults = options.organization || null;
         const derivedPrefix = isExpertEditor ? "expert-derived-org-" : isPatientEditor ? "patient-derived-org-" : "derived-org-";
         pendingEditorOrganizationId = organizationDefaults?.id && !organizationDefaults.id.startsWith(derivedPrefix) ? organizationDefaults.id : "";
         editorMode = contact ? "edit" : "create";
@@ -33345,9 +33645,10 @@
         editorForm.elements.priority.value = contact?.priority || "Mittel";
         editorForm.elements.organization.value = selectedOrganizationName;
         updateOrganizationSuggestions(selectedOrganizationName);
-        editorForm.elements.email.value = contact?.email || "";
-        editorForm.elements.phone.value = contact?.phone || "";
+        editorForm.elements.email.value = accessibleContactEmail(contact);
+        editorForm.elements.phone.value = accessibleContactPhone(contact);
         editorForm.elements.linkedin.value = contact?.linkedin || "";
+        configureEditorContactChannelAccess(contact);
         const selectedOwnerIds = contact ? contactOwnerIds(contact) : normalizeOwnerIds(currentProfile?.id || "");
         ensureOwnerProfile(currentProfile);
         renderEditorOwnerPicker(selectedOwnerIds);
@@ -33371,6 +33672,8 @@
             : "";
         editorForm.elements.imageSourceLabel.value = isExpertEditor ? "" : contact?.imageSourceLabel || "";
         editorForm.elements.imageRightsNote.value = isExpertEditor ? "" : contact?.imageRightsNote || "";
+        const contactImageEditor = editorForm.querySelector('[data-contact-image-editor="editor"]');
+        if (contactImageEditor) contactImageEditor.hidden = isTestAccess() && editorScope === "care";
         setContactImagePreview(document.getElementById("editor-contact-image-preview"), contact || sanitizeContact({ name: "Neuer Kontakt" }, contacts.length), contact?.image || "");
         setContactImageStatus(editorForm, "");
         renderEditorSpecialtyOptions(contact?.specialty || "");
@@ -33499,8 +33802,8 @@
             contact.topic,
             normalizeThemes(contact.themes).join(" | "),
             contact.priority,
-            contact.email,
-            contact.phone,
+            accessibleContactEmail(contact),
+            accessibleContactPhone(contact),
             contact.linkedin,
             contact.location,
             contact.city,
@@ -33619,6 +33922,7 @@
         expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
         organizationLogoMapCache = null;
         syncOwnerOptionsFromContacts();
+        const isHomeView = activeView === "home";
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
         const isActivitiesView = activeView === "activities";
@@ -33657,7 +33961,9 @@
           syncQuestionnaireReflectionAuthor();
         }
         if (isFrameworkView) syncHospitationFrameworkMetrics();
-        const items = isFormatsView
+        const items = isHomeView
+          ? []
+          : isFormatsView
           ? filteredFormats()
           : isFrameworkView
             ? []
@@ -33681,7 +33987,7 @@
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
-        resultsCount.hidden = isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
+        resultsCount.hidden = isHomeView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
         archiveViewButton.textContent = archiveViewButtonLabel();
         const searchPlaceholder = isAnyDuplicateMode
           ? "Dubletten suchen..."
@@ -33719,7 +34025,7 @@
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
         const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
-        const searchHidden = activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
+        const searchHidden = isHomeView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -33741,7 +34047,7 @@
           hospitationHeaderSearchToggle.setAttribute("aria-expanded", isHospitationHeaderSearchVisible ? "true" : "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHospitationsView || isFrameworkView || isQuestionnaireView;
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView;
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -33780,11 +34086,11 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
-        if (viewSelectShell) viewSelectShell.hidden = isExpertsView || isPatientsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isExpertsView || isPatientsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
-        if (isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
+        if (isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -33834,7 +34140,7 @@
           renderOrganizationProfilePage();
         }
         renderDashboard(filteredContacts());
-        if (!isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
+        if (!isHomeView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -34100,7 +34406,7 @@
         updateView();
       });
       bulkExportButton?.addEventListener("click", () => {
-        if (!canAdministerData()) {
+        if (!canAdministerData() || !canExportData()) {
           showPermissionDenied("Nur Admins dürfen Kontaktdaten exportieren.");
           return;
         }
@@ -34111,7 +34417,7 @@
         renderExpertContactsTable(filteredExpertContacts());
       });
       expertBulkExportButton?.addEventListener("click", () => {
-        if (!canAdministerData()) {
+        if (!canAdministerData() || !canExportData()) {
           showPermissionDenied("Nur Admins dürfen Kontaktdaten exportieren.");
           return;
         }
@@ -34336,6 +34642,31 @@
         event.preventDefault();
         await saveQuestionnaireToHospitation();
       });
+      routeLinks.forEach((link) => {
+        const routeToken = link.dataset.routeLink || "home";
+        if (APP_ROUTES?.urlForRouteToken) {
+          link.setAttribute("href", APP_ROUTES.urlForRouteToken(routeToken, { search: window.location.search }));
+        }
+        link.addEventListener("click", (event) => {
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey ||
+            (link.target && link.target !== "_self")
+          ) {
+            return;
+          }
+          event.preventDefault();
+          const targetView = routeViewFromToken(routeToken) || "home";
+          closeMobileSidebar();
+          setActiveView(targetView);
+          updateRouteHash(routeToken);
+          updateView();
+        });
+      });
       viewTabs.forEach((tab) => {
         tab.addEventListener("click", () => {
           const targetView = tab.dataset.viewTab || "contacts";
@@ -34421,19 +34752,21 @@
         await loadStakeholderData({ includeArchived: canAdministerData() });
         updateView();
       });
-      restoreSidebarState();
+      const initialSidebarRouteView = routeViewFromLocation() || "home";
+      const transientInitialHomeSidebarCollapse = !isMobileLayout() && initialSidebarRouteView === "home";
+      if (transientInitialHomeSidebarCollapse) {
+        setSidebarCollapsed(true, { persist: false });
+      } else {
+        restoreSidebarState();
+      }
       if (isMobileLayout()) {
         appShell?.classList.remove("is-sidebar-collapsed");
         setMobileSidebarExpanded(false);
       }
+      homeScrollCue?.addEventListener("click", scrollHomeToDestinations);
       sidebarSectionToggles.forEach((toggle) => {
-        toggle.addEventListener("click", (event) => {
+        toggle.addEventListener("click", () => {
           const group = toggle.dataset.sidebarSectionToggle || "";
-          const target = event.target;
-          if (target instanceof Element && target.closest("svg")) {
-            if (!toggleSidebarGroupExpansion(group)) expandSidebarGroup(group);
-            return;
-          }
           if (!toggleSidebarGroup(group)) expandSidebarGroup(group);
         });
       });
@@ -34745,12 +35078,22 @@
       });
       organizationEditorForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
-        if (!canEditContacts()) {
-          showPermissionDenied("Organisationen können nur von Editor- oder Admin-Nutzern gespeichert werden.");
+        const existingCareOrganization = editingOrganizationId
+          ? organizations.find((organization) => organization.id === editingOrganizationId)
+          : null;
+        const allowed = organizationEditorScope === "care"
+          ? editingOrganizationId
+            ? canEditCareObject(existingCareOrganization)
+            : canCreateCareObject()
+          : canEditContacts();
+        if (!allowed) {
+          showPermissionDenied("Diese Organisation gehört nicht zu deinem freigegebenen Bearbeitungsbereich.");
           return;
         }
         const formData = new FormData(organizationEditorForm);
-        const primarySystems = organizationEditorScope === "care" ? readOrganizationPrimarySystemsEditor() : [];
+        const primarySystems = organizationEditorScope === "care" && !isTestAccess()
+          ? readOrganizationPrimarySystemsEditor()
+          : [];
         const payload = {
           name: String(formData.get("name") || "").trim(),
           sector: organizationEditorScope === "expert"
@@ -34846,7 +35189,9 @@
           const savedOrganization = editingOrganizationId && !editingOrganizationId.startsWith("derived-org-")
             ? await window.dataService.updateOrganization(editingOrganizationId, payload)
             : await window.dataService.createOrganization(payload);
-          const savedPrimarySystems = await window.dataService.saveOrganizationPrimarySystems(savedOrganization.id, primarySystems);
+          const savedPrimarySystems = isTestAccess()
+            ? existingCareOrganization?.primarySystems || []
+            : await window.dataService.saveOrganizationPrimarySystems(savedOrganization.id, primarySystems);
           const saved = { ...savedOrganization, primarySystems: savedPrimarySystems };
           organizations = mergeOrganizations([saved, ...organizations.filter((organization) => organization.id !== saved.id)], deriveOrganizationsFromContacts(contacts));
           setStorageStatus("Organisation über die geschützte API gespeichert");
@@ -35070,7 +35415,7 @@
             openPersonProfile("stakeholder", messageId, { returnTo: "stakeholders" });
             return;
         }
-        openPersonProfile("contact", messageId, { returnTo: "map" });
+        openPersonEntry("contact", messageId, mapContacts(), { returnTo: "map" });
       });
 
       csvFileInput.addEventListener("change", async (event) => {
@@ -35198,28 +35543,33 @@
 
       editorForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        if (!canEditContacts()) {
-          showPermissionDenied("Du hast Leserechte. Kontakte können nur von Editor- oder Admin-Nutzern gespeichert werden.");
-          return;
-        }
-        const formData = new FormData(editorForm);
-        const timestamp = new Date().toISOString();
         const existingContact = editingId
           ? editorScope === "patient"
             ? patientPeople.find((contact) => contact.id === editingId)
             : contacts.find((contact) => contact.id === editingId)
           : null;
+        const allowed = editorScope === "care"
+          ? editingId
+            ? canEditCareObject(existingContact)
+            : canCreateCareObject()
+          : canEditContacts();
+        if (!allowed) {
+          showPermissionDenied("Dieser Kontakt gehört nicht zu deinem freigegebenen Bearbeitungsbereich.");
+          return;
+        }
+        const formData = new FormData(editorForm);
+        const timestamp = new Date().toISOString();
         const validation = validateEditorValues({ showWarnings: true });
         if (validation.errors.length) {
           const firstErrorField = validation.errors[0]?.field;
           focusEditorFieldByName(firstErrorField);
           return;
         }
-        const pendingContactImageFile = editorScope === "care" && formData.get("imageFile") instanceof File && formData.get("imageFile").size
+        const pendingContactImageFile = editorScope === "care" && !isTestAccess() && formData.get("imageFile") instanceof File && formData.get("imageFile").size
           ? formData.get("imageFile")
           : null;
-        const pendingContactImageUrl = editorScope === "care" ? String(formData.get("image") || "").trim() : "";
-        const pendingContactImageRemoval = editorScope === "care" && formData.get("imageRemove") === "true";
+        const pendingContactImageUrl = editorScope === "care" && !isTestAccess() ? String(formData.get("image") || "").trim() : "";
+        const pendingContactImageRemoval = editorScope === "care" && !isTestAccess() && formData.get("imageRemove") === "true";
         if (pendingContactImageFile) {
           if (!["image/jpeg", "image/png", "image/webp"].includes(pendingContactImageFile.type)) {
             setEditorStep("sources");
@@ -35430,17 +35780,41 @@
         }
 
         const sanitized = sanitizeContact(entry, contacts.length);
+        const contactForWrite = { ...sanitized };
+        delete contactForWrite.contactChannelAccess;
+        if (isTestAccess()) {
+          for (const field of [
+            "image",
+            "imageSourceUrl",
+            "imageSourceLabel",
+            "imageRightsNote",
+            "imageUpdatedAt",
+            "imageUpdatedBy",
+            "imageStoragePath",
+            "imageKind",
+            "imageMimeType",
+            "imageFileSize",
+            "imageWidth",
+            "imageHeight"
+          ]) {
+            delete contactForWrite[field];
+          }
+        }
+        if (existingContact && contactChannelsRestricted(existingContact)) {
+          delete contactForWrite.email;
+          delete contactForWrite.phone;
+        }
 
         let savedContact;
         try {
           if (editorMode === "edit" && editingId) {
-            savedContact = await window.dataService.updateContact(editingId, sanitized);
+            savedContact = await window.dataService.updateContact(editingId, contactForWrite);
             contacts = contacts.map((contact, index) =>
               contact.id === editingId ? sanitizeContact({ ...contact, ...savedContact, id: editingId }, index) : contact
             );
             contactHistoryCache.delete(editingId);
           } else {
-            savedContact = await window.dataService.createContact(sanitized);
+            savedContact = await window.dataService.createContact(contactForWrite);
             contacts = [sanitizeContact(savedContact, contacts.length), ...contacts];
             contactHistoryCache.delete(savedContact.id);
           }
@@ -35579,8 +35953,17 @@
         positionNotificationPopover();
       });
 
-      function routeViewFromHash() {
-        const hashView = String(window.location.hash || "").replace(/^#/, "");
+      function routeTokenFromLocation() {
+        const hashRoute = String(window.location.hash || "").replace(/^#/, "");
+        if (CLEAN_URLS_ENABLED && APP_ROUTES?.routeTokenForPath) {
+          const pathRoute = APP_ROUTES.routeTokenForPath(window.location.pathname, window.location.search);
+          if (pathRoute) return pathRoute;
+        }
+        return hashRoute;
+      }
+
+      function routeViewFromToken(routeToken = "") {
+        const hashView = String(routeToken || "").replace(/^#/, "");
         if (!hashView && isHospitationDocumentationStandalone) {
           activeHospitationTab = "appointments";
           return "hospitations";
@@ -35602,7 +35985,7 @@
           activePersonProfile = {
             kind: personRoute.kind,
             id: personRoute.id,
-            returnTo: personProfileParentView(personRoute.kind),
+            returnTo: personRoute.returnTo || defaultPersonProfileParentView(personRoute.kind),
             title: viewLabels.personProfile.title,
             tab: personRoute.tab || "",
             noteId: personRoute.noteId || ""
@@ -35657,16 +36040,29 @@
         return viewLabels[hashView] ? hashView : "";
       }
 
-      window.addEventListener("hashchange", () => {
-        const nextView = routeViewFromHash() || "contacts";
+      function routeViewFromLocation() {
+        return routeViewFromToken(routeTokenFromLocation());
+      }
+
+      function applyLocationRoute({ canonicalizeLegacy = false } = {}) {
+        const routeToken = routeTokenFromLocation();
+        const nextView = routeViewFromToken(routeToken) || "home";
         if (onboardingActive && nextView !== "onboarding") {
-          updateRouteHash("onboarding");
+          updateRouteHash("onboarding", { replace: true });
           return;
         }
         if (nextView === "hospitations" && activeHospitationTab !== "observations") closeHospitationObservationDrawer();
         setActiveView(nextView);
+        if (canonicalizeLegacy && CLEAN_URLS_ENABLED) {
+          updateRouteHash(nextView, { replace: true });
+        }
         updateView();
+      }
+
+      window.addEventListener("hashchange", () => {
+        applyLocationRoute({ canonicalizeLegacy: CLEAN_URLS_ENABLED });
       });
+      if (CLEAN_URLS_ENABLED) window.addEventListener("popstate", () => applyLocationRoute());
 
       async function loadExpertData({ includeArchived = false } = {}) {
         expertDataState = "loading";
@@ -35913,13 +36309,11 @@
       }
 
       async function initializeData() {
-        const initialRouteView = routeViewFromHash();
-        let initialTargetView = initialRouteView || "map";
+        const initialRouteToken = routeTokenFromLocation();
+        const initialRouteView = routeViewFromLocation();
+        let initialTargetView = initialRouteView || "home";
         try {
           await loadCriticalInitialData();
-          if (!initialTargetView && ["contacts", "organizations", "activities", "experts", "patients", "stakeholders", "framework", "formats", "hospitations", "questionnaire", "map", "analytics"].includes(userSettings?.defaultViewType)) {
-            initialTargetView = userSettings.defaultViewType;
-          }
           scheduleDeferredInitialData();
         } catch (error) {
           console.error("Geschützte Anwendungsdaten konnten nicht über die API geladen werden.", error);
@@ -35940,9 +36334,13 @@
         isInitialDataLoading = false;
         initialDataLoadingSlow = false;
         if (shouldRequireInitialOnboarding()) {
-          await openOnboarding(initialTargetView || activeView || "contacts");
+          if (transientInitialHomeSidebarCollapse) restoreSidebarState();
+          await openOnboarding(initialTargetView || activeView || "home");
           finishInitialLoading();
           return;
+        }
+        if (CLEAN_URLS_ENABLED) {
+          updateRouteHash(initialTargetView, { replace: true });
         }
         if (initialTargetView) activeView = initialTargetView;
         setActiveView(activeView);
@@ -35951,9 +36349,11 @@
       }
 
       function finishInitialLoading() {
+        if (activeView === "home") resetHomeScrollPosition();
         appShell?.classList.remove("is-initializing");
         appShell?.removeAttribute("aria-busy");
         initialLoadingSkeleton?.setAttribute("aria-hidden", "true");
+        if (activeView === "home") playHomeRevealHeading();
       }
 
       renderAccountProfile(null);

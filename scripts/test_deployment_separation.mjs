@@ -77,6 +77,12 @@ try {
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
   assert.match(fs.readFileSync(path.join(pagesDir, "index.html"), "utf8"), /url=\.\/versorgungs-kompass\.html#map/);
   assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#map/);
+  const pagesEntryHtml = fs.readFileSync(path.join(pagesDir, "mitmachen", "index.html"), "utf8");
+  assert.doesNotMatch(
+    pagesEntryHtml,
+    /data-target-enrollment|Testzugang aktivieren|(?:login\/)?enrollment\.html/i,
+    "Pages darf keinen Einstieg zur geschuetzten Testzugang-Aktivierung enthalten"
+  );
   assert.match(
     fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8"),
     /href="\.\/public\/brand\/versorgungs-kompass\/icons\/app-icon-32\.png"/
@@ -88,6 +94,9 @@ try {
   assertMissing(
     pagesDir,
     "login.html",
+    "enrollment.html",
+    "enrollment.css",
+    "enrollment.js",
     "set-password.html",
     "auth-config.js",
     "auth-guard.js",
@@ -120,6 +129,7 @@ try {
   assert.match(pagesConfig, /authMode:\s*"anonymous-demo"/);
   assert.match(pagesConfig, /apiBaseUrl:\s*""/);
   assert.match(pagesConfig, /requireApiGateway:\s*false/);
+  assert.match(pagesConfig, /ownerOnlyContactChannels:\s*true/);
 
   const pagesHtml = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8");
   const demoDataPosition = pagesHtml.indexOf("./data/demo-data.js");
@@ -220,6 +230,7 @@ try {
   assert.match(targetConfig, /authMode:\s*"oidc"/);
   assert.match(targetConfig, /apiCredentials:\s*"include"/);
   assert.match(targetConfig, /requireApiGateway:\s*true/);
+  assert.doesNotMatch(targetConfig, /ownerOnlyContactChannels:\s*true/);
   assert.ok(targetConfig.includes(`apiBaseUrl: "${apiBaseUrl}"`));
   assert.doesNotMatch(targetConfig, /supabaseUrl|supabaseAnonKey|registrationEndpoint/);
 
@@ -231,6 +242,9 @@ try {
   assert.equal((contactsApiUrl.pathname.match(/\/api(?=\/|$)/g) || []).length, 1, "Die zusammengesetzte URL darf nur eine /api-Route enthalten");
 
   assert.equal(fs.existsSync(path.join(targetDir, "login.html")), true, "Target muss die geschuetzte Anmeldung enthalten");
+  assert.equal(fs.existsSync(path.join(targetDir, "enrollment.html")), true, "Target muss die geschuetzte Testzugang-Anfrage enthalten");
+  assert.equal(fs.existsSync(path.join(targetDir, "enrollment.css")), true, "Target muss die Styles der Testzugang-Anfrage enthalten");
+  assert.equal(fs.existsSync(path.join(targetDir, "enrollment.js")), true, "Target muss die Logik der Testzugang-Anfrage enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "index.html")), true, "Target muss den zentralen #Mitmachen-Einstieg enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "versorgungs-kompass.html")), true, "Target muss die Realanwendung enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "data", "data-service.js")), true, "Target muss den API-Datenservice enthalten");
@@ -256,15 +270,45 @@ try {
   const targetIndexHtml = fs.readFileSync(path.join(targetDir, "index.html"), "utf8");
   assert.match(targetIndexHtml, /<aside class="module-sidebar"/);
   assert.match(targetIndexHtml, /<h1 id="welcome-title">Gemeinsam Versorgung gestalten\.<\/h1>/);
-  assert.match(targetIndexHtml, /href="\.\/versorgungs-kompass\.html#map"/);
+  assert.match(targetIndexHtml, /href="\/versorgung\/karte"/);
   assert.match(targetIndexHtml, /href="\.\/mitmachen\/mitmachen\.css"/);
   assert.match(targetIndexHtml, /src="\.\/public\/brand\/mitmachen\/lockup-horizontal\.svg"/);
   assert.doesNotMatch(targetIndexHtml, /dokumentation\//, "Der Live-Einstieg darf nicht auf nicht ausgelieferte Repository-Dokumentation verweisen");
+  const targetNestedEntryHtml = fs.readFileSync(path.join(targetDir, "mitmachen", "index.html"), "utf8");
+  for (const [label, entryHtml] of [
+    ["Target-Root", targetIndexHtml],
+    ["Target-Modulkopie", targetNestedEntryHtml]
+  ]) {
+    assert.equal(
+      (entryHtml.match(/data-target-enrollment/g) || []).length,
+      1,
+      `${label} muss genau einen Testzugang-Einstieg enthalten`
+    );
+    assert.equal(
+      (entryHtml.match(/href="\/enrollment\.html"/g) || []).length,
+      1,
+      `${label} muss genau einmal auf die geschuetzte Aktivierungsseite verweisen`
+    );
+    assert.doesNotMatch(
+      entryHtml,
+      /\.\.\/\.\.\/login\/enrollment\.html/,
+      `${label} darf keinen Quellpfad zur Aktivierungsseite enthalten`
+    );
+  }
 
   const targetHtml = fs.readFileSync(path.join(targetDir, "versorgungs-kompass.html"), "utf8");
   assert.doesNotMatch(targetHtml, /data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i);
   assert.doesNotMatch(targetHtml, /data-hospitation-(?:data-mode|documentation-data-mode|dashboard-preview-mode)="demo"/i);
   assert.doesNotMatch(fs.readFileSync(path.join(targetDir, "login.html"), "utf8"), /vendor\/supabase|supabase-js/i);
+  const enrollmentHtml = fs.readFileSync(path.join(targetDir, "enrollment.html"), "utf8");
+  assert.match(enrollmentHtml, /src="\.\/auth-guard\.js"/);
+  assert.match(enrollmentHtml, /src="\.\/enrollment\.js"/);
+  assert.match(enrollmentHtml, /href="\/start"/);
+  const enrollmentApp = fs.readFileSync(path.join(targetDir, "enrollment.js"), "utf8");
+  assert.match(enrollmentApp, /\/api\/auth\/auto-enrollment/);
+  assert.match(enrollmentApp, /\/api\/auth\/enrollment/);
+  assert.match(enrollmentApp, /payload\.status === "active"/);
+  assert.doesNotMatch(enrollmentApp, /\b(?:localStorage|sessionStorage|indexedDB)\b/);
 
   const targetThirdPartyManifest = JSON.parse(fs.readFileSync(path.join(targetDir, "vendor", "THIRD_PARTY_ASSETS.json"), "utf8"));
   assert.equal(targetThirdPartyManifest.assets.some((asset) => String(asset.path || "").includes("vendor/supabase/")), false);

@@ -4,9 +4,64 @@ Status: ausführbarer Pre-Integrationsvertrag; keine institutionelle gematik-Fre
 
 ## Ziel und Entscheidung
 
-Nach dem Echtdatenimport wird genau der freigegebene IAP-Subject auf genau ein
-vorhandenes aktives Profil in `public.identity_bindings` gebunden. Die normale
-Anwendung darf diese Zuordnung nur lesen.
+Nach dem Echtdatenimport wird jeder freigegebene IAP-Subject aus dem geschützten
+Voll-Soll-Roster auf genau ein vorhandenes aktives Profil in
+`public.identity_bindings` gebunden. Die normale Anwendung darf diese Zuordnung
+nur lesen. Tester erhalten ausschließlich `viewer` oder `editor` mit
+`test_only`; die bestehende Admin-Bindung bleibt davon getrennt.
+
+> **Verbindlicher v2-Hinweis:** Sobald Migration
+> `202607240001_add_test_access_enrollment.sql` angewendet ist, ist der unten
+> dokumentierte v1-Operator `vk_identity_admin` absichtlich read-only. Neue
+> Tester werden dann ausschließlich über `/enrollment.html`, die Rolle
+> `vk_access_enrollment_admin` und
+> `scripts/provision_pre_gematik_test_access.mjs` freigeschaltet. Eingabeformat,
+> Preview/Apply und Cleanup stehen unter
+> [Geschütztes Testnutzer-Enrollment v2](../../deploy/postgres/pre-gematik/README.md#geschütztes-testnutzer-enrollment-v2).
+> Der v1-Ablauf bleibt nur als historische Standard-Binding-Dokumentation und
+> darf nach Aktivierung von v2 nicht für Tester ausgeführt werden.
+
+## Allowlist-basiertes Auto-Enrollment v2.1
+
+Für vorab genehmigte Tester entfällt die sichtbare Vorgangsnummer. Der
+geschützte Voll-Soll-Roster wird zunächst außerhalb des Repositories in ein
+Allowlist-Dokument mit exakter kleingeschriebener ASCII-Konto-Adresse,
+zufälliger PII-freier Profil-UUID, Rolle `viewer` oder `editor`, festem
+`test_only`-Scope und Bootstrap-Ablauf überführt. Neue Einträge werden mit
+`scripts/provision_pre_gematik_test_access_allowlist.mjs` nach Preview und
+explizitem Apply in `public.test_access_allowlist` angelegt; Widerrufe sind
+append-only nachvollziehbar, verbrauchte Einträge unveränderlich.
+
+Beim ersten Aufruf der geschützten Enrollment-Seite gilt:
+
+1. `POST /api/auth/auto-enrollment` akzeptiert weder Body noch Queryparameter
+   und verwendet ausschließlich das vollständig signatur-, Audience- und
+   zeitgeprüfte IAP-JWT.
+2. Ein exakter, noch gültiger und nicht widerrufener Eintrag wird unter
+   demselben globalen Lock wie der v2-Operator gesperrt.
+3. Interne Audit-UUID, `applied`-Enrollment, Testprofil, stabile
+   Issuer-/Subject-Bindung und einmalige Consumption entstehen in einem
+   Datenbank-Commit.
+4. Ohne eindeutigen Treffer entsteht keine Mutation. Erst eine ausdrückliche
+   Nutzeraktion erzeugt den bisherigen manuellen 24-Stunden-Request.
+
+Die dafür verwendete Funktion
+`public.pre_gematik_consume_test_access_allowlist(...)` ist eine bewusst eng
+begrenzte neue `SECURITY DEFINER`-Ausnahme gegenüber dem historischen
+v1-Vertrag. Ihr Owner ist die separate Rolle `vk_allowlist_executor`
+(`NOLOGIN`/`NOINHERIT`) mit ausschließlich den benötigten Spaltenrechten,
+festem `search_path = pg_catalog, public` und ohne dynamisches SQL. `PUBLIC`
+und die Laufzeitrolle besitzen keine Tabellenrechte auf die Allowlist und keine
+Binding-Schreibrechte; `vk_app_runtime` erhält nur `EXECUTE` auf genau diese
+Funktion. Bootstrap und Prüfung erfolgen mit
+`deploy/postgres/pre-gematik/access-allowlist-admin-role.sql`.
+
+Auto-Enrollment ist in Helm standardmäßig aus. Der Deployment-Workflow
+aktiviert den Runtime-Schalter erst, nachdem API- und Frontend-Backend exakt
+die gepinnte private Gruppenpolicy mit Pilotablauf besitzen. Ein direkter
+`user:`-Rollback hält ihn ausgeschaltet. Das Allowlist-Ablaufdatum beendet nur
+den erstmaligen Bootstrap; Offboarding deaktiviert zusätzlich die App-Bindung
+und entfernt Gruppen- sowie OAuth-Zulassung.
 
 Für ein Google-Konto enthält die geschützte Soll-Liste die stabile,
 namespace-lose numerische Google-Konto-ID. Das signierte IAP-JWT liefert gemäß
@@ -17,7 +72,7 @@ entfernt ausschließlich diesen exakt bekannten Prefix und nur vor einem
 numerischen Identifier. Externe Identity-Platform-Subjects bleiben vollständig
 namespaced; ein E-Mail-Fallback findet nicht statt.
 
-Der engste vorbereitete Weg ist:
+Der historische v1-Weg vor Aktivierung des Enrollment-v2-Schemas ist:
 
 1. die statische, geheimnisfreie Datei
    [`identity-admin-role.sql`](../../deploy/postgres/pre-gematik/identity-admin-role.sql)
@@ -28,12 +83,17 @@ Der engste vorbereitete Weg ist:
 4. Preview und Apply im dedizierten GKE-Migrationsoperator ausführen und
 5. den Login und alle Credential-Projektionen unmittelbar danach löschen.
 
-`vk_identity_admin` besitzt ausschließlich:
+`vk_identity_admin` besitzt vor Aktivierung von v2 ausschließlich:
 
 - `USAGE` auf Schema `public`,
 - `SELECT` auf `public.profiles`,
 - `SELECT`, `INSERT` und `UPDATE` auf `public.identity_bindings`,
 - `EXECUTE` auf die bereits vorhandene Touch-Triggerfunktion.
+
+Ab v2 werden `INSERT` und `UPDATE` auf `identity_bindings` entzogen. Die Rolle
+behält nur die für eine fail-closed Diagnose nötigen Leserechte; jeder
+Schreibversuch des alten Operators endet mit einem ausdrücklichen Hinweis auf
+den v2-Prozess.
 
 Die Rolle besitzt kein Login, keine Rollen- oder Datenbankverwaltung, kein
 `CREATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER`, keine Sequenzrechte und
@@ -57,8 +117,9 @@ ausweisen. Der Rollenwechsel erweitert die Rechte nicht.
 - IAM-Datenbankauthentisierung und Cloud SQL Data API bleiben unverändert aus;
   ihre Aktivierung wäre für diesen einmaligen Vorgang eine unnötige Änderung
   des Instanzvertrags.
-- Es wird keine `SECURITY DEFINER`-Funktion und kein privilegierter App-Endpunkt
-  als Umgehungsweg angelegt.
+- Der historische v1-Operator legt keine `SECURITY DEFINER`-Funktion und keinen
+  privilegierten App-Endpunkt als Umgehungsweg an. Die separat abgenommene,
+  oben begrenzte v2.1-Consumption-Funktion gehört nicht zu diesem v1-Pfad.
 
 Der einmalige Rollen-Bootstrap läuft zwar als Objekt-Owner, enthält aber keine
 Identity-Werte, Passwörter oder Fachdaten. Er ist statisch, hashbar, reviewbar
@@ -80,11 +141,12 @@ dump files](https://docs.cloud.google.com/sql/docs/postgres/import-export/import
 - erfolgreicher Echtdatenimport und Reconciliation,
 - konkretes erfolgreiches Vorimport-Backup und frischer GCP-Gate,
 - Dienst bleibt bis nach G-04b für Nutzer geschlossen,
-- geschützte vollständige `iap-bindings.json` außerhalb des Repositories,
+- genehmigtes personenbezogenes Voll-Soll-Roster und daraus erzeugte,
+  geschützte vollständige `iap-bindings.json` außerhalb des Repositories,
 - dediziertes GKE-Migrationsoperator-Image per Digest,
 - Operatorverzeichnis lokal `0700`, Eingaben und Ergebnisse `0600`,
-- persönlicher Pilot: zwei getrennte identische Eigenprüfungs-Previews; dies ist
-  ausdrücklich kein institutionelles Vier-Augen-Prinzip.
+- zwei getrennte identische Eigenprüfungs-Previews durch den Pilot-Owner; dies
+  ist ausdrücklich kein institutionelles Vier-Augen-Prinzip.
 
 ## 1. Rollen-Bootstrap ohne `postgres`-Passwort
 
@@ -249,13 +311,17 @@ Fingerprint-Zeile muss identisch sein.
 - `--confirm-database versorgungs_kompass`,
 - `--confirm-operation UPSERT_IAP_IDENTITY_BINDINGS`,
 - den exakten Fingerprint aus dem unmittelbar bestätigten Preview,
-- `--confirm-binding-count 1` für die exakte Gesamtzahl der Bindungen,
-- `--confirm-active-binding-count 1` für die exakte Zahl aktiver Bindungen,
-- `--allow-active-bindings` für den freigegebenen aktiven Admin.
+- `--confirm-binding-count <GESCHUETZTER_SOLLWERT>` für die exakte Gesamtzahl
+  der Bindungen,
+- `--confirm-active-binding-count <GESCHUETZTER_SOLLWERT>` für die exakte Zahl
+  aktiver Bindungen,
+- `--allow-active-bindings` ausschließlich für die im Voll-Soll-Roster
+  genehmigten aktiven Bindungen.
 
-Die Werte `1` und `1` gelten für den aktuellen persönlichen Pilot. Jede
-spätere Änderung des vollständigen Sollzustands erfordert neue, ausdrücklich
-geprüfte Zähler und einen neuen Preview-Fingerprint.
+Die Zähler werden bei jedem Lauf aus dem geschützten Voll-Soll-Roster bestätigt
+und nicht im Repository festgeschrieben. Jede Änderung des vollständigen
+Sollzustands erfordert neue, ausdrücklich geprüfte Zähler und einen neuen
+Preview-Fingerprint.
 
 Es gibt keinen impliziten Delete- oder Remap-Pfad. Unbekannte bestehende
 Bindungen, ein fehlendes/inaktives Profil, ein zweites Subject für dasselbe
@@ -269,13 +335,17 @@ Vor Öffnung des Dienstes sind alle Punkte erforderlich:
    Sollzustands-Fingerprint.
 2. Eine neue read-only Verbindung bestätigt exakt den geschützten Sollzustand;
    konkrete Subjects und Profil-IDs bleiben im geschützten Nachweis.
-3. Der freigegebene aktive Admin erreicht Frontend und API über IAP und erhält
+3. Der freigegebene aktive Admin erreicht Frontend und API über IAP und behält
    die importierte Adminrolle.
-4. Eine unbekannte IAP-Identität erhält `403`.
-5. `vk_app` kann die Bindung lesen, aber `INSERT`, `UPDATE` und `DELETE` werden
+4. Jeder aktivierte Tester erreicht Frontend und API über die private Gruppe
+   und erhält exakt die genehmigte Viewer- beziehungsweise `test_only`-
+   Editorrolle.
+5. Eine gültig signierte, aber ungebundene IAP-Identität erhält `403`; dasselbe
+   gilt nach Deaktivierung einer Bindung.
+6. `vk_app` kann die Bindung lesen, aber `INSERT`, `UPDATE` und `DELETE` werden
    weiterhin mit fehlender Berechtigung abgewiesen.
-6. Keine zweite aktive Bindung, kein inaktives Zielprofil und kein
-   E-Mail-basiertes Ersatzmapping ist vorhanden.
+7. Keine Bindung außerhalb des geschützten Voll-Soll-Rosters, kein inaktives
+   Zielprofil und kein E-Mail-basiertes Ersatzmapping ist vorhanden.
 
 Bei `IDENTITY_COMMIT_OUTCOME_UNKNOWN` keinen zweiten Apply starten. Mit einer
 neuen read-only Verbindung den vollständigen Zustandsfingerprint prüfen und

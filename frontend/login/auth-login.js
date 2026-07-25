@@ -5,6 +5,7 @@
   if (!auth) return;
 
   function isAllowedAppReturnPath(pathname) {
+    if (window.VKAppRoutes?.isApplicationPath?.(pathname)) return true;
     return /\/(?:app\/versorgungs-kompass\.html|app\/hospitation\/index\.html|map\/versorgungs-kompass-map\.html|versorgungs-kompass\.html|hospitation\/index\.html|versorgungs-kompass-map\.html)$/.test(String(pathname || ""));
   }
 

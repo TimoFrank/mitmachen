@@ -221,6 +221,14 @@ validateIdentityAdministrationSession({
 });
 validateIdentityAdministrationPrivileges(safeIdentityAdminPrivileges);
 assertSafeFailure(
+  () => validateIdentityAdministrationPrivileges({
+    ...safeIdentityAdminPrivileges,
+    binding_insert: false,
+    binding_update: false
+  }),
+  /provision_pre_gematik_test_access\.mjs/u
+);
+assertSafeFailure(
   () => validateIdentityAdministrationSession({
     ...safeIdentityAdminSession,
     login_membership_count: 2

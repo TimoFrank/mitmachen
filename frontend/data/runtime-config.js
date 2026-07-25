@@ -5,6 +5,9 @@ window.VERSORGUNGS_COMPASS_CONFIG = {
   apiBaseUrl: "",
   apiCredentials: "include",
   requireApiGateway: true,
+  // Die Quellansicht laeuft ohne Rewrite-Server und verwendet deshalb Hash-Routen.
+  // Der Target-Builder aktiviert kanonische Pfade fuer die produktive Nginx-Auslieferung.
+  cleanUrls: false,
   capabilities: {
     contactRole: true,
     contactConsent: true,

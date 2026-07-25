@@ -99,6 +99,8 @@ resource "google_project_iam_custom_role" "iap_backend_access_binder" {
   permissions = [
     "iap.webServices.getIamPolicy",
     "iap.webServices.setIamPolicy",
+    "iap.webServices.getSettings",
+    "iap.webServices.updateSettings",
   ]
 }
 

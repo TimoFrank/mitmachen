@@ -50,6 +50,7 @@ source = upsertStringProperty(source, "authMode", authMode);
 source = upsertStringProperty(source, "apiBaseUrl", apiBaseUrl);
 source = upsertStringProperty(source, "apiCredentials", "include", "apiBaseUrl");
 source = upsertBooleanProperty(source, "requireApiGateway", true);
+source = upsertBooleanProperty(source, "cleanUrls", true);
 
 fs.writeFileSync(configPath, source);
 
@@ -125,9 +126,10 @@ if (
   !/apiBaseUrl:\s*"https:\/\//.test(result) ||
   !/apiCredentials:\s*"include"/.test(result) ||
   !/requireApiGateway:\s*true/.test(result) ||
+  !/cleanUrls:\s*true/.test(result) ||
   /supabaseUrl|supabaseAnonKey|registrationEndpoint/.test(result)
 ) {
-  throw new Error("Ziel-Frontend-Artefakt muss API-Modus, Auth-Modus, apiBaseUrl, apiCredentials=include und requireApiGateway=true ohne Supabase-Keys oder -Registrierungsendpunkt setzen.");
+  throw new Error("Ziel-Frontend-Artefakt muss API-Modus, Auth-Modus, Clean URLs, apiBaseUrl, apiCredentials=include und requireApiGateway=true ohne Supabase-Keys oder -Registrierungsendpunkt setzen.");
 }
 
 console.log(`Target Frontend Config OK: ${configPath} (${dataMode}/${authMode})`);

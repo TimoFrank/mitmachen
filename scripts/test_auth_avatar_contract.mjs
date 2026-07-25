@@ -1,20 +1,21 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+import { canonicalIapSubject } from "../api/test-access-enrollment.mjs";
 
 const projectRoot = new URL("../", import.meta.url);
 
 function assertIapSubjectContract() {
   const source = readFileSync(new URL("api/server.mjs", projectRoot), "utf8");
-  const start = source.indexOf("function canonicalIapSubject(");
-  const end = source.indexOf("\n}\n", start) + 2;
-  assert.ok(start >= 0 && end > start, "Die kanonische IAP-Subject-Abbildung wurde nicht gefunden.");
-  const sandbox = {};
-  vm.runInNewContext([
-    source.slice(start, end),
-    "globalThis.canonicalIapSubjectForTest = canonicalIapSubject;"
-  ].join("\n"), sandbox, { filename: "iap-subject-contract.js" });
-  const canonicalIapSubject = sandbox.canonicalIapSubjectForTest;
+  const enrollmentSource = readFileSync(
+    new URL("api/test-access-enrollment.mjs", projectRoot),
+    "utf8"
+  );
+  assert.match(
+    enrollmentSource,
+    /export function canonicalIapSubject\(/u,
+    "Die kanonische IAP-Subject-Abbildung wurde nicht gefunden."
+  );
 
   assert.equal(
     canonicalIapSubject("accounts.google.com:118133858486581853996"),

@@ -589,6 +589,17 @@ export async function assumeIdentityAdministrationRole(client) {
 
 export function validateIdentityAdministrationPrivileges(privileges) {
   if (
+    booleanPrivilege(privileges?.expected_admin_role)
+    && booleanPrivilege(privileges?.binding_select)
+    && !booleanPrivilege(privileges?.binding_insert)
+    && !booleanPrivilege(privileges?.binding_update)
+  ) {
+    throw new SafeCliError(
+      "Der Legacy-Operator besitzt nach Aktivierung des v2-Testzugangs absichtlich nur Leserechte. "
+      + "Verwende scripts/provision_pre_gematik_test_access.mjs; der alte Minimalrechte-Vertrag darf keine Bindungen mehr schreiben."
+    );
+  }
+  if (
     !booleanPrivilege(privileges?.expected_admin_role)
     || !booleanPrivilege(privileges?.schema_usage)
     || booleanPrivilege(privileges?.schema_create)

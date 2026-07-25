@@ -239,6 +239,7 @@ jobs:
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME: ${{ vars.IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME }}
       IAP_RESOURCE_ACCESS_PRINCIPAL: ${{ vars.IAP_RESOURCE_ACCESS_PRINCIPAL }}
+      IAP_RESOURCE_ACCESS_EXPIRES_AT: ${{ vars.IAP_RESOURCE_ACCESS_EXPIRES_AT }}
       IAP_PROJECT_BREAK_GLASS_SHA256: ${{ secrets.IAP_PROJECT_BREAK_GLASS_SHA256 }}
       HOSPITATION_IMPORT_OWNER_PROFILE_ID: ${{ secrets.HOSPITATION_IMPORT_OWNER_PROFILE_ID }}
 
@@ -316,6 +317,30 @@ jobs:
             echo "IAP_RESOURCE_ACCESS_PRINCIPAL must use group:name@example.org or user:name@example.org syntax." >&2
             exit 1
           fi
+          case "$IAP_RESOURCE_ACCESS_PRINCIPAL" in
+            group:*)
+              if [[ "$IAP_RESOURCE_ACCESS_PRINCIPAL" != "group:versorgungs-kompass-pre-gematik-access@googlegroups.com" ]]; then
+                echo "The pre-gematik group principal must exactly match the approved private Google Group." >&2
+                exit 1
+              fi
+              if [[ ! "${IAP_RESOURCE_ACCESS_EXPIRES_AT:-}" =~ ^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$ ]] || \
+                 ! canonical_iap_expiry="$(date --utc --date="$IAP_RESOURCE_ACCESS_EXPIRES_AT" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null)" || \
+                 [[ "$canonical_iap_expiry" != "$IAP_RESOURCE_ACCESS_EXPIRES_AT" ]]; then
+                echo "IAP_RESOURCE_ACCESS_EXPIRES_AT must be a canonical UTC RFC3339 timestamp for a group principal." >&2
+                exit 1
+              fi
+              if [[ "$IAP_RESOURCE_ACCESS_EXPIRES_AT" != "2026-08-17T16:00:00Z" ]]; then
+                echo "The pre-gematik group expiry must exactly match the approved pilot end." >&2
+                exit 1
+              fi
+              ;;
+            user:*)
+              if [[ -n "${IAP_RESOURCE_ACCESS_EXPIRES_AT:-}" ]]; then
+                echo "IAP_RESOURCE_ACCESS_EXPIRES_AT must be empty for a user principal; direct-user access never receives an implicit condition." >&2
+                exit 1
+              fi
+              ;;
+          esac
           if [[ ! "$IAP_PROJECT_BREAK_GLASS_SHA256" =~ ^sha256:[a-f0-9]{64}$ ]]; then
             echo "IAP_PROJECT_BREAK_GLASS_SHA256 must be the protected canonical project-IAP policy pin." >&2
             exit 1
@@ -816,6 +841,11 @@ jobs:
 
           deploy_release() {
             local iap_audience="$1"
+            local auto_enrollment_enabled="${2:-false}"
+            if [[ "$auto_enrollment_enabled" != "true" && "$auto_enrollment_enabled" != "false" ]]; then
+              echo "Auto-enrollment Helm state must be an explicit boolean." >&2
+              return 1
+            fi
             local -a domain_migration_args=(
               --set-string "gke.managedCertificate.name=${HELM_RELEASE}-domain"
               --set-string "gke.managedCertificate.domains[0]=versorgungs-kompass.de"
@@ -872,6 +902,7 @@ jobs:
               --set-string "ingress.annotations.kubernetes\\.io/ingress\\.global-static-ip-name=${GKE_INGRESS_IP_NAME}" \
               --set-string config.allowedOrigin="$FRONTEND_BASE_URL" \
               --set-string config.apiAuthMode=iap \
+              --set config.autoEnrollmentEnabled="$auto_enrollment_enabled" \
               --set-string config.iapJwtAudience="$iap_audience" \
               --set-string config.hospitationImportOwnerProfileId="$HOSPITATION_IMPORT_OWNER_PROFILE_ID" \
               --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
@@ -895,7 +926,7 @@ jobs:
           }
 
           # Fail closed while the GKE Ingress controller creates the backend service.
-          deploy_release "/projects/0/global/backendServices/0"
+          deploy_release "/projects/0/global/backendServices/0" false
 
           ingress_name="${HELM_RELEASE}-api"
           api_service_name="${HELM_RELEASE}-api"
@@ -963,7 +994,7 @@ jobs:
           fi
           iap_audience="/projects/${project_number}/global/backendServices/${backend_service_id}"
 
-          deploy_release "$iap_audience"
+          deploy_release "$iap_audience" false
 
           configured_audience="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
             --output jsonpath='{.data.IAP_JWT_AUDIENCE}')"
@@ -1014,67 +1045,236 @@ jobs:
             exit 1
           fi
 
-          # Make the resource policy authoritative on exactly the approved group.
-          # Project-level IAP access remains the separately managed break-glass path.
+          # Read and validate both resource policies before any mutation. This makes
+          # a controlled cutover possible only from two empty policies or from the
+          # already exact desired state. Project-level IAP access remains the
+          # separately managed and pinned break-glass path.
           iap_policy_dir="$(mktemp -d)"
           cleanup_iap_policy() {
-            rm -f "${iap_policy_dir}"/*.json
+            rm -f "${iap_policy_dir}"/*.json "${iap_policy_dir}"/*.update
             rmdir "$iap_policy_dir" 2>/dev/null || true
           }
           trap cleanup_iap_policy EXIT
           umask 077
-          for candidate in "$backend_service" "$frontend_backend_service"; do
+          backend_services=("$backend_service" "$frontend_backend_service")
+          principal_type="${IAP_RESOURCE_ACCESS_PRINCIPAL%%:*}"
+          condition_expression=""
+          if [[ "$principal_type" == "group" ]]; then
+            condition_expression="request.time < timestamp(\"${IAP_RESOURCE_ACCESS_EXPIRES_AT}\")"
+          fi
+
+          for candidate in "${backend_services[@]}"; do
             current_policy="${iap_policy_dir}/${candidate}-current.json"
+            desired_policy="${iap_policy_dir}/${candidate}-desired.json"
+            gcloud iap web get-iam-policy \
+              --project "$GCP_PROJECT_ID" \
+              --resource-type=backend-services \
+              --service "$candidate" \
+              --format=json > "$current_policy"
+            jq \
+              --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" \
+              --arg principal_type "$principal_type" \
+              --arg condition_expression "$condition_expression" '
+              {
+                version: (if $principal_type == "group" then 3 else 1 end),
+                etag: .etag,
+                bindings: [
+                  {
+                    role: "roles/iap.httpsResourceAccessor",
+                    members: [$member]
+                  }
+                  + if $principal_type == "group" then {
+                      condition: {
+                        title: "pre-gematik-pilot-expiry",
+                        description: "Automatische Sperre zum dokumentierten Ende des pre-gematik-Piloten.",
+                        expression: $condition_expression
+                      }
+                    } else {} end
+                ]
+              }
+              | with_entries(select(.value != null))
+            ' "$current_policy" > "$desired_policy"
+
+            if jq --exit-status '
+              (.etag | type == "string") and
+              (.etag | length) > 0 and
+              ((.bindings // []) | length) == 0 and
+              ((.auditConfigs // []) | length) == 0 and
+              ([
+                keys_unsorted[]
+                | select(
+                    . != "bindings" and
+                    . != "etag" and
+                    . != "version" and
+                    . != "auditConfigs"
+                  )
+              ] | length) == 0
+            ' "$current_policy" >/dev/null; then
+              : > "${iap_policy_dir}/${candidate}.update"
+              continue
+            fi
+
+            if ! jq --exit-status --slurpfile desired "$desired_policy" '
+              (.etag | type == "string") and
+              (.etag | length) > 0 and
+              ([
+                keys_unsorted[]
+                | select(
+                    . != "bindings" and
+                    . != "etag" and
+                    . != "version" and
+                    . != "auditConfigs"
+                  )
+              ] | length) == 0 and
+              {
+                version: (.version // 1),
+                bindings: (.bindings // []),
+                auditConfigs: (.auditConfigs // [])
+              }
+              ==
+              {
+                version: ($desired[0].version // 1),
+                bindings: ($desired[0].bindings // []),
+                auditConfigs: ($desired[0].auditConfigs // [])
+              }
+            ' "$current_policy" >/dev/null; then
+              echo "A backend-specific IAP policy differs from the exact approved state; clear both resource policies in the controlled cutover before retrying." >&2
+              exit 1
+            fi
+          done
+
+          pending_policy_updates=0
+          for candidate in "${backend_services[@]}"; do
+            if [[ -f "${iap_policy_dir}/${candidate}.update" ]]; then
+              pending_policy_updates=$((pending_policy_updates + 1))
+            fi
+          done
+          if (( pending_policy_updates != 0 && pending_policy_updates != ${#backend_services[@]} )); then
+            echo "The backend-specific IAP policies are in a partial cutover state; both must be empty or both must already match the exact approved state." >&2
+            exit 1
+          fi
+
+          # Require an enrolled second factor at least every eight hours on both
+          # services. Both current settings are read before either setting changes.
+          desired_reauth_settings="${iap_policy_dir}/desired-reauth-settings.json"
+          jq --null-input '{
+            accessSettings: {
+              reauthSettings: {
+                method: "ENROLLED_SECOND_FACTORS",
+                maxAge: "28800s",
+                policyType: "MINIMUM"
+              }
+            }
+          }' > "$desired_reauth_settings"
+          for candidate in "${backend_services[@]}"; do
+            gcloud iap settings get \
+              --project "$GCP_PROJECT_ID" \
+              --resource-type=backend-services \
+              --service "$candidate" \
+              --format=json > "${iap_policy_dir}/${candidate}-settings-current.json"
+          done
+          for candidate in "${backend_services[@]}"; do
+            gcloud iap settings set "$desired_reauth_settings" \
+              --project "$GCP_PROJECT_ID" \
+              --resource-type=backend-services \
+              --service "$candidate" \
+              --quiet >/dev/null
+          done
+          for candidate in "${backend_services[@]}"; do
+            verified_settings="${iap_policy_dir}/${candidate}-settings-verified.json"
+            gcloud iap settings get \
+              --project "$GCP_PROJECT_ID" \
+              --resource-type=backend-services \
+              --service "$candidate" \
+              --format=json > "$verified_settings"
+            if ! jq --exit-status '
+              .accessSettings.reauthSettings == {
+                method: "ENROLLED_SECOND_FACTORS",
+                maxAge: "28800s",
+                policyType: "MINIMUM"
+              }
+            ' "$verified_settings" >/dev/null; then
+              echo "IAP reauthentication is not fail-closed on every backend service." >&2
+              exit 1
+            fi
+          done
+
+          # Only after both policies and both reauthentication settings passed
+          # validation may either resource policy be changed.
+          for candidate in "${backend_services[@]}"; do
+            desired_policy="${iap_policy_dir}/${candidate}-desired.json"
+            if [[ ! -f "${iap_policy_dir}/${candidate}.update" ]]; then
+              continue
+            fi
+            gcloud iap web set-iam-policy "$desired_policy" \
+              --project "$GCP_PROJECT_ID" \
+              --resource-type=backend-services \
+              --service "$candidate" \
+              --quiet >/dev/null
+          done
+
+          for candidate in "${backend_services[@]}"; do
             desired_policy="${iap_policy_dir}/${candidate}-desired.json"
             verified_policy="${iap_policy_dir}/${candidate}-verified.json"
             gcloud iap web get-iam-policy \
               --project "$GCP_PROJECT_ID" \
               --resource-type=backend-services \
               --service "$candidate" \
-              --format=json > "$current_policy"
-            if ! jq --exit-status --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" '
-              (.bindings // []) as $bindings |
-              ($bindings | length) == 0 or
-              (
-                ($bindings | length) == 1 and
-                $bindings[0].role == "roles/iap.httpsResourceAccessor" and
-                $bindings[0].members == [$member] and
-                ($bindings[0].condition? == null)
-              )
-            ' "$current_policy" >/dev/null; then
-              echo "A backend-specific IAP policy already contains an unknown member, role or condition; refusing automatic reconciliation." >&2
-              exit 1
-            fi
-            jq --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" '
+              --format=json > "$verified_policy"
+            if ! jq --exit-status --slurpfile desired "$desired_policy" '
+              (.etag | type == "string") and
+              (.etag | length) > 0 and
+              ([
+                keys_unsorted[]
+                | select(
+                    . != "bindings" and
+                    . != "etag" and
+                    . != "version" and
+                    . != "auditConfigs"
+                  )
+              ] | length) == 0 and
               {
                 version: (.version // 1),
-                etag: .etag,
-                bindings: [{
-                  role: "roles/iap.httpsResourceAccessor",
-                  members: [$member]
-                }]
+                bindings: (.bindings // []),
+                auditConfigs: (.auditConfigs // [])
               }
-              | with_entries(select(.value != null))
-            ' "$current_policy" > "$desired_policy"
-            gcloud iap web set-iam-policy "$desired_policy" \
-              --project "$GCP_PROJECT_ID" \
-              --resource-type=backend-services \
-              --service "$candidate" \
-              --quiet >/dev/null
-            gcloud iap web get-iam-policy \
-              --project "$GCP_PROJECT_ID" \
-              --resource-type=backend-services \
-              --service "$candidate" \
-              --format=json > "$verified_policy"
-            if ! jq --exit-status --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" '
-              (.bindings | length) == 1 and
-              .bindings[0].role == "roles/iap.httpsResourceAccessor" and
-              .bindings[0].members == [$member]
+              ==
+              {
+                version: ($desired[0].version // 1),
+                bindings: ($desired[0].bindings // []),
+                auditConfigs: ($desired[0].auditConfigs // [])
+              }
             ' "$verified_policy" >/dev/null; then
-              echo "A backend-specific IAP policy contains an unapproved member or role." >&2
+              echo "A backend-specific IAP policy does not match the exact approved principal policy." >&2
               exit 1
             fi
           done
+
+          # The API starts fail-closed with auto-enrollment disabled. Enable it
+          # only after both backend policies are verified as the exact pinned
+          # group principal with the approved expiry. A direct user rollback
+          # intentionally leaves this path disabled.
+          if [[ "$principal_type" == "group" ]]; then
+            deploy_release "$iap_audience" true
+            configured_auto_enrollment="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
+              --output jsonpath='{.data.API_AUTH_AUTO_ENROLLMENT_ENABLED}')"
+            if [[ "$configured_auto_enrollment" != "1" ]]; then
+              echo "Auto-enrollment was not enabled after the exact group policy verification." >&2
+              exit 1
+            fi
+            kubectl --namespace "$K8S_NAMESPACE" rollout restart \
+              "deployment/${HELM_RELEASE}-api"
+            kubectl --namespace "$K8S_NAMESPACE" rollout status \
+              "deployment/${HELM_RELEASE}-api" \
+              --timeout=10m
+          else
+            configured_auto_enrollment="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
+              --output jsonpath='{.data.API_AUTH_AUTO_ENROLLMENT_ENABLED}')"
+            if [[ "$configured_auto_enrollment" != "0" ]]; then
+              echo "Auto-enrollment must remain disabled for a direct user rollback." >&2
+              exit 1
+            fi
+          fi
 
           echo "audience=$iap_audience" >> "$GITHUB_OUTPUT"
           echo "api_backend_service=$backend_service" >> "$GITHUB_OUTPUT"
@@ -1205,6 +1405,243 @@ jobs:
                   throw new Error(`Required schema tables are missing or have incomplete runtime grants: ${invalid.map((row) => row.name).join(", ")}`);
                 }
 
+                const testAccessContract = await pool.query(`
+                  select
+                    to_regclass('public.identity_enrollment_requests') is not null
+                      and to_regclass('public.test_access_objects') is not null
+                      and to_regclass('public.test_access_allowlist') is not null
+                      and exists (
+                        select 1
+                          from pg_catalog.pg_attribute
+                         where attrelid = 'public.identity_bindings'::pg_catalog.regclass
+                           and attname = 'access_scope'
+                           and not attisdropped
+                      )
+                      and exists (
+                        select 1
+                          from pg_catalog.pg_attribute
+                         where attrelid = 'public.identity_bindings'::pg_catalog.regclass
+                           and attname = 'scope_ref'
+                           and not attisdropped
+                      ) as schema_ready,
+                    (
+                      select bool_and(
+                        has_column_privilege(
+                          current_user,
+                          'public.identity_enrollment_requests',
+                          attribute.attname,
+                          'SELECT'
+                        ) = (
+                          attribute.attname = any(array[
+                            'request_id', 'issuer', 'subject', 'verified_email', 'status', 'expires_at'
+                          ])
+                        )
+                        and has_column_privilege(
+                          current_user,
+                          'public.identity_enrollment_requests',
+                          attribute.attname,
+                          'INSERT'
+                        ) = (
+                          attribute.attname = any(array[
+                            'issuer', 'subject', 'verified_email', 'expires_at'
+                          ])
+                        )
+                        and has_column_privilege(
+                          current_user,
+                          'public.identity_enrollment_requests',
+                          attribute.attname,
+                          'UPDATE'
+                        ) = (attribute.attname = 'last_seen_at')
+                        and not has_column_privilege(
+                          current_user,
+                          'public.identity_enrollment_requests',
+                          attribute.attname,
+                          'REFERENCES'
+                        )
+                      )
+                        from pg_catalog.pg_attribute attribute
+                       where attribute.attrelid =
+                         'public.identity_enrollment_requests'::pg_catalog.regclass
+                         and attribute.attnum > 0
+                         and not attribute.attisdropped
+                    )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.identity_enrollment_requests',
+                        'SELECT'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.identity_enrollment_requests',
+                        'INSERT'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.identity_enrollment_requests',
+                        'UPDATE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.identity_enrollment_requests',
+                        'DELETE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.identity_enrollment_requests',
+                        'TRUNCATE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.identity_enrollment_requests',
+                        'REFERENCES'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.identity_enrollment_requests',
+                        'TRIGGER'
+                      )
+                      and (
+                        select bool_and(
+                          has_column_privilege(
+                            current_user,
+                            'public.test_access_objects',
+                            attribute.attname,
+                            'SELECT'
+                          ) = (
+                            attribute.attname = any(array['scope_ref', 'entity_type', 'entity_id'])
+                          )
+                          and has_column_privilege(
+                            current_user,
+                            'public.test_access_objects',
+                            attribute.attname,
+                            'INSERT'
+                          ) = (
+                            attribute.attname = any(array[
+                              'scope_ref', 'entity_type', 'entity_id', 'created_by'
+                            ])
+                          )
+                          and not has_column_privilege(
+                            current_user,
+                            'public.test_access_objects',
+                            attribute.attname,
+                            'UPDATE'
+                          )
+                          and not has_column_privilege(
+                            current_user,
+                            'public.test_access_objects',
+                            attribute.attname,
+                            'REFERENCES'
+                          )
+                        )
+                          from pg_catalog.pg_attribute attribute
+                         where attribute.attrelid =
+                           'public.test_access_objects'::pg_catalog.regclass
+                           and attribute.attnum > 0
+                           and not attribute.attisdropped
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_objects',
+                        'SELECT'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_objects',
+                        'INSERT'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_objects',
+                        'UPDATE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_objects',
+                        'DELETE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_objects',
+                        'TRUNCATE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_objects',
+                        'REFERENCES'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_objects',
+                        'TRIGGER'
+                      )
+                      and not has_any_column_privilege(
+                        current_user,
+                        'public.test_access_allowlist',
+                        'SELECT,INSERT,UPDATE,REFERENCES'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_allowlist',
+                        'SELECT'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_allowlist',
+                        'INSERT'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_allowlist',
+                        'UPDATE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_allowlist',
+                        'DELETE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_allowlist',
+                        'TRUNCATE'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_allowlist',
+                        'REFERENCES'
+                      )
+                      and not has_table_privilege(
+                        current_user,
+                        'public.test_access_allowlist',
+                        'TRIGGER'
+                      ) as privileges_ready,
+                    routine.prokind = 'f'
+                      and routine.prosecdef
+                      and routine.proretset
+                      and owner.rolname = 'vk_allowlist_executor'
+                      and not owner.rolcanlogin
+                      and not owner.rolinherit
+                      and not owner.rolsuper
+                      and not owner.rolcreatedb
+                      and not owner.rolcreaterole
+                      and not owner.rolreplication
+                      and not owner.rolbypassrls
+                      and routine.proconfig is not distinct from array['search_path=pg_catalog, public']
+                      and has_function_privilege(current_user, routine.oid, 'EXECUTE')
+                      and not has_function_privilege('public', routine.oid, 'EXECUTE')
+                      as allowlist_function_ready
+                  from pg_catalog.pg_proc routine
+                  join pg_catalog.pg_roles owner on owner.oid = routine.proowner
+                 where routine.oid = to_regprocedure(
+                   'public.pre_gematik_consume_test_access_allowlist(uuid,text,text,text,timestamptz,timestamptz)'
+                 )
+                `);
+                const testAccess = testAccessContract.rows[0];
+                if (!testAccess?.schema_ready
+                    || !testAccess.privileges_ready
+                    || !testAccess.allowlist_function_ready) {
+                  throw new Error("Test-access schema, runtime grants, or protected allowlist function are not release-ready.");
+                }
+
                 const objectPrivileges = await pool.query(`
                   select
                     has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'USAGE')
@@ -1297,6 +1734,18 @@ jobs:
           grep --fixed-strings --quiet 'dataMode: "api"' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
           grep --fixed-strings --quiet 'authMode: "iap"' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
           grep --fixed-strings --quiet 'requireApiGateway: true' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
+          grep --fixed-strings --quiet 'cleanUrls: true' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
+
+          for app_path in \
+            /start \
+            /versorgung/kontakte \
+            /hospitationen/beobachtungen \
+            /profil/einstellungen; do
+            curl --fail --silent --show-error \
+              "http://127.0.0.1:18082${app_path}" \
+              --output "${RUNNER_TEMP}/pre-gematik-clean-route.html"
+            grep --fixed-strings --quiet '<div class="app-shell' "${RUNNER_TEMP}/pre-gematik-clean-route.html"
+          done
 
           case "$API_BASE_URL" in
             "https://mitmachen.timo-frank.de")
@@ -1357,6 +1806,7 @@ jobs:
             "https://www.versorgungs-kompass.de/"
             "https://mitmachen.timo-frank.de/"
             "https://pre-gematik.versorgungs-kompass.timo-frank.de/"
+            "${FRONTEND_BASE_URL}/versorgung/kontakte"
             "${API_BASE_URL}/api/healthz"
           )
           for target in "${targets[@]}"; do
