@@ -676,13 +676,15 @@ assert.doesNotMatch(
 );
 for (const matrixAlias of [
   "/;",
+  "/;;probe",
   "/;probe",
   "/;probe=1",
   "/anmelden;",
   "/anmelden;probe",
   "/anmelden;probe=1",
   "/anmelden;probe/weiter",
-  "/anmelden;%2Fprobe"
+  "/anmelden;%2Fprobe",
+  "/anmelden;;probe"
 ]) {
   assert.ok(
     matrixAliasesBlock.includes(`"${matrixAlias}"`),

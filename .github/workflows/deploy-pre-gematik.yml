@@ -2684,7 +2684,6 @@ jobs:
             "/anmelden/"
             "/Anmelden"
             "/anmelden/weiter"
-            "/anmelden;;probe"
             "/anmelden,probe"
             "/anmelden%3Bprobe"
           )
@@ -2749,13 +2748,14 @@ jobs:
             esac
           done
 
-          # The External Application Load Balancer treats a single semicolon
-          # as a matrix-parameter delimiter for path-rule selection while
+          # The External Application Load Balancer treats semicolon matrix
+          # syntax as a delimiter for path-rule selection while
           # forwarding the raw URI. The minimal public nginx therefore owns the
           # containment response and must return only a hardened, content-free
           # 404. If Google changes the behavior to IAP, require its marker.
           matrix_aliases=(
             "/;"
+            "/;;probe"
             "/;probe"
             "/;probe=1"
             "/anmelden;"
@@ -2763,6 +2763,7 @@ jobs:
             "/anmelden;probe=1"
             "/anmelden;probe/weiter"
             "/anmelden;%2Fprobe"
+            "/anmelden;;probe"
           )
           matrix_index=0
           for matrix_alias in "${matrix_aliases[@]}"; do
