@@ -134,7 +134,11 @@ Ein Cloud-Billing-Budget ist nur eine Warnung und kein hartes Ausgabenlimit. Ins
 
 ## Phase 3: DNS, OAuth und Secret Manager
 
-1. Die in `CLOUD_DNS_MANAGED_ZONE` angegebene Zone wird als Data Source gelesen; Terraform legt den A-Record für `PUBLIC_HOSTNAME` auf die reservierte globale Ingress-IP.
+Die kanonische Domain `versorgungs-kompass.de` bleibt bei ALL-INKL autoritativ. Ihr Apex-A-Record zeigt auf den Terraform-Output `GKE_INGRESS_IP_ADDRESS`; `www.versorgungs-kompass.de` ist ein CNAME auf `versorgungs-kompass.de.`. Es wird keine AAAA-Adresse veröffentlicht, solange der Ingress keine entsprechende statische IPv6-Adresse besitzt. MX-, SPF-, DKIM- und DMARC-Einträge bei ALL-INKL bleiben unverändert. Ein vorhandener Wildcard-Record wird nicht auf den GKE-Ingress umgebogen; nicht benötigte Wildcards werden entfernt, bevor HSTS mit `includeSubDomains` auf der Apex-Domain aktiv wird.
+
+Der Workflow hält während und nach dem Cutover drei getrennte Google Managed Certificates am selben Ingress: `versorgungs-kompass-domain` für Apex und `www`, `versorgungs-kompass-mitmachen` für die bisherige Hauptdomain und `versorgungs-kompass-api` für den älteren Pre-gematik-Host. Im Vorbereitungsmodus bleibt `mitmachen.timo-frank.de` kanonisch und die neuen Hosts leiten dorthin um. Erst nachdem das neue Zertifikat `Active` ist, wechseln `API_BASE_URL` und `FRONTEND_BASE_URL` gemeinsam auf `https://versorgungs-kompass.de`; danach leiten `www` und beide alten Hosts auf den neuen Origin um.
+
+1. Die in `CLOUD_DNS_MANAGED_ZONE` angegebene Zone wird als Data Source gelesen; Terraform hält den A-Record für den bisherigen Legacy-Host aus `PUBLIC_HOSTNAME` auf der reservierten globalen Ingress-IP.
 2. Falls eine Subzone verwendet wird, delegiert der zuständige DNS-Betrieb sie einmalig an die von Cloud DNS ausgewiesenen Nameserver. Andere Zonen und Records bleiben unberührt.
 3. Delegation und A-Record prüfen, bevor ein aktives Google Managed Certificate erwartet wird.
 4. Wenn die Pre-Integration externe Google-Konten benötigt, bleibt die OAuth-Audience bewusst `External / Test`. Support-, Kontakt- und Testnutzer werden nur im geschützten Plattformkontext gepflegt. Eine IAP-Gruppenmitgliedschaft allein kann in diesem Status unzureichend sein; weitere Personen müssen gemäß OAuth-Testnutzerverfahren freigegeben werden. Diese Konfiguration ist ein Testprovisorium und keine Vorlage für Ziel-SSO oder Ziel-Support.
@@ -196,10 +200,10 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `K8S_NAMESPACE` | Terraform-Output `K8S_NAMESPACE` |
 | `IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME` | fester Kubernetes-Secret-Name `versorgungs-kompass-iap-oauth`; keine Credential-Werte |
 | `IAP_RESOURCE_ACCESS_PRINCIPAL` | Terraform-Output `IAP_RESOURCE_ACCESS_PRINCIPAL`; im Zielbetrieb eine Gruppe, im befristeten Einpersonen-Pilot ausnahmsweise der direkt prüfbare Pilot-Owner; nur an die zwei erzeugten Backend Services gebunden |
-| `API_BASE_URL` | gemeinsamer HTTPS-Origin, ohne abschließenden Slash oder Pfad |
-| `FRONTEND_BASE_URL` | exakt derselbe gemeinsame HTTPS-Origin |
+| `API_BASE_URL` | gemeinsamer HTTPS-Origin; `https://mitmachen.timo-frank.de` nur zur Zertifikatsvorbereitung, danach `https://versorgungs-kompass.de` |
+| `FRONTEND_BASE_URL` | exakt derselbe gemeinsame HTTPS-Origin wie `API_BASE_URL` |
 
-`WIF_PROVIDER` ist der volle Ressourcenname mit numerischer Projektnummer. `GAR_REPOSITORY` hat die Form `REGION-docker.pkg.dev/PROJECT/REPOSITORY`. Bucket-Werte enthalten nur den Namen, kein `gs://`. Der Workflow bricht ab, wenn `API_BASE_URL` und `FRONTEND_BASE_URL` nicht exakt denselben Origin bezeichnen.
+`WIF_PROVIDER` ist der volle Ressourcenname mit numerischer Projektnummer. `GAR_REPOSITORY` hat die Form `REGION-docker.pkg.dev/PROJECT/REPOSITORY`. Bucket-Werte enthalten nur den Namen, kein `gs://`. Der Workflow bricht ab, wenn `API_BASE_URL` und `FRONTEND_BASE_URL` nicht exakt denselben Origin bezeichnen oder der Origin außerhalb der beiden freigegebenen Cutover-Zustände liegt.
 
 Zusätzlich liegen zwei geschützte Environment-Secrets vor. `IAP_PROJECT_BREAK_GLASS_SHA256` ist der SHA-256-Pin der kanonisch sortierten, projektweiten IAP-Break-glass-Nutzerliste und kein Zugangswert. `HOSPITATION_IMPORT_OWNER_PROFILE_ID` enthält ausschließlich die stabile produktive Profil-ID von Timo Frank; sie wird nicht im Repository hinterlegt und durch den Workflow in die geschützte API-Konfiguration übernommen. Der Workflow liest die Projekt-IAM-Policy nur als Metadatum, verlangt genau eine unbedingte, ausschließlich aus `user:`-Mitgliedern bestehende Break-glass-Bindung und stoppt bei jeder Mitgliedschaftsänderung. Der Klartext der Nutzerliste wird weder in Git noch in der Actions-Zusammenfassung ausgegeben.
 
@@ -214,6 +218,16 @@ In GitHub unter `Actions -> Deploy pre-gematik (GKE Autopilot) -> Run workflow` 
 - `require_external_smoke`: deaktiviert.
 
 Die Validierung führt Repository-Checks, Helm-Lint und -Render, Ziel-Frontend-Erzeugung sowie echten Containerstart mit Health Check aus. Sie fordert weder Environment-Freigabe noch GCP-Credentials an.
+
+### Domain-Cutover zu versorgungs-kompass.de
+
+Der Wechsel erfolgt in zwei vollständigen Deployments, damit `mitmachen.timo-frank.de` während der Zertifikatsbereitstellung erreichbar bleibt:
+
+1. `API_BASE_URL` und `FRONTEND_BASE_URL` zunächst auf `https://mitmachen.timo-frank.de` belassen und den Workflow mit `validate_only=false`, `require_external_smoke=false` ausführen. Dieses Vorbereitungsdeployment ergänzt Apex und `www` als Redirect-Hosts und hängt das neue Zertifikat zusätzlich an den Ingress.
+2. Bei ALL-INKL den Apex-A-Record auf `GKE_INGRESS_IP_ADDRESS` und `www` als CNAME auf `versorgungs-kompass.de.` setzen. MX- und TXT-Records bleiben unverändert.
+3. Warten, bis `kubectl -n pre-gematik get managedcertificate versorgungs-kompass-domain` den Status `Active` für beide Domains meldet. Bis dahin bleibt die alte Domain kanonisch.
+4. `API_BASE_URL` und `FRONTEND_BASE_URL` gemeinsam auf `https://versorgungs-kompass.de` ändern und den Workflow erneut mit `validate_only=false`, `require_external_smoke=true` ausführen.
+5. Apex muss anschließend die IAP-Grenze erreichen. `www`, `mitmachen.timo-frank.de` und `pre-gematik.versorgungs-kompass.timo-frank.de` müssen Pfad und Query per HTTP 308 auf den neuen Origin übernehmen. Die alten Zertifikate bleiben für diese Redirects aktiv.
 
 ### Erstes Deployment
 

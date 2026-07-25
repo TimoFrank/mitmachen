@@ -39,10 +39,10 @@
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
 | [Öffentliche GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/demo/) | Demo | Produkteinblick mit fiktiven Beispieldaten |
-| [GKE-Demo](https://mitmachen.timo-frank.de/) | Interner PoC | Bereits über GKE bereitgestellter Arbeitsstand |
+| [GKE-Demo](https://versorgungs-kompass.de/) | Interner PoC | Bereits über GKE bereitgestellter Arbeitsstand |
 | Zielbetrieb | In Vorbereitung | Nächster PoC-Schritt in der gematik-Infrastruktur |
 
-GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Demo läuft getrennt unter mitmachen.timo-frank.de. Für den Zielbetrieb wird ein festgelegter Release Candidate gebaut und ein freigegebener Datenstand aus der geschützten Anwendung übernommen. Die Veröffentlichungswege können unabhängig voneinander weiterentwickelt werden. Der aktuelle PoC-Umfang und die benötigten Ressourcen stehen im [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
+GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Demo läuft getrennt unter versorgungs-kompass.de; die bisherige Adresse mitmachen.timo-frank.de bleibt als HTTPS-Weiterleitung erhalten. Für den Zielbetrieb wird ein festgelegter Release Candidate gebaut und ein freigegebener Datenstand aus der geschützten Anwendung übernommen. Die Veröffentlichungswege können unabhängig voneinander weiterentwickelt werden. Der aktuelle PoC-Umfang und die benötigten Ressourcen stehen im [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
 
 ## Repository
 

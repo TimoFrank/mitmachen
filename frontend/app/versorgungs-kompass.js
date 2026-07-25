@@ -101,7 +101,7 @@
       let ownerOptions = [];
       let ownerProfiles = [];
       let teamDirectoryState = "loading";
-      const expandedTeamNames = new Set();
+      let selectedTeamName = "";
       const germanStates = [
         "Baden-Württemberg",
         "Bayern",
@@ -8859,7 +8859,7 @@
         groups.forEach((group) => {
           group.accounts.sort((a, b) => a.label.localeCompare(b.label, "de"));
         });
-        return groups;
+        return groups.filter((group) => group.accounts.length > 0);
       }
 
       function availableTeamOptions(selectedTeam = "") {
@@ -8893,7 +8893,9 @@
       }
 
       function teamIconMarkup(team = "") {
-        const icon = teamDefinitions.find((entry) => entry.name === team)?.icon || "unassigned";
+        const icon =
+          teamDefinitions.find((entry) => entry.name === team)?.icon ||
+          (team === TEAM_UNASSIGNED_LABEL ? "unassigned" : "team");
         if (icon === "kommunikation") {
           return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H6l-3 3v-7a8 8 0 1 1 18-4Z"></path><path d="M8 11h8"></path><path d="M8 15h5"></path></svg>`;
         }
@@ -8903,12 +8905,15 @@
         if (icon === "stabsstelle") {
           return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.4 2.8 8.4 7 10 4.2-1.6 7-5.6 7-10V6l-7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>`;
         }
+        if (icon === "team") {
+          return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path></svg>`;
+        }
         return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>`;
       }
 
       function teamGroupDomId(team = "", index = 0) {
         const slug = normalizeTeamLookup(team).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "team";
-        return `team-column-${slug}-${index}`;
+        return `team-card-${slug}-${index}`;
       }
 
       function teamContactIndex(profiles = teamProfiles()) {
@@ -8971,6 +8976,76 @@
         details.dataset.teamOwnerLoaded = "true";
       }
 
+      function teamAvatarPreviewMarkup(accounts = []) {
+        const visibleAccounts = accounts.slice(0, 4);
+        const memberNames = accounts.map((profile) => teamProfileDisplayLabel(profile));
+        const memberAvatars = visibleAccounts
+          .map((profile) => {
+            const profileName = teamProfileDisplayLabel(profile);
+            return `<span class="team-card-avatar" title="${escapeHtml(profileName)}" aria-hidden="true">${avatarMarkup(profile, "team-card-avatar-image")}</span>`;
+          })
+          .join("");
+        const overflowCount = Math.max(0, accounts.length - visibleAccounts.length);
+        const overflowAvatar = overflowCount
+          ? `<span class="team-card-avatar team-card-avatar--overflow" aria-hidden="true">+${overflowCount}</span>`
+          : "";
+        const accessibleLabel =
+          accounts.length === 1
+            ? `Nutzer: ${memberNames[0]}`
+            : `Nutzer: ${memberNames.join(", ")}`;
+        return `<span class="team-card-avatars" role="img" aria-label="${escapeHtml(accessibleLabel)}">${memberAvatars}${overflowAvatar}</span>`;
+      }
+
+      function teamAccountCardMarkup(profile, contactIndex) {
+        const ownerCount = contactIndex.get(profile.id)?.length || 0;
+        const role = String(profile.role || "viewer").toLowerCase();
+        const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
+        const profileName = teamProfileDisplayLabel(profile);
+        return `
+          <article class="team-account-card">
+            <header class="team-account-card__header">
+              <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
+              <div class="team-account-copy">
+                <strong>${escapeHtml(profileName)}</strong>
+              </div>
+              <span class="team-account-role">
+                <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
+              </span>
+            </header>
+            <details class="profile-owner-details team-contact-details" data-team-owner-profile="${escapeHtml(profile.id)}">
+              <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt öffnen" : "Kontakte öffnen"}</span></summary>
+              <div class="profile-owner-list" data-team-owner-list>
+                <div class="profile-owner-empty">Kontakte werden erst beim Öffnen geladen.</div>
+              </div>
+            </details>
+          </article>
+        `;
+      }
+
+      function teamCardMarkup(group, groupIndex, isSelected) {
+        const groupId = teamGroupDomId(group.name, groupIndex);
+        const countLabel = `${group.accounts.length} Nutzer`;
+        return `
+          <button
+            class="team-card team-card--${escapeHtml(group.icon)}${isSelected ? " is-selected" : ""}"
+            type="button"
+            data-team-select="${escapeHtml(group.name)}"
+            aria-pressed="${isSelected ? "true" : "false"}"
+            aria-controls="team-selected-detail"
+          >
+            <span class="team-card__top">
+              <span class="team-icon" aria-hidden="true">${teamIconMarkup(group.name)}</span>
+              ${isSelected ? `<span class="team-card__selected">Ausgewählt</span>` : ""}
+            </span>
+            <strong class="team-card__title" id="${groupId}">${escapeHtml(group.name)}</strong>
+            <span class="team-card__footer">
+              ${teamAvatarPreviewMarkup(group.accounts)}
+              <span class="team-card__count">${escapeHtml(countLabel)}</span>
+            </span>
+          </button>
+        `;
+      }
+
       function renderTeamView() {
         if (!teamAccountList) return;
         const profiles = teamProfiles();
@@ -8998,89 +9073,55 @@
         teamAccountList.setAttribute("aria-busy", "false");
 
         if (!profiles.length) {
+          selectedTeamName = "";
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Noch keine Nutzer vorhanden</strong><span>Sobald Profile eingerichtet sind, erscheinen sie hier nach Teams gruppiert.</span></div>`;
           return;
         }
 
         const groups = groupedTeamProfiles(profiles);
-        teamAccountList.innerHTML = groups
-          .map((group, groupIndex) => {
-            const team = group.name;
-            const accounts = group.accounts;
-            const groupId = teamGroupDomId(team, groupIndex);
-            const teamDefinition = teamDefinitions.find((entry) => entry.name === team);
-            const teamSubtitle = group.isUnassigned
-              ? "Noch ohne Teamzuordnung"
-              : teamDefinition?.description || "Team im gemeinsamen Arbeitsraum";
-            const isOpen = accounts.length > 0 && expandedTeamNames.has(team);
-            const memberNames = accounts.map((profile) => teamProfileDisplayLabel(profile));
-            const memberAvatars = accounts
-              .map((profile) => {
-                const profileName = teamProfileDisplayLabel(profile);
-                return `<span class="team-column-member-avatar" title="${escapeHtml(profileName)}" aria-hidden="true">${avatarMarkup(profile, "team-column-member-image")}</span>`;
-              })
-              .join("");
-            return `
-              <details class="team-column team-column--${escapeHtml(group.icon)}" data-team-group="${escapeHtml(team)}" ${isOpen ? "open" : ""}>
-                <summary class="team-column-head" aria-labelledby="${groupId}">
-                  <span class="team-icon" aria-hidden="true">${teamIconMarkup(team)}</span>
-                  <span class="team-column-title">
-                    <strong id="${groupId}">${escapeHtml(team)}</strong>
-                    <span>${escapeHtml(teamSubtitle)}</span>
-                  </span>
-                  <span class="team-column-preview">
-                    ${accounts.length ? `<span class="team-column-members" role="img" aria-label="${escapeHtml(accounts.length === 1 ? `Teammitglied: ${memberNames[0]}` : `Teammitglieder: ${memberNames.join(", ")}`)}">${memberAvatars}</span>` : ""}
-                    <span class="team-column-count" aria-label="${accounts.length} ${accounts.length === 1 ? "Mitglied" : "Mitglieder"}">
-                      <strong>${accounts.length}</strong>
-                      <span>${accounts.length === 1 ? "Mitglied" : "Mitglieder"}</span>
-                    </span>
-                  </span>
-                  <span class="team-column-toggle" aria-hidden="true">⌄</span>
-                </summary>
-                <div class="team-column-accounts">
-                  ${accounts.length
-                    ? accounts
-                        .map((profile) => {
-                          const ownerCount = contactIndex.get(profile.id)?.length || 0;
-                          const role = String(profile.role || "viewer").toLowerCase();
-                          const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
-                          const profileName = teamProfileDisplayLabel(profile);
-                          return `
-                            <article class="team-account-row">
-                              <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
-                              <div class="team-account-copy">
-                                <strong>${escapeHtml(profileName)}</strong>
-                                <span class="team-account-team">${escapeHtml(team)}</span>
-                              </div>
-                              <div class="team-account-meta">
-                                <span class="team-account-role">
-                                  <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
-                                </span>
-                              </div>
-                              <div class="team-account-actions">
-                                <details class="profile-owner-details team-contact-details" data-team-owner-profile="${escapeHtml(profile.id)}">
-                                  <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt öffnen" : "Kontakte öffnen"}</span></summary>
-                                  <div class="profile-owner-list" data-team-owner-list>
-                                    <div class="profile-owner-empty">Kontakte werden erst beim Öffnen geladen.</div>
-                                  </div>
-                                </details>
-                              </div>
-                            </article>
-                          `;
-                        })
-                        .join("")
-                    : `<div class="team-column-empty">${group.isUnassigned ? "Alle geladenen Nutzer sind einem Team zugeordnet." : "Noch keine Nutzer zugeordnet."}</div>`}
-                </div>
-              </details>
-            `;
-          })
-          .join("");
+        if (!groups.some((group) => group.name === selectedTeamName)) selectedTeamName = groups[0]?.name || "";
+        const selectedGroup = groups.find((group) => group.name === selectedTeamName) || groups[0];
+        if (!selectedGroup) {
+          teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Noch keine Teams vorhanden</strong><span>Ordne Nutzer einem Team zu, damit die Übersicht gefüllt wird.</span></div>`;
+          return;
+        }
 
-        teamAccountList.querySelectorAll("[data-team-group]").forEach((details) => {
-          details.addEventListener("toggle", () => {
-            const team = details.dataset.teamGroup || "";
-            if (details.open) expandedTeamNames.add(team);
-            else expandedTeamNames.delete(team);
+        const teamCards = groups
+          .map((group, groupIndex) => teamCardMarkup(group, groupIndex, group.name === selectedGroup.name))
+          .join("");
+        const detailId = `${teamGroupDomId(selectedGroup.name, groups.indexOf(selectedGroup))}-detail-title`;
+        const accountCards = selectedGroup.accounts.map((profile) => teamAccountCardMarkup(profile, contactIndex)).join("");
+
+        teamAccountList.innerHTML = `
+          <div class="team-card-grid" aria-label="Teams auswählen">
+            ${teamCards}
+          </div>
+          <section
+            class="team-selected-detail"
+            id="team-selected-detail"
+            data-team-detail="${escapeHtml(selectedGroup.name)}"
+            aria-labelledby="${detailId}"
+          >
+            <header class="team-selected-detail__header">
+              <h3 id="${detailId}">${escapeHtml(selectedGroup.name)}</h3>
+              <span>${selectedGroup.accounts.length} Nutzer</span>
+            </header>
+            <div class="team-account-grid">
+              ${accountCards}
+            </div>
+          </section>
+        `;
+
+        teamAccountList.querySelectorAll("[data-team-select]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const nextTeam = button.dataset.teamSelect || "";
+            if (!nextTeam || nextTeam === selectedTeamName) return;
+            selectedTeamName = nextTeam;
+            renderTeamView();
+            const selectedButton = [...teamAccountList.querySelectorAll("[data-team-select]")].find(
+              (candidate) => candidate.dataset.teamSelect === selectedTeamName
+            );
+            selectedButton?.focus({ preventScroll: true });
           });
         });
         teamAccountList.querySelectorAll("[data-team-owner-profile]").forEach((details) => {
@@ -9558,7 +9599,7 @@
         {
           id: "team",
           view: "team",
-          target: "#team-account-list .team-column-head",
+          target: "#team-account-list .team-card.is-selected",
           fallbackTarget: "#team-account-list",
           sidebarSection: "account",
           sidebarTarget: "#sidebar-team-button",

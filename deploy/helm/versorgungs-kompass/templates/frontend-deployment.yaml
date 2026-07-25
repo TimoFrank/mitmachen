@@ -6,6 +6,7 @@
 {{- with .Values.frontend.contentRevision -}}
 {{- $_ := set $podAnnotations "checksum/frontend-content" . -}}
 {{- end -}}
+{{- $_ := set $podAnnotations "checksum/frontend-nginx-config" (include (print $.Template.BasePath "/frontend-nginx-configmap.yaml") . | sha256sum) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
