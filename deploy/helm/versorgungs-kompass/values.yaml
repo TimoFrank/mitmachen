@@ -174,7 +174,7 @@ frontend:
         healthyThreshold: 1
         unhealthyThreshold: 3
       iap:
-        enabled: true
+        enabled: false
         oauthClientCredentialsSecretName: ""
 
 gke:
