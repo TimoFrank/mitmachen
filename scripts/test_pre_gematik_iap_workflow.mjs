@@ -558,7 +558,17 @@ assert.match(ingressTemplate, /path: \/api[\s\S]*pathType: Prefix/);
 assert.match(ingressTemplate, /path: \/\n\s+pathType: Prefix/);
 assert.match(
   publicBackendConfigTemplate,
-  /iap:[\s\S]*enabled: \{\{ \.Values\.frontend\.publicEntry\.backendConfig\.iap\.enabled \}\}/
+  /if \.Values\.frontend\.publicEntry\.backendConfig\.iap\.enabled[\s\S]*iap:[\s\S]*enabled: true/
+);
+assert.match(
+  publicBackendConfigTemplate,
+  /enabled: true\s+oauthclientCredentials:\s+secretName:/,
+  "Fail-closed Public-IAP muss weiterhin den vorhandenen Custom-OAuth-Client verwenden."
+);
+assert.match(
+  iapScript,
+  /deploy_release "\$iap_audience" "\$final_auto_enrollment_enabled" false[\s\S]*jsonpath='\{\.spec\.iap\}'[\s\S]*--iap=disabled[\s\S]*wait_for_boundary false/,
+  "Die finale Phase muss IAP aus BackendConfig entfernen und den Custom-OAuth-Backend direkt oeffnen."
 );
 assert.match(
   publicServiceTemplate,
@@ -634,6 +644,11 @@ for (const protectedPath of [
   );
 }
 assert.match(externalBoundaryScript, /x-goog-iap-generated-response/i);
+assert.match(
+  externalBoundaryScript,
+  /edge_ready=0[\s\S]*for attempt in \{1\.\.60\}[\s\S]*data-public-entry="home"[\s\S]*edge_ready=1/,
+  "Der externe Smoke muss die sichere Edge-Propagation abwarten, bevor er den Gesamtvertrag prueft."
+);
 for (const dotSegmentAlias of [
   "/foo/../anmelden",
   "/anmelden/../anmelden",
