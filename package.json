@@ -10,6 +10,8 @@
     "start:demo": "npm run start",
     "prepare:local-hospitation": "node scripts/prepare_local_hospitation.mjs",
     "start:local-hospitation": "npm run prepare:local-hospitation && npm start",
+    "build:single-hospitation": "node scripts/build_single_html_hospitation.mjs",
+    "test:single-hospitation": "node scripts/test_single_html_hospitation.mjs",
     "generate:frontend-sbom": "node scripts/generate_frontend_sbom.mjs",
     "test:frontend-sbom": "node scripts/test_frontend_sbom.mjs",
     "generate:security-evidence": "node scripts/generate_security_evidence.mjs",

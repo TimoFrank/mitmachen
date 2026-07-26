@@ -155,6 +155,7 @@ build_pages() {
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
+    "$STAGE_DIR/state-flags" \
     "$STAGE_DIR/mitmachen" \
     "$STAGE_DIR/hospitation" \
     "$STAGE_DIR/vendor"
@@ -181,6 +182,9 @@ build_pages() {
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.css" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.css"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.js" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.js"
+  for asset in berlin.svg brandenburg.svg bremen.svg niedersachsen.svg rheinland-pfalz.svg saarland.svg sachsen-anhalt.svg; do
+    cp "$FRONTEND_DIR/map/state-flags/$asset" "$STAGE_DIR/state-flags/$asset"
+  done
 
   # Pages verwendet dieselbe App-Shell wie das Target. Ausschliesslich der
   # Runtime- und Datenadapter wird durch eine anonyme, lokale Demo-API ersetzt.
@@ -354,6 +358,7 @@ build_target() {
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
+    "$STAGE_DIR/state-flags" \
     "$STAGE_DIR/mitmachen" \
     "$STAGE_DIR/hospitation" \
     "$STAGE_DIR/vendor"
@@ -392,6 +397,9 @@ build_target() {
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.css" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.css"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.js" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.js"
+  for asset in berlin.svg brandenburg.svg bremen.svg niedersachsen.svg rheinland-pfalz.svg saarland.svg sachsen-anhalt.svg; do
+    cp "$FRONTEND_DIR/map/state-flags/$asset" "$STAGE_DIR/state-flags/$asset"
+  done
 
   # Die Realanwendung erhaelt nur Runtime-/Modellcode. Fachliche Daten kommen
   # ueber das geschuetzte API; statische Kontakt-, Demo-, Experten- und

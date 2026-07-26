@@ -574,22 +574,24 @@
   const markerLayer = L.layerGroup().addTo(map);
 
   const states = STATE_LABELS.map((state) => state.name);
+  const STATE_FLAG_ASSET_URLS = {
+    Berlin: "./state-flags/berlin.svg",
+    Brandenburg: "./state-flags/brandenburg.svg",
+    Bremen: "./state-flags/bremen.svg",
+    Niedersachsen: "./state-flags/niedersachsen.svg",
+    "Rheinland-Pfalz": "./state-flags/rheinland-pfalz.svg",
+    Saarland: "./state-flags/saarland.svg",
+    "Sachsen-Anhalt": "./state-flags/sachsen-anhalt.svg"
+  };
   const STATE_FLAG_MARKUP = {
     Deutschland: '<rect width="18" height="4" fill="#1f2937"/><rect y="4" width="18" height="4" fill="#c8102e"/><rect y="8" width="18" height="4" fill="#f5c400"/>',
     "Baden-Württemberg": '<rect width="18" height="6" fill="#111827"/><rect y="6" width="18" height="6" fill="#f5cf27"/>',
     Bayern: '<rect width="18" height="6" fill="#ffffff"/><rect y="6" width="18" height="6" fill="#1f65ad"/>',
-    Berlin: '<rect width="18" height="12" fill="#ffffff"/><rect width="18" height="2" fill="#d71920"/><rect y="10" width="18" height="2" fill="#d71920"/><circle cx="9" cy="6" r="1.3" fill="#1f2937"/>',
-    Brandenburg: '<rect width="18" height="6" fill="#d71920"/><rect y="6" width="18" height="6" fill="#ffffff"/>',
-    Bremen: '<rect width="18" height="12" fill="#d71920"/><path d="M0 2h18M0 6h18M0 10h18" stroke="#fff" stroke-width="2"/>',
     Hamburg: '<rect width="18" height="12" fill="#d71920"/><path d="M5 9V5h2V3h1v2h2V3h1v2h2v4z" fill="#fff"/>',
     Hessen: '<rect width="18" height="6" fill="#d71920"/><rect y="6" width="18" height="6" fill="#ffffff"/>',
-    "Mecklenburg-Vorpommern": '<rect width="18" height="12" fill="#1f65ad"/><rect y="2.5" width="18" height="3" fill="#ffffff"/><rect y="5.5" width="18" height="1" fill="#f5c400"/><rect y="6.5" width="18" height="3" fill="#ffffff"/><rect y="9.5" width="18" height="2.5" fill="#d71920"/>',
-    Niedersachsen: '<rect width="18" height="4" fill="#1f2937"/><rect y="4" width="18" height="4" fill="#c8102e"/><rect y="8" width="18" height="4" fill="#f5c400"/><circle cx="9" cy="6" r="2" fill="#ffffff"/>',
-    "Nordrhein-Westfalen": '<rect width="6" height="12" fill="#159447"/><rect x="6" width="6" height="12" fill="#ffffff"/><rect x="12" width="6" height="12" fill="#d71920"/>',
-    "Rheinland-Pfalz": '<rect width="18" height="4" fill="#1f2937"/><rect y="4" width="18" height="4" fill="#c8102e"/><rect y="8" width="18" height="4" fill="#f5c400"/><circle cx="4" cy="3" r="1.6" fill="#ffffff"/>',
-    Saarland: '<rect width="18" height="4" fill="#1f2937"/><rect y="4" width="18" height="4" fill="#c8102e"/><rect y="8" width="18" height="4" fill="#f5c400"/><path d="M7 3h4v5H7z" fill="#2871b5" stroke="#fff" stroke-width=".6"/>',
+    "Mecklenburg-Vorpommern": '<rect width="18" height="3.2" fill="#1f65ad"/><rect y="3.2" width="18" height="2.4" fill="#ffffff"/><rect y="5.6" width="18" height=".8" fill="#f5c400"/><rect y="6.4" width="18" height="2.4" fill="#ffffff"/><rect y="8.8" width="18" height="3.2" fill="#d71920"/>',
+    "Nordrhein-Westfalen": '<rect width="18" height="4" fill="#159447"/><rect y="4" width="18" height="4" fill="#ffffff"/><rect y="8" width="18" height="4" fill="#d71920"/>',
     Sachsen: '<rect width="18" height="6" fill="#ffffff"/><rect y="6" width="18" height="6" fill="#159447"/>',
-    "Sachsen-Anhalt": '<rect width="18" height="6" fill="#f5c400"/><rect y="6" width="18" height="6" fill="#111827"/>',
     "Schleswig-Holstein": '<rect width="18" height="4" fill="#1f65ad"/><rect y="4" width="18" height="4" fill="#ffffff"/><rect y="8" width="18" height="4" fill="#d71920"/>',
     Thüringen: '<rect width="18" height="6" fill="#ffffff"/><rect y="6" width="18" height="6" fill="#d71920"/>'
   };
@@ -664,8 +666,12 @@
 
   function stateFlagIcon(value) {
     const state = String(value || "").trim();
-    const flagMarkup = STATE_FLAG_MARKUP[state] || STATE_FLAG_MARKUP.Deutschland;
-    return `<span class="map-filter-state-flag" aria-hidden="true"><svg viewBox="0 0 18 12" xmlns="http://www.w3.org/2000/svg" focusable="false">${flagMarkup}</svg></span>`;
+    const resolvedState = (STATE_FLAG_ASSET_URLS[state] || STATE_FLAG_MARKUP[state]) ? state : "Deutschland";
+    const flagAssetUrl = STATE_FLAG_ASSET_URLS[resolvedState];
+    const flagMarkup = flagAssetUrl
+      ? `<img src="${escapeHtml(flagAssetUrl)}" alt="">`
+      : `<svg viewBox="0 0 18 12" xmlns="http://www.w3.org/2000/svg" focusable="false">${STATE_FLAG_MARKUP[resolvedState]}</svg>`;
+    return `<span class="map-filter-state-flag" data-state-flag="${escapeHtml(resolvedState)}" aria-hidden="true">${flagMarkup}</span>`;
   }
 
   function ownerFilterAvatarIcon(value) {

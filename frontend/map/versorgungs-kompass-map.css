@@ -1264,7 +1264,8 @@
       background: var(--surface);
       box-shadow: var(--shadow-sm);
     }
-    .map-filter-state-flag svg {
+    .map-filter-state-flag svg,
+    .map-filter-state-flag img {
       width: 100%;
       height: 100%;
       display: block;
