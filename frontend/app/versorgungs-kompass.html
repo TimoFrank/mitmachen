@@ -125,17 +125,43 @@
                 </svg>
                 <span>Patienten</span>
               </button>
-              <button class="primary-tab" type="button" data-view-tab="stakeholders" title="Stakeholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <circle cx="7" cy="7" r="3"></circle>
-                  <circle cx="17" cy="7" r="3"></circle>
-                  <circle cx="12" cy="17" r="3"></circle>
-                  <path d="M9.4 9.1 11 14"></path>
-                  <path d="m14.6 9.1-1.6 4.9"></path>
-                  <path d="M9.4 17h5.2"></path>
-                </svg>
-                <span>Stakeholder</span>
-              </button>
+              <div class="sidebar-subnav" role="group" aria-label="Stakeholder-Organisationen">
+                <span class="sidebar-subnav__label">Organisationen</span>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="kv" title="Kassenärztliche Vereinigungen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M4 21V7l8-4 8 4v14"></path>
+                    <path d="M8 11h8M8 15h8M10 21v-3h4v3"></path>
+                  </svg>
+                  <span>Kassenärztliche Vereinigungen</span>
+                </button>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="health-insurance" title="Krankenkassen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"></path>
+                    <path d="M12 8v6M9 11h6"></path>
+                  </svg>
+                  <span>Krankenkassen</span>
+                </button>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="patient-associations" title="Patientenverbände">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M20.8 5.4a4.8 4.8 0 0 0-6.8 0L12 7.3l-2-1.9a4.8 4.8 0 1 0-6.8 6.8L12 21l8.8-8.8a4.8 4.8 0 0 0 0-6.8Z"></path>
+                  </svg>
+                  <span>Patientenverbände</span>
+                </button>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="hospital-associations" title="Krankenhausgesellschaften">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M4 21V5h16v16M2 21h20"></path>
+                    <path d="M12 8v6M9 11h6M7 17h2M15 17h2"></path>
+                  </svg>
+                  <span>Krankenhaus<wbr>gesellschaften</span>
+                </button>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="physician-associations" title="Ärztliche Berufsverbände">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="7" r="3"></circle>
+                    <path d="M5 21a7 7 0 0 1 14 0M18 4v5M15.5 6.5h5"></path>
+                  </svg>
+                  <span>Ärztliche Berufsverbände</span>
+                </button>
+              </div>
               <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <circle cx="12" cy="7" r="3"></circle>
@@ -397,22 +423,19 @@
           </div>
           <div class="workspace-expert-switcher" id="patient-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Patienten-Listen">
+              <button class="settings-tab-button is-active" type="button" role="tab" data-patient-mode="indications" aria-selected="true" aria-controls="patient-indications-panel">
+                <span class="experts-mode-label">Indikationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" type="button" role="tab" data-patient-mode="organizations" aria-selected="false" aria-controls="patient-organizations-table">
+                <span class="experts-mode-label">Organisationen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
               <button class="settings-tab-button" type="button" role="tab" data-patient-mode="people" aria-selected="false" aria-controls="patient-people-table">
                 <span class="experts-mode-label">Personen </span>
                 <span class="experts-mode-count">0</span>
               </button>
-              <button class="settings-tab-button is-active" type="button" role="tab" data-patient-mode="organizations" aria-selected="true" aria-controls="patient-organizations-table">
-                <span class="experts-mode-label">Organisationen </span>
-                <span class="experts-mode-count">0</span>
-              </button>
-              <button class="settings-tab-button" type="button" role="tab" data-patient-mode="indications" aria-selected="false" aria-controls="patient-indications-panel">
-                <span class="experts-mode-label">Indikationen </span>
-                <span class="experts-mode-count">0</span>
-              </button>
             </div>
-          </div>
-          <div class="workspace-expert-switcher" id="stakeholder-mode-actions" hidden>
-            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header stakeholder-type-nav" id="stakeholder-type-actions" role="tablist" aria-label="Stakeholder-Typen"></div>
           </div>
           <div class="workspace-header-search" id="expert-header-search" hidden></div>
           <div class="workspace-header-search" id="stakeholder-header-search" hidden></div>

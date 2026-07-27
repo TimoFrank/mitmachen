@@ -44,6 +44,11 @@ const routeMatrix = new Map([
   ["activities", "/versorgung/aktivitaeten"],
   ["patients", "/stakeholder/patienten"],
   ["stakeholders", "/stakeholder"],
+  ["stakeholders/kv", "/stakeholder/kassenaerztliche-vereinigungen"],
+  ["stakeholders/krankenkassen", "/stakeholder/krankenkassen"],
+  ["stakeholders/patientenverbaende", "/stakeholder/patientenverbaende"],
+  ["stakeholders/krankenhausgesellschaften", "/stakeholder/krankenhausgesellschaften"],
+  ["stakeholders/aerztliche-berufsverbaende", "/stakeholder/aerztliche-berufsverbaende"],
   ["experts", "/stakeholder/expertenkreis"],
   ["framework", "/hospitationen/framework"],
   ["hospitations", "/hospitationen"],
@@ -133,6 +138,13 @@ for (const expectedNginxContract of [
   "^/organisationen/"
 ]) {
   assert.ok(nginxSource.includes(expectedNginxContract), `Nginx-Routenvertrag fehlt: ${expectedNginxContract}`);
+}
+
+const stakeholderLocationPattern = nginxSource.match(/location ~ (\^\/stakeholder[^\n]+) \{/);
+assert.ok(stakeholderLocationPattern, "Nginx-Stakeholder-Routenvertrag fehlt.");
+const stakeholderLocationRegex = new RegExp(stakeholderLocationPattern[1]);
+for (const expectedPath of [...routeMatrix.values()].filter((routePath) => routePath.startsWith("/stakeholder"))) {
+  assert.ok(stakeholderLocationRegex.test(expectedPath), `${expectedPath} fehlt im Nginx-Stakeholder-Routenvertrag`);
 }
 
 console.log(`Clean URL routes OK: ${routeMatrix.size} statische Routen, Detailpfade, Auth-Allowlist und Nginx-App-Shell-Fallback.`);
