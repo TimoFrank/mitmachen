@@ -723,6 +723,11 @@ assert.match(
   "Authentifizierungsantworten fuer Matrix-Aliase muessen von IAP erzeugt sein."
 );
 assert.match(externalBoundaryScript, /x-goog-iap-generated-response/i);
+assert.doesNotMatch(
+  externalBoundaryScript,
+  /awk '[^\n]*\\"/u,
+  "Ein einfach quotiertes awk-Programm darf doppelte Anführungszeichen nicht mit Shell-Backslashes maskieren."
+);
 assert.match(
   externalBoundaryScript,
   /edge_ready=0[\s\S]*for attempt in \{1\.\.60\}[\s\S]*data-public-entry="home"[\s\S]*edge_ready=1/,
