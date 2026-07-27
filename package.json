@@ -78,6 +78,7 @@
     "security:api-gateway": "node scripts/audit_api_gateway.mjs",
     "security:audit": "npm audit --audit-level=high && node scripts/test_security_contracts.mjs",
     "security:contracts": "node scripts/test_security_contracts.mjs",
+    "test:delivery-ui:desktop": "playwright test --project=chromium-desktop tests/delivery-ui.spec.js tests/demo-profile-switcher.spec.js",
     "test:visual": "playwright test",
     "test:poc-smoke": "playwright test tests/visual-smoke.spec.js --project=chromium-desktop --grep 'Kontakte: Liste und Filtertoolbar rendern|Karte: Kartenansicht und Controls rendern'",
     "test:visual:update": "playwright test --update-snapshots"

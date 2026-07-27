@@ -528,14 +528,19 @@
     const labelLayers = [stateLabelLayer, majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer];
 
     if (heatMapActive) {
-      [majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer].forEach((layer) => {
+      labelLayers.forEach((layer) => {
         if (map.hasLayer(layer)) map.removeLayer(layer);
       });
       return;
     }
 
-    // Bundesland names are revealed contextually by the polygon hover tooltip.
-    if (map.hasLayer(stateLabelLayer)) map.removeLayer(stateLabelLayer);
+    // Keep the nationwide view legible on desktop; city labels take over when
+    // users zoom in. Mobile stays deliberately free of the extra label layer.
+    if (!isMobileLayout() && z >= 6 && z < 7) {
+      if (!map.hasLayer(stateLabelLayer)) map.addLayer(stateLabelLayer);
+    } else if (map.hasLayer(stateLabelLayer)) {
+      map.removeLayer(stateLabelLayer);
+    }
 
     if (z >= 7) {
       if (!map.hasLayer(majorLabelLayer)) map.addLayer(majorLabelLayer);
@@ -570,7 +575,6 @@
 
 
   // ---- Markers ----
-  const markerGuideLayer = L.layerGroup().addTo(map);
   const markerLayer = L.layerGroup().addTo(map);
 
   const states = STATE_LABELS.map((state) => state.name);
@@ -1229,45 +1233,6 @@
     return marker;
   }
 
-  function bindPackedMarkerGuide(marker, displayLatLng, originalLatLng, boundary = null) {
-    if (!displayLatLng || !originalLatLng) return marker;
-    const displayPoint = map.latLngToLayerPoint(displayLatLng);
-    const originalPoint = map.latLngToLayerPoint(originalLatLng);
-    if (displayPoint.distanceTo(originalPoint) < 8) return marker;
-    const originalProjectedPoint = map.project(originalLatLng, map.getZoom());
-    const guideRadius = 3;
-    const guideAnchor = L.point(originalProjectedPoint.x, originalProjectedPoint.y + guideRadius);
-    if (!markerFootprintInsideProjectedGeometry(
-      guideAnchor,
-      guideRadius * 2,
-      guideRadius * 2,
-      boundary || markerLayoutBoundary()
-    )) return marker;
-    const showGuide = () => {
-      markerGuideLayer.clearLayers();
-      L.polyline([originalLatLng, displayLatLng], {
-        color: "#010e52",
-        weight: 1.25,
-        opacity: 0.58,
-        dashArray: "3 4",
-        interactive: false
-      }).addTo(markerGuideLayer);
-      L.circleMarker(originalLatLng, {
-        radius: guideRadius,
-        color: "#010e52",
-        weight: 1.25,
-        fillColor: "#00ff65",
-        fillOpacity: 1,
-        opacity: 0.82,
-        interactive: false
-      }).addTo(markerGuideLayer);
-    };
-    marker.on('mouseover', showGuide);
-    marker.on('mouseout', () => markerGuideLayer.clearLayers());
-    marker.on('remove', () => markerGuideLayer.clearLayers());
-    return marker;
-  }
-
   function openEntryDetail(entry){
     if (!entry) return;
     if (EMBED_MODE && window.parent && window.parent !== window) {
@@ -1633,21 +1598,7 @@
   }
 
   const GEMATIK_LOCATION_MARKER_PATH = "M256 0C153.755 0 70.573 83.182 70.573 185.426c0 126.888 165.939 313.167 173.004 321.035 6.636 7.391 18.222 7.378 24.846 0 7.065-7.868 173.004-194.147 173.004-321.035C441.425 83.182 358.244 0 256 0zm0 278.719c-51.442 0-93.292-41.851-93.292-93.293S204.559 92.134 256 92.134s93.291 41.851 93.291 93.293-41.85 93.292-93.291 93.292z";
-  const GEMATIK_MARKER_ASPECT_RATIO = 44 / 34;
-  const GEMATIK_MARKER_MIN_WIDTH = 0.25;
-  const GEMATIK_MARKER_LAYOUT_RESERVE = 0.08;
-  const GEMATIK_MARKER_BOUNDARY_PADDING = 1;
-  let markerPackingCache = { key: "", layout: [], diagnostics: null };
-  let markerLayoutDiagnostics = {
-    complete: true,
-    count: 0,
-    width: 0,
-    height: 0,
-    gap: 0,
-    maxDisplacement: 0,
-    durationMs: 0,
-    cached: false
-  };
+  const GEMATIK_MARKER_Z_STEP = 100000;
 
   function gematikMarkerSize(compact = false){
     const width = window.innerWidth;
@@ -1658,14 +1609,6 @@
     return [
       Math.max(18, Math.round(viewportSize[0] * 0.76)),
       Math.max(23, Math.round(viewportSize[1] * 0.76))
-    ];
-  }
-
-  function gematikMarkerDimensions(markerWidth){
-    const width = Math.max(GEMATIK_MARKER_MIN_WIDTH, Number(markerWidth) || GEMATIK_MARKER_MIN_WIDTH);
-    return [
-      Math.round(width * 4) / 4,
-      Math.round(Math.max(width + 1, width * GEMATIK_MARKER_ASPECT_RATIO) * 4) / 4
     ];
   }
 
@@ -1688,10 +1631,7 @@
 
   function gematikMarkerFor(d, options = {}){
     const compact = options.compact === true;
-    const requestedWidth = Number(options.width);
-    const [width, height] = Number.isFinite(requestedWidth)
-      ? gematikMarkerDimensions(requestedWidth)
-      : gematikMarkerSize(compact);
+    const [width, height] = gematikMarkerSize(compact);
     const density = gematikMarkerDensity(width);
     const icon = L.divIcon({
       className: `gematik-marker-shell gematik-marker-shell--${density}`,
@@ -1709,7 +1649,10 @@
       d.organization,
       [d.city, d.state].filter(Boolean).join(", ")
     ].filter(Boolean).join(" · ");
-    return L.marker(options.latLng || [d.lat, d.lon], {
+    // Geographic truth is non-negotiable: the marker anchor always remains at
+    // the record's source coordinates. Visual collision handling must never
+    // rewrite this LatLng.
+    return L.marker([d.lat, d.lon], {
       icon,
       zIndexOffset: options.zIndexOffset || 0,
       title: accessibleName,
@@ -1722,578 +1665,6 @@
 
   function markerFor(d, options = {}){
     return gematikMarkerModeActive ? gematikMarkerFor(d, options) : sectorPointFor(d);
-  }
-
-  function projectedRingArea(ring){
-    let area = 0;
-    for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
-      area += (ring[previous].x * ring[index].y) - (ring[index].x * ring[previous].y);
-    }
-    return Math.abs(area / 2);
-  }
-
-  function projectedRingBounds(ring){
-    return ring.reduce((bounds, point) => ({
-      minX: Math.min(bounds.minX, point.x),
-      minY: Math.min(bounds.minY, point.y),
-      maxX: Math.max(bounds.maxX, point.x),
-      maxY: Math.max(bounds.maxY, point.y)
-    }), {
-      minX: Number.POSITIVE_INFINITY,
-      minY: Number.POSITIVE_INFINITY,
-      maxX: Number.NEGATIVE_INFINITY,
-      maxY: Number.NEGATIVE_INFINITY
-    });
-  }
-
-  function projectedPolygonsForGeoJson(value, zoom = map.getZoom()){
-    const features = value?.type === "FeatureCollection"
-      ? value.features
-      : (value?.type === "Feature" ? [value] : [{ geometry: value }]);
-    const polygons = [];
-    const addPolygon = (coordinates) => {
-      const rings = coordinates.map((ring) => ring.map(([longitude, latitude]) => map.project([latitude, longitude], zoom)));
-      if (!rings[0]?.length) return;
-      const ringBounds = rings.map(projectedRingBounds);
-      const segments = rings.map((ring) => ring.map((start, index) => {
-        const end = ring[(index + 1) % ring.length];
-        return {
-          start,
-          end,
-          bounds: {
-            minX: Math.min(start.x, end.x),
-            minY: Math.min(start.y, end.y),
-            maxX: Math.max(start.x, end.x),
-            maxY: Math.max(start.y, end.y)
-          }
-        };
-      }));
-      const outerBounds = ringBounds[0];
-      const area = Math.max(0, projectedRingArea(rings[0]) - rings.slice(1).reduce((sum, ring) => sum + projectedRingArea(ring), 0));
-      polygons.push({ rings, ringBounds, segments, bounds: outerBounds, area });
-    };
-    features.filter(Boolean).forEach((feature) => {
-      const geometry = feature.geometry;
-      if (!geometry) return;
-      if (geometry.type === "Polygon") addPolygon(geometry.coordinates);
-      if (geometry.type === "MultiPolygon") geometry.coordinates.forEach(addPolygon);
-    });
-    return polygons;
-  }
-
-  function projectedGeometryBounds(polygons){
-    return polygons.reduce((bounds, polygon) => ({
-      minX: Math.min(bounds.minX, polygon.bounds.minX),
-      minY: Math.min(bounds.minY, polygon.bounds.minY),
-      maxX: Math.max(bounds.maxX, polygon.bounds.maxX),
-      maxY: Math.max(bounds.maxY, polygon.bounds.maxY)
-    }), {
-      minX: Number.POSITIVE_INFINITY,
-      minY: Number.POSITIVE_INFINITY,
-      maxX: Number.NEGATIVE_INFINITY,
-      maxY: Number.NEGATIVE_INFINITY
-    });
-  }
-
-  function pointInProjectedRing(point, ring){
-    let inside = false;
-    for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
-      const currentPoint = ring[index];
-      const previousPoint = ring[previous];
-      const crossesRay = (currentPoint.y > point.y) !== (previousPoint.y > point.y)
-        && point.x < ((previousPoint.x - currentPoint.x) * (point.y - currentPoint.y) / ((previousPoint.y - currentPoint.y) || Number.EPSILON)) + currentPoint.x;
-      if (crossesRay) inside = !inside;
-    }
-    return inside;
-  }
-
-  function projectedPolygonContainsPoint(point, polygon){
-    const { bounds, rings } = polygon;
-    if (point.x < bounds.minX || point.x > bounds.maxX || point.y < bounds.minY || point.y > bounds.maxY) return false;
-    if (!pointInProjectedRing(point, rings[0])) return false;
-    return !rings.slice(1).some((ring) => pointInProjectedRing(point, ring));
-  }
-
-  function projectedGeometryContainsPoint(point, polygons){
-    return polygons.some((polygon) => projectedPolygonContainsPoint(point, polygon));
-  }
-
-  function markerFootprintCorners(point, width, height){
-    const halfWidth = width / 2;
-    const top = point.y - height;
-    return [
-      L.point(point.x - halfWidth, top),
-      L.point(point.x + halfWidth, top),
-      L.point(point.x + halfWidth, point.y),
-      L.point(point.x - halfWidth, point.y)
-    ];
-  }
-
-  function projectedBoundsOverlapRect(bounds, rect){
-    return bounds.minX <= rect.right
-      && bounds.maxX >= rect.left
-      && bounds.minY <= rect.bottom
-      && bounds.maxY >= rect.top;
-  }
-
-  function projectedPointInsideRect(point, rect, epsilon = 1e-7){
-    return point.x > rect.left + epsilon
-      && point.x < rect.right - epsilon
-      && point.y > rect.top + epsilon
-      && point.y < rect.bottom - epsilon;
-  }
-
-  function projectedPointOnSegment(point, start, end, epsilon = 1e-7){
-    const cross = ((point.y - start.y) * (end.x - start.x)) - ((point.x - start.x) * (end.y - start.y));
-    if (Math.abs(cross) > epsilon) return false;
-    return point.x >= Math.min(start.x, end.x) - epsilon
-      && point.x <= Math.max(start.x, end.x) + epsilon
-      && point.y >= Math.min(start.y, end.y) - epsilon
-      && point.y <= Math.max(start.y, end.y) + epsilon;
-  }
-
-  function projectedSegmentsIntersect(firstStart, firstEnd, secondStart, secondEnd, epsilon = 1e-7){
-    const cross = (start, end, point) => (
-      ((end.x - start.x) * (point.y - start.y))
-      - ((end.y - start.y) * (point.x - start.x))
-    );
-    const firstSecondStart = cross(firstStart, firstEnd, secondStart);
-    const firstSecondEnd = cross(firstStart, firstEnd, secondEnd);
-    const secondFirstStart = cross(secondStart, secondEnd, firstStart);
-    const secondFirstEnd = cross(secondStart, secondEnd, firstEnd);
-    const crossesFirst = (firstSecondStart > epsilon && firstSecondEnd < -epsilon)
-      || (firstSecondStart < -epsilon && firstSecondEnd > epsilon);
-    const crossesSecond = (secondFirstStart > epsilon && secondFirstEnd < -epsilon)
-      || (secondFirstStart < -epsilon && secondFirstEnd > epsilon);
-    if (crossesFirst && crossesSecond) return true;
-    return (Math.abs(firstSecondStart) <= epsilon && projectedPointOnSegment(secondStart, firstStart, firstEnd, epsilon))
-      || (Math.abs(firstSecondEnd) <= epsilon && projectedPointOnSegment(secondEnd, firstStart, firstEnd, epsilon))
-      || (Math.abs(secondFirstStart) <= epsilon && projectedPointOnSegment(firstStart, secondStart, secondEnd, epsilon))
-      || (Math.abs(secondFirstEnd) <= epsilon && projectedPointOnSegment(firstEnd, secondStart, secondEnd, epsilon));
-  }
-
-  function projectedRingIntersectsRect(segments, ringBounds, rect, rectEdges){
-    if (!projectedBoundsOverlapRect(ringBounds, rect)) return false;
-    return segments.some((segment) => {
-      if (!projectedBoundsOverlapRect(segment.bounds, rect)) return false;
-      if (projectedPointInsideRect(segment.start, rect) || projectedPointInsideRect(segment.end, rect)) return true;
-      return rectEdges.some(([start, end]) => projectedSegmentsIntersect(segment.start, segment.end, start, end));
-    });
-  }
-
-  function markerFootprintInsideProjectedGeometry(point, width, height, polygons){
-    const corners = markerFootprintCorners(point, width, height);
-    if (!corners.every((corner) => projectedGeometryContainsPoint(corner, polygons))) return false;
-    const rect = {
-      left: corners[0].x,
-      right: corners[1].x,
-      top: corners[0].y,
-      bottom: corners[2].y
-    };
-    const rectEdges = corners.map((corner, index) => [corner, corners[(index + 1) % corners.length]]);
-    return !polygons.some((polygon) => polygon.segments.some((segments, ringIndex) => (
-      projectedRingIntersectsRect(segments, polygon.ringBounds[ringIndex], rect, rectEdges)
-    )));
-  }
-
-  function markerLayoutBoundary(){
-    const feature = selectedState ? stateFeature(selectedState) : null;
-    return projectedPolygonsForGeoJson(feature || DE_GEOJSON);
-  }
-
-  function projectedStateGeometries(){
-    return STATE_POLYGONS.features.map((feature) => {
-      const polygons = projectedPolygonsForGeoJson(feature);
-      return {
-        key: stateNameKey(feature.properties.name),
-        polygons,
-        bounds: projectedGeometryBounds(polygons)
-      };
-    });
-  }
-
-  function projectedStateAtPoint(point, statesByGeometry){
-    const match = statesByGeometry.find((state) => {
-      const bounds = state.bounds;
-      return point.x >= bounds.minX
-        && point.x <= bounds.maxX
-        && point.y >= bounds.minY
-        && point.y <= bounds.maxY
-        && projectedGeometryContainsPoint(point, state.polygons);
-    });
-    return match?.key || "";
-  }
-
-  function markerPackingGap(width){
-    if (width >= 24) return 4;
-    if (width >= 16) return 3;
-    if (width >= 9) return 2;
-    if (width >= 5) return 1;
-    return 0.5;
-  }
-
-  function markerLayoutRect(point, width, height, padding = 0){
-    return {
-      left: point.x - (width / 2) - padding,
-      right: point.x + (width / 2) + padding,
-      top: point.y - height - padding,
-      bottom: point.y + padding
-    };
-  }
-
-  function markerLayoutRectsOverlap(a, b){
-    return a.left < b.right
-      && a.right > b.left
-      && a.top < b.bottom
-      && a.bottom > b.top;
-  }
-
-  function markerLayoutObstacleRects(){
-    const mapElement = map.getContainer();
-    const mapRect = mapElement.getBoundingClientRect();
-    const zoom = map.getZoom();
-    return [...document.querySelectorAll(".leaflet-control-zoom, .map-mode-controls, .map-legend")]
-      .filter((element) => {
-        const style = getComputedStyle(element);
-        const rect = element.getBoundingClientRect();
-        return style.display !== "none"
-          && style.visibility !== "hidden"
-          && rect.width > 0
-          && rect.height > 0
-          && rect.left < mapRect.right
-          && rect.right > mapRect.left
-          && rect.top < mapRect.bottom
-          && rect.bottom > mapRect.top;
-      })
-      .map((element) => {
-        const rect = element.getBoundingClientRect();
-        const topLeft = map.project(map.containerPointToLatLng([
-          Math.max(0, rect.left - mapRect.left),
-          Math.max(0, rect.top - mapRect.top)
-        ]), zoom);
-        const bottomRight = map.project(map.containerPointToLatLng([
-          Math.min(mapRect.width, rect.right - mapRect.left),
-          Math.min(mapRect.height, rect.bottom - mapRect.top)
-        ]), zoom);
-        return {
-          left: Math.min(topLeft.x, bottomRight.x) - 3,
-          right: Math.max(topLeft.x, bottomRight.x) + 3,
-          top: Math.min(topLeft.y, bottomRight.y) - 3,
-          bottom: Math.max(topLeft.y, bottomRight.y) + 3
-        };
-      });
-  }
-
-  function estimatedPackedMarkerWidth(entryCount, boundaryArea){
-    const [preferredWidth] = gematikMarkerSize();
-    if (entryCount <= 0 || boundaryArea <= 0) return preferredWidth;
-    const targetSlots = Math.ceil(entryCount * (1 + GEMATIK_MARKER_LAYOUT_RESERVE));
-    for (let width = preferredWidth; width >= GEMATIK_MARKER_MIN_WIDTH; width -= 0.5) {
-      const [candidateWidth, candidateHeight] = gematikMarkerDimensions(width);
-      const gap = markerPackingGap(candidateWidth);
-      const estimatedCapacity = (boundaryArea * 0.58) / ((candidateWidth + gap) * (candidateHeight + gap));
-      if (estimatedCapacity >= targetSlots) return candidateWidth;
-    }
-    return GEMATIK_MARKER_MIN_WIDTH;
-  }
-
-  function markerGridPoint(column, row, stepX, stepY){
-    const stagger = ((row % 2) + 2) % 2 === 1 ? stepX / 2 : 0;
-    return L.point((column * stepX) + stagger, row * stepY);
-  }
-
-  function markerGridCell(point, stepX, stepY){
-    const row = Math.round(point.y / stepY);
-    const stagger = ((row % 2) + 2) % 2 === 1 ? stepX / 2 : 0;
-    return {
-      column: Math.round((point.x - stagger) / stepX),
-      row
-    };
-  }
-
-  function markerGridRing(center, radius, origin, stepX, stepY){
-    const cells = [];
-    const add = (column, row) => {
-      const point = markerGridPoint(column, row, stepX, stepY);
-      cells.push({
-        column,
-        row,
-        key: `${column}:${row}`,
-        point,
-        distance: point.distanceTo(origin)
-      });
-    };
-    if (radius === 0) {
-      add(center.column, center.row);
-      return cells;
-    }
-    for (let offset = -radius; offset <= radius; offset += 1) {
-      add(center.column + offset, center.row - radius);
-      add(center.column + offset, center.row + radius);
-    }
-    for (let offset = -radius + 1; offset < radius; offset += 1) {
-      add(center.column - radius, center.row + offset);
-      add(center.column + radius, center.row + offset);
-    }
-    return cells.sort((a, b) => a.distance - b.distance || a.key.localeCompare(b.key, "de"));
-  }
-
-  function markerSlotCandidate(cell, context){
-    if (context.slotCache.has(cell.key)) return context.slotCache.get(cell.key);
-    const markerRect = markerLayoutRect(cell.point, context.width, context.height);
-    const blocked = context.obstacles.some((obstacle) => markerLayoutRectsOverlap(markerRect, obstacle));
-    const safeBoundaryAnchor = L.point(cell.point.x, cell.point.y + GEMATIK_MARKER_BOUNDARY_PADDING);
-    if (blocked || !markerFootprintInsideProjectedGeometry(
-      safeBoundaryAnchor,
-      context.width + (GEMATIK_MARKER_BOUNDARY_PADDING * 2),
-      context.height + (GEMATIK_MARKER_BOUNDARY_PADDING * 2),
-      context.boundary
-    )) {
-      context.slotCache.set(cell.key, null);
-      return null;
-    }
-    const candidate = {
-      ...cell,
-      stateKey: projectedStateAtPoint(cell.point, context.statesByGeometry)
-    };
-    context.slotCache.set(cell.key, candidate);
-    return candidate;
-  }
-
-  function nearestFreeMarkerSlot(item, context){
-    const center = markerGridCell(item.origin, context.stepX, context.stepY);
-    const bounds = context.bounds;
-    const maxHorizontalRadius = Math.ceil(Math.max(
-      Math.abs(item.origin.x - bounds.minX),
-      Math.abs(item.origin.x - bounds.maxX)
-    ) / context.stepX);
-    const maxVerticalRadius = Math.ceil(Math.max(
-      Math.abs(item.origin.y - bounds.minY),
-      Math.abs(item.origin.y - bounds.maxY)
-    ) / context.stepY);
-    const maxRadius = Math.max(maxHorizontalRadius, maxVerticalRadius) + 3;
-    const statePenalty = Math.pow(Math.max(30, context.width * 4), 2);
-    let best = null;
-
-    for (let radius = 0; radius <= maxRadius; radius += 1) {
-      markerGridRing(center, radius, item.origin, context.stepX, context.stepY).forEach((cell) => {
-        if (context.occupied.has(cell.key)) return;
-        const candidate = markerSlotCandidate(cell, context);
-        if (!candidate) return;
-        const mismatch = item.stateKey && candidate.stateKey && item.stateKey !== candidate.stateKey;
-        const cost = Math.pow(cell.distance, 2) + (mismatch ? statePenalty : 0);
-        if (!best || cost < best.cost || (cost === best.cost && candidate.key.localeCompare(best.key, "de") < 0)) {
-          best = { ...candidate, cost };
-        }
-      });
-      const minimumNextDistance = Math.max(0, (radius - 1) * Math.min(context.stepX, context.stepY));
-      if (best && Math.pow(minimumNextDistance, 2) > best.cost) break;
-    }
-    return best;
-  }
-
-  function buildPackedMarkerLayout(entries, width, boundary, statesByGeometry){
-    const [markerWidth, markerHeight] = gematikMarkerDimensions(width);
-    const gap = markerPackingGap(markerWidth);
-    const stepX = markerWidth + gap;
-    const stepY = markerHeight + gap;
-    const bounds = projectedGeometryBounds(boundary);
-    const projectedEntries = entries.map((entry) => {
-      const originalOrigin = map.project([entry.lat, entry.lon], map.getZoom());
-      const origin = projectedGeometryContainsPoint(originalOrigin, boundary)
-        ? originalOrigin
-        : L.point(
-          Math.max(bounds.minX, Math.min(bounds.maxX, originalOrigin.x)),
-          Math.max(bounds.minY, Math.min(bounds.maxY, originalOrigin.y))
-        );
-      return {
-        entry,
-        origin,
-        originalOrigin,
-        stateKey: stateNameKey(entry.state)
-      };
-    });
-    const densityByCell = new Map();
-    projectedEntries.forEach((item) => {
-      const cell = markerGridCell(item.origin, stepX, stepY);
-      const key = `${cell.column}:${cell.row}`;
-      densityByCell.set(key, (densityByCell.get(key) || 0) + 1);
-      item.baseCellKey = key;
-    });
-    projectedEntries.sort((a, b) => {
-      const densityDifference = (densityByCell.get(a.baseCellKey) || 0) - (densityByCell.get(b.baseCellKey) || 0);
-      return densityDifference || String(a.entry.id).localeCompare(String(b.entry.id), "de");
-    });
-
-    const context = {
-      width: markerWidth,
-      height: markerHeight,
-      gap,
-      stepX,
-      stepY,
-      bounds,
-      boundary,
-      statesByGeometry,
-      obstacles: markerLayoutObstacleRects(),
-      occupied: new Set(),
-      slotCache: new Map()
-    };
-    const layout = [];
-    let maxDisplacement = 0;
-    for (const item of projectedEntries) {
-      const slot = nearestFreeMarkerSlot(item, context);
-      if (!slot) return null;
-      context.occupied.add(slot.key);
-      maxDisplacement = Math.max(maxDisplacement, slot.point.distanceTo(item.originalOrigin));
-      const latLng = map.unproject(slot.point, map.getZoom());
-      layout.push({
-        entry: item.entry,
-        latLng: [latLng.lat, latLng.lng],
-        originalLatLng: [item.entry.lat, item.entry.lon],
-        width: markerWidth,
-        height: markerHeight,
-        compact: markerWidth < gematikMarkerSize()[0]
-      });
-    }
-    return {
-      layout,
-      width: markerWidth,
-      height: markerHeight,
-      gap,
-      maxDisplacement
-    };
-  }
-
-  function markerPackingKey(entries){
-    const entryKey = [...entries]
-      .sort((a, b) => String(a.id).localeCompare(String(b.id), "de"))
-      .map((entry) => `${entry.id}:${Number(entry.lat).toFixed(5)}:${Number(entry.lon).toFixed(5)}:${stateNameKey(entry.state)}`)
-      .join("|");
-    const size = map.getSize();
-    const pixelOrigin = map.getPixelOrigin();
-    const obstacleKey = markerLayoutObstacleRects()
-      .map((rect) => [rect.left, rect.top, rect.right, rect.bottom].map((value) => Math.round(value * 2) / 2).join(","))
-      .join("|");
-    return [
-      map.getZoom().toFixed(3),
-      `${size.x}x${size.y}`,
-      `${Math.round(pixelOrigin.x * 2) / 2}:${Math.round(pixelOrigin.y * 2) / 2}`,
-      gematikMarkerSize().join("x"),
-      obstacleKey,
-      selectedState,
-      entryKey
-    ].join("::");
-  }
-
-  function updateMarkerLayoutDiagnostics(nextDiagnostics){
-    markerLayoutDiagnostics = { ...nextDiagnostics };
-    const mapElement = map.getContainer();
-    mapElement.dataset.markerLayoutComplete = nextDiagnostics.complete ? "true" : "false";
-    mapElement.dataset.markerLayoutCount = String(nextDiagnostics.count);
-    mapElement.dataset.markerLayoutWidth = String(nextDiagnostics.width);
-    mapElement.dataset.markerLayoutHeight = String(nextDiagnostics.height);
-  }
-
-  function declutteredMarkerEntries(entries){
-    if (!gematikMarkerModeActive || heatMapActive || clusterModeActive) {
-      return entries.map((entry) => ({
-        entry,
-        latLng: [entry.lat, entry.lon],
-        originalLatLng: [entry.lat, entry.lon],
-        width: gematikMarkerSize()[0],
-        height: gematikMarkerSize()[1],
-        compact: false
-      }));
-    }
-    if (!entries.length) {
-      updateMarkerLayoutDiagnostics({
-        complete: true,
-        count: 0,
-        width: 0,
-        height: 0,
-        gap: 0,
-        maxDisplacement: 0,
-        durationMs: 0,
-        cached: false
-      });
-      return [];
-    }
-
-    const cacheKey = markerPackingKey(entries);
-    if (markerPackingCache.key === cacheKey && markerPackingCache.layout.length === entries.length) {
-      const entriesById = new Map(entries.map((entry) => [String(entry.id), entry]));
-      const cachedLayout = markerPackingCache.layout.map((item) => ({
-        ...item,
-        entry: entriesById.get(String(item.id))
-      })).filter((item) => item.entry);
-      updateMarkerLayoutDiagnostics({ ...markerPackingCache.diagnostics, cached: true });
-      return cachedLayout;
-    }
-
-    const startedAt = performance.now();
-    const boundary = markerLayoutBoundary();
-    const statesByGeometry = projectedStateGeometries();
-    const boundaryArea = boundary.reduce((sum, polygon) => sum + polygon.area, 0);
-    let width = estimatedPackedMarkerWidth(entries.length, boundaryArea);
-    let packed = null;
-    let attempts = 0;
-    while (!packed && attempts < 18) {
-      attempts += 1;
-      packed = buildPackedMarkerLayout(entries, width, boundary, statesByGeometry);
-      if (packed || width <= GEMATIK_MARKER_MIN_WIDTH) break;
-      width = Math.max(GEMATIK_MARKER_MIN_WIDTH, Math.round(width * 0.84 * 4) / 4);
-    }
-    if (!packed) {
-      packed = buildPackedMarkerLayout(entries, GEMATIK_MARKER_MIN_WIDTH, boundary, statesByGeometry);
-    }
-    if (!packed) {
-      const fallbackSize = gematikMarkerDimensions(GEMATIK_MARKER_MIN_WIDTH);
-      updateMarkerLayoutDiagnostics({
-        complete: false,
-        count: entries.length,
-        width: fallbackSize[0],
-        height: fallbackSize[1],
-        gap: markerPackingGap(fallbackSize[0]),
-        maxDisplacement: 0,
-        durationMs: performance.now() - startedAt,
-        cached: false,
-        attempts
-      });
-      return entries.map((entry) => ({
-        entry,
-        latLng: [entry.lat, entry.lon],
-        originalLatLng: [entry.lat, entry.lon],
-        width: fallbackSize[0],
-        height: fallbackSize[1],
-        compact: true
-      }));
-    }
-
-    const diagnostics = {
-      complete: true,
-      count: entries.length,
-      width: packed.width,
-      height: packed.height,
-      gap: packed.gap,
-      maxDisplacement: packed.maxDisplacement,
-      durationMs: performance.now() - startedAt,
-      cached: false,
-      attempts
-    };
-    markerPackingCache = {
-      key: cacheKey,
-      layout: packed.layout.map((item) => ({
-        id: item.entry.id,
-        latLng: item.latLng,
-        originalLatLng: item.originalLatLng,
-        width: item.width,
-        height: item.height,
-        compact: item.compact
-      })),
-      diagnostics
-    };
-    updateMarkerLayoutDiagnostics(diagnostics);
-    return packed.layout;
   }
 
   function clusterIcon(count, active = false){
@@ -2756,10 +2127,20 @@
       const itemLabel = entries.length === 1
         ? mapLabel("itemSingular", "Kontakt")
         : mapLabel("itemPlural", "Kontakte");
+      const maximumStateCount = Math.max(0, stateCountMax);
+      const densityLabel = maximumStateCount === 1 ? "Kontakt" : "Kontakte";
       elMapLegendList.innerHTML = `
         <div class="map-legend-item map-legend-item--contact">
           <span class="map-legend-pin">${gematikMarkerMarkup(false, "map-legend-marker")}</span>
           <span><strong>${entries.length}</strong> ${escapeHtml(itemLabel)}</span>
+        </div>
+        <div class="map-density-legend">
+          <span class="map-density-legend__label">Kontakte je Bundesland</span>
+          <div class="map-distribution-legend" aria-label="Kontaktdichte je Bundesland: 0 bis ${maximumStateCount} ${densityLabel}">
+            <span>0</span>
+            <span class="map-distribution-legend__scale" aria-hidden="true"></span>
+            <span>${maximumStateCount}</span>
+          </div>
         </div>
       `;
       return;
@@ -2921,7 +2302,6 @@
   }
 
   function render(){
-    markerGuideLayer.clearLayers();
     markerLayer.clearLayers();
     markerIndex = [];
 
@@ -2936,19 +2316,28 @@
     refreshStateInteractionLayer();
 
     if (gematikMarkerModeActive && !heatMapActive) {
-      const guideBoundary = markerLayoutBoundary();
-      declutteredMarkerEntries(filtered).forEach(({ entry, latLng, originalLatLng, width, height, compact }) => {
-        const marker = gematikMarkerFor(entry, { latLng, width, compact });
+      filtered.forEach((entry, entryIndex) => {
+        const marker = gematikMarkerFor(entry, {
+          // Stable list order determines the pointer target for overlapping
+          // icons without changing any geographic coordinate. Covered records
+          // remain keyboard-addressable through their own Leaflet marker.
+          zIndexOffset: (filtered.length - entryIndex) * GEMATIK_MARKER_Z_STEP
+        });
         bindMapPointTooltip(marker, entry);
-        bindPackedMarkerGuide(marker, latLng, originalLatLng, guideBoundary);
-        marker.on('click', () => {
+        const activateMarker = () => {
           focusMapContact(entry);
+        };
+        marker.on('click', activateMarker);
+        marker.on('keypress', (event) => {
+          if (event.originalEvent?.key !== "Enter" && event.originalEvent?.key !== " ") return;
+          event.originalEvent.preventDefault();
+          activateMarker();
         });
         markerIndex.push({
           marker,
           ids: [entry.id],
           data: entry,
-          layout: { latLng, originalLatLng, width, height }
+          sourceLatLng: [entry.lat, entry.lon]
         });
         markerLayer.addLayer(marker);
       });

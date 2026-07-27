@@ -37,6 +37,12 @@ jobs:
       - name: Run minimal checks
         run: npm run check
 
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run desktop delivery regressions
+        run: npm run test:delivery-ui:desktop
+
       - name: Verify dependency advisory and registry signatures
         run: |
           npm audit --audit-level=high

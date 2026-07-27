@@ -19,6 +19,9 @@
     <link rel="stylesheet" href="./versorgungs-kompass.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Zum Hauptinhalt springen</a>
+    <div class="visually-hidden" id="route-announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div class="global-status" id="global-status" role="status" aria-live="polite" aria-atomic="true" hidden></div>
     <div class="app-shell is-initializing" aria-busy="true">
       <aside class="app-sidebar" id="app-sidebar" aria-label="Hauptnavigation">
         <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" aria-controls="app-sidebar" aria-expanded="true" title="Menü einklappen">
@@ -313,7 +316,7 @@
         <input class="visually-hidden" type="file" id="profile-photo-input" tabindex="-1" aria-hidden="true" hidden accept="image/jpeg,image/png,image/webp" />
         <input class="visually-hidden" type="file" id="onboarding-photo-input" tabindex="-1" aria-hidden="true" hidden accept="image/jpeg,image/png,image/webp" />
 
-    <main class="wrap">
+    <main class="wrap" id="main-content" tabindex="-1">
       <section class="crm-shell">
         <section class="app-initial-skeleton" id="app-initial-skeleton" role="status" aria-live="polite" aria-label="Ansicht wird geladen">
           <div class="app-initial-skeleton__header" aria-hidden="true">
