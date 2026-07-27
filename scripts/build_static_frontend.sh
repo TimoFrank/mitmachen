@@ -155,11 +155,13 @@ build_pages() {
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
+    "$STAGE_DIR/state-flags" \
     "$STAGE_DIR/mitmachen" \
     "$STAGE_DIR/hospitation" \
     "$STAGE_DIR/vendor"
 
   touch "$STAGE_DIR/.nojekyll"
+  cp "$FRONTEND_DIR/public-entry/index.html" "$STAGE_DIR/index.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.js" "$STAGE_DIR/versorgungs-kompass.js"
@@ -181,6 +183,9 @@ build_pages() {
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.css" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.css"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.js" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.js"
+  for asset in berlin.svg brandenburg.svg bremen.svg niedersachsen.svg rheinland-pfalz.svg saarland.svg sachsen-anhalt.svg; do
+    cp "$FRONTEND_DIR/map/state-flags/$asset" "$STAGE_DIR/state-flags/$asset"
+  done
 
   # Pages verwendet dieselbe App-Shell wie das Target. Ausschliesslich der
   # Runtime- und Datenadapter wird durch eine anonyme, lokale Demo-API ersetzt.
@@ -254,10 +259,11 @@ EOF
   perl -0pi -e 's#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
   perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
 
-  node - "$STAGE_DIR" <<'NODE'
+  node - "$STAGE_DIR" "$FRONTEND_DIR/public-entry/public-entry.css" <<'NODE'
 const fs = require("node:fs");
 const path = require("node:path");
 const root = process.argv[2];
+const publicEntryStylePath = process.argv[3];
 
 function walk(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -305,6 +311,46 @@ appHtml = appHtml.replace(
 );
 fs.writeFileSync(appPath, appHtml);
 
+const pagesLandingPath = path.join(root, "index.html");
+const publicEntryStyle = fs.readFileSync(publicEntryStylePath, "utf8").trim();
+const publicEntryStyleMarker = /<link rel="stylesheet" href="\.\/public-entry\.css" data-inline-public-styles\s*\/>/g;
+let pagesLandingHtml = fs.readFileSync(pagesLandingPath, "utf8");
+const publicEntryStyleMarkers = pagesLandingHtml.match(publicEntryStyleMarker) || [];
+const publicEntryHomeLinks = pagesLandingHtml.match(/href="\/"/g) || [];
+const publicEntryLoginLinks = pagesLandingHtml.match(/href="\/anmelden"/g) || [];
+if (
+  !publicEntryStyle
+  || /@import|url\s*\(/i.test(publicEntryStyle)
+  || /<\/style/i.test(publicEntryStyle)
+  || publicEntryStyleMarkers.length !== 1
+  || publicEntryHomeLinks.length !== 2
+  || publicEntryLoginLinks.length !== 2
+) {
+  throw new Error("Pages-Startseite konnte nicht eindeutig aus dem gemeinsamen Public Entry erzeugt werden.");
+}
+pagesLandingHtml = pagesLandingHtml
+  .replace(
+    publicEntryStyleMarker,
+    `<style data-public-entry-styles>\n${publicEntryStyle}\n    </style>`
+  )
+  .replaceAll('href="/"', 'href="./index.html"')
+  .replaceAll('href="/anmelden"', 'href="./demo/"')
+  .replace("<span>Anmelden</span>", "<span>Demo</span>")
+  .replace("<span>Du hast bereits Zugang?</span>", "<span>Öffentliche Demo mit fiktiven Beispieldaten</span>")
+  .replace(
+    /(<a class="primary-action" href="\.\/demo\/">\s*)Anmelden(\s*<span aria-hidden="true">→<\/span>)/,
+    "$1Demo öffnen$2"
+  );
+if (
+  !/data-public-entry="home"/.test(pagesLandingHtml)
+  || !/Demo öffnen/.test(pagesLandingHtml)
+  || /href="\/(?:anmelden)?"/.test(pagesLandingHtml)
+  || /<meta\s+http-equiv="refresh"/i.test(pagesLandingHtml)
+) {
+  throw new Error("Pages-Startseite verletzt den erwarteten oeffentlichen Demo-Einstieg.");
+}
+fs.writeFileSync(pagesLandingPath, pagesLandingHtml);
+
 function redirectDocument(target) {
   return `<!doctype html>
 <html lang="de">
@@ -320,8 +366,7 @@ function redirectDocument(target) {
 `;
 }
 
-fs.writeFileSync(path.join(root, "index.html"), redirectDocument("./versorgungs-kompass.html#map"));
-fs.writeFileSync(path.join(root, "demo", "index.html"), redirectDocument("../versorgungs-kompass.html#map"));
+fs.writeFileSync(path.join(root, "demo", "index.html"), redirectDocument("../versorgungs-kompass.html#home"));
 NODE
 
   node - "$STAGE_DIR/data/demo-data.js" <<'NODE'
@@ -354,6 +399,7 @@ build_target() {
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
+    "$STAGE_DIR/state-flags" \
     "$STAGE_DIR/mitmachen" \
     "$STAGE_DIR/hospitation" \
     "$STAGE_DIR/vendor"
@@ -394,6 +440,9 @@ build_target() {
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.css" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.css"
   cp "$FRONTEND_DIR/map/versorgungs-kompass-contact-mini-map.js" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.js"
+  for asset in berlin.svg brandenburg.svg bremen.svg niedersachsen.svg rheinland-pfalz.svg saarland.svg sachsen-anhalt.svg; do
+    cp "$FRONTEND_DIR/map/state-flags/$asset" "$STAGE_DIR/state-flags/$asset"
+  done
 
   # Die Realanwendung erhaelt nur Runtime-/Modellcode. Fachliche Daten kommen
   # ueber das geschuetzte API; statische Kontakt-, Demo-, Experten- und

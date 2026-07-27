@@ -62,6 +62,12 @@ function assertMissing(directory, ...relativePaths) {
   }
 }
 
+function embeddedPublicEntryStyles(html) {
+  const match = /<style data-public-entry-styles>\n([\s\S]*?)\n\s*<\/style>/.exec(html);
+  assert.ok(match, "Public Entry muss seine gemeinsame Darstellungsschicht eingebettet enthalten");
+  return match[1];
+}
+
 try {
   build("--profile", "pages", "--output", pagesDir);
   execFileSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], { cwd: root, stdio: "pipe" });
@@ -75,8 +81,15 @@ try {
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "runtime-config.js")), true, "Pages muss eine explizite Demo-Runtime enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "leaflet", "leaflet.js")), true, "Pages muss die Kartenbibliothek enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
-  assert.match(fs.readFileSync(path.join(pagesDir, "index.html"), "utf8"), /url=\.\/versorgungs-kompass\.html#map/);
-  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#map/);
+  const pagesLandingHtml = fs.readFileSync(path.join(pagesDir, "index.html"), "utf8");
+  assert.match(pagesLandingHtml, /data-public-entry="home"/);
+  assert.match(pagesLandingHtml, /<h1 id="entry-title">Gemeinsam Versorgung gestalten\.<\/h1>/);
+  assert.equal((pagesLandingHtml.match(/data-public-entry-styles/g) || []).length, 1);
+  assert.equal((pagesLandingHtml.match(/href="\.\/demo\/"/g) || []).length, 2);
+  assert.match(pagesLandingHtml, /Demo öffnen/);
+  assert.match(pagesLandingHtml, /Öffentliche Demo mit fiktiven Beispieldaten/);
+  assert.doesNotMatch(pagesLandingHtml, /<meta\s+http-equiv="refresh"|href="\/(?:anmelden)?"/i);
+  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#home/);
   const pagesEntryHtml = fs.readFileSync(path.join(pagesDir, "mitmachen", "index.html"), "utf8");
   assert.doesNotMatch(
     pagesEntryHtml,
@@ -294,6 +307,11 @@ try {
   assert.match(targetPublicLoginHtml, /Mit Google anmelden/);
   assert.match(targetPublicLoginHtml, /Testzugang aktivieren/);
   assert.doesNotMatch(targetPublicLoginHtml, /\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i);
+  assert.equal(
+    embeddedPublicEntryStyles(pagesLandingHtml),
+    embeddedPublicEntryStyles(targetPublicIndexHtml),
+    "Pages und versorgungs-kompass.de muessen dieselbe Public-Entry-Darstellung verwenden"
+  );
 
   const targetIndexHtml = fs.readFileSync(path.join(targetDir, "index.html"), "utf8");
   assert.match(targetIndexHtml, /<aside class="module-sidebar"/);

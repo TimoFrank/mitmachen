@@ -5072,7 +5072,8 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
     await mapFrame.locator("#mobile-state-filter").click();
     await stateMenu.getByRole("option", { name: "Alle", exact: true }).click();
     await expect(mapFrame.locator("#mobile-state-filter")).toHaveAccessibleName("Alle");
-    await expect(mapFrame.locator("#points-toggle")).toHaveAttribute("aria-pressed", "true");
+    await expect(mapFrame.locator("#marker-toggle")).toHaveAttribute("aria-pressed", "true");
+    await expect(mapFrame.locator("#points-toggle")).toHaveAttribute("aria-pressed", "false");
     const [mapBox, modeBox, zoomBox] = await Promise.all([
       mapFrame.locator("#map").boundingBox(),
       mapFrame.locator(".map-mode-controls").boundingBox(),
@@ -5105,9 +5106,30 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
   await attachScreenshot(page, testInfo, "karte");
 });
 
-test("Karte: Kontakt öffnet zunächst als fokussierte Vorschau", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("mobile"), "Der farbige Fokus-Drawer ist eine Desktop-Darstellung.");
-  await page.setViewportSize({ width: 1440, height: 760 });
+test("Karte: Deutschland bleibt mobil vollständig sichtbar", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("mobile"), "Der Ausschnitt ist eine mobile Regression.");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map");
+  const mapFrame = page.frameLocator("#map-view-frame");
+  const mapElement = mapFrame.locator("#map");
+
+  await expect(mapElement).toBeVisible();
+  await expect(mapFrame.locator(".gematik-marker, .cat-marker").first()).toBeVisible({ timeout: 20_000 });
+
+  for (const width of [320, 375, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect.poll(async () => mapElement.evaluate(() => {
+      const leafletMap = globalThis.eval("map");
+      const germany = globalThis.eval("germanyLayer");
+      return leafletMap.getBounds().contains(germany.getBounds());
+    }), `Deutschland muss bei ${width}px vollständig im Kartenausschnitt liegen`).toBe(true);
+  }
+
+  await attachScreenshot(page, testInfo, "karte-mobile-vollstaendig", { fullPage: false });
+});
+
+test("Karte: Marker öffnet nur die fokussierte Vorschau", async ({ page }, testInfo) => {
+  const isMobile = testInfo.project.name.includes("mobile");
+  await page.setViewportSize(isMobile ? { width: 390, height: 844 } : { width: 1440, height: 760 });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map");
   const mapFrame = page.frameLocator("#map-view-frame");
   const mapMarker = mapFrame.locator(".gematik-marker, .cat-marker").first();
@@ -5124,18 +5146,20 @@ test("Karte: Kontakt öffnet zunächst als fokussierte Vorschau", async ({ page 
   await expect(page.locator("#person-profile-page")).not.toHaveClass(/is-active/);
   await expect(page.locator("body")).toHaveClass(/detail-open/);
 
-  const focusStyles = await drawer.locator(".detail-panel").evaluate((panel) => {
-    const panelStyle = getComputedStyle(panel);
-    const dimmerStyle = getComputedStyle(document.querySelector(".wrap"), "::after");
-    return {
-      borderImageSource: panelStyle.borderImageSource,
-      borderLeftWidth: Number.parseFloat(panelStyle.borderLeftWidth),
-      dimmerBackground: dimmerStyle.backgroundColor
-    };
-  });
-  expect(focusStyles.borderLeftWidth).toBeGreaterThanOrEqual(6);
-  expect(focusStyles.borderImageSource).toContain("linear-gradient");
-  expect(focusStyles.dimmerBackground).not.toBe("rgba(0, 0, 0, 0)");
+  if (!isMobile) {
+    const focusStyles = await drawer.locator(".detail-panel").evaluate((panel) => {
+      const panelStyle = getComputedStyle(panel);
+      const dimmerStyle = getComputedStyle(document.querySelector(".wrap"), "::after");
+      return {
+        borderImageSource: panelStyle.borderImageSource,
+        borderLeftWidth: Number.parseFloat(panelStyle.borderLeftWidth),
+        dimmerBackground: dimmerStyle.backgroundColor
+      };
+    });
+    expect(focusStyles.borderLeftWidth).toBeGreaterThanOrEqual(6);
+    expect(focusStyles.borderImageSource).toContain("linear-gradient");
+    expect(focusStyles.dimmerBackground).not.toBe("rgba(0, 0, 0, 0)");
+  }
 
   await attachScreenshot(page, testInfo, "karte-kontaktfokus");
 
