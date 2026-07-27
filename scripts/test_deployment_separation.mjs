@@ -83,11 +83,13 @@ try {
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
   const pagesLandingHtml = fs.readFileSync(path.join(pagesDir, "index.html"), "utf8");
   assert.match(pagesLandingHtml, /data-public-entry="home"/);
-  assert.match(pagesLandingHtml, /<h1 id="entry-title">Gemeinsam Versorgung gestalten\.<\/h1>/);
+  assert.match(pagesLandingHtml, /id="home-welcome-title"/);
+  assert.match(pagesLandingHtml, /Willkommen im Versorgungs-Kompass/);
   assert.equal((pagesLandingHtml.match(/data-public-entry-styles/g) || []).length, 1);
-  assert.equal((pagesLandingHtml.match(/href="\.\/demo\/"/g) || []).length, 2);
+  assert.equal((pagesLandingHtml.match(/href="\.\/demo\/"/g) || []).length, 1);
   assert.match(pagesLandingHtml, /Demo öffnen/);
   assert.match(pagesLandingHtml, /Öffentliche Demo mit fiktiven Beispieldaten/);
+  assert.doesNotMatch(pagesLandingHtml, /\/api\/|Google anmelden|zugriff-verweigert/i);
   assert.doesNotMatch(pagesLandingHtml, /<meta\s+http-equiv="refresh"|href="\/(?:anmelden)?"/i);
   assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#home/);
   const pagesEntryHtml = fs.readFileSync(path.join(pagesDir, "mitmachen", "index.html"), "utf8");
@@ -255,12 +257,8 @@ try {
   assert.equal((contactsApiUrl.pathname.match(/\/api(?=\/|$)/g) || []).length, 1, "Die zusammengesetzte URL darf nur eine /api-Route enthalten");
 
   assert.equal(fs.existsSync(path.join(targetDir, "login.html")), true, "Target muss die geschuetzte Anmeldung enthalten");
-  assert.equal(fs.existsSync(path.join(targetDir, "enrollment.html")), true, "Target muss die geschuetzte Testzugang-Anfrage enthalten");
-  assert.equal(fs.existsSync(path.join(targetDir, "enrollment.css")), true, "Target muss die Styles der Testzugang-Anfrage enthalten");
-  assert.equal(fs.existsSync(path.join(targetDir, "enrollment.js")), true, "Target muss die Logik der Testzugang-Anfrage enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "index.html")), true, "Target muss den zentralen #Mitmachen-Einstieg enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "public-index.html")), true, "Target muss die eigenstaendige oeffentliche Startseite enthalten");
-  assert.equal(fs.existsSync(path.join(targetDir, "public-login.html")), true, "Target muss die eigenstaendige oeffentliche Anmeldeseite enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "versorgungs-kompass.html")), true, "Target muss die Realanwendung enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "data", "data-service.js")), true, "Target muss den API-Datenservice enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "manifest.webmanifest")), true, "Target muss das PWA-Manifest am referenzierten Root-Pfad enthalten");
@@ -280,38 +278,29 @@ try {
     "data/stakeholder-data.js",
     "data/patienten-data.js",
     "vendor/supabase",
-    "public-entry.css"
+    "public-entry.css",
+    "public-login.html",
+    "enrollment.html",
+    "enrollment.css",
+    "enrollment.js"
   );
 
   const targetPublicIndexHtml = fs.readFileSync(path.join(targetDir, "public-index.html"), "utf8");
-  const targetPublicLoginHtml = fs.readFileSync(path.join(targetDir, "public-login.html"), "utf8");
-  for (const [label, publicHtml] of [
-    ["Oeffentliche Startseite", targetPublicIndexHtml],
-    ["Oeffentliche Anmeldeseite", targetPublicLoginHtml]
-  ]) {
-    assert.equal(
-      (publicHtml.match(/data-public-entry-styles/g) || []).length,
-      1,
-      `${label} muss ihre einzige Darstellungsschicht eingebettet enthalten`
-    );
-    assert.doesNotMatch(publicHtml, /<script\b|<iframe\b|<form\b|<input\b|\ssrc\s*=/i);
-    assert.doesNotMatch(publicHtml, /runtime-config|auth-(?:config|guard|login)/i);
-    assert.doesNotMatch(publicHtml, /href="\.\/public-entry\.css"/);
-  }
+  assert.equal((targetPublicIndexHtml.match(/data-public-entry-styles/g) || []).length, 1);
+  assert.doesNotMatch(targetPublicIndexHtml, /<script\b|<iframe\b|<form\b|<input\b|\ssrc\s*=/i);
+  assert.doesNotMatch(targetPublicIndexHtml, /runtime-config|auth-(?:config|guard|login)/i);
+  assert.doesNotMatch(targetPublicIndexHtml, /href="\.\/public-entry\.css"/);
   assert.match(targetPublicIndexHtml, /data-public-entry="home"/);
-  assert.match(targetPublicIndexHtml, /href="\/anmelden"/);
-  assert.doesNotMatch(targetPublicIndexHtml, /\/api\//i);
-  assert.doesNotMatch(targetPublicIndexHtml, /Testzugang aktivieren|module-sidebar__nav|destination-link/);
-  assert.match(targetPublicLoginHtml, /data-public-entry="access"/);
   assert.equal(
-    (targetPublicLoginHtml.match(/href="\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1"/gi) || []).length,
+    (targetPublicIndexHtml.match(/href="\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1"/gi) || []).length,
     1
   );
-  assert.equal((targetPublicLoginHtml.match(/\/api\//g) || []).length, 1);
-  assert.equal((targetPublicLoginHtml.match(/href="\/enrollment\.html"/g) || []).length, 1);
-  assert.match(targetPublicLoginHtml, /Mit Google anmelden/);
-  assert.match(targetPublicLoginHtml, /Testzugang aktivieren/);
-  assert.doesNotMatch(targetPublicLoginHtml, /\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i);
+  assert.equal((targetPublicIndexHtml.match(/\/api\//g) || []).length, 1);
+  assert.match(targetPublicIndexHtml, /data-google-sso-button/);
+  assert.match(targetPublicIndexHtml, /Mit Google anmelden/);
+  assert.match(targetPublicIndexHtml, /Willkommen im Versorgungs-Kompass/);
+  assert.match(targetPublicIndexHtml, /id="zugriff-verweigert"/);
+  assert.doesNotMatch(targetPublicIndexHtml, /Testzugang aktivieren|enrollment\.html|\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i);
   assert.equal(
     embeddedPublicEntryStyles(pagesLandingHtml),
     embeddedPublicEntryStyles(targetPublicIndexHtml),
@@ -330,20 +319,10 @@ try {
     ["Target-Root", targetIndexHtml],
     ["Target-Modulkopie", targetNestedEntryHtml]
   ]) {
-    assert.equal(
-      (entryHtml.match(/data-target-enrollment/g) || []).length,
-      1,
-      `${label} muss genau einen Testzugang-Einstieg enthalten`
-    );
-    assert.equal(
-      (entryHtml.match(/href="\/enrollment\.html"/g) || []).length,
-      1,
-      `${label} muss genau einmal auf die geschuetzte Aktivierungsseite verweisen`
-    );
     assert.doesNotMatch(
       entryHtml,
-      /\.\.\/\.\.\/login\/enrollment\.html/,
-      `${label} darf keinen Quellpfad zur Aktivierungsseite enthalten`
+      /data-target-enrollment|Testzugang aktivieren|enrollment\.html/,
+      `${label} darf keinen Einstieg zur entfernten Self-Service-Aktivierung enthalten`
     );
   }
 
@@ -351,15 +330,6 @@ try {
   assert.doesNotMatch(targetHtml, /data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i);
   assert.doesNotMatch(targetHtml, /data-hospitation-(?:data-mode|documentation-data-mode|dashboard-preview-mode)="demo"/i);
   assert.doesNotMatch(fs.readFileSync(path.join(targetDir, "login.html"), "utf8"), /vendor\/supabase|supabase-js/i);
-  const enrollmentHtml = fs.readFileSync(path.join(targetDir, "enrollment.html"), "utf8");
-  assert.match(enrollmentHtml, /src="\.\/auth-guard\.js"/);
-  assert.match(enrollmentHtml, /src="\.\/enrollment\.js"/);
-  assert.match(enrollmentHtml, /href="\/start"/);
-  const enrollmentApp = fs.readFileSync(path.join(targetDir, "enrollment.js"), "utf8");
-  assert.match(enrollmentApp, /\/api\/auth\/auto-enrollment/);
-  assert.match(enrollmentApp, /\/api\/auth\/enrollment/);
-  assert.match(enrollmentApp, /payload\.status === "active"/);
-  assert.doesNotMatch(enrollmentApp, /\b(?:localStorage|sessionStorage|indexedDB)\b/);
 
   const targetThirdPartyManifest = JSON.parse(fs.readFileSync(path.join(targetDir, "vendor", "THIRD_PARTY_ASSETS.json"), "utf8"));
   assert.equal(targetThirdPartyManifest.assets.some((asset) => String(asset.path || "").includes("vendor/supabase/")), false);

@@ -38,11 +38,7 @@ for (const required of [
   "build-manifest.json",
   "index.html",
   "public-index.html",
-  "public-login.html",
   "login.html",
-  "enrollment.html",
-  "enrollment.css",
-  "enrollment.js",
   "mitmachen/index.html",
   "versorgungs-kompass.html",
   "versorgungs-kompass.css",
@@ -61,6 +57,10 @@ for (const required of [
 }
 
 for (const forbidden of [
+  "public-login.html",
+  "enrollment.html",
+  "enrollment.css",
+  "enrollment.js",
   "demo/index.html",
   "data/demo-data.js",
   "data/demo-api.js",
@@ -129,34 +129,22 @@ if (existsSync(targetHtmlPath)) {
   assert(/data-target-session/.test(html) && /id=["']profile-logout["']/.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt die Target-Sitzungssteuerung nicht`);
 }
 
-for (const entryRelativePath of ["index.html", "mitmachen/index.html"]) {
-  const entryPath = join(artifactRoot, entryRelativePath);
+for (const relativePath of ["index.html", "mitmachen/index.html"]) {
+  const entryPath = join(artifactRoot, relativePath);
   if (!existsSync(entryPath)) continue;
   const entryHtml = readFileSync(entryPath, "utf8");
   assert(
-    (entryHtml.match(/data-target-enrollment/g) || []).length === 1,
-    `${artifactLabel}/${entryRelativePath} muss genau einen eindeutig markierten Testzugang-Einstieg enthalten`
-  );
-  assert(
-    (entryHtml.match(/href=["']\/enrollment\.html["']/g) || []).length === 1,
-    `${artifactLabel}/${entryRelativePath} muss genau einmal same-origin auf /enrollment.html verweisen`
-  );
-  assert(
-    !/\.\.\/\.\.\/login\/enrollment\.html/.test(entryHtml),
-    `${artifactLabel}/${entryRelativePath} enthaelt noch den Quellpfad der Aktivierungsseite`
+    !/data-target-enrollment|Testzugang aktivieren|(?:login\/)?enrollment\.html/i.test(entryHtml),
+    `${artifactLabel}/${relativePath} darf keinen Self-Service-Testzugang mehr anbieten`
   );
 }
 
-const publicEntryDocuments = [
-  ["public-index.html", "home"],
-  ["public-login.html", "access"]
-];
-for (const [relativePath, marker] of publicEntryDocuments) {
+for (const relativePath of ["public-index.html"]) {
   const documentPath = join(artifactRoot, relativePath);
   if (!existsSync(documentPath)) continue;
   const html = readFileSync(documentPath, "utf8");
   assert(
-    new RegExp(`data-public-entry=[\"']${marker}[\"']`).test(html),
+    /data-public-entry=["']home["']/.test(html),
     `${artifactLabel}/${relativePath} besitzt nicht den erwarteten Public-Entry-Marker`
   );
   assert(
@@ -181,10 +169,8 @@ for (const [relativePath, marker] of publicEntryDocuments) {
   );
   const apiReferences = html.match(/\/api\//gi) || [];
   assert(
-    marker === "access"
-      ? apiReferences.length === 1
-        && /href=[\"']\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1[\"']/i.test(html)
-      : apiReferences.length === 0,
+    apiReferences.length === 1
+      && /href=[\"']\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1[\"']/i.test(html),
     `${artifactLabel}/${relativePath} enthaelt einen nicht freigegebenen API-Pfad`
   );
 }
@@ -193,37 +179,34 @@ const publicIndexPath = join(artifactRoot, "public-index.html");
 if (existsSync(publicIndexPath)) {
   const html = readFileSync(publicIndexPath, "utf8");
   assert(
-    (html.match(/href=[\"']\/anmelden[\"']/g) || []).length >= 1,
-    `${artifactLabel}/public-index.html muss sichtbar auf /anmelden fuehren`
-  );
-  assert(
-    !/data-target-enrollment|Testzugang aktivieren|href=[\"']\/(?:start|enrollment\.html|api(?:\/|[\"']))/i.test(html),
-    `${artifactLabel}/public-index.html darf keinen geschuetzten Direkteinstieg oder Testzugang enthalten`
-  );
-  assert(
-    !/module-sidebar__nav|destination-link|Versorgung<\/strong>|Stakeholder<\/strong>|Hospitation<\/strong>|Formate<\/strong>/i.test(html),
-    `${artifactLabel}/public-index.html darf keine Module oder Modulnavigation vor der Anmeldung zeigen`
-  );
-}
-
-const publicLoginPath = join(artifactRoot, "public-login.html");
-if (existsSync(publicLoginPath)) {
-  const html = readFileSync(publicLoginPath, "utf8");
-  assert(
     (html.match(/href=[\"']\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1[\"']/gi) || []).length === 1,
-    `${artifactLabel}/public-login.html muss genau einmal direkt ueber den geschuetzten IAP-Bootstrap in den Google-Login wechseln`
+    `${artifactLabel}/public-index.html muss genau einmal den realen Google-/IAP-Bootstrap starten`
   );
   assert(
-    (html.match(/href=[\"']\/enrollment\.html[\"']/g) || []).length === 1,
-    `${artifactLabel}/public-login.html muss genau einmal zur geschuetzten Testzugang-Aktivierung fuehren`
+    /data-google-sso-button/.test(html)
+      && /Mit Google anmelden/.test(html)
+      && /#747775/i.test(html)
+      && /#1f1f1f/i.test(html)
+      && /Roboto/.test(html),
+    `${artifactLabel}/public-index.html muss den Google-konformen SSO-Button enthalten`
   );
   assert(
-    /Mit Google anmelden/.test(html) && /Testzugang aktivieren/.test(html),
-    `${artifactLabel}/public-login.html zeigt die beiden erwarteten Zugangshandlungen nicht`
+    /Willkommen im Versorgungs-Kompass/.test(html)
+      && /Wähle den Bereich, in dem du arbeiten möchtest\./.test(html)
+      && /home-hero__brand/.test(html),
+    `${artifactLabel}/public-index.html muss Wording und große #Mitmachen-Marke der eingeloggten Startseite übernehmen`
+  );
+  for (const area of ["Versorgung", "Stakeholder", "Hospitation", "Formate"]) {
+    assert(html.includes(`<strong>${area}</strong>`), `${artifactLabel}/public-index.html beschreibt den Bereich ${area} nicht`);
+  }
+  assert(
+    /id=["']zugriff-verweigert["'][\s\S]*role=["']alert["']/.test(html)
+      && /Anmeldung nicht möglich\./.test(html),
+    `${artifactLabel}/public-index.html enthaelt keinen neutralen, scriptfreien 403-Zustand`
   );
   assert(
-    !/\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i.test(html),
-    `${artifactLabel}/public-login.html darf keine technischen Authentisierungsdetails anzeigen`
+    !/data-target-enrollment|Testzugang aktivieren|href=[\"']\/(?:start|anmelden|enrollment\.html)[\"']/i.test(html),
+    `${artifactLabel}/public-index.html darf keinen separaten Login- oder Enrollment-Einstieg enthalten`
   );
 }
 
@@ -231,32 +214,6 @@ assert(
   !actualFiles.includes("public-entry.css"),
   `${artifactLabel}/public-entry.css darf nicht als zusaetzliche oeffentliche Ressource ausgeliefert werden`
 );
-
-const enrollmentHtmlPath = join(artifactRoot, "enrollment.html");
-const enrollmentAppPath = join(artifactRoot, "enrollment.js");
-if (existsSync(enrollmentHtmlPath) && existsSync(enrollmentAppPath)) {
-  const enrollmentHtml = readFileSync(enrollmentHtmlPath, "utf8");
-  const enrollmentApp = readFileSync(enrollmentAppPath, "utf8");
-  assert(/\.\/auth-config\.js/.test(enrollmentHtml) && /\.\/auth-guard\.js/.test(enrollmentHtml), `${artifactLabel}/enrollment.html ist nicht an die Target-Authentisierung gebunden`);
-  assert(/\.\/data\/runtime-config\.js/.test(enrollmentHtml), `${artifactLabel}/enrollment.html laedt die geschuetzte Runtime nicht`);
-  assert(!/<script(?![^>]+src=)[^>]*>/i.test(enrollmentHtml), `${artifactLabel}/enrollment.html enthaelt ein Inline-Skript`);
-  assert(!/\son[a-z]+\s*=/i.test(enrollmentHtml), `${artifactLabel}/enrollment.html enthaelt einen Inline-Eventhandler`);
-  for (const contract of [
-    '"/api/session"',
-    '"/api/auth/auto-enrollment"',
-    '"/api/auth/enrollment"',
-    'method: "POST"',
-    'credentials: "include"',
-    "requestId",
-    'payload.status === "active"'
-  ]) {
-    assert(enrollmentApp.includes(contract), `${artifactLabel}/enrollment.js verletzt den Enrollment-Vertrag: ${contract}`);
-  }
-  assert(!/\b(?:localStorage|sessionStorage|indexedDB|document\.write|eval)\b/.test(enrollmentApp), `${artifactLabel}/enrollment.js speichert Identitaetsdaten lokal oder verwendet unsichere DOM-Auswertung`);
-  assert(!/\.innerHTML\s*=|insertAdjacentHTML/.test(enrollmentApp), `${artifactLabel}/enrollment.js rendert Serverantworten als HTML`);
-  assert(!/\b(?:email|subject|sub)\b/i.test(enrollmentApp), `${artifactLabel}/enrollment.js darf keine IAP-Identitaetsattribute verarbeiten`);
-  assert(/auto-enrollment-result/.test(enrollmentHtml) && /enrollment-fallback-copy/.test(enrollmentHtml), `${artifactLabel}/enrollment.html trennt automatische Aktivierung und manuellen Fallback nicht sichtbar`);
-}
 
 const targetAppPath = join(artifactRoot, "versorgungs-kompass.js");
 if (existsSync(targetAppPath)) {

@@ -14,7 +14,6 @@ const requiredFiles = [
   "scripts/build_static_frontend.sh",
   "scripts/test_deployment_separation.mjs",
   "frontend/public-entry/index.html",
-  "frontend/public-entry/anmelden.html",
   "frontend/public-entry/public-entry.css",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md",
   "deploy/postgres/pre-gematik/README.md",
@@ -121,9 +120,9 @@ const contentChecks = [
       /public_entry_iap_enabled/,
       /force_public_iap_enabled "\$existing_public_backend"/,
       /--iap=disabled/,
-      /deploy_release "\$iap_audience" "\$final_auto_enrollment_enabled" false/,
+      /deploy_release "\$iap_audience" false/,
       /data-public-entry="home"/,
-      /data-public-entry="access"/,
+      /data-google-sso-button/,
       /Protected path \$\{protected_path\} did not return an IAP-generated boundary response/,
       /matrix_aliases=\([\s\S]*\/;probe[\s\S]*\/anmelden;probe/,
       /Matrix alias \$\{matrix_alias\} returned a stateful, redirected, IAP-mixed, or public-entry 404/,
@@ -218,7 +217,7 @@ const contentChecks = [
   {
     file: "deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml",
     patterns: [/publicImageDigest/, /frontendPublicSelectorLabels/, /frontendPublicServiceAccountName/, /automountServiceAccountToken/, /image:\s*"\{\{ \$publicImageRepository \}\}@\{\{ \$publicImageDigest \}\}"/, /_healthz/],
-    reason: "Das dedizierte Public-Deployment nutzt ausschließlich ein digest-gepinntes Zwei-Dokumente-Image und eine eigene KSA ohne Kubernetes-API-Token."
+    reason: "Das dedizierte Public-Deployment nutzt ausschließlich ein digest-gepinntes Ein-Dokument-Image und eine eigene KSA ohne Kubernetes-API-Token."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/frontend-public-backendconfig.yaml",
@@ -237,8 +236,8 @@ const contentChecks = [
   },
   {
     file: "deploy/frontend-public/Dockerfile",
-    patterns: [/nginx-unprivileged:[^\s]+@sha256:[a-f0-9]{64}/, /COPY --chown=101:101 dist\/target\/public-index\.html/, /COPY --chown=101:101 dist\/target\/public-login\.html/, /frontend-public\.conf/, /USER 101:101/, /nginx -t/],
-    reason: "Das Public-Image enthaelt nur die zwei auditierten Dokumente und die getestete nginx-Konfiguration auf einem gepinnten Non-Root-Basisimage."
+    patterns: [/nginx-unprivileged:[^\s]+@sha256:[a-f0-9]{64}/, /COPY --chown=101:101 dist\/target\/public-index\.html/, /frontend-public\.conf/, /USER 101:101/, /nginx -t/],
+    reason: "Das Public-Image enthaelt nur das auditierte Hauptdokument und die getestete nginx-Konfiguration auf einem gepinnten Non-Root-Basisimage."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/deployment.yaml",

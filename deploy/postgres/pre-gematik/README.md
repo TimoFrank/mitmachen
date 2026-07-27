@@ -179,6 +179,15 @@ wiederholt werden.
 
 ### Allowlist-basiertes Auto-Enrollment
 
+> **Historischer, seit dem einheitlichen Login nicht mehr aktiver Vertrag.**
+> Die Anwendung registriert weder `/api/auth/auto-enrollment` noch
+> `/api/auth/enrollment`; der Schalter zur Reaktivierung ist entfernt. Die
+> folgenden Artefakte bleiben für Audit und kontrollierten Rollback erhalten
+> und dürfen nicht für neue Konten verwendet werden. Das noch bestehende
+> Runtime-`EXECUTE` auf der Consumption-Funktion wird in einer separaten
+> vorwärtsgerichteten DB-Härtung entzogen, weil der normale Deployment-Runner
+> bewusst keine Objekt-Owner-Rechte besitzt.
+
 Migration `202607250001_add_test_access_allowlist.sql` ergänzt eine geschützte
 Allowlist für exakte, ASCII-normalisierte E-Mail-Adressen. Wildcards,
 Domainfreigaben und Adminrollen sind nicht zulässig. Jede Zeile besitzt eine

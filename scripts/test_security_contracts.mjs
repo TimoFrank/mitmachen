@@ -113,14 +113,6 @@ const validIap = {
   IAP_JWT_AUDIENCE: "/projects/123/global/backendServices/456"
 };
 assert.equal(validateIdentityConfiguration(validIap).mode, "iap");
-assert.equal(validateIdentityConfiguration(validIap).autoEnrollmentEnabled, false);
-assert.equal(
-  validateIdentityConfiguration({
-    ...validIap,
-    API_AUTH_AUTO_ENROLLMENT_ENABLED: "1"
-  }).autoEnrollmentEnabled,
-  true
-);
 assert.equal(
   validateIdentityConfiguration({ API_AUTH_MODE: "trusted-header" }).mode,
   "trusted-header",
@@ -139,14 +131,6 @@ assert.throws(
 assert.throws(
   () => validateIdentityConfiguration({ NODE_ENV: "production", API_AUTH_MODE: "iap" }),
   /IAP_JWT_AUDIENCE/
-);
-assert.throws(
-  () => validateIdentityConfiguration({ ...validIap, API_AUTH_AUTO_ENROLLMENT_ENABLED: "true" }),
-  /explizit 0 oder 1/
-);
-assert.throws(
-  () => validateIdentityConfiguration({ ...validOidc, API_AUTH_AUTO_ENROLLMENT_ENABLED: "1" }),
-  /ausschliesslich fuer API_AUTH_MODE=iap/
 );
 assert.throws(
   () => validateIdentityConfiguration({ ...validOidc, OIDC_AUDIENCE: "" }),
@@ -440,15 +424,10 @@ assert.match(
   /if eq \.Values\.config\.apiAuthMode "oidc"[\s\S]*OIDC_AUDIENCE: \{\{ \.Values\.config\.oidcAudience \| quote \}\}[\s\S]*else[\s\S]*OIDC_AUDIENCE: ""[\s\S]*end/,
   "Der IAP-Modus darf keine unbenutzten OIDC-Platzhalter in die Runtime-Config rendern."
 );
-assert.match(
-  configMapSource,
-  /API_AUTH_AUTO_ENROLLMENT_ENABLED: \{\{ ternary "1" "0" \.Values\.config\.autoEnrollmentEnabled \| quote \}\}/,
-  "Der Auto-Enrollment-Schalter muss explizit und boolesch aus Helm in die API-Runtime gerendert werden."
-);
-assert.match(
-  valuesSource,
-  /autoEnrollmentEnabled:\s*false/,
-  "Auto-Enrollment muss im allgemeinen Helm-Soll fail-closed deaktiviert sein."
+assert.doesNotMatch(
+  `${configMapSource}\n${valuesSource}`,
+  /API_AUTH_AUTO_ENROLLMENT_ENABLED|autoEnrollmentEnabled/,
+  "Die entfernte Self-Service-Registrierung darf nicht per Runtime-Schalter reaktivierbar bleiben."
 );
 for (const contract of [
   "automountServiceAccountToken: false",

@@ -207,7 +207,8 @@ jobs:
             sleep 1
           done
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/)" == "200" ]]
-          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "200" ]]
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "308" ]]
+          [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18084/anmelden | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
           for denied_path in \
             /start /public-index.html /anmelden/ //anmelden \
             '/%61nmelden' '/anmel%64en' '/foo/../anmelden' \
@@ -969,7 +970,8 @@ jobs:
             sleep 1
           done
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/)" == "200" ]]
-          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "200" ]]
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "308" ]]
+          [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18084/anmelden | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
           for denied_path in \
             /start /public-index.html /anmelden/ //anmelden \
             '/%61nmelden' '/anmel%64en' '/foo/../anmelden' '/./anmelden' '/%2fanmelden'; do
@@ -979,9 +981,8 @@ jobs:
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18084/anmelden)" == "403" ]]
           docker exec "$public_container" sh -eu -c '
-            test "$(find /usr/share/nginx/html -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d " ")" = "2"
+            test "$(find /usr/share/nginx/html -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d " ")" = "1"
             test -f /usr/share/nginx/html/public-index.html
-            test -f /usr/share/nginx/html/public-login.html
           '
 
       - name: Set up Helm
@@ -1016,12 +1017,7 @@ jobs:
 
           deploy_release() {
             local iap_audience="$1"
-            local auto_enrollment_enabled="${2:-false}"
-            local public_entry_iap_enabled="${3:-true}"
-            if [[ "$auto_enrollment_enabled" != "true" && "$auto_enrollment_enabled" != "false" ]]; then
-              echo "Auto-enrollment Helm state must be an explicit boolean." >&2
-              return 1
-            fi
+            local public_entry_iap_enabled="${2:-true}"
             if [[ "$public_entry_iap_enabled" != "true" && "$public_entry_iap_enabled" != "false" ]]; then
               echo "Public-entry IAP bootstrap state must be an explicit boolean." >&2
               return 1
@@ -1082,7 +1078,6 @@ jobs:
               --set-string "ingress.annotations.kubernetes\\.io/ingress\\.global-static-ip-name=${GKE_INGRESS_IP_NAME}" \
               --set-string config.allowedOrigin="$FRONTEND_BASE_URL" \
               --set-string config.apiAuthMode=iap \
-              --set config.autoEnrollmentEnabled="$auto_enrollment_enabled" \
               --set-string config.iapJwtAudience="$iap_audience" \
               --set-string config.hospitationImportOwnerProfileId="$HOSPITATION_IMPORT_OWNER_PROFILE_ID" \
               --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
@@ -1382,7 +1377,7 @@ jobs:
 
           # Every release reconciles routes and the immutable public image only
           # while the public backend is fail-closed behind IAP.
-          deploy_release "$current_iap_audience" false true
+          deploy_release "$current_iap_audience" true
 
           backend_service=""
           backend_service_id=""
@@ -1622,7 +1617,7 @@ jobs:
           fi
           iap_audience="/projects/${project_number}/global/backendServices/${backend_service_id}"
 
-          deploy_release "$iap_audience" false true
+          deploy_release "$iap_audience" true
 
           configured_audience="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
             --output jsonpath='{.data.IAP_JWT_AUDIENCE}')"
@@ -1719,7 +1714,8 @@ jobs:
             sleep 1
           done
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18083/)" == "200" ]]
-          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18083/anmelden)" == "200" ]]
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18083/anmelden)" == "308" ]]
+          [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18083/anmelden | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
           for denied_path in \
             /start /enrollment.html /login.html /api/healthz /public-index.html \
             /anmelden/ //anmelden '/%61nmelden' '/anmel%64en' \
@@ -1940,40 +1936,12 @@ jobs:
             fi
           done
 
-          # The API starts fail-closed with auto-enrollment disabled. Enable it
-          # only after both backend policies are verified as the exact pinned
-          # group principal with the approved expiry. A direct user rollback
-          # intentionally leaves this path disabled.
-          final_auto_enrollment_enabled=false
-          if [[ "$principal_type" == "group" ]]; then
-            deploy_release "$iap_audience" true true
-            final_auto_enrollment_enabled=true
-            configured_auto_enrollment="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
-              --output jsonpath='{.data.API_AUTH_AUTO_ENROLLMENT_ENABLED}')"
-            if [[ "$configured_auto_enrollment" != "1" ]]; then
-              echo "Auto-enrollment was not enabled after the exact group policy verification." >&2
-              exit 1
-            fi
-            kubectl --namespace "$K8S_NAMESPACE" rollout restart \
-              "deployment/${HELM_RELEASE}-api"
-            kubectl --namespace "$K8S_NAMESPACE" rollout status \
-              "deployment/${HELM_RELEASE}-api" \
-              --timeout=10m
-          else
-            configured_auto_enrollment="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
-              --output jsonpath='{.data.API_AUTH_AUTO_ENROLLMENT_ENABLED}')"
-            if [[ "$configured_auto_enrollment" != "0" ]]; then
-              echo "Auto-enrollment must remain disabled for a direct user rollback." >&2
-              exit 1
-            fi
-          fi
-
           # Phase B is the final Helm mutation: open only the already proven
-          # two-route public backend while preserving the verified enrollment
-          # state. BackendConfig must omit IAP here: GKE cannot switch a backend
+          # two-route public backend. BackendConfig must omit IAP here: GKE
+          # cannot switch a backend
           # with custom OAuth credentials to its default OAuth client. Disable
           # IAP directly so Compute retains the existing custom OAuth fields.
-          deploy_release "$iap_audience" "$final_auto_enrollment_enabled" false
+          deploy_release "$iap_audience" false
           public_backend_config_name="$(resolve_public_backend_config_name)"
           rendered_public_iap="$(kubectl --namespace "$K8S_NAMESPACE" get \
             backendconfig.cloud.google.com "$public_backend_config_name" \
@@ -2485,15 +2453,19 @@ jobs:
             --output "${RUNNER_TEMP}/pre-gematik-public-index.html"
           grep --fixed-strings --quiet 'data-public-entry="home"' \
             "${RUNNER_TEMP}/pre-gematik-public-index.html"
-          curl --fail --silent --show-error \
-            http://127.0.0.1:18083/anmelden \
-            --output "${RUNNER_TEMP}/pre-gematik-public-login.html"
-          grep --fixed-strings --quiet 'data-public-entry="access"' \
-            "${RUNNER_TEMP}/pre-gematik-public-login.html"
           grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' \
-            "${RUNNER_TEMP}/pre-gematik-public-login.html"
-          grep --fixed-strings --quiet 'href="/enrollment.html"' \
-            "${RUNNER_TEMP}/pre-gematik-public-login.html"
+            "${RUNNER_TEMP}/pre-gematik-public-index.html"
+          grep --fixed-strings --quiet 'data-google-sso-button' \
+            "${RUNNER_TEMP}/pre-gematik-public-index.html"
+          if grep --fixed-strings --quiet 'Testzugang aktivieren' \
+            "${RUNNER_TEMP}/pre-gematik-public-index.html"; then
+            echo "The public entry unexpectedly exposes self-service enrollment." >&2
+            exit 1
+          fi
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18083/anmelden)" == "308" ]]
+          [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18083/anmelden \
+            | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
 
           for forbidden_public_path in \
             /start \
@@ -2609,58 +2581,59 @@ jobs:
             exit 1
           fi
 
-          public_index=0
-          for public_path in / /anmelden; do
-            public_index=$((public_index + 1))
-            public_headers="${RUNNER_TEMP}/public-entry-${public_index}.headers"
-            public_body="${RUNNER_TEMP}/public-entry-${public_index}.html"
-            status="$(curl --path-as-is --silent --show-error \
-              --dump-header "$public_headers" \
-              --output "$public_body" \
+          public_headers="${RUNNER_TEMP}/public-entry.headers"
+          public_body="${RUNNER_TEMP}/public-entry.html"
+          status="$(curl --path-as-is --silent --show-error \
+            --dump-header "$public_headers" \
+            --output "$public_body" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${FRONTEND_BASE_URL}/")"
+          if [[ "$status" != "200" ]]; then
+            echo "Expected the public entry response, received HTTP ${status}." >&2
+            exit 1
+          fi
+          grep --ignore-case --extended-regexp --quiet '^content-type:[[:space:]]*text/html' "$public_headers"
+          grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$public_headers"
+          grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$public_headers"
+          grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$public_headers"
+          grep --fixed-strings --quiet 'data-public-entry="home"' "$public_body"
+          grep --fixed-strings --quiet 'data-google-sso-button' "$public_body"
+          grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' "$public_body"
+          if grep --fixed-strings --quiet 'Testzugang aktivieren' "$public_body" || \
+             grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$public_headers" || \
+             grep --ignore-case --quiet '^set-cookie:' "$public_headers"; then
+            echo "The public entry exposes enrollment or an IAP-generated response." >&2
+            exit 1
+          fi
+
+          for redirect_path in "/anmelden" "/anmelden?public_probe=must-not-reflect"; do
+            redirect_headers="${RUNNER_TEMP}/public-entry-redirect.headers"
+            redirect_body="${RUNNER_TEMP}/public-entry-redirect.body"
+            redirect_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$redirect_headers" \
+              --output "$redirect_body" \
               --write-out '%{http_code}' \
               --max-time 30 \
-              "${FRONTEND_BASE_URL}${public_path}")"
-            if [[ "$status" != "200" ]]; then
-              echo "Expected a public entry response for ${public_path}, received HTTP ${status}." >&2
-              exit 1
-            fi
-            grep --ignore-case --extended-regexp --quiet '^content-type:[[:space:]]*text/html' "$public_headers"
-            grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$public_headers"
-            grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$public_headers"
-            grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$public_headers"
-            if grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$public_headers" || \
-               grep --ignore-case --quiet '^set-cookie:' "$public_headers" || \
-               grep --ignore-case --extended-regexp --quiet '^location:.*google' "$public_headers"; then
-              echo "The public entry response unexpectedly contains IAP, cookie, or Google redirect headers." >&2
-              exit 1
-            fi
-            if [[ "$public_path" == "/" ]]; then
-              grep --fixed-strings --quiet 'data-public-entry="home"' "$public_body"
-            else
-              grep --fixed-strings --quiet 'data-public-entry="access"' "$public_body"
-              grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' "$public_body"
-              grep --fixed-strings --quiet 'href="/enrollment.html"' "$public_body"
-            fi
-            head_status="$(curl --path-as-is --silent --show-error --head \
-              --output /dev/null \
-              --write-out '%{http_code}' \
-              --max-time 30 \
-              "${FRONTEND_BASE_URL}${public_path}")"
-            if [[ "$head_status" != "200" ]]; then
-              echo "Expected HEAD ${public_path} to remain public, received HTTP ${head_status}." >&2
+              "${FRONTEND_BASE_URL}${redirect_path}")"
+            redirect_location="$(awk 'BEGIN { IGNORECASE=1 } /^location:/ { gsub(/\r/, \"\", $2); print $2 }' "$redirect_headers")"
+            if [[ "$redirect_status" != "308" ]] || [[ "$redirect_location" != "/" ]] || \
+               grep --fixed-strings --quiet 'data-public-entry=' "$redirect_body" || \
+               grep --fixed-strings --quiet 'must-not-reflect' "$redirect_body" || \
+               grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$redirect_headers" || \
+               grep --ignore-case --quiet '^set-cookie:' "$redirect_headers"; then
+              echo "The compatibility login path must return only 308 Location: /." >&2
               exit 1
             fi
           done
 
-          query_body="${RUNNER_TEMP}/public-entry-query.html"
-          query_status="$(curl --path-as-is --silent --show-error \
-            --output "$query_body" \
+          head_status="$(curl --path-as-is --silent --show-error --head \
+            --output /dev/null \
             --write-out '%{http_code}' \
             --max-time 30 \
-            "${FRONTEND_BASE_URL}/anmelden?public_probe=must-not-reflect")"
-          if [[ "$query_status" != "200" ]] || \
-             grep --fixed-strings --quiet 'must-not-reflect' "$query_body"; then
-            echo "The public login query contract is not static and non-reflective." >&2
+            "${FRONTEND_BASE_URL}/anmelden")"
+          if [[ "$head_status" != "308" ]]; then
+            echo "Expected HEAD /anmelden to redirect to the public root, received HTTP ${head_status}." >&2
             exit 1
           fi
 
@@ -2968,7 +2941,7 @@ jobs:
             echo "- Protected frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"
             echo "- Public-entry frontend backend service: \`${PUBLIC_FRONTEND_BACKEND_SERVICE}\`"
             echo "- GCP resource identities, private bucket policy and IAP bindings: verified (values redacted)"
-            echo "- Public exact routes: \`/\`, \`/anmelden\`"
+            echo "- Public entry: \`/\`; compatibility redirect: \`/anmelden\` -> \`/\`"
             echo "- Internal API/protected/public frontend health and target frontend config: passed"
             echo "- Cloud SQL connection and required schema: passed"
             echo "- Unsigned-header rejection: passed"

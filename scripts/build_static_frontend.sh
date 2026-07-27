@@ -281,20 +281,6 @@ for (const htmlPath of walk(root)) {
   fs.writeFileSync(htmlPath, html);
 }
 
-const publicEntryPath = path.join(root, "mitmachen", "index.html");
-let publicEntryHtml = fs.readFileSync(publicEntryPath, "utf8");
-const targetEnrollmentBlocks = publicEntryHtml.match(
-  /\n?\s*<div\b[^>]*data-target-enrollment[^>]*>[\s\S]*?<\/div>/gi
-) || [];
-if (targetEnrollmentBlocks.length !== 1) {
-  throw new Error("Pages-Build erwartet genau einen eindeutig markierten Target-Testzugang.");
-}
-publicEntryHtml = publicEntryHtml.replace(targetEnrollmentBlocks[0], "");
-if (/data-target-enrollment|login\/enrollment\.html/i.test(publicEntryHtml)) {
-  throw new Error("Pages-Build darf keinen Einstieg zur geschuetzten Testzugang-Aktivierung enthalten.");
-}
-fs.writeFileSync(publicEntryPath, publicEntryHtml);
-
 const appPath = path.join(root, "versorgungs-kompass.html");
 let appHtml = fs.readFileSync(appPath, "utf8");
 appHtml = appHtml.replace(
@@ -317,14 +303,20 @@ const publicEntryStyleMarker = /<link rel="stylesheet" href="\.\/public-entry\.c
 let pagesLandingHtml = fs.readFileSync(pagesLandingPath, "utf8");
 const publicEntryStyleMarkers = pagesLandingHtml.match(publicEntryStyleMarker) || [];
 const publicEntryHomeLinks = pagesLandingHtml.match(/href="\/"/g) || [];
-const publicEntryLoginLinks = pagesLandingHtml.match(/href="\/anmelden"/g) || [];
+const publicEntryActionBlocks = pagesLandingHtml.match(
+  /\n?\s*<div\b[^>]*data-public-primary-action[^>]*>[\s\S]*?<\/div>/gi
+) || [];
+const accessDeniedNotices = pagesLandingHtml.match(
+  /\n?\s*<aside\b[^>]*data-access-denied-notice[^>]*>[\s\S]*?<\/aside>/gi
+) || [];
 if (
   !publicEntryStyle
   || /@import|url\s*\(/i.test(publicEntryStyle)
   || /<\/style/i.test(publicEntryStyle)
   || publicEntryStyleMarkers.length !== 1
-  || publicEntryHomeLinks.length !== 2
-  || publicEntryLoginLinks.length !== 2
+  || publicEntryHomeLinks.length !== 1
+  || publicEntryActionBlocks.length !== 1
+  || accessDeniedNotices.length !== 1
 ) {
   throw new Error("Pages-Startseite konnte nicht eindeutig aus dem gemeinsamen Public Entry erzeugt werden.");
 }
@@ -334,16 +326,23 @@ pagesLandingHtml = pagesLandingHtml
     `<style data-public-entry-styles>\n${publicEntryStyle}\n    </style>`
   )
   .replaceAll('href="/"', 'href="./index.html"')
-  .replaceAll('href="/anmelden"', 'href="./demo/"')
-  .replace("<span>Anmelden</span>", "<span>Demo</span>")
-  .replace("<span>Du hast bereits Zugang?</span>", "<span>Öffentliche Demo mit fiktiven Beispieldaten</span>")
   .replace(
-    /(<a class="primary-action" href="\.\/demo\/">\s*)Anmelden(\s*<span aria-hidden="true">→<\/span>)/,
-    "$1Demo öffnen$2"
-  );
+    publicEntryActionBlocks[0],
+    `
+        <div class="entry-actions" data-public-primary-action>
+          <a class="demo-action" href="./demo/">
+            Demo öffnen
+            <span aria-hidden="true">→</span>
+          </a>
+          <p class="entry-actions__note" data-public-action-note>Öffentliche Demo mit fiktiven Beispieldaten.</p>
+        </div>`
+  )
+  .replace(accessDeniedNotices[0], "");
 if (
   !/data-public-entry="home"/.test(pagesLandingHtml)
   || !/Demo öffnen/.test(pagesLandingHtml)
+  || (pagesLandingHtml.match(/href="\.\/demo\/"/g) || []).length !== 1
+  || /\/api\/|Google anmelden|data-google-sso-button|zugriff-verweigert/i.test(pagesLandingHtml)
   || /href="\/(?:anmelden)?"/.test(pagesLandingHtml)
   || /<meta\s+http-equiv="refresh"/i.test(pagesLandingHtml)
 ) {
@@ -406,13 +405,9 @@ build_target() {
 
   touch "$STAGE_DIR/.nojekyll"
   cp "$FRONTEND_DIR/public-entry/index.html" "$STAGE_DIR/public-index.html"
-  cp "$FRONTEND_DIR/public-entry/anmelden.html" "$STAGE_DIR/public-login.html"
   cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/index.html"
   cp "$FRONTEND_DIR/login/login.html" "$STAGE_DIR/login.html"
   cp "$FRONTEND_DIR/login/login.css" "$STAGE_DIR/login.css"
-  cp "$FRONTEND_DIR/login/enrollment.html" "$STAGE_DIR/enrollment.html"
-  cp "$FRONTEND_DIR/login/enrollment.css" "$STAGE_DIR/enrollment.css"
-  cp "$FRONTEND_DIR/login/enrollment.js" "$STAGE_DIR/enrollment.js"
   cp "$FRONTEND_DIR/login/auth-config.js" "$STAGE_DIR/auth-config.js"
   cp "$FRONTEND_DIR/login/auth-guard.js" "$STAGE_DIR/auth-guard.js"
   cp "$FRONTEND_DIR/login/auth-login.js" "$STAGE_DIR/auth-login.js"
@@ -478,8 +473,7 @@ build_target() {
 
   node - \
     "$FRONTEND_DIR/public-entry/public-entry.css" \
-    "$STAGE_DIR/public-index.html" \
-    "$STAGE_DIR/public-login.html" <<'NODE'
+    "$STAGE_DIR/public-index.html" <<'NODE'
 const fs = require("node:fs");
 
 const [stylePath, ...documentPaths] = process.argv.slice(2);
@@ -509,7 +503,7 @@ NODE
   perl -0pi -e 's#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
   perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/brand/#../public/brand/#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html" "$STAGE_DIR/hospitation/import.html"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./public/#../public/#g; s#\.\./public/#../public/#g; s#\.\./\.\./data/#../data/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
-  perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./app/versorgungs-kompass-routes\.js#./versorgungs-kompass-routes.js#g; s#\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$STAGE_DIR/login.html" "$STAGE_DIR/enrollment.html"
+  perl -0pi -e 's#\.\./map/versorgungs-kompass-map-teaser\.html#./versorgungs-kompass-map-teaser.html#g; s#\.\./app/versorgungs-kompass-routes\.js#./versorgungs-kompass-routes.js#g; s#\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g' "$STAGE_DIR/login.html"
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./\.\./public/#./public/#g; s#\.\./public/#./public/#g; s#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map.html"
   perl -0pi -e 's#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
   perl -0pi -e 's#loginPath: "\.\./login/login\.html"#loginPath: "/login.html"#; s#defaultPath: "\.\./app/versorgungs-kompass\.html"#defaultPath: "/start"#' "$STAGE_DIR/auth-config.js"
@@ -517,26 +511,7 @@ NODE
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./app/hospitation/index\.html#../hospitation/index.html#g; s#\.\./\.\./map/versorgungs-kompass-map-teaser\.html#../versorgungs-kompass-map-teaser.html#g; s#\./versorgungs-netzwerk\.html#./versorgungs-netzwerk.html#g' "$STAGE_DIR/mitmachen/index.html"
   perl -0pi -e 's#\./mitmachen\.css#./mitmachen/mitmachen.css#g; s#\.\./\.\./\.\./public/#./public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g' "$STAGE_DIR/index.html"
   perl -0pi -e 's~(?:\.\./|\./)versorgungs-kompass\.html#map~/versorgung/karte~g; s~(?:\.\./|\./)versorgungs-kompass\.html#stakeholders~/stakeholder~g; s~(?:\.\./|\./)versorgungs-kompass\.html#planning~/hospitationen/framework~g; s~(?:\.\./|\./)versorgungs-kompass\.html#formats~/formate~g; s~(?:\.\./|\./)versorgungs-kompass\.html~/start~g' "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html"
-  perl -0pi -e 's#href="\.\./\.\./login/enrollment\.html"#href="/enrollment.html"#g' "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html"
   perl -0pi -e 's~(href|src)="\./~$1="/~g' "$STAGE_DIR/versorgungs-kompass.html"
-  perl -0pi -e 's|href="\./versorgungs-kompass\.html"|href="/start"|g; s|href="\.\./pages/mitmachen/index\.html"|href="/"|g' "$STAGE_DIR/enrollment.html"
-
-  node - "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html" <<'NODE'
-const fs = require("node:fs");
-
-for (const entryPath of process.argv.slice(2)) {
-  const html = fs.readFileSync(entryPath, "utf8");
-  const markerCount = (html.match(/data-target-enrollment/g) || []).length;
-  const targetCount = (html.match(/href="\/enrollment\.html"/g) || []).length;
-  if (
-    markerCount !== 1
-    || targetCount !== 1
-    || /\.\.\/\.\.\/login\/enrollment\.html/.test(html)
-  ) {
-    throw new Error(`Target-Einstieg ist nicht eindeutig auf /enrollment.html gebunden: ${entryPath}`);
-  }
-}
-NODE
 
   node "$ROOT_DIR/scripts/prepare_target_frontend_config.mjs" \
     "$STAGE_DIR/data/runtime-config.js" \

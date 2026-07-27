@@ -6,8 +6,10 @@ test("Desktop-Auslieferung: gemeinsamer Einstieg führt in die App-Startseite", 
   await page.goto("/dist/pages/index.html");
 
   await expect(page.locator('body[data-public-entry="home"]')).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Gemeinsam Versorgung gestalten.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Willkommen im Versorgungs-Kompass");
+  await expect(page.getByText("Wähle den Bereich, in dem du arbeiten möchtest.")).toBeVisible();
   await expect(page.locator("[data-public-entry-styles]")).toHaveCount(1);
+  await expect(page.locator("[data-google-sso-button]")).toHaveCount(0);
 
   const demoEntry = page.getByRole("link", { name: "Demo öffnen" });
   await expect(demoEntry).toHaveAttribute("href", "./demo/");

@@ -195,7 +195,9 @@ if (existsSync(pagesLandingPath)) {
     `${artifactLabel}/index.html verwendet nicht den gemeinsamen Public Entry`
   );
   assert(
-    /<h1 id="entry-title">Gemeinsam Versorgung gestalten\.<\/h1>/.test(pagesLandingHtml),
+    /id=["']home-welcome-title["']/.test(pagesLandingHtml)
+      && /Willkommen im Versorgungs-Kompass/.test(pagesLandingHtml)
+      && /Wähle den Bereich, in dem du arbeiten möchtest\./.test(pagesLandingHtml),
     `${artifactLabel}/index.html zeigt nicht die erwartete gemeinsame Startseite`
   );
   assert(
@@ -203,8 +205,8 @@ if (existsSync(pagesLandingPath)) {
     `${artifactLabel}/index.html muss die gemeinsame Darstellungsschicht genau einmal einbetten`
   );
   assert(
-    (pagesLandingHtml.match(/href=["']\.\/demo\/["']/g) || []).length === 2,
-    `${artifactLabel}/index.html muss genau zweimal relativ in die Demo fuehren`
+    (pagesLandingHtml.match(/href=["']\.\/demo\/["']/g) || []).length === 1,
+    `${artifactLabel}/index.html muss genau einmal relativ in die Demo fuehren`
   );
   assert(
     /Demo öffnen/.test(pagesLandingHtml) && /Öffentliche Demo mit fiktiven Beispieldaten/.test(pagesLandingHtml),
@@ -215,7 +217,7 @@ if (existsSync(pagesLandingPath)) {
     `${artifactLabel}/index.html darf weder weiterleiten noch absolute Zugangs- oder externe Stylepfade verwenden`
   );
   assert(
-    !/<script\b|<iframe\b|<form\b|<input\b|\ssrc\s*=/i.test(pagesLandingHtml),
+    !/<script\b|<iframe\b|<form\b|<input\b|\ssrc\s*=|\/api\/|Google anmelden|data-google-sso-button|zugriff-verweigert/i.test(pagesLandingHtml),
     `${artifactLabel}/index.html muss als passive, eigenstaendige Startseite funktionieren`
   );
 }

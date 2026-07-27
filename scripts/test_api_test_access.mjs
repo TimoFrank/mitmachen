@@ -30,8 +30,6 @@ const enrollmentSource = readFileSync(new URL("api/test-access-enrollment.mjs", 
 const frontendSource = readFileSync(new URL("frontend/app/versorgungs-kompass.js", projectRoot), "utf8");
 
 for (const [method, pathname, role, writeClass] of [
-  ["POST", "/api/auth/auto-enrollment", "iap-unbound", WRITE_CLASSES.ENROLLMENT],
-  ["POST", "/api/auth/enrollment", "iap-unbound", WRITE_CLASSES.ENROLLMENT],
   ["GET", "/api/contacts", "viewer", WRITE_CLASSES.READ],
   ["POST", "/api/contacts", "editor", WRITE_CLASSES.TEST_OBJECT_CREATE],
   ["PATCH", "/api/contacts/contact-1", "editor", WRITE_CLASSES.TEST_OBJECT_UPDATE],
@@ -53,10 +51,12 @@ for (const [method, pathname, role, writeClass] of [
   assert.equal(policy?.writeClass, writeClass, `${method} ${pathname}: Write-Class stimmt nicht.`);
 }
 assert.equal(policyForRequest("POST", "/api/unknown-write"), null, "Unbekannte Writes muessen fail-closed bleiben.");
+assert.equal(policyForRequest("POST", "/api/auth/auto-enrollment"), null, "Auto-Enrollment muss fail-closed entfernt sein.");
+assert.equal(policyForRequest("POST", "/api/auth/enrollment"), null, "Manuelles Enrollment muss fail-closed entfernt sein.");
 assert.equal(
   normalizedRequestLogPath("/api/auth/auto-enrollment"),
-  "/api/auth/auto-enrollment",
-  "Auto-Enrollment muss ohne E-Mail, Subject oder Allowlist-ID protokolliert werden."
+  "/api/:unmatched",
+  "Entferntes Auto-Enrollment muss nur noch als unbekannte API-Route protokolliert werden."
 );
 
 const iapAudience = "/projects/123/global/backendServices/456";
@@ -112,35 +112,7 @@ const iapRuntimeEnvironment = {
   API_AUTH_MODE: "iap",
   IAP_JWT_AUDIENCE: iapAudience
 };
-assert.equal(
-  validateIdentityConfiguration(iapRuntimeEnvironment).autoEnrollmentEnabled,
-  false,
-  "Auto-Enrollment muss ohne explizites Runtime-Flag deaktiviert bleiben."
-);
-assert.equal(
-  validateIdentityConfiguration({
-    ...iapRuntimeEnvironment,
-    API_AUTH_AUTO_ENROLLMENT_ENABLED: "1"
-  }).autoEnrollmentEnabled,
-  true
-);
-assert.throws(
-  () => validateIdentityConfiguration({
-    ...iapRuntimeEnvironment,
-    API_AUTH_AUTO_ENROLLMENT_ENABLED: "true"
-  }),
-  /explizit 0 oder 1/u
-);
-assert.throws(
-  () => validateIdentityConfiguration({
-    API_AUTH_MODE: "oidc",
-    OIDC_ISSUER: "https://identity.example.invalid",
-    OIDC_AUDIENCE: "test",
-    OIDC_JWKS_URL: "https://identity.example.invalid/jwks",
-    API_AUTH_AUTO_ENROLLMENT_ENABLED: "1"
-  }),
-  /ausschliesslich fuer API_AUTH_MODE=iap/u
-);
+assert.equal(validateIdentityConfiguration(iapRuntimeEnvironment).mode, "iap");
 
 const standardEditor = { role: "editor", access_scope: "standard", scope_ref: null };
 const testViewer = { role: "viewer", access_scope: "test_only", scope_ref: "cohort-a" };
@@ -163,7 +135,7 @@ for (const writeClass of [
 ]) {
   assert.doesNotThrow(() => assertAccessScopePermission(testEditor, { writeClass }));
 }
-for (const writeClass of [WRITE_CLASSES.ENROLLMENT, WRITE_CLASSES.RESTRICTED]) {
+for (const writeClass of [WRITE_CLASSES.RESTRICTED]) {
   assert.throws(
     () => assertAccessScopePermission(testEditor, { writeClass }),
     (error) => error.status === 403
@@ -747,20 +719,29 @@ for (const contract of [
   "testMarker: testMarkerForRow(row)",
   "accessScope: profile.accessScope",
   "capabilities: profile.capabilities",
-  "select request_id from public.identity_enrollment_requests limit 0",
-  "select entity_type, entity_id, scope_ref from public.test_access_objects limit 0",
-  "submitIapAutoEnrollment(request",
-  "if (!API_AUTH_AUTO_ENROLLMENT_ENABLED)",
-  "if (API_AUTH_AUTO_ENROLLMENT_ENABLED)",
-  "return jsonResponse(response, 201, enrollment);",
-  "pre_gematik_consume_test_access_allowlist(uuid,text,text,text,timestamptz,timestamptz)",
-  "owner.rolname = 'vk_allowlist_executor'",
-  "routine.prosecdef",
-  "has_function_privilege(current_user, routine.oid, 'EXECUTE')",
-  "not has_function_privilege('public', routine.oid, 'EXECUTE')"
+  "select entity_type, entity_id, scope_ref from public.test_access_objects limit 0"
 ]) {
   assert.ok(apiSource.includes(contract), `API-Testzugangsvertrag fehlt: ${contract}`);
 }
+for (const removedRuntimeContract of [
+  'url.pathname === "/api/auth/auto-enrollment"',
+  'url.pathname === "/api/auth/enrollment"',
+  "submitIapAutoEnrollment(request",
+  "submitIapEnrollment(request",
+  "API_AUTH_AUTO_ENROLLMENT_ENABLED"
+]) {
+  assert.ok(!apiSource.includes(removedRuntimeContract), `Entfernter Enrollment-Runtimevertrag ist noch aktiv: ${removedRuntimeContract}`);
+}
+assert.match(
+  apiSource,
+  /url\.pathname === "\/api\/auth\/bootstrap"[\s\S]*API_AUTH_MODE === "iap"[\s\S]*resolveRequestProfile\(request\)[\s\S]*status\) === 403[\s\S]*redirectResponse\(response, "\/#zugriff-verweigert"\)/u,
+  "Der IAP-Bootstrap muss eine bestehende aktive Bindung prüfen und unbekannte Konten neutral zur Hauptseite zurückführen."
+);
+assert.match(
+  apiSource,
+  /const error = new Error\("Anmeldung nicht möglich\."\);\s*error\.status = 403;/u,
+  "Die öffentliche 403-Antwort darf keine internen Binding-Details offenlegen."
+);
 assert.match(
   enrollmentSource,
   /from public\.pre_gematik_consume_test_access_allowlist\(\$1, \$2, \$3, \$4, \$5, \$6\)/u,
@@ -809,4 +790,4 @@ assert.doesNotMatch(
   "Die opake Auto-Enrollment-Antwort darf keine Identity- oder Profildaten enthalten."
 );
 
-console.log("API Test Access OK: Allowlist-Auto-Enrollment, manueller Fallback und atomare Testobjekt-Grenzen sind abgesichert.");
+console.log("API Test Access OK: Self-Service-Enrollment ist entfernt; vorprovisionierte Bindungen und Testobjekt-Grenzen bleiben fail-closed.");

@@ -37332,6 +37332,12 @@
           const message = String(error?.message || error?.details || "");
           const authFailed = Number(error?.status) === 401
             || /permission denied|JWT|auth|not authenticated|Unauthorized|401/i.test(message);
+          const accessDenied = Number(error?.status) === 403
+            || String(error?.code || "") === "API_HTTP_403";
+          if (window.dataService?.isConfigured?.() && accessDenied) {
+            window.location.replace("/#zugriff-verweigert");
+            return;
+          }
           if (window.dataService?.isConfigured?.() && authFailed && window.VKAuth) {
             window.VKAuth.clearAuthenticated();
             window.location.replace(window.VKAuth.buildLoginUrl());

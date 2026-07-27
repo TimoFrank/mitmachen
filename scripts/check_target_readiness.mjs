@@ -29,7 +29,6 @@ const requiredFiles = [
   "api/server.mjs",
   "scripts/build_static_frontend.sh",
   "frontend/public-entry/index.html",
-  "frontend/public-entry/anmelden.html",
   "frontend/public-entry/public-entry.css",
   "scripts/generate_frontend_sbom.mjs",
   "scripts/generate_security_evidence.mjs",
@@ -75,8 +74,8 @@ const requiredText = [
   },
   {
     file: "scripts/build_static_frontend.sh",
-    patterns: [/--profile/, /--output/, /pages/, /target/, /public-index\.html/, /public-login\.html/],
-    reason: "Der statische Frontend-Build erzwingt getrennte Pages-/Target-Artefakte und bettet die zwei minimalen Public-Dokumente ein."
+    patterns: [/--profile/, /--output/, /pages/, /target/, /public-index\.html/],
+    reason: "Der statische Frontend-Build erzwingt getrennte Pages-/Target-Artefakte und bettet das minimale Public-Dokument ein."
   },
   {
     file: "scripts/prepare_local_hospitation.mjs",
