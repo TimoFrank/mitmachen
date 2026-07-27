@@ -730,8 +730,13 @@ assert.doesNotMatch(
 );
 assert.match(
   externalBoundaryScript,
-  /edge_ready=0[\s\S]*for attempt in \{1\.\.60\}[\s\S]*data-public-entry="home"[\s\S]*edge_ready=1/,
-  "Der externe Smoke muss die sichere Edge-Propagation abwarten, bevor er den Gesamtvertrag prueft."
+  /edge_ready=0[\s\S]*edge_consecutive_successes=0[\s\S]*required_edge_successes=6[\s\S]*for attempt in \{1\.\.60\}[\s\S]*data-public-entry="home"[\s\S]*data-google-sso-button[\s\S]*href="\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1"[\s\S]*Testzugang aktivieren[\s\S]*edge_consecutive_successes=\$\(\(edge_consecutive_successes \+ 1\)\)[\s\S]*edge_ready=1[\s\S]*edge_consecutive_successes=0/,
+  "Der externe Smoke muss mehrere konsistente Edge-Antworten abwarten und bei einem Mischzustand neu zaehlen."
+);
+assert.match(
+  externalBoundaryScript,
+  /public_headers="\$edge_probe_headers"[\s\S]*public_body="\$edge_probe_body"[\s\S]*status="\$edge_status"/,
+  "Der externe Smoke muss die letzte stabil bestaetigte Edge-Antwort fuer den Public-Entry-Vertrag verwenden."
 );
 for (const dotSegmentAlias of [
   "/foo/../anmelden",

@@ -2561,6 +2561,8 @@ jobs:
           edge_probe_headers="${RUNNER_TEMP}/public-entry-edge-probe.headers"
           edge_probe_body="${RUNNER_TEMP}/public-entry-edge-probe.html"
           edge_ready=0
+          edge_consecutive_successes=0
+          required_edge_successes=6
           for attempt in {1..60}; do
             edge_status="$(curl --path-as-is --silent --show-error \
               --dump-header "$edge_probe_headers" \
@@ -2570,25 +2572,28 @@ jobs:
               "${FRONTEND_BASE_URL}/" || true)"
             if [[ "$edge_status" == "200" ]] && \
                grep --fixed-strings --quiet 'data-public-entry="home"' "$edge_probe_body" && \
+               grep --fixed-strings --quiet 'data-google-sso-button' "$edge_probe_body" && \
+               grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' "$edge_probe_body" && \
+               ! grep --fixed-strings --quiet 'Testzugang aktivieren' "$edge_probe_body" && \
                ! grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$edge_probe_headers"; then
-              edge_ready=1
-              break
+              edge_consecutive_successes=$((edge_consecutive_successes + 1))
+              if [[ "$edge_consecutive_successes" -ge "$required_edge_successes" ]]; then
+                edge_ready=1
+                break
+              fi
+            else
+              edge_consecutive_successes=0
             fi
             sleep 10
           done
           if [[ "$edge_ready" != "1" ]]; then
-            echo "The public entry did not propagate to the external load-balancer edge within ten minutes." >&2
+            echo "The public entry did not stabilize across ${required_edge_successes} consecutive external edge probes." >&2
             exit 1
           fi
 
-          public_headers="${RUNNER_TEMP}/public-entry.headers"
-          public_body="${RUNNER_TEMP}/public-entry.html"
-          status="$(curl --path-as-is --silent --show-error \
-            --dump-header "$public_headers" \
-            --output "$public_body" \
-            --write-out '%{http_code}' \
-            --max-time 30 \
-            "${FRONTEND_BASE_URL}/")"
+          public_headers="$edge_probe_headers"
+          public_body="$edge_probe_body"
+          status="$edge_status"
           if [[ "$status" != "200" ]]; then
             echo "Expected the public entry response, received HTTP ${status}." >&2
             exit 1
