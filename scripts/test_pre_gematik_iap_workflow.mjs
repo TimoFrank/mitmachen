@@ -19,6 +19,42 @@ const pilotDecision = readFileSync(
   ),
   "utf8"
 );
+const ingressTemplate = readFileSync(
+  new URL("deploy/helm/versorgungs-kompass/templates/ingress.yaml", projectRoot),
+  "utf8"
+);
+const publicBackendConfigTemplate = readFileSync(
+  new URL("deploy/helm/versorgungs-kompass/templates/frontend-public-backendconfig.yaml", projectRoot),
+  "utf8"
+);
+const publicDeploymentTemplate = readFileSync(
+  new URL("deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml", projectRoot),
+  "utf8"
+);
+const publicServiceTemplate = readFileSync(
+  new URL("deploy/helm/versorgungs-kompass/templates/frontend-public-service.yaml", projectRoot),
+  "utf8"
+);
+const publicServiceAccountTemplate = readFileSync(
+  new URL("deploy/helm/versorgungs-kompass/templates/frontend-public-serviceaccount.yaml", projectRoot),
+  "utf8"
+);
+const networkPolicyTemplate = readFileSync(
+  new URL("deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml", projectRoot),
+  "utf8"
+);
+const publicNginxConfig = readFileSync(
+  new URL("deploy/helm/versorgungs-kompass/files/frontend-public.conf", projectRoot),
+  "utf8"
+);
+const publicDockerfile = readFileSync(
+  new URL("deploy/frontend-public/Dockerfile", projectRoot),
+  "utf8"
+);
+const authConfig = readFileSync(
+  new URL("frontend/login/auth-config.js", projectRoot),
+  "utf8"
+);
 
 function stepScript(name) {
   const stepStartToken = `      - name: ${name}\n`;
@@ -50,13 +86,27 @@ function assertBashSyntax(script, label) {
 }
 
 const validationScript = stepScript("Validate pre-gematik environment variables");
+const immutableTagScript = stepScript("Refuse mutable image tag reuse");
 const iapScript = stepScript("Deploy API and bind the signed IAP JWT audience");
 const rolloutVerificationScript = stepScript(
   "Verify rollout, Secret Sync, and fail-closed authentication"
 );
+const externalBoundaryScript = stepScript("Require external IAP boundary smoke test");
+const failClosedRestoreScript = stepScript(
+  "Restore fail-closed public boundary after failed cutover"
+);
 assertBashSyntax(validationScript, "Environment-Validierung");
+assertBashSyntax(immutableTagScript, "Unveraenderliche-Tag-Pruefung");
 assertBashSyntax(iapScript, "IAP-Deployment");
 assertBashSyntax(rolloutVerificationScript, "Rollout-Verifikation");
+assertBashSyntax(externalBoundaryScript, "Externer Public-/IAP-Grenztest");
+assertBashSyntax(failClosedRestoreScript, "Fail-closed-Wiederherstellung");
+assert.doesNotMatch(
+  workflow.match(/- name: Require external IAP boundary smoke test[\s\S]*?(?=\n      - name:)/)?.[0] ?? "",
+  /\n\s+if:/,
+  "Ein echtes Deployment darf den externen Boundary-Smoke nicht mehr ueberspringen."
+);
+assert.match(workflow, /name: Restore fail-closed public boundary after failed cutover[\s\S]*if: \$\{\{ always\(\) \}\}/);
 
 assert.match(
   workflow,
@@ -89,6 +139,54 @@ assert.match(
   iapScript,
   /backend_services=\("\$backend_service" "\$frontend_backend_service"\)/,
   "Alle IAP-Phasen müssen dieselben zwei frisch aufgelösten Backend-Services verwenden."
+);
+assert.match(iapScript, /public_frontend_service_name="\$\{HELM_RELEASE\}-frontend-public"/);
+assert.match(iapScript, /public_frontend_backend_service/);
+assert.match(
+  iapScript,
+  /deploy_release "\$current_iap_audience" false true/,
+  "Jeder Release muss die Routing- und Image-Aktualisierung hinter Public-IAP beginnen."
+);
+assert.doesNotMatch(
+  iapScript,
+  /phase_a_public_iap=false/,
+  "Auch ein etablierter Public-Einstieg darf waehrend des Ingress-Reconcile nicht offen bleiben."
+);
+assert.match(
+  iapScript,
+  /printf '%s\\n' "\$existing_public_backend" > "\$restore_marker"[\s\S]*force_public_iap_enabled "\$existing_public_backend"[\s\S]*deploy_release "\$current_iap_audience" false true/,
+  "Ein bestehendes Public-Backend muss vor jeder Helm-/Ingress-Aenderung mit bewaffnetem Restore hinter IAP konvergieren."
+);
+assert.match(iapScript, /The public-entry backend did not become IAP-protected before the release reconcile/);
+assert.match(iapScript, /public_ingress_ref_count/);
+assert.match(iapScript, /preflight_url_map_name=/);
+assert.match(
+  iapScript,
+  /Apply the reviewed Terraform IAM update before this application rollout/,
+  "Die neue URL-Map-Leseberechtigung muss vor jeder Ingress-Aenderung fail-closed geprueft werden."
+);
+assert.match(
+  iapScript,
+  /deploy_release "\$iap_audience" "\$final_auto_enrollment_enabled" false/,
+  "IAP darf auf dem Public-Backend erst in der zweiten, verifizierten Phase deaktiviert werden."
+);
+assert.match(iapScript, /gcloud compute url-maps describe/);
+assert.match(iapScript, /The live GCE URL map does not isolate the public backend/);
+assert.match(iapScript, /wait_for_boundary/);
+assert.match(iapScript, /backend-services get-health/);
+assert.match(iapScript, /restore_public_iap/);
+assert.match(iapScript, /public-entry-restore-armed/);
+assert.match(iapScript, /\.ports\.http/);
+assert.doesNotMatch(
+  iapScript,
+  /\.default \| select\(type == "string" and test\("\^\[a-z0-9\]/,
+  "Der Restore darf nicht den nicht vorhandenen BackendConfig-default-Key lesen."
+);
+assert.match(iapScript, /The public entry backend has an unexpected resource-specific IAP policy/);
+assert.doesNotMatch(
+  iapScript.match(/backend_services=\([^\n]+\)/)?.[0] ?? "",
+  /public_frontend_backend_service/,
+  "Public-Backend darf nie in die IAM- oder Reauthentication-Schleifen der geschuetzten Backends gelangen."
 );
 assert.match(iapScript, /principal_type="\$\{IAP_RESOURCE_ACCESS_PRINCIPAL%%:\*\}"/);
 assert.match(
@@ -126,6 +224,67 @@ assert.match(
   "Ein teilweise geleerter oder gesetzter Zwei-Backend-Cutover muss vor jeder Mutation stoppen."
 );
 assert.match(iapScript, /partial cutover state; both must be empty or both must already match/);
+
+assert.match(
+  immutableTagScript,
+  /tag_inventory_status" == "1"[\s\S]*ERROR: \(gcloud\.artifacts\.docker\.tags\.list\) NOT_FOUND: Requested entity was not found\.[\s\S]*image_tags='\[\]'/,
+  "Nur das exakte erstmalige Artifact-Registry-NOT_FOUND darf als leeres Tag-Inventar gelten."
+);
+assert.match(
+  immutableTagScript,
+  /else[\s\S]*cat "\$tag_inventory_error" >&2[\s\S]*Could not read the immutable tag inventory/,
+  "Andere Fehler beim Lesen des Tag-Inventars müssen fail-closed abbrechen."
+);
+
+const backendConfigFilter = iapScript.match(
+  /resolve_public_backend_config_name\(\) \{[\s\S]*?--arg expected "\$expected_backend_config_name" \\\n\s*'([\s\S]*?)' \\\n\s*<<< "\$backend_config_annotation"/
+)?.[1];
+assert.ok(
+  backendConfigFilter,
+  "Der Resolver fuer die Public-BackendConfig-Annotation fehlt oder ist nicht eindeutig begrenzt."
+);
+function resolveBackendConfig(annotation) {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--raw-output",
+      "--arg",
+      "expected",
+      "release-frontend-public",
+      backendConfigFilter
+    ],
+    { input: JSON.stringify(annotation), encoding: "utf8" }
+  );
+}
+assert.equal(
+  resolveBackendConfig({
+    ports: { http: "release-frontend-public" }
+  }).stdout.trim(),
+  "release-frontend-public",
+  "Der Resolver muss die reale ports.http-Service-Annotation akzeptieren."
+);
+assert.notEqual(
+  resolveBackendConfig({
+    default: "release-frontend-public"
+  }).status,
+  0,
+  "Ein nicht existentes default-Mapping darf den Restore nicht scheinbar erfolgreich machen."
+);
+assert.notEqual(
+  resolveBackendConfig({
+    ports: { http: "unexpected-backend-config" }
+  }).status,
+  0,
+  "Ein fremder BackendConfig-Name muss fail-closed abgelehnt werden."
+);
+assert.match(failClosedRestoreScript, /\.ports\.http/);
+assert.match(
+  failClosedRestoreScript,
+  /\. == \$expected/,
+  "Der jobweite Restore muss den BackendConfig-Namen auf die erwartete Release-Ressource pinnen."
+);
+assert.doesNotMatch(failClosedRestoreScript, /\.default/);
 
 const renderFilterStartToken = '--arg condition_expression "$condition_expression" \'\n';
 const renderFilterEndToken = '\n  \' "$current_policy" > "$desired_policy"';
@@ -190,6 +349,106 @@ assert.deepEqual(
   "Der direkte user:-Pfad darf keine versehentlich geerbte Condition enthalten."
 );
 
+const urlMapFilter = iapScript.match(
+  /--arg public_suffix "\/backendServices\/\$\{public_backend\}" '([\s\S]*?)' <<< "\$url_map_state"/
+)?.[1];
+assert.ok(urlMapFilter, "Der Live-URL-Map-Prueffilter fehlt oder ist nicht eindeutig begrenzt.");
+const validUrlMap = {
+  hostRules: [
+    { hosts: ["versorgungs-kompass.de"], pathMatcher: "canonical" },
+    { hosts: ["www.versorgungs-kompass.de"], pathMatcher: "alias" }
+  ],
+  pathMatchers: [
+    {
+      name: "canonical",
+      defaultService: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/controller-default",
+      pathRules: [
+        {
+          paths: ["/", "/anmelden"],
+          service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public"
+        },
+        {
+          paths: ["/api", "/api/*"],
+          service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/api"
+        },
+        {
+          paths: ["/*"],
+          service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/protected"
+        }
+      ]
+    },
+    {
+      name: "alias",
+      defaultService: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/controller-default",
+      pathRules: [{
+        paths: ["/*"],
+        service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/protected"
+      }]
+    }
+  ]
+};
+
+function verifyUrlMap(value) {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg", "canonical_host", "versorgungs-kompass.de",
+      "--arg", "public_suffix", "/backendServices/public",
+      urlMapFilter
+    ],
+    { input: JSON.stringify(value), encoding: "utf8" }
+  );
+}
+
+assert.equal(
+  verifyUrlMap(validUrlMap).status,
+  0,
+  "Der URL-Map-Prueffilter muss die exakt getrennte Soll-Map akzeptieren."
+);
+const widenedPublicMap = structuredClone(validUrlMap);
+widenedPublicMap.pathMatchers[0].pathRules[0].paths.push("/public/*");
+assert.notEqual(
+  verifyUrlMap(widenedPublicMap).status,
+  0,
+  "Der URL-Map-Prueffilter muss einen verbreiterten Public-Pfad fail-closed ablehnen."
+);
+const aliasPublicMap = structuredClone(validUrlMap);
+aliasPublicMap.pathMatchers[1].pathRules = [{
+  paths: ["/"],
+  service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public"
+}];
+assert.notEqual(
+  verifyUrlMap(aliasPublicMap).status,
+  0,
+  "Der URL-Map-Prueffilter muss eine Public-Route auf einem Alias-Host ablehnen."
+);
+const sharedMatcherMap = structuredClone(validUrlMap);
+sharedMatcherMap.hostRules[1].pathMatcher = "canonical";
+assert.notEqual(
+  verifyUrlMap(sharedMatcherMap).status,
+  0,
+  "Der URL-Map-Prueffilter darf den Public-Matcher nicht mit einem Alias-Host teilen."
+);
+const publicDefaultMap = structuredClone(validUrlMap);
+publicDefaultMap.pathMatchers[0].defaultService =
+  "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public";
+assert.notEqual(
+  verifyUrlMap(publicDefaultMap).status,
+  0,
+  "Der URL-Map-Prueffilter muss ein oeffentliches defaultService fail-closed ablehnen."
+);
+const topLevelPublicDefaultMap = structuredClone(validUrlMap);
+topLevelPublicDefaultMap.defaultService =
+  "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public";
+assert.notEqual(
+  verifyUrlMap(topLevelPublicDefaultMap).status,
+  0,
+  "Der URL-Map-Prueffilter muss auch ein top-level oeffentliches defaultService ablehnen."
+);
+assert.match(iapScript, /\) == \["\/\*"\]/);
+assert.match(iapScript, /\) == \["\/api", "\/api\/\*"\]/);
+
 const policyRead = iapScript.indexOf('current_policy="${iap_policy_dir}/${candidate}-current.json"');
 const desiredRender = iapScript.indexOf('> "$desired_policy"');
 const reauthRead = iapScript.indexOf('> "${iap_policy_dir}/${candidate}-settings-current.json"');
@@ -197,9 +456,27 @@ const reauthSet = iapScript.indexOf('gcloud iap settings set "$desired_reauth_se
 const reauthVerify = iapScript.indexOf('verified_settings="${iap_policy_dir}/${candidate}-settings-verified.json"');
 const policySet = iapScript.indexOf('gcloud iap web set-iam-policy "$desired_policy"');
 const policyVerify = iapScript.indexOf('verified_policy="${iap_policy_dir}/${candidate}-verified.json"');
-const placeholderAutoDisabled = iapScript.indexOf('deploy_release "/projects/0/global/backendServices/0" false');
-const audienceAutoDisabled = iapScript.indexOf('deploy_release "$iap_audience" false');
-const groupAutoEnabled = iapScript.indexOf('deploy_release "$iap_audience" true');
+const existingProtectionMarker = iapScript.indexOf(
+  'printf \'%s\\n\' "$existing_public_backend" > "$restore_marker"'
+);
+const existingProtectionCall = iapScript.indexOf(
+  'force_public_iap_enabled "$existing_public_backend"'
+);
+const existingCompletenessCheck = iapScript.indexOf(
+  'if [[ "$public_deployment_exists" != "1"'
+);
+const existingOpenBoundaryCheck = iapScript.indexOf(
+  '! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend"'
+);
+const initialBoundaryReconcile = iapScript.indexOf(
+  'deploy_release "$current_iap_audience" false true'
+);
+const urlMapPermissionPreflight = iapScript.indexOf('preflight_url_map_name=');
+const audienceAutoDisabled = iapScript.indexOf('deploy_release "$iap_audience" false true');
+const publicIapDisabled = iapScript.indexOf(
+  'deploy_release "$iap_audience" "$final_auto_enrollment_enabled" false'
+);
+const groupAutoEnabled = iapScript.indexOf('deploy_release "$iap_audience" true true');
 for (const [label, position] of [
   ["Policy-Read", policyRead],
   ["Desired-Render", desiredRender],
@@ -208,27 +485,38 @@ for (const [label, position] of [
   ["Reauth-Verify", reauthVerify],
   ["Policy-Set", policySet],
   ["Policy-Verify", policyVerify],
-  ["Initiales Auto-Enrollment-Aus", placeholderAutoDisabled],
+  ["Restore-Marker vor bestehendem Backend", existingProtectionMarker],
+  ["IAP-Schutz vor bestehendem Backend", existingProtectionCall],
+  ["Vollstaendigkeitspruefung bestehender Public-Ressourcen", existingCompletenessCheck],
+  ["Boundary-Pruefung des zuvor offenen Backends", existingOpenBoundaryCheck],
+  ["Initiales Boundary-Reconcile", initialBoundaryReconcile],
+  ["URL-Map-Berechtigungs-Preflight", urlMapPermissionPreflight],
   ["Audience-Reconcile mit Auto-Enrollment-Aus", audienceAutoDisabled],
+  ["Verifizierte Oeffnung des Public-Backends", publicIapDisabled],
   ["Gruppenaktivierung des Auto-Enrollments", groupAutoEnabled]
 ]) {
   assert.notEqual(position, -1, `${label} fehlt im IAP-Workflow.`);
 }
 assert.ok(
-  policyRead < desiredRender &&
+  existingProtectionMarker < existingProtectionCall &&
+    existingProtectionCall < existingCompletenessCheck &&
+    existingProtectionCall < existingOpenBoundaryCheck &&
+    policyRead < desiredRender &&
     desiredRender < reauthRead &&
     reauthRead < reauthSet &&
     reauthSet < reauthVerify &&
     reauthVerify < policySet &&
     policySet < policyVerify &&
-    placeholderAutoDisabled < policyRead &&
+    urlMapPermissionPreflight < initialBoundaryReconcile &&
+    initialBoundaryReconcile < policyRead &&
     audienceAutoDisabled < policyRead &&
-    policyVerify < groupAutoEnabled,
-  "Beide Policies müssen vor jeder Mutation gelesen/validiert/gerendert, Reauth fail-closed gesetzt und beide Policies danach verifiziert werden."
+    policyVerify < groupAutoEnabled &&
+    groupAutoEnabled < publicIapDisabled,
+  "Geschuetzte Policies und Auto-Enrollment muessen vor der abschliessenden Public-Oeffnung verifiziert werden."
 );
 assert.match(
   iapScript,
-  /if \[\[ "\$principal_type" == "group" \]\]; then[\s\S]*deploy_release "\$iap_audience" true[\s\S]*else[\s\S]*Auto-enrollment must remain disabled for a direct user rollback/,
+  /if \[\[ "\$principal_type" == "group" \]\]; then[\s\S]*deploy_release "\$iap_audience" true true[\s\S]*else[\s\S]*Auto-enrollment must remain disabled for a direct user rollback/,
   "Auto-Enrollment darf erst nach Gruppenpolicy-Verifikation aktiv und muss beim direkten user:-Rollback inaktiv sein."
 );
 assert.match(
@@ -261,6 +549,213 @@ for (const contract of [
     `Reauthentication muss denselben exakten Wert setzen und verifizieren: ${contract}`
   );
 }
+
+assert.match(
+  ingressTemplate,
+  /if and \$\.Values\.frontend\.publicEntry\.enabled \(eq \$host \$\.Values\.ingress\.host\)[\s\S]*path: \/[\s\S]*pathType: Exact[\s\S]*path: \/anmelden[\s\S]*pathType: Exact/
+);
+assert.match(ingressTemplate, /path: \/api[\s\S]*pathType: Prefix/);
+assert.match(ingressTemplate, /path: \/\n\s+pathType: Prefix/);
+assert.match(
+  publicBackendConfigTemplate,
+  /if \.Values\.frontend\.publicEntry\.backendConfig\.iap\.enabled[\s\S]*iap:[\s\S]*enabled: true/
+);
+assert.match(
+  publicBackendConfigTemplate,
+  /enabled: true\s+oauthclientCredentials:\s+secretName:/,
+  "Fail-closed Public-IAP muss weiterhin den vorhandenen Custom-OAuth-Client verwenden."
+);
+assert.match(
+  iapScript,
+  /deploy_release "\$iap_audience" "\$final_auto_enrollment_enabled" false[\s\S]*jsonpath='\{\.spec\.iap\}'[\s\S]*--iap=disabled[\s\S]*wait_for_boundary false/,
+  "Die finale Phase muss IAP aus BackendConfig entfernen und den Custom-OAuth-Backend direkt oeffnen."
+);
+assert.match(
+  iapScript,
+  /patch\s+\\\s+backendconfig\.cloud\.google\.com "\$public_backend_config_name"[\s\S]*--type json[\s\S]*"op":"remove","path":"\/spec\/iap"/,
+  "Die finale Phase muss ein von Helm beibehaltenes Public-IAP-Feld explizit und nur am validierten BackendConfig entfernen."
+);
+assert.match(
+  publicServiceTemplate,
+  /cloud\.google\.com\/backend-config" \(printf "\{\\"ports\\": \{\\"http\\": \\"%s\\"\}\}"/,
+  "Die Service-Annotation und beide Restore-Resolver muessen denselben ports.http-Vertrag verwenden."
+);
+assert.doesNotMatch(
+  publicDeploymentTemplate,
+  /\binitContainers\b|\bgcloud\b|\bgs:\/\/|frontend-public-content|runtime-config|enrollment\.html/,
+  "Das Public-Deployment darf weder GCS noch das vollstaendige Target-Artefakt synchronisieren."
+);
+assert.match(publicDeploymentTemplate, /image: "\{\{ \$publicImageRepository \}\}@\{\{ \$publicImageDigest \}\}"/);
+assert.doesNotMatch(publicDeploymentTemplate, /else.*repository.*tag/);
+assert.match(publicDeploymentTemplate, /frontendPublicServiceAccountName/);
+assert.match(publicServiceAccountTemplate, /automountServiceAccountToken:/);
+assert.doesNotMatch(publicServiceAccountTemplate, /annotations:/);
+assert.match(
+  networkPolicyTemplate,
+  /frontendPublicSelectorLabels[\s\S]*policyTypes:[\s\S]*- Egress[\s\S]*egress: \[\]/
+);
+assert.match(publicDockerfile, /COPY --chown=101:101 dist\/target\/public-index\.html/);
+assert.match(publicDockerfile, /COPY --chown=101:101 dist\/target\/public-login\.html/);
+assert.match(publicDockerfile, /COPY --chown=101:101 .*frontend-public\.conf/);
+assert.match(
+  publicDockerfile,
+  /apk del --no-network curl libcurl/,
+  "Das statische Public-Image darf die nicht benoetigten curl-/libcurl-Laufzeitpakete nicht behalten."
+);
+assert.match(publicDockerfile, /USER 101:101/);
+assert.match(publicNginxConfig, /map \$request_uri \$public_entry_document/);
+assert.match(publicNginxConfig, /merge_slashes off/);
+assert.match(publicNginxConfig, /if \(\$public_entry_document = ""\)/);
+assert.match(publicNginxConfig, /!\-f \$document_root\/public-index\.html/);
+assert.match(publicNginxConfig, /!\-f \$document_root\/public-login\.html/);
+assert.match(publicNginxConfig, /default-src 'none'/);
+assert.match(publicNginxConfig, /script-src 'none'/);
+assert.match(publicNginxConfig, /Cache-Control "no-store"/);
+assert.match(authConfig, /loginPath:\s*"\.\.\/login\/login\.html"/);
+assert.doesNotMatch(
+  authConfig,
+  /loginPath:\s*"\/anmelden"/,
+  "Der geschuetzte Logout-Pfad darf nicht auf die oeffentliche Einstiegsseite zeigen."
+);
+assert.match(workflow, /Build and push immutable public-entry image/);
+assert.match(workflow, /PUBLIC_IMAGE_DIGEST/);
+assert.match(workflow, /deploy\/frontend-public\/Dockerfile/);
+assert.match(workflow, /\/\/anmelden/);
+
+for (const publicContract of [
+  'data-public-entry="home"',
+  'data-public-entry="access"',
+  'href="/start"',
+  'href="/enrollment.html"',
+  "post_status",
+  "public_probe=must-not-reflect"
+]) {
+  assert.ok(
+    externalBoundaryScript.includes(publicContract),
+    `Der externe Boundary-Smoke prueft den Public-Vertrag nicht: ${publicContract}`
+  );
+}
+for (const protectedPath of [
+  "/start",
+  "/enrollment.html",
+  "/login.html",
+  "/api/healthz",
+  "/data/runtime-config.js",
+  "/anmelden/"
+]) {
+  assert.ok(
+    externalBoundaryScript.includes(`"${protectedPath}"`),
+    `Der externe Boundary-Smoke prueft den geschuetzten Pfad nicht: ${protectedPath}`
+  );
+}
+
+const protectedPathsBlock = externalBoundaryScript.match(
+  /protected_paths=\([\s\S]*?\n\s*\)/
+)?.[0];
+const normalizedAliasesBlock = externalBoundaryScript.match(
+  /normalized_aliases=\([\s\S]*?\n\s*\)/
+)?.[0];
+const normalizedBoundaryBlock = externalBoundaryScript.match(
+  /normalized_aliases=\([\s\S]*?\n\s*done/
+)?.[0];
+const matrixAliasesBlock = externalBoundaryScript.match(
+  /matrix_aliases=\([\s\S]*?\n\s*\)/
+)?.[0];
+const matrixBoundaryBlock = externalBoundaryScript.match(
+  /matrix_aliases=\([\s\S]*?\n\s*done/
+)?.[0];
+assert.ok(protectedPathsBlock, "Die Protected-Path-Matrix fehlt.");
+assert.ok(normalizedAliasesBlock, "Die sichere Near-Miss-Matrix fehlt.");
+assert.ok(normalizedBoundaryBlock, "Der sichere Near-Miss-Vertrag fehlt.");
+assert.ok(matrixAliasesBlock, "Die Matrix-Parameter-Matrix fehlt.");
+assert.ok(matrixBoundaryBlock, "Der Matrix-Parameter-Vertrag fehlt.");
+assert.doesNotMatch(
+  protectedPathsBlock,
+  /"\/anmelden;probe"/,
+  "Der vom Load Balancer zum Minimal-Backend geroutete Semikolon-Pfad darf nicht zwingend einen IAP-Header erwarten."
+);
+for (const matrixAlias of [
+  "/;",
+  "/;;probe",
+  "/;probe",
+  "/;probe=1",
+  "/anmelden;",
+  "/anmelden;probe",
+  "/anmelden;probe=1",
+  "/anmelden;probe/weiter",
+  "/anmelden;%2Fprobe",
+  "/anmelden;;probe"
+]) {
+  assert.ok(
+    matrixAliasesBlock.includes(`"${matrixAlias}"`),
+    `Der Matrix-Alias fehlt im externen Boundary-Smoke: ${matrixAlias}`
+  );
+}
+assert.match(
+  normalizedBoundaryBlock,
+  /404\)[\s\S]*data-public-entry=/,
+  "Ein Near-Miss-404 darf keinen Public-Entry-Inhalt ausliefern."
+);
+assert.match(
+  normalizedBoundaryBlock,
+  /302\|401\|403\)[\s\S]*x-goog-iap-generated-response/,
+  "Authentifizierungsantworten fuer Near-Misses muessen von IAP erzeugt sein."
+);
+assert.match(
+  matrixBoundaryBlock,
+  /404\)[\s\S]*data-public-entry=[\s\S]*set-cookie:[\s\S]*location:[\s\S]*x-goog-iap-generated-response:/,
+  "Ein Matrix-404 muss ohne Public-Entry-Inhalt, zustandslos und ohne Redirect oder IAP-Mischzustand bleiben."
+);
+for (const hardenedHeader of [
+  "cache-control: no-store",
+  "content-security-policy:",
+  "x-content-type-options: nosniff"
+]) {
+  assert.ok(
+    matrixBoundaryBlock.toLowerCase().includes(hardenedHeader),
+    `Der Matrix-404 prueft den Haertungsheader nicht: ${hardenedHeader}`
+  );
+}
+assert.ok(
+  matrixBoundaryBlock.includes(
+    "content-security-policy: default-src 'none'; base-uri 'none'; object-src 'none'"
+  ),
+  "Der Matrix-404 muss durch den exakten restriktiven CSP-Vertrag eindeutig dem Minimal-Backend zugeordnet werden."
+);
+assert.match(
+  matrixBoundaryBlock,
+  /302\|401\|403\)[\s\S]*x-goog-iap-generated-response/,
+  "Authentifizierungsantworten fuer Matrix-Aliase muessen von IAP erzeugt sein."
+);
+assert.match(externalBoundaryScript, /x-goog-iap-generated-response/i);
+assert.match(
+  externalBoundaryScript,
+  /edge_ready=0[\s\S]*for attempt in \{1\.\.60\}[\s\S]*data-public-entry="home"[\s\S]*edge_ready=1/,
+  "Der externe Smoke muss die sichere Edge-Propagation abwarten, bevor er den Gesamtvertrag prueft."
+);
+for (const dotSegmentAlias of [
+  "/foo/../anmelden",
+  "/anmelden/../anmelden",
+  "/./anmelden"
+]) {
+  assert.ok(
+    externalBoundaryScript.includes(`"${dotSegmentAlias}"`),
+    `Der externe Boundary-Smoke prueft den vom Load Balancer normalisierten Pfad nicht: ${dotSegmentAlias}`
+  );
+}
+assert.match(externalBoundaryScript, /redirect_location" != "\/anmelden"/);
+assert.match(
+  externalBoundaryScript,
+  /redirect_location" != "\$\{FRONTEND_BASE_URL\}\/anmelden"/,
+  "Ein Load-Balancer-302 darf nur auf den kanonischen Public-Pfad desselben Origins zeigen."
+);
+assert.match(
+  externalBoundaryScript,
+  /status" != "302"[\s\S]*data-public-entry=/,
+  "Dot-Segment-Redirects muessen den exakten 302-Vertrag einhalten und duerfen keinen Public-Body ausliefern."
+);
+assert.match(rolloutVerificationScript, /service\/\$\{public_frontend_service_name\}" 18083:80/);
+assert.match(rolloutVerificationScript, /The minimal public frontend unexpectedly served/);
 
 const exactGroup = "versorgungs-kompass-pre-gematik-access@googlegroups.com";
 const exactExpiry = expiry;

@@ -63,6 +63,28 @@ app.kubernetes.io/component: frontend
 {{- default (include "versorgungs-kompass.frontendFullname" .) .Values.frontend.backendConfig.name -}}
 {{- end -}}
 
+{{- define "versorgungs-kompass.frontendPublicFullname" -}}
+{{- printf "%s-public" (include "versorgungs-kompass.frontendFullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "versorgungs-kompass.frontendPublicSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "versorgungs-kompass.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: frontend-public
+{{- end -}}
+
+{{- define "versorgungs-kompass.frontendPublicBackendConfigName" -}}
+{{- default (include "versorgungs-kompass.frontendPublicFullname" .) .Values.frontend.publicEntry.backendConfig.name -}}
+{{- end -}}
+
+{{- define "versorgungs-kompass.frontendPublicServiceAccountName" -}}
+{{- if .Values.frontend.publicEntry.serviceAccount.create -}}
+{{- default "versorgungs-kompass-frontend-public" .Values.frontend.publicEntry.serviceAccount.name -}}
+{{- else -}}
+{{- required "frontend.publicEntry.serviceAccount.name is required when frontend.publicEntry.serviceAccount.create is false" .Values.frontend.publicEntry.serviceAccount.name -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "versorgungs-kompass.frontendServiceAccountName" -}}
 {{- if .Values.frontend.serviceAccount.create -}}
 {{- default "versorgungs-kompass-frontend" .Values.frontend.serviceAccount.name -}}

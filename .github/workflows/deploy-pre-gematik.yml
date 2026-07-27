@@ -13,9 +13,9 @@ on:
         default: true
         type: boolean
       require_external_smoke:
-        description: Require the public API URL to be reachable and protected by IAP
+        description: Compatibility input; every real deployment verifies the external public/IAP boundary
         required: false
-        default: false
+        default: true
         type: boolean
   workflow_call:
     inputs:
@@ -29,9 +29,9 @@ on:
         default: true
         type: boolean
       require_external_smoke:
-        description: Require the public API URL to be reachable and protected by IAP
+        description: Compatibility input; every real deployment verifies the external public/IAP boundary
         required: false
-        default: false
+        default: true
         type: boolean
 
 permissions:
@@ -120,6 +120,10 @@ jobs:
             --set-string config.apiAuthMode=iap \
             --set-string config.iapJwtAudience=/projects/123456789/global/backendServices/123456789 \
             --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName=example-iap-oauth \
+            --set-string frontend.publicEntry.image.repository=europe-west3-docker.pkg.dev/example-project/versorgungs-kompass/versorgungs-kompass-public-entry \
+            --set-string frontend.publicEntry.image.tag="$IMAGE_TAG" \
+            --set-string frontend.publicEntry.image.digest=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+            --set-string frontend.publicEntry.backendConfig.iap.oauthClientCredentialsSecretName=example-iap-oauth \
             --set-string gke.backendConfig.iap.oauthClientCredentialsSecretName=example-iap-oauth \
             --set-string database.host=127.0.0.1 \
             --set-string database.ssl=disable \
@@ -162,6 +166,53 @@ jobs:
           jq --exit-status --raw-output \
             '.artifactDigest | select(type == "string" and test("^sha256:[0-9a-f]{64}$"))' \
             dist/target/build-manifest.json >/dev/null
+
+      - name: Build and smoke-test public-entry container
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_name="vk-public-entry-validation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            docker rm --force "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker build \
+            --file deploy/frontend-public/Dockerfile \
+            --tag "versorgungs-kompass-public-entry:${IMAGE_TAG}" \
+            .
+          docker run --detach \
+            --name "$container_name" \
+            --read-only \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            --publish 127.0.0.1:18084:8080 \
+            "versorgungs-kompass-public-entry:${IMAGE_TAG}"
+
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:18084/_healthz >/dev/null; then
+              break
+            fi
+            if [[ "$attempt" == "30" ]]; then
+              docker logs "$container_name"
+              exit 1
+            fi
+            sleep 1
+          done
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/)" == "200" ]]
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "200" ]]
+          for denied_path in \
+            /start /public-index.html /anmelden/ //anmelden \
+            '/%61nmelden' '/anmel%64en' '/foo/../anmelden' \
+            '/anmelden/../anmelden' '/./anmelden' '/%2fanmelden'; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18084${denied_path}")" == "404" ]]
+          done
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/anmelden)" == "403" ]]
+        env:
+          IMAGE_TAG: ${{ steps.metadata.outputs.image_tag }}
 
       - name: Build and smoke-test API container
         shell: bash
@@ -402,10 +453,12 @@ jobs:
           esac
 
           image_repository="${GAR_REPOSITORY}/${IMAGE_NAME}"
+          public_image_repository="${GAR_REPOSITORY}/versorgungs-kompass-public-entry"
           echo "api_host=$api_host" >> "$GITHUB_OUTPUT"
           echo "domain_mode=$domain_mode" >> "$GITHUB_OUTPUT"
           echo "registry_host=$registry_host" >> "$GITHUB_OUTPUT"
           echo "image_repository=$image_repository" >> "$GITHUB_OUTPUT"
+          echo "public_image_repository=$public_image_repository" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud without a key
         id: auth
@@ -567,14 +620,14 @@ jobs:
             exit 1
           fi
 
-          for target in https://versorgungs-kompass.de/ https://www.versorgungs-kompass.de/; do
+          for target in https://versorgungs-kompass.de/start https://www.versorgungs-kompass.de/start; do
             status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
               --max-time 30 \
               "$target")"
             case "$status" in
               302|401|403) ;;
               *)
-                echo "Expected an unauthenticated IAP response for prepared host $target, received HTTP $status." >&2
+                echo "Expected the application path to remain behind IAP for prepared host $target, received HTTP $status." >&2
                 exit 1
                 ;;
             esac
@@ -669,29 +722,50 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
-      - name: Refuse mutable API image tag reuse
+      - name: Refuse mutable image tag reuse
         shell: bash
         env:
           IMAGE_REPOSITORY: ${{ steps.config.outputs.image_repository }}
+          PUBLIC_IMAGE_REPOSITORY: ${{ steps.config.outputs.public_image_repository }}
           IMAGE_TAG: ${{ needs.validate.outputs.image_tag }}
         run: |
           set -euo pipefail
-          image_tags="$(gcloud artifacts docker tags list \
-            "$IMAGE_REPOSITORY" \
-            --format=json)"
-          if ! jq --exit-status \
-            'type == "array" and all(.[]; (.tag | type) == "string")' \
-            <<< "$image_tags" >/dev/null; then
-            echo "Artifact Registry returned an invalid tag inventory." >&2
-            exit 1
-          fi
-          if jq --exit-status \
-            --arg suffix "/tags/${IMAGE_TAG}" \
-            '[.[] | select(.tag | endswith($suffix))] | length > 0' \
-            <<< "$image_tags" >/dev/null; then
-            echo "API image tag ${IMAGE_TAG} already exists; refusing to overwrite it." >&2
-            exit 1
-          fi
+          tag_inventory_index=0
+          for repository in "$IMAGE_REPOSITORY" "$PUBLIC_IMAGE_REPOSITORY"; do
+            tag_inventory_index=$((tag_inventory_index + 1))
+            tag_inventory_error="${RUNNER_TEMP}/artifact-tag-inventory-${tag_inventory_index}.stderr"
+            if image_tags="$(gcloud artifacts docker tags list \
+              "$repository" \
+              --format=json 2>"$tag_inventory_error")"; then
+              :
+            else
+              tag_inventory_status=$?
+              if [[ "$tag_inventory_status" == "1" ]] && \
+                 grep --fixed-strings --quiet \
+                   'ERROR: (gcloud.artifacts.docker.tags.list) NOT_FOUND: Requested entity was not found.' \
+                   "$tag_inventory_error"; then
+                # A dedicated image package does not exist before its first push.
+                image_tags='[]'
+              else
+                cat "$tag_inventory_error" >&2
+                echo "Could not read the immutable tag inventory for ${repository}." >&2
+                exit 1
+              fi
+            fi
+            if ! jq --exit-status \
+              'type == "array" and all(.[]; (.tag | type) == "string")' \
+              <<< "$image_tags" >/dev/null; then
+              echo "Artifact Registry returned an invalid tag inventory for ${repository}." >&2
+              exit 1
+            fi
+            if jq --exit-status \
+              --arg suffix "/tags/${IMAGE_TAG}" \
+              '[.[] | select(.tag | endswith($suffix))] | length > 0' \
+              <<< "$image_tags" >/dev/null; then
+              echo "Image tag ${IMAGE_TAG} already exists in ${repository}; refusing to overwrite it." >&2
+              exit 1
+            fi
+          done
 
       - name: Build and push immutable API image
         id: build
@@ -818,6 +892,92 @@ jobs:
             "${release_uri}/deployment-manifest.json" \
             --format="value(name)"
 
+      - name: Build and push immutable public-entry image
+        id: public-build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: deploy/frontend-public/Dockerfile
+          push: true
+          tags: ${{ steps.config.outputs.public_image_repository }}:${{ needs.validate.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=pre-gematik-public-entry
+          cache-to: type=gha,mode=max,scope=pre-gematik-public-entry
+          provenance: mode=max
+          sbom: true
+
+      - name: Verify and scan immutable public-entry image
+        shell: bash
+        env:
+          PUBLIC_IMAGE_REPOSITORY: ${{ steps.config.outputs.public_image_repository }}
+          PUBLIC_IMAGE_DIGEST: ${{ steps.public-build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$PUBLIC_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "The public-entry container build did not return a valid immutable image digest." >&2
+            exit 1
+          fi
+          scan_dir="$(mktemp -d)"
+          public_container=""
+          cleanup_public_image_test() {
+            if [[ -n "$public_container" ]]; then
+              docker rm --force "$public_container" >/dev/null 2>&1 || true
+            fi
+            rm -rf -- "$scan_dir"
+          }
+          trap cleanup_public_image_test EXIT
+          mkdir -p "$scan_dir/trivy-cache"
+          public_image_ref="${PUBLIC_IMAGE_REPOSITORY}@${PUBLIC_IMAGE_DIGEST}"
+          docker pull "$public_image_ref"
+          docker image save --output "$scan_dir/public-entry-image.tar" "$public_image_ref"
+          docker run --rm \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            --tmpfs /tmp:rw,nosuid,size=2g \
+            -v "$scan_dir/public-entry-image.tar:/scan/public-entry-image.tar:ro" \
+            -v "$scan_dir/trivy-cache:/cache" \
+            aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e \
+            image --skip-version-check --cache-dir /cache --input /scan/public-entry-image.tar \
+            --scanners vuln --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed
+
+          public_container="$(docker run --detach \
+            --read-only \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --tmpfs /tmp:rw,nosuid,noexec,size=64m \
+            --publish 127.0.0.1:18084:8080 \
+            "$public_image_ref")"
+          for attempt in {1..30}; do
+            if curl --silent --fail --max-time 2 http://127.0.0.1:18084/_healthz >/dev/null; then
+              break
+            fi
+            if [[ "$attempt" == "30" ]]; then
+              docker logs "$public_container" >&2
+              echo "The immutable public-entry image did not become healthy." >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/)" == "200" ]]
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "200" ]]
+          for denied_path in \
+            /start /public-index.html /anmelden/ //anmelden \
+            '/%61nmelden' '/anmel%64en' '/foo/../anmelden' '/./anmelden' '/%2fanmelden'; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18084${denied_path}")" == "404" ]]
+          done
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/anmelden)" == "403" ]]
+          docker exec "$public_container" sh -eu -c '
+            test "$(find /usr/share/nginx/html -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d " ")" = "2"
+            test -f /usr/share/nginx/html/public-index.html
+            test -f /usr/share/nginx/html/public-login.html
+          '
+
       - name: Set up Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
@@ -832,18 +992,32 @@ jobs:
           IMAGE_REPOSITORY: ${{ steps.config.outputs.image_repository }}
           IMAGE_TAG: ${{ needs.validate.outputs.image_tag }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          PUBLIC_IMAGE_REPOSITORY: ${{ steps.config.outputs.public_image_repository }}
+          PUBLIC_IMAGE_DIGEST: ${{ steps.public-build.outputs.digest }}
         run: |
           set -euo pipefail
           if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
             echo "The container build did not return a valid immutable image digest." >&2
             exit 1
           fi
+          if [[ ! "$PUBLIC_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "The public-entry container build did not return a valid immutable image digest." >&2
+            exit 1
+          fi
+          restore_marker="${RUNNER_TEMP}/public-entry-restore-armed"
+          cutover_complete_marker="${RUNNER_TEMP}/public-entry-cutover-complete"
+          rm -f "$restore_marker" "$cutover_complete_marker"
 
           deploy_release() {
             local iap_audience="$1"
             local auto_enrollment_enabled="${2:-false}"
+            local public_entry_iap_enabled="${3:-true}"
             if [[ "$auto_enrollment_enabled" != "true" && "$auto_enrollment_enabled" != "false" ]]; then
               echo "Auto-enrollment Helm state must be an explicit boolean." >&2
+              return 1
+            fi
+            if [[ "$public_entry_iap_enabled" != "true" && "$public_entry_iap_enabled" != "false" ]]; then
+              echo "Public-entry IAP bootstrap state must be an explicit boolean." >&2
               return 1
             fi
             local -a domain_migration_args=(
@@ -906,6 +1080,11 @@ jobs:
               --set-string config.iapJwtAudience="$iap_audience" \
               --set-string config.hospitationImportOwnerProfileId="$HOSPITATION_IMPORT_OWNER_PROFILE_ID" \
               --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
+              --set-string frontend.publicEntry.image.repository="$PUBLIC_IMAGE_REPOSITORY" \
+              --set-string frontend.publicEntry.image.tag="$IMAGE_TAG" \
+              --set-string frontend.publicEntry.image.digest="$PUBLIC_IMAGE_DIGEST" \
+              --set frontend.publicEntry.backendConfig.iap.enabled="$public_entry_iap_enabled" \
+              --set-string frontend.publicEntry.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
               --set-string gke.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
               --set-string database.host=127.0.0.1 \
               --set-string database.port=5432 \
@@ -925,56 +1104,300 @@ jobs:
               --set-string storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET"
           }
 
-          # Fail closed while the GKE Ingress controller creates the backend service.
-          deploy_release "/projects/0/global/backendServices/0" false
-
           ingress_name="${HELM_RELEASE}-api"
           api_service_name="${HELM_RELEASE}-api"
           frontend_service_name="${HELM_RELEASE}-frontend"
+          public_frontend_service_name="${HELM_RELEASE}-frontend-public"
+
+          resolve_public_backend_config_name() {
+            local expected_backend_config_name="${HELM_RELEASE}-frontend-public"
+            local backend_config_annotation
+            local backend_config_name
+            backend_config_annotation="$(kubectl --namespace "$K8S_NAMESPACE" get service "$public_frontend_service_name" \
+              --output jsonpath='{.metadata.annotations.cloud\.google\.com/backend-config}')"
+            backend_config_name="$(jq --exit-status --raw-output \
+              --arg expected "$expected_backend_config_name" \
+              '.ports.http
+               | select(
+                   type == "string" and
+                   . == $expected and
+                   test("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+                 )' \
+              <<< "$backend_config_annotation")" || {
+                echo "The public-entry Service does not reference the exact expected http BackendConfig." >&2
+                return 1
+              }
+            printf '%s\n' "$backend_config_name"
+          }
+
+          force_public_iap_enabled() {
+            local public_backend="$1"
+            local backend_config_name
+            local protection_patch
+            local protected_iap
+            backend_config_name="$(resolve_public_backend_config_name)" || return 1
+            protection_patch="$(jq --null-input --compact-output \
+              --arg secret "$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
+              '{spec:{iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
+            kubectl --namespace "$K8S_NAMESPACE" patch backendconfig.cloud.google.com "$backend_config_name" \
+              --type merge \
+              --patch "$protection_patch" >/dev/null
+            for attempt in {1..60}; do
+              protected_iap="$(gcloud compute backend-services describe "$public_backend" \
+                --project "$GCP_PROJECT_ID" \
+                --global \
+                --format='value(iap.enabled)' 2>/dev/null || true)"
+              if [[ "${protected_iap,,}" == "true" ]]; then
+                return 0
+              fi
+              sleep 10
+            done
+            echo "The public-entry backend did not become IAP-protected before the release reconcile." >&2
+            return 1
+          }
+
+          resolve_backend_for_service() {
+            local service_name="$1"
+            local neg_status
+            local negs
+            local backends
+            local candidate
+            local backend_json
+            local -a candidates=()
+            neg_status="$(kubectl --namespace "$K8S_NAMESPACE" get service "$service_name" \
+              --output jsonpath='{.metadata.annotations.cloud\.google\.com/neg-status}' 2>/dev/null || true)"
+            backends="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
+              --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/backends}' 2>/dev/null || true)"
+            if [[ -z "$neg_status" || -z "$backends" ]]; then
+              return 1
+            fi
+            negs="$(jq --compact-output \
+              '[.network_endpoint_groups | to_entries[]?.value] | unique' \
+              <<< "$neg_status" 2>/dev/null || printf '[]')"
+            if [[ "$(jq 'length' <<< "$negs")" -eq 0 ]]; then
+              return 1
+            fi
+            while IFS= read -r candidate; do
+              backend_json="$(gcloud compute backend-services describe "$candidate" \
+                --project "$GCP_PROJECT_ID" \
+                --global \
+                --format=json 2>/dev/null || true)"
+              if [[ -n "$backend_json" ]] && jq --exit-status \
+                --argjson negs "$negs" '
+                  [.backends[]?.group // ""] as $groups
+                  | all($negs[];
+                      . as $neg
+                      | any($groups[]; endswith("/networkEndpointGroups/\($neg)"))
+                    )
+                ' <<< "$backend_json" >/dev/null; then
+                candidates+=("$candidate")
+              fi
+            done < <(jq --raw-output 'keys[]' <<< "$backends")
+            if [[ "${#candidates[@]}" != "1" ]]; then
+              return 1
+            fi
+            printf '%s\n' "${candidates[0]}"
+          }
+
+          public_url_map_is_isolated() {
+            local url_map_name="$1"
+            local public_backend="$2"
+            local url_map_state
+            url_map_state="$(gcloud compute url-maps describe "$url_map_name" \
+              --project "$GCP_PROJECT_ID" \
+              --global \
+              --format=json)" || return 1
+            jq --exit-status \
+              --arg canonical_host "$API_HOST" \
+              --arg public_suffix "/backendServices/${public_backend}" '
+                def service_refs($suffix):
+                  [
+                    ..
+                    | objects
+                    | select(
+                        ((.service? // "") | type) == "string" and
+                        ((.service? // "") | endswith($suffix))
+                      )
+                  ];
+                (
+                  [
+                    .hostRules[]?
+                    | select((.hosts // []) | index($canonical_host))
+                    | .pathMatcher
+                  ]
+                  | unique
+                ) as $canonical_matchers
+                | ($canonical_matchers | length) == 1
+                and (
+                  [
+                    .hostRules[]?
+                    | select(.pathMatcher == $canonical_matchers[0])
+                    | .hosts[]?
+                  ]
+                  | unique
+                  | sort
+                ) == [$canonical_host]
+                and (
+                  [
+                    ..
+                    | objects
+                    | .defaultService?
+                    | select(type == "string" and endswith($public_suffix))
+                  ]
+                  | length
+                ) == 0
+                and (
+                  [.pathMatchers[]? | select(.name == $canonical_matchers[0])]
+                ) as $canonical
+                | ($canonical | length) == 1
+                and ($canonical[0] | service_refs($public_suffix)) as $public_refs
+                | (
+                    [
+                      $public_refs[]
+                      | .paths[]?,
+                        .matchRules[]?.fullPathMatch?
+                    ]
+                    | map(select(type == "string"))
+                    | unique
+                    | sort
+                  ) == ["/", "/anmelden"]
+                and (
+                  [
+                    $public_refs[]
+                    | .paths[]?
+                    | select(. != "/" and . != "/anmelden")
+                  ]
+                  | length
+                ) == 0
+                and (
+                  [
+                    $public_refs[]
+                    | .matchRules[]?.prefixMatch?
+                  ]
+                  | length
+                ) == 0
+                and (
+                  [
+                    .pathMatchers[]?
+                    | select(.name != $canonical_matchers[0])
+                    | service_refs($public_suffix)[]
+                  ]
+                  | length
+                ) == 0
+              ' <<< "$url_map_state" >/dev/null
+          }
+
+          # Prove the newly required URL-map read permission before Phase A changes
+          # the live Ingress. The existing environment must expose its controller-
+          # managed URL map; Terraform grants compute.urlMaps.get to the deployer.
+          preflight_url_map_name="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
+            --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/url-map}' 2>/dev/null || true)"
+          if [[ -z "$preflight_url_map_name" ]]; then
+            echo "The existing GKE Ingress URL map is unavailable; refusing to change routes before URL-map access is proven." >&2
+            exit 1
+          fi
+          if ! gcloud compute url-maps describe "$preflight_url_map_name" \
+            --project "$GCP_PROJECT_ID" \
+            --global \
+            --format='value(name)' >/dev/null; then
+            echo "The deployer cannot read the live GCE URL map. Apply the reviewed Terraform IAM update before this application rollout." >&2
+            exit 1
+          fi
+
+          public_service_exists=0
+          public_deployment_exists=0
+          public_backend_config_exists=0
+          kubectl --namespace "$K8S_NAMESPACE" get service "$public_frontend_service_name" >/dev/null 2>&1 && public_service_exists=1
+          kubectl --namespace "$K8S_NAMESPACE" get deployment "${HELM_RELEASE}-frontend-public" >/dev/null 2>&1 && public_deployment_exists=1
+          kubectl --namespace "$K8S_NAMESPACE" get backendconfig.cloud.google.com \
+            "${HELM_RELEASE}-frontend-public" >/dev/null 2>&1 && public_backend_config_exists=1
+          preflight_ingress_state="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" --output=json)"
+          public_ingress_ref_count="$(jq --arg service "$public_frontend_service_name" \
+            '[.spec.rules[]?.http.paths[]? | select(.backend.service.name == $service)] | length' \
+            <<< "$preflight_ingress_state")"
+          if [[ "$public_service_exists" == "0" ]]; then
+            if [[ "$public_deployment_exists" != "0" || "$public_backend_config_exists" != "0" || \
+                  "$public_ingress_ref_count" != "0" ]]; then
+              echo "The public-entry resources are in an incomplete pre-cutover state; refusing to reconcile them." >&2
+              exit 1
+            fi
+          else
+            existing_public_backend="$(resolve_backend_for_service "$public_frontend_service_name" || true)"
+            if [[ -z "$existing_public_backend" ]]; then
+              echo "::error::An existing public-entry Service could not be resolved to exactly one backend. No safe automated IAP restore target exists; secure the backend manually before retrying." >&2
+              exit 1
+            fi
+            existing_public_iap="$(gcloud compute backend-services describe "$existing_public_backend" \
+              --project "$GCP_PROJECT_ID" \
+              --global \
+              --format='value(iap.enabled)')"
+            case "${existing_public_iap,,}" in
+              false|true)
+                ;;
+              *)
+                echo "The existing public-entry backend has no explicit IAP state." >&2
+                exit 1
+                ;;
+            esac
+            # Arm the independent restore and force the known backend behind IAP
+            # before evaluating any potentially unsafe drift.
+            printf '%s\n' "$existing_public_backend" > "$restore_marker"
+            if ! force_public_iap_enabled "$existing_public_backend"; then
+              echo "Refusing to inspect or reconcile an existing public-entry route until its backend is fail-closed behind IAP." >&2
+              exit 1
+            fi
+            if [[ "$public_deployment_exists" != "1" || "$public_backend_config_exists" != "1" || \
+                  "$public_ingress_ref_count" != "2" ]]; then
+              echo "The now-IAP-protected public-entry resources are incomplete or have an unexpected Ingress scope." >&2
+              exit 1
+            fi
+            if [[ "${existing_public_iap,,}" == "false" ]]; then
+              existing_public_policy="$(gcloud iap web get-iam-policy \
+                --project "$GCP_PROJECT_ID" \
+                --resource-type=backend-services \
+                --service "$existing_public_backend" \
+                --format=json)"
+              if ! jq --exit-status '
+                ((.bindings // []) | length) == 0 and
+                ((.auditConfigs // []) | length) == 0
+              ' <<< "$existing_public_policy" >/dev/null || \
+                 ! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend"; then
+                echo "The now-IAP-protected public-entry backend did not match the prior exact empty-policy and two-route contract." >&2
+                exit 1
+              fi
+            fi
+          fi
+
+          current_iap_audience="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
+            --output jsonpath='{.data.IAP_JWT_AUDIENCE}' 2>/dev/null || true)"
+          if [[ ! "$current_iap_audience" =~ ^/projects/[0-9]+/global/backendServices/[0-9]+$ ]]; then
+            current_iap_audience="/projects/0/global/backendServices/0"
+          fi
+
+          # Every release reconciles routes and the immutable public image only
+          # while the public backend is fail-closed behind IAP.
+          deploy_release "$current_iap_audience" false true
+
           backend_service=""
           backend_service_id=""
           frontend_backend_service=""
+          public_frontend_backend_service=""
           for attempt in {1..120}; do
-            backends_json="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
-              --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/backends}' 2>/dev/null || true)"
-            api_neg_status="$(kubectl --namespace "$K8S_NAMESPACE" get service "$api_service_name" \
-              --output jsonpath='{.metadata.annotations.cloud\.google\.com/neg-status}' 2>/dev/null || true)"
-            frontend_neg_status="$(kubectl --namespace "$K8S_NAMESPACE" get service "$frontend_service_name" \
-              --output jsonpath='{.metadata.annotations.cloud\.google\.com/neg-status}' 2>/dev/null || true)"
-            api_neg=""
-            frontend_neg=""
-            if [[ -n "$api_neg_status" ]]; then
-              api_neg="$(jq --raw-output '.network_endpoint_groups | to_entries[0].value // empty' <<< "$api_neg_status")"
-            fi
-            if [[ -n "$frontend_neg_status" ]]; then
-              frontend_neg="$(jq --raw-output '.network_endpoint_groups | to_entries[0].value // empty' <<< "$frontend_neg_status")"
-            fi
-            if [[ -n "$backends_json" && -n "$api_neg" && -n "$frontend_neg" ]]; then
-              while IFS= read -r candidate; do
-                backend_json="$(gcloud compute backend-services describe "$candidate" \
-                  --project "$GCP_PROJECT_ID" \
-                  --global \
-                  --format=json 2>/dev/null || true)"
-                if [[ -n "$backend_json" ]]; then
-                  if jq --exit-status \
-                    --arg suffix "/networkEndpointGroups/${api_neg}" \
-                    '[.backends[]?.group // "" | endswith($suffix)] | any' \
-                    <<< "$backend_json" >/dev/null; then
-                    backend_service="$candidate"
-                    backend_service_id="$(jq --raw-output '.id // empty' <<< "$backend_json")"
-                  fi
-                  if jq --exit-status \
-                    --arg suffix "/networkEndpointGroups/${frontend_neg}" \
-                    '[.backends[]?.group // "" | endswith($suffix)] | any' \
-                    <<< "$backend_json" >/dev/null; then
-                    frontend_backend_service="$candidate"
-                  fi
-                fi
-              done < <(jq --raw-output 'keys[]' <<< "$backends_json")
+            backend_service="$(resolve_backend_for_service "$api_service_name" || true)"
+            frontend_backend_service="$(resolve_backend_for_service "$frontend_service_name" || true)"
+            public_frontend_backend_service="$(resolve_backend_for_service "$public_frontend_service_name" || true)"
+            if [[ -n "$backend_service" ]]; then
+              backend_service_id="$(gcloud compute backend-services describe "$backend_service" \
+                --project "$GCP_PROJECT_ID" \
+                --global \
+                --format='value(id)' 2>/dev/null || true)"
             fi
             if [[ "$backend_service_id" =~ ^[0-9]+$ ]] && \
                [[ -n "$frontend_backend_service" ]] && \
-               [[ "$frontend_backend_service" != "$backend_service" ]]; then
+               [[ -n "$public_frontend_backend_service" ]] && \
+               [[ "$frontend_backend_service" != "$backend_service" ]] && \
+               [[ "$public_frontend_backend_service" != "$backend_service" ]] && \
+               [[ "$public_frontend_backend_service" != "$frontend_backend_service" ]]; then
               break
             fi
             sleep 10
@@ -982,8 +1405,207 @@ jobs:
 
           if [[ ! "$backend_service_id" =~ ^[0-9]+$ ]] || \
              [[ -z "$frontend_backend_service" ]] || \
-             [[ "$frontend_backend_service" == "$backend_service" ]]; then
-            echo "Could not identify distinct API and frontend GKE backend services; refusing to bind IAP access." >&2
+             [[ -z "$public_frontend_backend_service" ]] || \
+             [[ "$frontend_backend_service" == "$backend_service" ]] || \
+             [[ "$public_frontend_backend_service" == "$backend_service" ]] || \
+             [[ "$public_frontend_backend_service" == "$frontend_backend_service" ]]; then
+            echo "Could not identify exactly three distinct API, protected frontend, and public frontend GKE backend services." >&2
+            exit 1
+          fi
+          if [[ -f "$restore_marker" ]]; then
+            armed_public_backend="$(tr -d '[:space:]' < "$restore_marker")"
+            if [[ "$armed_public_backend" != "$public_frontend_backend_service" ]]; then
+              echo "The pre-release public backend identity changed unexpectedly." >&2
+              exit 1
+            fi
+          else
+            printf '%s\n' "$public_frontend_backend_service" > "$restore_marker"
+          fi
+
+          ingress_state="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" --output=json)"
+          if ! jq --exit-status \
+            --arg canonical_host "$API_HOST" \
+            --arg api_service "$api_service_name" \
+            --arg frontend_service "$frontend_service_name" \
+            --arg public_service "$public_frontend_service_name" '
+              def services_for($host; $path; $path_type):
+                [
+                  .spec.rules[]?
+                  | select(.host == $host)
+                  | .http.paths[]?
+                  | select(.path == $path and .pathType == $path_type)
+                  | .backend.service.name
+                ];
+              services_for($canonical_host; "/"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/anmelden"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/api"; "Prefix") == [$api_service] and
+              services_for($canonical_host; "/"; "Prefix") == [$frontend_service] and
+              (
+                [
+                  .spec.rules[]? as $rule
+                  | $rule.http.paths[]?
+                  | select(.backend.service.name == $public_service)
+                  | {host: $rule.host, path, pathType}
+                ]
+                | sort_by(.host, .path)
+              ) == (
+                [
+                  {host: $canonical_host, path: "/", pathType: "Exact"},
+                  {host: $canonical_host, path: "/anmelden", pathType: "Exact"}
+                ]
+                | sort_by(.host, .path)
+              ) and
+              ((.spec.defaultBackend.service.name? // "") != $public_service)
+            ' <<< "$ingress_state" >/dev/null; then
+            echo "The rendered Ingress does not keep the public backend on exactly / and /anmelden of the canonical host." >&2
+            exit 1
+          fi
+
+          url_map_name="$(jq --raw-output \
+            '.metadata.annotations["ingress.kubernetes.io/url-map"] // empty' <<< "$ingress_state")"
+          if [[ -z "$url_map_name" ]]; then
+            echo "The GKE Ingress did not publish its managed URL map identity." >&2
+            exit 1
+          fi
+          full_url_map_is_valid() {
+            local current_url_map_name="$1"
+            local url_map_state
+            public_url_map_is_isolated "$current_url_map_name" "$public_frontend_backend_service" || return 1
+            url_map_state="$(gcloud compute url-maps describe "$current_url_map_name" \
+              --project "$GCP_PROJECT_ID" \
+              --global \
+              --format=json)" || return 1
+            jq --exit-status \
+              --arg canonical_host "$API_HOST" \
+              --arg api_suffix "/backendServices/${backend_service}" \
+              --arg frontend_suffix "/backendServices/${frontend_backend_service}" '
+                def service_refs($suffix):
+                  [
+                    ..
+                    | objects
+                    | select(
+                        ((.service? // "") | type) == "string" and
+                        ((.service? // "") | endswith($suffix))
+                      )
+                  ];
+                (
+                  [
+                    .hostRules[]?
+                    | select((.hosts // []) | index($canonical_host))
+                    | .pathMatcher
+                  ]
+                  | unique
+                ) as $canonical_matchers
+                | ($canonical_matchers | length) == 1
+                and (
+                  [.pathMatchers[]? | select(.name == $canonical_matchers[0])]
+                ) as $canonical
+                | ($canonical | length) == 1
+                and (
+                  $canonical[0]
+                  | service_refs($frontend_suffix)
+                  | [
+                      .[]
+                      | .paths[]?,
+                        .matchRules[]?.prefixMatch?,
+                        .matchRules[]?.fullPathMatch?
+                      | select(type == "string")
+                    ]
+                  | unique
+                  | sort
+                ) == ["/*"]
+                and (
+                  $canonical[0]
+                  | service_refs($api_suffix)
+                  | [
+                      .[]
+                      | .paths[]?,
+                        .matchRules[]?.prefixMatch?,
+                        .matchRules[]?.fullPathMatch?
+                      | select(type == "string")
+                    ]
+                  | unique
+                  | sort
+                ) == ["/api", "/api/*"]
+              ' <<< "$url_map_state" >/dev/null
+          }
+
+          url_map_ready=0
+          for attempt in {1..60}; do
+            ingress_state="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" --output=json)"
+            url_map_name="$(jq --raw-output \
+              '.metadata.annotations["ingress.kubernetes.io/url-map"] // empty' <<< "$ingress_state")"
+            if [[ -n "$url_map_name" ]] && full_url_map_is_valid "$url_map_name"; then
+              url_map_ready=1
+              break
+            fi
+            sleep 10
+          done
+          if [[ "$url_map_ready" != "1" ]]; then
+            echo "The live GCE URL map does not isolate the public backend to the two canonical exact paths." >&2
+            exit 1
+          fi
+
+          backend_health_ok() {
+            local candidate="$1"
+            local health_state
+            health_state="$(gcloud compute backend-services get-health "$candidate" \
+              --project "$GCP_PROJECT_ID" \
+              --global \
+              --format=json 2>/dev/null)" || return 1
+            jq --exit-status '
+              [.[].status.healthStatus[]?] as $endpoints
+              | ($endpoints | length) > 0
+                and all($endpoints[]; .healthState == "HEALTHY")
+            ' <<< "$health_state" >/dev/null
+          }
+
+          wait_for_boundary() {
+            local expected_public_iap="$1"
+            local boundary_backends
+            local api_iap
+            local frontend_iap
+            local public_iap
+            local current_url_map_name
+            for attempt in {1..60}; do
+              boundary_backends="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
+                --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/backends}' 2>/dev/null || true)"
+              if [[ -z "$boundary_backends" ]]; then
+                boundary_backends='{}'
+              fi
+              api_iap="$(gcloud compute backend-services describe "$backend_service" \
+                --project "$GCP_PROJECT_ID" --global --format='value(iap.enabled)' 2>/dev/null || true)"
+              frontend_iap="$(gcloud compute backend-services describe "$frontend_backend_service" \
+                --project "$GCP_PROJECT_ID" --global --format='value(iap.enabled)' 2>/dev/null || true)"
+              public_iap="$(gcloud compute backend-services describe "$public_frontend_backend_service" \
+                --project "$GCP_PROJECT_ID" --global --format='value(iap.enabled)' 2>/dev/null || true)"
+              current_url_map_name="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
+                --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/url-map}' 2>/dev/null || true)"
+              if [[ "${api_iap,,}" == "true" ]] && \
+                 [[ "${frontend_iap,,}" == "true" ]] && \
+                 [[ "${public_iap,,}" == "$expected_public_iap" ]] && \
+                 jq --exit-status \
+                   --arg api "$backend_service" \
+                   --arg frontend "$frontend_backend_service" \
+                   --arg public "$public_frontend_backend_service" '
+                     .[$api] == "HEALTHY" and
+                     .[$frontend] == "HEALTHY" and
+                     .[$public] == "HEALTHY"
+                   ' <<< "$boundary_backends" >/dev/null 2>&1 && \
+                 backend_health_ok "$backend_service" && \
+                 backend_health_ok "$frontend_backend_service" && \
+                 backend_health_ok "$public_frontend_backend_service" && \
+                 [[ -n "$current_url_map_name" ]] && \
+                 full_url_map_is_valid "$current_url_map_name"; then
+                return 0
+              fi
+              sleep 10
+            done
+            return 1
+          }
+
+          if ! wait_for_boundary true; then
+            echo "The three-backend boundary did not converge to healthy protected API/frontend and the expected public IAP state." >&2
             exit 1
           fi
 
@@ -994,7 +1616,7 @@ jobs:
           fi
           iap_audience="/projects/${project_number}/global/backendServices/${backend_service_id}"
 
-          deploy_release "$iap_audience" false
+          deploy_release "$iap_audience" false true
 
           configured_audience="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
             --output jsonpath='{.data.IAP_JWT_AUDIENCE}')"
@@ -1010,52 +1632,114 @@ jobs:
             "deployment/${HELM_RELEASE}-api" \
             --timeout=10m
 
-          all_iap_enabled=0
-          for attempt in {1..60}; do
-            backends_json="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
-              --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/backends}' 2>/dev/null || true)"
-            if [[ -z "$backends_json" ]]; then
-              backends_json='{}'
-            fi
-            every_backend_protected=1
-            # Check only the two backends mapped from the API/frontend NEGs. Some
-            # controller versions also annotate an unrelated default backend.
-            for candidate in "$backend_service" "$frontend_backend_service"; do
-              if ! jq --exit-status --arg candidate "$candidate" 'has($candidate)' \
-                <<< "$backends_json" >/dev/null; then
-                every_backend_protected=0
-                continue
-              fi
-              iap_enabled="$(gcloud compute backend-services describe "$candidate" \
-                --project "$GCP_PROJECT_ID" \
-                --global \
-                --format='value(iap.enabled)' 2>/dev/null || true)"
-              if [[ "${iap_enabled,,}" != "true" ]]; then
-                every_backend_protected=0
-              fi
-            done
-            if [[ "$every_backend_protected" == "1" ]]; then
-              all_iap_enabled=1
-              break
-            fi
-            sleep 10
-          done
-          if [[ "$all_iap_enabled" != "1" ]]; then
-            echo "IAP is not enabled on every frontend/API backend of the shared GKE Ingress." >&2
-            exit 1
-          fi
-
-          # Read and validate both resource policies before any mutation. This makes
-          # a controlled cutover possible only from two empty policies or from the
-          # already exact desired state. Project-level IAP access remains the
-          # separately managed and pinned break-glass path.
           iap_policy_dir="$(mktemp -d)"
+          public_port_forward_pid=""
+          restore_armed=1
+
           cleanup_iap_policy() {
+            if [[ -n "$public_port_forward_pid" ]]; then
+              kill "$public_port_forward_pid" >/dev/null 2>&1 || true
+              wait "$public_port_forward_pid" >/dev/null 2>&1 || true
+            fi
             rm -f "${iap_policy_dir}"/*.json "${iap_policy_dir}"/*.update
             rmdir "$iap_policy_dir" 2>/dev/null || true
           }
-          trap cleanup_iap_policy EXIT
+
+          restore_public_iap() {
+            local backend_config_name
+            local restore_patch
+            backend_config_name="$(resolve_public_backend_config_name)" || return 1
+            restore_patch="$(jq --null-input --compact-output \
+              --arg secret "$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
+              '{spec:{iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
+            kubectl --namespace "$K8S_NAMESPACE" patch backendconfig.cloud.google.com "$backend_config_name" \
+              --type merge \
+              --patch "$restore_patch" >/dev/null
+            for attempt in {1..60}; do
+              restored_iap="$(gcloud compute backend-services describe "$public_frontend_backend_service" \
+                --project "$GCP_PROJECT_ID" \
+                --global \
+                --format='value(iap.enabled)' 2>/dev/null || true)"
+              if [[ "${restored_iap,,}" == "true" ]]; then
+                return 0
+              fi
+              sleep 10
+            done
+            return 1
+          }
+
+          on_iap_exit() {
+            local status=$?
+            trap - EXIT
+            set +e
+            if [[ "$status" != "0" && "$restore_armed" == "1" ]]; then
+              echo "The public-entry cutover failed; restoring IAP on the public backend." >&2
+              if ! restore_public_iap; then
+                echo "::error::Failed to restore IAP on the public-entry backend." >&2
+                status=1
+              fi
+            fi
+            cleanup_iap_policy
+            exit "$status"
+          }
+          trap on_iap_exit EXIT
           umask 077
+
+          # Prove the exact immutable image and backend-intrinsic deny matrix before
+          # this release can disable IAP.
+          kubectl --namespace "$K8S_NAMESPACE" rollout status \
+            "deployment/${HELM_RELEASE}-frontend-public" \
+            --timeout=10m
+          deployed_public_image="$(kubectl --namespace "$K8S_NAMESPACE" get deployment \
+            "${HELM_RELEASE}-frontend-public" \
+            --output jsonpath='{.spec.template.spec.containers[?(@.name=="nginx")].image}')"
+          if [[ "$deployed_public_image" != "${PUBLIC_IMAGE_REPOSITORY}@${PUBLIC_IMAGE_DIGEST}" ]]; then
+            echo "The public-entry Deployment is not pinned to the audited image digest." >&2
+            exit 1
+          fi
+          kubectl --namespace "$K8S_NAMESPACE" port-forward \
+            "service/${public_frontend_service_name}" \
+            18083:80 \
+            --address 127.0.0.1 >"${RUNNER_TEMP}/public-entry-preopen-port-forward.log" 2>&1 &
+          public_port_forward_pid=$!
+          for attempt in {1..30}; do
+            if curl --silent --fail --max-time 2 http://127.0.0.1:18083/_healthz >/dev/null; then
+              break
+            fi
+            if [[ "$attempt" == "30" ]]; then
+              echo "The public-entry Service did not become reachable before the cutover." >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18083/)" == "200" ]]
+          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18083/anmelden)" == "200" ]]
+          for denied_path in \
+            /start /enrollment.html /login.html /api/healthz /public-index.html \
+            /anmelden/ //anmelden '/%61nmelden' '/anmel%64en' \
+            '/foo/../anmelden' '/anmelden/../anmelden' '/./anmelden' '/%2fanmelden'; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18083${denied_path}")" == "404" ]]
+          done
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18083/anmelden)" == "403" ]]
+
+          public_policy="${iap_policy_dir}/${public_frontend_backend_service}-public.json"
+          gcloud iap web get-iam-policy \
+            --project "$GCP_PROJECT_ID" \
+            --resource-type=backend-services \
+            --service "$public_frontend_backend_service" \
+            --format=json > "$public_policy"
+          if ! jq --exit-status '
+            ((.bindings // []) | length) == 0 and
+            ((.auditConfigs // []) | length) == 0
+          ' "$public_policy" >/dev/null; then
+            echo "The public entry backend has an unexpected resource-specific IAP policy; refusing to mutate protected policies." >&2
+            exit 1
+          fi
+
+          # Read and validate both protected resource policies before any mutation.
+          # Project-level IAP access remains the separately managed break-glass path.
           backend_services=("$backend_service" "$frontend_backend_service")
           principal_type="${IAP_RESOURCE_ACCESS_PRINCIPAL%%:*}"
           condition_expression=""
@@ -1254,8 +1938,10 @@ jobs:
           # only after both backend policies are verified as the exact pinned
           # group principal with the approved expiry. A direct user rollback
           # intentionally leaves this path disabled.
+          final_auto_enrollment_enabled=false
           if [[ "$principal_type" == "group" ]]; then
-            deploy_release "$iap_audience" true
+            deploy_release "$iap_audience" true true
+            final_auto_enrollment_enabled=true
             configured_auto_enrollment="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
               --output jsonpath='{.data.API_AUTH_AUTO_ENROLLMENT_ENABLED}')"
             if [[ "$configured_auto_enrollment" != "1" ]]; then
@@ -1276,9 +1962,47 @@ jobs:
             fi
           fi
 
+          # Phase B is the final Helm mutation: open only the already proven
+          # two-route public backend while preserving the verified enrollment
+          # state. BackendConfig must omit IAP here: GKE cannot switch a backend
+          # with custom OAuth credentials to its default OAuth client. Disable
+          # IAP directly so Compute retains the existing custom OAuth fields.
+          deploy_release "$iap_audience" "$final_auto_enrollment_enabled" false
+          public_backend_config_name="$(resolve_public_backend_config_name)"
+          rendered_public_iap="$(kubectl --namespace "$K8S_NAMESPACE" get \
+            backendconfig.cloud.google.com "$public_backend_config_name" \
+            --output jsonpath='{.spec.iap}' 2>/dev/null || true)"
+          # BackendConfig is a CRD, so Helm's merge patch may retain a field
+          # omitted from the desired manifest. Remove only the validated public
+          # IAP field explicitly while the Compute backend is still fail-closed.
+          if [[ -n "$rendered_public_iap" ]]; then
+            kubectl --namespace "$K8S_NAMESPACE" patch \
+              backendconfig.cloud.google.com "$public_backend_config_name" \
+              --type json \
+              --patch='[{"op":"remove","path":"/spec/iap"}]' >/dev/null
+          fi
+          rendered_public_iap="$(kubectl --namespace "$K8S_NAMESPACE" get \
+            backendconfig.cloud.google.com "$public_backend_config_name" \
+            --output jsonpath='{.spec.iap}' 2>/dev/null || true)"
+          if [[ -n "$rendered_public_iap" ]]; then
+            echo "The final public BackendConfig must leave IAP unmanaged before the custom-OAuth backend is opened." >&2
+            exit 1
+          fi
+          gcloud compute backend-services update "$public_frontend_backend_service" \
+            --project "$GCP_PROJECT_ID" \
+            --global \
+            --iap=disabled \
+            --quiet >/dev/null
+          if ! wait_for_boundary false; then
+            echo "The final boundary must keep API/frontend IAP enabled, keep all backends healthy, and disable IAP only on public entry." >&2
+            exit 1
+          fi
+
           echo "audience=$iap_audience" >> "$GITHUB_OUTPUT"
           echo "api_backend_service=$backend_service" >> "$GITHUB_OUTPUT"
           echo "frontend_backend_service=$frontend_backend_service" >> "$GITHUB_OUTPUT"
+          echo "public_frontend_backend_service=$public_frontend_backend_service" >> "$GITHUB_OUTPUT"
+          echo "public_entry_cutover=true" >> "$GITHUB_OUTPUT"
 
       - name: Verify rollout, Secret Sync, and fail-closed authentication
         shell: bash
@@ -1288,12 +2012,17 @@ jobs:
           service_name="${HELM_RELEASE}-api"
           frontend_deployment_name="${HELM_RELEASE}-frontend"
           frontend_service_name="${HELM_RELEASE}-frontend"
+          public_frontend_deployment_name="${HELM_RELEASE}-frontend-public"
+          public_frontend_service_name="${HELM_RELEASE}-frontend-public"
 
           kubectl --namespace "$K8S_NAMESPACE" rollout status \
             "deployment/${deployment_name}" \
             --timeout=10m
           kubectl --namespace "$K8S_NAMESPACE" rollout status \
             "deployment/${frontend_deployment_name}" \
+            --timeout=10m
+          kubectl --namespace "$K8S_NAMESPACE" rollout status \
+            "deployment/${public_frontend_deployment_name}" \
             --timeout=10m
           kubectl --namespace "$K8S_NAMESPACE" get secret "$DB_PASSWORD_SECRET_NAME" >/dev/null
 
@@ -1689,6 +2418,7 @@ jobs:
 
           port_forward_log="${RUNNER_TEMP}/pre-gematik-api-port-forward.log"
           frontend_port_forward_log="${RUNNER_TEMP}/pre-gematik-frontend-port-forward.log"
+          public_frontend_port_forward_log="${RUNNER_TEMP}/pre-gematik-public-frontend-port-forward.log"
           kubectl --namespace "$K8S_NAMESPACE" port-forward \
             "service/${service_name}" 18080:80 \
             >"$port_forward_log" 2>&1 &
@@ -1697,14 +2427,20 @@ jobs:
             "service/${frontend_service_name}" 18082:80 \
             >"$frontend_port_forward_log" 2>&1 &
           frontend_port_forward_pid=$!
+          kubectl --namespace "$K8S_NAMESPACE" port-forward \
+            "service/${public_frontend_service_name}" 18083:80 \
+            >"$public_frontend_port_forward_log" 2>&1 &
+          public_frontend_port_forward_pid=$!
           cleanup() {
             kill "$port_forward_pid" >/dev/null 2>&1 || true
             kill "$frontend_port_forward_pid" >/dev/null 2>&1 || true
+            kill "$public_frontend_port_forward_pid" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
 
           api_healthy=0
           frontend_healthy=0
+          public_frontend_healthy=0
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:18080/api/healthz >/dev/null; then
               api_healthy=1
@@ -1712,7 +2448,12 @@ jobs:
             if curl --fail --silent --show-error http://127.0.0.1:18082/index.html >/dev/null; then
               frontend_healthy=1
             fi
-            if [[ "$api_healthy" == "1" && "$frontend_healthy" == "1" ]]; then
+            if curl --fail --silent --show-error http://127.0.0.1:18083/_healthz >/dev/null; then
+              public_frontend_healthy=1
+            fi
+            if [[ "$api_healthy" == "1" && \
+                  "$frontend_healthy" == "1" && \
+                  "$public_frontend_healthy" == "1" ]]; then
               break
             fi
             sleep 2
@@ -1727,6 +2468,45 @@ jobs:
             echo "The in-cluster frontend smoke test failed." >&2
             exit 1
           fi
+          if [[ "$public_frontend_healthy" != "1" ]]; then
+            cat "$public_frontend_port_forward_log"
+            echo "The in-cluster public-entry frontend smoke test failed." >&2
+            exit 1
+          fi
+
+          curl --fail --silent --show-error \
+            http://127.0.0.1:18083/ \
+            --output "${RUNNER_TEMP}/pre-gematik-public-index.html"
+          grep --fixed-strings --quiet 'data-public-entry="home"' \
+            "${RUNNER_TEMP}/pre-gematik-public-index.html"
+          curl --fail --silent --show-error \
+            http://127.0.0.1:18083/anmelden \
+            --output "${RUNNER_TEMP}/pre-gematik-public-login.html"
+          grep --fixed-strings --quiet 'data-public-entry="access"' \
+            "${RUNNER_TEMP}/pre-gematik-public-login.html"
+          grep --fixed-strings --quiet 'href="/start"' \
+            "${RUNNER_TEMP}/pre-gematik-public-login.html"
+          grep --fixed-strings --quiet 'href="/enrollment.html"' \
+            "${RUNNER_TEMP}/pre-gematik-public-login.html"
+
+          for forbidden_public_path in \
+            /start \
+            /enrollment.html \
+            /login.html \
+            /api/healthz \
+            /data/runtime-config.js \
+            /index.html \
+            /public-index.html \
+            /anmelden/; do
+            public_status="$(curl --path-as-is --silent --show-error \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              "http://127.0.0.1:18083${forbidden_public_path}")"
+            if [[ "$public_status" != "404" ]]; then
+              echo "The minimal public frontend unexpectedly served ${forbidden_public_path} with HTTP ${public_status}." >&2
+              exit 1
+            fi
+          done
 
           curl --fail --silent --show-error \
             http://127.0.0.1:18082/data/runtime-config.js \
@@ -1797,37 +2577,367 @@ jobs:
           fi
 
       - name: Require external IAP boundary smoke test
-        if: ${{ inputs.require_external_smoke == true }}
         shell: bash
         run: |
           set -euo pipefail
-          targets=(
-            "https://versorgungs-kompass.de/"
-            "https://www.versorgungs-kompass.de/"
-            "https://mitmachen.timo-frank.de/"
-            "https://pre-gematik.versorgungs-kompass.timo-frank.de/"
-            "${FRONTEND_BASE_URL}/versorgung/kontakte"
-            "${API_BASE_URL}/api/healthz"
-          )
-          for target in "${targets[@]}"; do
-            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+          edge_probe_headers="${RUNNER_TEMP}/public-entry-edge-probe.headers"
+          edge_probe_body="${RUNNER_TEMP}/public-entry-edge-probe.html"
+          edge_ready=0
+          for attempt in {1..60}; do
+            edge_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$edge_probe_headers" \
+              --output "$edge_probe_body" \
+              --write-out '%{http_code}' \
               --max-time 30 \
-              "$target")"
+              "${FRONTEND_BASE_URL}/" || true)"
+            if [[ "$edge_status" == "200" ]] && \
+               grep --fixed-strings --quiet 'data-public-entry="home"' "$edge_probe_body" && \
+               ! grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$edge_probe_headers"; then
+              edge_ready=1
+              break
+            fi
+            sleep 10
+          done
+          if [[ "$edge_ready" != "1" ]]; then
+            echo "The public entry did not propagate to the external load-balancer edge within ten minutes." >&2
+            exit 1
+          fi
+
+          public_index=0
+          for public_path in / /anmelden; do
+            public_index=$((public_index + 1))
+            public_headers="${RUNNER_TEMP}/public-entry-${public_index}.headers"
+            public_body="${RUNNER_TEMP}/public-entry-${public_index}.html"
+            status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$public_headers" \
+              --output "$public_body" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${public_path}")"
+            if [[ "$status" != "200" ]]; then
+              echo "Expected a public entry response for ${public_path}, received HTTP ${status}." >&2
+              exit 1
+            fi
+            grep --ignore-case --extended-regexp --quiet '^content-type:[[:space:]]*text/html' "$public_headers"
+            grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$public_headers"
+            grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$public_headers"
+            grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$public_headers"
+            if grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$public_headers" || \
+               grep --ignore-case --quiet '^set-cookie:' "$public_headers" || \
+               grep --ignore-case --extended-regexp --quiet '^location:.*google' "$public_headers"; then
+              echo "The public entry response unexpectedly contains IAP, cookie, or Google redirect headers." >&2
+              exit 1
+            fi
+            if [[ "$public_path" == "/" ]]; then
+              grep --fixed-strings --quiet 'data-public-entry="home"' "$public_body"
+            else
+              grep --fixed-strings --quiet 'data-public-entry="access"' "$public_body"
+              grep --fixed-strings --quiet 'href="/start"' "$public_body"
+              grep --fixed-strings --quiet 'href="/enrollment.html"' "$public_body"
+            fi
+            head_status="$(curl --path-as-is --silent --show-error --head \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${public_path}")"
+            if [[ "$head_status" != "200" ]]; then
+              echo "Expected HEAD ${public_path} to remain public, received HTTP ${head_status}." >&2
+              exit 1
+            fi
+          done
+
+          query_body="${RUNNER_TEMP}/public-entry-query.html"
+          query_status="$(curl --path-as-is --silent --show-error \
+            --output "$query_body" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${FRONTEND_BASE_URL}/anmelden?public_probe=must-not-reflect")"
+          if [[ "$query_status" != "200" ]] || \
+             grep --fixed-strings --quiet 'must-not-reflect' "$query_body"; then
+            echo "The public login query contract is not static and non-reflective." >&2
+            exit 1
+          fi
+
+          post_headers="${RUNNER_TEMP}/public-entry-post.headers"
+          post_status="$(curl --path-as-is --silent --show-error \
+            --request POST \
+            --dump-header "$post_headers" \
+            --output /dev/null \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${FRONTEND_BASE_URL}/anmelden")"
+          if [[ "$post_status" != "403" ]] || \
+             grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$post_headers"; then
+            echo "The public login endpoint must reject POST without involving IAP; received HTTP ${post_status}." >&2
+            exit 1
+          fi
+
+          protected_paths=(
+            "/start"
+            "/enrollment.html"
+            "/login.html"
+            "/versorgung/kontakte"
+            "/api/healthz"
+            "/data/runtime-config.js"
+            "/index.html"
+            "/public-index.html"
+            "/anmelden/"
+            "/Anmelden"
+            "/anmelden/weiter"
+            "/anmelden,probe"
+            "/anmelden%3Bprobe"
+          )
+          protected_index=0
+          for protected_path in "${protected_paths[@]}"; do
+            protected_index=$((protected_index + 1))
+            protected_headers="${RUNNER_TEMP}/protected-boundary-${protected_index}.headers"
+            status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$protected_headers" \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${protected_path}")"
             case "$status" in
-              302|401|403) ;;
+              302|401|403)
+                if ! grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$protected_headers"; then
+                  echo "Protected path ${protected_path} did not return an IAP-generated boundary response." >&2
+                  exit 1
+                fi
+                ;;
               *)
-                echo "Expected an unauthenticated IAP response for $target, received HTTP $status." >&2
+                echo "Expected an unauthenticated IAP response for ${protected_path}, received HTTP ${status}." >&2
                 exit 1
                 ;;
             esac
           done
+
+          normalized_aliases=(
+            "//anmelden"
+            "/%61nmelden"
+            "/anmel%64en"
+            "/%2fanmelden"
+          )
+          normalized_index=0
+          for normalized_alias in "${normalized_aliases[@]}"; do
+            normalized_index=$((normalized_index + 1))
+            normalized_headers="${RUNNER_TEMP}/normalized-boundary-${normalized_index}.headers"
+            normalized_body="${RUNNER_TEMP}/normalized-boundary-${normalized_index}.body"
+            status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$normalized_headers" \
+              --output "$normalized_body" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${normalized_alias}")"
+            case "$status" in
+              404)
+                if grep --fixed-strings --quiet 'data-public-entry=' "$normalized_body"; then
+                  echo "Normalized alias ${normalized_alias} exposed public-entry content." >&2
+                  exit 1
+                fi
+                ;;
+              302|401|403)
+                if ! grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$normalized_headers"; then
+                  echo "Normalized alias ${normalized_alias} returned ${status} without an IAP boundary marker." >&2
+                  exit 1
+                fi
+                ;;
+              *)
+                echo "Normalized alias ${normalized_alias} bypassed the exact public boundary with HTTP ${status}." >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          # The External Application Load Balancer treats semicolon matrix
+          # syntax as a delimiter for path-rule selection while
+          # forwarding the raw URI. The minimal public nginx therefore owns the
+          # containment response and must return only a hardened, content-free
+          # 404. If Google changes the behavior to IAP, require its marker.
+          matrix_aliases=(
+            "/;"
+            "/;;probe"
+            "/;probe"
+            "/;probe=1"
+            "/anmelden;"
+            "/anmelden;probe"
+            "/anmelden;probe=1"
+            "/anmelden;probe/weiter"
+            "/anmelden;%2Fprobe"
+            "/anmelden;;probe"
+          )
+          matrix_index=0
+          for matrix_alias in "${matrix_aliases[@]}"; do
+            matrix_index=$((matrix_index + 1))
+            matrix_headers="${RUNNER_TEMP}/matrix-boundary-${matrix_index}.headers"
+            matrix_body="${RUNNER_TEMP}/matrix-boundary-${matrix_index}.body"
+            status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$matrix_headers" \
+              --output "$matrix_body" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${matrix_alias}")"
+            case "$status" in
+              404)
+                if grep --fixed-strings --quiet 'data-public-entry=' "$matrix_body" || \
+                   grep --ignore-case --quiet '^set-cookie:' "$matrix_headers" || \
+                   grep --ignore-case --quiet '^location:' "$matrix_headers" || \
+                   grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$matrix_headers"; then
+                  echo "Matrix alias ${matrix_alias} returned a stateful, redirected, IAP-mixed, or public-entry 404." >&2
+                  exit 1
+                fi
+                grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$matrix_headers"
+                grep --ignore-case --fixed-strings --quiet \
+                  "content-security-policy: default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; frame-src 'none'; font-src 'none'; media-src 'none'; manifest-src 'none'; worker-src 'none'" \
+                  "$matrix_headers"
+                grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$matrix_headers"
+                ;;
+              302|401|403)
+                if ! grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$matrix_headers"; then
+                  echo "Matrix alias ${matrix_alias} returned ${status} without an IAP boundary marker." >&2
+                  exit 1
+                fi
+                ;;
+              *)
+                echo "Matrix alias ${matrix_alias} bypassed the containment boundary with HTTP ${status}." >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          # Google External Application Load Balancers canonicalize dot path
+          # segments before backend and IAP evaluation and return a 302. Accept
+          # only that documented canonical redirect, never public content or a
+          # redirect to another origin/path.
+          load_balancer_redirect_aliases=(
+            "/foo/../anmelden"
+            "/anmelden/../anmelden"
+            "/./anmelden"
+          )
+          redirect_index=0
+          for redirect_alias in "${load_balancer_redirect_aliases[@]}"; do
+            redirect_index=$((redirect_index + 1))
+            redirect_headers="${RUNNER_TEMP}/lb-normalized-${redirect_index}.headers"
+            redirect_body="${RUNNER_TEMP}/lb-normalized-${redirect_index}.body"
+            status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$redirect_headers" \
+              --output "$redirect_body" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${redirect_alias}")"
+            redirect_location="$(awk '
+              BEGIN { IGNORECASE = 1 }
+              /^location:/ {
+                sub(/^[^:]+:[[:space:]]*/, "")
+                sub(/\r$/, "")
+                print
+                exit
+              }
+            ' "$redirect_headers")"
+            if [[ "$status" != "302" ]] || \
+               { [[ "$redirect_location" != "/anmelden" ]] && \
+                 [[ "$redirect_location" != "${FRONTEND_BASE_URL}/anmelden" ]]; } || \
+               grep --fixed-strings --quiet 'data-public-entry=' "$redirect_body"; then
+              echo "Load-balancer-normalized alias ${redirect_alias} did not return only the exact canonical /anmelden redirect." >&2
+              exit 1
+            fi
+          done
+
+          for alias_origin in \
+            https://versorgungs-kompass.de \
+            https://www.versorgungs-kompass.de \
+            https://mitmachen.timo-frank.de \
+            https://pre-gematik.versorgungs-kompass.timo-frank.de; do
+            if [[ "$alias_origin" == "$FRONTEND_BASE_URL" ]]; then
+              continue
+            fi
+            alias_headers="${RUNNER_TEMP}/alias-boundary.headers"
+            status="$(curl --silent --show-error \
+              --dump-header "$alias_headers" \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${alias_origin}/")"
+            case "$status" in
+              302|401|403)
+                grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$alias_headers"
+                ;;
+              *)
+                echo "Alias root ${alias_origin}/ unexpectedly bypassed IAP with HTTP ${status}." >&2
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Mark public-entry cutover complete
+        shell: bash
+        run: |
+          set -euo pipefail
+          restore_marker="${RUNNER_TEMP}/public-entry-restore-armed"
+          if [[ -f "$restore_marker" ]]; then
+            : > "${RUNNER_TEMP}/public-entry-cutover-complete"
+          fi
+
+      - name: Restore fail-closed public boundary after failed cutover
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          restore_marker="${RUNNER_TEMP}/public-entry-restore-armed"
+          cutover_complete_marker="${RUNNER_TEMP}/public-entry-cutover-complete"
+          if [[ ! -f "$restore_marker" || -f "$cutover_complete_marker" ]]; then
+            exit 0
+          fi
+          public_backend="$(tr -d '[:space:]' < "$restore_marker")"
+          if [[ ! "$public_backend" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
+            echo "::error::The public-entry restore marker contains an invalid backend identity." >&2
+            exit 1
+          fi
+          public_service_name="${HELM_RELEASE}-frontend-public"
+          expected_backend_config_name="${HELM_RELEASE}-frontend-public"
+          backend_config_annotation="$(kubectl --namespace "$K8S_NAMESPACE" get service "$public_service_name" \
+            --output jsonpath='{.metadata.annotations.cloud\.google\.com/backend-config}')"
+          backend_config_name="$(jq --exit-status --raw-output \
+            --arg expected "$expected_backend_config_name" \
+            '.ports.http
+             | select(
+                 type == "string" and
+                 . == $expected and
+                 test("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+               )' \
+            <<< "$backend_config_annotation")" || {
+              echo "::error::The public-entry Service does not reference the exact expected http BackendConfig." >&2
+              exit 1
+            }
+          restore_patch="$(jq --null-input --compact-output \
+            --arg secret "$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
+            '{spec:{iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
+          kubectl --namespace "$K8S_NAMESPACE" patch backendconfig.cloud.google.com "$backend_config_name" \
+            --type merge \
+            --patch "$restore_patch" >/dev/null
+          for attempt in {1..60}; do
+            public_iap="$(gcloud compute backend-services describe "$public_backend" \
+              --project "$GCP_PROJECT_ID" \
+              --global \
+              --format='value(iap.enabled)' 2>/dev/null || true)"
+            if [[ "${public_iap,,}" == "true" ]]; then
+              echo "Restored fail-closed IAP on the public-entry backend after the failed cutover."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::The public-entry backend did not return to IAP-enabled after the failed cutover." >&2
+          exit 1
 
       - name: Summarize deployment
         shell: bash
         env:
           IMAGE_TAG: ${{ needs.validate.outputs.image_tag }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          PUBLIC_IMAGE_DIGEST: ${{ steps.public-build.outputs.digest }}
           DOMAIN_MODE: ${{ steps.config.outputs.domain_mode }}
+          API_BACKEND_SERVICE: ${{ steps.iap.outputs.api_backend_service }}
+          FRONTEND_BACKEND_SERVICE: ${{ steps.iap.outputs.frontend_backend_service }}
+          PUBLIC_FRONTEND_BACKEND_SERVICE: ${{ steps.iap.outputs.public_frontend_backend_service }}
         run: |
           {
             echo "## pre-gematik deployment"
@@ -1835,6 +2945,7 @@ jobs:
             echo "- Revision: \`${GITHUB_SHA}\`"
             echo "- Release: \`${IMAGE_TAG}\`"
             echo "- Digest: \`${IMAGE_DIGEST}\`"
+            echo "- Public-entry digest: \`${PUBLIC_IMAGE_DIGEST}\`"
             echo "- Namespace: \`${K8S_NAMESPACE}\`"
             echo "- Canonical origin: \`${FRONTEND_BASE_URL}\`"
             echo "- Domain mode: \`${DOMAIN_MODE}\`"
@@ -1848,9 +2959,11 @@ jobs:
               fi
             done
             echo "- API backend service: \`${API_BACKEND_SERVICE}\`"
-            echo "- Frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"
+            echo "- Protected frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"
+            echo "- Public-entry frontend backend service: \`${PUBLIC_FRONTEND_BACKEND_SERVICE}\`"
             echo "- GCP resource identities, private bucket policy and IAP bindings: verified (values redacted)"
-            echo "- Internal API/frontend health and target frontend config: passed"
+            echo "- Public exact routes: \`/\`, \`/anmelden\`"
+            echo "- Internal API/protected/public frontend health and target frontend config: passed"
             echo "- Cloud SQL connection and required schema: passed"
             echo "- Unsigned-header rejection: passed"
           } >> "$GITHUB_STEP_SUMMARY"

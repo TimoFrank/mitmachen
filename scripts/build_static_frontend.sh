@@ -364,6 +364,8 @@ build_target() {
     "$STAGE_DIR/vendor"
 
   touch "$STAGE_DIR/.nojekyll"
+  cp "$FRONTEND_DIR/public-entry/index.html" "$STAGE_DIR/public-index.html"
+  cp "$FRONTEND_DIR/public-entry/anmelden.html" "$STAGE_DIR/public-login.html"
   cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/index.html"
   cp "$FRONTEND_DIR/login/login.html" "$STAGE_DIR/login.html"
   cp "$FRONTEND_DIR/login/login.css" "$STAGE_DIR/login.css"
@@ -432,6 +434,34 @@ build_target() {
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
+
+  node - \
+    "$FRONTEND_DIR/public-entry/public-entry.css" \
+    "$STAGE_DIR/public-index.html" \
+    "$STAGE_DIR/public-login.html" <<'NODE'
+const fs = require("node:fs");
+
+const [stylePath, ...documentPaths] = process.argv.slice(2);
+const style = fs.readFileSync(stylePath, "utf8").trim();
+const markerPattern = /<link rel="stylesheet" href="\.\/public-entry\.css" data-inline-public-styles\s*\/>/g;
+
+if (!style || /@import|url\s*\(/i.test(style) || /<\/style/i.test(style)) {
+  throw new Error("Public-Entry-Styles muessen eigenstaendig und sicher inline-faehig sein.");
+}
+
+for (const documentPath of documentPaths) {
+  const source = fs.readFileSync(documentPath, "utf8");
+  const markers = source.match(markerPattern) || [];
+  if (markers.length !== 1) {
+    throw new Error(`Public-Entry-Dokument erwartet genau einen Style-Marker: ${documentPath}`);
+  }
+  const rendered = source.replace(
+    markerPattern,
+    `<style data-public-entry-styles>\n${style}\n    </style>`
+  );
+  fs.writeFileSync(documentPath, rendered);
+}
+NODE
 
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./login/login\.html#./login.html#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.js"
   perl -0pi -e 's#\.\./\.\./public/#./public/#g' "$STAGE_DIR/versorgungs-kompass.js"

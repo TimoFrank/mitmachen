@@ -162,7 +162,7 @@
     },
     "frontend": {
       "type": "object",
-      "required": ["enabled", "bucketName", "releasePrefix", "contentRevision"],
+      "required": ["enabled", "bucketName", "releasePrefix", "contentRevision", "publicEntry"],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -195,6 +195,151 @@
               }
             }
           }
+        },
+        "publicEntry": {
+          "type": "object",
+          "required": ["enabled", "replicaCount", "image", "serviceAccount", "service", "backendConfig"],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "replicaCount": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "image": {
+              "type": "object",
+              "required": ["repository", "tag", "digest", "pullPolicy"],
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tag": {
+                  "type": "string",
+                  "minLength": 1,
+                  "not": {
+                    "pattern": "^(?:latest|stable|main|master)$"
+                  }
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "IfNotPresent"]
+                }
+              }
+            },
+            "serviceAccount": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["create", "name", "automountServiceAccountToken"],
+              "properties": {
+                "create": {
+                  "const": true
+                },
+                "name": {
+                  "const": "versorgungs-kompass-frontend-public"
+                },
+                "automountServiceAccountToken": {
+                  "const": false
+                }
+              }
+            },
+            "service": {
+              "type": "object",
+              "required": ["port"],
+              "properties": {
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                }
+              }
+            },
+            "backendConfig": {
+              "type": "object",
+              "required": ["name", "timeoutSec", "healthCheck", "iap"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "timeoutSec": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "healthCheck": {
+                  "type": "object",
+                  "required": [
+                    "requestPath",
+                    "port",
+                    "checkIntervalSec",
+                    "timeoutSec",
+                    "healthyThreshold",
+                    "unhealthyThreshold"
+                  ],
+                  "properties": {
+                    "requestPath": {
+                      "const": "/_healthz"
+                    },
+                    "port": {
+                      "const": 8080
+                    },
+                    "checkIntervalSec": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "timeoutSec": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "healthyThreshold": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "unhealthyThreshold": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                },
+                "iap": {
+                  "type": "object",
+                  "required": ["enabled", "oauthClientCredentialsSecretName"],
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "oauthClientCredentialsSecretName": {
+                      "type": "string"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "enabled": {
+                            "const": true
+                          }
+                        },
+                        "required": ["enabled"]
+                      },
+                      "then": {
+                        "properties": {
+                          "oauthClientCredentialsSecretName": {
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
         }
       },
       "allOf": [
@@ -214,6 +359,28 @@
               },
               "contentRevision": {
                 "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "publicEntry": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                },
+                "required": ["enabled"]
+              }
+            },
+            "required": ["publicEntry"]
+          },
+          "then": {
+            "properties": {
+              "enabled": {
+                "const": true
               }
             }
           }

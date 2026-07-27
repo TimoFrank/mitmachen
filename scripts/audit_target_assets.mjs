@@ -37,6 +37,8 @@ const actualFiles = walk(artifactRoot)
 for (const required of [
   "build-manifest.json",
   "index.html",
+  "public-index.html",
+  "public-login.html",
   "login.html",
   "enrollment.html",
   "enrollment.css",
@@ -139,6 +141,83 @@ for (const entryRelativePath of ["index.html", "mitmachen/index.html"]) {
     `${artifactLabel}/${entryRelativePath} enthaelt noch den Quellpfad der Aktivierungsseite`
   );
 }
+
+const publicEntryDocuments = [
+  ["public-index.html", "home"],
+  ["public-login.html", "access"]
+];
+for (const [relativePath, marker] of publicEntryDocuments) {
+  const documentPath = join(artifactRoot, relativePath);
+  if (!existsSync(documentPath)) continue;
+  const html = readFileSync(documentPath, "utf8");
+  assert(
+    new RegExp(`data-public-entry=[\"']${marker}[\"']`).test(html),
+    `${artifactLabel}/${relativePath} besitzt nicht den erwarteten Public-Entry-Marker`
+  );
+  assert(
+    (html.match(/<style\b[^>]*data-public-entry-styles[^>]*>/gi) || []).length === 1,
+    `${artifactLabel}/${relativePath} muss genau einen eingebetteten Public-Styleblock enthalten`
+  );
+  assert(
+    !/<link\b[^>]*rel=[\"']stylesheet[\"']/i.test(html),
+    `${artifactLabel}/${relativePath} darf kein oeffentliches Stylesheet nachladen`
+  );
+  assert(
+    !/<script\b|<iframe\b|<form\b|<input\b|<button\b|<object\b|<embed\b/i.test(html),
+    `${artifactLabel}/${relativePath} darf keine aktive oder eingebettete Laufzeit enthalten`
+  );
+  assert(
+    !/\ssrc\s*=|\son[a-z]+\s*=|@import|url\s*\(/i.test(html),
+    `${artifactLabel}/${relativePath} darf keine externen Unterressourcen oder Inline-Handler enthalten`
+  );
+  assert(
+    !/(?:runtime-config|auth-(?:config|guard|login)|\/api\/|supabase|localStorage|sessionStorage|indexedDB)/i.test(html),
+    `${artifactLabel}/${relativePath} enthaelt geschuetzte Laufzeit- oder Datenzugriffe`
+  );
+}
+
+const publicIndexPath = join(artifactRoot, "public-index.html");
+if (existsSync(publicIndexPath)) {
+  const html = readFileSync(publicIndexPath, "utf8");
+  assert(
+    (html.match(/href=[\"']\/anmelden[\"']/g) || []).length >= 1,
+    `${artifactLabel}/public-index.html muss sichtbar auf /anmelden fuehren`
+  );
+  assert(
+    !/data-target-enrollment|Testzugang aktivieren|href=[\"']\/(?:start|enrollment\.html|api(?:\/|[\"']))/i.test(html),
+    `${artifactLabel}/public-index.html darf keinen geschuetzten Direkteinstieg oder Testzugang enthalten`
+  );
+  assert(
+    !/module-sidebar__nav|destination-link|Versorgung<\/strong>|Stakeholder<\/strong>|Hospitation<\/strong>|Formate<\/strong>/i.test(html),
+    `${artifactLabel}/public-index.html darf keine Module oder Modulnavigation vor der Anmeldung zeigen`
+  );
+}
+
+const publicLoginPath = join(artifactRoot, "public-login.html");
+if (existsSync(publicLoginPath)) {
+  const html = readFileSync(publicLoginPath, "utf8");
+  assert(
+    (html.match(/href=[\"']\/start[\"']/g) || []).length === 1,
+    `${artifactLabel}/public-login.html muss genau einmal bewusst in den geschuetzten Google-Login wechseln`
+  );
+  assert(
+    (html.match(/href=[\"']\/enrollment\.html[\"']/g) || []).length === 1,
+    `${artifactLabel}/public-login.html muss genau einmal zur geschuetzten Testzugang-Aktivierung fuehren`
+  );
+  assert(
+    /Mit Google anmelden/.test(html) && /Testzugang aktivieren/.test(html),
+    `${artifactLabel}/public-login.html zeigt die beiden erwarteten Zugangshandlungen nicht`
+  );
+  assert(
+    !/\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i.test(html),
+    `${artifactLabel}/public-login.html darf keine technischen Authentisierungsdetails anzeigen`
+  );
+}
+
+assert(
+  !actualFiles.includes("public-entry.css"),
+  `${artifactLabel}/public-entry.css darf nicht als zusaetzliche oeffentliche Ressource ausgeliefert werden`
+);
 
 const enrollmentHtmlPath = join(artifactRoot, "enrollment.html");
 const enrollmentAppPath = join(artifactRoot, "enrollment.js");

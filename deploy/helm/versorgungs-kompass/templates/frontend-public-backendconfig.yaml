@@ -1,0 +1,24 @@
+{{- if and .Values.frontend.enabled .Values.frontend.publicEntry.enabled -}}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "versorgungs-kompass.frontendPublicBackendConfigName" . }}
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+spec:
+  timeoutSec: {{ .Values.frontend.publicEntry.backendConfig.timeoutSec }}
+  healthCheck:
+    type: "HTTP"
+    requestPath: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.requestPath | quote }}
+    port: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.port }}
+    checkIntervalSec: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.checkIntervalSec }}
+    timeoutSec: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.timeoutSec }}
+    healthyThreshold: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.healthyThreshold }}
+    unhealthyThreshold: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.unhealthyThreshold }}
+  {{- if .Values.frontend.publicEntry.backendConfig.iap.enabled }}
+  iap:
+    enabled: true
+    oauthclientCredentials:
+      secretName: {{ required "frontend.publicEntry.backendConfig.iap.oauthClientCredentialsSecretName is required when public-entry IAP is enabled" .Values.frontend.publicEntry.backendConfig.iap.oauthClientCredentialsSecretName | quote }}
+  {{- end }}
+{{- end }}
