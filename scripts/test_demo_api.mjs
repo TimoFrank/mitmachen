@@ -559,6 +559,96 @@ const notificationResponse = await window.fetch(`/api/notifications/${encodeURIC
 assert.equal(notificationResponse.status, 200);
 assert.equal(api.snapshot().notifications.find((item) => item.id === firstNotificationId)?.unread, false);
 
+const invalidHospitationDayResponse = await window.fetch("/api/hospitations", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    contact: { mode: "create", name: "Kalendertag Testkontakt" },
+    scheduledOn: "2026-02-31"
+  })
+});
+assert.equal(invalidHospitationDayResponse.status, 400, "Die Demo-API darf keinen unmöglichen Kalendertag akzeptieren.");
+
+const organizationOnlyHospitationResponse = await window.fetch("/api/hospitations", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    organization: { mode: "create", name: "Organisation ohne Kontakt" },
+    scheduledOn: "2098-05-01"
+  })
+});
+assert.equal(organizationOnlyHospitationResponse.status, 400, "Der verschachtelte Terminvertrag benötigt immer einen Kontakt.");
+assert.ok(!api.snapshot().organizations.some((item) => item.name === "Organisation ohne Kontakt"), "Fehlgeschlagene Terminanlagen müssen atomar zurückgerollt werden.");
+
+const nestedHospitationResponse = await window.fetch("/api/hospitations", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    contact: { mode: "create", name: "Atomare Hospitation Testkontakt" },
+    organization: { mode: "create", name: "Atomare Hospitation Testorganisation" },
+    scheduledOn: "2098-05-02",
+    status: "Angefragt"
+  })
+});
+assert.equal(nestedHospitationResponse.status, 201);
+const nestedHospitation = await nestedHospitationResponse.json();
+assert.ok(nestedHospitation.contactId);
+assert.ok(nestedHospitation.organizationId);
+assert.equal(nestedHospitation.resolvedContact.organizationId, nestedHospitation.organizationId);
+
+const hospitationCountBeforeAtomicRejection = api.snapshot().hospitations.length;
+const mismatchedOrganizationResponse = await window.fetch("/api/hospitations", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    contact: { mode: "existing", id: nestedHospitation.contactId },
+    organization: { mode: "create", name: "Organisation für atomaren Rollback" },
+    scheduledOn: "2098-05-03"
+  })
+});
+assert.equal(mismatchedOrganizationResponse.status, 400, "Kontakt und abweichende Organisation dürfen nicht gemeinsam gespeichert werden.");
+assert.ok(!api.snapshot().organizations.some((item) => item.name === "Organisation für atomaren Rollback"), "Eine vor dem Fehler erzeugte Organisation muss atomar zurückgerollt werden.");
+assert.equal(api.snapshot().hospitations.length, hospitationCountBeforeAtomicRejection, "Ein abgelehnter Termin darf keinen Teildatensatz hinterlassen.");
+
+const organizationCountBeforeReuse = api.snapshot().organizations.length;
+const reusedOrganizationResponse = await window.fetch("/api/hospitations", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    contact: { mode: "create", name: "Zweiter Kontakt derselben Organisation" },
+    organization: { mode: "create", name: " atomare   hospitation testorganisation " },
+    scheduledOn: "2098-05-03"
+  })
+});
+assert.equal(reusedOrganizationResponse.status, 201);
+const reusedOrganizationHospitation = await reusedOrganizationResponse.json();
+assert.equal(reusedOrganizationHospitation.organizationId, nestedHospitation.organizationId, "Eine eindeutig vorhandene Organisation muss normalisiert wiederverwendet werden.");
+assert.equal(api.snapshot().organizations.length, organizationCountBeforeReuse, "Die Wiederverwendung darf keine Organisationsdublette erzeugen.");
+
+const organizationOnlyPatchResponse = await window.fetch(`/api/hospitations/${encodeURIComponent(nestedHospitation.id)}`, {
+  method: "PATCH",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    organization: { mode: "existing", id: nestedHospitation.organizationId }
+  })
+});
+assert.equal(organizationOnlyPatchResponse.status, 200);
+const organizationOnlyPatchedHospitation = await organizationOnlyPatchResponse.json();
+assert.equal(organizationOnlyPatchedHospitation.contactId, nestedHospitation.contactId, "Ein Organisations-PATCH darf den bestehenden Kontakt nicht lösen.");
+
+const duplicateNameHospitationResponse = await window.fetch("/api/hospitations", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    contact: { mode: "create", name: "Atomare Hospitation Testkontakt" },
+    scheduled_on: "2098-05-04",
+    status: "Angefragt"
+  })
+});
+assert.equal(duplicateNameHospitationResponse.status, 201);
+const duplicateNameHospitation = await duplicateNameHospitationResponse.json();
+assert.equal(duplicateNameHospitation.contactId, nestedHospitation.contactId, "Ein eindeutig vorhandener Kontaktname muss wiederverwendet werden.");
+
 const hospitationId = initialSnapshot.hospitations[0].id;
 assert.ok(api.snapshot().hospitationObservations.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId));
 assert.ok(api.snapshot().hospitationRoadmapAssessments.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId));

@@ -80,6 +80,8 @@
   }
 
   function localDateKey(value) {
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text(value));
+    if (dateOnlyMatch) return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
     return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Europe/Berlin" }).format(date);
@@ -138,7 +140,7 @@
   function overviewDescription(snapshot) {
     return Number(snapshot.summary.appointments) === 1
       ? "Einzelansicht des Hospitations-Termins. Das zugehörige Beobachtungskapitel folgt anschließend."
-      : "Terminübersicht des Hospitations-Moduls. Terminangebote sind enthalten; eigene Beobachtungskapitel folgen nur für Hospitationen.";
+      : "Terminübersicht des Hospitations-Moduls. Eigene Beobachtungskapitel folgen für dokumentierte Hospitationen.";
   }
 
   function documentationFor(item = {}) {
@@ -359,6 +361,7 @@
 
   function appointmentDateLabel(item = {}) {
     if (item.dateLabel) return text(item.dateLabel);
+    if (item.scheduledOn || item.scheduled_on) return formatDate(item.scheduledOn || item.scheduled_on);
     if (item.startsAt && item.endsAt && localDateKey(item.startsAt) === localDateKey(item.endsAt)) {
       return `${formatDate(item.startsAt)}, ${formatTime(item.startsAt)} - ${formatTime(item.endsAt)}`;
     }
@@ -426,7 +429,7 @@
     const extension = type === "pdf" ? "pdf" : "docx";
     if (snapshot.documentKind === "appointment") {
       const item = snapshot.hospitations[0] || snapshot.appointments[0] || {};
-      const date = localDateKey(item.startsAt) || safeFilenameDate(snapshot.generatedAt);
+      const date = localDateKey(item.scheduledOn || item.scheduled_on || item.startsAt) || safeFilenameDate(snapshot.generatedAt);
       return `mitmachen-hospitations-termin-${date}-${filenameSlug(item.contact || contextLabel(item))}.${extension}`;
     }
     const subject = snapshot.documentKind === "observations" ? "beobachtungen" : "termine";

@@ -201,9 +201,10 @@ jobs:
           const landingHtml = fs.readFileSync(process.argv[4], "utf8");
           if (
             !landingHtml.includes('data-public-entry="home"')
-            || !landingHtml.includes("<h1 id=\"entry-title\">Gemeinsam Versorgung gestalten.</h1>")
+            || !landingHtml.includes('id="home-welcome-title"')
+            || !landingHtml.includes('aria-label="Willkommen im Versorgungs-Kompass"')
             || (landingHtml.match(/data-public-entry-styles/g) || []).length !== 1
-            || (landingHtml.match(/href="\.\/demo\/"/g) || []).length !== 2
+            || (landingHtml.match(/href="\.\/demo\/"/g) || []).length !== 1
             || !landingHtml.includes("Demo öffnen")
             || /<meta\s+http-equiv="refresh"|href="\/(?:anmelden)?"/i.test(landingHtml)
           ) {
