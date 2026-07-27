@@ -1926,6 +1926,62 @@
         }
       }
 
+      /* Stakeholder information architecture: keep long specialist labels legible. */
+      .sidebar-nav .primary-tab--nested {
+        height: auto;
+        padding-block: 7px;
+      }
+
+      .sidebar-nav .primary-tab--nested > span {
+        flex: 1 1 0;
+        width: 0;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: normal;
+      }
+
+      /* Patient organizations use a clear name/type hierarchy inside the first column. */
+      #patient-organization-list .organization-cell .contact-meta {
+        display: grid;
+        align-items: start;
+        gap: 2px;
+      }
+
+      #patient-organization-list .patient-organization-type {
+        max-width: 100%;
+        margin-top: 0;
+      }
+
+      .app-shell[data-active-view="patients"][data-patient-mode="indications"] .table-command-row--patient-actions {
+        display: none;
+      }
+
+      @media (max-width: 520px) {
+        .app-shell[data-active-view="patients"] #patient-mode-actions .experts-mode-nav--header {
+          gap: 2px;
+          padding: 4px;
+        }
+
+        .app-shell[data-active-view="patients"] #patient-mode-actions .settings-tab-button {
+          min-height: 48px;
+          gap: 0;
+          padding-inline: 4px;
+          font-size: 0.78rem;
+        }
+
+        .app-shell[data-active-view="patients"] #patient-mode-actions .experts-mode-label {
+          display: block;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .app-shell[data-active-view="patients"] #patient-mode-actions .experts-mode-count {
+          display: none;
+        }
+      }
+
       .global-status {
         position: fixed;
         right: 24px;
@@ -2668,6 +2724,21 @@
         text-transform: uppercase;
       }
 
+      .sidebar-subnav {
+        display: grid;
+        gap: 2px;
+        padding: 5px 0 4px;
+      }
+
+      .sidebar-subnav__label {
+        padding: 2px 10px 3px;
+        color: rgba(255, 255, 255, 0.54);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
       .sidebar-nav .primary-tab {
         width: 100%;
         min-width: 0;
@@ -2680,6 +2751,36 @@
         font-weight: 800;
         letter-spacing: 0;
         opacity: 0.74;
+      }
+
+      .sidebar-nav .primary-tab--nested {
+        min-height: 38px;
+        gap: 8px;
+        padding-inline: 10px 8px;
+        font-size: 0.78rem;
+        font-weight: 720;
+        line-height: 1.18;
+      }
+
+      .sidebar-nav .primary-tab--nested svg {
+        width: 15px;
+        height: 15px;
+        flex: 0 0 auto;
+      }
+
+      .sidebar-nav .primary-tab--nested > span {
+        min-width: 0;
+        text-align: left;
+      }
+
+      .app-shell.is-sidebar-collapsed .sidebar-subnav__label {
+        display: none;
+      }
+
+      @media (max-width: 760px) {
+        .app-shell:not(.is-mobile-sidebar-expanded) .sidebar-subnav__label {
+          display: none;
+        }
       }
 
       .sidebar-nav .primary-tab:hover,
@@ -4260,7 +4361,9 @@
 
       .app-shell[data-active-view="patients"] .workspace-copy,
       .app-shell[data-active-view="stakeholders"] .workspace-copy {
-        display: none;
+        display: grid;
+        gap: 3px;
+        margin-bottom: 10px;
       }
 
       .workspace-header-search[hidden] {
@@ -18201,11 +18304,10 @@
         min-height: 100%;
         padding: 16px;
         border: 1px solid var(--patient-indication-border, var(--line));
+        border-left: 3px solid var(--patient-indication-color, var(--primary));
         border-radius: var(--radius-md);
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, var(--patient-indication-bg, #f8faff) 100%),
-          #ffffff;
-        box-shadow: 0 12px 28px rgba(26, 37, 89, 0.08);
+        background: var(--surface);
+        box-shadow: none;
       }
 
       .patient-indication-card__head {
@@ -18246,7 +18348,7 @@
         border-radius: 12px;
         background: var(--patient-indication-color, #475569);
         color: #ffffff;
-        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+        box-shadow: none;
       }
 
       .patient-indication-card__icon svg {
@@ -18254,24 +18356,56 @@
         height: 22px;
       }
 
-      .patient-indication-card__meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+      .patient-indication-card__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: auto;
       }
 
-      .patient-indication-chip {
-        display: inline-flex;
+      .patient-indication-result {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
-        min-height: 24px;
-        padding: 3px 8px;
+        gap: 6px;
+        min-width: 0;
+        min-height: 38px;
+        padding: 6px 9px;
         border: 1px solid var(--patient-indication-border, transparent);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.72);
+        border-radius: var(--radius-sm);
+        background: var(--patient-indication-bg, var(--surface-muted));
         color: var(--patient-indication-color, #28488f);
         font-size: 0.72rem;
         font-weight: 800;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .patient-indication-result strong {
+        font-size: 0.86rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .patient-indication-result span:nth-child(2) {
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .patient-indication-result:hover,
+      .patient-indication-result:focus-visible {
+        border-color: var(--patient-indication-color, var(--primary));
+        background: var(--surface);
+        outline: none;
+      }
+
+      .patient-indication-result:focus-visible {
+        box-shadow: 0 0 0 3px rgba(21, 95, 228, 0.18);
+      }
+
+      .patient-indication-result:disabled {
+        cursor: default;
+        opacity: 0.54;
       }
 
       .patient-indication-badge {

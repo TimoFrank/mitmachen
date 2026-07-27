@@ -136,7 +136,7 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(1);
-  await expect(page.locator('[data-view-tab="stakeholders"]')).toHaveCount(1);
+  await expect(page.locator('[data-view-tab="stakeholders"][data-stakeholder-type-route]')).toHaveCount(5);
   await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="formats"]')).toHaveCount(1);
   await expect(page.locator('script[src="./data/demo-data.js"]')).toHaveCount(1);

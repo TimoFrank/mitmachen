@@ -414,10 +414,11 @@
         { key: "state", label: "Bundesland", template: "minmax(150px, 0.64fr)" },
         { key: "source", label: "Quelle", template: "minmax(180px, 0.8fr)" }
       ];
-      const defaultPatientOrganizationColumnKeys = ["organization", "sector", "location", "updated"];
+      const defaultPatientOrganizationColumnKeys = ["organization", "sector", "people", "location", "updated"];
       const patientOrganizationTableColumns = [
         { key: "organization", label: "Organisation", template: "minmax(260px, 1.35fr)", required: true },
         { key: "sector", label: "Indikation", template: "minmax(180px, 0.82fr)" },
+        { key: "people", label: "Kontakte", template: "minmax(110px, 0.48fr)" },
         { key: "location", label: "Sitz", template: "minmax(145px, 0.64fr)" },
         { key: "state", label: "Bundesland", template: "minmax(155px, 0.68fr)" },
         { key: "updated", label: "Aktualisiert", template: "minmax(128px, 0.56fr)" },
@@ -443,11 +444,14 @@
       const stakeholderTypeUiDefaults = {
         default: {
           tabLabel: "Stakeholder",
+          description: "Organisationen und ihre Ansprechpersonen nach fachlichem Institutionstyp.",
           organizationSingular: "Organisation",
           organizationPlural: "Organisationen",
           organizationShortPlural: "Organisationen",
           organizationTypeFallback: "Stakeholder-Organisation",
           organizationSearchPlaceholder: "Stakeholder-Organisationen suchen...",
+          memberCountColumnLabel: "Mitgliederzahl",
+          memberCountUnitLabel: "Mitglieder",
           personSingular: "Kontakt",
           personPlural: "Kontakte",
           personPluralDative: "Kontakten",
@@ -468,11 +472,14 @@
         },
         kv: {
           tabLabel: "KVn",
+          description: "Kassenärztliche Vereinigungen mit Sitz, Mitgliederzahl und zugeordneten Kontakten.",
           organizationSingular: "KV",
           organizationPlural: "Kassenärztliche Vereinigungen",
           organizationShortPlural: "KVn",
           organizationTypeFallback: "Kassenärztliche Vereinigung",
           organizationSearchPlaceholder: "Kassenärztliche Vereinigungen suchen...",
+          memberCountColumnLabel: "Mitgliederzahl",
+          memberCountUnitLabel: "Mitglieder",
           personSingular: "Kontakt",
           personPlural: "Kontakte",
           personPluralDative: "Kontakten",
@@ -492,11 +499,14 @@
         },
         "health-insurance": {
           tabLabel: "Krankenkassen",
+          description: "Krankenkassen als Kostenträger mit regionalem Sitz und relevanten Ansprechpersonen.",
           organizationSingular: "Krankenkasse",
           organizationPlural: "Krankenkassen",
           organizationShortPlural: "Krankenkassen",
           organizationTypeFallback: "Krankenkasse",
           organizationSearchPlaceholder: "Krankenkassen suchen...",
+          memberCountColumnLabel: "Versicherte",
+          memberCountUnitLabel: "Versicherte",
           personSingular: "Kontakt",
           personPlural: "Kontakte",
           personPluralDative: "Kontakten",
@@ -515,11 +525,14 @@
         },
         "patient-associations": {
           tabLabel: "Patientenverbände",
+          description: "Patientenverbände als institutionelle Interessenvertretungen mit Mitglieder- und Kontaktbezug.",
           organizationSingular: "Patientenverband",
           organizationPlural: "Patientenverbände",
           organizationShortPlural: "Patientenverbände",
           organizationTypeFallback: "Patientenverband",
           organizationSearchPlaceholder: "Patientenverbände suchen...",
+          memberCountColumnLabel: "Mitgliederzahl",
+          memberCountUnitLabel: "Mitglieder",
           personSingular: "Kontakt",
           personPlural: "Kontakte",
           personPluralDative: "Kontakten",
@@ -538,11 +551,14 @@
         },
         "hospital-associations": {
           tabLabel: "Krankenhausgesellschaften",
+          description: "Krankenhausgesellschaften als institutionelle Vertretungen der stationären Versorgung.",
           organizationSingular: "Krankenhausgesellschaft",
           organizationPlural: "Krankenhausgesellschaften",
           organizationShortPlural: "Krankenhausgesellschaften",
           organizationTypeFallback: "Krankenhausgesellschaft",
           organizationSearchPlaceholder: "Krankenhausgesellschaften suchen...",
+          memberCountColumnLabel: "Mitgliedseinrichtungen",
+          memberCountUnitLabel: "Mitgliedseinrichtungen",
           personSingular: "Kontakt",
           personPlural: "Kontakte",
           personPluralDative: "Kontakten",
@@ -561,11 +577,14 @@
         },
         "physician-associations": {
           tabLabel: "Ärztliche Berufsverbände",
+          description: "Ärztliche Berufsverbände mit Mitgliederbasis und relevanten Organisationskontakten.",
           organizationSingular: "Ärztlicher Berufsverband",
           organizationPlural: "Ärztliche Berufsverbände",
           organizationShortPlural: "Berufsverbände",
           organizationTypeFallback: "Ärztlicher Berufsverband",
           organizationSearchPlaceholder: "Ärztliche Berufsverbände suchen...",
+          memberCountColumnLabel: "Mitgliederzahl",
+          memberCountUnitLabel: "Mitglieder",
           personSingular: "Kontakt",
           personPlural: "Kontakte",
           personPluralDative: "Kontakten",
@@ -583,6 +602,16 @@
           importAliases: ["aerztlicher berufsverband", "ärztlicher berufsverband", "berufsverband", "physician association"]
         }
       };
+      const stakeholderRouteSegmentByType = Object.freeze({
+        kv: "kv",
+        "health-insurance": "krankenkassen",
+        "patient-associations": "patientenverbaende",
+        "hospital-associations": "krankenhausgesellschaften",
+        "physician-associations": "aerztliche-berufsverbaende"
+      });
+      const stakeholderTypeByRouteSegment = new Map(
+        Object.entries(stakeholderRouteSegmentByType).map(([typeId, segment]) => [segment, typeId])
+      );
       const organizationContactRangeFilterOptions = [
         { value: "with", label: "Mit Kontakten" },
         { value: "without", label: "Ohne Kontakte" },
@@ -1371,7 +1400,7 @@
       let activeOrganizationId = null;
       let activeExpertId = null;
       let activeExpertOrganizationId = null;
-      let activePatientMode = "organizations";
+      let activePatientMode = "indications";
       let activePatientPersonId = null;
       let activePatientOrganizationId = null;
       let activeStakeholderPersonId = null;
@@ -4205,9 +4234,23 @@
         return {
           ...staticConfig,
           label: type?.label || staticConfig.organizationPlural || "Stakeholder",
-          description: type?.description || "",
+          description: type?.description || staticConfig.description || "",
           tabLabel: staticConfig.tabLabel || type?.label || staticConfig.organizationShortPlural || "Stakeholder"
         };
+      }
+
+      function stakeholderRouteForType(typeId = activeStakeholderTypeId) {
+        const normalizedTypeId = String(typeId || "kv").trim() || "kv";
+        return `stakeholders/${stakeholderRouteSegmentByType[normalizedTypeId] || stakeholderRouteSegmentByType.kv}`;
+      }
+
+      function parseStakeholderRoute(routeToken = "") {
+        const match = /^stakeholders(?:\/([^/?#]+))?$/.exec(String(routeToken || "").replace(/^#/, ""));
+        if (!match) return null;
+        const segment = match[1] || stakeholderRouteSegmentByType.kv;
+        const typeId = stakeholderTypeByRouteSegment.get(segment);
+        if (!typeId) return null;
+        return { typeId, route: stakeholderRouteForType(typeId) };
       }
 
       function activeStakeholderTypes() {
@@ -4220,7 +4263,7 @@
         const types = activeStakeholderTypes();
         const previousTypeId = activeStakeholderTypeId;
         if (!types.length) {
-          activeStakeholderTypeId = "kv";
+          activeStakeholderTypeId = stakeholderRouteSegmentByType[previousTypeId] ? previousTypeId : "kv";
           if (previousTypeId !== activeStakeholderTypeId) resetStakeholderOrganizationSortForType(activeStakeholderTypeId);
           return activeStakeholderTypeId;
         }
@@ -6429,6 +6472,16 @@
         return patientOrganizationForIdentity(person.organizationId, person.organization, patientOrganizations);
       }
 
+      function patientOrganizationPeople(organization) {
+        const normalizedName = normalizeOrganizationName(organization?.name);
+        return patientPeople
+          .filter((person) => person.status !== "archived")
+          .filter((person) => {
+            if (organization?.id && person.organizationId && person.organizationId === organization.id) return true;
+            return normalizedName && normalizeOrganizationName(person.organization) === normalizedName;
+          });
+      }
+
       function patientPersonIndication(person) {
         return meaningfulOrEmpty(person.indication || person.sector || person.category) ||
           meaningfulOrEmpty(patientPersonOrganization(person)?.sector) ||
@@ -7376,16 +7429,24 @@
 
       function patientOrganizationTableCellMarkup(organization, key) {
         if (key === "organization") {
+          const organizationType = meaningfulOrEmpty(organization.organizationType) || "Patientenorganisation";
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm")}
               <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-patient-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
+                <div class="contact-subline patient-organization-type">${escapeHtml(organizationType)}</div>
               </div>
             </div>
           `;
         }
         if (key === "sector") return patientIndicationBadgeMarkup(organization.sector);
+        if (key === "people") {
+          const peopleCount = patientOrganizationPeople(organization).length;
+          return peopleCount
+            ? `<button class="organization-contact-link" type="button" data-open-patient-organization-people="${escapeHtml(organization.id)}" aria-label="${escapeHtml(`${peopleCount} ${peopleCount === 1 ? "Kontakt" : "Kontakte"} von ${organization.name} anzeigen`)}">${peopleCount} ${peopleCount === 1 ? "Kontakt" : "Kontakte"}</button>`
+            : `<span class="contact-subline contact-subline--muted">Keine Kontakte</span>`;
+        }
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientOrganizationLocation(organization) || "-")}</div>`;
         if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.state || "-")}</div>`;
         if (key === "updated") return `<span class="contact-date">${escapeHtml(formatDateLabel(organization.updatedAt || organization.createdAt) || "-")}</span>`;
@@ -7429,12 +7490,14 @@
         patientOrganizationList.innerHTML = pageItems
           .map((organization) => {
             if (isMobileLayout()) {
+              const peopleCount = patientOrganizationPeople(organization).length;
               return `
                 <article class="row organization-mobile-card ${organization.id === activePatientOrganizationId ? "is-active" : ""}" data-patient-organization-id="${escapeHtml(organization.id)}" tabindex="0">
                   <div class="cell--organization">${patientOrganizationTableCellMarkup(organization, "organization")}</div>
                   <div class="organization-mobile-meta">
                     <span class="organization-mobile-sector">${patientIndicationBadgeMarkup(organization.sector)}</span>
                     <span class="organization-mobile-state">${escapeHtml(organization.state || "-")}</span>
+                    <span class="organization-mobile-state">${peopleCount} ${peopleCount === 1 ? "Kontakt" : "Kontakte"}</span>
                   </div>
                 </article>
               `;
@@ -7472,6 +7535,18 @@
             openOrganizationEntry("patient", button.dataset.openPatientOrganization, items, { returnTo: "patients" });
           });
         });
+        patientOrganizationList.querySelectorAll("[data-open-patient-organization-people]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const organization = patientOrganizations.find((item) => item.id === button.dataset.openPatientOrganizationPeople);
+            if (!organization) return;
+            activePatientMode = "people";
+            searchInput.value = organization.name;
+            currentPage = 1;
+            closeDetail();
+            updateView();
+          });
+        });
         patientPagination.querySelectorAll("[data-patient-org-page]").forEach((button) => {
           button.addEventListener("click", () => {
             currentPage = Number(button.dataset.patientOrgPage);
@@ -7506,13 +7581,36 @@
                 </div>
               </div>
               <p>${escapeHtml(indication.description)}</p>
-              <div class="patient-indication-card__meta" aria-label="Zugeordnete Einträge">
-                <span class="patient-indication-chip">${escapeHtml(indication.organizationCount)} ${indication.organizationCount === 1 ? "Organisation" : "Organisationen"}</span>
-                <span class="patient-indication-chip">${escapeHtml(indication.personCount)} ${indication.personCount === 1 ? "Person" : "Personen"}</span>
+              <div class="patient-indication-card__actions" aria-label="Zugeordnete Einträge">
+                <button class="patient-indication-result" type="button" data-open-patient-indication="organizations" data-patient-indication-name="${escapeHtml(indication.name)}" ${indication.organizationCount ? "" : "disabled"}>
+                  <strong>${escapeHtml(indication.organizationCount)}</strong>
+                  <span>${indication.organizationCount === 1 ? "Organisation" : "Organisationen"}</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+                <button class="patient-indication-result" type="button" data-open-patient-indication="people" data-patient-indication-name="${escapeHtml(indication.name)}" ${indication.personCount ? "" : "disabled"}>
+                  <strong>${escapeHtml(indication.personCount)}</strong>
+                  <span>${indication.personCount === 1 ? "Person" : "Personen"}</span>
+                  <span aria-hidden="true">→</span>
+                </button>
               </div>
             </article>
           `)
           .join("");
+        patientIndicationsList.querySelectorAll("[data-open-patient-indication]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const indicationName = button.dataset.patientIndicationName || "";
+            const nextMode = button.dataset.openPatientIndication === "people" ? "people" : "organizations";
+            if (!indicationName) return;
+            selectedCategories = [indicationName];
+            selectedStates = [];
+            selectedOrganizationCities = [];
+            searchInput.value = "";
+            activePatientMode = nextMode;
+            currentPage = 1;
+            closeDetail();
+            updateView();
+          });
+        });
         patientPaginationMeta.textContent = `${items.length} von ${activePatientIndicationsTotal()} Indikationen`;
         patientPagination.innerHTML = "";
       }
@@ -7740,7 +7838,7 @@
         return `
           <span class="stakeholder-member-value">
             <span>${escapeHtml(count)}</span>
-            <span class="dashboard-info stakeholder-member-info" tabindex="0" aria-label="Bezugsgröße der Mitgliederzahl">i<span class="dashboard-info__popup" role="tooltip">${escapeHtml(scope)}</span></span>
+            <span class="dashboard-info stakeholder-member-info" tabindex="0" aria-label="Bezugsgröße der Kennzahl">i<span class="dashboard-info__popup" role="tooltip">${escapeHtml(scope)}</span></span>
           </span>
         `;
       }
@@ -7850,7 +7948,7 @@
                   <div class="cell--organization">${stakeholderOrganizationTableCellMarkup(organization, "organization")}</div>
                   <div class="organization-mobile-meta">
                     <span class="organization-mobile-state">${escapeHtml(stakeholderOrganizationLocation(organization) || organization.state || "-")}</span>
-                    <span class="organization-mobile-state">${escapeHtml(stakeholderMemberCountLabel(organization))} Mitglieder</span>
+                    <span class="organization-mobile-state">${escapeHtml(stakeholderMemberCountLabel(organization))} ${escapeHtml(config.memberCountUnitLabel)}</span>
                     <button class="organization-contact-link organization-mobile-count" type="button" data-open-stakeholder-organization="${escapeHtml(organization.id)}">${stakeholderCountLabel(peopleCount, config.personSingular, config.personPlural)}</button>
                   </div>
                 </article>
@@ -8078,11 +8176,11 @@
                   ${detailLine("Typ", organizationTypeText)}
                   ${detailLine("Sitz", locationText)}
                   ${detailLine("Bundesland", organization.state)}
-                  ${detailLineHtml("Mitgliederzahl", stakeholderMemberCountDetailMarkup(organization))}
+                  ${detailLineHtml(config.memberCountColumnLabel, stakeholderMemberCountDetailMarkup(organization))}
                   ${detailContactLine("Website", organization.website ? organization.website.replace(/^https?:\/\//, "") : "", organization.website)}
                   ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
                   ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
-                  ${detailContactLine("Quelle Mitgliederzahl", memberCountSourceLabel, organization.memberCountSourceUrl)}
+                  ${detailContactLine(`Quelle ${config.memberCountColumnLabel}`, memberCountSourceLabel, organization.memberCountSourceUrl)}
                   ${detailLine("Quelle", organization.source)}
                 </div>
               </section>
@@ -14287,6 +14385,7 @@
         const config = stakeholderTypeConfig(typeId);
         return stakeholderOrganizationTableColumns.map((column) => {
           if (column.key === "people") return { ...column, label: config.peopleTabLabel };
+          if (column.key === "memberCount") return { ...column, label: config.memberCountColumnLabel };
           return column;
         });
       }
@@ -33124,6 +33223,11 @@
               ? { ...viewLabels.personProfile, title: activePersonProfile.title || viewLabels.personProfile.title }
             : activeView === "organizationProfile"
               ? { ...viewLabels.organizationProfile, title: activeOrganizationProfile.title || viewLabels.organizationProfile.title }
+            : activeView === "stakeholders"
+              ? {
+                  title: stakeholderTypeConfig().organizationPlural,
+                  subtitle: stakeholderTypeConfig().description
+                }
             : viewLabels[activeView] || viewLabels.contacts;
         if (topbarViewTitle) topbarViewTitle.textContent = view.title;
         if (topbarViewMeta) topbarViewMeta.textContent = greetingLabel;
@@ -33390,6 +33494,10 @@
         if (routeView === "hospitations" || String(routeView).startsWith("hospitations:")) {
           return hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab);
         }
+        if (routeView === "stakeholders") return stakeholderRouteForType();
+        if (String(routeView).startsWith("stakeholders/")) {
+          return parseStakeholderRoute(routeView)?.route || stakeholderRouteForType();
+        }
         if (routeView === "profile") return profileRouteForTab();
         return safeViewForRole(routeView);
       }
@@ -33535,9 +33643,12 @@
         }
         viewTabs.forEach((tab) => {
           const tabView = tab.dataset.viewTab;
-          const active = activeNavigationView === "hospitations"
-            ? (activeHospitationTab === "appointments" ? tabView === "hospitations" : tabView === `hospitations:${activeHospitationTab}`)
-            : tabView === activeNavigationView || (tab.dataset.viewGroup === "care" && isCareView(activeNavigationView));
+          const stakeholderTypeRoute = tab.dataset.stakeholderTypeRoute || "";
+          const active = stakeholderTypeRoute
+            ? activeNavigationView === "stakeholders" && stakeholderTypeRoute === activeStakeholderTypeId
+            : activeNavigationView === "hospitations"
+              ? (activeHospitationTab === "appointments" ? tabView === "hospitations" : tabView === `hospitations:${activeHospitationTab}`)
+              : tabView === activeNavigationView || (tab.dataset.viewGroup === "care" && isCareView(activeNavigationView));
           tab.classList.toggle("is-active", active);
           if (active) tab.setAttribute("aria-current", "page");
           else tab.removeAttribute("aria-current");
@@ -34102,11 +34213,12 @@
         const rerenderDetail = () => openPatientOrganizationDetail(organization.id, currentItems, { mode: detailMode, returnTo });
         const currentIndex = currentItems.findIndex((item) => item.id === organization.id);
         const locationText = patientOrganizationLocation(organization);
+        const linkedPeople = patientOrganizationPeople(organization);
         const quality = patientOrganizationQualityLabel(organization);
         const typeLabel = meaningfulOrEmpty(organization.organizationType);
         const memberCountLabel = organization.memberCountLabel || (Number.isFinite(organization.memberCount) ? organization.memberCount.toLocaleString("de-DE") : "");
         if (activePatientOrganizationId !== organization.id) organizationDetailActiveTab = "overview";
-        const tabs = ["overview", "themes", "notes", "activity"];
+        const tabs = ["overview", "people", "themes", "notes", "activity"];
         const activeTab = normalizeDetailTab(organizationDetailActiveTab || "overview", tabs);
         organizationDetailActiveTab = activeTab;
         const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab);
@@ -34146,6 +34258,7 @@
 
               <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
                 ${detailTabButton("overview", "Überblick", activeTab)}
+                ${detailTabButton("people", `Kontakte (${linkedPeople.length})`, activeTab)}
                 ${detailTabButton("themes", "Themen", activeTab)}
                 ${detailTabButton("notes", "Notizen", activeTab)}
                 ${detailTabButton("activity", "Aktivitäten", activeTab)}
@@ -34165,6 +34278,18 @@
                   ${detailContactLine("Telefon", organization.phone, organization.phone ? `tel:${organization.phone}` : "")}
                   ${detailContactLine("E-Mail", organization.email, organization.email ? `mailto:${organization.email}` : "")}
                   ${detailLine("Quelle", organization.source)}
+                </div>
+              </section>
+
+              <section ${panelAttrs("people")} id="patient-organization-people">
+                <h4 class="detail-section-title">Kontakte${linkedPeople.length ? ` (${linkedPeople.length})` : ""}</h4>
+                <div class="detail-line-list">
+                  ${linkedPeople.length
+                    ? linkedPeople.map((person) => detailLineHtml(
+                      person.role || "Kontakt",
+                      `<button class="organization-contact-link" type="button" data-open-patient-org-person="${escapeHtml(person.id)}">${escapeHtml(person.name)}</button>`
+                    )).join("")
+                    : `<div class="detail-secondary">Noch keine Kontakte zugeordnet.</div>`}
                 </div>
               </section>
 
@@ -34198,6 +34323,11 @@
         if (isProfilePage) bindOrganizationProfileBack(targetPanel);
         targetPanel.querySelector("[data-open-organization-profile]")?.addEventListener("click", () => {
           openOrganizationProfile("patient", organization.id, { returnTo, title: organization.name });
+        });
+        targetPanel.querySelectorAll("[data-open-patient-org-person]").forEach((button) => {
+          button.addEventListener("click", () => {
+            openPersonProfile("stakeholder", button.dataset.openPatientOrgPerson, { returnTo: "patients" });
+          });
         });
         targetPanel.querySelectorAll("[data-detail-tab]").forEach((button) => {
           button.addEventListener("click", () => {
@@ -35475,7 +35605,7 @@
         const isNotificationsView = isNotificationsWorkspaceActive();
         const isExpertsView = activeView === "experts";
         const isPatientsView = activeView === "patients";
-        if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "organizations";
+        if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "indications";
         const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
         const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
         const isPatientIndicationsMode = isPatientsView && activePatientMode === "indications";
@@ -36231,7 +36361,7 @@
         });
       });
       viewTabs.forEach((tab) => {
-        tab.addEventListener("click", () => {
+        tab.addEventListener("click", async () => {
           const targetView = tab.dataset.viewTab || "contacts";
           const hospitationRoute = parseHospitationRoute(targetView);
           closeMobileSidebar();
@@ -36242,6 +36372,35 @@
             updateRouteHash(hospitationRouteForTab(activeHospitationTab));
             updateView();
             return;
+          }
+          const stakeholderTypeRoute = tab.dataset.stakeholderTypeRoute || "";
+          if (targetView === "stakeholders" && stakeholderTypeRoute) {
+            const typeChanged = activeStakeholderTypeId !== stakeholderTypeRoute;
+            activeStakeholderTypeId = stakeholderTypeRoute;
+            activeStakeholderMode = "organizations";
+            activeStakeholderOrganizationId = null;
+            activeStakeholderPersonId = null;
+            currentPage = 1;
+            clearSearchInput({ update: false });
+            if (typeChanged) resetStakeholderOrganizationSortForType(activeStakeholderTypeId);
+            setActiveView("stakeholders");
+            updateRouteHash(stakeholderRouteForType(activeStakeholderTypeId));
+            updateView();
+            if (typeChanged) {
+              try {
+                await loadStakeholderData({ includeArchived: canAdministerData() });
+              } catch {
+                // The workspace already exposes its protected-backend empty state.
+              }
+              if (activeView === "stakeholders" && activeStakeholderTypeId === stakeholderTypeRoute) updateView();
+            }
+            return;
+          }
+          if (targetView === "patients") {
+            activePatientMode = "indications";
+            selectedCategories = [];
+            selectedStates = [];
+            clearSearchInput({ update: false });
           }
           setActiveView(targetView);
           updateRouteHash(targetView);
@@ -37556,6 +37715,11 @@
           activeHospitationTab = hospitationRoute.tab;
           return "hospitations";
         }
+        const stakeholderRoute = parseStakeholderRoute(hashView);
+        if (stakeholderRoute) {
+          activeStakeholderTypeId = stakeholderRoute.typeId;
+          return "stakeholders";
+        }
         if (hashView === "planning") {
           return "framework";
         }
@@ -37959,7 +38123,7 @@
         isInitialDataLoading = false;
         initialDataLoadingSlow = false;
         try {
-          if (CLEAN_URLS_ENABLED) {
+          if (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders") {
             updateRouteHash(initialTargetView, { replace: true });
           }
           if (initialTargetView) activeView = initialTargetView;
