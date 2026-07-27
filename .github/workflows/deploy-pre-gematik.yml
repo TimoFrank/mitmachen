@@ -2616,7 +2616,15 @@ jobs:
               --write-out '%{http_code}' \
               --max-time 30 \
               "${FRONTEND_BASE_URL}${redirect_path}")"
-            redirect_location="$(awk 'BEGIN { IGNORECASE=1 } /^location:/ { gsub(/\r/, \"\", $2); print $2 }' "$redirect_headers")"
+            redirect_location="$(awk '
+              BEGIN { IGNORECASE = 1 }
+              /^location:/ {
+                sub(/^[^:]+:[[:space:]]*/, "")
+                sub(/\r$/, "")
+                print
+                exit
+              }
+            ' "$redirect_headers")"
             if [[ "$redirect_status" != "308" ]] || [[ "$redirect_location" != "/" ]] || \
                grep --fixed-strings --quiet 'data-public-entry=' "$redirect_body" || \
                grep --fixed-strings --quiet 'must-not-reflect' "$redirect_body" || \
