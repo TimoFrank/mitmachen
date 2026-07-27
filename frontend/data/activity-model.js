@@ -4,7 +4,7 @@
   const CATEGORY_DEFINITIONS = Object.freeze({
     master_data: Object.freeze({ key: "master_data", label: "Stammdaten" }),
     ownership: Object.freeze({ key: "ownership", label: "Zuständigkeit" }),
-    consent: Object.freeze({ key: "consent", label: "Einwilligung" }),
+    consent: Object.freeze({ key: "consent", label: "Einwilligung & Nutzung" }),
     hospitation: Object.freeze({ key: "hospitation", label: "Hospitation" }),
     format: Object.freeze({ key: "format", label: "Format" }),
     note_document: Object.freeze({ key: "note_document", label: "Notiz und Dokument" }),
@@ -38,6 +38,7 @@
     "contact.consent.updated": eventDefinition("consent", "updated", "Einwilligung aktualisiert", "contact", "contact_consent"),
     "contact.consent.declined": eventDefinition("consent", "declined", "Einwilligung abgelehnt", "contact", "contact_consent"),
     "contact.consent.withdrawn": eventDefinition("consent", "withdrawn", "Einwilligung widerrufen", "contact", "contact_consent"),
+    "contact.relationship.updated": eventDefinition("consent", "updated", "Nutzungsgrundlage aktualisiert", "contact", "contact_relationship_basis"),
     "organization.created": eventDefinition("master_data", "created", "Organisation angelegt", "organization", "organization_lifecycle"),
     "organization.updated": eventDefinition("master_data", "updated", "Organisation aktualisiert", "organization", "organization_master_data"),
     "organization.archived": eventDefinition("master_data", "archived", "Organisation archiviert", "organization", "organization_lifecycle"),
@@ -97,18 +98,28 @@
     image_rights_note: "Bildrechte",
     image_updated_at: "Bildaktualisierung",
     image_updated_by: "Bildaktualisierung",
-    mitmachen_consent_status: "Einwilligungsstatus",
+    relationship_basis: "Grundlage der Profilführung",
+    relationship_basis_effective_at: "Profilgrundlage – Zeitpunkt",
+    relationship_basis_recorded_by: "Profilgrundlage – erfasst von",
+    relationship_basis_note: "Profilgrundlage – Vermerk",
+    mitmachen_consent_status: "#Mitmachen-Einwilligungsstatus",
     image_storage_path: "Bilddatei",
     image_kind: "Bildquelle",
     image_mime_type: "Bildformat",
     image_file_size: "Bildgröße",
     image_width: "Bildbreite",
     image_height: "Bildhöhe",
-    mitmachen_consent_effective_at: "Einwilligungszeitpunkt",
-    mitmachen_consent_source: "Einwilligungsquelle",
-    mitmachen_consent_text_version: "Einwilligungstext",
-    mitmachen_consent_recorded_by: "Einwilligung erfasst von",
-    mitmachen_consent_note: "Einwilligungsnachweis"
+    mitmachen_consent_effective_at: "#Mitmachen-Zeitpunkt",
+    mitmachen_consent_source: "#Mitmachen-Quelle",
+    mitmachen_consent_text_version: "#Mitmachen-Textversion",
+    mitmachen_consent_recorded_by: "#Mitmachen erfasst von",
+    mitmachen_consent_note: "#Mitmachen-Nachweisvermerk",
+    ehc_consent_status: "EHC-Einwilligungsstatus",
+    ehc_consent_effective_at: "EHC-Zeitpunkt",
+    ehc_consent_source: "EHC-Quelle",
+    ehc_consent_text_version: "EHC-Textversion",
+    ehc_consent_recorded_by: "EHC erfasst von",
+    ehc_consent_note: "EHC-Nachweisvermerk"
   });
 
   const FIELD_FAMILIES = Object.freeze({
@@ -130,7 +141,20 @@
     "mitmachen_consent_source",
     "mitmachen_consent_text_version",
     "mitmachen_consent_recorded_by",
-    "mitmachen_consent_note"
+    "mitmachen_consent_note",
+    "ehc_consent_status",
+    "ehc_consent_effective_at",
+    "ehc_consent_source",
+    "ehc_consent_text_version",
+    "ehc_consent_recorded_by",
+    "ehc_consent_note"
+  ]);
+
+  const RELATIONSHIP_BASIS_FIELDS = new Set([
+    "relationship_basis",
+    "relationship_basis_effective_at",
+    "relationship_basis_recorded_by",
+    "relationship_basis_note"
   ]);
 
   const IMAGE_FIELDS = new Set([
@@ -350,7 +374,8 @@
 
   function fieldFamily(fieldName) {
     const field = toSnakeCase(fieldName);
-    if (CONSENT_FIELDS.has(field) || field.startsWith("mitmachen_consent_") || field.startsWith("consent_")) return "contact_consent";
+    if (RELATIONSHIP_BASIS_FIELDS.has(field) || field.startsWith("relationship_basis_")) return "contact_relationship_basis";
+    if (CONSENT_FIELDS.has(field) || field.startsWith("mitmachen_consent_") || field.startsWith("ehc_consent_") || field.startsWith("consent_")) return "contact_consent";
     if (IMAGE_FIELDS.has(field) || field.startsWith("image_") || field.startsWith("avatar_")) return "contact_image";
     for (const [family, fields] of Object.entries(FIELD_FAMILIES)) {
       if (fields.has(field)) return family;
@@ -383,7 +408,8 @@
   }
 
   function consentEventKey(fieldName, newValue) {
-    if (toSnakeCase(fieldName) !== "mitmachen_consent_status" && toSnakeCase(fieldName) !== "consent_status") return "contact.consent.updated";
+    const field = toSnakeCase(fieldName);
+    if (field !== "consent_status" && !field.endsWith("_consent_status")) return "contact.consent.updated";
     const status = toSnakeCase(newValue);
     if (["granted", "accepted", "approved", "erteilt"].includes(status)) return "contact.consent.granted";
     if (["declined", "rejected", "abgelehnt"].includes(status)) return "contact.consent.declined";
@@ -406,7 +432,10 @@
     if (action === "owner" || FIELD_FAMILIES.contact_ownership.has(fieldName)) {
       return { eventKey: ownerEventKey(oldValue, newValue), fieldFamily: "contact_ownership" };
     }
-    if (CONSENT_FIELDS.has(fieldName) || fieldName.startsWith("mitmachen_consent_") || fieldName.startsWith("consent_")) {
+    if (RELATIONSHIP_BASIS_FIELDS.has(fieldName) || fieldName.startsWith("relationship_basis_")) {
+      return { eventKey: "contact.relationship.updated", fieldFamily: "contact_relationship_basis" };
+    }
+    if (CONSENT_FIELDS.has(fieldName) || fieldName.startsWith("mitmachen_consent_") || fieldName.startsWith("ehc_consent_") || fieldName.startsWith("consent_")) {
       return { eventKey: consentEventKey(fieldName, newValue), fieldFamily: "contact_consent" };
     }
     if (IMAGE_FIELDS.has(fieldName) || fieldName.startsWith("image_") || fieldName.startsWith("avatar_")) {

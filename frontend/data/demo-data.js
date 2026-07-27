@@ -428,6 +428,22 @@
       .filter(Boolean);
     const consentRecordedBy = assignedOwnerIds[0] || ownerIds[(index + 1) % ownerIds.length] || "";
     const consentDecisionAt = new Date(Date.UTC(2026, 4 + (index % 2), 2 + (index % 20), 9 + (index % 6), 15)).toISOString();
+    const relationshipBasisOptions = [
+      "public_task",
+      "self_submitted",
+      "active_collaboration",
+      "verbal_contact",
+      "public_professional_source"
+    ];
+    const relationshipBasis = index % 9 === 3
+      ? "review_required"
+      : relationshipBasisOptions[index % relationshipBasisOptions.length];
+    const relationshipBasisEffectiveAt = relationshipBasis === "review_required"
+      ? ""
+      : new Date(Date.UTC(2026, 3 + (index % 2), 1 + (index % 24), 8 + (index % 5), 30)).toISOString();
+    const relationshipBasisNote = relationshipBasis === "review_required"
+      ? "Die Beziehungsgrundlage dieses synthetischen Kontakts muss fachlich geprüft werden."
+      : "Synthetisch dokumentierte Beziehungsgrundlage für Funktions- und Filtertests.";
     const consentSourceOptions = ["online_form", "email", "written", "verbal_confirmed", "manual_transfer"];
     const consentGranted = index < 72 && index % 8 === 7;
     const consentStatus = consentGranted
@@ -473,12 +489,22 @@
       email: `kontakt-${String(n).padStart(3, "0")}@versorgung.example.invalid`,
       phone,
       linkedin: "",
+      relationshipBasis,
+      relationshipBasisEffectiveAt,
+      relationshipBasisRecordedBy: relationshipBasis === "review_required" ? "" : consentRecordedBy,
+      relationshipBasisNote,
       mitmachenConsentStatus: consentStatus,
       mitmachenConsentEffectiveAt: ["granted", "declined", "withdrawn"].includes(consentStatus) ? consentDecisionAt : "",
       mitmachenConsentSource: consentSource,
       mitmachenConsentTextVersion: ["granted", "declined", "withdrawn"].includes(consentStatus) ? "mitmachen-kontakt-v2" : "",
       mitmachenConsentRecordedBy: ["granted", "declined", "withdrawn"].includes(consentStatus) ? consentRecordedBy : "",
       mitmachenConsentNote: consentNote,
+      ehcConsentStatus: "not_requested",
+      ehcConsentEffectiveAt: "",
+      ehcConsentSource: "",
+      ehcConsentTextVersion: "",
+      ehcConsentRecordedBy: "",
+      ehcConsentNote: "",
       themes,
       note: "Fiktiver Versorgungskontakt; alle Angaben sind synthetisch und enthalten keine realen CRM-Daten.",
       nextStep: index % 3 === 0 ? "Rückmeldung zum nächsten Übergabepunkt im Versorgungspfad einholen." : "",
@@ -523,6 +549,86 @@
   });
   [24, 77, 110].forEach((index) => {
     contacts[index] = { ...contacts[index], status: "archived", note: "Archivierter synthetischer Kontakt für administrative Prüfungen." };
+  });
+  Object.assign(contacts[3], {
+    relationshipBasis: "review_required",
+    relationshipBasisEffectiveAt: "",
+    relationshipBasisRecordedBy: "",
+    relationshipBasisNote: "",
+    mitmachenConsentStatus: "not_requested",
+    mitmachenConsentEffectiveAt: "",
+    mitmachenConsentSource: "",
+    mitmachenConsentTextVersion: "",
+    mitmachenConsentRecordedBy: "",
+    mitmachenConsentNote: "",
+    ehcConsentStatus: "not_requested",
+    ehcConsentEffectiveAt: "",
+    ehcConsentSource: "",
+    ehcConsentTextVersion: "",
+    ehcConsentRecordedBy: "",
+    ehcConsentNote: ""
+  });
+  Object.assign(contacts[4], {
+    relationshipBasis: "review_required",
+    relationshipBasisEffectiveAt: "",
+    relationshipBasisRecordedBy: "",
+    relationshipBasisNote: "Herkunft und Reichweite müssen vor einer Kontaktaufnahme geklärt werden.",
+    mitmachenConsentStatus: "clarification_needed",
+    mitmachenConsentEffectiveAt: "",
+    mitmachenConsentSource: "",
+    mitmachenConsentTextVersion: "",
+    mitmachenConsentRecordedBy: "",
+    mitmachenConsentNote: "Der synthetische Altfund enthält keinen belastbaren #Mitmachen-Nachweis."
+  });
+  Object.assign(contacts[7], {
+    relationshipBasis: "self_submitted",
+    relationshipBasisEffectiveAt: "2026-05-09T10:15:00.000Z",
+    relationshipBasisRecordedBy: contacts[7].ownerId,
+    relationshipBasisNote: "Selbstregistrierung über das synthetische #Mitmachen-Onlineformular.",
+    mitmachenConsentStatus: "granted",
+    mitmachenConsentEffectiveAt: "2026-05-09T10:15:00.000Z",
+    mitmachenConsentSource: "online_form",
+    mitmachenConsentTextVersion: "mitmachen-kontakt-v2",
+    mitmachenConsentRecordedBy: contacts[7].ownerId,
+    mitmachenConsentNote: "Vollständiger synthetischer Formularnachweis."
+  });
+  Object.assign(contacts[31], {
+    relationshipBasis: "verbal_contact",
+    relationshipBasisEffectiveAt: "2026-06-13T11:30:00.000Z",
+    relationshipBasisRecordedBy: contacts[31].ownerId,
+    relationshipBasisNote: "Persönliches Gespräch auf einem rein fiktiven Fachkongress.",
+    mitmachenConsentStatus: "granted",
+    mitmachenConsentEffectiveAt: "2026-06-13T11:30:00.000Z",
+    mitmachenConsentSource: "verbal_confirmed",
+    mitmachenConsentTextVersion: "mitmachen-muendlich-v1",
+    mitmachenConsentRecordedBy: contacts[31].ownerId,
+    mitmachenConsentNote: "Mündlich bestätigt; schriftlichen Nachweis im synthetischen Szenario nachfassen."
+  });
+  Object.assign(contacts[70], {
+    ehcConsentStatus: "clarification_needed",
+    ehcConsentEffectiveAt: "",
+    ehcConsentSource: "manual_transfer",
+    ehcConsentTextVersion: "",
+    ehcConsentRecordedBy: contacts[70].ownerId,
+    ehcConsentNote: "Die übertragene EHC-Textversion ist im synthetischen Szenario noch zu klären."
+  });
+  Object.assign(contacts[75], {
+    relationshipBasis: "active_collaboration",
+    relationshipBasisEffectiveAt: "2025-11-12T09:20:00.000Z",
+    relationshipBasisRecordedBy: contacts[75].ownerId,
+    relationshipBasisNote: "Verarbeitung ausschließlich für die synthetische EHC-Panelverwaltung.",
+    mitmachenConsentStatus: "not_requested",
+    mitmachenConsentEffectiveAt: "",
+    mitmachenConsentSource: "",
+    mitmachenConsentTextVersion: "",
+    mitmachenConsentRecordedBy: "",
+    mitmachenConsentNote: "",
+    ehcConsentStatus: "granted",
+    ehcConsentEffectiveAt: "2025-11-12T09:15:00.000Z",
+    ehcConsentSource: "survalyzer_ehc",
+    ehcConsentTextVersion: "ehc-teilnahme-v2025-11",
+    ehcConsentRecordedBy: contacts[75].ownerId,
+    ehcConsentNote: "Vollständiger synthetischer EHC-Nachweis; keine #Mitmachen-Einwilligung."
   });
 
   const hospitationDemoSources = {

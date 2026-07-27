@@ -8,7 +8,7 @@
       let xlsxLoadPromise = null;
 
       function contactChannelsRestricted(contact = {}) {
-        return OWNER_ONLY_CONTACT_CHANNELS && contact?.contactChannelAccess === "restricted";
+        return contact?.contactChannelAccess === "restricted";
       }
 
       function accessibleContactEmail(contact = {}) {
@@ -20,7 +20,7 @@
       }
 
       function contactChannelRestrictedMarkup() {
-        return `<span class="contact-channel-restricted"><span aria-hidden="true">🔒</span> Nur für Owner sichtbar</span>`;
+        return `<span class="contact-channel-restricted"><span aria-hidden="true">🔒</span> Geschützt · Nur für Owner sichtbar</span>`;
       }
 
       function ensureXlsxLoaded() {
@@ -382,7 +382,7 @@
         { key: "location", label: "Ort", template: "minmax(135px, 0.64fr)" },
         { key: "state", label: "Bundesland", template: "minmax(155px, 0.72fr)" },
         { key: "owner", label: "Owner", template: "minmax(150px, 0.74fr)" },
-        { key: "consent", label: "Einwilligung", template: "minmax(142px, 0.66fr)" },
+        { key: "consent", label: "Einwilligungen", template: "minmax(142px, 0.66fr)" },
         { key: "priority", label: "Priorität", template: "minmax(108px, 0.52fr)" },
         { key: "updated", label: "Aktualisiert", template: "minmax(118px, 0.56fr)" }
       ];
@@ -2318,8 +2318,8 @@
           registration.formVersion || registration.form_version ? `Formularversion: ${registration.formVersion || registration.form_version}` : "",
           sourceUrl ? `Quelle: ${sourceUrl}` : "",
           registration.privacyCheckStatus || registration.privacy_check_status ? `Prüfstatus Datenschutz-Nachweise: ${registrationPrivacyLabel(registration.privacyCheckStatus || registration.privacy_check_status)}` : "",
-          registration.consentProcessingVersion || registration.consent_processing_version ? `Pflicht-Einwilligung: ${registration.consentProcessingVersion || registration.consent_processing_version}` : "",
-          registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at ? `Pflicht-Einwilligung Zeitpunkt: ${formatDateTimeLabel(registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at)}` : "",
+          registration.consentProcessingVersion || registration.consent_processing_version ? `Datenschutzhinweis-Version: ${registration.consentProcessingVersion || registration.consent_processing_version}` : "",
+          registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at ? `Datenschutzhinweis angezeigt: ${formatDateTimeLabel(registration.consentProcessingAcceptedAt || registration.consent_processing_accepted_at)}` : "",
           registration.consentContactAcceptedAt || registration.consent_contact_accepted_at ? `#Mitmachen-Einwilligung: ${formatDateTimeLabel(registration.consentContactAcceptedAt || registration.consent_contact_accepted_at)}` : "",
           `E-Mail-Nachweis: ${registrationEmailStatusLabel(registration)}`
         ];
@@ -2328,10 +2328,22 @@
 
       function registrationConsentPatch(registration, existingContact = null) {
         const acceptedAt = String(registration.consentContactAcceptedAt || registration.consent_contact_accepted_at || "").trim();
-        if (!acceptedAt) return existingContact ? {} : { mitmachenConsentStatus: "not_requested" };
+        const submittedAt = String(registration.submittedAt || registration.submitted_at || acceptedAt || "").trim();
+        const relationshipPatch = existingContact && normalizeRelationshipBasis(existingContact.relationshipBasis) !== "review_required"
+          ? {}
+          : {
+              relationshipBasis: "self_submitted",
+              relationshipBasisEffectiveAt: submittedAt,
+              relationshipBasisRecordedBy: currentProfile?.id || "",
+              relationshipBasisNote: `Selbst eingereichte Versorgungs-Netzwerk-Registrierung ${registration.id || "ohne ID"}.`
+            };
+        if (!acceptedAt) return existingContact
+          ? relationshipPatch
+          : { ...relationshipPatch, mitmachenConsentStatus: "not_requested" };
         if (!registrationEmailIsConfirmed(registration)) {
-          if (existingContact?.mitmachenConsentStatus === "granted") return {};
+          if (existingContact?.mitmachenConsentStatus === "granted") return relationshipPatch;
           return {
+            ...relationshipPatch,
             mitmachenConsentStatus: "clarification_needed",
             mitmachenConsentEffectiveAt: acceptedAt,
             mitmachenConsentSource: "online_form",
@@ -2342,8 +2354,9 @@
         }
         const existingAt = new Date(existingContact?.mitmachenConsentEffectiveAt || 0).getTime();
         const acceptedTime = new Date(acceptedAt).getTime();
-        if (existingContact && Number.isFinite(existingAt) && Number.isFinite(acceptedTime) && existingAt > acceptedTime) return {};
+        if (existingContact && Number.isFinite(existingAt) && Number.isFinite(acceptedTime) && existingAt > acceptedTime) return relationshipPatch;
         return {
+          ...relationshipPatch,
           mitmachenConsentStatus: "granted",
           mitmachenConsentEffectiveAt: acceptedAt,
           mitmachenConsentSource: "online_form",
@@ -4734,6 +4747,17 @@
             ? { contactChannelAccess: entry.contactChannelAccess }
             : {}),
           linkedin: entry.linkedin || "",
+          profileAccess: entry.profileAccess || entry.profile_access || "",
+          relationshipBasis: entry.relationshipBasis || entry.relationship_basis || "review_required",
+          relationshipBasisEffectiveAt: entry.relationshipBasisEffectiveAt || entry.relationship_basis_effective_at || "",
+          relationshipBasisRecordedBy: entry.relationshipBasisRecordedBy || entry.relationship_basis_recorded_by || "",
+          relationshipBasisNote: entry.relationshipBasisNote || entry.relationship_basis_note || "",
+          ehcConsentStatus: normalizeEhcConsentStatus(entry.ehcConsentStatus || entry.ehc_consent_status || "not_requested"),
+          ehcConsentEffectiveAt: entry.ehcConsentEffectiveAt || entry.ehc_consent_effective_at || "",
+          ehcConsentSource: entry.ehcConsentSource || entry.ehc_consent_source || "",
+          ehcConsentTextVersion: entry.ehcConsentTextVersion || entry.ehc_consent_text_version || "",
+          ehcConsentRecordedBy: entry.ehcConsentRecordedBy || entry.ehc_consent_recorded_by || "",
+          ehcConsentNote: entry.ehcConsentNote || entry.ehc_consent_note || "",
           mitmachenConsentStatus: normalizeMitmachenConsentStatus(entry.mitmachenConsentStatus || entry.mitmachen_consent_status || "clarification_needed"),
           mitmachenConsentEffectiveAt: entry.mitmachenConsentEffectiveAt || entry.mitmachen_consent_effective_at || "",
           mitmachenConsentSource: entry.mitmachenConsentSource || entry.mitmachen_consent_source || "",
@@ -27615,14 +27639,14 @@
       }
 
       function consentAvailabilityBadgeMarkup(contact, { compact = false } = {}) {
-        const availability = mitmachenConsentAvailability(contact);
-        const detail = `Detailstatus: ${availability.statusLabel}. ${availability.reason}`;
+        const availability = contactConsentBadgeState(contact);
+        const detail = `${availability.detail} Detailstatus #Mitmachen: ${availability.statusLabel}. ${availability.reason}`;
         const className = [
           "consent-availability-badge",
-          `consent-availability-badge--${availability.key}`,
+          `consent-availability-badge--${availability.tone}`,
           compact ? "consent-availability-badge--compact" : ""
         ].filter(Boolean).join(" ");
-        return `<span class="${className}" data-consent-availability="${escapeHtml(availability.key)}" data-consent-status="${escapeHtml(availability.status)}" data-consent-reason="${escapeHtml(availability.reason)}" title="${escapeHtml(detail)}" aria-label="Einwilligung: ${escapeHtml(availability.label)}. ${escapeHtml(detail)}">${escapeHtml(availability.label)}</span>`;
+        return `<span class="${className}" data-consent-availability="${escapeHtml(availability.key)}" data-consent-status="${escapeHtml(availability.status)}" data-consent-tone="${escapeHtml(availability.tone)}" data-consent-reason="${escapeHtml(availability.reason)}" title="${escapeHtml(detail)}" aria-label="Einwilligungen: ${escapeHtml(availability.label)}. ${escapeHtml(detail)}"><span aria-hidden="true">${escapeHtml(availability.icon)}</span>${escapeHtml(availability.label)}</span>`;
       }
 
       function sourceLabel(contact) {
@@ -27678,6 +27702,7 @@
                 <div class="contact-name__line">
                   <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${escapeHtml(contact.name) || "&mdash;"}</button>
                   ${testMarkerMarkup(contact)}
+                  ${ehcProfileBadgeMarkup(contact, { compact: true })}
                   ${favoriteContactButtonMarkup(contact)}
                 </div>
               </div>
@@ -27712,7 +27737,7 @@
           specialty: { filterKey: "specialty", label: "Fachrichtung" },
           state: { filterKey: "state", label: "Bundesland" },
           owner: { filterKey: "owner", label: "Owner" },
-          consent: { filterKey: "consent", label: "Einwilligung" },
+          consent: { filterKey: "consent", label: "Einwilligungen" },
           priority: { filterKey: "priority", label: "Priorität" },
           updated: { filterKey: "updated", label: "Aktualisiert" },
           source: { filterKey: "source", label: "Quelle" },
@@ -28210,6 +28235,7 @@
                   ${contactAvatarMarkup(contact, "sm")}
                   <div class="mobile-contact-copy">
                     <h3 class="mobile-contact-name">${escapeHtml(contact.name) || "&mdash;"} ${testMarkerMarkup(contact, { compact: true })}</h3>
+                    ${ehcProfileBadgeMarkup(contact, { compact: true })}
                     <div class="mobile-contact-organization">${escapeHtml(contact.organization || "Nicht dokumentiert")}</div>
                     <div class="mobile-contact-consent">${consentAvailabilityBadgeMarkup(contact, { compact: true })}</div>
                   </div>
@@ -30375,11 +30401,43 @@
         manual_transfer: "Manuelle Übernahme"
       };
 
+      const EHC_CONSENT_SOURCE_LABELS = {
+        survalyzer_ehc: "EHC / Survalyzer",
+        online_form: "Online-Formular",
+        email: "E-Mail",
+        written: "Schriftlich",
+        verbal_confirmed: "Ausdrücklich mündlich",
+        manual_transfer: "Manuelle Übernahme"
+      };
+
+      const RELATIONSHIP_BASIS_LABELS = {
+        review_required: "Grundlage prüfen",
+        public_task: "Gesetzliche Aufgabe",
+        self_submitted: "Selbst eingereicht",
+        active_collaboration: "Aktive Zusammenarbeit",
+        verbal_contact: "Mündlich dokumentiert",
+        public_professional_source: "Öffentliche Berufsquelle"
+      };
+
       function normalizeMitmachenConsentStatus(value) {
         const normalized = String(value || "").trim();
         return ["granted", "not_requested", "declined", "withdrawn", "clarification_needed"].includes(normalized)
           ? normalized
           : "clarification_needed";
+      }
+
+      function normalizeEhcConsentStatus(value) {
+        const normalized = String(value || "").trim();
+        return ["granted", "not_requested", "declined", "withdrawn", "clarification_needed"].includes(normalized)
+          ? normalized
+          : "not_requested";
+      }
+
+      function normalizeRelationshipBasis(value) {
+        const normalized = String(value || "").trim();
+        return Object.prototype.hasOwnProperty.call(RELATIONSHIP_BASIS_LABELS, normalized)
+          ? normalized
+          : "review_required";
       }
 
       function mitmachenConsentStatusLabel(value) {
@@ -30391,8 +30449,8 @@
       }
 
       const CONSENT_AVAILABILITY_LABELS = Object.freeze({
-        available: "Vorhanden",
-        missing: "Nicht vorhanden"
+        available: "Allgemein freigegeben",
+        missing: "Nicht allgemein freigegeben"
       });
 
       function mitmachenConsentRequiresNote(source) {
@@ -30472,6 +30530,188 @@
           ...Object.entries(MITMACHEN_CONSENT_SOURCE_LABELS)
             .map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`)
         ].join("");
+      }
+
+      function ehcConsentSourceOptions(selected) {
+        return [
+          `<option value="">Bitte wählen</option>`,
+          ...Object.entries(EHC_CONSENT_SOURCE_LABELS)
+            .map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`)
+        ].join("");
+      }
+
+      function relationshipBasisOptions(selected) {
+        return Object.entries(RELATIONSHIP_BASIS_LABELS)
+          .map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`)
+          .join("");
+      }
+
+      function consentEvidenceComplete(contact, purpose = "mitmachen") {
+        const prefix = purpose === "ehc" ? "ehcConsent" : "mitmachenConsent";
+        const status = purpose === "ehc"
+          ? normalizeEhcConsentStatus(contact[`${prefix}Status`])
+          : normalizeMitmachenConsentStatus(contact[`${prefix}Status`]);
+        if (status !== "granted") return false;
+        const effectiveAt = String(contact[`${prefix}EffectiveAt`] || "").trim();
+        const effectiveTime = new Date(effectiveAt).getTime();
+        const source = String(contact[`${prefix}Source`] || "").trim();
+        const recordedBy = String(contact[`${prefix}RecordedBy`] || "").trim();
+        const note = String(contact[`${prefix}Note`] || "").trim();
+        const knownSources = purpose === "ehc" ? EHC_CONSENT_SOURCE_LABELS : MITMACHEN_CONSENT_SOURCE_LABELS;
+        return Number.isFinite(effectiveTime)
+          && effectiveTime <= Date.now()
+          && Object.prototype.hasOwnProperty.call(knownSources, source)
+          && Boolean(recordedBy)
+          && (!mitmachenConsentRequiresNote(source) || Boolean(note));
+      }
+
+      function isEhcOnlyContact(contact = {}) {
+        return normalizeEhcConsentStatus(contact.ehcConsentStatus) === "granted"
+          && normalizeMitmachenConsentStatus(contact.mitmachenConsentStatus) !== "granted";
+      }
+
+      function consentPurposeState(contact, purpose) {
+        const isEhc = purpose === "ehc";
+        const status = isEhc
+          ? normalizeEhcConsentStatus(contact.ehcConsentStatus)
+          : normalizeMitmachenConsentStatus(contact.mitmachenConsentStatus);
+        const source = String((isEhc ? contact.ehcConsentSource : contact.mitmachenConsentSource) || "").trim();
+        const complete = consentEvidenceComplete(contact, purpose);
+        if (isEhc && status === "granted" && contact.profileAccess === "ehc_restricted") {
+          return {
+            tone: "success",
+            icon: "✓",
+            label: "Freigegeben · geschützt",
+            summary: "EHC-Nutzung ist freigegeben. Nachweisdetails bleiben auf berechtigte Owner begrenzt."
+          };
+        }
+        if (status === "granted" && complete && mitmachenConsentRequiresNote(source)) {
+          return {
+            tone: "warning",
+            icon: "!",
+            label: "Mündlich · nachfassen",
+            summary: "Kontakt ist für diesen Zweck dokumentiert. Schriftlichen Nachweis nachfassen."
+          };
+        }
+        if (status === "granted" && complete) {
+          return {
+            tone: "success",
+            icon: "✓",
+            label: "Freigegeben",
+            summary: isEhc
+              ? "Kontaktaufnahme ausschließlich im Rahmen der E-Health Community."
+              : "Allgemeine #Mitmachen-Kommunikation ist freigegeben."
+          };
+        }
+        if (status === "granted") {
+          return {
+            tone: "warning",
+            icon: "!",
+            label: "Nachweis unvollständig",
+            summary: "Nicht nutzen, bis Zeitpunkt, Quelle und Erfassung vollständig sind."
+          };
+        }
+        if (status === "clarification_needed") {
+          return {
+            tone: "warning",
+            icon: "!",
+            label: "Klärung erforderlich",
+            summary: "Vor einer Nutzung für diesen Zweck muss der Nachweis geklärt werden."
+          };
+        }
+        if (status === "declined") {
+          return {
+            tone: "danger",
+            icon: "×",
+            label: "Abgelehnt",
+            summary: "Für diesen Zweck besteht keine Kontaktfreigabe."
+          };
+        }
+        if (status === "withdrawn") {
+          return {
+            tone: "danger",
+            icon: "×",
+            label: "Widerrufen",
+            summary: "Kontaktaufnahme für diesen Zweck ist gesperrt."
+          };
+        }
+        return {
+          tone: "neutral",
+          icon: "–",
+          label: "Nicht angefragt",
+          summary: "Für diesen Zweck ist keine Freigabe dokumentiert."
+        };
+      }
+
+      function relationshipBasisState(contact) {
+        const basis = normalizeRelationshipBasis(contact.relationshipBasis);
+        if (basis === "review_required") {
+          return {
+            tone: "warning",
+            icon: "!",
+            label: "Grundlage prüfen",
+            summary: "Das Profil darf nicht automatisch für allgemeine Ansprache genutzt werden."
+          };
+        }
+        if (basis === "verbal_contact") {
+          return {
+            tone: "warning",
+            icon: "!",
+            label: "Mündlich dokumentiert",
+            summary: "Profilanlage dokumentiert; schriftlichen Nachweis nachfassen."
+          };
+        }
+        if (basis === "public_professional_source") {
+          return {
+            tone: "warning",
+            icon: "!",
+            label: "Quelle dokumentiert",
+            summary: "Nur anlassbezogen nutzen; Transparenz nach Art. 14 prüfen."
+          };
+        }
+        return {
+          tone: "success",
+          icon: "✓",
+          label: RELATIONSHIP_BASIS_LABELS[basis],
+          summary: "Die Grundlage für die interne Profilführung ist dokumentiert."
+        };
+      }
+
+      function consentTabState(contact) {
+        const mitmachen = consentPurposeState(contact, "mitmachen");
+        const ehc = consentPurposeState(contact, "ehc");
+        if (mitmachen.tone === "success") return { key: "granted", label: "#Mitmachen freigegeben" };
+        if (isEhcOnlyContact(contact)) return { key: "limited", label: "Nur EHC" };
+        if (mitmachen.tone === "danger" || ehc.tone === "danger") return { key: "blocked", label: "Kontaktzweck gesperrt" };
+        if (mitmachen.tone === "warning" || ehc.tone === "warning" || relationshipBasisState(contact).tone === "warning") {
+          return { key: "clarification_needed", label: "Klärung oder Nachfassung erforderlich" };
+        }
+        return { key: "not_requested", label: "Keine allgemeine Freigabe" };
+      }
+
+      function contactConsentBadgeState(contact) {
+        const availability = mitmachenConsentAvailability(contact);
+        const mitmachen = consentPurposeState(contact, "mitmachen");
+        if (isEhcOnlyContact(contact)) {
+          return { ...availability, tone: "limited", icon: "🔒", label: "Nur EHC", detail: "Kontaktaufnahme ausschließlich für die E-Health Community." };
+        }
+        if (mitmachen.tone === "success") {
+          return { ...availability, tone: "success", icon: "✓", label: "#Mitmachen frei", detail: mitmachen.summary };
+        }
+        if (mitmachen.tone === "warning") {
+          return { ...availability, tone: "warning", icon: "!", label: "Nachfassen", detail: mitmachen.summary };
+        }
+        if (mitmachen.tone === "danger") {
+          return { ...availability, tone: "danger", icon: "×", label: "Gesperrt", detail: mitmachen.summary };
+        }
+        return { ...availability, tone: "neutral", icon: "–", label: "Nicht freigegeben", detail: mitmachen.summary };
+      }
+
+      function ehcProfileBadgeMarkup(contact, { compact = false } = {}) {
+        if (!isEhcOnlyContact(contact)) return "";
+        const restricted = contact.profileAccess === "ehc_restricted";
+        const label = restricted ? "EHC geschützt" : "EHC-only";
+        return `<span class="ehc-profile-badge ${compact ? "ehc-profile-badge--compact" : ""}" title="Nutzung und Kontaktaufnahme nur im Rahmen der E-Health Community"><span aria-hidden="true">🔒</span>${escapeHtml(label)}</span>`;
       }
 
       function consentInlineEditButton(field, label) {
@@ -30852,6 +31092,449 @@
         });
       }
 
+      function consentSignalCard({ key, eyebrow, title, state, editable = false }) {
+        return `
+          <article class="consent-signal-card consent-signal-card--${escapeHtml(state.tone)}" data-consent-signal="${escapeHtml(key)}">
+            <div class="consent-signal-card__head">
+              <span class="consent-signal-card__icon" aria-hidden="true">${escapeHtml(state.icon)}</span>
+              <div>
+                <span class="consent-signal-card__eyebrow">${escapeHtml(eyebrow)}</span>
+                <h5>${escapeHtml(title)}</h5>
+              </div>
+            </div>
+            <strong class="consent-signal-card__status">${escapeHtml(state.label)}</strong>
+            <p>${escapeHtml(state.summary)}</p>
+            ${editable ? `<button class="consent-card-edit" type="button" data-edit-consent-record="${escapeHtml(key)}" aria-controls="consent-record-editor-${escapeHtml(key)}" aria-expanded="false">${escapeHtml(title)} bearbeiten</button>` : ""}
+          </article>
+        `;
+      }
+
+      function consentRecordEditor(kind, contact) {
+        const maxEffectiveAt = consentDateTimeInputValue(new Date().toISOString());
+        if (kind === "relationship") {
+          const basis = normalizeRelationshipBasis(contact.relationshipBasis);
+          return `
+            <form class="consent-record-editor" id="consent-record-editor-relationship" data-consent-record-editor="relationship" hidden novalidate>
+              <div class="consent-inline-grid">
+                <label class="consent-field consent-field--full">
+                  Grundlage der Profilführung
+                  <select name="basis" data-consent-primary>${relationshipBasisOptions(basis)}</select>
+                </label>
+                <label class="consent-field">
+                  Dokumentiert am
+                  <input type="datetime-local" name="effectiveAt" value="${escapeHtml(consentDateTimeInputValue(contact.relationshipBasisEffectiveAt))}" max="${escapeHtml(maxEffectiveAt)}" />
+                </label>
+                <label class="consent-field consent-field--full">
+                  Nachweis- oder Klärungsvermerk
+                  <textarea name="note" placeholder="Anlass und vereinbarten nächsten Schritt kurz festhalten">${escapeHtml(contact.relationshipBasisNote || "")}</textarea>
+                </label>
+              </div>
+              <span class="consent-field__hint">Eine Profilgrundlage ist keine pauschale Freigabe für #Mitmachen-E-Mails.</span>
+              ${consentInlineActions()}
+            </form>
+          `;
+        }
+        const isEhc = kind === "ehc";
+        const prefix = isEhc ? "ehcConsent" : "mitmachenConsent";
+        const status = isEhc
+          ? normalizeEhcConsentStatus(contact[`${prefix}Status`])
+          : normalizeMitmachenConsentStatus(contact[`${prefix}Status`]);
+        const source = String(contact[`${prefix}Source`] || "").trim();
+        const sourceOptions = isEhc ? ehcConsentSourceOptions(source) : consentSourceOptions(source);
+        return `
+          <form class="consent-record-editor" id="consent-record-editor-${escapeHtml(kind)}" data-consent-record-editor="${escapeHtml(kind)}" hidden novalidate>
+            <div class="consent-inline-grid">
+              <label class="consent-field">
+                Status
+                <select name="status" data-consent-primary>${consentStatusOptions(status)}</select>
+              </label>
+              <label class="consent-field">
+                Zeitpunkt
+                <input type="datetime-local" name="effectiveAt" value="${escapeHtml(consentDateTimeInputValue(contact[`${prefix}EffectiveAt`]))}" max="${escapeHtml(maxEffectiveAt)}" />
+              </label>
+              <label class="consent-field">
+                Quelle
+                <select name="source">${sourceOptions}</select>
+              </label>
+              <label class="consent-field">
+                Textversion
+                <input name="textVersion" value="${escapeHtml(contact[`${prefix}TextVersion`] || "")}" placeholder="${isEhc ? "z. B. ehc-panel-v1" : "z. B. mitmachen-kontakt-v2"}" />
+              </label>
+              <label class="consent-field consent-field--full">
+                Nachweis- oder Klärungsvermerk
+                <textarea name="note" placeholder="Kurz, sachlich und nachvollziehbar dokumentieren">${escapeHtml(contact[`${prefix}Note`] || "")}</textarea>
+              </label>
+            </div>
+            <span class="consent-field__hint">Mündliche Bestätigungen sind gelb markiert und sollten schriftlich nachgefasst werden.</span>
+            ${consentInlineActions()}
+          </form>
+        `;
+      }
+
+      function consentRecordReadout(kind, contact, editable) {
+        if (contact.profileAccess === "ehc_restricted") {
+          return kind === "ehc"
+            ? `<article class="consent-record consent-record--restricted"><strong>E-Health Community</strong><p><span aria-hidden="true">🔒</span> Nachweisdetails sind nur für berechtigte EHC-Owner sichtbar.</p></article>`
+            : "";
+        }
+        if (kind === "relationship") {
+          const basis = normalizeRelationshipBasis(contact.relationshipBasis);
+          const recordedBy = String(contact.relationshipBasisRecordedBy || "").trim();
+          return `
+            <article class="consent-record" data-consent-record="relationship">
+              <div class="consent-record__head">
+                <div><span>Profilführung</span><strong>${escapeHtml(RELATIONSHIP_BASIS_LABELS[basis])}</strong></div>
+              </div>
+              <dl>
+                <div><dt>Zeitpunkt</dt><dd>${escapeHtml(formatDateTimeLabel(contact.relationshipBasisEffectiveAt) || "Nicht hinterlegt")}</dd></div>
+                <div><dt>Erfasst von</dt><dd>${escapeHtml(recordedBy ? ownerOptionLabel(recordedBy) || recordedBy : "Nicht hinterlegt")}</dd></div>
+                <div class="consent-record__wide"><dt>Vermerk</dt><dd>${escapeHtml(contact.relationshipBasisNote || "Nicht hinterlegt")}</dd></div>
+              </dl>
+              ${editable ? consentRecordEditor("relationship", contact) : ""}
+            </article>
+          `;
+        }
+        const isEhc = kind === "ehc";
+        const prefix = isEhc ? "ehcConsent" : "mitmachenConsent";
+        const status = isEhc
+          ? normalizeEhcConsentStatus(contact[`${prefix}Status`])
+          : normalizeMitmachenConsentStatus(contact[`${prefix}Status`]);
+        const source = String(contact[`${prefix}Source`] || "").trim();
+        const sourceLabel = isEhc
+          ? EHC_CONSENT_SOURCE_LABELS[source] || "Nicht hinterlegt"
+          : mitmachenConsentSourceLabel(source);
+        const recordedBy = String(contact[`${prefix}RecordedBy`] || "").trim();
+        const state = consentPurposeState(contact, kind);
+        return `
+          <article class="consent-record" data-consent-record="${escapeHtml(kind)}">
+            <div class="consent-record__head">
+              <div><span>${isEhc ? "E-Health Community" : "#Mitmachen"}</span><strong>${escapeHtml(state.label)}</strong></div>
+              <span class="consent-record__dot consent-record__dot--${escapeHtml(state.tone)}" aria-hidden="true"></span>
+            </div>
+            <dl>
+              <div><dt>Status</dt><dd>${escapeHtml(MITMACHEN_CONSENT_STATUS_LABELS[status])}</dd></div>
+              <div><dt>Zeitpunkt</dt><dd>${escapeHtml(formatDateTimeLabel(contact[`${prefix}EffectiveAt`]) || "Nicht hinterlegt")}</dd></div>
+              <div><dt>Quelle</dt><dd>${escapeHtml(sourceLabel)}</dd></div>
+              <div><dt>Textversion</dt><dd>${escapeHtml(contact[`${prefix}TextVersion`] || "Nicht hinterlegt")}</dd></div>
+              <div><dt>Erfasst von</dt><dd>${escapeHtml(recordedBy ? ownerOptionLabel(recordedBy) || recordedBy : "Nicht hinterlegt")}</dd></div>
+              <div class="consent-record__wide"><dt>Vermerk</dt><dd>${escapeHtml(contact[`${prefix}Note`] || "Nicht hinterlegt")}</dd></div>
+            </dl>
+            ${editable ? consentRecordEditor(kind, contact) : ""}
+          </article>
+        `;
+      }
+
+      function consentScopeSummary(contact) {
+        const mitmachen = consentPurposeState(contact, "mitmachen");
+        if (mitmachen.tone === "success") {
+          return {
+            tone: "success",
+            icon: "✓",
+            eyebrow: "Nutzungsrahmen",
+            title: "Allgemeine #Mitmachen-Kommunikation freigegeben",
+            text: "Vor jedem Versand aktuellen Status und Zweck prüfen."
+          };
+        }
+        if (isEhcOnlyContact(contact)) {
+          return {
+            tone: "limited",
+            icon: "🔒",
+            eyebrow: "EHC-geschützter Kontakt",
+            title: "Nur für die E-Health Community",
+            text: "Keine #Mitmachen-Einladung. Identifizierende Daten bleiben auf berechtigte Owner begrenzt."
+          };
+        }
+        if (mitmachen.tone === "warning" || relationshipBasisState(contact).tone === "warning") {
+          return {
+            tone: "warning",
+            icon: "!",
+            eyebrow: "Nutzungsrahmen",
+            title: "Klärung oder schriftliche Nachfassung nötig",
+            text: "Profil kann bestehen; keine allgemeine Ansprache ohne belastbaren Nachweis."
+          };
+        }
+        if (mitmachen.tone === "danger") {
+          return {
+            tone: "danger",
+            icon: "×",
+            eyebrow: "Kontaktsperre",
+            title: "Keine allgemeine Kontaktaufnahme",
+            text: "Ablehnung oder Widerruf beachten; minimalen Sperrnachweis erhalten."
+          };
+        }
+        return {
+          tone: "neutral",
+          icon: "–",
+          eyebrow: "Nutzungsrahmen",
+          title: "Keine allgemeine Kontaktfreigabe",
+          text: "Nur eine konkret vereinbarte, operative Kommunikation ist zulässig."
+        };
+      }
+
+      function renderConsentPurposePanel(contact, editable = canEditContacts()) {
+        const relationship = relationshipBasisState(contact);
+        const ehc = consentPurposeState(contact, "ehc");
+        const mitmachen = consentPurposeState(contact, "mitmachen");
+        const summary = consentScopeSummary(contact);
+        const canEdit = editable && contact.profileAccess !== "ehc_restricted";
+        return `
+          <div class="consent-panel">
+            <div class="consent-panel__heading">
+              <div>
+                <span class="consent-panel__eyebrow">Zweck statt pauschalem Ja oder Nein</span>
+                <h4 class="detail-section-title">Einwilligungen &amp; Nutzung</h4>
+              </div>
+              <div class="consent-legend" aria-label="Statuslegende">
+                <span><i class="consent-legend__dot consent-legend__dot--success"></i>Freigegeben</span>
+                <span><i class="consent-legend__dot consent-legend__dot--warning"></i>Nachfassen</span>
+                <span><i class="consent-legend__dot consent-legend__dot--danger"></i>Gesperrt</span>
+              </div>
+            </div>
+
+            <section class="consent-scope-summary consent-scope-summary--${escapeHtml(summary.tone)}" aria-label="${escapeHtml(summary.title)}">
+              <span class="consent-scope-summary__icon" aria-hidden="true">${escapeHtml(summary.icon)}</span>
+              <div>
+                <span>${escapeHtml(summary.eyebrow)}</span>
+                <strong>${escapeHtml(summary.title)}</strong>
+                <p>${escapeHtml(summary.text)}</p>
+              </div>
+            </section>
+
+            <div class="consent-signal-grid" aria-label="Status nach Zweck">
+              ${consentSignalCard({ key: "relationship", eyebrow: "Profil", title: "Versorgungskompass", state: relationship, editable: canEdit })}
+              ${consentSignalCard({ key: "ehc", eyebrow: "Zweckgebunden", title: "E-Health Community", state: ehc, editable: canEdit })}
+              ${consentSignalCard({ key: "mitmachen", eyebrow: "Weitere Formate", title: "#Mitmachen", state: mitmachen, editable: canEdit })}
+            </div>
+
+            <details class="consent-disclosure" data-consent-disclosure="evidence">
+              <summary>
+                <span><strong>Nachweise &amp; Herkunft</strong><small>Zeitpunkt, Quelle, Textversion und Vermerk</small></span>
+                <span class="consent-disclosure__chevron" aria-hidden="true">⌄</span>
+              </summary>
+              <div class="consent-disclosure__body">
+                ${consentRecordReadout("relationship", contact, canEdit)}
+                ${consentRecordReadout("ehc", contact, canEdit)}
+                ${consentRecordReadout("mitmachen", contact, canEdit)}
+              </div>
+            </details>
+
+            <details class="consent-disclosure" data-consent-disclosure="access">
+              <summary>
+                <span><strong>Zugriff &amp; Schutz</strong><small>Wer darf was sehen und nutzen?</small></span>
+                <span class="consent-disclosure__chevron" aria-hidden="true">⌄</span>
+              </summary>
+              <div class="consent-disclosure__body consent-protection-copy">
+                <p><span aria-hidden="true">✓</span> CRM-Speicherung und Kontaktfreigabe werden getrennt bewertet.</p>
+                <p><span aria-hidden="true">🔒</span> EHC-only-Profile sind für allgemeine Nutzer nicht identifizierbar.</p>
+                <p><span aria-hidden="true">×</span> EHC-Mitgliedschaft gilt nie automatisch als #Mitmachen-Einwilligung.</p>
+              </div>
+            </details>
+          </div>
+        `;
+      }
+
+      function consentFormError(form, message, fieldName = "") {
+        const statusNode = form.querySelector("[data-consent-status]");
+        if (statusNode) {
+          statusNode.textContent = message;
+          statusNode.classList.add("is-error");
+        }
+        if (fieldName && form.elements[fieldName]) form.elements[fieldName].focus();
+      }
+
+      function consentFormEffectiveAt(form, required = false) {
+        const raw = String(form.elements.effectiveAt?.value || "").trim();
+        if (!raw) {
+          if (required) consentFormError(form, "Bitte einen Zeitpunkt dokumentieren.", "effectiveAt");
+          return required ? null : "";
+        }
+        const date = new Date(raw);
+        if (Number.isNaN(date.getTime())) {
+          consentFormError(form, "Bitte einen gültigen Zeitpunkt eingeben.", "effectiveAt");
+          return null;
+        }
+        if (date.getTime() > Date.now()) {
+          consentFormError(form, "Der Zeitpunkt darf nicht in der Zukunft liegen.", "effectiveAt");
+          return null;
+        }
+        return date.toISOString();
+      }
+
+      function consentRecordPatch(contact, form) {
+        const kind = String(form.dataset.consentRecordEditor || "");
+        const formData = new FormData(form);
+        if (kind === "relationship") {
+          const basis = normalizeRelationshipBasis(formData.get("basis"));
+          const required = basis !== "review_required";
+          const effectiveAt = consentFormEffectiveAt(form, required);
+          if (effectiveAt === null) return null;
+          const note = String(formData.get("note") || "").trim();
+          if (basis === "verbal_contact" && !note) {
+            consentFormError(form, "Eine mündliche Grundlage benötigt einen kurzen Nachweisvermerk.", "note");
+            return null;
+          }
+          return {
+            relationshipBasis: basis,
+            relationshipBasisEffectiveAt: effectiveAt,
+            relationshipBasisRecordedBy: currentProfile?.id || contact.relationshipBasisRecordedBy || "",
+            relationshipBasisNote: note
+          };
+        }
+
+        const isEhc = kind === "ehc";
+        if (!isEhc && kind !== "mitmachen") {
+          consentFormError(form, "Dieser Einwilligungsbereich kann nicht gespeichert werden.");
+          return null;
+        }
+        const status = isEhc
+          ? normalizeEhcConsentStatus(formData.get("status"))
+          : normalizeMitmachenConsentStatus(formData.get("status"));
+        const source = String(formData.get("source") || "").trim();
+        const note = String(formData.get("note") || "").trim();
+        const needsDecisionTime = ["granted", "declined", "withdrawn"].includes(status);
+        const effectiveAt = consentFormEffectiveAt(form, needsDecisionTime);
+        if (effectiveAt === null) return null;
+        if (status === "granted" && !source) {
+          consentFormError(form, "Für eine erteilte Einwilligung fehlt die Quelle.", "source");
+          return null;
+        }
+        if (status === "granted" && !currentProfile?.id) {
+          consentFormError(form, "Die erfassende Person konnte nicht ermittelt werden.");
+          return null;
+        }
+        if (mitmachenConsentRequiresNote(source) && !note) {
+          consentFormError(form, "Nachweisvermerk erforderlich: mündliche oder manuell übernommene Angaben kurz dokumentieren.", "note");
+          return null;
+        }
+        const prefix = isEhc ? "ehcConsent" : "mitmachenConsent";
+        return {
+          [`${prefix}Status`]: status,
+          [`${prefix}EffectiveAt`]: effectiveAt,
+          [`${prefix}Source`]: source,
+          [`${prefix}TextVersion`]: String(formData.get("textVersion") || "").trim(),
+          [`${prefix}RecordedBy`]: currentProfile?.id || contact[`${prefix}RecordedBy`] || "",
+          [`${prefix}Note`]: note
+        };
+      }
+
+      async function saveConsentRecord(contact, form) {
+        if (!canEditCareObject(contact)) {
+          showPermissionDenied("Dieser Kontakt gehört nicht zu deinem freigegebenen Bearbeitungsbereich.");
+          return;
+        }
+        const statusNode = form.querySelector("[data-consent-status]");
+        const patch = consentRecordPatch(contact, form);
+        if (!patch) return;
+        const kind = String(form.dataset.consentRecordEditor || "");
+        const nextStatus = patch[`${kind === "ehc" ? "ehc" : "mitmachen"}ConsentStatus`];
+        const previousStatus = kind === "ehc"
+          ? normalizeEhcConsentStatus(contact.ehcConsentStatus)
+          : normalizeMitmachenConsentStatus(contact.mitmachenConsentStatus);
+        if (kind !== "relationship" && nextStatus === "withdrawn" && previousStatus !== "withdrawn") {
+          const purpose = kind === "ehc" ? "EHC" : "#Mitmachen";
+          if (!window.confirm(`${purpose}-Einwilligung als widerrufen speichern? Kontaktaufnahme für diesen Zweck wird anschließend gesperrt.`)) return;
+        }
+        if (statusNode) {
+          statusNode.textContent = "Wird gespeichert …";
+          statusNode.classList.remove("is-error");
+        }
+        const controls = Array.from(form.elements);
+        controls.forEach((control) => { control.disabled = true; });
+        form.setAttribute("aria-busy", "true");
+        try {
+          const updated = await window.dataService.updateContact(contact.id, patch);
+          contacts = contacts.map((item, index) => item.id === contact.id ? sanitizeContact({ ...item, ...updated }, index) : item);
+          contactHistoryCache.delete(contact.id);
+          detailActiveTab = "consent";
+          setStorageStatus("Einwilligungsstatus gespeichert");
+          refreshContactDetailView(contact.id);
+        } catch (error) {
+          console.error("Einwilligungsstatus konnte nicht gespeichert werden.", error);
+          consentFormError(form, "Speichern fehlgeschlagen. Bitte Eingaben, Rolle und Verbindung prüfen.");
+          controls.forEach((control) => { control.disabled = false; });
+          form.removeAttribute("aria-busy");
+        }
+      }
+
+      function bindConsentRecordEditors(contact, root) {
+        const forms = Array.from(root.querySelectorAll("[data-consent-record-editor]"));
+        if (!forms.length) return;
+
+        const closeEditor = (form) => {
+          if (!form) return;
+          const kind = form.dataset.consentRecordEditor || "";
+          const button = root.querySelector(`[data-edit-consent-record="${CSS.escape(kind)}"]`);
+          form.reset();
+          form.querySelector("[data-consent-status]")?.classList.remove("is-error");
+          const statusNode = form.querySelector("[data-consent-status]");
+          if (statusNode) statusNode.textContent = "";
+          form.hidden = true;
+          button?.setAttribute("aria-expanded", "false");
+        };
+
+        const openEditor = (form) => {
+          forms.forEach((candidate) => {
+            if (candidate !== form && !candidate.hidden) closeEditor(candidate);
+          });
+          const kind = form.dataset.consentRecordEditor || "";
+          const button = root.querySelector(`[data-edit-consent-record="${CSS.escape(kind)}"]`);
+          form.reset();
+          form.closest("[data-consent-disclosure]")?.setAttribute("open", "");
+          form.hidden = false;
+          button?.setAttribute("aria-expanded", "true");
+          window.requestAnimationFrame(() => form.querySelector("[data-consent-primary], input, select, textarea")?.focus());
+        };
+
+        root.querySelectorAll("[data-edit-consent-record]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const form = root.querySelector(`#consent-record-editor-${CSS.escape(button.dataset.editConsentRecord || "")}`);
+            if (!form) return;
+            if (!form.hidden) closeEditor(form);
+            else openEditor(form);
+          });
+        });
+
+        forms.forEach((form) => {
+          form.querySelector("[data-cancel-consent-edit]")?.addEventListener("click", () => {
+            closeEditor(form);
+            root.querySelector(`[data-edit-consent-record="${CSS.escape(form.dataset.consentRecordEditor || "")}"]`)?.focus();
+          });
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            saveConsentRecord(contact, form);
+          });
+          form.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              closeEditor(form);
+              root.querySelector(`[data-edit-consent-record="${CSS.escape(form.dataset.consentRecordEditor || "")}"]`)?.focus();
+              return;
+            }
+            if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && event.target.matches("textarea")) {
+              event.preventDefault();
+              form.requestSubmit();
+            }
+          });
+          form.addEventListener("change", (event) => {
+            if (event.target.name === "status") {
+              const needsTime = ["granted", "declined", "withdrawn"].includes(event.target.value);
+              if (needsTime && form.elements.effectiveAt && !form.elements.effectiveAt.value) {
+                form.elements.effectiveAt.value = consentDateTimeInputValue(new Date().toISOString());
+              }
+            }
+            if (event.target.name === "basis" && event.target.value !== "review_required" && form.elements.effectiveAt && !form.elements.effectiveAt.value) {
+              form.elements.effectiveAt.value = consentDateTimeInputValue(new Date().toISOString());
+            }
+            const statusNode = form.querySelector("[data-consent-status]");
+            if (statusNode) {
+              statusNode.textContent = "";
+              statusNode.classList.remove("is-error");
+            }
+          });
+        });
+      }
+
       function historyFieldLabel(field) {
         const labels = {
           name: "Name",
@@ -30871,6 +31554,16 @@
           email: "E-Mail",
           phone: "Telefon",
           linkedin: "LinkedIn",
+          relationship_basis: "Grundlage der Profilführung",
+          relationship_basis_effective_at: "Profilgrundlage – Zeitpunkt",
+          relationship_basis_recorded_by: "Profilgrundlage – erfasst von",
+          relationship_basis_note: "Profilgrundlage – Vermerk",
+          ehc_consent_status: "EHC-Einwilligungsstatus",
+          ehc_consent_effective_at: "EHC-Zeitpunkt",
+          ehc_consent_source: "EHC-Quelle",
+          ehc_consent_text_version: "EHC-Textversion",
+          ehc_consent_recorded_by: "EHC erfasst von",
+          ehc_consent_note: "EHC-Nachweisvermerk",
           mitmachen_consent_status: "#Mitmachen-Einwilligungsstatus",
           mitmachen_consent_effective_at: "#Mitmachen-Zeitpunkt",
           mitmachen_consent_source: "#Mitmachen-Quelle",
@@ -30968,6 +31661,11 @@
         if (field === "mitmachen_consent_source") return mitmachenConsentSourceLabel(normalized);
         if (field === "mitmachen_consent_recorded_by") return ownerOptionLabel(normalized) || normalized;
         if (field === "mitmachen_consent_effective_at") return formatDateTimeLabel(normalized) || normalized;
+        if (field === "relationship_basis") return RELATIONSHIP_BASIS_LABELS[normalizeRelationshipBasis(normalized)];
+        if (field === "relationship_basis_recorded_by" || field === "ehc_consent_recorded_by") return ownerOptionLabel(normalized) || normalized;
+        if (field === "relationship_basis_effective_at" || field === "ehc_consent_effective_at") return formatDateTimeLabel(normalized) || normalized;
+        if (field === "ehc_consent_status") return MITMACHEN_CONSENT_STATUS_LABELS[normalizeEhcConsentStatus(normalized)];
+        if (field === "ehc_consent_source") return EHC_CONSENT_SOURCE_LABELS[normalized] || normalized;
         if (field === "topics") {
           try {
             const parsed = JSON.parse(normalized.replace(/^{/, "[").replace(/}$/, "]"));
@@ -31277,7 +31975,7 @@
 
       function detailHeaderOwnerControl(contact) {
         const ownerIds = contactOwnerIds(contact);
-        const canEditOwner = canEditContacts() && !detailEditMode;
+        const canEditOwner = canEditContacts() && contact.profileAccess !== "ehc_restricted" && !detailEditMode;
         const pickerId = `detail-owner-picker-${normalizeClassPart(contact.id || "current")}`;
         const editButton = canEditOwner
           ? `
@@ -34679,9 +35377,11 @@
           ? parseContactNotesThread(contact.note, contact).length
           : normalizedContactNotes(contact).length;
         const historyCount = contactHistoryCache.get(contact.id)?.length || 0;
-        const consentStatus = normalizeMitmachenConsentStatus(contact.mitmachenConsentStatus);
+        const consentTab = consentTabState(contact);
         const linkedCareContacts = expertScope ? linkedContactsForExpertContact(contact) : [];
-        const editableDetail = expertScope ? canEditContacts() : canEditCareObject(contact);
+        const editableDetail = expertScope
+          ? canEditContacts()
+          : canEditCareObject(contact) && contact.profileAccess !== "ehc_restricted";
         const editingDetail = detailEditMode && editableDetail;
         const admin = !expertScope && canAdministerData();
         const contactHospitationItems = expertScope ? [] : hospitationsForContact(contact.id);
@@ -34715,6 +35415,7 @@
           : statusLabel
             ? `<span class="badge badge--status">${escapeHtml(statusLabel)}</span>`
             : "";
+        const consentProfileMarkup = expertScope ? "" : ehcProfileBadgeMarkup(contact);
 
         if (expertScope) {
           activeExpertId = contact.id;
@@ -34757,7 +35458,7 @@
                 <div class="detail-profile-main">
                   <div class="contact-profile-image">
                     ${portraitMarkup}
-                    ${canEditContacts() && !expertScope ? `<button class="action-button contact-profile-image__edit" type="button" id="detail-image-edit" aria-label="Kontaktbild ändern" title="Kontaktbild ändern">✎</button>` : ""}
+                    ${canEditContacts() && contact.profileAccess !== "ehc_restricted" && !expertScope ? `<button class="action-button contact-profile-image__edit" type="button" id="detail-image-edit" aria-label="Kontaktbild ändern" title="Kontaktbild ändern">✎</button>` : ""}
                   </div>
                   <div class="detail-profile-copy">
                     ${
@@ -34768,20 +35469,20 @@
                     ${honorificTitle ? `<div class="detail-profile-subline">${escapeHtml(honorificTitle)}</div>` : ""}
                     <div class="detail-profile-role">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</div>
                     ${roleText && !expertScope ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
-                    ${profileStatusMarkup ? `<div class="detail-profile-status">${profileStatusMarkup}</div>` : ""}
+                    ${profileStatusMarkup || consentProfileMarkup ? `<div class="detail-profile-status">${profileStatusMarkup}${consentProfileMarkup}</div>` : ""}
                   </div>
                 </div>
                 <div class="detail-profile-meta profile-owner-meta detail-contact-owner-meta">${detailHeaderOwnerControl(contact)}</div>
               </section>
 
-              ${detailImageEditorOpen && canEditContacts() && !expertScope ? `<form id="detail-image-form">${contactImageEditorMarkup(contact)}</form>` : ""}
+              ${detailImageEditorOpen && canEditContacts() && contact.profileAccess !== "ehc_restricted" && !expertScope ? `<form id="detail-image-form">${contactImageEditorMarkup(contact)}</form>` : ""}
 
               <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
                 ${detailTabButton("overview", "Überblick", activeTab, { ariaTab: true, locked: editingDetail })}
                 ${detailTabButton("contact", "Kontakt", activeTab, { ariaTab: true, locked: editingDetail })}
                 ${detailTabButton("themes", "Themen", activeTab, { ariaTab: true, count: themeTags.length, locked: editingDetail })}
                 ${expertScope ? detailTabButton("links", "Verbindungen", activeTab, { ariaTab: true, count: linkedCareContacts.length, locked: editingDetail }) : ""}
-                ${expertScope ? "" : detailTabButton("consent", "Einwilligung", activeTab, { ariaTab: true, status: consentStatus, statusLabel: mitmachenConsentStatusLabel(consentStatus), locked: editingDetail })}
+                ${expertScope ? "" : detailTabButton("consent", "Einwilligungen", activeTab, { ariaTab: true, status: consentTab.key, statusLabel: consentTab.label, locked: editingDetail })}
                 ${expertScope ? "" : detailTabButton("hospitations", "Hospitation", activeTab, { ariaTab: true, count: hospitationTabCount, locked: editingDetail })}
                 ${expertScope ? "" : detailTabButton("formats", "Formate", activeTab, { ariaTab: true, count: formatTabCount, locked: editingDetail })}
                 ${detailTabButton("notes", "Notizen", activeTab, { ariaTab: true, count: noteCount, locked: editingDetail })}
@@ -34879,7 +35580,7 @@
                   ? ""
                   : `
                     <section ${panelAttrs("consent")} id="detail-consent">
-                      ${renderMitmachenConsentPanel(contact, editableDetail)}
+                      ${renderConsentPurposePanel(contact, editableDetail)}
                     </section>
                   `
               }
@@ -35078,7 +35779,7 @@
         });
         const noteInput = targetPanel.querySelector("#detail-note-input");
         const noteStatus = targetPanel.querySelector("#detail-note-status");
-        bindMitmachenConsentInlineEditors(contact, targetPanel);
+        bindConsentRecordEditors(contact, targetPanel);
         targetPanel.querySelector("#detail-note-save")?.addEventListener("click", () => saveDetailNote(contact, noteInput, noteStatus));
         targetPanel.querySelectorAll("[data-viewer-theme-blocked]").forEach((element) => {
           element.addEventListener("click", () => showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen")));
@@ -37475,6 +38176,16 @@
           email: String(formData.get("email") || "").trim(),
           phone: String(formData.get("phone") || "").trim(),
           linkedin: String(formData.get("linkedin") || "").trim(),
+          relationshipBasis: existingContact?.relationshipBasis || "review_required",
+          relationshipBasisEffectiveAt: existingContact?.relationshipBasisEffectiveAt || "",
+          relationshipBasisRecordedBy: existingContact?.relationshipBasisRecordedBy || "",
+          relationshipBasisNote: existingContact?.relationshipBasisNote || "",
+          ehcConsentStatus: existingContact?.ehcConsentStatus || "not_requested",
+          ehcConsentEffectiveAt: existingContact?.ehcConsentEffectiveAt || "",
+          ehcConsentSource: existingContact?.ehcConsentSource || "",
+          ehcConsentTextVersion: existingContact?.ehcConsentTextVersion || "",
+          ehcConsentRecordedBy: existingContact?.ehcConsentRecordedBy || "",
+          ehcConsentNote: existingContact?.ehcConsentNote || "",
           mitmachenConsentStatus: existingContact?.mitmachenConsentStatus || "not_requested",
           mitmachenConsentEffectiveAt: existingContact?.mitmachenConsentEffectiveAt || "",
           mitmachenConsentSource: existingContact?.mitmachenConsentSource || "",
@@ -37517,6 +38228,7 @@
         const sanitized = sanitizeContact(entry, contacts.length);
         const contactForWrite = { ...sanitized };
         delete contactForWrite.contactChannelAccess;
+        delete contactForWrite.profileAccess;
         if (isTestAccess()) {
           for (const field of [
             "image",

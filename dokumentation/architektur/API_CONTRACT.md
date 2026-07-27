@@ -193,7 +193,7 @@ Bei schreibenden Kontakt- und Organisationsendpunkten werden bekannte Aliase kan
 
 Die API gibt Frontend-DTOs zurück, keine Supabase-Rohzeilen. Beispiele:
 
-- Kontaktfelder wie `organizationId`, `postalCode`, `themes`, `owner`, `ownerId`, `mitmachenConsentStatus`, `mitmachenConsentEffectiveAt`, `mitmachenConsentSource`, `mitmachenConsentTextVersion`, `mitmachenConsentRecordedBy`, `mitmachenConsentNote`
+- Kontaktfelder wie `organizationId`, `postalCode`, `themes`, `owner`, `ownerId`, `relationshipBasis`, `relationshipBasisEffectiveAt`, `relationshipBasisRecordedBy`, `relationshipBasisNote`, `mitmachenConsentStatus`, `mitmachenConsentEffectiveAt`, `mitmachenConsentSource`, `mitmachenConsentTextVersion`, `mitmachenConsentRecordedBy`, `mitmachenConsentNote`, `ehcConsentStatus`, `ehcConsentEffectiveAt`, `ehcConsentSource`, `ehcConsentTextVersion`, `ehcConsentRecordedBy`, `ehcConsentNote`, `profileAccess` und `contactChannelAccess`
 - Organisationsfelder wie `organizationType`, `postalCode`, `contactCount`
 - Expertenkreis-Felder wie `groupId`, `group`, `category`, `organizationId`, `themes`, `sourceUrl`, `ownerId`, `ownerIds`
 - Profilfelder bleiben kompatibel zur bestehenden Profilseite, z.B. `display_name`, `avatar_url`, `team`, `bio`, `role`
@@ -206,7 +206,15 @@ Die API gibt Frontend-DTOs zurück, keine Supabase-Rohzeilen. Beispiele:
 
 DB-Spalten wie `organization_id`, `postal_code`, `format_type`, `invitation_status` oder `follow_up_due_at` werden nur im API-Server gemappt.
 
-Bei Einwilligungsupdates setzt die API `mitmachen_consent_recorded_by` serverseitig auf das angemeldete Profil. `granted` erfordert Zeitpunkt, Quelle und erfassende Person; `declined` und `withdrawn` erfordern einen Zeitpunkt. `verbal_confirmed` ist nur mit Status `granted` und Nachweisvermerk zulässig.
+### Kontaktzwecke und EHC-Zugriffsprojektion
+
+Die Profilführungsgrundlage, die EHC-Einwilligung und die #Mitmachen-Einwilligung sind drei getrennte Achsen. Eine Freigabe darf nicht auf einen anderen Zweck übertragen werden.
+
+- `relationshipBasis` erlaubt `review_required`, `public_task`, `self_submitted`, `active_collaboration`, `verbal_contact` und `public_professional_source`. Außer `review_required` benötigen alle Werte einen gültigen, nicht zukünftigen Zeitpunkt; `verbal_contact` benötigt zusätzlich einen Vermerk.
+- EHC und #Mitmachen erlauben jeweils `granted`, `not_requested`, `declined`, `withdrawn` und `clarification_needed`. `granted` benötigt gültigen Zeitpunkt, zulässige Quelle und erfassendes Profil; Ablehnung und Widerruf benötigen einen gültigen Zeitpunkt. `verbal_confirmed` und `manual_transfer` benötigen einen Nachweisvermerk. Nur EHC erlaubt zusätzlich die Quelle `survalyzer_ehc`.
+- Bei jedem fachlichen Update setzt die API `relationship_basis_recorded_by`, `ehc_consent_recorded_by` beziehungsweise `mitmachen_consent_recorded_by` serverseitig auf das angemeldete Profil; gleichnamige Clientwerte verleihen keine Autorität.
+
+Ein Kontakt ist EHC-only, wenn `ehcConsentStatus = granted` und `mitmachenConsentStatus != granted`. Admins und eingetragene Owner erhalten das vollständige Profil mit `profileAccess = ehc_authorized`. Alle anderen Nutzer erhalten in Kontaktliste, Suche und Detailabruf ausschließlich einen nicht identifizierenden Stub mit `profileAccess = ehc_restricted` und `contactChannelAccess = restricted`; identifizierende Felder und Nachweise sind leer. Schreibzugriffe auf ein EHC-only-Profil werden für Nicht-Owner und Nicht-Admins mit HTTP `403` abgewiesen. Dieselbe Projektion gilt für kontaktbezogene Ergebnisse aus `/api/activities` und `/api/contacts/:id/history`, damit Änderungswerte keinen Nebenkanal bilden.
 
 ### Aktivitätsereignisse
 
@@ -215,6 +223,8 @@ Für Aktivitätsereignisse gibt es bewusst keinen generischen schreibenden Brows
 Die Supabase-Policies für `activity_events` bleiben als Defense-in-Depth und Migrationsnachweis erhalten, bilden aber keinen Browser-Laufzeitmodus. `authenticated` besitzt dort nur `SELECT`, keine Sequenzrechte und keine Insert-Policy. Nur der privilegierte Serverdienst darf neue Zeilen und die Identity-Sequenz verwenden. Update und Delete bleiben auch für diesen Writer gesperrt, damit das Ledger append-only ist.
 
 `GET /api/activities` führt serverseitig neue Zeilen aus `activity_events` und bestehende Zeilen aus `changes` chronologisch zusammen. Historische Änderungen werden konservativ fachlich dekoriert; nicht eindeutig ableitbare Einträge bleiben als klar gekennzeichnete Legacy-Datensätze lesbar. Solange die Migration für `activity_events` in einer Umgebung noch fehlt, kann die API den bisherigen `changes`-Verlauf bereitstellen. Das ist eine serverseitige Datenkompatibilität und kein Browser-Fallback.
+
+Änderungen an EHC- und #Mitmachen-Feldern werden als Kategorie `consent` („Einwilligung & Nutzung“) mit den Ereignissen `contact.consent.granted`, `contact.consent.updated`, `contact.consent.declined` oder `contact.consent.withdrawn` normalisiert. Änderungen an `relationship_basis` und ihren Nachweisfeldern verwenden getrennt davon `contact.relationship.updated`; damit wird eine Profilführungsgrundlage nicht als Einwilligung bezeichnet.
 
 Wenn ein Fachvorgang sowohl Audit-Zeilen als auch ein kanonisches Ereignis erzeugt, müssen Ereignis, `changes` und deren Verknüpfung in derselben Datenbanktransaktion geschrieben werden. `changes.activity_event_id` darf nur auf ein Ereignis desselben Kontakts zeigen; `canonicalized_at` wird gemeinsam mit der Referenz gesetzt. Kontaktbezogene Ereignisse müssen ihren Kontakt in `contact_id` tragen; jede zusätzliche Kontakt-ID in `references` muss exakt damit übereinstimmen. So können Rollen- und Archivregeln an einer eindeutigen Spalte durchgesetzt werden.
 

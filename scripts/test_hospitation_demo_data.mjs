@@ -253,6 +253,15 @@ assert.ok(data.organizations.filter((organization) => organization.sector === "H
 
 const consentStatuses = new Set(["granted", "not_requested", "declined", "withdrawn", "clarification_needed"]);
 const consentSources = new Set(["online_form", "email", "written", "verbal_confirmed", "manual_transfer"]);
+const relationshipBases = new Set([
+  "review_required",
+  "public_task",
+  "self_submitted",
+  "active_collaboration",
+  "verbal_contact",
+  "public_professional_source"
+]);
+const ehcConsentSources = new Set([...consentSources, "survalyzer_ehc"]);
 for (const contact of data.contacts) {
   assert.ok(organizationIds.has(contact.organizationId), `${contact.id}: unbekannte Organisation ${contact.organizationId}.`);
   const organization = organizationById.get(contact.organizationId);
@@ -268,6 +277,12 @@ for (const contact of data.contacts) {
   for (const ownerId of contact.ownerIds || []) assert.ok(profileIds.has(ownerId), `${contact.id}: unbekannter Owner ${ownerId}.`);
   if (contact.ownerId) assert.ok((contact.ownerIds || []).includes(contact.ownerId), `${contact.id}: Haupt-Owner fehlt in ownerIds.`);
   assert.ok(Array.isArray(contact.themes) && contact.themes.length >= 2, `${contact.id}: realitätsnahe Versorgungsthemen fehlen.`);
+  assert.ok(relationshipBases.has(contact.relationshipBasis), `${contact.id}: ungültige Beziehungsgrundlage.`);
+  if (contact.relationshipBasis !== "review_required") {
+    assert.ok(contact.relationshipBasisEffectiveAt, `${contact.id}: Zeitpunkt der Beziehungsgrundlage fehlt.`);
+    assert.ok(profileIds.has(contact.relationshipBasisRecordedBy), `${contact.id}: erfassende Person der Beziehungsgrundlage fehlt.`);
+    assert.ok(contact.relationshipBasisNote, `${contact.id}: Nachweis zur Beziehungsgrundlage fehlt.`);
+  }
   assert.ok(consentStatuses.has(contact.mitmachenConsentStatus), `${contact.id}: ungültiger Einwilligungsstatus.`);
   if (contact.mitmachenConsentStatus === "granted") {
     assert.ok(new Date(contact.mitmachenConsentEffectiveAt).getTime() <= new Date("2026-07-25T23:59:59.999Z").getTime(), `${contact.id}: Einwilligungszeitpunkt fehlt oder liegt in der Zukunft.`);
@@ -280,6 +295,19 @@ for (const contact of data.contacts) {
   }
   if (["declined", "withdrawn"].includes(contact.mitmachenConsentStatus)) {
     assert.ok(contact.mitmachenConsentEffectiveAt, `${contact.id}: Entscheidungszeitpunkt fehlt.`);
+  }
+  assert.ok(consentStatuses.has(contact.ehcConsentStatus), `${contact.id}: ungültiger EHC-Einwilligungsstatus.`);
+  if (contact.ehcConsentStatus === "granted") {
+    assert.ok(new Date(contact.ehcConsentEffectiveAt).getTime() <= new Date("2026-07-25T23:59:59.999Z").getTime(), `${contact.id}: EHC-Einwilligungszeitpunkt fehlt oder liegt in der Zukunft.`);
+    assert.ok(ehcConsentSources.has(contact.ehcConsentSource), `${contact.id}: EHC-Einwilligungsquelle fehlt.`);
+    assert.ok(profileIds.has(contact.ehcConsentRecordedBy), `${contact.id}: erfassende Person der EHC-Einwilligung fehlt.`);
+    assert.ok(contact.ehcConsentTextVersion, `${contact.id}: EHC-Einwilligungstextversion fehlt.`);
+    if (["verbal_confirmed", "manual_transfer"].includes(contact.ehcConsentSource)) {
+      assert.ok(contact.ehcConsentNote, `${contact.id}: manueller oder mündlicher EHC-Nachweis benötigt einen Vermerk.`);
+    }
+  }
+  if (["declined", "withdrawn"].includes(contact.ehcConsentStatus)) {
+    assert.ok(contact.ehcConsentEffectiveAt, `${contact.id}: EHC-Entscheidungszeitpunkt fehlt.`);
   }
 }
 const consentStatusCounts = data.contacts.reduce((counts, contact) => {
@@ -296,6 +324,53 @@ for (const event of consentEvents) {
   assert.equal(event.occurredAt, contact.mitmachenConsentEffectiveAt, `${event.id}: Aktivitäts- und Einwilligungszeitpunkt müssen übereinstimmen.`);
   assert.equal(event.changes?.[0]?.fieldName, "mitmachen_consent_status", `${event.id}: falsches Änderungsfeld.`);
 }
+const onlineMitmachenContact = data.contacts.find((contact) => contact.id === "demo-contact-08");
+assert.equal(onlineMitmachenContact?.relationshipBasis, "self_submitted", "Der Onlinefall muss als Selbstregistrierung dokumentiert sein.");
+assert.equal(onlineMitmachenContact?.mitmachenConsentStatus, "granted", "Der Onlinefall benötigt eine grüne #Mitmachen-Einwilligung.");
+assert.equal(onlineMitmachenContact?.mitmachenConsentSource, "online_form", "Der Onlinefall benötigt das Formular als Quelle.");
+assert.ok(onlineMitmachenContact?.mitmachenConsentTextVersion, "Der Onlinefall benötigt eine Textversion.");
+
+const verbalMitmachenContact = data.contacts.find((contact) => contact.id === "demo-contact-32");
+assert.equal(verbalMitmachenContact?.relationshipBasis, "verbal_contact", "Der mündliche Fall muss als persönlicher Kontakt dokumentiert sein.");
+assert.equal(verbalMitmachenContact?.mitmachenConsentStatus, "granted", "Der mündliche Fall benötigt eine erteilte #Mitmachen-Einwilligung.");
+assert.equal(verbalMitmachenContact?.mitmachenConsentSource, "verbal_confirmed", "Der mündliche Fall benötigt die mündliche Quelle.");
+assert.match(verbalMitmachenContact?.mitmachenConsentNote || "", /schriftlich|nachfass/i, "Der mündliche Fall muss auf das schriftliche Nachfassen hinweisen.");
+
+const clarificationContact = data.contacts.find((contact) => contact.id === "demo-contact-05");
+assert.equal(clarificationContact?.relationshipBasis, "review_required", "Der Klärfall benötigt eine zu prüfende Beziehungsgrundlage.");
+assert.equal(clarificationContact?.mitmachenConsentStatus, "clarification_needed", "Der Klärfall benötigt den gelben Einwilligungsstatus.");
+assert.ok(clarificationContact?.mitmachenConsentNote, "Der Klärfall benötigt einen kurzen Prüfvermerk.");
+
+const undocumentedLegacyContact = data.contacts.find((contact) => contact.id === "demo-contact-04");
+assert.equal(undocumentedLegacyContact?.relationshipBasis, "review_required", "Der undokumentierte Altbestand muss standardmäßig geprüft werden.");
+for (const field of [
+  "relationshipBasisEffectiveAt",
+  "relationshipBasisRecordedBy",
+  "relationshipBasisNote",
+  "mitmachenConsentEffectiveAt",
+  "mitmachenConsentSource",
+  "mitmachenConsentTextVersion",
+  "mitmachenConsentRecordedBy",
+  "mitmachenConsentNote",
+  "ehcConsentEffectiveAt",
+  "ehcConsentSource",
+  "ehcConsentTextVersion",
+  "ehcConsentRecordedBy",
+  "ehcConsentNote"
+]) {
+  assert.equal(undocumentedLegacyContact?.[field], "", `Der undokumentierte Altbestand darf ${field} nicht vortäuschen.`);
+}
+assert.equal(undocumentedLegacyContact?.mitmachenConsentStatus, "not_requested");
+assert.equal(undocumentedLegacyContact?.ehcConsentStatus, "not_requested");
+
+const ehcOnlyContact = data.contacts.find((contact) => contact.id === "demo-contact-76");
+assert.equal(ehcOnlyContact?.ehcConsentStatus, "granted", "Der EHC-only-Fall benötigt eine erteilte EHC-Einwilligung.");
+assert.equal(ehcOnlyContact?.ehcConsentSource, "survalyzer_ehc", "Der EHC-only-Fall benötigt Survalyzer EHC als Quelle.");
+assert.ok(ehcOnlyContact?.ehcConsentEffectiveAt, "Der EHC-only-Fall benötigt einen Wirksamkeitszeitpunkt.");
+assert.ok(ehcOnlyContact?.ehcConsentTextVersion, "Der EHC-only-Fall benötigt eine Textversion.");
+assert.ok(profileIds.has(ehcOnlyContact?.ehcConsentRecordedBy), "Der EHC-only-Fall benötigt eine erfassende Person.");
+assert.ok(ehcOnlyContact?.ehcConsentNote, "Der EHC-only-Fall benötigt einen Nachweisvermerk.");
+assert.notEqual(ehcOnlyContact?.mitmachenConsentStatus, "granted", "EHC-only darf keine #Mitmachen-Einwilligung vortäuschen.");
 assert.deepEqual(
   sorted(data.contacts.flatMap((contact) => contact.ownerIds || [])),
   sorted(data.profiles.map((profile) => profile.id)),

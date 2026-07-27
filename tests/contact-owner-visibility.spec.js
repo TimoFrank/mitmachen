@@ -3,6 +3,7 @@ import XLSX from "xlsx-js-style";
 
 const PAGES_APP = "/dist/pages/versorgungs-kompass.html";
 const PROFILE_ADMIN = "demo-profile-admin";
+const PROFILE_EDITOR = "demo-profile-editor";
 const PROFILE_VIEWER = "demo-profile-viewer";
 const CONTACT_01_EMAIL = "kontakt-001@versorgung.example.invalid";
 const CONTACT_01_PHONE = "+49 171 39200 55";
@@ -10,6 +11,10 @@ const CONTACT_02_EMAIL = "kontakt-002@versorgung.example.invalid";
 const CONTACT_02_PHONE = "+49 171 39200 56";
 const CONTACT_03_EMAIL = "kontakt-003@versorgung.example.invalid";
 const CONTACT_03_PHONE = "+49 171 39200 57";
+const EHC_ONLY_NAME = "Max Nguyen";
+const EHC_ONLY_EMAIL = "kontakt-076@versorgung.example.invalid";
+const EHC_ONLY_PHONE = "+49 176 040690 30";
+const EHC_ONLY_ORGANIZATION = "Apothekennetz Spreebogen";
 
 function pagesUrl(profileId, hash) {
   return `${PAGES_APP}?demoProfile=${encodeURIComponent(profileId)}${hash}`;
@@ -72,6 +77,42 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
       email: CONTACT_01_EMAIL,
       phone: CONTACT_01_PHONE
     });
+  });
+
+  test("EHC-Owner sieht das vollständige zweckgebundene Profil", async ({ page }) => {
+    await page.goto(pagesUrl(PROFILE_ADMIN, "#person/contact/demo-contact-76?tab=consent"));
+
+    const profile = page.locator("#person-profile-body");
+    await expect(profile).toBeVisible();
+    await expect(profile.getByRole("heading", { level: 3, name: EHC_ONLY_NAME })).toBeVisible();
+    await expect(profile.locator(".ehc-profile-badge")).toContainText("EHC-only");
+    await expect(profile.locator(".consent-scope-summary")).toContainText("Nur für die E-Health Community");
+    await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Freigegeben");
+    await expect(profile.locator('[data-consent-signal="mitmachen"]')).toContainText("Nicht angefragt");
+
+    await profile.getByRole("tab", { name: "Kontakt", exact: true }).click();
+    await expectContactLinks(profile.locator("#detail-contactways"), {
+      email: EHC_ONLY_EMAIL,
+      phone: EHC_ONLY_PHONE
+    });
+  });
+
+  test("EHC-only-Profil bleibt für normale Nutzer nicht identifizierbar", async ({ page }) => {
+    await page.goto(pagesUrl(PROFILE_EDITOR, "#person/contact/demo-contact-76?tab=consent"));
+
+    const profile = page.locator("#person-profile-body");
+    await expect(profile).toBeVisible();
+    await expect(profile.getByRole("heading", { level: 3, name: "Geschützter EHC-Kontakt" })).toBeVisible();
+    await expect(profile.locator(".ehc-profile-badge")).toContainText("EHC geschützt");
+    await expect(profile.locator(".consent-scope-summary")).toContainText("Nur für die E-Health Community");
+    await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Freigegeben · geschützt");
+    await expect(profile.locator("[data-edit-consent-record], [data-detail-edit-section], [data-detail-owner-edit]")).toHaveCount(0);
+
+    const pageMarkup = await page.locator("html").innerHTML();
+    for (const protectedValue of [EHC_ONLY_NAME, EHC_ONLY_EMAIL, EHC_ONLY_PHONE, EHC_ONLY_ORGANIZATION]) {
+      expect(pageMarkup).not.toContain(protectedValue);
+    }
+    await expect(page.locator('a[href^="mailto:"], a[href^="tel:"]')).toHaveCount(0);
   });
 
   test("Admin-Non-Owner sieht weder Werte noch Links des eingeschränkten Kontakts", async ({ page }) => {

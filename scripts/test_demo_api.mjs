@@ -166,6 +166,16 @@ const legacyContactResponse = await legacyDemoRuntime.window.fetch("/api/contact
 const legacyContact = await legacyContactResponse.json();
 assert.equal(legacyContact.email, "kontakt-002@versorgung.example.invalid", "Ohne Pages-Capability muss der bisherige Demo-Vertrag unverändert bleiben.");
 assert.equal(legacyContact.contactChannelAccess, undefined, "Ohne Pages-Capability darf kein neuer Access-State erzwungen werden.");
+const legacyRestrictedEhcRuntime = createRuntime({
+  demoProfile: "demo-profile-editor",
+  ownerOnlyContactChannels: false
+});
+const legacyRestrictedEhcContact = await (
+  await legacyRestrictedEhcRuntime.window.fetch("/api/contacts/demo-contact-76")
+).json();
+assert.equal(legacyRestrictedEhcContact.profileAccess, "ehc_restricted", "Der EHC-only-Schutz darf nicht von der allgemeinen Kanal-Capability abhängen.");
+assert.equal(legacyRestrictedEhcContact.name, "Geschützter EHC-Kontakt");
+assert.equal(legacyRestrictedEhcContact.email, "");
 
 const seededSensitiveHistoryRuntime = createRuntime({
   mutateDemoData(demoData) {
@@ -237,6 +247,14 @@ assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-con
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-02")?.phone, "");
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-17")?.contactChannelAccess, "restricted");
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-17")?.email, "", "Ownerlose Kontakte müssen für alle Demo-Profile eingeschränkt bleiben.");
+const ownedEhcOnlyContact = initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-76");
+assert.equal(ownedEhcOnlyContact?.profileAccess, "ehc_authorized", "Der EHC-Owner benötigt den expliziten Vollprofilzugriff.");
+assert.equal(ownedEhcOnlyContact?.contactChannelAccess, "owner");
+assert.notEqual(ownedEhcOnlyContact?.name, "Geschützter EHC-Kontakt");
+assert.equal(ownedEhcOnlyContact?.ehcConsentStatus, "granted");
+assert.equal(ownedEhcOnlyContact?.ehcConsentSource, "survalyzer_ehc");
+assert.equal(ownedEhcOnlyContact?.mitmachenConsentStatus, "not_requested");
+assert.ok(ownedEhcOnlyContact?.ehcConsentTextVersion, "Der Owner muss den vollständigen synthetischen EHC-Nachweis sehen.");
 assert.equal(
   window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.find((contact) => contact.id === "demo-contact-02")?.email,
   "kontakt-002@versorgung.example.invalid",
@@ -265,6 +283,110 @@ assert.equal(editorSharedContact.contactChannelAccess, "owner", "Jeder Co-Owner 
 assert.equal(editorSharedContact.email, "kontakt-001@versorgung.example.invalid");
 assert.equal(editorOwnedContact.contactChannelAccess, "owner");
 assert.equal(editorOwnedContact.phone, "+49 171 39200 56");
+
+const rawEhcOnlyContact = editorRuntime.window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.find(
+  (contact) => contact.id === "demo-contact-76"
+);
+const restrictedEhcResponse = await editorRuntime.window.fetch("/api/contacts/demo-contact-76");
+assert.equal(restrictedEhcResponse.status, 200);
+const restrictedEhcContact = await restrictedEhcResponse.json();
+assert.equal(restrictedEhcContact.profileAccess, "ehc_restricted");
+assert.equal(restrictedEhcContact.contactChannelAccess, "restricted");
+assert.equal(restrictedEhcContact.name, "Geschützter EHC-Kontakt");
+assert.equal(restrictedEhcContact.relationshipBasis, rawEhcOnlyContact.relationshipBasis, "Die Beziehungsstatusachse muss im Stub erhalten bleiben.");
+assert.equal(restrictedEhcContact.ehcConsentStatus, "granted", "Die EHC-Statusachse muss im Stub erhalten bleiben.");
+assert.equal(restrictedEhcContact.mitmachenConsentStatus, "not_requested", "Die #Mitmachen-Statusachse muss im Stub erhalten bleiben.");
+for (const field of [
+  "organizationId",
+  "organization",
+  "category",
+  "specialty",
+  "contactRole",
+  "ownerId",
+  "owner",
+  "postalCode",
+  "city",
+  "state",
+  "email",
+  "phone",
+  "linkedin",
+  "relationshipBasisEffectiveAt",
+  "relationshipBasisRecordedBy",
+  "relationshipBasisNote",
+  "mitmachenConsentEffectiveAt",
+  "mitmachenConsentSource",
+  "mitmachenConsentTextVersion",
+  "mitmachenConsentRecordedBy",
+  "mitmachenConsentNote",
+  "ehcConsentEffectiveAt",
+  "ehcConsentSource",
+  "ehcConsentTextVersion",
+  "ehcConsentRecordedBy",
+  "ehcConsentNote",
+  "note",
+  "notes",
+  "nextStep",
+  "image",
+  "imageStoragePath",
+  "imageKind",
+  "imageMimeType",
+  "imageSourceLabel",
+  "imageRightsNote",
+  "createdAt",
+  "updatedAt"
+]) {
+  assert.equal(restrictedEhcContact[field], "", `Der EHC-Stub muss ${field} leeren.`);
+}
+assert.deepEqual(restrictedEhcContact.ownerIds, []);
+assert.deepEqual(restrictedEhcContact.sources, []);
+assert.deepEqual(restrictedEhcContact.themes, []);
+assert.equal(restrictedEhcContact.lat, null);
+assert.equal(restrictedEhcContact.lon, null);
+const serializedRestrictedEhcContact = JSON.stringify(restrictedEhcContact);
+for (const secret of [
+  rawEhcOnlyContact.name,
+  rawEhcOnlyContact.organization,
+  rawEhcOnlyContact.city,
+  rawEhcOnlyContact.email,
+  rawEhcOnlyContact.phone,
+  rawEhcOnlyContact.ehcConsentSource,
+  rawEhcOnlyContact.ehcConsentTextVersion,
+  rawEhcOnlyContact.ehcConsentNote
+]) {
+  assert.ok(secret, "Der Leckfreiheitstest benötigt nichtleere synthetische Ausgangswerte.");
+  assert.ok(!serializedRestrictedEhcContact.includes(secret), `Der EHC-Stub darf den Ausgangswert ${secret} nicht enthalten.`);
+}
+const editorEhcList = await (await editorRuntime.window.fetch("/api/contacts?includeArchived=true")).json();
+assert.deepEqual(
+  editorEhcList.items.find((contact) => contact.id === "demo-contact-76"),
+  restrictedEhcContact,
+  "Listen- und Detailprojektion müssen denselben nicht-identifizierenden EHC-Stub liefern."
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(
+    editorRuntime.window.VersorgungsCompassDemoApi.snapshot().contacts.find((contact) => contact.id === "demo-contact-76")
+  )),
+  restrictedEhcContact,
+  "Auch der Runtime-Snapshot muss den EHC-only-Kontakt vollständig projizieren."
+);
+const editorActivityCountBeforeEhcPatch = editorRuntime.window.VersorgungsCompassDemoApi.snapshot().activityEvents.length;
+const forbiddenEhcPatchResponse = await editorRuntime.window.fetch("/api/contacts/demo-contact-76", {
+  method: "PATCH",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ priority: "Hoch" })
+});
+assert.equal(forbiddenEhcPatchResponse.status, 403, "Non-Owner dürfen auch unsensible Felder eines EHC-only-Profils nicht patchen.");
+assert.equal(
+  editorRuntime.window.VersorgungsCompassDemoApi.snapshot().activityEvents.length,
+  editorActivityCountBeforeEhcPatch,
+  "Ein abgelehnter EHC-only-PATCH darf kein Aktivitätsereignis erzeugen."
+);
+const forbiddenEhcImageResponse = await editorRuntime.window.fetch("/api/contacts/demo-contact-76/image", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ contentType: "image/png", data: "iVBORw0KGgo=", width: 1, height: 1 })
+});
+assert.equal(forbiddenEhcImageResponse.status, 403, "Non-Owner dürfen den EHC-only-Schutz nicht über die Bildroute umgehen.");
 
 const snakeCaseOwnersCreate = await editorRuntime.window.fetch("/api/contacts", {
   method: "POST",
@@ -360,6 +482,26 @@ assert.match(createdContact.id, /^demo-contact-local-\d+$/, "Lokal angelegte Ent
 assert.equal(createdContact.image, "", "Externe Kontaktbilder dürfen in der öffentlichen Demo nicht nachgeladen werden.");
 assert.equal(createdContact.contactChannelAccess, "owner");
 assert.equal(createdContact.email, "runtime-kontakt@example.invalid");
+assert.equal(createdContact.relationshipBasis, "review_required", "Neue Demo-Kontakte benötigen eine explizite Standard-Beziehungsgrundlage.");
+assert.equal(createdContact.mitmachenConsentStatus, "not_requested", "Neue Demo-Kontakte dürfen keine #Mitmachen-Einwilligung vortäuschen.");
+assert.equal(createdContact.ehcConsentStatus, "not_requested", "Neue Demo-Kontakte dürfen keine EHC-Einwilligung vortäuschen.");
+for (const field of [
+  "relationshipBasisEffectiveAt",
+  "relationshipBasisRecordedBy",
+  "relationshipBasisNote",
+  "mitmachenConsentEffectiveAt",
+  "mitmachenConsentSource",
+  "mitmachenConsentTextVersion",
+  "mitmachenConsentRecordedBy",
+  "mitmachenConsentNote",
+  "ehcConsentEffectiveAt",
+  "ehcConsentSource",
+  "ehcConsentTextVersion",
+  "ehcConsentRecordedBy",
+  "ehcConsentNote"
+]) {
+  assert.equal(createdContact[field], "", `Neue Demo-Kontakte müssen ${field} leer initialisieren.`);
+}
 assert.equal(api.snapshot().contacts.length, immutableBaselineCount + 2);
 assert.equal(window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.length, immutableBaselineCount, "Mutationen dürfen die veröffentlichte Baseline nicht verändern.");
 
