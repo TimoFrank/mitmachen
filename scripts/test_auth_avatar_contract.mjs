@@ -272,10 +272,13 @@ async function assertApiAvatarContract() {
     }
   };
   const sandbox = {
+    AbortController,
     URL,
     URLSearchParams,
+    clearTimeout,
     fetch,
     console,
+    setTimeout,
     window
   };
   vm.runInNewContext(readFileSync(new URL("frontend/data/data-service.js", projectRoot), "utf8"), sandbox, {

@@ -34,6 +34,7 @@
   const CONFIG = window.VERSORGUNGS_COMPASS_CONFIG || {};
   const CAPABILITIES = CONFIG.capabilities || {};
   const IS_PUBLIC_DEMO_PROFILE = CONFIG.dataMode === "demo" && CONFIG.authMode === "anonymous-demo";
+  const configuredApiRequestTimeoutMs = Number(CONFIG.apiRequestTimeoutMs), API_REQUEST_TIMEOUT_MS = Number.isFinite(configuredApiRequestTimeoutMs) && configuredApiRequestTimeoutMs > 0 ? Math.min(configuredApiRequestTimeoutMs, 6e4) : 15e3;
   let client = null, profileCache = new Map, profileLoadPromise = null, currentProfilePromise = null, contactCache = [], contactNoteCache = [], contactNoteAttachmentCache = [], organizationCache = [], organizationPrimarySystemCache = [], expertGroupCache = [], expertContactCache = [], expertOrganizationCache = [], expertEntityLinkCache = [], stakeholderTypeCache = [], stakeholderOrganizationCache = [], stakeholderPeopleCache = [], formatCache = [], hospitationSlotCache = [], hospitationCache = [], hospitationObservationCache = [], roadmapItemCache = [], hospitationRoadmapAssessmentCache = [], hospitationUnmetNeedCache = [], supportsOrganizationPrimarySystems = (CAPABILITIES.contactImageSources,
   CAPABILITIES.contactRole, CAPABILITIES.contactConsent, !0 === CAPABILITIES.organizationPrimarySystems), supportsNotifications = (CAPABILITIES.registrationIntake,
   CAPABILITIES.organizationAssets, CAPABILITIES.expertOrganizationAssets, CAPABILITIES.stakeholderOrganizationAssets,
@@ -58,16 +59,41 @@
       Accept: "application/json"
     };
     void 0 !== body && (headers["Content-Type"] = "application/json");
-    const response = await fetch(url.href, {
-      method: method,
-      headers: {
-        ...headers
-      },
-      credentials: CONFIG.apiCredentials || "same-origin",
-      body: void 0 !== body ? JSON.stringify(body) : void 0
-    }), payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || `API-Anfrage fehlgeschlagen (${response.status}).`);
-    return payload;
+    const controller = new AbortController, timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(url.href, {
+        method: method,
+        headers: {
+          ...headers
+        },
+        credentials: CONFIG.apiCredentials || "same-origin",
+        body: void 0 !== body ? JSON.stringify(body) : void 0,
+        signal: controller.signal
+      });
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (error) {
+        if (controller.signal.aborted) throw error;
+      }
+      if (!response.ok) {
+        const requestError = new Error(payload.error || `API-Anfrage fehlgeschlagen (${response.status}).`);
+        throw requestError.status = response.status, requestError.code = payload.code || `API_HTTP_${response.status}`, requestError;
+      }
+      return payload;
+    } catch (error) {
+      if (error?.code && Number.isFinite(Number(error?.status))) throw error;
+      if (controller.signal.aborted) {
+        const timeoutError = new Error(`API-Anfrage wurde nach ${API_REQUEST_TIMEOUT_MS} ms abgebrochen.`);
+        throw timeoutError.status = 0, timeoutError.code = "API_TIMEOUT", timeoutError;
+      }
+      const networkError = new Error(error?.message || "API-Anfrage konnte nicht gesendet werden.", {
+        cause: error
+      });
+      throw networkError.status = 0, networkError.code = error?.code || "API_NETWORK_ERROR", networkError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
   function apiContactPayload(payload) {
     return payload?.contact || payload;

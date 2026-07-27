@@ -295,14 +295,19 @@ try {
       `${label} muss ihre einzige Darstellungsschicht eingebettet enthalten`
     );
     assert.doesNotMatch(publicHtml, /<script\b|<iframe\b|<form\b|<input\b|\ssrc\s*=/i);
-    assert.doesNotMatch(publicHtml, /runtime-config|auth-(?:config|guard|login)|\/api\//i);
+    assert.doesNotMatch(publicHtml, /runtime-config|auth-(?:config|guard|login)/i);
     assert.doesNotMatch(publicHtml, /href="\.\/public-entry\.css"/);
   }
   assert.match(targetPublicIndexHtml, /data-public-entry="home"/);
   assert.match(targetPublicIndexHtml, /href="\/anmelden"/);
+  assert.doesNotMatch(targetPublicIndexHtml, /\/api\//i);
   assert.doesNotMatch(targetPublicIndexHtml, /Testzugang aktivieren|module-sidebar__nav|destination-link/);
   assert.match(targetPublicLoginHtml, /data-public-entry="access"/);
-  assert.equal((targetPublicLoginHtml.match(/href="\/start"/g) || []).length, 1);
+  assert.equal(
+    (targetPublicLoginHtml.match(/href="\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1"/gi) || []).length,
+    1
+  );
+  assert.equal((targetPublicLoginHtml.match(/\/api\//g) || []).length, 1);
   assert.equal((targetPublicLoginHtml.match(/href="\/enrollment\.html"/g) || []).length, 1);
   assert.match(targetPublicLoginHtml, /Mit Google anmelden/);
   assert.match(targetPublicLoginHtml, /Testzugang aktivieren/);

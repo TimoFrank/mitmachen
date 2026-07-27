@@ -400,6 +400,36 @@ assert.match(
   /map \$uri \$vk_frame_options[\s\S]*~\^\/versorgungs-kompass\\\.html\$ "SAMEORIGIN";/,
   "X-Frame-Options muss die Vollanwendung für den gleich-originären Hospitations-Wrapper freigeben."
 );
+for (const [contract, message] of [
+  [/\bgzip on;/, "Die Frontend-Auslieferung muss gzip aktivieren."],
+  [/\bgzip_comp_level 5;/, "Das gzip-Kompressionsniveau muss CPU und Uebertragungsgroesse ausgewogen halten."],
+  [/\bgzip_min_length 1024;/, "Kleine Antworten duerfen nicht unnoetig komprimiert werden."],
+  [/\bgzip_proxied any;/, "Auch Antworten hinter dem Ingress muessen komprimierbar bleiben."],
+  [/\bgzip_vary on;/, "Komprimierte Antworten muessen den Accept-Encoding-Cache-Key signalisieren."],
+  [
+    /\bgzip_types[\s\S]*application\/javascript[\s\S]*application\/json[\s\S]*application\/manifest\+json[\s\S]*image\/svg\+xml[\s\S]*text\/css[\s\S]*text\/plain[\s\S]*;/,
+    "Die ausgelieferten textbasierten Frontend-Assets muessen vom gzip-Vertrag erfasst sein."
+  ],
+  [
+    /location ~\* \\\.mjs\$ \{[\s\S]*default_type application\/javascript;[\s\S]*try_files \$uri =404;/,
+    "Die standardmaessig nicht typisierten PDF.js-Module muessen als gzip-faehiges JavaScript ausgeliefert werden."
+  ],
+  [
+    /map \$request_uri \$vk_cache_control \{[\s\S]*~\*\\\.\(\?:css\|m\?js\|json\|png\|jpe\?g\|gif\|webp\|svg\|ico\|woff2\?\)/,
+    "Statische ES-Module muessen denselben begrenzten Browsercache wie klassische JavaScript-Dateien erhalten."
+  ],
+  [
+    /map \$request_uri \$vk_cache_control \{[\s\S]*default "no-store";[\s\S]*~\^\/data\/runtime-config\\\.js\(\?:\\\?\|\$\) "no-store";/,
+    "HTML und Runtime-Konfiguration muessen trotz Kompression privat und ungecached bleiben."
+  ]
+]) {
+  assert.match(frontendNginxSource, contract, message);
+}
+assert.doesNotMatch(
+  frontendNginxSource,
+  /\bbrotli(?:_|\s)/i,
+  "Die Frontend-Konfiguration darf keine nicht garantierte Brotli-Modulabhaengigkeit einfuehren."
+);
 assert.doesNotMatch(
   helmSource,
   /AUTH_(?:EMAIL|SUBJECT)_HEADER|auth(?:Email|Subject)Header/,
