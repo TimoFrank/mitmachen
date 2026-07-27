@@ -78,7 +78,7 @@ async function expectNoHorizontalOverflow(page, selector = "html") {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
-test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öffentliche Demo", async ({ page, request }) => {
+test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame Startseite in die öffentliche Demo", async ({ page, request }) => {
   await page.goto("/frontend/pages/mitmachen/index.html");
 
   await expect(page).toHaveTitle(/#Mitmachen/);
@@ -119,9 +119,21 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
     if (!new Set(["127.0.0.1", "localhost"]).has(hostname)) publicDemoExternalRequests.push(outgoingRequest.url());
   });
   await page.goto("/dist/pages/index.html");
-  await expect(page).toHaveURL(/\/dist\/pages\/versorgungs-kompass\.html#map$/);
+  await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
+  await expect(page).toHaveTitle("Versorgungs-Kompass | #Mitmachen");
+  await expect(page.locator('body[data-public-entry="home"]')).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Gemeinsam Versorgung gestalten.");
+  await expect(page.getByText("Ein geschützter Arbeitsraum für gemeinsames Versorgungswissen.")).toBeVisible();
+  await expect(page.locator("[data-public-entry-styles]")).toHaveCount(1);
+  await expect(page.locator('meta[http-equiv="refresh"]')).toHaveCount(0);
+  const demoEntry = page.getByRole("link", { name: "Demo öffnen" });
+  await expect(demoEntry).toHaveAttribute("href", "./demo/");
+  await expectNoHorizontalOverflow(page);
+  await demoEntry.click();
+  await expect(page).toHaveURL(/\/dist\/pages\/versorgungs-kompass\.html#home$/);
   await expect(page).toHaveTitle("Versorgungs-Kompass");
   await expect(page.locator(".app-sidebar")).toBeVisible();
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="stakeholders"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
@@ -130,6 +142,8 @@ test("Phase 4: #Mitmachen führt in vier geschützte Module und Pages in die öf
   await expect(page.locator('script[src="./data/demo-api.js"]')).toHaveCount(1);
   await expect(page.locator('script[src="./data/data-service.js"]')).toHaveCount(1);
   await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
+  await page.locator('.home-destination-link[href="#map"]').click();
+  await expect(page).toHaveURL(/#map$/);
   await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
   if (await page.locator("#sidebar-profile-button").isHidden()) {
     await page.locator("#sidebar-collapse-button").click();

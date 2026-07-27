@@ -11,6 +11,7 @@ on:
       - frontend/app/**
       - frontend/map/**
       - frontend/pages/mitmachen/**
+      - frontend/public-entry/**
       - frontend/data/demo-data.js
       - frontend/data/demo-api.js
       - frontend/data/data-service.js
@@ -32,7 +33,7 @@ on:
   workflow_dispatch:
     inputs:
       revision:
-        description: Optional exact commit to build and deploy
+        description: Optional exact commit from main to build and deploy
         required: false
         type: string
 
@@ -59,6 +60,16 @@ jobs:
         with:
           ref: ${{ inputs.revision || github.sha }}
           fetch-depth: 0
+
+      - name: Verify deployed revision belongs to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+            echo "GitHub Pages may only deploy commits that belong to main." >&2
+            exit 1
+          fi
 
       - name: Record deployed revision
         id: revision
@@ -134,11 +145,12 @@ jobs:
           demo_data_path="${RUNNER_TEMP}/pages-demo-data.js"
           demo_api_path="${RUNNER_TEMP}/pages-demo-api.js"
           runtime_config_path="${RUNNER_TEMP}/pages-runtime-config.js"
+          landing_path="${RUNNER_TEMP}/pages-index.html"
           app_path="${RUNNER_TEMP}/pages-versorgungs-kompass.html"
           registration_path="${RUNNER_TEMP}/pages-versorgungs-netzwerk.html"
 
           curl --fail "${curl_retry_args[@]}" \
-            "${page_root}/?${cache_buster}" >/dev/null
+            "${page_root}/?${cache_buster}" --output "$landing_path"
           curl --fail "${curl_retry_args[@]}" \
             "${page_root}/demo/?${cache_buster}" >/dev/null
           curl --fail "${curl_retry_args[@]}" \
@@ -163,7 +175,7 @@ jobs:
           for app_label in Versorgung Auswertung Aktivitäten Stakeholder Expertenkreis Hospitationen Beobachtungen Fragebogen Dashboard Formate Teams; do
             grep --fixed-strings --quiet "$app_label" "$app_path"
           done
-          node - "$app_path" "$registration_path" <<'NODE'
+          node - "$app_path" "$registration_path" "$landing_path" <<'NODE'
           const fs = require("node:fs");
           const html = fs.readFileSync(process.argv[2], "utf8");
           const positions = ["./data/demo-data.js", "./data/demo-api.js", "./data/data-service.js"].map((value) => html.indexOf(value));
@@ -180,8 +192,19 @@ jobs:
           if (/data\/(?:runtime-config|demo-data|demo-api)\.js/i.test(registrationHtml)) {
             throw new Error("Die statische Netzwerkregistrierung bindet unerwartet Demo-Datenadapter ein.");
           }
+          const landingHtml = fs.readFileSync(process.argv[4], "utf8");
+          if (
+            !landingHtml.includes('data-public-entry="home"')
+            || !landingHtml.includes("<h1 id=\"entry-title\">Gemeinsam Versorgung gestalten.</h1>")
+            || (landingHtml.match(/data-public-entry-styles/g) || []).length !== 1
+            || (landingHtml.match(/href="\.\/demo\/"/g) || []).length !== 2
+            || !landingHtml.includes("Demo öffnen")
+            || /<meta\s+http-equiv="refresh"|href="\/(?:anmelden)?"/i.test(landingHtml)
+          ) {
+            throw new Error("Die Pages-Startseite entspricht nicht dem gemeinsamen Public Entry mit relativem Demo-Einstieg.");
+          }
           NODE
-          if grep --extended-regexp --ignore-case --quiet 'supabase|service[_-]?role|stakeholder-data|expertenkreis-data|versorgungs-kompass-data' "$demo_data_path" "$demo_api_path" "$runtime_config_path" "$app_path" "$registration_path"; then
+          if grep --extended-regexp --ignore-case --quiet 'supabase|service[_-]?role|stakeholder-data|expertenkreis-data|versorgungs-kompass-data' "$demo_data_path" "$demo_api_path" "$runtime_config_path" "$landing_path" "$app_path" "$registration_path"; then
             echo "GitHub Pages serves data or runtime references outside the public Demo contract." >&2
             exit 1
           fi

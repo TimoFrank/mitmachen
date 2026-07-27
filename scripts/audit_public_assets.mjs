@@ -187,6 +187,43 @@ if (existsSync(appHtmlPath)) {
   }
 }
 
+const pagesLandingPath = join(artifactRoot, "index.html");
+if (existsSync(pagesLandingPath)) {
+  const pagesLandingHtml = readFileSync(pagesLandingPath, "utf8");
+  assert(
+    /data-public-entry="home"/.test(pagesLandingHtml),
+    `${artifactLabel}/index.html verwendet nicht den gemeinsamen Public Entry`
+  );
+  assert(
+    /<h1 id="entry-title">Gemeinsam Versorgung gestalten\.<\/h1>/.test(pagesLandingHtml),
+    `${artifactLabel}/index.html zeigt nicht die erwartete gemeinsame Startseite`
+  );
+  assert(
+    (pagesLandingHtml.match(/data-public-entry-styles/g) || []).length === 1,
+    `${artifactLabel}/index.html muss die gemeinsame Darstellungsschicht genau einmal einbetten`
+  );
+  assert(
+    (pagesLandingHtml.match(/href=["']\.\/demo\/["']/g) || []).length === 2,
+    `${artifactLabel}/index.html muss genau zweimal relativ in die Demo fuehren`
+  );
+  assert(
+    /Demo öffnen/.test(pagesLandingHtml) && /Öffentliche Demo mit fiktiven Beispieldaten/.test(pagesLandingHtml),
+    `${artifactLabel}/index.html kennzeichnet den anonymen Demo-Einstieg nicht eindeutig`
+  );
+  assert(
+    !/<meta\s+http-equiv=["']refresh["']|href=["']\/(?:anmelden)?["']|href=["']\.\/public-entry\.css["']/i.test(pagesLandingHtml),
+    `${artifactLabel}/index.html darf weder weiterleiten noch absolute Zugangs- oder externe Stylepfade verwenden`
+  );
+  assert(
+    !/<script\b|<iframe\b|<form\b|<input\b|\ssrc\s*=/i.test(pagesLandingHtml),
+    `${artifactLabel}/index.html muss als passive, eigenstaendige Startseite funktionieren`
+  );
+}
+assert(
+  !actualFiles.includes("public-entry.css"),
+  `${artifactLabel}/public-entry.css darf nicht als zusaetzliche oeffentliche Ressource ausgeliefert werden`
+);
+
 assert(!/Willkommen,\s*Timo/i.test(firstPartyText), `${artifactLabel} enthaelt eine personenbezogene Begruessung`);
 const publicAppSourcePath = join(artifactRoot, "versorgungs-kompass.js");
 if (existsSync(publicAppSourcePath)) {
