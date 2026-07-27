@@ -625,7 +625,7 @@ assert.match(workflow, /\/\/anmelden/);
 for (const publicContract of [
   'data-public-entry="home"',
   'data-public-entry="access"',
-  'href="/start"',
+  'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"',
   'href="/enrollment.html"',
   "post_status",
   "public_probe=must-not-reflect"

@@ -2652,15 +2652,24 @@ function validatedIapBootstrapReturnUrl(url) {
     error.status = 500;
     throw error;
   }
-  let allowedOrigin;
+  const returnTarget = String(url.searchParams.get("return") || "").trim();
+  if (!returnTarget) {
+    throw validationError("IAP-Login-Ruecksprung ist keine gueltige URL.");
+  }
+  let allowedOriginUrl;
   let returnUrl;
   try {
-    allowedOrigin = new URL(ALLOWED_ORIGIN).origin;
-    returnUrl = new URL(String(url.searchParams.get("return") || ""));
+    allowedOriginUrl = new URL(ALLOWED_ORIGIN);
+    returnUrl = new URL(returnTarget, allowedOriginUrl);
   } catch {
     throw validationError("IAP-Login-Ruecksprung ist keine gueltige URL.");
   }
-  if (returnUrl.protocol !== "https:" || returnUrl.origin !== allowedOrigin) {
+  if (
+    returnUrl.protocol !== "https:"
+    || returnUrl.origin !== allowedOriginUrl.origin
+    || returnUrl.username
+    || returnUrl.password
+  ) {
     throw validationError("IAP-Login-Ruecksprung muss zur erlaubten HTTPS-Frontend-Origin gehoeren.");
   }
   return returnUrl.href;
@@ -4725,13 +4734,80 @@ function profileAvatarVersionFilter(avatarUrl) {
 
 async function rawProfileAvatarRow(request, profileId, { activeOnly = false } = {}) {
   const params = new URLSearchParams({
-    select: "id,avatar_url,active",
+    select: "id,avatar_url,active,updated_at",
     id: `eq.${profileId}`,
     limit: "1"
   });
   if (activeOnly) params.set("active", "eq.true");
   const rows = await cloudSqlRest("profiles", request, params);
   return rows?.[0] || null;
+}
+
+function canonicalProfileAvatarVersion(value) {
+  let raw = "";
+  try {
+    raw = value && typeof value.toISOString === "function"
+      ? value.toISOString()
+      : String(value || "").trim();
+  } catch {
+    return "";
+  }
+  const timestamp = Date.parse(raw);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : "";
+}
+
+function profileAvatarEntityTag(profileId, objectName, buffer = null) {
+  const hash = crypto.createHash("sha256");
+  if (buffer) {
+    hash.update("profile-avatar-content\n");
+    hash.update(buffer);
+  } else {
+    hash.update([
+      "profile-avatar-object",
+      String(profileId || ""),
+      String(objectName || "")
+    ].join("\n"));
+  }
+  const digest = hash.digest("base64url");
+  return `W/"profile-avatar-${digest}"`;
+}
+
+function requestAcceptsEntityTag(request, entityTag) {
+  const header = String(request.headers?.["if-none-match"] || "").trim();
+  if (!header) return false;
+  if (header === "*") return true;
+  const comparableTag = String(entityTag || "").replace(/^W\//i, "");
+  return header.split(",").some((candidate) => (
+    candidate.trim().replace(/^W\//i, "") === comparableTag
+  ));
+}
+
+function profileAvatarCachePolicy(url, profile) {
+  const requestedVersions = url.searchParams.getAll("v");
+  const requestedVersion = requestedVersions.length === 1
+    ? canonicalProfileAvatarVersion(requestedVersions[0])
+    : "";
+  const currentVersion = canonicalProfileAvatarVersion(profile?.updated_at);
+  const versionMatches = Boolean(requestedVersion && currentVersion && requestedVersion === currentVersion);
+  return versionMatches
+    ? "private, max-age=3600, immutable"
+    : "private, max-age=0, must-revalidate";
+}
+
+function profileAvatarObjectIsVersioned(objectName) {
+  return /\/avatar-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:jpe?g|png|webp)$/i.test(
+    String(objectName || "")
+  );
+}
+
+function notModifiedProfileAvatar(response, entityTag, cacheControl) {
+  response.writeHead(304, {
+    etag: entityTag,
+    "cache-control": cacheControl,
+    ...securityResponseHeaders(),
+    ...corsHeaders()
+  });
+  response.end();
 }
 
 async function deleteProfileAvatarObject(objectName) {
@@ -4861,23 +4937,37 @@ async function removeCurrentProfileAvatar(request) {
   return profileRowToClient(rows[0]);
 }
 
-async function readProfileAvatar(request, response, profileId) {
+async function readProfileAvatar(request, response, profileId, url) {
   await authorizeRequest(request, new URL(`/api/profile-avatar/${encodeURIComponent(profileId)}`, "http://local"));
   if (!PROFILE_IMAGE_BUCKET) return jsonResponse(response, 404, { error: "Profilbild-Bucket ist nicht konfiguriert." });
   const profile = await rawProfileAvatarRow(request, profileId, { activeOnly: true });
   const objectName = profileAvatarObjectName(profile?.avatar_url, profileId);
   if (!objectName) return jsonResponse(response, 404, { error: "Profilbild nicht gefunden." });
+  const avatarUrl = url || new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
+  const cacheControl = profileAvatarCachePolicy(avatarUrl, profile);
+  const objectIsVersioned = profileAvatarObjectIsVersioned(objectName);
+  let entityTag = objectIsVersioned ? profileAvatarEntityTag(profileId, objectName) : "";
+  let entityTagMatches = entityTag ? requestAcceptsEntityTag(request, entityTag) : false;
+  if (entityTagMatches && objectIsVersioned) {
+    return notModifiedProfileAvatar(response, entityTag, cacheControl);
+  }
   const object = await readStorageObject(PROFILE_IMAGE_BUCKET, objectName);
   if (!object) return jsonResponse(response, 404, { error: "Profilbild nicht gefunden." });
   const metadata = profileAvatarMetadata(object.buffer);
   if (!metadata || metadata.width > 4096 || metadata.height > 4096) {
     return jsonResponse(response, 415, { error: "Profilbildformat ist ungültig." });
   }
+  if (!entityTag) {
+    entityTag = profileAvatarEntityTag(profileId, objectName, object.buffer);
+    entityTagMatches = requestAcceptsEntityTag(request, entityTag);
+  }
+  if (entityTagMatches) return notModifiedProfileAvatar(response, entityTag, cacheControl);
   response.writeHead(200, {
     "content-type": metadata.contentType,
     "content-length": object.buffer.length,
-    "cache-control": "private, no-store",
-    "x-content-type-options": "nosniff",
+    etag: entityTag,
+    "cache-control": cacheControl,
+    ...securityResponseHeaders(),
     ...corsHeaders()
   });
   response.end(object.buffer);
@@ -8173,7 +8263,7 @@ async function handle(request, response) {
     if (request.method === "OPTIONS") return jsonResponse(response, 204, {});
     const profileAvatarMatch = /^\/api\/profile-avatar\/([^/]+)$/.exec(url.pathname);
     if (request.method === "GET" && profileAvatarMatch) {
-      return readProfileAvatar(request, response, decodeURIComponent(profileAvatarMatch[1]));
+      return readProfileAvatar(request, response, decodeURIComponent(profileAvatarMatch[1]), url);
     }
     const contactImageReadMatch = /^\/api\/contact-images\/([^/]+)$/.exec(url.pathname);
     if (request.method === "GET" && contactImageReadMatch) {

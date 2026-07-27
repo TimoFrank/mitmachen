@@ -303,10 +303,29 @@ async function expectIapBootstrapBoundary() {
   assert.equal(allowed.headers.get("access-control-allow-origin"), "https://frontend.pre-gematik.example");
   assert.equal(allowed.headers.get("access-control-allow-credentials"), "true");
 
-  const foreign = await fetch(`http://127.0.0.1:${port}/api/auth/bootstrap?return=${encodeURIComponent("https://attacker.example/")}`, {
+  const relativeReturn = "/start?iap_authenticated=1";
+  const relative = await fetch(`http://127.0.0.1:${port}/api/auth/bootstrap?return=${encodeURIComponent(relativeReturn)}`, {
     redirect: "manual"
   });
-  assert.equal(foreign.status, 400, "Ein fremder IAP-Ruecksprung muss abgewiesen werden.");
+  assert.equal(relative.status, 302);
+  assert.equal(
+    relative.headers.get("location"),
+    "https://frontend.pre-gematik.example/start?iap_authenticated=1",
+    "Ein relativer IAP-Ruecksprung muss ausschliesslich gegen ALLOWED_ORIGIN aufgeloest werden."
+  );
+
+  for (const rejectedReturn of [
+    "",
+    "https://attacker.example/",
+    "//attacker.example/start",
+    "https://frontend.pre-gematik.example@attacker.example/start",
+    "javascript:alert(1)"
+  ]) {
+    const foreign = await fetch(`http://127.0.0.1:${port}/api/auth/bootstrap?return=${encodeURIComponent(rejectedReturn)}`, {
+      redirect: "manual"
+    });
+    assert.equal(foreign.status, 400, `Unsicherer IAP-Ruecksprung muss abgewiesen werden: ${rejectedReturn || "<leer>"}`);
+  }
 }
 
 const child = spawn(process.execPath, ["api/server.mjs"], {

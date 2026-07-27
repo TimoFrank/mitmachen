@@ -2490,7 +2490,7 @@ jobs:
             --output "${RUNNER_TEMP}/pre-gematik-public-login.html"
           grep --fixed-strings --quiet 'data-public-entry="access"' \
             "${RUNNER_TEMP}/pre-gematik-public-login.html"
-          grep --fixed-strings --quiet 'href="/start"' \
+          grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' \
             "${RUNNER_TEMP}/pre-gematik-public-login.html"
           grep --fixed-strings --quiet 'href="/enrollment.html"' \
             "${RUNNER_TEMP}/pre-gematik-public-login.html"
@@ -2638,7 +2638,7 @@ jobs:
               grep --fixed-strings --quiet 'data-public-entry="home"' "$public_body"
             else
               grep --fixed-strings --quiet 'data-public-entry="access"' "$public_body"
-              grep --fixed-strings --quiet 'href="/start"' "$public_body"
+              grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' "$public_body"
               grep --fixed-strings --quiet 'href="/enrollment.html"' "$public_body"
             fi
             head_status="$(curl --path-as-is --silent --show-error --head \

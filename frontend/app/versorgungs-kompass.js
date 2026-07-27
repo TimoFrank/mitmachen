@@ -8849,6 +8849,8 @@
         return String(source).slice(0, 2).toUpperCase();
       }
 
+      const avatarElementSignatures = new WeakMap();
+
       function avatarMarkup(profile, className = "avatar-image") {
         const avatarUrl = safeImageUrl(versionedImageUrl(profileAvatarUrl(profile), profile?.updated_at || profile?.updatedAt || ""));
         const displayName = profile?.display_name || profile?.displayName || profile?.email || "Nutzer";
@@ -8858,7 +8860,10 @@
 
       function updateAvatarElement(element, profile, className = "avatar-image") {
         if (!element) return;
-        element.innerHTML = avatarMarkup(profile, className);
+        const markup = avatarMarkup(profile, className);
+        if (avatarElementSignatures.get(element) === markup) return;
+        avatarElementSignatures.set(element, markup);
+        element.innerHTML = markup;
       }
 
       function currentProfileOwnerValues() {
@@ -9100,15 +9105,50 @@
         details.dataset.teamOwnerLoaded = "true";
       }
 
+      let renderedTeamViewSignature = "";
+
+      function teamViewRenderSignature(profiles = []) {
+        return JSON.stringify([
+          teamDirectoryState,
+          profiles.map((profile) => [
+            profile.id,
+            profile.label,
+            profile.display_name,
+            profile.displayName,
+            profile.email,
+            profile.role,
+            profile.initials,
+            assignedTeamForProfile(profile),
+            profileAvatarUrl(profile),
+            profile.updated_at || profile.updatedAt || "",
+            profile.matchLabels || []
+          ]),
+          contacts
+            .filter((contact) => contact.status !== "archived")
+            .map((contact) => [
+              contact.id,
+              contact.displayName,
+              contact.name,
+              contact.organization,
+              contact.image,
+              contact.updatedAt || contact.updated_at || "",
+              contactOwnerValues(contact)
+            ])
+        ]);
+      }
+
       function renderTeamView() {
         if (!teamAccountList) return;
         const profiles = teamProfiles();
+        const renderSignature = teamViewRenderSignature(profiles);
+        if (renderSignature === renderedTeamViewSignature) return;
 
         if (teamDirectoryState === "loading") {
           if (teamUserCount) teamUserCount.textContent = "–";
           if (teamGroupCount) teamGroupCount.textContent = "–";
           teamAccountList.setAttribute("aria-busy", "true");
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Teams werden geladen</strong><span>Profile und Zuständigkeiten werden vorbereitet.</span></div>`;
+          renderedTeamViewSignature = renderSignature;
           return;
         }
 
@@ -9117,6 +9157,7 @@
           if (teamGroupCount) teamGroupCount.textContent = "–";
           teamAccountList.setAttribute("aria-busy", "false");
           teamAccountList.innerHTML = `<div class="team-directory-state team-directory-state--error" role="alert"><strong>Teamdaten sind gerade nicht verfügbar</strong><span>Bitte lade die Ansicht neu oder prüfe die Verbindung zum Arbeitsraum.</span></div>`;
+          renderedTeamViewSignature = renderSignature;
           return;
         }
 
@@ -9128,6 +9169,7 @@
 
         if (!profiles.length) {
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Noch keine Nutzer vorhanden</strong><span>Sobald Profile eingerichtet sind, erscheinen sie hier nach Teams gruppiert.</span></div>`;
+          renderedTeamViewSignature = renderSignature;
           return;
         }
 
@@ -9217,6 +9259,7 @@
             if (details.open) renderTeamOwnerContacts(details);
           });
         });
+        renderedTeamViewSignature = renderSignature;
       }
 
       function renderProfileOwnerSummary() {
@@ -9278,7 +9321,6 @@
         renderDemoProfileSwitcher();
         renderViewChrome();
         renderProfileOwnerSummary();
-        renderTeamView();
         applyRoleUi();
       }
 
@@ -35052,7 +35094,7 @@
         renderSavedViews();
         syncMapFrame(mapContacts());
         renderProfileOwnerSummary();
-        renderTeamView();
+        if (activeView === "team") renderTeamView();
         renderAboutApp();
         renderNotificationCounts();
 
@@ -37197,14 +37239,12 @@
       }
 
       async function loadCriticalInitialData() {
-        const settingsPromise = loadUserSettings();
         const [profiles, profile] = await Promise.all([
           window.dataService.getProfiles(),
           window.dataService.getCurrentProfile()
         ]);
         applyProfiles(profiles);
         renderAccountProfile(profile);
-        await settingsPromise;
         contacts = (await window.dataService.loadContacts({ includeArchived: canAdministerData() })).map((contact, index) => sanitizeContact(contact, index));
         organizations = deriveOrganizationsFromContacts(contacts);
         loadedContactsFromStorage = false;
@@ -37231,35 +37271,67 @@
       }
 
       async function loadDeferredInitialData({ includeArchived = false } = {}) {
-        const refreshAfter = async (task) => {
-          await task;
-          updateView();
+        const deferredDataAffectsActiveView = (dataKind = "") => {
+          if (dataKind === "organizations") {
+            return ["organizations", "map"].includes(activeView)
+              || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "care");
+          }
+          if (dataKind === "formats") return activeView === "formats";
+          if (dataKind === "hospitations") return ["hospitations", "framework", "questionnaire"].includes(activeView);
+          if (dataKind === "experts") {
+            return activeView === "experts"
+              || (activeView === "personProfile" && activePersonProfile.kind === "expert")
+              || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "expert");
+          }
+          if (dataKind === "stakeholders") {
+            return activeView === "stakeholders"
+              || (activeView === "personProfile" && activePersonProfile.kind === "stakeholder" && activePersonProfile.returnTo !== "patients")
+              || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "stakeholder");
+          }
+          if (dataKind === "patients") {
+            return activeView === "patients"
+              || (activeView === "personProfile" && activePersonProfile.returnTo === "patients")
+              || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "patient");
+          }
+          return false;
+        };
+        const refreshActiveViewAfter = async (dataKind, task) => {
+          try {
+            return await task;
+          } finally {
+            if (deferredDataAffectsActiveView(dataKind)) updateView();
+          }
         };
         await Promise.allSettled([
-          refreshAfter(loadOrganizationData({ includeArchived })),
-          refreshAfter(loadFormatData({ includeArchived })),
-          refreshAfter(loadHospitationData({ includeArchived })),
-          refreshAfter(loadExpertData({ includeArchived })),
-          refreshAfter(loadStakeholderData({ includeArchived })),
-          refreshAfter(loadPatientData({ includeArchived })),
-          refreshAfter(loadSavedViews()),
-          refreshAfter(refreshNotificationSummary())
+          refreshActiveViewAfter("organizations", loadOrganizationData({ includeArchived })),
+          refreshActiveViewAfter("formats", loadFormatData({ includeArchived })),
+          refreshActiveViewAfter("hospitations", loadHospitationData({ includeArchived })),
+          refreshActiveViewAfter("experts", loadExpertData({ includeArchived })),
+          refreshActiveViewAfter("stakeholders", loadStakeholderData({ includeArchived })),
+          refreshActiveViewAfter("patients", loadPatientData({ includeArchived })),
+          loadSavedViews(),
+          refreshNotificationSummary()
         ]);
-        updateView();
       }
 
       async function initializeData() {
         const initialRouteToken = routeTokenFromLocation();
         const initialRouteView = routeViewFromLocation();
         let initialTargetView = initialRouteView || "home";
+        let initialDataAvailable = false;
+        const settingsPromise = loadUserSettings().catch((error) => {
+          console.warn("Benutzereinstellungen konnten beim Anwendungsstart nicht verarbeitet werden.", error);
+        });
         try {
           await loadCriticalInitialData();
+          initialDataAvailable = true;
           scheduleDeferredInitialData();
         } catch (error) {
           console.error("Geschützte Anwendungsdaten konnten nicht über die API geladen werden.", error);
           if (teamDirectoryState === "loading") teamDirectoryState = "error";
           const message = String(error?.message || error?.details || "");
-          const authFailed = /permission denied|JWT|auth|not authenticated|Unauthorized|401/i.test(message);
+          const authFailed = Number(error?.status) === 401
+            || /permission denied|JWT|auth|not authenticated|Unauthorized|401/i.test(message);
           if (window.dataService?.isConfigured?.() && authFailed && window.VKAuth) {
             window.VKAuth.clearAuthenticated();
             window.location.replace(window.VKAuth.buildLoginUrl());
@@ -37268,24 +37340,26 @@
           contacts = [];
           organizations = [];
           loadedContactsFromStorage = false;
-          setStorageStatus("Keine geschützten Kontaktdaten verfügbar");
-          window.alert("Kontakte konnten nicht aus dem Backend geladen werden. Bitte prüfe Konfiguration, Anmeldung und Rollen.");
+          setStorageStatus("Keine geschützten Kontaktdaten verfügbar. Bitte prüfe Verbindung, Anmeldung und Rollen.");
         }
         isInitialDataLoading = false;
         initialDataLoadingSlow = false;
-        if (shouldRequireInitialOnboarding()) {
+        try {
+          if (CLEAN_URLS_ENABLED) {
+            updateRouteHash(initialTargetView, { replace: true });
+          }
+          if (initialTargetView) activeView = initialTargetView;
+          setActiveView(activeView);
+          updateView();
+        } finally {
+          finishInitialLoading();
+        }
+        await settingsPromise;
+        if (initialDataAvailable) updateView();
+        if (initialDataAvailable && shouldRequireInitialOnboarding()) {
           if (transientInitialHomeSidebarCollapse) restoreSidebarState();
           await openOnboarding(initialTargetView || activeView || "home");
-          finishInitialLoading();
-          return;
         }
-        if (CLEAN_URLS_ENABLED) {
-          updateRouteHash(initialTargetView, { replace: true });
-        }
-        if (initialTargetView) activeView = initialTargetView;
-        setActiveView(activeView);
-        updateView();
-        finishInitialLoading();
       }
 
       function finishInitialLoading() {

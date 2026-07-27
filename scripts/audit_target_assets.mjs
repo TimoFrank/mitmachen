@@ -176,8 +176,16 @@ for (const [relativePath, marker] of publicEntryDocuments) {
     `${artifactLabel}/${relativePath} darf keine externen Unterressourcen oder Inline-Handler enthalten`
   );
   assert(
-    !/(?:runtime-config|auth-(?:config|guard|login)|\/api\/|supabase|localStorage|sessionStorage|indexedDB)/i.test(html),
+    !/(?:runtime-config|auth-(?:config|guard|login)|supabase|localStorage|sessionStorage|indexedDB)/i.test(html),
     `${artifactLabel}/${relativePath} enthaelt geschuetzte Laufzeit- oder Datenzugriffe`
+  );
+  const apiReferences = html.match(/\/api\//gi) || [];
+  assert(
+    marker === "access"
+      ? apiReferences.length === 1
+        && /href=[\"']\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1[\"']/i.test(html)
+      : apiReferences.length === 0,
+    `${artifactLabel}/${relativePath} enthaelt einen nicht freigegebenen API-Pfad`
   );
 }
 
@@ -202,8 +210,8 @@ const publicLoginPath = join(artifactRoot, "public-login.html");
 if (existsSync(publicLoginPath)) {
   const html = readFileSync(publicLoginPath, "utf8");
   assert(
-    (html.match(/href=[\"']\/start[\"']/g) || []).length === 1,
-    `${artifactLabel}/public-login.html muss genau einmal bewusst in den geschuetzten Google-Login wechseln`
+    (html.match(/href=[\"']\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1[\"']/gi) || []).length === 1,
+    `${artifactLabel}/public-login.html muss genau einmal direkt ueber den geschuetzten IAP-Bootstrap in den Google-Login wechseln`
   );
   assert(
     (html.match(/href=[\"']\/enrollment\.html[\"']/g) || []).length === 1,
