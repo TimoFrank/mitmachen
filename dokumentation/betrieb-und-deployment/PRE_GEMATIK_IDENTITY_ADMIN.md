@@ -10,58 +10,43 @@ Voll-Soll-Roster auf genau ein vorhandenes aktives Profil in
 nur lesen. Tester erhalten ausschließlich `viewer` oder `editor` mit
 `test_only`; die bestehende Admin-Bindung bleibt davon getrennt.
 
-> **Verbindlicher v2-Hinweis:** Sobald Migration
-> `202607240001_add_test_access_enrollment.sql` angewendet ist, ist der unten
-> dokumentierte v1-Operator `vk_identity_admin` absichtlich read-only. Neue
-> Tester werden dann ausschließlich über `/enrollment.html`, die Rolle
-> `vk_access_enrollment_admin` und
-> `scripts/provision_pre_gematik_test_access.mjs` freigeschaltet. Eingabeformat,
-> Preview/Apply und Cleanup stehen unter
-> [Geschütztes Testnutzer-Enrollment v2](../../deploy/postgres/pre-gematik/README.md#geschütztes-testnutzer-enrollment-v2).
-> Der v1-Ablauf bleibt nur als historische Standard-Binding-Dokumentation und
-> darf nach Aktivierung von v2 nicht für Tester ausgeführt werden.
+> **Aktiver Vertrag seit dem einheitlichen Login-Release:** Die Anwendung
+> bietet keine Selbstregistrierung und kein Testzugang-Enrollment mehr an.
+> `/api/auth/auto-enrollment` und `/api/auth/enrollment` sind nicht in der
+> API-Policy registriert und liefern fail-closed `404`. Ein Deployment-Schalter
+> zum Reaktivieren existiert nicht. Historische Enrollment-Tabellen und
+> Operatoren bleiben vorerst ausschließlich als inaktive Audit- und
+> Rollback-Artefakte bestehen.
 
-## Allowlist-basiertes Auto-Enrollment v2.1
+## Vorprovisionierte Identitäten
 
-Für vorab genehmigte Tester entfällt die sichtbare Vorgangsnummer. Der
-geschützte Voll-Soll-Roster wird zunächst außerhalb des Repositories in ein
-Allowlist-Dokument mit exakter kleingeschriebener ASCII-Konto-Adresse,
-zufälliger PII-freier Profil-UUID, Rolle `viewer` oder `editor`, festem
-`test_only`-Scope und Bootstrap-Ablauf überführt. Neue Einträge werden mit
-`scripts/provision_pre_gematik_test_access_allowlist.mjs` nach Preview und
-explizitem Apply in `public.test_access_allowlist` angelegt; Widerrufe sind
-append-only nachvollziehbar, verbrauchte Einträge unveränderlich.
+Zugriff erhält nur ein Konto, für das vor der Anmeldung bereits alle drei
+Voraussetzungen erfüllt sind:
 
-Beim ersten Aufruf der geschützten Enrollment-Seite gilt:
+1. genehmigter Eintrag im geschützten Voll-Soll-Roster,
+2. aktive Zulassung in der vorgeschalteten Google-IAP-Policy und
+3. genau eine aktive Bindung aus signiertem `issuer + subject` auf ein aktives
+   Profil in `public.identity_bindings`.
 
-1. `POST /api/auth/auto-enrollment` akzeptiert weder Body noch Queryparameter
-   und verwendet ausschließlich das vollständig signatur-, Audience- und
-   zeitgeprüfte IAP-JWT.
-2. Ein exakter, noch gültiger und nicht widerrufener Eintrag wird unter
-   demselben globalen Lock wie der v2-Operator gesperrt.
-3. Interne Audit-UUID, `applied`-Enrollment, Testprofil, stabile
-   Issuer-/Subject-Bindung und einmalige Consumption entstehen in einem
-   Datenbank-Commit.
-4. Ohne eindeutigen Treffer entsteht keine Mutation. Erst eine ausdrückliche
-   Nutzeraktion erzeugt den bisherigen manuellen 24-Stunden-Request.
+Die öffentliche Hauptseite startet über
+`GET /api/auth/bootstrap` den realen Google-IAP-Flow. Nach erfolgreicher
+Google-Anmeldung prüft die API sofort die vorhandene Bindung. Fehlt sie oder ist
+das Profil inaktiv, führt der Flow neutral zu `/#zugriff-verweigert`; weder
+E-Mail-Adresse noch Subject, Profilzustand oder Gruppenstatus werden offengelegt.
+Direkte Aufrufe von `/start` behandeln einen initialen API-`403` identisch.
 
-Die dafür verwendete Funktion
-`public.pre_gematik_consume_test_access_allowlist(...)` ist eine bewusst eng
-begrenzte neue `SECURITY DEFINER`-Ausnahme gegenüber dem historischen
-v1-Vertrag. Ihr Owner ist die separate Rolle `vk_allowlist_executor`
-(`NOLOGIN`/`NOINHERIT`) mit ausschließlich den benötigten Spaltenrechten,
-festem `search_path = pg_catalog, public` und ohne dynamisches SQL. `PUBLIC`
-und die Laufzeitrolle besitzen keine Tabellenrechte auf die Allowlist und keine
-Binding-Schreibrechte; `vk_app_runtime` erhält nur `EXECUTE` auf genau diese
-Funktion. Bootstrap und Prüfung erfolgen mit
-`deploy/postgres/pre-gematik/access-allowlist-admin-role.sql`.
+Dieser Login-Release erweitert den Identitätsbestand nicht: Zugriff erhalten
+ausschließlich Konten, deren aktive Bindung bereits vorliegt. Die Anwendung
+erzeugt weder Profile noch Bindings. Der vorhandene v2-Operator benötigt für
+`test_only` eine historische Enrollment-Anfrage und ist deshalb nach Entfernung
+der Self-Service-Endpunkte kein requestfreier Provisionierungsweg. Vor Aufnahme
+eines neuen Kontos muss ein separater, Least-Privilege-Admin-Prozess entworfen,
+geprüft und freigegeben werden; bis dahin ist eine fehlende Bindung ein
+ausdrückliches No-Go.
 
-Auto-Enrollment ist in Helm standardmäßig aus. Der Deployment-Workflow
-aktiviert den Runtime-Schalter erst, nachdem API- und Frontend-Backend exakt
-die gepinnte private Gruppenpolicy mit Pilotablauf besitzen. Ein direkter
-`user:`-Rollback hält ihn ausgeschaltet. Das Allowlist-Ablaufdatum beendet nur
-den erstmaligen Bootstrap; Offboarding deaktiviert zusätzlich die App-Bindung
-und entfernt Gruppen- sowie OAuth-Zulassung.
+Die bestehende zusammengesetzte Identität `(issuer, subject)` bleibt bewusst
+erhalten, damit eine spätere Entra-ID-/OIDC-Bindung parallel zu Google angelegt
+und anschließend kontrolliert umgeschaltet werden kann.
 
 Für ein Google-Konto enthält die geschützte Soll-Liste die stabile,
 namespace-lose numerische Google-Konto-ID. Das signierte IAP-JWT liefert gemäß

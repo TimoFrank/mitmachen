@@ -11,8 +11,8 @@ const appSource = readFileSync(
   new URL("frontend/app/versorgungs-kompass.js", projectRoot),
   "utf8"
 );
-const publicLoginSource = readFileSync(
-  new URL("frontend/public-entry/anmelden.html", projectRoot),
+const publicEntrySource = readFileSync(
+  new URL("frontend/public-entry/index.html", projectRoot),
   "utf8"
 );
 
@@ -289,19 +289,42 @@ async function assertStructuredUnauthorizedRedirects() {
   );
 }
 
+async function assertStructuredForbiddenRedirects() {
+  const backendError = new Error("Zugriff verweigert.");
+  backendError.status = 403;
+  backendError.code = "API_HTTP_403";
+  const harness = createInitializeHarness({
+    coreError: backendError,
+    settingsPromise: Promise.resolve()
+  });
+
+  await harness.initialize();
+  assert.equal(harness.state.loginCleared, false);
+  assert.equal(harness.state.redirect, "/#zugriff-verweigert");
+  assert.equal(
+    harness.state.finishCalls,
+    0,
+    "Bei einer 403-Weiterleitung darf die geschützte Shell nicht kurz eingeblendet werden."
+  );
+}
+
 function assertPublicLoginBootstrapContract() {
   const expectedHref = 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"';
   assert.equal(
-    publicLoginSource.split(expectedHref).length - 1,
+    publicEntrySource.split(expectedHref).length - 1,
     1,
-    "Der oeffentliche Google-Login muss exakt einmal ueber den API-Bootstrap fuehren."
+    "Die oeffentliche Hauptseite muss exakt einmal ueber den API-Bootstrap in Google SSO fuehren."
   );
+  assert.match(publicEntrySource, /data-google-sso-button/);
+  assert.match(publicEntrySource, /id="zugriff-verweigert"[\s\S]*role="alert"/);
+  assert.doesNotMatch(publicEntrySource, /Testzugang aktivieren|enrollment\.html/);
 }
 
 await assertApiRequestErrorContract();
 await assertSettingsDoNotBlockShell();
 await assertNonAuthFailuresStillRevealShell();
 await assertStructuredUnauthorizedRedirects();
+await assertStructuredForbiddenRedirects();
 assertPublicLoginBootstrapContract();
 
 console.log("Login-Bootstrap- und Startzeit-Hotfix-Vertraege sind konsistent.");

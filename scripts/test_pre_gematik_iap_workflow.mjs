@@ -144,7 +144,7 @@ assert.match(iapScript, /public_frontend_service_name="\$\{HELM_RELEASE\}-fronte
 assert.match(iapScript, /public_frontend_backend_service/);
 assert.match(
   iapScript,
-  /deploy_release "\$current_iap_audience" false true/,
+  /deploy_release "\$current_iap_audience" true/,
   "Jeder Release muss die Routing- und Image-Aktualisierung hinter Public-IAP beginnen."
 );
 assert.doesNotMatch(
@@ -154,7 +154,7 @@ assert.doesNotMatch(
 );
 assert.match(
   iapScript,
-  /printf '%s\\n' "\$existing_public_backend" > "\$restore_marker"[\s\S]*force_public_iap_enabled "\$existing_public_backend"[\s\S]*deploy_release "\$current_iap_audience" false true/,
+  /printf '%s\\n' "\$existing_public_backend" > "\$restore_marker"[\s\S]*force_public_iap_enabled "\$existing_public_backend"[\s\S]*deploy_release "\$current_iap_audience" true/,
   "Ein bestehendes Public-Backend muss vor jeder Helm-/Ingress-Aenderung mit bewaffnetem Restore hinter IAP konvergieren."
 );
 assert.match(iapScript, /The public-entry backend did not become IAP-protected before the release reconcile/);
@@ -167,7 +167,7 @@ assert.match(
 );
 assert.match(
   iapScript,
-  /deploy_release "\$iap_audience" "\$final_auto_enrollment_enabled" false/,
+  /deploy_release "\$iap_audience" false/,
   "IAP darf auf dem Public-Backend erst in der zweiten, verifizierten Phase deaktiviert werden."
 );
 assert.match(iapScript, /gcloud compute url-maps describe/);
@@ -469,14 +469,13 @@ const existingOpenBoundaryCheck = iapScript.indexOf(
   '! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend"'
 );
 const initialBoundaryReconcile = iapScript.indexOf(
-  'deploy_release "$current_iap_audience" false true'
+  'deploy_release "$current_iap_audience" true'
 );
 const urlMapPermissionPreflight = iapScript.indexOf('preflight_url_map_name=');
-const audienceAutoDisabled = iapScript.indexOf('deploy_release "$iap_audience" false true');
+const audienceProtected = iapScript.indexOf('deploy_release "$iap_audience" true');
 const publicIapDisabled = iapScript.indexOf(
-  'deploy_release "$iap_audience" "$final_auto_enrollment_enabled" false'
+  'deploy_release "$iap_audience" false'
 );
-const groupAutoEnabled = iapScript.indexOf('deploy_release "$iap_audience" true true');
 for (const [label, position] of [
   ["Policy-Read", policyRead],
   ["Desired-Render", desiredRender],
@@ -491,9 +490,8 @@ for (const [label, position] of [
   ["Boundary-Pruefung des zuvor offenen Backends", existingOpenBoundaryCheck],
   ["Initiales Boundary-Reconcile", initialBoundaryReconcile],
   ["URL-Map-Berechtigungs-Preflight", urlMapPermissionPreflight],
-  ["Audience-Reconcile mit Auto-Enrollment-Aus", audienceAutoDisabled],
-  ["Verifizierte Oeffnung des Public-Backends", publicIapDisabled],
-  ["Gruppenaktivierung des Auto-Enrollments", groupAutoEnabled]
+  ["Audience-Reconcile hinter Public-IAP", audienceProtected],
+  ["Verifizierte Oeffnung des Public-Backends", publicIapDisabled]
 ]) {
   assert.notEqual(position, -1, `${label} fehlt im IAP-Workflow.`);
 }
@@ -509,20 +507,14 @@ assert.ok(
     policySet < policyVerify &&
     urlMapPermissionPreflight < initialBoundaryReconcile &&
     initialBoundaryReconcile < policyRead &&
-    audienceAutoDisabled < policyRead &&
-    policyVerify < groupAutoEnabled &&
-    groupAutoEnabled < publicIapDisabled,
-  "Geschuetzte Policies und Auto-Enrollment muessen vor der abschliessenden Public-Oeffnung verifiziert werden."
+    audienceProtected < policyRead &&
+    policyVerify < publicIapDisabled,
+  "Geschuetzte Policies muessen vor der abschliessenden Public-Oeffnung verifiziert werden."
 );
-assert.match(
+assert.doesNotMatch(
   iapScript,
-  /if \[\[ "\$principal_type" == "group" \]\]; then[\s\S]*deploy_release "\$iap_audience" true true[\s\S]*else[\s\S]*Auto-enrollment must remain disabled for a direct user rollback/,
-  "Auto-Enrollment darf erst nach Gruppenpolicy-Verifikation aktiv und muss beim direkten user:-Rollback inaktiv sein."
-);
-assert.match(
-  iapScript,
-  /jsonpath='\{\.data\.API_AUTH_AUTO_ENROLLMENT_ENABLED\}'/,
-  "Der effektiv gerenderte Auto-Enrollment-Schalter muss im Cluster geprüft werden."
+  /AUTO_ENROLLMENT|autoEnrollment|auto-enrollment/i,
+  "Der Deployment-Workflow darf die entfernte Self-Service-Registrierung nicht reaktivieren."
 );
 for (const databaseContract of [
   "public.identity_enrollment_requests",
@@ -567,7 +559,7 @@ assert.match(
 );
 assert.match(
   iapScript,
-  /deploy_release "\$iap_audience" "\$final_auto_enrollment_enabled" false[\s\S]*jsonpath='\{\.spec\.iap\}'[\s\S]*--iap=disabled[\s\S]*wait_for_boundary false/,
+  /deploy_release "\$iap_audience" false[\s\S]*jsonpath='\{\.spec\.iap\}'[\s\S]*--iap=disabled[\s\S]*wait_for_boundary false/,
   "Die finale Phase muss IAP aus BackendConfig entfernen und den Custom-OAuth-Backend direkt oeffnen."
 );
 assert.match(
@@ -595,7 +587,7 @@ assert.match(
   /frontendPublicSelectorLabels[\s\S]*policyTypes:[\s\S]*- Egress[\s\S]*egress: \[\]/
 );
 assert.match(publicDockerfile, /COPY --chown=101:101 dist\/target\/public-index\.html/);
-assert.match(publicDockerfile, /COPY --chown=101:101 dist\/target\/public-login\.html/);
+assert.doesNotMatch(publicDockerfile, /public-login\.html/);
 assert.match(publicDockerfile, /COPY --chown=101:101 .*frontend-public\.conf/);
 assert.match(
   publicDockerfile,
@@ -605,9 +597,11 @@ assert.match(
 assert.match(publicDockerfile, /USER 101:101/);
 assert.match(publicNginxConfig, /map \$request_uri \$public_entry_document/);
 assert.match(publicNginxConfig, /merge_slashes off/);
+assert.match(publicNginxConfig, /absolute_redirect off/);
 assert.match(publicNginxConfig, /if \(\$public_entry_document = ""\)/);
 assert.match(publicNginxConfig, /!\-f \$document_root\/public-index\.html/);
-assert.match(publicNginxConfig, /!\-f \$document_root\/public-login\.html/);
+assert.doesNotMatch(publicNginxConfig, /public-login\.html/);
+assert.match(publicNginxConfig, /location = \/anmelden[\s\S]*return 308 \//);
 assert.match(publicNginxConfig, /default-src 'none'/);
 assert.match(publicNginxConfig, /script-src 'none'/);
 assert.match(publicNginxConfig, /Cache-Control "no-store"/);
@@ -624,9 +618,10 @@ assert.match(workflow, /\/\/anmelden/);
 
 for (const publicContract of [
   'data-public-entry="home"',
-  'data-public-entry="access"',
+  "data-google-sso-button",
   'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"',
-  'href="/enrollment.html"',
+  'redirect_status" != "308"',
+  'redirect_location" != "/"',
   "post_status",
   "public_probe=must-not-reflect"
 ]) {

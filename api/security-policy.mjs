@@ -6,7 +6,6 @@ const IAP_MAX_TOKEN_LIFETIME_SECONDS = 10 * 60;
 
 export const WRITE_CLASSES = Object.freeze({
   READ: "read",
-  ENROLLMENT: "enrollment",
   SELF_SERVICE: "self-service",
   TEST_OBJECT_CREATE: "test-object-create",
   TEST_OBJECT_UPDATE: "test-object-update",
@@ -22,8 +21,6 @@ function route(methods, pattern, role, id, writeClass = WRITE_CLASSES.RESTRICTED
 export const ROUTE_POLICIES = Object.freeze([
   route(["GET"], /^\/(?:api\/)?(?:healthz|readyz)$/, "public", "health", WRITE_CLASSES.READ),
   route(["GET"], /^\/api\/auth\/bootstrap$/, "public", "auth.bootstrap", WRITE_CLASSES.READ),
-  route(["POST"], /^\/api\/auth\/auto-enrollment$/, "iap-unbound", "auth.auto-enrollment", WRITE_CLASSES.ENROLLMENT),
-  route(["POST"], /^\/api\/auth\/enrollment$/, "iap-unbound", "auth.enrollment", WRITE_CLASSES.ENROLLMENT),
   route(["GET"], /^\/api\/session$/, "viewer", "session.read", WRITE_CLASSES.READ),
   route(["GET"], /^\/api\/ops\/(?:summary|checks)$/, "admin", "operations.read"),
   route(["GET"], /^\/api\/export$/, "admin", "data.export"),
@@ -172,13 +169,6 @@ export function validateIdentityConfiguration(env = process.env) {
   if (mode === "iap" && !String(env.IAP_JWT_AUDIENCE || "").trim()) {
     throw new Error("IAP_JWT_AUDIENCE ist fuer API_AUTH_MODE=iap zwingend erforderlich.");
   }
-  const autoEnrollmentFlag = String(env.API_AUTH_AUTO_ENROLLMENT_ENABLED || "0").trim();
-  if (!["0", "1"].includes(autoEnrollmentFlag)) {
-    throw new Error("API_AUTH_AUTO_ENROLLMENT_ENABLED muss explizit 0 oder 1 sein.");
-  }
-  if (autoEnrollmentFlag === "1" && mode !== "iap") {
-    throw new Error("Allowlist-Auto-Enrollment ist ausschliesslich fuer API_AUTH_MODE=iap zulaessig.");
-  }
   if (mode === "oidc") {
     const issuer = String(env.OIDC_ISSUER || "").trim();
     const audience = String(env.OIDC_AUDIENCE || "").trim();
@@ -197,8 +187,7 @@ export function validateIdentityConfiguration(env = process.env) {
   return Object.freeze({
     mode,
     production,
-    devBypass,
-    autoEnrollmentEnabled: autoEnrollmentFlag === "1"
+    devBypass
   });
 }
 

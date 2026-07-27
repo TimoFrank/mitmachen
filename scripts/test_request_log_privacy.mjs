@@ -4,7 +4,7 @@ import { normalizedRequestLogPath } from "../api/request-log-privacy.mjs";
 
 for (const [pathname, expected] of [
   ["/api/contacts", "/api/contacts"],
-  ["/api/auth/enrollment", "/api/auth/enrollment"],
+  ["/api/auth/enrollment", "/api/:unmatched"],
   ["/api/profile-avatar/profile-secret-123", "/api/profile-avatar/:id"],
   ["/api/contact-images/contact-secret-123", "/api/contact-images/:id"],
   ["/api/stakeholder-logos/stakeholder-secret-123", "/api/stakeholder-logos/:id"],

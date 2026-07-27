@@ -17,7 +17,6 @@ const syntaxFiles = [
   "frontend/data/document-text-extractor.js",
   "frontend/data/hospitation-export.js",
   "frontend/login/auth-guard.js",
-  "frontend/login/enrollment.js",
   "scripts/audit_api_gateway.mjs",
   "scripts/audit_public_assets.mjs",
   "scripts/audit_target_assets.mjs",

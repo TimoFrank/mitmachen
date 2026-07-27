@@ -36,11 +36,7 @@ import {
   validateAllowedOriginConfiguration,
   validateIdentityConfiguration
 } from "./security-policy.mjs";
-import {
-  canonicalIapSubject,
-  submitIapAutoEnrollment,
-  submitIapEnrollment
-} from "./test-access-enrollment.mjs";
+import { canonicalIapSubject } from "./test-access-enrollment.mjs";
 
 const ActivityModel = globalThis.ActivityModel;
 
@@ -533,7 +529,6 @@ if (!["disabled", "validated-original"].includes(IMAGE_UPLOAD_MODE) || (process.
 }
 const IDENTITY_CONFIGURATION = validateIdentityConfiguration(process.env);
 const API_AUTH_MODE = IDENTITY_CONFIGURATION.mode;
-const API_AUTH_AUTO_ENROLLMENT_ENABLED = IDENTITY_CONFIGURATION.autoEnrollmentEnabled;
 const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1";
 const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
 const API_DEV_PROFILE_ID = process.env.API_DEV_PROFILE_ID || process.env.GCP_DEMO_PROFILE_ID || "";
@@ -3073,7 +3068,7 @@ async function resolveRequestProfile(request) {
     throw error;
   }
   if (rows?.length !== 1) {
-    const error = new Error("SSO-Nutzer ist keinem aktiven Versorgungs-Kompass-Profil zugeordnet.");
+    const error = new Error("Anmeldung nicht möglich.");
     error.status = 403;
     throw error;
   }
@@ -3098,14 +3093,6 @@ async function authorizeRequest(request, url) {
   }
   request.routePolicy = policy;
   if (policy.role === "public") return;
-  if (policy.role === "iap-unbound") {
-    if (API_AUTH_MODE !== "iap") {
-      const error = new Error("Identity-Registrierung ist nur hinter IAP verfuegbar.");
-      error.status = 403;
-      throw error;
-    }
-    return;
-  }
   const profile = await resolveRequestProfile(request);
   request.currentProfile = profile;
   if (roleRank(profile.role) < roleRank(policy.role)) {
@@ -8280,56 +8267,21 @@ async function handle(request, response) {
     if (request.method === "GET" && ["/readyz", "/api/readyz"].includes(url.pathname)) {
       await getPool().query("select 1");
       await getPool().query("select access_scope, scope_ref from public.identity_bindings limit 0");
-      await getPool().query("select request_id from public.identity_enrollment_requests limit 0");
       await getPool().query("select entity_type, entity_id, scope_ref from public.test_access_objects limit 0");
-      if (API_AUTH_AUTO_ENROLLMENT_ENABLED) {
-        const autoEnrollmentReady = await getPool().query(
-          `select routine.prosecdef
-                  and owner.rolname = 'vk_allowlist_executor'
-                  and routine.proconfig is not distinct from array['search_path=pg_catalog, public']
-                  and has_function_privilege(current_user, routine.oid, 'EXECUTE')
-                  and not has_function_privilege('public', routine.oid, 'EXECUTE') as ready
-             from pg_catalog.pg_proc routine
-             join pg_catalog.pg_roles owner on owner.oid = routine.proowner
-            where routine.oid = to_regprocedure(
-              'public.pre_gematik_consume_test_access_allowlist(uuid,text,text,text,timestamptz,timestamptz)'
-            )`
-        );
-        if (autoEnrollmentReady.rows?.[0]?.ready !== true) {
-          const error = new Error("Auto-Enrollment-Datenbankfunktion fehlt oder ist nicht sicher freigegeben.");
-          error.status = 503;
-          throw error;
-        }
-      }
       return jsonResponse(response, 200, { ok: true });
     }
     if (request.method === "GET" && url.pathname === "/api/auth/bootstrap") {
+      if (API_AUTH_MODE === "iap") {
+        try {
+          request.currentProfile = await resolveRequestProfile(request);
+        } catch (error) {
+          if (Number(error?.status) === 403) {
+            return redirectResponse(response, "/#zugriff-verweigert");
+          }
+          throw error;
+        }
+      }
       return redirectResponse(response, validatedIapBootstrapReturnUrl(url));
-    }
-    if (request.method === "POST" && url.pathname === "/api/auth/auto-enrollment") {
-      if (!API_AUTH_AUTO_ENROLLMENT_ENABLED) {
-        const error = new Error("Not found");
-        error.status = 404;
-        throw error;
-      }
-      if ([...url.searchParams].length) {
-        throw validationError("Die automatische Registrierung darf keine Query-Parameter enthalten.");
-      }
-      const enrollment = await submitIapAutoEnrollment(request, {
-        verifyIapJwt,
-        pool: getPool()
-      });
-      return jsonResponse(response, 201, enrollment);
-    }
-    if (request.method === "POST" && url.pathname === "/api/auth/enrollment") {
-      if ([...url.searchParams].length) {
-        throw validationError("Die Registrierungsanfrage darf keine Query-Parameter enthalten.");
-      }
-      const enrollment = await submitIapEnrollment(request, {
-        verifyIapJwt,
-        pool: getPool()
-      });
-      return jsonResponse(response, 202, enrollment);
     }
     if (request.method === "GET" && url.pathname === "/api/session") {
       return jsonResponse(response, 200, await getSession(request));
