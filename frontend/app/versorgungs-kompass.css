@@ -9947,7 +9947,7 @@
 
       @media (min-width: 1024px) {
         body.detail-open {
-          --detail-panel-width: clamp(640px, 44vw, 720px);
+          --detail-panel-width: clamp(780px, 56vw, 880px);
         }
 
         body.detail-open .wrap {
@@ -10009,6 +10009,15 @@
 
         .detail-tabs::-webkit-scrollbar {
           display: none;
+        }
+
+        .detail-drawer .detail-tabs {
+          gap: 4px;
+        }
+
+        .detail-drawer .detail-tab {
+          padding-inline: 8px;
+          font-size: 0.72rem;
         }
       }
 
@@ -10137,119 +10146,211 @@
 
       .participation-summary-block {
         display: grid;
-        gap: 8px;
+        gap: 10px;
       }
 
       .participation-summary-block .detail-section-title {
         margin-bottom: 0;
       }
 
-      .participation-summary__row {
+      .participation-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .participation-summary-card {
+        position: relative;
         width: 100%;
-        border: 0;
+        min-width: 0;
+        min-height: 138px;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 13px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
         color: inherit;
         font: inherit;
         text-align: left;
         cursor: pointer;
-        transition: background-color 140ms ease, color 140ms ease;
+        overflow: hidden;
+        transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
       }
 
-      .participation-summary__row:hover {
-        background: var(--primary-soft);
+      .participation-summary-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: currentColor;
       }
 
-      .participation-summary__row:focus-visible {
-        position: relative;
-        z-index: 1;
+      .participation-summary-card--hospitations {
+        border-color: #efd5ad;
+        background: linear-gradient(145deg, #fffaf2 0%, #fff4df 100%);
+        color: #a65308;
+      }
+
+      .participation-summary-card--formats {
+        border-color: #ddcef3;
+        background: linear-gradient(145deg, #fbf8ff 0%, #f2ebfb 100%);
+        color: #71419a;
+      }
+
+      .participation-summary-card:hover {
+        transform: translateY(-1px);
+        border-color: currentColor;
+        box-shadow: 0 10px 24px rgba(16, 36, 92, 0.1);
+      }
+
+      .participation-summary-card:focus-visible {
         outline: 2px solid rgba(21, 95, 228, 0.48);
-        outline-offset: -2px;
+        outline-offset: 2px;
       }
 
-      .participation-summary__value {
+      .participation-summary-card__header {
         display: flex;
         min-width: 0;
         align-items: center;
-        justify-content: space-between;
-        gap: 10px;
+        gap: 9px;
       }
 
-      .participation-summary__value > span:first-child {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      .participation-summary-card__icon {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.86);
       }
 
-      .participation-summary__chevron {
+      .participation-summary-card__icon svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .participation-summary-card__title {
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .participation-summary-card__chevron {
+        margin-left: auto;
         flex: 0 0 auto;
-        color: var(--primary);
-        font-size: 1.1rem;
-        font-weight: 850;
+        font-size: 1.25rem;
+        font-weight: 900;
         line-height: 1;
       }
 
-      .participation-profile {
+      .participation-summary-card__body {
         display: grid;
-        gap: 12px;
-      }
-
-      .participation-profile__switcher {
-        position: sticky;
-        top: 111px;
-        z-index: 1;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 4px;
-        padding: 4px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: color-mix(in srgb, var(--surface-muted) 88%, white);
-      }
-
-      .participation-profile__tab {
-        display: inline-flex;
+        align-content: space-between;
+        gap: 10px;
         min-width: 0;
-        min-height: 36px;
+      }
+
+      .participation-summary-card__body > strong {
+        min-width: 0;
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        font-weight: 850;
+        line-height: 1.35;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
+
+      .participation-summary-card__badges {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .participation-summary-card__count,
+      .participation-summary-card__state {
+        display: inline-flex;
+        min-height: 26px;
+        align-items: center;
+        padding: 4px 8px;
+        border: 1px solid rgba(100, 116, 139, 0.2);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.76);
+        color: var(--text-secondary);
+        font-size: 0.66rem;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .participation-summary-card__state--error {
+        border-color: color-mix(in srgb, var(--danger) 34%, transparent);
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .profile-date-badge {
+        display: inline-flex;
+        min-height: 28px;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        border: 0;
-        border-radius: 9px;
-        background: transparent;
-        color: var(--text-muted);
-        cursor: pointer;
-        font: inherit;
-        font-size: 0.76rem;
-        font-weight: 850;
+        padding: 5px 10px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        color: #ffffff;
+        font-size: 0.69rem;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        white-space: nowrap;
+        box-shadow: 0 3px 8px rgba(16, 36, 92, 0.12);
       }
 
-      .participation-profile__tab:hover {
-        color: var(--primary);
+      .profile-date-badge--hospitation {
+        border-color: #78350f;
+        background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
       }
 
-      .participation-profile__tab:focus-visible {
-        outline: 2px solid rgba(21, 95, 228, 0.48);
-        outline-offset: 1px;
+      .profile-date-badge--format {
+        border-color: #6632a0;
+        background: linear-gradient(135deg, #8d5ac5 0%, #6f3aa5 100%);
       }
 
-      .participation-profile__tab.is-active {
-        background: var(--surface);
-        color: var(--primary);
-        box-shadow: 0 1px 3px rgba(16, 36, 92, 0.12);
+      .profile-section-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 12px;
       }
 
-      .participation-profile__panel {
-        min-width: 0;
+      .profile-section-heading .detail-section-title {
+        margin-bottom: 3px;
       }
 
-      .participation-profile__panel[hidden] {
-        display: none;
-      }
-
-      .participation-profile__panel > .section-block {
+      #detail-hospitations > [data-hospitation-profile-section],
+      #detail-formats > [data-format-profile-section] {
         margin-top: 0;
         padding-top: 0;
         border-top: 0;
+      }
+
+      .profile-section-heading p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.71rem;
+        font-weight: 700;
+        line-height: 1.4;
       }
 
       .consent-panel {
@@ -10730,21 +10831,6 @@
         line-height: 1.35;
       }
 
-      .hospitation-profile-next__date {
-        display: inline-flex;
-        align-items: center;
-        min-height: 28px;
-        padding: 5px 10px;
-        border: 1px solid #8bbcf0;
-        border-radius: 999px;
-        background: #ffffff;
-        color: #175b9d;
-        font-size: 0.72rem;
-        font-weight: 900;
-        line-height: 1;
-        white-space: nowrap;
-      }
-
       .hospitation-profile-next__owner {
         display: grid;
         justify-items: center;
@@ -11130,6 +11216,7 @@
         align-items: center;
         width: fit-content;
         min-height: 24px;
+        border: 1px solid transparent;
         border-radius: 999px;
         background: var(--surface-muted);
         color: var(--text-muted);
@@ -11138,10 +11225,10 @@
         font-weight: 900;
       }
 
-      .format-participation-status--eingeladen { background: #eff6ff; color: #1d4ed8; }
-      .format-participation-status--zugesagt { background: #ecfdf5; color: #047857; }
-      .format-participation-status--teilgenommen { background: #d1fae5; color: #065f46; }
-      .format-participation-status--abgesagt { background: #fef2f2; color: #b91c1c; }
+      .format-participation-status--eingeladen { border-color: #93c5fd; background: #dbeafe; color: #1e40af; }
+      .format-participation-status--zugesagt { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+      .format-participation-status--teilgenommen { border-color: #6ee7b7; background: #d1fae5; color: #065f46; }
+      .format-participation-status--abgesagt { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
 
       .format-profile__status-form {
         display: grid;
@@ -11270,9 +11357,173 @@
         background: var(--danger-soft);
       }
 
+      .hospitation-profile-record {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 14px;
+        border: 1px solid #ead9be;
+        border-left: 4px solid #d97c0b;
+        border-radius: 12px;
+        background: var(--surface);
+        box-shadow: 0 3px 10px rgba(88, 56, 18, 0.05);
+      }
+
+      .hospitation-profile-record--archived {
+        border-style: dashed;
+        opacity: 0.78;
+      }
+
+      .hospitation-profile-record__copy {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .hospitation-profile-record__copy > strong {
+        min-width: 0;
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        font-weight: 900;
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-profile-record__copy .profile-date-badge,
+      .format-profile__copy .profile-date-badge {
+        flex: 0 0 auto;
+      }
+
+      .hospitation-profile-record__owner {
+        min-width: 0;
+        max-width: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .hospitation-profile-record__owner .owner-badge-group {
+        min-width: 0;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+      }
+
+      .hospitation-profile-record__owner .owner-badge {
+        max-width: 160px;
+        min-height: 26px;
+      }
+
+      .hospitation-profile-record__actions {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: end;
+        gap: 9px;
+      }
+
+      .hospitation-profile-history__heading {
+        align-items: center;
+      }
+
+      .hospitation-profile-next__date,
+      .hospitation-profile-history__date {
+        color: #ffffff;
+        font-size: 0.69rem;
+      }
+
+      .format-profile__item {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        padding: 12px 14px;
+        border-left: 4px solid #8b59b5;
+        border-radius: 12px;
+        box-shadow: 0 3px 10px rgba(67, 37, 99, 0.05);
+      }
+
+      .format-profile__item--past {
+        background: #fbf9fe;
+      }
+
+      .format-profile__copy {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .format-profile__copy strong {
+        min-width: 0;
+        flex: 1 1 auto;
+        font-size: 0.82rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .format-profile__badges {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .format-profile__badges .owner-badge {
+        max-width: 150px;
+        min-height: 26px;
+      }
+
+      .format-profile__type-badge {
+        display: inline-flex;
+        min-height: 26px;
+        align-items: center;
+        padding: 4px 9px;
+        border: 1px solid #d6c2ec;
+        border-radius: 999px;
+        background: #f1e9fa;
+        color: #6f388f;
+        font-size: 0.66rem;
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .format-profile__trailing {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: end;
+        gap: 9px;
+      }
+
+      .format-profile__more > summary::after {
+        content: "›";
+        transform: rotate(0deg);
+        transition: transform 140ms ease;
+      }
+
+      .format-profile__more[open] > summary::after {
+        content: "›";
+        transform: rotate(90deg);
+      }
+
+      .format-profile__link-disclosure {
+        justify-content: flex-end;
+      }
+
       @media (max-width: 520px) {
-        .participation-summary__row {
-          grid-template-columns: minmax(100px, 0.38fr) minmax(0, 1fr);
+        .participation-summary {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .participation-summary-card {
+          min-height: 128px;
         }
 
         .hospitation-profile-next {
@@ -11290,22 +11541,31 @@
           flex-direction: column;
         }
 
-        .hospitation-profile-history__item {
+        .hospitation-profile-record {
           grid-template-columns: minmax(0, 1fr);
+          gap: 10px;
         }
 
-        .hospitation-profile-history__actions {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+        .hospitation-profile-record__actions {
+          display: flex;
+          justify-content: end;
+          flex-wrap: wrap;
         }
 
-        .hospitation-profile-history__actions .action-button {
-          width: 100%;
+        .hospitation-profile-record__actions .action-button {
+          width: auto;
           justify-content: center;
         }
 
-        .hospitation-profile-history__actions .action-button:only-child {
-          grid-column: 1 / -1;
+        .profile-section-heading {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .profile-section-heading > .action-button {
+          width: 100%;
+          min-height: 42px;
+          justify-content: center;
         }
 
         .hospitation-context-filter .action-button {
@@ -11317,11 +11577,28 @@
           grid-template-columns: minmax(0, 1fr);
         }
 
-        .format-profile__owner {
-          justify-self: start;
+        .format-profile__trailing {
+          display: flex;
+          justify-content: end;
+          flex-wrap: wrap;
         }
 
-        .format-profile__controls,
+        .format-profile__trailing .action-button {
+          width: auto;
+          justify-content: center;
+        }
+
+        .hospitation-profile-record__copy,
+        .format-profile__copy {
+          flex-wrap: wrap;
+        }
+
+        .hospitation-profile-record__copy > strong,
+        .format-profile__copy > strong {
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+
         .format-profile__status-form,
         .format-profile__link-form {
           display: grid;
@@ -11330,7 +11607,6 @@
         }
 
         .format-profile__status-select,
-        .format-profile__controls .action-button,
         .format-profile__status-form .action-button,
         .format-profile__link-form .action-button {
           width: 100%;

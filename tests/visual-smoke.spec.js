@@ -3375,10 +3375,13 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
       labels: [...tabs.querySelectorAll(".detail-tab")].map((tab) => tab.dataset.detailTabLabel),
       roles: [...tabs.querySelectorAll(".detail-tab")].map((tab) => tab.getAttribute("role"))
     }));
-    expect(tabMetrics.labels).toEqual(["Überblick", "Kontakt", "Themen", "Einwilligung", "Beteiligung", "Notizen", "Aktivitäten"]);
-    expect(tabMetrics.roles).toEqual(["tab", "tab", "tab", "tab", "tab", "tab", "tab"]);
-    expect(tabMetrics.scrollWidth).toBeGreaterThanOrEqual(tabMetrics.clientWidth);
+    expect(tabMetrics.labels).toEqual(["Überblick", "Kontakt", "Themen", "Einwilligung", "Hospitation", "Formate", "Notizen", "Aktivitäten"]);
+    expect(tabMetrics.roles).toEqual(["tab", "tab", "tab", "tab", "tab", "tab", "tab", "tab"]);
+    expect(tabMetrics.scrollWidth).toBeLessThanOrEqual(tabMetrics.clientWidth + 1);
     await expect(page.locator("#detail-drawer .detail-tabs")).toHaveCSS("overflow-x", "auto");
+    const drawerWidth = await page.locator("#detail-drawer .detail-panel").evaluate((panel) => panel.getBoundingClientRect().width);
+    expect(drawerWidth).toBeGreaterThanOrEqual(780);
+    expect(drawerWidth).toBeLessThanOrEqual(881);
     const overviewTab = page.locator('#detail-drawer [data-detail-tab="overview"]');
     await overviewTab.focus();
     await page.keyboard.press("End");
@@ -3394,27 +3397,35 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
     await expect(page.locator("#detail-drawer .detail-more .detail-mini-map")).toBeHidden();
     const participationSummary = page.locator("#detail-drawer [data-participation-summary]");
     await expect(participationSummary.locator("[data-participation-summary-item]")).toHaveCount(2);
-    await expect(participationSummary.locator("[data-participation-summary-item='hospitations']")).toContainText("Kein Termin geplant");
-    await expect(participationSummary.locator("[data-participation-summary-item='formats']")).toContainText(/kommende/);
+    await expect(participationSummary.locator("[data-participation-summary-item='hospitations']")).toContainText("Noch keine Hospitation geplant");
+    await expect(participationSummary.locator("[data-participation-summary-item='formats'] .format-profile__type-badge")).toBeVisible();
+    await expect(participationSummary.locator(".detail-line")).toHaveCount(0);
     await expect(page.locator("#detail-drawer [data-hospitation-profile-section]")).toHaveCount(0);
     await expect(page.locator("#detail-drawer [data-format-profile-section]")).toHaveCount(0);
+    await expect(page.locator("#detail-drawer [data-detail-tab='participation']")).toHaveCount(0);
+    await expect(page.locator("#detail-drawer [data-participation-section-tab]")).toHaveCount(0);
     await page.locator("#global-status").evaluate((status) => { status.hidden = true; });
     await attachScreenshot(page, testInfo, "kontaktprofil-beteiligung-ueberblick", { fullPage: false });
     await participationSummary.locator("[data-participation-summary-item='hospitations']").click();
-    await expect(page.locator('#detail-drawer [data-detail-tab="participation"]')).toHaveAttribute("aria-selected", "true");
-    await expect(page.locator('#detail-drawer [data-participation-section-tab="hospitations"]')).toBeFocused();
-    await expect(page.locator("#detail-drawer [data-hospitation-profile-section]")).toContainText("Nicht geplant");
+    await expect(page.locator('#detail-drawer [data-detail-tab="hospitations"]')).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator('#detail-drawer [data-detail-tab="hospitations"]')).toBeFocused();
+    await expect(page.locator("#detail-drawer [data-hospitation-profile-section]")).toContainText("Keine Hospitation geplant");
     await expect(page.locator("#detail-drawer [data-hospitation-profile-history]")).toContainText("Noch keine bisherigen Hospitationen");
-    await expect(page.locator("#detail-drawer [data-hospitation-profile-action='request']")).toHaveText("+ Planen");
+    await expect(page.locator("#detail-drawer [data-hospitation-profile-action='request']")).toHaveText("Neue Hospitation planen");
     await expect(page.locator("#detail-drawer [data-hospitation-profile-action='booking']")).toHaveCount(0);
     await expect(page.locator("#detail-drawer .hospitation-profile-summary__item")).toHaveCount(0);
     await expect(page.locator("#detail-drawer [data-hospitation-profile-section]")).not.toContainText("Dokumentation");
     await expect(page.locator("#detail-drawer [data-hospitation-profile-section]")).not.toContainText("Follow-ups");
-    await expect(page.locator("#detail-drawer [data-hospitation-profile-action='list']")).toHaveText("Alle Hospitationen");
+    await expect(page.locator("#detail-drawer [data-hospitation-profile-action='list']")).toHaveCount(0);
     await attachScreenshot(page, testInfo, "kontaktprofil-beteiligung-drawer-hospitationen", { fullPage: false });
-    await page.locator('#detail-drawer [data-participation-section-tab="formats"]').click();
+    await page.locator('#detail-drawer [data-detail-tab="formats"]').click();
     await expect(page.locator("#detail-drawer [data-format-profile-section]")).toBeVisible();
     await expect(page.locator("#detail-drawer [data-format-profile-status]")).toHaveCount(0);
+    await expect(page.locator("#detail-drawer [data-format-profile-action='edit-status']")).toHaveCount(0);
+    await expect(page.locator("#detail-drawer [data-format-profile-action='list']")).toHaveCount(0);
+    const formatSection = page.locator("#detail-drawer [data-format-profile-section]");
+    await expect(formatSection.locator(".format-profile__type-badge").first()).toBeVisible();
+    await expect(formatSection.locator(".profile-date-badge--format").first()).toBeVisible();
     await attachScreenshot(page, testInfo, "kontaktprofil-beteiligung-drawer-formate", { fullPage: false });
     await expect(page.locator("#detail-drawer #detail-edit")).toHaveCount(0);
     await expect(page.locator("#detail-drawer .detail-section-edit[data-detail-edit-section='overview']")).toHaveText("Stammdaten bearbeiten");
@@ -3516,35 +3527,25 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
 
 test("Kontaktprofil: naechste Hospitation zeigt Datum und Owner kompakt", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Desktop-Kontaktprofil pruefen");
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
+    role: "admin",
+    backendFixtureScript: hospitationProfileBackendFixtureScript()
+  });
   await page.setViewportSize({ width: 1440, height: 760 });
 
-  const firstContact = page.locator("#contact-list .row").first();
-  await expect(firstContact).toBeVisible();
-  await firstContact.click();
+  await page.locator('#contact-list [data-id="hospitation-profile-contact"]').click();
   await page.locator("#detail-drawer [data-participation-summary-item='hospitations']").click();
   const section = page.locator("#detail-drawer [data-hospitation-profile-section]");
-  await expect(section).toContainText("Nicht geplant");
-  await section.locator("[data-hospitation-profile-action='request']").click();
 
-  const editor = page.locator("#hospitation-editor-drawer");
-  await expect(editor).toHaveAttribute("data-hospitation-editor-mode", "request");
-  await editor.locator("#hospitation-editor-next").click();
-  await editor.locator("#hospitation-start").fill("2099-08-15T10:30");
-  await editor.locator("#hospitation-editor-save").click();
-  await expect(editor).not.toHaveClass(/is-open/);
-  await page.locator("#detail-drawer #detail-close").click();
-  await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
-  await firstContact.click();
-  await expect(page.locator("#detail-drawer")).toHaveClass(/is-open/);
-  await page.locator("#detail-drawer [data-participation-summary-item='hospitations']").click();
-
-  await expect(section.locator(".hospitation-profile-next")).toHaveClass(/hospitation-profile-next--planned/);
-  await expect(section.locator(".hospitation-profile-next__copy")).toContainText("Geplant");
+  await expect(section.locator(".hospitation-profile-record--next")).toHaveClass(/has-entry/);
+  await expect(section.locator(".hospitation-profile-record--next")).toContainText("Nächste Hospitation");
   await expect(section.locator(".hospitation-profile-next__date")).toHaveText("15.08.2099");
   await expect(section.locator(".hospitation-profile-next__date")).not.toContainText(":");
-  await expect(section.locator(".hospitation-profile-next__owner .owner-avatar-stack__item")).toHaveCount(1);
-  await expect(section.locator("[data-hospitation-profile-action='open']")).toHaveText("Öffnen");
+  await expect(section.locator(".hospitation-profile-record--next .hospitation-profile-record__copy > .hospitation-profile-next__date")).toBeVisible();
+  await expect(section.locator(".hospitation-profile-record--next .hospitation-profile-record__actions .owner-badge__avatar")).toHaveCount(1);
+  await expect(section.locator(".hospitation-profile-record--next [data-hospitation-profile-action='open']")).toHaveText("Öffnen");
+  await expect(section.locator("[data-hospitation-profile-action='request']")).toHaveText("Neue Hospitation planen");
+  await expect(section.locator("[data-hospitation-profile-action='list']")).toHaveCount(0);
   await expect(section.locator("[data-hospitation-profile-action='booking']")).toHaveCount(0);
   await expect(section).not.toContainText("Dokumentation");
   await expect(section).not.toContainText("Follow-ups");
@@ -3567,31 +3568,35 @@ test("Kontaktprofil: bisherige Hospitationen sind statuskorrekt, sortiert und mo
 
   await expect(section.locator(".hospitation-profile-next__date")).toHaveText("15.08.2099");
   await expect(history).toContainText("Bisherige Hospitationen");
-  await expect(history).toContainText("Neueste zuerst");
+  await expect(history).not.toContainText("Neueste zuerst");
   const primaryHistory = history.locator("[data-hospitation-profile-history-list]").first().locator(":scope > [data-hospitation-profile-history-id]");
   await expect(primaryHistory).toHaveCount(2);
   await expect(primaryHistory.locator(".hospitation-profile-history__date")).toHaveText([
     "20.06.2026",
     "12.05.2026"
   ]);
-  await expect(primaryHistory.locator(".hospitation-status-badge")).toHaveText([
-    "Dokumentiert",
-    "Durchgeführt"
-  ]);
-  await expect(primaryHistory.first()).toContainText("Praxis Verlauf");
-  await expect(primaryHistory.first()).not.toContainText("Owner: History Admin");
+  await expect(primaryHistory.locator(".hospitation-status-badge")).toHaveCount(0);
+  await expect(primaryHistory.first()).toContainText("History Admin");
+  await expect(primaryHistory.first()).not.toContainText("Praxis Verlauf");
+  await expect(primaryHistory.first()).not.toContainText("Praxisablauf verstehen");
   await expect(primaryHistory.first()).not.toContainText("Dokumentation: Dokumentiert");
+  await expect(primaryHistory.locator(".profile-date-badge--hospitation")).toHaveCount(2);
+  await expect(primaryHistory.first().locator(".hospitation-profile-record__copy > .hospitation-profile-history__date")).toBeVisible();
+  await expect(primaryHistory.first().locator(".hospitation-profile-record__actions .owner-badge__avatar")).toHaveCount(1);
+  await expect(primaryHistory.getByRole("button", { name: "Öffnen", exact: true })).toHaveCount(2);
   await expect(history.locator('[data-hospitation-profile-history-id="history-cancelled"]')).toHaveCount(0);
   await expect(history.locator('[data-hospitation-profile-history-id="history-past-scheduled"]')).toHaveCount(0);
   await expect(history.locator('[data-hospitation-profile-history-id="history-future-documented"]')).toHaveCount(0);
   const more = history.locator(".hospitation-profile-history__more");
-  await expect(more.locator(":scope > summary")).toHaveText("Alle 4 bisherigen anzeigen");
+  await expect(more.locator(":scope > summary")).toHaveText("Weitere 2 Hospitationen");
   await expect(more.locator('[data-hospitation-profile-history-id="history-archived"]')).toBeHidden();
   await expect(more.locator('[data-hospitation-profile-history-id="history-older-documented"]')).toBeHidden();
   await more.locator(":scope > summary").click();
   await expect(more.locator('[data-hospitation-profile-history-id="history-archived"]')).toHaveAttribute("data-hospitation-profile-phase", "archived");
   await expect(more.locator('[data-hospitation-profile-history-id="history-archived"]')).toBeVisible();
   await expect(more.locator('[data-hospitation-profile-history-id="history-older-documented"]')).toBeVisible();
+  const dateBadgeLeftEdges = await section.locator(".hospitation-profile-record:visible .profile-date-badge--hospitation").evaluateAll((badges) => badges.slice(0, 3).map((badge) => Math.round(badge.getBoundingClientRect().left)));
+  expect(Math.max(...dateBadgeLeftEdges) - Math.min(...dateBadgeLeftEdges)).toBeLessThanOrEqual(2);
 
   await expectNoHorizontalOverflow(page, isMobile ? "#person-profile-body" : "#detail-drawer");
   await attachScreenshot(page, testInfo, "kontaktprofil-bisherige-hospitationen", { fullPage: false });
@@ -3612,7 +3617,7 @@ test("Kontaktprofil: Hospitations-Ladefehler ist kein Leerzustand", async ({ pag
   await expect(history).not.toContainText("Noch keine bisherigen Hospitationen");
 });
 
-test("Kontaktprofil: Hospitation und Dokumentation öffnen direkt; Gesamtliste übernimmt Kontaktfilter", async ({ page }, testInfo) => {
+test("Kontaktprofil: bestehende Hospitation öffnet direkt ohne Modulwechsel", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Direktaktionen einmal im Desktop-Drawer prüfen");
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
     role: "admin",
@@ -3632,26 +3637,9 @@ test("Kontaktprofil: Hospitation und Dokumentation öffnen direkt; Gesamtliste �
   await expect(editor.locator('[data-hospitation-editor-panel="overview"]')).toBeVisible();
   await editor.locator("#hospitation-editor-close").click();
   await expect(editor).toHaveAttribute("aria-hidden", "true");
-
-  await documented.locator(".profile-action-menu > summary").click();
-  await documented.getByRole("button", { name: "Dokumentation öffnen" }).click();
-  await expect(editor).toHaveClass(/is-open/);
-  await expect(editor.locator('[data-hospitation-editor-panel="hospitation"]')).toBeVisible();
-  await editor.locator("#hospitation-editor-close").click();
-  await expect(editor).toHaveAttribute("aria-hidden", "true");
-
-  await root.locator('[data-hospitation-profile-action="list"]').click();
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
-  const contextFilter = page.locator("#hospitation-list [data-hospitation-context-filter]");
-  await expect(page.locator("#hospitation-list")).toBeVisible();
-  await expect(contextFilter).toBeVisible();
-  await expect(contextFilter).toContainText("Gefiltert nach Kontakt: Anna Verlauf");
-  await expect(page.locator("#hospitation-list")).toContainText("Anna Verlauf");
-  await expect(page.locator("#hospitation-list")).not.toContainText("Berta Andere");
-
-  await contextFilter.getByRole("button", { name: "Filter aufheben" }).click();
-  await expect(page.locator("#hospitation-list [data-hospitation-context-filter]")).toHaveCount(0);
-  await expect(page.locator("#hospitation-list")).toContainText("Berta Andere");
+  await expect(root).toHaveClass(/is-open/);
+  await expect(root.locator(".profile-action-menu")).toHaveCount(0);
+  await expect(root.locator('[data-hospitation-profile-action="list"]')).toHaveCount(0);
 });
 
 test("Kontaktprofil: direkter Deeplink rendert Profilseite", async ({ page }) => {
@@ -3683,20 +3671,6 @@ test("Kontaktprofil: bereichsbezogene Bearbeitung bleibt eindeutig", async ({ pa
   await expect(root.locator('#detail-contactways [data-detail-field="email"]')).toBeVisible();
   await expect(root.locator('.detail-profile-copy [data-detail-field="name"]')).toHaveCount(0);
   await expect(root.locator('[data-detail-tab="overview"]')).toBeDisabled();
-});
-
-test("Kontaktprofil: Hospitationsverlinkung führt in die Terminübersicht", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
-
-  const isMobile = testInfo.project.name.includes("mobile");
-  await page.locator("#contact-list .row, #contact-list .mobile-contact-card").first().click();
-  const root = page.locator(isMobile ? "#person-profile-body" : "#detail-drawer");
-  await root.locator("[data-participation-summary-item='hospitations']").click();
-  await root.locator('[data-hospitation-profile-action="list"]').click();
-
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
-  await expect(page.locator("#view-hospitations")).toBeVisible();
-  await expect(page).toHaveURL(/#hospitations/);
 });
 
 test("Kontaktprofil: #Mitmachen-Einwilligung ist inline und per Tastatur dokumentierbar", async ({ page }, testInfo) => {
@@ -6182,8 +6156,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#person\/contact\/demo-contact-01$/);
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "personProfile");
-  await page.locator('#person-profile-body [data-detail-tab="participation"]').click();
-  await page.locator('#person-profile-body [data-participation-section-tab="formats"]').click();
+  await page.locator('#person-profile-body [data-detail-tab="formats"]').click();
   await expect(page.locator("#person-profile-body [data-format-profile-section]")).toBeVisible();
   await expect(page.locator("#person-profile-body [data-format-profile-group='upcoming']")).toContainText("Kommende Formate");
   await expect(page.locator("#person-profile-body [data-format-profile-group='past']")).toContainText("Vergangene Formate");
